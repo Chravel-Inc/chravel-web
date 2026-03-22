@@ -1047,7 +1047,7 @@ export const TripChat = React.memo(
 
         {/* Persistent Chat Input - Hidden when in Channels mode or user cannot post */}
         {messageFilter !== 'channels' && canPostToChat && (
-          <div className="chat-input-persistent w-full pb-[env(safe-area-inset-bottom)]">
+          <div className="chat-input-persistent w-full pb-[env(safe-area-inset-bottom)] flex-shrink-0">
             <div className="w-full">
               <ChatInput
                 inputMessage={inputMessage}

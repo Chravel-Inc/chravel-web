@@ -30,8 +30,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { cn } from '@/lib/utils';
 import { CTA_GRADIENT, CTA_INTERACTIVE, CTA_DISABLED, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 
-/** 40px chat-specific button — compromise between touch target (44px) and text input room (36px) */
-const CTA_BUTTON_CHAT = `size-10 min-w-[40px] rounded-full flex items-center justify-center shrink-0 select-none touch-manipulation ${CTA_GRADIENT} ${CTA_INTERACTIVE} ${CTA_DISABLED}`;
+/** Chat-specific button — 32px on mobile for more text input room, 40px on sm+ */
+const CTA_BUTTON_CHAT = `size-8 min-w-[32px] sm:size-10 sm:min-w-[40px] rounded-full flex items-center justify-center shrink-0 select-none touch-manipulation ${CTA_GRADIENT} ${CTA_INTERACTIVE} ${CTA_DISABLED}`;
 import * as haptics from '@/native/haptics';
 import { MentionPicker, TripMember } from './MentionPicker';
 import { VoiceButton } from './VoiceButton';
@@ -418,7 +418,7 @@ export const ChatInput = ({
         <div
           ref={dropZoneRef}
           className={cn(
-            'chat-composer flex items-center gap-2 px-3 py-2 bg-neutral-950/90 backdrop-blur-md sticky bottom-0 relative transition-all duration-200 w-full rounded-xl border border-white/10',
+            'chat-composer flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 bg-neutral-950/90 backdrop-blur-md relative transition-all duration-200 w-full rounded-xl border border-white/10',
             isDragActive && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
           )}
           style={safeAreaBottom ? { paddingBottom: 'env(safe-area-inset-bottom, 0px)' } : undefined}
@@ -491,7 +491,7 @@ export const ChatInput = ({
             placeholder={isBroadcastMode ? 'Send an announcement...' : 'Type @ to mention someone…'}
             rows={1}
             className={cn(
-              'flex-1 min-h-[44px] sm:min-h-[48px] px-4 py-2 rounded-full resize-none focus:outline-none focus-visible:ring-2 transition-all',
+              'flex-1 min-h-[38px] sm:min-h-[44px] px-3 sm:px-4 py-2 rounded-full resize-none focus:outline-none focus-visible:ring-2 transition-all',
               isBroadcastMode
                 ? 'bg-white/5 border border-[#B91C1C]/50 focus-visible:ring-[#B91C1C]/40 backdrop-blur-sm text-white placeholder-red-800/80'
                 : 'bg-white/5 border border-white/10 focus-visible:ring-primary/40 backdrop-blur-sm text-white placeholder-neutral-400',
@@ -571,7 +571,7 @@ export const ChatInput = ({
             className={
               isBroadcastMode
                 ? cn(
-                    'size-10 min-w-[40px] rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-[#B91C1C] to-[#991B1B] hover:opacity-90 shrink-0 select-none touch-manipulation',
+                    'size-8 min-w-[32px] sm:size-10 sm:min-w-[40px] rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-[#B91C1C] to-[#991B1B] hover:opacity-90 shrink-0 select-none touch-manipulation',
                   )
                 : CTA_BUTTON_CHAT
             }

@@ -66,7 +66,7 @@ export const VoiceButton = ({
           <button
             type="button"
             onClick={handleClick}
-            className={`relative ${small ? 'size-10 min-w-[40px]' : 'size-11'} rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 shrink-0 select-none touch-manipulation ${getStyle()}`}
+            className={`relative ${small ? 'size-8 min-w-[32px] sm:size-10 sm:min-w-[40px]' : 'size-11'} rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 shrink-0 select-none touch-manipulation ${getStyle()}`}
             aria-label={getTooltip()}
             aria-pressed={isActive}
           >
