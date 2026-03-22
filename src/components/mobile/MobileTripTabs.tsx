@@ -605,9 +605,9 @@ export const MobileTripTabs = ({
               >
                 {/* ⚡ Per-tab error boundary: errors stay on failing tab, no bounce-back */}
                 <div
-                  className={
-                    showEventDisabledState ? 'opacity-50 pointer-events-none select-none' : ''
-                  }
+                  className={`flex-1 min-h-0 flex flex-col overflow-hidden${
+                    showEventDisabledState ? ' opacity-50 pointer-events-none select-none' : ''
+                  }`}
                 >
                   <Suspense fallback={getSkeletonForTab(tab.id)}>
                     <FeatureErrorBoundary featureName={tab.label}>

@@ -2029,12 +2029,12 @@ export const AIConciergeChat = ({
 
         {/* Input area — sticky bottom with inline voice banner above input */}
         <div
-          className="chat-composer sticky bottom-0 z-10 bg-black/30 px-3 pt-2 flex-shrink-0"
+          className="chat-composer z-10 bg-black/30 px-3 pt-2 flex-shrink-0"
           style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)' }}
         >
           {/* End session button — aligned above dictation button on same vertical axis */}
           {isLiveSessionActive && (
-            <div className="mb-2">
+            <div className="mb-2 w-11">
               <button
                 type="button"
                 onClick={() => void handleEndLiveSession()}
