@@ -4,7 +4,6 @@ import { useAuth } from '../../hooks/useAuth';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { supabase } from '../../integrations/supabase/client';
 import { useToast } from '../../hooks/use-toast';
-import { getConsistentAvatar } from '../../utils/avatarUtils';
 
 export const ConsumerProfileSection = () => {
   const { user, updateProfile, signOut } = useAuth();
@@ -35,7 +34,6 @@ export const ConsumerProfileSection = () => {
     displayName: 'Demo User',
     realName: undefined as string | undefined,
     namePreference: 'display' as const,
-    avatar: getConsistentAvatar('Demo User'),
   };
 
   const currentUser = user || mockUser;
