@@ -7,7 +7,6 @@ import { ConsumerProfileSection } from '../ConsumerProfileSection';
 const mockUpdateProfile = vi.fn();
 const mockSignOut = vi.fn();
 const mockToast = vi.fn();
-const mockGetConsistentAvatar = vi.fn();
 
 let mockUser: {
   id: string;
@@ -56,10 +55,6 @@ vi.mock('../../../integrations/supabase/client', () => ({
   },
 }));
 
-vi.mock('../../../utils/avatarUtils', () => ({
-  getConsistentAvatar: (...args: unknown[]) => mockGetConsistentAvatar(...args),
-}));
-
 describe('ConsumerProfileSection', () => {
   beforeEach(() => {
     mockUser = {
@@ -71,31 +66,22 @@ describe('ConsumerProfileSection', () => {
       avatar: 'https://example.com/avatar.png',
     };
     mockShowDemoContent = false;
-    mockGetConsistentAvatar.mockReset();
-    mockGetConsistentAvatar.mockReturnValue('https://example.com/demo-avatar.png');
     vi.clearAllMocks();
   });
 
-  it('renders the signed-in user avatar preview', () => {
+  it('renders the upload photo button for signed-in user', () => {
     render(<ConsumerProfileSection />);
 
-    expect(screen.getByRole('img', { name: /traveler profile/i })).toHaveAttribute(
-      'src',
-      'https://example.com/avatar.png',
-    );
     expect(screen.getByRole('button', { name: /upload photo/i })).toBeInTheDocument();
+    expect(screen.getByText(/JPG, PNG or GIF/)).toBeInTheDocument();
   });
 
-  it('renders the demo avatar preview when demo content is shown', () => {
+  it('renders the upload photo button in demo mode', () => {
     mockUser = null;
     mockShowDemoContent = true;
 
     render(<ConsumerProfileSection />);
 
-    expect(mockGetConsistentAvatar).toHaveBeenCalledWith('Demo User');
-    expect(screen.getByRole('img', { name: /demo user profile/i })).toHaveAttribute(
-      'src',
-      'https://example.com/demo-avatar.png',
-    );
+    expect(screen.getByRole('button', { name: /upload photo/i })).toBeInTheDocument();
   });
 });

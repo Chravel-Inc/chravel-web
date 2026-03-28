@@ -223,18 +223,7 @@ export const ConsumerProfileSection = () => {
       {/* Profile Photo */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-3">
         <h4 className="text-base font-semibold text-white mb-2">Profile Photo</h4>
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-20 h-20 bg-gradient-to-r from-glass-orange to-glass-yellow rounded-full flex items-center justify-center overflow-hidden">
-            {currentUser.avatar ? (
-              <img
-                src={currentUser.avatar}
-                alt={`${currentUser.displayName} profile`}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <User size={24} className="text-white" />
-            )}
-          </div>
+        <div className="flex flex-col items-center">
           <input
             type="file"
             ref={fileInputRef}
@@ -259,7 +248,7 @@ export const ConsumerProfileSection = () => {
               </>
             )}
           </button>
-          <p className="text-sm text-gray-400">JPG, PNG or GIF. Max size 5MB.</p>
+          <p className="text-sm text-gray-400 mt-2">JPG, PNG or GIF. Max size 5MB.</p>
         </div>
       </div>
 
