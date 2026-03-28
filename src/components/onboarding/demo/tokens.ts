@@ -4,7 +4,7 @@
  * Production-matched tokens extracted from real Chravel components.
  * Color discipline:
  *   Gold (bg-primary) — selection, itinerary day circles, CTA
- *   Orange (bg-orange-500) — broadcast only
+ *   Red (#B91C1C) — broadcast only
  *   Blue (bg-blue-600) — "Messages" active segment, own chat bubble
  *   Emerald/Cyan gradient — concierge avatar only
  *   White/10, White/20 — pill backgrounds (inactive/active)
@@ -17,8 +17,8 @@ export const colors = {
   chatBubbleOwn: 'bg-[hsl(var(--chat-bubble-own))] text-[hsl(var(--chat-bubble-own-foreground))]',
   /** Other user messages */
   chatBubbleOther: 'bg-muted text-foreground',
-  /** Broadcast — orange-500 matches real MessageBubble broadcast styling */
-  broadcast: 'bg-orange-500 text-white',
+  /** Broadcast — #B91C1C matches real MessageBubble broadcast styling */
+  broadcast: 'bg-[#B91C1C] text-white',
   /** Card background — matches EventItem / PaymentCard */
   card: 'bg-card border border-border',
   /** Payment owed state */
@@ -38,7 +38,7 @@ export const colors = {
 export const pills = {
   active: 'bg-white/20 text-white border border-white/30 shadow-sm',
   inactive: 'bg-white/10 text-gray-300',
-  base: 'px-3 py-2 rounded-xl font-medium text-xs whitespace-nowrap transition-all duration-200',
+  base: 'px-2.5 py-1.5 rounded-xl font-medium text-xs whitespace-nowrap transition-all duration-200',
 } as const;
 
 // ── MessageTypeBar segments (from MessageTypeBar.tsx:57-88) ───────────────
@@ -46,7 +46,7 @@ export const pills = {
 export const segments = {
   bar: 'inline-flex items-center bg-neutral-900/70 backdrop-blur-md border border-white/10 rounded-xl p-0.5',
   messages: 'bg-blue-600 text-white shadow-md',
-  broadcasts: 'bg-orange-500 text-white shadow-md',
+  broadcasts: 'bg-[#B91C1C] text-white shadow-md',
   inactive: 'text-white/70',
   base: 'px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200',
 } as const;
@@ -117,7 +117,15 @@ export const type = {
 
 // ── Demo pill identifiers ────────────────────────────────────────────────
 
-export type DemoPill = 'chat' | 'calendar' | 'concierge' | 'payments';
+export type DemoPill =
+  | 'chat'
+  | 'calendar'
+  | 'concierge'
+  | 'media'
+  | 'payments'
+  | 'places'
+  | 'polls'
+  | 'tasks';
 
 // ── Loop timing (seconds) ────────────────────────────────────────────────
 

@@ -15,6 +15,8 @@ import { WelcomeScreen } from './demo/screens/WelcomeScreen';
 import { ChatDemoScreen } from './demo/screens/ChatDemoScreen';
 import { CalendarDemoScreen } from './demo/screens/CalendarDemoScreen';
 import { PaymentsTrackingDemoScreen } from './demo/screens/PaymentsTrackingDemoScreen';
+import { PlacesDemoScreen } from './demo/screens/PlacesDemoScreen';
+import { MediaDemoScreen } from './demo/screens/MediaDemoScreen';
 import { FinalCTAScreen } from './demo/screens/FinalCTAScreen';
 import { PhoneFrame } from './demo/PhoneFrame';
 import { useOnboardingLayout } from './demo/useOnboardingLayout';
@@ -29,7 +31,7 @@ interface OnboardingCarouselProps {
   onCreateTrip: () => void;
 }
 
-const TOTAL_SCREENS = 5;
+const TOTAL_SCREENS = 7;
 
 interface ScreenConfig {
   component:
@@ -69,6 +71,20 @@ const screens: ScreenConfig[] = [
     title: 'Money, organized.',
     subtitle: 'Track expenses, split bills, settle up.',
     pill: 'payments',
+    showInFrame: true,
+  },
+  {
+    component: PlacesDemoScreen,
+    title: 'Pin your spots.',
+    subtitle: 'Save hotels, restaurants, and landmarks — your group always knows where to go.',
+    pill: 'places',
+    showInFrame: true,
+  },
+  {
+    component: MediaDemoScreen,
+    title: 'Every moment, together.',
+    subtitle: 'Photos, videos, and files — one shared album for the whole trip.',
+    pill: 'media',
     showInFrame: true,
   },
   { component: FinalCTAScreen, title: '', subtitle: '', showInFrame: false },
