@@ -2,6 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock safeReload
 vi.mock('@/utils/safeReload', () => ({
@@ -30,7 +31,18 @@ vi.mock('../../components/ui/use-toast', () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
 
+// Mock useAuth — component calls useAuth() for current user context.
+// user-1 matches the Supabase auth mock above; signOut is unused by the component.
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({ user: { id: 'user-1' }, signOut: vi.fn() }),
+}));
+
 import { SettlePaymentDialog } from '../SettlePaymentDialog';
+
+function renderWithProviders(ui: React.ReactElement) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+}
 
 const mockBalance = {
   userId: 'other-user-1',
@@ -63,7 +75,7 @@ describe('SettlePaymentDialog', () => {
   });
 
   it('should render dialog with payment details when open', () => {
-    render(
+    renderWithProviders(
       <SettlePaymentDialog
         open={true}
         onOpenChange={vi.fn()}
@@ -78,7 +90,7 @@ describe('SettlePaymentDialog', () => {
   });
 
   it('should not render when closed', () => {
-    render(
+    renderWithProviders(
       <SettlePaymentDialog
         open={false}
         onOpenChange={vi.fn()}
@@ -91,7 +103,7 @@ describe('SettlePaymentDialog', () => {
   });
 
   it('should show "Paying to" when you owe them (negative balance)', () => {
-    render(
+    renderWithProviders(
       <SettlePaymentDialog
         open={true}
         onOpenChange={vi.fn()}
@@ -105,7 +117,7 @@ describe('SettlePaymentDialog', () => {
 
   it('should show "Receiving from" when they owe you (positive balance)', () => {
     const positiveBalance = { ...mockBalance, amountOwed: 75.0 };
-    render(
+    renderWithProviders(
       <SettlePaymentDialog
         open={true}
         onOpenChange={vi.fn()}
@@ -123,7 +135,7 @@ describe('SettlePaymentDialog', () => {
       preferredPaymentMethod: { id: 'pm-1', type: 'cashapp' as const, identifier: '$johnsmith' },
     };
 
-    render(
+    renderWithProviders(
       <SettlePaymentDialog
         open={true}
         onOpenChange={vi.fn()}
@@ -139,7 +151,7 @@ describe('SettlePaymentDialog', () => {
     const user = userEvent.setup();
     const onOpenChange = vi.fn();
 
-    render(
+    renderWithProviders(
       <SettlePaymentDialog
         open={true}
         onOpenChange={onOpenChange}
@@ -154,7 +166,7 @@ describe('SettlePaymentDialog', () => {
   });
 
   it('should have Confirm Settlement button', () => {
-    render(
+    renderWithProviders(
       <SettlePaymentDialog
         open={true}
         onOpenChange={vi.fn()}
@@ -167,7 +179,7 @@ describe('SettlePaymentDialog', () => {
   });
 
   it('should show warning about irreversible action', () => {
-    render(
+    renderWithProviders(
       <SettlePaymentDialog
         open={true}
         onOpenChange={vi.fn()}

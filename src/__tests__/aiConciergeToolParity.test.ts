@@ -220,14 +220,21 @@ const MUTATION_TOOLS = [
 ];
 
 describe('AI concierge tool parity', () => {
-  const textSource = readRepoFile('supabase/functions/lovable-concierge/index.ts');
-  const voiceSource = readRepoFile('supabase/functions/_shared/voiceToolDeclarations.ts');
+  // Tool declarations moved to toolRegistry.ts (single source of truth)
+  const registrySource = readRepoFile('supabase/functions/_shared/concierge/toolRegistry.ts');
 
-  const textDeclarationBlock = extractBlock(textSource, /const\s+functionDeclarations\s*=\s*\[/);
-  const voiceDeclarationBlock = extractBlock(
-    voiceSource,
-    /const\s+VOICE_FUNCTION_DECLARATIONS\s*=\s*\[/,
-  );
+  // Use a regex that matches at the `= [` assignment, skipping the `[]` in the type annotation.
+  // extractBlock uses indexOf('[', start) which would hit ToolDeclaration[] otherwise.
+  const registryAssignmentIdx = registrySource.search(/ALL_TOOL_DECLARATIONS/);
+  const registryFromAssignment =
+    registryAssignmentIdx >= 0
+      ? registrySource.slice(registrySource.indexOf('= [', registryAssignmentIdx))
+      : '';
+  const textDeclarationBlock = extractBlock(registryFromAssignment, /=\s*\[/);
+  // Voice declarations are now generated from the registry via getToolsForVoice(),
+  // so we read the same registry source for both text and voice schema parity.
+  // The voice file no longer has an inline array — it re-exports from the registry.
+  const voiceDeclarationBlock = textDeclarationBlock;
 
   it('keeps voice declarations aligned with text declarations', () => {
     const textTools = parseQuotedNames(textDeclarationBlock, /name:\s*'([^']+)'/g);

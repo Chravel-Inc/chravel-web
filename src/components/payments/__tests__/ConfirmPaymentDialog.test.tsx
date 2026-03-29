@@ -2,6 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock safeReload
 vi.mock('@/utils/safeReload', () => ({
@@ -34,7 +35,18 @@ vi.mock('@/native/haptics', () => ({
   success: vi.fn().mockResolvedValue(undefined),
 }));
 
+// Mock useAuth — component calls useAuth() for current user context.
+// user-1 matches the Supabase auth mock above; signOut is unused by the component.
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({ user: { id: 'user-1' }, signOut: vi.fn() }),
+}));
+
 import { ConfirmPaymentDialog } from '../ConfirmPaymentDialog';
+
+function renderWithProviders(ui: React.ReactElement) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+}
 
 const mockBalance = {
   userId: 'other-user-1',
@@ -52,7 +64,7 @@ describe('ConfirmPaymentDialog', () => {
   });
 
   it('should render dialog with payment details when open', () => {
-    render(
+    renderWithProviders(
       <ConfirmPaymentDialog
         open={true}
         onOpenChange={vi.fn()}
@@ -67,7 +79,7 @@ describe('ConfirmPaymentDialog', () => {
   });
 
   it('should not render when closed', () => {
-    render(
+    renderWithProviders(
       <ConfirmPaymentDialog
         open={false}
         onOpenChange={vi.fn()}
@@ -83,7 +95,7 @@ describe('ConfirmPaymentDialog', () => {
     const user = userEvent.setup();
     const onOpenChange = vi.fn();
 
-    render(
+    renderWithProviders(
       <ConfirmPaymentDialog
         open={true}
         onOpenChange={onOpenChange}
@@ -103,7 +115,7 @@ describe('ConfirmPaymentDialog', () => {
       preferredPaymentMethod: { id: 'pm-1', type: 'venmo' as const, identifier: '@janedoe' },
     };
 
-    render(
+    renderWithProviders(
       <ConfirmPaymentDialog
         open={true}
         onOpenChange={vi.fn()}
@@ -117,7 +129,7 @@ describe('ConfirmPaymentDialog', () => {
   });
 
   it('should have Confirm Received button', () => {
-    render(
+    renderWithProviders(
       <ConfirmPaymentDialog
         open={true}
         onOpenChange={vi.fn()}

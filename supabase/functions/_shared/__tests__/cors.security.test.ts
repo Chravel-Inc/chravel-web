@@ -50,9 +50,9 @@ describe('CORS Security Tests', () => {
       expect(isOriginAllowed('https://evil-site.vercel.app')).toBe(false);
     });
 
-    it('should reject random *.lovable.app origins', async () => {
+    it('should reject random *.netlify.app origins', async () => {
       const isOriginAllowed = await getIsOriginAllowed();
-      expect(isOriginAllowed('https://malicious.lovable.app')).toBe(false);
+      expect(isOriginAllowed('https://malicious.netlify.app')).toBe(false);
     });
 
     it('should reject random *.supabase.co origins', async () => {

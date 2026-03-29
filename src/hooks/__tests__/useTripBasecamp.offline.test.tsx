@@ -24,6 +24,11 @@ vi.mock('sonner', () => ({
   },
 }));
 
+// Mock useAuth — useMutationPermissions -> useRolePermissions -> useAuth chain
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({ user: { id: 'test-user' }, signOut: vi.fn() }),
+}));
+
 function createWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: {
