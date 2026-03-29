@@ -62,13 +62,13 @@ const screens: ScreenConfig[] = [
   {
     component: CalendarDemoScreen,
     title: "Plans that don't drift.",
-    subtitle: 'Shared itinerary with AI-powered suggestions.',
+    subtitle: 'Shared itinerary. Everyone sees the plan.',
     pill: 'calendar',
     showInFrame: true,
   },
   {
     component: ConciergeDemoScreen,
-    title: 'Your AI travel assistant.',
+    title: 'Your Chravel Agent.',
     subtitle: 'Ask anything — get restaurant picks, hotel recs, and trip ideas instantly.',
     pill: 'concierge',
     showInFrame: true,
