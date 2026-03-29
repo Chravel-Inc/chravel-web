@@ -189,9 +189,9 @@ const PILLS: { id: DemoPill; label: string }[] = [
   { id: 'chat', label: 'Chat' },
   { id: 'calendar', label: 'Calendar' },
   { id: 'concierge', label: 'Concierge' },
-  { id: 'media', label: 'Media' },
   { id: 'payments', label: 'Payments' },
   { id: 'places', label: 'Places' },
+  { id: 'media', label: 'Media' },
   { id: 'polls', label: 'Polls' },
   { id: 'tasks', label: 'Tasks' },
 ];
