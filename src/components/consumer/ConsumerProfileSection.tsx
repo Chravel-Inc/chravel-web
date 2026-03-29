@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { User, Camera, Upload, Loader2, Phone, LogOut } from 'lucide-react';
+import { User, Upload, Loader2, Phone, LogOut } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { supabase } from '../../integrations/supabase/client';
@@ -225,54 +225,39 @@ export const ConsumerProfileSection = () => {
       {/* Profile Photo */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-3">
         <h4 className="text-base font-semibold text-white mb-2">Profile Photo</h4>
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <div className="w-20 h-20 bg-gradient-to-r from-glass-orange to-glass-yellow rounded-full flex items-center justify-center overflow-hidden">
-              {currentUser.avatar ? (
-                <img
-                  src={currentUser.avatar}
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <User size={24} className="text-white" />
-              )}
-            </div>
-            <button
-              onClick={triggerFileInput}
-              disabled={isUploading || (!user && !showDemoContent)}
-              className="absolute -bottom-2 -right-2 bg-glass-orange hover:bg-glass-orange/80 text-white p-2 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
-            </button>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-20 h-20 bg-gradient-to-r from-glass-orange to-glass-yellow rounded-full flex items-center justify-center overflow-hidden">
+            {currentUser.avatar ? (
+              <img src={currentUser.avatar} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              <User size={24} className="text-white" />
+            )}
           </div>
-          <div>
-            <input
-              type="file"
-              ref={fileInputRef}
-              className="hidden"
-              accept="image/*"
-              onChange={handleFileSelect}
-            />
-            <button
-              onClick={triggerFileInput}
-              disabled={isUploading || (!user && !showDemoContent)}
-              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-3 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isUploading ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <Upload size={16} />
-                  Upload Photo
-                </>
-              )}
-            </button>
-            <p className="text-sm text-gray-400 mt-1.5">JPG, PNG or GIF. Max size 5MB.</p>
-          </div>
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept="image/*"
+            onChange={handleFileSelect}
+          />
+          <button
+            onClick={triggerFileInput}
+            disabled={isUploading || (!user && !showDemoContent)}
+            className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isUploading ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              <>
+                <Upload size={16} />
+                Upload Photo
+              </>
+            )}
+          </button>
+          <p className="text-sm text-gray-400 mt-2">JPG, PNG or GIF. Max size 5MB.</p>
         </div>
       </div>
 
