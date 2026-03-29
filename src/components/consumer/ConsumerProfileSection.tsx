@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { supabase } from '../../integrations/supabase/client';
 import { useToast } from '../../hooks/use-toast';
+import { getConsistentAvatar } from '../../utils/avatarUtils';
 
 export const ConsumerProfileSection = () => {
   const { user, updateProfile, signOut } = useAuth();
@@ -34,6 +35,7 @@ export const ConsumerProfileSection = () => {
     displayName: 'Demo User',
     realName: undefined as string | undefined,
     namePreference: 'display' as const,
+    avatar: getConsistentAvatar('Demo User'),
   };
 
   const currentUser = user || mockUser;
@@ -223,7 +225,14 @@ export const ConsumerProfileSection = () => {
       {/* Profile Photo */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-3">
         <h4 className="text-base font-semibold text-white mb-2">Profile Photo</h4>
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-20 h-20 bg-gradient-to-r from-glass-orange to-glass-yellow rounded-full flex items-center justify-center overflow-hidden">
+            {currentUser.avatar ? (
+              <img src={currentUser.avatar} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              <User size={24} className="text-white" />
+            )}
+          </div>
           <input
             type="file"
             ref={fileInputRef}

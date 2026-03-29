@@ -7,6 +7,7 @@ import { ConsumerProfileSection } from '../ConsumerProfileSection';
 const mockUpdateProfile = vi.fn();
 const mockSignOut = vi.fn();
 const mockToast = vi.fn();
+const mockGetConsistentAvatar = vi.fn();
 
 let mockUser: {
   id: string;
@@ -55,6 +56,10 @@ vi.mock('../../../integrations/supabase/client', () => ({
   },
 }));
 
+vi.mock('../../../utils/avatarUtils', () => ({
+  getConsistentAvatar: (...args: unknown[]) => mockGetConsistentAvatar(...args),
+}));
+
 describe('ConsumerProfileSection', () => {
   beforeEach(() => {
     mockUser = {
@@ -66,22 +71,44 @@ describe('ConsumerProfileSection', () => {
       avatar: 'https://example.com/avatar.png',
     };
     mockShowDemoContent = false;
+    mockGetConsistentAvatar.mockReset();
+    mockGetConsistentAvatar.mockReturnValue('https://example.com/demo-avatar.png');
     vi.clearAllMocks();
   });
 
-  it('renders the upload photo button for signed-in user', () => {
+  it('renders the signed-in user avatar preview', () => {
     render(<ConsumerProfileSection />);
 
+    const avatar = screen.getByRole('img', { name: /profile/i });
+    expect(avatar).toHaveAttribute('src', 'https://example.com/avatar.png');
     expect(screen.getByRole('button', { name: /upload photo/i })).toBeInTheDocument();
-    expect(screen.getByText(/JPG, PNG or GIF/)).toBeInTheDocument();
   });
 
-  it('renders the upload photo button in demo mode', () => {
+  it('renders the demo avatar preview when demo content is shown', () => {
     mockUser = null;
     mockShowDemoContent = true;
 
     render(<ConsumerProfileSection />);
 
-    expect(screen.getByRole('button', { name: /upload photo/i })).toBeInTheDocument();
+    expect(mockGetConsistentAvatar).toHaveBeenCalledWith('Demo User');
+    const avatar = screen.getByRole('img', { name: /profile/i });
+    expect(avatar).toHaveAttribute('src', 'https://example.com/demo-avatar.png');
+  });
+
+  it('does not render a Camera overlay button', () => {
+    render(<ConsumerProfileSection />);
+
+    // The Camera icon overlay was intentionally removed — only Upload Photo button should exist
+    const buttons = screen.getAllByRole('button');
+    const uploadButton = buttons.find(b => b.textContent?.includes('Upload Photo'));
+    expect(uploadButton).toBeDefined();
+
+    // No second button targeting file upload (the old Camera overlay)
+    const fileUploadButtons = buttons.filter(b => {
+      const text = b.textContent || '';
+      return text.includes('Upload Photo') || text === '';
+    });
+    // Should only have the Upload Photo button for file upload, not an additional icon-only button
+    expect(fileUploadButtons.filter(b => b.textContent === '')).toHaveLength(0);
   });
 });
