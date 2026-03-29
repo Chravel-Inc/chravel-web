@@ -84,6 +84,19 @@ const { mockSupabaseClient } = vi.hoisted(() => {
   };
 });
 
+const { mockBrowserOpen, mockIsNativePlatform } = vi.hoisted(() => ({
+  mockBrowserOpen: vi.fn().mockResolvedValue(undefined),
+  mockIsNativePlatform: vi.fn().mockReturnValue(false),
+}));
+
+vi.mock('@capacitor/core', () => ({
+  Capacitor: { isNativePlatform: mockIsNativePlatform },
+}));
+
+vi.mock('@capacitor/browser', () => ({
+  Browser: { open: mockBrowserOpen },
+}));
+
 // Mock Supabase module
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: mockSupabaseClient,
@@ -121,6 +134,8 @@ const createWrapper = () => {
 describe('AuthProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockIsNativePlatform.mockReturnValue(false);
+    mockBrowserOpen.mockResolvedValue(undefined);
     // Reset auth mocks to default state
     mockSupabaseClient.auth.getSession.mockResolvedValue({
       data: { session: null },
@@ -200,5 +215,63 @@ describe('AuthProvider', () => {
 
     expect(signUpResult.error).toBeUndefined();
     expect(mockSupabaseClient.auth.signUp).toHaveBeenCalled();
+  });
+
+  it('opens Google OAuth in Capacitor Browser on native and sets openedExternally', async () => {
+    mockIsNativePlatform.mockReturnValue(true);
+    mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({
+      data: { url: 'https://oauth.example/authorize', provider: 'google' as const },
+      error: null,
+    });
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(
+      () => {
+        expect(result.current.isLoading).toBe(false);
+      },
+      { timeout: 3000 },
+    );
+
+    const oauthResult = await result.current.signInWithGoogle();
+
+    expect(oauthResult.error).toBeUndefined();
+    expect(oauthResult.openedExternally).toBe(true);
+    expect(mockBrowserOpen).toHaveBeenCalledWith(
+      expect.objectContaining({ url: 'https://oauth.example/authorize' }),
+    );
+    expect(mockSupabaseClient.auth.signInWithOAuth).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider: 'google',
+        options: expect.objectContaining({ skipBrowserRedirect: true }),
+      }),
+    );
+  });
+
+  it('does not use Capacitor Browser for Google OAuth on web', async () => {
+    mockIsNativePlatform.mockReturnValue(false);
+    mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({
+      data: { url: 'https://oauth.example/web', provider: 'google' as const },
+      error: null,
+    });
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(
+      () => {
+        expect(result.current.isLoading).toBe(false);
+      },
+      { timeout: 3000 },
+    );
+
+    const oauthResult = await result.current.signInWithGoogle();
+
+    expect(oauthResult.error).toBeUndefined();
+    expect(oauthResult.openedExternally).toBe(false);
+    expect(mockBrowserOpen).not.toHaveBeenCalled();
   });
 });

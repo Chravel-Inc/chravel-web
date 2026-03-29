@@ -16,7 +16,10 @@ vi.mock('@/integrations/supabase/client', () => ({
       }),
       signInWithPassword: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
       signUp: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
-      signInWithOAuth: vi.fn().mockResolvedValue({ error: null }),
+      signInWithOAuth: vi.fn().mockResolvedValue({
+        data: { url: 'https://example.test/oauth', provider: 'google' },
+        error: null,
+      }),
       resetPasswordForEmail: vi.fn().mockResolvedValue({ error: null }),
     },
     from: vi.fn().mockReturnValue({

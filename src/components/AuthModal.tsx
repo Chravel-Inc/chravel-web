@@ -402,8 +402,11 @@ export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
                   }
                   setError(result.error);
                   setGoogleLoading(false);
+                } else if (result.openedExternally) {
+                  // Native: SFSafariViewController opened — WebView does not navigate away
+                  setGoogleLoading(false);
                 }
-                // If no error, browser will redirect to Google
+                // Web: full-page navigation to Google (no state reset needed)
               }}
               disabled={isLoading || googleLoading || appleLoading || awaitingAuth}
               className="w-full flex items-center justify-center gap-3 bg-white/10 hover:bg-white/15 border border-white/20 text-white font-medium py-3 rounded-xl transition-all disabled:opacity-50 min-h-[48px] mb-4"
@@ -453,8 +456,10 @@ export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
                   }
                   setError(result.error);
                   setAppleLoading(false);
+                } else if (result.openedExternally) {
+                  setAppleLoading(false);
                 }
-                // If no error, browser will redirect to Apple
+                // Web: full-page navigation to Apple (no state reset needed)
               }}
               disabled={isLoading || appleLoading || googleLoading || awaitingAuth}
               className="w-full flex items-center justify-center gap-3 bg-white/10 hover:bg-white/15 border border-white/20 text-white font-medium py-3 rounded-xl transition-all disabled:opacity-50 min-h-[48px] mb-4"

@@ -21,6 +21,8 @@ import { authDebug } from '@/utils/authDebug';
 import { telemetry } from '@/telemetry/service';
 import { toast } from '@/hooks/use-toast';
 import { logAuthEvent } from '@/utils/authTelemetry';
+import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
 
 // Timeout utility to prevent indefinite hanging on database queries
 const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> => {
@@ -95,8 +97,8 @@ interface AuthContextType {
   session: Session | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
-  signInWithGoogle: () => Promise<{ error?: string }>;
-  signInWithApple: () => Promise<{ error?: string }>;
+  signInWithGoogle: () => Promise<{ error?: string; openedExternally?: boolean }>;
+  signInWithApple: () => Promise<{ error?: string; openedExternally?: boolean }>;
   signInWithPhone: (phone: string) => Promise<{ error?: string }>;
   signUp: (
     email: string,
@@ -847,7 +849,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const signInWithGoogle = async (): Promise<{ error?: string }> => {
+  /**
+   * Supabase OAuth uses window navigation by default. In Capacitor WKWebView that often does not
+   * leave the app, so the UI stays on "Redirecting…" forever. Open the authorize URL in the
+   * system browser (SFSafariViewController) on native; keep full-page navigation on web/PWA.
+   */
+  /** @returns true when SFSafariViewController / Chrome Custom Tabs opened (WebView did not navigate) */
+  const openOAuthAuthorizeUrl = async (url: string): Promise<boolean> => {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await Browser.open({ url, presentationStyle: 'fullscreen' });
+        return true;
+      } catch (browserError) {
+        if (import.meta.env.DEV) {
+          console.warn('[Auth] Browser.open failed, falling back to location:', browserError);
+        }
+      }
+    }
+    window.location.assign(url);
+    return false;
+  };
+
+  const signInWithGoogle = async (): Promise<{ error?: string; openedExternally?: boolean }> => {
     try {
       // Preserve returnTo so OAuth callback lands on AuthPage which redirects to the intended route
       const returnTo = new URLSearchParams(window.location.search).get('returnTo');
@@ -855,7 +878,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         ? `${window.location.origin}/auth?returnTo=${encodeURIComponent(returnTo)}`
         : `${window.location.origin}/`;
 
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: redirectUrl,
@@ -864,6 +887,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           // NOTE: Enable "Automatic Linking" in Supabase Dashboard (Auth > Providers) to prevent
           // duplicate auth.users entries when the same email is used across providers.
           queryParams: { prompt: 'select_account' },
+          skipBrowserRedirect: true,
         },
       });
 
@@ -877,7 +901,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { error: error.message };
       }
 
-      return {};
+      const oauthUrl = data?.url;
+      if (!oauthUrl) {
+        return { error: 'Could not start Google sign-in. Please try again.' };
+      }
+
+      const openedExternally = await openOAuthAuthorizeUrl(oauthUrl);
+      return { openedExternally };
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('[Auth] Unexpected Google OAuth error:', error);
@@ -886,7 +916,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const signInWithApple = async (): Promise<{ error?: string }> => {
+  const signInWithApple = async (): Promise<{ error?: string; openedExternally?: boolean }> => {
     try {
       // Preserve returnTo so OAuth callback lands on AuthPage which redirects to the intended route
       const returnTo = new URLSearchParams(window.location.search).get('returnTo');
@@ -894,10 +924,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         ? `${window.location.origin}/auth?returnTo=${encodeURIComponent(returnTo)}`
         : `${window.location.origin}/`;
 
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
         options: {
           redirectTo: redirectUrl,
+          skipBrowserRedirect: true,
         },
       });
 
@@ -911,7 +942,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { error: error.message };
       }
 
-      return {};
+      const oauthUrl = data?.url;
+      if (!oauthUrl) {
+        return { error: 'Could not start Apple sign-in. Please try again.' };
+      }
+
+      const openedExternally = await openOAuthAuthorizeUrl(oauthUrl);
+      return { openedExternally };
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('[Auth] Unexpected Apple OAuth error:', error);
