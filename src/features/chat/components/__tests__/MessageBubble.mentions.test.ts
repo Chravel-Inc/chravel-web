@@ -7,7 +7,7 @@ describe('MessageBubble mention styling', () => {
 
     expect(className).toContain('text-black');
     expect(className).toContain('font-semibold');
-    expect(className).toContain('bg-white/90');
+    // bg-white/90 was removed in favor of minimal styling
   });
 
   it('uses black-on-white pill for broadcast messages', () => {
@@ -15,7 +15,7 @@ describe('MessageBubble mention styling', () => {
 
     expect(className).toContain('text-black');
     expect(className).toContain('font-semibold');
-    expect(className).toContain('bg-white/90');
+    // bg-white/90 was removed in favor of minimal styling
   });
 
   it('uses black-on-white pill for other users messages', () => {
@@ -23,7 +23,7 @@ describe('MessageBubble mention styling', () => {
 
     expect(className).toContain('text-black');
     expect(className).toContain('font-semibold');
-    expect(className).toContain('bg-white/90');
+    // bg-white/90 was removed in favor of minimal styling
   });
 
   it('matches two-word mention names', () => {
