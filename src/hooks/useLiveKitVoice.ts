@@ -1,0 +1,425 @@
+/**
+ * useLiveKitVoice — Frontend hook for LiveKit-based voice concierge.
+ *
+ * Replaces useGeminiLive.ts (1454 lines → ~250 lines). Manages:
+ * - LiveKit room lifecycle (connect, disconnect)
+ * - Token fetching from livekit-token edge function
+ * - Agent audio track subscription (playback handled by WebRTC)
+ * - Local mic track publishing (capture handled by WebRTC)
+ * - Data message handling (transcripts, rich cards, turn completion)
+ * - State mapping to GeminiLiveState-compatible types
+ *
+ * Returns the same interface as useGeminiLive so AIConciergeChat.tsx
+ * can swap between hooks without UI changes.
+ */
+
+import { useState, useCallback, useRef, useEffect } from 'react';
+import type {
+  GeminiLiveState,
+  VoiceDiagnostics,
+  VoiceConversationTurn,
+  ToolCallResult,
+} from './useGeminiLive';
+import * as circuitBreaker from '@/voice/circuitBreaker';
+import { supabase } from '@/integrations/supabase/client';
+
+// ── Types ──────────────────────────────────────────────────────────────────────
+
+interface UseLiveKitVoiceOptions {
+  tripId: string;
+  voice?: string;
+  onTurnComplete?: (
+    userText: string,
+    assistantText: string,
+    toolResults?: ToolCallResult[],
+  ) => void;
+  onRichCard?: (toolName: string, cardData: Record<string, unknown>) => void;
+  onError?: (message: string) => void;
+  onCircuitBreakerOpen?: () => void;
+}
+
+interface UseLiveKitVoiceReturn {
+  state: GeminiLiveState;
+  error: string | null;
+  userTranscript: string;
+  assistantTranscript: string;
+  conversationHistory: VoiceConversationTurn[];
+  diagnostics: VoiceDiagnostics;
+  startSession: () => Promise<void>;
+  endSession: () => Promise<void>;
+  interruptPlayback: () => void;
+  sendImage: (mimeType: string, base64Data: string) => void;
+  isSupported: boolean;
+  circuitBreakerOpen: boolean;
+  resetCircuitBreaker: () => void;
+}
+
+// ── LiveKit imports (dynamic to avoid bundling when unused) ─────────────────
+
+let Room: typeof import('livekit-client').Room | null = null;
+let RoomEvent: typeof import('livekit-client').RoomEvent | null = null;
+let Track: typeof import('livekit-client').Track | null = null;
+
+async function ensureLiveKitLoaded(): Promise<void> {
+  if (Room) return;
+  const lk = await import('livekit-client');
+  Room = lk.Room;
+  RoomEvent = lk.RoomEvent;
+  Track = lk.Track;
+}
+
+// ── Constants ──────────────────────────────────────────────────────────────────
+
+const LIVEKIT_WS_URL =
+  (import.meta.env as Record<string, string | undefined>).VITE_LIVEKIT_WS_URL ||
+  'wss://chravel-voice-dev-rgxzbtr0.livekit.cloud';
+
+const AGENT_JOIN_TIMEOUT_MS = 10_000;
+
+const decoder = new TextDecoder();
+
+// ── Default diagnostics ────────────────────────────────────────────────────────
+
+function defaultDiagnostics(): VoiceDiagnostics {
+  return {
+    enabled: true,
+    connectionStatus: 'idle',
+    audioContextState: 'unavailable',
+    audioSampleRate: null,
+    inputEncoding: 'opus',
+    micPermission: 'unknown',
+    micDeviceLabel: null,
+    micRms: 0,
+    playbackRms: 0,
+    wsCloseCode: null,
+    wsCloseReason: null,
+    reconnectAttempts: 0,
+    lastError: null,
+    substep: null,
+    metrics: {
+      firstAudioChunkSentMs: null,
+      firstTokenReceivedMs: null,
+      firstAudioFramePlayedMs: null,
+      cancelLatencyMs: null,
+    },
+  };
+}
+
+// ── Hook ───────────────────────────────────────────────────────────────────────
+
+export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoiceReturn {
+  const {
+    tripId,
+    voice = 'Charon',
+    onTurnComplete,
+    onRichCard,
+    onError,
+    onCircuitBreakerOpen,
+  } = options;
+
+  const [state, setState] = useState<GeminiLiveState>('idle');
+  const [error, setError] = useState<string | null>(null);
+  const [userTranscript, setUserTranscript] = useState('');
+  const [assistantTranscript, setAssistantTranscript] = useState('');
+  const [conversationHistory, setConversationHistory] = useState<VoiceConversationTurn[]>([]);
+  const [diagnostics, setDiagnostics] = useState<VoiceDiagnostics>(defaultDiagnostics);
+  const [circuitBreakerOpen, setCircuitBreakerOpen] = useState(circuitBreaker.isOpen());
+
+  const roomRef = useRef<InstanceType<typeof import('livekit-client').Room> | null>(null);
+  const sessionActiveRef = useRef(false);
+
+  // Accumulated turn data for onTurnComplete
+  const turnUserTextRef = useRef('');
+  const turnAssistantTextRef = useRef('');
+
+  // ── Data Message Handler ─────────────────────────────────────────────────
+
+  const handleDataMessage = useCallback(
+    (payload: Uint8Array, _participant: unknown, topic?: string) => {
+      try {
+        const msg = JSON.parse(decoder.decode(payload));
+
+        switch (topic) {
+          case 'transcript':
+            if (msg.role === 'user') {
+              setUserTranscript(msg.text);
+              if (msg.isFinal) {
+                turnUserTextRef.current = msg.text;
+                setConversationHistory(prev => [...prev, { role: 'user', text: msg.text }]);
+              }
+            } else if (msg.role === 'assistant') {
+              setAssistantTranscript(msg.text);
+              if (msg.isFinal) {
+                turnAssistantTextRef.current = msg.text;
+                setConversationHistory(prev => [...prev, { role: 'assistant', text: msg.text }]);
+              }
+            }
+            break;
+
+          case 'turn_complete':
+            onTurnComplete?.(
+              turnUserTextRef.current || msg.userText,
+              turnAssistantTextRef.current || msg.assistantText,
+              msg.toolResults,
+            );
+            // Reset for next turn
+            turnUserTextRef.current = '';
+            turnAssistantTextRef.current = '';
+            setUserTranscript('');
+            setAssistantTranscript('');
+            break;
+
+          case 'rich_card':
+            onRichCard?.(msg.toolName, msg.cardData);
+            break;
+
+          case 'agent_state':
+            if (msg.state === 'speaking') setState('playing');
+            else if (msg.state === 'thinking' || msg.state === 'executing_tool')
+              setState('sending');
+            else if (msg.state === 'idle') setState('listening');
+            break;
+        }
+      } catch {
+        // Ignore malformed data messages
+      }
+    },
+    [onTurnComplete, onRichCard],
+  );
+
+  // ── Start Session ────────────────────────────────────────────────────────
+
+  const startSession = useCallback(async () => {
+    if (sessionActiveRef.current) return;
+    if (circuitBreaker.isOpen()) {
+      setCircuitBreakerOpen(true);
+      onCircuitBreakerOpen?.();
+      return;
+    }
+
+    try {
+      sessionActiveRef.current = true;
+      setState('requesting_mic');
+      setError(null);
+      setDiagnostics(prev => ({
+        ...prev,
+        connectionStatus: 'connecting',
+        substep: 'Requesting token',
+      }));
+
+      // ── Fetch LiveKit token ──────────────────────────────────────────────
+      const {
+        data: { session: authSession },
+      } = await supabase.auth.getSession();
+      if (!authSession?.access_token) {
+        throw new Error('Not authenticated');
+      }
+
+      const tokenRes = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL || ''}/functions/v1/livekit-token`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${authSession.access_token}`,
+          },
+          body: JSON.stringify({ tripId, voice }),
+        },
+      );
+
+      if (!tokenRes.ok) {
+        const errBody = await tokenRes.json().catch(() => ({}));
+        throw new Error(errBody.error || `Token request failed: ${tokenRes.status}`);
+      }
+
+      const { token, wsUrl } = await tokenRes.json();
+      setDiagnostics(prev => ({ ...prev, substep: 'Loading LiveKit' }));
+
+      // ── Dynamic import LiveKit ───────────────────────────────────────────
+      await ensureLiveKitLoaded();
+
+      setDiagnostics(prev => ({ ...prev, substep: 'Connecting to room' }));
+
+      // ── Create and connect room ──────────────────────────────────────────
+      const room = new Room!({
+        adaptiveStream: true,
+        dynacast: true,
+      });
+      roomRef.current = room;
+
+      // Listen for data messages from agent
+      room.on(RoomEvent!.DataReceived, handleDataMessage);
+
+      // Track agent join
+      let agentJoined = false;
+      room.on(RoomEvent!.ParticipantConnected, participant => {
+        if (participant.identity?.startsWith('agent-')) {
+          agentJoined = true;
+          setState('listening');
+          setDiagnostics(prev => ({
+            ...prev,
+            connectionStatus: 'open',
+            substep: null,
+          }));
+          circuitBreaker.recordSuccess();
+        }
+      });
+
+      // Handle disconnection
+      room.on(RoomEvent!.Disconnected, () => {
+        if (sessionActiveRef.current) {
+          setState('idle');
+          sessionActiveRef.current = false;
+          setDiagnostics(prev => ({ ...prev, connectionStatus: 'closed' }));
+        }
+      });
+
+      // Connect
+      await room.connect(wsUrl || LIVEKIT_WS_URL, token);
+      setDiagnostics(prev => ({ ...prev, substep: 'Enabling microphone' }));
+
+      // Enable local mic (WebRTC handles capture, encoding, echo cancellation)
+      await room.localParticipant.setMicrophoneEnabled(true);
+      setState('ready');
+      setDiagnostics(prev => ({ ...prev, substep: 'Waiting for agent', micPermission: 'granted' }));
+
+      // Wait for agent to join with timeout
+      if (!agentJoined) {
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Agent did not join within timeout'));
+          }, AGENT_JOIN_TIMEOUT_MS);
+
+          room.on(RoomEvent!.ParticipantConnected, participant => {
+            if (participant.identity?.startsWith('agent-')) {
+              clearTimeout(timeout);
+              agentJoined = true;
+              setState('listening');
+              setDiagnostics(prev => ({
+                ...prev,
+                connectionStatus: 'open',
+                substep: null,
+              }));
+              circuitBreaker.recordSuccess();
+              resolve();
+            }
+          });
+
+          // Check if agent already joined during connection
+          for (const [, p] of room.remoteParticipants) {
+            if (p.identity?.startsWith('agent-')) {
+              clearTimeout(timeout);
+              agentJoined = true;
+              setState('listening');
+              setDiagnostics(prev => ({
+                ...prev,
+                connectionStatus: 'open',
+                substep: null,
+              }));
+              circuitBreaker.recordSuccess();
+              resolve();
+              return;
+            }
+          }
+        });
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to start voice session';
+      setError(msg);
+      setState('error');
+      setDiagnostics(prev => ({
+        ...prev,
+        connectionStatus: 'error',
+        lastError: msg,
+        substep: null,
+      }));
+      onError?.(msg);
+      circuitBreaker.recordFailure(msg);
+      if (circuitBreaker.isOpen()) {
+        setCircuitBreakerOpen(true);
+        onCircuitBreakerOpen?.();
+      }
+      sessionActiveRef.current = false;
+      // Clean up room if it was created
+      if (roomRef.current) {
+        try {
+          roomRef.current.disconnect();
+        } catch {
+          // ignore
+        }
+        roomRef.current = null;
+      }
+    }
+  }, [tripId, voice, handleDataMessage, onError, onCircuitBreakerOpen]);
+
+  // ── End Session ──────────────────────────────────────────────────────────
+
+  const endSession = useCallback(async () => {
+    sessionActiveRef.current = false;
+    if (roomRef.current) {
+      try {
+        roomRef.current.disconnect();
+      } catch {
+        // ignore
+      }
+      roomRef.current = null;
+    }
+    setState('idle');
+    setDiagnostics(prev => ({ ...prev, connectionStatus: 'closed', substep: null }));
+    setUserTranscript('');
+    setAssistantTranscript('');
+  }, []);
+
+  // ── Interrupt (not applicable for LiveKit — WebRTC handles barge-in) ─────
+
+  const interruptPlayback = useCallback(() => {
+    // LiveKit + Gemini handle barge-in natively via voice activity detection
+    // No manual interrupt needed — speaking over the agent interrupts it
+  }, []);
+
+  // ── Send Image (not supported in voice path — use text concierge) ────────
+
+  const sendImage = useCallback((_mimeType: string, _base64Data: string) => {
+    // Image upload is handled by the text concierge path, not voice
+    // This is a no-op to maintain interface compatibility
+  }, []);
+
+  // ── Reset Circuit Breaker ────────────────────────────────────────────────
+
+  const resetCircuitBreaker = useCallback(() => {
+    circuitBreaker.reset();
+    setCircuitBreakerOpen(false);
+  }, []);
+
+  // ── Cleanup on unmount ───────────────────────────────────────────────────
+
+  useEffect(() => {
+    return () => {
+      if (roomRef.current) {
+        try {
+          roomRef.current.disconnect();
+        } catch {
+          // ignore
+        }
+        roomRef.current = null;
+      }
+      sessionActiveRef.current = false;
+    };
+  }, []);
+
+  return {
+    state,
+    error,
+    userTranscript,
+    assistantTranscript,
+    conversationHistory,
+    diagnostics,
+    startSession,
+    endSession,
+    interruptPlayback,
+    sendImage,
+    isSupported: typeof window !== 'undefined' && !!navigator.mediaDevices,
+    circuitBreakerOpen,
+    resetCircuitBreaker,
+  };
+}
