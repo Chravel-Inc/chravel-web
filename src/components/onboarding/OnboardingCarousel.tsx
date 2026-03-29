@@ -67,6 +67,13 @@ const screens: ScreenConfig[] = [
     showInFrame: true,
   },
   {
+    component: MediaDemoScreen,
+    title: 'Every moment, together.',
+    subtitle: 'Photos, videos, and files — one shared album for the whole trip.',
+    pill: 'media',
+    showInFrame: true,
+  },
+  {
     component: PaymentsTrackingDemoScreen,
     title: 'Money, organized.',
     subtitle: 'Track expenses, split bills, settle up.',
@@ -78,13 +85,6 @@ const screens: ScreenConfig[] = [
     title: 'Pin your spots.',
     subtitle: 'Save hotels, restaurants, and landmarks — your group always knows where to go.',
     pill: 'places',
-    showInFrame: true,
-  },
-  {
-    component: MediaDemoScreen,
-    title: 'Every moment, together.',
-    subtitle: 'Photos, videos, and files — one shared album for the whole trip.',
-    pill: 'media',
     showInFrame: true,
   },
   { component: FinalCTAScreen, title: '', subtitle: '', showInFrame: false },
