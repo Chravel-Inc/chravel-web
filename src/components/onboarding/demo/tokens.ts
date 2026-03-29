@@ -36,8 +36,8 @@ export const colors = {
 // ── TripTabs pill bar (from TripTabs.tsx:311-322) ─────────────────────────
 
 export const pills = {
-  active: 'bg-white/20 text-white border border-white/30 shadow-sm',
-  inactive: 'bg-white/10 text-gray-300',
+  active: 'accent-ring-active text-white',
+  inactive: 'accent-ring-idle text-gray-300',
   base: 'px-2.5 py-1.5 rounded-xl font-medium text-xs whitespace-nowrap transition-all duration-200',
 } as const;
 

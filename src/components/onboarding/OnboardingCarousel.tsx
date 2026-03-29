@@ -216,7 +216,7 @@ export const OnboardingCarousel = ({
                 <ChevronLeft className="w-5 h-5" />
               </Button>
             )}
-            <Button size="lg" className="flex-1" onClick={handleNext}>
+            <Button size="default" className="flex-1" onClick={handleNext}>
               {currentScreen === 0 ? 'Get Started' : 'Continue'}
               <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
