@@ -110,6 +110,7 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
           case 'createTask': {
             const content = requireString(args.content ?? args.title, 'content', 300);
             const dueDate = validateDatetime(args.dueDate ?? args.due_at, 'dueDate');
+            const assignee = optionalString(args.assignee, 200);
 
             // B4: Route to pending buffer instead of direct write
             // intentional: trip_pending_actions not yet in generated Supabase types
@@ -122,6 +123,7 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
                 tool_call_id: call.id || null,
                 payload: {
                   title: content,
+                  assignee,
                   due_at: dueDate,
                   creator_id: currentUserId,
                 },
@@ -140,7 +142,7 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
               success: true,
               actionType: 'createTask',
               pending: true,
-              message: `I'd like to create a task: "${content}". Please confirm in the chat.`,
+              message: `I'd like to create a task: "${content}"${assignee ? ` for ${assignee}` : ''}. Please confirm in the chat.`,
               pendingActionId: pendingTask.id,
             };
           }

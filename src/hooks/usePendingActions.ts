@@ -30,6 +30,13 @@ export interface PendingAction {
   resolved_by: string | null;
 }
 
+function normalizePersonName(value: string | null | undefined): string {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+}
+
 export function usePendingActions(tripId: string) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -83,12 +90,14 @@ export function usePendingActions(tripId: string) {
       // Execute the original mutation based on tool_name
       switch (action.tool_name) {
         case 'createTask': {
+          const creatorId = (payload.creator_id as string) || user.id;
+
           // intentional: source_type column may not be in generated types yet
-          const { error } = await (supabase as any)
+          const { data: createdTask, error } = await (supabase as any)
             .from('trip_tasks')
             .insert({
               trip_id: action.trip_id,
-              creator_id: (payload.creator_id as string) || user.id,
+              creator_id: creatorId,
               title: payload.title as string,
               description: (payload.description as string | null) || null,
               due_at: (payload.due_at as string | null) || null,
@@ -97,6 +106,81 @@ export function usePendingActions(tripId: string) {
             .select()
             .single();
           if (error) throw error;
+
+          const assigneeName = typeof payload.assignee === 'string' ? payload.assignee.trim() : '';
+          const assignedUserIds = new Set<string>([creatorId]);
+
+          if (assigneeName) {
+            const { data: members, error: membersError } = await (supabase as any)
+              .from('trip_members')
+              .select('user_id')
+              .eq('trip_id', action.trip_id);
+            if (membersError) throw membersError;
+
+            const memberIds = (members || [])
+              .map((member: { user_id?: string | null }) => member.user_id)
+              .filter((memberId: string | null | undefined): memberId is string =>
+                Boolean(memberId),
+              );
+
+            if (memberIds.length > 0) {
+              const { data: profiles, error: profilesError } = await (supabase as any)
+                .from('profiles_public')
+                .select('user_id, display_name, resolved_display_name, first_name, last_name')
+                .in('user_id', memberIds);
+              if (profilesError) throw profilesError;
+
+              const normalizedAssignee = normalizePersonName(assigneeName);
+              const matchedProfile = (profiles || []).find(
+                (profile: {
+                  user_id?: string | null;
+                  display_name?: string | null;
+                  resolved_display_name?: string | null;
+                  first_name?: string | null;
+                  last_name?: string | null;
+                }) => {
+                  const fullName = [profile.first_name, profile.last_name]
+                    .filter(Boolean)
+                    .join(' ')
+                    .trim();
+                  const candidateNames = [
+                    profile.resolved_display_name,
+                    profile.display_name,
+                    fullName || null,
+                  ];
+
+                  return candidateNames.some(
+                    candidate => normalizePersonName(candidate) === normalizedAssignee,
+                  );
+                },
+              );
+
+              if (matchedProfile?.user_id) {
+                assignedUserIds.add(matchedProfile.user_id);
+              }
+            }
+          }
+
+          const taskStatusRows = Array.from(assignedUserIds).map(assigneeId => ({
+            task_id: createdTask.id,
+            user_id: assigneeId,
+            completed: false,
+          }));
+
+          const [taskStatusResult, taskAssignmentsResult] = await Promise.all([
+            (supabase as any).from('task_status').insert(taskStatusRows),
+            (supabase as any).from('task_assignments').upsert(
+              Array.from(assignedUserIds).map(assigneeId => ({
+                task_id: createdTask.id,
+                user_id: assigneeId,
+                assigned_by: creatorId,
+              })),
+              { onConflict: 'task_id,user_id' },
+            ),
+          ]);
+
+          if (taskStatusResult?.error) throw taskStatusResult.error;
+          if (taskAssignmentsResult?.error) throw taskAssignmentsResult.error;
           break;
         }
 

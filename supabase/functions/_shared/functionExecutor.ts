@@ -116,6 +116,7 @@ async function _executeImpl(
           payload: {
             title: taskTitle,
             description: notes || null,
+            assignee: assignee || null,
             creator_id: userId || '',
             due_at: dueDate || null,
           },

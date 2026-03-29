@@ -39,6 +39,31 @@ describe('functionExecutor idempotency', () => {
     expect(result.pendingActionId).toBe('pending-1');
   });
 
+  it('should preserve assignee in pending task payload', async () => {
+    const mockSingle = vi.fn().mockResolvedValue({ data: { id: 'pending-3' }, error: null });
+    const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
+    const mockInsert = vi.fn().mockReturnValue({ select: mockSelect });
+    const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
+    const mockSupabase = { from: mockFrom };
+
+    await executeFunctionCall(
+      mockSupabase,
+      'createTask',
+      { title: 'Book dinner', assignee: 'John' },
+      'trip-1',
+      'user-1',
+    );
+
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          title: 'Book dinner',
+          assignee: 'John',
+        }),
+      }),
+    );
+  });
+
   it('should map idempotency_key to tool_call_id for dedup', async () => {
     const mockSingle = vi.fn().mockResolvedValue({ data: { id: 'pending-2' }, error: null });
     const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
