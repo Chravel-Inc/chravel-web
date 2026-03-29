@@ -14,6 +14,7 @@ import { OnboardingProgressDots } from './OnboardingProgressDots';
 import { WelcomeScreen } from './demo/screens/WelcomeScreen';
 import { ChatDemoScreen } from './demo/screens/ChatDemoScreen';
 import { CalendarDemoScreen } from './demo/screens/CalendarDemoScreen';
+import { ConciergeDemoScreen } from './demo/screens/ConciergeDemoScreen';
 import { PaymentsTrackingDemoScreen } from './demo/screens/PaymentsTrackingDemoScreen';
 import { PlacesDemoScreen } from './demo/screens/PlacesDemoScreen';
 import { MediaDemoScreen } from './demo/screens/MediaDemoScreen';
@@ -31,7 +32,7 @@ interface OnboardingCarouselProps {
   onCreateTrip: () => void;
 }
 
-const TOTAL_SCREENS = 7;
+const TOTAL_SCREENS = 8;
 
 interface ScreenConfig {
   component:
@@ -63,7 +64,13 @@ const screens: ScreenConfig[] = [
     title: "Plans that don't drift.",
     subtitle: 'Shared itinerary with AI-powered suggestions.',
     pill: 'calendar',
-    glintPill: 'concierge',
+    showInFrame: true,
+  },
+  {
+    component: ConciergeDemoScreen,
+    title: 'Your AI travel assistant.',
+    subtitle: 'Ask anything — get restaurant picks, hotel recs, and trip ideas instantly.',
+    pill: 'concierge',
     showInFrame: true,
   },
   {
