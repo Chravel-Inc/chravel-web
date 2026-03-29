@@ -39,7 +39,29 @@ describe('functionExecutor idempotency', () => {
     expect(result.pendingActionId).toBe('pending-1');
   });
 
-  it('should throw on insert error for create_task pending action', async () => {
+  it('should map idempotency_key to tool_call_id for dedup', async () => {
+    const mockSingle = vi.fn().mockResolvedValue({ data: { id: 'pending-2' }, error: null });
+    const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
+    const mockInsert = vi.fn().mockReturnValue({ select: mockSelect });
+    const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
+    const mockSupabase = { from: mockFrom };
+
+    await executeFunctionCall(
+      mockSupabase,
+      'createTask',
+      { title: 'Passports', notes: 'Get them', idempotency_key: 'idemp-1' },
+      'trip-1',
+      'user-1',
+    );
+
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tool_call_id: 'idemp-1',
+      }),
+    );
+  });
+
+  it('should throw on duplicate pending action (unique constraint violation)', async () => {
     const mockSingle = vi.fn().mockResolvedValue({ data: null, error: { code: '23505' } });
     const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
     const mockInsert = vi.fn().mockReturnValue({ select: mockSelect });
@@ -51,7 +73,7 @@ describe('functionExecutor idempotency', () => {
       executeFunctionCall(
         mockSupabase,
         'createTask',
-        { title: 'Passports', notes: 'Get them' },
+        { title: 'Passports', notes: 'Get them', idempotency_key: 'idemp-1' },
         'trip-1',
         'user-1',
       ),

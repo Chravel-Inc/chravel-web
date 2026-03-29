@@ -38,9 +38,9 @@ describe('CORS Security Tests', () => {
       expect(isOriginAllowed('https://jmjiyekmxwsxkfnqwyaa.supabase.co')).toBe(true);
     });
 
-    it('should allow lovable.dev preview origins', async () => {
+    it('should reject lovable.dev preview origins not in env allowlist', async () => {
       const isOriginAllowed = await getIsOriginAllowed();
-      expect(isOriginAllowed('https://preview-123.lovable.dev')).toBe(true);
+      expect(isOriginAllowed('https://preview-123.lovable.dev')).toBe(false);
     });
   });
 
@@ -50,9 +50,9 @@ describe('CORS Security Tests', () => {
       expect(isOriginAllowed('https://evil-site.vercel.app')).toBe(false);
     });
 
-    it('should reject random *.netlify.app origins', async () => {
+    it('should reject random *.lovable.app origins', async () => {
       const isOriginAllowed = await getIsOriginAllowed();
-      expect(isOriginAllowed('https://malicious.netlify.app')).toBe(false);
+      expect(isOriginAllowed('https://malicious.lovable.app')).toBe(false);
     });
 
     it('should reject random *.supabase.co origins', async () => {
