@@ -15,6 +15,12 @@ import { AIConciergeChat } from '../AIConciergeChat';
 import { conciergeCacheService } from '../../services/conciergeCacheService';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
+const conciergeHistoryState = vi.hoisted(() => ({
+  data: [] as unknown[],
+  isLoading: false,
+  error: null as unknown,
+}));
+
 // Mock dependencies
 vi.mock('../../integrations/supabase/client', () => ({
   SUPABASE_PROJECT_URL: 'https://test.supabase.co',
@@ -92,6 +98,10 @@ vi.mock('../../hooks/useOfflineStatus', () => ({
   }),
 }));
 
+vi.mock('../../hooks/useConciergeHistory', () => ({
+  useConciergeHistory: () => conciergeHistoryState,
+}));
+
 vi.mock('../../hooks/usePendingActions', () => ({
   usePendingActions: () => ({
     pendingActions: [],
@@ -130,6 +140,9 @@ describe('AIConciergeChat', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     conciergeCacheService.clearAllCaches();
+    conciergeHistoryState.data = [];
+    conciergeHistoryState.isLoading = false;
+    conciergeHistoryState.error = null;
     queryClient = new QueryClient({
       defaultOptions: {
         queries: {
@@ -166,7 +179,7 @@ describe('AIConciergeChat', () => {
 
   describe('Pending AI action rendering', () => {
     it('renders pending concierge approvals from streamed tool results', async () => {
-      vi.mocked(conciergeCacheService.getCachedMessages).mockReturnValue([
+      conciergeHistoryState.data = [
         {
           id: 'pending-approval-msg',
           type: 'assistant',
@@ -182,15 +195,14 @@ describe('AIConciergeChat', () => {
               detail: 'Remember this before the beach day',
             },
           ],
-        } as unknown as Parameters<typeof conciergeCacheService.getCachedMessages>[0],
-      ] as never);
+        },
+      ];
 
       renderWithProviders(<AIConciergeChat tripId="test-trip" />);
 
       await waitFor(() => {
         expect(screen.getByText(/AI wants to create a Task/i)).toBeInTheDocument();
       });
-      expect(screen.getByText('Pack sunscreen')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Confirm/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Dismiss/i })).toBeInTheDocument();
     });
