@@ -18,6 +18,17 @@ import { executeToolSecurely } from '../_shared/security/toolRouter.ts';
 import { sanitizeForPrompt } from '../_shared/promptBuilder.ts';
 import { incrementConciergeTripUsage } from '../_shared/conciergeUsage.ts';
 import { checkRateLimit } from '../_shared/security.ts';
+import {
+  checkMonthlyTokenBudget,
+  resolveUsagePlanForUser,
+  type UsagePlan,
+} from '../_shared/concierge/usagePolicy.ts';
+import {
+  buildMonthlyLimitReachedResponse,
+  buildTokenBudgetReachedResponse,
+  buildTripLimitReachedResponse,
+  buildUsageVerificationUnavailableResponse,
+} from '../_shared/concierge/responses.ts';
 // ── Modular concierge architecture ──
 // classifyQuery: classifies user message into one of 18 query classes (pure function, no auth bypass)
 // getToolsForQueryClass: returns subset of tool declarations for token optimization (auth enforced in toolRouter.ts)
@@ -182,164 +193,6 @@ function shouldRunRAGRetrieval(query: string, tripId: string): boolean {
 //   to catch any genuinely trip-scoped query.
 //
 // Only caller: line ~851 in this file (already updated to use classifyQuery).
-
-type UsagePlan = 'free' | 'explorer' | 'frequent_chraveler';
-
-interface UsagePlanResolution {
-  usagePlan: UsagePlan;
-  tripQueryLimit: number | null;
-}
-
-const EXPLORER_PRODUCT_IDS = new Set([
-  'prod_U73VxEnvEHbBrx',
-  'prod_U73VrTc4sE8AIv',
-  'prod_U73WaALe9yjrAR',
-]);
-
-const getQueryLimitForUsagePlan = (plan: UsagePlan): number | null => {
-  if (plan === 'free') return 5;
-  if (plan === 'explorer') return 10;
-  return null;
-};
-
-const mapRawPlanToUsagePlan = (plan: string | null | undefined): UsagePlan => {
-  if (!plan || plan === 'free' || plan === 'consumer') return 'free';
-  if (plan === 'explorer' || plan === 'plus') return 'explorer';
-  return 'frequent_chraveler';
-};
-
-const isActiveEntitlementStatus = (status: string | null | undefined): boolean =>
-  status === 'active' || status === 'trialing';
-
-const hasActiveEntitlementPeriod = (periodEnd: string | null | undefined): boolean => {
-  if (!periodEnd) return true;
-  const parsed = Date.parse(periodEnd);
-  if (Number.isNaN(parsed)) return true;
-  return parsed > Date.now();
-};
-
-const buildTripLimitReachedResponse = (
-  corsHeaders: Record<string, string>,
-  usagePlan: UsagePlan,
-): Response => {
-  const limitMessage =
-    usagePlan === 'free'
-      ? "You've used all 5 Concierge queries for this trip."
-      : "You've used all 10 Concierge queries for this trip.";
-  return new Response(
-    JSON.stringify({
-      response: `🚫 **Trip query limit reached**\n\n${limitMessage}`,
-      usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
-      sources: [],
-      success: false,
-      error: 'usage_limit_exceeded',
-      upgradeRequired: true,
-    }),
-    {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    },
-  );
-};
-
-const buildMonthlyLimitReachedResponse = (
-  corsHeaders: Record<string, string>,
-  usagePlan: UsagePlan,
-): Response => {
-  const limitMessage =
-    usagePlan === 'free'
-      ? "You've reached your monthly Concierge limit of 20 queries. Upgrade to Explorer for 100/month or Frequent Chraveler for unlimited."
-      : "You've reached your monthly Concierge limit. Upgrade your plan for more queries.";
-  return new Response(
-    JSON.stringify({
-      response: `🚫 **Monthly limit reached**\n\n${limitMessage}`,
-      usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
-      sources: [],
-      success: false,
-      error: 'monthly_limit_exceeded',
-      upgradeRequired: true,
-    }),
-    {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    },
-  );
-};
-
-const buildUsageVerificationUnavailableResponse = (corsHeaders: Record<string, string>): Response =>
-  new Response(
-    JSON.stringify({
-      response:
-        "⚠️ **Unable to verify query allowance**\n\nWe couldn't verify your Concierge usage right now. Please try again in a moment.",
-      usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
-      sources: [],
-      success: false,
-      error: 'usage_verification_unavailable',
-    }),
-    {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    },
-  );
-
-async function resolveUsagePlanForUser(
-  supabase: any,
-  userId: string,
-): Promise<UsagePlanResolution> {
-  const defaultResolution: UsagePlanResolution = {
-    usagePlan: 'free',
-    tripQueryLimit: 5,
-  };
-
-  const { data: entitlementData, error: entitlementError } = await supabase
-    .from('user_entitlements')
-    .select('plan, status, current_period_end')
-    .eq('user_id', userId)
-    .maybeSingle();
-
-  if (entitlementError) {
-    console.error('[Usage] Failed to read user_entitlements:', entitlementError);
-  }
-
-  if (
-    entitlementData &&
-    isActiveEntitlementStatus(entitlementData.status) &&
-    hasActiveEntitlementPeriod(entitlementData.current_period_end)
-  ) {
-    const usagePlan = mapRawPlanToUsagePlan(entitlementData.plan);
-    return {
-      usagePlan,
-      tripQueryLimit: getQueryLimitForUsagePlan(usagePlan),
-    };
-  }
-
-  const { data: profileData, error: profileError } = await supabase
-    .from('profiles')
-    .select('app_role, subscription_status, subscription_product_id')
-    .eq('user_id', userId)
-    .maybeSingle();
-
-  if (profileError) {
-    console.error('[Usage] Failed to read profiles fallback fields:', profileError);
-    return defaultResolution;
-  }
-
-  if (profileData && isActiveEntitlementStatus(profileData.subscription_status)) {
-    const productId = String(profileData.subscription_product_id || '');
-    if (productId && EXPLORER_PRODUCT_IDS.has(productId)) {
-      return { usagePlan: 'explorer', tripQueryLimit: 10 };
-    }
-    if (productId) {
-      return { usagePlan: 'frequent_chraveler', tripQueryLimit: null };
-    }
-  }
-
-  const fallbackPlan = mapRawPlanToUsagePlan(profileData?.app_role);
-  return {
-    usagePlan: fallbackPlan,
-    tripQueryLimit: getQueryLimitForUsagePlan(fallbackPlan),
-  };
-}
 
 // ========== SSE STREAMING HELPERS ==========
 
@@ -1028,6 +881,13 @@ serve(async req => {
     // Usage limits
     usagePlan = planResolution.usagePlan;
     tripQueryLimit = planResolution.tripQueryLimit;
+
+    if (!serverDemoMode && user) {
+      const tokenBudgetResult = await checkMonthlyTokenBudget(supabase, user.id, usagePlan);
+      if (!tokenBudgetResult.allowed) {
+        return buildTokenBudgetReachedResponse(corsHeaders, usagePlan, tokenBudgetResult);
+      }
+    }
 
     if (!serverDemoMode && user && tripQueryLimit !== null && hasTripId) {
       const { data: tripUsageData, error: tripUsageError } = await supabase.rpc(

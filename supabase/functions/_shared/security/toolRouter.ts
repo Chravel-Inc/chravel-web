@@ -1,5 +1,6 @@
 import { verifyCapabilityToken } from './capabilityTokens.ts';
 import { executeFunctionCall } from '../functionExecutor.ts';
+import { normalizeToolResult } from '../concierge/toolResultContracts.ts';
 
 export async function executeToolSecurely(
   supabase: any,
@@ -39,8 +40,8 @@ export async function executeToolSecurely(
     locationContext,
   );
 
-  // 5. Return sanitized output
-  return sanitizeToolOutput(toolName, result);
+  // 5. Normalize + sanitize output before it is shown to users or fed back to the model.
+  return sanitizeToolOutput(toolName, normalizeToolResult(toolName, result));
 }
 
 function sanitizeToolOutput(toolName: string, result: any): any {
