@@ -209,20 +209,29 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
         if (coverImage && !isDemoMode) {
           try {
             const fileExt = coverImage.name.split('.').pop();
-            const filePath = `${newTrip.id}/cover.${fileExt}`;
+            // Must match TripHeader + storage RLS: bucket `trip-media`, first folder `trip-covers`
+            const filePath = `trip-covers/${newTrip.id}/cover.${fileExt}`;
 
             const { error: uploadError } = await supabase.storage
-              .from('trip-covers')
-              .upload(filePath, coverImage);
+              .from('trip-media')
+              .upload(filePath, coverImage, {
+                cacheControl: '3600',
+                upsert: true,
+                contentType: coverImage.type || undefined,
+              });
 
             if (uploadError) throw uploadError;
 
             const {
               data: { publicUrl },
-            } = supabase.storage.from('trip-covers').getPublicUrl(filePath);
+            } = supabase.storage.from('trip-media').getPublicUrl(filePath);
+
+            const coverUrlWithCacheBust = `${publicUrl}?t=${Date.now()}`;
 
             // Route through useTrips update path so homepage caches invalidate immediately.
-            const coverUpdated = await updateTrip(newTrip.id, { cover_image_url: publicUrl });
+            const coverUpdated = await updateTrip(newTrip.id, {
+              cover_image_url: coverUrlWithCacheBust,
+            });
             if (!coverUpdated) {
               throw new Error('Failed to update trip cover image');
             }

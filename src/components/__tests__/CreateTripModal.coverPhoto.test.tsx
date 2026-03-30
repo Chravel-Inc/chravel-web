@@ -12,6 +12,7 @@ const {
   mockFetchUserOrganizations,
   mockUpload,
   mockGetPublicUrl,
+  mockStorageFrom,
   mockFrom,
   mockTripsTableUpdate,
   mockTripsTableEq,
@@ -23,6 +24,7 @@ const {
   mockFetchUserOrganizations: vi.fn(),
   mockUpload: vi.fn(),
   mockGetPublicUrl: vi.fn(),
+  mockStorageFrom: vi.fn(),
   mockFrom: vi.fn(),
   mockTripsTableUpdate: vi.fn(),
   mockTripsTableEq: vi.fn(),
@@ -75,7 +77,7 @@ vi.mock('sonner', () => ({
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     storage: {
-      from: vi.fn(() => ({
+      from: mockStorageFrom.mockImplementation(() => ({
         upload: mockUpload,
         getPublicUrl: mockGetPublicUrl,
       })),
@@ -152,9 +154,20 @@ describe('CreateTripModal cover photo upload', () => {
     });
 
     await waitFor(() => {
-      expect(mockUpdateTrip).toHaveBeenCalledWith('trip-123', {
-        cover_image_url: 'https://cdn.chravel.test/trip-123/cover.png',
-      });
+      expect(mockStorageFrom).toHaveBeenCalledWith('trip-media');
+      expect(mockUpload).toHaveBeenCalledWith(
+        'trip-covers/trip-123/cover.png',
+        expect.any(File),
+        expect.objectContaining({ upsert: true }),
+      );
+      expect(mockUpdateTrip).toHaveBeenCalledWith(
+        'trip-123',
+        expect.objectContaining({
+          cover_image_url: expect.stringMatching(
+            /^https:\/\/cdn\.chravel\.test\/trip-123\/cover\.png\?t=\d+$/,
+          ),
+        }),
+      );
     });
   });
 });
