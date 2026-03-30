@@ -25,8 +25,14 @@ import type { TripContext } from './context.js';
 
 function sanitize(text: string): string {
   if (!text) return '';
-  return text
-    .replace(/<\/?[a-zA-Z_][a-zA-Z0-9_-]*[^>]*>/g, '')
+  // Loop to handle nested/partial tags that a single pass may miss (CodeQL js/incomplete-multi-character-sanitization)
+  let result = text;
+  let prev = '';
+  do {
+    prev = result;
+    result = result.replace(/<\/?[a-zA-Z_][a-zA-Z0-9_-]*[^>]*>/g, '');
+  } while (result !== prev);
+  return result
     .replace(/[<>]/g, '')
     .replace(/\{\{.*?\}\}/g, '')
     .trim();

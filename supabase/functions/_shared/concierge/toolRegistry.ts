@@ -354,6 +354,39 @@ export const ALL_TOOL_DECLARATIONS: ToolDeclaration[] = [
     },
   },
   {
+    name: 'searchHotels',
+    description:
+      'Search for hotels/lodging near a location. Returns up to 5 results with ratings, amenities, and links.',
+    parameters: {
+      type: 'object',
+      properties: {
+        idempotency_key: { type: 'string' },
+        query: { type: 'string', description: 'Search query (e.g. "boutique hotel in Paris")' },
+        nearLat: { type: 'number', description: 'Latitude to search near' },
+        nearLng: { type: 'number', description: 'Longitude to search near' },
+        checkIn: { type: 'string', description: 'Check-in date (YYYY-MM-DD), optional' },
+        checkOut: { type: 'string', description: 'Check-out date (YYYY-MM-DD), optional' },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'getHotelDetails',
+    description:
+      'Get detailed information about a specific hotel by its Google Place ID. Returns rating, amenities, photos, and booking links.',
+    parameters: {
+      type: 'object',
+      properties: {
+        idempotency_key: { type: 'string' },
+        placeId: {
+          type: 'string',
+          description: 'Google Place ID of the hotel (from searchHotels results)',
+        },
+      },
+      required: ['placeId'],
+    },
+  },
+  {
     name: 'emitSmartImportPreview',
     description:
       'Extract calendar events from attached images/screenshots/PDFs (hotel reservations, boarding passes, flight confirmations, itineraries) and show a preview card for the user to confirm before adding to calendar. Call this when user attaches a travel document and says "add to calendar", "import this", "save this to the trip", or similar. YOU must analyze the attached image and extract the event details yourself, then pass them as the events array.',
@@ -830,6 +863,7 @@ const QUERY_CLASS_TOOLS: Record<QueryClass, string[] | 'all'> = {
   poll_action: ['createPoll'],
   media_search: ['searchImages', 'searchWeb'],
   flight_search: ['searchFlights', 'savePlace', 'searchWeb'],
+  hotel_search: ['searchHotels', 'getHotelDetails', 'savePlace', 'searchWeb'],
   trip_image: ['generateTripImage', 'setTripHeaderImage'],
   smart_import: ['emitSmartImportPreview', 'addToCalendar', 'setBasecamp'],
   basecamp_action: ['setBasecamp', 'searchPlaces', 'getPlaceDetails', 'validateAddress'],
@@ -885,6 +919,8 @@ const VOICE_DESCRIPTION_OVERRIDES: Record<string, string> = {
   setBasecamp: 'Set the trip or personal basecamp accommodation.',
   addToAgenda: 'Add an item/session to an event agenda.',
   searchFlights: 'Search flights and return Google Flights deeplinks.',
+  searchHotels: 'Search for hotels/lodging near a location with ratings and amenities.',
+  getHotelDetails: 'Get detailed info about a specific hotel by Place ID.',
   emitSmartImportPreview:
     'Emit Smart Import preview events extracted from attached docs before calendar write.',
   emitReservationDraft: 'Create a reservation draft card for explicit booking intents.',

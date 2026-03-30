@@ -17,6 +17,9 @@ useDefault = true
     ".*\\.spec\\.tsx?$",
     ".*__snapshots__.*",
     ".*\\.d\\.ts$",
+    "src/integrations/supabase/client\\.ts$",
+    "docs/.*\\.md$",
+    "supabase/migrations/.*\\.sql$",
   ]
   regexes = [
     # Placeholder patterns that are not real keys
