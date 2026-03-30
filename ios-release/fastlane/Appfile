@@ -5,13 +5,13 @@
 app_identifier("com.chravel.app")
 
 # Apple ID email (for App Store Connect)
-apple_id(ENV["APPLE_ID"] || "developer@chravel.app")
+apple_id(ENV["APPLE_ID"] || "ops@chravelapp.com")
 
 # Team ID (Developer Portal)
-team_id(ENV["APPLE_TEAM_ID"] || "YOUR_TEAM_ID")
+team_id(ENV["APPLE_TEAM_ID"] || "2T6WY43H3X")
 
 # App Store Connect Team ID
-itc_team_id(ENV["ITC_TEAM_ID"] || "YOUR_ITC_TEAM_ID")
+itc_team_id(ENV["ITC_TEAM_ID"] || "128616525")
 
 # For all environments
 for_platform :ios do
