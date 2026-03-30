@@ -1,0 +1,167 @@
+export type UsagePlan = 'free' | 'explorer' | 'frequent_chraveler';
+
+export interface UsagePlanResolution {
+  usagePlan: UsagePlan;
+  tripQueryLimit: number | null;
+}
+
+export interface TokenBudgetCheckResult {
+  allowed: boolean;
+  usedTokens: number;
+  tokenBudget: number | null;
+}
+
+const EXPLORER_PRODUCT_IDS = new Set([
+  'prod_U73VxEnvEHbBrx',
+  'prod_U73VrTc4sE8AIv',
+  'prod_U73WaALe9yjrAR',
+]);
+
+/**
+ * Monthly token budgets per user plan.
+ *
+ * These defaults intentionally track usage cost more closely than request-count
+ * limits while remaining conservative:
+ * - free: roughly 20 medium-sized requests/month
+ * - explorer: roughly 100 medium-sized requests/month
+ * - frequent_chraveler: unlimited
+ *
+ * Environment overrides allow tuning without code changes.
+ */
+const MONTHLY_TOKEN_BUDGETS: Record<UsagePlan, number | null> = {
+  free: Number(Deno.env.get('CONCIERGE_FREE_MONTHLY_TOKEN_BUDGET') || 100_000),
+  explorer: Number(Deno.env.get('CONCIERGE_EXPLORER_MONTHLY_TOKEN_BUDGET') || 600_000),
+  frequent_chraveler:
+    Number(Deno.env.get('CONCIERGE_FREQUENT_MONTHLY_TOKEN_BUDGET') || 0) > 0
+      ? Number(Deno.env.get('CONCIERGE_FREQUENT_MONTHLY_TOKEN_BUDGET'))
+      : null,
+};
+
+export const getTripQueryLimitForUsagePlan = (plan: UsagePlan): number | null => {
+  if (plan === 'free') return 5;
+  if (plan === 'explorer') return 10;
+  return null;
+};
+
+export const getMonthlyTokenBudgetForUsagePlan = (plan: UsagePlan): number | null =>
+  MONTHLY_TOKEN_BUDGETS[plan] ?? null;
+
+const isActiveEntitlementStatus = (status: string | null | undefined): boolean =>
+  status === 'active' || status === 'trialing';
+
+const hasActiveEntitlementPeriod = (periodEnd: string | null | undefined): boolean => {
+  if (!periodEnd) return true;
+  const parsed = Date.parse(periodEnd);
+  if (Number.isNaN(parsed)) return true;
+  return parsed > Date.now();
+};
+
+export const mapRawPlanToUsagePlan = (plan: string | null | undefined): UsagePlan => {
+  if (!plan || plan === 'free' || plan === 'consumer') return 'free';
+  if (plan === 'explorer' || plan === 'plus') return 'explorer';
+  return 'frequent_chraveler';
+};
+
+export async function resolveUsagePlanForUser(
+  supabase: any,
+  userId: string,
+): Promise<UsagePlanResolution> {
+  const defaultResolution: UsagePlanResolution = {
+    usagePlan: 'free',
+    tripQueryLimit: getTripQueryLimitForUsagePlan('free'),
+  };
+
+  const { data: entitlementData, error: entitlementError } = await supabase
+    .from('user_entitlements')
+    .select('plan, status, current_period_end')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (entitlementError) {
+    console.error('[UsagePolicy] Failed to read user_entitlements:', entitlementError);
+  }
+
+  if (
+    entitlementData &&
+    isActiveEntitlementStatus(entitlementData.status) &&
+    hasActiveEntitlementPeriod(entitlementData.current_period_end)
+  ) {
+    const usagePlan = mapRawPlanToUsagePlan(entitlementData.plan);
+    return {
+      usagePlan,
+      tripQueryLimit: getTripQueryLimitForUsagePlan(usagePlan),
+    };
+  }
+
+  const { data: profileData, error: profileError } = await supabase
+    .from('profiles')
+    .select('app_role, subscription_status, subscription_product_id')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (profileError) {
+    console.error('[UsagePolicy] Failed to read profiles fallback fields:', profileError);
+    return defaultResolution;
+  }
+
+  if (profileData && isActiveEntitlementStatus(profileData.subscription_status)) {
+    const productId = String(profileData.subscription_product_id || '');
+    if (productId && EXPLORER_PRODUCT_IDS.has(productId)) {
+      return { usagePlan: 'explorer', tripQueryLimit: getTripQueryLimitForUsagePlan('explorer') };
+    }
+    if (productId) {
+      return {
+        usagePlan: 'frequent_chraveler',
+        tripQueryLimit: getTripQueryLimitForUsagePlan('frequent_chraveler'),
+      };
+    }
+  }
+
+  const fallbackPlan = mapRawPlanToUsagePlan(profileData?.app_role);
+  return {
+    usagePlan: fallbackPlan,
+    tripQueryLimit: getTripQueryLimitForUsagePlan(fallbackPlan),
+  };
+}
+
+export async function checkMonthlyTokenBudget(
+  supabase: any,
+  userId: string,
+  usagePlan: UsagePlan,
+): Promise<TokenBudgetCheckResult> {
+  const tokenBudget = getMonthlyTokenBudgetForUsagePlan(usagePlan);
+  if (!tokenBudget || tokenBudget <= 0) {
+    return { allowed: true, usedTokens: 0, tokenBudget: null };
+  }
+
+  const monthStart = new Date();
+  monthStart.setUTCDate(1);
+  monthStart.setUTCHours(0, 0, 0, 0);
+
+  const nextMonthStart = new Date(monthStart);
+  nextMonthStart.setUTCMonth(nextMonthStart.getUTCMonth() + 1);
+
+  const { data, error } = await supabase
+    .from('concierge_usage')
+    .select('prompt_tokens, response_tokens')
+    .eq('user_id', userId)
+    .gte('created_at', monthStart.toISOString())
+    .lt('created_at', nextMonthStart.toISOString());
+
+  if (error) {
+    console.error('[UsagePolicy] Failed to read monthly token usage:', error);
+    return { allowed: true, usedTokens: 0, tokenBudget };
+  }
+
+  const usedTokens = (data || []).reduce((sum: number, row: Record<string, unknown>) => {
+    const promptTokens = Number(row.prompt_tokens || 0);
+    const responseTokens = Number(row.response_tokens || 0);
+    return sum + promptTokens + responseTokens;
+  }, 0);
+
+  return {
+    allowed: usedTokens < tokenBudget,
+    usedTokens,
+    tokenBudget,
+  };
+}

@@ -43,6 +43,7 @@ import {
   isConciergeWriteAction,
 } from '@/lib/conciergeInvalidation';
 import { sanitizeConciergeContent } from '@/lib/sanitizeConciergeContent';
+import { usePendingActions } from '@/hooks/usePendingActions';
 
 const EMPTY_SESSION: ConciergeSession = {
   tripId: '',
@@ -78,6 +79,14 @@ export interface ChatMessage {
   type: 'user' | 'assistant';
   content: string;
   timestamp: string;
+  pendingActions?: Array<{
+    id: string;
+    toolName: string;
+    actionType: string;
+    message: string;
+    title?: string;
+    detail?: string | null;
+  }>;
   usage?: {
     prompt_tokens: number;
     completion_tokens: number;
@@ -288,6 +297,12 @@ export const AIConciergeChat = ({
   } = useConciergeUsage(tripId);
   const { isOffline } = useOfflineStatus();
   const { user } = useAuth();
+  const {
+    confirmAction,
+    rejectAction,
+    isConfirming: isConfirmingPendingAction,
+    isRejecting: isRejectingPendingAction,
+  } = usePendingActions(tripId);
   const loadedPreferences = useAIConciergePreferences();
   const effectivePreferences = preferences ?? loadedPreferences;
   const storeSessionRaw = useConciergeSessionStore(s => s.sessions[tripId]);
@@ -524,12 +539,22 @@ export const AIConciergeChat = ({
                 tr.name === 'createPoll') &&
               tr.result?.success
             ) {
-              if (!assistantMsg.conciergeActions) assistantMsg.conciergeActions = [];
-              assistantMsg.conciergeActions.push({
-                actionType: (tr.result.actionType as string) || tr.name,
-                success: !!tr.result.success,
-                message: (tr.result.message as string) || '',
-              });
+              if (tr.result.pending && tr.result.pendingActionId) {
+                if (!assistantMsg.pendingActions) assistantMsg.pendingActions = [];
+                assistantMsg.pendingActions.push({
+                  id: tr.result.pendingActionId as string,
+                  toolName: tr.name,
+                  actionType: (tr.result.actionType as string) || tr.name,
+                  message: (tr.result.message as string) || '',
+                });
+              } else {
+                if (!assistantMsg.conciergeActions) assistantMsg.conciergeActions = [];
+                assistantMsg.conciergeActions.push({
+                  actionType: (tr.result.actionType as string) || tr.name,
+                  success: !!tr.result.success,
+                  message: (tr.result.message as string) || '',
+                });
+              }
             }
           }
         }
@@ -1423,6 +1448,40 @@ export const AIConciergeChat = ({
 
               // Handle concierge write actions (createPoll, createTask, savePlace, etc.)
               if (isConciergeWriteAction(name) && result.actionType) {
+                if (result.pending && result.pendingActionId) {
+                  const pendingAction = {
+                    id: result.pendingActionId as string,
+                    toolName: name,
+                    actionType: result.actionType as string,
+                    message: (result.message as string) || '',
+                    title: (result.title as string) || (result.question as string) || undefined,
+                    detail: (result.detail as string) || null,
+                  };
+                  setMessages(prev => {
+                    const idx = prev.findIndex(m => m.id === streamingMessageId);
+                    if (idx !== -1) {
+                      const updated = [...prev];
+                      const existing = updated[idx].pendingActions || [];
+                      updated[idx] = {
+                        ...updated[idx],
+                        pendingActions: [...existing, pendingAction],
+                      };
+                      return updated;
+                    }
+                    return [
+                      ...prev,
+                      {
+                        id: streamingMessageId,
+                        type: 'assistant' as const,
+                        content: '',
+                        timestamp: new Date().toISOString(),
+                        pendingActions: [pendingAction],
+                      },
+                    ];
+                  });
+                  return;
+                }
+
                 // Extract entity name from nested result objects
                 const entityName =
                   (result.entityName as string) ||
@@ -2138,6 +2197,10 @@ export const AIConciergeChat = ({
                 }}
                 onSmartImportConfirm={handleSmartImportConfirm}
                 onSmartImportDismiss={handleSmartImportDismiss}
+                onConfirmPendingAction={confirmAction}
+                onRejectPendingAction={rejectAction}
+                isConfirmingPendingAction={isConfirmingPendingAction}
+                isRejectingPendingAction={isRejectingPendingAction}
                 smartImportStates={smartImportStates}
                 ttsPlaybackState={ttsPlaybackState}
                 ttsPlayingMessageId={ttsPlayingMessageId}

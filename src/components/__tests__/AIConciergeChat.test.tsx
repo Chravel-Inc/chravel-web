@@ -92,6 +92,20 @@ vi.mock('../../hooks/useOfflineStatus', () => ({
   }),
 }));
 
+vi.mock('../../hooks/usePendingActions', () => ({
+  usePendingActions: () => ({
+    pendingActions: [],
+    isLoading: false,
+    confirmAction: vi.fn(),
+    confirmActionAsync: vi.fn(),
+    rejectAction: vi.fn(),
+    rejectActionAsync: vi.fn(),
+    isConfirming: false,
+    isRejecting: false,
+    hasPendingActions: false,
+  }),
+}));
+
 // Mock useWebSpeechVoice to ensure predictable state for UI tests
 vi.mock('@/hooks/useWebSpeechVoice', () => ({
   useWebSpeechVoice: () => ({
@@ -147,6 +161,38 @@ describe('AIConciergeChat', () => {
       renderWithProviders(<AIConciergeChat tripId="test-trip" />);
       expect(screen.queryByText(/ready with web search/i)).not.toBeInTheDocument();
       expect(screen.queryByText(/limited mode/i)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Pending AI action rendering', () => {
+    it('renders pending concierge approvals from streamed tool results', async () => {
+      vi.mocked(conciergeCacheService.getCachedMessages).mockReturnValue([
+        {
+          id: 'pending-approval-msg',
+          type: 'assistant',
+          content: "I've prepared a task for you to confirm.",
+          timestamp: new Date().toISOString(),
+          pendingActions: [
+            {
+              id: 'pending-action-1',
+              toolName: 'createTask',
+              actionType: 'create_task',
+              message: 'Please confirm in the trip chat.',
+              title: 'Pack sunscreen',
+              detail: 'Remember this before the beach day',
+            },
+          ],
+        } as unknown as Parameters<typeof conciergeCacheService.getCachedMessages>[0],
+      ] as never);
+
+      renderWithProviders(<AIConciergeChat tripId="test-trip" />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/AI wants to create a Task/i)).toBeInTheDocument();
+      });
+      expect(screen.getByText('Pack sunscreen')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Confirm/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Dismiss/i })).toBeInTheDocument();
     });
   });
 
