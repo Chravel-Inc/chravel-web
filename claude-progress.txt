@@ -1,3 +1,9 @@
+2026-03-30 — Stream migration forensic audit + immediate chat latency root cause
+- Completed code-level forensic trace of trip chat, pro/channel chat, concierge chat, realtime transport, and iOS wrapper coupling.
+- Identified primary send-latency cause as pre-send parser gating (`useChatComposer.sendMessage` awaiting `message-parser`) before `sendTripMessage` mutation kickoff.
+- Produced executable migration architecture + phased coexistence plan in `docs/audits/stream-migration-forensic-plan-2026-03-30.md`, including immediate stop-bleeding patch, Stream adapter strategy, concierge dual-persistence guidance, and rollback criteria.
+- Next follow-up: implement immediate parser decoupling patch + telemetry timestamps for send lifecycle and validate <200ms perceived latency target.
+
 2026-03-19 — Join approval dashboard hydration + notification deep-link hardening
 - Root-caused recurring "Join Request Approved but trip missing on dashboard" to `tripService.getUserTrips()` using a `trip_members.status` filter without fallback. In schema-drift/legacy environments where `status` is unavailable, the member-trip query fails and member cards disappear even though approval notifications succeed.
 - Added compatibility fallback in `getUserTrips()` to retry `trip_members` membership lookup without `status` filter when the column is unavailable, matching existing fallback strategy already used by other member queries.

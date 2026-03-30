@@ -268,3 +268,11 @@
 - **Evidence:** March 2026 remediation added iOS consumer checkout guards in `useConsumerSubscription`, `ConsumerBillingSection`, and `supabase/functions/create-checkout/index.ts`.
 - **Provenance:** 2026-03-19 launch blocker remediation pass.
 - **Confidence:** high
+
+### Never put AI/parser enrichment ahead of chat mutation kickoff
+- **Tip:** In messaging flows, any enrichment call (message parser, link preview, NLP extraction) must run after the send mutation starts (preferably after optimistic render). If enrichment is awaited first, users experience severe perceived send lag despite healthy realtime infrastructure.
+- **Applies when:** Chat composer pipelines with pre-send parsing, link unfurling, moderation, or AI extraction.
+- **Avoid when:** Validation/security checks that must block invalid payloads (empty content, oversized payloads).
+- **Evidence:** `TripChat.handleSendMessage` awaited `useChatComposer.sendMessage`; that function awaited `useChatMessageParser.parseMessage` (edge function) before `sendTripMessage`, delaying optimistic insert and making send appear stalled.
+- **Provenance:** March 2026 Stream migration forensic audit (`docs/audits/stream-migration-forensic-plan-2026-03-30.md`).
+- **Confidence:** high
