@@ -43,6 +43,27 @@ This document confirms all required App Store assets have been generated.
 
 ---
 
+## Marketing Screenshots (iPhone 6.7" - TestFlight / App Store)
+
+Polished marketing versions with device frames, benefit headlines, and Chravel dark/gold branding.
+
+| # | Screenshot | Verb | Descriptor | Status |
+|---|------------|------|------------|--------|
+| 1 | `01-plan.png` | PLAN | YOUR NEXT ADVENTURE | ✅ |
+| 2 | `02-chat.png` | CHAT | WITH YOUR GROUP | ✅ |
+| 3 | `03-organize.png` | ORGANIZE | EVERY DETAIL | ✅ |
+| 4 | `04-ask.png` | ASK | YOUR AI TRAVEL GUIDE | ✅ |
+| 5 | `05-split.png` | SPLIT | EXPENSES EFFORTLESSLY | ✅ |
+| 6 | `06-discover.png` | DISCOVER | AMAZING PLACES | ✅ |
+| 7 | `07-share.png` | SHARE | TRIP MEMORIES | ✅ |
+| 8 | `08-decide.png` | DECIDE | TOGETHER | ✅ |
+
+**Location:** `appstore/screenshots/marketing/iPhone-6.7/`
+**Showcase:** `appstore/screenshots/marketing/showcase.png`
+**Regenerate:** `python appstore/scripts/generate_marketing_screenshots.py`
+
+---
+
 ## iPad Screenshots (12.9" Display)
 
 | # | Screenshot | Feature | Status |
