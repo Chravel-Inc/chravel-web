@@ -21,6 +21,7 @@ import { authDebug } from '@/utils/authDebug';
 import { telemetry } from '@/telemetry/service';
 import { toast } from '@/hooks/use-toast';
 import { logAuthEvent } from '@/utils/authTelemetry';
+import { MfaChallengeGate } from '@/components/MfaChallengeGate';
 
 // Timeout utility to prevent indefinite hanging on database queries
 const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> => {
@@ -94,7 +95,9 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error?: string }>;
+  /** True when the user signed in with first factor but must complete MFA (AAL2) */
+  mfaPending: boolean;
+  signIn: (email: string, password: string) => Promise<{ error?: string; requiresMfa?: boolean }>;
   signInWithGoogle: () => Promise<{ error?: string }>;
   signInWithApple: () => Promise<{ error?: string }>;
   signInWithPhone: (phone: string) => Promise<{ error?: string }>;
@@ -119,6 +122,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  /** User has MFA enrolled but JWT is still AAL1 — block app until challenge completes */
+  const [mfaRequired, setMfaRequired] = useState(false);
   const isLoadingRef = useRef(true);
 
   /**
@@ -801,7 +806,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(shouldUseDemoUser ? demoUser : null);
   }, [demoUser, session, shouldUseDemoUser]);
 
-  const signIn = async (email: string, password: string): Promise<{ error?: string }> => {
+  // Supabase MFA: after first-factor sign-in the JWT may be AAL1 while nextLevel is AAL2.
+  // Gate the app until the user completes challenge+verify (critical for RLS policies that require aal2).
+  useEffect(() => {
+    if (!session?.user || shouldUseDemoUser) {
+      setMfaRequired(false);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (cancelled) return;
+      if (error) {
+        setMfaRequired(false);
+        return;
+      }
+      const needsMfa = data.nextLevel === 'aal2' && data.currentLevel !== data.nextLevel;
+      setMfaRequired(needsMfa);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.access_token, session?.user?.id, shouldUseDemoUser]);
+
+  const signIn = async (
+    email: string,
+    password: string,
+  ): Promise<{ error?: string; requiresMfa?: boolean }> => {
     try {
       setIsLoading(true);
 
@@ -833,11 +866,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { error: error.message };
       }
 
+      // MFA: detect before user state updates so AuthModal does not close and strand the user.
+      const { data: aalData, error: aalError } =
+        await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      const requiresMfa =
+        !aalError && aalData.nextLevel === 'aal2' && aalData.currentLevel !== aalData.nextLevel;
+      setMfaRequired(requiresMfa);
+
       // Success path: clear loading state (auth state listener will update user)
       logAuthEvent('login_success', { method: 'email' });
       setIsLoading(false);
       void data;
-      return {};
+      return { requiresMfa };
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('[Auth] Unexpected sign in error:', error);
@@ -1070,6 +1110,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Sign out from Supabase (no-op if not authenticated)
     logAuthEvent('logout');
     invalidateAuthCache();
+    setMfaRequired(false);
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
@@ -1281,12 +1322,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const handleMfaVerified = useCallback(async () => {
+    setMfaRequired(false);
+    const {
+      data: { session: nextSession },
+    } = await supabase.auth.getSession();
+    setSession(nextSession);
+    if (nextSession?.user) {
+      try {
+        const transformedUser = await transformUser(nextSession.user);
+        setUser(transformedUser);
+      } catch {
+        setUser(null);
+      }
+    }
+  }, [transformUser]);
+
   return (
     <AuthContext.Provider
       value={{
         user,
         session,
         isLoading,
+        mfaPending: mfaRequired,
         signIn,
         signInWithGoogle,
         signInWithApple,
@@ -1299,7 +1357,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         switchRole,
       }}
     >
-      {children}
+      <>
+        <MfaChallengeGate open={mfaRequired} onVerified={handleMfaVerified} />
+        {children}
+      </>
     </AuthContext.Provider>
   );
 };

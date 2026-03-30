@@ -74,6 +74,12 @@ const { mockSupabaseClient } = vi.hoisted(() => {
         onAuthStateChange: vi.fn(() => ({
           data: { subscription: { unsubscribe: vi.fn() } },
         })),
+        mfa: {
+          getAuthenticatorAssuranceLevel: vi.fn().mockResolvedValue({
+            data: { currentLevel: 'aal1', nextLevel: 'aal1' },
+            error: null,
+          }),
+        },
       },
       channel: vi.fn(() => ({
         on: vi.fn().mockReturnThis(),
@@ -83,6 +89,11 @@ const { mockSupabaseClient } = vi.hoisted(() => {
     },
   };
 });
+
+// MFA gate renders a portal; not needed for hook tests
+vi.mock('@/components/MfaChallengeGate', () => ({
+  MfaChallengeGate: () => null,
+}));
 
 // Mock Supabase module
 vi.mock('@/integrations/supabase/client', () => ({
@@ -128,6 +139,12 @@ describe('AuthProvider', () => {
     });
     mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
       data: { subscription: { unsubscribe: vi.fn() } },
+    });
+    (
+      mockSupabaseClient.auth.mfa.getAuthenticatorAssuranceLevel as ReturnType<typeof vi.fn>
+    ).mockResolvedValue({
+      data: { currentLevel: 'aal1', nextLevel: 'aal1' },
+      error: null,
     });
   });
 
@@ -200,5 +217,45 @@ describe('AuthProvider', () => {
 
     expect(signUpResult.error).toBeUndefined();
     expect(mockSupabaseClient.auth.signUp).toHaveBeenCalled();
+  });
+
+  it('returns requiresMfa when AAL must be upgraded to aal2', async () => {
+    mockSupabaseClient.auth.signInWithPassword.mockResolvedValue({
+      data: { user: mockUser, session: mockSession },
+      error: null,
+    });
+    // signIn and the session AAL effect both call this — must stay consistent until MFA completes
+    (
+      mockSupabaseClient.auth.mfa.getAuthenticatorAssuranceLevel as ReturnType<typeof vi.fn>
+    ).mockResolvedValue({
+      data: { currentLevel: 'aal1', nextLevel: 'aal2' },
+      error: null,
+    });
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(
+      () => {
+        expect(result.current.isLoading).toBe(false);
+      },
+      { timeout: 3000 },
+    );
+
+    let signInResult: { error?: string; requiresMfa?: boolean } = {};
+    await act(async () => {
+      signInResult = await result.current.signIn('test@example.com', 'password123');
+      // Provider only gets a session when onAuthStateChange fires (not automatic in unit tests).
+      const subscribeCall = mockSupabaseClient.auth.onAuthStateChange.mock.calls[0]?.[0];
+      if (typeof subscribeCall === 'function') {
+        subscribeCall('SIGNED_IN', mockSession);
+      }
+    });
+
+    expect(signInResult.requiresMfa).toBe(true);
+    await waitFor(() => {
+      expect(result.current.mfaPending).toBe(true);
+    });
   });
 });

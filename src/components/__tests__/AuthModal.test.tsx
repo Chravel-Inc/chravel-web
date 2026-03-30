@@ -6,6 +6,10 @@ import React from 'react';
 import { AuthModal } from '../AuthModal';
 import { AuthProvider } from '@/hooks/useAuth';
 
+vi.mock('@/components/MfaChallengeGate', () => ({
+  MfaChallengeGate: () => null,
+}));
+
 // Mock the supabase client
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
@@ -18,6 +22,12 @@ vi.mock('@/integrations/supabase/client', () => ({
       signUp: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
       signInWithOAuth: vi.fn().mockResolvedValue({ error: null }),
       resetPasswordForEmail: vi.fn().mockResolvedValue({ error: null }),
+      mfa: {
+        getAuthenticatorAssuranceLevel: vi.fn().mockResolvedValue({
+          data: { currentLevel: 'aal1', nextLevel: 'aal1' },
+          error: null,
+        }),
+      },
     },
     from: vi.fn().mockReturnValue({
       select: vi.fn().mockReturnThis(),

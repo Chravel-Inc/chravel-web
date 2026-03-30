@@ -19,7 +19,7 @@ const AuthPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, mfaPending } = useAuth();
 
   const returnTo = useMemo(() => {
     const fromQuery = searchParams.get('returnTo');
@@ -46,9 +46,10 @@ const AuthPage = () => {
     }
   }, [searchParams]);
 
-  // If already authenticated, redirect — preferring invite join flow if invite code exists
+  // If already authenticated, redirect — preferring invite join flow if invite code exists.
+  // Do not leave /auth while MFA is still required (JWT is AAL1 until verify completes).
   useEffect(() => {
-    if (user && !authLoading) {
+    if (user && !authLoading && !mfaPending) {
       const inviteCode = searchParams.get('invite');
       if (inviteCode) {
         // User just authenticated with an invite context — go straight to join
@@ -57,7 +58,7 @@ const AuthPage = () => {
         navigate(returnTo, { replace: true });
       }
     }
-  }, [user, authLoading, navigate, returnTo, searchParams]);
+  }, [user, authLoading, mfaPending, navigate, returnTo, searchParams]);
 
   return (
     <div className="min-h-screen bg-background">

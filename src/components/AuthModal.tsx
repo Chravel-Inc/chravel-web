@@ -78,6 +78,12 @@ export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
         result = await signIn(email, password);
       }
 
+      // Supabase MFA: first-factor success still needs TOTP/phone verify — gate is global; do not
+      // close the modal or wait for "full" auth until the user completes the challenge.
+      if ('requiresMfa' in result && result.requiresMfa) {
+        return;
+      }
+
       if (result.error) {
         if (mode === 'signup') {
           authEvents.signupFailed('email', result.error);
