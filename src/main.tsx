@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { TripVariantProvider } from '@/contexts/TripVariantContext';
 import { BasecampProvider } from '@/contexts/BasecampContext';
 import { initNativeLifecycle } from '@/native/lifecycle';
+import { initNativeSupabaseAuthRefresh } from '@/native/supabaseAuthRefresh';
 import { registerServiceWorker } from './utils/serviceWorkerRegistration';
 import { initRevenueCat } from '@/config/revenuecat';
 import { setupGlobalPurchaseListener } from '@/integrations/revenuecat/revenuecatClient';
@@ -84,6 +85,8 @@ if (import.meta.env.PROD) {
 
 // Initialize native lifecycle listeners as early as possible (no-op on web).
 initNativeLifecycle();
+// Bind Supabase token refresh to foreground on native shells (reduces iOS Keychain/Face ID loops).
+initNativeSupabaseAuthRefresh();
 
 // Initialize PostHog analytics
 telemetry.init().catch(err => console.warn('[Telemetry] Init failed:', err));

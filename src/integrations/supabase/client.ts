@@ -1,5 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './types';
+import { isChravelNativeAuthShell } from '@/lib/chravelNativeShell';
 
 /**
  * Safe storage implementation for environments where localStorage is unavailable
@@ -61,6 +62,11 @@ if (!isUsingEnvVars) {
   );
 }
 
+// Native shells (Capacitor / Despia): disable default interval refresh; we bind
+// `startAutoRefresh` / `stopAutoRefresh` to foreground in `initNativeSupabaseAuthRefresh`
+// to avoid Keychain reads while backgrounded (repeated Face ID on iOS).
+const useForegroundBoundTokenRefresh = isChravelNativeAuthShell();
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 export const supabase: SupabaseClient<Database> = createClient<Database>(
@@ -70,7 +76,7 @@ export const supabase: SupabaseClient<Database> = createClient<Database>(
     auth: {
       storage: createSafeStorage(),
       persistSession: true,
-      autoRefreshToken: true,
+      autoRefreshToken: !useForegroundBoundTokenRefresh,
       storageKey: 'chravel-auth-session',
       detectSessionInUrl: true,
     },
