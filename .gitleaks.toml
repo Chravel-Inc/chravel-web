@@ -13,8 +13,8 @@ useDefault = true
   paths = [
     ".*\\.env\\.example$",
     ".*\\.env\\.production\\.example$",
-    ".*\\.test\\.ts$",
-    ".*\\.spec\\.ts$",
+    ".*\\.test\\.tsx?$",
+    ".*\\.spec\\.tsx?$",
     ".*__snapshots__.*",
     ".*\\.d\\.ts$",
   ]

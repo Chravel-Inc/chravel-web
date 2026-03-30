@@ -1,12 +1,12 @@
 /**
- * Calendar Demo Screen — Itinerary timeline with AI Concierge cameo
+ * Calendar Demo Screen — Itinerary timeline with shared group visibility
  *
- * ~6s loop: Day header → 2 events → shared badge → AI concierge card → Save → toast → reset
+ * ~6s loop: Day header → 3 events → shared badge → reset
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { DemoDayHeader, DemoTimelineEvent, DemoConciergeCard, DemoToast } from '../primitives';
+import { DemoDayHeader, DemoTimelineEvent } from '../primitives';
 import { motion as motionPreset, LOOP_DURATION } from '../tokens';
 import { Users } from 'lucide-react';
 
@@ -28,18 +28,17 @@ export const CalendarDemoScreen = () => {
   useEffect(() => {
     const timers = [
       setTimeout(() => setStep(1), 500), // day header
-      setTimeout(() => setStep(2), 1000), // event 1
-      setTimeout(() => setStep(3), 1800), // event 2
-      setTimeout(() => setStep(4), 2500), // shared badge
-      setTimeout(() => setStep(5), 3500), // AI concierge card
-      setTimeout(() => setStep(6), 4800), // saved toast
+      setTimeout(() => setStep(2), 1200), // event 1
+      setTimeout(() => setStep(3), 2200), // event 2
+      setTimeout(() => setStep(4), 3200), // event 3
+      setTimeout(() => setStep(5), 4200), // shared badge
       setTimeout(resetAndLoop, LOOP_DURATION * 1000),
     ];
     return () => timers.forEach(clearTimeout);
   }, [cycle, resetAndLoop]);
 
   return (
-    <div className="flex flex-col h-full px-3 py-3 gap-2 relative">
+    <div className="flex flex-col h-full px-3 py-3 gap-2">
       <AnimatePresence>
         {/* Day header */}
         {step >= 1 && (
@@ -76,8 +75,22 @@ export const CalendarDemoScreen = () => {
           </motion.div>
         )}
 
-        {/* Shared indicator */}
+        {/* Event 3 */}
         {step >= 4 && (
+          <motion.div key={`${cycle}-ev3`} {...slideUp}>
+            <DemoTimelineEvent
+              emoji="🚕"
+              title="Airport Pickup"
+              category="activity"
+              categoryLabel="Transport"
+              time="3:00 PM"
+              location="Narita Terminal 2"
+            />
+          </motion.div>
+        )}
+
+        {/* Shared indicator */}
+        {step >= 5 && (
           <motion.div
             key={`${cycle}-shared`}
             initial={{ opacity: 0 }}
@@ -90,41 +103,9 @@ export const CalendarDemoScreen = () => {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* AI Concierge cameo */}
-      <AnimatePresence>
-        {step >= 5 && (
-          <motion.div
-            key={`${cycle}-concierge`}
-            initial={{ opacity: 0, y: 16, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8 }}
-            transition={motionPreset.slideIn}
-            className="absolute bottom-3 right-3 left-3"
-          >
-            <DemoConciergeCard
-              query="Best sushi near Shinjuku?"
-              title="Sushi Saito"
-              rating="⭐ 4.8 · Omakase"
-              bullets={[
-                'Intimate 8-seat counter experience',
-                'Reservations required 2 weeks ahead',
-              ]}
-              linkText="View on Google Maps"
-              saveLabel={step >= 6 ? '✓ Saved to Explore' : 'Save to Trip'}
-              onSaveState={step >= 6 ? 'saved' : 'idle'}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Saved toast */}
-      <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10">
-        <DemoToast text="Saved to Explore" show={step >= 6} />
-      </div>
     </div>
   );
 };
 
 CalendarDemoScreen.title = "Plans that don't drift.";
-CalendarDemoScreen.subtitle = 'Shared itinerary with AI-powered suggestions.';
+CalendarDemoScreen.subtitle = 'Shared itinerary. Everyone sees the plan.';

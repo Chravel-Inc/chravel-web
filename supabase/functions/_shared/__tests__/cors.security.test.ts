@@ -38,9 +38,9 @@ describe('CORS Security Tests', () => {
       expect(isOriginAllowed('https://jmjiyekmxwsxkfnqwyaa.supabase.co')).toBe(true);
     });
 
-    it('should allow lovable.dev preview origins', async () => {
+    it('should reject lovable.dev preview origins not in env allowlist', async () => {
       const isOriginAllowed = await getIsOriginAllowed();
-      expect(isOriginAllowed('https://preview-123.lovable.dev')).toBe(true);
+      expect(isOriginAllowed('https://preview-123.lovable.dev')).toBe(false);
     });
   });
 

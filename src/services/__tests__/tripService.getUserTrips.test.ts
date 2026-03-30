@@ -15,6 +15,7 @@ type ChainableResponse<T> = {
   or: ReturnType<typeof vi.fn>;
   not: ReturnType<typeof vi.fn>;
   neq: ReturnType<typeof vi.fn>;
+  limit: ReturnType<typeof vi.fn>;
   then: (onFulfilled?: (value: SupabaseResponse<T>) => unknown) => Promise<unknown>;
 };
 
@@ -27,6 +28,7 @@ function createChainableMock<T>(response: SupabaseResponse<T>): ChainableRespons
     or: vi.fn(),
     not: vi.fn(),
     neq: vi.fn(),
+    limit: vi.fn(),
     then: (onFulfilled?: (value: SupabaseResponse<T>) => unknown) =>
       Promise.resolve(response).then(onFulfilled),
   } as ChainableResponse<T>;
@@ -38,6 +40,7 @@ function createChainableMock<T>(response: SupabaseResponse<T>): ChainableRespons
   chain.or.mockReturnValue(chain);
   chain.not.mockReturnValue(chain);
   chain.neq.mockReturnValue(chain);
+  chain.limit.mockReturnValue(chain);
 
   return chain;
 }

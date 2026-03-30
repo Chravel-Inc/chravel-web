@@ -171,9 +171,9 @@ describe('SettingsMenu hardening (never crash across modes)', () => {
 
     expect(screen.getByText('Settings')).toBeInTheDocument();
     // Tab labels: My Trips, Pro, Events
-    expect(screen.getByRole('button', { name: 'My Trips' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Pro' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Events' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'My Trips settings' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Pro settings' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Events settings' })).toBeInTheDocument();
     expect(screen.getByTestId('consumer-settings')).toBeInTheDocument();
   });
 
@@ -191,7 +191,7 @@ describe('SettingsMenu hardening (never crash across modes)', () => {
     mockDemoView = 'app-preview';
     renderMenu();
 
-    const advertiserButton = screen.getByRole('button', { name: 'Advertiser' });
+    const advertiserButton = screen.getByRole('button', { name: 'Advertiser settings' });
     expect(advertiserButton).toBeInTheDocument();
     expect(advertiserButton).not.toBeDisabled();
   });
@@ -238,17 +238,17 @@ describe('SettingsMenu hardening (never crash across modes)', () => {
 
     expect(screen.getByTestId('consumer-settings')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Pro' }));
+    await user.click(screen.getByRole('button', { name: 'Pro settings' }));
     await waitFor(() => {
       expect(screen.getByTestId('enterprise-settings')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole('button', { name: 'Events' }));
+    await user.click(screen.getByRole('button', { name: 'Events settings' }));
     await waitFor(() => {
       expect(screen.getByTestId('events-settings')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole('button', { name: 'My Trips' }));
+    await user.click(screen.getByRole('button', { name: 'My Trips settings' }));
     await waitFor(() => {
       expect(screen.getByTestId('consumer-settings')).toBeInTheDocument();
     });
@@ -268,13 +268,13 @@ describe('SettingsMenu hardening (never crash across modes)', () => {
     renderMenu();
 
     mockEnterpriseThrows = true;
-    await user.click(screen.getByRole('button', { name: 'Pro' }));
+    await user.click(screen.getByRole('button', { name: 'Pro settings' }));
     await waitFor(() => {
       expect(screen.getByText('Something went wrong')).toBeInTheDocument();
     });
 
     mockEventsThrows = true;
-    await user.click(screen.getByRole('button', { name: 'Events' }));
+    await user.click(screen.getByRole('button', { name: 'Events settings' }));
     await waitFor(() => {
       expect(screen.getByText('Something went wrong')).toBeInTheDocument();
     });

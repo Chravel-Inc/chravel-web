@@ -14,7 +14,10 @@ import { OnboardingProgressDots } from './OnboardingProgressDots';
 import { WelcomeScreen } from './demo/screens/WelcomeScreen';
 import { ChatDemoScreen } from './demo/screens/ChatDemoScreen';
 import { CalendarDemoScreen } from './demo/screens/CalendarDemoScreen';
+import { ConciergeDemoScreen } from './demo/screens/ConciergeDemoScreen';
 import { PaymentsTrackingDemoScreen } from './demo/screens/PaymentsTrackingDemoScreen';
+import { PlacesDemoScreen } from './demo/screens/PlacesDemoScreen';
+import { MediaDemoScreen } from './demo/screens/MediaDemoScreen';
 import { FinalCTAScreen } from './demo/screens/FinalCTAScreen';
 import { PhoneFrame } from './demo/PhoneFrame';
 import { useOnboardingLayout } from './demo/useOnboardingLayout';
@@ -29,7 +32,7 @@ interface OnboardingCarouselProps {
   onCreateTrip: () => void;
 }
 
-const TOTAL_SCREENS = 5;
+const TOTAL_SCREENS = 8;
 
 interface ScreenConfig {
   component:
@@ -59,9 +62,22 @@ const screens: ScreenConfig[] = [
   {
     component: CalendarDemoScreen,
     title: "Plans that don't drift.",
-    subtitle: 'Shared itinerary with AI-powered suggestions.',
+    subtitle: 'Shared itinerary. Everyone sees the plan.',
     pill: 'calendar',
-    glintPill: 'concierge',
+    showInFrame: true,
+  },
+  {
+    component: ConciergeDemoScreen,
+    title: 'Your Chravel Agent.',
+    subtitle: 'Ask anything — get restaurant picks, hotel recs, and trip ideas instantly.',
+    pill: 'concierge',
+    showInFrame: true,
+  },
+  {
+    component: MediaDemoScreen,
+    title: 'Every moment, together.',
+    subtitle: 'Photos, videos, and files — one shared album for the whole trip.',
+    pill: 'media',
     showInFrame: true,
   },
   {
@@ -69,6 +85,13 @@ const screens: ScreenConfig[] = [
     title: 'Money, organized.',
     subtitle: 'Track expenses, split bills, settle up.',
     pill: 'payments',
+    showInFrame: true,
+  },
+  {
+    component: PlacesDemoScreen,
+    title: 'Pin your spots.',
+    subtitle: 'Save hotels, restaurants, and landmarks — your group always knows where to go.',
+    pill: 'places',
     showInFrame: true,
   },
   { component: FinalCTAScreen, title: '', subtitle: '', showInFrame: false },
@@ -200,7 +223,7 @@ export const OnboardingCarousel = ({
                 <ChevronLeft className="w-5 h-5" />
               </Button>
             )}
-            <Button size="lg" className="flex-1" onClick={handleNext}>
+            <Button size="default" className="flex-1" onClick={handleNext}>
               {currentScreen === 0 ? 'Get Started' : 'Continue'}
               <ChevronRight className="w-4 h-4 ml-2" />
             </Button>

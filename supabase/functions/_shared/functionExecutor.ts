@@ -97,9 +97,13 @@ async function _executeImpl(
     }
 
     case 'createTask': {
-      const { title, notes, dueDate, assignee } = args;
+      const { title, notes, dueDate, assignee, idempotency_key, tool_call_id } = args;
       const taskTitle = String(title || '').trim();
       if (!taskTitle) return { error: 'Task title is required' };
+
+      // Dedupe key: voice passes tool_call_id directly, text passes idempotency_key.
+      // Maps to UNIQUE index on (trip_id, tool_call_id) in trip_pending_actions.
+      const dedupeId = tool_call_id || idempotency_key || null;
 
       // B4: Route to pending buffer for user confirmation
       const { data: pending, error: pendingError } = await supabase
@@ -108,6 +112,7 @@ async function _executeImpl(
           trip_id: tripId,
           user_id: userId || '00000000-0000-0000-0000-000000000000',
           tool_name: 'createTask',
+          ...(dedupeId ? { tool_call_id: dedupeId } : {}),
           payload: {
             title: taskTitle,
             description: notes || null,

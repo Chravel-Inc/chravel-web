@@ -5,7 +5,7 @@
  * Uses shared demo tokens — single source of truth.
  */
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import {
@@ -21,7 +21,7 @@ import {
   concierge,
   type DemoPill,
 } from './tokens';
-import { Clock, MapPin, ExternalLink } from 'lucide-react';
+import { Clock, MapPin, ExternalLink, Video, Camera, FileText } from 'lucide-react';
 
 // ── DemoAvatar ────────────────────────────────────────────────────────────
 
@@ -87,7 +87,7 @@ export const DemoBubble = ({
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.15, ...motionPreset.micro }}
-          className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20 mb-0.5"
+          className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#B91C1C]/10 text-red-400 border border-[#B91C1C]/20 mb-0.5"
         >
           📢 Broadcast
         </motion.span>
@@ -189,7 +189,11 @@ const PILLS: { id: DemoPill; label: string }[] = [
   { id: 'chat', label: 'Chat' },
   { id: 'calendar', label: 'Calendar' },
   { id: 'concierge', label: 'Concierge' },
+  { id: 'media', label: 'Media' },
   { id: 'payments', label: 'Payments' },
+  { id: 'places', label: 'Places' },
+  { id: 'polls', label: 'Polls' },
+  { id: 'tasks', label: 'Tasks' },
 ];
 
 interface DemoPillBarProps {
@@ -197,27 +201,44 @@ interface DemoPillBarProps {
   glint?: DemoPill;
 }
 
-export const DemoPillBar = ({ active, glint }: DemoPillBarProps) => (
-  <div className="flex items-center gap-1.5 px-2.5 py-2 overflow-x-auto scrollbar-none">
-    {PILLS.map(({ id, label }) => {
-      const isActive = id === active;
-      const isGlint = id === glint;
+export const DemoPillBar = ({ active, glint }: DemoPillBarProps) => {
+  const containerRef = useRef<HTMLDivElement>(null);
 
-      return (
-        <div
-          key={id}
-          className={cn(
-            pills.base,
-            isActive ? pills.active : pills.inactive,
-            isGlint && !isActive && 'ring-1 ring-emerald-400/40 text-emerald-300',
-          )}
-        >
-          {label}
-        </div>
-      );
-    })}
-  </div>
-);
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const activeEl = container.querySelector(`[data-pill="${active}"]`) as HTMLElement | null;
+    if (activeEl) {
+      activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, [active]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="flex items-center gap-1.5 px-2.5 py-2 overflow-x-auto scrollbar-none"
+    >
+      {PILLS.map(({ id, label }) => {
+        const isActive = id === active;
+        const isGlint = id === glint;
+
+        return (
+          <div
+            key={id}
+            data-pill={id}
+            className={cn(
+              pills.base,
+              isActive ? pills.active : pills.inactive,
+              isGlint && !isActive && 'ring-1 ring-emerald-400/40 text-emerald-300',
+            )}
+          >
+            {label}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 // ── DemoSegmentedControl (MessageTypeBar replica) ─────────────────────────
 
@@ -380,3 +401,84 @@ export const DemoConciergeCard = ({
     </div>
   </div>
 );
+
+// ── DemoPlaceCard (Saved place row for Places demo) ──────────────────────
+
+interface DemoPlaceCardProps {
+  emoji: string;
+  name: string;
+  tag: string;
+  saved?: boolean;
+  highlight?: boolean;
+}
+
+export const DemoPlaceCard = ({ emoji, name, tag, saved, highlight }: DemoPlaceCardProps) => (
+  <div
+    className={cn(
+      radius.card,
+      spacing.cardPadding,
+      depth.card,
+      colors.card,
+      'flex items-center gap-3',
+      highlight && 'ring-1 ring-primary/40',
+    )}
+  >
+    <span className="text-lg shrink-0">{emoji}</span>
+    <div className="flex-1 min-w-0">
+      <p className={typo.cardTitle}>{name}</p>
+      <div className="flex items-center gap-1 mt-0.5">
+        <MapPin className="w-3 h-3 text-muted-foreground" />
+        <span className="text-[10px] text-muted-foreground">{tag}</span>
+      </div>
+    </div>
+    {saved && <DemoChip label="✓ Saved" variant="saved" />}
+  </div>
+);
+
+// ── DemoMediaRow (Activity feed row for Media demo) ──────────────────────
+
+const MEDIA_ICONS = {
+  video: Video,
+  photo: Camera,
+  file: FileText,
+} as const;
+
+interface DemoMediaRowProps {
+  avatar: { initial: string; color: string };
+  name: string;
+  count: number;
+  mediaType: keyof typeof MEDIA_ICONS;
+  tripName: string;
+}
+
+export const DemoMediaRow = ({ avatar, name, count, mediaType, tripName }: DemoMediaRowProps) => {
+  const Icon = MEDIA_ICONS[mediaType];
+  const typeLabel = mediaType === 'photo' ? 'Photo' : mediaType === 'video' ? 'Video' : 'File';
+  const plural = count === 1 ? typeLabel : `${typeLabel}s`;
+
+  return (
+    <div
+      className={cn(
+        radius.card,
+        spacing.cardPadding,
+        depth.card,
+        colors.card,
+        'flex items-center gap-3',
+      )}
+    >
+      <DemoAvatar initial={avatar.initial} color={avatar.color} />
+      <div className="flex-1 min-w-0">
+        <p className="text-xs text-foreground">
+          <span className="font-medium">{name}</span>{' '}
+          <span className="text-muted-foreground">
+            added {count} {plural} to
+          </span>
+        </p>
+        <p className="text-[11px] text-primary font-medium truncate">{tripName}</p>
+      </div>
+      <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+        <Icon className="w-4 h-4 text-muted-foreground" />
+      </div>
+    </div>
+  );
+};

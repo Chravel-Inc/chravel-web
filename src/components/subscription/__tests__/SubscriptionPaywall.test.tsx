@@ -51,7 +51,7 @@ describe('SubscriptionPaywall', () => {
 
   it('should render loading state initially', () => {
     render(<SubscriptionPaywall />);
-    expect(screen.getByText('Loading subscription options...')).toBeInTheDocument();
+    expect(screen.getByLabelText('Loading subscription options')).toBeInTheDocument();
   });
 
   it('should render error state when no offerings are available', async () => {
@@ -145,9 +145,9 @@ describe('SubscriptionPaywall', () => {
     render(<SubscriptionPaywall />);
 
     // Wait for features to appear after loading finishes
-    const feature = await screen.findByText('Unlimited trip creation');
+    const feature = await screen.findByText('Unlimited trips');
     expect(feature).toBeInTheDocument();
-    expect(screen.getByText('AI-powered travel concierge')).toBeInTheDocument();
+    expect(screen.getByText('AI travel concierge')).toBeInTheDocument();
     expect(screen.getByText('Advanced budget tracking')).toBeInTheDocument();
     expect(screen.getByText('Priority support')).toBeInTheDocument();
     expect(screen.getByText('No ads')).toBeInTheDocument();
@@ -155,10 +155,10 @@ describe('SubscriptionPaywall', () => {
 
   it('should render close button when onClose is provided', () => {
     render(<SubscriptionPaywall onClose={vi.fn()} />);
-    expect(screen.getByLabelText('Close')).toBeInTheDocument();
+    expect(screen.getByLabelText('Close subscription dialog')).toBeInTheDocument();
   });
 
-  it('should show Try Again button when error occurs and call safeReload', async () => {
+  it('should show Try Again button when error occurs and retry on click', async () => {
     const user = userEvent.setup();
 
     mockGetCustomerInfo.mockRejectedValue(new Error('Network error'));
@@ -168,8 +168,9 @@ describe('SubscriptionPaywall', () => {
     const tryAgainButton = await screen.findByText('Try Again');
     expect(tryAgainButton).toBeInTheDocument();
 
-    const { safeReload } = await import('@/utils/safeReload');
+    // Click retries by calling fetchOfferings again (getCustomerInfo + getOfferings)
+    mockGetCustomerInfo.mockClear();
     await user.click(tryAgainButton);
-    expect(safeReload).toHaveBeenCalled();
+    expect(mockGetCustomerInfo).toHaveBeenCalled();
   });
 });
