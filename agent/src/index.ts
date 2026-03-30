@@ -18,7 +18,7 @@ import { sendTranscript, sendTurnComplete, sendRichCard, sendAgentState } from '
 
 // ── Agent Configuration ────────────────────────────────────────────────────────
 
-const GEMINI_MODEL = process.env.GEMINI_LIVE_MODEL || 'gemini-3.1-flash-live-preview';
+const GEMINI_MODEL = process.env.GEMINI_LIVE_MODEL || 'gemini-3.1-flash-live';
 const VOICE_NAME = 'Charon';
 
 function log(event: string, data?: Record<string, unknown>): void {
