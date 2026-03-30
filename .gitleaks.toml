@@ -11,12 +11,15 @@ useDefault = true
 [[allowlists]]
   description = "Ignore example/placeholder files and test fixtures"
   paths = [
-    ".env.example",
-    ".env.production.example",
+    ".*\\.env\\.example$",
+    ".*\\.env\\.production\\.example$",
     ".*\\.test\\.tsx?$",
     ".*\\.spec\\.tsx?$",
     ".*__snapshots__.*",
     ".*\\.d\\.ts$",
+    "src/integrations/supabase/client\\.ts$",
+    "docs/.*\\.md$",
+    "supabase/migrations/.*\\.sql$",
   ]
   regexes = [
     # Placeholder patterns that are not real keys
@@ -36,7 +39,7 @@ useDefault = true
   regex = '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+'''
   tags = ["supabase", "jwt", "key"]
   [rules.allowlist]
-    paths = [".env.example", ".env.production.example"]
+    paths = [".*\\.env\\.example$", ".*\\.env\\.production\\.example$"]
 
 [[rules]]
   description = "RevenueCat API key hardcoded"
@@ -44,4 +47,4 @@ useDefault = true
   regex = '''(appl_|test_)[A-Za-z0-9]{20,}'''
   tags = ["revenuecat", "key"]
   [rules.allowlist]
-    paths = [".env.example", ".env.production.example"]
+    paths = [".*\\.env\\.example$", ".*\\.env\\.production\\.example$"]

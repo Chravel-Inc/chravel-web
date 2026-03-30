@@ -40,6 +40,8 @@ export interface UseGeminiVoiceReturn {
   toggleVoice: () => void;
   /** Clear the current error state and return to idle */
   clearError: () => void;
+  /** Reset all session-level transcript and counter state */
+  clearSessionState: () => void;
 }
 
 // ---------- Web Speech API types ----------
@@ -117,6 +119,7 @@ const IOS_MAX_RESTARTS = 20;
 export function useWebSpeechVoice(
   onUserMessage?: (text: string) => void,
   _onAssistantMessage?: (text: string) => void,
+  lang?: string,
 ): UseGeminiVoiceReturn {
   const [voiceState, setVoiceState] = useState<VoiceState>('idle');
   const [userTranscript, setUserTranscript] = useState('');
@@ -206,6 +209,16 @@ export function useWebSpeechVoice(
     setVoiceState('idle');
   }, [onUserMessage, cleanup]);
 
+  // ── Clear session state — reset transcript and counters without stopping ─
+  const clearSessionState = useCallback(() => {
+    accumulatedTranscriptRef.current = '';
+    resultIndexRef.current = 0;
+    restartCountRef.current = 0;
+    restartWithoutResultRef.current = 0;
+    setUserTranscript('');
+    setErrorMessage(null);
+  }, []);
+
   // ── Create & wire a new SpeechRecognition instance ──────────────────────
   const createRecognition = useCallback(() => {
     const recognition = new SpeechRecognitionClass();
@@ -216,7 +229,7 @@ export function useWebSpeechVoice(
     recognition.interimResults = true;
     // Use the browser's language preference; fall back to en-US for safety.
     // Android Chrome may produce better results with the full locale (e.g. en-GB).
-    recognition.lang = navigator?.language || 'en-US';
+    recognition.lang = lang || navigator?.language || 'en-US';
     // iOS Safari may support maxAlternatives but we only need the best result
     recognition.maxAlternatives = 1;
 
@@ -529,5 +542,6 @@ export function useWebSpeechVoice(
     stopVoice,
     toggleVoice,
     clearError,
+    clearSessionState,
   };
 }

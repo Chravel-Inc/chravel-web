@@ -47,6 +47,7 @@ const WRITE_ACTION_CLASSES = new Set<QueryClass>([
 const NATURAL_LANGUAGE_TRIGGER_CLASSES = new Set<QueryClass>([
   'task_action',
   'calendar_action',
+  'booking_reservation',
   'trip_summary',
 ]);
 
@@ -116,6 +117,9 @@ function actionPlanMandate(): string {
 2) EXECUTE: Call all required tools sequentially to fulfill the plan.
 3) RESPOND: Output a concise user-facing summary after tools execute.
 
+**⚠️ FAILURE TO PRODUCE AN ACTION PLAN = TASK FAILURE ⚠️**
+If the user's message implies ANY write action (task, event, booking, poll, broadcast, save), you MUST emit the Action Plan JSON. Skipping it means the action will NOT be executed.
+
 **ACTION PLAN FORMAT:**
 Output a JSON block enclosed in \`\`\`json \`\`\` at the very start of your response, matching this schema:
 \`\`\`json
@@ -133,14 +137,30 @@ Output a JSON block enclosed in \`\`\`json \`\`\` at the very start of your resp
   ]
 }
 \`\`\`
-*Idempotency Rule:* For each action, always set \`idempotency_key\` = \`hash(trip_id + message + action_type)\` (a unique string) to prevent duplicates on retries.`;
+*Idempotency Rule:* For each action, always set \`idempotency_key\` = \`hash(trip_id + message + action_type)\` (a unique string) to prevent duplicates on retries.
+
+**CORRECT vs INCORRECT example:**
+User: "Add a reminder to pack sunscreen and put our flight on the calendar for June 5 at 8am"
+✅ CORRECT — emit plan FIRST, then execute both tools:
+\`\`\`json
+{
+  "plan_version": "1.0",
+  "actions": [
+    { "type": "create_task", "priority": "normal", "title": "Pack sunscreen", "notes": null, "datetime_start": null, "idempotency_key": "task-pack-sunscreen" },
+    { "type": "create_calendar_event", "priority": "high", "title": "Flight", "notes": null, "datetime_start": "2026-06-05T08:00:00", "idempotency_key": "cal-flight-jun5" }
+  ]
+}
+\`\`\`
+Then call \`createTask\` AND \`addToCalendar\`.
+❌ INCORRECT — responding with "Sure, I can help with that!" without the JSON plan block. This causes ZERO tools to fire.`;
 }
 
 function naturalLanguageTriggers(): string {
   return `
 **NATURAL LANGUAGE TRIGGERS:**
 - **Tasks:** If the user says "remind me", "remind us", "don't let me forget", "make sure we", "we should remember to", "to-do", or "need to", you MUST include a \`createTask\` tool call in your plan unless explicitly declined.
-- **Calendar:** If the user mentions a date/time/range (e.g., "Saturday at 7pm", "May 22-25") AND implies scheduling ("add to calendar", "book dinner"), you MUST include an \`addToCalendar\` tool call. Default to timezone America/Los_Angeles unless specified.`;
+- **Calendar:** If the user mentions a date/time/range (e.g., "Saturday at 7pm", "May 22-25") AND implies scheduling ("add to calendar", "book dinner"), you MUST include an \`addToCalendar\` tool call. Default to timezone America/Los_Angeles unless specified.
+- **Bookings:** If the user says "make a reservation", "book a table", "reserve at", "dinner at [place]", "lunch reservation", "book us", or "get a table", you MUST include an \`emitReservationDraft\` tool call in your plan to create a booking draft.`;
 }
 
 function tripMetadataLayer(tripContext: ComprehensiveTripContext): string {

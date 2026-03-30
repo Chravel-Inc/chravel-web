@@ -300,7 +300,7 @@ export const ChatMessages = ({
             {/* 🆕 Enhanced: Show grounding sources with badge */}
             {messageWithGrounding.sources && messageWithGrounding.sources.length > 0 && (
               <div className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className="space-y-1 px-2 max-w-xs lg:max-w-md">
+                <div className="space-y-1.5 px-2 max-w-xs lg:max-w-md">
                   <div className="text-xs font-medium text-gray-400 flex items-center gap-2">
                     <span>Sources:</span>
                     {messageWithGrounding.sources.some(
@@ -311,17 +311,52 @@ export const ChatMessages = ({
                       </span>
                     )}
                   </div>
-                  {messageWithGrounding.sources.map((source, idx) => (
-                    <a
-                      key={idx}
-                      href={source.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block text-xs text-blue-400 hover:text-blue-300"
-                    >
-                      {source.title}
-                    </a>
-                  ))}
+                  {messageWithGrounding.sources.map((source, idx) => {
+                    const isImageUrl = /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(source.url);
+                    let faviconUrl: string | null = null;
+                    try {
+                      faviconUrl = `https://www.google.com/s2/favicons?domain=${new URL(source.url).hostname}&sz=16`;
+                    } catch {
+                      // invalid URL, skip favicon
+                    }
+                    return (
+                      <div
+                        key={idx}
+                        className="border border-gray-700/50 rounded-lg p-2 bg-gray-800/30 space-y-1"
+                      >
+                        <div className="flex items-center gap-2">
+                          {faviconUrl && (
+                            <img
+                              src={faviconUrl}
+                              alt=""
+                              width={16}
+                              height={16}
+                              className="shrink-0"
+                            />
+                          )}
+                          <a
+                            href={source.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-400 hover:text-blue-300 truncate"
+                          >
+                            {source.title}
+                          </a>
+                        </div>
+                        {source.snippet && (
+                          <p className="text-[11px] text-gray-400 line-clamp-2">{source.snippet}</p>
+                        )}
+                        {isImageUrl && (
+                          <img
+                            src={source.url}
+                            alt={source.title}
+                            className="max-h-20 rounded mt-1"
+                            loading="lazy"
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
