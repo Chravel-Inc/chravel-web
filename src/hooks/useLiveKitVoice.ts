@@ -265,12 +265,55 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
         }
       });
 
-      // Handle disconnection
-      room.on(RoomEvent!.Disconnected, () => {
-        if (sessionActiveRef.current) {
-          setState('idle');
-          sessionActiveRef.current = false;
-          setDiagnostics(prev => ({ ...prev, connectionStatus: 'closed' }));
+      // Handle disconnection with exponential backoff reconnect
+      room.on(RoomEvent!.Disconnected, async () => {
+        if (!sessionActiveRef.current) return;
+
+        // Attempt reconnect up to 3 times with exponential backoff (2s, 4s, 8s)
+        const MAX_RECONNECT_ATTEMPTS = 3;
+        for (let attempt = 0; attempt < MAX_RECONNECT_ATTEMPTS; attempt++) {
+          if (!sessionActiveRef.current) return; // user ended session during backoff
+          setState('connecting');
+          setDiagnostics(prev => ({
+            ...prev,
+            connectionStatus: 'reconnecting',
+            substep: `Reconnecting (attempt ${attempt + 1}/${MAX_RECONNECT_ATTEMPTS})`,
+          }));
+
+          const delay = Math.pow(2, attempt + 1) * 1000; // 2s, 4s, 8s
+          await new Promise(resolve => setTimeout(resolve, delay));
+
+          if (!sessionActiveRef.current) return;
+
+          try {
+            await room.connect(wsUrl || LIVEKIT_WS_URL, token);
+            await room.localParticipant.setMicrophoneEnabled(true);
+            setState('ready');
+            setDiagnostics(prev => ({
+              ...prev,
+              connectionStatus: 'open',
+              substep: null,
+            }));
+            return; // reconnected successfully
+          } catch {
+            // continue to next attempt
+          }
+        }
+
+        // All reconnect attempts failed
+        setState('error');
+        sessionActiveRef.current = false;
+        setDiagnostics(prev => ({
+          ...prev,
+          connectionStatus: 'error',
+          lastError: 'Connection lost. Please try again.',
+          substep: null,
+        }));
+        onError?.('Connection lost. Please try again.');
+        circuitBreaker.recordFailure('reconnect_failed');
+        if (circuitBreaker.isOpen()) {
+          setCircuitBreakerOpen(true);
+          onCircuitBreakerOpen?.();
         }
       });
 

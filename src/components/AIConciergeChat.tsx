@@ -595,6 +595,70 @@ export const AIConciergeChat = ({
     toast.error('Voice error', { description: msg });
   }, []);
 
+  // Rich card callback for LiveKit voice: when the agent sends tool results
+  // as data messages, map them to ChatMessage fields on the latest assistant message.
+  const handleLiveRichCard = useCallback((toolName: string, cardData: Record<string, unknown>) => {
+    setMessages(prev => {
+      // Find the last assistant message to attach rich cards to
+      const lastIdx = prev.length - 1;
+      if (lastIdx < 0) return prev;
+      const last = prev[lastIdx];
+      if (last.type !== 'assistant') return prev;
+
+      const updated = [...prev];
+      const msg = { ...last };
+
+      if (
+        (toolName === 'searchPlaces' || toolName === 'getPlaceDetails') &&
+        cardData.places &&
+        Array.isArray(cardData.places)
+      ) {
+        msg.functionCallPlaces = cardData.places as ChatMessage['functionCallPlaces'];
+      } else if (
+        toolName === 'searchFlights' &&
+        cardData.flights &&
+        Array.isArray(cardData.flights)
+      ) {
+        msg.functionCallFlights = cardData.flights as ChatMessage['functionCallFlights'];
+      } else if (toolName === 'searchFlights' && cardData.success) {
+        // Single flight result from searchFlights
+        msg.functionCallFlights = [
+          cardData as unknown as NonNullable<ChatMessage['functionCallFlights']>[0],
+        ];
+      } else if (toolName === 'searchHotels' && cardData.hotels && Array.isArray(cardData.hotels)) {
+        msg.functionCallHotels = cardData.hotels as HotelResult[];
+      } else if (
+        (toolName === 'searchWeb' || toolName === 'searchImages') &&
+        cardData.results &&
+        Array.isArray(cardData.results)
+      ) {
+        msg.sources = (
+          cardData.results as Array<{ title: string; url: string; snippet: string }>
+        ).map(r => ({
+          title: r.title || '',
+          url: r.url || '',
+          snippet: r.snippet || '',
+        }));
+      } else if (
+        (toolName === 'addToCalendar' || toolName === 'createTask' || toolName === 'createPoll') &&
+        cardData.success
+      ) {
+        if (!msg.conciergeActions) msg.conciergeActions = [];
+        msg.conciergeActions = [
+          ...msg.conciergeActions,
+          {
+            actionType: (cardData.actionType as string) || toolName,
+            success: !!cardData.success,
+            message: (cardData.message as string) || '',
+          },
+        ];
+      }
+
+      updated[lastIdx] = msg;
+      return updated;
+    });
+  }, []);
+
   const {
     // Both hooks always called (Rules of Hooks). Only the active runtime's startSession is invoked.
     state: vertexState,
@@ -631,6 +695,7 @@ export const AIConciergeChat = ({
   } = useLiveKitVoice({
     tripId,
     onTurnComplete: VOICE_RUNTIME === 'livekit' ? handleLiveTurnComplete : undefined,
+    onRichCard: VOICE_RUNTIME === 'livekit' ? handleLiveRichCard : undefined,
     onError: VOICE_RUNTIME === 'livekit' ? handleLiveError : undefined,
   });
 
@@ -659,12 +724,17 @@ export const AIConciergeChat = ({
 
   const handleEndLiveSession = useCallback(async () => {
     await endLiveSession();
+    // Explicitly clear streaming bubbles to prevent stale transcripts
+    // when user force-stops mid-turn (race condition with useEffect cleanup)
+    setStreamingVoiceMessage(null);
+    setStreamingUserMessage(null);
   }, [endLiveSession]);
 
   // Waveform button — dictation only. Stops Live if active first.
   const handleConvoToggle = useCallback(() => {
     if (isLiveSessionActive) {
       void handleEndLiveSession();
+      setInputMessage('');
     }
     toggleDictation();
   }, [isLiveSessionActive, handleEndLiveSession, toggleDictation]);
@@ -676,6 +746,7 @@ export const AIConciergeChat = ({
     // Stop dictation if running
     if (isDictationActive) {
       toggleDictation();
+      setInputMessage('');
     }
 
     // If Live is already active, stop it
@@ -780,6 +851,9 @@ export const AIConciergeChat = ({
       isMounted.current = false;
       streamAbortRef.current?.();
       streamAbortRef.current = null;
+      // Clear any leftover streaming bubbles
+      setStreamingVoiceMessage(null);
+      setStreamingUserMessage(null);
     };
   }, []);
 
@@ -1762,6 +1836,15 @@ export const AIConciergeChat = ({
         usage: data.usage,
         sources: data.sources || data.citations,
         googleMapsWidget: data.googleMapsWidget,
+        // Rich card fields from non-streaming fallback response
+        ...(data.places && Array.isArray(data.places) ? { functionCallPlaces: data.places } : {}),
+        ...(data.flights && Array.isArray(data.flights)
+          ? { functionCallFlights: data.flights }
+          : {}),
+        ...(data.hotels && Array.isArray(data.hotels) ? { functionCallHotels: data.hotels } : {}),
+        ...(data.conciergeActions && Array.isArray(data.conciergeActions)
+          ? { conciergeActions: data.conciergeActions }
+          : {}),
       };
 
       setMessages(prev => [...prev, assistantMessage]);

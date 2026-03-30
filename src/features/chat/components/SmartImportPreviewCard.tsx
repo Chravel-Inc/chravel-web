@@ -55,6 +55,8 @@ export interface SmartImportPreviewCardProps {
   onDismiss: () => void;
   isImporting?: boolean;
   importResult?: { imported: number; failed: number } | null;
+  importError?: string | null;
+  onRetry?: () => void;
 }
 
 export const SmartImportPreviewCard: React.FC<SmartImportPreviewCardProps> = ({
@@ -66,6 +68,8 @@ export const SmartImportPreviewCard: React.FC<SmartImportPreviewCardProps> = ({
   onDismiss,
   isImporting = false,
   importResult = null,
+  importError = null,
+  onRetry,
 }) => {
   const [deselected, setDeselected] = useState<Set<number>>(
     () => new Set(previewEvents.map((e, i) => (e.isDuplicate ? i : -1)).filter(i => i >= 0)),
@@ -89,6 +93,37 @@ export const SmartImportPreviewCard: React.FC<SmartImportPreviewCardProps> = ({
     if (selectedEvents.length === 0) return;
     onConfirm(selectedEvents);
   }, [selectedEvents, onConfirm]);
+
+  // Show error state
+  if (importError) {
+    return (
+      <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 space-y-2">
+        <div className="flex items-center gap-2">
+          <AlertTriangle size={18} className="text-red-400" />
+          <p className="text-sm font-medium text-red-300">Import failed</p>
+        </div>
+        <p className="text-xs text-red-400/80">{importError}</p>
+        <div className="flex gap-2 pt-1">
+          {onRetry && (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-500 rounded-lg transition-colors"
+            >
+              Retry
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="px-3 py-1.5 text-xs text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
+          >
+            Dismiss
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Show success state
   if (importResult) {
@@ -115,6 +150,22 @@ export const SmartImportPreviewCard: React.FC<SmartImportPreviewCardProps> = ({
             </p>
           </div>
         )}
+      </div>
+    );
+  }
+
+  // Show empty state after filtering
+  if (previewEvents.length === 0) {
+    return (
+      <div className="rounded-xl border border-gray-500/30 bg-gray-500/5 p-4 space-y-2">
+        <p className="text-sm text-gray-400">No new events to import</p>
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="px-3 py-1.5 text-xs text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
+        >
+          Dismiss
+        </button>
       </div>
     );
   }
@@ -174,13 +225,14 @@ export const SmartImportPreviewCard: React.FC<SmartImportPreviewCardProps> = ({
               } disabled:cursor-not-allowed`}
             >
               {/* Checkbox */}
-              <div
-                className={`mt-0.5 shrink-0 w-4 h-4 rounded border flex items-center justify-center ${
-                  isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-600 bg-transparent'
-                }`}
-              >
-                {isSelected && <Check size={10} className="text-white" />}
-              </div>
+              <input
+                type="checkbox"
+                checked={isSelected}
+                readOnly
+                className="mt-0.5 shrink-0 w-4 h-4 rounded accent-blue-500 cursor-pointer"
+                tabIndex={-1}
+                aria-hidden="true"
+              />
 
               {/* Icon */}
               <Icon size={14} className={`mt-0.5 shrink-0 ${colorClass}`} />

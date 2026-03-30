@@ -266,6 +266,172 @@ async function _executeImpl(
       };
     }
 
+    case 'searchHotels': {
+      const { query, location, checkIn, checkOut } = args;
+      if (!GOOGLE_MAPS_API_KEY) {
+        return { error: 'Google Maps API key not configured' };
+      }
+
+      // Enrich query to target lodging
+      const hotelQuery =
+        query && String(query).toLowerCase().includes('hotel')
+          ? String(query)
+          : `${query || ''} hotels`.trim();
+
+      // Use same Google Places Text Search API as searchPlaces
+      const url = 'https://places.googleapis.com/v1/places:searchText';
+
+      // Parse location coordinates
+      const lat = Number(args.nearLat);
+      const lng = Number(args.nearLng);
+      const hasLocation = Number.isFinite(lat) && Number.isFinite(lng);
+      const fallbackLat = locationContext?.lat;
+      const fallbackLng = locationContext?.lng;
+      const finalLat = hasLocation ? lat : fallbackLat;
+      const finalLng = hasLocation ? lng : fallbackLng;
+
+      const placesResponse = await withCircuitBreaker('google-maps', () =>
+        fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
+            'X-Goog-FieldMask':
+              'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.priceLevel,places.googleMapsUri,places.photos,places.types,places.websiteUri',
+          },
+          body: JSON.stringify({
+            textQuery: hotelQuery,
+            includedType: 'lodging',
+            locationBias:
+              finalLat != null && finalLng != null
+                ? { circle: { center: { latitude: finalLat, longitude: finalLng }, radius: 10000 } }
+                : undefined,
+            maxResultCount: 5,
+          }),
+          signal: AbortSignal.timeout(8_000),
+        }),
+      );
+
+      if (!placesResponse.ok) {
+        const errorText = await placesResponse.text().catch(() => 'Unknown error');
+        console.error(`[Tool] searchHotels failed (${placesResponse.status}): ${errorText}`);
+        return { error: 'Hotel search failed', status: placesResponse.status };
+      }
+
+      const placesData = await placesResponse.json();
+      const hotels = (placesData.places || []).map((p: any) => {
+        // Extract amenities from place types
+        const amenityMap: Record<string, string> = {
+          swimming_pool: 'Pool',
+          fitness_center: 'Fitness',
+          spa: 'Spa',
+          restaurant: 'Restaurant',
+          bar: 'Bar',
+          parking: 'Parking',
+          free_parking: 'Free Parking',
+          wifi: 'WiFi',
+        };
+        const amenities = (p.types || [])
+          .filter((t: string) => amenityMap[t])
+          .map((t: string) => amenityMap[t])
+          .slice(0, 4);
+
+        return {
+          id: p.id || null,
+          provider: 'Google Maps',
+          title: p.displayName?.text || 'Unknown Hotel',
+          subtitle: p.formattedAddress || null,
+          badges: amenities.length > 0 ? amenities : undefined,
+          price: null, // Google Places doesn't return hotel pricing
+          dates:
+            checkIn || checkOut ? { check_in: checkIn || null, check_out: checkOut || null } : null,
+          location: {
+            city: null,
+            region: null,
+            country: null,
+          },
+          details: {
+            rating: p.rating || null,
+            reviews_count: p.userRatingCount || null,
+            refundable: null,
+            amenities,
+          },
+          deep_links: {
+            primary: p.googleMapsUri || null,
+            secondary: p.websiteUri || null,
+          },
+        };
+      });
+
+      return { success: true, hotels };
+    }
+
+    case 'getHotelDetails': {
+      const { placeId } = args;
+      if (!placeId || typeof placeId !== 'string') {
+        return { error: 'placeId is required' };
+      }
+      if (!GOOGLE_MAPS_API_KEY) {
+        return { error: 'Google Maps API key not configured' };
+      }
+
+      const url = `https://places.googleapis.com/v1/places/${placeId}`;
+      const detailsResponse = await withCircuitBreaker('google-maps', () =>
+        fetch(url, {
+          headers: {
+            'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
+            'X-Goog-FieldMask':
+              'id,displayName,formattedAddress,rating,userRatingCount,googleMapsUri,websiteUri,photos,types,priceLevel,editorialSummary',
+          },
+          signal: AbortSignal.timeout(8_000),
+        }),
+      );
+
+      if (!detailsResponse.ok) {
+        const errorText = await detailsResponse.text().catch(() => 'Unknown error');
+        console.error(`[Tool] getHotelDetails failed (${detailsResponse.status}): ${errorText}`);
+        return { error: 'Hotel details fetch failed', status: detailsResponse.status };
+      }
+
+      const p = await detailsResponse.json();
+      const amenityMap: Record<string, string> = {
+        swimming_pool: 'Pool',
+        fitness_center: 'Fitness',
+        spa: 'Spa',
+        restaurant: 'Restaurant',
+        bar: 'Bar',
+        parking: 'Parking',
+        free_parking: 'Free Parking',
+        wifi: 'WiFi',
+      };
+      const amenities = (p.types || [])
+        .filter((t: string) => amenityMap[t])
+        .map((t: string) => amenityMap[t])
+        .slice(0, 6);
+
+      return {
+        success: true,
+        id: p.id || null,
+        provider: 'Google Maps',
+        title: p.displayName?.text || 'Unknown Hotel',
+        subtitle: p.editorialSummary?.text || p.formattedAddress || null,
+        badges: amenities.length > 0 ? amenities : undefined,
+        price: null,
+        dates: null,
+        location: { city: null, region: null, country: null },
+        details: {
+          rating: p.rating || null,
+          reviews_count: p.userRatingCount || null,
+          refundable: null,
+          amenities,
+        },
+        deep_links: {
+          primary: p.googleMapsUri || null,
+          secondary: p.websiteUri || null,
+        },
+      };
+    }
+
     // ========== NEW TOOLS ==========
 
     case 'getDirectionsETA': {

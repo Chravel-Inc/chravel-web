@@ -143,6 +143,25 @@ function stripUnfencedToolPlanJSON(content: string): string {
 }
 
 /**
+ * Patterns that indicate prompt injection attempts in AI-generated content.
+ * These are stripped as an additional safety layer beyond JSON tool-plan stripping.
+ */
+const INJECTION_PATTERNS: RegExp[] = [
+  /<!--\s*(?:SYSTEM|OVERRIDE|INJECT|EVAL|EXECUTE)[:\s]*[^-]*-->/gi,
+  /\[(?:SYSTEM|OVERRIDE|EVAL|EXECUTE)[:\s]*[^\]]*\]/gi,
+  /<(?:system|execute|eval|override|inject|run)[^>]*>/gi,
+  /(?:forget|ignore|override|bypass|disregard)\s+(?:all|previous|the)\s+(?:instructions|rules|system|prompt)/gi,
+];
+
+function stripInjectionPatterns(content: string): string {
+  let result = content;
+  for (const pattern of INJECTION_PATTERNS) {
+    result = result.replace(pattern, '');
+  }
+  return result;
+}
+
+/**
  * Sanitize assistant message content by stripping any tool-plan JSON blocks,
  * including those wrapped in markdown code fences.
  * Returns the cleaned text, or an empty string if the entire message was only plans.
@@ -155,13 +174,16 @@ export function sanitizeConciergeContent(content: string): string {
   const hasFence = content.includes('```');
   const hasAnyKey = TOOL_PLAN_KEYS.some(k => content.includes(`"${k}"`));
   const hasActionType = TOOL_ACTION_TYPES.some(t => content.includes(`"${t}"`));
-  if (!hasFence && !hasAnyKey && !hasActionType) return content;
+  if (!hasFence && !hasAnyKey && !hasActionType) return stripInjectionPatterns(content);
 
   // Phase 1: Strip fenced code blocks containing tool-plan JSON
   let cleaned = hasFence ? stripToolPlanFences(content) : content;
 
   // Phase 2: Strip unfenced tool-plan JSON objects
   cleaned = stripUnfencedToolPlanJSON(cleaned);
+
+  // Phase 3: Strip prompt injection patterns
+  cleaned = stripInjectionPatterns(cleaned);
 
   return cleaned.trim();
 }

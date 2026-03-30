@@ -79,7 +79,9 @@ export const FlightResultCards: React.FC<FlightResultCardsProps> = ({
   isSaved,
   isSaving,
 }) => {
-  if (!flights || flights.length === 0) return null;
+  if (!flights || flights.length === 0) {
+    return <div className={`text-sm text-gray-500 ${className ?? ''}`}>No flights found</div>;
+  }
 
   return (
     <div className={`flex flex-col gap-2.5 ${className ?? ''}`}>
@@ -120,6 +122,9 @@ export const FlightResultCards: React.FC<FlightResultCardsProps> = ({
                     {flight.flightNumber && ` · ${flight.flightNumber}`}
                   </p>
                 )}
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Opens Google Flights with your search
+                </p>
               </div>
             </div>
 
@@ -177,7 +182,7 @@ export const FlightResultCards: React.FC<FlightResultCardsProps> = ({
                   rel="noopener noreferrer"
                   className="flex-1 flex items-center justify-center gap-2 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium rounded-lg transition-colors"
                 >
-                  Check Availability
+                  Search on Google Flights
                   <ExternalLink size={12} />
                 </a>
               ) : (
