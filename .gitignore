@@ -44,3 +44,5 @@ tmp/loop-status/*
 tmp/loop-history/*
 !tmp/loop-status/.gitkeep
 !tmp/loop-history/.gitkeep
+ios-release/fastlane/README.md
+ios-release/fastlane/report.xml
