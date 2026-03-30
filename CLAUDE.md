@@ -221,6 +221,71 @@
 
 ---
 
+## CODEX PLUGIN (AI CODE REVIEW)
+
+> **What:** OpenAI Codex Plugin for Claude Code — gives every dev a second-pass AI reviewer without leaving Claude Code.
+> **Requires:** ChatGPT subscription (Free tier works) **or** OpenAI API key · Node.js 18.18+
+
+### One-time setup (per developer machine)
+
+```bash
+# 1. Install the Codex CLI globally (skip if already installed)
+npm install -g @openai/codex
+
+# 2. Authenticate (opens browser for ChatGPT login, or prompts for API key)
+codex login
+
+# 3. Inside a Claude Code session, install the plugin
+/plugin marketplace add openai/codex-plugin-cc
+/plugin install codex@openai-codex
+
+# 4. Verify everything is wired up
+/codex:setup
+```
+
+### Core commands
+
+| Command | What it does |
+|---|---|
+| `/codex:review` | Standard read-only code review of current changes |
+| `/codex:review --base main` | Review all changes since `main` |
+| `/codex:adversarial-review` | Skeptical challenge review — questions assumptions, not just syntax |
+| `/codex:rescue <task>` | Hand a task off to Codex (e.g. `investigate flaky test`) |
+| `/codex:status` | Show running/completed background jobs |
+| `/codex:result` | Show output from a completed job |
+| `/codex:cancel` | Cancel an active background job |
+
+Add `--background` to any review/rescue command to run it without blocking.
+
+### When to use adversarial review (Chravel-specific)
+
+Use `/codex:adversarial-review` for high-stakes changes:
+- Auth or RLS policy changes
+- Payment/subscription flows (RevenueCat, Stripe)
+- Database migrations (especially destructive ones)
+- Permission model changes across trip types
+- AI concierge tool declarations or mutation paths
+
+### Optional: project-level Codex config
+
+Create `.codex/config.toml` in the repo root to set defaults for the team:
+
+```toml
+model = "gpt-5.4-mini"
+model_reasoning_effort = "xhigh"
+```
+
+### Review gate (optional, use with caution)
+
+```bash
+/codex:setup --enable-review-gate   # Block Claude Code exit until Codex review runs
+/codex:setup --disable-review-gate  # Remove the gate
+```
+
+> **Warning:** Review gates can create extended Claude/Codex loops and burn through usage limits quickly. Only enable when actively monitoring.
+
+---
+
 ## OUTPUT FORMAT (for all code responses)
 
 ```
