@@ -141,14 +141,19 @@ export const useChatComposer = ({
 
       const message = createMessage(inputMessage, options);
 
-      // Parse message for media and links (only if not in demo mode)
-      if (!demoMode && tripId && !isPayment) {
-        await parseMessage(message.id, inputMessage, tripId);
-      }
-
-      // Clear input and reply context
+      // Clear input and reply context immediately for optimistic UI
+      const currentInput = inputMessage;
       setInputMessage('');
       setReplyingTo(null);
+
+      // Parse message for media and links in the background (only if not in demo mode)
+      if (!demoMode && tripId && !isPayment) {
+        parseMessage(message.id, currentInput, tripId).catch(error => {
+          if (import.meta.env.DEV) {
+            console.error('[useChatComposer] Background message parsing failed:', error);
+          }
+        });
+      }
 
       return message;
     },
