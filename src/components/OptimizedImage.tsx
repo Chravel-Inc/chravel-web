@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { cn } from '@/lib/utils';
 
 interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -36,9 +36,15 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
     setIsLoaded(false);
   }, [src]);
 
-  // Intersection Observer for lazy loading
-  useEffect(() => {
+  // Intersection Observer for lazy loading.
+  // useLayoutEffect: ref is attached to the wrapper before paint; useEffect could run
+  // before the ref is set, so observe() never ran and above-the-fold desktop cards
+  // stayed on the pulse placeholder (trip grid cover photos).
+  useLayoutEffect(() => {
     if (!lazy || priority || isInView) return;
+
+    const el = imgRef.current;
+    if (!el) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -53,10 +59,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
       },
     );
 
-    if (imgRef.current) {
-      observer.observe(imgRef.current);
-    }
-
+    observer.observe(el);
     return () => observer.disconnect();
   }, [lazy, priority, isInView]);
 
