@@ -636,13 +636,11 @@ export const TripChat = React.memo(
 
         // Auto-parse message for entities (dates, times, locations)
         if (message.text && message.text.trim().length > 10) {
-          try {
-            await parseMessage(message.text, resolvedTripId);
-          } catch (parseError) {
+          parseMessage(message.text, resolvedTripId).catch(parseError => {
             if (import.meta.env.DEV) {
-              console.warn('[TripChat] Message parsing failed:', parseError);
+              console.warn('[TripChat] Background message parsing failed:', parseError);
             }
-          }
+          });
         }
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Failed to send message';
