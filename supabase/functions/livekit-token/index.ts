@@ -107,7 +107,9 @@ serve(async req => {
     // ── Generate LiveKit Token ─────────────────────────────────────────────
     const shortId = crypto.randomUUID().split('-')[0];
     const roomName = `voice-${tripId}-${shortId}`;
-    const voice = typeof body?.voice === 'string' ? body.voice : 'Charon';
+    const ALLOWED_VOICES = ['Aoede', 'Charon', 'Fenrir', 'Kore', 'Puck'];
+    const rawVoice = typeof body?.voice === 'string' ? body.voice : 'Charon';
+    const voice = ALLOWED_VOICES.includes(rawVoice) ? rawVoice : 'Charon';
 
     const token = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
       identity: user.id,

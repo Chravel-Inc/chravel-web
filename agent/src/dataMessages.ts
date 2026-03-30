@@ -35,7 +35,7 @@ export function sendTurnComplete(
   room: Room,
   userText: string,
   assistantText: string,
-  toolResults?: Array<{ tool: string; result: unknown }>,
+  toolResults?: Array<{ name: string; result: unknown }>,
 ): void {
   sendData(room, TOPIC_TURN_COMPLETE, { userText, assistantText, toolResults });
 }

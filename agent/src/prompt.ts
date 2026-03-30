@@ -27,6 +27,7 @@ function sanitize(text: string): string {
   if (!text) return '';
   return text
     .replace(/<\/?[a-zA-Z_][a-zA-Z0-9_-]*[^>]*>/g, '')
+    .replace(/[<>]/g, '')
     .replace(/\{\{.*?\}\}/g, '')
     .trim();
 }

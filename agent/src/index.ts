@@ -89,7 +89,8 @@ export default defineAgent({
     const session = await model.session();
 
     // Track tool results for rich cards and turn completion
-    const turnToolResults: Array<{ tool: string; result: unknown }> = [];
+    // Frontend ToolCallResult expects { name, result } — NOT { tool, result }
+    const turnToolResults: Array<{ name: string; result: unknown }> = [];
     // Tools that produce rich cards in the frontend
     const RICH_CARD_TOOLS = new Set([
       'searchPlaces',
@@ -115,7 +116,7 @@ export default defineAgent({
           log('tool:result', { name: tool.name, success: !result.error });
 
           // Track for turn completion
-          turnToolResults.push({ tool: tool.name, result });
+          turnToolResults.push({ name: tool.name, result });
 
           // Send rich card data to frontend for visual rendering
           if (RICH_CARD_TOOLS.has(tool.name) && !result.error) {
@@ -146,14 +147,20 @@ export default defineAgent({
 
     // ── Event Handlers ─────────────────────────────────────────────────────
 
+    // Accumulate transcripts for turn completion (sent alongside tool results)
+    let turnUserText = '';
+    let turnAssistantText = '';
+
     // Forward transcripts to frontend via data messages
     agentSession.on('user_speech_committed', (text: string) => {
       log('transcript:user', { text: text.substring(0, 100) });
+      turnUserText = text;
       sendTranscript(ctx.room, 'user', text, true);
     });
 
     agentSession.on('agent_speech_committed', (text: string) => {
       log('transcript:assistant', { text: text.substring(0, 100) });
+      turnAssistantText = text;
       sendTranscript(ctx.room, 'assistant', text, true);
     });
 
@@ -169,16 +176,18 @@ export default defineAgent({
       // Collect accumulated transcripts and tool results for this turn
       log('turn:complete', { toolResultCount: turnToolResults.length });
 
-      // Send turn completion with tool results for chat persistence
+      // Send turn completion with accumulated transcripts and tool results
       // The frontend maps this to a ChatMessage and saves to ai_queries
       sendTurnComplete(
         ctx.room,
-        '', // user text (already sent via transcript events)
-        '', // assistant text (already sent via transcript events)
+        turnUserText,
+        turnAssistantText,
         turnToolResults.length > 0 ? [...turnToolResults] : undefined,
       );
 
       // Reset for next turn
+      turnUserText = '';
+      turnAssistantText = '';
       turnToolResults.length = 0;
       sendAgentState(ctx.room, 'idle');
     });
