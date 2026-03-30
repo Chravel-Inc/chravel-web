@@ -20,6 +20,7 @@ import type {
   VoiceConversationTurn,
   ToolCallResult,
 } from './useGeminiLive';
+import { LIVEKIT_WS_URL } from '@/config/voiceFeatureFlags';
 import * as circuitBreaker from '@/voice/circuitBreaker';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -69,10 +70,6 @@ async function ensureLiveKitLoaded(): Promise<void> {
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────────
-
-const LIVEKIT_WS_URL =
-  (import.meta.env as Record<string, string | undefined>).VITE_LIVEKIT_WS_URL ||
-  'wss://chravel-voice-dev-rgxzbtr0.livekit.cloud';
 
 const AGENT_JOIN_TIMEOUT_MS = 10_000;
 
@@ -131,6 +128,16 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
   // Accumulated turn data for onTurnComplete
   const turnUserTextRef = useRef('');
   const turnAssistantTextRef = useRef('');
+  const onTurnCompleteRef = useRef(onTurnComplete);
+  const onRichCardRef = useRef(onRichCard);
+
+  useEffect(() => {
+    onTurnCompleteRef.current = onTurnComplete;
+  }, [onTurnComplete]);
+
+  useEffect(() => {
+    onRichCardRef.current = onRichCard;
+  }, [onRichCard]);
 
   // ── Data Message Handler ─────────────────────────────────────────────────
 
@@ -157,7 +164,7 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
             break;
 
           case 'turn_complete':
-            onTurnComplete?.(
+            onTurnCompleteRef.current?.(
               turnUserTextRef.current || msg.userText,
               turnAssistantTextRef.current || msg.assistantText,
               msg.toolResults,
@@ -170,7 +177,7 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
             break;
 
           case 'rich_card':
-            onRichCard?.(msg.toolName, msg.cardData);
+            onRichCardRef.current?.(msg.toolName, msg.cardData);
             break;
 
           case 'agent_state':
@@ -184,7 +191,7 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
         // Ignore malformed data messages
       }
     },
-    [onTurnComplete, onRichCard],
+    [],
   );
 
   // ── Start Session ────────────────────────────────────────────────────────
@@ -273,10 +280,10 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
         const MAX_RECONNECT_ATTEMPTS = 3;
         for (let attempt = 0; attempt < MAX_RECONNECT_ATTEMPTS; attempt++) {
           if (!sessionActiveRef.current) return; // user ended session during backoff
-          setState('connecting');
+          setState('reconnecting');
           setDiagnostics(prev => ({
             ...prev,
-            connectionStatus: 'reconnecting',
+            connectionStatus: 'connecting',
             substep: `Reconnecting (attempt ${attempt + 1}/${MAX_RECONNECT_ATTEMPTS})`,
           }));
 
