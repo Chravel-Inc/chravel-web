@@ -49,14 +49,21 @@ const clearAllCaches = (): void => {
   }
 };
 
-// Unregister stale service workers from old hosts on first load
+// Unregister stale service workers from old hosts on first load (deferred to avoid blocking startup)
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker
-    .getRegistrations()
-    .then(registrations => {
-      registrations.forEach(reg => reg.unregister());
-    })
-    .catch(() => {});
+  const unregisterStaleWorkers = () => {
+    navigator.serviceWorker
+      .getRegistrations()
+      .then(registrations => {
+        registrations.forEach(reg => reg.unregister());
+      })
+      .catch(() => {});
+  };
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(unregisterStaleWorkers);
+  } else {
+    setTimeout(unregisterStaleWorkers, 0);
+  }
 }
 
 // Preview hardening: always clear stale caches (prevents sticky blank preview states)
@@ -102,8 +109,12 @@ window.addEventListener('error', (e: ErrorEvent) => {
 // Initialize RevenueCat for subscription management
 initRevenueCat().catch(err => console.warn('[RevenueCat] Init failed:', err));
 
-// Initialize global listener for native purchases
-setupGlobalPurchaseListener();
+// Initialize global listener for native purchases (deferred — not needed before first paint)
+if ('requestIdleCallback' in window) {
+  requestIdleCallback(() => setupGlobalPurchaseListener());
+} else {
+  setTimeout(() => setupGlobalPurchaseListener(), 0);
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

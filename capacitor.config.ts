@@ -38,7 +38,8 @@ const config: CapacitorConfig = {
      * Keep defaults unless we find a concrete flash/flicker to address.
      */
     SplashScreen: {
-      launchAutoHide: true,
+      launchAutoHide: false,
+      launchShowDuration: 0,
     },
   },
 };
