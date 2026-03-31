@@ -257,6 +257,20 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
       // Listen for data messages from agent
       room.on(RoomEvent!.DataReceived, handleDataMessage);
 
+      // Attach audio tracks when they are subscribed
+      room.on(RoomEvent!.TrackSubscribed, (track) => {
+        if (track.kind === 'audio') {
+          track.attach();
+        }
+      });
+
+      // Detach audio tracks when they are unsubscribed
+      room.on(RoomEvent!.TrackUnsubscribed, (track) => {
+        if (track.kind === 'audio') {
+          track.detach();
+        }
+      });
+
       // Track agent join
       let agentJoined = false;
       room.on(RoomEvent!.ParticipantConnected, participant => {
