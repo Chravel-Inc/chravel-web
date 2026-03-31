@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { Search, Bell } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useNotificationRealtime } from '@/hooks/useNotificationRealtime';
 import { mockNotifications } from '@/mockData/notifications';
 import { cn } from '@/lib/utils';
-import { NotificationsDialog } from './NotificationsDialog';
 
 interface TripActionBarProps {
   onSettings: () => void;
@@ -99,12 +98,6 @@ export const TripActionBar = ({
           </div>
         )}
       </button>
-
-      {/* Notifications Dialog — rendered here for desktop (TripActionBar is inside hidden lg:flex) */}
-      <NotificationsDialog
-        open={!!isNotificationsOpen}
-        onOpenChange={open => setIsNotificationsOpen?.(open)}
-      />
 
       {/* Settings */}
       <button
