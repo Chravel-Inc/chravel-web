@@ -1,7 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { StreamChat } from 'stream-chat';
 import { supabase } from '@/integrations/supabase/client';
-import { initStreamClient, disconnectStreamClient, getStreamClient } from '@/services/stream/streamClient';
+import {
+  initStreamClient,
+  disconnectStreamClient,
+  getStreamClient,
+} from '@/services/stream/streamClient';
 
 /**
  * Hook that initializes the Stream Chat client when stream feature flags are enabled.
@@ -16,7 +20,9 @@ export function useStreamClient(): { streamConnected: boolean; streamClient: Str
   const initializeStream = useCallback(async () => {
     try {
       // Check if user is authenticated
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session?.user) {
         return;
       }
@@ -32,13 +38,14 @@ export function useStreamClient(): { streamConnected: boolean; streamClient: Str
         return;
       }
 
-      const anyStreamEnabled = flags?.some((f) => f.enabled === true);
+      const anyStreamEnabled = flags?.some(f => f.enabled === true);
       if (!anyStreamEnabled) {
         return;
       }
 
       // Get Stream token from edge function
-      const { data: tokenData, error: tokenError } = await supabase.functions.invoke('stream-token');
+      const { data: tokenData, error: tokenError } =
+        await supabase.functions.invoke('stream-token');
 
       if (tokenError || !tokenData?.token || !tokenData?.userId || !tokenData?.apiKey) {
         console.error('[useStreamClient] Failed to get stream token:', tokenError);
@@ -63,7 +70,7 @@ export function useStreamClient(): { streamConnected: boolean; streamClient: Str
 
     return () => {
       // Disconnect on unmount
-      disconnectStreamClient().catch((err) => {
+      disconnectStreamClient().catch(err => {
         console.error('[useStreamClient] Disconnect error on unmount:', err);
       });
     };
