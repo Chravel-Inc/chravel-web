@@ -8,6 +8,7 @@ import { TripStatsOverview } from '../components/home/TripStatsOverview';
 import { TripViewToggle } from '../components/home/TripViewToggle';
 import { DesktopHeader } from '../components/home/DesktopHeader';
 import { TripActionBar } from '../components/home/TripActionBar';
+import { NotificationsDialog } from '../components/home/NotificationsDialog';
 import { TripGrid } from '../components/home/TripGrid';
 import {
   NativeTabBar,
@@ -57,6 +58,7 @@ import {
 import { useOnboarding } from '../hooks/useOnboarding';
 import { shouldShowOnboarding, capturePendingDestination } from '../utils/onboardingUtils';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
+import { useNotificationRealtime } from '../hooks/useNotificationRealtime';
 import { PullToRefreshIndicator } from '../components/mobile/PullToRefreshIndicator';
 import { clearDataCaches } from '../utils/pwaCacheUtils';
 import { X } from 'lucide-react';
@@ -186,6 +188,9 @@ const Index = () => {
   // Fetch pending join requests for the current user (for "Requests" counter)
   // Must be declared before handleRefresh which depends on refetchPendingTrips
   const { pendingTrips: myPendingRequests, refetch: refetchPendingTrips } = useMyPendingTrips();
+
+  // Unread badge + mobile notifications sheet (TripActionBar is hidden below lg; Alerts tab needs this dialog in-tree)
+  const { unreadCount: notificationUnreadCount } = useNotificationRealtime();
 
   // Callback to refresh trip list when a trip is archived/hidden/deleted
   const handleTripStateChange = useCallback(() => {
@@ -882,7 +887,7 @@ const Index = () => {
               setActiveTab('search');
               setTimeout(() => setIsSearchOpen(true), 0);
             }}
-            alertsBadge={0}
+            alertsBadge={notificationUnreadCount}
             tripTypeLabel={getTripTypeForTabBar()}
             onTripTypePress={() => {
               closeAllTabModals();
@@ -890,6 +895,10 @@ const Index = () => {
             }}
           />
           <NativeTabBarSpacer />
+
+          {isMobile && (
+            <NotificationsDialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen} />
+          )}
 
           {/* Trip type switcher (Instagram-style) - now includes Chravel Recs */}
           <NativeTripTypeSwitcher
@@ -1058,7 +1067,7 @@ const Index = () => {
             setActiveTab('search');
             setTimeout(() => setIsSearchOpen(true), 0);
           }}
-          alertsBadge={0}
+          alertsBadge={notificationUnreadCount}
           tripTypeLabel={getTripTypeForTabBar()}
           onTripTypePress={() => {
             closeAllTabModals();
@@ -1066,6 +1075,10 @@ const Index = () => {
           }}
         />
         <NativeTabBarSpacer />
+
+        {isMobile && (
+          <NotificationsDialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen} />
+        )}
 
         {/* Trip type switcher (Instagram-style) - now includes Chravel Recs */}
         <NativeTripTypeSwitcher
@@ -1266,7 +1279,7 @@ const Index = () => {
           setActiveTab('search');
           setTimeout(() => setIsSearchOpen(true), 0);
         }}
-        alertsBadge={0}
+        alertsBadge={notificationUnreadCount}
         tripTypeLabel={getTripTypeForTabBar()}
         onTripTypePress={() => {
           closeAllTabModals();
@@ -1274,6 +1287,10 @@ const Index = () => {
         }}
       />
       <NativeTabBarSpacer />
+
+      {isMobile && (
+        <NotificationsDialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen} />
+      )}
 
       {/* Trip type switcher (Instagram-style) - now includes Chravel Recs */}
       <NativeTripTypeSwitcher
