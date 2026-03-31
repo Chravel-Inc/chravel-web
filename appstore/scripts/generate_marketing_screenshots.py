@@ -105,6 +105,7 @@ def main():
 
     os.makedirs(OUT_DIR, exist_ok=True)
     generated = []
+    failures = []
 
     for shot in SCREENSHOTS:
         raw_path = os.path.join(RAW_DIR, shot["raw"])
@@ -127,6 +128,7 @@ def main():
         )
         if result.returncode != 0:
             print(f"  ERROR: {shot['out']}: {result.stderr}", file=sys.stderr)
+            failures.append(shot["out"])
         else:
             print(result.stdout.strip())
             generated.append(out_path)
@@ -150,6 +152,10 @@ def main():
             print(result.stdout.strip())
 
     print(f"\nDone! {len(generated)}/{len(SCREENSHOTS)} marketing screenshots generated.")
+
+    if failures:
+        print(f"\nFailed: {', '.join(failures)}", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
