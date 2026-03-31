@@ -49,21 +49,16 @@ const clearAllCaches = (): void => {
   }
 };
 
-// Unregister stale service workers from old hosts on first load (deferred to avoid blocking startup)
+// Unregister stale service workers from old hosts on first load.
+// NOTE: This runs before registerServiceWorker() below to avoid unregistering
+// the freshly-registered worker. The .then() chain is already non-blocking.
 if ('serviceWorker' in navigator) {
-  const unregisterStaleWorkers = () => {
-    navigator.serviceWorker
-      .getRegistrations()
-      .then(registrations => {
-        registrations.forEach(reg => reg.unregister());
-      })
-      .catch(() => {});
-  };
-  if ('requestIdleCallback' in window) {
-    requestIdleCallback(unregisterStaleWorkers);
-  } else {
-    setTimeout(unregisterStaleWorkers, 0);
-  }
+  navigator.serviceWorker
+    .getRegistrations()
+    .then(registrations => {
+      registrations.forEach(reg => reg.unregister());
+    })
+    .catch(() => {});
 }
 
 // Preview hardening: always clear stale caches (prevents sticky blank preview states)
