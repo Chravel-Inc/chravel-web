@@ -487,7 +487,7 @@ export const TripGrid = React.memo(
                       onDelete={handleSwipeDelete}
                       onTripStateChange={onTripStateChange}
                       reorderMode={reorderMode === 'my_trips'}
-                      priority={false}
+                      priority={!isMobile}
                     />
                   )}
                   dashboardType="my_trips"
