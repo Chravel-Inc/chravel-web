@@ -28,6 +28,8 @@ import { useWebSpeechVoice } from '@/hooks/useWebSpeechVoice';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { useGeminiLive } from '@/hooks/useGeminiLive';
 import type { ToolCallResult } from '@/hooks/useGeminiLive';
+import { useLiveKitVoice } from '@/hooks/useLiveKitVoice';
+import { VOICE_RUNTIME } from '@/config/voiceFeatureFlags';
 import { useVoiceToolHandler } from '@/hooks/useVoiceToolHandler';
 import { VoiceLiveInline } from '@/features/chat/components/VoiceLiveInline';
 import { CTA_BUTTON, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
@@ -41,6 +43,7 @@ import {
   isConciergeWriteAction,
 } from '@/lib/conciergeInvalidation';
 import { sanitizeConciergeContent } from '@/lib/sanitizeConciergeContent';
+import { usePendingActions } from '@/hooks/usePendingActions';
 
 const EMPTY_SESSION: ConciergeSession = {
   tripId: '',
@@ -76,6 +79,14 @@ export interface ChatMessage {
   type: 'user' | 'assistant';
   content: string;
   timestamp: string;
+  pendingActions?: Array<{
+    id: string;
+    toolName: string;
+    actionType: string;
+    message: string;
+    title?: string;
+    detail?: string | null;
+  }>;
   usage?: {
     prompt_tokens: number;
     completion_tokens: number;
@@ -286,6 +297,12 @@ export const AIConciergeChat = ({
   } = useConciergeUsage(tripId);
   const { isOffline } = useOfflineStatus();
   const { user } = useAuth();
+  const {
+    confirmAction,
+    rejectAction,
+    isConfirming: isConfirmingPendingAction,
+    isRejecting: isRejectingPendingAction,
+  } = usePendingActions(tripId);
   const loadedPreferences = useAIConciergePreferences();
   const effectivePreferences = preferences ?? loadedPreferences;
   const storeSessionRaw = useConciergeSessionStore(s => s.sessions[tripId]);
@@ -522,12 +539,22 @@ export const AIConciergeChat = ({
                 tr.name === 'createPoll') &&
               tr.result?.success
             ) {
-              if (!assistantMsg.conciergeActions) assistantMsg.conciergeActions = [];
-              assistantMsg.conciergeActions.push({
-                actionType: (tr.result.actionType as string) || tr.name,
-                success: !!tr.result.success,
-                message: (tr.result.message as string) || '',
-              });
+              if (tr.result.pending && tr.result.pendingActionId) {
+                if (!assistantMsg.pendingActions) assistantMsg.pendingActions = [];
+                assistantMsg.pendingActions.push({
+                  id: tr.result.pendingActionId as string,
+                  toolName: tr.name,
+                  actionType: (tr.result.actionType as string) || tr.name,
+                  message: (tr.result.message as string) || '',
+                });
+              } else {
+                if (!assistantMsg.conciergeActions) assistantMsg.conciergeActions = [];
+                assistantMsg.conciergeActions.push({
+                  actionType: (tr.result.actionType as string) || tr.name,
+                  success: !!tr.result.success,
+                  message: (tr.result.message as string) || '',
+                });
+              }
             }
           }
         }
@@ -593,23 +620,126 @@ export const AIConciergeChat = ({
     toast.error('Voice error', { description: msg });
   }, []);
 
+  // Rich card callback for LiveKit voice: when the agent sends tool results
+  // as data messages, map them to ChatMessage fields on the latest assistant message.
+  const handleLiveRichCard = useCallback((toolName: string, cardData: Record<string, unknown>) => {
+    setMessages(prev => {
+      // Find the last assistant message to attach rich cards to
+      const lastIdx = prev.length - 1;
+      if (lastIdx < 0) return prev;
+      const last = prev[lastIdx];
+      if (last.type !== 'assistant') return prev;
+
+      const updated = [...prev];
+      const msg = { ...last };
+
+      if (
+        (toolName === 'searchPlaces' || toolName === 'getPlaceDetails') &&
+        cardData.places &&
+        Array.isArray(cardData.places)
+      ) {
+        msg.functionCallPlaces = cardData.places as ChatMessage['functionCallPlaces'];
+      } else if (
+        toolName === 'searchFlights' &&
+        cardData.flights &&
+        Array.isArray(cardData.flights)
+      ) {
+        msg.functionCallFlights = cardData.flights as ChatMessage['functionCallFlights'];
+      } else if (toolName === 'searchFlights' && cardData.success) {
+        // Single flight result from searchFlights
+        msg.functionCallFlights = [
+          cardData as unknown as NonNullable<ChatMessage['functionCallFlights']>[0],
+        ];
+      } else if (toolName === 'searchHotels' && cardData.hotels && Array.isArray(cardData.hotels)) {
+        msg.functionCallHotels = cardData.hotels as HotelResult[];
+      } else if (
+        (toolName === 'searchWeb' || toolName === 'searchImages') &&
+        cardData.results &&
+        Array.isArray(cardData.results)
+      ) {
+        msg.sources = (
+          cardData.results as Array<{ title: string; url: string; snippet: string }>
+        ).map(r => ({
+          title: r.title || '',
+          url: r.url || '',
+          snippet: r.snippet || '',
+        }));
+      } else if (
+        (toolName === 'addToCalendar' || toolName === 'createTask' || toolName === 'createPoll') &&
+        cardData.success
+      ) {
+        if (!msg.conciergeActions) msg.conciergeActions = [];
+        msg.conciergeActions = [
+          ...msg.conciergeActions,
+          {
+            actionType: (cardData.actionType as string) || toolName,
+            success: !!cardData.success,
+            message: (cardData.message as string) || '',
+          },
+        ];
+      }
+
+      updated[lastIdx] = msg;
+      return updated;
+    });
+  }, []);
+
   const {
-    state: liveState,
-    error: liveError,
-    userTranscript: liveUserTranscript,
-    assistantTranscript: liveAssistantTranscript,
-    conversationHistory: liveConversationHistory,
-    diagnostics: liveDiagnostics,
-    startSession: startLiveSession,
-    endSession: endLiveSession,
-    circuitBreakerOpen: liveCircuitBreakerOpen,
-    resetCircuitBreaker: liveResetCircuitBreaker,
+    // Both hooks always called (Rules of Hooks). Only the active runtime's startSession is invoked.
+    state: vertexState,
+    error: vertexError,
+    userTranscript: vertexUserTranscript,
+    assistantTranscript: vertexAssistantTranscript,
+    conversationHistory: vertexConversationHistory,
+    diagnostics: vertexDiagnostics,
+    startSession: startVertexSession,
+    endSession: endVertexSession,
+    circuitBreakerOpen: vertexCircuitBreakerOpen,
+    resetCircuitBreaker: vertexResetCircuitBreaker,
   } = useGeminiLive({
     tripId,
     onToolCall: handleToolCall,
-    onTurnComplete: handleLiveTurnComplete,
-    onError: handleLiveError,
+    onTurnComplete: VOICE_RUNTIME === 'vertex' ? handleLiveTurnComplete : undefined,
+    onError: VOICE_RUNTIME === 'vertex' ? handleLiveError : undefined,
   });
+
+  // LiveKit voice hook — tripId is the same prop passed to the component,
+  // ensuring trip context is always in sync. Both hooks are always called
+  // per React Rules of Hooks, but only the active runtime's callbacks fire.
+  const {
+    state: lkState,
+    error: lkError,
+    userTranscript: lkUserTranscript,
+    assistantTranscript: lkAssistantTranscript,
+    conversationHistory: lkConversationHistory,
+    diagnostics: lkDiagnostics,
+    startSession: startLkSession,
+    endSession: endLkSession,
+    circuitBreakerOpen: lkCircuitBreakerOpen,
+    resetCircuitBreaker: lkResetCircuitBreaker,
+  } = useLiveKitVoice({
+    tripId,
+    onTurnComplete: VOICE_RUNTIME === 'livekit' ? handleLiveTurnComplete : undefined,
+    onRichCard: VOICE_RUNTIME === 'livekit' ? handleLiveRichCard : undefined,
+    onError: VOICE_RUNTIME === 'livekit' ? handleLiveError : undefined,
+  });
+
+  // Select active voice runtime — VOICE_RUNTIME is a build-time constant
+  // so only one path is ever active. Both hooks idle harmlessly when inactive.
+  const liveState = VOICE_RUNTIME === 'livekit' ? lkState : vertexState;
+  const liveError = VOICE_RUNTIME === 'livekit' ? lkError : vertexError;
+  const liveUserTranscript = VOICE_RUNTIME === 'livekit' ? lkUserTranscript : vertexUserTranscript;
+  const liveAssistantTranscript =
+    VOICE_RUNTIME === 'livekit' ? lkAssistantTranscript : vertexAssistantTranscript;
+  const liveConversationHistory =
+    VOICE_RUNTIME === 'livekit' ? lkConversationHistory : vertexConversationHistory;
+  const liveDiagnostics = VOICE_RUNTIME === 'livekit' ? lkDiagnostics : vertexDiagnostics;
+  const startLiveSession = VOICE_RUNTIME === 'livekit' ? startLkSession : startVertexSession;
+  const endLiveSession = VOICE_RUNTIME === 'livekit' ? endLkSession : endVertexSession;
+  const liveCircuitBreakerOpen =
+    VOICE_RUNTIME === 'livekit' ? lkCircuitBreakerOpen : vertexCircuitBreakerOpen;
+  const liveResetCircuitBreaker =
+    VOICE_RUNTIME === 'livekit' ? lkResetCircuitBreaker : vertexResetCircuitBreaker;
 
   // Voice state for VoiceButton — dictation only (Live is separate button now)
   const convoVoiceState: VoiceState = dictationState;
@@ -619,12 +749,17 @@ export const AIConciergeChat = ({
 
   const handleEndLiveSession = useCallback(async () => {
     await endLiveSession();
+    // Explicitly clear streaming bubbles to prevent stale transcripts
+    // when user force-stops mid-turn (race condition with useEffect cleanup)
+    setStreamingVoiceMessage(null);
+    setStreamingUserMessage(null);
   }, [endLiveSession]);
 
   // Waveform button — dictation only. Stops Live if active first.
   const handleConvoToggle = useCallback(() => {
     if (isLiveSessionActive) {
       void handleEndLiveSession();
+      setInputMessage('');
     }
     toggleDictation();
   }, [isLiveSessionActive, handleEndLiveSession, toggleDictation]);
@@ -636,6 +771,7 @@ export const AIConciergeChat = ({
     // Stop dictation if running
     if (isDictationActive) {
       toggleDictation();
+      setInputMessage('');
     }
 
     // If Live is already active, stop it
@@ -740,6 +876,9 @@ export const AIConciergeChat = ({
       isMounted.current = false;
       streamAbortRef.current?.();
       streamAbortRef.current = null;
+      // Clear any leftover streaming bubbles
+      setStreamingVoiceMessage(null);
+      setStreamingUserMessage(null);
     };
   }, []);
 
@@ -1309,6 +1448,40 @@ export const AIConciergeChat = ({
 
               // Handle concierge write actions (createPoll, createTask, savePlace, etc.)
               if (isConciergeWriteAction(name) && result.actionType) {
+                if (result.pending && result.pendingActionId) {
+                  const pendingAction = {
+                    id: result.pendingActionId as string,
+                    toolName: name,
+                    actionType: result.actionType as string,
+                    message: (result.message as string) || '',
+                    title: (result.title as string) || (result.question as string) || undefined,
+                    detail: (result.detail as string) || null,
+                  };
+                  setMessages(prev => {
+                    const idx = prev.findIndex(m => m.id === streamingMessageId);
+                    if (idx !== -1) {
+                      const updated = [...prev];
+                      const existing = updated[idx].pendingActions || [];
+                      updated[idx] = {
+                        ...updated[idx],
+                        pendingActions: [...existing, pendingAction],
+                      };
+                      return updated;
+                    }
+                    return [
+                      ...prev,
+                      {
+                        id: streamingMessageId,
+                        type: 'assistant' as const,
+                        content: '',
+                        timestamp: new Date().toISOString(),
+                        pendingActions: [pendingAction],
+                      },
+                    ];
+                  });
+                  return;
+                }
+
                 // Extract entity name from nested result objects
                 const entityName =
                   (result.entityName as string) ||
@@ -1722,6 +1895,15 @@ export const AIConciergeChat = ({
         usage: data.usage,
         sources: data.sources || data.citations,
         googleMapsWidget: data.googleMapsWidget,
+        // Rich card fields from non-streaming fallback response
+        ...(data.places && Array.isArray(data.places) ? { functionCallPlaces: data.places } : {}),
+        ...(data.flights && Array.isArray(data.flights)
+          ? { functionCallFlights: data.flights }
+          : {}),
+        ...(data.hotels && Array.isArray(data.hotels) ? { functionCallHotels: data.hotels } : {}),
+        ...(data.conciergeActions && Array.isArray(data.conciergeActions)
+          ? { conciergeActions: data.conciergeActions }
+          : {}),
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -2015,6 +2197,10 @@ export const AIConciergeChat = ({
                 }}
                 onSmartImportConfirm={handleSmartImportConfirm}
                 onSmartImportDismiss={handleSmartImportDismiss}
+                onConfirmPendingAction={confirmAction}
+                onRejectPendingAction={rejectAction}
+                isConfirmingPendingAction={isConfirmingPendingAction}
+                isRejectingPendingAction={isRejectingPendingAction}
                 smartImportStates={smartImportStates}
                 ttsPlaybackState={ttsPlaybackState}
                 ttsPlayingMessageId={ttsPlayingMessageId}

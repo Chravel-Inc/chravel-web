@@ -1,18 +1,17 @@
 /**
  * execute-concierge-tool
  *
- * Server-side bridge for Gemini Live voice tool calls.
+ * Server-side bridge for concierge tool calls (text + voice).
  *
- * When the voice client receives a `toolCall` event from the Gemini Live
- * WebSocket, it cannot execute tools directly (no API keys on the client).
- * This endpoint accepts an authenticated POST with { toolName, args, tripId },
- * runs the tool via the shared functionExecutor (same logic as lovable-concierge),
- * and returns the structured result which the client relays back to the WebSocket
- * as a `toolResponse`.
+ * Supports two auth modes:
+ * 1. User JWT (browser) — standard Supabase JWT, RLS applies
+ * 2. Service-role key (LiveKit agent) — server-to-server, userId from body
  *
  * Security:
- *  - Requires valid Supabase JWT (Authorization: Bearer <token>)
- *  - Uses the authenticated client so Supabase RLS applies to all DB writes
+ *  - Service-role key is a server-side env var, never exposed to browsers
+ *  - When service-role is used, userId is extracted from request body
+ *    (agent already verified trip membership in the livekit-token edge function)
+ *  - Rate limiting applies to both auth modes, keyed by userId
  *  - Google API calls happen server-side (keys never reach the browser)
  */
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -22,9 +21,12 @@ import { executeFunctionCall } from '../_shared/functionExecutor.ts';
 import { generateCapabilityToken } from '../_shared/security/capabilityTokens.ts';
 import { executeToolSecurely } from '../_shared/security/toolRouter.ts';
 import { checkRateLimit } from '../_shared/security.ts';
+import { verifyConciergeTripAccess } from '../_shared/concierge/tripAccess.ts';
+import { checkMonthlyTokenBudget, resolveUsagePlanForUser } from '../_shared/concierge/usagePolicy.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 serve(async (req: Request) => {
   const corsHeaders = getCorsHeaders(req);
@@ -50,30 +52,64 @@ serve(async (req: Request) => {
       });
     }
 
-    // Use the caller's JWT so Supabase RLS applies to DB operations.
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid authentication' }), {
-        status: 401,
+    // Parse body early — service-role path needs userId from body.
+    let body: { toolName?: unknown; args?: unknown; tripId?: unknown; userId?: unknown };
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Per-user AI tool rate limit: 20 requests per hour
+    // Two auth modes:
+    // 1. Service-role: LiveKit agent sends SUPABASE_SERVICE_ROLE_KEY as Bearer.
+    //    The key is a server-side env var, never exposed to browsers. When matched,
+    //    userId is extracted from body (agent verified membership via livekit-token).
+    // 2. User JWT: Browser sends Supabase JWT. Validated via auth.getUser().
+    const token = authHeader.replace('Bearer ', '');
+    const isServiceRole = SUPABASE_SERVICE_ROLE_KEY && token === SUPABASE_SERVICE_ROLE_KEY;
+
+    let supabase;
+    let userId: string;
+
+    if (isServiceRole) {
+      supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      userId = typeof body?.userId === 'string' ? body.userId : '';
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'userId required for service-role calls' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      // Browser call — validate user JWT, Supabase RLS applies.
+      supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        global: { headers: { Authorization: authHeader } },
+      });
+
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser(token);
+
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: 'Invalid authentication' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      userId = user.id;
+    }
+
+    // Per-user AI tool rate limit: 20 requests per hour (both auth modes)
     const rlResult = await checkRateLimit(
       supabase,
-      `execute-concierge-tool:${user.id}`,
+      `execute-concierge-tool:${userId}`,
       20,
       3600,
-      user.id,
+      userId,
       'execute-concierge-tool',
     );
     if (!rlResult.allowed) {
@@ -90,17 +126,7 @@ serve(async (req: Request) => {
       );
     }
 
-    // ── Parse body ─────────────────────────────────────────────────────────
-    let body: { toolName?: unknown; args?: unknown; tripId?: unknown };
-    try {
-      body = await req.json();
-    } catch {
-      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
+    // ── Validate tool request ─────────────────────────────────────────────
     const { toolName, args, tripId } = body;
 
     if (typeof toolName !== 'string' || !toolName) {
@@ -115,6 +141,35 @@ serve(async (req: Request) => {
       args !== null && typeof args === 'object' && !Array.isArray(args)
         ? (args as Record<string, unknown>)
         : {};
+
+    if (tripIdStr) {
+      const tripAccess = await verifyConciergeTripAccess(supabase, tripIdStr, userId);
+      if (!tripAccess.allowed) {
+        return new Response(JSON.stringify({ error: tripAccess.error }), {
+          status: tripAccess.status || 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    const usagePlanResolution = await resolveUsagePlanForUser(supabase, userId);
+    const tokenBudgetResult = await checkMonthlyTokenBudget(
+      supabase,
+      userId,
+      usagePlanResolution.usagePlan,
+    );
+    if (!tokenBudgetResult.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: 'Monthly AI budget reached for this plan. Please upgrade or try again next month.',
+          budget: tokenBudgetResult,
+        }),
+        {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      );
+    }
 
     // ── Resolve location context from trip basecamp for proximity-aware tools ──
     let locationContext: { lat?: number; lng?: number } | null = null;
@@ -134,10 +189,9 @@ serve(async (req: Request) => {
     }
 
     // ── Execute ────────────────────────────────────────────────────────────
-    // Voice client has user auth. We generate a short-lived capability token
-    // so it uses the common tool router to enforce safety constraints.
+    // Generate a short-lived capability token scoped to this user + trip.
     const capabilityToken = await generateCapabilityToken({
-      user_id: user.id,
+      user_id: userId,
       trip_id: tripId as string,
       allowed_tools: ['*'],
     });

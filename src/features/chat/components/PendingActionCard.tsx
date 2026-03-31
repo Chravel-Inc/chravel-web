@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { CalendarPlus, CheckSquare, BarChart3, Check, X, Loader2 } from 'lucide-react';
 import type { PendingAction } from '@/hooks/usePendingActions';
 
 interface PendingActionCardProps {
   action: PendingAction;
+  title?: string;
+  detail?: string | null;
   onConfirm: (actionId: string) => void;
   onReject: (actionId: string) => void;
   isConfirming: boolean;
@@ -62,31 +64,57 @@ function getActionDetail(action: PendingAction): string | null {
 
 export function PendingActionCard({
   action,
+  title,
+  detail,
   onConfirm,
   onReject,
   isConfirming,
   isRejecting,
 }: PendingActionCardProps) {
+  const [confirmingDismiss, setConfirmingDismiss] = useState(false);
+  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
+    };
+  }, []);
+
+  const handleDismissClick = () => {
+    if (confirmingDismiss) {
+      if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
+      setConfirmingDismiss(false);
+      onReject(action.id);
+    } else {
+      setConfirmingDismiss(true);
+      dismissTimerRef.current = setTimeout(() => {
+        setConfirmingDismiss(false);
+      }, 3000);
+    }
+  };
+
   const config = TOOL_CONFIG[action.tool_name] || {
     icon: CheckSquare,
     label: 'Action',
     color: 'text-gray-400',
   };
   const Icon = config.icon;
-  const title = getActionTitle(action);
-  const detail = getActionDetail(action);
+  const resolvedTitle = title || getActionTitle(action);
+  const resolvedDetail = detail !== undefined ? detail : getActionDetail(action);
   const busy = isConfirming || isRejecting;
 
   return (
-    <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
+    <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 space-y-2">
       <div className="flex items-start gap-2">
         <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${config.color}`} />
         <div className="min-w-0 flex-1">
           <p className="text-xs text-amber-400/80 font-medium">
             AI wants to create a {config.label}
           </p>
-          <p className="text-sm text-white font-medium truncate">{title}</p>
-          {detail && <p className="text-xs text-gray-400 truncate mt-0.5">{detail}</p>}
+          <p className="text-sm text-white font-medium truncate">{resolvedTitle}</p>
+          {resolvedDetail && (
+            <p className="text-xs text-gray-400 truncate mt-0.5">{resolvedDetail}</p>
+          )}
         </div>
       </div>
       <div className="flex gap-2">
@@ -105,12 +133,16 @@ export function PendingActionCard({
         </button>
         <button
           type="button"
-          onClick={() => onReject(action.id)}
+          onClick={handleDismissClick}
           disabled={busy}
-          className="flex items-center justify-center gap-1.5 rounded-md bg-gray-700/50 hover:bg-gray-700 text-gray-400 text-xs font-medium py-1.5 px-3 transition-colors disabled:opacity-50"
+          className={`flex items-center justify-center gap-1.5 rounded-md text-xs font-medium py-1.5 px-3 transition-colors disabled:opacity-50 ${
+            confirmingDismiss
+              ? 'bg-red-500/20 hover:bg-red-500/30 text-red-300'
+              : 'bg-gray-700/50 hover:bg-gray-700 text-gray-400'
+          }`}
         >
           {isRejecting ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
-          Dismiss
+          {confirmingDismiss ? 'Confirm dismiss?' : 'Dismiss'}
         </button>
       </div>
     </div>

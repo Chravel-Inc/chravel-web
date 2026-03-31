@@ -9,6 +9,7 @@ import { FlightResultCards, FlightResult } from './FlightResultCards';
 import { HotelResultCards, HotelResult } from './HotelResultCards';
 import { ConciergeActionCardGroup } from './ConciergeActionCardGroup';
 import type { ConciergeActionResult } from './ConciergeActionCard';
+import { PendingActionCard } from './PendingActionCard';
 import { ReservationDraftCard } from './ReservationDraftCard';
 import { SmartImportPreviewCard } from './SmartImportPreviewCard';
 import {
@@ -44,6 +45,12 @@ interface RichChatMessage extends ChatMessage {
     lodgingName?: string;
   };
   smartImportStatus?: { status: SmartImportStatus; message: string };
+  pendingActions?: Array<{
+    id: string;
+    toolName: string;
+    actionType: string;
+    message: string;
+  }>;
 }
 
 interface ChatMessagesProps {
@@ -62,6 +69,10 @@ interface ChatMessagesProps {
   onSmartImportConfirm?: (messageId: string, events: SmartImportPreviewEvent[]) => void;
   /** Smart Import: dismiss callback */
   onSmartImportDismiss?: (messageId: string) => void;
+  onConfirmPendingAction?: (actionId: string) => void;
+  onRejectPendingAction?: (actionId: string) => void;
+  isConfirmingPendingAction?: boolean;
+  isRejectingPendingAction?: boolean;
   /** Smart Import: per-message importing state */
   smartImportStates?: Record<
     string,
@@ -91,6 +102,10 @@ export const ChatMessages = ({
   onEditReservation,
   onSmartImportConfirm,
   onSmartImportDismiss,
+  onConfirmPendingAction,
+  onRejectPendingAction,
+  isConfirmingPendingAction = false,
+  isRejectingPendingAction = false,
   smartImportStates,
   ttsPlaybackState,
   ttsPlayingMessageId,
@@ -216,6 +231,38 @@ export const ChatMessages = ({
               </div>
             )}
 
+            {/* Pending AI write actions that require explicit user confirmation */}
+            {rich.pendingActions && rich.pendingActions.length > 0 && (
+              <div
+                className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} ${message.type !== 'user' ? 'pl-10' : ''}`}
+              >
+                <div className="max-w-sm lg:max-w-md w-full space-y-2">
+                  {rich.pendingActions.map(action => (
+                    <PendingActionCard
+                      key={action.id}
+                      action={{
+                        id: action.id,
+                        trip_id: '',
+                        user_id: '',
+                        tool_name: action.toolName,
+                        tool_call_id: null,
+                        payload: {},
+                        status: 'pending',
+                        source_type: 'ai_concierge',
+                        created_at: message.timestamp,
+                        resolved_at: null,
+                        resolved_by: null,
+                      }}
+                      onConfirm={onConfirmPendingAction || (() => undefined)}
+                      onReject={onRejectPendingAction || (() => undefined)}
+                      isConfirming={isConfirmingPendingAction}
+                      isRejecting={isRejectingPendingAction}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Reservation draft cards */}
             {rich.reservationDrafts && rich.reservationDrafts.length > 0 && (
               <div
@@ -300,7 +347,7 @@ export const ChatMessages = ({
             {/* 🆕 Enhanced: Show grounding sources with badge */}
             {messageWithGrounding.sources && messageWithGrounding.sources.length > 0 && (
               <div className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className="space-y-1 px-2 max-w-xs lg:max-w-md">
+                <div className="space-y-1.5 px-2 max-w-xs lg:max-w-md">
                   <div className="text-xs font-medium text-gray-400 flex items-center gap-2">
                     <span>Sources:</span>
                     {messageWithGrounding.sources.some(
@@ -311,17 +358,52 @@ export const ChatMessages = ({
                       </span>
                     )}
                   </div>
-                  {messageWithGrounding.sources.map((source, idx) => (
-                    <a
-                      key={idx}
-                      href={source.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block text-xs text-blue-400 hover:text-blue-300"
-                    >
-                      {source.title}
-                    </a>
-                  ))}
+                  {messageWithGrounding.sources.map((source, idx) => {
+                    const isImageUrl = /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(source.url);
+                    let faviconUrl: string | null = null;
+                    try {
+                      faviconUrl = `https://www.google.com/s2/favicons?domain=${new URL(source.url).hostname}&sz=16`;
+                    } catch {
+                      // invalid URL, skip favicon
+                    }
+                    return (
+                      <div
+                        key={idx}
+                        className="border border-gray-700/50 rounded-lg p-2 bg-gray-800/30 space-y-1"
+                      >
+                        <div className="flex items-center gap-2">
+                          {faviconUrl && (
+                            <img
+                              src={faviconUrl}
+                              alt=""
+                              width={16}
+                              height={16}
+                              className="shrink-0"
+                            />
+                          )}
+                          <a
+                            href={source.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-400 hover:text-blue-300 truncate"
+                          >
+                            {source.title}
+                          </a>
+                        </div>
+                        {source.snippet && (
+                          <p className="text-[11px] text-gray-400 line-clamp-2">{source.snippet}</p>
+                        )}
+                        {isImageUrl && (
+                          <img
+                            src={source.url}
+                            alt={source.title}
+                            className="max-h-20 rounded mt-1"
+                            loading="lazy"
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

@@ -16,7 +16,9 @@ type VoiceEnvKey =
   | 'VITE_VOICE_DIAGNOSTICS_ENABLED'
   | 'VITE_VOICE_USE_WEBSOCKET_ONLY'
   | 'VITE_VOICE_AFFECTIVE_DIALOG'
-  | 'VITE_VOICE_PROACTIVE_AUDIO';
+  | 'VITE_VOICE_PROACTIVE_AUDIO'
+  | 'VITE_VOICE_RUNTIME'
+  | 'VITE_LIVEKIT_WS_URL';
 
 const getEnv = (key: VoiceEnvKey, fallback: string): string => {
   try {
@@ -43,8 +45,19 @@ export const VOICE_USE_WEBSOCKET_ONLY = parseBool(getEnv('VITE_VOICE_USE_WEBSOCK
 /** Enable affective dialog (emotional tone awareness). Default: true — supported on GA native-audio model. */
 export const VOICE_AFFECTIVE_DIALOG = parseBool(getEnv('VITE_VOICE_AFFECTIVE_DIALOG', 'true'));
 
-/** Enable proactive audio (model-initiated speech). Default: true — supported on GA native-audio model. */
-export const VOICE_PROACTIVE_AUDIO = parseBool(getEnv('VITE_VOICE_PROACTIVE_AUDIO', 'true'));
+/** Enable proactive audio (model-initiated speech). Default: false — NOT supported on Gemini 3.1 Flash Live. */
+export const VOICE_PROACTIVE_AUDIO = parseBool(getEnv('VITE_VOICE_PROACTIVE_AUDIO', 'false'));
+
+/** Voice runtime selection: 'livekit' (default, new) or 'vertex' (legacy, broken). */
+export type VoiceRuntime = 'livekit' | 'vertex';
+export const VOICE_RUNTIME: VoiceRuntime =
+  (getEnv('VITE_VOICE_RUNTIME', 'livekit') as VoiceRuntime) === 'vertex' ? 'vertex' : 'livekit';
+
+/** LiveKit Cloud WebSocket URL. */
+export const LIVEKIT_WS_URL = getEnv(
+  'VITE_LIVEKIT_WS_URL',
+  'wss://chravel-voice-dev-rgxzbtr0.livekit.cloud',
+);
 
 /** All voice flags for debugging / diagnostics. */
 export function getVoiceFlags(): {
@@ -53,6 +66,8 @@ export function getVoiceFlags(): {
   VOICE_USE_WEBSOCKET_ONLY: boolean;
   VOICE_AFFECTIVE_DIALOG: boolean;
   VOICE_PROACTIVE_AUDIO: boolean;
+  VOICE_RUNTIME: VoiceRuntime;
+  LIVEKIT_WS_URL: string;
 } {
   return {
     VOICE_LIVE_ENABLED,
@@ -60,5 +75,7 @@ export function getVoiceFlags(): {
     VOICE_USE_WEBSOCKET_ONLY,
     VOICE_AFFECTIVE_DIALOG,
     VOICE_PROACTIVE_AUDIO,
+    VOICE_RUNTIME,
+    LIVEKIT_WS_URL,
   };
 }
