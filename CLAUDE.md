@@ -77,6 +77,136 @@
 
 ---
 
+# 📐 TECHNICAL ARCHITECTURE REFERENCE
+
+> Grounded in codebase evidence as of 2026-03-31. Every claim below is confirmed from code unless marked (inferred) or (partial).
+
+## Stack at a Glance
+
+| Layer | Technology | Key Files |
+|-------|-----------|-----------|
+| **Language** | TypeScript (strict: OFF) | `tsconfig.json` |
+| **Frontend** | React 18.3 + Vite 5.4 (SWC) | `src/App.tsx`, `src/main.tsx` |
+| **Server state** | TanStack Query 5 | `src/lib/queryKeys.ts` |
+| **Client state** | Zustand 5 (6 stores) | `src/stores/`, `src/store/` |
+| **Styling** | Tailwind 3.4 + shadcn/ui (Radix) | `tailwind.config.ts`, `src/components/ui/` (48 primitives) |
+| **Routing** | React Router DOM 6 | `src/App.tsx` (~25 routes, all lazy-loaded) |
+| **Backend** | Supabase Edge Functions (Deno) | `supabase/functions/` (~95 functions, ~45K lines) |
+| **Database** | PostgreSQL via Supabase | `supabase/migrations/` (329 migrations, ~160 tables, 756 RLS policies) |
+| **Auth** | Supabase Auth (email + Google OAuth) | `src/hooks/useAuth.tsx`, `_shared/requireAuth.ts` |
+| **Realtime** | Supabase Realtime (WebSocket) | Chat, notifications, locations |
+| **Storage** | Supabase Storage | Media uploads, avatars |
+| **AI (text)** | Google Gemini via `lovable-concierge` (2,155 lines) | 38 tools, 18 query classes |
+| **AI (voice)** | Vertex AI Live API (`gemini-live-2.5-flash-native-audio`) | `supabase/functions/gemini-voice-session/` |
+| **Payments (web)** | Stripe (checkout + webhooks) | `supabase/functions/stripe-webhook/` |
+| **Payments (iOS)** | RevenueCat | `src/integrations/revenuecat/` |
+| **iOS wrapper** | Capacitor 8 (NOT React Native) | `capacitor.config.ts`, `ios/` |
+| **Hosting** | Vercel (frontend) + Render (unfurl proxy) | `vercel.json`, `render.yaml` |
+| **CI/CD** | 9 GitHub Actions workflows | `.github/workflows/` |
+| **Analytics** | PostHog | `src/telemetry/` |
+| **Errors** | Sentry | `@sentry/react` |
+
+**No Python. No React Native. No GraphQL. No traditional server.**
+
+## Codebase Scale
+
+| Metric | Count |
+|--------|-------|
+| Frontend files (.ts/.tsx) | 936 |
+| Frontend LOC | ~205,000 |
+| Edge functions | ~95 |
+| Edge function LOC | ~45,000 |
+| Custom hooks | 100 (`src/hooks/`) |
+| Service modules | 82 (`src/services/`) |
+| Shared components | 96 (`src/components/`) |
+| Pages | 33 (`src/pages/`) |
+| Feature modules | 5 (`src/features/`: broadcasts, calendar, chat, share-extension, smart-import) |
+| Test files | 109 (Vitest) + E2E suite (Playwright) |
+| ESLint warning baseline | 1,293 |
+| npm audit vulnerabilities | 13 (4 moderate, 8 high, 1 critical) |
+
+## Architecture Topology
+
+```
+User → Vercel (static SPA) → Supabase (DB + Auth + Realtime + Storage + ~95 Edge Functions)
+                            → Google Gemini / Vertex AI (AI concierge)
+                            → Stripe / RevenueCat (payments)
+                            → Google Maps / Calendar / Gmail (integrations)
+iOS → Capacitor shell → same web app → same Supabase backend
+```
+
+- **Frontend queries Supabase directly** via JS client with user JWT; RLS filters at DB layer
+- **Edge functions** handle server-side logic: AI, webhooks, imports, notifications, auth-gated mutations
+- **Vercel edge functions** (4 in `api/`) handle OG link previews only
+- **Render** hosts a 156-line Node.js unfurl proxy for branded OG previews (`p.chravel.app`)
+
+## Environment Variables Summary
+
+- **23 client-side** (`VITE_` prefixed): Supabase URL/key, Maps key, Stripe publishable key, analytics, feature toggles
+- **~70 server-side** (Supabase Edge Function secrets): Gemini, Vertex, Stripe secret, APNS, Twilio, Resend, AWS, OAuth secrets, cron secrets
+- **Total: ~93 unique env vars** across 10+ services
+- CI validates env coverage via `scripts/check-env-coverage.ts`
+
+## AI Concierge Architecture
+
+1. Auth → Rate limit → Query classification (18 classes) → Selective tool loading (38 tools from `toolRegistry.ts`)
+2. Context building per query class → Prompt assembly (conditional layers) → Gemini API call with function calling
+3. Tool execution via capability tokens + secure router → Usage tracking → Response
+4. **Voice path:** Vertex AI Live API, WebSocket duplex audio, shared tool declarations, circuit breaker, 5 voice presets
+5. **RAG:** `kb_documents` + `kb_chunks` + `trip_embeddings` tables, embedding generation edge functions
+
+## Security Posture
+
+- **756 RLS policies** enforce access at DB layer
+- **CORS:** exact origin matching, no wildcards (`_shared/cors.ts`)
+- **Auth:** JWT validated server-side in every edge function via `requireAuth.ts`
+- **Secrets:** validated at function startup via `requireSecrets()` from `_shared/validateSecrets.ts`
+- **CI:** Gitleaks secret scanning + CodeQL static analysis on every PR
+- **CSP headers** configured in `vercel.json` (includes `unsafe-inline` for scripts/styles)
+- **Known gaps:** CronGuard fail-open on missing secret, capability token default secret fallback, client-side super admin check
+
+## Deployment Flow
+
+1. Push to `main`/`develop` → CI (lint, typecheck, test, build, migration lint, env validation)
+2. Push to `main` → Vercel auto-deploys frontend
+3. Push to `main` (changes in `supabase/functions/`) → GitHub Action deploys edge functions via Supabase CLI
+4. PR to `main` → deploy-safety.yml posts impact analysis comment
+5. iOS: manual workflow → Fastlane → TestFlight / App Store
+6. Database migrations: **manual** (`supabase db push` or Dashboard)
+
+## Key Architectural Decisions
+
+- **Supabase as sole backend** — deep lock-in (migration: 9/10 difficulty), but zero infra management
+- **Capacitor, not React Native** — same codebase for web+iOS, but limited native capabilities
+- **Gemini, not OpenAI** — native voice via Vertex AI Live, function calling, multimodal; `openai-chat` edge function exists as legacy
+- **Feature flags via DB table** — runtime kill switches, 60s client cache, no redeployment needed
+- **shadcn/ui + Radix** — accessible, composable primitives; "premium dark/gold" design language
+- **Offline queue** — IndexedDB cache + mutation queue + sync processor (real, not theoretical)
+
+## Vendor Lock-In (migration difficulty 1-10)
+
+| Service | Difficulty | Notes |
+|---------|-----------|-------|
+| Supabase | **9** | DB, auth, realtime, storage, edge functions — everything |
+| Google Gemini | **5** | AI layer abstracted via gateway + tool registry |
+| Google Maps | **7** | Deeply integrated in places/maps UI |
+| Stripe | **5** | Standard webhook pattern, replaceable |
+| RevenueCat | **4** | iOS billing wrapper only |
+| Vercel | **2** | Static hosting, trivially swappable |
+
+## Known Tech Debt (Critical Items)
+
+- `lovable-concierge` edge function: 2,155-line monolith
+- `AIConciergeChat.tsx`: 2,088-line god component
+- Flat `src/hooks/` (100 files) and `src/services/` (82 files) — need modularization
+- Only 5 of ~12 domains use `src/features/` pattern
+- ~160 tables with potential orphans (mock tables in prod schema)
+- 1,293 ESLint warnings (budget-tracked but high)
+- Test coverage ~12% file coverage (109 tests / 936 source files)
+- `core` binary (36MB) at repo root — purpose unknown
+
+---
+
 # 🧭 CHRAVEL ENGINEERING MANIFESTO
 > **Stack:** React 18 + TypeScript · TanStack Query + Zustand · Tailwind · Supabase (Postgres, RLS, Auth, Realtime, Edge Functions) · Vercel
 > **Platforms:** Web + PWA + Mobile Web
@@ -269,4 +399,4 @@ For canonical ✅/❌ examples (React hooks, Supabase queries, Maps initializati
 
 **"If it doesn't build, it doesn't ship."**
 
-_Last Updated: 2026-03-12 · Maintained by: AI Engineering Team + Meech_
+_Last Updated: 2026-03-31 · Maintained by: AI Engineering Team + Meech_
