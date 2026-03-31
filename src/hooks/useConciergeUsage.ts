@@ -5,8 +5,8 @@ import { useAuth } from './useAuth';
 import { useConsumerSubscription } from './useConsumerSubscription';
 import { isSuperAdminEmail } from '@/utils/isSuperAdmin';
 
-const FREE_TIER_LIMIT = 5;
-const EXPLORER_TIER_LIMIT = 10;
+const FREE_TIER_LIMIT = 10;
+const EXPLORER_TIER_LIMIT = 25;
 
 export type ConciergePlan = 'free' | 'explorer' | 'frequent_traveler';
 

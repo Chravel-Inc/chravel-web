@@ -21,7 +21,7 @@ const faqItems = [
   {
     question: 'How do AI queries work on each plan?',
     answer:
-      'Free users get 5 AI queries per user per trip. Explorer gets 10 AI queries per user per trip. Frequent Chraveler gets unlimited AI queries. A counter shows how many you have left. Each new trip starts fresh with your full query limit.',
+      'Free users get 10 AI queries per user per trip. Explorer gets 25 AI queries per user per trip. Frequent Chraveler gets unlimited AI queries. Live voice sessions count as a single query regardless of duration. A counter shows how many you have left. Each new trip starts fresh with your full query limit.',
   },
   {
     question: 'Can I change plans anytime?',

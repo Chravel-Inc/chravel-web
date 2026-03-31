@@ -13,8 +13,8 @@
 
 /**
  * Consumer Plans - AI Query Limits:
- * - Free: 5 queries per user per trip
- * - Explorer: 10 queries per user per trip
+ * - Free: 10 queries per user per trip
+ * - Explorer: 25 queries per user per trip
  * - Frequent Chraveler: Unlimited
  */
 export const CONSUMER_PLANS = {
@@ -23,7 +23,7 @@ export const CONSUMER_PLANS = {
     tier: 'free',
     features: {
       activeTrips: 3,
-      aiQueriesPerTrip: 5, // 5 queries per user per trip
+      aiQueriesPerTrip: 10, // 10 queries per user per trip
       freeProTrips: 1,
       freeEvents: 1,
     },
@@ -43,7 +43,7 @@ export const CONSUMER_PLANS = {
     },
     features: {
       activeTrips: 'unlimited',
-      aiQueriesPerTrip: 10, // 10 queries per user per trip
+      aiQueriesPerTrip: 25, // 25 queries per user per trip
       events: { maxAttendees: 100 },
     },
   },
