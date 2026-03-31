@@ -83,12 +83,12 @@ describe('Tool Router Security Air-Lock', () => {
       trip_id: 'trip_999',
     };
 
-    const result = await executeToolSecurely(mockSupabase, token, 'createTask', maliciousArgs);
+    const result = await executeToolSecurely(mockSupabase, token, 'updateTask', maliciousArgs);
 
     // The functionExecutor should be called with the AUTHORIZED trip_id
     expect(functionExecutor.executeFunctionCall).toHaveBeenCalledWith(
       mockSupabase,
-      'createTask',
+      'updateTask',
       expect.objectContaining({ trip_id: 'trip_1', title: 'Hack' }), // Args were overridden
       'trip_1',
       'user_1',
