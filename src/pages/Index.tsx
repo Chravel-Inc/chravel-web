@@ -18,12 +18,14 @@ import {
 import { RecommendationFilters } from '../components/home/RecommendationFilters';
 import { FullPageLanding } from '../components/landing/FullPageLanding';
 import { SearchOverlay } from '../components/home/SearchOverlay';
+import { NotificationsDialog } from '../components/home/NotificationsDialog';
 import { DemoModal } from '../components/conversion/DemoModal';
 import { OnboardingCarousel } from '../components/onboarding';
 
 import { useAuth } from '../hooks/useAuth';
 import { useIsMobile } from '../hooks/use-mobile';
 import { useDemoMode } from '../hooks/useDemoMode';
+import { useNotificationRealtime } from '../hooks/useNotificationRealtime';
 import { useDemoModeStore } from '../store/demoModeStore';
 import { useTrips } from '../hooks/useTrips';
 import { useMyPendingTrips } from '../hooks/useMyPendingTrips';
@@ -93,6 +95,9 @@ const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { demoView, isDemoMode, setDemoView } = useDemoMode();
   const isMobilePortrait = useMobilePortrait();
+
+  // Notification unread count for mobile tab bar badge
+  const { unreadCount: notificationUnreadCount } = useNotificationRealtime();
 
   // Initialize onboarding with user context for Supabase sync
   const {
@@ -868,6 +873,9 @@ const Index = () => {
             onTripSelect={handleSearchTripSelect}
           />
 
+          {/* Notifications dialog (mounted at page level for mobile access) */}
+          <NotificationsDialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen} />
+
           {/* iOS-style bottom tab bar (mobile only) */}
           <NativeTabBar
             activeTab={activeTab}
@@ -882,7 +890,7 @@ const Index = () => {
               setActiveTab('search');
               setTimeout(() => setIsSearchOpen(true), 0);
             }}
-            alertsBadge={0}
+            alertsBadge={notificationUnreadCount}
             tripTypeLabel={getTripTypeForTabBar()}
             onTripTypePress={() => {
               closeAllTabModals();
@@ -1044,6 +1052,9 @@ const Index = () => {
           onTripSelect={handleSearchTripSelect}
         />
 
+        {/* Notifications dialog (mounted at page level for mobile access) */}
+        <NotificationsDialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen} />
+
         {/* iOS-style bottom tab bar (mobile only) */}
         <NativeTabBar
           activeTab={activeTab}
@@ -1058,7 +1069,7 @@ const Index = () => {
             setActiveTab('search');
             setTimeout(() => setIsSearchOpen(true), 0);
           }}
-          alertsBadge={0}
+          alertsBadge={notificationUnreadCount}
           tripTypeLabel={getTripTypeForTabBar()}
           onTripTypePress={() => {
             closeAllTabModals();
@@ -1252,6 +1263,9 @@ const Index = () => {
         onTripSelect={handleSearchTripSelect}
       />
 
+      {/* Notifications dialog (mounted at page level for mobile access) */}
+      <NotificationsDialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen} />
+
       {/* iOS-style bottom tab bar (mobile only) */}
       <NativeTabBar
         activeTab={activeTab}
@@ -1266,7 +1280,7 @@ const Index = () => {
           setActiveTab('search');
           setTimeout(() => setIsSearchOpen(true), 0);
         }}
-        alertsBadge={0}
+        alertsBadge={notificationUnreadCount}
         tripTypeLabel={getTripTypeForTabBar()}
         onTripTypePress={() => {
           closeAllTabModals();
