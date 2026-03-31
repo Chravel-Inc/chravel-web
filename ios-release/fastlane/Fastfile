@@ -6,8 +6,8 @@ default_platform(:ios)
 # Constants
 APP_IDENTIFIER = "com.chravel.app"
 APP_NAME = "Chravel"
-TEAM_ID = ENV["APPLE_TEAM_ID"] || "YOUR_TEAM_ID"
-ITC_TEAM_ID = ENV["ITC_TEAM_ID"] || "YOUR_ITC_TEAM_ID"
+TEAM_ID = ENV["APPLE_TEAM_ID"] || "2T6WY43H3X"
+ITC_TEAM_ID = ENV["ITC_TEAM_ID"] || "128616525"
 
 platform :ios do
 
@@ -149,6 +149,34 @@ platform :ios do
       screenshots_path: "../appstore/screenshots",
       force: true,
       overwrite_screenshots: true
+    )
+  end
+
+  desc "Upload marketing screenshots to App Store Connect"
+  lane :upload_marketing_screenshots do
+    # Use App Store Connect API key if available (recommended over username/password)
+    api_key = nil
+    if ENV["APP_STORE_CONNECT_API_KEY_KEY_ID"] && ENV["APP_STORE_CONNECT_API_KEY_ISSUER_ID"]
+      api_key = app_store_connect_api_key(
+        key_id: ENV["APP_STORE_CONNECT_API_KEY_KEY_ID"],
+        issuer_id: ENV["APP_STORE_CONNECT_API_KEY_ISSUER_ID"],
+        key_filepath: ENV["APP_STORE_CONNECT_API_KEY_KEY_FILEPATH"],
+        key_content: ENV["APP_STORE_CONNECT_API_KEY_KEY_CONTENT"],
+        in_house: false
+      )
+    end
+
+    deliver(
+      app_identifier: APP_IDENTIFIER,
+      api_key: api_key,
+      skip_binary_upload: true,
+      skip_metadata: true,
+      skip_app_version_update: true,
+      screenshots_path: "../appstore/screenshots/marketing",
+      force: true,
+      overwrite_screenshots: true,
+      price_tier: nil,
+      run_precheck_before_submit: false
     )
   end
 

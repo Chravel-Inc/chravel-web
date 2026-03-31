@@ -9,7 +9,7 @@ title = "Chravel Secret Scanner"
 useDefault = true
 
 [[allowlists]]
-  description = "Ignore example/placeholder files and test fixtures"
+  description = "Ignore example/placeholder files, test fixtures, and Fastlane config"
   paths = [
     ".*\\.env\\.example$",
     ".*\\.env\\.production\\.example$",
@@ -17,6 +17,8 @@ useDefault = true
     ".*\\.spec\\.tsx?$",
     ".*__snapshots__.*",
     ".*\\.d\\.ts$",
+    "ios-release/fastlane/.*",
+    "appstore/UPLOAD_GUIDE\\.md",
     "src/integrations/supabase/client\\.ts$",
     "docs/.*\\.md$",
     "supabase/migrations/.*\\.sql$",

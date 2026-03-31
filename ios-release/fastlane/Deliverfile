@@ -5,13 +5,13 @@
 app_identifier("com.chravel.app")
 
 # Username
-username(ENV["APPLE_ID"] || "developer@chravel.app")
+username(ENV["APPLE_ID"] || "ops@chravelapp.com")
 
 # Team ID
-team_id(ENV["APPLE_TEAM_ID"] || "YOUR_TEAM_ID")
+team_id(ENV["APPLE_TEAM_ID"] || "2T6WY43H3X")
 
 # App Store Connect Team ID
-itc_provider(ENV["ITC_TEAM_ID"] || "YOUR_ITC_TEAM_ID")
+itc_provider(ENV["ITC_TEAM_ID"] || "128616525")
 
 # Metadata path
 metadata_path("../appstore/metadata")
@@ -71,14 +71,14 @@ secondary_category("Productivity")
 # Price tier (0 = Free)
 price_tier(0)
 
-# Privacy policy URL
-privacy_url("https://chravel.app/privacy")
+# Privacy policy URL (locale hash format required by deliver 2.220+)
+privacy_url({ "default" => "https://chravel.app/privacy" })
 
 # App Store marketing URL
-app_url("https://chravel.app")
+marketing_url({ "default" => "https://chravel.app" })
 
 # Support URL
-support_url("https://chravel.app/support")
+support_url({ "default" => "https://chravel.app/support" })
 
 # App review information
 app_review_information(
