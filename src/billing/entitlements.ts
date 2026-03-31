@@ -235,8 +235,8 @@ const FEATURE_TO_ENTITLEMENTS: Record<FeatureName, EntitlementId[]> = {
  */
 export const FEATURE_LIMITS: Record<FeatureName, Partial<Record<SubscriptionTier, number>>> = {
   ai_concierge: {
-    free: 5,
-    explorer: 10,
+    free: 10,
+    explorer: 25,
     'frequent-chraveler': -1,
     'pro-starter': -1,
     'pro-growth': -1,

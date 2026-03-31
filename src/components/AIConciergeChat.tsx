@@ -761,7 +761,7 @@ export const AIConciergeChat = ({
     }
 
     // Check plan limits
-    if (isLimitedPlan) {
+    if (isLimitedPlan && !isDemoMode) {
       let incrementResult;
       try {
         incrementResult = await incrementUsageOnSuccess();
@@ -1119,7 +1119,7 @@ export const AIConciergeChat = ({
     setIsTyping(true);
     setAiStatus('thinking');
 
-    if (isLimitedPlan) {
+    if (isLimitedPlan && !isDemoMode) {
       // Atomically check AND increment usage via a single DB RPC call.
       // A full text conversation counts as one query.
       let incrementResult;

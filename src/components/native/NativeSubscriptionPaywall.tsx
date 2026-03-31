@@ -46,7 +46,7 @@ const PLANS: PricingPlan[] = [
     gradient: 'from-primary to-primary/80',
     features: [
       { text: 'Unlimited saved trips', included: true },
-      { text: '10 AI queries per trip', included: true },
+      { text: '25 AI queries per trip', included: true },
       { text: 'Unlimited PDF exports', included: true },
       { text: 'Smart Calendar Import', included: true },
       { text: 'Location-aware AI suggestions', included: true },

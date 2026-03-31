@@ -23,7 +23,7 @@ const passes = [
     description: 'Full Explorer features for one trip window',
     features: [
       'Unlimited saved trips + restore archived',
-      '10 AI queries per user per trip',
+      '25 AI queries per user per trip',
       'Unlimited PDF exports',
       'Smart Import (Calendar, Agenda, Line-up from URL)',
       'ICS calendar export',
