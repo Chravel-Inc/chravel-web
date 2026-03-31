@@ -171,9 +171,12 @@ platform :ios do
       api_key: api_key,
       skip_binary_upload: true,
       skip_metadata: true,
+      skip_app_version_update: true,
       screenshots_path: "../appstore/screenshots/marketing",
       force: true,
-      overwrite_screenshots: true
+      overwrite_screenshots: true,
+      price_tier: nil,
+      run_precheck_before_submit: false
     )
   end
 
