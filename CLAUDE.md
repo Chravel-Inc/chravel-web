@@ -229,19 +229,24 @@
 ### One-time setup (per developer machine)
 
 ```bash
+# ── Global (once per machine) ──────────────────────────
 # 1. Install the Codex CLI globally (skip if already installed)
 npm install -g @openai/codex
 
 # 2. Authenticate (opens browser for ChatGPT login, or prompts for API key)
 codex login
 
+# ── Per repo (run in each project's Claude Code session) ──
 # 3. Inside a Claude Code session, install the plugin
 /plugin marketplace add openai/codex-plugin-cc
 /plugin install codex@openai-codex
+/reload-plugins
 
 # 4. Verify everything is wired up
 /codex:setup
 ```
+
+> **Note:** Steps 1-2 are global — run once per machine. Steps 3-4 must be repeated in each repo's Claude Code session (chravel-web, chravel-mobile, etc.).
 
 ### Core commands
 
