@@ -13,6 +13,9 @@ import { broadcastService } from '@/services/broadcastService';
 import type { Broadcast } from '@/services/broadcastService';
 import { tripKeys } from '@/lib/queryKeys';
 import { toast } from 'sonner';
+import { useFeatureFlag } from '@/lib/featureFlags';
+import { getStreamClient } from '@/services/stream/streamClient';
+import { useStreamBroadcasts } from '../../../hooks/stream/useStreamBroadcasts';
 
 const participants = beyonceCowboyCarterTour.participants;
 
@@ -79,6 +82,12 @@ export const Broadcasts = () => {
   const { priority, setPriority, applyFilters, hasActiveFilters, clearFilters } =
     useBroadcastFilters();
 
+  // 🔀 STREAM ROUTING: Use Stream for broadcast delivery when flag is on
+  const streamFlagEnabled = useFeatureFlag('stream-chat-broadcasts', false);
+  const streamConnected = !!getStreamClient()?.userID;
+  const useStream = streamFlagEnabled && streamConnected && !isDemoMode;
+  const streamBroadcasts = useStreamBroadcasts(useStream ? currentTripId : undefined);
+
   const [demoBroadcasts, setDemoBroadcasts] = useState<BroadcastData[]>([
     {
       id: 'mock-1',
@@ -113,7 +122,17 @@ export const Broadcasts = () => {
 
   const broadcasts: BroadcastData[] = isDemoMode
     ? demoBroadcasts
-    : dbBroadcasts.map(mapBroadcastToDisplay);
+    : useStream
+      ? streamBroadcasts.broadcasts.map(sb => ({
+          id: sb.id,
+          sender: sb.sender,
+          message: sb.message,
+          timestamp: new Date(sb.createdAt),
+          category: mapPriorityToCategory(sb.priority),
+          recipients: (sb.metadata.recipients as string) || 'everyone',
+          responses: { coming: 0, wait: 0, cant: 0 }, // RSVP stays in Supabase
+        }))
+      : dbBroadcasts.map(mapBroadcastToDisplay);
 
   const handleNewBroadcast = (newBroadcast: {
     message: string;
