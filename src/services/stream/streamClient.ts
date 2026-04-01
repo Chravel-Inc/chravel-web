@@ -10,7 +10,7 @@ export function getStreamClient(): StreamChat | null {
 export async function initStreamClient(
   token: string,
   userId: string,
-  apiKey: string
+  apiKey: string,
 ): Promise<void> {
   try {
     if (streamClientInstance && streamClientInstance.userID === userId && isConnected) {

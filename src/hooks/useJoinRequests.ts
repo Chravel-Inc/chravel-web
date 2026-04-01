@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { getMockPendingRequests } from '@/mockData/joinRequests';
 import { useDemoTripMembersStore } from '@/store/demoTripMembersStore';
+import { tripKeys } from '@/lib/queryKeys';
 
 export interface JoinRequest {
   id: string;
@@ -36,6 +38,7 @@ export const useJoinRequests = ({
   enabled = true,
   isDemoMode = false,
 }: UseJoinRequestsProps) => {
+  const queryClient = useQueryClient();
   const [requests, setRequests] = useState<JoinRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -211,6 +214,8 @@ export const useJoinRequests = ({
         }
 
         toast.success('✅ Request approved');
+        queryClient.invalidateQueries({ queryKey: tripKeys.all });
+        queryClient.invalidateQueries({ queryKey: tripKeys.members(tripId) });
         await fetchRequests();
       } catch (error) {
         console.error('Error approving request:', error);
@@ -256,6 +261,7 @@ export const useJoinRequests = ({
           toast.success('Request rejected');
         }
 
+        queryClient.invalidateQueries({ queryKey: tripKeys.all });
         await fetchRequests();
       } catch (error) {
         console.error('Error rejecting request:', error);
@@ -315,6 +321,7 @@ export const useJoinRequests = ({
           toast.success('Request dismissed');
         }
 
+        queryClient.invalidateQueries({ queryKey: tripKeys.all });
         await fetchRequests();
       } catch (error) {
         console.error('Error dismissing request:', error);
