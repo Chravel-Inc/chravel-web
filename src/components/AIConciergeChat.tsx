@@ -38,6 +38,13 @@ import { useConciergeSessionStore, type ConciergeSession } from '@/store/concier
 import { useSaveToTripPlaces } from '@/hooks/useSaveToTripPlaces';
 import { useConciergeReadAloud } from '@/hooks/useConciergeReadAloud';
 import { buildSpeechText } from '@/lib/buildSpeechText';
+import { useFeatureFlag } from '@/lib/featureFlags';
+import { getStreamClient } from '@/services/stream/streamClient';
+import {
+  persistUserMessage as streamPersistUserMessage,
+  persistAssistantMessage as streamPersistAssistantMessage,
+} from '@/services/stream/adapters/conciergeAdapter';
+import { useStreamConciergeHistory } from '@/hooks/stream/useStreamConciergeHistory';
 import {
   getConciergeInvalidationQueryKey,
   isConciergeWriteAction,
@@ -308,6 +315,15 @@ export const AIConciergeChat = ({
   const storeSessionRaw = useConciergeSessionStore(s => s.sessions[tripId]);
   const storeSession = storeSessionRaw ?? EMPTY_SESSION;
   const setStoreMessages = useConciergeSessionStore(s => s.setMessages);
+
+  // 🔀 STREAM: Concierge history persistence via Stream
+  const streamConciergeFlag = useFeatureFlag('stream-chat-concierge', false);
+  const streamConciergeEnabled = streamConciergeFlag && !!getStreamClient()?.userID && !isDemoMode;
+  // Hook called for side-effect (Stream channel hydration); result used in future phase
+  useStreamConciergeHistory(
+    streamConciergeEnabled ? tripId : undefined,
+    streamConciergeEnabled ? user?.id : undefined,
+  );
 
   const handleNavigateToPlaces = useCallback(() => {
     if (onTabChange) onTabChange('places');
@@ -1135,6 +1151,14 @@ export const AIConciergeChat = ({
 
     setMessages(prev => [...prev, userMessage]);
     const currentInput = messageToSend;
+
+    // 🔀 STREAM: Persist user message to Stream concierge channel
+    if (streamConciergeEnabled && user?.id) {
+      streamPersistUserMessage(tripId, user.id, userDisplayContent).catch(() => {
+        // Non-fatal — Stream persistence is optional
+      });
+    }
+
     if (!messageOverride) {
       setInputMessage('');
     }
@@ -1818,6 +1842,29 @@ export const AIConciergeChat = ({
                     cachedMsg,
                     user?.id ?? 'anonymous',
                   );
+
+                  // 🔀 STREAM: Persist assistant message to Stream concierge channel
+                  if (streamConciergeEnabled && user?.id) {
+                    const streamMeta = latestStreamingMessage
+                      ? {
+                          sources: latestStreamingMessage.sources,
+                          googleMapsWidget: latestStreamingMessage.googleMapsWidget,
+                          googleMapsWidgetContextToken:
+                            latestStreamingMessage.googleMapsWidgetContextToken,
+                          functionCallPlaces: latestStreamingMessage.functionCallPlaces as
+                            | Array<Record<string, unknown>>
+                            | undefined,
+                        }
+                      : undefined;
+                    streamPersistAssistantMessage(
+                      tripId,
+                      user.id,
+                      accumulatedStreamContent,
+                      streamMeta,
+                    ).catch(() => {
+                      // Non-fatal — Stream persistence is optional
+                    });
+                  }
 
                   // Persist rich card metadata to the ai_queries row that the
                   // edge function already inserted.  We update the most recent

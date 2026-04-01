@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import { useApiHealth } from '@/hooks/useApiHealth';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useAuth } from '@/hooks/useAuth';
+import { useStreamClient } from '@/hooks/stream/useStreamClient';
 
 /**
  * Hide the native splash screen once the app is ready.
@@ -26,6 +27,9 @@ export const AppInitializer = ({ children }: { children: React.ReactNode }) => {
   // Only run health checks for authenticated users NOT in demo mode
   const shouldRunHealthChecks = user && !isDemoMode;
   useApiHealth(shouldRunHealthChecks);
+
+  // Initialize Stream Chat client when any Stream feature flag is enabled
+  useStreamClient();
 
   // Hide native splash screen once auth hydration completes (or after safety timeout)
   const splashHidden = useRef(false);
