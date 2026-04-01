@@ -54,9 +54,10 @@ const { RealtimeModel } = beta.realtime;
 
 // ── Agent Configuration ────────────────────────────────────────────────────────
 
-// Model name for Gemini Live API - verify against Google's current API docs
-// Common formats: 'gemini-2.0-flash-live', 'models/gemini-2.0-flash-live-001'
-const GEMINI_MODEL = process.env.GEMINI_LIVE_MODEL || 'gemini-2.0-flash-live';
+// Model name for Gemini Live API (must be in LiveKit SDK LiveAPIModels type union)
+// Current GA: gemini-live-2.5-flash-native-audio
+// Future (pending LiveKit plugin fix for Issue #1179): gemini-3.1-flash-live-preview
+const GEMINI_MODEL = process.env.GEMINI_LIVE_MODEL || 'gemini-live-2.5-flash-native-audio';
 const DEFAULT_VOICE = 'Charon';
 
 function log(event: string, data?: Record<string, unknown>): void {
