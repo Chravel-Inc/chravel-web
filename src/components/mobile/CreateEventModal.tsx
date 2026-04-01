@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Calendar as CalendarIcon, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
@@ -25,6 +26,7 @@ export const CreateEventModal = ({
   editEvent,
   onEventUpdated,
 }: CreateEventModalProps) => {
+  const [portalReady, setPortalReady] = useState(false);
   const [title, setTitle] = useState('');
   const [eventDate, setEventDate] = useState(selectedDate);
   const [time, setTime] = useState('12:00');
@@ -63,7 +65,14 @@ export const CreateEventModal = ({
     }
   }, [selectedDate, editEvent]);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
+
+  if (!isOpen || !portalReady) return null;
+
+  const modalChromeMaxH =
+    'max-h-[calc(100dvh-var(--mobile-header-h,73px)-var(--mobile-tabs-h,52px)-1.5rem)] sm:max-h-[90vh]';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -220,13 +229,15 @@ export const CreateEventModal = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+  return createPortal(
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Modal */}
-      <div className="relative w-full max-w-md bg-glass-slate-card border border-glass-slate-border rounded-t-3xl sm:rounded-3xl shadow-enterprise-2xl p-6 animate-slide-up max-h-[90vh] overflow-y-auto">
+      {/* Modal — portal + z-[60] so trip header/tabs (z-40/50) never paint above; height respects measured chrome */}
+      <div
+        className={`relative z-[1] w-full max-w-md bg-glass-slate-card border border-glass-slate-border rounded-t-3xl sm:rounded-3xl shadow-enterprise-2xl p-6 animate-slide-up overflow-y-auto ${modalChromeMaxH}`}
+      >
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -366,6 +377,7 @@ export const CreateEventModal = ({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };

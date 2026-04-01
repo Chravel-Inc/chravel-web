@@ -664,15 +664,15 @@ export const MobileGroupCalendar = ({
 
       {/* Event Detail Drawer */}
       {selectedEvent && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
+        <div className="fixed inset-0 z-[60] flex items-end justify-center">
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={handleCloseEventDetail}
           />
 
-          {/* Drawer */}
-          <div className="relative w-full max-w-md bg-glass-slate-card border-t border-glass-slate-border rounded-t-3xl shadow-enterprise-lg animate-slide-up max-h-[70vh] overflow-y-auto">
+          {/* Drawer — z above trip chrome; max height leaves room below header + tab bar */}
+          <div className="relative z-[1] w-full max-w-md bg-glass-slate-card border-t border-glass-slate-border rounded-t-3xl shadow-enterprise-lg animate-slide-up max-h-[min(70vh,calc(100dvh-var(--mobile-header-h,73px)-var(--mobile-tabs-h,52px)-1.5rem))] overflow-y-auto">
             {/* Handle */}
             <div className="flex justify-center pt-3 pb-2">
               <div className="w-10 h-1 bg-white/20 rounded-full" />
