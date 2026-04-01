@@ -157,7 +157,7 @@ final class SubscriptionManager: ObservableObject {
     
     /// Configure RevenueCat with API key - call from AppDelegate
     static func configure(apiKey: String, userId: String? = nil) {
-        Purchases.logLevel = .debug // Set to .warn in production
+        Purchases.logLevel = .warn
         
         if let userId = userId {
             Purchases.configure(withAPIKey: apiKey, appUserID: userId)

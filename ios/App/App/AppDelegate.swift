@@ -45,8 +45,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     // MARK: - RevenueCat Setup
     
     private func configureRevenueCat() {
-        // Set log level (use .warn in production)
-        Purchases.logLevel = .debug
+        // Set log level (.warn in production to avoid leaking purchase details in logs)
+        Purchases.logLevel = .warn
 
         guard !revenueCatAPIKey.isEmpty else {
             print("[RevenueCat] REVENUECAT_API_KEY not set in Info.plist — SDK not configured.")
