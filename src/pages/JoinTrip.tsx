@@ -827,7 +827,9 @@ const JoinTrip = () => {
             alt={inviteData?.trip.name || 'Trip'}
             className="w-full h-full object-cover"
             onError={e => {
-              e.currentTarget.src = defaultCoverImage;
+              if (e.currentTarget.src !== defaultCoverImage) {
+                e.currentTarget.src = defaultCoverImage;
+              }
             }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-background/90 to-transparent" />
