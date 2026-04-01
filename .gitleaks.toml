@@ -26,8 +26,10 @@ useDefault = true
     ".*\\.lock$",
     # Test fixtures and scripts
     "scripts/__tests__/.*",
-    # iOS native source and READMEs (PostHog/RevenueCat public client keys)
-    "ios/.*",
+    # iOS: only the specific files with known false positives (public client keys)
+    # Do NOT use ios/.* — it would blind CI to real secrets in the native tree.
+    "ios/App/App/AppDelegate\\.swift$",
+    "ios/App/App/RevenueCat/README\\.md$",
     # Edge function READMEs with example curl commands
     "supabase/functions/.*/README\\.md$",
   ]
