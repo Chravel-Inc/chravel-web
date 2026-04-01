@@ -1,7 +1,19 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { useApiHealth } from '@/hooks/useApiHealth';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useAuth } from '@/hooks/useAuth';
+
+/**
+ * Hide the native splash screen once the app is ready.
+ * Uses dynamic import so @capacitor/splash-screen is only loaded on native.
+ */
+function hideNativeSplash(): void {
+  if (!Capacitor.isNativePlatform()) return;
+  import('@capacitor/splash-screen')
+    .then(({ SplashScreen }) => SplashScreen.hide())
+    .catch(() => {});
+}
 
 /**
  * AppInitializer - Runs API health checks on app startup
@@ -9,11 +21,31 @@ import { useAuth } from '@/hooks/useAuth';
  */
 export const AppInitializer = ({ children }: { children: React.ReactNode }) => {
   const { isDemoMode } = useDemoMode();
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
 
   // Only run health checks for authenticated users NOT in demo mode
   const shouldRunHealthChecks = user && !isDemoMode;
   useApiHealth(shouldRunHealthChecks);
+
+  // Hide native splash screen once auth hydration completes (or after safety timeout)
+  const splashHidden = useRef(false);
+  useEffect(() => {
+    if (!isLoading && !splashHidden.current) {
+      splashHidden.current = true;
+      hideNativeSplash();
+    }
+  }, [isLoading]);
+
+  // Safety fallback: hide splash after 4s even if auth is still loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!splashHidden.current) {
+        splashHidden.current = true;
+        hideNativeSplash();
+      }
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // CSP violation monitoring with error safety
   useEffect(() => {

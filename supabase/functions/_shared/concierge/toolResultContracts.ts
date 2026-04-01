@@ -39,10 +39,7 @@ export function isPendingActionEnvelope(value: unknown): value is PendingActionE
  * or surfaced to the user. This prevents malformed/hallucinated tool payloads
  * from masquerading as successful writes.
  */
-export function normalizeToolResult(
-  toolName: string,
-  result: unknown,
-): Record<string, unknown> {
+export function normalizeToolResult(toolName: string, result: unknown): Record<string, unknown> {
   if (!isRecord(result)) {
     return { success: false, error: `Tool "${toolName}" returned an invalid result payload` };
   }

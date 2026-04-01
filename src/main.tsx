@@ -49,7 +49,9 @@ const clearAllCaches = (): void => {
   }
 };
 
-// Unregister stale service workers from old hosts on first load
+// Unregister stale service workers from old hosts on first load.
+// NOTE: This runs before registerServiceWorker() below to avoid unregistering
+// the freshly-registered worker. The .then() chain is already non-blocking.
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker
     .getRegistrations()
@@ -102,8 +104,12 @@ window.addEventListener('error', (e: ErrorEvent) => {
 // Initialize RevenueCat for subscription management
 initRevenueCat().catch(err => console.warn('[RevenueCat] Init failed:', err));
 
-// Initialize global listener for native purchases
-setupGlobalPurchaseListener();
+// Initialize global listener for native purchases (deferred — not needed before first paint)
+if ('requestIdleCallback' in window) {
+  requestIdleCallback(() => setupGlobalPurchaseListener());
+} else {
+  setTimeout(() => setupGlobalPurchaseListener(), 0);
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

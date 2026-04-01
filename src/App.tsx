@@ -36,10 +36,9 @@ import { setupGlobalSyncProcessor } from './services/globalSyncProcessor';
 import { useSwUpdate } from '@/hooks/useSwUpdate';
 import { safeReload } from '@/utils/safeReload';
 import { retryImport } from '@/lib/retryImport';
-import Index from './pages/Index';
 
 // Lazy load pages for better performance
-
+const Index = lazy(() => retryImport(() => import('./pages/Index')));
 const TripDetail = lazy(() => retryImport(() => import('./pages/TripDetail')));
 const DemoTripGate = lazy(() => retryImport(() => import('./pages/DemoTripGate')));
 
@@ -87,7 +86,11 @@ const Healthz = lazy(() => retryImport(() => import('./pages/Healthz')));
 const PrivacyPolicy = lazy(() => retryImport(() => import('./pages/PrivacyPolicy')));
 const SupportPage = lazy(() => retryImport(() => import('./pages/SupportPage')));
 const TermsOfService = lazy(() => retryImport(() => import('./pages/TermsOfService')));
-import { GmailCallbackPage } from './pages/GmailCallbackPage';
+const GmailCallbackPage = lazy(() =>
+  retryImport(() =>
+    import('./pages/GmailCallbackPage').then(module => ({ default: module.GmailCallbackPage })),
+  ),
+);
 const DemoEntry = lazy(() => retryImport(() => import('./pages/DemoEntry')));
 const TripPreview = lazy(() => retryImport(() => import('./pages/TripPreview')));
 const AuthPage = lazy(() => retryImport(() => import('./pages/AuthPage')));
@@ -385,7 +388,14 @@ const App = () => {
                           </LazyRoute>
                         }
                       />
-                      <Route path="/api/gmail/oauth/callback" element={<GmailCallbackPage />} />
+                      <Route
+                        path="/api/gmail/oauth/callback"
+                        element={
+                          <LazyRoute>
+                            <GmailCallbackPage />
+                          </LazyRoute>
+                        }
+                      />
                       <Route
                         path="/trip/:tripId"
                         element={
