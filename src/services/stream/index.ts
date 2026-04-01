@@ -1,9 +1,10 @@
 /**
  * Stream Chat Integration — Barrel Export
  *
- * Scope guard: This migration uses stream-chat (low-level JS client) ONLY.
- * No stream-chat-react or any Stream UI components.
- * Chravel preserves its existing UI — Stream is the backend/realtime substrate.
+ * UI strategy: selective Stream primitive adoption allowed.
+ * stream-chat (low-level JS client) is the foundation.
+ * stream-chat-react may be added later for cherry-picked primitives only.
+ * Chravel preserves its travel shell, styling, and brand feel.
  */
 
 // Client lifecycle
@@ -59,3 +60,11 @@ export {
   conciergeToStreamChannel,
 } from './adapters/mappers/channelMapper';
 export type { StreamChannelConfig } from './adapters/mappers/channelMapper';
+
+// Concierge adapter
+export {
+  persistUserMessage,
+  persistAssistantMessage,
+  loadConciergeHistory,
+} from './adapters/conciergeAdapter';
+export type { ConciergeMessage } from './adapters/conciergeAdapter';
