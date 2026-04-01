@@ -22,7 +22,10 @@ import { generateCapabilityToken } from '../_shared/security/capabilityTokens.ts
 import { executeToolSecurely } from '../_shared/security/toolRouter.ts';
 import { checkRateLimit } from '../_shared/security.ts';
 import { verifyConciergeTripAccess } from '../_shared/concierge/tripAccess.ts';
-import { checkMonthlyTokenBudget, resolveUsagePlanForUser } from '../_shared/concierge/usagePolicy.ts';
+import {
+  checkMonthlyTokenBudget,
+  resolveUsagePlanForUser,
+} from '../_shared/concierge/usagePolicy.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
