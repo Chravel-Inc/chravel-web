@@ -95,6 +95,11 @@ export const TripGrid = React.memo(
     const { deleteTrip } = useDeleteTrip();
     const [reorderMode, setReorderMode] = useState<'my_trips' | 'pro' | 'events' | null>(null);
 
+    // Stable identity fns for dnd-kit — inline lambdas change every render and retrigger order sync.
+    const getMyTripId = useCallback((trip: Trip) => trip.id.toString(), []);
+    const getProTripId = useCallback((trip: ProTripData) => trip.id, []);
+    const getEventId = useCallback((event: EventData) => event.id, []);
+
     // State for optimistically deleted trips (pending undo timeout)
     const [pendingDeleteIds, setPendingDeleteIds] = useState<Set<string>>(new Set());
     const pendingDeleteTimeouts = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
@@ -478,7 +483,7 @@ export const TripGrid = React.memo(
                 {/* Sortable active trips */}
                 <SortableTripGrid
                   items={activeTrips}
-                  getId={trip => trip.id.toString()}
+                  getId={getMyTripId}
                   renderCard={trip => (
                     <SwipeableTripCardWrapper
                       trip={trip}
@@ -513,7 +518,7 @@ export const TripGrid = React.memo(
               <>
                 <SortableTripGrid
                   items={Object.values(activeProTrips)}
-                  getId={trip => trip.id}
+                  getId={getProTripId}
                   renderCard={trip => (
                     <SwipeableProTripCardWrapper
                       trip={trip}
@@ -542,7 +547,7 @@ export const TripGrid = React.memo(
               <>
                 <SortableTripGrid
                   items={Object.values(activeEvents)}
-                  getId={event => event.id}
+                  getId={getEventId}
                   renderCard={event =>
                     isMobile ? (
                       <MobileEventCard
