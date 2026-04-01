@@ -33,7 +33,9 @@ on:
         required: false
         default: 'Bug fixes and improvements'
 
-  # Auto-trigger on tags
+  # Auto-trigger on version tags — runs full build + TestFlight upload.
+  # Note: chravel-mobile (Expo/EAS) is the primary iOS pipeline.
+  # This Capacitor workflow is for manual releases or tag-based builds.
   push:
     tags:
       - 'v*.*.*'
@@ -395,6 +397,6 @@ jobs:
           files: |
             release/Chravel.ipa
           draft: false
-          prerelease: ${{ github.event.inputs.release_type == 'testflight' }}
+          prerelease: ${{ github.event.inputs.release_type != 'appstore' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
