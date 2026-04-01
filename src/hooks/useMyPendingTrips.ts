@@ -39,7 +39,7 @@ export const useMyPendingTrips = () => {
           id,
           trip_id,
           requested_at,
-          trips!inner (
+          trips (
             id,
             name,
             destination,

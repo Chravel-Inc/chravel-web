@@ -813,9 +813,9 @@ const JoinTrip = () => {
     );
   }
 
-  const coverImage =
-    inviteData?.trip.cover_image_url ||
+  const defaultCoverImage =
     'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&h=400&fit=crop';
+  const coverImage = inviteData?.trip.cover_image_url || defaultCoverImage;
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -826,6 +826,9 @@ const JoinTrip = () => {
             src={coverImage}
             alt={inviteData?.trip.name || 'Trip'}
             className="w-full h-full object-cover"
+            onError={e => {
+              e.currentTarget.src = defaultCoverImage;
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-background/90 to-transparent" />
           <div className="absolute bottom-4 left-4 right-4">
