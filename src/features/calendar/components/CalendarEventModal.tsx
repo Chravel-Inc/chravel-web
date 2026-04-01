@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -80,7 +80,7 @@ export const CalendarEventModal = ({
 }: CalendarEventModalProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [conflicts, setConflicts] = useState<string[]>([]);
-  const [conflictAcknowledged, setConflictAcknowledged] = useState(false);
+  const skipConflictCheckRef = useRef(false);
   const [formData, setFormData] = useState<
     AddToCalendarData & { timezone?: string; reminder_minutes?: number }
   >({
@@ -142,7 +142,7 @@ export const CalendarEventModal = ({
     setFormData(prev => ({ ...prev, ...updates }));
     if ('time' in updates || 'endTime' in updates || 'date' in updates || 'is_all_day' in updates) {
       setConflicts([]);
-      setConflictAcknowledged(false);
+      skipConflictCheckRef.current = false;
     }
   };
 
@@ -180,12 +180,13 @@ export const CalendarEventModal = ({
         }
       }
 
-      // Pre-save conflict check (skip if user already acknowledged)
-      if (!conflictAcknowledged) {
+      // Pre-save conflict check (skip if user already acknowledged via ref)
+      if (!skipConflictCheckRef.current) {
         const found = await calendarService.checkForConflicts(
           tripId,
           startTime.toISOString(),
           endTime,
+          editEvent?.id, // exclude the event being edited from conflict detection
         );
         if (found.length > 0) {
           setConflicts(found);
@@ -193,6 +194,8 @@ export const CalendarEventModal = ({
           return;
         }
       }
+      // Reset ref after check (whether conflicts found or not)
+      skipConflictCheckRef.current = false;
 
       if (editEvent) {
         const success = await calendarService.updateEvent(editEvent.id, {
@@ -271,7 +274,7 @@ export const CalendarEventModal = ({
       reminder_minutes: undefined,
     });
     setConflicts([]);
-    setConflictAcknowledged(false);
+    skipConflictCheckRef.current = false;
     onClose();
   };
 
@@ -282,7 +285,7 @@ export const CalendarEventModal = ({
           <DialogTitle>{editEvent ? 'Edit Event' : 'Add to Calendar'}</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" data-calendar-event-form>
           <div>
             <Label htmlFor="title">Event Title *</Label>
             <Input
@@ -447,7 +450,7 @@ export const CalendarEventModal = ({
           )}
 
           {/* Conflict warning */}
-          {conflicts.length > 0 && !conflictAcknowledged && (
+          {conflicts.length > 0 && (
             <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 space-y-2">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
@@ -477,9 +480,17 @@ export const CalendarEventModal = ({
                   Adjust Time
                 </Button>
                 <Button
-                  type="submit"
+                  type="button"
                   size="sm"
-                  onClick={() => setConflictAcknowledged(true)}
+                  onClick={() => {
+                    skipConflictCheckRef.current = true;
+                    setConflicts([]);
+                    // Trigger form submit synchronously after ref is set
+                    const form = document.querySelector<HTMLFormElement>(
+                      '[data-calendar-event-form]',
+                    );
+                    form?.requestSubmit();
+                  }}
                   className="flex-1 bg-amber-600 hover:bg-amber-700 text-white"
                 >
                   Save Anyway
