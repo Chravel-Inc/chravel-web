@@ -28,7 +28,11 @@ type AgentStateChangedEvent = {
   newState: string;
 };
 type ConversationItemAddedEvent = {
-  item: { role: string; text?: string };
+  item: {
+    role: string;
+    textContent?: string; // ChatMessage.textContent getter returns string | undefined
+    content?: unknown[]; // Raw content array for logging
+  };
 };
 type SpeechCreatedEvent = {
   speechHandle: unknown;
@@ -140,7 +144,7 @@ export default defineAgent({
       toolContext[toolDef.name] = llm.tool({
         description: toolDef.description,
         parameters: toolDef.schema as any,
-        execute: async (args, opts) => {
+        execute: async (args, _opts) => {
           log('tool:call', { name: toolDef.name, args });
           sendAgentState(ctx.room, 'executing_tool', toolDef.name);
 
@@ -195,10 +199,19 @@ export default defineAgent({
     let turnAssistantText = '';
 
     // Forward transcripts to frontend via data messages
+    // Only commit to turnUserText when final to avoid partial overwrite before turn completion
     session.on(AgentSessionEventTypes.UserInputTranscribed, (ev: UserInputTranscribedEvent) => {
-      log('transcript:user', { text: ev.transcript?.substring(0, 100) });
-      turnUserText = ev.transcript || '';
-      sendTranscript(ctx.room, 'user', turnUserText, ev.isFinal ?? true);
+      const transcript = ev.transcript || '';
+      const isFinal = ev.isFinal ?? false;
+      log('transcript:user', { text: transcript.substring(0, 100), isFinal });
+
+      // Always send to frontend for live display
+      sendTranscript(ctx.room, 'user', transcript, isFinal);
+
+      // Only commit to turn buffer when finalized (prevents partial overwrites)
+      if (isFinal) {
+        turnUserText = transcript;
+      }
     });
 
     session.on(AgentSessionEventTypes.SpeechCreated, (_ev: SpeechCreatedEvent) => {
@@ -218,23 +231,36 @@ export default defineAgent({
 
     session.on(AgentSessionEventTypes.ConversationItemAdded, (ev: ConversationItemAddedEvent) => {
       // When assistant response is added to conversation
-      if (ev.item?.role === 'assistant' && ev.item?.text) {
-        turnAssistantText = ev.item.text || '';
-        sendTranscript(ctx.room, 'assistant', turnAssistantText, true);
+      // ChatMessage uses textContent getter (not text) to extract string content
+      if (ev.item?.role === 'assistant') {
+        const assistantText = ev.item.textContent || '';
 
-        // Send turn completion
-        log('turn:complete', { toolResultCount: turnToolResults.length });
-        sendTurnComplete(
-          ctx.room,
-          turnUserText,
-          turnAssistantText,
-          turnToolResults.length > 0 ? [...turnToolResults] : undefined,
-        );
+        // Log even if no text (could be audio-only or interrupted)
+        log('conversation:item_added', {
+          role: ev.item.role,
+          hasText: !!assistantText,
+          textLength: assistantText.length,
+        });
 
-        // Reset for next turn
-        turnUserText = '';
-        turnAssistantText = '';
-        turnToolResults.length = 0;
+        // Only process if we have actual text content
+        if (assistantText) {
+          turnAssistantText = assistantText;
+          sendTranscript(ctx.room, 'assistant', turnAssistantText, true);
+
+          // Send turn completion
+          log('turn:complete', { toolResultCount: turnToolResults.length });
+          sendTurnComplete(
+            ctx.room,
+            turnUserText,
+            turnAssistantText,
+            turnToolResults.length > 0 ? [...turnToolResults] : undefined,
+          );
+
+          // Reset for next turn
+          turnUserText = '';
+          turnAssistantText = '';
+          turnToolResults.length = 0;
+        }
       }
     });
 

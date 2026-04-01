@@ -271,12 +271,19 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
       room.on(RoomEvent!.DataReceived, handleDataMessage);
 
       // Track agent join - use isAgent property set by LiveKit SDK
-      // (checks participant.kind === AGENT or participant.permissions.agent)
+      // isAgent checks participant.kind === ParticipantKind.AGENT (value 4)
       let agentJoined = false;
+
+      // Helper to check if participant is an agent
+      // Primary: isAgent property (SDK v2+)
+      // Fallback: identity prefix (server naming convention)
+      const isAgentParticipant = (p: unknown): boolean => {
+        const participant = p as { isAgent?: boolean; identity?: string };
+        return participant.isAgent === true || participant.identity?.startsWith('agent-') === true;
+      };
+
       room.on(RoomEvent!.ParticipantConnected, participant => {
-        // Check isAgent property (set by LiveKit server for agent participants)
-        // OR check if it's any remote participant (fallback for older SDK versions)
-        if ((participant as any).isAgent || participant.identity?.includes('agent')) {
+        if (isAgentParticipant(participant)) {
           agentJoined = true;
           setState('listening');
           setDiagnostics(prev => ({
@@ -355,10 +362,6 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
           const timeout = setTimeout(() => {
             reject(new Error('Agent did not join within timeout'));
           }, AGENT_JOIN_TIMEOUT_MS);
-
-          // Helper to check if participant is an agent
-          const isAgentParticipant = (p: any): boolean =>
-            p.isAgent || p.kind === 1 || p.identity?.includes('agent');
 
           room.on(RoomEvent!.ParticipantConnected, participant => {
             if (isAgentParticipant(participant)) {
