@@ -2,6 +2,17 @@ import React, { useState } from 'react';
 import { CalendarEvent } from '@/types/calendar';
 import { Button } from '@/components/ui/button';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
   Clock,
   MapPin,
   Trash2,
@@ -190,22 +201,48 @@ export const EventItem = ({
             </Button>
           )}
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onDelete(event.id)}
-            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-            disabled={isDeleting}
-            title="Delete event"
-          >
-            {isDeleting ? (
-              <span className="h-4 w-4 inline-flex items-center justify-center">
-                <span className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
-              </span>
-            ) : (
-              <Trash2 className="h-4 w-4" />
-            )}
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                disabled={isDeleting}
+                title="Delete event"
+              >
+                {isDeleting ? (
+                  <span className="h-4 w-4 inline-flex items-center justify-center">
+                    <span className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+                  </span>
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Event</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently remove &ldquo;{event.title}&rdquo; from the calendar. This
+                  action cannot be undone.
+                  {event.recurrence_rule && (
+                    <span className="block mt-2 text-amber-500">
+                      This is a recurring event. Deleting will remove all occurrences.
+                    </span>
+                  )}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => onDelete(event.id)}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </div>
