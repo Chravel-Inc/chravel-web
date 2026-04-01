@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Globe } from 'lucide-react';
+import { AlertTriangle, CalendarIcon, Globe } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { AddToCalendarData, CalendarEvent } from '@/types/calendar';
@@ -79,6 +79,8 @@ export const CalendarEventModal = ({
   editEvent,
 }: CalendarEventModalProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [conflicts, setConflicts] = useState<string[]>([]);
+  const [conflictAcknowledged, setConflictAcknowledged] = useState(false);
   const [formData, setFormData] = useState<
     AddToCalendarData & { timezone?: string; reminder_minutes?: number }
   >({
@@ -129,9 +131,30 @@ export const CalendarEventModal = ({
     }
   }, [editEvent, prefilledData]);
 
+  // Compute whether end time is before start time for inline validation
+  const endTimeInvalid = (() => {
+    if (formData.is_all_day || !formData.time || !formData.endTime) return false;
+    return formData.endTime <= formData.time;
+  })();
+
+  // Reset conflict state when time fields change
+  const updateFormAndResetConflicts = (updates: Partial<typeof formData>) => {
+    setFormData(prev => ({ ...prev, ...updates }));
+    if ('time' in updates || 'endTime' in updates || 'date' in updates || 'is_all_day' in updates) {
+      setConflicts([]);
+      setConflictAcknowledged(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || (!formData.is_all_day && !formData.time)) return;
+
+    // End time validation
+    if (endTimeInvalid) {
+      toast.error('End time must be after start time');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -145,7 +168,6 @@ export const CalendarEventModal = ({
         endOfDay.setHours(23, 59, 59, 999);
         endTime = endOfDay.toISOString();
       } else {
-        // Combine date and time into ISO string for start_time
         const [hours, minutes] = formData.time.split(':');
         startTime = new Date(formData.date);
         startTime.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
@@ -158,8 +180,21 @@ export const CalendarEventModal = ({
         }
       }
 
+      // Pre-save conflict check (skip if user already acknowledged)
+      if (!conflictAcknowledged) {
+        const found = await calendarService.checkForConflicts(
+          tripId,
+          startTime.toISOString(),
+          endTime,
+        );
+        if (found.length > 0) {
+          setConflicts(found);
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       if (editEvent) {
-        // Update existing event
         const success = await calendarService.updateEvent(editEvent.id, {
           title: formData.title,
           description: formData.description || undefined,
@@ -179,7 +214,6 @@ export const CalendarEventModal = ({
           toast.error('Failed to update event');
         }
       } else {
-        // Create new event
         const result = await calendarService.createEvent({
           trip_id: tripId,
           title: formData.title,
@@ -201,14 +235,7 @@ export const CalendarEventModal = ({
         });
 
         if (result.event) {
-          // Show conflict warning if overlapping events exist
-          if (result.conflicts.length > 0) {
-            toast.success('Event created', {
-              description: `Note: This event overlaps with "${result.conflicts[0]}"${result.conflicts.length > 1 ? ` and ${result.conflicts.length - 1} other event(s)` : ''}.`,
-            });
-          } else {
-            toast.success('Event created');
-          }
+          toast.success('Event created');
           onEventAdded?.(formData, result.event.id);
           handleClose();
         } else {
@@ -243,6 +270,8 @@ export const CalendarEventModal = ({
       timezone: undefined,
       reminder_minutes: undefined,
     });
+    setConflicts([]);
+    setConflictAcknowledged(false);
     onClose();
   };
 
@@ -270,8 +299,7 @@ export const CalendarEventModal = ({
               id="all-day"
               checked={formData.is_all_day ?? false}
               onCheckedChange={(checked: boolean) =>
-                setFormData({
-                  ...formData,
+                updateFormAndResetConflicts({
                   is_all_day: checked,
                   time: checked ? '' : formData.time,
                 })
@@ -304,7 +332,7 @@ export const CalendarEventModal = ({
                   <Calendar
                     mode="single"
                     selected={formData.date}
-                    onSelect={date => date && setFormData({ ...formData, date })}
+                    onSelect={date => date && updateFormAndResetConflicts({ date })}
                     initialFocus
                     className="p-3 pointer-events-auto"
                   />
@@ -319,7 +347,7 @@ export const CalendarEventModal = ({
                   id="time"
                   type="time"
                   value={formData.time}
-                  onChange={e => setFormData({ ...formData, time: e.target.value })}
+                  onChange={e => updateFormAndResetConflicts({ time: e.target.value })}
                   required
                 />
               </div>
@@ -413,8 +441,55 @@ export const CalendarEventModal = ({
             <Label htmlFor="include-itinerary">Include in trip itinerary</Label>
           </div>
 
+          {/* End time validation */}
+          {endTimeInvalid && (
+            <p className="text-xs text-destructive">End time must be after start time</p>
+          )}
+
+          {/* Conflict warning */}
+          {conflicts.length > 0 && !conflictAcknowledged && (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium text-amber-500">Time Conflict</p>
+                  <p className="text-muted-foreground">
+                    This event overlaps with:{' '}
+                    {conflicts.map((c, i) => (
+                      <span key={i}>
+                        {i > 0 && ', '}
+                        <strong>{c}</strong>
+                      </span>
+                    ))}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setConflicts([]);
+                  }}
+                  className="flex-1"
+                >
+                  Adjust Time
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  onClick={() => setConflictAcknowledged(true)}
+                  className="flex-1 bg-amber-600 hover:bg-amber-700 text-white"
+                >
+                  Save Anyway
+                </Button>
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-2 pt-4">
-            <Button type="submit" className="flex-1" disabled={isSubmitting}>
+            <Button type="submit" className="flex-1" disabled={isSubmitting || endTimeInvalid}>
               {isSubmitting ? 'Saving...' : editEvent ? 'Update Event' : 'Add Event'}
             </Button>
             <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
