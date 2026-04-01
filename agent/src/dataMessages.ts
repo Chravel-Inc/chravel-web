@@ -12,6 +12,7 @@ const TOPIC_TRANSCRIPT = 'transcript';
 const TOPIC_TURN_COMPLETE = 'turn_complete';
 const TOPIC_RICH_CARD = 'rich_card';
 const TOPIC_AGENT_STATE = 'agent_state';
+const TOPIC_ERROR = 'error';
 
 const encoder = new TextEncoder();
 
@@ -61,4 +62,9 @@ export function sendAgentState(
   toolName?: string,
 ): void {
   sendData(room, TOPIC_AGENT_STATE, { state, toolName });
+}
+
+/** Send an error message to the frontend */
+export function sendError(room: Room, message: string, code?: string): void {
+  sendData(room, TOPIC_ERROR, { message, code, timestamp: Date.now() });
 }
