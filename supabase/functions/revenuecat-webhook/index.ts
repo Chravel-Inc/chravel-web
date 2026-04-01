@@ -36,53 +36,22 @@ const PLAN_PRIORITY = [
   'pro-enterprise',
 ];
 
-interface RevenueCatWebhookPayload {
-  event: {
-    type: string;
-    app_user_id: string;
-    original_app_user_id?: string;
-    expiration_at_ms?: number;
-    purchased_at_ms?: number;
-    period_type?: string;
-    entitlement_ids?: string[];
-    product_id?: string;
-    store?: string;
-    environment?: string;
-  };
-  api_version: string;
+interface RevenueCatEvent {
+  type: string;
+  app_user_id: string;
+  original_app_user_id?: string;
+  expiration_at_ms?: number;
+  purchased_at_ms?: number;
+  period_type?: string;
+  entitlement_ids?: string[];
+  product_id?: string;
+  store?: string;
+  environment?: string;
 }
 
-/**
- * Verify RevenueCat webhook signature using HMAC-SHA256.
- * RevenueCat sends the raw body hash in the X-RevenueCat-Signature header.
- */
-async function verifySignature(
-  body: string,
-  signature: string | null,
-  secret: string,
-): Promise<boolean> {
-  if (!signature) return false;
-
-  try {
-    const encoder = new TextEncoder();
-    const keyData = encoder.encode(secret);
-    const bodyData = encoder.encode(body);
-
-    const key = await crypto.subtle.importKey(
-      'raw',
-      keyData,
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['verify'],
-    );
-
-    // RevenueCat sends hex-encoded HMAC-SHA256
-    const sigBytes = new Uint8Array(signature.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16)));
-
-    return await crypto.subtle.verify('HMAC', key, sigBytes, bodyData);
-  } catch {
-    return false;
-  }
+interface RevenueCatWebhookPayload {
+  event: RevenueCatEvent;
+  api_version: string;
 }
 
 serve(async req => {
@@ -98,20 +67,26 @@ serve(async req => {
     'SUPABASE_SERVICE_ROLE_KEY',
   ]);
 
-  const rawBody = await req.text();
-
-  // Verify signature
-  const signature = req.headers.get('X-RevenueCat-Signature');
-  const isValid = await verifySignature(rawBody, signature, REVENUECAT_WEBHOOK_SECRET);
-
-  if (!isValid) {
-    console.error('[rc-webhook] Invalid signature');
+  // RevenueCat authentication: dashboard-configured Authorization header sent verbatim.
+  // Docs: https://www.revenuecat.com/docs/integrations/webhooks/overview#security
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader || authHeader !== REVENUECAT_WEBHOOK_SECRET) {
+    console.error('[rc-webhook] Invalid or missing Authorization header');
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   }
 
+  const rawBody = await req.text();
+
   let payload: RevenueCatWebhookPayload;
   try {
-    payload = JSON.parse(rawBody);
+    const parsed = JSON.parse(rawBody);
+    // Guard: ensure top-level event object exists before destructuring
+    if (!parsed || typeof parsed !== 'object' || !parsed.event || !parsed.event.type) {
+      return new Response(JSON.stringify({ error: 'Invalid payload: missing event' }), {
+        status: 400,
+      });
+    }
+    payload = parsed as RevenueCatWebhookPayload;
   } catch {
     return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400 });
   }
@@ -157,20 +132,23 @@ serve(async req => {
     currentPeriodEnd = new Date(event.expiration_at_ms).toISOString();
   }
 
-  // Map event type to subscription status
+  // Map event type to subscription status.
+  // SUBSCRIPTION_PAUSED: Google Play concept — access is retained until EXPIRATION fires.
+  // Do NOT revoke on pause; keep active so user retains access until the period ends.
   switch (event.type) {
     case 'INITIAL_PURCHASE':
     case 'RENEWAL':
     case 'UNCANCELLATION':
     case 'SUBSCRIPTION_EXTENDED':
     case 'PRODUCT_CHANGE':
+    case 'SUBSCRIPTION_PAUSED': // access retained until EXPIRATION
       status = event.period_type === 'TRIAL' ? 'trialing' : 'active';
       break;
     case 'CANCELLATION':
-    case 'SUBSCRIPTION_PAUSED':
       status = 'canceled';
       break;
     case 'BILLING_ISSUE':
+      // Grace period: user retains access while RevenueCat retries billing.
       status = 'past_due';
       break;
     case 'EXPIRATION':
