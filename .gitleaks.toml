@@ -1,6 +1,16 @@
 # Gitleaks configuration for Chravel
 # Docs: https://github.com/gitleaks/gitleaks
-# Run locally: gitleaks detect --source . --config .gitleaks.toml
+#
+# Run locally (git mode — matches CI):
+#   gitleaks detect --source . --config .gitleaks.toml
+#
+# Run locally (filesystem scan — run from a clean working tree, not after npm run build):
+#   gitleaks detect --source . --config .gitleaks.toml --no-git
+#
+# NOTE: In gitleaks v8, global [[allowlists]] paths do NOT suppress built-in rules.
+# Use .gitleaksignore for committed false positives; [rules.allowlist] for custom rules.
+# Running --no-git after `npm run build` will show 1 residual finding for the built-in
+# `jwt` rule matching the Supabase anon key in the dist/ bundle (gitignored, expected).
 
 title = "Chravel Secret Scanner"
 
@@ -22,6 +32,16 @@ useDefault = true
     "src/integrations/supabase/client\\.ts$",
     "docs/.*\\.md$",
     "supabase/migrations/.*\\.sql$",
+    # Lock files (SHA hashes trigger generic-api-key)
+    ".*\\.lock$",
+    # Test fixtures and scripts
+    "scripts/__tests__/.*",
+    # iOS: only the specific files with known false positives (public client keys)
+    # Do NOT use ios/.* — it would blind CI to real secrets in the native tree.
+    "ios/App/App/AppDelegate\\.swift$",
+    "ios/App/App/RevenueCat/README\\.md$",
+    # Edge function READMEs with example curl commands
+    "supabase/functions/.*/README\\.md$",
   ]
   regexes = [
     # Placeholder patterns that are not real keys
@@ -41,7 +61,14 @@ useDefault = true
   regex = '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+'''
   tags = ["supabase", "jwt", "key"]
   [rules.allowlist]
-    paths = [".*\\.env\\.example$", ".*\\.env\\.production\\.example$"]
+    # Note: global [[allowlists]] paths do not suppress custom rules in gitleaks v8.
+    # Add per-rule path exemptions here; use .gitleaksignore for committed false positives.
+    paths = [
+      ".*\\.env\\.example$",
+      ".*\\.env\\.production\\.example$",
+      # dist/ is gitignored build output; suppress local-only --no-git false positives
+      "dist",
+    ]
 
 [[rules]]
   description = "RevenueCat API key hardcoded"

@@ -1,0 +1,58 @@
+# .gitleaksignore
+# Pre-existing findings — all confirmed false positives or public-facing client keys.
+# Generated: 2026-04-01. Re-run `gitleaks detect --no-git --config .gitleaks.toml` to audit.
+#
+# HOW TO UPDATE: If gitleaks CI adds new findings that are false positives, run:
+#   gitleaks detect --source . --config .gitleaks.toml --no-git --report-format json --report-path /tmp/report.json
+#   cat /tmp/report.json | python3 -c "import json,sys; [print(d['Fingerprint']) for d in json.load(sys.stdin)]"
+# Then append the fingerprints here with a comment explaining why they are safe.
+
+# Supabase anon key (public-facing client credential — same value as VITE_SUPABASE_ANON_KEY)
+# Matches both the built-in `jwt` rule and our custom `supabase-anon-key-hardcoded` rule.
+docs/ENV_AND_APIS_REQUIRED.md:jwt:92
+docs/ENV_AND_APIS_REQUIRED.md:supabase-anon-key-hardcoded:92
+docs/RAG_CRON_SETUP.md:jwt:31
+docs/RAG_CRON_SETUP.md:supabase-anon-key-hardcoded:31
+docs/_archive/root/LOVABLE_DEPLOYMENT_ANALYSIS.md:jwt:27
+docs/_archive/root/LOVABLE_DEPLOYMENT_ANALYSIS.md:supabase-anon-key-hardcoded:27
+docs/ios/11-data-sync-architecture.md:jwt:28
+docs/ios/11-data-sync-architecture.md:supabase-anon-key-hardcoded:28
+src/integrations/supabase/client.ts:jwt:34
+src/integrations/supabase/client.ts:supabase-anon-key-hardcoded:34
+supabase/migrations/20251031214519_f794d8db-5e10-4d5c-8c11-9e86b7e744ba.sql:jwt:31
+supabase/migrations/20251031214519_f794d8db-5e10-4d5c-8c11-9e86b7e744ba.sql:supabase-anon-key-hardcoded:31
+
+# curl-auth-header in documentation example commands (not real tokens)
+docs/ACTIVE/IOS_APP_STORE_GUIDE.md:curl-auth-header:55
+docs/AI_CONCIERGE_SETUP.md:curl-auth-header:74
+docs/IOS_RELEASE_MANUAL_STEPS.md:curl-auth-header:218
+docs/SPRINT_2_MANUAL_STEPS.md:curl-auth-header:329
+docs/_archive/root/PUSH_NOTIFICATION_RLS_FIX.md:curl-auth-header:148
+docs/ios/appendix-edge-functions.md:curl-auth-header:563
+supabase/functions/send-push/README.md:curl-auth-header:98
+
+# generic-api-key false positives
+# deno.lock: SHA-256 content hashes that happen to match the pattern
+# validate-env.test.ts: partial placeholder string `eyJhbGciOiJIUzI1...` in test fixture
+# IOS_FEATURE_IMPLEMENTATION_GUIDE.md: example value in archived doc
+# AppDelegate.swift: PostHog project API key (public-facing client key, not a server secret)
+deno.lock:generic-api-key:26
+deno.lock:generic-api-key:118
+docs/_archive/root/IOS_FEATURE_IMPLEMENTATION_GUIDE.md:generic-api-key:148
+ios/App/App/AppDelegate.swift:generic-api-key:39
+scripts/__tests__/validate-env.test.ts:generic-api-key:510
+scripts/__tests__/validate-env.test.ts:generic-api-key:511
+
+# private-key false positive — these files *parse* PEM from environment variables/secrets,
+# they do not contain embedded private keys. The match is on the PEM header string literal
+# used to strip the armor before passing to crypto.subtle.importKey().
+supabase/functions/_shared/vertexAuth.ts:private-key:47
+supabase/functions/send-push/index.ts:private-key:166
+
+# gcp-api-key in test fixture (fake key used to test error sanitization)
+supabase/functions/_shared/__tests__/errorSanitization.test.ts:gcp-api-key:72
+
+# revenuecat-key in docs and iOS README (example/placeholder values, not active keys)
+docs/APP_STORE_PLAN.md:revenuecat-key:28
+docs/IOS_RELEASE_MANUAL_STEPS.md:revenuecat-key:36
+ios/App/App/RevenueCat/README.md:revenuecat-key:24

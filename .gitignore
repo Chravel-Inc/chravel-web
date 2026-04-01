@@ -46,3 +46,4 @@ tmp/loop-history/*
 !tmp/loop-history/.gitkeep
 ios-release/fastlane/README.md
 ios-release/fastlane/report.xml
+coverage/
