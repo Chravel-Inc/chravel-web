@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { tripKeys } from '@/lib/queryKeys';
 import {
@@ -662,108 +663,116 @@ export const MobileGroupCalendar = ({
         onStartBackgroundImport={handleStartBackgroundImport}
       />
 
-      {/* Event Detail Drawer */}
-      {selectedEvent && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={handleCloseEventDetail}
-          />
+      {/* Event Detail Drawer - portaled to body so z-index escapes tab stacking context */}
+      {selectedEvent &&
+        createPortal(
+          <div className="fixed inset-0 z-[60] flex items-end justify-center">
+            {/* Backdrop */}
+            <div
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={handleCloseEventDetail}
+            />
 
-          {/* Drawer */}
-          <div className="relative w-full max-w-md bg-glass-slate-card border-t border-glass-slate-border rounded-t-3xl shadow-enterprise-lg animate-slide-up max-h-[70vh] overflow-y-auto">
-            {/* Handle */}
-            <div className="flex justify-center pt-3 pb-2">
-              <div className="w-10 h-1 bg-white/20 rounded-full" />
-            </div>
-
-            {/* Header */}
-            <div className="flex items-start justify-between px-6 pb-4">
-              <div className="flex-1">
-                <h2 className="text-xl font-semibold text-white mb-1">{selectedEvent.title}</h2>
-                <p className="text-sm text-gray-400">
-                  {format(selectedEvent.date, 'EEEE, MMMM d, yyyy')}
-                </p>
-              </div>
-              <button
-                onClick={handleCloseEventDetail}
-                className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
-              >
-                <X className="w-5 h-5 text-white" />
-              </button>
-            </div>
-
-            {/* Event Details */}
-            <div className="px-6 pb-6 space-y-4">
-              {/* Time */}
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-400">Time</p>
-                  <p className="text-white font-medium">{selectedEvent.time}</p>
-                </div>
+            {/* Drawer - cap height below mobile header + tabs */}
+            <div
+              className="relative w-full max-w-md bg-glass-slate-card border-t border-glass-slate-border rounded-t-3xl shadow-enterprise-lg animate-slide-up overflow-y-auto"
+              style={{
+                maxHeight:
+                  'calc(100dvh - var(--mobile-header-h, 73px) - var(--mobile-tabs-h, 52px) - 16px)',
+              }}
+            >
+              {/* Handle */}
+              <div className="flex justify-center pt-3 pb-2">
+                <div className="w-10 h-1 bg-white/20 rounded-full" />
               </div>
 
-              {/* Location */}
-              {selectedEvent.location && (
+              {/* Header */}
+              <div className="flex items-start justify-between px-6 pb-4">
+                <div className="flex-1">
+                  <h2 className="text-xl font-semibold text-white mb-1">{selectedEvent.title}</h2>
+                  <p className="text-sm text-gray-400">
+                    {format(selectedEvent.date, 'EEEE, MMMM d, yyyy')}
+                  </p>
+                </div>
+                <button
+                  onClick={handleCloseEventDetail}
+                  className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                >
+                  <X className="w-5 h-5 text-white" />
+                </button>
+              </div>
+
+              {/* Event Details */}
+              <div className="px-6 pb-6 space-y-4">
+                {/* Time */}
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
-                    <MapPin className="w-5 h-5 text-green-400" />
+                  <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-400">Location</p>
-                    <p className="text-white font-medium">{selectedEvent.location}</p>
+                    <p className="text-sm text-gray-400">Time</p>
+                    <p className="text-white font-medium">{selectedEvent.time}</p>
                   </div>
                 </div>
+
+                {/* Location */}
+                {selectedEvent.location && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
+                      <MapPin className="w-5 h-5 text-green-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-400">Location</p>
+                      <p className="text-white font-medium">{selectedEvent.location}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Participants */}
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                    <Users className="w-5 h-5 text-purple-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-400">Attending</p>
+                    <p className="text-white font-medium">{selectedEvent.participants} people</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions - only show when user has permission */}
+              {(canPerformAction('calendar', 'can_edit_events') ||
+                canPerformAction('calendar', 'can_delete_events')) && (
+                <div className="px-6 pb-8 flex gap-3">
+                  {canPerformAction('calendar', 'can_edit_events') && (
+                    <button
+                      onClick={() =>
+                        handleEditEvent(
+                          selectedEvent as CalendarEvent & { originalEvent?: TripEvent },
+                        )
+                      }
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded-xl transition-colors"
+                    >
+                      <Pencil size={18} />
+                      <span>Edit</span>
+                    </button>
+                  )}
+                  {canPerformAction('calendar', 'can_delete_events') && (
+                    <button
+                      onClick={() => handleDeleteEvent(selectedEvent.id)}
+                      disabled={isDeleting}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-xl transition-colors disabled:opacity-50"
+                    >
+                      <Trash2 size={18} />
+                      <span>{isDeleting ? 'Deleting...' : 'Delete'}</span>
+                    </button>
+                  )}
+                </div>
               )}
-
-              {/* Participants */}
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
-                  <Users className="w-5 h-5 text-purple-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-400">Attending</p>
-                  <p className="text-white font-medium">{selectedEvent.participants} people</p>
-                </div>
-              </div>
             </div>
-
-            {/* Actions - only show when user has permission */}
-            {(canPerformAction('calendar', 'can_edit_events') ||
-              canPerformAction('calendar', 'can_delete_events')) && (
-              <div className="px-6 pb-8 flex gap-3">
-                {canPerformAction('calendar', 'can_edit_events') && (
-                  <button
-                    onClick={() =>
-                      handleEditEvent(
-                        selectedEvent as CalendarEvent & { originalEvent?: TripEvent },
-                      )
-                    }
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded-xl transition-colors"
-                  >
-                    <Pencil size={18} />
-                    <span>Edit</span>
-                  </button>
-                )}
-                {canPerformAction('calendar', 'can_delete_events') && (
-                  <button
-                    onClick={() => handleDeleteEvent(selectedEvent.id)}
-                    disabled={isDeleting}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-xl transition-colors disabled:opacity-50"
-                  >
-                    <Trash2 size={18} />
-                    <span>{isDeleting ? 'Deleting...' : 'Delete'}</span>
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 };
