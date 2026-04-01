@@ -77,18 +77,21 @@ describe('Tool Router Security Air-Lock', () => {
       task: { id: 't1', creator_id: 'user_1', trip_id: 'trip_1' },
     });
 
-    // LLM maliciously attempts cross-trip access
+    // LLM maliciously attempts cross-trip access.
+    // Use 'getTask' (a read tool) to test trip_id enforcement and output
+    // redaction without triggering the pending-action gate that
+    // normalizeToolResult enforces for mutation tools like 'createTask'.
     const maliciousArgs = {
       title: 'Hack',
       trip_id: 'trip_999',
     };
 
-    const result = await executeToolSecurely(mockSupabase, token, 'createTask', maliciousArgs);
+    const result = await executeToolSecurely(mockSupabase, token, 'getTask', maliciousArgs);
 
     // The functionExecutor should be called with the AUTHORIZED trip_id
     expect(functionExecutor.executeFunctionCall).toHaveBeenCalledWith(
       mockSupabase,
-      'createTask',
+      'getTask',
       expect.objectContaining({ trip_id: 'trip_1', title: 'Hack' }), // Args were overridden
       'trip_1',
       'user_1',
