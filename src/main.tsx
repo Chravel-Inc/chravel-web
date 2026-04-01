@@ -8,6 +8,7 @@ import { initRevenueCat } from '@/config/revenuecat';
 import { setupGlobalPurchaseListener } from '@/integrations/revenuecat/revenuecatClient';
 import { telemetry } from '@/telemetry/service';
 import { isLovablePreview } from './utils/env';
+import { Capacitor } from '@capacitor/core';
 import App from './App.tsx';
 import './index.css';
 
@@ -49,10 +50,15 @@ const clearAllCaches = (): void => {
   }
 };
 
+// Skip all service worker operations on native — Capacitor bundles assets locally,
+// so the SW's 22.8 MB precache is pure overhead. Push notifications on native use
+// @capacitor/push-notifications (APNs), not the web push handler in sw.js.
+const isNativePlatform = Capacitor.isNativePlatform();
+
 // Unregister stale service workers from old hosts on first load.
 // NOTE: This runs before registerServiceWorker() below to avoid unregistering
 // the freshly-registered worker. The .then() chain is already non-blocking.
-if ('serviceWorker' in navigator) {
+if (!isNativePlatform && 'serviceWorker' in navigator) {
   navigator.serviceWorker
     .getRegistrations()
     .then(registrations => {
@@ -79,8 +85,8 @@ if (isLovablePreview()) {
   }
 }
 
-// Register service worker for offline support
-if (import.meta.env.PROD) {
+// Register service worker for offline support (web only)
+if (import.meta.env.PROD && !isNativePlatform) {
   registerServiceWorker();
 }
 

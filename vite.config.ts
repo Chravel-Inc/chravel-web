@@ -64,6 +64,8 @@ export default defineConfig(({ mode }) => ({
           utils: ['date-fns', 'clsx', 'tailwind-merge'],
           charts: ['recharts'],
           pdf: ['jspdf', 'jspdf-autotable', 'html2canvas'],
+          // RevenueCat web billing SDK (808 KB) — only needed when user hits paywall
+          'revenuecat-web': ['@revenuecat/purchases-js'],
         },
         // Optimize chunk names - include build version for aggressive cache busting
         chunkFileNames: `assets/js/[name]-[hash]-${buildVersion}.js`,
