@@ -93,7 +93,8 @@ serve(async req => {
     });
 
     // Create user token (expires in 24 hours)
-    const token = serverClient.createToken(user.id, undefined, undefined);
+    const exp = Math.floor(Date.now() / 1000) + 86400;
+    const token = serverClient.createToken(user.id, exp);
 
     return new Response(
       JSON.stringify({

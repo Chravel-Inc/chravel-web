@@ -227,6 +227,8 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       if (mediaUrl) {
         payload.attachments = [{ type: mediaType || 'file', asset_url: mediaUrl }];
       }
+      if (privacyMode) payload.privacy_mode = privacyMode;
+      if (messageType) payload.message_type = messageType;
 
       const response = await channel.sendMessage(payload as Parameters<Channel['sendMessage']>[0]);
       return response.message

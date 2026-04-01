@@ -117,8 +117,23 @@ export function useStreamBroadcasts(tripId: string | undefined) {
     };
   }, [activeChannel, tripId]);
 
+  const sendBroadcast = async (
+    text: string,
+    priority: string,
+    metadata: Record<string, unknown>,
+  ) => {
+    const channel = channelRef.current;
+    if (!channel) return;
+    await channel.sendMessage({
+      text,
+      priority,
+      metadata,
+    } as Parameters<Channel['sendMessage']>[0]);
+  };
+
   return {
     broadcasts,
     isLoading,
+    sendBroadcast,
   };
 }

@@ -153,6 +153,20 @@ export const Broadcasts = () => {
       };
       setDemoBroadcasts(prev => [broadcast, ...prev]);
     } else {
+      if (useStream) {
+        const priority =
+          newBroadcast.category === 'urgent'
+            ? 'urgent'
+            : newBroadcast.category === 'logistics'
+              ? 'important'
+              : 'fyi';
+        streamBroadcasts
+          .sendBroadcast(newBroadcast.message, priority, {
+            recipients: newBroadcast.recipients,
+            location: newBroadcast.location,
+          })
+          .catch(() => {});
+      }
       queryClient.invalidateQueries({ queryKey: tripKeys.broadcasts(currentTripId) });
     }
   };
