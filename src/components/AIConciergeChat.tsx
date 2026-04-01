@@ -319,7 +319,8 @@ export const AIConciergeChat = ({
   // 🔀 STREAM: Concierge history persistence via Stream
   const streamConciergeFlag = useFeatureFlag('stream-chat-concierge', false);
   const streamConciergeEnabled = streamConciergeFlag && !!getStreamClient()?.userID && !isDemoMode;
-  const streamHistory = useStreamConciergeHistory(
+  // Hook called for side-effect (Stream channel hydration); result used in future phase
+  useStreamConciergeHistory(
     streamConciergeEnabled ? tripId : undefined,
     streamConciergeEnabled ? user?.id : undefined,
   );

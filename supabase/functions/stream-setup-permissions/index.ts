@@ -6,8 +6,13 @@
  * Stream dashboard UI and must be configured programmatically.
  *
  * POST /stream-setup-permissions
- * Headers: Authorization: Bearer <supabase-jwt> (must be super admin)
+ * Headers:
+ *   Authorization: Bearer <supabase-jwt>
+ *   X-Admin-Secret: <STREAM_ADMIN_SECRET>
  * Returns: { success: true, results: [...] }
+ *
+ * Security: Requires BOTH a valid JWT AND the STREAM_ADMIN_SECRET header.
+ * This prevents any authenticated user from mutating app-wide channel types.
  *
  * Run once after Stream app creation. Safe to re-run (idempotent).
  */
@@ -36,9 +41,22 @@ serve(async req => {
   }
 
   try {
-    const secrets = requireSecrets(['STREAM_API_KEY', 'STREAM_API_SECRET']);
+    const secrets = requireSecrets(['STREAM_API_KEY', 'STREAM_API_SECRET', 'STREAM_ADMIN_SECRET']);
     const STREAM_API_KEY = secrets['STREAM_API_KEY'];
     const STREAM_API_SECRET = secrets['STREAM_API_SECRET'];
+    const STREAM_ADMIN_SECRET = secrets['STREAM_ADMIN_SECRET'];
+
+    // ── Admin secret gate — prevents any authenticated user from calling ──
+    const adminSecret = req.headers.get('X-Admin-Secret');
+    if (!adminSecret || adminSecret !== STREAM_ADMIN_SECRET) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden — valid X-Admin-Secret header required' }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      );
+    }
 
     // ── Auth (require authenticated user) ─────────────────────────────────
     const authHeader = req.headers.get('Authorization');
