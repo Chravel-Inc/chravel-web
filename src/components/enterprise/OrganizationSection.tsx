@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building, Camera, Upload, Plus, AlertCircle, Check, Loader2 } from 'lucide-react';
+import { Building, Upload, Plus, Check, Loader2 } from 'lucide-react';
 
 interface OrganizationData {
   id: string;
@@ -34,8 +34,6 @@ export const OrganizationSection = ({
   onCreateOrganization,
   onSave,
 }: OrganizationSectionProps) => {
-  const hasOrgs = organizations.length > 0;
-
   return (
     <div className="space-y-6 min-w-0 overflow-x-hidden">
       <div className="flex items-center gap-3 mb-3 min-w-0">
@@ -48,53 +46,35 @@ export const OrganizationSection = ({
         </div>
       </div>
 
-      {/* Add Organization CTA + Logo - stack on mobile, side-by-side on md+ */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
-        <div className="bg-gradient-to-r from-amber-500/10 to-amber-600/10 border border-amber-500/30 rounded-xl p-4 min-w-0">
-          <div className="flex flex-col gap-3 min-w-0">
-            <AlertCircle className="h-5 w-5 text-amber-400 flex-shrink-0" />
-            <div className="min-w-0">
-              <h4 className="text-base font-semibold text-white mb-1 break-words">
-                {hasOrgs ? 'Add an additional organization' : 'Add Your Organization Profile'}
-              </h4>
-              <p className="text-sm text-gray-300 mb-3 break-words">
-                {hasOrgs
-                  ? 'Fill out the form below to create an additional organization.'
-                  : 'Fill out the form below to create your organization.'}
-              </p>
-              {onCreateOrganization && (
-                <button
-                  type="button"
-                  onClick={onCreateOrganization}
-                  aria-label="Create a new organization"
-                  className="inline-flex w-full sm:w-auto items-center justify-center gap-2 bg-glass-orange hover:bg-glass-orange/80 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm text-center min-h-[44px]"
-                >
-                  <Plus size={16} className="flex-shrink-0" />
-                  Create Organization
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="bg-white/5 border border-white/10 rounded-xl p-4 min-w-0">
-          <h4 className="text-base font-semibold text-white mb-3 text-center">Organization Logo</h4>
-          <div className="flex flex-col items-center gap-4 min-w-0">
-            <div className="relative flex-shrink-0">
-              <div className="w-24 h-24 bg-gradient-to-r from-glass-orange to-glass-yellow rounded-xl flex items-center justify-center">
-                <Building size={32} className="text-white" />
-              </div>
+      {/* Profile CTA + Logo — equal-height siblings on md+; CTAs vertically centered in body */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0 md:items-stretch">
+        <div className="bg-gradient-to-r from-amber-500/10 to-amber-600/10 border border-amber-500/30 rounded-xl p-4 min-w-0 flex flex-col min-h-0">
+          <h4 className="text-base font-semibold text-white text-center md:text-left break-words shrink-0">
+            Organization Profile
+          </h4>
+          <div className="flex flex-1 flex-col justify-center items-stretch sm:items-start min-h-[7rem] md:min-h-0 pt-3 md:pt-4">
+            {onCreateOrganization ? (
               <button
                 type="button"
-                aria-label="Change organization logo"
-                className="absolute -bottom-2 -right-2 bg-glass-orange hover:bg-glass-orange/80 text-white p-2 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                onClick={onCreateOrganization}
+                aria-label="Create a new organization"
+                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 bg-glass-orange hover:bg-glass-orange/80 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm text-center min-h-[44px]"
               >
-                <Camera size={16} />
+                <Plus size={16} className="flex-shrink-0" />
+                Create Organization
               </button>
-            </div>
+            ) : null}
+          </div>
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4 min-w-0 flex flex-col min-h-0">
+          <h4 className="text-base font-semibold text-white text-center break-words shrink-0">
+            Organization Logo
+          </h4>
+          <div className="flex flex-1 flex-col justify-center items-center gap-3 min-h-[7rem] md:min-h-0 pt-3 md:pt-4">
             <button
               type="button"
               aria-label="Upload organization logo"
-              className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-4 py-2 rounded-lg transition-colors min-h-[44px]"
+              className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-4 py-2 rounded-lg transition-colors min-h-[44px] w-full sm:w-auto"
             >
               <Upload size={16} className="flex-shrink-0" />
               Upload Logo
