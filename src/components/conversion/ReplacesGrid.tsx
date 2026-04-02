@@ -101,7 +101,7 @@ export const ReplacesGrid = () => {
                 {/* Mobile/Phone: Center-aligned chips (hidden on tablet+) */}
                 <div className="tablet:hidden">
                   <p className="text-xs text-white/60 uppercase tracking-wider mb-3 mt-1 font-semibold text-center">
-                    Replaces:
+                    Consolidates:
                   </p>
                   <div className="flex flex-wrap justify-center gap-2">
                     {allApps.map((app, index) => (
@@ -119,7 +119,7 @@ export const ReplacesGrid = () => {
                 {/* Desktop/Tablet: Left-aligned chips (visible on tablet+ 768px) */}
                 <div className="hidden tablet:block">
                   <p className="text-xs text-white/50 uppercase tracking-wider mb-3 mt-2 font-medium">
-                    Replaces:
+                    Consolidates:
                   </p>
                   <div className="flex flex-wrap gap-2 sm:gap-2.5">
                     {allApps.map((app, index) => (
