@@ -41,9 +41,15 @@ export function canPostInMainChat(params: {
   isLoading: boolean;
 }): boolean {
   const { chatMode, tripType, attendeeCount, userRole, isLoading } = params;
-  if (isLoading) return false;
-
   const effectiveMode = resolveEffectiveMainChatMode(chatMode, tripType, attendeeCount);
+
+  // While chat mode + membership are still fetching, show the composer for trips that
+  // resolve to open chat. RLS remains authoritative; this fixes a multi-second blank
+  // composer on cold navigation (previously we returned false for all isLoading).
+  if (isLoading) {
+    return effectiveMode === 'everyone';
+  }
+
   if (effectiveMode === 'everyone') return true;
 
   return ADMIN_ROLES.has(userRole ?? '');
