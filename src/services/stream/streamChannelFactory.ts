@@ -93,7 +93,7 @@ export async function getOrCreateBroadcastChannel(
   const channel = client.channel(CHANNEL_TYPE_BROADCAST, broadcastChannelId(tripId), {
     name: tripName ? `${tripName} Broadcasts` : `Trip ${tripId} Broadcasts`,
     trip_id: tripId,
-  });
+  } as Record<string, unknown>);
 
   await channel.watch();
   return channel;
