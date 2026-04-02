@@ -258,14 +258,14 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
       room.on(RoomEvent!.DataReceived, handleDataMessage);
 
       // Attach audio tracks when they are subscribed
-      room.on(RoomEvent!.TrackSubscribed, (track) => {
+      room.on(RoomEvent!.TrackSubscribed, track => {
         if (track.kind === 'audio') {
           track.attach();
         }
       });
 
       // Detach audio tracks when they are unsubscribed
-      room.on(RoomEvent!.TrackUnsubscribed, (track) => {
+      room.on(RoomEvent!.TrackUnsubscribed, track => {
         if (track.kind === 'audio') {
           track.detach();
         }
