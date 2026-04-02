@@ -148,3 +148,15 @@
 - Added visible abuse-reporting entry points in Support and Consumer General Settings (`safety@chravelapp.com`) to improve launch trust/compliance readiness.
 - Tightened chunk error recovery heuristic in `App.tsx` by removing generic `Failed to fetch` from chunk detection.
 - Verification: `npm test -- --run src/native/__tests__/pushRouting.test.ts`, `npm run typecheck`, `npm run lint` completed successfully (lint has existing repo-wide warnings only).
+2026-04-02 — Dashboard trip reorder iOS-home-screen interaction hardening
+- Reviewed prior reorder fix path (`SortableTripGrid` + `SortableCardWrapper`) and identified remaining mobile friction points: touch activation still had drag delay in reorder mode, wiggle animation was applied on the same node that dnd-kit translates, and no tactile feedback existed on long-press/drag start.
+- Implemented surgical UX hardening:
+  - Added `touchActivationConstraint` helper with immediate activation when already in reorder mode and delayed activation only before reorder mode (to preserve scroll intent).
+  - Moved wiggle animation class to inner wrapper so dnd-kit transform math on the outer sortable node is no longer competing with keyframe transform animations.
+  - Added lightweight vibration cues on long-press entry and drag start when `navigator.vibrate` is available.
+- Added focused regression test `src/components/dashboard/SortableTripGrid.activation.test.ts` for activation constraint contract.
+- Verification: `npm run test -- --run src/components/dashboard/sameIdSequence.test.ts src/components/dashboard/SortableTripGrid.activation.test.ts`, `npm run typecheck`, `npm run lint`, `npm run build` all pass (lint has existing repo-wide warnings only).
+2026-04-02 — Reorder animation follow-up (float > wiggle)
+- Per product feedback, replaced reorder-mode decorative motion from wiggle to subtle float to better match desired feel.
+- Added dedicated `float-subtle` Tailwind animation (2px vertical drift) and switched `SortableCardWrapper` reorder class from `animate-wiggle-subtle` to `animate-float-subtle`.
+- Kept animation on inner wrapper so dnd transform ownership remains isolated on sortable root.

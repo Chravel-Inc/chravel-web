@@ -18,6 +18,7 @@ import {
 } from '@dnd-kit/sortable';
 import { SortableCardWrapper } from './SortableCardWrapper';
 import { sameIdSequence } from './sameIdSequence';
+import { getTouchActivationConstraint } from './touchActivationConstraint';
 import { useDashboardCardOrder } from '@/hooks/useDashboardCardOrder';
 
 type DashboardType = 'my_trips' | 'pro' | 'events';
@@ -68,13 +69,16 @@ export function SortableTripGrid<T>({
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, {
-      activationConstraint: isMobile ? { delay: 150, tolerance: 12 } : { distance: 8 },
+      activationConstraint: getTouchActivationConstraint({ isMobile, reorderMode }),
     }),
   );
 
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
       isDraggingRef.current = true;
+      if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+        navigator.vibrate(8);
+      }
       const id = String(event.active.id);
       const item = orderedItemsRef.current.find(i => getId(i) === id) ?? null;
       setActiveDragItem(item);
