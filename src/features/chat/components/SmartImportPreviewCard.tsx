@@ -142,7 +142,7 @@ export const SmartImportPreviewCard: React.FC<SmartImportPreviewCardProps> = ({
 
   // Success state
   if (importResult) {
-    const count = mode === 'delete' ? importResult.imported : importResult.imported;
+    const count = importResult.imported;
     const alreadyMissing = importResult.alreadyMissing || 0;
     return (
       <div

@@ -1106,6 +1106,19 @@ export const AIConciergeChat = ({
         const { calendarService } = await import('@/services/calendarService');
         const result = await calendarService.bulkDeleteEvents(selectedEventIds, tripId);
 
+        // Resolve the pending action for audit trail (non-blocking — deletion already succeeded)
+        // intentional: trip_pending_actions not yet in generated Supabase types
+        (supabase as any)
+          .from('trip_pending_actions')
+          .update({
+            status: 'confirmed',
+            resolved_at: new Date().toISOString(),
+            resolved_by: user?.id,
+          })
+          .eq('id', previewToken)
+          .eq('status', 'pending')
+          .then(() => {});
+
         setBulkDeleteStates(prev => ({
           ...prev,
           [messageId]: {
@@ -1142,7 +1155,7 @@ export const AIConciergeChat = ({
         toast.error('Failed to remove events. Please try again.');
       }
     },
-    [tripId, conciergeQueryClient],
+    [tripId, user, conciergeQueryClient],
   );
 
   const handleBulkDeleteDismiss = useCallback((messageId: string) => {

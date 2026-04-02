@@ -1258,7 +1258,21 @@ async function _executeImpl(
         .select('primary_timezone')
         .eq('id', tripId)
         .single();
-      const _tz = tripRow?.primary_timezone || 'UTC';
+      const tz = tripRow?.primary_timezone || 'UTC';
+
+      // Convert a local date + time-of-day in the trip timezone to a UTC ISO string.
+      // Uses Intl to derive the UTC offset for the trip timezone on that date.
+      function tripLocalToUTC(dateStr: string, h: number, m: number, s: number): string {
+        const isoDate = String(dateStr).split('T')[0];
+        const ref = new Date(`${isoDate}T12:00:00Z`);
+        const utcStr = ref.toLocaleString('en-US', { timeZone: 'UTC' });
+        const tzStr = ref.toLocaleString('en-US', { timeZone: tz });
+        const offsetMs = new Date(utcStr).getTime() - new Date(tzStr).getTime();
+        const local = new Date(
+          `${isoDate}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`,
+        );
+        return new Date(local.getTime() + offsetMs).toISOString();
+      }
 
       // Build query with date boundaries
       let bdQuery = supabase
@@ -1267,16 +1281,12 @@ async function _executeImpl(
         .eq('trip_id', tripId);
 
       if (afterDate) {
-        // End of day — exclusive of the given date
-        const boundary = new Date(String(afterDate));
-        boundary.setHours(23, 59, 59, 999);
-        bdQuery = bdQuery.gt('start_time', boundary.toISOString());
+        // End of day in trip timezone — exclusive of the given date
+        bdQuery = bdQuery.gt('start_time', tripLocalToUTC(String(afterDate), 23, 59, 59));
       }
       if (beforeDate) {
-        // Start of day — exclusive of the given date
-        const boundary = new Date(String(beforeDate));
-        boundary.setHours(0, 0, 0, 0);
-        bdQuery = bdQuery.lt('start_time', boundary.toISOString());
+        // Start of day in trip timezone — exclusive of the given date
+        bdQuery = bdQuery.lt('start_time', tripLocalToUTC(String(beforeDate), 0, 0, 0));
       }
       if (category) bdQuery = bdQuery.eq('event_category', String(category));
 
