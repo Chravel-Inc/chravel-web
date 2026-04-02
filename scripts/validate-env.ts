@@ -327,12 +327,29 @@ function loadEnvFile(): Record<string, string> {
   return vars;
 }
 
+/** Placeholders when `validate-env.ts --ci` runs without repo secrets (fork PRs, misconfigured workflows). Values match format checks skipped in CI. */
+const CI_REQUIRED_STUBS: Record<string, string> = {
+  VITE_SUPABASE_URL: 'https://ci-placeholder.supabase.co',
+  VITE_SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiJ9.e30.ci_placeholder_jwt_signature',
+  // 39 chars: prefix AIza + 35 alnum (matches /^AIza[A-Za-z0-9_-]{35}$/)
+  VITE_GOOGLE_MAPS_API_KEY: `AIza${'0'.repeat(35)}`,
+};
+
 function validate(): void {
   const args = process.argv.slice(2);
   const isIos = args.includes('--ios');
   const isCi = args.includes('--ci');
 
   const env = loadEnvFile();
+
+  if (isCi) {
+    for (const [key, stub] of Object.entries(CI_REQUIRED_STUBS)) {
+      const current = env[key];
+      if (!current || current.length === 0) {
+        env[key] = stub;
+      }
+    }
+  }
 
   let allVars = [
     ...FRONTEND_VARS,
