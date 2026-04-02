@@ -1951,7 +1951,7 @@ export const AIConciergeChat = ({
         ...(data.flights && Array.isArray(data.flights)
           ? { functionCallFlights: data.flights as ChatMessage['functionCallFlights'] }
           : {}),
-        ...(data.hotels && Array.isArray(data.hotels) ? { functionCallHotels: data.hotels as ChatMessage['functionCallHotels'] } : {}),
+        ...(data.hotels && Array.isArray(data.hotels) ? { functionCallHotels: data.hotels as unknown as ChatMessage['functionCallHotels'] } : {}),
         ...(data.conciergeActions && Array.isArray(data.conciergeActions)
           ? { conciergeActions: data.conciergeActions as ChatMessage['conciergeActions'] }
           : {}),
