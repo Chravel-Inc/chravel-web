@@ -8,7 +8,7 @@ import {
   useVideoConfig,
 } from 'remotion';
 import { loadFont } from '@remotion/google-fonts/Inter';
-import { COLORS, SPRING, TIMING } from '../theme';
+import { COLORS, SPRING } from '../theme';
 
 const { fontFamily } = loadFont('normal', {
   weights: ['600', '700', '800'],
