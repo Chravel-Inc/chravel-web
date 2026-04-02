@@ -50,7 +50,7 @@ const URL_IMPORT_PATTERN_REVERSED =
   /\b(import|add to calendar|save to trip|extract events?)\b.*https?:\/\/\S+/i;
 
 const CALENDAR_ACTION_PATTERN =
-  /\b(add to calendar|schedule|move the event|change .+ to \d|delete event|cancel the meeting|reschedule|update the event|remove .+ from calendar|create event|add event)\b/i;
+  /\b(add to calendar|schedule|move the event|change .+ to \d|delete event|cancel the meeting|reschedule|update the event|remove .+ from calendar|create event|add event|remove all .+events?|delete all .+events?|clear all .+events?|take .+ off .+ calendar|drop .+ dates?)\b/i;
 
 const TASK_ACTION_PATTERN =
   /\b(create task|remind me|remind us|to-?do|mark as done|delete task|assign|make sure we|don't let me forget|we should remember|need to remember)\b/i;

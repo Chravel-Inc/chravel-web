@@ -95,6 +95,8 @@ export interface StreamReservationDraftEvent {
 }
 
 export interface SmartImportPreviewEvent {
+  /** Event ID — present for delete previews (existing DB events), absent for import previews */
+  id?: string;
   title: string;
   startTime: string;
   endTime: string;
@@ -112,6 +114,14 @@ export interface StreamSmartImportPreviewEvent {
   duplicateCount: number;
   /** If any lodging events were extracted, include the first hotel name for basecamp prompt */
   lodgingName?: string;
+}
+
+export interface StreamBulkDeletePreviewEvent {
+  type: 'bulk_delete_preview';
+  previewEvents: SmartImportPreviewEvent[];
+  previewToken: string;
+  tripId: string;
+  totalEvents: number;
 }
 
 export type SmartImportStatus = 'parsing' | 'extracting' | 'checking_duplicates' | 'ready';
@@ -182,6 +192,7 @@ export type ConciergeStreamEvent =
   | StreamReservationDraftEvent
   | StreamTripCardsEvent
   | StreamSmartImportPreviewEvent
+  | StreamBulkDeletePreviewEvent
   | StreamSmartImportStatusEvent;
 
 export interface ConciergeStreamCallbacks {
@@ -193,6 +204,7 @@ export interface ConciergeStreamCallbacks {
   onReservationDraft?: (draft: ReservationDraft) => void;
   onTripCards?: (cards: TripCard[], message: string | null) => void;
   onSmartImportPreview?: (preview: StreamSmartImportPreviewEvent) => void;
+  onBulkDeletePreview?: (preview: StreamBulkDeletePreviewEvent) => void;
   onSmartImportStatus?: (status: SmartImportStatus, message: string) => void;
   onError: (error: string) => void;
   onDone: () => void;
@@ -352,6 +364,10 @@ export function invokeConciergeStream(
               case 'smart_import_preview':
                 callbacks.onActivity?.();
                 callbacks.onSmartImportPreview?.(event as StreamSmartImportPreviewEvent);
+                break;
+              case 'bulk_delete_preview':
+                callbacks.onActivity?.();
+                callbacks.onBulkDeletePreview?.(event as StreamBulkDeletePreviewEvent);
                 break;
               case 'smart_import_status':
                 callbacks.onActivity?.();

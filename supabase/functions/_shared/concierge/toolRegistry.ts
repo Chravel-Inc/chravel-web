@@ -505,6 +505,49 @@ export const ALL_TOOL_DECLARATIONS: ToolDeclaration[] = [
     },
   },
   {
+    name: 'emitBulkDeletePreview',
+    description:
+      'Search for trip calendar events matching criteria and show a deletion preview card for user confirmation. Use when user wants to remove multiple events: "remove all away games", "delete the Houston, Austin, San Antonio dates", "remove all events after March 15", "clear imported games". Shows a preview — NEVER deletes directly. User selects which events to remove.',
+    parameters: {
+      type: 'object',
+      properties: {
+        idempotency_key: { type: 'string' },
+        titleContains: {
+          type: 'string',
+          description: 'Search events whose title contains this text (case-insensitive)',
+        },
+        locationContains: {
+          type: 'string',
+          description: 'Search events whose location contains this text',
+        },
+        afterDate: {
+          type: 'string',
+          description:
+            'Only events starting after this date (ISO 8601). Interpreted as end-of-day in trip timezone (exclusive of the given date).',
+        },
+        beforeDate: {
+          type: 'string',
+          description:
+            'Only events starting before this date (ISO 8601). Interpreted as start-of-day in trip timezone (exclusive of the given date).',
+        },
+        category: { type: 'string', description: 'Filter by event category' },
+        eventTitles: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Specific event titles to match. Uses exact-first matching: tries exact match, then startsWith, then contains only if no closer matches found.',
+        },
+        matchMode: {
+          type: 'string',
+          enum: ['exact', 'contains', 'auto'],
+          description:
+            'How to match eventTitles. Default: auto (exact-first, falls back to contains)',
+        },
+      },
+      required: ['idempotency_key'],
+    },
+  },
+  {
     name: 'updateTask',
     description:
       'Update an existing trip task. Use for "mark task as done", "change the due date", "rename the task". Requires taskId.',
@@ -838,6 +881,7 @@ const QUERY_CLASS_TOOLS: Record<QueryClass, string[] | 'all'> = {
     'addToCalendar',
     'updateCalendarEvent',
     'deleteCalendarEvent',
+    'emitBulkDeletePreview',
     'detectCalendarConflicts',
   ],
   task_action: ['createTask', 'updateTask', 'deleteTask'],
@@ -926,6 +970,7 @@ const VOICE_DESCRIPTION_OVERRIDES: Record<string, string> = {
   emitReservationDraft: 'Create a reservation draft card for explicit booking intents.',
   updateCalendarEvent: 'Update an existing trip calendar event.',
   deleteCalendarEvent: 'Delete an event from the trip calendar.',
+  emitBulkDeletePreview: 'Search and preview multiple events for removal from trip calendar.',
   updateTask: 'Update an existing trip task.',
   deleteTask: 'Delete a task from the trip.',
   searchTripData: 'Search across all trip data.',

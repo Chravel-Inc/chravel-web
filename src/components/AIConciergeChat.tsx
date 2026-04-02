@@ -19,6 +19,7 @@ import {
   type ReservationDraft,
   type TripCard,
   type StreamSmartImportPreviewEvent,
+  type StreamBulkDeletePreviewEvent,
   type SmartImportPreviewEvent,
   type SmartImportStatus,
 } from '@/services/conciergeGateway';
@@ -154,6 +155,13 @@ export interface ChatMessage {
   };
   /** Smart Import status messages (parsing progress) */
   smartImportStatus?: { status: SmartImportStatus; message: string };
+  /** Bulk Delete preview data from emitBulkDeletePreview tool */
+  bulkDeletePreview?: {
+    previewEvents: SmartImportPreviewEvent[];
+    previewToken: string;
+    tripId: string;
+    totalEvents: number;
+  };
   /**
    * True while this message is the live-streaming voice response from Gemini
    * Live (Fix 2).  Rendered with a pulsing ring so the user sees the assistant
@@ -1071,6 +1079,78 @@ export const AIConciergeChat = ({
     );
   }, []);
 
+  // ── Bulk Delete: confirm/dismiss handlers ─────────────────────────────────
+  const [bulkDeleteStates, setBulkDeleteStates] = useState<
+    Record<
+      string,
+      {
+        isImporting: boolean;
+        result: { imported: number; failed: number; alreadyMissing?: number } | null;
+      }
+    >
+  >({});
+
+  const handleBulkDeleteConfirm = useCallback(
+    async (messageId: string, previewToken: string, events: SmartImportPreviewEvent[]) => {
+      if (!tripId || events.length === 0) return;
+
+      const selectedEventIds = events.map(e => e.id).filter(Boolean) as string[];
+      if (selectedEventIds.length === 0) return;
+
+      setBulkDeleteStates(prev => ({
+        ...prev,
+        [messageId]: { isImporting: true, result: null },
+      }));
+
+      try {
+        const { calendarService } = await import('@/services/calendarService');
+        const result = await calendarService.bulkDeleteEvents(selectedEventIds, tripId);
+
+        setBulkDeleteStates(prev => ({
+          ...prev,
+          [messageId]: {
+            isImporting: false,
+            result: {
+              imported: result.deleted,
+              failed: result.failed,
+              alreadyMissing: result.alreadyMissing,
+            },
+          },
+        }));
+
+        // Invalidate calendar queries so the UI refreshes
+        conciergeQueryClient.invalidateQueries({ queryKey: ['calendarEvents', tripId] });
+
+        if (result.deleted > 0) {
+          const extra =
+            result.alreadyMissing > 0 ? ` ${result.alreadyMissing} were already gone.` : '';
+          toast.success(
+            `Removed ${result.deleted} event${result.deleted !== 1 ? 's' : ''} from Calendar.${extra}`,
+          );
+        }
+        if (result.failed > 0) {
+          toast.error(`${result.failed} event${result.failed !== 1 ? 's' : ''} failed to remove`);
+        }
+      } catch {
+        setBulkDeleteStates(prev => ({
+          ...prev,
+          [messageId]: {
+            isImporting: false,
+            result: { imported: 0, failed: events.length },
+          },
+        }));
+        toast.error('Failed to remove events. Please try again.');
+      }
+    },
+    [tripId, conciergeQueryClient],
+  );
+
+  const handleBulkDeleteDismiss = useCallback((messageId: string) => {
+    setMessages(prev =>
+      prev.map(m => (m.id === messageId ? { ...m, bulkDeletePreview: undefined } : m)),
+    );
+  }, []);
+
   // ── Delete a single concierge message (privacy) ──────────────────────────
   const handleDeleteMessage = useCallback(
     async (messageId: string) => {
@@ -1658,6 +1738,34 @@ export const AIConciergeChat = ({
                 ];
               });
             },
+            onBulkDeletePreview: (preview: StreamBulkDeletePreviewEvent) => {
+              if (!isMounted.current) return;
+              receivedAnyChunk = true;
+              setMessages(prev => {
+                const idx = prev.findIndex(m => m.id === streamingMessageId);
+                const previewData = {
+                  previewEvents: preview.previewEvents,
+                  previewToken: preview.previewToken,
+                  tripId: preview.tripId,
+                  totalEvents: preview.totalEvents,
+                };
+                if (idx !== -1) {
+                  const updated = [...prev];
+                  updated[idx] = { ...updated[idx], bulkDeletePreview: previewData };
+                  return updated;
+                }
+                return [
+                  ...prev,
+                  {
+                    id: streamingMessageId,
+                    type: 'assistant' as const,
+                    content: '',
+                    timestamp: new Date().toISOString(),
+                    bulkDeletePreview: previewData,
+                  },
+                ];
+              });
+            },
             // Handles the structured JSON-envelope trip_cards event from the AI Concierge.
             // Cards are split into hotels and flights and attached to the streaming message.
             onTripCards: (cards: TripCard[], message: string | null) => {
@@ -2229,11 +2337,14 @@ export const AIConciergeChat = ({
                 }}
                 onSmartImportConfirm={handleSmartImportConfirm}
                 onSmartImportDismiss={handleSmartImportDismiss}
+                onBulkDeleteConfirm={handleBulkDeleteConfirm}
+                onBulkDeleteDismiss={handleBulkDeleteDismiss}
                 onConfirmPendingAction={confirmAction}
                 onRejectPendingAction={rejectAction}
                 isConfirmingPendingAction={isConfirmingPendingAction}
                 isRejectingPendingAction={isRejectingPendingAction}
                 smartImportStates={smartImportStates}
+                bulkDeleteStates={bulkDeleteStates}
                 ttsPlaybackState={ttsPlaybackState}
                 ttsPlayingMessageId={ttsPlayingMessageId}
                 onTTSPlay={handleTTSPlay}

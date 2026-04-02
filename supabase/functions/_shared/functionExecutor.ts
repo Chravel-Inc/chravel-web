@@ -1241,6 +1241,227 @@ async function _executeImpl(
       };
     }
 
+    case 'emitBulkDeletePreview': {
+      const {
+        titleContains,
+        locationContains,
+        afterDate,
+        beforeDate,
+        category,
+        eventTitles,
+        matchMode,
+      } = args;
+
+      // Fetch trip timezone for date boundary normalization
+      const { data: tripRow } = await supabase
+        .from('trips')
+        .select('primary_timezone')
+        .eq('id', tripId)
+        .single();
+      const _tz = tripRow?.primary_timezone || 'UTC';
+
+      // Build query with date boundaries
+      let bdQuery = supabase
+        .from('trip_events')
+        .select('id, title, start_time, end_time, location, event_category, description')
+        .eq('trip_id', tripId);
+
+      if (afterDate) {
+        // End of day — exclusive of the given date
+        const boundary = new Date(String(afterDate));
+        boundary.setHours(23, 59, 59, 999);
+        bdQuery = bdQuery.gt('start_time', boundary.toISOString());
+      }
+      if (beforeDate) {
+        // Start of day — exclusive of the given date
+        const boundary = new Date(String(beforeDate));
+        boundary.setHours(0, 0, 0, 0);
+        bdQuery = bdQuery.lt('start_time', boundary.toISOString());
+      }
+      if (category) bdQuery = bdQuery.eq('event_category', String(category));
+
+      const { data: bdEvents, error: bdError } = await bdQuery.order('start_time');
+      if (bdError) throw bdError;
+
+      let bdFiltered = bdEvents || [];
+
+      // Text filter: titleContains
+      if (titleContains) {
+        const needle = String(titleContains).toLowerCase();
+        bdFiltered = bdFiltered.filter((e: { title: string }) =>
+          e.title.toLowerCase().includes(needle),
+        );
+      }
+      // Text filter: locationContains
+      if (locationContains) {
+        const needle = String(locationContains).toLowerCase();
+        bdFiltered = bdFiltered.filter((e: { location: string | null }) =>
+          e.location?.toLowerCase().includes(needle),
+        );
+      }
+      // Exact-first matching for eventTitles
+      if (Array.isArray(eventTitles) && eventTitles.length > 0) {
+        const mode = String(matchMode || 'auto');
+        const needles = eventTitles.map((t: string) => String(t).toLowerCase().trim());
+
+        if (mode === 'exact') {
+          bdFiltered = bdFiltered.filter((e: { title: string }) =>
+            needles.includes(e.title.toLowerCase().trim()),
+          );
+        } else if (mode === 'contains') {
+          bdFiltered = bdFiltered.filter((e: { title: string }) =>
+            needles.some((n: string) => e.title.toLowerCase().includes(n)),
+          );
+        } else {
+          // auto: exact → startsWith → contains (narrowest match wins)
+          let matched = bdFiltered.filter((e: { title: string }) =>
+            needles.includes(e.title.toLowerCase().trim()),
+          );
+          if (matched.length === 0) {
+            matched = bdFiltered.filter((e: { title: string }) =>
+              needles.some((n: string) => e.title.toLowerCase().startsWith(n)),
+            );
+          }
+          if (matched.length === 0) {
+            matched = bdFiltered.filter((e: { title: string }) =>
+              needles.some((n: string) => e.title.toLowerCase().includes(n)),
+            );
+          }
+          bdFiltered = matched;
+        }
+      }
+
+      if (bdFiltered.length === 0) {
+        return { success: false, error: 'No matching events found' };
+      }
+
+      const matchedIds = bdFiltered.map((e: { id: string }) => e.id);
+
+      // Store preview as pending action for server-side verification on confirm
+      const { data: pendingAction, error: paError } = await supabase
+        .from('trip_pending_actions')
+        .insert({
+          trip_id: tripId,
+          user_id: userId,
+          tool_name: 'bulkDeleteCalendarEvents',
+          tool_call_id: args.idempotency_key || crypto.randomUUID(),
+          payload: {
+            matched_event_ids: matchedIds,
+            criteria: {
+              titleContains,
+              locationContains,
+              afterDate,
+              beforeDate,
+              category,
+              eventTitles,
+              matchMode,
+            },
+            match_count: matchedIds.length,
+          },
+          status: 'pending',
+          source_type: 'ai_concierge',
+        })
+        .select('id')
+        .single();
+      if (paError) throw paError;
+
+      const bdPreviewEvents = bdFiltered.map(
+        (e: {
+          id: string;
+          title: string;
+          start_time: string;
+          end_time: string | null;
+          location: string | null;
+          event_category: string | null;
+          description: string | null;
+        }) => ({
+          id: e.id,
+          title: e.title,
+          startTime: e.start_time,
+          endTime: e.end_time || '',
+          location: e.location || null,
+          category: e.event_category || 'other',
+          notes: e.description || null,
+          isDuplicate: false,
+        }),
+      );
+
+      return {
+        success: true,
+        previewEvents: bdPreviewEvents,
+        previewToken: pendingAction.id,
+        tripId,
+        totalEvents: bdPreviewEvents.length,
+        duplicateCount: 0,
+        actionType: 'bulk_delete_preview',
+        message: `Found ${bdPreviewEvents.length} event(s) matching your criteria`,
+      };
+    }
+
+    case 'bulkDeleteCalendarEvents': {
+      const { previewToken, selectedEventIds } = args;
+      if (!previewToken) return { error: 'previewToken is required' };
+      if (!Array.isArray(selectedEventIds) || selectedEventIds.length === 0) {
+        return { error: 'selectedEventIds must be a non-empty array' };
+      }
+
+      // Verify preview token belongs to this user+trip and is still pending
+      const { data: preview, error: pErr } = await supabase
+        .from('trip_pending_actions')
+        .select('payload, status, trip_id, user_id')
+        .eq('id', String(previewToken))
+        .eq('trip_id', tripId)
+        .eq('user_id', userId)
+        .single();
+
+      if (pErr || !preview) return { error: 'Invalid or expired preview token' };
+      if (preview.status !== 'pending') return { error: 'Preview already resolved' };
+
+      const allowedIds: string[] = (preview.payload as { matched_event_ids: string[] })
+        .matched_event_ids;
+
+      // Verify selectedEventIds is a subset of the preview
+      const allowedSet = new Set(allowedIds);
+      const invalidIds = selectedEventIds.filter((id: string) => !allowedSet.has(String(id)));
+      if (invalidIds.length > 0) {
+        return { error: `${invalidIds.length} event(s) not in original preview` };
+      }
+
+      const idsToDelete = selectedEventIds.map((id: string) => String(id));
+
+      // Single bulk delete query
+      const { data: deleted, error: delErr } = await supabase
+        .from('trip_events')
+        .delete()
+        .in('id', idsToDelete)
+        .eq('trip_id', tripId)
+        .select('id');
+      if (delErr) throw delErr;
+
+      // Mark preview as confirmed
+      await supabase
+        .from('trip_pending_actions')
+        .update({
+          status: 'confirmed',
+          resolved_at: new Date().toISOString(),
+          resolved_by: userId,
+        })
+        .eq('id', String(previewToken));
+
+      // trip_activity_log triggers fire automatically per deleted row (trg_event_activity)
+      const deletedIds = new Set((deleted || []).map((d: { id: string }) => d.id));
+      const alreadyMissing = idsToDelete.filter((id: string) => !deletedIds.has(id));
+
+      return {
+        success: true,
+        deleted: deletedIds.size,
+        alreadyMissing: alreadyMissing.length,
+        failed: 0,
+        actionType: 'bulk_delete_result',
+        message: `Removed ${deletedIds.size} event(s)${alreadyMissing.length > 0 ? `. ${alreadyMissing.length} were already gone.` : ''}`,
+      };
+    }
+
     case 'updateTask': {
       const { taskId, title, description, assignee, dueDate, completed } = args;
       if (!taskId) return { error: 'taskId is required' };
@@ -2108,6 +2329,20 @@ async function _executeImpl(
             ? 'Trip members can delete events they created'
             : 'Must be a trip member',
           requiredRole: 'member (own events)',
+        },
+        emitBulkDeletePreview: {
+          allowed: isMember,
+          reason: isMember
+            ? 'Trip members can preview bulk event deletion'
+            : 'Must be a trip member',
+          requiredRole: 'member',
+        },
+        bulkDeleteCalendarEvents: {
+          allowed: isMember,
+          reason: isMember
+            ? 'Trip members can bulk delete events via confirmed preview'
+            : 'Must be a trip member',
+          requiredRole: 'member',
         },
         createTask: {
           allowed: isMember,

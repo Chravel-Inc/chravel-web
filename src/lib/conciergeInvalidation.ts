@@ -4,6 +4,7 @@ const CONCIERGE_WRITE_ACTIONS = new Set<string>([
   'createPoll',
   'createTask',
   'addToCalendar',
+  'bulkDeleteCalendarEvents',
   'savePlace',
   'setBasecamp',
   'addToAgenda',
@@ -24,6 +25,7 @@ export function getConciergeInvalidationQueryKey(
     case 'createPoll':
       return ['tripPolls', tripId];
     case 'addToCalendar':
+    case 'bulkDeleteCalendarEvents':
       return ['calendarEvents', tripId];
     case 'savePlace':
       return ['tripPlaces', tripId];
