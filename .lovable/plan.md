@@ -1,56 +1,62 @@
 
 
-# Fix: Blank Screen Caused by Externalized Dependencies
+# Fix Build Errors — Surgical Type-Only Changes
 
-## Root Cause
+## Principle
+Every fix below is a **compile-time-only** change. No runtime logic, API calls, or Stream integration behavior is altered.
 
-The blank screen is caused by a **fatal module loading error** that prevents React from mounting.
+---
 
-Three packages are listed as `external` in `vite.config.ts` (line 51):
-```
-external: ['@sentry/capacitor', '@sentry/react', 'posthog-js']
-```
+## Changes
 
-But these same packages are imported as **top-level static imports** in eagerly-loaded files:
-- `posthog-js` in `src/telemetry/providers/posthog.ts` line 8 → imported by `src/telemetry/service.ts` line 21 → imported by `src/main.tsx`
-- `@sentry/react` in `src/services/errorTracking.ts` line 22 → imported by `src/App.tsx` line 26
+### 1. `src/hooks/stream/useStreamClient.ts`
+- Replace `const { user, isAuthenticated } = useAuth()` with `const { user } = useAuth()`
+- Replace all `isAuthenticated` usage with `!!user`
+- **Why safe:** `isAuthenticated` was already broken (doesn't exist on type). `!!user` is the idiomatic equivalent.
 
-When Vite marks a package as `external`, it **excludes it from the bundle** and expects it to be available as a global at runtime. In a browser SPA, there is no such global — the import fails immediately, crashing the entire app before any React component renders.
+### 2. `src/services/stream/streamChannelFactory.ts` (4 locations)
+- Cast channel data objects to `Record<string, unknown>` in all `client.channel()` calls
+- Example: `client.channel(TYPE, id, { name, trip_id } as Record<string, unknown>)`
+- **Why safe:** Same object passed to same API. Stream accepts arbitrary custom data — TS just can't see it.
 
-This produces zero console logs, zero network requests, and a blank white screen — exactly matching the symptom.
+### 3. `src/services/stream/adapters/conciergeAdapter.ts`
+- Same `Record<string, unknown>` cast for channel data (line ~54)
+- `msg as unknown as Record<string, unknown>` for MessageResponse access (line ~144)
 
-## Fix Plan (2 files)
+### 4. `src/hooks/stream/useStreamBroadcasts.ts` (line 30)
+- `const custom = msg as unknown as Record<string, unknown>`
 
-### 1. `vite.config.ts` — Remove problematic externals
+### 5. `src/services/stream/adapters/mappers/messageMapper.ts` (line 77)
+- `const custom = (msg as unknown as Record<string, unknown>) || {}`
 
-Remove `posthog-js` and `@sentry/react` from the `external` array. Keep `@sentry/capacitor` external since it's only used on native platforms via lazy import.
+### 6. `src/components/AIConciergeChat.tsx`
+- Find `ConciergeInvokePayload` interface, add optional fields:
+  ```typescript
+  places?: Array<Record<string, unknown>>;
+  flights?: Array<Record<string, unknown>>;
+  hotels?: Array<Record<string, unknown>>;
+  conciergeActions?: Array<Record<string, unknown>>;
+  ```
 
-Alternatively, remove the entire `external` array and let Vite bundle or tree-shake these packages naturally:
+### 7. `src/components/onboarding/__tests__/OnboardingCarousel.pillOrder.test.tsx`
+- Replace `.at(-1)` with `[arr.length - 1]` (2 locations)
+- Replace `.at(0)` with `[0]`
 
-```
-external: ['@sentry/capacitor']
-```
+### 8. `src/hooks/useLiveKitVoice.ts` (line ~271)
+- Add `kind` parameter to `DataReceived` callback signature to match LiveKit's expected type
 
-This is the minimal, correct fix. These packages are in `package.json` as dependencies and should be bundled normally. If they're not installed, Vite will warn at build time rather than silently producing a broken bundle.
+---
 
-### 2. `index.html` — Update cache buster
+## What is NOT touched
+- No Stream API calls changed
+- No channel types/IDs changed
+- No message mapping logic changed
+- No adapter flow changed
+- No hook behavior changed
+- No Supabase queries changed
 
-Bump the cache buster comment to force a fresh preview build cycle.
-
-## Why This Is Safe
-
-- `posthog-js` and `@sentry/react` are already listed as dependencies in `package.json`
-- They will be tree-shaken if unused or conditionally loaded
-- The `optimizeDeps.exclude` array (line 100) already handles dev-server optimization separately
-- No runtime behavior changes — this just ensures the packages are actually included in the bundle
-
-## What NOT to Touch
-
-- No changes to telemetry, error tracking, auth, routing, or provider code
-- No Supabase, CORS, or edge function changes
-- No env var changes needed
-
-## Secondary Issue (Not Blocking Render)
-
-The edge function `lovable-concierge` is crashing on boot because `SUPABASE_JWT_SECRET` is not set in Edge Function secrets. This doesn't block the frontend from loading but will cause AI concierge features to fail. You should add this secret in **Supabase Dashboard → Edge Functions → Secrets**.
+## Verification
+- `npm run typecheck` passes (all 20+ errors resolved)
+- `npm run build` succeeds
+- Stream integration works identically — these are all invisible to JavaScript output
 
