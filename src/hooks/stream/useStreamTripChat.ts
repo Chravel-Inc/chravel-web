@@ -39,7 +39,6 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
   const [error, setError] = useState<Error | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
 
   const channelRef = useRef<Channel | null>(null);
   // State mirror of channelRef for triggering the event subscription effect
@@ -136,23 +135,25 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     };
   }, [activeChannel, tripId]);
 
-  // Send message — matches useTripChat signature exactly
-  const sendMessage = useCallback(
+  /**
+   * Fire-and-forget send: Stream confirms via WebSocket (`message.new`).
+   * We intentionally do NOT expose `isCreating` / await the HTTP round-trip here.
+   * Otherwise TripChat's `await sendTripMessage` + ChatInput's `isTyping={isCreating}`
+   * block the composer until `sendMessage` resolves — if that promise stalls (network,
+   * SDK edge case), the send button spins forever and `sendLockRef` never clears.
+   */
+  const dispatchStreamSend = useCallback(
     (
       content: string,
-      authorName: string,
-      mediaType?: string,
-      mediaUrl?: string,
-      userId?: string,
-      privacyMode?: string,
-      messageType?: 'text' | 'broadcast' | 'payment' | 'system',
-      replyToId?: string,
-      mentionedUserIds?: string[],
+      mediaType: string | undefined,
+      mediaUrl: string | undefined,
+      privacyMode: string | undefined,
+      messageType: 'text' | 'broadcast' | 'payment' | 'system' | undefined,
+      replyToId: string | undefined,
+      mentionedUserIds: string[] | undefined,
     ) => {
       const channel = channelRef.current;
       if (!channel || !tripId) return;
-
-      setIsCreating(true);
 
       const payload: Record<string, unknown> = {
         text: content,
@@ -174,7 +175,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         payload.attachments = [{ type: mediaType || 'file', asset_url: mediaUrl }];
       }
 
-      channel
+      void channel
         .sendMessage(payload as Parameters<Channel['sendMessage']>[0])
         .then(() => {
           messageEvents.sent({
@@ -194,48 +195,79 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
             description: msg,
             variant: 'destructive',
           });
-        })
-        .finally(() => {
-          setIsCreating(false);
         });
     },
     [tripId, toast],
   );
 
-  // sendMessageAsync — matches useTripChat signature exactly
-  const sendMessageAsync = useCallback(
-    async (
+  // Send message — matches useTripChat signature exactly
+  const sendMessage = useCallback(
+    (
       content: string,
-      authorName: string,
+      _authorName: string,
       mediaType?: string,
       mediaUrl?: string,
-      userId?: string,
+      _userId?: string,
       privacyMode?: string,
       messageType?: 'text' | 'broadcast' | 'payment' | 'system',
       replyToId?: string,
       mentionedUserIds?: string[],
     ) => {
+      dispatchStreamSend(
+        content,
+        mediaType,
+        mediaUrl,
+        privacyMode,
+        messageType,
+        replyToId,
+        mentionedUserIds,
+      );
+    },
+    [dispatchStreamSend],
+  );
+
+  // sendMessageAsync — resolves immediately; delivery/errors handled like sendMessage
+  const sendMessageAsync = useCallback(
+    async (
+      content: string,
+      _authorName: string,
+      mediaType?: string,
+      mediaUrl?: string,
+      _userId?: string,
+      privacyMode?: string,
+      messageType?: 'text' | 'broadcast' | 'payment' | 'system',
+      replyToId?: string,
+      mentionedUserIds?: string[],
+    ): Promise<ChrravelChatMessage | undefined> => {
       const channel = channelRef.current;
       if (!channel || !tripId) return undefined;
 
-      const payload: Record<string, unknown> = {
-        text: content,
-      };
+      dispatchStreamSend(
+        content,
+        mediaType,
+        mediaUrl,
+        privacyMode,
+        messageType,
+        replyToId,
+        mentionedUserIds,
+      );
 
-      if (replyToId) payload.parent_id = replyToId;
-      if (mentionedUserIds?.length) payload.mentioned_users = mentionedUserIds;
-      if (mediaUrl) {
-        payload.attachments = [{ type: mediaType || 'file', asset_url: mediaUrl }];
-      }
-      if (privacyMode) payload.privacy_mode = privacyMode;
-      if (messageType) payload.message_type = messageType;
-
-      const response = await channel.sendMessage(payload as Parameters<Channel['sendMessage']>[0]);
-      return response.message
-        ? streamMessageToChravel(response.message as MessageResponse, tripId)
-        : undefined;
+      // Optimistic shape for callers that still await; list state updates from `message.new`
+      const now = new Date().toISOString();
+      return {
+        id: `pending-${now}`,
+        trip_id: tripId,
+        content,
+        author_name: '',
+        created_at: now,
+        updated_at: now,
+        message_type: messageType || 'text',
+        media_type: mediaType,
+        media_url: mediaUrl,
+        privacy_mode: privacyMode || 'standard',
+      } as ChrravelChatMessage;
     },
-    [tripId],
+    [tripId, dispatchStreamSend],
   );
 
   // Load more (older messages)
@@ -273,7 +305,8 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     error,
     sendMessage,
     sendMessageAsync,
-    isCreating,
+    /** Stream path: always false — send is fire-and-forget; UI unlocks immediately */
+    isCreating: false,
     loadMore,
     hasMore,
     isLoadingMore,
