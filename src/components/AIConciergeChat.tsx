@@ -178,6 +178,10 @@ interface ConciergeInvokePayload {
   googleMapsWidgetContextToken?: string;
   success?: boolean;
   error?: string;
+  places?: Array<Record<string, unknown>>;
+  flights?: Array<Record<string, unknown>>;
+  hotels?: Array<Record<string, unknown>>;
+  conciergeActions?: Array<Record<string, unknown>>;
 }
 
 interface ConciergeAttachment {
@@ -1943,13 +1947,13 @@ export const AIConciergeChat = ({
         sources: data.sources || data.citations,
         googleMapsWidget: data.googleMapsWidget,
         // Rich card fields from non-streaming fallback response
-        ...(data.places && Array.isArray(data.places) ? { functionCallPlaces: data.places } : {}),
+        ...(data.places && Array.isArray(data.places) ? { functionCallPlaces: data.places as ChatMessage['functionCallPlaces'] } : {}),
         ...(data.flights && Array.isArray(data.flights)
-          ? { functionCallFlights: data.flights }
+          ? { functionCallFlights: data.flights as ChatMessage['functionCallFlights'] }
           : {}),
-        ...(data.hotels && Array.isArray(data.hotels) ? { functionCallHotels: data.hotels } : {}),
+        ...(data.hotels && Array.isArray(data.hotels) ? { functionCallHotels: data.hotels as unknown as ChatMessage['functionCallHotels'] } : {}),
         ...(data.conciergeActions && Array.isArray(data.conciergeActions)
-          ? { conciergeActions: data.conciergeActions }
+          ? { conciergeActions: data.conciergeActions as ChatMessage['conciergeActions'] }
           : {}),
       };
 

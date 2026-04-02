@@ -27,7 +27,7 @@ export interface StreamBroadcastMessage {
 
 function streamMsgToBroadcast(msg: MessageResponse, tripId: string): StreamBroadcastMessage {
   const user = msg.user as UserResponse | undefined;
-  const custom = msg as Record<string, unknown>;
+  const custom = msg as unknown as Record<string, unknown>;
   return {
     id: msg.id,
     tripId,

@@ -27,7 +27,8 @@ interface UseStreamClientResult {
 }
 
 export function useStreamClient(): UseStreamClientResult {
-  const { user, isAuthenticated } = useAuth();
+  const { user } = useAuth();
+  const isAuthenticated = !!user;
 
   // Connect if ANY Stream surface is enabled — not just trip chat
   const tripFlag = useFeatureFlag('stream-chat-trip', false);

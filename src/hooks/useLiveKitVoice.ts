@@ -142,7 +142,7 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
   // ── Data Message Handler ─────────────────────────────────────────────────
 
   const handleDataMessage = useCallback(
-    (payload: Uint8Array, _participant: unknown, topic?: string) => {
+    (payload: Uint8Array, _participant?: unknown, _kind?: unknown, topic?: string) => {
       try {
         const msg = JSON.parse(decoder.decode(payload));
 

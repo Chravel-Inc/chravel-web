@@ -53,7 +53,7 @@ export async function getOrCreateTripChannel(
   const channel = client.channel(CHANNEL_TYPE_TRIP, tripChannelId(tripId), {
     name: tripName || `Trip ${tripId}`,
     trip_id: tripId,
-  });
+  } as Record<string, unknown>);
 
   await channel.watch();
   return channel;
@@ -74,7 +74,7 @@ export async function getOrCreateProChannel(
     name: channelName,
     trip_id: tripId,
     chravel_channel_id: channelId,
-  });
+  } as Record<string, unknown>);
 
   await channel.watch();
   return channel;
@@ -93,7 +93,7 @@ export async function getOrCreateBroadcastChannel(
   const channel = client.channel(CHANNEL_TYPE_BROADCAST, broadcastChannelId(tripId), {
     name: tripName ? `${tripName} Broadcasts` : `Trip ${tripId} Broadcasts`,
     trip_id: tripId,
-  });
+  } as Record<string, unknown>);
 
   await channel.watch();
   return channel;
@@ -116,7 +116,7 @@ export async function getOrCreateConciergeChannel(
     name: 'AI Concierge',
     trip_id: tripId,
     members: [userId, AI_BOT_USER_ID],
-  });
+  } as Record<string, unknown>);
 
   await channel.watch();
   return channel;

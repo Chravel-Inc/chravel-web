@@ -74,7 +74,7 @@ export function streamMessageToChravel(msg: MessageResponse, tripId: string): Ch
     }
   }
 
-  const custom = (msg as Record<string, unknown>) || {};
+  const custom = (msg as unknown as Record<string, unknown>) || {};
 
   return {
     id: msg.id,
