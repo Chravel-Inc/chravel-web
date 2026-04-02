@@ -53,7 +53,7 @@ export async function getOrCreateTripChannel(
   const channel = client.channel(CHANNEL_TYPE_TRIP, tripChannelId(tripId), {
     name: tripName || `Trip ${tripId}`,
     trip_id: tripId,
-  });
+  } as Record<string, unknown>);
 
   await channel.watch();
   return channel;
