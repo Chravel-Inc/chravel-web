@@ -295,6 +295,44 @@ Chravel uses repo-level persistent memory files so all coding agents (Claude, Cu
 
 -----
 
+## Cursor Cloud specific instructions
+
+### Services overview
+
+This is a single-service frontend app. The only local service is the **Vite dev server** (`npm run dev` on port 8080). The backend is 100% hosted Supabase — no local DB, Docker, or backend server needed.
+
+### Running the dev server
+
+```bash
+npm run dev   # Vite on http://localhost:8080
+```
+
+The Supabase client at `src/integrations/supabase/client.ts` has hardcoded fallback credentials (`KNOWN_PROJECT_URL` / `KNOWN_PROJECT_ANON_KEY`), so the app boots and connects to the hosted Supabase project **without any `.env` file**. For full third-party integrations (Google Maps, Stripe, PostHog, Sentry), copy `.env.example` to `.env.local` and fill in keys.
+
+### Quality checks (see `package.json` scripts)
+
+| Command | Purpose |
+|---------|---------|
+| `npm run lint:check` | ESLint (0 errors expected; ~328 warnings are baseline) |
+| `npm run typecheck` | TypeScript `tsc --noEmit` |
+| `npm run test:run` | Vitest unit/integration tests (~800+ pass) |
+| `npm run build` | Production Vite build + service worker precache |
+| `npm run validate` | lint + typecheck + format check combined |
+
+### Known pre-existing test failure
+
+`src/hooks/__tests__/useLiveKitVoice.test.tsx` has 1 failing test (callback wiring assertion). This is pre-existing and unrelated to environment setup.
+
+### Demo mode
+
+The landing page shows trips in read-only "marketing" mode. To activate interactive demo mode (for testing trip features without auth), set `localStorage.setItem('TRIPS_DEMO_VIEW', 'app-preview')` in browser DevTools and reload. An "Exit Demo" button appears at top-right to return to normal mode.
+
+### Git hooks
+
+Husky pre-commit hook runs `lint-staged`. Install hooks with `npx husky install` (already done by `npm install` via the `prepare` script).
+
+-----
+
 ## 15. KEEP THIS FILE LEAN
 
 - Max target: ~8KB
