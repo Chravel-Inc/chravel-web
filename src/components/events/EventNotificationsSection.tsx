@@ -114,14 +114,38 @@ export const EventNotificationsSection = () => {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    const timeoutMs = 15_000;
+
     const loadPreferences = async () => {
       if (!user?.id) {
         setIsLoading(false);
         return;
       }
 
+      setIsLoading(true);
+
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(
+          () => reject(new Error('notification_preferences_fetch_timeout')),
+          timeoutMs,
+        );
+      });
+
       try {
-        const prefs = await userPreferencesService.getNotificationPreferences(user.id);
+        const fetchPromise = userPreferencesService
+          .getNotificationPreferences(user.id)
+          .finally(() => {
+            if (timeoutId !== undefined) {
+              clearTimeout(timeoutId);
+            }
+          });
+
+        const prefs = await Promise.race([fetchPromise, timeoutPromise]);
+
+        if (cancelled) return;
+
         setNotificationSettings({
           broadcasts: prefs.broadcasts ?? true,
           calendar: prefs.calendar_events ?? true,
@@ -137,13 +161,23 @@ export const EventNotificationsSection = () => {
         }
       } catch (error) {
         if (import.meta.env.DEV) {
-          console.error('Error loading notification preferences:', error);
+          if (error instanceof Error && error.message === 'notification_preferences_fetch_timeout') {
+            console.warn(
+              'Notification preferences fetch timed out; showing defaults until next load.',
+            );
+          } else {
+            console.error('Error loading notification preferences:', error);
+          }
         }
       } finally {
         setIsLoading(false);
       }
     };
-    loadPreferences();
+
+    void loadPreferences();
+    return () => {
+      cancelled = true;
+    };
   }, [user?.id]);
 
   useEffect(() => {
