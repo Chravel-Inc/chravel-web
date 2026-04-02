@@ -116,7 +116,7 @@ export async function getOrCreateConciergeChannel(
     name: 'AI Concierge',
     trip_id: tripId,
     members: [userId, AI_BOT_USER_ID],
-  });
+  } as Record<string, unknown>);
 
   await channel.watch();
   return channel;

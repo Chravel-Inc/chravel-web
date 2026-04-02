@@ -52,11 +52,11 @@ describe('OnboardingCarousel pill navigation', () => {
     );
 
     await user.click(screen.getByRole('button', { name: 'Get Started' }));
-    await waitFor(() => expect(scrollCalls.at(-1)).toBe('chat'));
+    await waitFor(() => expect(scrollCalls[scrollCalls.length - 1]).toBe('chat'));
 
     for (const pillId of ['calendar', 'concierge', 'media', 'payments', 'places']) {
       await user.click(screen.getByRole('button', { name: 'Continue' }));
-      await waitFor(() => expect(scrollCalls.at(-1)).toBe(pillId));
+      await waitFor(() => expect(scrollCalls[scrollCalls.length - 1]).toBe(pillId));
     }
 
     const pillOrder = Array.from(document.querySelectorAll<HTMLElement>('[data-pill]')).map(

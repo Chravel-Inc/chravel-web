@@ -178,6 +178,10 @@ interface ConciergeInvokePayload {
   googleMapsWidgetContextToken?: string;
   success?: boolean;
   error?: string;
+  places?: Array<Record<string, unknown>>;
+  flights?: Array<Record<string, unknown>>;
+  hotels?: Array<Record<string, unknown>>;
+  conciergeActions?: Array<Record<string, unknown>>;
 }
 
 interface ConciergeAttachment {
