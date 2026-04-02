@@ -7,7 +7,7 @@ import {
   useVideoConfig,
 } from 'remotion';
 import { loadFont } from '@remotion/google-fonts/Inter';
-import { COLORS, SPRING, TIMING, SHADOWS, GRADIENTS, FPS } from '../theme';
+import { COLORS, SPRING, TIMING, SHADOWS, FPS } from '../theme';
 import { PhoneFrame } from '../components/PhoneFrame';
 import { TravelBackground } from '../components/TravelBackground';
 import { EndCard } from '../components/EndCard';
