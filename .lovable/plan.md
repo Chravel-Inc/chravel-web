@@ -1,30 +1,20 @@
 
 
-# Move Exit Demo Button to Top-Left on Mobile
+# Replace Create Trip Screenshot on Landing Page
 
-## Problem
-On mobile/PWA, the "Exit Demo" button is fixed to the **bottom-right** corner (`bottom: 80px + safe-area-inset-bottom`, `right: 12px`), where it overlaps content and interferes with the bottom navigation bar.
+## What
+Replace the old navy-blue "Create New Trip" screenshot in the marketing landing page with the new black/gray/gold design screenshot that matches the current app aesthetic.
 
-## Fix
-Change the mobile positioning from bottom-right to **top-left**, tucked just below the iOS status bar using `env(safe-area-inset-top)`.
+## Change
 
-## Change — `src/components/demo/ExitDemoButton.tsx`
+### 1. Copy uploaded image to project
+- Copy `user-uploads://IMG_4045.jpg` to `src/assets/app-screenshots/create-trip-modal-v3.png`
 
-**Line 38** — Swap Tailwind classes:
-- From: `bottom-20 right-3`
-- To: `top-0 left-3`
+### 2. Update import in `src/components/landing/sections/ProblemSolutionSection.tsx`
+- **Line 4**: Change import from `create-trip-modal-v2.png` to `create-trip-modal-v3.png`
 
-**Lines 41–46** — Update inline style for mobile:
-```typescript
-style={
-  isMobile
-    ? {
-        top: 'calc(env(safe-area-inset-top, 0px) + 4px)',
-        left: 'calc(12px + env(safe-area-inset-left, 0px))',
-      }
-    : undefined
-}
-```
+That's it — the new image flows into both desktop and mobile views automatically since both reference the same `createNewTrip` variable.
 
-This places the button immediately under the iPhone status bar/notch area, left-aligned, out of the way of content and bottom nav. Desktop positioning (`top-4 right-4`) is unchanged.
+## Risk
+**LOW** — asset swap only, no logic change.
 
