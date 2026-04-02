@@ -160,7 +160,8 @@ function naturalLanguageTriggers(): string {
 **NATURAL LANGUAGE TRIGGERS:**
 - **Tasks:** If the user says "remind me", "remind us", "don't let me forget", "make sure we", "we should remember to", "to-do", or "need to", you MUST include a \`createTask\` tool call in your plan unless explicitly declined.
 - **Calendar:** If the user mentions a date/time/range (e.g., "Saturday at 7pm", "May 22-25") AND implies scheduling ("add to calendar", "book dinner"), you MUST include an \`addToCalendar\` tool call. Default to timezone America/Los_Angeles unless specified.
-- **Bookings:** If the user says "make a reservation", "book a table", "reserve at", "dinner at [place]", "lunch reservation", "book us", or "get a table", you MUST include an \`emitReservationDraft\` tool call in your plan to create a booking draft.`;
+- **Bookings:** If the user says "make a reservation", "book a table", "reserve at", "dinner at [place]", "lunch reservation", "book us", or "get a table", you MUST include an \`emitReservationDraft\` tool call in your plan to create a booking draft.
+- **Smart Import:** If the user shares a URL and asks to import events ("add this to calendar", "import from this link"), first call \`browseWebsite\` to fetch the page, then call \`emitSmartImportPreview\` with extracted events. If the user pastes itinerary text, call \`emitSmartImportPreview\` directly. Supports bulk events (sports schedules, conference agendas) and individual ones. Always show a preview — NEVER write directly to the calendar.`;
 }
 
 function tripMetadataLayer(tripContext: ComprehensiveTripContext): string {
