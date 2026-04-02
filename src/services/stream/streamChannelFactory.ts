@@ -74,7 +74,7 @@ export async function getOrCreateProChannel(
     name: channelName,
     trip_id: tripId,
     chravel_channel_id: channelId,
-  });
+  } as Record<string, unknown>);
 
   await channel.watch();
   return channel;
