@@ -74,6 +74,7 @@ async function ensureLiveKitLoaded(): Promise<void> {
 
 const AGENT_JOIN_TIMEOUT_MS = 10_000;
 const CONVERSATION_TIMEOUT_MS = 30_000;
+const TOKEN_FETCH_TIMEOUT_MS = 8_000;
 
 const decoder = new TextDecoder();
 
@@ -236,17 +237,31 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
       throw new Error('Not authenticated');
     }
 
-    const tokenRes = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL || ''}/functions/v1/livekit-token`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${authSession.access_token}`,
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TOKEN_FETCH_TIMEOUT_MS);
+
+    let tokenRes: Response;
+    try {
+      tokenRes = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL || ''}/functions/v1/livekit-token`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${authSession.access_token}`,
+          },
+          body: JSON.stringify({ tripId, voice }),
+          signal: controller.signal,
         },
-        body: JSON.stringify({ tripId, voice }),
-      },
-    );
+      );
+    } catch (fetchErr) {
+      clearTimeout(timeoutId);
+      if (fetchErr instanceof DOMException && fetchErr.name === 'AbortError') {
+        throw new Error('Voice service did not respond. Check that LiveKit is configured.');
+      }
+      throw new Error('Could not reach voice service. Please try again.');
+    }
+    clearTimeout(timeoutId);
 
     if (!tokenRes.ok) {
       const errBody = await tokenRes.json().catch(() => ({}));
