@@ -7,6 +7,14 @@
 
 ## Strategy Tips
 
+### Never ship baked Supabase credentials as runtime fallback in production clients
+- **Tip:** Treat Supabase public key + project URL as required runtime configuration and fail fast when missing. Hardcoded fallback credentials can silently go stale after key rotation and create partial outages that are hard to diagnose.
+- **Applies when:** Bootstrapping Supabase client in frontend apps, rotating JWT/API keys, migrating from anon JWT keys to publishable keys.
+- **Avoid when:** Local throwaway demos where backend project is intentionally fixed and non-production.
+- **Evidence:** Chravel client previously booted with built-in Supabase URL/anon key fallback; key rotation introduces drift risk when env injection is missing. Removing fallback and validating `VITE_SUPABASE_URL` + (`VITE_SUPABASE_PUBLISHABLE_KEY` or `VITE_SUPABASE_ANON_KEY`) hardens rollout safety.
+- **Provenance:** April 2026 Supabase key-rotation hardening pass.
+- **Confidence:** high
+
 ### Always distinguish Loading, Not Found, and Empty states
 - **Tip:** When building data-dependent UI, explicitly handle three distinct states: Loading (fetch in progress), Not Found (fetch completed, resource missing or inaccessible), and Empty (fetch completed, resource exists but has no items). Never let a loading state fall through to a Not Found or Empty render path.
 - **Applies when:** Trip loading, any auth-gated data page, lists that can be empty, resource detail views

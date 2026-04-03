@@ -7,6 +7,7 @@ import { supabase } from '../integrations/supabase/client';
 import { toast } from 'sonner';
 import { CoverPhotoCropModal } from './CoverPhotoCropModal';
 import { CoverPhotoFullscreenModal } from './CoverPhotoFullscreenModal';
+import { buildTripCoverStoragePath, TRIP_COVER_BUCKET } from '@/utils/tripCoverStorage';
 
 interface TripCoverPhotoUploadProps {
   tripId: string;
@@ -35,6 +36,7 @@ export const TripCoverPhotoUpload = ({
   const [showFullscreenModal, setShowFullscreenModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedImageSrc, setSelectedImageSrc] = useState<string>('');
+  const [hasImageError, setHasImageError] = useState(false);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
@@ -76,32 +78,33 @@ export const TripCoverPhotoUpload = ({
           return;
         }
 
-        // Authenticated mode: Upload to Supabase Storage with retry logic
-        const croppedFile = new File([croppedBlob], `cover-${Date.now()}.jpg`, {
-          type: 'image/jpeg',
-        });
-        const formData = new FormData();
-        formData.append('file', croppedFile);
-        formData.append('folder', `trips/${tripId}`);
+        // Authenticated mode: Upload to canonical trip-media/trip-covers path
+        const fileName = `cover-${Date.now()}-${crypto.randomUUID()}.jpg`;
+        const filePath = buildTripCoverStoragePath(tripId, fileName);
 
         const MAX_RETRIES = 3;
         let lastError: Error | null = null;
-        let data: { url?: string } | null = null;
+        let publicUrl: string | null = null;
 
         for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
           try {
-            const response = await supabase.functions.invoke('image-upload', {
-              body: formData,
-            });
+            const { error } = await supabase.storage
+              .from(TRIP_COVER_BUCKET)
+              .upload(filePath, croppedBlob, {
+                cacheControl: '3600',
+                upsert: true,
+                contentType: 'image/jpeg',
+              });
 
-            if (response.error) {
-              lastError = new Error(response.error.message);
+            if (error) {
+              lastError = new Error(error.message);
               if (attempt < MAX_RETRIES) {
                 await new Promise(r => setTimeout(r, 1000 * attempt)); // Exponential backoff
                 continue;
               }
             } else {
-              data = response.data;
+              const { data } = supabase.storage.from(TRIP_COVER_BUCKET).getPublicUrl(filePath);
+              publicUrl = data.publicUrl ?? null;
               break;
             }
           } catch (e) {
@@ -113,14 +116,15 @@ export const TripCoverPhotoUpload = ({
           }
         }
 
-        if (!data?.url) {
+        if (!publicUrl) {
           throw lastError || new Error('No URL returned from upload');
         }
 
         // Add cache-busting param for re-crops
-        const finalUrl = `${data.url}?t=${Date.now()}`;
+        const finalUrl = `${publicUrl}?v=${Date.now()}`;
         const success = await onPhotoUploaded(finalUrl);
         if (success) {
+          setHasImageError(false);
           setUploadSuccess(true);
           setTimeout(() => setUploadSuccess(false), 2000);
         }
@@ -175,14 +179,19 @@ export const TripCoverPhotoUpload = ({
     multiple: false,
   });
 
+  React.useEffect(() => {
+    setHasImageError(false);
+  }, [currentPhoto]);
+
   return (
     <>
-      {currentPhoto ? (
+      {currentPhoto && !hasImageError ? (
         <div className={`relative group overflow-hidden rounded-2xl ${className}`}>
           <img
             src={currentPhoto}
             alt={`Cover photo for trip ${tripId}`}
             className="w-full h-full object-cover cursor-pointer"
+            onError={() => setHasImageError(true)}
             onClick={handleViewFullscreen}
           />
           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex flex-col items-center justify-center gap-3">

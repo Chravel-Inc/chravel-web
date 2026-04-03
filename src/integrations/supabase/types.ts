@@ -3305,6 +3305,7 @@ export type Database = {
           card_color: string | null;
           categories: Json | null;
           chat_mode: string;
+          cover_display_mode: string | null;
           cover_image_url: string | null;
           created_at: string;
           created_by: string;
@@ -3335,6 +3336,7 @@ export type Database = {
           card_color?: string | null;
           categories?: Json | null;
           chat_mode?: string;
+          cover_display_mode?: string | null;
           cover_image_url?: string | null;
           created_at?: string;
           created_by: string;
@@ -3365,6 +3367,7 @@ export type Database = {
           card_color?: string | null;
           categories?: Json | null;
           chat_mode?: string;
+          cover_display_mode?: string | null;
           cover_image_url?: string | null;
           created_at?: string;
           created_by?: string;

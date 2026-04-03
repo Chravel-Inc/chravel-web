@@ -46,12 +46,21 @@ const FRONTEND_VARS: EnvVarSpec[] = [
   },
   {
     name: 'VITE_SUPABASE_ANON_KEY',
-    required: true,
-    description: 'Supabase anonymous (public) key',
+    required: false,
+    description: 'Supabase anonymous (legacy public) key',
     provider: 'Supabase',
     canStubForTestFlight: false,
-    format: /^eyJ[\w-]+\.[\w-]+\.[\w-]+$/,
-    formatHint: 'JWT token (eyJ...)',
+    format: /^(eyJ[\w-]+\.[\w-]+\.[\w-]+|sb_publishable_[A-Za-z0-9_-]+)$/,
+    formatHint: 'JWT (eyJ...) or sb_publishable_...',
+  },
+  {
+    name: 'VITE_SUPABASE_PUBLISHABLE_KEY',
+    required: false,
+    description: 'Supabase publishable key (preferred)',
+    provider: 'Supabase',
+    canStubForTestFlight: false,
+    format: /^sb_publishable_[A-Za-z0-9_-]+$/,
+    formatHint: 'sb_publishable_...',
   },
   {
     name: 'VITE_GOOGLE_MAPS_API_KEY',
@@ -371,6 +380,19 @@ function validate(): void {
     }
   }
 
+  const hasSupabasePublicKey = Boolean(
+    env.VITE_SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_ANON_KEY,
+  );
+  if (!hasSupabasePublicKey) {
+    missing.push({
+      name: 'VITE_SUPABASE_PUBLISHABLE_KEY (or VITE_SUPABASE_ANON_KEY)',
+      required: true,
+      description: 'Supabase public API key',
+      provider: 'Supabase',
+      canStubForTestFlight: false,
+    });
+  }
+
   // Output
   console.log('\n🔍 Chravel Environment Validation');
   console.log(`   Mode: ${isIos ? 'iOS Capacitor' : isCi ? 'CI' : 'Web'}`);
@@ -409,9 +431,7 @@ function validate(): void {
       console.log(`     Purpose:  ${spec.description}`);
     }
     console.log('\n💡 Tip: Copy .env.example to .env and fill in the required values.');
-    console.log(
-      '   The app uses hardcoded Supabase defaults for dev, but production builds need real keys.',
-    );
+    console.log('   Supabase credentials must be configured via environment variables.');
     process.exit(1);
   }
 

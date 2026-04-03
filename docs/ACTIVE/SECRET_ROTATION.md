@@ -94,16 +94,28 @@
 
 ---
 
-### Supabase (Anon Key, Service Role Key)
+### Supabase (JWT Signing Keys + API Keys)
 
 **Where to rotate**: [Supabase Dashboard](https://supabase.com/dashboard/project/_/settings/api)
 
 **Steps**:
-1. Regenerate keys in Supabase Dashboard > Settings > API
-2. Update `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in Vercel
-3. Update `SUPABASE_SERVICE_ROLE_KEY` in any external services that use it
-4. Redeploy frontend and all edge functions
-5. **Verify**: Full auth flow (sign in, sign out, data fetch)
+1. In Supabase Dashboard > Settings > JWT Keys:
+   - Verify standby/current signing keys.
+   - Rotate to standby key during a low-traffic window.
+2. In Supabase Dashboard > Settings > API Keys:
+   - Copy current **publishable** key and **secret/service-role** key values after rotation/migration.
+3. Update frontend environment variables:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_PUBLISHABLE_KEY` (preferred) or `VITE_SUPABASE_ANON_KEY` (legacy)
+4. Update server-side secrets:
+   - `SUPABASE_SERVICE_ROLE_KEY` in Supabase Edge Function secrets and any external workers/agents.
+5. Redeploy frontend + edge functions + external services that consume Supabase keys.
+6. **Verify**: full auth and data paths before revoking older keys:
+   - sign in
+   - refresh existing session
+   - load trip dashboard
+   - call at least one JWT-protected edge function
+7. Revoke old keys only after successful verification window.
 
 **Blast radius**: CRITICAL — entire application is down during rotation. Plan for maintenance window.
 

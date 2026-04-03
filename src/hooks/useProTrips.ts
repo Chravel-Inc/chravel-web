@@ -22,7 +22,7 @@ function mapSupabaseTripToProTripData(trip: Record<string, unknown>): ProTripDat
     description: String(trip.description || ''),
     location: String(trip.destination || ''),
     dateRange,
-    coverPhoto: trip.cover_photo as string | undefined,
+    coverPhoto: trip.cover_image_url as string | undefined,
     card_color: trip.card_color as string | undefined,
     proTripCategory: trip.pro_trip_category as ProTripData['proTripCategory'],
     tags: (trip.tags as string[]) || [],

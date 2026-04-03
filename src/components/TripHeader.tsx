@@ -59,6 +59,7 @@ interface TripHeaderProps {
       email?: string;
     }>;
     coverPhoto?: string;
+    coverDisplayMode?: 'cover' | 'contain';
     trip_type?: 'consumer' | 'pro' | 'event';
     created_by?: string;
   };
@@ -149,9 +150,10 @@ export const TripHeader = ({
     }
   }, [searchParams, setSearchParams]);
   const { variant } = useTripVariant();
-  const { coverPhoto, updateCoverPhoto, isUpdating } = useTripCoverPhoto(
+  const { coverPhoto, coverDisplayMode, updateCoverPhoto, isUpdating } = useTripCoverPhoto(
     trip.id.toString(),
     trip.coverPhoto,
+    trip.coverDisplayMode ?? 'cover',
   );
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
@@ -167,6 +169,7 @@ export const TripHeader = ({
   const removeMember = preloadedRemoveMember ?? memberHookData.removeMember;
   const leaveTrip = preloadedLeaveTrip ?? memberHookData.leaveTrip;
   const [isUploading, setIsUploading] = useState(false);
+  const [hasCoverLoadError, setHasCoverLoadError] = useState(false);
   const [showCropModal, setShowCropModal] = useState(false);
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
 
@@ -400,6 +403,10 @@ export const TripHeader = ({
     }
   };
 
+  useEffect(() => {
+    setHasCoverLoadError(false);
+  }, [coverPhoto]);
+
   const handleCropCancel = () => {
     setShowCropModal(false);
     if (cropImageSrc?.startsWith('blob:')) {
@@ -426,18 +433,22 @@ export const TripHeader = ({
             backgroundColor: '#1a1a2e',
           }}
         >
-          {coverPhoto && (
+          {coverPhoto && !hasCoverLoadError && (
             <div className="absolute inset-0">
               <img
                 src={coverPhoto}
                 alt=""
                 aria-hidden="true"
-                className="absolute inset-0 w-full h-full object-cover blur-md scale-105 opacity-50"
+                className="absolute inset-0 w-full h-full object-cover blur-md scale-110 opacity-45"
               />
               <img
                 src={coverPhoto}
                 alt={`${trip.title} cover`}
-                className="absolute inset-0 w-full h-full object-contain"
+                onError={() => setHasCoverLoadError(true)}
+                className={cn(
+                  'absolute inset-0 w-full h-full',
+                  coverDisplayMode === 'contain' ? 'object-contain' : 'object-cover',
+                )}
               />
             </div>
           )}
@@ -505,7 +516,7 @@ export const TripHeader = ({
           {(!isHeroCollapsed || drawerLayout) && (
             <>
               {/* Trip title at TOP-LEFT */}
-              <div className="absolute top-4 left-4 right-16 z-10">
+              <div className="absolute top-6 left-4 right-16 z-10">
                 <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white drop-shadow-lg line-clamp-2">
                   {trip.title}
                 </h1>
