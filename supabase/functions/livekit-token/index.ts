@@ -26,18 +26,22 @@ serve(async req => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  // Validate required secrets
-  const secretsError = requireSecrets(['LIVEKIT_API_KEY', 'LIVEKIT_API_SECRET', 'LIVEKIT_URL']);
-  if (secretsError) {
+  // Validate required secrets — requireSecrets() throws on missing keys
+  let LIVEKIT_API_KEY: string;
+  let LIVEKIT_API_SECRET: string;
+  let LIVEKIT_URL: string;
+  try {
+    const secrets = requireSecrets(['LIVEKIT_API_KEY', 'LIVEKIT_API_SECRET', 'LIVEKIT_URL']);
+    LIVEKIT_API_KEY = secrets['LIVEKIT_API_KEY'];
+    LIVEKIT_API_SECRET = secrets['LIVEKIT_API_SECRET'];
+    LIVEKIT_URL = secrets['LIVEKIT_URL'];
+  } catch (err) {
+    console.error('[livekit-token] Missing secrets:', err);
     return new Response(JSON.stringify({ error: 'Service configuration error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
-
-  const LIVEKIT_API_KEY = Deno.env.get('LIVEKIT_API_KEY')!;
-  const LIVEKIT_API_SECRET = Deno.env.get('LIVEKIT_API_SECRET')!;
-  const LIVEKIT_URL = Deno.env.get('LIVEKIT_URL')!;
 
   try {
     // ── Auth ────────────────────────────────────────────────────────────────
