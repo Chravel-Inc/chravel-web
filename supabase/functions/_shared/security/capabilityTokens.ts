@@ -11,7 +11,8 @@ const JWT_SECRET = Deno.env.get('SUPABASE_JWT_SECRET');
 if (!JWT_SECRET) {
   throw new Error(
     'SUPABASE_JWT_SECRET is required — capability tokens cannot be signed without it. ' +
-      'Set this secret in Supabase Dashboard > Edge Functions > Secrets.',
+      'This value is injected by Supabase at runtime; verify the function is running in the ' +
+      'correct Supabase project/runtime and redeploy if needed.',
   );
 }
 

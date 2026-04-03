@@ -21,6 +21,7 @@ import { executeFunctionCall } from '../_shared/functionExecutor.ts';
 import { generateCapabilityToken } from '../_shared/security/capabilityTokens.ts';
 import { executeToolSecurely } from '../_shared/security/toolRouter.ts';
 import { checkRateLimit } from '../_shared/security.ts';
+import { getBearerToken } from '../_shared/authHeaders.ts';
 import { verifyConciergeTripAccess } from '../_shared/concierge/tripAccess.ts';
 import {
   checkMonthlyTokenBudget,
@@ -71,7 +72,13 @@ serve(async (req: Request) => {
     //    The key is a server-side env var, never exposed to browsers. When matched,
     //    userId is extracted from body (agent verified membership via livekit-token).
     // 2. User JWT: Browser sends Supabase JWT. Validated via auth.getUser().
-    const token = authHeader.replace('Bearer ', '');
+    const token = getBearerToken(authHeader);
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'Missing or invalid Authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     const isServiceRole = SUPABASE_SERVICE_ROLE_KEY && token === SUPABASE_SERVICE_ROLE_KEY;
 
     let supabase;

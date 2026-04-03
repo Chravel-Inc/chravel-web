@@ -25,6 +25,7 @@ import { toast } from 'sonner';
 import { PrivacyMode, getDefaultPrivacyMode } from '../types/privacy';
 import { ProCategoryEnum, PRO_CATEGORIES_ORDERED } from '../types/proCategories';
 import { getAllProTripColors } from '../utils/proTripColors';
+import { buildTripCoverStoragePath, TRIP_COVER_BUCKET } from '../utils/tripCoverStorage';
 
 interface CreateTripModalProps {
   isOpen: boolean;
@@ -209,17 +210,17 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
         if (coverImage && !isDemoMode) {
           try {
             const fileExt = coverImage.name.split('.').pop();
-            const filePath = `${newTrip.id}/cover.${fileExt}`;
+            const filePath = buildTripCoverStoragePath(newTrip.id, `cover.${fileExt}`);
 
             const { error: uploadError } = await supabase.storage
-              .from('trip-covers')
+              .from(TRIP_COVER_BUCKET)
               .upload(filePath, coverImage);
 
             if (uploadError) throw uploadError;
 
             const {
               data: { publicUrl },
-            } = supabase.storage.from('trip-covers').getPublicUrl(filePath);
+            } = supabase.storage.from(TRIP_COVER_BUCKET).getPublicUrl(filePath);
 
             // Route through useTrips update path so homepage caches invalidate immediately.
             const coverUpdated = await updateTrip(newTrip.id, { cover_image_url: publicUrl });
