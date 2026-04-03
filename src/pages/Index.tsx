@@ -28,7 +28,10 @@ import { useDemoMode } from '../hooks/useDemoMode';
 import { useNotificationRealtime } from '../hooks/useNotificationRealtime';
 import { useDemoModeStore } from '../store/demoModeStore';
 import { useTrips } from '../hooks/useTrips';
-import { useMyPendingTrips } from '../hooks/useMyPendingTrips';
+import {
+  useDashboardJoinRequests,
+  type DashboardJoinRequest,
+} from '../hooks/useDashboardJoinRequests';
 import { proTripMockData } from '../data/proTripMockData';
 import { Trip, TripParticipant } from '../data/tripsData';
 import { eventsMockData } from '../data/eventsMockData';
@@ -36,7 +39,6 @@ import type { ProTripData } from '../types/pro';
 import type { EventData } from '../types/events';
 import { tripsData } from '../data/tripsData';
 import { demoModeService } from '../services/demoModeService';
-import { mockMyPendingRequests } from '../mockData/pendingRequestsMock';
 import {
   calculateTripStats,
   calculateProTripStats,
@@ -190,7 +192,8 @@ const Index = () => {
 
   // Fetch pending join requests for the current user (for "Requests" counter)
   // Must be declared before handleRefresh which depends on refetchPendingTrips
-  const { pendingTrips: myPendingRequests, refetch: refetchPendingTrips } = useMyPendingTrips();
+  const { requests: dashboardJoinRequests, refetch: refetchDashboardJoinRequests } =
+    useDashboardJoinRequests(isDemoMode);
 
   // Callback to refresh trip list when a trip is archived/hidden/deleted
   const handleTripStateChange = useCallback(() => {
@@ -207,9 +210,9 @@ const Index = () => {
     await clearDataCaches();
     if (user) {
       await refreshTrips();
-      await refetchPendingTrips();
+      await refetchDashboardJoinRequests();
     }
-  }, [user, refreshTrips, refetchPendingTrips]);
+  }, [user, refreshTrips, refetchDashboardJoinRequests]);
 
   const { isRefreshing, pullDistance } = usePullToRefresh({
     onRefresh: handleRefresh,
@@ -351,36 +354,50 @@ const Index = () => {
 
   // Calculate requests count per view mode (scoped by trip_type)
   const requestsCounts = useMemo(() => {
-    // Demo mode: show mock pending requests count (all consumer for demo)
-    if (isDemoMode) {
-      return { consumer: mockMyPendingRequests.length, pro: 0, event: 0 };
-    }
-
-    if (!myPendingRequests) {
-      return { consumer: 0, pro: 0, event: 0 };
-    }
-    // Group pending requests by trip type
-    // Note: myPendingRequests contains trip_join_requests with trip info
-    // We need to determine trip_type from the trip data
     let consumer = 0;
     let pro = 0;
     let event = 0;
 
-    myPendingRequests.forEach(req => {
-      // Look up the trip in userTripsRaw to get trip_type
-      const tripData = userTripsRaw.find(t => t.id === req.trip_id);
-      if (tripData) {
-        if (tripData.trip_type === 'pro') pro++;
-        else if (tripData.trip_type === 'event') event++;
-        else consumer++;
-      } else {
-        // Default to consumer if trip data not found
-        consumer++;
+    dashboardJoinRequests.forEach(req => {
+      let tripType: string | null | undefined = req.trip?.trip_type;
+      if (tripType === undefined || tripType === null) {
+        const tripData = userTripsRaw.find(t => t.id === req.trip_id);
+        tripType = tripData?.trip_type ?? 'consumer';
       }
+      if (tripType === 'pro') pro++;
+      else if (tripType === 'event') event++;
+      else consumer++;
     });
 
     return { consumer, pro, event };
-  }, [isDemoMode, myPendingRequests, userTripsRaw]);
+  }, [dashboardJoinRequests, userTripsRaw]);
+
+  const filteredDashboardJoinRequests = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+
+    const scopeFilter = (req: DashboardJoinRequest): boolean => {
+      let tripType: string | null | undefined = req.trip?.trip_type;
+      if (tripType === undefined || tripType === null) {
+        const tripData = userTripsRaw.find(t => t.id === req.trip_id);
+        tripType = tripData?.trip_type ?? 'consumer';
+      }
+      if (viewMode === 'myTrips') return tripType !== 'pro' && tripType !== 'event';
+      if (viewMode === 'tripsPro') return tripType === 'pro';
+      if (viewMode === 'events') return tripType === 'event';
+      return true;
+    };
+
+    let list = dashboardJoinRequests.filter(scopeFilter);
+    if (q) {
+      list = list.filter(req => {
+        const name = (req.trip?.name ?? '').toLowerCase();
+        const dest = (req.trip?.destination ?? '').toLowerCase();
+        const who = (req.requesterLabel ?? '').toLowerCase();
+        return name.includes(q) || dest.includes(q) || who.includes(q);
+      });
+    }
+    return list;
+  }, [dashboardJoinRequests, userTripsRaw, viewMode, searchQuery]);
 
   // Calculate stats for each view mode - use UNFILTERED data for accurate counts
   // Stats should reflect total counts, not filtered counts
@@ -821,6 +838,7 @@ const Index = () => {
                   loading={isLoading}
                   onCreateTrip={handleCreateTrip}
                   activeFilter={recsFilter}
+                  dashboardJoinRequests={filteredDashboardJoinRequests}
                   onTripStateChange={handleTripStateChange}
                 />
               </div>
@@ -992,6 +1010,7 @@ const Index = () => {
                 loading={isLoading}
                 onCreateTrip={handleCreateTrip}
                 activeFilter={recsFilter}
+                dashboardJoinRequests={filteredDashboardJoinRequests}
                 onTripStateChange={handleTripStateChange}
               />
             </div>
@@ -1224,7 +1243,7 @@ const Index = () => {
             loading={tripsLoading}
             onCreateTrip={handleCreateTrip}
             activeFilter={activeFilter}
-            myPendingRequests={isDemoMode ? mockMyPendingRequests : myPendingRequests}
+            dashboardJoinRequests={filteredDashboardJoinRequests}
             onTripStateChange={handleTripStateChange}
           />
         </div>

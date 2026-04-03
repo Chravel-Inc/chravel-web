@@ -857,6 +857,7 @@ const QUERY_CLASS_TOOLS: Record<QueryClass, string[] | 'all'> = {
     'getPlaceDetails',
     'browseWebsite',
     'addToCalendar',
+    'setBasecamp',
   ],
   broadcast_notification: ['createBroadcast', 'createNotification'],
   trip_summary: 'all',

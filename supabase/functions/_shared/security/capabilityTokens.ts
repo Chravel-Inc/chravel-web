@@ -16,12 +16,12 @@ if (!JWT_SECRET) {
   );
 }
 
-const secretKey = new TextEncoder().encode(JWT_SECRET);
-
 export async function generateCapabilityToken(
   payload: Omit<CapabilityTokenPayload, 'exp'>,
   expiresInSeconds = 300,
 ): Promise<string> {
+  const secretKey = getSecretKey();
+
   const jwt = await new SignJWT({ ...payload })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
@@ -32,6 +32,8 @@ export async function generateCapabilityToken(
 }
 
 export async function verifyCapabilityToken(token: string): Promise<CapabilityTokenPayload> {
+  const secretKey = getSecretKey();
+
   try {
     const { payload } = await jwtVerify(token, secretKey);
     return payload as unknown as CapabilityTokenPayload;
