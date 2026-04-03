@@ -6,7 +6,7 @@ export function getTouchActivationConstraint({
 }: {
   isMobile: boolean;
   reorderMode: boolean;
-}): TouchActivationConstraint {
+}): PointerActivationConstraint {
   if (!isMobile) {
     return { distance: 8 };
   }
