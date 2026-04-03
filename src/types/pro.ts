@@ -321,6 +321,7 @@ export interface ProTripData {
   location: string;
   dateRange: string;
   coverPhoto?: string; // Cover photo URL for the trip
+  coverDisplayMode?: 'cover' | 'contain';
   card_color?: string; // User-selected card color (red, amber, blue, purple, emerald, rose, cyan, indigo)
   category?: string; // Legacy field - use proTripCategory instead
   proTripCategory?: import('./proCategories').ProCategoryEnum;
