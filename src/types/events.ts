@@ -124,6 +124,7 @@ export interface EventData {
   groupChatEnabled: boolean;
   archived?: boolean;
   coverPhoto?: string;
+  coverDisplayMode?: 'cover' | 'contain';
   card_color?: string;
   // Organizer display name (e.g., "Los Angeles Rams", "Boys & Girls Club of Dallas")
   organizer_display_name?: string;

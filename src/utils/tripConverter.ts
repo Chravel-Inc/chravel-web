@@ -44,6 +44,10 @@ export function convertSupabaseTripToMock(supabaseTrip: SupabaseTrip): MockTrip 
     description: supabaseTrip.description || '',
     participants: [], // Participants loaded separately via trip_members
     coverPhoto: supabaseTrip.cover_image_url,
+    coverDisplayMode: (supabaseTrip as Record<string, unknown>).cover_display_mode as
+      | 'cover'
+      | 'contain'
+      | undefined,
     trip_type: (supabaseTrip.trip_type || 'consumer') as 'consumer' | 'pro' | 'event',
     archived: supabaseTrip.is_archived,
     peopleCount,
@@ -109,6 +113,10 @@ export function convertSupabaseTripToProTrip(supabaseTrip: SupabaseTrip): ProTri
     privacy_mode: 'standard',
     ai_access_enabled: true,
     coverPhoto: supabaseTrip.cover_image_url ?? undefined,
+    coverDisplayMode: (supabaseTrip as Record<string, unknown>).cover_display_mode as
+      | 'cover'
+      | 'contain'
+      | undefined,
     card_color: (supabaseTrip as Record<string, unknown>).card_color as string | undefined,
   };
 }
@@ -150,6 +158,10 @@ export function convertSupabaseTripToEvent(supabaseTrip: SupabaseTrip): EventDat
     },
     itinerary: [],
     coverPhoto: supabaseTrip.cover_image_url ?? undefined,
+    coverDisplayMode: (supabaseTrip as Record<string, unknown>).cover_display_mode as
+      | 'cover'
+      | 'contain'
+      | undefined,
     card_color: (supabaseTrip as Record<string, unknown>).card_color as string | undefined,
     organizer_display_name: supabaseTrip.organizer_display_name ?? undefined,
   };

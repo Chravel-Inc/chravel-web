@@ -549,6 +549,7 @@ export const ProTripDetailDesktop = () => {
                 created_by: actualCreatorId,
                 trip_type: 'pro',
                 coverPhoto: tripData.coverPhoto,
+                coverDisplayMode: tripData.coverDisplayMode,
               }}
               category={tripData.proTripCategory as ProTripCategory}
               tags={tripData.tags}

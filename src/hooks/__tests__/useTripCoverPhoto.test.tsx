@@ -94,4 +94,20 @@ describe('useTripCoverPhoto', () => {
       );
     });
   });
+
+  it('updates cover display mode and invalidates trip queries', async () => {
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useTripCoverPhoto('trip-abc', undefined, 'cover'), {
+      wrapper,
+    });
+
+    await act(async () => {
+      const ok = await result.current.updateCoverDisplayMode('contain');
+      expect(ok).toBe(true);
+    });
+
+    expect(result.current.coverDisplayMode).toBe('contain');
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: tripKeys.all });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: tripKeys.detail('trip-abc') });
+  });
 });

@@ -47,6 +47,7 @@ export interface Trip {
   end_date?: string;
   destination?: string;
   cover_image_url?: string;
+  cover_display_mode?: 'cover' | 'contain';
   created_by: string;
   created_at: string;
   updated_at: string;
