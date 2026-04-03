@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  isPendingActionEnvelope,
-  normalizeToolResult,
-} from '../concierge/toolResultContracts.ts';
+import { isPendingActionEnvelope, normalizeToolResult } from '../concierge/toolResultContracts.ts';
 
 describe('toolResultContracts', () => {
   it('recognizes pending action envelopes', () => {

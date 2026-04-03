@@ -9,6 +9,9 @@ import { getDemoChannelsForTrip } from '../data/demoChannelData';
 import { TripChannel, ChannelMessage } from '../types/roleChannels';
 import { useDemoMode } from './useDemoMode';
 import { MockRolesService } from '@/services/mockRolesService';
+import { useFeatureFlag } from '@/lib/featureFlags';
+import { getStreamClient } from '@/services/stream/streamClient';
+import { useStreamProChannel } from './stream/useStreamProChannel';
 
 // All demo trip IDs including Pro and Event trips
 const DEMO_TRIP_IDS = [
@@ -66,12 +69,19 @@ const convertToRoleChannelMessage = (msg: ChannelMessage): RoleChannelMessage =>
 
 export const useRoleChannels = (tripId: string, _userRole: string, roles?: string[]) => {
   const { isDemoMode } = useDemoMode();
+  const streamFlagEnabled = useFeatureFlag('stream-chat-channels', false);
+  const streamConnected = !!getStreamClient()?.userID;
   const [availableChannels, setAvailableChannels] = useState<TripChannel[]>([]);
   const [activeChannel, setActiveChannel] = useState<TripChannel | null>(null);
   const [messages, setMessages] = useState<RoleChannelMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [demoMessages, setDemoMessages] = useState<Map<string, ChannelMessage[]>>(new Map());
+
+  // 🔀 STREAM ROUTING: Stream hook always called (Rules of Hooks), disabled when flag is off
+  const useStream = streamFlagEnabled && streamConnected;
+  const streamChannelId = useStream && activeChannel ? activeChannel.id : null;
+  const streamProChannel = useStreamProChannel(streamChannelId);
 
   const isDemoTrip = isDemoMode && DEMO_TRIP_IDS.includes(tripId);
 
@@ -246,18 +256,35 @@ export const useRoleChannels = (tripId: string, _userRole: string, roles?: strin
     return true;
   };
 
+  // When Stream is active, use Stream messages and sendMessage.
+  // Channel list, CRUD, and metadata still come from Supabase.
+  const effectiveMessages: RoleChannelMessage[] =
+    useStream && activeChannel
+      ? streamProChannel.messages.map(m => ({
+          id: m.id,
+          channelId: m.channelId,
+          senderId: m.senderId,
+          senderName: m.senderName,
+          senderAvatar: m.senderAvatar,
+          content: m.content,
+          createdAt: m.createdAt,
+        }))
+      : messages;
+
+  const effectiveSendMessage = useStream ? streamProChannel.sendMessage : sendMessage;
+
   return {
     availableChannels,
     activeChannel,
-    messages,
-    isLoading,
+    messages: effectiveMessages,
+    isLoading: useStream ? streamProChannel.isLoading : isLoading,
     error,
     setActiveChannel,
     createChannel,
     deleteChannel,
     archiveChannel,
     updateChannel,
-    sendMessage,
+    sendMessage: effectiveSendMessage,
     refreshChannels: loadChannels,
   };
 };

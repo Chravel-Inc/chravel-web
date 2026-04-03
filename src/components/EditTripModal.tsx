@@ -17,6 +17,7 @@ import {
   normalizeLegacyCategory,
 } from '@/types/proCategories';
 import { useQueryClient } from '@tanstack/react-query';
+import { tripKeys } from '@/lib/queryKeys';
 import { parseDateRange, formatDateRange } from '@/utils/dateFormatters';
 import { tripService, Trip } from '@/services/tripService';
 import { useAuth } from '@/hooks/useAuth';
@@ -165,8 +166,9 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
       const success = await tripService.updateTrip(trip.id.toString(), supabaseUpdates);
 
       if (success) {
-        // Invalidate React Query cache to immediately reflect changes in UI
-        queryClient.invalidateQueries({ queryKey: ['trips'] });
+        // Invalidate list + trip detail (detail key is ['trip', id, userId], not ['trips'])
+        queryClient.invalidateQueries({ queryKey: tripKeys.all });
+        queryClient.invalidateQueries({ queryKey: tripKeys.detail(trip.id.toString()) });
         if (onUpdate) onUpdate(mockUpdates);
         toast({
           title: 'Changes saved',

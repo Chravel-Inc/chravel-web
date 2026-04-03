@@ -8,7 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { tripKeys } from '@/lib/queryKeys';
 import { CalendarHeader } from '@/features/calendar/components/CalendarHeader';
 import { CalendarGrid } from '@/features/calendar/components/CalendarGrid';
-import { AddEventModal } from '@/features/calendar/components/AddEventModal';
+import { CalendarEventModal } from '@/features/calendar/components/CalendarEventModal';
 import { EventList } from '@/features/calendar/components/EventList';
 import { CalendarImportModal } from '@/features/calendar/components/CalendarImportModal';
 import { useCalendarExport } from '@/features/calendar/hooks/useCalendarExport';
@@ -20,6 +20,7 @@ import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { hasPaidAccess } from '@/utils/paidAccess';
 import type { CalendarEvent } from '@/types/calendar';
 import { CalendarErrorState } from '@/features/calendar/components/CalendarErrorState';
+import { ExportDialog } from '@/features/calendar/components/ExportDialog';
 
 interface GroupCalendarProps {
   tripId: string;
@@ -73,6 +74,8 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
 
   // ICS Import modal state
   const [showImportModal, setShowImportModal] = useState(false);
+  // Export dialog state
+  const [showExportDialog, setShowExportDialog] = useState(false);
 
   // Callback for background import: opens the modal with results when the toast action is clicked
   const handleBackgroundImportComplete = useCallback(() => {
@@ -157,9 +160,13 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
     resetForm();
   };
 
-  const handleExport = async () => {
+  const handleExport = () => {
+    setShowExportDialog(true);
+  };
+
+  const handleExportEvents = async (eventsToExport: typeof tripEvents) => {
     try {
-      await exportTripEvents(tripEvents);
+      await exportTripEvents(eventsToExport);
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Failed to export calendar:', error);
@@ -256,19 +263,22 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
         )}
 
         {/* Event Modal */}
-        <AddEventModal
-          open={showAddEvent}
+        <CalendarEventModal
+          isOpen={showAddEvent}
           onClose={() => {
             setShowAddEvent(false);
             setEditingEvent(null);
             resetForm();
           }}
-          newEvent={newEvent}
-          onUpdateField={updateEventField}
-          onSubmit={handleFormSubmit}
-          isSubmitting={isSaving}
-          isEditing={!!editingEvent}
-          selectedDate={selectedDate}
+          tripId={tripId}
+          editEvent={editingEvent || undefined}
+          prefilledData={selectedDate ? { date: selectedDate } : undefined}
+          onEventAdded={() => {
+            setShowAddEvent(false);
+            setEditingEvent(null);
+            resetForm();
+            refreshEvents();
+          }}
         />
 
         {/* ICS Import Modal */}
@@ -281,6 +291,12 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
           pendingResult={backgroundPendingResult}
           onClearPendingResult={clearBackgroundResult}
           onStartBackgroundImport={handleStartBackgroundImport}
+        />
+        <ExportDialog
+          isOpen={showExportDialog}
+          onClose={() => setShowExportDialog(false)}
+          tripEvents={tripEvents}
+          onExport={handleExportEvents}
         />
       </div>
     );
@@ -316,6 +332,12 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
           pendingResult={backgroundPendingResult}
           onClearPendingResult={clearBackgroundResult}
           onStartBackgroundImport={handleStartBackgroundImport}
+        />
+        <ExportDialog
+          isOpen={showExportDialog}
+          onClose={() => setShowExportDialog(false)}
+          tripEvents={tripEvents}
+          onExport={handleExportEvents}
         />
       </div>
     );
@@ -421,15 +443,18 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
       )}
 
       {/* Add Event Modal */}
-      <AddEventModal
-        open={showAddEvent}
+      <CalendarEventModal
+        isOpen={showAddEvent}
         onClose={handleFormCancel}
-        newEvent={newEvent}
-        onUpdateField={updateEventField}
-        onSubmit={handleFormSubmit}
-        isSubmitting={isSaving}
-        isEditing={!!editingEvent}
-        selectedDate={selectedDate}
+        tripId={tripId}
+        editEvent={editingEvent || undefined}
+        prefilledData={selectedDate ? { date: selectedDate } : undefined}
+        onEventAdded={() => {
+          setShowAddEvent(false);
+          setEditingEvent(null);
+          resetForm();
+          refreshEvents();
+        }}
       />
 
       {/* ICS Import Modal */}
@@ -442,6 +467,12 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
         pendingResult={backgroundPendingResult}
         onClearPendingResult={clearBackgroundResult}
         onStartBackgroundImport={handleStartBackgroundImport}
+      />
+      <ExportDialog
+        isOpen={showExportDialog}
+        onClose={() => setShowExportDialog(false)}
+        tripEvents={tripEvents}
+        onExport={handleExportEvents}
       />
     </div>
   );

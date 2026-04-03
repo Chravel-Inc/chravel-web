@@ -19,6 +19,9 @@ export const SortableCardWrapper: React.FC<SortableCardWrapperProps> = ({
   onLongPressEnterReorder,
 }) => {
   const handleLongPress = useCallback(() => {
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+      navigator.vibrate(12);
+    }
     onLongPressEnterReorder?.();
   }, [onLongPressEnterReorder]);
 
@@ -39,22 +42,25 @@ export const SortableCardWrapper: React.FC<SortableCardWrapperProps> = ({
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.7 : 1,
+    // Mobile reorder: hide list item under DragOverlay; desktop grip drag keeps visible preview.
+    transition: reorderMode && isDragging ? undefined : transition,
+    opacity: reorderMode ? (isDragging ? 0 : 1) : isDragging ? 0.7 : 1,
     zIndex: isDragging ? 50 : 'auto',
     position: 'relative' as const,
+    touchAction: reorderMode ? 'none' : undefined,
+    willChange: 'transform',
   };
 
-  // When in reorder mode: subtle highlight (ring), no wiggle
+  // Reorder mode: subtle ring + gentle floating motion (DragOverlay renders the lifted card)
   const reorderModeClasses = reorderMode
-    ? 'ring-2 ring-primary/50 ring-offset-2 ring-offset-background'
+    ? 'ring-2 ring-primary/40 ring-offset-2 ring-offset-background animate-float-subtle'
     : '';
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`${isDragging ? 'shadow-xl scale-[1.02]' : ''} ${reorderModeClasses}`}
+      className={`${!reorderMode && isDragging ? 'shadow-xl scale-[1.02]' : ''}`}
       {...(reorderMode ? { ...attributes, ...listeners } : {})}
       {...(!reorderMode && onLongPressEnterReorder ? longPressHandlers : {})}
     >
@@ -70,7 +76,7 @@ export const SortableCardWrapper: React.FC<SortableCardWrapperProps> = ({
           <GripVertical size={16} />
         </button>
       )}
-      <div className="group">{children}</div>
+      <div className={`group ${reorderModeClasses}`}>{children}</div>
     </div>
   );
 };

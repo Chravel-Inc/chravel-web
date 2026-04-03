@@ -12,6 +12,9 @@ import { messageEvents } from '@/telemetry/events';
 import { sendChatMessage } from '@/services/chatService';
 import { privacyService } from '@/services/privacyService';
 import { subscribeToBroadcast } from '@/services/chatBroadcastService';
+import { useFeatureFlag } from '@/lib/featureFlags';
+import { useStreamTripChat } from '@/hooks/stream/useStreamTripChat';
+import { getStreamClient } from '@/services/stream/streamClient';
 
 interface TripChatMessage {
   id: string;
@@ -50,9 +53,36 @@ interface CreateMessageRequest {
  * ⚡ PERFORMANCE: Added `enabled` option for lazy loading
  * When enabled=false, no queries or subscriptions are created
  * Use this to defer chat loading until the chat tab is active
+ *
+ * 🔀 STREAM ROUTING: When `stream-chat-trip` feature flag is enabled AND
+ * the Stream client is connected, this hook delegates to useStreamTripChat.
+ * Otherwise, the Supabase-backed implementation runs.
+ *
+ * Both hooks are always called (Rules of Hooks), but the inactive one is
+ * disabled via its `enabled` option so it does zero work.
  */
 export const useTripChat = (tripId: string | undefined, options?: { enabled?: boolean }) => {
-  const isEnabled = options?.enabled !== false; // Default to true for backward compat
+  const streamFlagEnabled = useFeatureFlag('stream-chat-trip', false);
+  const streamConnected = !!getStreamClient()?.userID;
+  const useStream = streamFlagEnabled && streamConnected;
+  const isEnabled = options?.enabled !== false;
+
+  // Stream-backed hook (disabled when not routing to Stream)
+  const streamResult = useStreamTripChat(tripId, { enabled: useStream && isEnabled });
+
+  // Supabase-backed hook (disabled when routing to Stream)
+  const supabaseResult = useSupabaseTripChat(tripId, { enabled: !useStream && isEnabled });
+
+  return useStream ? streamResult : supabaseResult;
+};
+
+/**
+ * Supabase-backed trip chat — the current production implementation.
+ * Extracted into its own function so useTripChat can route between backends
+ * while respecting Rules of Hooks (both hooks always called, one disabled).
+ */
+const useSupabaseTripChat = (tripId: string | undefined, options?: { enabled?: boolean }) => {
+  const isEnabled = options?.enabled !== false;
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { isOffline } = useOfflineStatus();

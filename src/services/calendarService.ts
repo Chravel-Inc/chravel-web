@@ -78,7 +78,12 @@ export const calendarService = {
    * Check if the new event overlaps with any existing events.
    * Returns an array of conflicting event titles (empty if no conflicts).
    */
-  async checkForConflicts(tripId: string, startTime: string, endTime?: string): Promise<string[]> {
+  async checkForConflicts(
+    tripId: string,
+    startTime: string,
+    endTime?: string,
+    excludeId?: string,
+  ): Promise<string[]> {
     try {
       const events = await this.getTripEvents(tripId);
       const newStart = new Date(startTime).getTime();
@@ -87,6 +92,9 @@ export const calendarService = {
       const conflicts: string[] = [];
 
       for (const event of events) {
+        // Skip the event being edited so it doesn't conflict with itself
+        if (excludeId && event.id === excludeId) continue;
+
         const eventStart = new Date(event.start_time).getTime();
         const eventEnd = event.end_time ? new Date(event.end_time).getTime() : eventStart + 3600000; // Default 1 hour if no end time
 

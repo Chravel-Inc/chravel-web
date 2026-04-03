@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { tripKeys } from '@/lib/queryKeys';
 import { useAuth } from './useAuth';
 import { useDemoMode } from './useDemoMode';
 import { demoModeService } from '@/services/demoModeService';
@@ -13,15 +14,15 @@ export const useTripCoverPhoto = (tripId: string, initialPhotoUrl?: string) => {
   const [coverPhoto, setCoverPhoto] = useState<string | undefined>(initialPhotoUrl);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Load demo mode cover photo on mount
+  // Keep local state aligned with TanStack Query / parent props (detail key is ['trip', id, userId], not ['trips'])
   useEffect(() => {
     if (isDemoMode) {
       const demoPhoto = demoModeService.getCoverPhoto(tripId);
-      if (demoPhoto) {
-        setCoverPhoto(demoPhoto);
-      }
+      setCoverPhoto(demoPhoto ?? initialPhotoUrl);
+      return;
     }
-  }, [isDemoMode, tripId]);
+    setCoverPhoto(initialPhotoUrl);
+  }, [isDemoMode, tripId, initialPhotoUrl]);
 
   const updateCoverPhoto = async (photoUrl: string): Promise<boolean> => {
     // Reject blob URLs from being saved to database (except in demo mode)
@@ -77,8 +78,9 @@ export const useTripCoverPhoto = (tripId: string, initialPhotoUrl?: string) => {
       }
 
       setCoverPhoto(photoUrl);
-      // Invalidate React Query cache to immediately reflect changes in trip lists
-      queryClient.invalidateQueries({ queryKey: ['trips'] });
+      // Trip list uses ['trips', ...]; trip detail uses ['trip', tripId, userId] — invalidate both
+      queryClient.invalidateQueries({ queryKey: tripKeys.all });
+      queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
       toast.success('Cover photo updated');
       return true;
     } catch (error) {
@@ -134,8 +136,8 @@ export const useTripCoverPhoto = (tripId: string, initialPhotoUrl?: string) => {
       }
 
       setCoverPhoto(undefined);
-      // Invalidate React Query cache to immediately reflect changes in trip lists
-      queryClient.invalidateQueries({ queryKey: ['trips'] });
+      queryClient.invalidateQueries({ queryKey: tripKeys.all });
+      queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
       toast.success('Cover photo removed');
       return true;
     } catch (error) {

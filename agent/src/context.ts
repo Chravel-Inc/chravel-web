@@ -84,67 +84,70 @@ export async function fetchTripContext(
 ): Promise<TripContext | null> {
   const db = getSupabase();
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10_000);
+  // Use Promise.race with timeout for cancellation
+  const TIMEOUT_MS = 10_000;
+
+  const fetchWithTimeout = async <T>(promise: Promise<T>): Promise<T> => {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Timeout')), TIMEOUT_MS);
+    });
+    return Promise.race([promise, timeoutPromise]);
+  };
 
   try {
     // Parallel fetches — same approach as contextBuilder.ts
     const [tripResult, calendarResult, tasksResult, membersResult, placesResult, prefsResult] =
-      await Promise.all([
-        // Trip metadata
-        db
-          .from('trips')
-          .select('id, name, destination, start_date, end_date, type')
-          .eq('id', tripId)
-          .single()
-          .abortSignal(controller.signal),
+      await fetchWithTimeout(
+        Promise.all([
+          // Trip metadata
+          db
+            .from('trips')
+            .select('id, name, destination, start_date, end_date, type')
+            .eq('id', tripId)
+            .single(),
 
-        // Calendar events (upcoming 20)
-        db
-          .from('calendar_events')
-          .select('id, title, start_time, end_time, location')
-          .eq('trip_id', tripId)
-          .gte('start_time', new Date().toISOString())
-          .order('start_time', { ascending: true })
-          .limit(20)
-          .abortSignal(controller.signal),
+          // Calendar events (upcoming 20)
+          db
+            .from('calendar_events')
+            .select('id, title, start_time, end_time, location')
+            .eq('trip_id', tripId)
+            .gte('start_time', new Date().toISOString())
+            .order('start_time', { ascending: true })
+            .limit(20),
 
-        // Tasks
-        db
-          .from('tasks')
-          .select('id, content, assignee_id, due_date, is_complete')
-          .eq('trip_id', tripId)
-          .eq('is_complete', false)
-          .order('created_at', { ascending: false })
-          .limit(20)
-          .abortSignal(controller.signal),
+          // Tasks
+          db
+            .from('tasks')
+            .select('id, content, assignee_id, due_date, is_complete')
+            .eq('trip_id', tripId)
+            .eq('is_complete', false)
+            .order('created_at', { ascending: false })
+            .limit(20),
 
-        // Trip members
-        db
-          .from('trip_members')
-          .select('user_id, role, profiles_public!inner(display_name)')
-          .eq('trip_id', tripId)
-          .abortSignal(controller.signal),
+          // Trip members
+          db
+            .from('trip_members')
+            .select('user_id, role, profiles_public!inner(display_name)')
+            .eq('trip_id', tripId),
 
-        // Trip basecamp
-        db
-          .from('trip_basecamps')
-          .select('name, address, lat, lng')
-          .eq('trip_id', tripId)
-          .eq('scope', 'trip')
-          .maybeSingle()
-          .abortSignal(controller.signal),
+          // Trip basecamp
+          db
+            .from('trip_basecamps')
+            .select('name, address, lat, lng')
+            .eq('trip_id', tripId)
+            .eq('scope', 'trip')
+            .maybeSingle(),
 
-        // User preferences
-        db
-          .from('user_preferences')
-          .select(
-            'dietary, vibe, accessibility, business, entertainment, budget, time_preference, travel_style',
-          )
-          .eq('user_id', userId)
-          .maybeSingle()
-          .abortSignal(controller.signal),
-      ]);
+          // User preferences
+          db
+            .from('user_preferences')
+            .select(
+              'dietary, vibe, accessibility, business, entertainment, budget, time_preference, travel_style',
+            )
+            .eq('user_id', userId)
+            .maybeSingle(),
+        ]),
+      );
 
     if (tripResult.error || !tripResult.data) {
       console.error('[agent:context] Trip not found:', tripId, tripResult.error?.message);
@@ -205,13 +208,16 @@ export async function fetchTripContext(
       })),
     };
   } catch (err) {
-    if ((err as Error).name === 'AbortError') {
+    // Timeout errors have message 'Timeout' (from fetchWithTimeout helper above)
+    // AbortError is no longer used since we removed abortSignal (not available in this Supabase version)
+    const isTimeout = (err as Error).message === 'Timeout';
+    if (isTimeout) {
       console.error('[agent:context] Context fetch timed out for trip:', tripId);
     } else {
       console.error('[agent:context] Context fetch error:', err);
     }
+    // Returns null on any error, allowing agent to proceed with minimal prompt
+    // This is safe because auth was already verified by livekit-token edge function
     return null;
-  } finally {
-    clearTimeout(timeout);
   }
 }

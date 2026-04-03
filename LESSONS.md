@@ -268,3 +268,15 @@
 - **Evidence:** March 2026 remediation added iOS consumer checkout guards in `useConsumerSubscription`, `ConsumerBillingSection`, and `supabase/functions/create-checkout/index.ts`.
 - **Provenance:** 2026-03-19 launch blocker remediation pass.
 - **Confidence:** high
+### Never apply keyframe `transform` animations on the same node dnd-kit uses for drag transforms
+- **Tip:** If sortable items feel jittery or "glitchy" in mobile reorder mode, check whether CSS animation classes (wiggle/float/pulse) are attached to the same element receiving dnd-kit inline `transform`. Move decorative animation to an inner wrapper so drag translation remains authoritative.
+- **Applies when:** dnd-kit sortable cards need an iOS-like wiggle/edit mode.
+- **Evidence:** Dashboard trip reorder still felt unstable after overlay/sync fixes; moving `animate-wiggle-subtle` from sortable root node to inner child removed transform contention and improved drag smoothness.
+- **Provenance:** April 2026 trip reorder follow-up hardening (`SortableCardWrapper`).
+- **Confidence:** high
+### For reorder "edit mode" motion, prefer micro-float over rotation when users request calmer affordance
+- **Tip:** If users describe wiggle as distracting/glitchy, keep motion but switch to low-amplitude float (`translateY` ~1–2px) to preserve edit-mode affordance with lower visual noise.
+- **Applies when:** Mobile card/icon reordering where product asks for iOS-like ease without aggressive motion.
+- **Evidence:** Dashboard trip reorder feedback explicitly preferred float over wiggle/pulse; `animate-float-subtle` improved perceived smoothness while keeping transform isolation.
+- **Provenance:** April 2026 dashboard reorder follow-up.
+- **Confidence:** medium-high

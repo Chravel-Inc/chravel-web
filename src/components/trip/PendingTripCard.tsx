@@ -10,6 +10,14 @@ interface PendingTripCardProps {
   startDate?: string;
   coverImage?: string;
   requestedAt: string;
+  /** When set, replaces the default "Pending Approval" badge (e.g. inbound join requests). */
+  statusBadge?: string;
+  /** Secondary line under the title (e.g. requester name for inbound requests). */
+  subtitle?: string;
+  /** When true, card is clickable and shows a primary CTA instead of disabled styling. */
+  interactive?: boolean;
+  ctaLabel?: string;
+  onCta?: () => void;
 }
 
 export const PendingTripCard: React.FC<PendingTripCardProps> = ({
@@ -19,21 +27,37 @@ export const PendingTripCard: React.FC<PendingTripCardProps> = ({
   startDate,
   coverImage,
   requestedAt,
+  statusBadge = 'Pending Approval',
+  subtitle,
+  interactive = false,
+  ctaLabel,
+  onCta,
 }) => {
   return (
-    <Card className="relative overflow-hidden bg-card/50 border-border opacity-60 cursor-not-allowed">
+    <Card
+      className={`relative overflow-hidden bg-card/50 border-border ${
+        interactive ? 'hover:border-primary/40 transition-colors' : 'opacity-60 cursor-not-allowed'
+      }`}
+    >
       {/* Pending Badge */}
       <div className="absolute top-3 right-3 z-10">
         <div className="flex items-center gap-1.5 bg-yellow-500/20 text-yellow-400 px-3 py-1.5 rounded-full text-xs font-medium">
           <Clock className="w-3.5 h-3.5" />
-          Pending Approval
+          {statusBadge}
         </div>
       </div>
 
       {/* Cover Image with Gray Overlay */}
       <div className="relative h-32 bg-muted">
         {coverImage ? (
-          <img src={coverImage} alt={tripName} className="w-full h-full object-cover grayscale" />
+          <img
+            src={coverImage}
+            alt={tripName}
+            className="w-full h-full object-cover grayscale"
+            onError={e => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-muted to-muted-foreground/20" />
         )}
@@ -41,9 +65,12 @@ export const PendingTripCard: React.FC<PendingTripCardProps> = ({
       </div>
 
       <CardContent className="p-4">
-        <h3 className="text-lg font-semibold text-muted-foreground mb-2 line-clamp-1">
+        <h3
+          className={`text-lg font-semibold mb-1 line-clamp-1 ${interactive ? 'text-foreground' : 'text-muted-foreground'}`}
+        >
           {tripName}
         </h3>
+        {subtitle && <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{subtitle}</p>}
 
         {destination && (
           <div className="flex items-center gap-2 text-muted-foreground/70 text-sm mb-1">
@@ -62,6 +89,15 @@ export const PendingTripCard: React.FC<PendingTripCardProps> = ({
         <p className="text-xs text-muted-foreground/60">
           Requested {format(new Date(requestedAt), 'MMM d, yyyy')}
         </p>
+        {interactive && ctaLabel && onCta && (
+          <button
+            type="button"
+            className="mt-3 w-full text-sm font-medium rounded-lg bg-primary text-primary-foreground py-2.5 px-3 hover:bg-primary/90 min-h-[44px]"
+            onClick={onCta}
+          >
+            {ctaLabel}
+          </button>
+        )}
       </CardContent>
     </Card>
   );

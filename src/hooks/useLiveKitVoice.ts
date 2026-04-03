@@ -142,7 +142,7 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
   // ── Data Message Handler ─────────────────────────────────────────────────
 
   const handleDataMessage = useCallback(
-    (payload: Uint8Array, _participant: unknown, topic?: string) => {
+    (payload: Uint8Array, _participant?: unknown, _kind?: unknown, topic?: string) => {
       try {
         const msg = JSON.parse(decoder.decode(payload));
 
@@ -185,6 +185,19 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
             else if (msg.state === 'thinking' || msg.state === 'executing_tool')
               setState('sending');
             else if (msg.state === 'idle') setState('listening');
+            break;
+
+          case 'error':
+            // Agent-side error (e.g., Gemini API failure, tool execution crash)
+            setError(msg.message || 'Agent encountered an error');
+            setState('error');
+            setDiagnostics(prev => ({
+              ...prev,
+              connectionStatus: 'error',
+              lastError: msg.message,
+            }));
+            onError?.(msg.message || 'Agent encountered an error');
+            circuitBreaker.recordFailure(msg.message || 'agent_error');
             break;
         }
       } catch {
@@ -272,9 +285,20 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
       });
 
       // Track agent join
+      // Track agent join - use isAgent property set by LiveKit SDK
+      // isAgent checks participant.kind === ParticipantKind.AGENT (value 4)
       let agentJoined = false;
+
+      // Helper to check if participant is an agent
+      // Primary: isAgent property (SDK v2+)
+      // Fallback: identity prefix (server naming convention)
+      const isAgentParticipant = (p: unknown): boolean => {
+        const participant = p as { isAgent?: boolean; identity?: string };
+        return participant.isAgent === true || participant.identity?.startsWith('agent-') === true;
+      };
+
       room.on(RoomEvent!.ParticipantConnected, participant => {
-        if (participant.identity?.startsWith('agent-')) {
+        if (isAgentParticipant(participant)) {
           agentJoined = true;
           setState('listening');
           setDiagnostics(prev => ({
@@ -355,7 +379,7 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
           }, AGENT_JOIN_TIMEOUT_MS);
 
           room.on(RoomEvent!.ParticipantConnected, participant => {
-            if (participant.identity?.startsWith('agent-')) {
+            if (isAgentParticipant(participant)) {
               clearTimeout(timeout);
               agentJoined = true;
               setState('listening');
@@ -371,7 +395,7 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
 
           // Check if agent already joined during connection
           for (const [, p] of room.remoteParticipants) {
-            if (p.identity?.startsWith('agent-')) {
+            if (isAgentParticipant(p)) {
               clearTimeout(timeout);
               agentJoined = true;
               setState('listening');
