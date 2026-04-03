@@ -72,7 +72,7 @@ const PLACE_NAVIGATION_PATTERN =
   /\b(directions|how far|how long to get|distance|navigate|route|drive to|walk to|transit to|take me to|get there|eta|travel time)\b/i;
 
 const BASECAMP_ACTION_PATTERN =
-  /\b(set basecamp|our hotel is|staying at|set accommodation|make this .+ hotel|this is where .+ staying|set .+ basecamp|change .+ hotel)\b/i;
+  /\b(set basecamp|our hotel is|staying at|set accommodation|make this .+ hotel|this is where .+ staying|set .+ basecamp|change .+ hotel|make .+(?:my |our )?(?:personal )?basecamp)\b/i;
 
 const AGENDA_ACTION_PATTERN =
   /\b(add to agenda|agenda item|session schedule|add session|schedule a session|put .+ on .+ agenda)\b/i;
