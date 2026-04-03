@@ -147,7 +147,7 @@ export function useDashboardJoinRequests(isDemoMode = false) {
         return;
       }
 
-      const mapped = (data as JoinRequestRow[] | null)?.map(r =>
+      const mapped = (data as unknown as JoinRequestRow[] | null)?.map(r =>
         mapRowToDashboardRequest(r, user.id),
       );
       setRequests(mapped ?? []);
