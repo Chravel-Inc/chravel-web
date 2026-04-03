@@ -33,6 +33,7 @@ import { useJoinRequests } from '../hooks/useJoinRequests';
 import { useDemoTripMembersStore } from '../store/demoTripMembersStore';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { buildTripCoverStoragePath, TRIP_COVER_BUCKET } from '../utils/tripCoverStorage';
 
 // Stable empty array to prevent Zustand selector reference changes causing infinite re-renders
 const EMPTY_MEMBERS_ARRAY: Array<{
@@ -360,10 +361,10 @@ export const TripHeader = ({
     setIsUploading(true);
     try {
       const fileName = `${trip.id}-${Date.now()}.jpg`;
-      const filePath = `trip-covers/${trip.id}/${fileName}`;
+      const filePath = buildTripCoverStoragePath(trip.id.toString(), fileName);
 
       const { error: uploadError } = await supabase.storage
-        .from('trip-media')
+        .from(TRIP_COVER_BUCKET)
         .upload(filePath, croppedBlob, {
           cacheControl: '3600',
           upsert: true,
@@ -376,7 +377,7 @@ export const TripHeader = ({
         return;
       }
 
-      const { data: urlData } = supabase.storage.from('trip-media').getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage.from(TRIP_COVER_BUCKET).getPublicUrl(filePath);
 
       if (!urlData?.publicUrl) {
         toast.error('Failed to get image URL');
