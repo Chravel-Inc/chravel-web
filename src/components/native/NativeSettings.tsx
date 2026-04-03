@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { useTheme } from '@/hooks/useTheme';
 import {
   User,
   Bell,
@@ -64,7 +65,7 @@ export const NativeSettings = ({
   const [calendarReminders, setCalendarReminders] = useState(true);
 
   // Appearance settings
-  const [darkMode, setDarkMode] = useState(true);
+  const { isDarkMode, toggleTheme } = useTheme();
   const [hapticFeedback, setHapticFeedback] = useState(true);
 
   // Privacy settings
@@ -184,10 +185,10 @@ export const NativeSettings = ({
           {/* Appearance Section */}
           <NativeListSection header="Appearance">
             <NativeToggleItem
-              icon={darkMode ? <Moon size={18} /> : <Sun size={18} />}
+              icon={isDarkMode ? <Moon size={18} /> : <Sun size={18} />}
               label="Dark Mode"
-              checked={darkMode}
-              onChange={setDarkMode}
+              checked={isDarkMode}
+              onChange={toggleTheme}
             />
             <NativeToggleItem
               icon={<Smartphone size={18} />}

@@ -151,11 +151,13 @@ describe('useLiveKitVoice', () => {
         mocks.roomEvent.DataReceived,
         payload({ toolName: 'searchPlaces', cardData: { title: 'Cafe' } }),
         null,
+        null,
         'rich_card',
       );
       room.trigger(
         mocks.roomEvent.DataReceived,
         payload({ userText: 'hello', assistantText: 'hi there', toolResults: [] }),
+        null,
         null,
         'turn_complete',
       );
