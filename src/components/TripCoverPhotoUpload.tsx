@@ -79,7 +79,7 @@ export const TripCoverPhotoUpload = ({
         }
 
         // Authenticated mode: Upload to canonical trip-media/trip-covers path
-        const fileName = `cover-${Date.now()}.jpg`;
+        const fileName = `cover-${Date.now()}-${crypto.randomUUID()}.jpg`;
         const filePath = buildTripCoverStoragePath(tripId, fileName);
 
         const MAX_RETRIES = 3;
@@ -92,7 +92,7 @@ export const TripCoverPhotoUpload = ({
               .from(TRIP_COVER_BUCKET)
               .upload(filePath, croppedBlob, {
                 cacheControl: '3600',
-                upsert: false,
+                upsert: true,
                 contentType: 'image/jpeg',
               });
 
