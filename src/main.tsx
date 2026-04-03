@@ -13,14 +13,18 @@ import App from './App.tsx';
 import './index.css';
 
 // ── Startup env validation ──────────────────────────────────────────────────
-// Warn early if required env vars are missing (Supabase client has hardcoded
-// fallbacks so the app still boots, but this surfaces misconfig in dev/staging).
-const REQUIRED_ENV_VARS = ['VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY'] as const;
-const missingEnvVars = REQUIRED_ENV_VARS.filter(k => !import.meta.env[k]);
+// Supabase config is required at runtime. Accept either the modern
+// publishable key or legacy anon key.
+const hasSupabaseUrl = Boolean(import.meta.env.VITE_SUPABASE_URL);
+const hasSupabasePublicKey = Boolean(
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY,
+);
+const missingEnvVars = [
+  !hasSupabaseUrl ? 'VITE_SUPABASE_URL' : null,
+  !hasSupabasePublicKey ? 'VITE_SUPABASE_PUBLISHABLE_KEY (or VITE_SUPABASE_ANON_KEY)' : null,
+].filter(Boolean);
 if (missingEnvVars.length > 0) {
-  console.warn(
-    `[Chravel] Missing env vars: ${missingEnvVars.join(', ')}. Using hardcoded fallbacks.`,
-  );
+  console.warn(`[Chravel] Missing env vars: ${missingEnvVars.join(', ')}.`);
 }
 
 // ── Imperative init (runs after all imports are resolved) ──────────────────
