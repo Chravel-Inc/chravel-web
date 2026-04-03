@@ -119,5 +119,15 @@ describe('Capability Tokens — Security Tests', () => {
       const verified = await verifyCapabilityToken(token);
       expect(verified.allowed_tools).toEqual(['*']);
     });
+
+    it('should import without crashing even when secret is missing', async () => {
+      envMap.clear();
+      vi.resetModules();
+
+      // Import should succeed — no top-level throw
+      const mod = await import('../security/capabilityTokens.ts');
+      expect(mod.generateCapabilityToken).toBeDefined();
+      expect(mod.verifyCapabilityToken).toBeDefined();
+    });
   });
 });
