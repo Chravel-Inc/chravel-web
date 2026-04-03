@@ -67,6 +67,12 @@ if (!isNativePlatform && 'serviceWorker' in navigator) {
     .catch(() => {});
 }
 
+// Initialize theme
+const theme = localStorage.getItem('theme');
+if (theme === 'light') {
+  document.documentElement.classList.add('light');
+}
+
 // Preview hardening: always clear stale caches (prevents sticky blank preview states)
 if (isLovablePreview()) {
   clearAllCaches();
