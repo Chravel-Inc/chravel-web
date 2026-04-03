@@ -161,7 +161,10 @@ export const EventNotificationsSection = () => {
         }
       } catch (error) {
         if (import.meta.env.DEV) {
-          if (error instanceof Error && error.message === 'notification_preferences_fetch_timeout') {
+          if (
+            error instanceof Error &&
+            error.message === 'notification_preferences_fetch_timeout'
+          ) {
             console.warn(
               'Notification preferences fetch timed out; showing defaults until next load.',
             );
