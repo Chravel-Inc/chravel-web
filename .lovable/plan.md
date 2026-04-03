@@ -1,31 +1,57 @@
 
 
-# Fix Concierge Tool-Calling Architecture
+# Fix capabilityTokens.ts + LiveKit Build Error
 
-## Problem
-The concierge fails on ALL tool calls because `capabilityTokens.ts` crashes at **module import time** when `SUPABASE_JWT_SECRET` is missing. Additionally, multi-action requests like "book a hotel + add to calendar + make it my basecamp" can't work because the `booking_reservation` tool set doesn't include `setBasecamp`, and the basecamp regex doesn't match "make it my basecamp."
+## Context
+1. `SUPABASE_JWT_SECRET` is **automatically injected** by Supabase into all Edge Functions at runtime — you do NOT add it manually (the `SUPABASE_` prefix is reserved in the secrets dashboard)
+2. The previous edit left `capabilityTokens.ts` in a broken state: it calls `getSecretKey()` but never defines the function, AND still has the top-level throw guard
+3. The `livekit-token` build error is a separate issue — `npm:livekit-server-sdk@2` needs a `deno.json` entry
 
 ## Changes
 
-### 1. Graceful capability token failure — `supabase/functions/_shared/security/capabilityTokens.ts`
-- Remove the top-level `if (!JWT_SECRET) throw` guard (lines 11-16) and the top-level `secretKey` constant (line 18)
-- Add a `getSecretKey()` helper that throws only when called — deferring the crash to actual tool execution
-- Call `getSecretKey()` inside `generateCapabilityToken()` and `verifyCapabilityToken()` instead of using module-level `secretKey`
-- This lets text-only concierge responses continue working even when the secret is missing
+### 1. Fix `capabilityTokens.ts` — define `getSecretKey()` + remove top-level throw
 
-### 2. Add `setBasecamp` to `booking_reservation` tools — `supabase/functions/_shared/concierge/toolRegistry.ts`
-- Line 859: Add `'setBasecamp'` after `'addToCalendar'` in the `booking_reservation` array
-- Hotels frequently become basecamps — these actions are tightly coupled
+Replace the top-level crash with a lazy helper:
 
-### 3. Broaden basecamp regex — `supabase/functions/_shared/concierge/queryClassifier.ts`
-- Line 74-75: Expand `BASECAMP_ACTION_PATTERN` to also match `make .+ (my |our )?(personal )?basecamp`
-- This catches phrases like "make it my personal basecamp" that previously failed
+```typescript
+const JWT_SECRET = Deno.env.get('SUPABASE_JWT_SECRET');
 
-### 4. User action: Add `SUPABASE_JWT_SECRET` to Edge Function secrets
-- Navigate to **Supabase Dashboard → Project Settings → API → JWT Secret** → copy the value
-- Go to **Edge Functions → Secrets** → add `SUPABASE_JWT_SECRET` with that value
-- This is the critical unblock for ALL tool calling
+function getSecretKey(): Uint8Array {
+  const secret = JWT_SECRET || Deno.env.get('SUPABASE_JWT_SECRET');
+  if (!secret) {
+    throw new Error(
+      'SUPABASE_JWT_SECRET is required — this value is auto-injected by Supabase at runtime.'
+    );
+  }
+  return new TextEncoder().encode(secret);
+}
+```
+
+Remove lines 11-17 (the `if (!JWT_SECRET) throw` block). The error now only fires when a tool call actually needs a capability token, not at module load time.
+
+### 2. Fix LiveKit build error — `supabase/functions/livekit-token/deno.json`
+
+Create a `deno.json` in the livekit-token function directory to resolve the npm import:
+
+```json
+{
+  "imports": {
+    "livekit-server-sdk": "npm:livekit-server-sdk@^2"
+  }
+}
+```
+
+And update the import in `index.ts` from `npm:livekit-server-sdk@2` to use the import map.
+
+### 3. Fix `requireSecrets` misuse in `livekit-token/index.ts`
+
+Line 31: `requireSecrets()` returns a `Record<string, string>` (throws on failure), but the code treats it as if it returns an error. The current code:
+```typescript
+const secretsError = requireSecrets([...]);
+if (secretsError) { ... }
+```
+This is wrong — `requireSecrets` throws, it doesn't return an error. Wrap in try/catch or use destructuring.
 
 ## Risk
-**LOW** — No runtime behavior change for text-only responses. Tool calls that were already crashing now fail gracefully with a clear error per-tool. The regex and tool registry changes are additive only.
+**LOW** — fixes broken code, no behavior change for working paths.
 
