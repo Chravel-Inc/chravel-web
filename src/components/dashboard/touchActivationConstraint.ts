@@ -1,4 +1,4 @@
-import type { TouchActivationConstraint } from '@dnd-kit/core';
+import type { PointerActivationConstraint } from '@dnd-kit/core';
 
 export function getTouchActivationConstraint({
   isMobile,
