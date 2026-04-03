@@ -389,7 +389,7 @@ export const ALL_TOOL_DECLARATIONS: ToolDeclaration[] = [
   {
     name: 'emitSmartImportPreview',
     description:
-      'Extract calendar events from attached images/screenshots/PDFs (hotel reservations, boarding passes, flight confirmations, itineraries) and show a preview card for the user to confirm before adding to calendar. Call this when user attaches a travel document and says "add to calendar", "import this", "save this to the trip", or similar. YOU must analyze the attached image and extract the event details yourself, then pass them as the events array.',
+      'Extract calendar events from attached files, pasted text, or browsed URLs (hotel reservations, boarding passes, flight confirmations, itineraries, schedules) and show a preview card for the user to confirm before adding to calendar. Call this when: (1) user attaches a travel document and says "add to calendar", "import this", "save this to the trip"; (2) user pastes itinerary text directly into chat; (3) user shares a URL — first call browseWebsite to fetch the page content, then call this tool with extracted events. YOU must analyze the content and extract the event details yourself, then pass them as the events array. Supports both individual events and bulk schedules (e.g., sports seasons, conference agendas). Always show a preview — NEVER write directly to the calendar.',
     parameters: {
       type: 'object',
       properties: {
@@ -502,6 +502,49 @@ export const ALL_TOOL_DECLARATIONS: ToolDeclaration[] = [
         },
       },
       required: ['eventId'],
+    },
+  },
+  {
+    name: 'emitBulkDeletePreview',
+    description:
+      'Search for trip calendar events matching criteria and show a deletion preview card for user confirmation. Use when user wants to remove multiple events: "remove all away games", "delete the Houston, Austin, San Antonio dates", "remove all events after March 15", "clear imported games". Shows a preview — NEVER deletes directly. User selects which events to remove.',
+    parameters: {
+      type: 'object',
+      properties: {
+        idempotency_key: { type: 'string' },
+        titleContains: {
+          type: 'string',
+          description: 'Search events whose title contains this text (case-insensitive)',
+        },
+        locationContains: {
+          type: 'string',
+          description: 'Search events whose location contains this text',
+        },
+        afterDate: {
+          type: 'string',
+          description:
+            'Only events starting after this date (ISO 8601). Interpreted as end-of-day in trip timezone (exclusive of the given date).',
+        },
+        beforeDate: {
+          type: 'string',
+          description:
+            'Only events starting before this date (ISO 8601). Interpreted as start-of-day in trip timezone (exclusive of the given date).',
+        },
+        category: { type: 'string', description: 'Filter by event category' },
+        eventTitles: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Specific event titles to match. Uses exact-first matching: tries exact match, then startsWith, then contains only if no closer matches found.',
+        },
+        matchMode: {
+          type: 'string',
+          enum: ['exact', 'contains', 'auto'],
+          description:
+            'How to match eventTitles. Default: auto (exact-first, falls back to contains)',
+        },
+      },
+      required: ['idempotency_key'],
     },
   },
   {
@@ -838,6 +881,7 @@ const QUERY_CLASS_TOOLS: Record<QueryClass, string[] | 'all'> = {
     'addToCalendar',
     'updateCalendarEvent',
     'deleteCalendarEvent',
+    'emitBulkDeletePreview',
     'detectCalendarConflicts',
   ],
   task_action: ['createTask', 'updateTask', 'deleteTask'],
@@ -866,7 +910,7 @@ const QUERY_CLASS_TOOLS: Record<QueryClass, string[] | 'all'> = {
   flight_search: ['searchFlights', 'savePlace', 'searchWeb'],
   hotel_search: ['searchHotels', 'getHotelDetails', 'savePlace', 'searchWeb'],
   trip_image: ['generateTripImage', 'setTripHeaderImage'],
-  smart_import: ['emitSmartImportPreview', 'addToCalendar', 'setBasecamp'],
+  smart_import: ['emitSmartImportPreview', 'addToCalendar', 'setBasecamp', 'browseWebsite'],
   basecamp_action: ['setBasecamp', 'searchPlaces', 'getPlaceDetails', 'validateAddress'],
   agenda_action: ['addToAgenda', 'addToCalendar'],
 };
@@ -923,10 +967,11 @@ const VOICE_DESCRIPTION_OVERRIDES: Record<string, string> = {
   searchHotels: 'Search for hotels/lodging near a location with ratings and amenities.',
   getHotelDetails: 'Get detailed info about a specific hotel by Place ID.',
   emitSmartImportPreview:
-    'Emit Smart Import preview events extracted from attached docs before calendar write.',
+    'Extract events from files, pasted text, or URLs and show a preview before adding to calendar. For URLs, call browseWebsite first.',
   emitReservationDraft: 'Create a reservation draft card for explicit booking intents.',
   updateCalendarEvent: 'Update an existing trip calendar event.',
   deleteCalendarEvent: 'Delete an event from the trip calendar.',
+  emitBulkDeletePreview: 'Search and preview multiple events for removal from trip calendar.',
   updateTask: 'Update an existing trip task.',
   deleteTask: 'Delete a task from the trip.',
   searchTripData: 'Search across all trip data.',

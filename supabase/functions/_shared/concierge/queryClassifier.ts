@@ -44,9 +44,13 @@ export const CLEARLY_GENERAL_QUERY_PATTERN =
 // ── Per-class patterns (most specific first) ─────────────────────────────────
 
 const SMART_IMPORT_PATTERN = /\b(import|save|add)\b.*\b(to calendar|to trip|this|these)\b/i;
+const URL_IMPORT_PATTERN =
+  /https?:\/\/\S+.*\b(import|add to calendar|save to trip|add this|add these|extract events?)\b/i;
+const URL_IMPORT_PATTERN_REVERSED =
+  /\b(import|add to calendar|save to trip|extract events?)\b.*https?:\/\/\S+/i;
 
 const CALENDAR_ACTION_PATTERN =
-  /\b(add to calendar|schedule|move the event|change .+ to \d|delete event|cancel the meeting|reschedule|update the event|remove .+ from calendar|create event|add event)\b/i;
+  /\b(add to calendar|schedule|move the event|change .+ to \d|delete event|cancel the meeting|reschedule|update the event|remove .+ from calendar|create event|add event|remove all .+events?|delete all .+events?|clear all .+events?|take .+ off .+ calendar|drop .+ dates?)\b/i;
 
 const TASK_ACTION_PATTERN =
   /\b(create task|remind me|remind us|to-?do|mark as done|delete task|assign|make sure we|don't let me forget|we should remember|need to remember)\b/i;
@@ -112,8 +116,11 @@ export function classifyQuery(message: string, hasAttachments: boolean): QueryCl
 
   const normalized = q.toLowerCase();
 
-  // 1. Attachments with import/save intent
+  // 1. Attachments with import/save intent, or URL with import intent
   if (hasAttachments && SMART_IMPORT_PATTERN.test(normalized)) {
+    return 'smart_import';
+  }
+  if (URL_IMPORT_PATTERN.test(normalized) || URL_IMPORT_PATTERN_REVERSED.test(normalized)) {
     return 'smart_import';
   }
 

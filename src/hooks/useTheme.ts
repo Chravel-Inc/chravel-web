@@ -20,10 +20,18 @@ export function useTheme() {
     const root = document.documentElement;
     if (isDarkMode) {
       root.classList.remove('light');
-      try { localStorage.setItem('theme', 'dark'); } catch { /* ignore */ }
+      try {
+        localStorage.setItem('theme', 'dark');
+      } catch {
+        /* ignore */
+      }
     } else {
       root.classList.add('light');
-      try { localStorage.setItem('theme', 'light'); } catch { /* ignore */ }
+      try {
+        localStorage.setItem('theme', 'light');
+      } catch {
+        /* ignore */
+      }
     }
   }, [isDarkMode]);
 

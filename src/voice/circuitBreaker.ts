@@ -13,9 +13,23 @@
  */
 
 const STORAGE_KEY = 'chravel_voice_circuit_breaker';
-const DEFAULT_FAILURE_THRESHOLD = 3;
+const DEFAULT_FAILURE_THRESHOLD = 5;
 const DEFAULT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 const STORAGE_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24h max persistence
+
+/**
+ * Error categories control how failures are weighted toward the circuit threshold:
+ *   - 'user'      — user-caused (mic denied, not authenticated). Weight: 0 (ignored).
+ *   - 'transient' — temporary issues (429, timeout, reconnect). Weight: 0.5.
+ *   - 'fatal'     — real system failures (agent crash, API error). Weight: 1.0.
+ */
+export type FailureCategory = 'user' | 'transient' | 'fatal';
+
+const FAILURE_WEIGHTS: Record<FailureCategory, number> = {
+  user: 0,
+  transient: 0.5,
+  fatal: 1.0,
+};
 
 export interface CircuitBreakerConfig {
   failureThreshold: number;
@@ -127,12 +141,55 @@ function hydrateFromStorage(): void {
   }
 }
 
-/** Record a voice failure. Returns true if circuit just opened (caller should show toast). */
+/**
+ * Classify an error message into a failure category for weighted circuit breaker tracking.
+ * Exported for testing and direct use from hooks.
+ */
+export function classifyError(errorMessage: string): FailureCategory {
+  const lower = errorMessage.toLowerCase();
+  // User-caused errors — don't count toward circuit threshold
+  if (
+    lower.includes('notallowederror') ||
+    lower.includes('permission denied') ||
+    lower.includes('not authenticated') ||
+    lower.includes('user denied') ||
+    lower.includes('user cancelled')
+  ) {
+    return 'user';
+  }
+  // Transient errors — count at reduced weight
+  if (
+    lower.includes('429') ||
+    lower.includes('rate limit') ||
+    lower.includes('timeout') ||
+    lower.includes('reconnect_failed') ||
+    lower.includes('503') ||
+    lower.includes('temporarily unavailable')
+  ) {
+    return 'transient';
+  }
+  return 'fatal';
+}
+
+/**
+ * Record a voice failure. Returns true if circuit just opened (caller should show toast).
+ * Category can be provided explicitly or auto-classified from the error message.
+ */
 export function recordFailure(
   errorMessage: string,
   config: Partial<CircuitBreakerConfig> = {},
+  category?: FailureCategory,
 ): boolean {
   const { failureThreshold, windowMs } = { ...defaultConfig, ...config };
+  const resolvedCategory = category ?? classifyError(errorMessage);
+  const weight = FAILURE_WEIGHTS[resolvedCategory];
+
+  // User errors are tracked for diagnostics but don't count toward threshold
+  if (weight === 0) {
+    memoryState = { ...memoryState, lastError: errorMessage };
+    return false;
+  }
+
   hydrateFromStorage();
 
   const now = Date.now();
@@ -145,12 +202,12 @@ export function recordFailure(
     nextState = {
       isOpen: false,
       phase: 'closed',
-      failureCount: 1,
+      failureCount: weight,
       firstFailureAt: now,
       lastError: errorMessage,
     };
   } else {
-    const newCount = memoryState.failureCount + 1;
+    const newCount = memoryState.failureCount + weight;
     const nowOpen = newCount >= failureThreshold;
     nextState = {
       isOpen: nowOpen,

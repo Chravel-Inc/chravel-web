@@ -36,7 +36,7 @@ export interface ToolContext {
 
 let _supabase: SupabaseClient | null = null;
 
-function getSupabase(): SupabaseClient {
+export function getSupabase(): SupabaseClient {
   if (!_supabase) {
     const url = process.env.SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -626,6 +626,32 @@ const makeReservation: ToolDefinition = {
   execute: (args, ctx) => callEdgeFunction(ctx, 'makeReservation', args),
 };
 
+const searchHotels: ToolDefinition = {
+  name: 'searchHotels',
+  description:
+    'Search for hotels/lodging near a location. Returns up to 5 results with ratings, amenities, and links.',
+  schema: z.object({
+    idempotency_key: z.string().optional(),
+    query: z.string().describe('Search query (e.g. "boutique hotel in Paris")'),
+    nearLat: z.number().optional().describe('Latitude to search near'),
+    nearLng: z.number().optional().describe('Longitude to search near'),
+    checkIn: z.string().optional().describe('Check-in date (YYYY-MM-DD)'),
+    checkOut: z.string().optional().describe('Check-out date (YYYY-MM-DD)'),
+  }),
+  execute: (args, ctx) => callEdgeFunction(ctx, 'searchHotels', args),
+};
+
+const getHotelDetails: ToolDefinition = {
+  name: 'getHotelDetails',
+  description:
+    'Get detailed information about a specific hotel by its Google Place ID. Returns rating, amenities, photos, and booking links.',
+  schema: z.object({
+    idempotency_key: z.string().optional(),
+    placeId: z.string().describe('Google Place ID of the hotel (from searchHotels results)'),
+  }),
+  execute: (args, ctx) => callEdgeFunction(ctx, 'getHotelDetails', args),
+};
+
 // ── Export All Tools ───────────────────────────────────────────────────────────
 
 export const ALL_TOOLS: ToolDefinition[] = [
@@ -670,4 +696,6 @@ export const ALL_TOOLS: ToolDefinition[] = [
   convertCurrency,
   browseWebsite,
   makeReservation,
+  searchHotels,
+  getHotelDetails,
 ];

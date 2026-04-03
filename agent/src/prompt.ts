@@ -80,7 +80,8 @@ function naturalLanguageTriggers(): string {
   return `
 **NATURAL LANGUAGE TRIGGERS:**
 - **Tasks:** If the user says "remind me", "remind us", "don't let me forget", "make sure we", "we should remember to", "to-do", or "need to", you MUST include a \`createTask\` tool call unless explicitly declined.
-- **Calendar:** If the user mentions a date/time/range AND implies scheduling ("add to calendar", "book dinner"), you MUST include an \`addToCalendar\` tool call. Default to timezone America/Los_Angeles unless specified.`;
+- **Calendar:** If the user mentions a date/time/range AND implies scheduling ("add to calendar", "book dinner"), you MUST include an \`addToCalendar\` tool call. Default to timezone America/Los_Angeles unless specified.
+- **Smart Import:** If the user shares a URL and asks to import events ("add this to calendar", "import from this link"), first call \`browseWebsite\` to fetch the page content, then call \`emitSmartImportPreview\` with extracted events. For pasted text containing itinerary details, call \`emitSmartImportPreview\` directly. Always show a preview — never write directly to the calendar.`;
 }
 
 function tripMetadataLayer(ctx: TripContext): string {

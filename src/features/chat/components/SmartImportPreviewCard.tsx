@@ -1,50 +1,19 @@
-import React, { useState, useCallback } from 'react';
-import {
-  CalendarPlus,
-  Plane,
-  Hotel,
-  UtensilsCrossed,
-  Music,
-  MapPin,
-  Clock,
-  AlertTriangle,
-  Check,
-  X,
-  Loader2,
-} from 'lucide-react';
+import React, { useState, useCallback, useMemo } from 'react';
+import { AlertTriangle, Check, Hotel } from 'lucide-react';
 import type { SmartImportPreviewEvent } from '@/services/conciergeGateway';
-
-const CATEGORY_CONFIG: Record<string, { icon: React.ElementType; label: string; color: string }> = {
-  transportation: { icon: Plane, label: 'Transportation', color: 'sky' },
-  lodging: { icon: Hotel, label: 'Lodging', color: 'amber' },
-  dining: { icon: UtensilsCrossed, label: 'Dining', color: 'orange' },
-  activity: { icon: MapPin, label: 'Activity', color: 'green' },
-  entertainment: { icon: Music, label: 'Entertainment', color: 'purple' },
-  other: { icon: CalendarPlus, label: 'Event', color: 'blue' },
-};
-
-const COLOR_CLASSES: Record<string, string> = {
-  sky: 'text-sky-400',
-  amber: 'text-amber-400',
-  orange: 'text-orange-400',
-  green: 'text-green-400',
-  purple: 'text-purple-400',
-  blue: 'text-blue-400',
-};
-
-function formatDateTime(iso: string): string {
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-}
+import {
+  PreviewCardHeader,
+  PreviewWarningBanner,
+  PreviewSelectionBar,
+  PreviewEventList,
+  PreviewCardFooter,
+  getEventKey,
+  MODE_CONFIG,
+} from './preview-card';
+import type { PreviewMode } from './preview-card';
 
 export interface SmartImportPreviewCardProps {
+  mode?: PreviewMode;
   previewEvents: SmartImportPreviewEvent[];
   tripId: string;
   totalEvents: number;
@@ -54,12 +23,13 @@ export interface SmartImportPreviewCardProps {
   onConfirm: (events: SmartImportPreviewEvent[]) => void;
   onDismiss: () => void;
   isImporting?: boolean;
-  importResult?: { imported: number; failed: number } | null;
+  importResult?: { imported: number; failed: number; alreadyMissing?: number } | null;
   importError?: string | null;
   onRetry?: () => void;
 }
 
 export const SmartImportPreviewCard: React.FC<SmartImportPreviewCardProps> = ({
+  mode = 'import',
   previewEvents,
   totalEvents,
   duplicateCount,
@@ -71,36 +41,81 @@ export const SmartImportPreviewCard: React.FC<SmartImportPreviewCardProps> = ({
   importError = null,
   onRetry,
 }) => {
-  const [deselected, setDeselected] = useState<Set<number>>(
-    () => new Set(previewEvents.map((e, i) => (e.isDuplicate ? i : -1)).filter(i => i >= 0)),
-  );
+  const config = MODE_CONFIG[mode];
 
-  const toggleEvent = useCallback((index: number) => {
-    setDeselected(prev => {
+  // Build initial excluded set: duplicates are excluded by default in import mode
+  const [excludedKeys, setExcludedKeys] = useState<Set<string>>(() => {
+    if (mode === 'import') {
+      const dupeKeys = new Set<string>();
+      for (const event of previewEvents) {
+        if (event.isDuplicate) {
+          dupeKeys.add(getEventKey(event));
+        }
+      }
+      return dupeKeys;
+    }
+    return new Set<string>();
+  });
+
+  const duplicateKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const event of previewEvents) {
+      if (event.isDuplicate) {
+        keys.add(getEventKey(event));
+      }
+    }
+    return keys;
+  }, [previewEvents]);
+
+  const toggleEvent = useCallback((key: string) => {
+    setExcludedKeys(prev => {
       const next = new Set(prev);
-      if (next.has(index)) {
-        next.delete(index);
+      if (next.has(key)) {
+        next.delete(key);
       } else {
-        next.add(index);
+        next.add(key);
       }
       return next;
     });
   }, []);
 
-  const selectedEvents = previewEvents.filter((_, i) => !deselected.has(i));
+  const selectedEvents = useMemo(
+    () => previewEvents.filter(e => !excludedKeys.has(getEventKey(e))),
+    [previewEvents, excludedKeys],
+  );
+
+  const nonDuplicateCount = totalEvents - duplicateCount;
+  const allNonDuplicatesSelected =
+    selectedEvents.length >= nonDuplicateCount && nonDuplicateCount > 0;
+  const noneSelected = selectedEvents.length === 0;
+
+  const selectAll = useCallback(() => {
+    // Select all non-duplicates; keep duplicates excluded
+    setExcludedKeys(new Set(duplicateKeys));
+  }, [duplicateKeys]);
+
+  const deselectAll = useCallback(() => {
+    const allKeys = new Set<string>();
+    for (const event of previewEvents) {
+      allKeys.add(getEventKey(event));
+    }
+    setExcludedKeys(allKeys);
+  }, [previewEvents]);
 
   const handleConfirm = useCallback(() => {
     if (selectedEvents.length === 0) return;
     onConfirm(selectedEvents);
   }, [selectedEvents, onConfirm]);
 
-  // Show error state
+  const showSelectionBar = previewEvents.length >= 3;
+
+  // Error state
   if (importError) {
     return (
       <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 space-y-2">
         <div className="flex items-center gap-2">
           <AlertTriangle size={18} className="text-red-400" />
-          <p className="text-sm font-medium text-red-300">Import failed</p>
+          <p className="text-sm font-medium text-red-300">{config.errorLabel}</p>
         </div>
         <p className="text-xs text-red-400/80">{importError}</p>
         <div className="flex gap-2 pt-1">
@@ -125,22 +140,32 @@ export const SmartImportPreviewCard: React.FC<SmartImportPreviewCardProps> = ({
     );
   }
 
-  // Show success state
+  // Success state
   if (importResult) {
+    const count = importResult.imported;
+    const alreadyMissing = importResult.alreadyMissing || 0;
     return (
-      <div className="rounded-xl border border-green-500/30 bg-green-500/10 p-4 space-y-2">
+      <div
+        className={`rounded-xl border ${config.successBorder} ${config.successBg} p-4 space-y-2`}
+      >
         <div className="flex items-center gap-2">
           <Check size={18} className="text-green-400" />
-          <p className="text-sm font-medium text-green-300">
-            Added {importResult.imported} event{importResult.imported !== 1 ? 's' : ''} to Calendar
+          <p className={`text-sm font-medium ${config.successText}`}>
+            {config.successLabel} {count} event{count !== 1 ? 's' : ''}
+            {mode === 'delete' ? ' from' : ' to'} Calendar
           </p>
         </div>
-        {importResult.failed > 0 && (
-          <p className="text-xs text-red-400">
-            {importResult.failed} event{importResult.failed !== 1 ? 's' : ''} failed to import
+        {alreadyMissing > 0 && (
+          <p className="text-xs text-amber-400">
+            {alreadyMissing} event{alreadyMissing !== 1 ? 's' : ''} were already gone.
           </p>
         )}
-        {lodgingName && importResult.imported > 0 && (
+        {importResult.failed > 0 && (
+          <p className="text-xs text-red-400">
+            {importResult.failed} event{importResult.failed !== 1 ? 's' : ''} failed
+          </p>
+        )}
+        {mode === 'import' && lodgingName && importResult.imported > 0 && (
           <div className="flex items-center gap-2 pt-1 border-t border-green-500/20">
             <Hotel size={14} className="text-amber-400 shrink-0" />
             <p className="text-xs text-gray-300">
@@ -154,11 +179,12 @@ export const SmartImportPreviewCard: React.FC<SmartImportPreviewCardProps> = ({
     );
   }
 
-  // Show empty state after filtering
+  // Empty state
   if (previewEvents.length === 0) {
+    const emptyText = mode === 'delete' ? 'No matching events found' : 'No new events to import';
     return (
       <div className="rounded-xl border border-gray-500/30 bg-gray-500/5 p-4 space-y-2">
-        <p className="text-sm text-gray-400">No new events to import</p>
+        <p className="text-sm text-gray-400">{emptyText}</p>
         <button
           type="button"
           onClick={onDismiss}
@@ -171,138 +197,49 @@ export const SmartImportPreviewCard: React.FC<SmartImportPreviewCardProps> = ({
   }
 
   return (
-    <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
-        <div className="flex items-center gap-2">
-          <CalendarPlus size={16} className="text-blue-400" />
-          <span className="text-sm font-medium text-blue-300">Smart Import Preview</span>
-          <span className="text-xs text-gray-500">
-            {totalEvents} event{totalEvents !== 1 ? 's' : ''} found
-          </span>
-        </div>
-        {!isImporting && (
-          <button
-            type="button"
-            onClick={onDismiss}
-            className="text-gray-500 hover:text-gray-300 transition-colors"
-            aria-label="Dismiss import preview"
-          >
-            <X size={16} />
-          </button>
-        )}
-      </div>
+    <div className={`rounded-xl border ${config.accentBorder} ${config.accentBg} overflow-hidden`}>
+      <PreviewCardHeader
+        mode={mode}
+        totalEvents={totalEvents}
+        isProcessing={isImporting}
+        onDismiss={onDismiss}
+      />
 
-      {/* Duplicate warning */}
       {duplicateCount > 0 && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 border-b border-white/5">
-          <AlertTriangle size={14} className="text-amber-400 shrink-0" />
-          <span className="text-xs text-amber-300">
-            {duplicateCount} event{duplicateCount !== 1 ? 's' : ''} already in your calendar
-            (deselected)
-          </span>
-        </div>
+        <PreviewWarningBanner
+          message={`${duplicateCount} event${duplicateCount !== 1 ? 's' : ''} already in your calendar (deselected)`}
+        />
       )}
 
-      {/* Event list */}
-      <div className="divide-y divide-white/5 max-h-64 overflow-y-auto">
-        {previewEvents.map((event, index) => {
-          const isSelected = !deselected.has(index);
-          const catConfig = CATEGORY_CONFIG[event.category || 'other'] || CATEGORY_CONFIG.other;
-          const Icon = catConfig.icon;
-          const colorClass = COLOR_CLASSES[catConfig.color] || COLOR_CLASSES.blue;
+      {showSelectionBar && (
+        <PreviewSelectionBar
+          selectedCount={selectedEvents.length}
+          totalCount={totalEvents}
+          duplicateCount={duplicateCount}
+          allNonDuplicatesSelected={allNonDuplicatesSelected}
+          noneSelected={noneSelected}
+          isProcessing={isImporting}
+          onSelectAll={selectAll}
+          onDeselectAll={deselectAll}
+        />
+      )}
 
-          return (
-            <button
-              key={index}
-              type="button"
-              onClick={() => !isImporting && toggleEvent(index)}
-              disabled={isImporting}
-              aria-label={`${isSelected ? 'Deselect' : 'Select'} ${event.title}`}
-              aria-pressed={isSelected}
-              className={`w-full flex items-start gap-3 px-4 py-2.5 min-h-[44px] text-left transition-colors ${
-                isSelected ? 'hover:bg-white/5' : 'opacity-40 hover:opacity-60'
-              } disabled:cursor-not-allowed`}
-            >
-              {/* Checkbox */}
-              <input
-                type="checkbox"
-                checked={isSelected}
-                readOnly
-                className="mt-0.5 shrink-0 w-4 h-4 rounded accent-blue-500 cursor-pointer"
-                tabIndex={-1}
-                aria-hidden="true"
-              />
+      <PreviewEventList
+        events={previewEvents}
+        excludedKeys={excludedKeys}
+        isProcessing={isImporting}
+        mode={mode}
+        onToggle={toggleEvent}
+      />
 
-              {/* Icon */}
-              <Icon size={14} className={`mt-0.5 shrink-0 ${colorClass}`} />
-
-              {/* Details */}
-              <div className="min-w-0 flex-1">
-                <p
-                  className={`text-sm font-medium truncate ${
-                    event.isDuplicate ? 'line-through text-gray-500' : 'text-white'
-                  }`}
-                >
-                  {event.title}
-                </p>
-                <div className="flex items-center gap-3 mt-0.5">
-                  <span className="flex items-center gap-1 text-xs text-gray-400">
-                    <Clock size={10} />
-                    {formatDateTime(event.startTime)}
-                  </span>
-                  {event.location && (
-                    <span className="flex items-center gap-1 text-xs text-gray-500 truncate">
-                      <MapPin size={10} />
-                      {event.location}
-                    </span>
-                  )}
-                </div>
-                {event.notes && (
-                  <p className="text-[11px] text-gray-500 mt-0.5 truncate">{event.notes}</p>
-                )}
-              </div>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Actions */}
-      <div className="flex items-center justify-between px-4 py-3 border-t border-white/5 bg-white/[0.02]">
-        <span className="text-xs text-gray-500">
-          {selectedEvents.length} of {totalEvents} selected
-        </span>
-        <div className="flex items-center gap-2">
-          {!isImporting && (
-            <button
-              type="button"
-              onClick={onDismiss}
-              aria-label="Cancel import"
-              className="px-3 py-1.5 min-h-[44px] text-xs text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
-            >
-              Cancel
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={selectedEvents.length === 0 || isImporting}
-            className="px-4 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
-          >
-            {isImporting ? (
-              <>
-                <Loader2 size={12} className="animate-spin" />
-                Importing...
-              </>
-            ) : (
-              <>
-                <CalendarPlus size={12} />
-                Add to Calendar
-              </>
-            )}
-          </button>
-        </div>
-      </div>
+      <PreviewCardFooter
+        mode={mode}
+        selectedCount={selectedEvents.length}
+        totalCount={totalEvents}
+        isProcessing={isImporting}
+        onConfirm={handleConfirm}
+        onDismiss={onDismiss}
+      />
     </div>
   );
 };

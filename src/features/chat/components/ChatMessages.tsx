@@ -45,6 +45,12 @@ interface RichChatMessage extends ChatMessage {
     lodgingName?: string;
   };
   smartImportStatus?: { status: SmartImportStatus; message: string };
+  bulkDeletePreview?: {
+    previewEvents: SmartImportPreviewEvent[];
+    previewToken: string;
+    tripId: string;
+    totalEvents: number;
+  };
   pendingActions?: Array<{
     id: string;
     toolName: string;
@@ -69,6 +75,14 @@ interface ChatMessagesProps {
   onSmartImportConfirm?: (messageId: string, events: SmartImportPreviewEvent[]) => void;
   /** Smart Import: dismiss callback */
   onSmartImportDismiss?: (messageId: string) => void;
+  /** Bulk Delete: confirm callback */
+  onBulkDeleteConfirm?: (
+    messageId: string,
+    previewToken: string,
+    events: SmartImportPreviewEvent[],
+  ) => void;
+  /** Bulk Delete: dismiss callback */
+  onBulkDeleteDismiss?: (messageId: string) => void;
   onConfirmPendingAction?: (actionId: string) => void;
   onRejectPendingAction?: (actionId: string) => void;
   isConfirmingPendingAction?: boolean;
@@ -77,6 +91,14 @@ interface ChatMessagesProps {
   smartImportStates?: Record<
     string,
     { isImporting: boolean; result: { imported: number; failed: number } | null }
+  >;
+  /** Bulk Delete: per-message deletion state */
+  bulkDeleteStates?: Record<
+    string,
+    {
+      isImporting: boolean;
+      result: { imported: number; failed: number; alreadyMissing?: number } | null;
+    }
   >;
   /** TTS: current playback state */
   ttsPlaybackState?: TTSPlaybackState;
@@ -102,11 +124,14 @@ export const ChatMessages = ({
   onEditReservation,
   onSmartImportConfirm,
   onSmartImportDismiss,
+  onBulkDeleteConfirm,
+  onBulkDeleteDismiss,
   onConfirmPendingAction,
   onRejectPendingAction,
   isConfirmingPendingAction = false,
   isRejectingPendingAction = false,
   smartImportStates,
+  bulkDeleteStates,
   ttsPlaybackState,
   ttsPlayingMessageId,
   onTTSPlay,
@@ -304,6 +329,33 @@ export const ChatMessages = ({
                     onDismiss={() => onSmartImportDismiss?.(message.id)}
                     isImporting={smartImportStates?.[message.id]?.isImporting}
                     importResult={smartImportStates?.[message.id]?.result}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Bulk Delete preview card */}
+            {rich.bulkDeletePreview && rich.bulkDeletePreview.previewEvents.length > 0 && (
+              <div
+                className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} ${message.type !== 'user' ? 'pl-10' : ''}`}
+              >
+                <div className="max-w-sm lg:max-w-md w-full">
+                  <SmartImportPreviewCard
+                    mode="delete"
+                    previewEvents={rich.bulkDeletePreview.previewEvents}
+                    tripId={rich.bulkDeletePreview.tripId}
+                    totalEvents={rich.bulkDeletePreview.totalEvents}
+                    duplicateCount={0}
+                    onConfirm={events =>
+                      onBulkDeleteConfirm?.(
+                        message.id,
+                        rich.bulkDeletePreview!.previewToken,
+                        events,
+                      )
+                    }
+                    onDismiss={() => onBulkDeleteDismiss?.(message.id)}
+                    isImporting={bulkDeleteStates?.[message.id]?.isImporting}
+                    importResult={bulkDeleteStates?.[message.id]?.result}
                   />
                 </div>
               </div>

@@ -455,6 +455,20 @@ async function streamGeminiToSSE(
             lodgingName: firstLodging?.title || undefined,
           }),
         );
+      } else if (
+        r.name === 'emitBulkDeletePreview' &&
+        r.response?.success &&
+        r.response?.previewEvents
+      ) {
+        controller.enqueue(
+          sseEvent({
+            type: 'bulk_delete_preview',
+            previewEvents: r.response.previewEvents,
+            previewToken: r.response.previewToken,
+            tripId: r.response.tripId,
+            totalEvents: r.response.totalEvents,
+          }),
+        );
       } else {
         controller.enqueue(sseEvent({ type: 'function_call', name: r.name, result: r.response }));
       }
