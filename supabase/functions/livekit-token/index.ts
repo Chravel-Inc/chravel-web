@@ -12,7 +12,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { AccessToken } from 'npm:livekit-server-sdk@2';
+import { AccessToken } from 'livekit-server-sdk';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { requireSecrets } from '../_shared/validateSecrets.ts';
 
