@@ -160,3 +160,9 @@
 - Per product feedback, replaced reorder-mode decorative motion from wiggle to subtle float to better match desired feel.
 - Added dedicated `float-subtle` Tailwind animation (2px vertical drift) and switched `SortableCardWrapper` reorder class from `animate-wiggle-subtle` to `animate-float-subtle`.
 - Kept animation on inner wrapper so dnd transform ownership remains isolated on sortable root.
+2026-04-02 — Trip cover upload bucket drift fix (homepage + update reliability)
+- Root-caused dual trip-cover regression to storage bucket/path drift: `TripHeader` upload flow wrote to `trip-media` with `trip-covers/...` object keys, but hardened RLS now blocks INSERTs where first folder is `trip-covers` in `trip-media`.
+- This caused cover-update/upload failures and downstream homepage card covers staying blank/stale because `cover_image_url` never updated after failed uploads.
+- Introduced shared trip-cover storage constants/path builder (`src/utils/tripCoverStorage.ts`) and wired both `TripHeader` and `CreateTripModal` to the same dedicated `trip-covers` bucket path contract.
+- Added focused regression test `src/utils/__tests__/tripCoverStorage.test.ts` to lock bucket/path invariants.
+- Verification: targeted tests + full lint/typecheck/build run.

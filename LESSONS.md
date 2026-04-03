@@ -280,3 +280,9 @@
 - **Evidence:** Dashboard trip reorder feedback explicitly preferred float over wiggle/pulse; `animate-float-subtle` improved perceived smoothness while keeping transform isolation.
 - **Provenance:** April 2026 dashboard reorder follow-up.
 - **Confidence:** medium-high
+### Cover-image storage should have a single bucket/path helper shared by all upload entrypoints
+- **Tip:** When the same asset type can be uploaded from multiple surfaces (create modal, header editor, AI tools), centralize bucket id + object path construction in one helper and import it everywhere; avoid hardcoding bucket/path literals in components.
+- **Applies when:** Trip/event cover uploads, avatars, receipts, or any storage object with security-sensitive RLS path checks.
+- **Evidence:** TripHeader used `trip-media` + `trip-covers/...` while CreateTripModal used `trip-covers` bucket. After RLS hardening, TripHeader uploads failed, so cover updates never persisted and homepage cards appeared stale/blank.
+- **Provenance:** April 2026 trip cover forensic fix (`tripCoverStorage` shared helper).
+- **Confidence:** high
