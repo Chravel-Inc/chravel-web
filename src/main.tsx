@@ -68,7 +68,7 @@ if (!isNativePlatform && 'serviceWorker' in navigator) {
 }
 
 // Initialize theme
-const theme = localStorage.getItem('theme');
+const theme = safeLocalStorageGet('theme');
 if (theme === 'light') {
   document.documentElement.classList.add('light');
 }

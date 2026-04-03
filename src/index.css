@@ -364,7 +364,32 @@
     --popover: 0 0% 100%; /* White popovers */
     --popover-foreground: 0 0% 0%; /* Black text on popovers */
 
+    --secondary: 0 0% 95%;
+    --secondary-foreground: 0 0% 10%;
+
+    --muted: 0 0% 90%;
+    --muted-foreground: 0 0% 40%;
+
+    --border: 0 0% 85%;
     --input: 0 0% 95%; /* Light gray inputs */
+
+    /* Sidebar - Inverted */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 0 0% 10%;
+    --sidebar-primary: 37 55% 52%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 90%;
+    --sidebar-accent-foreground: 0 0% 10%;
+    --sidebar-border: 0 0% 85%;
+    --sidebar-ring: 37 55% 52%;
+
+    /* Payment Colors - Inverted for Light Mode */
+    --payment-primary: 37 55% 52%;
+    --payment-primary-foreground: 0 0% 0%;
+    --payment-background: 0 0% 100%;
+    --payment-background-light: 0 0% 98%;
+    --payment-border: 0 0% 90%;
+    --payment-text: 0 0% 10%;
 
     /* The rest of the tokens remain unchanged from the dark theme
        so that gold accents, gray buttons, and destructive colors stay the same. */

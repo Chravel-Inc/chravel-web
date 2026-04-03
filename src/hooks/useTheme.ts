@@ -2,8 +2,13 @@ import { useState, useEffect } from 'react';
 
 export function useTheme() {
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    // Check local storage first
-    const stored = localStorage.getItem('theme');
+    // Check local storage first (safely)
+    let stored = null;
+    try {
+      stored = localStorage.getItem('theme');
+    } catch {
+      // ignore
+    }
     if (stored) {
       return stored === 'dark';
     }
@@ -15,10 +20,10 @@ export function useTheme() {
     const root = document.documentElement;
     if (isDarkMode) {
       root.classList.remove('light');
-      localStorage.setItem('theme', 'dark');
+      try { localStorage.setItem('theme', 'dark'); } catch {}
     } else {
       root.classList.add('light');
-      localStorage.setItem('theme', 'light');
+      try { localStorage.setItem('theme', 'light'); } catch {}
     }
   }, [isDarkMode]);
 
