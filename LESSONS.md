@@ -286,3 +286,15 @@
 - **Evidence:** TripHeader used `trip-media` + `trip-covers/...` while CreateTripModal used `trip-covers` bucket. After RLS hardening, TripHeader uploads failed, so cover updates never persisted and homepage cards appeared stale/blank.
 - **Provenance:** April 2026 trip cover forensic fix (`tripCoverStorage` shared helper).
 - **Confidence:** high
+### Preserve fixed cover-card layouts with a two-layer image strategy (blur-fill + contain foreground)
+- **Tip:** If product wants fixed-size hero/card shells but users complain about crop loss, keep the layout frame and render two layers from the same source: blurred `object-cover` background for full bleed + sharp `object-contain` foreground for content fidelity.
+- **Applies when:** Trip cover photos, event hero headers, and dashboard cards where aspect ratio mismatch is common.
+- **Evidence:** Trip cover sections were cropping most uploads; switching to contain foreground with blurred backdrop showed more of landscape photos without redesigning layout or breaking text contrast.
+- **Provenance:** April 2026 trip cover composition follow-up.
+- **Confidence:** high
+### For edge-function auth bugs, fail early on malformed Bearer headers before calling `auth.getUser`
+- **Tip:** Centralize bearer parsing in one helper and reject missing/malformed headers with explicit 401 responses; do not rely on `replace('Bearer ', '')` because non-bearer values become opaque token-debugging noise.
+- **Applies when:** Supabase Edge Functions accept browser JWTs and/or service-role bearer tokens.
+- **Evidence:** Concierge tool-call failures were hard to debug because malformed headers could flow to `auth.getUser` as invalid token strings; explicit parser + dedicated error responses made the failure mode obvious in logs/clients.
+- **Provenance:** April 2026 execute-concierge-tool auth hardening.
+- **Confidence:** high

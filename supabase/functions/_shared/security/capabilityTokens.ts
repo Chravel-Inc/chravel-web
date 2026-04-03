@@ -7,19 +7,13 @@ export interface CapabilityTokenPayload {
   exp?: number;
 }
 
-/**
- * Lazily resolve the JWT secret. Throws at call-time (not import-time)
- * so that text-only concierge responses still work when the secret is missing.
- */
-function getSecretKey(): Uint8Array {
-  const secret = Deno.env.get('SUPABASE_JWT_SECRET');
-  if (!secret) {
-    throw new Error(
-      'SUPABASE_JWT_SECRET is required — capability tokens cannot be signed without it. ' +
-        'Set this secret in Supabase Dashboard > Edge Functions > Secrets.',
-    );
-  }
-  return new TextEncoder().encode(secret);
+const JWT_SECRET = Deno.env.get('SUPABASE_JWT_SECRET');
+if (!JWT_SECRET) {
+  throw new Error(
+    'SUPABASE_JWT_SECRET is required — capability tokens cannot be signed without it. ' +
+      'This value is injected by Supabase at runtime; verify the function is running in the ' +
+      'correct Supabase project/runtime and redeploy if needed.',
+  );
 }
 
 export async function generateCapabilityToken(

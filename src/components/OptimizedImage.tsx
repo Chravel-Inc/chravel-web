@@ -10,6 +10,8 @@ interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> 
   aspectRatio?: string;
   sizes?: string;
   priority?: boolean;
+  fit?: 'cover' | 'contain';
+  showBlurBackdrop?: boolean;
 }
 
 export const OptimizedImage: React.FC<OptimizedImageProps> = ({
@@ -21,6 +23,8 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   aspectRatio,
   sizes,
   priority = false,
+  fit = 'cover',
+  showBlurBackdrop = false,
   className,
   ...props
 }) => {
@@ -116,6 +120,17 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
       {/* Error state - silently show empty background */}
       {hasError && <div className="absolute inset-0 bg-transparent" />}
 
+      {isInView && showBlurBackdrop && !hasError && (
+        <img
+          src={currentSrc}
+          alt=""
+          aria-hidden="true"
+          loading="eager"
+          decoding="async"
+          className="absolute inset-0 w-full h-full object-cover blur-md scale-105 opacity-45"
+        />
+      )}
+
       {/* Actual image */}
       {isInView && (
         <img
@@ -124,14 +139,14 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
           srcSet={generateSrcSet(currentSrc)}
           sizes={sizes}
           loading={lazy && !priority ? 'lazy' : 'eager'}
-          fetchPriority={priority ? 'high' : 'auto'}
           decoding="async"
           onLoad={handleLoad}
           onError={handleError}
           className={cn(
             'transition-opacity duration-300',
             isLoaded ? 'opacity-100' : 'opacity-0',
-            'w-full h-full object-cover',
+            'w-full h-full',
+            fit === 'contain' ? 'object-contain' : 'object-cover',
           )}
           {...props}
         />

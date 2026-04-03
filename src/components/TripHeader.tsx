@@ -423,10 +423,25 @@ export const TripHeader = ({
             'mb-0 md:mb-8',
           )}
           style={{
-            backgroundImage: coverPhoto ? `url(${coverPhoto})` : undefined,
-            backgroundColor: !coverPhoto ? '#1a1a2e' : undefined,
+            backgroundColor: '#1a1a2e',
           }}
         >
+          {coverPhoto && (
+            <div className="absolute inset-0">
+              <img
+                src={coverPhoto}
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 w-full h-full object-cover blur-md scale-105 opacity-50"
+              />
+              <img
+                src={coverPhoto}
+                alt={`${trip.title} cover`}
+                className="absolute inset-0 w-full h-full object-contain"
+              />
+            </div>
+          )}
+
           {/* Gradient overlay - stronger at top and bottom for title/location readability */}
           <div
             className={cn(
