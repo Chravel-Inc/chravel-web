@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { mapRowToNotification } from '../useNotificationRealtime';
+import {
+  isJoinApprovedNotificationRow,
+  mapRowToNotification,
+} from '@/lib/notificationRealtimeUtils';
 
 describe('mapRowToNotification', () => {
   it('falls back to notifications.trip_id when metadata.trip_id is missing', () => {
@@ -31,5 +34,27 @@ describe('mapRowToNotification', () => {
     });
 
     expect(mapped.tripId).toBe('trip-from-metadata');
+  });
+});
+
+describe('isJoinApprovedNotificationRow', () => {
+  it('returns true for join_approved action in metadata', () => {
+    expect(
+      isJoinApprovedNotificationRow({
+        type: 'info',
+        title: 'x',
+        metadata: { action: 'join_approved' },
+      }),
+    ).toBe(true);
+  });
+
+  it('returns false for unrelated notifications', () => {
+    expect(
+      isJoinApprovedNotificationRow({
+        type: 'message',
+        title: 'New message',
+        metadata: {},
+      }),
+    ).toBe(false);
   });
 });

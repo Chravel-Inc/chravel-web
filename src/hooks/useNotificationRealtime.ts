@@ -10,34 +10,20 @@
  */
 
 import { useEffect, useCallback, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  isJoinApprovedNotificationRow,
+  mapRowToNotification,
+} from '@/lib/notificationRealtimeUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useDemoMode } from './useDemoMode';
 import { useNotificationRealtimeStore } from '@/store/notificationRealtimeStore';
-import { formatDistanceToNow } from 'date-fns';
-import type { NotificationItem } from '@/store/notificationRealtimeStore';
 
 const NOTIFICATION_COLUMNS =
   'id, type, title, message, is_read, is_visible, metadata, trip_id, created_at';
 
-export function mapRowToNotification(row: Record<string, unknown>): NotificationItem {
-  const metadata = (row.metadata as Record<string, unknown>) || {};
-  return {
-    id: row.id as string,
-    type: (row.type || 'system') as NotificationItem['type'],
-    title: (row.title as string) || '',
-    description: (row.message as string) || '',
-    // Prefer metadata for modern notifications, but fall back to column for legacy rows.
-    tripId: (metadata.trip_id as string) || (row.trip_id as string) || '',
-    tripName: (metadata.trip_name as string) || '',
-    timestamp: formatDistanceToNow(new Date((row.created_at as string) || Date.now()), {
-      addSuffix: true,
-    }),
-    isRead: (row.is_read as boolean) || false,
-    isHighPriority: row.type === 'broadcast',
-    data: metadata,
-  };
-}
+export { isJoinApprovedNotificationRow, mapRowToNotification } from '@/lib/notificationRealtimeUtils';
 
 // Singleton: one subscription per user, refCount for cleanup
 const subscriptionRefs = new Map<
@@ -118,6 +104,7 @@ function ensureSubscription(userId: string, callbacks: SubscriptionCallbacks) {
 export function useNotificationRealtime() {
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
+  const queryClient = useQueryClient();
   const {
     notifications,
     unreadCount,
@@ -193,6 +180,9 @@ export function useNotificationRealtime() {
       onInsert: (newRow: Record<string, unknown>) => {
         const item = mapRowToNotification(newRow);
         addNotification(item);
+        if (isJoinApprovedNotificationRow(newRow)) {
+          queryClient.invalidateQueries({ queryKey: ['trips'] });
+        }
       },
       onUpdate: (updatedRow: Record<string, unknown>) => {
         const id = updatedRow.id as string;
@@ -228,6 +218,7 @@ export function useNotificationRealtime() {
     addNotification,
     updateNotification,
     removeNotification,
+    queryClient,
   ]);
 
   const markAsRead = useCallback(

@@ -444,8 +444,13 @@ export const tripService = {
       // Batch-fetch member counts and places (calendar events with locations)
       const tripIds = allTrips.map(t => t.id);
 
-      const [membersResult, eventsResult] = await Promise.all([
-        supabase.from('trip_members').select('trip_id, user_id').in('trip_id', tripIds).limit(5000),
+      const [membersResultRaw, eventsResult] = await Promise.all([
+        supabase
+          .from('trip_members')
+          .select('trip_id, user_id')
+          .in('trip_id', tripIds)
+          .or('status.is.null,status.eq.active')
+          .limit(5000),
         supabase
           .from('trip_events')
           .select('trip_id, location')
@@ -454,6 +459,18 @@ export const tripService = {
           .neq('location', '')
           .limit(5000),
       ]);
+
+      const batchMembersStatusMissing =
+        membersResultRaw.error?.message?.toLowerCase().includes('status') ||
+        membersResultRaw.error?.message?.toLowerCase().includes('does not exist');
+
+      const membersResult = batchMembersStatusMissing
+        ? await supabase
+            .from('trip_members')
+            .select('trip_id, user_id')
+            .in('trip_id', tripIds)
+            .limit(5000)
+        : membersResultRaw;
 
       // Count members per trip and track user_ids for creator check
       const memberCountMap = new Map<string, number>();

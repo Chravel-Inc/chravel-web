@@ -178,13 +178,21 @@ serve(async req => {
       });
     }
 
-    // If approved, add user to trip_members
+    // If approved, add user to trip_members (must match approve_join_request RPC semantics).
+    // is_trip_member() only treats status = active (or null) as access; without an explicit
+    // upsert, re-approvals after "left" could leave stale rows and the user sees the trip
+    // in deep links but not on the dashboard trip list.
     if (action === 'approve') {
-      const { error: memberError } = await supabaseClient.from('trip_members').insert({
-        trip_id: joinRequest.trip_id,
-        user_id: joinRequest.user_id,
-        role: 'member',
-      });
+      const { error: memberError } = await supabaseClient.from('trip_members').upsert(
+        {
+          trip_id: joinRequest.trip_id,
+          user_id: joinRequest.user_id,
+          role: 'member',
+          status: 'active',
+          left_at: null,
+        },
+        { onConflict: 'trip_id,user_id' },
+      );
 
       if (memberError) {
         logStep('ERROR: Failed to add member', { error: memberError.message });
@@ -194,7 +202,7 @@ serve(async req => {
         );
       }
 
-      logStep('Member added successfully');
+      logStep('Member upserted successfully (active)');
     }
 
     // Create notification for the requester
