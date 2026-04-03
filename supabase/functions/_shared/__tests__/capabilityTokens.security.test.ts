@@ -38,16 +38,30 @@ vi.mock('https://deno.land/x/jose@v5.2.0/index.ts', () => {
 
 describe('Capability Tokens — Security Tests', () => {
   describe('Missing JWT_SECRET', () => {
-    it('should throw when SUPABASE_JWT_SECRET is not set', async () => {
+    it('should throw when generating a token without SUPABASE_JWT_SECRET', async () => {
       envMap.clear(); // No secret set
-
-      // The module throws at import time when JWT_SECRET is missing.
-      // Reset modules to re-trigger the top-level guard.
       vi.resetModules();
 
-      await expect(async () => {
-        await import('../security/capabilityTokens.ts');
-      }).rejects.toThrow(/SUPABASE_JWT_SECRET is required/);
+      const { generateCapabilityToken } = await import('../security/capabilityTokens.ts');
+
+      await expect(
+        generateCapabilityToken({
+          user_id: 'user_1',
+          trip_id: 'trip_1',
+          allowed_tools: ['*'],
+        }),
+      ).rejects.toThrow(/SUPABASE_JWT_SECRET is required/);
+    });
+
+    it('should throw when verifying a token without SUPABASE_JWT_SECRET', async () => {
+      envMap.clear();
+      vi.resetModules();
+
+      const { verifyCapabilityToken } = await import('../security/capabilityTokens.ts');
+
+      await expect(verifyCapabilityToken('some.token')).rejects.toThrow(
+        /SUPABASE_JWT_SECRET is required/,
+      );
     });
   });
 
@@ -104,6 +118,16 @@ describe('Capability Tokens — Security Tests', () => {
 
       const verified = await verifyCapabilityToken(token);
       expect(verified.allowed_tools).toEqual(['*']);
+    });
+
+    it('should import without crashing even when secret is missing', async () => {
+      envMap.clear();
+      vi.resetModules();
+
+      // Import should succeed — no top-level throw
+      const mod = await import('../security/capabilityTokens.ts');
+      expect(mod.generateCapabilityToken).toBeDefined();
+      expect(mod.verifyCapabilityToken).toBeDefined();
     });
   });
 });

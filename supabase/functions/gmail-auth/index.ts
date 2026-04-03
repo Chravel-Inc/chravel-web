@@ -11,7 +11,7 @@ const OAUTH_STATE_SIGNING_SECRET = Deno.env.get('OAUTH_STATE_SIGNING_SECRET') ??
 const MAX_GMAIL_ACCOUNTS = 5;
 
 const REDIRECT_URI =
-  Deno.env.get('GOOGLE_REDIRECT_URI') || 'http://localhost:5173/api/gmail/oauth/callback';
+  Deno.env.get('GOOGLE_REDIRECT_URI') || 'https://chravel.app/api/gmail/oauth/callback';
 
 // SECURITY: corsHeaders is computed per-request from the validated origin.
 // A module-level ref is kept so errorResponse can use it before the request handler sets it.

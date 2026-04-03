@@ -148,3 +148,30 @@
 - Added visible abuse-reporting entry points in Support and Consumer General Settings (`safety@chravelapp.com`) to improve launch trust/compliance readiness.
 - Tightened chunk error recovery heuristic in `App.tsx` by removing generic `Failed to fetch` from chunk detection.
 - Verification: `npm test -- --run src/native/__tests__/pushRouting.test.ts`, `npm run typecheck`, `npm run lint` completed successfully (lint has existing repo-wide warnings only).
+2026-04-02 — Dashboard trip reorder iOS-home-screen interaction hardening
+- Reviewed prior reorder fix path (`SortableTripGrid` + `SortableCardWrapper`) and identified remaining mobile friction points: touch activation still had drag delay in reorder mode, wiggle animation was applied on the same node that dnd-kit translates, and no tactile feedback existed on long-press/drag start.
+- Implemented surgical UX hardening:
+  - Added `touchActivationConstraint` helper with immediate activation when already in reorder mode and delayed activation only before reorder mode (to preserve scroll intent).
+  - Moved wiggle animation class to inner wrapper so dnd-kit transform math on the outer sortable node is no longer competing with keyframe transform animations.
+  - Added lightweight vibration cues on long-press entry and drag start when `navigator.vibrate` is available.
+- Added focused regression test `src/components/dashboard/SortableTripGrid.activation.test.ts` for activation constraint contract.
+- Verification: `npm run test -- --run src/components/dashboard/sameIdSequence.test.ts src/components/dashboard/SortableTripGrid.activation.test.ts`, `npm run typecheck`, `npm run lint`, `npm run build` all pass (lint has existing repo-wide warnings only).
+2026-04-02 — Reorder animation follow-up (float > wiggle)
+- Per product feedback, replaced reorder-mode decorative motion from wiggle to subtle float to better match desired feel.
+- Added dedicated `float-subtle` Tailwind animation (2px vertical drift) and switched `SortableCardWrapper` reorder class from `animate-wiggle-subtle` to `animate-float-subtle`.
+- Kept animation on inner wrapper so dnd transform ownership remains isolated on sortable root.
+2026-04-02 — Trip cover upload bucket drift fix (homepage + update reliability)
+- Root-caused dual trip-cover regression to storage bucket/path drift: `TripHeader` upload flow wrote to `trip-media` with `trip-covers/...` object keys, but hardened RLS now blocks INSERTs where first folder is `trip-covers` in `trip-media`.
+- This caused cover-update/upload failures and downstream homepage card covers staying blank/stale because `cover_image_url` never updated after failed uploads.
+- Introduced shared trip-cover storage constants/path builder (`src/utils/tripCoverStorage.ts`) and wired both `TripHeader` and `CreateTripModal` to the same dedicated `trip-covers` bucket path contract.
+- Added focused regression test `src/utils/__tests__/tripCoverStorage.test.ts` to lock bucket/path invariants.
+- Verification: targeted tests + full lint/typecheck/build run.
+2026-04-03 — Cover photo composition upgrade (reduce landscape cropping)
+- Addressed follow-up UX issue where trip cover sections aggressively cropped uploads.
+- Updated shared `OptimizedImage` to support `fit='contain'` with optional blurred backdrop; wired trip cards to use contain mode so more of landscape photos are visible while preserving card dimensions.
+- Updated `TripHeader` hero to render a dual-layer cover (blurred fill + foreground contain image) instead of cover-only background image, preserving readability and showing more of uploaded photos.
+- Added test coverage in `OptimizedImage.lazy.test.tsx` for contain fit + blur backdrop rendering.
+2026-04-03 — Concierge tool auth diagnostics hardening (SUPABASE_JWT_SECRET + Bearer parsing)
+- Updated capability-token missing-secret error to reflect Supabase reality: `SUPABASE_JWT_SECRET` is runtime-injected and cannot be added manually with `SUPABASE_` prefix in Secrets UI.
+- Added shared Bearer-token parser (`_shared/authHeaders.ts`) and applied it in `execute-concierge-tool` + shared `requireAuth` to reject malformed/missing bearer headers with explicit 401 errors instead of ambiguous token parsing failures.
+- Added focused regression test `supabase/functions/_shared/__tests__/authHeaders.test.ts` for missing/invalid/valid header cases.

@@ -67,6 +67,12 @@ if (!isNativePlatform && 'serviceWorker' in navigator) {
     .catch(() => {});
 }
 
+// Initialize theme
+const theme = safeLocalStorageGet('theme');
+if (theme === 'light') {
+  document.documentElement.classList.add('light');
+}
+
 // Preview hardening: always clear stale caches (prevents sticky blank preview states)
 if (isLovablePreview()) {
   clearAllCaches();
@@ -92,6 +98,12 @@ if (import.meta.env.PROD && !isNativePlatform) {
 
 // Initialize native lifecycle listeners as early as possible (no-op on web).
 initNativeLifecycle();
+
+// Capacitor/TestFlight: warm the home dashboard chunk in parallel with first paint so
+// navigating to `/` after auth does not wait on an extra lazy-import round trip.
+if (Capacitor.isNativePlatform()) {
+  void import('./pages/Index');
+}
 
 // Initialize PostHog analytics
 telemetry.init().catch(err => console.warn('[Telemetry] Init failed:', err));

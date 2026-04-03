@@ -9,7 +9,17 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React from 'react';
 import { useJoinRequests } from '../useJoinRequests';
+
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: queryClient }, children);
+};
 
 const mockRpc = vi.fn();
 const mockFrom = vi.fn();
@@ -63,8 +73,9 @@ describe('useJoinRequests RPC response handling', () => {
       error: null,
     });
 
-    const { result } = renderHook(() =>
-      useJoinRequests({ tripId: 'trip-1', enabled: true, isDemoMode: false }),
+    const { result } = renderHook(
+      () => useJoinRequests({ tripId: 'trip-1', enabled: true, isDemoMode: false }),
+      { wrapper: createWrapper() },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -82,8 +93,9 @@ describe('useJoinRequests RPC response handling', () => {
       error: null,
     });
 
-    const { result } = renderHook(() =>
-      useJoinRequests({ tripId: 'trip-1', enabled: true, isDemoMode: false }),
+    const { result } = renderHook(
+      () => useJoinRequests({ tripId: 'trip-1', enabled: true, isDemoMode: false }),
+      { wrapper: createWrapper() },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -101,8 +113,9 @@ describe('useJoinRequests RPC response handling', () => {
       error: null,
     });
 
-    const { result } = renderHook(() =>
-      useJoinRequests({ tripId: 'trip-1', enabled: true, isDemoMode: false }),
+    const { result } = renderHook(
+      () => useJoinRequests({ tripId: 'trip-1', enabled: true, isDemoMode: false }),
+      { wrapper: createWrapper() },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -120,8 +133,9 @@ describe('useJoinRequests RPC response handling', () => {
       error: null,
     });
 
-    const { result } = renderHook(() =>
-      useJoinRequests({ tripId: 'trip-1', enabled: true, isDemoMode: false }),
+    const { result } = renderHook(
+      () => useJoinRequests({ tripId: 'trip-1', enabled: true, isDemoMode: false }),
+      { wrapper: createWrapper() },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -139,8 +153,9 @@ describe('useJoinRequests RPC response handling', () => {
       error: { message: 'reject_join_request does not exist' },
     });
 
-    const { result } = renderHook(() =>
-      useJoinRequests({ tripId: 'trip-1', enabled: true, isDemoMode: false }),
+    const { result } = renderHook(
+      () => useJoinRequests({ tripId: 'trip-1', enabled: true, isDemoMode: false }),
+      { wrapper: createWrapper() },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));

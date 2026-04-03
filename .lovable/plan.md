@@ -1,56 +1,57 @@
 
 
-# Fix: Blank Screen Caused by Externalized Dependencies
+# Fix capabilityTokens.ts + LiveKit Build Error
 
-## Root Cause
+## Context
+1. `SUPABASE_JWT_SECRET` is **automatically injected** by Supabase into all Edge Functions at runtime — you do NOT add it manually (the `SUPABASE_` prefix is reserved in the secrets dashboard)
+2. The previous edit left `capabilityTokens.ts` in a broken state: it calls `getSecretKey()` but never defines the function, AND still has the top-level throw guard
+3. The `livekit-token` build error is a separate issue — `npm:livekit-server-sdk@2` needs a `deno.json` entry
 
-The blank screen is caused by a **fatal module loading error** that prevents React from mounting.
+## Changes
 
-Three packages are listed as `external` in `vite.config.ts` (line 51):
-```
-external: ['@sentry/capacitor', '@sentry/react', 'posthog-js']
-```
+### 1. Fix `capabilityTokens.ts` — define `getSecretKey()` + remove top-level throw
 
-But these same packages are imported as **top-level static imports** in eagerly-loaded files:
-- `posthog-js` in `src/telemetry/providers/posthog.ts` line 8 → imported by `src/telemetry/service.ts` line 21 → imported by `src/main.tsx`
-- `@sentry/react` in `src/services/errorTracking.ts` line 22 → imported by `src/App.tsx` line 26
+Replace the top-level crash with a lazy helper:
 
-When Vite marks a package as `external`, it **excludes it from the bundle** and expects it to be available as a global at runtime. In a browser SPA, there is no such global — the import fails immediately, crashing the entire app before any React component renders.
+```typescript
+const JWT_SECRET = Deno.env.get('SUPABASE_JWT_SECRET');
 
-This produces zero console logs, zero network requests, and a blank white screen — exactly matching the symptom.
-
-## Fix Plan (2 files)
-
-### 1. `vite.config.ts` — Remove problematic externals
-
-Remove `posthog-js` and `@sentry/react` from the `external` array. Keep `@sentry/capacitor` external since it's only used on native platforms via lazy import.
-
-Alternatively, remove the entire `external` array and let Vite bundle or tree-shake these packages naturally:
-
-```
-external: ['@sentry/capacitor']
+function getSecretKey(): Uint8Array {
+  const secret = JWT_SECRET || Deno.env.get('SUPABASE_JWT_SECRET');
+  if (!secret) {
+    throw new Error(
+      'SUPABASE_JWT_SECRET is required — this value is auto-injected by Supabase at runtime.'
+    );
+  }
+  return new TextEncoder().encode(secret);
+}
 ```
 
-This is the minimal, correct fix. These packages are in `package.json` as dependencies and should be bundled normally. If they're not installed, Vite will warn at build time rather than silently producing a broken bundle.
+Remove lines 11-17 (the `if (!JWT_SECRET) throw` block). The error now only fires when a tool call actually needs a capability token, not at module load time.
 
-### 2. `index.html` — Update cache buster
+### 2. Fix LiveKit build error — `supabase/functions/livekit-token/deno.json`
 
-Bump the cache buster comment to force a fresh preview build cycle.
+Create a `deno.json` in the livekit-token function directory to resolve the npm import:
 
-## Why This Is Safe
+```json
+{
+  "imports": {
+    "livekit-server-sdk": "npm:livekit-server-sdk@^2"
+  }
+}
+```
 
-- `posthog-js` and `@sentry/react` are already listed as dependencies in `package.json`
-- They will be tree-shaken if unused or conditionally loaded
-- The `optimizeDeps.exclude` array (line 100) already handles dev-server optimization separately
-- No runtime behavior changes — this just ensures the packages are actually included in the bundle
+And update the import in `index.ts` from `npm:livekit-server-sdk@2` to use the import map.
 
-## What NOT to Touch
+### 3. Fix `requireSecrets` misuse in `livekit-token/index.ts`
 
-- No changes to telemetry, error tracking, auth, routing, or provider code
-- No Supabase, CORS, or edge function changes
-- No env var changes needed
+Line 31: `requireSecrets()` returns a `Record<string, string>` (throws on failure), but the code treats it as if it returns an error. The current code:
+```typescript
+const secretsError = requireSecrets([...]);
+if (secretsError) { ... }
+```
+This is wrong — `requireSecrets` throws, it doesn't return an error. Wrap in try/catch or use destructuring.
 
-## Secondary Issue (Not Blocking Render)
-
-The edge function `lovable-concierge` is crashing on boot because `SUPABASE_JWT_SECRET` is not set in Edge Function secrets. This doesn't block the frontend from loading but will cause AI concierge features to fail. You should add this secret in **Supabase Dashboard → Edge Functions → Secrets**.
+## Risk
+**LOW** — fixes broken code, no behavior change for working paths.
 

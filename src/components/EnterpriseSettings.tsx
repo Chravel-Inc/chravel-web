@@ -223,19 +223,19 @@ export const EnterpriseSettings = ({
 
   if (defaultSection !== 'organization') {
     return (
-      <>
-        <div className="w-full">{renderSection()}</div>
+      <div className="h-full min-h-0 flex flex-col">
+        <div className="w-full flex-1 min-h-0 overflow-y-auto">{renderSection()}</div>
         <CreateOrganizationModal
           open={showCreateOrgModal}
           onClose={handleCloseCreateOrgModal}
           onSuccess={handleOrgCreated}
         />
-      </>
+      </div>
     );
   }
 
   return (
-    <>
+    <div className="h-full min-h-0 flex flex-col">
       <SettingsLayout
         title="Pro Settings"
         sections={SECTIONS}
@@ -249,6 +249,6 @@ export const EnterpriseSettings = ({
         onClose={handleCloseCreateOrgModal}
         onSuccess={handleOrgCreated}
       />
-    </>
+    </div>
   );
 };

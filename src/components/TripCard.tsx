@@ -398,6 +398,8 @@ export const TripCard = ({
             fallbackSrc={demoCoverFallback}
             lazy={!priority}
             priority={priority}
+            fit="contain"
+            showBlurBackdrop
             className="absolute inset-0 opacity-80"
           />
         )}

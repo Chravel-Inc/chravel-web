@@ -924,10 +924,6 @@ export const TripChat = React.memo(
       return () => window.removeEventListener('keydown', handleKeyDown);
     }, [messageFilter]);
 
-    if (isLoading) {
-      return <div>Loading messages...</div>;
-    }
-
     return (
       <div className="flex flex-col h-full">
         {/* Search Overlay Modal */}
@@ -1056,7 +1052,7 @@ export const TripChat = React.memo(
                 onSendMessage={handleSendMessage}
                 onKeyPress={handleKeyPress}
                 apiKey=""
-                isTyping={isSendingMessage}
+                isTyping={false}
                 tripMembers={tripMembers}
                 hidePayments={true}
                 isPro={isPro}

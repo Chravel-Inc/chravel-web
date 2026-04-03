@@ -100,4 +100,48 @@ describe('eventChatPermissions', () => {
     expect(memberCanPost).toBe(false);
     expect(adminCanPost).toBe(true);
   });
+
+  it('optimistically allows posting while loading when effective mode is everyone', () => {
+    expect(
+      canPostInMainChat({
+        chatMode: null,
+        tripType: 'consumer',
+        attendeeCount: 0,
+        userRole: null,
+        isLoading: true,
+      }),
+    ).toBe(true);
+
+    expect(
+      canPostInMainChat({
+        chatMode: 'everyone',
+        tripType: 'consumer',
+        attendeeCount: 4,
+        userRole: null,
+        isLoading: true,
+      }),
+    ).toBe(true);
+  });
+
+  it('does not optimistically allow posting while loading for restricted modes', () => {
+    expect(
+      canPostInMainChat({
+        chatMode: 'broadcasts',
+        tripType: 'event',
+        attendeeCount: 30,
+        userRole: null,
+        isLoading: true,
+      }),
+    ).toBe(false);
+
+    expect(
+      canPostInMainChat({
+        chatMode: 'admin_only',
+        tripType: 'consumer',
+        attendeeCount: 4,
+        userRole: null,
+        isLoading: true,
+      }),
+    ).toBe(false);
+  });
 });

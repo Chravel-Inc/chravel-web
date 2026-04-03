@@ -88,4 +88,22 @@ describe('OptimizedImage lazy loading', () => {
 
     expect(img.src).toBe('https://example.com/fallback.jpg');
   });
+
+  it('uses contain fit and renders blur backdrop when requested', () => {
+    const { container } = render(
+      <OptimizedImage
+        src="https://example.com/photo.jpg"
+        alt="test"
+        priority
+        fit="contain"
+        showBlurBackdrop
+      />,
+    );
+
+    const backdrop = container.querySelector('img[aria-hidden="true"]');
+    expect(backdrop).toBeTruthy();
+    expect(backdrop?.className).toContain('blur-md');
+    const mainImage = screen.getByRole('img');
+    expect(mainImage.className).toContain('object-contain');
+  });
 });
