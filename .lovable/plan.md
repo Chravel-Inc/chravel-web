@@ -1,20 +1,29 @@
 
 
-# Replace Create Trip Screenshot on Landing Page
+# Fix Spinning Send Button + Build Errors
 
-## What
-Replace the old navy-blue "Create New Trip" screenshot in the marketing landing page with the new black/gray/gold design screenshot that matches the current app aesthetic.
+## Problem
+After sending a message, the send button shows a spinning loader. This happens because `isTyping={isSendingMessage}` passes the mutation's pending state to the input component, which disables the button and shows a spinner while the DB insert completes. With optimistic updates already in place, this spinner is unnecessary and feels sluggish.
 
-## Change
+## Changes
 
-### 1. Copy uploaded image to project
-- Copy `user-uploads://IMG_4045.jpg` to `src/assets/app-screenshots/create-trip-modal-v3.png`
+### 1. Remove send button spinner — `src/features/chat/components/TripChat.tsx`
+- Find the `AiChatInput` usage where `isTyping={isSendingMessage}` is passed
+- Change to `isTyping={false}`
+- The optimistic insert already makes the message appear instantly; the button should never spin
 
-### 2. Update import in `src/components/landing/sections/ProblemSolutionSection.tsx`
-- **Line 4**: Change import from `create-trip-modal-v2.png` to `create-trip-modal-v3.png`
+### 2. Fix build error — `src/components/dashboard/touchActivationConstraint.ts`
+- Line 1: Change `TouchActivationConstraint` → `PointerActivationConstraint` (the correct export from `@dnd-kit/core`)
+- Update the return type annotation on line 9 accordingly
 
-That's it — the new image flows into both desktop and mobile views automatically since both reference the same `createNewTrip` variable.
+### 3. Fix build error — `src/hooks/useDashboardJoinRequests.ts`
+- Line 150: Change `data as JoinRequestRow[]` → `data as unknown as JoinRequestRow[]` to satisfy the intermediate cast requirement
+
+## What is NOT touched
+- Stream Chat integration (completely separate typing system)
+- Supabase Presence typing indicators (separate system)
+- No message logic, no channel config, no realtime handlers
 
 ## Risk
-**LOW** — asset swap only, no logic change.
+**LOW** — one prop change + two type-only fixes. Zero runtime behavior change beyond removing the spinner.
 
