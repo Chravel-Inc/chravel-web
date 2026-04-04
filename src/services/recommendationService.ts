@@ -211,6 +211,6 @@ export class RecommendationService {
       return [];
     }
 
-    return (data || []).map(row => row.item_id);
+    return (data || []).map((row: { item_id: string }) => row.item_id);
   }
 }

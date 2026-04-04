@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -6,15 +6,82 @@ import { MapPin, Star, ChevronLeft, ChevronRight, Users, Bookmark } from 'lucide
 import { Recommendation } from '../data/recommendations';
 import { useIsMobile } from '../hooks/use-mobile';
 import { OptimizedImage } from './mobile/OptimizedImage';
+import { RecommendationService } from '@/services/recommendationService';
+import { useAuth } from '@/hooks/useAuth';
+import { useInView } from 'react-intersection-observer';
 
 interface RecommendationCardProps {
   recommendation: Recommendation;
   onSaveToTrip?: (id: number) => void;
+  tripId?: string;
+  surface?: 'recs_page' | 'trip_detail' | 'concierge' | 'home';
+  position?: number;
 }
 
-export const RecommendationCard = ({ recommendation, onSaveToTrip }: RecommendationCardProps) => {
+export const RecommendationCard = ({
+  recommendation,
+  onSaveToTrip,
+  tripId,
+  surface = 'recs_page',
+  position = 0,
+}: RecommendationCardProps) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [impressionId, setImpressionId] = useState<string | null>(null);
   const _isMobile = useIsMobile();
+  const { user } = useAuth();
+
+  // Impression tracking
+  const { ref, inView } = useInView({
+    triggerOnce: true,
+    threshold: 0.5, // Item is 50% visible
+  });
+
+  useEffect(() => {
+    if (inView && !impressionId) {
+      const trackImpressionAsync = async () => {
+        // Use uuid if available (for real DB items) or id as string fallback
+        const itemId = recommendation.uuid || String(recommendation.id);
+        const itemType = recommendation.isSponsored ? 'sponsored' : 'organic';
+
+        try {
+          const id = await RecommendationService.trackImpression({
+            itemId,
+            itemType,
+            userId: user?.id,
+            tripId,
+            surface,
+            position,
+          });
+          setImpressionId(id);
+        } catch (err) {
+          // Silent failure - don't break UX
+          console.error('Failed to track impression:', err);
+        }
+      };
+
+      trackImpressionAsync();
+    }
+  }, [inView, impressionId, recommendation, user?.id, tripId, surface, position]);
+
+  const trackClick = async (action: 'view' | 'save' | 'book' | 'external_link' | 'add_to_trip' | 'hide') => {
+    if (impressionId) {
+      await RecommendationService.trackClick({ impressionId, action });
+    } else {
+      // In case they clicked before the impression fully fired/returned
+      const itemId = recommendation.uuid || String(recommendation.id);
+      const itemType = recommendation.isSponsored ? 'sponsored' : 'organic';
+      RecommendationService.trackImpression({
+        itemId,
+        itemType,
+        userId: user?.id,
+        tripId,
+        surface,
+        position,
+      }).then(id => {
+        if (id) RecommendationService.trackClick({ impressionId: id, action });
+      });
+    }
+  };
 
   const nextImage = () => {
     setCurrentImageIndex(prev => (prev === recommendation.images.length - 1 ? 0 : prev + 1));
@@ -29,11 +96,17 @@ export const RecommendationCard = ({ recommendation, onSaveToTrip }: Recommendat
   };
 
   const handleCTA = () => {
+    trackClick(recommendation.ctaButton.action === 'book' ? 'book' : 'external_link');
     window.open(recommendation.externalLink, '_blank', 'noopener,noreferrer');
   };
 
+  const handleSaveClick = () => {
+    trackClick('save');
+    onSaveToTrip?.(recommendation.id);
+  };
+
   return (
-    <Card className="group relative overflow-hidden bg-card/80 backdrop-blur-md border border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-enterprise-md">
+    <Card ref={ref} className="group relative overflow-hidden bg-card/80 backdrop-blur-md border border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-enterprise-md">
       {/* Header with title and sponsor badge */}
       <div className="p-4 pb-2">
         <div className="flex items-start justify-between mb-2">
@@ -63,7 +136,7 @@ export const RecommendationCard = ({ recommendation, onSaveToTrip }: Recommendat
             variant="ghost"
             size="sm"
             className="text-muted-foreground hover:text-foreground"
-            onClick={() => onSaveToTrip?.(recommendation.id)}
+            onClick={handleSaveClick}
           >
             <Bookmark className="w-4 h-4" />
           </Button>
@@ -176,7 +249,7 @@ export const RecommendationCard = ({ recommendation, onSaveToTrip }: Recommendat
           <Button
             variant="outline"
             className="px-3"
-            onClick={() => onSaveToTrip?.(recommendation.id)}
+            onClick={handleSaveClick}
           >
             Save
           </Button>
