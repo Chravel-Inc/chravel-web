@@ -30,8 +30,18 @@ const totals = report.reduce(
 );
 
 if (totals.errors > 0) {
-  fs.unlinkSync(reportPath);
   console.error(`\n❌ ESLint errors detected: ${totals.errors}.`);
+  report.forEach(file => {
+    if (file.errorCount > 0) {
+      console.error(`\nFile: ${file.filePath}`);
+      file.messages.forEach(msg => {
+        if (msg.severity === 2) {
+          console.error(`  [ERROR] Line ${msg.line}:${msg.column} - ${msg.message} (${msg.ruleId})`);
+        }
+      });
+    }
+  });
+  fs.unlinkSync(reportPath);
   process.exit(1);
 }
 
