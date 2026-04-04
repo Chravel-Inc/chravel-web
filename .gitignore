@@ -53,3 +53,5 @@ coverage/
 core
 core.*
 jules-scratch/
+
+*.tsbuildinfo
