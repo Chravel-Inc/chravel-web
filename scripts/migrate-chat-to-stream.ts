@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
 import { StreamChat } from 'stream-chat';
-import * as fs from 'fs';
 import * as path from 'path';
 
 // Configuration
