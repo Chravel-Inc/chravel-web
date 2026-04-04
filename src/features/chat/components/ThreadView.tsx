@@ -60,14 +60,16 @@ export const ThreadView: React.FC<ThreadViewProps> = ({
   // Load initial replies
   useEffect(() => {
     const loadReplies = async () => {
-      if(!client) return;
+      if (!client) return;
 
       setIsLoading(true);
       setLoadError(null);
       try {
         const channel = client.channel(CHANNEL_TYPE_TRIP, tripChannelId(parentMessage.tripId));
         const data = await channel.getReplies(parentMessage.id, { limit: 100 });
-        const formatted = data.messages.map(row => formatReply(row as MessageResponse, tripMembers));
+        const formatted = data.messages.map(row =>
+          formatReply(row as MessageResponse, tripMembers),
+        );
         setReplies(formatted);
       } catch (err) {
         if (import.meta.env.DEV) console.error('[ThreadView] Failed to load replies:', err);
@@ -82,7 +84,7 @@ export const ThreadView: React.FC<ThreadViewProps> = ({
 
   // Subscribe to realtime thread updates
   useEffect(() => {
-    if(!client) return;
+    if (!client) return;
 
     const channel = client.channel(CHANNEL_TYPE_TRIP, tripChannelId(parentMessage.tripId));
 

@@ -81,13 +81,13 @@ export function streamMessageToChravel(msg: MessageResponse, tripId: string): Ch
   if (msg.reaction_counts) {
     for (const [type, count] of Object.entries(msg.reaction_counts)) {
       reactionMap[type] = {
-        count: count,
-        userReacted: !!msg.own_reactions?.some((r) => r.type === type),
-        users: msg.latest_reactions?.filter((r) => r.type === type).map((r) => r.user?.id as string) || [],
+        count: count as number,
+        userReacted: !!msg.own_reactions?.some(r => r.type === type),
+        users:
+          msg.latest_reactions?.filter(r => r.type === type).map(r => r.user?.id as string) || [],
       };
     }
   }
-
   return {
     id: msg.id,
     trip_id: tripId,
