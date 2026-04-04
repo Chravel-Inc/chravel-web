@@ -47,3 +47,8 @@ tmp/loop-history/*
 ios-release/fastlane/README.md
 ios-release/fastlane/report.xml
 coverage/
+
+# Crash dumps / local scratch artifacts
+core
+core.*
+jules-scratch/
