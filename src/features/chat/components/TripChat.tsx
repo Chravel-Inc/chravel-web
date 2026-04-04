@@ -155,7 +155,6 @@ export const TripChat = React.memo(
       messages: liveMessages,
       isLoading: liveLoading,
       sendMessageAsync: sendTripMessage,
-      isCreating: isSendingMessage,
       loadMore: loadMoreMessages,
       hasMore,
       isLoadingMore,
