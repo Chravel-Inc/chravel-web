@@ -1,6 +1,6 @@
 #!/bin/bash
 # Hook 3: Protect sensitive files from edits (PreToolUse on Edit|Write)
-# Blocks edits to .env*, secrets, lockfiles, and infrastructure config.
+# Blocks edits to .env*, secrets, lockfiles, hook scripts, and infrastructure config.
 # Exit 2 = block, exit 0 = allow.
 
 set -euo pipefail
@@ -48,6 +48,11 @@ fi
 # --- Lockfiles (should only change via package manager) ---
 if [[ "$BASENAME" == "package-lock.json" || "$BASENAME" == "pnpm-lock.yaml" || "$BASENAME" == "yarn.lock" ]]; then
   block "lockfiles should only be modified by the package manager (npm install, etc.)"
+fi
+
+# --- Hook scripts (prevent agent from weakening its own guardrails) ---
+if [[ "$FILE_PATH" == .claude/hooks/* || "$FILE_PATH" == */.claude/hooks/* ]]; then
+  block "hook scripts are protected — edit manually or remove this rule first"
 fi
 
 # --- Hook config (protect itself from accidental edits) ---

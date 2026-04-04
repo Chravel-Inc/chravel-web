@@ -30,7 +30,7 @@ echo "$CMD_LOWER" | grep -qE 'rm\s+-r\s+~' && block "rm -r on home directory is 
 # --- SQL destruction ---
 echo "$CMD_LOWER" | grep -qE 'drop\s+table' && block "DROP TABLE is forbidden — use migrations"
 echo "$CMD_LOWER" | grep -qE 'drop\s+database' && block "DROP DATABASE is forbidden"
-echo "$CMD_LOWER" | grep -qE 'truncate\s+' && block "TRUNCATE is forbidden — use migrations"
+echo "$CMD_LOWER" | grep -qE 'truncate\s+table' && block "TRUNCATE TABLE is forbidden — use migrations"
 
 # --- Pipe-to-shell (remote code execution) ---
 echo "$CMD_LOWER" | grep -qE 'curl\s.*\|\s*(sh|bash)' && block "Piping curl to shell is forbidden"

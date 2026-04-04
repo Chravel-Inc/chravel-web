@@ -1,6 +1,10 @@
 #!/bin/bash
 # Hook 5: Require passing build gate before PR creation (PreToolUse)
 # Runs lint + typecheck + tests. Exit 2 = block PR, exit 0 = allow.
+#
+# NOTE: This hook only fires for the mcp__github__create_pull_request tool.
+# PRs created via GitHub UI, gh CLI, or other integrations bypass this gate.
+# CI workflows enforce the same checks on all PRs regardless of creation method.
 
 set -euo pipefail
 
