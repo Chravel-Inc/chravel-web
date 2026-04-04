@@ -59,6 +59,10 @@ export interface Trip {
   membership_status?: 'owner' | 'member' | 'pending' | 'rejected'; // Membership status for current user
   card_color?: string | null; // Color coding for Pro/Event cards
   organizer_display_name?: string | null; // Organizer name for Events (e.g., "Los Angeles Rams")
+  // Aggregate join fields returned by Supabase select queries
+  trip_members?: Array<{ count: number }>;
+  trip_events_places?: Array<{ count: number }>;
+  categories?: Array<{ type: string; value: string }>;
 }
 
 export interface CreateTripData {

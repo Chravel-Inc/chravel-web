@@ -21,7 +21,7 @@ function createFakeJwt(payload: Partial<TokenPayload>): string {
 describe('tokenValidation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubEnv('DEV', 'true');
+    vi.stubEnv('DEV', true as unknown as string);
     // Using vi.stubEnv sometimes isn't enough depending on Vite's transform caching.
     // We will use standard mock for global meta env if needed.
   });
