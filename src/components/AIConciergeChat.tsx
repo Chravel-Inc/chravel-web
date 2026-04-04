@@ -19,6 +19,7 @@ import {
   type ReservationDraft,
   type TripCard,
   type StreamSmartImportPreviewEvent,
+  type StreamBulkDeletePreviewEvent,
   type SmartImportPreviewEvent,
   type SmartImportStatus,
 } from '@/services/conciergeGateway';
@@ -161,6 +162,13 @@ export interface ChatMessage {
   };
   /** Smart Import status messages (parsing progress) */
   smartImportStatus?: { status: SmartImportStatus; message: string };
+  /** Bulk Delete preview data from emitBulkDeletePreview tool */
+  bulkDeletePreview?: {
+    previewEvents: SmartImportPreviewEvent[];
+    previewToken: string;
+    tripId: string;
+    totalEvents: number;
+  };
   /**
    * True while this message is the live-streaming voice response from Gemini
    * Live (Fix 2).  Rendered with a pulsing ring so the user sees the assistant
@@ -216,6 +224,7 @@ const FAST_RESPONSE_TIMEOUT_MS = 60_000;
 const MAX_CHAT_HISTORY_MESSAGES = 10;
 const MAX_SINGLE_MESSAGE_LENGTH = 3000;
 const _MAX_IMAGE_SIZE_BYTES = 4 * 1024 * 1024; // 4 MB — keeps base64 under 6 MB server limit
+const _MAX_DOCUMENT_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB for documents
 const _ALLOWED_IMAGE_TYPES = new Set([
   'image/jpeg',
   'image/png',
@@ -224,6 +233,15 @@ const _ALLOWED_IMAGE_TYPES = new Set([
   'image/heic',
   'image/heif',
 ]);
+const ALLOWED_DOCUMENT_TYPES = new Set([
+  'application/pdf',
+  'text/calendar',
+  'text/csv',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+]);
+/** All accepted file types for drag-drop and paste */
+const ALL_ACCEPTED_TYPES = new Set([..._ALLOWED_IMAGE_TYPES, ...ALLOWED_DOCUMENT_TYPES]);
 
 /** Extract rich card metadata from a ChatMessage for persistence to ai_queries.metadata */
 function extractRichMetadata(msg: ChatMessage | undefined | null): Record<string, unknown> | null {
@@ -413,6 +431,7 @@ export const AIConciergeChat = ({
     'checking' | 'connected' | 'limited' | 'error' | 'thinking' | 'offline' | 'degraded' | 'timeout'
   >('connected');
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
+  const [attachedDocuments, setAttachedDocuments] = useState<File[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const handleSendMessageRef = useRef<(messageOverride?: string) => Promise<void>>(async () =>
     Promise.resolve(),
@@ -1080,6 +1099,91 @@ export const AIConciergeChat = ({
     );
   }, []);
 
+  // ── Bulk Delete: confirm/dismiss handlers ─────────────────────────────────
+  const [bulkDeleteStates, setBulkDeleteStates] = useState<
+    Record<
+      string,
+      {
+        isImporting: boolean;
+        result: { imported: number; failed: number; alreadyMissing?: number } | null;
+      }
+    >
+  >({});
+
+  const handleBulkDeleteConfirm = useCallback(
+    async (messageId: string, previewToken: string, events: SmartImportPreviewEvent[]) => {
+      if (!tripId || events.length === 0) return;
+
+      const selectedEventIds = events.map(e => e.id).filter(Boolean) as string[];
+      if (selectedEventIds.length === 0) return;
+
+      setBulkDeleteStates(prev => ({
+        ...prev,
+        [messageId]: { isImporting: true, result: null },
+      }));
+
+      try {
+        const { calendarService } = await import('@/services/calendarService');
+        const result = await calendarService.bulkDeleteEvents(selectedEventIds, tripId);
+
+        // Resolve the pending action for audit trail (non-blocking — deletion already succeeded)
+        // intentional: trip_pending_actions not yet in generated Supabase types
+        (supabase as any)
+          .from('trip_pending_actions')
+          .update({
+            status: 'confirmed',
+            resolved_at: new Date().toISOString(),
+            resolved_by: user?.id,
+          })
+          .eq('id', previewToken)
+          .eq('status', 'pending')
+          .then(() => {});
+
+        setBulkDeleteStates(prev => ({
+          ...prev,
+          [messageId]: {
+            isImporting: false,
+            result: {
+              imported: result.deleted,
+              failed: result.failed,
+              alreadyMissing: result.alreadyMissing,
+            },
+          },
+        }));
+
+        // Invalidate calendar queries so the UI refreshes
+        conciergeQueryClient.invalidateQueries({ queryKey: ['calendarEvents', tripId] });
+
+        if (result.deleted > 0) {
+          const extra =
+            result.alreadyMissing > 0 ? ` ${result.alreadyMissing} were already gone.` : '';
+          toast.success(
+            `Removed ${result.deleted} event${result.deleted !== 1 ? 's' : ''} from Calendar.${extra}`,
+          );
+        }
+        if (result.failed > 0) {
+          toast.error(`${result.failed} event${result.failed !== 1 ? 's' : ''} failed to remove`);
+        }
+      } catch {
+        setBulkDeleteStates(prev => ({
+          ...prev,
+          [messageId]: {
+            isImporting: false,
+            result: { imported: 0, failed: events.length },
+          },
+        }));
+        toast.error('Failed to remove events. Please try again.');
+      }
+    },
+    [tripId, user, conciergeQueryClient],
+  );
+
+  const handleBulkDeleteDismiss = useCallback((messageId: string) => {
+    setMessages(prev =>
+      prev.map(m => (m.id === messageId ? { ...m, bulkDeletePreview: undefined } : m)),
+    );
+  }, []);
+
   // ── Delete a single concierge message (privacy) ──────────────────────────
   const handleDeleteMessage = useCallback(
     async (messageId: string) => {
@@ -1114,14 +1218,20 @@ export const AIConciergeChat = ({
     const typedMessage =
       typeof messageOverride === 'string' ? messageOverride.trim() : inputMessage.trim();
     const selectedImages = UPLOAD_ENABLED ? [...attachedImages] : [];
+    const selectedDocuments = UPLOAD_ENABLED ? [...attachedDocuments] : [];
     const hasImageAttachments = selectedImages.length > 0;
-    if ((!typedMessage && !hasImageAttachments) || isTyping) return;
+    const hasDocumentAttachments = selectedDocuments.length > 0;
+    const hasAnyAttachments = hasImageAttachments || hasDocumentAttachments;
+    if ((!typedMessage && !hasAnyAttachments) || isTyping) return;
 
+    const attachmentCount = selectedImages.length + selectedDocuments.length;
     const messageToSend =
-      typedMessage || `Please analyze the ${selectedImages.length} attached image(s).`;
-    const userDisplayContent =
       typedMessage ||
-      `📎 Attached ${selectedImages.length} image${selectedImages.length === 1 ? '' : 's'}`;
+      (hasDocumentAttachments
+        ? `Please analyze the attached file(s) and extract any travel events, reservations, or itinerary items. Show me a preview before adding to calendar.`
+        : `Please analyze the ${selectedImages.length} attached image(s).`);
+    const userDisplayContent =
+      typedMessage || `Attached ${attachmentCount} file${attachmentCount === 1 ? '' : 's'}`;
 
     if (isOffline) {
       setMessages(prev => [
@@ -1168,6 +1278,9 @@ export const AIConciergeChat = ({
     }
     if (selectedImages.length > 0) {
       setAttachedImages([]);
+    }
+    if (selectedDocuments.length > 0) {
+      setAttachedDocuments([]);
     }
     setIsTyping(true);
     setAiStatus('thinking');
@@ -1221,6 +1334,10 @@ export const AIConciergeChat = ({
       let attachments: ConciergeAttachment[] = [];
       if (selectedImages.length > 0) {
         attachments = await Promise.all(selectedImages.map(fileToAttachmentPayload));
+      }
+      if (selectedDocuments.length > 0) {
+        const docAttachments = await Promise.all(selectedDocuments.map(fileToAttachmentPayload));
+        attachments = [...attachments, ...docAttachments];
       }
 
       // Slice the last N prior messages. The current user message is
@@ -1658,6 +1775,34 @@ export const AIConciergeChat = ({
                     content: '',
                     timestamp: new Date().toISOString(),
                     smartImportStatus: statusData,
+                  },
+                ];
+              });
+            },
+            onBulkDeletePreview: (preview: StreamBulkDeletePreviewEvent) => {
+              if (!isMounted.current) return;
+              receivedAnyChunk = true;
+              setMessages(prev => {
+                const idx = prev.findIndex(m => m.id === streamingMessageId);
+                const previewData = {
+                  previewEvents: preview.previewEvents,
+                  previewToken: preview.previewToken,
+                  tripId: preview.tripId,
+                  totalEvents: preview.totalEvents,
+                };
+                if (idx !== -1) {
+                  const updated = [...prev];
+                  updated[idx] = { ...updated[idx], bulkDeletePreview: previewData };
+                  return updated;
+                }
+                return [
+                  ...prev,
+                  {
+                    id: streamingMessageId,
+                    type: 'assistant' as const,
+                    content: '',
+                    timestamp: new Date().toISOString(),
+                    bulkDeletePreview: previewData,
                   },
                 ];
               });
@@ -2154,12 +2299,20 @@ export const AIConciergeChat = ({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
+          accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,application/pdf,text/calendar,.ics,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           multiple
           className="hidden"
           onChange={e => {
-            const files = Array.from(e.target.files || []).filter(f => f.type.startsWith('image/'));
-            if (files.length > 0) setAttachedImages(prev => [...prev, ...files].slice(0, 4));
+            const files = Array.from(e.target.files || []);
+            const images = files.filter(f => f.type.startsWith('image/'));
+            const docs = files.filter(
+              f =>
+                ALLOWED_DOCUMENT_TYPES.has(f.type) ||
+                f.name.endsWith('.ics') ||
+                f.name.endsWith('.csv'),
+            );
+            if (images.length > 0) setAttachedImages(prev => [...prev, ...images].slice(0, 4));
+            if (docs.length > 0) setAttachedDocuments(prev => [...prev, ...docs].slice(0, 4));
             if (fileInputRef.current) fileInputRef.current.value = '';
           }}
         />
@@ -2252,11 +2405,14 @@ export const AIConciergeChat = ({
                 }}
                 onSmartImportConfirm={handleSmartImportConfirm}
                 onSmartImportDismiss={handleSmartImportDismiss}
+                onBulkDeleteConfirm={handleBulkDeleteConfirm}
+                onBulkDeleteDismiss={handleBulkDeleteDismiss}
                 onConfirmPendingAction={confirmAction}
                 onRejectPendingAction={rejectAction}
                 isConfirmingPendingAction={isConfirmingPendingAction}
                 isRejectingPendingAction={isRejectingPendingAction}
                 smartImportStates={smartImportStates}
+                bulkDeleteStates={bulkDeleteStates}
                 ttsPlaybackState={ttsPlaybackState}
                 ttsPlayingMessageId={ttsPlayingMessageId}
                 onTTSPlay={handleTTSPlay}
@@ -2304,11 +2460,23 @@ export const AIConciergeChat = ({
                 ? idx => setAttachedImages(prev => prev.filter((_, i) => i !== idx))
                 : undefined
             }
+            attachedDocuments={UPLOAD_ENABLED ? attachedDocuments : []}
+            onDocumentAttach={
+              UPLOAD_ENABLED
+                ? (files: File[]) => setAttachedDocuments(prev => [...prev, ...files].slice(0, 4))
+                : undefined
+            }
+            onRemoveDocument={
+              UPLOAD_ENABLED
+                ? idx => setAttachedDocuments(prev => prev.filter((_, i) => i !== idx))
+                : undefined
+            }
+            acceptedFileTypes={ALL_ACCEPTED_TYPES}
             convoVoiceState={convoVoiceState}
             onConvoToggle={handleConvoToggle}
             isVoiceEligible={DUPLEX_VOICE_ENABLED}
             onQuickAction={
-              UPLOAD_ENABLED && attachedImages.length > 0
+              UPLOAD_ENABLED && (attachedImages.length > 0 || attachedDocuments.length > 0)
                 ? (action: string) => {
                     const actionMessages: Record<string, string> = {
                       add_to_calendar: 'Add this to the trip calendar',

@@ -45,7 +45,7 @@ const { AgentSession, Agent, AgentSessionEventTypes } = voice;
 import { beta } from '@livekit/agents-plugin-google';
 import { fetchTripContext } from './context.js';
 import { buildVoicePrompt } from './prompt.js';
-import { ALL_TOOLS, createToolContext } from './tools.js';
+import { ALL_TOOLS, createToolContext, getSupabase } from './tools.js';
 import {
   sendTranscript,
   sendTurnComplete,
@@ -74,8 +74,13 @@ function log(event: string, data?: Record<string, unknown>): void {
 // ── Prewarm ────────────────────────────────────────────────────────────────────
 
 export const prewarm = async (proc: JobProcess): Promise<void> => {
-  // Pre-import heavy modules during process startup
   log('prewarm:start');
+  // Pre-initialize Supabase client (connection pool warmup)
+  try {
+    getSupabase();
+  } catch {
+    // Non-critical — will initialize lazily in context.ts
+  }
   proc.userData = {};
   log('prewarm:done');
 };
@@ -93,6 +98,8 @@ const RICH_CARD_TOOLS = new Set([
   'makeReservation',
   'getWeatherForecast',
   'searchFlights',
+  'searchHotels',
+  'getHotelDetails',
 ]);
 
 // ── Agent Entry ────────────────────────────────────────────────────────────────
@@ -115,17 +122,28 @@ export default defineAgent({
 
     log('agent:metadata', { tripId, userId, voice });
 
-    // ── Fetch Trip Context ─────────────────────────────────────────────────
+    const sessionStartMs = Date.now();
+
+    // ── Fetch Trip Context + Connect to Room (in parallel) ─────────────────
     log('agent:context_fetching');
-    const tripContext = await fetchTripContext(tripId, userId);
+    const contextStartMs = Date.now();
+    const [tripContext] = await Promise.all([
+      fetchTripContext(tripId, userId),
+      ctx.connect(), // Connect to LiveKit room while context loads
+    ]);
+    const contextDurationMs = Date.now() - contextStartMs;
     if (tripContext) {
       log('agent:context_built', {
         trip: tripContext.tripMetadata?.name,
         calendarEvents: tripContext.calendar.length,
         tasks: tripContext.tasks.length,
+        durationMs: contextDurationMs,
       });
     } else {
-      log('agent:context_fallback', { reason: 'Trip not found or fetch failed' });
+      log('agent:context_fallback', {
+        reason: 'Trip not found or fetch failed',
+        durationMs: contextDurationMs,
+      });
     }
 
     // ── Build System Prompt ────────────────────────────────────────────────
@@ -145,12 +163,17 @@ export default defineAgent({
         description: toolDef.description,
         parameters: toolDef.schema as any,
         execute: async (args, _opts) => {
+          const toolStartMs = Date.now();
           log('tool:call', { name: toolDef.name, args });
           sendAgentState(ctx.room, 'executing_tool', toolDef.name);
 
           try {
             const result = await toolDef.execute(args, chravelToolCtx);
-            log('tool:result', { name: toolDef.name, success: !result.error });
+            log('tool:result', {
+              name: toolDef.name,
+              success: !result.error,
+              durationMs: Date.now() - toolStartMs,
+            });
 
             // Track for turn completion
             turnToolResults.push({ name: toolDef.name, result });
@@ -271,8 +294,7 @@ export default defineAgent({
       sendError(ctx.room, errorMsg || 'Unknown error', 'session_error');
     });
 
-    // ── Start Session ──────────────────────────────────────────────────────
-    await ctx.connect();
+    // ── Start Session (room already connected via parallel init above) ─────
     log('agent:room_connected');
 
     await session.start({
@@ -280,7 +302,7 @@ export default defineAgent({
       room: ctx.room,
     });
 
-    log('agent:session_started');
+    log('agent:session_started', { totalStartupMs: Date.now() - sessionStartMs });
 
     // Keep the agent alive until the room closes
     // LiveKit handles cleanup when room empties (30s timeout configured in token)

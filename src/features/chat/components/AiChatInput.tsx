@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Send, X, CalendarPlus, Bookmark, ListChecks } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Send, X, CalendarPlus, Bookmark, ListChecks, Upload } from 'lucide-react';
 import { VoiceButton } from './VoiceButton';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { CTA_BUTTON, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
@@ -31,6 +31,14 @@ interface AiChatInputProps {
   onQuickAction?: (action: string) => void;
   /** Whether Gemini Live is currently active (for textarea styling) */
   isLiveActive?: boolean;
+  /** Callback when user drops or selects document files (PDF, ICS, CSV) */
+  onDocumentAttach?: (files: File[]) => void;
+  /** Currently attached document files */
+  attachedDocuments?: File[];
+  /** Remove an attached document by index */
+  onRemoveDocument?: (index: number) => void;
+  /** Accepted MIME types for file drop/paste (images + documents) */
+  acceptedFileTypes?: Set<string>;
 }
 
 export const AiChatInput = ({
@@ -50,8 +58,15 @@ export const AiChatInput = ({
   showImageAttach: _showImageAttach = false,
   onQuickAction,
   isLiveActive = false,
+  onDocumentAttach,
+  attachedDocuments = [],
+  onRemoveDocument,
+  acceptedFileTypes,
 }: AiChatInputProps) => {
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [isDragActive, setIsDragActive] = useState(false);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
+  const dragCounterRef = useRef(0);
 
   useEffect(() => {
     const urls = attachedImages.map(file => URL.createObjectURL(file));
@@ -60,6 +75,97 @@ export const AiChatInput = ({
       urls.forEach(url => URL.revokeObjectURL(url));
     };
   }, [attachedImages]);
+
+  // ── File classification helper ────────────────────────────────────────
+  const classifyFiles = useCallback(
+    (files: File[]) => {
+      const images: File[] = [];
+      const documents: File[] = [];
+      for (const file of files) {
+        if (file.type.startsWith('image/')) {
+          images.push(file);
+        } else if (
+          acceptedFileTypes?.has(file.type) ||
+          file.name.endsWith('.pdf') ||
+          file.name.endsWith('.ics') ||
+          file.name.endsWith('.csv') ||
+          file.name.endsWith('.xlsx') ||
+          file.name.endsWith('.xls')
+        ) {
+          documents.push(file);
+        }
+      }
+      if (images.length > 0) _onImageAttach?.(images);
+      if (documents.length > 0) onDocumentAttach?.(documents);
+    },
+    [_onImageAttach, onDocumentAttach, acceptedFileTypes],
+  );
+
+  // ── Drag-and-drop handlers ────────────────────────────────────────────
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current++;
+    if (e.dataTransfer.types.includes('Files')) {
+      setIsDragActive(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current--;
+    if (dragCounterRef.current === 0) {
+      setIsDragActive(false);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragActive(false);
+      dragCounterRef.current = 0;
+
+      const files = Array.from(e.dataTransfer.files);
+      if (files.length > 0) {
+        classifyFiles(files);
+        return;
+      }
+
+      // Handle dropped text (e.g., itinerary text dragged from another app)
+      const text = e.dataTransfer.getData('text/plain');
+      if (text && text.trim().length > 0) {
+        onInputChange(text);
+      }
+    },
+    [classifyFiles, onInputChange],
+  );
+
+  // ── Paste handler (images + text) ──────────────────────────────────────
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent) => {
+      const items = Array.from(e.clipboardData.items);
+      const pastedFiles: File[] = [];
+      for (const item of items) {
+        if (item.kind === 'file') {
+          const file = item.getAsFile();
+          if (file) pastedFiles.push(file);
+        }
+      }
+      if (pastedFiles.length > 0) {
+        e.preventDefault();
+        classifyFiles(pastedFiles);
+      }
+      // If no files, let the default paste behavior handle text
+    },
+    [classifyFiles],
+  );
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -86,8 +192,27 @@ export const AiChatInput = ({
     return '';
   };
 
+  const hasAttachments = attachedImages.length > 0 || attachedDocuments.length > 0;
+
   return (
-    <div className="space-y-2">
+    <div
+      ref={dropZoneRef}
+      className="space-y-2 relative"
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {/* Drag overlay */}
+      {isDragActive && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl border-2 border-dashed border-primary/50 bg-primary/10 backdrop-blur-sm pointer-events-none">
+          <div className="flex flex-col items-center gap-1 text-primary">
+            <Upload size={24} />
+            <span className="text-xs font-medium">Drop files, images, or itineraries here</span>
+          </div>
+        </div>
+      )}
+
       {/* Image Previews */}
       {attachedImages.length > 0 && (
         <div className="flex gap-2 px-1 overflow-x-auto">
@@ -114,8 +239,30 @@ export const AiChatInput = ({
         </div>
       )}
 
-      {/* Smart Import quick action chips — shown when images are attached */}
-      {attachedImages.length > 0 && onQuickAction && (
+      {/* Document Previews */}
+      {attachedDocuments.length > 0 && (
+        <div className="flex gap-2 px-1 overflow-x-auto">
+          {attachedDocuments.map((file, idx) => (
+            <div
+              key={idx}
+              className="flex items-center gap-2 shrink-0 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10"
+            >
+              <span className="text-xs text-white/70 truncate max-w-[120px]">{file.name}</span>
+              <button
+                type="button"
+                onClick={() => onRemoveDocument?.(idx)}
+                className="text-white/50 hover:text-white"
+                aria-label="Remove document"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Smart Import quick action chips — shown when files are attached */}
+      {hasAttachments && onQuickAction && (
         <div className="flex gap-2 px-1 overflow-x-auto">
           {[
             { key: 'add_to_calendar', label: 'Add to calendar', icon: CalendarPlus },
@@ -152,6 +299,7 @@ export const AiChatInput = ({
             value={inputMessage}
             onChange={e => onInputChange(e.target.value)}
             onKeyPress={handleKeyPress}
+            onPaste={handlePaste}
             placeholder={getPlaceholder()}
             rows={2}
             disabled={disabled}
@@ -182,7 +330,13 @@ export const AiChatInput = ({
         <button
           type="button"
           onClick={handleSendClick}
-          disabled={(!inputMessage.trim() && attachedImages.length === 0) || isTyping || disabled}
+          disabled={
+            (!inputMessage.trim() &&
+              attachedImages.length === 0 &&
+              attachedDocuments.length === 0) ||
+            isTyping ||
+            disabled
+          }
           aria-label="Send message"
           className={CTA_BUTTON}
         >

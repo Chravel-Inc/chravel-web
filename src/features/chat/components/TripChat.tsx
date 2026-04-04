@@ -47,6 +47,8 @@ import { ThreadView } from './ThreadView';
 import { useTripPrivacyConfig, getEffectivePrivacyMode } from '@/hooks/useTripPrivacyConfig';
 import { useTripChatMode } from '@/hooks/useTripChatMode';
 import { useLinkPreviews } from '../hooks/useLinkPreviews';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { PullToRefreshIndicator } from '@/components/mobile/PullToRefreshIndicator';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -146,6 +148,32 @@ export const TripChat = React.memo(
     const { user } = useAuth();
     const queryClient = useQueryClient();
 
+    // ⚡ PERFORMANCE: Skip expensive hooks in demo mode for numeric trip IDs
+    const shouldSkipLiveChat = demoMode.isDemoMode && /^\d+$/.test(resolvedTripId);
+
+    const {
+      messages: liveMessages,
+      isLoading: liveLoading,
+      sendMessageAsync: sendTripMessage,
+      loadMore: loadMoreMessages,
+      hasMore,
+      isLoadingMore,
+      toggleReaction,
+      reload,
+    } = useTripChat(shouldSkipLiveChat ? undefined : resolvedTripId);
+
+    const { isRefreshing, pullDistance } = usePullToRefresh({
+      onRefresh: async () => {
+        if (resolvedTripId) {
+          if (reload) {
+            await reload();
+          }
+          // Invalidate chat query cache to force fresh fetch
+          await queryClient.invalidateQueries({ queryKey: ['tripChat', resolvedTripId] });
+        }
+      },
+    });
+
     // Chat mode enforcement — UI layer (server-side RLS is authoritative)
     const {
       effectiveChatMode,
@@ -153,7 +181,7 @@ export const TripChat = React.memo(
       canUploadMedia,
       isLoading: chatModeLoading,
       userRole: chatModeUserRole,
-    } = useTripChatMode(demoMode.isDemoMode ? undefined : resolvedTripId, user?.id);
+    } = useTripChatMode(shouldSkipLiveChat ? undefined : resolvedTripId, user?.id);
 
     const isUserAdmin =
       chatModeUserRole === 'admin' ||
@@ -196,9 +224,6 @@ export const TripChat = React.memo(
       isConsumer ? resolvedTripId : '',
     );
 
-    // ⚡ PERFORMANCE: Skip expensive hooks in demo mode for numeric trip IDs
-    const shouldSkipLiveChat = demoMode.isDemoMode && /^\d+$/.test(resolvedTripId);
-
     // Fetch privacy config for the trip (after shouldSkipLiveChat is defined)
     const { data: privacyConfig } = useTripPrivacyConfig(
       shouldSkipLiveChat ? undefined : resolvedTripId,
@@ -206,15 +231,6 @@ export const TripChat = React.memo(
 
     // Live chat hooks - only initialize for authenticated trips
     const { tripMembers } = useTripMembers(shouldSkipLiveChat ? undefined : resolvedTripId);
-    const {
-      messages: liveMessages,
-      isLoading: liveLoading,
-      sendMessageAsync: sendTripMessage,
-      isCreating: isSendingMessage,
-      loadMore: loadMoreMessages,
-      hasMore,
-      isLoadingMore,
-    } = useTripChat(shouldSkipLiveChat ? undefined : resolvedTripId);
 
     const {
       inputMessage,
@@ -744,29 +760,39 @@ export const TripChat = React.memo(
         return updated;
       });
 
-      // Persist to database
-      const result = await toggleMessageReaction(messageId, user.id, reactionType as ReactionType);
-      if (result.error) {
-        if (import.meta.env.DEV)
-          console.error('[TripChat] Failed to toggle reaction:', result.error);
-        // Revert on failure - refetch reactions
-        const messageIds = liveMessages.map(m => m.id);
-        const freshReactions = await getMessagesReactions(messageIds, user.id);
-        const formatted: Record<
-          string,
-          Record<string, { count: number; userReacted: boolean; users: string[] }>
-        > = {};
-        for (const [msgId, typeMap] of Object.entries(freshReactions)) {
-          formatted[msgId] = {};
-          for (const [type, data] of Object.entries(typeMap)) {
-            formatted[msgId][type] = {
-              count: data.count,
-              userReacted: data.userReacted,
-              users: data.users || [],
-            };
+      // Persist to backend
+      if (toggleReaction) {
+        // Stream path
+        await toggleReaction(messageId, reactionType);
+      } else {
+        // Supabase path
+        const result = await toggleMessageReaction(
+          messageId,
+          user.id,
+          reactionType as ReactionType,
+        );
+        if (result.error) {
+          if (import.meta.env.DEV)
+            console.error('[TripChat] Failed to toggle reaction:', result.error);
+          // Revert on failure - refetch reactions
+          const messageIds = liveMessages.map(m => m.id);
+          const freshReactions = await getMessagesReactions(messageIds, user.id);
+          const formatted: Record<
+            string,
+            Record<string, { count: number; userReacted: boolean; users: string[] }>
+          > = {};
+          for (const [msgId, typeMap] of Object.entries(freshReactions)) {
+            formatted[msgId] = {};
+            for (const [type, data] of Object.entries(typeMap)) {
+              formatted[msgId][type] = {
+                count: data.count,
+                userReacted: data.userReacted,
+                users: data.users || [],
+              };
+            }
           }
+          setReactions(formatted);
         }
-        setReactions(formatted);
       }
     };
 
@@ -926,6 +952,7 @@ export const TripChat = React.memo(
 
     return (
       <div className="flex flex-col h-full">
+        <PullToRefreshIndicator isRefreshing={isRefreshing} pullDistance={pullDistance} />
         {/* Search Overlay Modal */}
         {showSearchOverlay && (
           <ChatSearchOverlay
@@ -990,7 +1017,7 @@ export const TripChat = React.memo(
                       <div data-message-id={message.id}>
                         <MessageItem
                           message={message}
-                          reactions={reactions[message.id]}
+                          reactions={message.reactions || reactions[message.id]}
                           onReaction={handleReaction}
                           onReply={handleOpenThread}
                           onEdit={demoMode.isDemoMode ? undefined : handleMessageEdit}

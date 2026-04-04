@@ -595,6 +595,67 @@ export const calendarService = {
   },
 
   /**
+   * Bulk delete events by IDs. Tries a single DELETE query first.
+   * Only chunks if the ID list exceeds PostgREST URL limits (~200 UUIDs).
+   * Returns structured result with alreadyMissing count for stale preview handling.
+   */
+  async bulkDeleteEvents(
+    eventIds: string[],
+    tripId: string,
+  ): Promise<{ deleted: number; alreadyMissing: number; failed: number }> {
+    if (eventIds.length === 0) return { deleted: 0, alreadyMissing: 0, failed: 0 };
+
+    try {
+      const CHUNK_SIZE = 200;
+      let totalDeleted = 0;
+      let totalFailed = 0;
+
+      const chunks: string[][] = [];
+      for (let i = 0; i < eventIds.length; i += CHUNK_SIZE) {
+        chunks.push(eventIds.slice(i, i + CHUNK_SIZE));
+      }
+
+      for (const chunk of chunks) {
+        const { data, error } = await supabase
+          .from('trip_events')
+          .delete()
+          .in('id', chunk)
+          .eq('trip_id', tripId)
+          .select('id');
+
+        if (error) {
+          // Fall back to sequential for this chunk
+          for (const id of chunk) {
+            const ok = await this.deleteEvent(id, tripId);
+            if (ok) totalDeleted++;
+            else totalFailed++;
+          }
+        } else {
+          totalDeleted += (data || []).length;
+        }
+      }
+
+      const alreadyMissing = eventIds.length - totalDeleted - totalFailed;
+
+      // Remove from offline cache
+      for (const id of eventIds) {
+        await offlineSyncService.removeCachedEntity('calendar_event', id);
+      }
+
+      return {
+        deleted: totalDeleted,
+        alreadyMissing: Math.max(0, alreadyMissing),
+        failed: totalFailed,
+      };
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error in bulkDeleteEvents:', error);
+      }
+      return { deleted: 0, alreadyMissing: 0, failed: eventIds.length };
+    }
+  },
+
+  /**
    * Bulk create events using batched inserts.
    * Uses source_type: 'bulk_import' so the notify_on_calendar_event trigger
    * skips per-event notifications (avoids DB timeout on 82+ games, 100+ city tours).
