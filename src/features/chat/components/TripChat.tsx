@@ -40,7 +40,6 @@ import { isConsumerTrip } from '@/utils/tripTierDetector';
 import {
   toggleMessageReaction,
   getMessagesReactions,
-  subscribeToReactions,
   type ReactionType,
 } from '@/services/chatService';
 import { ThreadView } from './ThreadView';
@@ -101,16 +100,15 @@ interface TripChatMessage {
   reactions?: Record<string, { count: number; userReacted: boolean; users: string[] }>;
 }
 
-export const TripChat = React.memo(
-  ({
-    enableGroupChat: _enableGroupChat = true,
-    showBroadcasts: _showBroadcasts = true,
-    isEvent = false,
-    tripId: tripIdProp,
-    isPro = false,
-    userRole = 'member',
-    participants = [],
-  }: TripChatProps) => {
+function TripChatInner({
+  enableGroupChat: _enableGroupChat = true,
+  showBroadcasts: _showBroadcasts = true,
+  isEvent = false,
+  tripId: tripIdProp,
+  isPro = false,
+  userRole = 'member',
+  participants = [],
+}: TripChatProps) {
     const [demoMessages, setDemoMessages] = useState<MockMessage[]>([]);
     const [reactions, setReactions] = useState<
       Record<string, Record<string, { count: number; userReacted: boolean; users: string[] }>>
@@ -615,10 +613,7 @@ export const TripChat = React.memo(
         return;
       }
 
-      if (toggleReaction) {
-        await toggleReaction(messageId, reactionType);
-      // Authenticated mode: persist to database
-      // Optimistic update
+      // Optimistic update (authenticated paths)
       setReactions(prev => {
         const updated = { ...prev };
         if (!updated[messageId]) {
@@ -640,39 +635,37 @@ export const TripChat = React.memo(
         return updated;
       });
 
-      // Persist to backend
       if (toggleReaction) {
-        // Stream path
         await toggleReaction(messageId, reactionType);
-      } else {
-        // Supabase path
-        const result = await toggleMessageReaction(
-          messageId,
-          user.id,
-          reactionType as ReactionType,
-        );
-        if (result.error) {
-          if (import.meta.env.DEV)
-            console.error('[TripChat] Failed to toggle reaction:', result.error);
-          // Revert on failure - refetch reactions
-          const messageIds = liveMessages.map(m => m.id);
-          const freshReactions = await getMessagesReactions(messageIds, user.id);
-          const formatted: Record<
-            string,
-            Record<string, { count: number; userReacted: boolean; users: string[] }>
-          > = {};
-          for (const [msgId, typeMap] of Object.entries(freshReactions)) {
-            formatted[msgId] = {};
-            for (const [type, data] of Object.entries(typeMap)) {
-              formatted[msgId][type] = {
-                count: data.count,
-                userReacted: data.userReacted,
-                users: data.users || [],
-              };
-            }
-          }
-          setReactions(formatted);
+        return;
+      }
+
+      const result = await toggleMessageReaction(
+        messageId,
+        user.id,
+        reactionType as ReactionType,
+      );
+      if (result.error) {
+        if (import.meta.env.DEV) {
+          console.error('[TripChat] Failed to toggle reaction:', result.error);
         }
+        const messageIds = liveMessages.map(m => m.id);
+        const freshReactions = await getMessagesReactions(messageIds, user.id);
+        const formatted: Record<
+          string,
+          Record<string, { count: number; userReacted: boolean; users: string[] }>
+        > = {};
+        for (const [msgId, typeMap] of Object.entries(freshReactions)) {
+          formatted[msgId] = {};
+          for (const [type, data] of Object.entries(typeMap)) {
+            formatted[msgId][type] = {
+              count: data.count,
+              userReacted: data.userReacted,
+              users: data.users || [],
+            };
+          }
+        }
+        setReactions(formatted);
       }
     };
 
@@ -902,8 +895,7 @@ export const TripChat = React.memo(
                       <div data-message-id={message.id}>
                         <MessageItem
                           message={message}
-                          reactions={message.reactions || {}}
-                          reactions={message.reactions || reactions[message.id]}
+                          reactions={message.reactions || reactions[message.id] || {}}
                           onReaction={handleReaction}
                           onReply={handleOpenThread}
                           onEdit={demoMode.isDemoMode ? undefined : handleMessageEdit}
@@ -1021,5 +1013,6 @@ export const TripChat = React.memo(
         )}
       </div>
     );
-  },
-);
+}
+
+export const TripChat = React.memo(TripChatInner);

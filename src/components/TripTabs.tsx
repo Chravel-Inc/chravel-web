@@ -73,7 +73,8 @@ export const TripTabs = ({
   isDemoMode = false,
   tripData,
 }: TripTabsProps) => {
-  const [activeTab, setActiveTab] = useState('chat');
+  /** Controlled by parent (e.g. TripDetailDesktop) so prefetch + future deep-links share one source of truth */
+  const activeTab = parentActiveTab ?? 'chat';
   const [isAddLinkModalOpen, setIsAddLinkModalOpen] = useState(false);
   const [linkPrefill, setLinkPrefill] = useState<
     | {
@@ -91,7 +92,9 @@ export const TripTabs = ({
   const { prefetchTab, prefetchAdjacentTabs, prefetchPriorityTabs } = usePrefetchTrip();
 
   // ⚡ PERFORMANCE: Track visited tabs to keep them mounted
-  const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set([activeTab]));
+  const [visitedTabs, setVisitedTabs] = useState<Set<string>>(
+    () => new Set([parentActiveTab ?? 'chat']),
+  );
 
   // Tab order for adjacent prefetching
   const tabOrder = [
@@ -113,16 +116,14 @@ export const TripTabs = ({
     }
   }, [tripId, prefetchPriorityTabs]);
 
-  // Mark current tab as visited and prefetch adjacent tabs
+  // Mark current tab as visited (incl. parent-driven tab changes) and prefetch neighbors
   useEffect(() => {
-    if (!visitedTabs.has(activeTab)) {
-      setVisitedTabs(prev => new Set([...prev, activeTab]));
-    }
-    // ⚡ MOBILE OPTIMIZATION: Prefetch adjacent tabs when user visits a tab
+    setVisitedTabs(prev => (prev.has(activeTab) ? prev : new Set([...prev, activeTab])));
     if (tripId) {
       prefetchAdjacentTabs(tripId, activeTab, tabOrder);
     }
-  }, [activeTab, visitedTabs, tripId, prefetchAdjacentTabs]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- tabOrder is a stable constant for consumer tabs
+  }, [activeTab, tripId, prefetchAdjacentTabs]);
 
   // Handler for saving chat links to Explore Links (trip_links table)
   const handlePromoteToTripLink = useCallback((urlData: NormalizedUrl) => {
@@ -171,7 +172,7 @@ export const TripTabs = ({
       });
       return;
     }
-    setActiveTab(tab);
+    parentOnTabChange(tab);
   };
 
   // Default tab skeleton for lazy loading fallback
