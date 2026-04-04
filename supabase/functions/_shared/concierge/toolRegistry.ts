@@ -855,6 +855,28 @@ export const ALL_TOOL_DECLARATIONS: ToolDeclaration[] = [
       required: ['type'],
     },
   },
+  {
+    name: 'bulkDeleteCalendarEvents',
+    description:
+      'Permanently delete multiple calendar events from a trip. MUST extract the IDs to delete. No undo. Provide clear context to the user about what was deleted.',
+    parameters: {
+      type: 'object',
+      properties: {
+        event_ids: {
+          type: 'array',
+          items: {
+            type: 'string',
+          },
+          description: 'The IDs of the calendar events to delete.',
+        },
+        idempotency_key: {
+          type: 'string',
+          description: 'A unique UUID v4 string for this mutation to prevent duplicate executions.',
+        },
+      },
+      required: ['event_ids', 'idempotency_key'],
+    },
+  },
 ];
 
 // ── Universal tools (always included regardless of query class) ──────────────
