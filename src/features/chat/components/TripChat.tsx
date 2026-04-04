@@ -751,7 +751,7 @@ export const TripChat = React.memo(
     // Determine which messages to show - authenticated trips show ONLY live messages
     const messagesToShow = demoMode.isDemoMode ? demoMessages : liveFormattedMessages;
 
-    const filteredMessages = filterMessages(messagesToShow);
+    const filteredMessages = filterMessages(messagesToShow as any);
 
     const messagesWithFailed = useMemo(() => {
       if (failedMessages.length === 0) return filteredMessages;
@@ -826,7 +826,6 @@ export const TripChat = React.memo(
 
     return (
       <div className="flex flex-col h-full">
-        <PullToRefreshIndicator isRefreshing={isRefreshing} pullDistance={pullDistance} />
         <PullToRefreshIndicator
           isRefreshing={isRefreshing}
           pullDistance={pullDistance}
