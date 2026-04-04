@@ -13,7 +13,7 @@ The platform's **biggest structural risks** are located in:
 1. **Shared-Write Concurrency:** The system relies too heavily on optimistic client-side UI updates combined with non-locking database writes (e.g., payment settlements double-crediting, poll vote/close races).
 2. **Realtime Broadcast Storms:** High-density trips (100+ users) will saturate WebSocket connections and client CPU because of unbatched, unthrottled realtime push patterns.
 3. **AI Cost Asymmetry & Mutation Safety:** AI capabilities operate on a per-trip quota rather than a per-user global quota, exposing the platform to Sybil-like cost attacks. AI mutations to shared state lack mandatory client-side confirmation loops.
-4. **CORS & Edge Function Exposure:** Wildcard CORS (`Access-Control-Allow-Origin: *`) across 26 edge functions breaks isolation, allowing cross-site exfiltration of session-bound data.
+4. **CORS & Edge Function Exposure:** Historically, wildcard CORS (`Access-Control-Allow-Origin: *`) across edge functions posed an isolation risk. While `_shared/cors.ts` now uses an allowlist via `getCorsHeaders(req)`, legacy static imports (`export const corsHeaders = getCorsHeaders()`) still fail to validate the `Origin` header dynamically per request, leaving a gap in origin validation for endpoints that have not yet migrated.
 
 **Most Coherent Surfaces:**
 - Domain separation between free, pro, and event trips.
@@ -141,7 +141,7 @@ Every object in Chravel belongs to one of these rigorous scopes:
 
 ## 10. Free vs Paid QoS Constitution
 
-- **AI Limits:** Free users are strictly capped globally per month (e.g., 20 queries/month), tracked in `user_concierge_usage`.
+- **AI Limits:** Free users are strictly capped globally per month (e.g., 20 queries/month), tracked in `concierge_usage` (or a dedicated global limit table).
 - **Rate Limiting:** Free tier API requests are throttled more aggressively (e.g., 30 req/min) compared to Pro (100 req/min).
 - **Compute Priority:** Webhook processing and async queues prioritize Pro/Enterprise orgs during high load.
 - **Storage:** Free tier is hard-capped at 500MB, enforced pre-flight on upload.
@@ -156,9 +156,9 @@ Every object in Chravel belongs to one of these rigorous scopes:
 2. **AI Tool Execution (HIGH):**
    - *Risk:* Prompt injection mutating shared state.
    - *Rule:* Human-in-the-loop confirmation (`PendingActionEnvelope`).
-3. **Wildcard CORS Edge Functions (HIGH):**
-   - *Risk:* Cross-site data exfiltration.
-   - *Rule:* Strict origin validation via `getCorsHeaders(req)`.
+3. **Static CORS Imports in Edge Functions (HIGH):**
+   - *Risk:* Static imports of `corsHeaders` evaluate once on cold start, failing to capture the request's dynamic `Origin` header and thereby bypassing the allowlist checks in `_shared/cors.ts`. This risks cross-site data exfiltration.
+   - *Rule:* Strict origin validation via dynamic `getCorsHeaders(req)` invocation per request.
 4. **Media Storage (MEDIUM):**
    - *Risk:* Public access to private trip media.
    - *Rule:* Signed URLs with 1-hour expiry.
@@ -167,7 +167,7 @@ Every object in Chravel belongs to one of these rigorous scopes:
 
 ## 12. Recommended Immediate Platform Changes
 
-1. **Eradicate Wildcard CORS:** Replace `export const corsHeaders = getCorsHeaders();` with per-request `getCorsHeaders(req)` in all edge functions.
+1. **Eradicate Static CORS Imports:** Replace the legacy `export const corsHeaders = getCorsHeaders();` pattern with per-request `getCorsHeaders(req)` in all edge functions to ensure dynamic origin validation against the allowlist.
 2. **Remove Hardcoded Credentials:** Strip `FALLBACK_URL` and `FALLBACK_ANON_KEY` from `src/integrations/supabase/client.ts`.
 3. **Lock Payment Logic:** Migrate `usePaymentSettlements.ts` logic to a Supabase RPC using `SELECT FOR UPDATE`.
 4. **Secure AI Context:** Strip system-prompt delimiters from user-provided trip metadata.
