@@ -1,4 +1,6 @@
-import { Purchases } from '@revenuecat/purchases-js';
+import type { Purchases as PurchasesType } from '@revenuecat/purchases-js';
+
+let Purchases: typeof PurchasesType | null = null;
 import { isLovablePreview } from '@/utils/env';
 
 const REVENUECAT_API_KEY = import.meta.env.VITE_REVENUECAT_API_KEY || '';
@@ -74,6 +76,10 @@ export const initRevenueCat = async (): Promise<void> => {
   }
 
   const userId = getOrCreateUserId();
+  if (!Purchases) {
+    const module = await import('@revenuecat/purchases-js');
+    Purchases = module.Purchases;
+  }
   Purchases.configure(REVENUECAT_API_KEY, userId);
   isInitialized = true;
 };
@@ -82,4 +88,4 @@ export const initRevenueCat = async (): Promise<void> => {
  * Returns the RevenueCat Purchases instance.
  * Must be called after initRevenueCat().
  */
-export const getPurchases = (): typeof Purchases => Purchases;
+export const getPurchases = (): typeof PurchasesType | null => Purchases;

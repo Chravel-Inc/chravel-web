@@ -77,17 +77,6 @@ export function streamMessageToChravel(msg: MessageResponse, tripId: string): Ch
 
   const custom = (msg as unknown as Record<string, unknown>) || {};
 
-  const reactionMap: Record<string, { count: number; userReacted: boolean; users: string[] }> = {};
-  if (msg.reaction_counts) {
-    for (const [type, count] of Object.entries(msg.reaction_counts)) {
-      reactionMap[type] = {
-        count: count as number,
-        userReacted: !!msg.own_reactions?.some(r => r.type === type),
-        users:
-          msg.latest_reactions?.filter(r => r.type === type).map(r => r.user?.id as string) || [],
-      };
-    }
-  }
   // Extract reactions
   const reactions: Record<string, { count: number; userReacted: boolean; users: string[] }> = {};
   if (msg.reaction_counts) {
