@@ -615,35 +615,33 @@ export const TripChat = React.memo(
         return;
       }
 
-      // Authenticated mode: persist to database
-      // Optimistic update
-      setReactions(prev => {
-        const updated = { ...prev };
-        if (!updated[messageId]) {
-          updated[messageId] = {};
-        }
-        const current = updated[messageId][reactionType] || {
-          count: 0,
-          userReacted: false,
-          users: [],
-        };
-        const wasReacted = current.userReacted;
-        updated[messageId][reactionType] = {
-          count: wasReacted ? Math.max(0, current.count - 1) : current.count + 1,
-          userReacted: !wasReacted,
-          users: wasReacted
-            ? current.users.filter(id => id !== user.id)
-            : Array.from(new Set([...current.users, user.id])),
-        };
-        return updated;
-      });
-
       // Persist to backend
       if (toggleReaction) {
-        // Stream path
+        // Stream path — Stream SDK handles optimistic updates internally
         await toggleReaction(messageId, reactionType);
       } else {
-        // Supabase path
+        // Supabase path — optimistic update + persist
+        setReactions(prev => {
+          const updated = { ...prev };
+          if (!updated[messageId]) {
+            updated[messageId] = {};
+          }
+          const current = updated[messageId][reactionType] || {
+            count: 0,
+            userReacted: false,
+            users: [],
+          };
+          const wasReacted = current.userReacted;
+          updated[messageId][reactionType] = {
+            count: wasReacted ? Math.max(0, current.count - 1) : current.count + 1,
+            userReacted: !wasReacted,
+            users: wasReacted
+              ? current.users.filter(id => id !== user.id)
+              : Array.from(new Set([...current.users, user.id])),
+          };
+          return updated;
+        });
+
         const result = await toggleMessageReaction(
           messageId,
           user.id,
@@ -900,7 +898,7 @@ export const TripChat = React.memo(
                       <div data-message-id={message.id}>
                         <MessageItem
                           message={message}
-                          reactions={message.reactions || reactions[message.id]}
+                          reactions={message.reactions || reactions[message.id] || {}}
                           onReaction={handleReaction}
                           onReply={handleOpenThread}
                           onEdit={demoMode.isDemoMode ? undefined : handleMessageEdit}
