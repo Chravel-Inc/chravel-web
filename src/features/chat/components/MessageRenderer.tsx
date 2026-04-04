@@ -7,6 +7,7 @@ import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
 import { sanitizeConciergeContent } from '@/lib/sanitizeConciergeContent';
 import { TTSSpeakerButton } from './TTSSpeakerButton';
 import type { TTSPlaybackState } from '@/hooks/useConciergeReadAloud';
+import { InputValidator } from '@/utils/securityUtils';
 
 interface MessageRendererProps {
   message: ChatMessage & {
