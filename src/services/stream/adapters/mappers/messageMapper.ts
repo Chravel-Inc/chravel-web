@@ -147,7 +147,6 @@ export function streamMessageToChravel(msg: MessageResponse, tripId: string): Ch
     client_message_id: msg.id, // Stream uses message ID for dedup
     reply_to_id: msg.parent_id || undefined,
     mentioned_user_ids: msg.mentioned_users?.map((u: UserResponse) => u.id),
-    reactions: reactionMap,
     reactions: Object.keys(reactions).length > 0 ? reactions : undefined,
   };
 }
