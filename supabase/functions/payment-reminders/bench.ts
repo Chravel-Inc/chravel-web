@@ -48,7 +48,7 @@ async function runBenchmark() {
   }));
 
   // One single network request
-  const { error: batchedError } = await mockInsert(auditLogsToInsert);
+  await mockInsert(auditLogsToInsert);
 
   const endBatched = Date.now();
   const durationBatched = endBatched - startBatched;
