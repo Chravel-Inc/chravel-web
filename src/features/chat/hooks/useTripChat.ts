@@ -353,10 +353,11 @@ const useSupabaseTripChat = (tripId: string | undefined, options?: { enabled?: b
           filter: `trip_id=eq.${tripId}`,
         },
         payload => {
+          const newMsg = payload.new as Record<string, unknown>;
           if (import.meta.env.DEV) {
             console.log('[CHAT REALTIME] INSERT received:', {
-              messageId: payload.new?.id,
-              author: (payload.new as Record<string, unknown>)?.author_name,
+              messageId: newMsg.id,
+              author: newMsg.author_name,
               timestamp: new Date().toISOString(),
             });
           }
@@ -374,7 +375,6 @@ const useSupabaseTripChat = (tripId: string | undefined, options?: { enabled?: b
           }
           messageCount++;
 
-          const newMsg = payload.new as Record<string, unknown>;
           pendingInserts.push(newMsg);
           scheduleFlush();
         },
