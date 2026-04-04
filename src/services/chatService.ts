@@ -197,7 +197,7 @@ export async function toggleMessageReaction(
 ): Promise<{ data: unknown; error: unknown }> {
   try {
     // RPC not yet in generated Supabase types
-    const { data, error } = await (supabase as any).rpc('toggle_reaction', {
+    const { data, error } = await (supabase as unknown).rpc('toggle_reaction', {
       p_message_id: messageId,
       p_user_id: userId,
       p_reaction_type: reactionType,
@@ -219,7 +219,7 @@ export async function getMessagesReactions(
 
   try {
     // Table not yet in generated Supabase types
-    const { data, error } = await (supabase as any)
+    const { data, error } = await (supabase as unknown)
       .from('message_reactions')
       .select('message_id, reaction_type, user_id')
       .in('message_id', messageIds);

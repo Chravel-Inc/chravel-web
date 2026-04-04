@@ -74,7 +74,7 @@ class RoleChannelService {
 
       if (error) throw error;
 
-      return (data || []).map((d: any) => ({
+      return (data || []).map((d: unknown) => ({
         id: d.id,
         tripId: d.trip_id,
         roleName: d.channel_name,
@@ -177,7 +177,7 @@ class RoleChannelService {
 
       if (error) throw error;
 
-      return (data || []).map((d: any) => ({
+      return (data || []).map((d: unknown) => ({
         id: d.id,
         channelId: d.channel_id,
         senderId: d.sender_id,

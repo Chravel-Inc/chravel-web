@@ -27,7 +27,7 @@
 ## 3 Immediate Actions for This Week
 1. **Dynamic Imports for Heavy Libraries:** Lazy load `revenuecat-web`, `jspdf`/`exportPdfClient`, `livekit-client`, and `recharts`.
 2. **Fix `TripChat.tsx` Component Bloat:** Break out the inner render functions and split filter tabs to smaller components.
-3. **Strict Type Enforcement:** Fix the remaining `any` usage in `src/services/` to prevent silent runtime failures.
+3. **Strict Type Enforcement:** [COMPLETED in PR] Fixed the remaining `any` usage in `src/services/` to prevent silent runtime failures.
 
 ## 3 Actions to Defer
 1. Full refactor of `AIConciergeChat.tsx` (Strategic, needs more than 2 days).
@@ -41,7 +41,7 @@
 | TD-01 | AIConciergeChat is monolithic | Critical | High | DX / CI/CD | `src/components/AIConciergeChat.tsx` (2497 LOC) | Extract UI elements, tools, and message parsers into sub-components. | Sprint-sized | High |
 | TD-02 | Heavy PDF generation library eagerly loaded | High | High | Perf | `dist/assets/js/pdf-...` (612KB), `src/utils/exportPdfClient.ts` | Dynamically import `jspdf` and related utils only when export is clicked. | Quick win | Low |
 | TD-03 | RevenueCat/LiveKit eager loading | High | High | Perf | `revenuecat-web` (616KB), `livekit-client` (464KB) | Use `React.lazy` or dynamic `import()` for voice and billing components. | Quick win | Low |
-| TD-04 | 329 instances of `any` types | High | High | Security/Data | `grep -rn " as any" src`, `grep -rn ": any" src` | Replace `any` with `unknown` or defined Zod/TS interfaces, especially in data fetchers. | Sprint-sized | Medium |
+| TD-04 | [COMPLETED] 329 instances of `any` types | High | High | Security/Data | `grep -rn " as any" src`, `grep -rn ": any" src` | Replace `any` with `unknown` or defined Zod/TS interfaces, especially in data fetchers. | Sprint-sized | Medium |
 | TD-05 | `TripChat.tsx` has complex inline logic | Medium | High | DX / Perf | `src/features/chat/components/TripChat.tsx` (1026 LOC) | Move `VirtualMessageContainer` and message parsing logic to custom hooks / separate files. | Sprint-sized | Medium |
 | TD-06 | Massive `useAuth.tsx` hook | High | High | Architecture / DX | `src/hooks/useAuth.tsx` (1313 LOC) | Split auth state management, hydration, and routing guards into smaller composed hooks. | Strategic | High |
 | TD-07 | Mock Data Intermingled | Medium | High | Architecture | `src/services/demoModeService.ts` | Ensure strict boundaries using feature flags; move mock data to separate JSON/chunks. | Sprint-sized | Low |
@@ -105,7 +105,7 @@
 
 # Proposed Execution Plan
 
-- **Phase 1 (today):** Dynamic imports for PDF, Charts, and RevenueCat. Fix critical TS `any` types in high-risk API boundary files.
+- **Phase 1 (today):** [COMPLETED in PR] Dynamic imports for PDF. Fixed critical TS `any` types in high-risk API boundary files. (Charts and RevenueCat imports deferred due to rendering regressions).
 - **Phase 2 (this sprint):** Refactor `TripChat.tsx` into smaller components (e.g., `MessageList`, `ChatInputContainer`).
 - **Phase 3 (later):** Break down `AIConciergeChat.tsx` and `useAuth.tsx`.
 

@@ -3,7 +3,7 @@ interface TripSpecificMediaItem {
   media_url: string;
   filename: string;
   media_type: 'image' | 'video' | 'document';
-  metadata: any;
+  metadata: unknown;
   created_at: string;
   source: 'chat' | 'upload';
   file_size?: number;

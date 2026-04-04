@@ -110,7 +110,7 @@ const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
 export const userPreferencesService = {
   async get(userId: string): Promise<AppPreferences> {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await (supabase as unknown)
         .from('user_preferences')
         .select('preferences')
         .eq('user_id', userId)
@@ -127,7 +127,7 @@ export const userPreferencesService = {
       const current = await this.get(userId);
       const merged = { ...current, ...updates };
 
-      const { error } = await (supabase as any)
+      const { error } = await (supabase as unknown)
         .from('user_preferences')
         .upsert({ user_id: userId, preferences: merged }, { onConflict: 'user_id' });
       return !error;
@@ -147,7 +147,7 @@ export const userPreferencesService = {
 
   async getNotificationPreferences(userId: string): Promise<NotificationPreferences> {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await (supabase as unknown)
         .from('notification_preferences')
         .select('*')
         .eq('user_id', userId)
@@ -179,7 +179,7 @@ export const userPreferencesService = {
     preferences: Partial<NotificationPreferences>,
   ): Promise<NotificationPreferences | null> {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await (supabase as unknown)
         .from('notification_preferences')
         .upsert(
           {

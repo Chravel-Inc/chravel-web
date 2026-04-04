@@ -129,7 +129,7 @@ describe('tripService.getUserTrips', () => {
       }
 
       return createChainableMock({ data: [], error: null });
-    }) as any);
+    }) as unknown);
 
     const trips = await tripService.getUserTrips(false, undefined, 'member-user');
 
