@@ -309,7 +309,6 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       const channel = channelRef.current;
       if (!channel) return;
       try {
-        const message = messages.find((m) => m.id === messageId);
         // Using built in Stream reactions
         const streamMsg = await channel.state.messages.find(m => m.id === messageId);
         if(!streamMsg) return;

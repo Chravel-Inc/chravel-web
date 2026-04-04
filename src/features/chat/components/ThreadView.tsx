@@ -16,7 +16,6 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { getStreamClient } from '@/services/stream/streamClient';
 import { CHANNEL_TYPE_TRIP, tripChannelId } from '@/services/stream/streamChannelFactory';
-import { streamMessageToChravel } from '@/services/stream/adapters/mappers/messageMapper';
 import type { MessageResponse, UserResponse } from 'stream-chat';
 
 export interface ThreadViewProps {
