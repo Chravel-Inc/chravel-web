@@ -62,7 +62,7 @@ export interface Trip {
   // Aggregate join fields returned by Supabase select queries
   trip_members?: Array<{ count: number }>;
   trip_events_places?: Array<{ count: number }>;
-  categories?: Array<{ type: string; value: string }>;
+  categories?: unknown[];
 }
 
 export interface CreateTripData {
