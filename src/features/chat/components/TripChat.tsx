@@ -614,9 +614,7 @@ export const TripChat = React.memo(
       if (demoMode.isDemoMode || !user?.id) {
         return;
       }
-
-      if (toggleReaction) {
-        await toggleReaction(messageId, reactionType);
+      await toggleReaction(messageId, reactionType);
       // Authenticated mode: persist to database
       // Optimistic update
       setReactions(prev => {
@@ -902,7 +900,6 @@ export const TripChat = React.memo(
                       <div data-message-id={message.id}>
                         <MessageItem
                           message={message}
-                          reactions={message.reactions || {}}
                           reactions={message.reactions || reactions[message.id]}
                           onReaction={handleReaction}
                           onReply={handleOpenThread}
