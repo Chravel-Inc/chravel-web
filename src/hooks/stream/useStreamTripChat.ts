@@ -101,7 +101,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     try {
       setIsLoading(true);
       const state = await channelRef.current.query({
-        messages: { limit: PAGE_SIZE }
+        messages: { limit: PAGE_SIZE },
       });
       const currentMessages = (state.messages || []).map((m: MessageResponse) =>
         streamMessageToChravel(m, tripId),
