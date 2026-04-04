@@ -838,7 +838,6 @@ export const TripChat = React.memo(
           pullDistance={pullDistance}
           threshold={80}
         />
-        {/* Search Overlay Modal */}
         {showSearchOverlay && (
           <ChatSearchOverlay
             tripId={resolvedTripId}
@@ -902,8 +901,7 @@ export const TripChat = React.memo(
                       <div data-message-id={message.id}>
                         <MessageItem
                           message={message}
-                          reactions={message.reactions || {}}
-                          reactions={message.reactions || reactions[message.id]}
+                          reactions={message.reactions || reactions[message.id] || {}}
                           onReaction={handleReaction}
                           onReply={handleOpenThread}
                           onEdit={demoMode.isDemoMode ? undefined : handleMessageEdit}
