@@ -347,9 +347,11 @@ class OfflineSyncService {
     operation: QueuedSyncOperation,
     handlers: SyncHandlers,
   ): Promise<'processed' | 'failed' | 'retry' | 'skipped'> {
+    const { id, entityType, operationType, tripId, entityId, data } = operation;
+
     try {
       // Atomically update status to 'syncing' - if operation was already removed, this returns null
-      const updated = await this.updateOperationStatus(operation.id, 'syncing');
+      const updated = await this.updateOperationStatus(id, 'syncing');
       if (!updated) {
         return 'skipped';
       }
@@ -357,67 +359,55 @@ class OfflineSyncService {
       let handlerRan = false;
 
       // Route to appropriate handler
-      switch (operation.entityType) {
+      switch (entityType) {
         case 'chat_message':
-          if (operation.operationType === 'create' && handlers.onChatMessageCreate) {
-            await handlers.onChatMessageCreate(operation.tripId, operation.data);
+          if (operationType === 'create' && handlers.onChatMessageCreate) {
+            await handlers.onChatMessageCreate(tripId, data);
             handlerRan = true;
-          } else if (
-            operation.operationType === 'update' &&
-            operation.entityId &&
-            handlers.onChatMessageUpdate
-          ) {
-            await handlers.onChatMessageUpdate(operation.entityId, operation.data);
+          } else if (operationType === 'update' && entityId && handlers.onChatMessageUpdate) {
+            await handlers.onChatMessageUpdate(entityId, data);
             handlerRan = true;
           }
           break;
 
-        case 'task':
-          if (operation.operationType === 'create' && handlers.onTaskCreate) {
-            await handlers.onTaskCreate(operation.tripId, operation.data);
+        case 'task': {
+          if (operationType === 'create' && handlers.onTaskCreate) {
+            await handlers.onTaskCreate(tripId, data);
             handlerRan = true;
             break;
           }
 
-          if (operation.operationType === 'update' && operation.entityId) {
+          if (operationType === 'update' && entityId) {
             // Task completion is stored via toggle_task_status RPC
-            const isToggle =
-              operation.data && typeof operation.data === 'object' && 'completed' in operation.data;
+            const isToggle = data && typeof data === 'object' && 'completed' in data;
 
             if (isToggle && handlers.onTaskToggle) {
-              await handlers.onTaskToggle(operation.entityId, operation.data);
+              await handlers.onTaskToggle(entityId, data);
               handlerRan = true;
             } else if (handlers.onTaskUpdate) {
-              await handlers.onTaskUpdate(operation.entityId, operation.data);
+              await handlers.onTaskUpdate(entityId, data);
               handlerRan = true;
             }
           }
           break;
+        }
 
         case 'poll_vote':
-          if (operation.operationType === 'create' && operation.entityId && handlers.onPollVote) {
-            await handlers.onPollVote(operation.entityId, operation.data);
+          if (operationType === 'create' && entityId && handlers.onPollVote) {
+            await handlers.onPollVote(entityId, data);
             handlerRan = true;
           }
           break;
 
         case 'calendar_event':
-          if (operation.operationType === 'create' && handlers.onCalendarEventCreate) {
-            await handlers.onCalendarEventCreate(operation.tripId, operation.data);
+          if (operationType === 'create' && handlers.onCalendarEventCreate) {
+            await handlers.onCalendarEventCreate(tripId, data);
             handlerRan = true;
-          } else if (
-            operation.operationType === 'update' &&
-            operation.entityId &&
-            handlers.onCalendarEventUpdate
-          ) {
-            await handlers.onCalendarEventUpdate(operation.entityId, operation.data);
+          } else if (operationType === 'update' && entityId && handlers.onCalendarEventUpdate) {
+            await handlers.onCalendarEventUpdate(entityId, data);
             handlerRan = true;
-          } else if (
-            operation.operationType === 'delete' &&
-            operation.entityId &&
-            handlers.onCalendarEventDelete
-          ) {
-            await handlers.onCalendarEventDelete(operation.entityId);
+          } else if (operationType === 'delete' && entityId && handlers.onCalendarEventDelete) {
+            await handlers.onCalendarEventDelete(entityId);
             handlerRan = true;
           }
           break;
@@ -425,19 +415,19 @@ class OfflineSyncService {
 
       if (!handlerRan) {
         console.warn(
-          `[OfflineSync] No handler provided for ${operation.entityType}:${operation.operationType} operation ${operation.id}.`,
+          `[OfflineSync] No handler provided for ${entityType}:${operationType} operation ${id}.`,
         );
-        await this.updateOperationStatus(operation.id, 'pending');
+        await this.updateOperationStatus(id, 'pending');
         return 'skipped';
       }
 
-      await this.removeOperation(operation.id);
+      await this.removeOperation(id);
       return 'processed';
     } catch (error) {
-      console.error(`Failed to sync operation ${operation.id}:`, error);
-      const updatedRetry = await this.updateOperationStatus(operation.id, 'pending', true);
+      console.error(`Failed to sync operation ${id}:`, error);
+      const updatedRetry = await this.updateOperationStatus(id, 'pending', true);
       if (updatedRetry && updatedRetry.retryCount >= MAX_RETRIES) {
-        await this.updateOperationStatus(operation.id, 'failed');
+        await this.updateOperationStatus(id, 'failed');
         return 'failed';
       }
       return 'retry';
