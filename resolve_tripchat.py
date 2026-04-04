@@ -1,8 +1,6 @@
 with open("src/features/chat/components/TripChat.tsx", "r") as f:
     content = f.read()
 
-import re
-
 # Block 1
 block1_search = """<<<<<<< HEAD
     const {
