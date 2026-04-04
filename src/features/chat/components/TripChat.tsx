@@ -751,7 +751,7 @@ export const TripChat = React.memo(
     // Determine which messages to show - authenticated trips show ONLY live messages
     const messagesToShow = demoMode.isDemoMode ? demoMessages : liveFormattedMessages;
 
-    const filteredMessages = filterMessages(messagesToShow as ChatMessage[]);
+    const filteredMessages = filterMessages(messagesToShow as any);
 
     const messagesWithFailed = useMemo(() => {
       if (failedMessages.length === 0) return filteredMessages;

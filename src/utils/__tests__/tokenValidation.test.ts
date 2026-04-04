@@ -21,9 +21,6 @@ function createFakeJwt(payload: Partial<TokenPayload>): string {
 describe('tokenValidation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubEnv('DEV', true as unknown as string);
-    // Using vi.stubEnv sometimes isn't enough depending on Vite's transform caching.
-    // We will use standard mock for global meta env if needed.
   });
 
   afterEach(() => {
@@ -44,10 +41,8 @@ describe('tokenValidation', () => {
 
     it('should return null for empty or non-string token', () => {
       expect(parseJwtPayload('')).toBeNull();
-      // @ts-expect-error testing invalid input type
-      expect(parseJwtPayload(null)).toBeNull();
-      // @ts-expect-error testing invalid input type
-      expect(parseJwtPayload(123)).toBeNull();
+      expect(parseJwtPayload(null as any)).toBeNull();
+      expect(parseJwtPayload(123 as any)).toBeNull();
     });
 
     it('should return null and warn for token with invalid structure', () => {
@@ -73,8 +68,7 @@ describe('tokenValidation', () => {
     it('should handle atob absence gracefully', () => {
       // Mock globalThis.atob
       const originalAtob = globalThis.atob;
-      // @ts-expect-error overriding atob for testing
-      globalThis.atob = undefined;
+      (globalThis as any).atob = undefined;
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       const payload = { sub: 'test' };
@@ -167,10 +161,8 @@ describe('tokenValidation', () => {
     });
 
     it('should return false and warn in DEV mode for invalid token', () => {
-      // Mock import.meta.env.DEV property instead of Object.defineProperty(import.meta, 'env')
       const originalDev = import.meta.env.DEV;
-      // @ts-expect-error overriding readonly
-      import.meta.env.DEV = true;
+      (import.meta.env as any).DEV = true;
 
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       expect(isSessionTokenValid('invalid-token')).toBe(false);
@@ -179,15 +171,12 @@ describe('tokenValidation', () => {
         'TOKEN_PARSE_FAILED',
       );
 
-      // Restore
-      // @ts-expect-error overriding readonly
-      import.meta.env.DEV = originalDev;
+      (import.meta.env as any).DEV = originalDev;
     });
 
     it('should return false but not warn in non-DEV mode for invalid token', () => {
       const originalDev = import.meta.env.DEV;
-      // @ts-expect-error overriding readonly
-      import.meta.env.DEV = false;
+      (import.meta.env as any).DEV = false;
 
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       expect(isSessionTokenValid('invalid-token')).toBe(false);
@@ -197,42 +186,36 @@ describe('tokenValidation', () => {
       );
       expect(hasInvalidTokenDetectedLog).toBe(false);
 
-      // @ts-expect-error overriding readonly
-      import.meta.env.DEV = originalDev;
+      (import.meta.env as any).DEV = originalDev;
     });
   });
 
   describe('logTokenDebug', () => {
     it('should not log anything if not in DEV mode', () => {
       const originalDev = import.meta.env.DEV;
-      // @ts-expect-error overriding readonly
-      import.meta.env.DEV = false;
+      (import.meta.env as any).DEV = false;
 
       const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       logTokenDebug('test', 'token');
       expect(consoleLogSpy).not.toHaveBeenCalled();
 
-      // @ts-expect-error overriding readonly
-      import.meta.env.DEV = originalDev;
+      (import.meta.env as any).DEV = originalDev;
     });
 
     it('should log when no token is present', () => {
       const originalDev = import.meta.env.DEV;
-      // @ts-expect-error overriding readonly
-      import.meta.env.DEV = true;
+      (import.meta.env as any).DEV = true;
 
       const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       logTokenDebug('test context', undefined);
       expect(consoleLogSpy).toHaveBeenCalledWith('[TokenDebug - test context] No token present');
 
-      // @ts-expect-error overriding readonly
-      import.meta.env.DEV = originalDev;
+      (import.meta.env as any).DEV = originalDev;
     });
 
     it('should log error when token parsing fails', () => {
       const originalDev = import.meta.env.DEV;
-      // @ts-expect-error overriding readonly
-      import.meta.env.DEV = true;
+      (import.meta.env as any).DEV = true;
 
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       logTokenDebug('test context', 'invalid-token');
@@ -240,14 +223,12 @@ describe('tokenValidation', () => {
         '[TokenDebug - test context] Failed to parse token',
       );
 
-      // @ts-expect-error overriding readonly
-      import.meta.env.DEV = originalDev;
+      (import.meta.env as any).DEV = originalDev;
     });
 
     it('should log token details for valid token', () => {
       const originalDev = import.meta.env.DEV;
-      // @ts-expect-error overriding readonly
-      import.meta.env.DEV = true;
+      (import.meta.env as any).DEV = true;
 
       const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       const payload: TokenPayload = {
@@ -267,8 +248,7 @@ describe('tokenValidation', () => {
         }),
       );
 
-      // @ts-expect-error overriding readonly
-      import.meta.env.DEV = originalDev;
+      (import.meta.env as any).DEV = originalDev;
     });
   });
 });

@@ -60,9 +60,10 @@ export interface Trip {
   card_color?: string | null; // Color coding for Pro/Event cards
   organizer_display_name?: string | null; // Organizer name for Events (e.g., "Los Angeles Rams")
   // Aggregate join fields returned by Supabase select queries
-  trip_members?: Array<{ count: number }>;
-  trip_events_places?: Array<{ count: number }>;
-  categories?: unknown[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  trip_members?: any[];
+  trip_events_places?: any[];
+  categories?: any[];
 }
 
 export interface CreateTripData {
