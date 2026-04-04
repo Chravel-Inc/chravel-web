@@ -617,7 +617,11 @@ export const TripChat = React.memo(
 
       if (toggleReaction) {
         // Stream path — Stream SDK handles optimistic updates internally
-      // Authenticated mode: persist to database
+        await toggleReaction(messageId, reactionType);
+        return;
+      }
+
+      // Supabase Authenticated mode: persist to database
       // Optimistic update
       setReactions(prev => {
         const updated = { ...prev };

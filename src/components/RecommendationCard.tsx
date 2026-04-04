@@ -51,6 +51,7 @@ export const RecommendationCard = ({
             tripId,
             surface,
             position,
+            campaignId: recommendation.campaignId,
           });
           setImpressionId(id);
         } catch (err) {
@@ -65,7 +66,7 @@ export const RecommendationCard = ({
 
   const trackClick = async (action: 'view' | 'save' | 'book' | 'external_link' | 'add_to_trip' | 'hide') => {
     if (impressionId) {
-      await RecommendationService.trackClick({ impressionId, action });
+      await RecommendationService.trackClick({ impressionId, action, campaignId: recommendation.campaignId });
     } else {
       // In case they clicked before the impression fully fired/returned
       const itemId = recommendation.uuid || String(recommendation.id);
@@ -77,8 +78,9 @@ export const RecommendationCard = ({
         tripId,
         surface,
         position,
+        campaignId: recommendation.campaignId,
       }).then(id => {
-        if (id) RecommendationService.trackClick({ impressionId: id, action });
+        if (id) RecommendationService.trackClick({ impressionId: id, action, campaignId: recommendation.campaignId });
       });
     }
   };
