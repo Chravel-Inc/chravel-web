@@ -50,12 +50,6 @@ async function runBenchmark() {
   // One single network request
   const { error: batchedError } = await mockInsert();
 
-  let batchedReminders = 0;
-  if (!batchedError) {
-    // If the batch insert is successful, we know all of them succeeded
-    batchedReminders = overduePayments.length;
-  }
-
   const endBatched = Date.now();
   const durationBatched = endBatched - startBatched;
 
