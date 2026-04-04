@@ -62,18 +62,10 @@ interface CreateMessageRequest {
  * disabled via its `enabled` option so it does zero work.
  */
 export const useTripChat = (tripId: string | undefined, options?: { enabled?: boolean }) => {
-  const streamFlagEnabled = useFeatureFlag('stream-chat-trip', false);
-  const streamConnected = !!getStreamClient()?.userID;
-  const useStream = streamFlagEnabled && streamConnected;
   const isEnabled = options?.enabled !== false;
 
-  // Stream-backed hook (disabled when not routing to Stream)
-  const streamResult = useStreamTripChat(tripId, { enabled: useStream && isEnabled });
-
-  // Supabase-backed hook (disabled when routing to Stream)
-  const supabaseResult = useSupabaseTripChat(tripId, { enabled: !useStream && isEnabled });
-
-  return useStream ? streamResult : supabaseResult;
+  // Force Stream-backed hook. Supabase legacy path deprecated.
+  return useStreamTripChat(tripId, { enabled: isEnabled });
 };
 
 /**
