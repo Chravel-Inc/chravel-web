@@ -1,4 +1,0 @@
-1 | import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
-                                                             ^
-error: Could not resolve: "idb". Maybe you need to "bun install"?
-    at /app/src/offline/db.ts:1:58
