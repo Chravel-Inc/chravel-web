@@ -2,7 +2,7 @@ async function runBenchmark() {
   const TOTAL_PAYMENTS = 100;
 
   // Mock function for simulating Supabase HTTP inserts
-  const mockInsert = async () => {
+  const mockInsert = async (payload: unknown) => {
     // Simulate network delay (e.g. 50ms per request)
     await new Promise((resolve) => setTimeout(resolve, 50));
     return { error: null };
@@ -48,7 +48,7 @@ async function runBenchmark() {
   }));
 
   // One single network request
-  const { error: batchedError } = await mockInsert();
+  const { error: batchedError } = await mockInsert(auditLogsToInsert);
 
   const endBatched = Date.now();
   const durationBatched = endBatched - startBatched;
