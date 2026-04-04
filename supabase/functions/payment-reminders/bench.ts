@@ -23,7 +23,7 @@ async function runBenchmark() {
   const startNPlus1 = Date.now();
   let nPlus1Reminders = 0;
 
-  for (const payment of overduePayments) {
+  for (const _ of overduePayments) {
     const { error: auditError } = await mockInsert();
     if (!auditError) {
       nPlus1Reminders++;
