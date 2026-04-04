@@ -108,6 +108,7 @@ const useSupabaseTripChat = (tripId: string | undefined, options?: { enabled?: b
     error,
   } = useQuery({
     queryKey: ['tripChat', tripId],
+    refetchOnWindowFocus: true,
     queryFn: async (): Promise<TripChatMessage[]> => {
       if (!tripId) return [];
       // Try to load from cache first for instant display
@@ -775,5 +776,6 @@ const useSupabaseTripChat = (tripId: string | undefined, options?: { enabled?: b
     loadMore,
     hasMore,
     isLoadingMore,
+    toggleReaction: undefined, // Handled by chatService directly when using Supabase
   };
 };

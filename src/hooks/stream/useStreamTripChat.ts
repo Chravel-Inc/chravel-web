@@ -127,11 +127,17 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     channel.on('message.new', handleNewMessage);
     channel.on('message.updated', handleUpdatedMessage);
     channel.on('message.deleted', handleDeletedMessage);
+    channel.on('reaction.new', handleUpdatedMessage);
+    channel.on('reaction.updated', handleUpdatedMessage);
+    channel.on('reaction.deleted', handleUpdatedMessage);
 
     return () => {
       channel.off('message.new', handleNewMessage);
       channel.off('message.updated', handleUpdatedMessage);
       channel.off('message.deleted', handleDeletedMessage);
+      channel.off('reaction.new', handleUpdatedMessage);
+      channel.off('reaction.updated', handleUpdatedMessage);
+      channel.off('reaction.deleted', handleUpdatedMessage);
     };
   }, [activeChannel, tripId]);
 
@@ -271,6 +277,30 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
   );
 
   // Load more (older messages)
+  const toggleReaction = useCallback(
+    async (messageId: string, reactionType: string) => {
+      if (!channelRef.current) return;
+      const channel = channelRef.current;
+
+      try {
+        // Optimistically check if we already reacted
+        const message = messages.find(m => m.id === messageId);
+        const hasReacted = message?.reactions?.[reactionType]?.userReacted;
+
+        if (hasReacted) {
+          await channel.deleteReaction(messageId, reactionType);
+        } else {
+          await channel.sendReaction(messageId, { type: reactionType });
+        }
+      } catch (err) {
+        if (import.meta.env.DEV) {
+          console.error('[Stream] toggleReaction failed:', err);
+        }
+      }
+    },
+    [messages]
+  );
+
   const loadMore = useCallback(async () => {
     const channel = channelRef.current;
     if (!channel || !hasMore || isLoadingMore || messages.length === 0) return;
@@ -310,5 +340,6 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     loadMore,
     hasMore,
     isLoadingMore,
+    toggleReaction,
   };
 };
