@@ -259,14 +259,6 @@ class UnifiedMessagingService {
     return filledTemplate;
   }
 
-  /**
-   * Clean up all subscriptions.
-   * @deprecated No longer manages realtime channels — subscribeToTrip is a no-op.
-   */
-  cleanup(): void {
-    // No-op: realtime channels are now managed solely by useTripChat
-  }
-
   private transformMessage(data: Record<string, unknown>): Message {
     return {
       id: data.id as string,
