@@ -1,8 +1,6 @@
 with open("src/services/stream/adapters/mappers/messageMapper.ts", "r") as f:
     content = f.read()
 
-import re
-
 # Block 1
 block1_search = """<<<<<<< HEAD
   const reactionMap: Record<string, { count: number; userReacted: boolean; users: string[] }> = {};
