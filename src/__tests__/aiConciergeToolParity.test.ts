@@ -210,6 +210,7 @@ const MUTATION_TOOLS = [
   'createNotification',
   'updateCalendarEvent',
   'deleteCalendarEvent',
+  'bulkDeleteCalendarEvents',
   'updateTask',
   'deleteTask',
   'settleExpense',

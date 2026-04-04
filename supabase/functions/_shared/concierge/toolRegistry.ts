@@ -765,6 +765,23 @@ export const ALL_TOOL_DECLARATIONS: ToolDeclaration[] = [
     },
   },
   {
+    name: 'bulkDeleteCalendarEvents',
+    description:
+      'Bulk delete multiple calendar events by their IDs. Usually called after emitBulkDeletePreview.',
+    parameters: {
+      type: 'object',
+      properties: {
+        idempotency_key: { type: 'string' },
+        previewToken: { type: 'string' },
+        selectedEventIds: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+      },
+      required: ['previewToken', 'selectedEventIds'],
+    },
+  },
+  {
     name: 'makeReservation',
     description:
       'Act as a travel agent to research and prepare a reservation. Searches for the venue, browses their website for booking info, finds reservation links (OpenTable, Resy, etc.), and adds to calendar. More thorough than emitReservationDraft — use when user wants you to actually find how to book.',
