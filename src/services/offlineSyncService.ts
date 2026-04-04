@@ -339,33 +339,32 @@ class OfflineSyncService {
             return { status: 'skipped' };
           }
 
-          let _result: unknown;
           let handlerRan = false;
 
           // Route to appropriate handler
           switch (operation.entityType) {
             case 'chat_message':
               if (operation.operationType === 'create' && handlers.onChatMessageCreate) {
-                _result = await handlers.onChatMessageCreate(operation.tripId, operation.data);
+                await handlers.onChatMessageCreate(operation.tripId, operation.data);
                 handlerRan = true;
               } else if (operation.operationType === 'update' && handlers.onChatMessageUpdate) {
-                _result = await handlers.onChatMessageUpdate(operation.entityId!, operation.data);
+                await handlers.onChatMessageUpdate(operation.entityId!, operation.data);
                 handlerRan = true;
               }
               break;
 
             case 'task':
               if (operation.operationType === 'create' && handlers.onTaskCreate) {
-                _result = await handlers.onTaskCreate(operation.tripId, operation.data);
+                await handlers.onTaskCreate(operation.tripId, operation.data);
                 handlerRan = true;
               } else if (operation.operationType === 'update') {
                 // IMPORTANT: Prioritize toggles over generic updates.
                 // Task completion is stored in `task_status` via `toggle_task_status` RPC, not on `trip_tasks`.
                 if (operation.data?.completed !== undefined && handlers.onTaskToggle) {
-                  _result = await handlers.onTaskToggle(operation.entityId!, operation.data);
+                  await handlers.onTaskToggle(operation.entityId!, operation.data);
                   handlerRan = true;
                 } else if (handlers.onTaskUpdate) {
-                  _result = await handlers.onTaskUpdate(operation.entityId!, operation.data);
+                  await handlers.onTaskUpdate(operation.entityId!, operation.data);
                   handlerRan = true;
                 }
               }
@@ -373,20 +372,20 @@ class OfflineSyncService {
 
             case 'poll_vote':
               if (operation.operationType === 'create' && handlers.onPollVote) {
-                _result = await handlers.onPollVote(operation.entityId!, operation.data);
+                await handlers.onPollVote(operation.entityId!, operation.data);
                 handlerRan = true;
               }
               break;
 
             case 'calendar_event':
               if (operation.operationType === 'create' && handlers.onCalendarEventCreate) {
-                _result = await handlers.onCalendarEventCreate(operation.tripId, operation.data);
+                await handlers.onCalendarEventCreate(operation.tripId, operation.data);
                 handlerRan = true;
               } else if (operation.operationType === 'update' && handlers.onCalendarEventUpdate) {
-                _result = await handlers.onCalendarEventUpdate(operation.entityId!, operation.data);
+                await handlers.onCalendarEventUpdate(operation.entityId!, operation.data);
                 handlerRan = true;
               } else if (operation.operationType === 'delete' && handlers.onCalendarEventDelete) {
-                _result = await handlers.onCalendarEventDelete(operation.entityId!);
+                await handlers.onCalendarEventDelete(operation.entityId!);
                 handlerRan = true;
               }
               break;
