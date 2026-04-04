@@ -34,6 +34,7 @@ export interface ChrravelChatMessage {
   client_message_id?: string;
   reply_to_id?: string;
   mentioned_user_ids?: string[];
+  reactions?: Record<string, { count: number; userReacted: boolean; users: string[] }>;
 }
 
 /**
@@ -76,6 +77,17 @@ export function streamMessageToChravel(msg: MessageResponse, tripId: string): Ch
 
   const custom = (msg as unknown as Record<string, unknown>) || {};
 
+  const reactionMap: Record<string, { count: number; userReacted: boolean; users: string[] }> = {};
+  if (msg.reaction_counts) {
+    for (const [type, count] of Object.entries(msg.reaction_counts)) {
+      reactionMap[type] = {
+        count: count,
+        userReacted: !!msg.own_reactions?.some((r) => r.type === type),
+        users: msg.latest_reactions?.filter((r) => r.type === type).map((r) => r.user?.id as string) || [],
+      };
+    }
+  }
+
   return {
     id: msg.id,
     trip_id: tripId,
@@ -96,6 +108,7 @@ export function streamMessageToChravel(msg: MessageResponse, tripId: string): Ch
     client_message_id: msg.id, // Stream uses message ID for dedup
     reply_to_id: msg.parent_id || undefined,
     mentioned_user_ids: msg.mentioned_users?.map((u: UserResponse) => u.id),
+    reactions: reactionMap,
   };
 }
 

@@ -96,6 +96,7 @@ interface TripChatMessage {
   is_edited?: boolean;
   edited_at?: string;
   reply_to_id?: string;
+  reactions?: Record<string, { count: number; userReacted: boolean; users: string[] }>;
 }
 
 export const TripChat = React.memo(
@@ -214,6 +215,7 @@ export const TripChat = React.memo(
       loadMore: loadMoreMessages,
       hasMore,
       isLoadingMore,
+      toggleReaction,
     } = useTripChat(shouldSkipLiveChat ? undefined : resolvedTripId);
 
     const {
@@ -475,107 +477,6 @@ export const TripChat = React.memo(
       });
     }, [liveMessages, demoMode.isDemoMode, tripMembers]);
 
-    // Fetch reactions for messages whose reactions haven't been loaded yet.
-    // Handles both initial load and pagination (loadMore adds older messages).
-    // Realtime subscription below handles incremental INSERT/DELETE for new reactions.
-    const reactionsFetchedIdsRef = useRef<Set<string>>(new Set());
-    useEffect(() => {
-      if (demoMode.isDemoMode || !user?.id || liveMessages.length === 0) return;
-
-      // Only fetch for messages we haven't fetched reactions for yet
-      const unfetchedIds = liveMessages
-        .map(m => m.id)
-        .filter(id => !reactionsFetchedIdsRef.current.has(id));
-
-      if (unfetchedIds.length === 0) return;
-
-      const fetchReactions = async () => {
-        try {
-          const data = await getMessagesReactions(unfetchedIds, user.id);
-          // Mark as fetched before updating state
-          unfetchedIds.forEach(id => reactionsFetchedIdsRef.current.add(id));
-          const formatted: Record<
-            string,
-            Record<string, { count: number; userReacted: boolean; users: string[] }>
-          > = {};
-          for (const [msgId, typeMap] of Object.entries(data)) {
-            formatted[msgId] = {};
-            for (const [type, rData] of Object.entries(typeMap)) {
-              formatted[msgId][type] = {
-                count: rData.count,
-                userReacted: rData.userReacted,
-                users: rData.users || [],
-              };
-            }
-          }
-          // Merge with existing reactions (don't replace — preserves data for
-          // already-loaded messages and any realtime updates that arrived since)
-          setReactions(prev => ({ ...prev, ...formatted }));
-        } catch (error) {
-          if (import.meta.env.DEV) {
-            console.error('[TripChat] Failed to fetch reactions:', error);
-          }
-        }
-      };
-
-      fetchReactions();
-    }, [liveMessages.length, user?.id, demoMode.isDemoMode]);
-
-    // Keep a stable ref of loaded message IDs so the reaction subscription
-    // can filter without needing liveMessages in its dependency array.
-    const loadedMessageIdsRef = useRef<Set<string>>(new Set());
-    useEffect(() => {
-      loadedMessageIdsRef.current = new Set(liveMessages.map(m => m.id));
-    }, [liveMessages]);
-
-    // Subscribe to realtime reaction changes — stable channel (no liveMessages dep)
-    useEffect(() => {
-      if (demoMode.isDemoMode || !resolvedTripId || !user?.id) return;
-
-      const channel = subscribeToReactions(
-        resolvedTripId,
-        payload => {
-          // Only process reactions for messages we have loaded
-          if (!loadedMessageIdsRef.current.has(payload.messageId)) return;
-
-          setReactions(prev => {
-            const updated = { ...prev };
-            if (!updated[payload.messageId]) {
-              updated[payload.messageId] = {};
-            }
-
-            const current = updated[payload.messageId][payload.reactionType] || {
-              count: 0,
-              userReacted: false,
-              users: [],
-            };
-
-            if (payload.eventType === 'INSERT') {
-              updated[payload.messageId][payload.reactionType] = {
-                count: current.count + 1,
-                userReacted: payload.userId === user.id ? true : current.userReacted,
-                users: current.users.includes(payload.userId)
-                  ? current.users
-                  : [...current.users, payload.userId],
-              };
-            } else if (payload.eventType === 'DELETE') {
-              updated[payload.messageId][payload.reactionType] = {
-                count: Math.max(0, current.count - 1),
-                userReacted: payload.userId === user.id ? false : current.userReacted,
-                users: current.users.filter(id => id !== payload.userId),
-              };
-            }
-
-            return updated;
-          });
-        },
-        loadedMessageIdsRef.current,
-      );
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }, [resolvedTripId, user?.id, demoMode.isDemoMode]);
 
     const handleSendMessage = async (
       isBroadcast = false,
@@ -697,76 +598,11 @@ export const TripChat = React.memo(
 
     const handleReaction = async (messageId: string, reactionType: string) => {
       if (demoMode.isDemoMode || !user?.id) {
-        // Demo mode: local-only reactions
-        const updatedReactions = { ...reactions };
-        if (!updatedReactions[messageId]) {
-          updatedReactions[messageId] = {};
-        }
-
-        const currentReaction = updatedReactions[messageId][reactionType] || {
-          count: 0,
-          userReacted: false,
-          users: [],
-        };
-        currentReaction.userReacted = !currentReaction.userReacted;
-        currentReaction.count += currentReaction.userReacted ? 1 : -1;
-        if (user?.id) {
-          currentReaction.users = currentReaction.userReacted
-            ? Array.from(new Set([...currentReaction.users, user.id]))
-            : currentReaction.users.filter(id => id !== user.id);
-        }
-
-        updatedReactions[messageId][reactionType] = currentReaction;
-        setReactions(updatedReactions);
         return;
       }
 
-      // Authenticated mode: persist to database
-      // Optimistic update
-      setReactions(prev => {
-        const updated = { ...prev };
-        if (!updated[messageId]) {
-          updated[messageId] = {};
-        }
-        const current = updated[messageId][reactionType] || {
-          count: 0,
-          userReacted: false,
-          users: [],
-        };
-        const wasReacted = current.userReacted;
-        updated[messageId][reactionType] = {
-          count: wasReacted ? Math.max(0, current.count - 1) : current.count + 1,
-          userReacted: !wasReacted,
-          users: wasReacted
-            ? current.users.filter(id => id !== user.id)
-            : Array.from(new Set([...current.users, user.id])),
-        };
-        return updated;
-      });
-
-      // Persist to database
-      const result = await toggleMessageReaction(messageId, user.id, reactionType as ReactionType);
-      if (result.error) {
-        if (import.meta.env.DEV)
-          console.error('[TripChat] Failed to toggle reaction:', result.error);
-        // Revert on failure - refetch reactions
-        const messageIds = liveMessages.map(m => m.id);
-        const freshReactions = await getMessagesReactions(messageIds, user.id);
-        const formatted: Record<
-          string,
-          Record<string, { count: number; userReacted: boolean; users: string[] }>
-        > = {};
-        for (const [msgId, typeMap] of Object.entries(freshReactions)) {
-          formatted[msgId] = {};
-          for (const [type, data] of Object.entries(typeMap)) {
-            formatted[msgId][type] = {
-              count: data.count,
-              userReacted: data.userReacted,
-              users: data.users || [],
-            };
-          }
-        }
-        setReactions(formatted);
+      if (toggleReaction) {
+          await toggleReaction(messageId, reactionType);
       }
     };
 
@@ -990,7 +826,7 @@ export const TripChat = React.memo(
                       <div data-message-id={message.id}>
                         <MessageItem
                           message={message}
-                          reactions={reactions[message.id]}
+                          reactions={message.reactions || {}}
                           onReaction={handleReaction}
                           onReply={handleOpenThread}
                           onEdit={demoMode.isDemoMode ? undefined : handleMessageEdit}

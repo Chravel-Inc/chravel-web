@@ -305,6 +305,25 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     error,
     sendMessage,
     sendMessageAsync,
+    toggleReaction: async (messageId: string, reactionType: string) => {
+      const channel = channelRef.current;
+      if (!channel) return;
+      try {
+        const message = messages.find((m) => m.id === messageId);
+        // Using built in Stream reactions
+        const streamMsg = await channel.state.messages.find(m => m.id === messageId);
+        if(!streamMsg) return;
+
+        const hasReacted = streamMsg.own_reactions?.some((r) => r.type === reactionType);
+        if (hasReacted) {
+          await channel.deleteReaction(messageId, reactionType);
+        } else {
+          await channel.sendReaction(messageId, { type: reactionType });
+        }
+      } catch (err) {
+        console.error('Failed to toggle reaction', err);
+      }
+    },
     /** Stream path: always false — send is fire-and-forget; UI unlocks immediately */
     isCreating: false,
     loadMore,
