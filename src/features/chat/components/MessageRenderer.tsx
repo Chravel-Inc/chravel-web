@@ -137,7 +137,7 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({
 
     const preview = message.link_preview;
     const rawUrl = preview.url || message.content || '';
-    const safeUrl = InputValidator.isValidUrl(rawUrl) ? rawUrl : '#';
+    const safeUrl = getSafeUrl(rawUrl);
 
     return (
       <a
