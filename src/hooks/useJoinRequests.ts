@@ -215,6 +215,8 @@ export const useJoinRequests = ({
 
         toast.success('✅ Request approved');
         queryClient.invalidateQueries({ queryKey: tripKeys.all });
+        queryClient.invalidateQueries({ queryKey: ['proTrips'] }); // Ensure pro trips refresh
+        queryClient.invalidateQueries({ queryKey: ['events'] }); // Ensure events refresh
         queryClient.invalidateQueries({ queryKey: tripKeys.members(tripId) });
         await fetchRequests();
       } catch (error) {
@@ -262,6 +264,8 @@ export const useJoinRequests = ({
         }
 
         queryClient.invalidateQueries({ queryKey: tripKeys.all });
+        queryClient.invalidateQueries({ queryKey: ['proTrips'] });
+        queryClient.invalidateQueries({ queryKey: ['events'] });
         await fetchRequests();
       } catch (error) {
         console.error('Error rejecting request:', error);

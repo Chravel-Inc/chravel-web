@@ -29,6 +29,8 @@ export function useUserTripsRealtime(userId: string | undefined, isDemoMode: boo
 
     const invalidateTrips = () => {
       queryClient.invalidateQueries({ queryKey: [TRIPS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: ['proTrips'] });
+      queryClient.invalidateQueries({ queryKey: ['events'] });
     };
 
     const channel = supabase
@@ -53,7 +55,7 @@ export function useUserTripsRealtime(userId: string | undefined, isDemoMode: boo
         },
         payload => {
           if (shouldInvalidateTripsForMemberChange(payload as MemberChangePayload, userId)) {
-            queryClient.invalidateQueries({ queryKey: [TRIPS_QUERY_KEY] });
+            invalidateTrips();
           }
         },
       )
