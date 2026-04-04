@@ -52,14 +52,16 @@ if (!isUsingEnvVars) {
   ]
     .filter(Boolean)
     .join(', ');
-  throw new Error(
-    `[Supabase] Missing required environment configuration: ${missing}. ` +
-      'Set Supabase env vars before app startup.',
+  console.warn(
+    `[Supabase] Missing environment configuration: ${missing}. ` +
+      'App will retry after env vars are injected.',
   );
 }
 
-const RESOLVED_SUPABASE_URL = SUPABASE_URL as string;
-const RESOLVED_SUPABASE_PUBLIC_KEY = SUPABASE_PUBLIC_KEY as string;
+// Use placeholder values if env vars are not yet available (Lovable preview injects .env async).
+// The app will show auth/loading states until the dev server restarts with real values.
+const RESOLVED_SUPABASE_URL = SUPABASE_URL || 'https://placeholder.supabase.co';
+const RESOLVED_SUPABASE_PUBLIC_KEY = SUPABASE_PUBLIC_KEY || 'placeholder-key';
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
