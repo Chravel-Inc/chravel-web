@@ -357,10 +357,6 @@ const useSupabaseTripChat = (tripId: string | undefined, options?: { enabled?: b
             console.log('[CHAT REALTIME] INSERT received:', {
               messageId: payload.new?.id,
               author: (payload.new as Record<string, unknown>)?.author_name,
-              content: String((payload.new as Record<string, unknown>)?.content ?? '').substring(
-                0,
-                50,
-              ),
               timestamp: new Date().toISOString(),
             });
           }
