@@ -952,7 +952,11 @@ export const TripChat = React.memo(
 
     return (
       <div className="flex flex-col h-full">
-        <PullToRefreshIndicator isRefreshing={isRefreshing} pullDistance={pullDistance} threshold={80} />
+        <PullToRefreshIndicator
+          isRefreshing={isRefreshing}
+          pullDistance={pullDistance}
+          threshold={80}
+        />
         {/* Search Overlay Modal */}
         {showSearchOverlay && (
           <ChatSearchOverlay
