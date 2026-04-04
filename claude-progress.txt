@@ -190,3 +190,11 @@
 - Removed non-runtime artifacts: `core`, `jules-scratch/`, `fix-conflict-1.sh`, `test_write.txt`.
 - Added recurrence guards in `.gitignore` for `core`, `core.*`, and `jules-scratch/`.
 - Added audit report: `docs/audits/root-tech-debt-triage-2026-04-04.md` with keep/remove decisions and risk notes.
+2026-04-04 — Build recovery triage: formatting gate drift after merge flurry
+- Reproduced full verification pipeline and confirmed production bundle compiles (`npm run build`) and typecheck passes.
+- Applied surgical, behavior-preserving fixes by running Prettier on:
+  - `src/features/chat/components/TripChat.tsx`
+  - `src/hooks/stream/useStreamTripChat.ts`
+  - `src/integrations/supabase/types.ts`
+- Verified no logic or data-shape changes (`eslint` warnings unchanged; zero new errors) and full gate now passes.
+- Risk profile: Low (format-only). Restores CI/deploy path without rolling back recent product updates.
