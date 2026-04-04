@@ -617,6 +617,10 @@ export const TripChat = React.memo(
 
       if (toggleReaction) {
         // Stream path — Stream SDK handles optimistic updates internally
+        await toggleReaction(messageId, reactionType);
+        return;
+      }
+
       // Authenticated mode: persist to database
       // Optimistic update
       setReactions(prev => {
@@ -640,60 +644,29 @@ export const TripChat = React.memo(
         return updated;
       });
 
-      // Persist to backend
-      if (toggleReaction) {
-        // Stream path
-        await toggleReaction(messageId, reactionType);
-      } else {
-        // Supabase path — optimistic update + persist
-        setReactions(prev => {
-          const updated = { ...prev };
-          if (!updated[messageId]) {
-            updated[messageId] = {};
+      // Persist to backend (Supabase path)
+      const result = await toggleMessageReaction(messageId, user.id, reactionType as ReactionType);
+      if (result.error) {
+        if (import.meta.env.DEV)
+          console.error('[TripChat] Failed to toggle reaction:', result.error);
+        // Revert on failure - refetch reactions
+        const messageIds = liveMessages.map(m => m.id);
+        const freshReactions = await getMessagesReactions(messageIds, user.id);
+        const formatted: Record<
+          string,
+          Record<string, { count: number; userReacted: boolean; users: string[] }>
+        > = {};
+        for (const [msgId, typeMap] of Object.entries(freshReactions)) {
+          formatted[msgId] = {};
+          for (const [type, data] of Object.entries(typeMap)) {
+            formatted[msgId][type] = {
+              count: data.count,
+              userReacted: data.userReacted,
+              users: data.users || [],
+            };
           }
-          const current = updated[messageId][reactionType] || {
-            count: 0,
-            userReacted: false,
-            users: [],
-          };
-          const wasReacted = current.userReacted;
-          updated[messageId][reactionType] = {
-            count: wasReacted ? Math.max(0, current.count - 1) : current.count + 1,
-            userReacted: !wasReacted,
-            users: wasReacted
-              ? current.users.filter(id => id !== user.id)
-              : Array.from(new Set([...current.users, user.id])),
-          };
-          return updated;
-        });
-
-        const result = await toggleMessageReaction(
-          messageId,
-          user.id,
-          reactionType as ReactionType,
-        );
-        if (result.error) {
-          if (import.meta.env.DEV)
-            console.error('[TripChat] Failed to toggle reaction:', result.error);
-          // Revert on failure - refetch reactions
-          const messageIds = liveMessages.map(m => m.id);
-          const freshReactions = await getMessagesReactions(messageIds, user.id);
-          const formatted: Record<
-            string,
-            Record<string, { count: number; userReacted: boolean; users: string[] }>
-          > = {};
-          for (const [msgId, typeMap] of Object.entries(freshReactions)) {
-            formatted[msgId] = {};
-            for (const [type, data] of Object.entries(typeMap)) {
-              formatted[msgId][type] = {
-                count: data.count,
-                userReacted: data.userReacted,
-                users: data.users || [],
-              };
-            }
-          }
-          setReactions(formatted);
         }
+        setReactions(formatted);
       }
     };
 
