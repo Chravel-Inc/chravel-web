@@ -52,9 +52,9 @@ if (!isUsingEnvVars) {
   ]
     .filter(Boolean)
     .join(', ');
-  throw new Error(
-    `[Supabase] Missing required environment configuration: ${missing}. ` +
-      'Set Supabase env vars before app startup.',
+  console.warn(
+    `[Supabase] Missing environment configuration: ${missing}. ` +
+      'App will retry after env vars are injected.',
   );
 }
 
