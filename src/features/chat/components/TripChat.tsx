@@ -615,9 +615,6 @@ export const TripChat = React.memo(
         return;
       }
 
-      if (toggleReaction) {
-        await toggleReaction(messageId, reactionType);
-      // Authenticated mode: persist to database
       // Optimistic update
       setReactions(prev => {
         const updated = { ...prev };
@@ -642,10 +639,8 @@ export const TripChat = React.memo(
 
       // Persist to backend
       if (toggleReaction) {
-        // Stream path
         await toggleReaction(messageId, reactionType);
       } else {
-        // Supabase path
         const result = await toggleMessageReaction(
           messageId,
           user.id,
@@ -654,7 +649,6 @@ export const TripChat = React.memo(
         if (result.error) {
           if (import.meta.env.DEV)
             console.error('[TripChat] Failed to toggle reaction:', result.error);
-          // Revert on failure - refetch reactions
           const messageIds = liveMessages.map(m => m.id);
           const freshReactions = await getMessagesReactions(messageIds, user.id);
           const formatted: Record<
@@ -902,8 +896,7 @@ export const TripChat = React.memo(
                       <div data-message-id={message.id}>
                         <MessageItem
                           message={message}
-                          reactions={message.reactions || {}}
-                          reactions={message.reactions || reactions[message.id]}
+                          reactions={message.reactions || reactions[message.id] || {}}
                           onReaction={handleReaction}
                           onReply={handleOpenThread}
                           onEdit={demoMode.isDemoMode ? undefined : handleMessageEdit}
