@@ -10,6 +10,3 @@ public
 android
 ios
 .husky
-
-# Generated Supabase types (regenerated via CLI)
-src/integrations/supabase/types.ts

@@ -528,7 +528,7 @@ export const tripService = {
     }
 
     if (data) {
-      return data as Trip;
+      return data;
     }
 
     // No error but no data could be RLS filtering; fall back to server-side access check

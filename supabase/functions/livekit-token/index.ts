@@ -141,7 +141,7 @@ serve(async req => {
       agents: [
         {
           agentName: 'chravel-voice',
-        } as any, // intentional: RoomAgentDispatch protobuf type requires full constructor; cast is safe for metadata-only usage
+        },
       ],
     };
 

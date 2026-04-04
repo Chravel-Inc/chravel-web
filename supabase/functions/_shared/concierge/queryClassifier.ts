@@ -25,7 +25,6 @@ export type QueryClass =
   | 'poll_action'
   | 'media_search'
   | 'flight_search'
-  | 'hotel_search'
   | 'trip_image'
   | 'smart_import'
   | 'basecamp_action'
