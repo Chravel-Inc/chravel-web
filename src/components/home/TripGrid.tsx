@@ -47,7 +47,7 @@ interface Trip {
 interface TripGridProps {
   viewMode: string;
   trips: Trip[];
-  pendingTrips?: DashboardJoinRequest[];
+  pendingTrips?: Trip[];
   proTrips: Record<string, ProTripData>;
   events: Record<string, EventData>;
   loading?: boolean;
