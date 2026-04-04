@@ -95,6 +95,28 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     };
   }, [tripId, isEnabled]);
 
+  const reload = useCallback(async () => {
+    if (!tripId || !isEnabled || !channelRef.current) return;
+
+    try {
+      setIsLoading(true);
+      const state = await channelRef.current.query({
+        messages: { limit: PAGE_SIZE }
+      });
+      const currentMessages = (state.messages || []).map((m: MessageResponse) =>
+        streamMessageToChravel(m, tripId),
+      );
+      setMessages(currentMessages);
+      setHasMore((state.messages || []).length === PAGE_SIZE);
+    } catch (err) {
+      if (import.meta.env.DEV) {
+        console.error('[Stream] reload failed:', err);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [tripId, isEnabled]);
+
   // Subscribe to realtime events
   useEffect(() => {
     const channel = activeChannel;
@@ -283,18 +305,29 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       const channel = channelRef.current;
 
       try {
+        // Capture prior state in case of revert
+        const originalMessages = messages;
+
         // Optimistically check if we already reacted
         const message = messages.find(m => m.id === messageId);
         const hasReacted = message?.reactions?.[reactionType]?.userReacted;
 
-        if (hasReacted) {
-          await channel.deleteReaction(messageId, reactionType);
-        } else {
-          await channel.sendReaction(messageId, { type: reactionType });
+        try {
+          if (hasReacted) {
+            await channel.deleteReaction(messageId, reactionType);
+          } else {
+            await channel.sendReaction(messageId, { type: reactionType });
+          }
+        } catch (err) {
+          if (import.meta.env.DEV) {
+            console.error('[Stream] toggleReaction failed:', err);
+          }
+          // Revert optimistic update
+          setMessages(originalMessages);
         }
       } catch (err) {
         if (import.meta.env.DEV) {
-          console.error('[Stream] toggleReaction failed:', err);
+          console.error('[Stream] toggleReaction prep failed:', err);
         }
       }
     },
@@ -341,5 +374,6 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     hasMore,
     isLoadingMore,
     toggleReaction,
+    reload,
   };
 };

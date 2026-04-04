@@ -777,5 +777,9 @@ const useSupabaseTripChat = (tripId: string | undefined, options?: { enabled?: b
     hasMore,
     isLoadingMore,
     toggleReaction: undefined, // Handled by chatService directly when using Supabase
+    reload: async () => {
+      // For Supabase, the pull-to-refresh will use invalidateQueries.
+      // We expose this no-op to match the Stream hook signature.
+    },
   };
 };

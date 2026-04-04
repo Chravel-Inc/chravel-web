@@ -144,18 +144,36 @@ export const TripChat = React.memo(
       return tripIdProp || params.tripId || params.proTripId || params.eventId || '';
     }, [tripIdProp, params.tripId, params.proTripId, params.eventId]);
 
+    const demoMode = useDemoMode();
+    const { user } = useAuth();
+    const queryClient = useQueryClient();
+
+    // ⚡ PERFORMANCE: Skip expensive hooks in demo mode for numeric trip IDs
+    const shouldSkipLiveChat = demoMode.isDemoMode && /^\d+$/.test(resolvedTripId);
+
+    const {
+      messages: liveMessages,
+      isLoading: liveLoading,
+      sendMessageAsync: sendTripMessage,
+      isCreating: isSendingMessage,
+      loadMore: loadMoreMessages,
+      hasMore,
+      isLoadingMore,
+      toggleReaction,
+      reload,
+    } = useTripChat(shouldSkipLiveChat ? undefined : resolvedTripId);
+
     const { isRefreshing, pullDistance } = usePullToRefresh({
       onRefresh: async () => {
         if (resolvedTripId) {
+          if (reload) {
+            await reload();
+          }
           // Invalidate chat query cache to force fresh fetch
           await queryClient.invalidateQueries({ queryKey: ['tripChat', resolvedTripId] });
         }
       },
     });
-
-    const demoMode = useDemoMode();
-    const { user } = useAuth();
-    const queryClient = useQueryClient();
 
     // Chat mode enforcement — UI layer (server-side RLS is authoritative)
     const {
@@ -164,7 +182,7 @@ export const TripChat = React.memo(
       canUploadMedia,
       isLoading: chatModeLoading,
       userRole: chatModeUserRole,
-    } = useTripChatMode(demoMode.isDemoMode ? undefined : resolvedTripId, user?.id);
+    } = useTripChatMode(shouldSkipLiveChat ? undefined : resolvedTripId, user?.id);
 
     const isUserAdmin =
       chatModeUserRole === 'admin' ||
@@ -207,9 +225,6 @@ export const TripChat = React.memo(
       isConsumer ? resolvedTripId : '',
     );
 
-    // ⚡ PERFORMANCE: Skip expensive hooks in demo mode for numeric trip IDs
-    const shouldSkipLiveChat = demoMode.isDemoMode && /^\d+$/.test(resolvedTripId);
-
     // Fetch privacy config for the trip (after shouldSkipLiveChat is defined)
     const { data: privacyConfig } = useTripPrivacyConfig(
       shouldSkipLiveChat ? undefined : resolvedTripId,
@@ -217,16 +232,6 @@ export const TripChat = React.memo(
 
     // Live chat hooks - only initialize for authenticated trips
     const { tripMembers } = useTripMembers(shouldSkipLiveChat ? undefined : resolvedTripId);
-    const {
-      messages: liveMessages,
-      isLoading: liveLoading,
-      sendMessageAsync: sendTripMessage,
-      isCreating: isSendingMessage,
-      loadMore: loadMoreMessages,
-      hasMore,
-      isLoadingMore,
-      toggleReaction,
-    } = useTripChat(shouldSkipLiveChat ? undefined : resolvedTripId);
 
     const {
       inputMessage,

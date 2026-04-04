@@ -106,8 +106,12 @@ export function streamMessageToChravel(msg: MessageResponse, tripId: string): Ch
   if (msg.own_reactions) {
     for (const reaction of msg.own_reactions) {
       const type = reaction.type;
-      if (reactions[type]) {
-        reactions[type].userReacted = true;
+      if (!reactions[type]) {
+        reactions[type] = { count: 0, userReacted: false, users: [] };
+      }
+      reactions[type].userReacted = true;
+      if (reaction.user?.id && !reactions[type].users.includes(reaction.user.id)) {
+        reactions[type].users.push(reaction.user.id);
       }
     }
   }
