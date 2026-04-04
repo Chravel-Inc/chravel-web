@@ -762,7 +762,11 @@ export const TripChat = React.memo(
         await toggleReaction(messageId, reactionType);
       } else {
         // Supabase path
-        const result = await toggleMessageReaction(messageId, user.id, reactionType as ReactionType);
+        const result = await toggleMessageReaction(
+          messageId,
+          user.id,
+          reactionType as ReactionType,
+        );
         if (result.error) {
           if (import.meta.env.DEV)
             console.error('[TripChat] Failed to toggle reaction:', result.error);

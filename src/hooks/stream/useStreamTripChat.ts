@@ -298,7 +298,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         }
       }
     },
-    [messages]
+    [messages],
   );
 
   const loadMore = useCallback(async () => {
