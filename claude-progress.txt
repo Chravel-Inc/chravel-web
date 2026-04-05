@@ -1,3 +1,8 @@
+2026-03-30 — Stream migration forensic audit + immediate chat latency root cause
+- Completed code-level forensic trace of trip chat, pro/channel chat, concierge chat, realtime transport, and iOS wrapper coupling.
+- Identified primary send-latency cause as pre-send parser gating (`useChatComposer.sendMessage` awaiting `message-parser`) before `sendTripMessage` mutation kickoff.
+- Produced executable migration architecture + phased coexistence plan in `docs/audits/stream-migration-forensic-plan-2026-03-30.md`, including immediate stop-bleeding patch, Stream adapter strategy, concierge dual-persistence guidance, and rollback criteria.
+- Next follow-up: implement immediate parser decoupling patch + telemetry timestamps for send lifecycle and validate <200ms perceived latency target.
 2026-04-03 — Supabase key-rotation hardening (remove baked fallback credentials)
 - Removed hardcoded Supabase URL/anon key fallback from `src/integrations/supabase/client.ts`; app now requires env-configured credentials and supports `VITE_SUPABASE_PUBLISHABLE_KEY` (preferred) with legacy `VITE_SUPABASE_ANON_KEY` compatibility.
 - Updated startup env warnings in `src/main.tsx` to match new requirement (`VITE_SUPABASE_URL` + publishable/anon key).
