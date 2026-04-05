@@ -42,23 +42,35 @@ const KNOWN_PROJECT_ANON_KEY =
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Vite injects import.meta.env at build time
 const env = (import.meta as any)?.env ?? {};
 
-const SUPABASE_URL: string = (env.VITE_SUPABASE_URL as string | undefined) || KNOWN_PROJECT_URL;
-
-const SUPABASE_ANON_KEY: string =
+const envUrl = env.VITE_SUPABASE_URL as string | undefined;
+const envKey =
   (env.VITE_SUPABASE_ANON_KEY as string | undefined) ||
-  (env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ||
-  KNOWN_PROJECT_ANON_KEY;
+  (env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined);
 
 // Track env source for diagnostics (DevEnvBanner, Healthz)
-const urlFromEnv = Boolean(env.VITE_SUPABASE_URL);
-const keyFromEnv = Boolean(env.VITE_SUPABASE_ANON_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY);
+const urlFromEnv = Boolean(envUrl);
+const keyFromEnv = Boolean(envKey);
 export const isUsingEnvVars = urlFromEnv && keyFromEnv;
 
-if (!isUsingEnvVars) {
-  console.warn(
-    '[Supabase] Environment variables not detected — using built-in project credentials. ' +
-      'Set VITE_SUPABASE_URL & VITE_SUPABASE_ANON_KEY in .env for explicit configuration.',
-  );
+// Atomic resolution: use env pair only when BOTH URL and key are present.
+// Prevents mixing an env URL with the hardcoded key (or vice-versa),
+// which would point a JWT at the wrong Supabase host.
+const bothFromEnv = urlFromEnv && keyFromEnv;
+const SUPABASE_URL: string = bothFromEnv ? envUrl! : KNOWN_PROJECT_URL;
+const SUPABASE_ANON_KEY: string = bothFromEnv ? envKey! : KNOWN_PROJECT_ANON_KEY;
+
+if (!bothFromEnv) {
+  if (urlFromEnv !== keyFromEnv) {
+    console.warn(
+      '[Supabase] Only one of VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY is set — ' +
+        'ignoring partial env to prevent URL/key mismatch. Using built-in project credentials.',
+    );
+  } else {
+    console.warn(
+      '[Supabase] Environment variables not detected — using built-in project credentials. ' +
+        'Set VITE_SUPABASE_URL & VITE_SUPABASE_ANON_KEY in .env for explicit configuration.',
+    );
+  }
 }
 
 // Import the supabase client like this:
@@ -73,6 +85,11 @@ export const supabase: SupabaseClient<Database> = createClient<Database>(
       autoRefreshToken: true,
       storageKey: 'chravel-auth-session',
       detectSessionInUrl: true,
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 40,
+      },
     },
   },
 );
