@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { toast } from 'sonner';
 import { useParams } from 'react-router-dom';
@@ -473,7 +473,7 @@ export const TripChat = React.memo(
                     id: readerId,
                     display_name: member.name,
                     avatar_url: member.avatar,
-                  }
+                  },
                 });
               }
             }
@@ -925,7 +925,9 @@ export const TripChat = React.memo(
                           onRetry={handleRetryFailedMessage}
                           systemMessagePrefs={isConsumer ? systemMessagePrefs : undefined}
                           tripMembers={tripMembers}
-                          readStatuses={message.readStatuses || readStatusesByMessage[message.id] || []}
+                          readStatuses={
+                            message.readStatuses || readStatusesByMessage[message.id] || []
+                          }
                           showSenderInfo={showSenderInfo}
                           reactionUserNamesById={reactionUserNamesById}
                           isAdmin={isUserAdmin}
