@@ -337,3 +337,10 @@
 - **Evidence:** April 4, 2026 recovery pass: build/typecheck were green while deployment gate failed on Prettier drift in `TripChat.tsx`, `useStreamTripChat.ts`, and Supabase generated types; format-only fix restored full gate.
 - **Provenance:** 2026-04-04 build recovery triage.
 - **Confidence:** high
+
+### Split flaky E2E signal from required PR gates and reuse build artifacts
+- **Tip:** Keep PR required checks focused on deterministic gates (lint/typecheck/unit/build + tiny smoke E2E) and move full E2E to main/nightly/manual runs. Reuse a built `dist` artifact across jobs to avoid redundant builds and reduce E2E startup variance.
+- **Applies when:** CI pipelines for React/Vite apps where Playwright suites are broader/slower than PR feedback needs.
+- **Evidence:** CI reliability pass added `static-checks`, `unit-tests`, `build`, `e2e-smoke` (PR), and `e2e-full` (main/nightly), plus `PLAYWRIGHT_SKIP_BUILD=1` path in Playwright config and shared `web-dist` artifact.
+- **Provenance:** April 2026 CI reliability hardening.
+- **Confidence:** high

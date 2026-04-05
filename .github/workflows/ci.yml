@@ -5,27 +5,43 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+  workflow_dispatch:
+  schedule:
+    - cron: '20 7 * * *'
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CI: true
+  NODE_VERSION: '20.19.0'
+  VITE_SUPABASE_URL: 'https://ci-placeholder.supabase.co'
+  VITE_SUPABASE_ANON_KEY: 'sb_publishable_ci_placeholder'
+  VITE_GOOGLE_MAPS_API_KEY: 'STUB_MAPS_KEY_CI'
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  static-checks:
+    name: Static Checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        env:
-          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-        env:
-          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-audit --fund=false
 
       - name: Security audit (dependencies)
         run: npm audit --audit-level=critical
@@ -44,11 +60,6 @@ jobs:
 
       - name: Validate environment variables
         run: npx tsx scripts/validate-env.ts --ci
-        continue-on-error: true
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY || 'STUB_MAPS_KEY_CI' }}
 
       - name: Check edge function env coverage
         run: npx tsx scripts/check-env-coverage.ts
@@ -56,44 +67,10 @@ jobs:
       - name: Lint migration files
         run: npx tsx scripts/lint-migrations.ts
 
-      - name: Run unit tests
-        run: npm run test -- --run --coverage
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-
-      - name: Upload coverage reports
-        uses: codecov/codecov-action@v4
-        if: always()
-        continue-on-error: true
-        env:
-          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage/lcov.info
-          fail_ci_if_error: false
-          disable_search: false
-          verbose: true
-
-      - name: Build application
-        run: npm run build
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
-
-      - name: Deploy summary
-        if: github.ref == 'refs/heads/main' && success()
-        run: |
-          echo "## Deploy Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Author**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Time**: $(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status**: All checks passed" >> $GITHUB_STEP_SUMMARY
-
-  e2e:
-    runs-on: ubuntu-latest
-    needs: test
+  unit-tests:
+    name: Unit Tests (Vitest)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
 
     steps:
       - name: Checkout code
@@ -102,30 +79,141 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-audit --fund=false
+
+      - name: Run unit tests with coverage
+        run: npm run test:run:ci
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        if: always()
+        continue-on-error: true
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
+          disable_search: false
+          verbose: true
+
+  build:
+    name: Build Web App
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --fund=false
+
+      - name: Build application
+        run: npm run build
+
+      - name: Upload web build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: dist
+          if-no-files-found: error
+          retention-days: 7
+
+  e2e-smoke:
+    name: E2E Smoke (PR)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    needs: [static-checks, unit-tests, build]
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --fund=false
+
+      - name: Download built web artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: dist
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Run E2E tests
-        run: npm run test:e2e
-        continue-on-error: true
+      - name: Run E2E smoke tests
+        run: npm run test:e2e:smoke
         env:
-          # Supabase environment variables required for build/dev server
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
-          # Playwright test configuration
-          PLAYWRIGHT_TEST_BASE_URL: ${{ secrets.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:8080' }}
+          PLAYWRIGHT_TEST_BASE_URL: 'http://localhost:8080'
+          PLAYWRIGHT_SKIP_BUILD: '1'
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: playwright-report
-          path: playwright-report/
+          name: playwright-smoke-report
+          path: test-results/
+          retention-days: 14
+
+  e2e-full:
+    name: E2E Full (main/nightly)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    needs: [static-checks, unit-tests, build]
+    if: github.ref == 'refs/heads/main' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --fund=false
+
+      - name: Download built web artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: dist
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run full E2E tests
+        run: npm run test:e2e
+        env:
+          PLAYWRIGHT_TEST_BASE_URL: 'http://localhost:8080'
+          PLAYWRIGHT_SKIP_BUILD: '1'
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-full-report
+          path: test-results/
           retention-days: 30

@@ -1,3 +1,10 @@
+2026-04-05 — CI reliability hardening (deterministic, split signal, artifact reuse)
+- Refactored `.github/workflows/ci.yml` into deterministic, lower-flake jobs with pinned runner (`ubuntu-24.04`), pinned Node (`20.19.0`), workflow-level concurrency cancelation, and explicit per-job timeouts.
+- Split PR signal into `static-checks`, `unit-tests`, `build`, and lightweight `e2e-smoke` while moving full Playwright suite to `main`/nightly/manual (`e2e-full`) to reduce flaky PR blocking.
+- Added build artifact reuse (`web-dist`) so E2E jobs no longer rebuild the app; Playwright config now supports `PLAYWRIGHT_SKIP_BUILD=1` preview mode for CI speed/stability.
+- Improved coverage upload determinism by adding `test:run:ci` script and enabling `lcov` reporter in `vitest.config.ts`.
+- Verification: `npm run typecheck`, `npm run test:run -- src/hooks/__tests__/useLiveKitVoice.test.tsx` pass.
+
 2026-04-05 — Gmail import worker parallelism correctness hardening follow-up
 - Addressed review-blocking correctness regressions in `supabase/functions/gmail-import-worker/index.ts` after the concurrency refactor:
   - Replaced invalid `continue` statements inside `processMessage` async function with `return` early exits (fixes function-boundary control-flow compile errors).

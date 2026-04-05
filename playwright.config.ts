@@ -3,6 +3,10 @@ import * as dotenv from 'dotenv';
 
 // Load environment variables
 dotenv.config();
+const ciPreviewCommand =
+  process.env.PLAYWRIGHT_SKIP_BUILD === '1'
+    ? 'npm run preview -- --host 127.0.0.1 --port 8080 --strictPort'
+    : 'npm run build && npm run preview -- --host 127.0.0.1 --port 8080 --strictPort';
 
 /**
  * Chravel E2E Test Configuration
@@ -111,7 +115,7 @@ export default defineConfig({
   /* Run your local dev server before starting the tests */
   webServer: {
     command: process.env.CI
-      ? 'npm run build && npm run preview -- --host 127.0.0.1 --port 8080 --strictPort'
+      ? ciPreviewCommand
       : 'npm run dev -- --host 127.0.0.1 --port 8080 --strictPort',
     url: 'http://localhost:8080',
     reuseExistingServer: !process.env.CI,
