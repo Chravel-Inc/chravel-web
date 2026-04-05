@@ -2001,6 +2001,182 @@ export type Database = {
         }
         Relationships: []
       }
+      recommendation_clicks: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          impression_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          impression_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          impression_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recommendation_clicks_impression_id_fkey"
+            columns: ["impression_id"]
+            isOneToOne: false
+            referencedRelation: "recommendation_impressions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recommendation_feedback: {
+        Row: {
+          created_at: string
+          feedback_type: string
+          id: string
+          item_id: string
+          item_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          feedback_type: string
+          id?: string
+          item_id: string
+          item_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          feedback_type?: string
+          id?: string
+          item_id?: string
+          item_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      recommendation_impressions: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          item_type: string
+          position: number
+          surface: string
+          trip_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          item_type: string
+          position?: number
+          surface: string
+          trip_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          item_type?: string
+          position?: number
+          surface?: string
+          trip_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      recommendation_items: {
+        Row: {
+          affiliate_id: string | null
+          affiliate_provider: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          created_by: string | null
+          cta_action: string
+          cta_text: string
+          description: string | null
+          external_link: string | null
+          id: string
+          images: Json
+          is_active: boolean
+          latitude: number | null
+          location: string | null
+          longitude: number | null
+          metadata: Json
+          price_level: number | null
+          promo_text: string | null
+          rating: number | null
+          source: string
+          sponsor_badge: string | null
+          tags: string[] | null
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          affiliate_id?: string | null
+          affiliate_provider?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          cta_action?: string
+          cta_text?: string
+          description?: string | null
+          external_link?: string | null
+          id?: string
+          images?: Json
+          is_active?: boolean
+          latitude?: number | null
+          location?: string | null
+          longitude?: number | null
+          metadata?: Json
+          price_level?: number | null
+          promo_text?: string | null
+          rating?: number | null
+          source?: string
+          sponsor_badge?: string | null
+          tags?: string[] | null
+          title: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          affiliate_id?: string | null
+          affiliate_provider?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          cta_action?: string
+          cta_text?: string
+          description?: string | null
+          external_link?: string | null
+          id?: string
+          images?: Json
+          is_active?: boolean
+          latitude?: number | null
+          location?: string | null
+          longitude?: number | null
+          metadata?: Json
+          price_level?: number | null
+          promo_text?: string | null
+          rating?: number | null
+          source?: string
+          sponsor_badge?: string | null
+          tags?: string[] | null
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       saved_recommendations: {
         Row: {
           city: string | null
@@ -3753,6 +3929,78 @@ export type Database = {
           real_name?: string | null
           resolved_display_name?: never
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      recommendation_items_public: {
+        Row: {
+          city: string | null
+          country: string | null
+          created_at: string | null
+          cta_action: string | null
+          cta_text: string | null
+          description: string | null
+          external_link: string | null
+          id: string | null
+          images: Json | null
+          latitude: number | null
+          location: string | null
+          longitude: number | null
+          price_level: number | null
+          promo_text: string | null
+          rating: number | null
+          source: string | null
+          sponsor_badge: string | null
+          tags: string[] | null
+          title: string | null
+          type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          cta_action?: string | null
+          cta_text?: string | null
+          description?: string | null
+          external_link?: string | null
+          id?: string | null
+          images?: Json | null
+          latitude?: number | null
+          location?: string | null
+          longitude?: number | null
+          price_level?: number | null
+          promo_text?: string | null
+          rating?: number | null
+          source?: string | null
+          sponsor_badge?: string | null
+          tags?: string[] | null
+          title?: string | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          cta_action?: string | null
+          cta_text?: string | null
+          description?: string | null
+          external_link?: string | null
+          id?: string | null
+          images?: Json | null
+          latitude?: number | null
+          location?: string | null
+          longitude?: number | null
+          price_level?: number | null
+          promo_text?: string | null
+          rating?: number | null
+          source?: string | null
+          sponsor_badge?: string | null
+          tags?: string[] | null
+          title?: string | null
+          type?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }

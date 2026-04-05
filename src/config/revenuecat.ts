@@ -25,7 +25,7 @@ export const canInitializeRevenueCat = (
  * Generates a unique anonymous user ID for RevenueCat.
  * Uses crypto.randomUUID if available, falls back to timestamp + random.
  */
-const generateAnonymousUserId = (): string => {
+export const generateAnonymousUserId = (): string => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return `anon_${crypto.randomUUID()}`;
   }
@@ -39,8 +39,9 @@ const generateAnonymousUserId = (): string => {
     return `anon_${hex}`;
   }
   // Last-resort fallback for environments with no Web Crypto API at all.
-  // Not cryptographically secure, but preferable to a ReferenceError crash.
-  return `anon_${Date.now().toString(36)}_${((Math.random() * 0xffffffff) >>> 0).toString(36)}`;
+  // We throw an error instead of using Math.random() as it is not cryptographically secure
+  // and could lead to predictable IDs and subscription hijacking.
+  throw new Error('Web Crypto API is required for secure ID generation');
 };
 
 /**

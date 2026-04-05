@@ -80,6 +80,16 @@ class OfflineSyncService {
       throw new Error('Basecamp updates are not supported offline.');
     }
 
+    // Stream handles its own offline queueing, so skip custom queueing
+    // if Stream is active and entity is chat message
+    // We check the environment variable directly since this service runs outside React context
+    if (entityType === 'chat_message' && import.meta.env.VITE_STREAM_API_KEY) {
+      if (import.meta.env.DEV) {
+        console.log('[OfflineSync] Bypassing custom queue for chat message due to Stream config');
+      }
+      return `stream_handled_${Date.now()}`;
+    }
+
     const db = await getDB();
     const queueId = `sync_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -327,106 +337,107 @@ class OfflineSyncService {
     }
 
     const readyOps = await this.getReadyOperations();
-    let processed = 0;
-    let failed = 0;
 
-    for (const operation of readyOps) {
-      try {
-        // Atomically update status to 'syncing' - if operation was already removed, this returns null
-        // This prevents concurrent processors from handling the same operation
-        const updated = await this.updateOperationStatus(operation.id, 'syncing');
-        if (!updated) {
-          // Operation was already removed or is being processed by another sync
-          continue;
-        }
+    const results = await Promise.all(
+      readyOps.map(async operation => {
+        try {
+          // Atomically update status to 'syncing' - if operation was already removed, this returns null
+          // This prevents concurrent processors from handling the same operation
+          const updated = await this.updateOperationStatus(operation.id, 'syncing');
+          if (!updated) {
+            // Operation was already removed or is being processed by another sync
+            return { status: 'skipped' };
+          }
 
-        let _result: unknown;
-        let handlerRan = false;
+          let handlerRan = false;
 
-        // Route to appropriate handler
-        switch (operation.entityType) {
-          case 'chat_message':
-            if (operation.operationType === 'create' && handlers.onChatMessageCreate) {
-              _result = await handlers.onChatMessageCreate(operation.tripId, operation.data);
-              handlerRan = true;
-            } else if (operation.operationType === 'update' && handlers.onChatMessageUpdate) {
-              _result = await handlers.onChatMessageUpdate(operation.entityId!, operation.data);
-              handlerRan = true;
-            }
-            break;
-
-          case 'task':
-            if (operation.operationType === 'create' && handlers.onTaskCreate) {
-              _result = await handlers.onTaskCreate(operation.tripId, operation.data);
-              handlerRan = true;
-              break;
-            }
-
-            if (operation.operationType === 'update') {
-              // IMPORTANT: Prioritize toggles over generic updates.
-              // Task completion is stored in `task_status` via `toggle_task_status` RPC, not on `trip_tasks`.
-              if (operation.data?.completed !== undefined && handlers.onTaskToggle) {
-                _result = await handlers.onTaskToggle(operation.entityId!, operation.data);
+          // Route to appropriate handler
+          switch (operation.entityType) {
+            case 'chat_message':
+              if (operation.operationType === 'create' && handlers.onChatMessageCreate) {
+                await handlers.onChatMessageCreate(operation.tripId, operation.data);
                 handlerRan = true;
-              } else if (handlers.onTaskUpdate) {
-                _result = await handlers.onTaskUpdate(operation.entityId!, operation.data);
+              } else if (operation.operationType === 'update' && handlers.onChatMessageUpdate) {
+                await handlers.onChatMessageUpdate(operation.entityId!, operation.data);
                 handlerRan = true;
               }
-            }
-            break;
+              break;
 
-          case 'poll_vote':
-            if (operation.operationType === 'create' && handlers.onPollVote) {
-              _result = await handlers.onPollVote(operation.entityId!, operation.data);
-              handlerRan = true;
-            }
-            break;
+            case 'task':
+              if (operation.operationType === 'create' && handlers.onTaskCreate) {
+                await handlers.onTaskCreate(operation.tripId, operation.data);
+                handlerRan = true;
+              } else if (operation.operationType === 'update') {
+                // IMPORTANT: Prioritize toggles over generic updates.
+                // Task completion is stored in `task_status` via `toggle_task_status` RPC, not on `trip_tasks`.
+                if (operation.data?.completed !== undefined && handlers.onTaskToggle) {
+                  await handlers.onTaskToggle(operation.entityId!, operation.data);
+                  handlerRan = true;
+                } else if (handlers.onTaskUpdate) {
+                  await handlers.onTaskUpdate(operation.entityId!, operation.data);
+                  handlerRan = true;
+                }
+              }
+              break;
 
-          case 'calendar_event':
-            if (operation.operationType === 'create' && handlers.onCalendarEventCreate) {
-              _result = await handlers.onCalendarEventCreate(operation.tripId, operation.data);
-              handlerRan = true;
-            } else if (operation.operationType === 'update' && handlers.onCalendarEventUpdate) {
-              _result = await handlers.onCalendarEventUpdate(operation.entityId!, operation.data);
-              handlerRan = true;
-            } else if (operation.operationType === 'delete' && handlers.onCalendarEventDelete) {
-              _result = await handlers.onCalendarEventDelete(operation.entityId!);
-              handlerRan = true;
-            }
-            break;
+            case 'poll_vote':
+              if (operation.operationType === 'create' && handlers.onPollVote) {
+                await handlers.onPollVote(operation.entityId!, operation.data);
+                handlerRan = true;
+              }
+              break;
+
+            case 'calendar_event':
+              if (operation.operationType === 'create' && handlers.onCalendarEventCreate) {
+                await handlers.onCalendarEventCreate(operation.tripId, operation.data);
+                handlerRan = true;
+              } else if (operation.operationType === 'update' && handlers.onCalendarEventUpdate) {
+                await handlers.onCalendarEventUpdate(operation.entityId!, operation.data);
+                handlerRan = true;
+              } else if (operation.operationType === 'delete' && handlers.onCalendarEventDelete) {
+                await handlers.onCalendarEventDelete(operation.entityId!);
+                handlerRan = true;
+              }
+              break;
+          }
+
+          // CRITICAL: Only remove operation if a handler actually ran and succeeded
+          // This prevents data loss when handlers are not provided for all entity types
+          if (!handlerRan) {
+            // No handler for this operation type - skip it (don't remove, don't fail)
+            console.warn(
+              `[OfflineSync] No handler provided for ${operation.entityType}:${operation.operationType} operation ${operation.id}. ` +
+                `Operation preserved in queue for later processing.`,
+            );
+            // Reset status back to pending so it can be processed later with proper handlers
+            // DO NOT remove from queue - this would cause permanent data loss
+            await this.updateOperationStatus(operation.id, 'pending');
+            return { status: 'skipped' };
+          }
+
+          // Handler ran successfully - safe to remove from queue
+          // Only reached if handlerRan === true
+          await this.removeOperation(operation.id);
+          return { status: 'processed' };
+        } catch (error) {
+          console.error(`Failed to sync operation ${operation.id}:`, error);
+
+          const updated = await this.updateOperationStatus(operation.id, 'pending', true);
+
+          if (updated && updated.retryCount >= MAX_RETRIES) {
+            await this.updateOperationStatus(operation.id, 'failed');
+            return { status: 'failed' };
+          }
+
+          return { status: 'retry' };
         }
+      }),
+    );
 
-        // CRITICAL: Only remove operation if a handler actually ran and succeeded
-        // This prevents data loss when handlers are not provided for all entity types
-        if (!handlerRan) {
-          // No handler for this operation type - skip it (don't remove, don't fail)
-          console.warn(
-            `[OfflineSync] No handler provided for ${operation.entityType}:${operation.operationType} operation ${operation.id}. ` +
-              `Operation preserved in queue for later processing.`,
-          );
-          // Reset status back to pending so it can be processed later with proper handlers
-          // DO NOT remove from queue - this would cause permanent data loss
-          await this.updateOperationStatus(operation.id, 'pending');
-          continue; // Skip to next operation - do NOT call removeOperation
-        }
-
-        // Handler ran successfully - safe to remove from queue
-        // Only reached if handlerRan === true
-        await this.removeOperation(operation.id);
-        processed++;
-      } catch (error) {
-        console.error(`Failed to sync operation ${operation.id}:`, error);
-
-        const updated = await this.updateOperationStatus(operation.id, 'pending', true);
-
-        if (updated && updated.retryCount >= MAX_RETRIES) {
-          await this.updateOperationStatus(operation.id, 'failed');
-          failed++;
-        }
-      }
-    }
-
-    return { processed, failed };
+    return {
+      processed: results.filter(r => r.status === 'processed').length,
+      failed: results.filter(r => r.status === 'failed').length,
+    };
   }
 
   /**
