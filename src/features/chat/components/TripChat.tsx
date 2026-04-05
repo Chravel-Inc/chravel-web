@@ -24,8 +24,7 @@ import { WifiOff } from 'lucide-react';
 import { useRoleChannels } from '@/hooks/useRoleChannels';
 import { ChannelChatView } from '@/components/pro/channels/ChannelChatView';
 import { TypingIndicator } from './TypingIndicator';
-import { TypingIndicatorService } from '@/services/typingIndicatorService';
-import {} from '@/services/readReceiptService';
+import { supabase } from '@/integrations/supabase/client';
 import { useUnreadCounts } from '@/hooks/useUnreadCounts';
 import { parseMessage } from '@/services/chatContentParser';
 import { useChatReadReceipts } from '../hooks/useChatReadReceipts';
@@ -38,12 +37,15 @@ import { isConsumerTrip } from '@/utils/tripTierDetector';
 import {
   toggleMessageReaction,
   getMessagesReactions,
+  subscribeToReactions,
   type ReactionType,
 } from '@/services/chatService';
 import { ThreadView } from './ThreadView';
 import { useTripPrivacyConfig, getEffectivePrivacyMode } from '@/hooks/useTripPrivacyConfig';
 import { useTripChatMode } from '@/hooks/useTripChatMode';
 import { useLinkPreviews } from '../hooks/useLinkPreviews';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { PullToRefreshIndicator } from '@/components/mobile/PullToRefreshIndicator';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -107,22 +109,6 @@ export const TripChat = React.memo(
   }: TripChatProps) => {
     const [demoMessages, setDemoMessages] = useState<MockMessage[]>([]);
 
-    const { typingUsers, typingServiceRef } = useChatTypingIndicators(
-      demoMode.isDemoMode,
-      resolvedTripId,
-      user,
-      effectiveChatMode,
-      tripMembers.length,
-      activeChannel,
-    );
-
-    const { readStatusesByMessage, setReadStatusesByMessage } = useChatReadReceipts(
-      demoMode.isDemoMode,
-      user?.id,
-      resolvedTripId,
-      liveMessages,
-    );
-
     const [_activeChannelId, _setActiveChannelId] = useState<string | null>(null);
 
     const [showSearchOverlay, setShowSearchOverlay] = useState(false);
@@ -161,6 +147,7 @@ export const TripChat = React.memo(
       messages: liveMessages,
       isLoading: liveLoading,
       sendMessageAsync: sendTripMessage,
+      isCreating: isSendingMessage,
       loadMore: loadMoreMessages,
       hasMore,
       isLoadingMore,
@@ -231,28 +218,29 @@ export const TripChat = React.memo(
       isConsumer ? resolvedTripId : '',
     );
 
-    // ⚡ PERFORMANCE: Skip expensive hooks in demo mode for numeric trip IDs
-    const shouldSkipLiveChat = demoMode.isDemoMode && /^\d+$/.test(resolvedTripId);
-
     // Fetch privacy config for the trip (after shouldSkipLiveChat is defined)
     const { data: privacyConfig } = useTripPrivacyConfig(
       shouldSkipLiveChat ? undefined : resolvedTripId,
     );
 
-    // Live chat hooks - only initialize for authenticated trips
     const { tripMembers } = useTripMembers(shouldSkipLiveChat ? undefined : resolvedTripId);
-    const {
-      messages: liveMessages,
-      isLoading: liveLoading,
-      sendMessageAsync: sendTripMessage,
-      isCreating: isSendingMessage,
-      loadMore: loadMoreMessages,
-      hasMore,
-      isLoadingMore,
-    } = useTripChat(shouldSkipLiveChat ? undefined : resolvedTripId);
 
-    // Local mutable state derived from hasMore to avoid assigning to a const binding
-    const [hasMoreState, setHasMoreState] = useState(hasMore);
+    const { typingUsers } = useChatTypingIndicators(
+      demoMode.isDemoMode,
+      resolvedTripId,
+      user,
+      effectiveChatMode,
+      tripMembers.length,
+      activeChannel,
+    );
+
+    const { readStatusesByMessage, setReadStatusesByMessage } = useChatReadReceipts(
+      demoMode.isDemoMode,
+      user?.id,
+      resolvedTripId,
+      liveMessages,
+      activeChannel,
+    );
 
     const {
       inputMessage,
@@ -316,41 +304,6 @@ export const TripChat = React.memo(
       userId: user?.id || null,
       enabled: !demoMode.isDemoMode && !!user?.id,
     });
-
-    // --- Stream Native Typing Indicators ---
-    const shouldEnableTyping =
-      !demoMode.isDemoMode &&
-      !!user?.id &&
-      !!resolvedTripId &&
-      effectiveChatMode === 'everyone' &&
-      tripMembers.length <= 50;
-
-    useEffect(() => {
-      if (!shouldEnableTyping || !resolvedTripId || !activeChannel) return;
-
-      const handleTypingStart = (event: any) => {
-        if (event.user?.id && event.user.id !== user?.id) {
-          setTypingUsers(prev => {
-            if (prev.some(u => u.userId === event.user.id)) return prev;
-            return [...prev, { userId: event.user.id, userName: event.user.name || event.user.id }];
-          });
-        }
-      };
-
-      const handleTypingStop = (event: any) => {
-        if (event.user?.id) {
-          setTypingUsers(prev => prev.filter(u => u.userId !== event.user.id));
-        }
-      };
-
-      activeChannel.on('typing.start', handleTypingStart);
-      activeChannel.on('typing.stop', handleTypingStop);
-
-      return () => {
-        activeChannel.off('typing.start', handleTypingStart);
-        activeChannel.off('typing.stop', handleTypingStop);
-      };
-    }, [shouldEnableTyping, resolvedTripId, user?.id, activeChannel]);
 
     const liveFormattedMessages = useMemo(() => {
       if (demoMode.isDemoMode) return [];
