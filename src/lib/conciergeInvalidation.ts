@@ -2,6 +2,7 @@ export type ConciergeInvalidationQueryKey = string[];
 
 const CONCIERGE_WRITE_ACTIONS = new Set<string>([
   'createPoll',
+  'extractReceipt' |
   'createTask',
   'addToCalendar',
   'bulkDeleteCalendarEvents',
@@ -20,6 +21,8 @@ export function getConciergeInvalidationQueryKey(
   tripId: string,
 ): ConciergeInvalidationQueryKey | null {
   switch (name) {
+    case 'extractReceipt':
+      return ['payments', tripId];
     case 'createTask':
       return ['tripTasks', tripId];
     case 'createPoll':

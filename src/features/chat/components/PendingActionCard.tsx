@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { CalendarPlus, CheckSquare, BarChart3, Check, X, Loader2 } from 'lucide-react';
+import { CalendarPlus, CheckSquare, BarChart3, Check, X, Loader2, Receipt } from 'lucide-react';
 import type { PendingAction } from '@/hooks/usePendingActions';
 
 interface PendingActionCardProps {
@@ -13,6 +13,8 @@ interface PendingActionCardProps {
 }
 
 const TOOL_CONFIG: Record<string, { icon: React.ElementType; label: string; color: string }> = {
+
+  extractReceipt: { icon: Receipt, label: 'Receipt', color: 'text-yellow-400' },
   createTask: { icon: CheckSquare, label: 'Task', color: 'text-green-400' },
   createPoll: { icon: BarChart3, label: 'Poll', color: 'text-blue-400' },
   addToCalendar: { icon: CalendarPlus, label: 'Calendar Event', color: 'text-purple-400' },
@@ -21,6 +23,8 @@ const TOOL_CONFIG: Record<string, { icon: React.ElementType; label: string; colo
 function getActionTitle(action: PendingAction): string {
   const payload = action.payload as Record<string, unknown>;
   switch (action.tool_name) {
+    case 'extractReceipt':
+      return `Extract receipt from ${action.parameters.fileUrl || 'image'}`;
     case 'createTask':
       return (payload.title as string) || 'Untitled task';
     case 'createPoll':

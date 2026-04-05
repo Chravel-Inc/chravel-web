@@ -82,6 +82,13 @@ export function usePendingActions(tripId: string) {
 
       // Execute the original mutation based on tool_name
       switch (action.tool_name) {
+        case 'extractReceipt': {
+          // Can either be added as media or a payment request
+          console.log('Received extractReceipt action', action.parameters);
+          // Just return an empty response to the concierge for now,
+          // the frontend handles showing a prompt to the user
+          return { success: true, method: 'frontend_handled' };
+        }
         case 'createTask': {
           // intentional: source_type column may not be in generated types yet
           const { error } = await (supabase as any)
@@ -162,6 +169,7 @@ export function usePendingActions(tripId: string) {
     },
     onSuccess: action => {
       const toolLabel =
+        action.tool_name === 'extractReceipt' ||
         action.tool_name === 'createTask'
           ? 'Task'
           : action.tool_name === 'createPoll'
