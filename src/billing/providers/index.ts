@@ -9,13 +9,14 @@ import { Capacitor } from '@capacitor/core';
 import type { BillingProvider } from './base';
 import { StripeProvider } from './stripe';
 import { AppleIAPProvider } from './iap';
+import { GooglePlayProvider } from './google';
 import { BILLING_FLAGS, BILLING_PRODUCTS } from '../config';
 import type { SubscriptionTier, BillingPlatform } from '../types';
 
 // Singleton instances
 let stripeProvider: StripeProvider | null = null;
 let appleProvider: AppleIAPProvider | null = null;
-// let googleProvider: GooglePlayProvider | null = null; // TODO: Future
+let googleProvider: GooglePlayProvider | null = null;
 
 /**
  * Get the current platform
@@ -53,6 +54,16 @@ export function getAppleProvider(): AppleIAPProvider {
     appleProvider = new AppleIAPProvider();
   }
   return appleProvider;
+}
+
+/**
+ * Get the Google Play provider (singleton)
+ */
+export function getGoogleProvider(): GooglePlayProvider {
+  if (!googleProvider) {
+    googleProvider = new GooglePlayProvider();
+  }
+  return googleProvider;
 }
 
 /**
@@ -95,12 +106,11 @@ export function getBillingProvider(tier?: SubscriptionTier): BillingProvider {
 
   // Android handling
   if (platform === 'android') {
-    // TODO: Implement Google Play Billing
-    // For now, fall back to Stripe
-    // if (BILLING_FLAGS.GOOGLE_BILLING_ENABLED) {
-    //   return getGoogleProvider();
-    // }
+    if (BILLING_FLAGS.GOOGLE_BILLING_ENABLED) {
+      return getGoogleProvider();
+    }
 
+    // Fall back to Stripe if Google Billing is not enabled
     return getStripeProvider();
   }
 
