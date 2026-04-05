@@ -2011,13 +2011,21 @@ async function _executeImpl(
 
       const html = await pageResponse.text();
       // Extract text content (strip HTML tags for LLM consumption)
-      const textContent = html
-        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-        .replace(/<[^>]+>/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .substring(0, 15_000); // Cap at 15k chars for context window
+              // Apply HTML stripping in a loop until stable to prevent bypass via nested patterns.
+              // Use \s* in closing tags (</script\s*>) to match tags with optional whitespace like </script >.
+              let textContent = html;
+              let prevText: string;
+              do {
+                          prevText = textContent;
+                          textContent = textContent
+                            .replace(/<script[^>]*>[\s\S]*?<\/script\s*>/gi, '')
+                            .replace(/<style[^>]*>[\s\S]*?<\/style\s*>/gi, '')
+                            .replace(/<[^>]+>/g, ' ')
+                            .replace(/\s+/g, ' ');
+              } while (textContent !== prevText);
+              textContent = textContent
+                .trim()
+                .substring(0, 15_000); // Cap at 15k chars for context window
 
       // Extract links that might be useful (reservation links, booking links)
       const linkMatches = html.match(/<a[^>]+href="([^"]+)"[^>]*>([^<]*)<\/a>/gi) || [];

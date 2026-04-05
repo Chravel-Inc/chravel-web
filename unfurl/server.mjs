@@ -24,6 +24,16 @@ const PORT = Number(process.env.PORT ?? 8787);
 const SUPABASE_PROJECT_REF = process.env.SUPABASE_PROJECT_REF ?? 'jmjiyekmxwsxkfnqwyaa';
 const APP_BASE_URL = process.env.APP_BASE_URL ?? 'https://chravel.app';
 
+/** Escape special HTML characters to prevent XSS when exception text flows into HTML responses. */
+function escapeHtml(text) {
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+}
+
 function send(res, statusCode, headers, body) {
   res.writeHead(statusCode, headers);
   res.end(body);
@@ -147,7 +157,7 @@ const server = http.createServer(async (req, res) => {
     return sendText(res, 404, 'Not found');
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    return sendText(res, 500, `unfurl error: ${message}`);
+    return sendText(res, 500, `unfurl error: ${escapeHtml(message)}`);
   }
 });
 
