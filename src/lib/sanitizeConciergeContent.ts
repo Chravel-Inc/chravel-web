@@ -174,7 +174,7 @@ export function sanitizeConciergeContent(content: string): string {
   const hasFence = content.includes('```');
   const hasAnyKey = TOOL_PLAN_KEYS.some(k => content.includes(`"${k}"`));
   const hasActionType = TOOL_ACTION_TYPES.some(t => content.includes(`"${t}"`));
-  if (!hasFence && !hasAnyKey && !hasActionType) return stripInjectionPatterns(content).trim();
+  if (!hasFence && !hasAnyKey && !hasActionType) return stripInjectionPatterns(content);
 
   // Phase 1: Strip fenced code blocks containing tool-plan JSON
   let cleaned = hasFence ? stripToolPlanFences(content) : content;

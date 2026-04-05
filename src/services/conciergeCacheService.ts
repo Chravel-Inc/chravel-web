@@ -270,17 +270,14 @@ class ConciergeCacheService {
     if (words1.size === 0 || words2.size === 0) return 0;
 
     let matches = 0;
-    // Iterate over the smaller set for performance
-    const [smaller, larger] = words1.size < words2.size ? [words1, words2] : [words2, words1];
-    for (const word of smaller) {
-      if (larger.has(word)) {
+    for (const word of words1) {
+      if (words2.has(word)) {
         matches++;
       }
     }
 
-    // Jaccard similarity: |A U B| = |A| + |B| - |A ∩ B|
-    // This avoids allocating a new array and Set
-    const union = words1.size + words2.size - matches;
+    // Jaccard similarity
+    const union = new Set([...words1, ...words2]).size;
     return matches / union;
   }
 

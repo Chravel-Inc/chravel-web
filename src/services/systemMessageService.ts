@@ -45,9 +45,7 @@ class SystemMessageService {
         return false;
       }
 
-      if (import.meta.env.DEV) {
-        console.log('[SystemMessage] Created:', eventType);
-      }
+      console.log('[SystemMessage] Created:', eventType, body);
       return true;
     } catch (error) {
       console.error('[SystemMessage] Error:', error);

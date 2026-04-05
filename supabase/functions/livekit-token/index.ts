@@ -131,7 +131,7 @@ serve(async req => {
 
     // Set room metadata for the agent to read
     // The agent extracts tripId, userId, voice from this metadata
-    (token as any).roomConfig = {
+    token.roomConfig = {
       metadata: JSON.stringify({
         tripId,
         userId: user.id,

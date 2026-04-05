@@ -53,7 +53,7 @@ CREATE POLICY "recommendation_items_insert_service"
   ON public.recommendation_items
   FOR INSERT
   TO service_role
-  WITH CHECK (EXISTS (SELECT 1 FROM public.recommendation_impressions i WHERE i.id = impression_id AND (i.user_id = auth.uid() OR i.user_id IS NULL)));
+  WITH CHECK (true);
 
 CREATE POLICY "recommendation_items_update_service"
   ON public.recommendation_items
@@ -125,7 +125,7 @@ CREATE POLICY "recommendation_clicks_insert_authenticated"
   ON public.recommendation_clicks
   FOR INSERT
   TO authenticated
-  WITH CHECK (EXISTS (SELECT 1 FROM public.recommendation_impressions i WHERE i.id = impression_id AND (i.user_id = auth.uid() OR i.user_id IS NULL)));
+  WITH CHECK (true);
 
 -- Only service role can read all clicks (for analytics)
 CREATE POLICY "recommendation_clicks_select_service"

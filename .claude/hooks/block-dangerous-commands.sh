@@ -11,14 +11,8 @@ if [[ -z "$COMMAND" ]]; then
   exit 0
 fi
 
-# Extract only the first logical command (before any heredoc or quoted string body).
-# This prevents false positives from keywords appearing inside commit messages,
-# echo strings, or heredoc content like: git commit -m "narrowed regex"
-# We strip everything after the first heredoc marker (<<) or long quoted string.
-CMD_FIRST="$(echo "$COMMAND" | sed "s/<<[[:space:]]*['\x22]\{0,1\}[A-Za-z_]*['\x22]\{0,1\}.*//" | head -1)"
-
 # Normalize for matching: lowercase, collapse whitespace
-CMD_LOWER="$(echo "$CMD_FIRST" | tr '[:upper:]' '[:lower:]' | tr -s ' ')"
+CMD_LOWER="$(echo "$COMMAND" | tr '[:upper:]' '[:lower:]' | tr -s ' ')"
 
 block() {
   echo "BLOCKED: $1" >&2
@@ -34,9 +28,9 @@ echo "$CMD_LOWER" | grep -qE 'rm\s+-r\s+/' && block "rm -r with root path is for
 echo "$CMD_LOWER" | grep -qE 'rm\s+-r\s+~' && block "rm -r on home directory is forbidden"
 
 # --- SQL destruction ---
-echo "$CMD_LOWER" | grep -qE 'drop\s+table' && block "SQL drop table is forbidden — use migrations"
-echo "$CMD_LOWER" | grep -qE 'drop\s+database' && block "SQL drop database is forbidden"
-echo "$CMD_LOWER" | grep -qE 'truncate\s+table' && block "SQL truncate table is forbidden — use migrations"
+echo "$CMD_LOWER" | grep -qE 'drop\s+table' && block "DROP TABLE is forbidden — use migrations"
+echo "$CMD_LOWER" | grep -qE 'drop\s+database' && block "DROP DATABASE is forbidden"
+echo "$CMD_LOWER" | grep -qE 'truncate\s+table' && block "TRUNCATE TABLE is forbidden — use migrations"
 
 # --- Pipe-to-shell (remote code execution) ---
 echo "$CMD_LOWER" | grep -qE 'curl\s.*\|\s*(sh|bash)' && block "Piping curl to shell is forbidden"

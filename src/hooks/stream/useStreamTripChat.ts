@@ -17,6 +17,10 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { getStreamClient } from '@/services/stream/streamClient';
 import { CHANNEL_TYPE_TRIP, tripChannelId } from '@/services/stream/streamChannelFactory';
+import {
+  streamMessageToChravel,
+  type ChrravelChatMessage,
+} from '@/services/stream/adapters/mappers/messageMapper';
 import { messageEvents } from '@/telemetry/events';
 import type { Channel, Event, MessageResponse } from 'stream-chat';
 
@@ -30,8 +34,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
   const isEnabled = options?.enabled !== false;
   const { toast } = useToast();
 
-  // Return native MessageResponse objects directly to take advantage of Stream capabilities
-  const [messages, setMessages] = useState<MessageResponse[]>([]);
+  const [messages, setMessages] = useState<ChrravelChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [hasMore, setHasMore] = useState(true);
@@ -66,7 +69,10 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         channelRef.current = channel;
         setActiveChannel(channel);
 
-        setMessages((state.messages || []) as MessageResponse[]);
+        const initialMessages = (state.messages || []).map((m: MessageResponse) =>
+          streamMessageToChravel(m, tripId),
+        );
+        setMessages(initialMessages);
         setHasMore((state.messages || []).length === PAGE_SIZE);
         setIsLoading(false);
       } catch (err) {
@@ -97,7 +103,10 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       const state = await channelRef.current.query({
         messages: { limit: PAGE_SIZE },
       });
-      setMessages((state.messages || []) as MessageResponse[]);
+      const currentMessages = (state.messages || []).map((m: MessageResponse) =>
+        streamMessageToChravel(m, tripId),
+      );
+      setMessages(currentMessages);
       setHasMore((state.messages || []).length === PAGE_SIZE);
     } catch (err) {
       if (import.meta.env.DEV) {
@@ -115,9 +124,10 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
 
     const handleNewMessage = (event: Event) => {
       if (!event.message) return;
-      const newMsg = event.message as MessageResponse;
+      const newMsg = streamMessageToChravel(event.message as MessageResponse, tripId);
 
       setMessages(prev => {
+        // Dedup by ID (handles optimistic → server confirmation)
         if (prev.some(m => m.id === newMsg.id)) {
           return prev.map(m => (m.id === newMsg.id ? newMsg : m));
         }
@@ -127,7 +137,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
 
     const handleUpdatedMessage = (event: Event) => {
       if (!event.message) return;
-      const updated = event.message as MessageResponse;
+      const updated = streamMessageToChravel(event.message as MessageResponse, tripId);
       setMessages(prev => prev.map(m => (m.id === updated.id ? updated : m)));
     };
 
@@ -136,26 +146,20 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       setMessages(prev => prev.filter(m => m.id !== event.message!.id));
     };
 
-    const handleReaction = () => {
-      // Stream mutates channel.state.messages in place on reaction events.
-      // Re-cloning the array forces React to re-render.
-      setMessages([...channel.state.messages] as MessageResponse[]);
-    };
-
     channel.on('message.new', handleNewMessage);
     channel.on('message.updated', handleUpdatedMessage);
     channel.on('message.deleted', handleDeletedMessage);
-    channel.on('reaction.new', handleReaction);
-    channel.on('reaction.updated', handleReaction);
-    channel.on('reaction.deleted', handleReaction);
+    channel.on('reaction.new', handleUpdatedMessage);
+    channel.on('reaction.updated', handleUpdatedMessage);
+    channel.on('reaction.deleted', handleUpdatedMessage);
 
     return () => {
       channel.off('message.new', handleNewMessage);
       channel.off('message.updated', handleUpdatedMessage);
       channel.off('message.deleted', handleDeletedMessage);
-      channel.off('reaction.new', handleReaction);
-      channel.off('reaction.updated', handleReaction);
-      channel.off('reaction.deleted', handleReaction);
+      channel.off('reaction.new', handleUpdatedMessage);
+      channel.off('reaction.updated', handleUpdatedMessage);
+      channel.off('reaction.deleted', handleUpdatedMessage);
     };
   }, [activeChannel, tripId]);
 
@@ -262,7 +266,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       messageType?: 'text' | 'broadcast' | 'payment' | 'system',
       replyToId?: string,
       mentionedUserIds?: string[],
-    ): Promise<MessageResponse | undefined> => {
+    ): Promise<ChrravelChatMessage | undefined> => {
       const channel = channelRef.current;
       if (!channel || !tripId) return undefined;
 
@@ -280,14 +284,16 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       const now = new Date().toISOString();
       return {
         id: `pending-${now}`,
-        text: content,
+        trip_id: tripId,
+        content,
+        author_name: '',
         created_at: now,
         updated_at: now,
-        type: 'regular',
-        user: { id: _userId || 'unknown' },
         message_type: messageType || 'text',
+        media_type: mediaType,
+        media_url: mediaUrl,
         privacy_mode: privacyMode || 'standard',
-      } as unknown as MessageResponse;
+      } as ChrravelChatMessage;
     },
     [tripId, dispatchStreamSend],
   );
@@ -339,7 +345,9 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         messages: { limit: PAGE_SIZE, id_lt: oldestId },
       });
 
-      const olderMessages = (result.messages || []) as MessageResponse[];
+      const olderMessages = (result.messages || []).map((m: MessageResponse) =>
+        streamMessageToChravel(m, tripId!),
+      );
 
       if (olderMessages.length > 0) {
         setMessages(prev => [...olderMessages, ...prev]);
@@ -352,7 +360,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     } finally {
       setIsLoadingMore(false);
     }
-  }, [hasMore, isLoadingMore, messages]);
+  }, [hasMore, isLoadingMore, messages, tripId]);
 
   return {
     messages,
@@ -367,6 +375,5 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     isLoadingMore,
     toggleReaction,
     reload,
-    activeChannel,
   };
 };

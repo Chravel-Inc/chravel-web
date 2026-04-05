@@ -88,32 +88,19 @@ export const ThreadView: React.FC<ThreadViewProps> = ({
 
     const channel = client.channel(CHANNEL_TYPE_TRIP, tripChannelId(parentMessage.tripId));
 
-    const handleEvent = (event: any) => {
+    const handleNewReply = (event: any) => {
       if (event.message?.parent_id === parentMessage.id) {
-        if (event.type === 'message.new' || event.type === 'message.updated') {
-          setReplies(prev => {
-            const index = prev.findIndex(r => r.id === event.message.id);
-            if (index !== -1) {
-              const next = [...prev];
-              next[index] = formatReply(event.message as MessageResponse, tripMembers);
-              return next;
-            }
-            return [...prev, formatReply(event.message as MessageResponse, tripMembers)];
-          });
-        } else if (event.type === 'message.deleted') {
-          setReplies(prev => prev.filter(r => r.id !== event.message.id));
-        }
+        setReplies(prev => {
+          if (prev.some(r => r.id === event.message.id)) return prev;
+          return [...prev, formatReply(event.message as MessageResponse, tripMembers)];
+        });
       }
     };
 
-    channel.on('message.new', handleEvent);
-    channel.on('message.updated', handleEvent);
-    channel.on('message.deleted', handleEvent);
+    channel.on('message.new', handleNewReply);
 
     return () => {
-      channel.off('message.new', handleEvent);
-      channel.off('message.updated', handleEvent);
-      channel.off('message.deleted', handleEvent);
+      channel.off('message.new', handleNewReply);
     };
   }, [parentMessage.id, parentMessage.tripId, tripMembers, client]);
 

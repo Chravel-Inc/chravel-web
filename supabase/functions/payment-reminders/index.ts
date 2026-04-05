@@ -48,9 +48,9 @@ serve(async req => {
     console.log(`Found ${overduePayments?.length || 0} overdue payments`);
 
     const reminders = [];
-
-    if (overduePayments && overduePayments.length > 0) {
-      const auditLogs = overduePayments.map(payment => ({
+    for (const payment of overduePayments || []) {
+      // Log reminder sent
+      const { error: auditError } = await supabase.from('payment_audit_log').insert({
         payment_message_id: payment.payment_message_id,
         action: 'reminder_sent',
         metadata: {
@@ -60,19 +60,14 @@ serve(async req => {
             (Date.now() - new Date(sevenDaysAgo).getTime()) / (1000 * 60 * 60 * 24),
           ),
         },
-      }));
-
-      // Log reminder sent in a single batch
-      const { error: auditError } = await supabase.from('payment_audit_log').insert(auditLogs);
+      });
 
       if (!auditError) {
-        for (const payment of overduePayments) {
-          reminders.push({
-            user_id: payment.debtor_user_id,
-            payment_id: payment.payment_message_id,
-            amount: payment.amount_owed,
-          });
-        }
+        reminders.push({
+          user_id: payment.debtor_user_id,
+          payment_id: payment.payment_message_id,
+          amount: payment.amount_owed,
+        });
       }
     }
 

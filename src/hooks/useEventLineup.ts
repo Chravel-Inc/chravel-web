@@ -188,7 +188,7 @@ export function useEventLineup({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
-      // Removed noisy success toast
+      toast({ title: 'Added to line-up' });
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey });
@@ -244,7 +244,7 @@ export function useEventLineup({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
-      // Removed noisy success toast
+      toast({ title: 'Line-up member updated' });
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey });
@@ -276,7 +276,7 @@ export function useEventLineup({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
-      // Removed noisy success toast
+      toast({ title: 'Removed from line-up' });
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey });

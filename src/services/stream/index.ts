@@ -46,6 +46,11 @@ export {
 } from './streamMembershipSync';
 
 // Mappers
+export {
+  streamMessageToChravel,
+  chravelMessageToStreamPayload,
+} from './adapters/mappers/messageMapper';
+export type { ChrravelChatMessage } from './adapters/mappers/messageMapper';
 export { chravelUserToStream } from './adapters/mappers/userMapper';
 export type { ChrravelUserProfile, StreamUserData } from './adapters/mappers/userMapper';
 export {
