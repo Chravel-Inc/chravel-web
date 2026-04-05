@@ -528,12 +528,12 @@ export const TripGrid = React.memo(
                 {activePendingTrips.map(request => (
                   <RequestTripCard
                     key={request.id}
-                    tripId={request.trip_id}
-                    tripName={request.trip?.name || 'Trip'}
-                    destination={request.trip?.destination}
-                    startDate={request.trip?.start_date}
-                    coverImage={request.trip?.cover_image_url}
-                    requestedAt={request.requested_at}
+                    tripId={String(request.id)}
+                    tripName={request.title || 'Trip'}
+                    destination={request.location}
+                    startDate={request.dateRange}
+                    coverImage={undefined}
+                    requestedAt={undefined}
                     statusBadge="Pending Approval"
                   />
                 ))}

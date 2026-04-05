@@ -665,9 +665,57 @@ export const TripChat = React.memo(
                 users: data.users || [],
               };
             }
-          }
-          setReactions(formatted);
+        return;
+      }
+
+      // Supabase Authenticated mode: persist to database
+      // Authenticated mode: persist to database
+      }
+      // Optimistic update
+      setReactions(prev => {
+        const updated = { ...prev };
+        if (!updated[messageId]) {
+          updated[messageId] = {};
         }
+        const current = updated[messageId][reactionType] || {
+          count: 0,
+          userReacted: false,
+          users: [],
+        };
+        const wasReacted = current.userReacted;
+        updated[messageId][reactionType] = {
+          count: wasReacted ? Math.max(0, current.count - 1) : current.count + 1,
+          userReacted: !wasReacted,
+          users: wasReacted
+            ? current.users.filter(id => id !== user.id)
+            : Array.from(new Set([...current.users, user.id])),
+        };
+        return updated;
+      });
+
+      // Persist to backend (Supabase path)
+      const result = await toggleMessageReaction(messageId, user.id, reactionType as ReactionType);
+      if (result.error) {
+        if (import.meta.env.DEV)
+          console.error('[TripChat] Failed to toggle reaction:', result.error);
+        // Revert on failure - refetch reactions
+        const messageIds = liveMessages.map(m => m.id);
+        const freshReactions = await getMessagesReactions(messageIds, user.id);
+        const formatted: Record<
+          string,
+          Record<string, { count: number; userReacted: boolean; users: string[] }>
+        > = {};
+        for (const [msgId, typeMap] of Object.entries(freshReactions)) {
+          formatted[msgId] = {};
+          for (const [type, data] of Object.entries(typeMap)) {
+            formatted[msgId][type] = {
+              count: data.count,
+              userReacted: data.userReacted,
+              users: data.users || [],
+            };
+          }
+        }
+        setReactions(formatted);
       }
     };
 
@@ -752,7 +800,7 @@ export const TripChat = React.memo(
     // Determine which messages to show - authenticated trips show ONLY live messages
     const messagesToShow = demoMode.isDemoMode ? demoMessages : liveFormattedMessages;
 
-    const filteredMessages = filterMessages(messagesToShow);
+    const filteredMessages = filterMessages(messagesToShow as any);
 
     const messagesWithFailed = useMemo(() => {
       if (failedMessages.length === 0) return filteredMessages;
@@ -827,7 +875,6 @@ export const TripChat = React.memo(
 
     return (
       <div className="flex flex-col h-full">
-        <PullToRefreshIndicator isRefreshing={isRefreshing} pullDistance={pullDistance} />
         <PullToRefreshIndicator
           isRefreshing={isRefreshing}
           pullDistance={pullDistance}
