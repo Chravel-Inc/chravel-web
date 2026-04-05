@@ -14,34 +14,8 @@ import { getStreamClient } from '@/services/stream/streamClient';
 import { CHANNEL_TYPE_BROADCAST, broadcastChannelId } from '@/services/stream/streamChannelFactory';
 import type { Channel, Event, MessageResponse, UserResponse } from 'stream-chat';
 
-export interface StreamBroadcastMessage {
-  id: string;
-  tripId: string;
-  message: string;
-  sender: string;
-  senderId: string;
-  createdAt: string;
-  priority: string;
-  metadata: Record<string, unknown>;
-}
-
-function streamMsgToBroadcast(msg: MessageResponse, tripId: string): StreamBroadcastMessage {
-  const user = msg.user as UserResponse | undefined;
-  const custom = msg as unknown as Record<string, unknown>;
-  return {
-    id: msg.id,
-    tripId,
-    message: msg.text || '',
-    sender: user?.name || 'Organizer',
-    senderId: user?.id || '',
-    createdAt: msg.created_at || new Date().toISOString(),
-    priority: (custom.priority as string) || 'fyi',
-    metadata: (custom.metadata as Record<string, unknown>) || {},
-  };
-}
-
 export function useStreamBroadcasts(tripId: string | undefined) {
-  const [broadcasts, setBroadcasts] = useState<StreamBroadcastMessage[]>([]);
+  const [broadcasts, setBroadcasts] = useState<MessageResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const channelRef = useRef<Channel | null>(null);
@@ -75,9 +49,7 @@ export function useStreamBroadcasts(tripId: string | undefined) {
         channelRef.current = channel;
         setActiveChannel(channel);
 
-        const initial = (state.messages || []).map((m: MessageResponse) =>
-          streamMsgToBroadcast(m, tripId),
-        );
+        const initial = (state.messages || []) as MessageResponse[];
         setBroadcasts(initial.reverse()); // newest first
         setIsLoading(false);
       } catch {
@@ -100,22 +72,23 @@ export function useStreamBroadcasts(tripId: string | undefined) {
   // Realtime: new broadcasts appear instantly
   useEffect(() => {
     const channel = activeChannel;
-    if (!channel || !tripId) return;
+    if (!channel) return;
 
-    const handleNew = (event: Event) => {
-      if (!event.message) return;
-      const msg = streamMsgToBroadcast(event.message as MessageResponse, tripId);
-      setBroadcasts(prev => {
-        if (prev.some(b => b.id === msg.id)) return prev;
-        return [msg, ...prev]; // newest first
-      });
+    const handleEvent = () => {
+      const messages = [...channel.state.messages] as MessageResponse[];
+      setBroadcasts(messages.reverse()); // newest first
     };
 
-    channel.on('message.new', handleNew);
+    channel.on('message.new', handleEvent);
+    channel.on('message.updated', handleEvent);
+    channel.on('message.deleted', handleEvent);
+
     return () => {
-      channel.off('message.new', handleNew);
+      channel.off('message.new', handleEvent);
+      channel.off('message.updated', handleEvent);
+      channel.off('message.deleted', handleEvent);
     };
-  }, [activeChannel, tripId]);
+  }, [activeChannel]);
 
   const sendBroadcast = async (
     text: string,
@@ -135,5 +108,6 @@ export function useStreamBroadcasts(tripId: string | undefined) {
     broadcasts,
     isLoading,
     sendBroadcast,
+    activeChannel,
   };
 }
