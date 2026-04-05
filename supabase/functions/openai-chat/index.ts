@@ -1,6 +1,6 @@
 /**
  * @deprecated This function is deprecated and proxies to gemini-chat for backwards compatibility.
- * Use 'gemini-chat' or 'text-concierge' directly for new implementations.
+ * Use 'gemini-chat' or 'lovable-concierge' directly for new implementations.
  * All OpenAI dependencies have been removed in favor of Google Gemini.
  */
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -42,7 +42,7 @@ serve(async req => {
 
   try {
     console.warn(
-      '⚠️ DEPRECATED: openai-chat function called. Use gemini-chat or text-concierge instead.',
+      '⚠️ DEPRECATED: openai-chat function called. Use gemini-chat or lovable-concierge instead.',
     );
 
     const {

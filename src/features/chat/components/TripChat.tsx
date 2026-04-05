@@ -44,8 +44,6 @@ import { ThreadView } from './ThreadView';
 import { useTripPrivacyConfig, getEffectivePrivacyMode } from '@/hooks/useTripPrivacyConfig';
 import { useTripChatMode } from '@/hooks/useTripChatMode';
 import { useLinkPreviews } from '../hooks/useLinkPreviews';
-import { usePullToRefresh } from '@/hooks/usePullToRefresh';
-import { PullToRefreshIndicator } from '@/components/mobile/PullToRefreshIndicator';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -95,7 +93,6 @@ interface TripChatMessage {
   is_edited?: boolean;
   edited_at?: string;
   reply_to_id?: string;
-  reactions?: Record<string, { count: number; userReacted: boolean; users: string[] }>;
 }
 
 export const TripChat = React.memo(
@@ -191,7 +188,7 @@ export const TripChat = React.memo(
       canUploadMedia,
       isLoading: chatModeLoading,
       userRole: chatModeUserRole,
-    } = useTripChatMode(shouldSkipLiveChat ? undefined : resolvedTripId, user?.id);
+    } = useTripChatMode(demoMode.isDemoMode ? undefined : resolvedTripId, user?.id);
 
     const isUserAdmin =
       chatModeUserRole === 'admin' ||
@@ -234,6 +231,9 @@ export const TripChat = React.memo(
       isConsumer ? resolvedTripId : '',
     );
 
+    // ⚡ PERFORMANCE: Skip expensive hooks in demo mode for numeric trip IDs
+    const shouldSkipLiveChat = demoMode.isDemoMode && /^\d+$/.test(resolvedTripId);
+
     // Fetch privacy config for the trip (after shouldSkipLiveChat is defined)
     const { data: privacyConfig } = useTripPrivacyConfig(
       shouldSkipLiveChat ? undefined : resolvedTripId,
@@ -241,6 +241,18 @@ export const TripChat = React.memo(
 
     // Live chat hooks - only initialize for authenticated trips
     const { tripMembers } = useTripMembers(shouldSkipLiveChat ? undefined : resolvedTripId);
+    const {
+      messages: liveMessages,
+      isLoading: liveLoading,
+      sendMessageAsync: sendTripMessage,
+      isCreating: isSendingMessage,
+      loadMore: loadMoreMessages,
+      hasMore,
+      isLoadingMore,
+    } = useTripChat(shouldSkipLiveChat ? undefined : resolvedTripId);
+
+    // Local mutable state derived from hasMore to avoid assigning to a const binding
+    const [hasMoreState, setHasMoreState] = useState(hasMore);
 
     const {
       inputMessage,
@@ -476,6 +488,108 @@ export const TripChat = React.memo(
         };
       });
     }, [liveMessages, demoMode.isDemoMode, tripMembers, activeChannel?.state?.read, user?.id]);
+
+    // Fetch reactions for messages whose reactions haven't been loaded yet.
+    // Handles both initial load and pagination (loadMore adds older messages).
+    // Realtime subscription below handles incremental INSERT/DELETE for new reactions.
+    const reactionsFetchedIdsRef = useRef<Set<string>>(new Set());
+    useEffect(() => {
+      if (demoMode.isDemoMode || !user?.id || liveMessages.length === 0) return;
+
+      // Only fetch for messages we haven't fetched reactions for yet
+      const unfetchedIds = liveMessages
+        .map(m => m.id)
+        .filter(id => !reactionsFetchedIdsRef.current.has(id));
+
+      if (unfetchedIds.length === 0) return;
+
+      const fetchReactions = async () => {
+        try {
+          const data = await getMessagesReactions(unfetchedIds, user.id);
+          // Mark as fetched before updating state
+          unfetchedIds.forEach(id => reactionsFetchedIdsRef.current.add(id));
+          const formatted: Record<
+            string,
+            Record<string, { count: number; userReacted: boolean; users: string[] }>
+          > = {};
+          for (const [msgId, typeMap] of Object.entries(data)) {
+            formatted[msgId] = {};
+            for (const [type, rData] of Object.entries(typeMap)) {
+              formatted[msgId][type] = {
+                count: rData.count,
+                userReacted: rData.userReacted,
+                users: rData.users || [],
+              };
+            }
+          }
+          // Merge with existing reactions (don't replace — preserves data for
+          // already-loaded messages and any realtime updates that arrived since)
+          setReactions(prev => ({ ...prev, ...formatted }));
+        } catch (error) {
+          if (import.meta.env.DEV) {
+            console.error('[TripChat] Failed to fetch reactions:', error);
+          }
+        }
+      };
+
+      fetchReactions();
+    }, [liveMessages.length, user?.id, demoMode.isDemoMode]);
+
+    // Keep a stable ref of loaded message IDs so the reaction subscription
+    // can filter without needing liveMessages in its dependency array.
+    const loadedMessageIdsRef = useRef<Set<string>>(new Set());
+    useEffect(() => {
+      loadedMessageIdsRef.current = new Set(liveMessages.map(m => m.id));
+    }, [liveMessages]);
+
+    // Subscribe to realtime reaction changes — stable channel (no liveMessages dep)
+    useEffect(() => {
+      if (demoMode.isDemoMode || !resolvedTripId || !user?.id) return;
+
+      const channel = subscribeToReactions(
+        resolvedTripId,
+        payload => {
+          // Only process reactions for messages we have loaded
+          if (!loadedMessageIdsRef.current.has(payload.messageId)) return;
+
+          setReactions(prev => {
+            const updated = { ...prev };
+            if (!updated[payload.messageId]) {
+              updated[payload.messageId] = {};
+            }
+
+            const current = updated[payload.messageId][payload.reactionType] || {
+              count: 0,
+              userReacted: false,
+              users: [],
+            };
+
+            if (payload.eventType === 'INSERT') {
+              updated[payload.messageId][payload.reactionType] = {
+                count: current.count + 1,
+                userReacted: payload.userId === user.id ? true : current.userReacted,
+                users: current.users.includes(payload.userId)
+                  ? current.users
+                  : [...current.users, payload.userId],
+              };
+            } else if (payload.eventType === 'DELETE') {
+              updated[payload.messageId][payload.reactionType] = {
+                count: Math.max(0, current.count - 1),
+                userReacted: payload.userId === user.id ? false : current.userReacted,
+                users: current.users.filter(id => id !== payload.userId),
+              };
+            }
+
+            return updated;
+          });
+        },
+        loadedMessageIdsRef.current,
+      );
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }, [resolvedTripId, user?.id, demoMode.isDemoMode]);
 
     const handleSendMessage = async (
       isBroadcast = false,
@@ -762,6 +876,8 @@ export const TripChat = React.memo(
           pullDistance={pullDistance}
           threshold={80}
         />
+
+        {/* Search Overlay Modal */}
         {showSearchOverlay && (
           <ChatSearchOverlay
             tripId={resolvedTripId}
@@ -889,7 +1005,7 @@ export const TripChat = React.memo(
                 onSendMessage={handleSendMessage}
                 onKeyPress={handleKeyPress}
                 apiKey=""
-                isTyping={false}
+                isTyping={isSendingMessage}
                 tripMembers={tripMembers}
                 hidePayments={true}
                 isPro={isPro}
