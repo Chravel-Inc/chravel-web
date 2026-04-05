@@ -90,7 +90,7 @@ These are set as Supabase project secrets (`supabase secrets set KEY=value`).
 # These are the ONLY vars needed for a working TestFlight build.
 # The app has hardcoded Supabase defaults for dev.
 VITE_SUPABASE_URL=https://jmjiyekmxwsxkfnqwyaa.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINhI
+VITE_SUPABASE_ANON_KEY=your_anon_key_here
 VITE_ENABLE_DEMO_MODE=false
 VITE_ENABLE_AI_CONCIERGE=false
 VITE_ENABLE_STRIPE_PAYMENTS=false
