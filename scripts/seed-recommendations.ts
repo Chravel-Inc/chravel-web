@@ -8,8 +8,7 @@ import { experienceRecommendations } from '../src/data/recommendations/experienc
 import { transportationRecommendations } from '../src/data/recommendations/transportation';
 
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const supabaseKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
   console.error('Missing VITE_SUPABASE_URL or VITE_SUPABASE_SERVICE_ROLE_KEY');
@@ -30,30 +29,27 @@ const allRecs = [
 async function seed() {
   console.log(`Seeding ${allRecs.length} organic recommendations...`);
 
-  const { data, error } = await supabase
-    .from('recommendation_items')
-    .insert(
-      allRecs.map(rec => ({
-        type: rec.type,
-        title: rec.title,
-        description: rec.description,
-        location: rec.location,
-        city: rec.city,
-        latitude: rec.coordinates?.lat || null,
-        longitude: rec.coordinates?.lng || null,
-        rating: rec.rating,
-        price_level: rec.priceLevel,
-        images: rec.images,
-        tags: rec.tags,
-        external_link: rec.externalLink,
-        source: 'curated',
-        cta_text: rec.ctaButton?.text || 'View',
-        cta_action: rec.ctaButton?.action || 'view',
-        is_active: rec.isAvailable !== false,
-        metadata: rec.userRecommendations ? { userRecommendations: rec.userRecommendations } : {},
-      })),
-    )
-    .select('id');
+  const { data, error } = await supabase.from('recommendation_items').insert(
+    allRecs.map(rec => ({
+      type: rec.type,
+      title: rec.title,
+      description: rec.description,
+      location: rec.location,
+      city: rec.city,
+      latitude: rec.coordinates?.lat || null,
+      longitude: rec.coordinates?.lng || null,
+      rating: rec.rating,
+      price_level: rec.priceLevel,
+      images: rec.images,
+      tags: rec.tags,
+      external_link: rec.externalLink,
+      source: 'curated',
+      cta_text: rec.ctaButton?.text || 'View',
+      cta_action: rec.ctaButton?.action || 'view',
+      is_active: rec.isAvailable !== false,
+      metadata: rec.userRecommendations ? { userRecommendations: rec.userRecommendations } : {},
+    }))
+  ).select('id');
 
   if (error) {
     console.error('Error seeding recommendations:', error);
@@ -63,7 +59,4 @@ async function seed() {
   }
 }
 
-seed().catch(err => {
-  console.error(err);
-  process.exit(1);
-});
+seed().catch((err) => { console.error(err); process.exit(1); });

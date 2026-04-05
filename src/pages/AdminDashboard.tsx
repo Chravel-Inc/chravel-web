@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { unifiedMessagingService, ScheduledMessage } from '@/services/unifiedMessagingService';
 import { useProTrips } from '@/hooks/useProTrips';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 

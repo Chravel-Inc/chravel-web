@@ -1,5 +1,5 @@
 import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { BroadcastList } from '../BroadcastList';
 
@@ -10,6 +10,13 @@ vi.mock('@/features/chat/hooks/useLinkPreviews', () => ({
 }));
 
 describe('BroadcastList link preview wiring', () => {
+  beforeAll(() => {
+    // Add window to global space if not already defined (vitest jsdom handles this usually, but sometimes causes unhandled rejections)
+    if (typeof window === 'undefined') {
+      (global as any).window = {};
+    }
+  });
+
   beforeEach(() => {
     mockUseLinkPreviews.mockReset();
   });
