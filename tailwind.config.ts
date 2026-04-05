@@ -236,6 +236,10 @@ export default {
           '0%, 100%': { transform: 'translateY(0px)' },
           '50%': { transform: 'translateY(-10px)' },
         },
+        'float-subtle': {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-2px)' },
+        },
         'slide-in-bottom': {
           '0%': { transform: 'translateY(100%)' },
           '100%': { transform: 'translateY(0)' },
@@ -275,6 +279,11 @@ export default {
           '0%, 100%': { transform: 'rotate(-0.5deg)' },
           '50%': { transform: 'rotate(0.5deg)' },
         },
+        // Slower, subtler wiggle (dashboard trip reorder — closer to iOS home screen)
+        'wiggle-subtle': {
+          '0%, 100%': { transform: 'rotate(-0.35deg)' },
+          '50%': { transform: 'rotate(0.35deg)' },
+        },
         // Bouncy overshoot for nav switching
         'bounce-select': {
           '0%': { transform: 'scale(1)' },
@@ -287,6 +296,7 @@ export default {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         float: 'float 6s ease-in-out infinite',
+        'float-subtle': 'float-subtle 2.6s ease-in-out infinite',
         'slide-in-bottom': 'slide-in-bottom 0.3s ease-out',
         'slide-out-bottom': 'slide-out-bottom 0.3s ease-out',
         'slide-in-up': 'slide-in-up 0.3s ease-out',
@@ -299,6 +309,7 @@ export default {
         'parallax-medium': 'parallax 15s ease-in-out infinite',
         'parallax-fast': 'parallax 10s ease-in-out infinite',
         wiggle: 'wiggle 0.3s ease-in-out infinite',
+        'wiggle-subtle': 'wiggle-subtle 2.8s ease-in-out infinite',
         'bounce-select': 'bounce-select 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
       },
       backdropBlur: {

@@ -117,7 +117,7 @@ export const ConsumerBillingSection = () => {
         'Photo & video sharing',
         'Basic itinerary planning',
         'Expense tracking',
-        'AI Trip Assistant (5 queries per user per trip)',
+        'AI Trip Assistant (10 queries per user per trip)',
         '1 PDF export per trip',
         'ICS calendar download',
       ],
@@ -129,7 +129,7 @@ export const ConsumerBillingSection = () => {
       icon: Globe,
       features: [
         'Unlimited saved trips + restore archived',
-        '10 AI queries per user per trip',
+        '25 AI queries per user per trip',
         'Unlimited PDF exports',
         'Smart Import (Calendar, Agenda, Line-up from URL)',
         'Location-aware AI suggestions',

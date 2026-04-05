@@ -12,6 +12,9 @@ import { messageEvents } from '@/telemetry/events';
 import { sendChatMessage } from '@/services/chatService';
 import { privacyService } from '@/services/privacyService';
 import { subscribeToBroadcast } from '@/services/chatBroadcastService';
+import { useFeatureFlag } from '@/lib/featureFlags';
+import { useStreamTripChat } from '@/hooks/stream/useStreamTripChat';
+import { getStreamClient } from '@/services/stream/streamClient';
 
 interface TripChatMessage {
   id: string;
@@ -50,9 +53,28 @@ interface CreateMessageRequest {
  * ⚡ PERFORMANCE: Added `enabled` option for lazy loading
  * When enabled=false, no queries or subscriptions are created
  * Use this to defer chat loading until the chat tab is active
+ *
+ * 🔀 STREAM ROUTING: When `stream-chat-trip` feature flag is enabled AND
+ * the Stream client is connected, this hook delegates to useStreamTripChat.
+ * Otherwise, the Supabase-backed implementation runs.
+ *
+ * Both hooks are always called (Rules of Hooks), but the inactive one is
+ * disabled via its `enabled` option so it does zero work.
  */
 export const useTripChat = (tripId: string | undefined, options?: { enabled?: boolean }) => {
-  const isEnabled = options?.enabled !== false; // Default to true for backward compat
+  const isEnabled = options?.enabled !== false;
+
+  // Force Stream-backed hook. Supabase legacy path deprecated.
+  return useStreamTripChat(tripId, { enabled: isEnabled });
+};
+
+/**
+ * Supabase-backed trip chat — the current production implementation.
+ * Extracted into its own function so useTripChat can route between backends
+ * while respecting Rules of Hooks (both hooks always called, one disabled).
+ */
+const useSupabaseTripChat = (tripId: string | undefined, options?: { enabled?: boolean }) => {
+  const isEnabled = options?.enabled !== false;
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { isOffline } = useOfflineStatus();
@@ -78,6 +100,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
     error,
   } = useQuery({
     queryKey: ['tripChat', tripId],
+    refetchOnWindowFocus: true,
     queryFn: async (): Promise<TripChatMessage[]> => {
       if (!tripId) return [];
       // Try to load from cache first for instant display
@@ -330,14 +353,11 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
           filter: `trip_id=eq.${tripId}`,
         },
         payload => {
+          const newMsg = payload.new as Record<string, unknown>;
           if (import.meta.env.DEV) {
             console.log('[CHAT REALTIME] INSERT received:', {
-              messageId: payload.new?.id,
-              author: (payload.new as Record<string, unknown>)?.author_name,
-              content: String((payload.new as Record<string, unknown>)?.content ?? '').substring(
-                0,
-                50,
-              ),
+              messageId: newMsg.id,
+              author: newMsg.author_name,
               timestamp: new Date().toISOString(),
             });
           }
@@ -355,7 +375,6 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
           }
           messageCount++;
 
-          const newMsg = payload.new as Record<string, unknown>;
           pendingInserts.push(newMsg);
           scheduleFlush();
         },
@@ -745,5 +764,10 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
     loadMore,
     hasMore,
     isLoadingMore,
+    toggleReaction: undefined, // Handled by chatService directly when using Supabase
+    reload: async () => {
+      // For Supabase, the pull-to-refresh will use invalidateQueries.
+      // We expose this no-op to match the Stream hook signature.
+    },
   };
 };

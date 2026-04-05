@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getBearerToken } from './authHeaders.ts';
 
 /**
  * Shared auth guard for edge functions.
@@ -28,7 +29,17 @@ export async function requireAuth(
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-  const token = authHeader.replace('Bearer ', '');
+  const token = getBearerToken(authHeader);
+  if (!token) {
+    return {
+      user: null,
+      error: 'Unauthorized',
+      response: new Response(JSON.stringify({ error: 'Missing or invalid Authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }),
+    };
+  }
   const {
     data: { user },
     error: authError,

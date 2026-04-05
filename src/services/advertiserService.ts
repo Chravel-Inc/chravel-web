@@ -205,8 +205,8 @@ export class AdvertiserService {
           name: formData.name,
           description: formData.description,
           discount_details: formData.discount_details,
-          images: formData.images as any,
-          destination_info: formData.destination_info as any,
+          images: formData.images as unknown,
+          destination_info: formData.destination_info as unknown,
           tags: formData.tags,
           status: formData.status,
           website_url: formData.website_url,
@@ -252,7 +252,7 @@ export class AdvertiserService {
       // Update campaign
       const { data: campaign, error: campaignError } = await supabase
         .from('campaigns')
-        .update(campaignUpdates as any)
+        .update(campaignUpdates as unknown)
         .eq('id', campaignId)
         .select()
         .single();

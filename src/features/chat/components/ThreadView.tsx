@@ -14,15 +14,9 @@ import { getInitials } from '@/utils/avatarUtils';
 import { defaultAvatar } from '@/utils/mockAvatars';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
-import {
-  getThreadReplies,
-  sendThreadReply,
-  subscribeToThreadReplies,
-} from '@/services/chatService';
-import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
-
-type MessageRow = Database['public']['Tables']['trip_chat_messages']['Row'];
+import { getStreamClient } from '@/services/stream/streamClient';
+import { CHANNEL_TYPE_TRIP, tripChannelId } from '@/services/stream/streamChannelFactory';
+import type { MessageResponse, UserResponse } from 'stream-chat';
 
 export interface ThreadViewProps {
   parentMessage: {
@@ -61,14 +55,21 @@ export const ThreadView: React.FC<ThreadViewProps> = ({
   const [sendError, setSendError] = useState<string | null>(null);
   const repliesEndRef = useRef<HTMLDivElement>(null);
 
+  const client = getStreamClient();
+
   // Load initial replies
   useEffect(() => {
     const loadReplies = async () => {
+      if (!client) return;
+
       setIsLoading(true);
       setLoadError(null);
       try {
-        const data = await getThreadReplies(parentMessage.id);
-        const formatted = data.map(row => formatReply(row, tripMembers));
+        const channel = client.channel(CHANNEL_TYPE_TRIP, tripChannelId(parentMessage.tripId));
+        const data = await channel.getReplies(parentMessage.id, { limit: 100 });
+        const formatted = data.messages.map(row =>
+          formatReply(row as MessageResponse, tripMembers),
+        );
         setReplies(formatted);
       } catch (err) {
         if (import.meta.env.DEV) console.error('[ThreadView] Failed to load replies:', err);
@@ -79,21 +80,42 @@ export const ThreadView: React.FC<ThreadViewProps> = ({
     };
 
     loadReplies();
-  }, [parentMessage.id, tripMembers]);
+  }, [parentMessage.id, parentMessage.tripId, tripMembers, client]);
 
   // Subscribe to realtime thread updates
   useEffect(() => {
-    const channel = subscribeToThreadReplies(parentMessage.id, row => {
-      setReplies(prev => {
-        if (prev.some(r => r.id === row.id)) return prev;
-        return [...prev, formatReply(row, tripMembers)];
-      });
-    });
+    if (!client) return;
+
+    const channel = client.channel(CHANNEL_TYPE_TRIP, tripChannelId(parentMessage.tripId));
+
+    const handleEvent = (event: any) => {
+      if (event.message?.parent_id === parentMessage.id) {
+        if (event.type === 'message.new' || event.type === 'message.updated') {
+          setReplies(prev => {
+            const index = prev.findIndex(r => r.id === event.message.id);
+            if (index !== -1) {
+              const next = [...prev];
+              next[index] = formatReply(event.message as MessageResponse, tripMembers);
+              return next;
+            }
+            return [...prev, formatReply(event.message as MessageResponse, tripMembers)];
+          });
+        } else if (event.type === 'message.deleted') {
+          setReplies(prev => prev.filter(r => r.id !== event.message.id));
+        }
+      }
+    };
+
+    channel.on('message.new', handleEvent);
+    channel.on('message.updated', handleEvent);
+    channel.on('message.deleted', handleEvent);
 
     return () => {
-      supabase.removeChannel(channel);
+      channel.off('message.new', handleEvent);
+      channel.off('message.updated', handleEvent);
+      channel.off('message.deleted', handleEvent);
     };
-  }, [parentMessage.id, tripMembers]);
+  }, [parentMessage.id, parentMessage.tripId, tripMembers, client]);
 
   // Scroll to bottom when new replies come in
   useEffect(() => {
@@ -101,47 +123,44 @@ export const ThreadView: React.FC<ThreadViewProps> = ({
   }, [replies.length]);
 
   const formatReply = (
-    row: MessageRow,
+    row: MessageResponse,
     members: Array<{ id: string; name: string; avatar?: string }>,
   ): ThreadReply => {
-    const member = members.find(m => m.id === row.user_id);
+    const u = row.user as UserResponse | undefined;
+    const member = members.find(m => m.id === u?.id);
     return {
       id: row.id,
-      content: row.content,
-      authorName: member?.name || row.author_name,
-      authorId: row.user_id || undefined,
-      authorAvatar: member?.avatar,
-      createdAt: row.created_at,
-      isEdited: row.is_edited || false,
+      content: row.text || '',
+      authorId: u?.id || 'unknown',
+      authorName: u?.name || member?.name || 'Unknown User',
+      authorAvatar: u?.image || member?.avatar,
+      createdAt: row.created_at as string,
+      isEdited: row.created_at !== row.updated_at,
     };
   };
 
   const handleSendReply = useCallback(async () => {
-    if (!replyContent.trim() || isSending) return;
+    if (!replyContent.trim() || isSending || !client) return;
 
     setIsSending(true);
     setSendError(null);
-    const authorName = user?.displayName || user?.email?.split('@')[0] || 'You';
 
     try {
-      const result = await sendThreadReply(parentMessage.id, {
-        trip_id: parentMessage.tripId,
-        author_name: authorName,
-        content: replyContent.trim(),
-        user_id: user?.id,
+      const channel = client.channel(CHANNEL_TYPE_TRIP, tripChannelId(parentMessage.tripId));
+
+      await channel.sendMessage({
+        text: replyContent.trim(),
+        parent_id: parentMessage.id,
       });
-      if (result) {
-        setReplyContent('');
-      } else {
-        setSendError('Reply failed to send. Please try again.');
-      }
-    } catch (error) {
-      if (import.meta.env.DEV) console.error('[ThreadView] Failed to send reply:', error);
-      setSendError('Reply failed to send. Please try again.');
+
+      setReplyContent('');
+    } catch (err: unknown) {
+      if (import.meta.env.DEV) console.error('[ThreadView] Failed to send reply:', err);
+      setSendError('Failed to send reply. Please try again.');
     } finally {
       setIsSending(false);
     }
-  }, [replyContent, isSending, parentMessage, user]);
+  }, [replyContent, isSending, parentMessage.id, parentMessage.tripId, client]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {

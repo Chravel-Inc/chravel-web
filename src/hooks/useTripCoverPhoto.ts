@@ -1,27 +1,37 @@
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { tripKeys } from '@/lib/queryKeys';
 import { useAuth } from './useAuth';
 import { useDemoMode } from './useDemoMode';
 import { demoModeService } from '@/services/demoModeService';
 import { toast } from 'sonner';
 
-export const useTripCoverPhoto = (tripId: string, initialPhotoUrl?: string) => {
+export type CoverDisplayMode = 'cover' | 'contain';
+
+export const useTripCoverPhoto = (
+  tripId: string,
+  initialPhotoUrl?: string,
+  initialDisplayMode: CoverDisplayMode = 'cover',
+) => {
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
   const queryClient = useQueryClient();
   const [coverPhoto, setCoverPhoto] = useState<string | undefined>(initialPhotoUrl);
+  const [coverDisplayMode, setCoverDisplayMode] = useState<CoverDisplayMode>(initialDisplayMode);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Load demo mode cover photo on mount
+  // Keep local state aligned with TanStack Query / parent props (detail key is ['trip', id, userId], not ['trips'])
   useEffect(() => {
     if (isDemoMode) {
       const demoPhoto = demoModeService.getCoverPhoto(tripId);
-      if (demoPhoto) {
-        setCoverPhoto(demoPhoto);
-      }
+      setCoverPhoto(demoPhoto ?? initialPhotoUrl);
+      setCoverDisplayMode(initialDisplayMode);
+      return;
     }
-  }, [isDemoMode, tripId]);
+    setCoverPhoto(initialPhotoUrl);
+    setCoverDisplayMode(initialDisplayMode);
+  }, [isDemoMode, tripId, initialPhotoUrl, initialDisplayMode]);
 
   const updateCoverPhoto = async (photoUrl: string): Promise<boolean> => {
     // Reject blob URLs from being saved to database (except in demo mode)
@@ -77,8 +87,12 @@ export const useTripCoverPhoto = (tripId: string, initialPhotoUrl?: string) => {
       }
 
       setCoverPhoto(photoUrl);
-      // Invalidate React Query cache to immediately reflect changes in trip lists
-      queryClient.invalidateQueries({ queryKey: ['trips'] });
+      queryClient.setQueriesData({ queryKey: tripKeys.detail(tripId) }, old =>
+        old && typeof old === 'object' ? { ...old, cover_image_url: photoUrl } : old,
+      );
+      // Trip list uses ['trips', ...]; trip detail uses ['trip', tripId, userId] — invalidate both
+      queryClient.invalidateQueries({ queryKey: tripKeys.all });
+      queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
       toast.success('Cover photo updated');
       return true;
     } catch (error) {
@@ -126,16 +140,21 @@ export const useTripCoverPhoto = (tripId: string, initialPhotoUrl?: string) => {
       }
 
       // Optional: Delete file from storage if needed
-      if (coverPhoto && coverPhoto.includes('supabase')) {
-        const fileName = coverPhoto.split('/').pop();
-        if (fileName) {
-          await supabase.storage.from('advertiser-assets').remove([`${tripId}/${fileName}`]);
+      if (coverPhoto && coverPhoto.includes('/storage/v1/object/public/trip-media/')) {
+        const storagePath = coverPhoto
+          .split('/storage/v1/object/public/trip-media/')[1]
+          ?.split('?')[0];
+        if (storagePath) {
+          await supabase.storage.from('trip-media').remove([storagePath]);
         }
       }
 
       setCoverPhoto(undefined);
-      // Invalidate React Query cache to immediately reflect changes in trip lists
-      queryClient.invalidateQueries({ queryKey: ['trips'] });
+      queryClient.setQueriesData({ queryKey: tripKeys.detail(tripId) }, old =>
+        old && typeof old === 'object' ? { ...old, cover_image_url: null } : old,
+      );
+      queryClient.invalidateQueries({ queryKey: tripKeys.all });
+      queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
       toast.success('Cover photo removed');
       return true;
     } catch (error) {
@@ -147,9 +166,53 @@ export const useTripCoverPhoto = (tripId: string, initialPhotoUrl?: string) => {
     }
   };
 
+  const updateCoverDisplayMode = async (mode: CoverDisplayMode): Promise<boolean> => {
+    if (isDemoMode) {
+      setCoverDisplayMode(mode);
+      return true;
+    }
+
+    if (!user) {
+      toast.error('Please sign in to update cover photo settings');
+      return false;
+    }
+
+    setIsUpdating(true);
+    try {
+      const { data, error } = await supabase
+        .from('trips')
+        .update({ cover_display_mode: mode })
+        .eq('id', tripId)
+        .select('id')
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!data) {
+        toast.error("You don't have permission to update this trip's cover settings");
+        return false;
+      }
+
+      setCoverDisplayMode(mode);
+      queryClient.setQueriesData({ queryKey: tripKeys.detail(tripId) }, old =>
+        old && typeof old === 'object' ? { ...old, cover_display_mode: mode } : old,
+      );
+      queryClient.invalidateQueries({ queryKey: tripKeys.all });
+      queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
+      return true;
+    } catch (error) {
+      console.error('Error updating cover display mode:', error);
+      toast.error('Failed to update cover display mode');
+      return false;
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   return {
     coverPhoto,
+    coverDisplayMode,
     updateCoverPhoto,
+    updateCoverDisplayMode,
     removeCoverPhoto,
     isUpdating,
   };

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { AlertTriangle, CheckCircle2, Loader2, Mail, Trash2, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Info, Loader2, Mail, Trash2, X } from 'lucide-react';
 import {
   fetchGmailAccounts,
   connectGmailAccount,
@@ -110,9 +110,16 @@ export const SmartImportSettings = () => {
           <Mail className="h-5 w-5 text-blue-500" />
           Connected Integrations
         </CardTitle>
-        <CardDescription>
-          Connect your Gmail account to enable Smart Import — automatically find flights, hotels,
-          dining, events, train tickets, and private charter confirmations directly from your inbox.
+        <CardDescription className="space-y-2">
+          <span className="block">
+            Connect up to {MAX_ACCOUNTS} Gmail accounts here. Then use <strong>Smart Import</strong>{' '}
+            on any trip to scan your connected inboxes for matching reservations.
+          </span>
+          <span className="block">
+            Chravel uses AI to find and parse flights, hotels, dining, events, train tickets, and
+            private charter confirmations. We only request read-only access — you can disconnect
+            anytime.
+          </span>
         </CardDescription>
       </CardHeader>
       <CardContent className="px-0 space-y-4">
@@ -142,9 +149,14 @@ export const SmartImportSettings = () => {
             <div className="flex flex-col items-center gap-2">
               <Mail className="h-8 w-8 text-muted-foreground mb-2" />
               <h3 className="font-medium">No Gmail accounts connected</h3>
+              <p className="text-sm text-muted-foreground mb-2">
+                Connect a Gmail account here, then open any trip and use{' '}
+                <strong>Smart Import</strong> to scan your inbox for matching reservations.
+              </p>
               <p className="text-sm text-muted-foreground mb-4">
-                Connect an account to seamlessly import travel plans — including private charter
-                confirmations, glamping bookings, and event tickets.
+                Chravel's AI detects flights, hotels, dining, events, train tickets, private
+                charters, glamping bookings, and more. You can connect up to {MAX_ACCOUNTS}{' '}
+                accounts.
               </p>
               <Button
                 onClick={handleConnect}
@@ -164,6 +176,20 @@ export const SmartImportSettings = () => {
           </div>
         ) : (
           <div className="space-y-4">
+            {/* Account counter + how-it-works hint */}
+            <div className="flex items-start gap-3 rounded-lg border border-blue-500/20 bg-blue-500/5 px-4 py-3">
+              <Info className="h-4 w-4 text-blue-400 mt-0.5 shrink-0" />
+              <div className="text-sm text-muted-foreground space-y-1">
+                <p>
+                  <span className="font-medium text-foreground">
+                    {accounts.length} of {MAX_ACCOUNTS}
+                  </span>{' '}
+                  accounts connected. These appear in the Smart Import dropdown on each trip's
+                  detail page.
+                </p>
+              </div>
+            </div>
+
             {accounts.map(account => {
               const stale = isTokenStale(account.token_expires_at);
               const syncedLabel = relativeDate(account.last_synced_at);
@@ -235,7 +261,8 @@ export const SmartImportSettings = () => {
               </Button>
               {atAccountCap && (
                 <p className="text-xs text-muted-foreground text-center">
-                  Maximum {MAX_ACCOUNTS} Gmail accounts reached. Remove one to add another.
+                  All {MAX_ACCOUNTS} account slots are in use. Remove one above to connect a
+                  different account.
                 </p>
               )}
             </div>

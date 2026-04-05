@@ -9,6 +9,7 @@ import { FlightResultCards, FlightResult } from './FlightResultCards';
 import { HotelResultCards, HotelResult } from './HotelResultCards';
 import { ConciergeActionCardGroup } from './ConciergeActionCardGroup';
 import type { ConciergeActionResult } from './ConciergeActionCard';
+import { PendingActionCard } from './PendingActionCard';
 import { ReservationDraftCard } from './ReservationDraftCard';
 import { SmartImportPreviewCard } from './SmartImportPreviewCard';
 import {
@@ -44,6 +45,18 @@ interface RichChatMessage extends ChatMessage {
     lodgingName?: string;
   };
   smartImportStatus?: { status: SmartImportStatus; message: string };
+  bulkDeletePreview?: {
+    previewEvents: SmartImportPreviewEvent[];
+    previewToken: string;
+    tripId: string;
+    totalEvents: number;
+  };
+  pendingActions?: Array<{
+    id: string;
+    toolName: string;
+    actionType: string;
+    message: string;
+  }>;
 }
 
 interface ChatMessagesProps {
@@ -62,10 +75,30 @@ interface ChatMessagesProps {
   onSmartImportConfirm?: (messageId: string, events: SmartImportPreviewEvent[]) => void;
   /** Smart Import: dismiss callback */
   onSmartImportDismiss?: (messageId: string) => void;
+  /** Bulk Delete: confirm callback */
+  onBulkDeleteConfirm?: (
+    messageId: string,
+    previewToken: string,
+    events: SmartImportPreviewEvent[],
+  ) => void;
+  /** Bulk Delete: dismiss callback */
+  onBulkDeleteDismiss?: (messageId: string) => void;
+  onConfirmPendingAction?: (actionId: string) => void;
+  onRejectPendingAction?: (actionId: string) => void;
+  isConfirmingPendingAction?: boolean;
+  isRejectingPendingAction?: boolean;
   /** Smart Import: per-message importing state */
   smartImportStates?: Record<
     string,
     { isImporting: boolean; result: { imported: number; failed: number } | null }
+  >;
+  /** Bulk Delete: per-message deletion state */
+  bulkDeleteStates?: Record<
+    string,
+    {
+      isImporting: boolean;
+      result: { imported: number; failed: number; alreadyMissing?: number } | null;
+    }
   >;
   /** TTS: current playback state */
   ttsPlaybackState?: TTSPlaybackState;
@@ -91,7 +124,14 @@ export const ChatMessages = ({
   onEditReservation,
   onSmartImportConfirm,
   onSmartImportDismiss,
+  onBulkDeleteConfirm,
+  onBulkDeleteDismiss,
+  onConfirmPendingAction,
+  onRejectPendingAction,
+  isConfirmingPendingAction = false,
+  isRejectingPendingAction = false,
   smartImportStates,
+  bulkDeleteStates,
   ttsPlaybackState,
   ttsPlayingMessageId,
   onTTSPlay,
@@ -216,6 +256,38 @@ export const ChatMessages = ({
               </div>
             )}
 
+            {/* Pending AI write actions that require explicit user confirmation */}
+            {rich.pendingActions && rich.pendingActions.length > 0 && (
+              <div
+                className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} ${message.type !== 'user' ? 'pl-10' : ''}`}
+              >
+                <div className="max-w-sm lg:max-w-md w-full space-y-2">
+                  {rich.pendingActions.map(action => (
+                    <PendingActionCard
+                      key={action.id}
+                      action={{
+                        id: action.id,
+                        trip_id: '',
+                        user_id: '',
+                        tool_name: action.toolName,
+                        tool_call_id: null,
+                        payload: {},
+                        status: 'pending',
+                        source_type: 'ai_concierge',
+                        created_at: message.timestamp,
+                        resolved_at: null,
+                        resolved_by: null,
+                      }}
+                      onConfirm={onConfirmPendingAction || (() => undefined)}
+                      onReject={onRejectPendingAction || (() => undefined)}
+                      isConfirming={isConfirmingPendingAction}
+                      isRejecting={isRejectingPendingAction}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Reservation draft cards */}
             {rich.reservationDrafts && rich.reservationDrafts.length > 0 && (
               <div
@@ -257,6 +329,33 @@ export const ChatMessages = ({
                     onDismiss={() => onSmartImportDismiss?.(message.id)}
                     isImporting={smartImportStates?.[message.id]?.isImporting}
                     importResult={smartImportStates?.[message.id]?.result}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Bulk Delete preview card */}
+            {rich.bulkDeletePreview && rich.bulkDeletePreview.previewEvents.length > 0 && (
+              <div
+                className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} ${message.type !== 'user' ? 'pl-10' : ''}`}
+              >
+                <div className="max-w-sm lg:max-w-md w-full">
+                  <SmartImportPreviewCard
+                    mode="delete"
+                    previewEvents={rich.bulkDeletePreview.previewEvents}
+                    tripId={rich.bulkDeletePreview.tripId}
+                    totalEvents={rich.bulkDeletePreview.totalEvents}
+                    duplicateCount={0}
+                    onConfirm={events =>
+                      onBulkDeleteConfirm?.(
+                        message.id,
+                        rich.bulkDeletePreview!.previewToken,
+                        events,
+                      )
+                    }
+                    onDismiss={() => onBulkDeleteDismiss?.(message.id)}
+                    isImporting={bulkDeleteStates?.[message.id]?.isImporting}
+                    importResult={bulkDeleteStates?.[message.id]?.result}
                   />
                 </div>
               </div>

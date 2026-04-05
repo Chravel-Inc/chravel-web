@@ -33,6 +33,7 @@ import { useJoinRequests } from '../hooks/useJoinRequests';
 import { useDemoTripMembersStore } from '../store/demoTripMembersStore';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { buildTripCoverStoragePath, TRIP_COVER_BUCKET } from '../utils/tripCoverStorage';
 
 // Stable empty array to prevent Zustand selector reference changes causing infinite re-renders
 const EMPTY_MEMBERS_ARRAY: Array<{
@@ -58,6 +59,7 @@ interface TripHeaderProps {
       email?: string;
     }>;
     coverPhoto?: string;
+    coverDisplayMode?: 'cover' | 'contain';
     trip_type?: 'consumer' | 'pro' | 'event';
     created_by?: string;
   };
@@ -148,9 +150,10 @@ export const TripHeader = ({
     }
   }, [searchParams, setSearchParams]);
   const { variant } = useTripVariant();
-  const { coverPhoto, updateCoverPhoto, isUpdating } = useTripCoverPhoto(
+  const { coverPhoto, coverDisplayMode, updateCoverPhoto, isUpdating } = useTripCoverPhoto(
     trip.id.toString(),
     trip.coverPhoto,
+    trip.coverDisplayMode ?? 'cover',
   );
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
@@ -166,6 +169,7 @@ export const TripHeader = ({
   const removeMember = preloadedRemoveMember ?? memberHookData.removeMember;
   const leaveTrip = preloadedLeaveTrip ?? memberHookData.leaveTrip;
   const [isUploading, setIsUploading] = useState(false);
+  const [hasCoverLoadError, setHasCoverLoadError] = useState(false);
   const [showCropModal, setShowCropModal] = useState(false);
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
 
@@ -360,10 +364,10 @@ export const TripHeader = ({
     setIsUploading(true);
     try {
       const fileName = `${trip.id}-${Date.now()}.jpg`;
-      const filePath = `trip-covers/${trip.id}/${fileName}`;
+      const filePath = buildTripCoverStoragePath(trip.id.toString(), fileName);
 
       const { error: uploadError } = await supabase.storage
-        .from('trip-media')
+        .from(TRIP_COVER_BUCKET)
         .upload(filePath, croppedBlob, {
           cacheControl: '3600',
           upsert: true,
@@ -376,7 +380,7 @@ export const TripHeader = ({
         return;
       }
 
-      const { data: urlData } = supabase.storage.from('trip-media').getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage.from(TRIP_COVER_BUCKET).getPublicUrl(filePath);
 
       if (!urlData?.publicUrl) {
         toast.error('Failed to get image URL');
@@ -398,6 +402,10 @@ export const TripHeader = ({
       setCropImageSrc(null);
     }
   };
+
+  useEffect(() => {
+    setHasCoverLoadError(false);
+  }, [coverPhoto]);
 
   const handleCropCancel = () => {
     setShowCropModal(false);
@@ -422,10 +430,29 @@ export const TripHeader = ({
             'mb-0 md:mb-8',
           )}
           style={{
-            backgroundImage: coverPhoto ? `url(${coverPhoto})` : undefined,
-            backgroundColor: !coverPhoto ? '#1a1a2e' : undefined,
+            backgroundColor: '#1a1a2e',
           }}
         >
+          {coverPhoto && !hasCoverLoadError && (
+            <div className="absolute inset-0">
+              <img
+                src={coverPhoto}
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 w-full h-full object-cover blur-md scale-110 opacity-45"
+              />
+              <img
+                src={coverPhoto}
+                alt={`${trip.title} cover`}
+                onError={() => setHasCoverLoadError(true)}
+                className={cn(
+                  'absolute inset-0 w-full h-full',
+                  coverDisplayMode === 'contain' ? 'object-contain' : 'object-cover',
+                )}
+              />
+            </div>
+          )}
+
           {/* Gradient overlay - stronger at top and bottom for title/location readability */}
           <div
             className={cn(
@@ -489,7 +516,7 @@ export const TripHeader = ({
           {(!isHeroCollapsed || drawerLayout) && (
             <>
               {/* Trip title at TOP-LEFT */}
-              <div className="absolute top-4 left-4 right-16 z-10">
+              <div className="absolute top-6 left-4 right-16 z-10">
                 <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white drop-shadow-lg line-clamp-2">
                   {trip.title}
                 </h1>

@@ -47,6 +47,7 @@ export interface Trip {
   end_date?: string;
   destination?: string;
   cover_image_url?: string;
+  cover_display_mode?: 'cover' | 'contain';
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -58,6 +59,11 @@ export interface Trip {
   membership_status?: 'owner' | 'member' | 'pending' | 'rejected'; // Membership status for current user
   card_color?: string | null; // Color coding for Pro/Event cards
   organizer_display_name?: string | null; // Organizer name for Events (e.g., "Los Angeles Rams")
+  // Aggregate join fields returned by Supabase select queries
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  trip_members?: any[];
+  trip_events_places?: any[];
+  categories?: any[];
 }
 
 export interface CreateTripData {
@@ -527,7 +533,7 @@ export const tripService = {
     }
 
     if (data) {
-      return data;
+      return data as Trip;
     }
 
     // No error but no data could be RLS filtering; fall back to server-side access check

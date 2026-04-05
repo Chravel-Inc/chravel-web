@@ -1,3 +1,59 @@
+/* Self-hosted Inter font — eliminates external Google Fonts fetch on cold start */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/inter-latin-400.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/inter-latin-500.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/inter-latin-600.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/inter-latin-700.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('/fonts/inter-latin-800.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -298,60 +354,45 @@
   }
 
   .light {
-    /* Enterprise Light Theme */
-    --background: 223 25% 97%; /* Light background */
-    --foreground: 223 35% 20%;
+    /* Flipping black/dark backgrounds to white/light */
+    --background: 0 0% 100%; /* Pure white */
+    --foreground: 0 0% 0%; /* Pure black text */
 
-    --card: 0 0% 100%;
-    --card-foreground: 223 35% 20%;
+    --card: 0 0% 98%; /* Near-white cards */
+    --card-foreground: 0 0% 0%; /* Black text on cards */
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 223 35% 20%;
+    --popover: 0 0% 100%; /* White popovers */
+    --popover-foreground: 0 0% 0%; /* Black text on popovers */
 
-    --primary: 223 56% 53%; /* Same enterprise blue */
-    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 95%;
+    --secondary-foreground: 0 0% 10%;
 
-    --secondary: 223 15% 90%;
-    --secondary-foreground: 223 35% 20%;
+    --muted: 0 0% 90%;
+    --muted-foreground: 0 0% 40%;
 
-    --muted: 223 15% 90%;
-    --muted-foreground: 223 15% 45%;
+    --border: 0 0% 85%;
+    --input: 0 0% 95%; /* Light gray inputs */
 
-    --accent: 32 95% 48%; /* Same accent orange */
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 223 15% 90%;
-    --input: 223 15% 90%;
-    --ring: 223 56% 53%;
-
-    /* Payment system colors for light mode */
-    --payment-primary: 155 80% 25%; /* Same forest green */
-    --payment-primary-foreground: 0 0% 100%;
-    --payment-background: 155 60% 97%; /* Light green background */
-    --payment-background-light: 155 60% 97%;
-    --payment-border: 155 60% 40%; /* Lighter green border for light mode */
-    --payment-text: 0 0% 0%; /* Black text for inputs */
-
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 223 35% 20%;
-    --sidebar-primary: 223 56% 53%;
+    /* Sidebar - Inverted */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 0 0% 10%;
+    --sidebar-primary: 37 55% 52%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 223 15% 90%;
-    --sidebar-accent-foreground: 223 35% 20%;
-    --sidebar-border: 223 15% 90%;
-    --sidebar-ring: 223 56% 53%;
+    --sidebar-accent: 0 0% 90%;
+    --sidebar-accent-foreground: 0 0% 10%;
+    --sidebar-border: 0 0% 85%;
+    --sidebar-ring: 37 55% 52%;
 
-    /* On-image text tokens for guaranteed contrast */
-    --on-image-title: 223 60% 20%;
-    --on-image-body: 223 50% 25%;
-    --on-image-muted: 223 40% 35%;
+    /* Payment Colors - Inverted for Light Mode */
+    --payment-primary: 37 55% 52%;
+    --payment-primary-foreground: 0 0% 0%;
+    --payment-background: 0 0% 100%;
+    --payment-background-light: 0 0% 98%;
+    --payment-border: 0 0% 90%;
+    --payment-text: 0 0% 10%;
 
-    /* Midnight blue for maximum contrast on images */
-    --midnight-blue: 220 70% 15%;
-    --dark-navy: 220 50% 20%;
+    /* The rest of the tokens remain unchanged from the dark theme
+       so that gold accents, gray buttons, and destructive colors stay the same. */
   }
 }
 

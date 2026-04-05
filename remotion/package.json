@@ -5,7 +5,17 @@
   "scripts": {
     "studio": "remotion studio src/index.ts",
     "render": "remotion render src/index.ts ChravelLaunch out/chravel-launch.mp4",
-    "render:gif": "remotion render src/index.ts ChravelLaunch out/chravel-launch.gif --image-format png"
+    "render:gif": "remotion render src/index.ts ChravelLaunch out/chravel-launch.gif --image-format png",
+    "render:trip-creation": "remotion render src/index.ts TripCreationFlow out/broll-trip-creation.mp4",
+    "render:calendar": "remotion render src/index.ts LiveSharedCalendar out/broll-live-calendar.mp4",
+    "render:concierge": "remotion render src/index.ts AIConciergeAction out/broll-ai-concierge.mp4",
+    "render:payments": "remotion render src/index.ts PaymentSplit out/broll-payment-split.mp4",
+    "render:media": "remotion render src/index.ts MediaVault out/broll-media-vault.mp4",
+    "render:polls-tasks": "remotion render src/index.ts PollsAndTasks out/broll-polls-tasks.mp4",
+    "render:tab-nav": "remotion render src/index.ts TabNavigationHero out/broll-tab-nav.mp4",
+    "render:before-after": "remotion render src/index.ts BeforeAfterChaos out/broll-before-after.mp4",
+    "render:broll-overlay": "remotion render src/index.ts BRollOverlay out/broll-overlay.mp4",
+    "render:all-broll": "npm run render:trip-creation && npm run render:calendar && npm run render:concierge && npm run render:payments && npm run render:media && npm run render:polls-tasks && npm run render:tab-nav && npm run render:before-after && npm run render:broll-overlay"
   },
   "dependencies": {
     "@remotion/cli": "4.0.437",

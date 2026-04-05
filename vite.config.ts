@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => ({
    */
   base: '/',
   server: {
-    host: 'localhost',
+    host: '0.0.0.0',
     port: 8080,
   },
   plugins: [react(), buildVersionPlugin(), mode === 'development' && componentTagger()].filter(
@@ -64,6 +64,8 @@ export default defineConfig(({ mode }) => ({
           utils: ['date-fns', 'clsx', 'tailwind-merge'],
           charts: ['recharts'],
           pdf: ['jspdf', 'jspdf-autotable', 'html2canvas'],
+          // RevenueCat web billing SDK (808 KB) — only needed when user hits paywall
+          'revenuecat-web': ['@revenuecat/purchases-js'],
         },
         // Optimize chunk names - include build version for aggressive cache busting
         chunkFileNames: `assets/js/[name]-[hash]-${buildVersion}.js`,
@@ -96,7 +98,24 @@ export default defineConfig(({ mode }) => ({
   // Optimize dependencies
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom'],
-    // Exclude optional telemetry dependencies that may not be installed
-    exclude: ['@sentry/capacitor', '@sentry/react', 'posthog-js'],
+    // Lovable preview runs on the Vite dev server; native Capacitor packages can leave
+    // stale .vite/deps entries after syntax-error recovery or restarts, blanking the preview.
+    force: mode === 'development',
+    exclude: [
+      '@sentry/capacitor',
+      '@sentry/react',
+      'posthog-js',
+      '@capacitor/core',
+      '@capacitor/app',
+      '@capacitor/status-bar',
+      '@capacitor/keyboard',
+      '@capacitor/local-notifications',
+      '@capacitor/push-notifications',
+      '@capacitor/haptics',
+      '@capacitor/filesystem',
+      '@capacitor/share',
+      '@capacitor/splash-screen',
+      '@revenuecat/purchases-capacitor',
+    ],
   },
 }));

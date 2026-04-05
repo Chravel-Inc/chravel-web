@@ -7,6 +7,14 @@
 
 ## Strategy Tips
 
+### Never ship baked Supabase credentials as runtime fallback in production clients
+- **Tip:** Treat Supabase public key + project URL as required runtime configuration and fail fast when missing. Hardcoded fallback credentials can silently go stale after key rotation and create partial outages that are hard to diagnose.
+- **Applies when:** Bootstrapping Supabase client in frontend apps, rotating JWT/API keys, migrating from anon JWT keys to publishable keys.
+- **Avoid when:** Local throwaway demos where backend project is intentionally fixed and non-production.
+- **Evidence:** Chravel client previously booted with built-in Supabase URL/anon key fallback; key rotation introduces drift risk when env injection is missing. Removing fallback and validating `VITE_SUPABASE_URL` + (`VITE_SUPABASE_PUBLISHABLE_KEY` or `VITE_SUPABASE_ANON_KEY`) hardens rollout safety.
+- **Provenance:** April 2026 Supabase key-rotation hardening pass.
+- **Confidence:** high
+
 ### Always distinguish Loading, Not Found, and Empty states
 - **Tip:** When building data-dependent UI, explicitly handle three distinct states: Loading (fetch in progress), Not Found (fetch completed, resource missing or inaccessible), and Empty (fetch completed, resource exists but has no items). Never let a loading state fall through to a Not Found or Empty render path.
 - **Applies when:** Trip loading, any auth-gated data page, lists that can be empty, resource detail views
@@ -275,4 +283,41 @@
 - **Avoid when:** Validation/security checks that must block invalid payloads (empty content, oversized payloads).
 - **Evidence:** `TripChat.handleSendMessage` awaited `useChatComposer.sendMessage`; that function awaited `useChatMessageParser.parseMessage` (edge function) before `sendTripMessage`, delaying optimistic insert and making send appear stalled.
 - **Provenance:** March 2026 Stream migration forensic audit (`docs/audits/stream-migration-forensic-plan-2026-03-30.md`).
+### Never apply keyframe `transform` animations on the same node dnd-kit uses for drag transforms
+- **Tip:** If sortable items feel jittery or "glitchy" in mobile reorder mode, check whether CSS animation classes (wiggle/float/pulse) are attached to the same element receiving dnd-kit inline `transform`. Move decorative animation to an inner wrapper so drag translation remains authoritative.
+- **Applies when:** dnd-kit sortable cards need an iOS-like wiggle/edit mode.
+- **Evidence:** Dashboard trip reorder still felt unstable after overlay/sync fixes; moving `animate-wiggle-subtle` from sortable root node to inner child removed transform contention and improved drag smoothness.
+- **Provenance:** April 2026 trip reorder follow-up hardening (`SortableCardWrapper`).
+- **Confidence:** high
+### For reorder "edit mode" motion, prefer micro-float over rotation when users request calmer affordance
+- **Tip:** If users describe wiggle as distracting/glitchy, keep motion but switch to low-amplitude float (`translateY` ~1–2px) to preserve edit-mode affordance with lower visual noise.
+- **Applies when:** Mobile card/icon reordering where product asks for iOS-like ease without aggressive motion.
+- **Evidence:** Dashboard trip reorder feedback explicitly preferred float over wiggle/pulse; `animate-float-subtle` improved perceived smoothness while keeping transform isolation.
+- **Provenance:** April 2026 dashboard reorder follow-up.
+- **Confidence:** medium-high
+### Cover-image storage should have a single bucket/path helper shared by all upload entrypoints
+- **Tip:** When the same asset type can be uploaded from multiple surfaces (create modal, header editor, AI tools), centralize bucket id + object path construction in one helper and import it everywhere; avoid hardcoding bucket/path literals in components.
+- **Applies when:** Trip/event cover uploads, avatars, receipts, or any storage object with security-sensitive RLS path checks.
+- **Evidence:** TripHeader used `trip-media` + `trip-covers/...` while CreateTripModal used `trip-covers` bucket. After RLS hardening, TripHeader uploads failed, so cover updates never persisted and homepage cards appeared stale/blank.
+- **Provenance:** April 2026 trip cover forensic fix (`tripCoverStorage` shared helper).
+- **Confidence:** high
+### Preserve fixed cover-card layouts with a two-layer image strategy (blur-fill + contain foreground)
+- **Tip:** If product wants fixed-size hero/card shells but users complain about crop loss, keep the layout frame and render two layers from the same source: blurred `object-cover` background for full bleed + sharp `object-contain` foreground for content fidelity.
+- **Applies when:** Trip cover photos, event hero headers, and dashboard cards where aspect ratio mismatch is common.
+- **Evidence:** Trip cover sections were cropping most uploads; switching to contain foreground with blurred backdrop showed more of landscape photos without redesigning layout or breaking text contrast.
+- **Provenance:** April 2026 trip cover composition follow-up.
+- **Confidence:** high
+### For edge-function auth bugs, fail early on malformed Bearer headers before calling `auth.getUser`
+- **Tip:** Centralize bearer parsing in one helper and reject missing/malformed headers with explicit 401 responses; do not rely on `replace('Bearer ', '')` because non-bearer values become opaque token-debugging noise.
+- **Applies when:** Supabase Edge Functions accept browser JWTs and/or service-role bearer tokens.
+- **Evidence:** Concierge tool-call failures were hard to debug because malformed headers could flow to `auth.getUser` as invalid token strings; explicit parser + dedicated error responses made the failure mode obvious in logs/clients.
+- **Provenance:** April 2026 execute-concierge-tool auth hardening.
+- **Confidence:** high
+
+### For merge-heavy weeks, treat `npm run validate` as the deployment gate even when `npm run build` is green
+- **Tip:** A green Vite production bundle is not sufficient to restore deployability in this repo; the `validate` chain (`lint:check` + `typecheck` + `format:check`) can fail on formatting drift introduced by concurrent PR merges. Run `npm run validate` first during outage triage to separate true compile/runtime faults from gate drift.
+- **Applies when:** Post-merge stabilization, release cut prep, "site not loading after PR flurry" reports.
+- **Avoid when:** Quick local prototyping where CI/deploy gates are intentionally bypassed.
+- **Evidence:** April 4, 2026 recovery pass: build/typecheck were green while deployment gate failed on Prettier drift in `TripChat.tsx`, `useStreamTripChat.ts`, and Supabase generated types; format-only fix restored full gate.
+- **Provenance:** 2026-04-04 build recovery triage.
 - **Confidence:** high

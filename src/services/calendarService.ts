@@ -78,7 +78,12 @@ export const calendarService = {
    * Check if the new event overlaps with any existing events.
    * Returns an array of conflicting event titles (empty if no conflicts).
    */
-  async checkForConflicts(tripId: string, startTime: string, endTime?: string): Promise<string[]> {
+  async checkForConflicts(
+    tripId: string,
+    startTime: string,
+    endTime?: string,
+    excludeId?: string,
+  ): Promise<string[]> {
     try {
       const events = await this.getTripEvents(tripId);
       const newStart = new Date(startTime).getTime();
@@ -87,6 +92,9 @@ export const calendarService = {
       const conflicts: string[] = [];
 
       for (const event of events) {
+        // Skip the event being edited so it doesn't conflict with itself
+        if (excludeId && event.id === excludeId) continue;
+
         const eventStart = new Date(event.start_time).getTime();
         const eventEnd = event.end_time ? new Date(event.end_time).getTime() : eventStart + 3600000; // Default 1 hour if no end time
 
@@ -434,7 +442,7 @@ export const calendarService = {
     // Use versioned RPC when version is available to prevent concurrent overwrites.
     // Falls back to direct UPDATE for events created before version column existed.
     if (currentVersion != null) {
-      const { error: rpcError } = await (supabase as any).rpc('update_event_with_version', {
+      const { error: rpcError } = await (supabase as unknown).rpc('update_event_with_version', {
         // intentional: RPC not in generated types yet
         p_event_id: eventId,
         p_current_version: currentVersion,
@@ -494,7 +502,7 @@ export const calendarService = {
       .update({
         ...(updates as Record<string, unknown>),
         updated_at: new Date().toISOString(),
-      } as any) // intentional: TripEvent partial lacks Json index signature
+      } as unknown) // intentional: TripEvent partial lacks Json index signature
       .eq('id', eventId)
       .select()
       .single();
@@ -583,6 +591,67 @@ export const calendarService = {
         console.error('Error deleting event:', error);
       }
       return false;
+    }
+  },
+
+  /**
+   * Bulk delete events by IDs. Tries a single DELETE query first.
+   * Only chunks if the ID list exceeds PostgREST URL limits (~200 UUIDs).
+   * Returns structured result with alreadyMissing count for stale preview handling.
+   */
+  async bulkDeleteEvents(
+    eventIds: string[],
+    tripId: string,
+  ): Promise<{ deleted: number; alreadyMissing: number; failed: number }> {
+    if (eventIds.length === 0) return { deleted: 0, alreadyMissing: 0, failed: 0 };
+
+    try {
+      const CHUNK_SIZE = 200;
+      let totalDeleted = 0;
+      let totalFailed = 0;
+
+      const chunks: string[][] = [];
+      for (let i = 0; i < eventIds.length; i += CHUNK_SIZE) {
+        chunks.push(eventIds.slice(i, i + CHUNK_SIZE));
+      }
+
+      for (const chunk of chunks) {
+        const { data, error } = await supabase
+          .from('trip_events')
+          .delete()
+          .in('id', chunk)
+          .eq('trip_id', tripId)
+          .select('id');
+
+        if (error) {
+          // Fall back to parallel deletion for this chunk
+          const results = await Promise.all(chunk.map(id => this.deleteEvent(id, tripId)));
+          for (const ok of results) {
+            if (ok) totalDeleted++;
+            else totalFailed++;
+          }
+        } else {
+          totalDeleted += (data || []).length;
+        }
+      }
+
+      const alreadyMissing = eventIds.length - totalDeleted - totalFailed;
+
+      // Remove from offline cache
+      for (const id of eventIds) {
+        await offlineSyncService.removeCachedEntity('calendar_event', id);
+      }
+
+      return {
+        deleted: totalDeleted,
+        alreadyMissing: Math.max(0, alreadyMissing),
+        failed: totalFailed,
+      };
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error in bulkDeleteEvents:', error);
+      }
+      return { deleted: 0, alreadyMissing: 0, failed: eventIds.length };
     }
   },
 

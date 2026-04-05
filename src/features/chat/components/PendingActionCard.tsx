@@ -4,6 +4,8 @@ import type { PendingAction } from '@/hooks/usePendingActions';
 
 interface PendingActionCardProps {
   action: PendingAction;
+  title?: string;
+  detail?: string | null;
   onConfirm: (actionId: string) => void;
   onReject: (actionId: string) => void;
   isConfirming: boolean;
@@ -62,6 +64,8 @@ function getActionDetail(action: PendingAction): string | null {
 
 export function PendingActionCard({
   action,
+  title,
+  detail,
   onConfirm,
   onReject,
   isConfirming,
@@ -95,8 +99,8 @@ export function PendingActionCard({
     color: 'text-gray-400',
   };
   const Icon = config.icon;
-  const title = getActionTitle(action);
-  const detail = getActionDetail(action);
+  const resolvedTitle = title || getActionTitle(action);
+  const resolvedDetail = detail !== undefined ? detail : getActionDetail(action);
   const busy = isConfirming || isRejecting;
 
   return (
@@ -107,8 +111,10 @@ export function PendingActionCard({
           <p className="text-xs text-amber-400/80 font-medium">
             AI wants to create a {config.label}
           </p>
-          <p className="text-sm text-white font-medium truncate">{title}</p>
-          {detail && <p className="text-xs text-gray-400 truncate mt-0.5">{detail}</p>}
+          <p className="text-sm text-white font-medium truncate">{resolvedTitle}</p>
+          {resolvedDetail && (
+            <p className="text-xs text-gray-400 truncate mt-0.5">{resolvedDetail}</p>
+          )}
         </div>
       </div>
       <div className="flex gap-2">

@@ -227,7 +227,7 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                     </li>
                     <li className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
-                      10 AI queries per user per trip - double the free tier
+                      25 AI queries per user per trip
                     </li>
                     <li className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>

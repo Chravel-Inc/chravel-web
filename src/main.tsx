@@ -8,18 +8,23 @@ import { initRevenueCat } from '@/config/revenuecat';
 import { setupGlobalPurchaseListener } from '@/integrations/revenuecat/revenuecatClient';
 import { telemetry } from '@/telemetry/service';
 import { isLovablePreview } from './utils/env';
+import { Capacitor } from '@capacitor/core';
 import App from './App.tsx';
 import './index.css';
 
 // ── Startup env validation ──────────────────────────────────────────────────
-// Warn early if required env vars are missing (Supabase client has hardcoded
-// fallbacks so the app still boots, but this surfaces misconfig in dev/staging).
-const REQUIRED_ENV_VARS = ['VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY'] as const;
-const missingEnvVars = REQUIRED_ENV_VARS.filter(k => !import.meta.env[k]);
+// Supabase config is required at runtime. Accept either the modern
+// publishable key or legacy anon key.
+const hasSupabaseUrl = Boolean(import.meta.env.VITE_SUPABASE_URL);
+const hasSupabasePublicKey = Boolean(
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY,
+);
+const missingEnvVars = [
+  !hasSupabaseUrl ? 'VITE_SUPABASE_URL' : null,
+  !hasSupabasePublicKey ? 'VITE_SUPABASE_PUBLISHABLE_KEY (or VITE_SUPABASE_ANON_KEY)' : null,
+].filter(Boolean);
 if (missingEnvVars.length > 0) {
-  console.warn(
-    `[Chravel] Missing env vars: ${missingEnvVars.join(', ')}. Using hardcoded fallbacks.`,
-  );
+  console.warn(`[Chravel] Missing env vars: ${missingEnvVars.join(', ')}.`);
 }
 
 // ── Imperative init (runs after all imports are resolved) ──────────────────
@@ -49,14 +54,27 @@ const clearAllCaches = (): void => {
   }
 };
 
-// Unregister stale service workers from old hosts on first load
-if ('serviceWorker' in navigator) {
+// Skip all service worker operations on native — Capacitor bundles assets locally,
+// so the SW's 22.8 MB precache is pure overhead. Push notifications on native use
+// @capacitor/push-notifications (APNs), not the web push handler in sw.js.
+const isNativePlatform = Capacitor.isNativePlatform();
+
+// Unregister stale service workers from old hosts on first load.
+// NOTE: This runs before registerServiceWorker() below to avoid unregistering
+// the freshly-registered worker. The .then() chain is already non-blocking.
+if (!isNativePlatform && 'serviceWorker' in navigator) {
   navigator.serviceWorker
     .getRegistrations()
     .then(registrations => {
       registrations.forEach(reg => reg.unregister());
     })
     .catch(() => {});
+}
+
+// Initialize theme
+const theme = safeLocalStorageGet('theme');
+if (theme === 'light') {
+  document.documentElement.classList.add('light');
 }
 
 // Preview hardening: always clear stale caches (prevents sticky blank preview states)
@@ -77,13 +95,19 @@ if (isLovablePreview()) {
   }
 }
 
-// Register service worker for offline support
-if (import.meta.env.PROD) {
+// Register service worker for offline support (web only)
+if (import.meta.env.PROD && !isNativePlatform) {
   registerServiceWorker();
 }
 
 // Initialize native lifecycle listeners as early as possible (no-op on web).
 initNativeLifecycle();
+
+// Capacitor/TestFlight: warm the home dashboard chunk in parallel with first paint so
+// navigating to `/` after auth does not wait on an extra lazy-import round trip.
+if (Capacitor.isNativePlatform()) {
+  void import('./pages/Index');
+}
 
 // Initialize PostHog analytics
 telemetry.init().catch(err => console.warn('[Telemetry] Init failed:', err));
@@ -102,8 +126,12 @@ window.addEventListener('error', (e: ErrorEvent) => {
 // Initialize RevenueCat for subscription management
 initRevenueCat().catch(err => console.warn('[RevenueCat] Init failed:', err));
 
-// Initialize global listener for native purchases
-setupGlobalPurchaseListener();
+// Initialize global listener for native purchases (deferred — not needed before first paint)
+if ('requestIdleCallback' in window) {
+  requestIdleCallback(() => setupGlobalPurchaseListener());
+} else {
+  setTimeout(() => setupGlobalPurchaseListener(), 0);
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

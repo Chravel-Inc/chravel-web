@@ -1,5 +1,4 @@
 import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
-import { PendingTripCard } from '../PendingTripCard';
 import { PendingTripCard as RequestTripCard } from '../trip/PendingTripCard';
 import { EventCard } from '../EventCard';
 import { MobileEventCard } from '../MobileEventCard';
@@ -24,7 +23,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { ToastAction } from '../ui/toast';
 import { useQueryClient } from '@tanstack/react-query';
-import { PendingTripRequest } from '@/hooks/useMyPendingTrips';
+import type { DashboardJoinRequest } from '@/hooks/useDashboardJoinRequests';
+import { useNavigate } from 'react-router-dom';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { SortableTripGrid } from '../dashboard/SortableTripGrid';
@@ -53,7 +53,7 @@ interface TripGridProps {
   loading?: boolean;
   onCreateTrip?: () => void;
   activeFilter?: string;
-  myPendingRequests?: PendingTripRequest[];
+  dashboardJoinRequests?: DashboardJoinRequest[];
   // Callback when a trip is archived/hidden/deleted (for demo mode refresh)
   onTripStateChange?: () => void;
 }
@@ -68,10 +68,11 @@ export const TripGrid = React.memo(
     loading = false,
     onCreateTrip,
     activeFilter = 'all',
-    myPendingRequests = [],
+    dashboardJoinRequests = [],
     onTripStateChange,
   }: TripGridProps) => {
     const isMobile = useIsMobile();
+    const navigate = useNavigate();
     const [manualLocation, setManualLocation] = useState<string>('');
     const { toggleSave } = useSavedRecommendations();
     const { user } = useAuth();
@@ -94,6 +95,11 @@ export const TripGrid = React.memo(
     const { tier: _tier } = useConsumerSubscription();
     const { deleteTrip } = useDeleteTrip();
     const [reorderMode, setReorderMode] = useState<'my_trips' | 'pro' | 'events' | null>(null);
+
+    // Stable identity fns for dnd-kit — inline lambdas change every render and retrigger order sync.
+    const getMyTripId = useCallback((trip: Trip) => trip.id.toString(), []);
+    const getProTripId = useCallback((trip: ProTripData) => trip.id, []);
+    const getEventId = useCallback((event: EventData) => event.id, []);
 
     // State for optimistically deleted trips (pending undo timeout)
     const [pendingDeleteIds, setPendingDeleteIds] = useState<Set<string>>(new Set());
@@ -318,7 +324,7 @@ export const TripGrid = React.memo(
     // Check if we have content for the current view mode (using filtered data)
     const hasContent =
       activeFilter === 'requests'
-        ? myPendingRequests.length > 0
+        ? dashboardJoinRequests.length > 0
         : activeFilter === 'archived'
           ? archivedTrips.length > 0
           : viewMode === 'myTrips'
@@ -339,7 +345,7 @@ export const TripGrid = React.memo(
             icon: Clock,
             title: 'No pending requests',
             description:
-              "Trips you've requested to join will appear here until approved by the trip admin.",
+              'Outgoing: trips you asked to join. Incoming: people waiting for approval on trips you help manage. Open a trip’s People tab to approve.',
             actionLabel: undefined,
             onAction: undefined,
           };
@@ -452,17 +458,39 @@ export const TripGrid = React.memo(
             className={`grid gap-6 w-full ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3'}`}
           >
             {activeFilter === 'requests' ? (
-              myPendingRequests.map(request => (
-                <RequestTripCard
-                  key={request.id}
-                  tripId={request.trip_id}
-                  tripName={request.trip?.name || 'Trip'}
-                  destination={request.trip?.destination}
-                  startDate={request.trip?.start_date}
-                  coverImage={request.trip?.cover_image_url}
-                  requestedAt={request.requested_at}
-                />
-              ))
+              dashboardJoinRequests.map(request => {
+                const isInbound = request.direction === 'inbound';
+                const tripType = request.trip?.trip_type;
+                const path =
+                  tripType === 'pro'
+                    ? `/pro-trip/${request.trip_id}`
+                    : tripType === 'event'
+                      ? `/event/${request.trip_id}`
+                      : `/trip/${request.trip_id}`;
+                const openTripPeople = () =>
+                  navigate(`${path}?showCollaborators=${isInbound ? 'requests' : 'members'}`);
+
+                return (
+                  <RequestTripCard
+                    key={request.id}
+                    tripId={request.trip_id}
+                    tripName={request.trip?.name || 'Trip'}
+                    destination={request.trip?.destination}
+                    startDate={request.trip?.start_date}
+                    coverImage={request.trip?.cover_image_url}
+                    requestedAt={request.requested_at}
+                    statusBadge={isInbound ? 'Wants to join' : 'Pending Approval'}
+                    subtitle={
+                      isInbound
+                        ? `${request.requesterLabel ?? 'Someone'} requested to join`
+                        : undefined
+                    }
+                    interactive={isInbound}
+                    ctaLabel={isInbound ? 'Review in trip' : undefined}
+                    onCta={isInbound ? openTripPeople : undefined}
+                  />
+                );
+              })
             ) : activeFilter === 'archived' ? (
               archivedTrips.map(trip => (
                 <ArchivedTripCard
@@ -478,7 +506,7 @@ export const TripGrid = React.memo(
                 {/* Sortable active trips */}
                 <SortableTripGrid
                   items={activeTrips}
-                  getId={trip => trip.id.toString()}
+                  getId={getMyTripId}
                   renderCard={trip => (
                     <SwipeableTripCardWrapper
                       trip={trip}
@@ -487,7 +515,7 @@ export const TripGrid = React.memo(
                       onDelete={handleSwipeDelete}
                       onTripStateChange={onTripStateChange}
                       reorderMode={reorderMode === 'my_trips'}
-                      priority={false}
+                      priority={!isMobile}
                     />
                   )}
                   dashboardType="my_trips"
@@ -497,8 +525,17 @@ export const TripGrid = React.memo(
                   onLongPressEnterReorder={() => setReorderMode('my_trips')}
                 />
                 {/* Pending trips after (not draggable) */}
-                {activePendingTrips.map(trip => (
-                  <PendingTripCard key={trip.id} trip={trip} />
+                {activePendingTrips.map(request => (
+                  <RequestTripCard
+                    key={request.id}
+                    tripId={String(request.id)}
+                    tripName={request.title || 'Trip'}
+                    destination={request.location}
+                    startDate={request.dateRange}
+                    coverImage={undefined}
+                    requestedAt={undefined}
+                    statusBadge="Pending Approval"
+                  />
                 ))}
                 {/* Reorder mode Done button */}
                 {reorderMode === 'my_trips' && (
@@ -513,7 +550,7 @@ export const TripGrid = React.memo(
               <>
                 <SortableTripGrid
                   items={Object.values(activeProTrips)}
-                  getId={trip => trip.id}
+                  getId={getProTripId}
                   renderCard={trip => (
                     <SwipeableProTripCardWrapper
                       trip={trip}
@@ -542,7 +579,7 @@ export const TripGrid = React.memo(
               <>
                 <SortableTripGrid
                   items={Object.values(activeEvents)}
-                  getId={event => event.id}
+                  getId={getEventId}
                   renderCard={event =>
                     isMobile ? (
                       <MobileEventCard

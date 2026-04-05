@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -19,18 +19,21 @@ import {
 } from 'lucide-react';
 import { CampaignWithTargeting, CampaignStats } from '@/types/advertiser';
 import { AdvertiserService } from '@/services/advertiserService';
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from 'recharts';
+
+const LineChart = lazy(() => import('recharts').then(module => ({ default: module.LineChart })));
+const Line = lazy(() => import('recharts').then(module => ({ default: module.Line })));
+const BarChart = lazy(() => import('recharts').then(module => ({ default: module.BarChart })));
+const Bar = lazy(() => import('recharts').then(module => ({ default: module.Bar })));
+const XAxis = lazy(() => import('recharts').then(module => ({ default: module.XAxis })));
+const YAxis = lazy(() => import('recharts').then(module => ({ default: module.YAxis })));
+const CartesianGrid = lazy(() =>
+  import('recharts').then(module => ({ default: module.CartesianGrid })),
+);
+const Tooltip = lazy(() => import('recharts').then(module => ({ default: module.Tooltip })));
+const Legend = lazy(() => import('recharts').then(module => ({ default: module.Legend })));
+const ResponsiveContainer = lazy(() =>
+  import('recharts').then(module => ({ default: module.ResponsiveContainer })),
+);
 
 interface CampaignAnalyticsProps {
   campaigns: CampaignWithTargeting[];
@@ -231,28 +234,32 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
               <CardTitle className="text-white">Performance Trends</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={performanceData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                  <XAxis dataKey="date" stroke="#9ca3af" />
-                  <YAxis stroke="#9ca3af" />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'rgba(0,0,0,0.8)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      borderRadius: '8px',
-                    }}
-                  />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="impressions"
-                    stroke="hsl(42, 92%, 56%)"
-                    name="Impressions"
-                  />
-                  <Line type="monotone" dataKey="clicks" stroke="#3b82f6" name="Clicks" />
-                </LineChart>
-              </ResponsiveContainer>
+              <Suspense
+                fallback={<div className="h-full w-full bg-muted/20 rounded-md animate-pulse" />}
+              >
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={performanceData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                    <XAxis dataKey="date" stroke="#9ca3af" />
+                    <YAxis stroke="#9ca3af" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'rgba(0,0,0,0.8)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '8px',
+                      }}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="impressions"
+                      stroke="hsl(42, 92%, 56%)"
+                      name="Impressions"
+                    />
+                    <Line type="monotone" dataKey="clicks" stroke="#3b82f6" name="Clicks" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </Suspense>
             </CardContent>
           </Card>
         </TabsContent>
@@ -263,23 +270,27 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
               <CardTitle className="text-white">Engagement Metrics</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={performanceData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                  <XAxis dataKey="date" stroke="#9ca3af" />
-                  <YAxis stroke="#9ca3af" />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'rgba(0,0,0,0.8)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      borderRadius: '8px',
-                    }}
-                  />
-                  <Legend />
-                  <Bar dataKey="saves" fill="hsl(42, 92%, 56%)" name="Saves" />
-                  <Bar dataKey="conversions" fill="#10b981" name="Conversions" />
-                </BarChart>
-              </ResponsiveContainer>
+              <Suspense
+                fallback={<div className="h-full w-full bg-muted/20 rounded-md animate-pulse" />}
+              >
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={performanceData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                    <XAxis dataKey="date" stroke="#9ca3af" />
+                    <YAxis stroke="#9ca3af" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'rgba(0,0,0,0.8)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '8px',
+                      }}
+                    />
+                    <Legend />
+                    <Bar dataKey="saves" fill="hsl(42, 92%, 56%)" name="Saves" />
+                    <Bar dataKey="conversions" fill="#10b981" name="Conversions" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Suspense>
             </CardContent>
           </Card>
         </TabsContent>

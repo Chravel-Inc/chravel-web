@@ -33,11 +33,13 @@ export interface ImpressionParams {
   tripId?: string;
   surface: 'recs_page' | 'trip_detail' | 'concierge' | 'home';
   position: number;
+  campaignId?: string;
 }
 
 export interface ClickParams {
   impressionId: string;
   action: 'view' | 'save' | 'book' | 'external_link' | 'add_to_trip' | 'hide';
+  campaignId?: string;
 }
 
 export class RecommendationService {
@@ -46,7 +48,7 @@ export class RecommendationService {
    */
   static async getOrganicItems(filters?: RecommendationFilters): Promise<Recommendation[]> {
     // intentional: recommendation_items not yet in generated types
-    let query = (supabase as any)
+    let query = (supabase as unknown)
       .from('recommendation_items')
       .select('*')
       .eq('is_active', true)
@@ -136,7 +138,7 @@ export class RecommendationService {
    */
   static async trackImpression(params: ImpressionParams): Promise<string | null> {
     // intentional: recommendation tables not yet in generated types
-    const { data, error } = await (supabase as any)
+    const { data, error } = await (supabase as unknown)
       .from('recommendation_impressions')
       .insert({
         item_id: params.itemId,
@@ -154,6 +156,11 @@ export class RecommendationService {
       return null;
     }
 
+    // Wire up to advertiser platform for sponsored items
+    if (params.itemType === 'sponsored' && params.campaignId) {
+      AdvertiserService.trackEvent(params.campaignId, 'impression').catch(() => {});
+    }
+
     return data?.id || null;
   }
 
@@ -163,13 +170,20 @@ export class RecommendationService {
    */
   static async trackClick(params: ClickParams): Promise<void> {
     // intentional: recommendation tables not yet in generated types
-    const { error } = await (supabase as any).from('recommendation_clicks').insert({
+    const { error } = await (supabase as unknown).from('recommendation_clicks').insert({
       impression_id: params.impressionId,
       action: params.action,
     });
 
     if (error) {
       // Tracking failures should not break the user experience
+    }
+
+    // Wire up to advertiser platform for sponsored items
+    if (params.campaignId) {
+      // If it's a save action, track as save, else click
+      const eventType: 'click' | 'conversion' | 'impression' = 'click';
+      AdvertiserService.trackEvent(params.campaignId, eventType).catch(() => {});
     }
   }
 
@@ -183,7 +197,7 @@ export class RecommendationService {
     feedbackType: 'not_interested' | 'hide' | 'report' | 'save' | 'love';
   }): Promise<void> {
     // intentional: recommendation tables not yet in generated types
-    const { error } = await (supabase as any).from('recommendation_feedback').insert({
+    const { error } = await (supabase as unknown).from('recommendation_feedback').insert({
       user_id: params.userId,
       item_id: params.itemId,
       item_type: params.itemType,
@@ -201,7 +215,7 @@ export class RecommendationService {
    */
   static async getHiddenItemIds(userId: string): Promise<string[]> {
     // intentional: recommendation tables not yet in generated types
-    const { data, error } = await (supabase as any)
+    const { data, error } = await (supabase as unknown)
       .from('recommendation_feedback')
       .select('item_id')
       .eq('user_id', userId)
@@ -211,6 +225,6 @@ export class RecommendationService {
       return [];
     }
 
-    return (data || []).map(row => row.item_id);
+    return (data || []).map((row: { item_id: string }) => row.item_id);
   }
 }

@@ -22,6 +22,7 @@ import type {
 } from './useGeminiLive';
 import { LIVEKIT_WS_URL } from '@/config/voiceFeatureFlags';
 import * as circuitBreaker from '@/voice/circuitBreaker';
+import type { FailureCategory } from '@/voice/circuitBreaker';
 import { supabase } from '@/integrations/supabase/client';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -72,6 +73,8 @@ async function ensureLiveKitLoaded(): Promise<void> {
 // ── Constants ──────────────────────────────────────────────────────────────────
 
 const AGENT_JOIN_TIMEOUT_MS = 10_000;
+const CONVERSATION_TIMEOUT_MS = 30_000;
+const TOKEN_FETCH_TIMEOUT_MS = 8_000;
 
 const decoder = new TextDecoder();
 
@@ -124,6 +127,8 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
 
   const roomRef = useRef<InstanceType<typeof import('livekit-client').Room> | null>(null);
   const sessionActiveRef = useRef(false);
+  const wsUrlRef = useRef<string>('');
+  const conversationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Accumulated turn data for onTurnComplete
   const turnUserTextRef = useRef('');
@@ -142,9 +147,17 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
   // ── Data Message Handler ─────────────────────────────────────────────────
 
   const handleDataMessage = useCallback(
-    (payload: Uint8Array, _participant: unknown, topic?: string) => {
+    (payload: Uint8Array, _participant?: unknown, _kind?: unknown, topic?: string) => {
       try {
         const msg = JSON.parse(decoder.decode(payload));
+
+        // Any agent data message clears the conversation timeout
+        if (topic !== 'error') {
+          if (conversationTimeoutRef.current) {
+            clearTimeout(conversationTimeoutRef.current);
+            conversationTimeoutRef.current = null;
+          }
+        }
 
         switch (topic) {
           case 'transcript':
@@ -153,6 +166,13 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
               if (msg.isFinal) {
                 turnUserTextRef.current = msg.text;
                 setConversationHistory(prev => [...prev, { role: 'user', text: msg.text }]);
+                // Start conversation timeout — agent should respond within 30s
+                conversationTimeoutRef.current = setTimeout(() => {
+                  if (sessionActiveRef.current) {
+                    setError('Agent is not responding. Try again or restart the session.');
+                    setState('error');
+                  }
+                }, CONVERSATION_TIMEOUT_MS);
               }
             } else if (msg.role === 'assistant') {
               setAssistantTranscript(msg.text);
@@ -186,6 +206,19 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
               setState('sending');
             else if (msg.state === 'idle') setState('listening');
             break;
+
+          case 'error':
+            // Agent-side error (e.g., Gemini API failure, tool execution crash)
+            setError(msg.message || 'Agent encountered an error');
+            setState('error');
+            setDiagnostics(prev => ({
+              ...prev,
+              connectionStatus: 'error',
+              lastError: msg.message,
+            }));
+            onError?.(msg.message || 'Agent encountered an error');
+            circuitBreaker.recordFailure(msg.message || 'agent_error', {}, 'fatal');
+            break;
         }
       } catch {
         // Ignore malformed data messages
@@ -193,6 +226,52 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
     },
     [],
   );
+
+  // ── Fetch Token Helper ───────────────────────────────────────────────────
+
+  const fetchLiveKitToken = useCallback(async (): Promise<string> => {
+    const {
+      data: { session: authSession },
+    } = await supabase.auth.getSession();
+    if (!authSession?.access_token) {
+      throw new Error('Not authenticated');
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TOKEN_FETCH_TIMEOUT_MS);
+
+    let tokenRes: Response;
+    try {
+      tokenRes = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL || ''}/functions/v1/livekit-token`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${authSession.access_token}`,
+          },
+          body: JSON.stringify({ tripId, voice }),
+          signal: controller.signal,
+        },
+      );
+    } catch (fetchErr) {
+      clearTimeout(timeoutId);
+      if (fetchErr instanceof DOMException && fetchErr.name === 'AbortError') {
+        throw new Error('Voice service did not respond. Check that LiveKit is configured.');
+      }
+      throw new Error('Could not reach voice service. Please try again.');
+    }
+    clearTimeout(timeoutId);
+
+    if (!tokenRes.ok) {
+      const errBody = await tokenRes.json().catch(() => ({}));
+      throw new Error(errBody.error || `Token request failed: ${tokenRes.status}`);
+    }
+
+    const { token, wsUrl } = await tokenRes.json();
+    wsUrlRef.current = wsUrl || LIVEKIT_WS_URL;
+    return token;
+  }, [tripId, voice]);
 
   // ── Start Session ────────────────────────────────────────────────────────
 
@@ -215,31 +294,7 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
       }));
 
       // ── Fetch LiveKit token ──────────────────────────────────────────────
-      const {
-        data: { session: authSession },
-      } = await supabase.auth.getSession();
-      if (!authSession?.access_token) {
-        throw new Error('Not authenticated');
-      }
-
-      const tokenRes = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL || ''}/functions/v1/livekit-token`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${authSession.access_token}`,
-          },
-          body: JSON.stringify({ tripId, voice }),
-        },
-      );
-
-      if (!tokenRes.ok) {
-        const errBody = await tokenRes.json().catch(() => ({}));
-        throw new Error(errBody.error || `Token request failed: ${tokenRes.status}`);
-      }
-
-      const { token, wsUrl } = await tokenRes.json();
+      const token = await fetchLiveKitToken();
       setDiagnostics(prev => ({ ...prev, substep: 'Loading LiveKit' }));
 
       // ── Dynamic import LiveKit ───────────────────────────────────────────
@@ -257,10 +312,35 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
       // Listen for data messages from agent
       room.on(RoomEvent!.DataReceived, handleDataMessage);
 
+      // Attach audio tracks when they are subscribed
+      room.on(RoomEvent!.TrackSubscribed, track => {
+        if (track.kind === 'audio') {
+          track.attach();
+        }
+      });
+
+      // Detach audio tracks when they are unsubscribed
+      room.on(RoomEvent!.TrackUnsubscribed, track => {
+        if (track.kind === 'audio') {
+          track.detach();
+        }
+      });
+
       // Track agent join
+      // Track agent join - use isAgent property set by LiveKit SDK
+      // isAgent checks participant.kind === ParticipantKind.AGENT (value 4)
       let agentJoined = false;
+
+      // Helper to check if participant is an agent
+      // Primary: isAgent property (SDK v2+)
+      // Fallback: identity prefix (server naming convention)
+      const isAgentParticipant = (p: unknown): boolean => {
+        const participant = p as { isAgent?: boolean; identity?: string };
+        return participant.isAgent === true || participant.identity?.startsWith('agent-') === true;
+      };
+
       room.on(RoomEvent!.ParticipantConnected, participant => {
-        if (participant.identity?.startsWith('agent-')) {
+        if (isAgentParticipant(participant)) {
           agentJoined = true;
           setState('listening');
           setDiagnostics(prev => ({
@@ -269,6 +349,41 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
             substep: null,
           }));
           circuitBreaker.recordSuccess();
+        }
+      });
+
+      // Detect agent disconnect mid-session
+      room.on(RoomEvent!.ParticipantDisconnected, participant => {
+        if (isAgentParticipant(participant) && sessionActiveRef.current) {
+          agentJoined = false;
+          setError('Voice agent disconnected. Waiting for reconnect...');
+          setState('reconnecting');
+          setDiagnostics(prev => ({
+            ...prev,
+            connectionStatus: 'connecting',
+            substep: 'Agent disconnected, waiting for respawn',
+          }));
+          // LiveKit Cloud auto-dispatches a new agent — wait for it
+          const agentRespawnTimeout = setTimeout(() => {
+            if (!agentJoined && sessionActiveRef.current) {
+              setError('Voice agent did not reconnect. Please try again.');
+              setState('error');
+              circuitBreaker.recordFailure('agent_respawn_timeout', {}, 'transient');
+            }
+          }, AGENT_JOIN_TIMEOUT_MS);
+          room.once(RoomEvent!.ParticipantConnected, p => {
+            if (isAgentParticipant(p)) {
+              clearTimeout(agentRespawnTimeout);
+              agentJoined = true;
+              setState('listening');
+              setError(null);
+              setDiagnostics(prev => ({
+                ...prev,
+                connectionStatus: 'open',
+                substep: null,
+              }));
+            }
+          });
         }
       });
 
@@ -293,7 +408,9 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
           if (!sessionActiveRef.current) return;
 
           try {
-            await room.connect(wsUrl || LIVEKIT_WS_URL, token);
+            // Fetch a fresh token on each reconnect attempt (original may have expired)
+            const freshToken = await fetchLiveKitToken();
+            await room.connect(wsUrlRef.current, freshToken);
             await room.localParticipant.setMicrophoneEnabled(true);
             setState('ready');
             setDiagnostics(prev => ({
@@ -317,7 +434,7 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
           substep: null,
         }));
         onError?.('Connection lost. Please try again.');
-        circuitBreaker.recordFailure('reconnect_failed');
+        circuitBreaker.recordFailure('reconnect_failed', {}, 'transient');
         if (circuitBreaker.isOpen()) {
           setCircuitBreakerOpen(true);
           onCircuitBreakerOpen?.();
@@ -325,7 +442,7 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
       });
 
       // Connect
-      await room.connect(wsUrl || LIVEKIT_WS_URL, token);
+      await room.connect(wsUrlRef.current, token);
       setDiagnostics(prev => ({ ...prev, substep: 'Enabling microphone' }));
 
       // Enable local mic (WebRTC handles capture, encoding, echo cancellation)
@@ -341,7 +458,7 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
           }, AGENT_JOIN_TIMEOUT_MS);
 
           room.on(RoomEvent!.ParticipantConnected, participant => {
-            if (participant.identity?.startsWith('agent-')) {
+            if (isAgentParticipant(participant)) {
               clearTimeout(timeout);
               agentJoined = true;
               setState('listening');
@@ -357,7 +474,7 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
 
           // Check if agent already joined during connection
           for (const [, p] of room.remoteParticipants) {
-            if (p.identity?.startsWith('agent-')) {
+            if (isAgentParticipant(p)) {
               clearTimeout(timeout);
               agentJoined = true;
               setState('listening');
@@ -375,6 +492,14 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to start voice session';
+      // Classify error: mic denial is user-caused, timeouts are transient, rest is fatal
+      const errName = err instanceof Error ? err.name : '';
+      let category: FailureCategory = 'fatal';
+      if (errName === 'NotAllowedError' || msg.includes('Permission denied')) {
+        category = 'user';
+      } else if (msg.includes('timeout') || msg.includes('429') || msg.includes('rate limit')) {
+        category = 'transient';
+      }
       setError(msg);
       setState('error');
       setDiagnostics(prev => ({
@@ -384,7 +509,7 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
         substep: null,
       }));
       onError?.(msg);
-      circuitBreaker.recordFailure(msg);
+      circuitBreaker.recordFailure(msg, {}, category);
       if (circuitBreaker.isOpen()) {
         setCircuitBreakerOpen(true);
         onCircuitBreakerOpen?.();
@@ -400,12 +525,16 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
         roomRef.current = null;
       }
     }
-  }, [tripId, voice, handleDataMessage, onError, onCircuitBreakerOpen]);
+  }, [tripId, voice, handleDataMessage, onError, onCircuitBreakerOpen, fetchLiveKitToken]);
 
   // ── End Session ──────────────────────────────────────────────────────────
 
   const endSession = useCallback(async () => {
     sessionActiveRef.current = false;
+    if (conversationTimeoutRef.current) {
+      clearTimeout(conversationTimeoutRef.current);
+      conversationTimeoutRef.current = null;
+    }
     if (roomRef.current) {
       try {
         roomRef.current.disconnect();
@@ -445,6 +574,9 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
 
   useEffect(() => {
     return () => {
+      if (conversationTimeoutRef.current) {
+        clearTimeout(conversationTimeoutRef.current);
+      }
       if (roomRef.current) {
         try {
           roomRef.current.disconnect();

@@ -33,7 +33,9 @@ on:
         required: false
         default: 'Bug fixes and improvements'
 
-  # Auto-trigger on tags
+  # Auto-trigger on version tags — runs full build + TestFlight upload.
+  # Note: chravel-mobile (Expo/EAS) is the primary iOS pipeline.
+  # This Capacitor workflow is for manual releases or tag-based builds.
   push:
     tags:
       - 'v*.*.*'
@@ -188,7 +190,7 @@ jobs:
       # Version Management
       # -----------------------------------------------------------------------
       - name: Bump version
-        if: ${{ github.event.inputs.version_bump != 'none' }}
+        if: ${{ github.event.inputs.version_bump && github.event.inputs.version_bump != 'none' }}
         run: |
           cd ios-release/fastlane
           bundle exec fastlane bump_version type:${{ github.event.inputs.version_bump }}
@@ -255,9 +257,11 @@ jobs:
     name: Deploy to TestFlight
     needs: build
     runs-on: macos-14
-    if: ${{ github.event.inputs.release_type == 'testflight' || github.event.inputs.release_type == 'appstore' }}
+    if: >-
+      ${{ github.event_name == 'push'
+      || github.event.inputs.release_type == 'testflight'
+      || github.event.inputs.release_type == 'appstore' }}
     timeout-minutes: 30
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -285,7 +289,7 @@ jobs:
           cd ios-release/fastlane
           bundle exec fastlane pilot upload \
             --ipa build/Chravel.ipa \
-            --changelog "${{ github.event.inputs.changelog }}" \
+            --changelog "${{ github.event.inputs.changelog || format('Automated build from {0}', github.sha) }}" \
             --skip_waiting_for_build_processing
 
       - name: Notify success
@@ -386,13 +390,13 @@ jobs:
 
             Build: ${{ needs.build.outputs.build_number }}
 
-            ${{ github.event.inputs.changelog }}
+            ${{ github.event.inputs.changelog || 'See commit history for changes.' }}
 
             ---
             📱 [TestFlight](https://testflight.apple.com/join/YOUR_LINK)
           files: |
             release/Chravel.ipa
           draft: false
-          prerelease: ${{ github.event.inputs.release_type == 'testflight' }}
+          prerelease: ${{ github.event.inputs.release_type != 'appstore' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -13,7 +13,7 @@ import {
   addMonths,
   subMonths,
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { AlertTriangle, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -56,6 +56,31 @@ export const CalendarGrid = ({
     });
     return map;
   }, [events]);
+
+  // Detect days with overlapping events
+  const conflictDays = useMemo(() => {
+    const result = new Set<string>();
+    eventsByDate.forEach((dayEvents, dateKey) => {
+      if (dayEvents.length < 2) return;
+      for (let i = 0; i < dayEvents.length; i++) {
+        for (let j = i + 1; j < dayEvents.length; j++) {
+          const a = dayEvents[i];
+          const b = dayEvents[j];
+          // Skip all-day vs all-day — those don't "conflict" visually
+          if (a.is_all_day && b.is_all_day) continue;
+          const aStart = a.date.getTime();
+          const aEnd = a.end_time ? a.end_time.getTime() : aStart + 3600000;
+          const bStart = b.date.getTime();
+          const bEnd = b.end_time ? b.end_time.getTime() : bStart + 3600000;
+          if (aStart < bEnd && bStart < aEnd) {
+            result.add(dateKey);
+            return; // One conflict is enough to flag the day
+          }
+        }
+      }
+    });
+    return result;
+  }, [eventsByDate]);
 
   const getEventsForDay = (day: Date): CalendarEvent[] => {
     const dateKey = format(day, 'yyyy-MM-dd');
@@ -169,23 +194,32 @@ export const CalendarGrid = ({
 
               {/* Event Indicators */}
               <div className="space-y-1 overflow-hidden">
-                {dayEvents.slice(0, 3).map((event, _idx) => (
-                  <div
-                    key={event.id}
-                    className={cn(
-                      'text-xs px-1.5 py-0.5 rounded truncate',
-                      'bg-primary/10 text-primary border border-primary/20',
-                      'hover:bg-primary/20 transition-colors',
-                    )}
-                    onClick={e => {
-                      e.stopPropagation();
-                      onSelectDate(day);
-                    }}
-                  >
-                    {event.time && <span className="font-medium mr-1">{event.time}</span>}
-                    <span className="truncate">{event.title}</span>
-                  </div>
-                ))}
+                {dayEvents.slice(0, 3).map((event, _idx) => {
+                  const dayKey = format(day, 'yyyy-MM-dd');
+                  const hasConflict = conflictDays.has(dayKey);
+                  return (
+                    <div
+                      key={event.id}
+                      className={cn(
+                        'text-xs px-1.5 py-0.5 rounded truncate',
+                        hasConflict
+                          ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                          : 'bg-primary/10 text-primary border border-primary/20',
+                        'hover:bg-primary/20 transition-colors',
+                      )}
+                      onClick={e => {
+                        e.stopPropagation();
+                        onSelectDate(day);
+                      }}
+                    >
+                      {hasConflict && (
+                        <AlertTriangle className="inline h-2.5 w-2.5 mr-0.5 -mt-0.5" />
+                      )}
+                      {event.time && <span className="font-medium mr-1">{event.time}</span>}
+                      <span className="truncate">{event.title}</span>
+                    </div>
+                  );
+                })}
 
                 {dayEvents.length > 3 && (
                   <div className="text-xs text-muted-foreground px-1.5">

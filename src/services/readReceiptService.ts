@@ -9,8 +9,8 @@
 import { supabase } from '@/integrations/supabase/client';
 
 // Temporary type definitions until database types regenerated
-type ReadStatus = any;
-type ReadStatusInsert = any;
+type ReadStatus = unknown;
+type ReadStatusInsert = unknown;
 
 /**
  * Mark a message as read for the current user
@@ -101,7 +101,7 @@ export async function getMessagesReadStatus(
 
   // Group by message_id
   const grouped: Record<string, ReadStatus[]> = {};
-  (data || []).forEach((status: any) => {
+  (data || []).forEach((status: unknown) => {
     if (!grouped[status.message_id]) {
       grouped[status.message_id] = [];
     }

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { cn } from '@/lib/utils';
 
 interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -10,6 +10,8 @@ interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> 
   aspectRatio?: string;
   sizes?: string;
   priority?: boolean;
+  fit?: 'cover' | 'contain';
+  showBlurBackdrop?: boolean;
 }
 
 export const OptimizedImage: React.FC<OptimizedImageProps> = ({
@@ -21,6 +23,8 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   aspectRatio,
   sizes,
   priority = false,
+  fit = 'cover',
+  showBlurBackdrop = false,
   className,
   ...props
 }) => {
@@ -36,9 +40,14 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
     setIsLoaded(false);
   }, [src]);
 
-  // Intersection Observer for lazy loading
-  useEffect(() => {
+  // Intersection Observer for lazy loading — useLayoutEffect guarantees the ref
+  // is attached before we call observe(), preventing the race where useEffect
+  // fires before the wrapper div is in the DOM (seen in Capacitor WebView).
+  useLayoutEffect(() => {
     if (!lazy || priority || isInView) return;
+
+    const node = imgRef.current;
+    if (!node) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -53,9 +62,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
       },
     );
 
-    if (imgRef.current) {
-      observer.observe(imgRef.current);
-    }
+    observer.observe(node);
 
     return () => observer.disconnect();
   }, [lazy, priority, isInView]);
@@ -113,6 +120,17 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
       {/* Error state - silently show empty background */}
       {hasError && <div className="absolute inset-0 bg-transparent" />}
 
+      {isInView && showBlurBackdrop && !hasError && (
+        <img
+          src={currentSrc}
+          alt=""
+          aria-hidden="true"
+          loading="eager"
+          decoding="async"
+          className="absolute inset-0 w-full h-full object-cover blur-md scale-105 opacity-45"
+        />
+      )}
+
       {/* Actual image */}
       {isInView && (
         <img
@@ -121,14 +139,14 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
           srcSet={generateSrcSet(currentSrc)}
           sizes={sizes}
           loading={lazy && !priority ? 'lazy' : 'eager'}
-          fetchPriority={priority ? 'high' : 'auto'}
           decoding="async"
           onLoad={handleLoad}
           onError={handleError}
           className={cn(
             'transition-opacity duration-300',
             isLoaded ? 'opacity-100' : 'opacity-0',
-            'w-full h-full object-cover',
+            'w-full h-full',
+            fit === 'contain' ? 'object-contain' : 'object-cover',
           )}
           {...props}
         />

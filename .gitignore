@@ -34,6 +34,7 @@ dist-ssr
 .mcp.json
 .cursor/mcp_config.json
 .claude/worktrees/
+.claude/command-log.txt
 
 # Optimizer runtime data
 optimizer/.data/
@@ -44,3 +45,11 @@ tmp/loop-status/*
 tmp/loop-history/*
 !tmp/loop-status/.gitkeep
 !tmp/loop-history/.gitkeep
+ios-release/fastlane/README.md
+ios-release/fastlane/report.xml
+coverage/
+
+# Crash dumps / local scratch artifacts
+core
+core.*
+jules-scratch/

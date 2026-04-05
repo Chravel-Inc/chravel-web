@@ -101,7 +101,7 @@ export class StripeProcessor implements PaymentProcessor {
     }
   }
 
-  private mapStripeError(errorData: any): PaymentError {
+  private mapStripeError(errorData: unknown): PaymentError {
     const stripeErrorCode = errorData.code || errorData.type || 'unknown';
 
     // Map Stripe error codes to our error types

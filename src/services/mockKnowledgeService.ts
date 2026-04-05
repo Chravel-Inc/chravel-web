@@ -260,7 +260,7 @@ export class MockKnowledgeService {
     return date.toISOString().split('T')[0];
   }
 
-  static formatMockCitations(results: SearchResult[]): any[] {
+  static formatMockCitations(results: SearchResult[]): unknown[] {
     return results.map(result => ({
       id: result.id,
       content: result.content,

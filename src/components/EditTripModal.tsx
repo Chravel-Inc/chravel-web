@@ -17,6 +17,7 @@ import {
   normalizeLegacyCategory,
 } from '@/types/proCategories';
 import { useQueryClient } from '@tanstack/react-query';
+import { tripKeys } from '@/lib/queryKeys';
 import { parseDateRange, formatDateRange } from '@/utils/dateFormatters';
 import { tripService, Trip } from '@/services/tripService';
 import { useAuth } from '@/hooks/useAuth';
@@ -38,6 +39,7 @@ interface EditTripModalProps {
     location: string;
     dateRange: string;
     coverPhoto?: string;
+    coverDisplayMode?: 'cover' | 'contain';
     trip_type?: 'consumer' | 'pro' | 'event';
     card_color?: string;
     organizer_display_name?: string;
@@ -50,10 +52,13 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
-  const { coverPhoto, updateCoverPhoto, removeCoverPhoto } = useTripCoverPhoto(
-    trip.id.toString(),
-    trip.coverPhoto,
-  );
+  const {
+    coverPhoto,
+    coverDisplayMode,
+    updateCoverPhoto,
+    updateCoverDisplayMode,
+    removeCoverPhoto,
+  } = useTripCoverPhoto(trip.id.toString(), trip.coverPhoto, trip.coverDisplayMode ?? 'cover');
   const [formData, setFormData] = useState({
     name: '',
     destination: '',
@@ -142,6 +147,7 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
         location: formData.destination,
         dateRange: formatDateRange(formData.start_date, formData.end_date),
         coverPhoto: coverPhoto,
+        coverDisplayMode,
         ...(isProOrEvent && { card_color: selectedCardColor }),
         ...(isEvent && {
           organizer_display_name: formData.organizer_display_name.trim() || undefined,
@@ -165,8 +171,9 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
       const success = await tripService.updateTrip(trip.id.toString(), supabaseUpdates);
 
       if (success) {
-        // Invalidate React Query cache to immediately reflect changes in UI
-        queryClient.invalidateQueries({ queryKey: ['trips'] });
+        // Invalidate list + trip detail (detail key is ['trip', id, userId], not ['trips'])
+        queryClient.invalidateQueries({ queryKey: tripKeys.all });
+        queryClient.invalidateQueries({ queryKey: tripKeys.detail(trip.id.toString()) });
         if (onUpdate) onUpdate(mockUpdates);
         toast({
           title: 'Changes saved',
@@ -222,6 +229,37 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
               tripName={trip.title}
               className="h-48 w-full"
             />
+            <div className="mt-3">
+              <label className="text-xs text-gray-400 mb-2 block">Photo display</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => void updateCoverDisplayMode('cover')}
+                  disabled={loading}
+                  className={cn(
+                    'rounded-lg px-3 py-2 text-sm border transition-colors',
+                    coverDisplayMode === 'cover'
+                      ? 'bg-white/20 border-white/40 text-white'
+                      : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10',
+                  )}
+                >
+                  Fill Hero
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void updateCoverDisplayMode('contain')}
+                  disabled={loading}
+                  className={cn(
+                    'rounded-lg px-3 py-2 text-sm border transition-colors',
+                    coverDisplayMode === 'contain'
+                      ? 'bg-white/20 border-white/40 text-white'
+                      : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10',
+                  )}
+                >
+                  Show Full Image
+                </button>
+              </div>
+            </div>
             {trip.trip_type === 'pro' && (
               <p className="text-xs text-gray-400 mt-2">
                 For Enterprise trips, your photo will appear subtly in the background of the header

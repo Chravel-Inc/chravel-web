@@ -74,11 +74,57 @@ class RoleChannelService {
 
       if (error) throw error;
 
-      return (data || []).map((d: any) => ({
+      const channels = data || [];
+      const channelIds = channels.map((d: any) => d.id);
+      const memberCounts: Record<string, number> = {};
+
+      if (channelIds.length > 0) {
+        // 1. Explicit members
+        const { data: memberData } = await supabase
+          .from('channel_members')
+          .select('channel_id, user_id')
+          .in('channel_id', channelIds);
+
+        const channelMembersMap = new Map<string, Set<string>>();
+        (memberData || []).forEach(m => {
+          if (!channelMembersMap.has(m.channel_id)) channelMembersMap.set(m.channel_id, new Set());
+          channelMembersMap.get(m.channel_id)!.add(m.user_id);
+        });
+
+        // 2. Role-based members
+        const { data: roleAccess } = await supabase
+          .from('channel_role_access')
+          .select('channel_id, role_id')
+          .in('channel_id', channelIds);
+
+        const { data: userRoles } = await supabase
+          .from('user_trip_roles')
+          .select('user_id, role_id')
+          .eq('trip_id', tripId);
+
+        (roleAccess || []).forEach(access => {
+          if (!channelMembersMap.has(access.channel_id))
+            channelMembersMap.set(access.channel_id, new Set());
+          const users = (userRoles || []).filter(ur => ur.role_id === access.role_id);
+          users.forEach(u => channelMembersMap.get(access.channel_id)!.add(u.user_id));
+        });
+
+        // 3. Legacy required_role_id
+        channels.forEach((channel: any) => {
+          if (channel.required_role_id) {
+            if (!channelMembersMap.has(channel.id)) channelMembersMap.set(channel.id, new Set());
+            const users = (userRoles || []).filter(ur => ur.role_id === channel.required_role_id);
+            users.forEach(u => channelMembersMap.get(channel.id)!.add(u.user_id));
+          }
+          memberCounts[channel.id] = channelMembersMap.get(channel.id)?.size || 0;
+        });
+      }
+
+      return channels.map((d: any) => ({
         id: d.id,
         tripId: d.trip_id,
         roleName: d.channel_name,
-        memberCount: 0, // TODO: Calculate from roster
+        memberCount: memberCounts[d.id] || 0,
         createdAt: d.created_at,
         createdBy: d.created_by,
       }));
@@ -177,7 +223,7 @@ class RoleChannelService {
 
       if (error) throw error;
 
-      return (data || []).map((d: any) => ({
+      return (data || []).map((d: unknown) => ({
         id: d.id,
         channelId: d.channel_id,
         senderId: d.sender_id,

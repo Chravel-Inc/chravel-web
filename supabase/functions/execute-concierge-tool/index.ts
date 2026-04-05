@@ -21,6 +21,12 @@ import { executeFunctionCall } from '../_shared/functionExecutor.ts';
 import { generateCapabilityToken } from '../_shared/security/capabilityTokens.ts';
 import { executeToolSecurely } from '../_shared/security/toolRouter.ts';
 import { checkRateLimit } from '../_shared/security.ts';
+import { getBearerToken } from '../_shared/authHeaders.ts';
+import { verifyConciergeTripAccess } from '../_shared/concierge/tripAccess.ts';
+import {
+  checkMonthlyTokenBudget,
+  resolveUsagePlanForUser,
+} from '../_shared/concierge/usagePolicy.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -66,7 +72,13 @@ serve(async (req: Request) => {
     //    The key is a server-side env var, never exposed to browsers. When matched,
     //    userId is extracted from body (agent verified membership via livekit-token).
     // 2. User JWT: Browser sends Supabase JWT. Validated via auth.getUser().
-    const token = authHeader.replace('Bearer ', '');
+    const token = getBearerToken(authHeader);
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'Missing or invalid Authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     const isServiceRole = SUPABASE_SERVICE_ROLE_KEY && token === SUPABASE_SERVICE_ROLE_KEY;
 
     let supabase;
@@ -139,6 +151,35 @@ serve(async (req: Request) => {
       args !== null && typeof args === 'object' && !Array.isArray(args)
         ? (args as Record<string, unknown>)
         : {};
+
+    if (tripIdStr) {
+      const tripAccess = await verifyConciergeTripAccess(supabase, tripIdStr, userId);
+      if (!tripAccess.allowed) {
+        return new Response(JSON.stringify({ error: tripAccess.error }), {
+          status: tripAccess.status || 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    const usagePlanResolution = await resolveUsagePlanForUser(supabase, userId);
+    const tokenBudgetResult = await checkMonthlyTokenBudget(
+      supabase,
+      userId,
+      usagePlanResolution.usagePlan,
+    );
+    if (!tokenBudgetResult.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: 'Monthly AI budget reached for this plan. Please upgrade or try again next month.',
+          budget: tokenBudgetResult,
+        }),
+        {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      );
+    }
 
     // ── Resolve location context from trip basecamp for proximity-aware tools ──
     let locationContext: { lat?: number; lng?: number } | null = null;

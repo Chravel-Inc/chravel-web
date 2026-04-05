@@ -124,13 +124,13 @@ export class TypingIndicatorService {
   /**
    * Extract currently typing users from presence state
    */
-  private extractTypingUsers(state: Record<string, any[]>): TypingUser[] {
+  private extractTypingUsers(state: Record<string, unknown[]>): TypingUser[] {
     const typingUsers: TypingUser[] = [];
     const now = Date.now();
     const TYPING_TIMEOUT = 5000; // 5 seconds
 
     Object.values(state).forEach(presences => {
-      presences.forEach((presence: any) => {
+      presences.forEach((presence: unknown) => {
         if (
           presence.typing === true &&
           presence.userId !== this.userId &&

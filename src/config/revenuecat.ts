@@ -1,4 +1,6 @@
-import { Purchases } from '@revenuecat/purchases-js';
+import type { Purchases as PurchasesType } from '@revenuecat/purchases-js';
+
+let Purchases: typeof PurchasesType | null = null;
 import { isLovablePreview } from '@/utils/env';
 
 const REVENUECAT_API_KEY = import.meta.env.VITE_REVENUECAT_API_KEY || '';
@@ -23,7 +25,7 @@ export const canInitializeRevenueCat = (
  * Generates a unique anonymous user ID for RevenueCat.
  * Uses crypto.randomUUID if available, falls back to timestamp + random.
  */
-const generateAnonymousUserId = (): string => {
+export const generateAnonymousUserId = (): string => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return `anon_${crypto.randomUUID()}`;
   }
@@ -37,8 +39,9 @@ const generateAnonymousUserId = (): string => {
     return `anon_${hex}`;
   }
   // Last-resort fallback for environments with no Web Crypto API at all.
-  // Not cryptographically secure, but preferable to a ReferenceError crash.
-  return `anon_${Date.now().toString(36)}_${((Math.random() * 0xffffffff) >>> 0).toString(36)}`;
+  // We throw an error instead of using Math.random() as it is not cryptographically secure
+  // and could lead to predictable IDs and subscription hijacking.
+  throw new Error('Web Crypto API is required for secure ID generation');
 };
 
 /**
@@ -74,6 +77,10 @@ export const initRevenueCat = async (): Promise<void> => {
   }
 
   const userId = getOrCreateUserId();
+  if (!Purchases) {
+    const module = await import('@revenuecat/purchases-js');
+    Purchases = module.Purchases;
+  }
   Purchases.configure(REVENUECAT_API_KEY, userId);
   isInitialized = true;
 };
@@ -82,4 +89,4 @@ export const initRevenueCat = async (): Promise<void> => {
  * Returns the RevenueCat Purchases instance.
  * Must be called after initRevenueCat().
  */
-export const getPurchases = (): typeof Purchases => Purchases;
+export const getPurchases = (): typeof PurchasesType | null => Purchases;

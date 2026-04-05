@@ -1,56 +1,29 @@
 
+# Fix Pre-Existing TypeScript Build Errors
 
-# Fix: Blank Screen Caused by Externalized Dependencies
+Your Supabase connection is working fine. The build errors are pre-existing type mismatches across 4 files. Here's the plan:
 
-## Root Cause
+## Errors and Fixes
 
-The blank screen is caused by a **fatal module loading error** that prevents React from mounting.
+### 1. `src/components/home/TripGrid.tsx` (lines 528-536)
+**Problem:** `pendingTrips` is typed as local `Trip[]` but used as `DashboardJoinRequest[]` (accessing `.trip_id`, `.trip?.name`, `.requested_at`).
+**Fix:** Change `pendingTrips` prop type from `Trip[]` to `DashboardJoinRequest[]` in the `TripGridProps` interface. Import `DashboardJoinRequest` (already imported on line 26).
 
-Three packages are listed as `external` in `vite.config.ts` (line 51):
-```
-external: ['@sentry/capacitor', '@sentry/react', 'posthog-js']
-```
+### 2. `src/features/chat/components/TripChat.tsx`
+**Two sub-issues:**
+- **Line 754:** `filterMessages` called with messages whose `linkPreview` can be `unknown`. Fix: ensure mock message `linkPreview` is typed as `undefined` instead of `unknown`.
+- **Line 829:** First `PullToRefreshIndicator` missing required `threshold` prop. Fix: add `threshold={80}` to the first instance, or remove the duplicate (line 829 is a duplicate of line 830-834).
 
-But these same packages are imported as **top-level static imports** in eagerly-loaded files:
-- `posthog-js` in `src/telemetry/providers/posthog.ts` line 8 → imported by `src/telemetry/service.ts` line 21 → imported by `src/main.tsx`
-- `@sentry/react` in `src/services/errorTracking.ts` line 22 → imported by `src/App.tsx` line 26
+### 3. `src/utils/__tests__/tokenValidation.test.ts`
+**Problem:** `vi.stubEnv('DEV', 'true')` passes a string but the function expects boolean. Also, many `@ts-expect-error` directives are unused (the underlying function signatures changed to accept the inputs).
+**Fix:** Change `vi.stubEnv('DEV', true)`. Remove all unused `@ts-expect-error` directives.
 
-When Vite marks a package as `external`, it **excludes it from the bundle** and expects it to be available as a global at runtime. In a browser SPA, there is no such global — the import fails immediately, crashing the entire app before any React component renders.
+### 4. `src/utils/__tests__/tripConverter.test.ts`
+**Problem:** Test creates objects with `trip_members` and `trip_events_places` properties that don't exist on the `Trip` interface from `tripService.ts`. Also references `categories` which doesn't exist.
+**Fix:** Either add these optional properties to the `Trip` interface in `tripService.ts`, or cast test objects with `as unknown as Trip` since these are aggregate/join fields returned by Supabase queries.
 
-This produces zero console logs, zero network requests, and a blank white screen — exactly matching the symptom.
+## Technical Details
 
-## Fix Plan (2 files)
-
-### 1. `vite.config.ts` — Remove problematic externals
-
-Remove `posthog-js` and `@sentry/react` from the `external` array. Keep `@sentry/capacitor` external since it's only used on native platforms via lazy import.
-
-Alternatively, remove the entire `external` array and let Vite bundle or tree-shake these packages naturally:
-
-```
-external: ['@sentry/capacitor']
-```
-
-This is the minimal, correct fix. These packages are in `package.json` as dependencies and should be bundled normally. If they're not installed, Vite will warn at build time rather than silently producing a broken bundle.
-
-### 2. `index.html` — Update cache buster
-
-Bump the cache buster comment to force a fresh preview build cycle.
-
-## Why This Is Safe
-
-- `posthog-js` and `@sentry/react` are already listed as dependencies in `package.json`
-- They will be tree-shaken if unused or conditionally loaded
-- The `optimizeDeps.exclude` array (line 100) already handles dev-server optimization separately
-- No runtime behavior changes — this just ensures the packages are actually included in the bundle
-
-## What NOT to Touch
-
-- No changes to telemetry, error tracking, auth, routing, or provider code
-- No Supabase, CORS, or edge function changes
-- No env var changes needed
-
-## Secondary Issue (Not Blocking Render)
-
-The edge function `lovable-concierge` is crashing on boot because `SUPABASE_JWT_SECRET` is not set in Edge Function secrets. This doesn't block the frontend from loading but will cause AI concierge features to fail. You should add this secret in **Supabase Dashboard → Edge Functions → Secrets**.
-
+- All fixes are type-level only; no runtime behavior changes
+- Each file fix is independent and can be verified with `npm run typecheck`
+- Total: ~6 surgical edits across 4 files

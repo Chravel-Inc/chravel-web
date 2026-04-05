@@ -18,6 +18,7 @@ export interface Trip {
   description: string;
   participants: TripParticipant[];
   coverPhoto?: string;
+  coverDisplayMode?: 'cover' | 'contain';
   placesCount?: number; // Number of unique places from calendar events with locations
   peopleCount?: number; // Number of trip members (from trip_members count)
   // Feature toggles for Pro/Event trips

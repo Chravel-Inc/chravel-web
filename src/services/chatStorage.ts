@@ -13,7 +13,7 @@ interface ChatMessage {
   trip_id: string;
   privacy_mode?: string;
   version?: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface ChatDB extends DBSchema {

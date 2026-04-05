@@ -51,13 +51,13 @@ export const EVENTS_FEATURE_TIERS: Record<string, string> = {
  * Freemium limits for consumer tiers
  *
  * AI Query Limits (per user, per trip - NO daily reset):
- * - Free: 5 queries per user per trip
- * - Explorer: 10 queries per user per trip
+ * - Free: 10 queries per user per trip
+ * - Explorer: 25 queries per user per trip
  * - Frequent Chraveler: Unlimited
  */
 export const FREEMIUM_LIMITS = {
   free: {
-    aiQueriesPerTrip: 5, // 5 queries per user per trip
+    aiQueriesPerTrip: 10, // 10 queries per user per trip
     photosPerTrip: 5,
     videosPerTrip: 5,
     filesPerTrip: 5,
@@ -74,7 +74,7 @@ export const FREEMIUM_LIMITS = {
     canCreateEvents: true,
   },
   explorer: {
-    aiQueriesPerTrip: 10, // 10 queries per user per trip
+    aiQueriesPerTrip: 25, // 25 queries per user per trip
     photosPerTrip: -1,
     videosPerTrip: -1,
     filesPerTrip: -1,

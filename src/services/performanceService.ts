@@ -30,13 +30,13 @@ class PerformanceService {
           }
 
           if (entry.entryType === 'first-input') {
-            this.metrics.firstInputDelay = (entry as any).processingStart - entry.startTime;
+            this.metrics.firstInputDelay = (entry as unknown).processingStart - entry.startTime;
             this.reportMetric('FID', this.metrics.firstInputDelay);
           }
 
-          if (entry.entryType === 'layout-shift' && !(entry as any).hadRecentInput) {
+          if (entry.entryType === 'layout-shift' && !(entry as unknown).hadRecentInput) {
             this.metrics.cumulativeLayoutShift =
-              (this.metrics.cumulativeLayoutShift || 0) + (entry as any).value;
+              (this.metrics.cumulativeLayoutShift || 0) + (entry as unknown).value;
             this.reportMetric('CLS', this.metrics.cumulativeLayoutShift);
           }
         }
@@ -96,7 +96,7 @@ class PerformanceService {
       telemetry.track('app_loaded', {
         duration_ms: Math.round(value),
         is_cached: false,
-        network_type: (navigator as any).connection?.effectiveType,
+        network_type: (navigator as unknown).connection?.effectiveType,
       });
     }
 
@@ -156,6 +156,6 @@ export const performanceService = new PerformanceService();
 // Add global type for gtag
 declare global {
   interface Window {
-    gtag?: (...args: any[]) => void;
+    gtag?: (...args: unknown[]) => void;
   }
 }

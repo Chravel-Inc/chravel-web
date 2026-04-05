@@ -19,11 +19,7 @@ export default defineConfig({
       exclude: ['node_modules/', 'src/test-setup.ts', '**/*.d.ts'],
     },
     // Fix compatibility issues with complex DOM/storage interactions
-    poolOptions: {
-      threads: {
-        singleThread: true,
-      },
-    },
+    pool: 'forks',
   },
   resolve: {
     alias: {

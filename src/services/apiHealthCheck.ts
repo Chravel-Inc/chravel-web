@@ -12,7 +12,7 @@ export interface HealthStatus {
   status: 'healthy' | 'degraded' | 'offline';
   message: string;
   lastCheck: Date;
-  details?: any;
+  details?: unknown;
 }
 
 class ApiHealthCheckService {
