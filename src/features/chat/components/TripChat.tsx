@@ -620,10 +620,7 @@ export const TripChat = React.memo(
         await toggleReaction(messageId, reactionType);
         return;
       }
-
       // Supabase Authenticated mode: persist to database
-      // Authenticated mode: persist to database
-      }
       // Optimistic update
       setReactions(prev => {
         const updated = { ...prev };
