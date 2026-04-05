@@ -456,6 +456,30 @@ export const TripChat = React.memo(
           }
         }
 
+        // Map Stream's built-in read state
+        const readStatuses: any[] = [];
+        if (activeChannel?.state?.read) {
+          for (const [readerId, readState] of Object.entries(activeChannel.state.read)) {
+            // Check if the user read up to or past this message's timestamp
+            const readAt = new Date(readState.last_read);
+            const msgDate = new Date(msgCreatedAt);
+            if (readAt >= msgDate && readerId !== user?.id && readerId !== msgUserId) {
+              const member = tripMembers.find(m => m.id === readerId);
+              if (member) {
+                readStatuses.push({
+                  user_id: readerId,
+                  read_at: readState.last_read,
+                  user: {
+                    id: readerId,
+                    display_name: member.name,
+                    avatar_url: member.avatar,
+                  }
+                });
+              }
+            }
+          }
+        }
+
         return {
           id: message.id,
           text: msgContent,
@@ -483,9 +507,10 @@ export const TripChat = React.memo(
             Object.keys(formattedReactions).length > 0
               ? formattedReactions
               : (message as any).reactions,
+          readStatuses,
         };
       });
-    }, [liveMessages, demoMode.isDemoMode, tripMembers]);
+    }, [liveMessages, demoMode.isDemoMode, tripMembers, activeChannel?.state?.read, user?.id]);
 
     const handleSendMessage = async (
       isBroadcast = false,
@@ -900,7 +925,7 @@ export const TripChat = React.memo(
                           onRetry={handleRetryFailedMessage}
                           systemMessagePrefs={isConsumer ? systemMessagePrefs : undefined}
                           tripMembers={tripMembers}
-                          readStatuses={readStatusesByMessage[message.id]}
+                          readStatuses={message.readStatuses || readStatusesByMessage[message.id] || []}
                           showSenderInfo={showSenderInfo}
                           reactionUserNamesById={reactionUserNamesById}
                           isAdmin={isUserAdmin}

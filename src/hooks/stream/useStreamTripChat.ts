@@ -136,20 +136,26 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       setMessages(prev => prev.filter(m => m.id !== event.message!.id));
     };
 
+    const handleReaction = () => {
+      // Stream mutates channel.state.messages in place on reaction events.
+      // Re-cloning the array forces React to re-render.
+      setMessages([...channel.state.messages] as MessageResponse[]);
+    };
+
     channel.on('message.new', handleNewMessage);
     channel.on('message.updated', handleUpdatedMessage);
     channel.on('message.deleted', handleDeletedMessage);
-    channel.on('reaction.new', handleUpdatedMessage);
-    channel.on('reaction.updated', handleUpdatedMessage);
-    channel.on('reaction.deleted', handleUpdatedMessage);
+    channel.on('reaction.new', handleReaction);
+    channel.on('reaction.updated', handleReaction);
+    channel.on('reaction.deleted', handleReaction);
 
     return () => {
       channel.off('message.new', handleNewMessage);
       channel.off('message.updated', handleUpdatedMessage);
       channel.off('message.deleted', handleDeletedMessage);
-      channel.off('reaction.new', handleUpdatedMessage);
-      channel.off('reaction.updated', handleUpdatedMessage);
-      channel.off('reaction.deleted', handleUpdatedMessage);
+      channel.off('reaction.new', handleReaction);
+      channel.off('reaction.updated', handleReaction);
+      channel.off('reaction.deleted', handleReaction);
     };
   }, [activeChannel, tripId]);
 
