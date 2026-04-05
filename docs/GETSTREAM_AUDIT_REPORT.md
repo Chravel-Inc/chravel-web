@@ -76,18 +76,44 @@ Chravel needs to decide if Stream is the *source of truth* for chat or just a *d
 
 ---
 
-## 6. COMPONENT HEALTH SCORES
+## 6. COMPONENT HEALTH SCORES AND EXPLANATIONS
 
 *   **`streamClient.ts` (95/100):** Clean singleton pattern, proper cleanup on auth state changes. Production ready.
 *   **`streamChannelFactory.ts` (90/100):** Good taxonomy. Clear separation of concerns.
-*   **`useStreamTripChat.ts` (60/100):** Works, but heavily burdened by `streamMessageToChravel`. Manual optimistic UI logic duplicates Stream's internal capabilities.
-*   **`TripChat.tsx` (50/100):** Massive file (>800 lines). Highly tangled logic trying to support both Demo Mode, Supabase Legacy, and Stream. Custom read receipts and typing indicators make this extremely fragile.
-*   **`messageMapper.ts` (30/100):** The root of the architectural debt. Forces a square peg (Stream) into a round hole (Supabase legacy types).
-*   **`ThreadView.tsx` (65/100):** Basic implementation. Fetches correctly but lacks robust state management for edge cases.
+
+### Components Scoring Below 90
+
+*   **`useStreamTripChat.ts` (60/100)**
+    *   **How it works:** This hook handles fetching, sending, and subscribing to standard trip chat messages via GetStream. It replaces the legacy Supabase chat hook.
+    *   **Why < 90:** It acts merely as a pipe. Instead of passing rich GetStream objects (`MessageResponse`) directly to the UI, it forces every incoming and outgoing message through `streamMessageToChravel`, stripping away native Stream capabilities. It also implements manual optimistic UI state management (deduping by ID) rather than relying on Stream SDK's internal `.watch()` and optimistic updates.
+    *   **How to fix:** Remove `streamMessageToChravel`. Update the hook to expose native `MessageResponse` arrays directly. Delete the manual optimistic deduplication array logic.
+
+*   **`TripChat.tsx` (50/100)**
+    *   **How it works:** The central UI controller for chat. It manages user input, renders the message list, handles threads, and integrates media sending.
+        *   *Sending Messages & Media:* User input goes through `ChatInput.tsx`. If media is attached, it uploads via a custom upload service, then passes the URL to `sendMessage`. Stream receives this as an `attachment` array.
+        *   *Channel Integration:* It dynamically switches between `useStreamTripChat` (for the main trip) and `useRoleChannels` (for Pro Channels) based on the current active filter. Pro channels use `useStreamProChannel` for transport but rely on Supabase for the channel list and access control.
+        *   *Read Receipts:* It tracks what the user has seen using `IntersectionObserver` concepts (via refs and scrolling) and fires debounced updates to a custom Supabase table (`message_read_receipts`) via `markMessagesAsRead()`.
+    *   **Why < 90:** It is massively bloated and suffers from severe "split-brain" architecture. It completely ignores GetStream's built-in typing indicators (`channel.keystroke()`) and read receipts (`channel.markRead()`), opting instead to spin up parallel Supabase realtime connections for these features. This wastes Stream connections, drains battery on mobile, and makes the component deeply fragile.
+    *   **How to fix:** Rip out `TypingIndicatorService` and replace with `channel.keystroke()` / `channel.on('typing.start')`. Rip out `subscribeToReadReceipts` and `markMessagesAsRead` from Supabase and replace with `channel.markRead()`.
+
+*   **`messageMapper.ts` (30/100)**
+    *   **How it works:** A utility file that takes a rich GetStream `MessageResponse` and flattens it into a legacy `ChrravelChatMessage` object. It manually extracts media URLs, maps reaction arrays into rigid boolean flags, and discards unmapped Stream properties.
+    *   **Why < 90:** It is the root cause of the architectural debt. By forcing Stream data into a legacy shape designed for Supabase, it prevents the UI from using advanced Stream features like nested threads, dynamic reaction types, or rich URL previews without writing custom parsing logic for each new feature.
+    *   **How to fix:** Delete the file entirely (or deprecate it fully for active chats). Update `MessageItem.tsx` to consume native Stream types.
+
+*   **`offlineSyncService.ts` (50/100 - Context of Chat)**
+    *   **How it works:** A global IndexedDB queue that intercepts outgoing requests (messages, tasks, calendar events) when `navigator.onLine` is false. When the connection returns, it processes the queue sequentially.
+    *   **Why < 90:** GetStream's JS SDK has *built-in* robust offline support. When you call `channel.sendMessage()` offline, Stream automatically queues it and syncs when online. By intercepting chat messages into the custom `offlineSyncService`, Chravel introduces race conditions and duplicate message possibilities when both the custom queue and Stream's internal queue try to recover simultaneously.
+    *   **How to fix:** Add a guard in `offlineSyncService` that completely bypasses the custom queue for `chat_message` entity types whenever the `stream-chat-trip` feature flag is active.
+
+*   **`ThreadView.tsx` (65/100)**
+    *   **How it works:** A side-panel UI that opens when replying to a specific message. It fetches replies via `channel.getReplies(parentId)` and subscribes to `message.new` events specifically matching that `parent_id`.
+    *   **Why < 90:** It manually manages the local array of thread replies and relies on the legacy `messageMapper` logic (via `formatReply`). It doesn't leverage Stream's native thread pagination or thread-specific typing indicators.
+    *   **How to fix:** Migrate to use Stream SDK types directly. Implement Stream's native thread typing events.
 
 ---
 
-## 7. BELOW-90 COMPONENTS (Patch Paths)
+## 7. PRIORITIZED FIX PLAN (Path to 90+)
 
 ### `TripChat.tsx` (Score: 50)
 *   **Root Cause:** Supporting too many modes (Demo, Supabase, Stream) + custom implementation of native Stream features (Typing, Read state).

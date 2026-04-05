@@ -17,10 +17,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { getStreamClient } from '@/services/stream/streamClient';
 import { CHANNEL_TYPE_TRIP, tripChannelId } from '@/services/stream/streamChannelFactory';
-import {
-  streamMessageToChravel,
-  type ChrravelChatMessage,
-} from '@/services/stream/adapters/mappers/messageMapper';
 import { messageEvents } from '@/telemetry/events';
 import type { Channel, Event, MessageResponse } from 'stream-chat';
 
@@ -34,7 +30,8 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
   const isEnabled = options?.enabled !== false;
   const { toast } = useToast();
 
-  const [messages, setMessages] = useState<ChrravelChatMessage[]>([]);
+  // Return native MessageResponse objects directly to take advantage of Stream capabilities
+  const [messages, setMessages] = useState<MessageResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [hasMore, setHasMore] = useState(true);
@@ -69,10 +66,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         channelRef.current = channel;
         setActiveChannel(channel);
 
-        const initialMessages = (state.messages || []).map((m: MessageResponse) =>
-          streamMessageToChravel(m, tripId),
-        );
-        setMessages(initialMessages);
+        setMessages((state.messages || []) as MessageResponse[]);
         setHasMore((state.messages || []).length === PAGE_SIZE);
         setIsLoading(false);
       } catch (err) {
@@ -103,10 +97,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       const state = await channelRef.current.query({
         messages: { limit: PAGE_SIZE },
       });
-      const currentMessages = (state.messages || []).map((m: MessageResponse) =>
-        streamMessageToChravel(m, tripId),
-      );
-      setMessages(currentMessages);
+      setMessages((state.messages || []) as MessageResponse[]);
       setHasMore((state.messages || []).length === PAGE_SIZE);
     } catch (err) {
       if (import.meta.env.DEV) {
@@ -124,10 +115,9 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
 
     const handleNewMessage = (event: Event) => {
       if (!event.message) return;
-      const newMsg = streamMessageToChravel(event.message as MessageResponse, tripId);
+      const newMsg = event.message as MessageResponse;
 
       setMessages(prev => {
-        // Dedup by ID (handles optimistic → server confirmation)
         if (prev.some(m => m.id === newMsg.id)) {
           return prev.map(m => (m.id === newMsg.id ? newMsg : m));
         }
@@ -137,7 +127,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
 
     const handleUpdatedMessage = (event: Event) => {
       if (!event.message) return;
-      const updated = streamMessageToChravel(event.message as MessageResponse, tripId);
+      const updated = event.message as MessageResponse;
       setMessages(prev => prev.map(m => (m.id === updated.id ? updated : m)));
     };
 
@@ -266,7 +256,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       messageType?: 'text' | 'broadcast' | 'payment' | 'system',
       replyToId?: string,
       mentionedUserIds?: string[],
-    ): Promise<ChrravelChatMessage | undefined> => {
+    ): Promise<MessageResponse | undefined> => {
       const channel = channelRef.current;
       if (!channel || !tripId) return undefined;
 
@@ -284,16 +274,14 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       const now = new Date().toISOString();
       return {
         id: `pending-${now}`,
-        trip_id: tripId,
-        content,
-        author_name: '',
+        text: content,
         created_at: now,
         updated_at: now,
+        type: 'regular',
+        user: { id: _userId || 'unknown' },
         message_type: messageType || 'text',
-        media_type: mediaType,
-        media_url: mediaUrl,
         privacy_mode: privacyMode || 'standard',
-      } as ChrravelChatMessage;
+      } as unknown as MessageResponse;
     },
     [tripId, dispatchStreamSend],
   );
@@ -345,9 +333,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         messages: { limit: PAGE_SIZE, id_lt: oldestId },
       });
 
-      const olderMessages = (result.messages || []).map((m: MessageResponse) =>
-        streamMessageToChravel(m, tripId!),
-      );
+      const olderMessages = (result.messages || []) as MessageResponse[];
 
       if (olderMessages.length > 0) {
         setMessages(prev => [...olderMessages, ...prev]);
@@ -360,7 +346,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     } finally {
       setIsLoadingMore(false);
     }
-  }, [hasMore, isLoadingMore, messages, tripId]);
+  }, [hasMore, isLoadingMore, messages]);
 
   return {
     messages,
@@ -375,5 +361,6 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     isLoadingMore,
     toggleReaction,
     reload,
+    activeChannel,
   };
 };
