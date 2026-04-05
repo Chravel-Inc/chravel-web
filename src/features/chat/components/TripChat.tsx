@@ -615,11 +615,7 @@ export const TripChat = React.memo(
         return;
       }
 
-      if (toggleReaction) {
-        await toggleReaction(messageId, reactionType);
-      }
-      // Authenticated mode: persist to database
-      // Optimistic update
+      // Authenticated mode: optimistic update first, then persist.
       setReactions(prev => {
         const updated = { ...prev };
         if (!updated[messageId]) {
