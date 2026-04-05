@@ -56,6 +56,46 @@ export class EnhancedTripContextService {
       throw new Error('Trip not found in database');
     }
 
+    // Query events to build the itinerary
+    const { data: events } = await supabase
+      .from('trip_events')
+      .select('*')
+      .eq('trip_id', tripId)
+      .order('start_date', { ascending: true });
+
+    // Group events by date for the itinerary
+    const eventsByDate = new Map<string, unknown[]>();
+
+    if (events && events.length > 0) {
+      events.forEach(event => {
+        if (!event.start_date) return;
+
+        // Extract just the date part
+        const dateKey = event.start_date.split('T')[0];
+
+        if (!eventsByDate.has(dateKey)) {
+          eventsByDate.set(dateKey, []);
+        }
+
+        eventsByDate.get(dateKey)!.push({
+          id: event.id,
+          title: event.title,
+          description: event.description || '',
+          location: event.location || '',
+          start_time: event.start_date,
+          end_time: event.end_date,
+          type: event.type || 'activity'
+        });
+      });
+    }
+
+    const itineraryData = Array.from(eventsByDate.entries()).map(([date, dayEvents], index) => ({
+      id: `day-${index}`,
+      title: `Day ${index + 1}`,
+      date: date,
+      events: dayEvents,
+    }));
+
     const today = new Date().toISOString().split('T')[0];
 
     return {
@@ -64,7 +104,7 @@ export class EnhancedTripContextService {
       location: trip.destination || '',
       dateRange: `${trip.start_date} - ${trip.end_date}`,
       participants: [], // TODO: Fetch from trip_members table
-      itinerary: [], // TODO: Fetch from trip_events table
+      itinerary: itineraryData,
       accommodation: trip.basecamp_name || trip.destination || '',
       currentDate: today,
       upcomingEvents: [],
