@@ -19,7 +19,20 @@ const runEslint = () => {
 const status = runEslint();
 const fs = require('node:fs');
 const reportPath = 'eslint-report.json';
-const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+
+if (!fs.existsSync(reportPath)) {
+  console.error(`\n❌ ESLint report file not found: ${reportPath}`);
+  process.exit(1);
+}
+
+let report;
+try {
+  report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+} catch (e) {
+  console.error(`\n❌ Failed to parse ESLint report: ${e.message}`);
+  process.exit(1);
+}
+
 const totals = report.reduce(
   (acc, file) => {
     acc.warnings += file.warningCount || 0;
@@ -29,8 +42,23 @@ const totals = report.reduce(
   { warnings: 0, errors: 0 },
 );
 
+const printReport = (severity) => {
+  report.forEach(file => {
+    const messages = file.messages.filter(msg => msg.severity === severity);
+    if (messages.length > 0) {
+      console.error(`\nFile: ${file.filePath}`);
+      messages.forEach(msg => {
+        const type = severity === 2 ? 'error' : 'warning';
+        console.error(`  ${msg.line}:${msg.column}  ${type}  ${msg.message}  ${msg.ruleId}`);
+      });
+    }
+  });
+};
+
 if (totals.errors > 0) {
   console.error(`\n❌ ESLint errors detected: ${totals.errors}.`);
+  printReport(2);
+  if (fs.existsSync(reportPath)) fs.unlinkSync(reportPath);
   report.forEach(file => {
     if (file.errorCount > 0) {
       console.error(`\nFile: ${file.filePath}`);
@@ -49,10 +77,11 @@ if (totals.warnings > baseline) {
   console.error(
     `\n❌ ESLint warning budget exceeded: ${totals.warnings} warnings (baseline ${baseline}).`,
   );
+  printReport(1);
   console.error(
-    'Reduce warnings or explicitly ratchet the baseline in CI when intentionally accepted.',
+    '\nReduce warnings or explicitly ratchet the baseline in CI when intentionally accepted.',
   );
-  fs.unlinkSync(reportPath);
+  if (fs.existsSync(reportPath)) fs.unlinkSync(reportPath);
   process.exit(1);
 }
 
