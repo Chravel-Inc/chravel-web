@@ -192,10 +192,10 @@ export const TripChat = React.memo(
       chatModeUserRole === 'owner';
 
     // Role channels for pro trips
-    const {
-      availableChannels,
-      setActiveChannel,
-    } = useRoleChannels(isPro ? resolvedTripId : undefined, user?.id || '');
+    const { availableChannels, setActiveChannel } = useRoleChannels(
+      isPro ? resolvedTripId : undefined,
+      user?.id || '',
+    );
 
     // Typing indicators + read receipts — must be after all deps are declared
     const { typingUsers, typingServiceRef } = useChatTypingIndicators(

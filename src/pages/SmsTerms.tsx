@@ -23,9 +23,10 @@ export default function SmsTerms() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">1. What is Chravel SMS?</h2>
             <p className="text-foreground/90 mb-4">
-              Chravel is a group travel coordination app. We send <strong>transactional SMS
-              notifications</strong> to keep trip participants informed about time-sensitive trip
-              activity. These messages are operational — not marketing or promotional.
+              Chravel is a group travel coordination app. We send{' '}
+              <strong>transactional SMS notifications</strong> to keep trip participants informed
+              about time-sensitive trip activity. These messages are operational — not marketing or
+              promotional.
             </p>
           </section>
 
@@ -42,9 +43,7 @@ export default function SmsTerms() {
               <li>
                 Toggle <strong>"Enable SMS Notifications"</strong> to ON.
               </li>
-              <li>
-                Enter and verify your mobile phone number.
-              </li>
+              <li>Enter and verify your mobile phone number.</li>
               <li>
                 Receive a confirmation SMS:&nbsp;
                 <em>
