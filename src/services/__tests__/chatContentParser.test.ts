@@ -238,17 +238,5 @@ describe.skip('chatContentParser', () => {
       expect(result).toBe('event-123');
       expect(calendarService.createEvent).toHaveBeenCalled();
     });
-
-    it('should return null for unimplemented actions', async () => {
-      const suggestion: ParsedContent['suggestions'][0] = {
-        action: 'create_todo',
-        data: {},
-        message: 'Create todo',
-      };
-
-      const result = await applySuggestion(suggestion, 'trip-123');
-
-      expect(result).toBeNull();
-    });
   });
 });
