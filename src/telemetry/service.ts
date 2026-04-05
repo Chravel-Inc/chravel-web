@@ -19,8 +19,6 @@ import type {
 } from './types';
 import { ConsoleProvider } from './providers/console';
 import { PostHogProvider } from './providers/posthog';
-import { Capacitor } from '@capacitor/core';
-
 // ============================================================================
 // Default Configuration
 // ============================================================================
@@ -297,9 +295,6 @@ class TelemetryService {
   }
 
   private getPlatform(): 'web' | 'ios' | 'android' {
-    if (Capacitor.isNativePlatform()) {
-      return Capacitor.getPlatform() as 'ios' | 'android';
-    }
     return 'web';
   }
 

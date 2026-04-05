@@ -1,57 +1,20 @@
 /**
- * Backwards-compatible haptics service.
+ * Haptic feedback service (web no-op).
  *
- * IMPORTANT:
- * - Must not run on web. All methods are hard-gated behind native detection.
- * - Delegates to `src/native/haptics.ts` (Capacitor Haptics plugin).
+ * All methods resolve immediately on web. Native haptics are handled
+ * by the separate chravel-mobile Expo app.
  */
 
-import * as nativeHaptics from '@/native/haptics';
-
 class HapticService {
-  async light(): Promise<void> {
-    await nativeHaptics.light();
-  }
-
-  async medium(): Promise<void> {
-    await nativeHaptics.medium();
-  }
-
-  async heavy(): Promise<void> {
-    await nativeHaptics.heavy();
-  }
-
-  async success(): Promise<void> {
-    await nativeHaptics.success();
-  }
-
-  async warning(): Promise<void> {
-    await nativeHaptics.warning();
-  }
-
-  async error(): Promise<void> {
-    await nativeHaptics.error();
-  }
-
-  // Legacy alias (not currently used, but kept to avoid regressions)
-  async celebration(): Promise<void> {
-    await nativeHaptics.success();
-  }
-
-  /**
-   * Selection changed haptic - iOS selection feedback
-   * Used for picker changes, list selection, tab changes, etc.
-   */
-  async selectionChanged(): Promise<void> {
-    await nativeHaptics.selectionChanged();
-  }
-
-  /**
-   * Simple vibration for attention
-   */
-  async vibrate(duration: number = 300): Promise<void> {
-    await nativeHaptics.vibrate(duration);
-  }
+  async light(): Promise<void> {}
+  async medium(): Promise<void> {}
+  async heavy(): Promise<void> {}
+  async success(): Promise<void> {}
+  async warning(): Promise<void> {}
+  async error(): Promise<void> {}
+  async celebration(): Promise<void> {}
+  async selectionChanged(): Promise<void> {}
+  async vibrate(_duration: number = 300): Promise<void> {}
 }
 
 export const hapticService = new HapticService();

@@ -333,9 +333,7 @@ class OfflineSyncService {
    * Process sync queue when connection is restored
    * Returns count of successful and failed operations
    */
-  async processSyncQueue(
-    handlers: SyncHandlers,
-  ): Promise<{ processed: number; failed: number }> {
+  async processSyncQueue(handlers: SyncHandlers): Promise<{ processed: number; failed: number }> {
     if (!navigator.onLine) {
       return { processed: 0, failed: 0 };
     }

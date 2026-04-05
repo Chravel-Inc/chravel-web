@@ -1,8 +1,8 @@
-import React, { lazy, useCallback, useEffect } from 'react';
+import React, { lazy, useEffect } from 'react';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import {
   BrowserRouter,
@@ -29,8 +29,6 @@ import { AppInitializer } from './components/app/AppInitializer';
 import { OfflineIndicator } from './components/OfflineIndicator';
 
 import { ExitDemoButton } from './components/demo';
-import { attachNavigator, onNativeResume, setNativeBadgeCount } from '@/native/lifecycle';
-import { useDeepLinks } from '@/hooks/useDeepLinks';
 
 import { setupGlobalSyncProcessor } from './services/globalSyncProcessor';
 import { useSwUpdate } from '@/hooks/useSwUpdate';
@@ -113,64 +111,6 @@ const Router = BrowserRouter;
 const ExitDemoButtonWithNav = () => {
   const navigate = useNavigate();
   return <ExitDemoButton onNavigate={() => navigate('/')} />;
-};
-
-const NativeLifecycleBridge = ({ client }: { client: QueryClient }) => {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-
-  // Handle deep links (Universal Links + Custom URL Scheme)
-  useDeepLinks();
-
-  // Allow native lifecycle module to route notification taps (including cold start).
-  useEffect(() => {
-    return attachNavigator(navigate);
-  }, [navigate]);
-
-  const refreshCriticalData = useCallback(async (): Promise<void> => {
-    if (!user) return;
-    // Refetch active queries when returning to foreground.
-    await client.invalidateQueries({ refetchType: 'active' });
-  }, [client, user]);
-
-  const syncBadgeCount = useCallback(async (): Promise<void> => {
-    if (!user) {
-      await setNativeBadgeCount(0);
-      return;
-    }
-
-    // Minimal badge source-of-truth: unread rows in `notifications` table.
-    // (If you later add a dedicated unread-messages aggregate, swap it in here.)
-    const { count, error } = await supabase
-      .from('notifications')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('is_read', false);
-
-    if (error) {
-      console.error('[Lifecycle] Failed to fetch unread notifications count:', error);
-      return;
-    }
-
-    await setNativeBadgeCount(count ?? 0);
-  }, [user]);
-
-  // Run once on mount (helps cold start).
-  useEffect(() => {
-    void syncBadgeCount();
-  }, [syncBadgeCount]);
-
-  // On resume: refresh + badge sync.
-  useEffect(() => {
-    const unsubRefresh = onNativeResume(refreshCriticalData);
-    const unsubBadge = onNativeResume(syncBadgeCount);
-    return () => {
-      unsubRefresh();
-      unsubBadge();
-    };
-  }, [refreshCriticalData, syncBadgeCount]);
-
-  return null;
 };
 
 /** Tracks page views on route changes via the telemetry service. */
@@ -376,7 +316,6 @@ const App = () => {
                 <Router>
                   <PageViewTracker />
                   <ExitDemoButtonWithNav />
-                  <NativeLifecycleBridge client={queryClient} />
                   <OfflineIndicatorGate />
                   <MobileAppLayout>
                     <Routes>

@@ -31,8 +31,10 @@ vi.mock('../../components/ui/use-toast', () => ({
 }));
 
 // Mock haptics
-vi.mock('@/native/haptics', () => ({
-  success: vi.fn().mockResolvedValue(undefined),
+vi.mock('@/services/hapticService', () => ({
+  hapticService: {
+    success: vi.fn().mockResolvedValue(undefined),
+  },
 }));
 
 // Mock useAuth — component calls useAuth() for current user context.

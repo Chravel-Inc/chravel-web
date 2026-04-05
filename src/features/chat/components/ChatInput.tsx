@@ -32,7 +32,7 @@ import { CTA_GRADIENT, CTA_INTERACTIVE, CTA_DISABLED, CTA_ICON_SIZE } from '@/li
 
 /** Chat-specific button — 32px on mobile for more text input room, 40px on sm+ */
 const CTA_BUTTON_CHAT = `size-8 min-w-[32px] sm:size-10 sm:min-w-[40px] rounded-full flex items-center justify-center shrink-0 select-none touch-manipulation ${CTA_GRADIENT} ${CTA_INTERACTIVE} ${CTA_DISABLED}`;
-import * as haptics from '@/native/haptics';
+import { hapticService as haptics } from '@/services/hapticService';
 import { MentionPicker, TripMember } from './MentionPicker';
 import { VoiceButton } from './VoiceButton';
 import { useWebSpeechVoice } from '@/hooks/useWebSpeechVoice';

@@ -20,9 +20,11 @@ vi.mock('../use-toast', () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
 
-vi.mock('@/native/haptics', () => ({
-  medium: vi.fn(),
-  success: vi.fn(),
+vi.mock('@/services/hapticService', () => ({
+  hapticService: {
+    medium: vi.fn(),
+    success: vi.fn(),
+  },
 }));
 
 vi.mock('@/services/offlineSyncService', () => ({

@@ -47,8 +47,6 @@ export default defineConfig(({ mode }) => ({
   build: {
     // Performance optimizations
     rollupOptions: {
-      // Externalize optional native-only dependencies
-      external: ['@sentry/capacitor'],
       output: {
         // Manual chunks for better caching
         manualChunks: {
@@ -98,24 +96,7 @@ export default defineConfig(({ mode }) => ({
   // Optimize dependencies
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom'],
-    // Lovable preview runs on the Vite dev server; native Capacitor packages can leave
-    // stale .vite/deps entries after syntax-error recovery or restarts, blanking the preview.
     force: mode === 'development',
-    exclude: [
-      '@sentry/capacitor',
-      '@sentry/react',
-      'posthog-js',
-      '@capacitor/core',
-      '@capacitor/app',
-      '@capacitor/status-bar',
-      '@capacitor/keyboard',
-      '@capacitor/local-notifications',
-      '@capacitor/push-notifications',
-      '@capacitor/haptics',
-      '@capacitor/filesystem',
-      '@capacitor/share',
-      '@capacitor/splash-screen',
-      '@revenuecat/purchases-capacitor',
-    ],
+    exclude: ['@sentry/react', 'posthog-js'],
   },
 }));

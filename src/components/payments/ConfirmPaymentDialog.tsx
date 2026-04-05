@@ -14,7 +14,7 @@ import { PersonalBalance } from '../../services/paymentBalanceService';
 import { supabase } from '../../integrations/supabase/client';
 import { toast } from '../ui/use-toast';
 import { Loader2, CheckCircle2 } from 'lucide-react';
-import * as haptics from '@/native/haptics';
+import { hapticService as haptics } from '@/services/hapticService';
 import { formatCurrency } from '../../services/currencyService';
 import { useAuth } from '@/hooks/useAuth';
 

@@ -4,7 +4,6 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import { Capacitor } from '@capacitor/core';
 
 export interface DeviceToken {
   id: string;
@@ -33,12 +32,9 @@ function getDeviceId(): string {
 }
 
 /**
- * Get the current platform
+ * Get the current platform (always 'web' — native handled by chravel-mobile)
  */
 function getPlatform(): 'ios' | 'android' | 'web' {
-  const platform = Capacitor.getPlatform();
-  if (platform === 'ios') return 'ios';
-  if (platform === 'android') return 'android';
   return 'web';
 }
 

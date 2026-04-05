@@ -22,7 +22,7 @@ import { FinalCTAScreen } from './demo/screens/FinalCTAScreen';
 import { PhoneFrame } from './demo/PhoneFrame';
 import { useOnboardingLayout } from './demo/useOnboardingLayout';
 import type { DemoPill } from './demo/tokens';
-import * as haptics from '@/native/haptics';
+import { hapticService as haptics } from '@/services/hapticService';
 import { onboardingEvents } from '@/telemetry/events';
 
 interface OnboardingCarouselProps {
