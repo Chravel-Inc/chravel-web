@@ -2,12 +2,12 @@
  * RevenueCat Configuration
  *
  * Maps RevenueCat entitlements to Chravel subscription tiers.
- * Ensures parity with Stripe pricing/naming from billing/config.ts.
+ * Ensures parity with Stripe pricing and App Store product IDs.
  *
- * IMPORTANT: Pricing MUST match src/billing/config.ts (source of truth)
+ * IMPORTANT: Keep amounts and identifiers aligned with Stripe / App Store Connect.
  */
 
-import type { SubscriptionTier } from '@/billing/types';
+import type { SubscriptionTier } from '@/types/billing';
 
 // RevenueCat feature flag - defaults to true; set VITE_REVENUECAT_ENABLED=false to disable
 export const REVENUECAT_ENABLED = import.meta.env.VITE_REVENUECAT_ENABLED !== 'false';
@@ -43,7 +43,7 @@ export const REVENUECAT_ENTITLEMENTS = {
  * These should match the product identifiers in App Store Connect / Google Play Console
  *
  * PLACEHOLDER: Update after creating products in App Store Connect
- * See: src/billing/config.ts for Apple product ID format (com.chravel.*.monthly/annual)
+ * Apple product ID format: com.chravel.*.monthly / com.chravel.*.annual
  */
 export const REVENUECAT_PRODUCTS = {
   // Explorer tier - $9.99/month, $99/year (subscription)
@@ -62,7 +62,7 @@ export const REVENUECAT_PRODUCTS = {
 /**
  * Pricing display (for UI)
  *
- * IMPORTANT: These values MUST match src/billing/config.ts
+ * IMPORTANT: These values MUST match live store / Stripe configuration
  * Subscriptions: Explorer $9.99/month, $99/year | FC $19.99/month, $199/year
  * Trip Passes (primary consumer offering): Explorer $39.99/45 days | FC $74.99/90 days
  */

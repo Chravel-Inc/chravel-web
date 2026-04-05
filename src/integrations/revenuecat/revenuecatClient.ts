@@ -21,7 +21,7 @@ import type {
   RevenueCatPurchaseResult,
   DerivedPlan,
 } from './types';
-import type { SubscriptionTier } from '@/billing/types';
+import type { SubscriptionTier } from '@/types/billing';
 import despia from 'despia-native';
 import { toast } from 'sonner';
 

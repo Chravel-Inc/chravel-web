@@ -4,7 +4,7 @@
  * Simplified types for RevenueCat Capacitor plugin responses
  */
 
-import type { SubscriptionTier } from '@/billing/types';
+import type { SubscriptionTier } from '@/types/billing';
 
 /**
  * Platform detection result

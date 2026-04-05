@@ -139,5 +139,5 @@ Every downstream system depends on Auth resolving first. Trip context gates most
 1. **Auth state** — `useAuth()` hook (Supabase session)
 2. **Server state** — TanStack Query with cache key factory (`src/lib/queryKeys.ts`)
 3. **Realtime** — Supabase Realtime subscriptions (messages, notifications, locations)
-4. **Client state** — Zustand stores (`entitlementsStore`, `demoModeStore`, `conciergeSessionStore`, `notificationRealtimeStore`)
+4. **Client state** — Zustand stores (`demoModeStore`, `conciergeSessionStore`, `notificationRealtimeStore`)
 5. **Feature flags** — `public.feature_flags` table, 60s client cache via `useFeatureFlag()`
