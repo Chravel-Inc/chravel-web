@@ -84,6 +84,7 @@ const Healthz = lazy(() => retryImport(() => import('./pages/Healthz')));
 const PrivacyPolicy = lazy(() => retryImport(() => import('./pages/PrivacyPolicy')));
 const SupportPage = lazy(() => retryImport(() => import('./pages/SupportPage')));
 const TermsOfService = lazy(() => retryImport(() => import('./pages/TermsOfService')));
+const SmsTerms = lazy(() => retryImport(() => import('./pages/SmsTerms')));
 const GmailCallbackPage = lazy(() =>
   retryImport(() =>
     import('./pages/GmailCallbackPage').then(module => ({ default: module.GmailCallbackPage })),
@@ -150,6 +151,7 @@ const OfflineIndicatorGate = () => {
     pathname.startsWith('/privacy') ||
     pathname.startsWith('/support') ||
     pathname.startsWith('/terms') ||
+    pathname.startsWith('/sms-terms') ||
     pathname.startsWith('/demo') ||
     pathname.startsWith('/healthz');
 
@@ -468,6 +470,14 @@ const App = () => {
                         element={
                           <LazyRoute>
                             <TermsOfService />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/sms-terms"
+                        element={
+                          <LazyRoute>
+                            <SmsTerms />
                           </LazyRoute>
                         }
                       />
