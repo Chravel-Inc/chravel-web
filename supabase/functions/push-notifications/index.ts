@@ -14,6 +14,7 @@ const supabase = createClient(
 
 const SMS_DAILY_LIMIT = 10;
 const SMS_ENTITLED_PLANS = new Set([
+  'explorer',
   'frequent-chraveler',
   'pro-starter',
   'pro-growth',
@@ -273,8 +274,9 @@ async function sendSMSNotification(
   const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
   const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
   const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER');
+  const twilioMessagingServiceSid = Deno.env.get('TWILIO_MESSAGING_SERVICE_SID');
 
-  if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
+  if (!twilioAccountSid || !twilioAuthToken || (!twilioPhoneNumber && !twilioMessagingServiceSid)) {
     console.error('[SMS] Twilio credentials not configured');
 
     await supabase.from('notification_logs').insert({
@@ -407,6 +409,16 @@ async function sendSMSNotification(
 
   const credentials = btoa(`${twilioAccountSid}:${twilioAuthToken}`);
 
+  const smsParams: Record<string, string> = {
+    To: targetPhone,
+    Body: finalMessage,
+  };
+  if (twilioMessagingServiceSid) {
+    smsParams.MessagingServiceSid = twilioMessagingServiceSid;
+  } else {
+    smsParams.From = twilioPhoneNumber!;
+  }
+
   console.log(`[SMS] Sending to ${targetPhone.substring(0, 6)}*** via Twilio`);
 
   const response = await fetch(
@@ -417,11 +429,7 @@ async function sendSMSNotification(
         Authorization: `Basic ${credentials}`,
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: new URLSearchParams({
-        From: twilioPhoneNumber,
-        To: targetPhone,
-        Body: finalMessage,
-      }),
+      body: new URLSearchParams(smsParams),
       signal: AbortSignal.timeout(15_000),
     },
   );
