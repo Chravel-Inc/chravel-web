@@ -611,9 +611,28 @@ export const TripChat = React.memo(
     };
 
     const handleReaction = async (messageId: string, reactionType: string) => {
-      if (demoMode.isDemoMode || !user?.id) {
+      if (demoMode.isDemoMode) {
+        setReactions(prev => {
+          const updated = { ...prev };
+          if (!updated[messageId]) {
+            updated[messageId] = {};
+          }
+          const current = updated[messageId][reactionType] || {
+            count: 0,
+            userReacted: false,
+            users: [],
+          };
+          updated[messageId][reactionType] = {
+            count: current.userReacted ? Math.max(0, current.count - 1) : current.count + 1,
+            userReacted: !current.userReacted,
+            users: current.userReacted ? [] : [user?.id || 'demo-user'],
+          };
+          return updated;
+        });
         return;
       }
+
+      if (!user) return;
 
       if (toggleReaction) {
         // Stream path — Stream SDK handles optimistic updates internally
@@ -621,7 +640,7 @@ export const TripChat = React.memo(
         return;
       }
 
-      // Authenticated mode: persist to database
+      // Supabase Authenticated mode: persist to database
       // Optimistic update
       setReactions(prev => {
         const updated = { ...prev };
@@ -670,7 +689,6 @@ export const TripChat = React.memo(
       }
     };
 
-    // Handle opening a thread
     const handleOpenThread = (messageId: string) => {
       const message =
         liveMessages.find(m => m.id === messageId) || demoMessages.find(m => m.id === messageId);
