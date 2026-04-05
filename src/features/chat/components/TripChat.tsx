@@ -151,21 +151,6 @@ export const TripChat = React.memo(
     const { user } = useAuth();
     const queryClient = useQueryClient();
 
-    // ⚡ PERFORMANCE: Skip expensive hooks in demo mode for numeric trip IDs
-    const shouldSkipLiveChat = demoMode.isDemoMode && /^\d+$/.test(resolvedTripId);
-
-    const {
-      messages: liveMessages,
-      isLoading: liveLoading,
-      sendMessageAsync: sendTripMessage,
-      loadMore: loadMoreMessages,
-      hasMore,
-      isLoadingMore,
-      toggleReaction,
-      reload,
-      activeChannel,
-    } = useTripChat(shouldSkipLiveChat ? undefined : resolvedTripId);
-
     const { isRefreshing, pullDistance } = usePullToRefresh({
       onRefresh: async () => {
         if (resolvedTripId) {
@@ -246,6 +231,8 @@ export const TripChat = React.memo(
       loadMore: loadMoreMessages,
       hasMore,
       isLoadingMore,
+      toggleReaction,
+      reload,
     } = useTripChat(shouldSkipLiveChat ? undefined : resolvedTripId);
 
     // Local mutable state derived from hasMore to avoid assigning to a const binding
