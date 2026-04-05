@@ -272,8 +272,6 @@ export const TripChat = React.memo(
       return [...new Set(participants.map(p => p.role).filter(Boolean))];
     }, [isPro, participants]);
 
-
-
     // Mobile-specific hooks
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const _containerRef = useRef<HTMLDivElement>(null);
@@ -769,6 +767,7 @@ export const TripChat = React.memo(
           pullDistance={pullDistance}
           threshold={80}
         />
+        {/* Search Overlay Modal */}
         {showSearchOverlay && (
           <ChatSearchOverlay
             tripId={resolvedTripId}

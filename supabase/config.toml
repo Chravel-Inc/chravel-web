@@ -48,7 +48,7 @@ verify_jwt = true
 [functions.link-trip-to-organization]
 verify_jwt = true
 
-[functions.text-concierge]
+[functions.lovable-concierge]
 verify_jwt = true
 
 [functions.demo-concierge]

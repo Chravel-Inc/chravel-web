@@ -18,8 +18,6 @@ import { calendarService, CreateEventData } from './calendarService';
 import { fetchOGMetadata } from './ogMetadataService';
 import { insertLinkIndex } from './linkService';
 
-import { taskStorageService } from './taskStorageService';
-
 export interface ParsedReceipt {
   extracted_text: string;
   structured_data: {
@@ -469,27 +467,13 @@ export async function applySuggestion(
         return result.event?.id || null;
       }
 
-      case 'create_todo': {
-        if (!suggestion.data) return null;
-        const sd = suggestion.data as Record<string, unknown>;
+      case 'create_todo':
+        // TODO: Implement todo creation service
+        return null;
 
-        const result = await taskStorageService.createTask(tripId, {
-          title: (sd.title as string) || 'New Task',
-          description: sd.description as string,
-          due_at: sd.due_date ? new Date(sd.due_date as string).toISOString() : undefined,
-          is_poll: false,
-          assignedTo: [],
-        });
-
-        return result.id;
-      }
-
-      case 'extract_receipt': {
-        if (!suggestion.data) return null;
-
-        // This acts as a signal for the UI to handle the receipt
-        return `receipt_extraction:${Date.now()}`;
-      }
+      case 'extract_receipt':
+        // TODO: Implement receipt extraction/storage
+        return null;
 
       default:
         return null;
