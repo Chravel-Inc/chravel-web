@@ -853,7 +853,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const returnTo = new URLSearchParams(window.location.search).get('returnTo');
       const redirectUrl = returnTo
         ? `${window.location.origin}/auth?returnTo=${encodeURIComponent(returnTo)}`
-        : `${window.location.origin}/`;
+        : `${window.location.origin}/auth`;
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -892,7 +892,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const returnTo = new URLSearchParams(window.location.search).get('returnTo');
       const redirectUrl = returnTo
         ? `${window.location.origin}/auth?returnTo=${encodeURIComponent(returnTo)}`
-        : `${window.location.origin}/`;
+        : `${window.location.origin}/auth`;
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
