@@ -13,33 +13,10 @@ import { getStreamClient } from '@/services/stream/streamClient';
 import { CHANNEL_TYPE_CHANNEL, proChannelId } from '@/services/stream/streamChannelFactory';
 import type { Channel, Event, MessageResponse, UserResponse } from 'stream-chat';
 
-export interface StreamProChannelMessage {
-  id: string;
-  channelId: string;
-  senderId: string;
-  senderName: string;
-  senderAvatar?: string;
-  content: string;
-  createdAt: string;
-}
-
-function streamMsgToProChannel(msg: MessageResponse, channelId: string): StreamProChannelMessage {
-  const user = msg.user as UserResponse | undefined;
-  return {
-    id: msg.id,
-    channelId,
-    senderId: user?.id || '',
-    senderName: user?.name || user?.id || 'Unknown',
-    senderAvatar: (user?.image as string) || undefined,
-    content: msg.text || '',
-    createdAt: msg.created_at || new Date().toISOString(),
-  };
-}
-
 const PAGE_SIZE = 30;
 
 export function useStreamProChannel(channelId: string | null) {
-  const [messages, setMessages] = useState<StreamProChannelMessage[]>([]);
+  const [messages, setMessages] = useState<MessageResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const channelRef = useRef<Channel | null>(null);
@@ -70,9 +47,7 @@ export function useStreamProChannel(channelId: string | null) {
         channelRef.current = channel;
         setActiveStreamChannel(channel);
 
-        const initial = (state.messages || []).map((m: MessageResponse) =>
-          streamMsgToProChannel(m, channelId),
-        );
+        const initial = (state.messages || []) as MessageResponse[];
         setMessages(initial);
       } catch {
         // Non-fatal — will show empty state
@@ -98,44 +73,47 @@ export function useStreamProChannel(channelId: string | null) {
     const channel = activeStreamChannel;
     if (!channel || !channelId) return;
 
-    const handleNew = (event: Event) => {
-      if (!event.message) return;
-      const msg = streamMsgToProChannel(event.message as MessageResponse, channelId);
-      setMessages(prev => {
-        if (prev.some(m => m.id === msg.id)) return prev;
-        return [...prev, msg];
-      });
+    const handleEvent = () => {
+      setMessages([...channel.state.messages] as MessageResponse[]);
     };
 
-    const handleDelete = (event: Event) => {
-      if (!event.message) return;
-      setMessages(prev => prev.filter(m => m.id !== event.message!.id));
-    };
-
-    channel.on('message.new', handleNew);
-    channel.on('message.deleted', handleDelete);
+    channel.on('message.new', handleEvent);
+    channel.on('message.updated', handleEvent);
+    channel.on('message.deleted', handleEvent);
+    channel.on('reaction.new', handleEvent);
+    channel.on('reaction.deleted', handleEvent);
 
     return () => {
-      channel.off('message.new', handleNew);
-      channel.off('message.deleted', handleDelete);
+      channel.off('message.new', handleEvent);
+      channel.off('message.updated', handleEvent);
+      channel.off('message.deleted', handleEvent);
+      channel.off('reaction.new', handleEvent);
+      channel.off('reaction.deleted', handleEvent);
     };
   }, [activeStreamChannel, channelId]);
 
-  const sendMessage = useCallback(async (content: string): Promise<boolean> => {
-    const channel = channelRef.current;
-    if (!channel) return false;
+  const sendMessage = useCallback(
+    async (content: string, attachments?: any[]): Promise<boolean> => {
+      const channel = channelRef.current;
+      if (!channel) return false;
 
-    try {
-      await channel.sendMessage({ text: content });
-      return true;
-    } catch {
-      return false;
-    }
-  }, []);
+      try {
+        await channel.sendMessage({
+          text: content,
+          attachments: attachments || undefined,
+        });
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [],
+  );
 
   return {
     messages,
     isLoading,
     sendMessage,
+    activeChannel: activeStreamChannel,
   };
 }

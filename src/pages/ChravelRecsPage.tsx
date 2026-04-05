@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Compass, Bookmark, TrendingUp, MapPin, Search, X } from 'lucide-react';
+import { Compass, Bookmark, TrendingUp, MapPin, Search, X, Loader2 } from 'lucide-react';
 import { SavedRecommendations } from '@/components/SavedRecommendations';
 import { RecommendationCard } from '@/components/RecommendationCard';
 import { useRecommendations } from '@/hooks/useRecommendations';
@@ -13,10 +13,16 @@ export const ChravelRecsPage = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchCity, setSearchCity] = useState('');
   const [appliedCityFilter, setAppliedCityFilter] = useState('');
-  const { recommendations } = useRecommendations(activeFilter);
+
+  // Use the new async hook passing city for backend filtering when appropriate
+  const { recommendations, isLoading, error } = useRecommendations({
+    type: activeFilter as import('@/data/recommendations/types').Recommendation['type'] | 'all',
+    city: appliedCityFilter || undefined
+  });
+
   const { toggleSave } = useSavedRecommendations();
 
-  // Filter recommendations by city if a city filter is applied
+  // We still do client-side filtering as a fallback/enhancement
   const filteredRecommendations = useMemo(() => {
     if (!appliedCityFilter) {
       return recommendations;
@@ -29,7 +35,8 @@ export const ChravelRecsPage = () => {
     );
   }, [recommendations, appliedCityFilter]);
 
-  const sponsoredRecs = filteredRecommendations.filter(rec => rec.isSponsored);
+  // The previous implementation specifically mapped sponsoredRecs. Now we want to show all recommendations returned by the feed.
+  const displayRecs = filteredRecommendations;
 
   const handleCitySearch = () => {
     setAppliedCityFilter(searchCity);
@@ -40,7 +47,10 @@ export const ChravelRecsPage = () => {
     setAppliedCityFilter('');
   };
 
-  const handleSaveToTrip = async (rec: any) => {
+  const handleSaveToTrip = async (rec: import('@/data/recommendations/types').Recommendation) => {
+    // The previous implementation was passing an ID in the mock, but the toggleSave takes a full rec.
+    // The onSaveToTrip prop from RecommendationCard passes an ID originally, but we'll adapt it.
+    // Actually, looking closely, `RecommendationCard` passes the ID back to `onSaveToTrip`. We need to pass the full `rec`.
     await toggleSave(rec);
   };
 
@@ -133,23 +143,35 @@ export const ChravelRecsPage = () => {
             </ScrollArea>
 
             <TabsContent value={activeFilter} className="mt-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {sponsoredRecs.map(rec => (
-                  <RecommendationCard
-                    key={rec.id}
-                    recommendation={rec}
-                    onSaveToTrip={handleSaveToTrip}
-                  />
-                ))}
-              </div>
-              {sponsoredRecs.length === 0 && (
-                <div className="bg-muted/50 border border-border rounded-xl p-6 text-center">
-                  <p className="text-muted-foreground">
-                    {appliedCityFilter
-                      ? `No featured places found in "${appliedCityFilter}". Try searching for a different city.`
-                      : 'No featured places in this category yet.'}
-                  </p>
+              {isLoading ? (
+                <div className="flex justify-center items-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
+              ) : error ? (
+                <div className="flex justify-center items-center py-12 text-destructive">
+                  <p>Failed to load recommendations. Please try again.</p>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {displayRecs.map(rec => (
+                      <RecommendationCard
+                        key={rec.uuid ?? rec.campaignId ?? rec.id}
+                        recommendation={rec}
+                        onSaveToTrip={() => handleSaveToTrip(rec)}
+                      />
+                    ))}
+                  </div>
+                  {displayRecs.length === 0 && (
+                    <div className="bg-muted/50 border border-border rounded-xl p-6 text-center mt-6">
+                      <p className="text-muted-foreground">
+                        {appliedCityFilter
+                          ? `No featured places found in "${appliedCityFilter}". Try searching for a different city.`
+                          : 'No featured places in this category yet.'}
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
             </TabsContent>
           </Tabs>
