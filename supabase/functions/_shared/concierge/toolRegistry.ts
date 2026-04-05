@@ -55,11 +55,15 @@ export const ALL_TOOL_DECLARATIONS: ToolDeclaration[] = [
 
   {
     name: 'extractReceipt',
-    description: 'Parse a receipt to automatically extract payment information (amount, vendor, currency) for either splitting a payment or saving as a photo.',
+    description:
+      'Parse a receipt to automatically extract payment information (amount, vendor, currency) for either splitting a payment or saving as a photo.',
     parameters: {
       type: 'object',
       properties: {
-        idempotency_key: { type: 'string', description: 'Unique string to prevent duplicate tool execution' },
+        idempotency_key: {
+          type: 'string',
+          description: 'Unique string to prevent duplicate tool execution',
+        },
         fileUrl: { type: 'string', description: 'The URL of the receipt image or file to extract' },
         totalAmount: { type: 'number', description: 'The total amount of the receipt, if known' },
         vendor: { type: 'string', description: 'The vendor or merchant name, if known' },

@@ -17,7 +17,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { calendarService, CreateEventData } from './calendarService';
 import { fetchOGMetadata } from './ogMetadataService';
 import { insertLinkIndex } from './linkService';
-import { taskStorageService } from './taskStorageService';
 
 import { taskStorageService } from './taskStorageService';
 
@@ -472,6 +471,7 @@ export async function applySuggestion(
 
       case 'create_todo': {
         if (!suggestion.data) return null;
+        const sd = suggestion.data as Record<string, unknown>;
 
         const result = await taskStorageService.createTask(tripId, {
           title: (sd.title as string) || 'New Task',
@@ -486,8 +486,6 @@ export async function applySuggestion(
 
       case 'extract_receipt': {
         if (!suggestion.data) return null;
-
-
 
         // This acts as a signal for the UI to handle the receipt
         return `receipt_extraction:${Date.now()}`;

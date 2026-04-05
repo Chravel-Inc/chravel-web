@@ -13,7 +13,6 @@ interface PendingActionCardProps {
 }
 
 const TOOL_CONFIG: Record<string, { icon: React.ElementType; label: string; color: string }> = {
-
   extractReceipt: { icon: Receipt, label: 'Receipt', color: 'text-yellow-400' },
   createTask: { icon: CheckSquare, label: 'Task', color: 'text-green-400' },
   createPoll: { icon: BarChart3, label: 'Poll', color: 'text-blue-400' },

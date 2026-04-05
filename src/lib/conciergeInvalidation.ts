@@ -2,7 +2,7 @@ export type ConciergeInvalidationQueryKey = string[];
 
 const CONCIERGE_WRITE_ACTIONS = new Set<string>([
   'createPoll',
-  'extractReceipt' |
+  'extractReceipt',
   'createTask',
   'addToCalendar',
   'bulkDeleteCalendarEvents',

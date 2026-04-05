@@ -115,12 +115,12 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
                 tool_name: 'extractReceipt',
                 parameters: { ...args },
                 status: 'pending',
-                created_at: new Date().toISOString()
+                created_at: new Date().toISOString(),
               });
             }
             return {
               status: 'pending_user_confirmation',
-              message: 'Receipt extraction requested. Waiting for user approval.'
+              message: 'Receipt extraction requested. Waiting for user approval.',
             };
           }
           case 'createTask': {

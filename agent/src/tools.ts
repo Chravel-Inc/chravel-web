@@ -154,10 +154,10 @@ const createTask: ToolDefinition = {
   execute: (args, ctx) => insertPendingAction(ctx, 'createTask', { ...args, tripId: ctx.tripId }),
 };
 
-
-const extractReceipt: ToolDefinition = {
+export const extractReceipt: ToolDefinition = {
   name: 'extractReceipt',
-  description: 'Parse a receipt to automatically extract payment information (amount, vendor, currency) for either splitting a payment or saving as a photo.',
+  description:
+    'Parse a receipt to automatically extract payment information (amount, vendor, currency) for either splitting a payment or saving as a photo.',
   schema: z.object({
     idempotency_key: z.string().optional(),
     fileUrl: z.string().describe('The URL of the receipt image or file to extract'),
@@ -165,7 +165,8 @@ const extractReceipt: ToolDefinition = {
     vendor: z.string().optional().describe('The vendor or merchant name, if known'),
     currency: z.string().optional().describe('Currency code (e.g. USD)'),
   }),
-  execute: (args, ctx) => insertPendingAction(ctx, 'extractReceipt', { ...args, tripId: ctx.tripId }),
+  execute: (args, ctx) =>
+    insertPendingAction(ctx, 'extractReceipt', { ...args, tripId: ctx.tripId }),
 };
 
 const createPoll: ToolDefinition = {

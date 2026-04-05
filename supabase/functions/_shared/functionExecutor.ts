@@ -96,7 +96,6 @@ async function _executeImpl(
       };
     }
 
-
     case 'extractReceipt': {
       const { fileUrl, totalAmount, vendor, currency, idempotency_key, tool_call_id } = args;
       const dedupeId = tool_call_id || idempotency_key || null;
@@ -128,7 +127,8 @@ async function _executeImpl(
 
       return {
         success: true,
-        message: 'Receipt extraction added to pending actions. The user needs to confirm it before proceeding.',
+        message:
+          'Receipt extraction added to pending actions. The user needs to confirm it before proceeding.',
         pending_action_id: pending.id,
       };
     }
