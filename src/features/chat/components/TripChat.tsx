@@ -876,9 +876,9 @@ export const TripChat = React.memo(
               isPro={isPro}
               broadcastCount={broadcastCount}
               unreadCount={messageUnreadCount}
-              availableChannels={availableChannels}
-              activeChannel={activeChannel}
-              onChannelSelect={channel => {
+              availableChannels={availableChannels as any}
+              activeChannel={activeChannel as any}
+              onChannelSelect={(channel: any) => {
                 setActiveChannel(channel);
                 setMessageFilter('channels');
               }}
@@ -887,9 +887,9 @@ export const TripChat = React.memo(
             {/* Conditional Content Area */}
             {messageFilter === 'channels' && activeChannel ? (
               <ChannelChatView
-                channel={activeChannel}
-                availableChannels={availableChannels}
-                onChannelChange={setActiveChannel}
+                channel={activeChannel as any}
+                availableChannels={availableChannels as any}
+                onChannelChange={setActiveChannel as any}
               />
             ) : (
               <>
