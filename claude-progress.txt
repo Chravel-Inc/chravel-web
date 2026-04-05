@@ -1,3 +1,9 @@
+2026-04-05 — Gmail import worker parallelism correctness hardening follow-up
+- Addressed review-blocking correctness regressions in `supabase/functions/gmail-import-worker/index.ts` after the concurrency refactor:
+  - Replaced invalid `continue` statements inside `processMessage` async function with `return` early exits (fixes function-boundary control-flow compile errors).
+  - Added in-worker dedupe write lock (`withDedupeWriteLock`) to serialize `smart_import_candidates` check-then-insert critical sections and prevent duplicate rows under parallel message handlers.
+- Verification: `npm run lint:check`, `npm run typecheck`, `npm run test:run -- supabase/functions/gmail-import-worker/__tests__/concurrency.test.ts`, full `npm run test:run` all pass; `npm run build` still fails on pre-existing unrelated `TripChat.tsx` duplicate symbol issue.
+
 2026-04-05 — Gmail import worker message fetch concurrency optimization
 - Replaced sequential per-message Gmail processing in `supabase/functions/gmail-import-worker/index.ts` with bounded chunked concurrency (`processInChunks(..., 6, ...)`) for the `messageIds.slice(0, 120)` pipeline.
 - Added reusable helper `supabase/functions/gmail-import-worker/concurrency.ts` and focused regression tests `supabase/functions/gmail-import-worker/__tests__/concurrency.test.ts` to lock bounded parallel execution + invalid chunk guard behavior.

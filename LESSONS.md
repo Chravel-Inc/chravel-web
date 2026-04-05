@@ -107,6 +107,14 @@
 - **Provenance:** April 2026 Gmail import worker performance pass.
 - **Confidence:** high
 
+### Parallelizing handlers can break check-then-insert dedupe paths without DB uniqueness
+- **Tip:** Before parallelizing workloads, identify any `SELECT existing` -> `INSERT` dedupe logic. If the table lacks a unique constraint, parallel handlers can both observe “empty” and insert duplicates. Protect with DB uniqueness + `ON CONFLICT` when possible; otherwise serialize only the critical dedupe write section with an app-level mutex.
+- **Applies when:** Background workers, importers, and parsers move from sequential loops to chunked/parallel handlers.
+- **Avoid when:** You already have strict DB uniqueness + conflict handling on the dedupe key.
+- **Evidence:** `gmail-import-worker` parallel message processing introduced a race on `smart_import_candidates` dedupe check (`trip_id` + `dedupe_key`) because no unique DB constraint exists. Serializing the check+insert critical section removed cross-message duplicate risk while preserving parallel fetch/parse stages.
+- **Provenance:** April 2026 Gmail import worker follow-up hardening.
+- **Confidence:** high
+
 ### useEffect dependencies on array state cause O(N) re-execution storms
 - **Tip:** When a useEffect depends on a TanStack Query array (like `liveMessages`), it fires on every cache update. If the effect does work proportional to array length (fetching reactions for all messages, marking all as read), it creates O(N) work on every INSERT. Use a ref to track what's already been processed and only handle new items.
 - **Applies when:** Any useEffect that processes a growing array of messages, notifications, or list items

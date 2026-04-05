@@ -578,6 +578,15 @@ serve(async req => {
     const allCandidates: Record<string, unknown>[] = [];
     const stats = { scanned: messageIds.length, parsed: 0, skipped: 0, errors: 0 };
     const tripContextStr = buildTripContextForPrompt(tripContext);
+    let dedupeWriteChain = Promise.resolve();
+    const withDedupeWriteLock = async <T>(operation: () => Promise<T>): Promise<T> => {
+      const run = dedupeWriteChain.then(operation, operation);
+      dedupeWriteChain = run.then(
+        () => undefined,
+        () => undefined,
+      );
+      return run;
+    };
 
     const processMessage = async (messageId: string) => {
       try {
@@ -595,7 +604,7 @@ serve(async req => {
             'error',
             `HTTP ${msgResponse.status}`,
           );
-          continue;
+          return;
         }
 
         const msgData = await msgResponse.json();
@@ -632,7 +641,7 @@ serve(async req => {
         if (emailContent.length < 35 && attachmentHints.length === 0) {
           stats.skipped++;
           await logMessage(supabaseClient, job.id, messageId, 'skipped', 'Email too short');
-          continue;
+          return;
         }
 
         const truncatedContent =
@@ -672,7 +681,7 @@ serve(async req => {
             'error',
             `AI API error: ${aiResponse.status}`,
           );
-          continue;
+          return;
         }
 
         const aiData = await aiResponse.json();
@@ -680,7 +689,7 @@ serve(async req => {
         if (!resultText) {
           stats.skipped++;
           await logMessage(supabaseClient, job.id, messageId, 'skipped', 'No AI output');
-          continue;
+          return;
         }
 
         let parsedRaw: unknown;
@@ -689,14 +698,14 @@ serve(async req => {
         } catch {
           stats.errors++;
           await logMessage(supabaseClient, job.id, messageId, 'error', 'Failed to parse AI JSON');
-          continue;
+          return;
         }
 
         const parsed = normalizeParsedResult(parsedRaw);
         if (parsed.reservations.length === 0) {
           stats.skipped++;
           await logMessage(supabaseClient, job.id, messageId, 'skipped', 'No reservations found');
-          continue;
+          return;
         }
 
         for (const res of parsed.reservations) {
@@ -724,43 +733,45 @@ serve(async req => {
             dateSignal,
           ].join('_');
 
-          const { data: existing } = await supabaseClient
-            .from('smart_import_candidates')
-            .select('id')
-            .eq('trip_id', tripId)
-            .eq('dedupe_key', dedupeKey)
-            .limit(1);
+          await withDedupeWriteLock(async () => {
+            const { data: existing } = await supabaseClient
+              .from('smart_import_candidates')
+              .select('id')
+              .eq('trip_id', tripId)
+              .eq('dedupe_key', dedupeKey)
+              .limit(1);
 
-          if (existing && existing.length > 0) {
-            stats.skipped++;
-            continue;
-          }
+            if (existing && existing.length > 0) {
+              stats.skipped++;
+              return;
+            }
 
-          const { data: candidate, error: candidateError } = await supabaseClient
-            .from('smart_import_candidates')
-            .insert({
-              job_id: job.id,
-              user_id: user.id,
-              trip_id: tripId,
-              reservation_data: {
-                ...res,
-                _relevance_score: parsed.trip_relevance_score,
-                _relevance_reason: parsed.trip_relevance_reason,
-                _gmail_message_id: messageId,
-                _email_subject: subject,
-                is_cancellation: parsed.is_cancellation,
-                is_modification: parsed.is_modification,
-              },
-              status: 'pending',
-              dedupe_key: dedupeKey,
-            })
-            .select()
-            .single();
+            const { data: candidate, error: candidateError } = await supabaseClient
+              .from('smart_import_candidates')
+              .insert({
+                job_id: job.id,
+                user_id: user.id,
+                trip_id: tripId,
+                reservation_data: {
+                  ...res,
+                  _relevance_score: parsed.trip_relevance_score,
+                  _relevance_reason: parsed.trip_relevance_reason,
+                  _gmail_message_id: messageId,
+                  _email_subject: subject,
+                  is_cancellation: parsed.is_cancellation,
+                  is_modification: parsed.is_modification,
+                },
+                status: 'pending',
+                dedupe_key: dedupeKey,
+              })
+              .select()
+              .single();
 
-          if (!candidateError && candidate) {
-            allCandidates.push(candidate);
-            stats.parsed++;
-          }
+            if (!candidateError && candidate) {
+              allCandidates.push(candidate);
+              stats.parsed++;
+            }
+          });
         }
 
         await logMessage(
