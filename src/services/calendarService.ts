@@ -624,9 +624,9 @@ export const calendarService = {
           .select('id');
 
         if (error) {
-          // Fall back to sequential for this chunk
-          for (const id of chunk) {
-            const ok = await this.deleteEvent(id, tripId);
+          // Fall back to parallel deletion for this chunk
+          const results = await Promise.all(chunk.map(id => this.deleteEvent(id, tripId)));
+          for (const ok of results) {
             if (ok) totalDeleted++;
             else totalFailed++;
           }
