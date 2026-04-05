@@ -14,6 +14,7 @@ const supabase = createClient(
 
 const SMS_DAILY_LIMIT = 10;
 const SMS_ENTITLED_PLANS = new Set([
+  'explorer',
   'frequent-chraveler',
   'pro-starter',
   'pro-growth',

@@ -132,7 +132,7 @@ export const ConsumerNotificationsSection = () => {
   });
 
   const smsDeliveryEligible =
-    isSuperAdmin || tier === 'frequent-chraveler' || tier.startsWith('pro-');
+    isSuperAdmin || tier === 'explorer' || tier === 'frequent-chraveler' || tier.startsWith('pro-');
 
   const fetchLastSmsStatus = useCallback(async () => {
     if (!user?.id) return;
@@ -247,7 +247,8 @@ export const ConsumerNotificationsSection = () => {
     if (setting === 'sms' && !smsDeliveryEligible) {
       toast({
         title: 'Upgrade required',
-        description: 'SMS notifications are available on Frequent Chraveler and Pro plans.',
+        description:
+          'SMS notifications are available on Explorer, Frequent Chraveler, and Pro plans.',
       });
       return;
     }

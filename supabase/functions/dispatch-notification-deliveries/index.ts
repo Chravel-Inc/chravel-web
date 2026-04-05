@@ -111,7 +111,9 @@ function isUserSmsEntitled(entitlement?: EntitlementRow): boolean {
   if (!['active', 'trialing'].includes((entitlement.status || '').toLowerCase())) return false;
 
   const plan = (entitlement.plan || '').toLowerCase();
-  return ['frequent-chraveler', 'pro-starter', 'pro-growth', 'pro-enterprise'].includes(plan);
+  return ['explorer', 'frequent-chraveler', 'pro-starter', 'pro-growth', 'pro-enterprise'].includes(
+    plan,
+  );
 }
 
 function mergePreferences(
