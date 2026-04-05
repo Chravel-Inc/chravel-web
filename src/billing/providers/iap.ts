@@ -182,7 +182,7 @@ export class AppleIAPProvider extends BaseBillingProvider {
 
     try {
       // Try Capacitor App plugin if available
-      const mod = await import(/* @vite-ignore */ '@capacitor/app').catch(() => null);
+      const mod = await import(/* @vite-ignore */ '@capacitor/app' as string).catch(() => null);
       if (mod?.App?.openUrl) {
         await mod.App.openUrl({ url });
       } else {

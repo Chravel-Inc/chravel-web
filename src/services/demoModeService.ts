@@ -121,7 +121,7 @@ class DemoModeService {
   private sessionHiddenTripIds: Set<string> = new Set();
   getTripType(trip: unknown): string {
     if (!trip) return 'demo';
-    if (trip.category === 'pro') return 'pro-trip';
+    if ((trip as any).category === 'pro') return 'pro-trip';
     return 'consumer-trip';
   }
 

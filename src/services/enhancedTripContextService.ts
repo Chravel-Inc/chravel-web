@@ -193,7 +193,7 @@ export class EnhancedTripContextService {
 
     // 🆕 Geocode basecamp if it doesn't have coordinates
     if (context.basecamp && typeof context.basecamp === 'object') {
-      const basecamp = context.basecamp as unknown;
+      const basecamp = context.basecamp as any;
       if (basecamp.address && !basecamp.lat && !basecamp.lng) {
         try {
           const coords = await this.geocodeAddress(basecamp.address);
@@ -262,7 +262,7 @@ export class EnhancedTripContextService {
   private static async getTripFiles(tripId: string): Promise<TripFile[]> {
     try {
       // Use untyped supabase to avoid TS errors until types are regenerated
-      const { data, error } = await (supabase as unknown)
+      const { data, error } = await (supabase as any)
         .from('trip_files')
         .select(
           `
@@ -285,7 +285,7 @@ export class EnhancedTripContextService {
         return [];
       }
 
-      return (data || []).map((file: unknown) => ({
+      return (data || []).map((file: any) => ({
         id: file.id,
         name: file.name,
         type: file.file_type,
@@ -326,7 +326,7 @@ export class EnhancedTripContextService {
 
   private static async getTripLinks(tripId: string): Promise<TripLink[]> {
     try {
-      const { data, error } = await (supabase as unknown)
+      const { data, error } = await (supabase as any)
         .from('trip_links')
         .select(
           `
@@ -349,7 +349,7 @@ export class EnhancedTripContextService {
         return [];
       }
 
-      return (data || []).map((link: unknown) => ({
+      return (data || []).map((link: any) => ({
         id: link.id,
         url: link.url,
         title: link.title,
@@ -367,7 +367,7 @@ export class EnhancedTripContextService {
 
   private static async getTripPolls(tripId: string): Promise<TripPoll[]> {
     try {
-      const { data, error } = await (supabase as unknown)
+      const { data, error } = await (supabase as any)
         .from('trip_polls')
         .select(
           `
@@ -389,7 +389,7 @@ export class EnhancedTripContextService {
         return [];
       }
 
-      return (data || []).map((poll: unknown) => ({
+      return (data || []).map((poll: any) => ({
         id: poll.id,
         question: poll.question,
         options: Array.isArray(poll.options) ? poll.options : [],
@@ -406,7 +406,7 @@ export class EnhancedTripContextService {
 
   private static async getChatHistory(tripId: string): Promise<ChatMessage[]> {
     try {
-      const { data, error } = await (supabase as unknown)
+      const { data, error } = await (supabase as any)
         .from('trip_chat_messages')
         .select(
           `
@@ -426,7 +426,7 @@ export class EnhancedTripContextService {
         return [];
       }
 
-      return (data || []).map((message: unknown) => ({
+      return (data || []).map((message: any) => ({
         id: message.id,
         content: message.content,
         author: message.author_name,
@@ -466,7 +466,7 @@ export class EnhancedTripContextService {
 
   private static async getTripPreferences(tripId: string): Promise<unknown> {
     try {
-      const { data, error } = await (supabase as unknown)
+      const { data, error } = await (supabase as any)
         .from('trip_preferences')
         .select('*')
         .eq('trip_id', tripId)
