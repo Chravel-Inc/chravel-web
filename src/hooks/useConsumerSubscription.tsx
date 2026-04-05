@@ -6,7 +6,6 @@ import { getTierFromProductId } from '@/constants/stripe';
 import { openExternalUrl } from '@/platform/navigation';
 import { toast } from 'sonner';
 import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
-import { Capacitor } from '@capacitor/core';
 
 interface ConsumerSubscriptionContextType {
   subscription: ConsumerSubscription | null;

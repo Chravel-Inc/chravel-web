@@ -14,7 +14,7 @@ import { useToast } from '../../hooks/use-toast';
 import { Loader2, Clock, Users, Pencil, Trash2, AlertTriangle } from 'lucide-react';
 import { EditPaymentDialog } from './EditPaymentDialog';
 import { PaymentMessage } from '../../types/payments';
-import * as haptics from '@/native/haptics';
+import { hapticService as haptics } from '@/services/hapticService';
 import { isDemoTrip } from '@/utils/demoUtils';
 import { formatCurrency } from '@/services/currencyService';
 import { formatShortDate } from '@/utils/dateFormatters';

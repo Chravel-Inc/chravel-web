@@ -5,10 +5,12 @@ import userEvent from '@testing-library/user-event';
 
 import { OnboardingCarousel } from '../OnboardingCarousel';
 
-vi.mock('@/native/haptics', () => ({
-  light: vi.fn(),
-  medium: vi.fn(),
-  success: vi.fn(),
+vi.mock('@/services/hapticService', () => ({
+  hapticService: {
+    light: vi.fn(),
+    medium: vi.fn(),
+    success: vi.fn(),
+  },
 }));
 
 vi.mock('@/telemetry/events', () => ({

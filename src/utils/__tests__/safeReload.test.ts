@@ -1,15 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-const { mockIsNativePlatform } = vi.hoisted(() => ({
-  mockIsNativePlatform: vi.fn().mockReturnValue(false),
-}));
-
-vi.mock('@capacitor/core', () => ({
-  Capacitor: {
-    isNativePlatform: mockIsNativePlatform,
-  },
-}));
-
 import { safeReload } from '../safeReload';
 
 describe('safeReload', () => {
@@ -73,8 +63,6 @@ describe('safeReload', () => {
   });
 
   it('should call window.location.reload on standard web', async () => {
-    mockIsNativePlatform.mockReturnValue(false);
-
     await safeReload();
 
     expect(mockReload).toHaveBeenCalled();
@@ -82,7 +70,6 @@ describe('safeReload', () => {
   });
 
   it('should use location.replace in standalone PWA mode', async () => {
-    mockIsNativePlatform.mockReturnValue(false);
     matchMediaSpy.mockReturnValue({ matches: true } as MediaQueryList);
 
     await safeReload();
@@ -94,7 +81,6 @@ describe('safeReload', () => {
   });
 
   it('should clear caches and service workers when clearCaches is true', async () => {
-    mockIsNativePlatform.mockReturnValue(false);
     mockCachesKeys.mockResolvedValue(['cache-1', 'cache-2']);
 
     await safeReload(true);
@@ -107,17 +93,7 @@ describe('safeReload', () => {
     expect(mockReload).not.toHaveBeenCalled();
   });
 
-  it('should use location.replace on native', async () => {
-    mockIsNativePlatform.mockReturnValue(true);
-
-    await safeReload();
-
-    expect(mockReplace).toHaveBeenCalledWith(expect.stringContaining('_reload='));
-    expect(mockReload).not.toHaveBeenCalled();
-  });
-
   it('should handle cache clearing failures gracefully', async () => {
-    mockIsNativePlatform.mockReturnValue(false);
     mockCachesKeys.mockRejectedValue(new Error('cache failure'));
 
     await safeReload(true);

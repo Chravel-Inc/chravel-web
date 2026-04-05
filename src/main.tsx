@@ -2,13 +2,11 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { TripVariantProvider } from '@/contexts/TripVariantContext';
 import { BasecampProvider } from '@/contexts/BasecampContext';
-import { initNativeLifecycle } from '@/native/lifecycle';
 import { registerServiceWorker } from './utils/serviceWorkerRegistration';
 import { initRevenueCat } from '@/config/revenuecat';
 import { setupGlobalPurchaseListener } from '@/integrations/revenuecat/revenuecatClient';
 import { telemetry } from '@/telemetry/service';
 import { isLovablePreview } from './utils/env';
-import { Capacitor } from '@capacitor/core';
 import App from './App.tsx';
 import './index.css';
 
@@ -54,15 +52,8 @@ const clearAllCaches = (): void => {
   }
 };
 
-// Skip all service worker operations on native — Capacitor bundles assets locally,
-// so the SW's 22.8 MB precache is pure overhead. Push notifications on native use
-// @capacitor/push-notifications (APNs), not the web push handler in sw.js.
-const isNativePlatform = Capacitor.isNativePlatform();
-
 // Unregister stale service workers from old hosts on first load.
-// NOTE: This runs before registerServiceWorker() below to avoid unregistering
-// the freshly-registered worker. The .then() chain is already non-blocking.
-if (!isNativePlatform && 'serviceWorker' in navigator) {
+if ('serviceWorker' in navigator) {
   navigator.serviceWorker
     .getRegistrations()
     .then(registrations => {
@@ -95,18 +86,9 @@ if (isLovablePreview()) {
   }
 }
 
-// Register service worker for offline support (web only)
-if (import.meta.env.PROD && !isNativePlatform) {
+// Register service worker for offline support
+if (import.meta.env.PROD) {
   registerServiceWorker();
-}
-
-// Initialize native lifecycle listeners as early as possible (no-op on web).
-initNativeLifecycle();
-
-// Capacitor/TestFlight: warm the home dashboard chunk in parallel with first paint so
-// navigating to `/` after auth does not wait on an extra lazy-import round trip.
-if (Capacitor.isNativePlatform()) {
-  void import('./pages/Index');
 }
 
 // Initialize PostHog analytics
