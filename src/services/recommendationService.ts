@@ -33,11 +33,13 @@ export interface ImpressionParams {
   tripId?: string;
   surface: 'recs_page' | 'trip_detail' | 'concierge' | 'home';
   position: number;
+  campaignId?: string;
 }
 
 export interface ClickParams {
   impressionId: string;
   action: 'view' | 'save' | 'book' | 'external_link' | 'add_to_trip' | 'hide';
+  campaignId?: string;
 }
 
 export class RecommendationService {
@@ -154,6 +156,11 @@ export class RecommendationService {
       return null;
     }
 
+    // Wire up to advertiser platform for sponsored items
+    if (params.itemType === 'sponsored' && params.campaignId) {
+      AdvertiserService.trackEvent(params.campaignId, 'impression').catch(() => {});
+    }
+
     return data?.id || null;
   }
 
@@ -170,6 +177,13 @@ export class RecommendationService {
 
     if (error) {
       // Tracking failures should not break the user experience
+    }
+
+    // Wire up to advertiser platform for sponsored items
+    if (params.campaignId) {
+      // If it's a save action, track as save, else click
+      const eventType = params.action === 'save' ? 'save' : 'click';
+      AdvertiserService.trackEvent(params.campaignId, eventType).catch(() => {});
     }
   }
 
@@ -211,6 +225,6 @@ export class RecommendationService {
       return [];
     }
 
-    return (data || []).map(row => row.item_id);
+    return (data || []).map((row: { item_id: string }) => row.item_id);
   }
 }

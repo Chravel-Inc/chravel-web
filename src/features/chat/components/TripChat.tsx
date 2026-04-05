@@ -621,6 +621,7 @@ export const TripChat = React.memo(
         return;
       }
 
+      // Supabase Authenticated mode: persist to database
       // Authenticated mode: persist to database
       }
       // Optimistic update
