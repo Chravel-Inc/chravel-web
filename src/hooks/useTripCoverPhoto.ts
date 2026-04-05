@@ -43,7 +43,20 @@ export const useTripCoverPhoto = (
 
     // Reject URLs that don't look like images (prevents webpage URLs being saved)
     if (!isDemoMode) {
-      const isKnownHost = photoUrl.includes('unsplash.com') || photoUrl.includes('supabase.co');
+              // Use URL hostname check to prevent substring bypass (e.g. evil.com?q=unsplash.com)
+              const isKnownHost = (() => {
+                          try {
+                                        const { hostname } = new URL(photoUrl);
+                                        return (
+                                                        hostname === 'unsplash.com' ||
+                                                        hostname.endsWith('.unsplash.com') ||
+                                                        hostname === 'supabase.co' ||
+                                                        hostname.endsWith('.supabase.co')
+                                                      );
+                          } catch {
+                                        return false;
+                          }
+              })();
       const hasImageExt = /\.(jpe?g|png|gif|webp|avif|svg)(\?|$)/i.test(photoUrl);
       if (!isKnownHost && !hasImageExt) {
         console.warn('[useTripCoverPhoto] Rejecting non-image URL:', photoUrl);
