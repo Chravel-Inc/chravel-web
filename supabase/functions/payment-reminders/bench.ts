@@ -4,7 +4,7 @@ async function runBenchmark() {
   // Mock function for simulating Supabase HTTP inserts
   const mockInsert = async (payload: unknown) => {
     // Simulate network delay (e.g. 50ms per request)
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await new Promise(resolve => setTimeout(resolve, 50));
     return { error: null };
   };
 
@@ -35,7 +35,7 @@ async function runBenchmark() {
   // Batched Method (Optimized)
   const startBatched = Date.now();
 
-  const auditLogsToInsert = overduePayments.map((payment) => ({
+  const auditLogsToInsert = overduePayments.map(payment => ({
     payment_message_id: payment.payment_message_id,
     action: 'reminder_sent',
     metadata: {

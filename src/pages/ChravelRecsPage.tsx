@@ -17,7 +17,7 @@ export const ChravelRecsPage = () => {
   // Use the new async hook passing city for backend filtering when appropriate
   const { recommendations, isLoading, error } = useRecommendations({
     type: activeFilter as import('@/data/recommendations/types').Recommendation['type'] | 'all',
-    city: appliedCityFilter || undefined
+    city: appliedCityFilter || undefined,
   });
 
   const { toggleSave } = useSavedRecommendations();

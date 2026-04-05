@@ -125,12 +125,6 @@ DECLARE
   v_user_id UUID;
   v_preferences RECORD;
   v_sent_count INTEGER := 0;
-  v_project_ref TEXT := current_setting('app.settings.supabase_project_ref', true);
-  v_service_role_key TEXT := current_setting('app.settings.supabase_service_role_key', true);
-  v_has_net_extension BOOLEAN := EXISTS (
-    SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
-    WHERE n.nspname = 'net' AND p.proname = 'http_post'
-  );
 BEGIN
   -- Loop through each recipient
   FOREACH v_user_id IN ARRAY p_user_ids LOOP
@@ -183,29 +177,9 @@ BEGIN
         
         v_sent_count := v_sent_count + 1;
         
-        -- Call push notification service if enabled
-        -- We use net.http_post (asynchronous) to avoid blocking the database transaction
-        IF v_preferences.push_enabled AND v_project_ref IS NOT NULL AND v_service_role_key IS NOT NULL AND v_has_net_extension THEN
-          PERFORM net.http_post(
-            url := format('https://%s.supabase.co/functions/v1/send-push-notification', v_project_ref),
-            headers := jsonb_build_object(
-              'Content-Type', 'application/json',
-              'Authorization', 'Bearer ' || v_service_role_key
-            ),
-            body := jsonb_build_object(
-              'userId', v_user_id,
-              'title', p_title,
-              'body', p_body,
-              'data', COALESCE(p_data, '{}'::jsonb) || jsonb_build_object(
-                'tripId', p_trip_id,
-                'notificationType', p_notification_type
-              )
-            )
-          );
-        ELSIF v_preferences.push_enabled THEN
-          -- Fallback if settings are not configured — prevents failure but logs warning
-          RAISE WARNING 'Push notification skipped: app.settings.supabase_project_ref or service_role_key not set';
-        END IF;
+        -- TODO: Call push notification service
+        -- This would invoke: supabase.functions.invoke('send-push-notification', {...})
+        -- Human must implement APNs setup for iOS
       END IF;
     END IF;
   END LOOP;

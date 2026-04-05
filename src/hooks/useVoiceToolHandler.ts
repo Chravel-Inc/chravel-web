@@ -107,22 +107,6 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
             };
           }
 
-          case 'extractReceipt': {
-            if (tripId) {
-              addPendingAction({
-                id: crypto.randomUUID(),
-                trip_id: tripId,
-                tool_name: 'extractReceipt',
-                parameters: { ...args },
-                status: 'pending',
-                created_at: new Date().toISOString(),
-              });
-            }
-            return {
-              status: 'pending_user_confirmation',
-              message: 'Receipt extraction requested. Waiting for user approval.',
-            };
-          }
           case 'createTask': {
             const content = requireString(args.content ?? args.title, 'content', 300);
             const dueDate = validateDatetime(args.dueDate ?? args.due_at, 'dueDate');
