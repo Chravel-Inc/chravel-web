@@ -193,8 +193,3 @@
   - `src/integrations/supabase/types.ts`
 - Verified no logic or data-shape changes (`eslint` warnings unchanged; zero new errors) and full gate now passes: `npm run validate` + `npm run build`.
 - Risk profile: low (format-only). Restores CI/deploy path without rolling back recent product updates.
-
-2026-04-05 — PR #80 follow-up: Stream reaction double-toggle fix
-- Addressed merge-blocking review feedback in `TripChat.handleReaction`: removed the pre-optimistic duplicate `toggleReaction(...)` call so Stream path persists reaction exactly once per tap (matching Supabase single-toggle semantics).
-- Result: optimistic UI remains intact while backend mutation no longer flips twice and cancels itself.
-- Verification: `npm run typecheck`, `npm run lint`, `npm run build`.
