@@ -180,7 +180,7 @@ export class AdvertiserService {
           destination_info: formData.destination_info,
           tags: formData.tags,
           status: formData.status || 'draft',
-          website_url: (formData as any).website_url,
+          
           duration: formData.duration,
           impressions: 0,
           clicks: 0,
@@ -209,7 +209,7 @@ export class AdvertiserService {
           destination_info: formData.destination_info as unknown,
           tags: formData.tags,
           status: formData.status,
-          website_url: (formData as any).website_url,
+          
           duration: formData.duration,
           start_date: formData.start_date,
           end_date: formData.end_date,
