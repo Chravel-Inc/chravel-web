@@ -51,7 +51,7 @@ export interface RecommendationItemRow {
   longitude: number | null;
   rating: number | null;
   price_level: number | null;
-  images: Array<{ url: string; alt?: string }>;
+  images: Array<{ url: string; alt?: string } | string>;
   tags: string[];
   external_link: string | null;
   affiliate_provider: string | null;

@@ -142,7 +142,7 @@ export function useEventAgenda({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
-      toast({ title: 'Session added' });
+      // Removed noisy success toast
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey });
@@ -189,7 +189,7 @@ export function useEventAgenda({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
-      toast({ title: 'Session updated' });
+      // Removed noisy success toast
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey });
@@ -225,7 +225,7 @@ export function useEventAgenda({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
-      toast({ title: 'Session removed' });
+      // Removed noisy success toast
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey });

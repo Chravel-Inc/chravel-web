@@ -713,10 +713,7 @@ export const useTripTasks = (
         is_poll: variables.is_poll || false,
         assigned_count: variables.assignedTo?.length || 0,
       });
-      toast({
-        title: 'Task created',
-        description: 'Your task has been added to the list.',
-      });
+      // Removed noisy success toast, optimistic UI provides instant feedback
     },
     onError: (error: Error, _variables, context) => {
       // Rollback optimistic update on failure (unless offline-queued)
@@ -913,7 +910,7 @@ export const useTripTasks = (
       return updatedTask;
     },
     onSuccess: () => {
-      toast({ title: 'Task updated', description: 'Your changes have been saved.' });
+      // Removed noisy success toast
     },
     onError: (error: Error, _variables, context) => {
       if (context?.previousTasks) {
@@ -1104,6 +1101,7 @@ export const useTripTasks = (
       } else {
         taskEvents.uncompleted(tripId, variables.taskId);
       }
+      // Success toast removed; optimistic check mark is enough feedback
     },
     onError: (err: Error, variables, context) => {
       const errMessage = err.message || '';

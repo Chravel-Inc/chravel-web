@@ -194,6 +194,7 @@ export const QUERY_CLASS_SLICES: Record<QueryClass, ContextSlice[]> = {
   smart_import: ['metadata', 'calendar', 'places'],
   basecamp_action: ['metadata', 'places'],
   agenda_action: ['metadata', 'calendar'],
+  hotel_search: ['metadata', 'places', 'calendar', 'preferences'],
 };
 
 const CONTEXT_CACHE_TTL_MS = 30_000; // 30 seconds — balances speed vs freshness

@@ -1,5 +1,4 @@
 import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
-import { PendingTripCard } from '../PendingTripCard';
 import { PendingTripCard as RequestTripCard } from '../trip/PendingTripCard';
 import { EventCard } from '../EventCard';
 import { MobileEventCard } from '../MobileEventCard';
@@ -526,8 +525,17 @@ export const TripGrid = React.memo(
                   onLongPressEnterReorder={() => setReorderMode('my_trips')}
                 />
                 {/* Pending trips after (not draggable) */}
-                {activePendingTrips.map(trip => (
-                  <PendingTripCard key={trip.id} trip={trip} />
+                {activePendingTrips.map(request => (
+                  <RequestTripCard
+                    key={request.id}
+                    tripId={String(request.id)}
+                    tripName={request.title || 'Trip'}
+                    destination={request.location}
+                    startDate={request.dateRange}
+                    coverImage={undefined}
+                    requestedAt={undefined}
+                    statusBadge="Pending Approval"
+                  />
                 ))}
                 {/* Reorder mode Done button */}
                 {reorderMode === 'my_trips' && (

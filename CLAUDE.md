@@ -203,7 +203,6 @@ iOS → Capacitor shell → same web app → same Supabase backend
 - ~160 tables with potential orphans (mock tables in prod schema)
 - 1,293 ESLint warnings (budget-tracked but high)
 - Test coverage ~12% file coverage (109 tests / 936 source files)
-- `core` binary (36MB) at repo root — purpose unknown
 
 ---
 
