@@ -191,7 +191,29 @@ export const TripChat = React.memo(
       chatModeUserRole === 'organizer' ||
       chatModeUserRole === 'owner';
 
-    // Optimistic cache updates for edit/delete (MessageActions does the API call)
+    // Role channels for pro trips
+    const {
+      availableChannels,
+      setActiveChannel,
+    } = useRoleChannels(isPro ? resolvedTripId : undefined, user?.id || '');
+
+    // Typing indicators + read receipts — must be after all deps are declared
+    const { typingUsers, typingServiceRef } = useChatTypingIndicators(
+      demoMode.isDemoMode,
+      resolvedTripId,
+      user,
+      effectiveChatMode,
+      tripMembers.length,
+      activeChannel,
+    );
+
+    const { readStatusesByMessage, setReadStatusesByMessage } = useChatReadReceipts(
+      demoMode.isDemoMode,
+      user?.id,
+      resolvedTripId,
+      liveMessages,
+    );
+
     const handleMessageEdit = useCallback(
       (messageId: string, newContent: string) => {
         if (demoMode.isDemoMode || !resolvedTripId) return;
