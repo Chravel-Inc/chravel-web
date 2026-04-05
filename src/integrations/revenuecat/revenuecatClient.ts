@@ -5,7 +5,6 @@
  * Handles demo mode, web fallbacks, and graceful degradation.
  */
 
-import { Capacitor } from '@capacitor/core';
 import {
   REVENUECAT_ENABLED,
   getRevenueCatApiKey,
@@ -25,24 +24,22 @@ import type { SubscriptionTier } from '@/billing/types';
 import despia from 'despia-native';
 import { toast } from 'sonner';
 
-// Lazy import for RevenueCat plugin (only loaded on native platforms)
-let Purchases: typeof import('@revenuecat/purchases-capacitor').Purchases | null = null;
+// RevenueCat Capacitor plugin removed — native IAP handled by chravel-mobile.
+// This variable is kept as a null placeholder for the loadPurchasesPlugin() interface.
+const Purchases: unknown | null = null;
 
 /**
- * Get current platform
+ * Get current platform (always 'web' — native handled by chravel-mobile)
  */
 export function getPlatform(): RevenueCatPlatform {
-  const platform = Capacitor.getPlatform();
-  if (platform === 'ios') return 'ios';
-  if (platform === 'android') return 'android';
   return 'web';
 }
 
 /**
- * Check if we're on a native platform (iOS/Android)
+ * Check if we're on a native platform (always false — native handled by chravel-mobile)
  */
 export function isNativePlatform(): boolean {
-  return getPlatform() !== 'web';
+  return false;
 }
 
 /**
@@ -54,17 +51,15 @@ export function isRevenueCatAvailable(): boolean {
 }
 
 /**
- * Load the RevenueCat plugin dynamically
+ * Load the RevenueCat plugin dynamically.
+ * Always returns null on web — native IAP handled by chravel-mobile.
  */
-async function loadPurchasesPlugin(): Promise<
-  typeof import('@revenuecat/purchases-capacitor').Purchases | null
-> {
+async function loadPurchasesPlugin(): Promise<unknown | null> {
   if (Purchases) return Purchases;
 
   try {
-    const module = await import('@revenuecat/purchases-capacitor');
-    Purchases = module.Purchases;
-    return Purchases;
+    // Plugin removed — native IAP handled by chravel-mobile
+    return null;
   } catch (error) {
     console.warn('[RevenueCat] Failed to load plugin:', error);
     return null;

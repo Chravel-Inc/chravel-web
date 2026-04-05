@@ -1,7 +1,6 @@
 /**
- * Safe page reload utility that works in web, PWA standalone, and Capacitor native contexts.
+ * Safe page reload utility for web and PWA standalone contexts.
  */
-import { Capacitor } from '@capacitor/core';
 
 const isStandalonePWA = (): boolean => {
   if (typeof window === 'undefined') return false;
@@ -50,15 +49,8 @@ export async function safeReload(clearCaches = false): Promise<void> {
     }
   }
 
-  const cacheBustedPath = buildCacheBustedPath();
-
-  if (Capacitor.isNativePlatform()) {
-    window.location.replace(cacheBustedPath);
-    return;
-  }
-
   if (clearCaches || isStandalonePWA()) {
-    window.location.replace(cacheBustedPath);
+    window.location.replace(buildCacheBustedPath());
     return;
   }
 

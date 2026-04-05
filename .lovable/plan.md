@@ -1,29 +1,32 @@
 
-# Fix Pre-Existing TypeScript Build Errors
 
-Your Supabase connection is working fine. The build errors are pre-existing type mismatches across 4 files. Here's the plan:
+## Create Public SMS Terms & Consent Page
 
-## Errors and Fixes
+### Purpose
+Twilio toll-free verification requires a publicly accessible URL proving how SMS opt-in consent is collected. This page will serve as that proof.
 
-### 1. `src/components/home/TripGrid.tsx` (lines 528-536)
-**Problem:** `pendingTrips` is typed as local `Trip[]` but used as `DashboardJoinRequest[]` (accessing `.trip_id`, `.trip?.name`, `.requested_at`).
-**Fix:** Change `pendingTrips` prop type from `Trip[]` to `DashboardJoinRequest[]` in the `TripGridProps` interface. Import `DashboardJoinRequest` (already imported on line 26).
+### What gets built
 
-### 2. `src/features/chat/components/TripChat.tsx`
-**Two sub-issues:**
-- **Line 754:** `filterMessages` called with messages whose `linkPreview` can be `unknown`. Fix: ensure mock message `linkPreview` is typed as `undefined` instead of `unknown`.
-- **Line 829:** First `PullToRefreshIndicator` missing required `threshold` prop. Fix: add `threshold={80}` to the first instance, or remove the duplicate (line 829 is a duplicate of line 830-834).
+**New file: `src/pages/SmsTerms.tsx`**
+- Matches the existing layout pattern from `TermsOfService.tsx` and `PrivacyPolicy.tsx` (dark background, prose styling, back button)
+- Content sections:
+  1. **What is Chravel SMS** — transactional trip notifications, not marketing
+  2. **How Users Opt In** — paid plan required → Settings > Notifications > Enable SMS toggle → confirmation SMS sent → user replies YES
+  3. **Message Categories** — calendar reminders, broadcasts, payments, tasks, polls, join requests, basecamp updates
+  4. **Message Frequency** — up to 10 messages per day
+  5. **How to Opt Out** — reply STOP, or disable in app Settings
+  6. **Data Rates** — standard "Msg & data rates may apply"
+  7. **Privacy** — links to `/privacy` and `/terms`
+  8. **Contact** — support@chravelapp.com, privacy@chravelapp.com
 
-### 3. `src/utils/__tests__/tokenValidation.test.ts`
-**Problem:** `vi.stubEnv('DEV', 'true')` passes a string but the function expects boolean. Also, many `@ts-expect-error` directives are unused (the underlying function signatures changed to accept the inputs).
-**Fix:** Change `vi.stubEnv('DEV', true)`. Remove all unused `@ts-expect-error` directives.
+**Modified file: `src/App.tsx`**
+- Add lazy import for `SmsTerms`
+- Add `<Route path="/sms-terms" ...>` (public, no auth — placed next to `/terms` route)
+- Add `/sms-terms` to the `isPublicRoute` check in `OfflineAwareRoutes`
 
-### 4. `src/utils/__tests__/tripConverter.test.ts`
-**Problem:** Test creates objects with `trip_members` and `trip_events_places` properties that don't exist on the `Trip` interface from `tripService.ts`. Also references `categories` which doesn't exist.
-**Fix:** Either add these optional properties to the `Trip` interface in `tripService.ts`, or cast test objects with `as unknown as Trip` since these are aggregate/join fields returned by Supabase queries.
+### After deployment
+Use **`https://chravel.lovable.app/sms-terms`** as the "Proof of consent (opt-in) collected" URL in the Twilio toll-free verification form.
 
-## Technical Details
+### No other files affected
+The existing build errors shown are pre-existing and unrelated to this change.
 
-- All fixes are type-level only; no runtime behavior changes
-- Each file fix is independent and can be verified with `npm run typecheck`
-- Total: ~6 surgical edits across 4 files

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { useIsMobile } from './use-mobile';
-import { Capacitor } from '@capacitor/core';
 
 interface KeyboardHandlerOptions {
   preventZoom?: boolean;
@@ -16,25 +15,6 @@ export const useKeyboardHandler = (options: KeyboardHandlerOptions = {}) => {
 
   useEffect(() => {
     if (!isMobile) return;
-
-    // Native shell (Capacitor): we rely on a single global keyboard listener in `initializeNativeShell()`.
-    // This hook just mirrors the global event into React state for components that need it.
-    if (Capacitor.isNativePlatform()) {
-      const handleNativeKeyboard = (event: WindowEventMap['chravel:keyboard']) => {
-        const nextVisible = event.detail.visible;
-        setIsKeyboardVisible(nextVisible);
-        if (nextVisible) {
-          options.onShow?.();
-        } else {
-          options.onHide?.();
-        }
-      };
-
-      window.addEventListener('chravel:keyboard', handleNativeKeyboard as EventListener);
-      return () => {
-        window.removeEventListener('chravel:keyboard', handleNativeKeyboard as EventListener);
-      };
-    }
 
     // Store initial viewport height
     initialViewportHeight.current = window.visualViewport?.height || window.innerHeight;

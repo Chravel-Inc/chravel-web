@@ -157,6 +157,13 @@ export const TripChat = React.memo(
     // ⚡ PERFORMANCE: Skip expensive hooks in demo mode for numeric trip IDs
     const shouldSkipLiveChat = demoMode.isDemoMode && /^\d+$/.test(resolvedTripId);
 
+    // Fetch privacy config for the trip
+    const { data: privacyConfig } = useTripPrivacyConfig(
+      shouldSkipLiveChat ? undefined : resolvedTripId,
+    );
+
+    // Live chat hooks - only initialize for authenticated trips
+    const { tripMembers } = useTripMembers(shouldSkipLiveChat ? undefined : resolvedTripId);
     const {
       messages: liveMessages,
       isLoading: liveLoading,

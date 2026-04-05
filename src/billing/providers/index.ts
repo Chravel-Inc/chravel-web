@@ -5,7 +5,6 @@
  * Handles the complexity of iOS IAP requirements vs web checkout.
  */
 
-import { Capacitor } from '@capacitor/core';
 import type { BillingProvider } from './base';
 import { StripeProvider } from './stripe';
 import { AppleIAPProvider } from './iap';
@@ -15,24 +14,19 @@ import type { SubscriptionTier, BillingPlatform } from '../types';
 // Singleton instances
 let stripeProvider: StripeProvider | null = null;
 let appleProvider: AppleIAPProvider | null = null;
-// let googleProvider: GooglePlayProvider | null = null; // TODO: Future
 
 /**
- * Get the current platform
+ * Get the current platform (always 'web' — native handled by chravel-mobile)
  */
 export function getPlatform(): BillingPlatform {
-  const platform = Capacitor.getPlatform();
-
-  if (platform === 'ios') return 'ios';
-  if (platform === 'android') return 'android';
   return 'web';
 }
 
 /**
- * Check if running on native platform
+ * Check if running on native platform (always false — native handled by chravel-mobile)
  */
 export function isNativePlatform(): boolean {
-  return Capacitor.isNativePlatform();
+  return false;
 }
 
 /**

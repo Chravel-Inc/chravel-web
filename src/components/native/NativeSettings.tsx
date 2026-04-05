@@ -27,7 +27,6 @@ import {
   isNativePlatform,
   launchNativePaywall,
 } from '@/integrations/revenuecat/revenuecatClient';
-import { getAppVersion } from '@/native/appInfo';
 
 interface NativeSettingsProps {
   user?: {
@@ -72,14 +71,11 @@ export const NativeSettings = ({
   const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
   const [locationEnabled, setLocationEnabled] = useState(true);
 
-  // Load app info
+  // Load app info (web-only — native handled by chravel-mobile)
   React.useEffect(() => {
-    const loadAppInfo = async () => {
-      const versionInfo = await getAppVersion();
-      setAppVersion(versionInfo.versionNumber);
-      setBuildNumber(versionInfo.bundleNumber);
-    };
-    loadAppInfo();
+    setAppVersion((import.meta.env.VITE_APP_VERSION as string) || '1.0.0');
+    const buildId = (import.meta.env.VITE_BUILD_ID as string) || 'dev';
+    setBuildNumber(buildId.slice(0, 7));
   }, []);
 
   const handleUpgrade = useCallback(async () => {

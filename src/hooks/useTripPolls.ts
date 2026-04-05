@@ -11,7 +11,7 @@ import { offlineSyncService } from '@/services/offlineSyncService';
 import { cacheEntity, getCachedEntities } from '@/offline/cache';
 import { generateMutationId } from '@/utils/concurrencyUtils';
 import { useMutationPermissions } from '@/hooks/useMutationPermissions';
-import * as haptics from '@/native/haptics';
+import { hapticService as haptics } from '@/services/hapticService';
 
 interface TripPoll {
   id: string;

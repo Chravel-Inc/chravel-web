@@ -11,7 +11,7 @@ import {
   type PermissionId,
   type PermissionState,
   type PermissionStatus,
-} from '@/native/permissions';
+} from '@/lib/webPermissions';
 
 function formatState(state: PermissionState): string {
   switch (state) {

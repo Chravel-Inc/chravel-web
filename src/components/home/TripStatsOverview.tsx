@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { StatsData } from '../../utils/tripStatsCalculator';
-import * as Haptics from '../../native/haptics';
+import { hapticService as Haptics } from '@/services/hapticService';
 
 interface TripStatsOverviewProps {
   stats: StatsData;

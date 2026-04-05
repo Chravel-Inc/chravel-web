@@ -9,7 +9,6 @@ export default tseslint.config(
     ignores: [
       'dist/**',
       'public/**',
-      'ios/**',
       'android/**',
       'supabase/**',
       'unfurl/**',
@@ -17,7 +16,6 @@ export default tseslint.config(
       'node_modules/**',
       '.ai/**',
       'docs/**',
-      'capacitor.config.ts',
       '*.config.js',
       '*.config.ts',
       '.lintstagedrc.js',

@@ -5,7 +5,6 @@ import { CONSUMER_PRICING } from '../../types/consumer';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Capacitor } from '@capacitor/core';
 
 export const ConsumerBillingSection = () => {
   const { subscription, tier, isSubscribed, upgradeToTier, isLoading, isSuperAdmin, proTier } =
@@ -13,9 +12,8 @@ export const ConsumerBillingSection = () => {
   const [expandedPlan, setExpandedPlan] = useState<string | null>(tier);
   const [expandedProPlan, setExpandedProPlan] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
-  const isNativeIOS = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';
-  const isConsumerTier = tier === 'free' || tier === 'explorer' || tier === 'frequent-chraveler';
-  const blockConsumerCheckoutOnIOS = isNativeIOS && isConsumerTier && !isSuperAdmin;
+  const isNativeIOS = false;
+  const blockConsumerCheckoutOnIOS = false;
 
   const handleManageSubscription = async () => {
     if (blockConsumerCheckoutOnIOS) {
