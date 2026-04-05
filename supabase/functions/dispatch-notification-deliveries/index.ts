@@ -608,6 +608,8 @@ serve(async req => {
           error: 'Missing notification row',
           attempts: delivery.attempts + 1,
         });
+        summary.processed++;
+        summary.failed[delivery.channel]++;
         continue;
       }
 
@@ -1021,9 +1023,11 @@ serve(async req => {
         });
       } else {
         const newAttempts = delivery.attempts + 1;
+        // Retry on server errors (5xx), rate limits (429), or network failures (no status)
         const isRetryable =
-          smsResult.httpStatus !== undefined &&
-          (smsResult.httpStatus >= 500 || smsResult.httpStatus === 429);
+          smsResult.httpStatus === undefined ||
+          smsResult.httpStatus >= 500 ||
+          smsResult.httpStatus === 429;
         const shouldRetry = isRetryable && newAttempts < SMS_MAX_ATTEMPTS;
 
         if (shouldRetry) {

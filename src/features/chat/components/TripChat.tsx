@@ -239,13 +239,6 @@ export const TripChat = React.memo(
       isConsumer ? resolvedTripId : '',
     );
 
-    // Fetch privacy config for the trip
-    const { data: privacyConfig } = useTripPrivacyConfig(
-      shouldSkipLiveChat ? undefined : resolvedTripId,
-    );
-
-    const { tripMembers } = useTripMembers(shouldSkipLiveChat ? undefined : resolvedTripId);
-
     // Local mutable state derived from hasMore to avoid assigning to a const binding
     const [hasMoreState, setHasMoreState] = useState(hasMore);
 

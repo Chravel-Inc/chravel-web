@@ -48,3 +48,9 @@ BEGIN
   RETURNING nd.*;
 END;
 $$;
+
+-- 3) Lock down: only service_role may call this (cron/edge function path)
+REVOKE ALL ON FUNCTION public.claim_notification_deliveries(INTEGER, TEXT[], UUID[], UUID[]) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.claim_notification_deliveries(INTEGER, TEXT[], UUID[], UUID[]) FROM anon;
+REVOKE ALL ON FUNCTION public.claim_notification_deliveries(INTEGER, TEXT[], UUID[], UUID[]) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.claim_notification_deliveries(INTEGER, TEXT[], UUID[], UUID[]) TO service_role;
