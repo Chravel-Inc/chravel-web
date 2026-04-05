@@ -87,7 +87,7 @@ export interface ParsedContent {
   };
   confidence: number;
   suggestions?: Array<{
-    action: 'create_calendar_event' | 'create_todo' | 'extract_receipt' | 'none';
+    action: 'create_calendar_event' | 'create_todo' | 'none';
     data?: Record<string, unknown>;
     message: string;
   }>;
@@ -135,14 +135,6 @@ export async function parseReceipt(imageUrl: string, tripId: string): Promise<Pa
 
     // Generate suggestions
     const suggestions: ParsedContent['suggestions'] = [];
-
-    if (receipt.structured_data.total_cost) {
-      suggestions.push({
-        action: 'extract_receipt',
-        data: receipt as unknown as Record<string, unknown>,
-        message: `Extract receipt for $${receipt.structured_data.total_cost}`,
-      });
-    }
 
     if (receipt.structured_data.dates && receipt.structured_data.dates.length > 0) {
       suggestions.push({
@@ -467,13 +459,26 @@ export async function applySuggestion(
         return result.event?.id || null;
       }
 
-      case 'create_todo':
-        // TODO: Implement todo creation service
-        return null;
+      case 'create_todo': {
+        if (!suggestion.data) return null;
+        const td = suggestion.data;
+        const { data: authData } = await supabase.auth.getUser();
+        const userId = authData.user?.id || 'demo-user';
 
-      case 'extract_receipt':
-        // TODO: Implement receipt extraction/storage
-        return null;
+        // Import taskStorageService dynamically to avoid circular dependencies if any
+        const { taskStorageService } = await import('@/services/taskStorageService');
+
+        const taskData = {
+          title: (td.title as string) || 'New Task',
+          description: td.description as string | undefined,
+          due_at: td.due_date as string | undefined,
+          is_poll: false,
+          assignedTo: [],
+        };
+
+        const result = await taskStorageService.createTask(tripId, taskData, userId);
+        return result?.id || null;
+      }
 
       default:
         return null;

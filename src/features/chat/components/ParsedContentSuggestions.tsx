@@ -52,8 +52,6 @@ export const ParsedContentSuggestions: React.FC<ParsedContentSuggestionsProps> =
         return <Calendar className="w-4 h-4" />;
       case 'create_todo':
         return <CheckSquare className="w-4 h-4" />;
-      case 'extract_receipt':
-        return <Receipt className="w-4 h-4" />;
       default:
         return <Sparkles className="w-4 h-4" />;
     }
