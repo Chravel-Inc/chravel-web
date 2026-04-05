@@ -4,7 +4,7 @@ import {
   SUPABASE_PUBLIC_ANON_KEY,
 } from '@/integrations/supabase/client';
 
-export const CONCIERGE_FUNCTION_NAME = 'lovable-concierge';
+export const CONCIERGE_FUNCTION_NAME = 'text-concierge';
 export const DEMO_CONCIERGE_FUNCTION_NAME = 'demo-concierge';
 
 export interface ConciergeInvokeBody extends Record<string, unknown> {

@@ -73,7 +73,31 @@ export function useEventTasks(eventId: string) {
       if (error) throw error;
       return data as EventTask;
     },
-    onSuccess: () => {
+    onMutate: async (params: CreateEventTaskParams) => {
+      if (isDemoMode) return;
+      await queryClient.cancelQueries({ queryKey: ['eventTasks', eventId, isDemoMode] });
+      const prev = queryClient.getQueryData<EventTask[]>(['eventTasks', eventId, isDemoMode]) ?? [];
+      const optimisticTask: EventTask = {
+        id: `opt-${Date.now()}`,
+        event_id: eventId,
+        title: params.title,
+        description: params.description || null,
+        sort_order: params.sort_order,
+        created_by: user?.id || null, // user is already available from useAuth() hook at the top of the file
+        created_at: new Date().toISOString(),
+      };
+      // Insert maintaining sort order
+      const next = [...prev, optimisticTask].sort((a, b) => a.sort_order - b.sort_order);
+      queryClient.setQueryData<EventTask[]>(['eventTasks', eventId, isDemoMode], next);
+      return { prev };
+    },
+    onError: (err: Error, _variables, context) => {
+      if (context?.prev) {
+        queryClient.setQueryData(['eventTasks', eventId, isDemoMode], context.prev);
+      }
+      toast({ title: 'Failed to add task', description: err.message, variant: 'destructive' });
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['eventTasks', eventId, isDemoMode] });
     },
   });
@@ -93,7 +117,34 @@ export function useEventTasks(eventId: string) {
       if (error) throw error;
       return { taskId, params };
     },
-    onSuccess: () => {
+    onMutate: async ({ taskId, params }) => {
+      if (isDemoMode) return;
+      await queryClient.cancelQueries({ queryKey: ['eventTasks', eventId, isDemoMode] });
+      const prev = queryClient.getQueryData<EventTask[]>(['eventTasks', eventId, isDemoMode]) ?? [];
+      const next = prev.map(task =>
+        task.id === taskId
+          ? {
+              ...task,
+              title: params.title ?? task.title,
+              description: params.description ?? task.description,
+              ...(params.sort_order !== undefined && { sort_order: params.sort_order }),
+            }
+          : task,
+      );
+      // Re-sort if sort_order changed
+      if (params.sort_order !== undefined) {
+        next.sort((a, b) => a.sort_order - b.sort_order);
+      }
+      queryClient.setQueryData<EventTask[]>(['eventTasks', eventId, isDemoMode], next);
+      return { prev };
+    },
+    onError: (err: Error, _variables, context) => {
+      if (context?.prev) {
+        queryClient.setQueryData(['eventTasks', eventId, isDemoMode], context.prev);
+      }
+      toast({ title: 'Failed to update task', description: err.message, variant: 'destructive' });
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['eventTasks', eventId, isDemoMode] });
     },
   });
@@ -108,36 +159,35 @@ export function useEventTasks(eventId: string) {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onMutate: async (taskId: string) => {
+      if (isDemoMode) return;
+      await queryClient.cancelQueries({ queryKey: ['eventTasks', eventId, isDemoMode] });
+      const prev = queryClient.getQueryData<EventTask[]>(['eventTasks', eventId, isDemoMode]) ?? [];
+      const next = prev.filter(task => task.id !== taskId);
+      queryClient.setQueryData<EventTask[]>(['eventTasks', eventId, isDemoMode], next);
+      return { prev };
+    },
+    onError: (err: Error, _variables, context) => {
+      if (context?.prev) {
+        queryClient.setQueryData(['eventTasks', eventId, isDemoMode], context.prev);
+      }
+      toast({ title: 'Failed to remove task', description: err.message, variant: 'destructive' });
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['eventTasks', eventId, isDemoMode] });
     },
   });
 
   const createTask = async (params: CreateEventTaskParams) => {
-    try {
-      await createMutation.mutateAsync(params);
-      toast({ title: 'Task added successfully' });
-    } catch {
-      toast({ title: 'Failed to add task', variant: 'destructive' });
-    }
+    return createMutation.mutateAsync(params);
   };
 
   const updateTask = async (taskId: string, params: UpdateEventTaskParams) => {
-    try {
-      await updateMutation.mutateAsync({ taskId, params });
-      toast({ title: 'Task updated' });
-    } catch {
-      toast({ title: 'Failed to update task', variant: 'destructive' });
-    }
+    return updateMutation.mutateAsync({ taskId, params });
   };
 
   const deleteTask = async (taskId: string) => {
-    try {
-      await deleteMutation.mutateAsync(taskId);
-      toast({ title: 'Task removed' });
-    } catch {
-      toast({ title: 'Failed to remove task', variant: 'destructive' });
-    }
+    return deleteMutation.mutateAsync(taskId);
   };
 
   return {

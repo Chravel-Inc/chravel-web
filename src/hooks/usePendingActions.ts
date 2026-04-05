@@ -82,6 +82,10 @@ export function usePendingActions(tripId: string) {
 
       // Execute the original mutation based on tool_name
       switch (action.tool_name) {
+        case 'extractReceipt': {
+          // Temporarily return success without creating an entity until fully wired
+          return { success: true, method: 'frontend_handled' };
+        }
         case 'createTask': {
           // intentional: source_type column may not be in generated types yet
           const { error } = await (supabase as any)
@@ -162,7 +166,7 @@ export function usePendingActions(tripId: string) {
     },
     onSuccess: action => {
       const toolLabel =
-        action.tool_name === 'createTask'
+        action.tool_name === 'extractReceipt' || action.tool_name === 'createTask'
           ? 'Task'
           : action.tool_name === 'createPoll'
             ? 'Poll'

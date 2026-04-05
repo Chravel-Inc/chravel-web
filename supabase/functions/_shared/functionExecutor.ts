@@ -96,6 +96,43 @@ async function _executeImpl(
       };
     }
 
+    case 'extractReceipt': {
+      const { fileUrl, totalAmount, vendor, currency, idempotency_key, tool_call_id } = args;
+      const dedupeId = tool_call_id || idempotency_key || null;
+
+      // Route to pending buffer for user confirmation
+      const { data: pending, error: pendingError } = await supabase
+        .from('trip_pending_actions')
+        .insert({
+          trip_id: tripId,
+          user_id: userId || '00000000-0000-0000-0000-000000000000',
+          tool_name: 'extractReceipt',
+          ...(dedupeId ? { tool_call_id: dedupeId } : {}),
+          payload: {
+            fileUrl,
+            totalAmount,
+            vendor,
+            currency,
+          },
+        })
+        .select('id')
+        .single();
+
+      if (pendingError) {
+        if (pendingError.code === '23505') {
+          return { success: true, message: 'Action already pending.' };
+        }
+        return { error: pendingError.message };
+      }
+
+      return {
+        success: true,
+        message:
+          'Receipt extraction added to pending actions. The user needs to confirm it before proceeding.',
+        pending_action_id: pending.id,
+      };
+    }
+
     case 'createTask': {
       const { title, notes, dueDate, assignee, idempotency_key, tool_call_id } = args;
       const taskTitle = String(title || '').trim();
