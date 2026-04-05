@@ -36,7 +36,9 @@ if (totals.errors > 0) {
       console.error(`\nFile: ${file.filePath}`);
       file.messages.forEach(msg => {
         if (msg.severity === 2) {
-          console.error(`  [ERROR] Line ${msg.line}:${msg.column} - ${msg.message} (${msg.ruleId})`);
+          console.error(
+            `  [ERROR] Line ${msg.line}:${msg.column} - ${msg.message} (${msg.ruleId})`,
+          );
         }
       });
     }
