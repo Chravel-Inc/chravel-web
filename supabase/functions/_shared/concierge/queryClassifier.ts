@@ -31,7 +31,7 @@ export type QueryClass =
   | 'basecamp_action'
   | 'agenda_action';
 
-// ── Regex patterns (moved from lovable-concierge/index.ts) ──────────────────
+// ── Regex patterns (moved from text-concierge/index.ts) ──────────────────
 
 export const TRIP_SCOPED_QUERY_PATTERN =
   /\b(trip|itinerary|schedule|calendar|event|dinner|lunch|breakfast|reservation|basecamp|hotel|flight|task|todo|payment|owe|expense|poll|vote|chat|message|broadcast|address|meeting|check[- ]?in|check[- ]?out|plan|agenda|logistics|team|member|members|channel|channels|role|roles|who's on|who is on|group|organizer|admin)\b/i;

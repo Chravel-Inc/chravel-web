@@ -133,7 +133,7 @@ serve(async req => {
     }
 
     // Route requests to the primary Gemini concierge function.
-    const conciergeResponse = await supabase.functions.invoke('lovable-concierge', {
+    const conciergeResponse = await supabase.functions.invoke('text-concierge', {
       headers: {
         Authorization: authHeader,
       },
@@ -175,7 +175,7 @@ serve(async req => {
         usage,
         sentimentScore,
         success: true,
-        model: 'gemini-3-flash-preview', // informational label; actual model is resolved by lovable-concierge
+        model: 'gemini-3-flash-preview', // informational label; actual model is resolved by text-concierge
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

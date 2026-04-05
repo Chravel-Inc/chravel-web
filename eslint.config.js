@@ -23,6 +23,7 @@ export default tseslint.config(
       '.lintstagedrc.js',
       '.prettierrc.js',
       'vercel.json',
+      '*.cjs',
     ],
   },
   js.configs.recommended,
