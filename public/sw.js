@@ -49,8 +49,9 @@ if (self.workbox) {
   workbox.routing.registerRoute(
     ({ url, request }) =>
       request.destination === 'image' &&
-      (url.hostname.includes('maps.googleapis.com') ||
-        url.hostname.includes('maps.gstatic.com') ||
+            // Use exact hostname match to prevent substring bypass attacks
+            (url.hostname === 'maps.googleapis.com' ||
+                url.hostname === 'maps.gstatic.com' ||
         /mt\d+\.google\./.test(url.hostname)),
     new workbox.strategies.CacheFirst({
       cacheName: 'chravel-maps-tiles',
