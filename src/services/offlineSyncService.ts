@@ -45,6 +45,18 @@ export interface CachedEntity {
   version?: number;
 }
 
+export interface SyncHandlers {
+  onChatMessageCreate?: (tripId: string, data: Record<string, unknown>) => Promise<unknown>;
+  onChatMessageUpdate?: (entityId: string, data: Record<string, unknown>) => Promise<unknown>;
+  onTaskCreate?: (tripId: string, data: Record<string, unknown>) => Promise<unknown>;
+  onTaskUpdate?: (entityId: string, data: Record<string, unknown>) => Promise<unknown>;
+  onTaskToggle?: (entityId: string, data: Record<string, unknown>) => Promise<unknown>;
+  onPollVote?: (pollId: string, data: Record<string, unknown>) => Promise<unknown>;
+  onCalendarEventCreate?: (tripId: string, data: Record<string, unknown>) => Promise<unknown>;
+  onCalendarEventUpdate?: (entityId: string, data: Record<string, unknown>) => Promise<unknown>;
+  onCalendarEventDelete?: (entityId: string) => Promise<unknown>;
+}
+
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 5000; // 5 seconds
 const CACHE_EXPIRY_DAYS = 30;
@@ -321,123 +333,115 @@ class OfflineSyncService {
    * Process sync queue when connection is restored
    * Returns count of successful and failed operations
    */
-  async processSyncQueue(handlers: {
-    onChatMessageCreate?: (tripId: string, data: Record<string, unknown>) => Promise<unknown>;
-    onChatMessageUpdate?: (entityId: string, data: Record<string, unknown>) => Promise<unknown>;
-    onTaskCreate?: (tripId: string, data: Record<string, unknown>) => Promise<unknown>;
-    onTaskUpdate?: (entityId: string, data: Record<string, unknown>) => Promise<unknown>;
-    onTaskToggle?: (entityId: string, data: Record<string, unknown>) => Promise<unknown>;
-    onPollVote?: (pollId: string, data: Record<string, unknown>) => Promise<unknown>;
-    onCalendarEventCreate?: (tripId: string, data: Record<string, unknown>) => Promise<unknown>;
-    onCalendarEventUpdate?: (entityId: string, data: Record<string, unknown>) => Promise<unknown>;
-    onCalendarEventDelete?: (entityId: string) => Promise<unknown>;
-  }): Promise<{ processed: number; failed: number }> {
+  async processSyncQueue(
+    handlers: SyncHandlers,
+  ): Promise<{ processed: number; failed: number }> {
     if (!navigator.onLine) {
       return { processed: 0, failed: 0 };
     }
 
     const readyOps = await this.getReadyOperations();
 
-    const results = await Promise.all(
-      readyOps.map(async operation => {
-        try {
-          // Atomically update status to 'syncing' - if operation was already removed, this returns null
-          // This prevents concurrent processors from handling the same operation
-          const updated = await this.updateOperationStatus(operation.id, 'syncing');
-          if (!updated) {
-            // Operation was already removed or is being processed by another sync
-            return { status: 'skipped' };
-          }
-
-          let handlerRan = false;
-
-          // Route to appropriate handler
-          switch (operation.entityType) {
-            case 'chat_message':
-              if (operation.operationType === 'create' && handlers.onChatMessageCreate) {
-                await handlers.onChatMessageCreate(operation.tripId, operation.data);
-                handlerRan = true;
-              } else if (operation.operationType === 'update' && handlers.onChatMessageUpdate) {
-                await handlers.onChatMessageUpdate(operation.entityId!, operation.data);
-                handlerRan = true;
-              }
-              break;
-
-            case 'task':
-              if (operation.operationType === 'create' && handlers.onTaskCreate) {
-                await handlers.onTaskCreate(operation.tripId, operation.data);
-                handlerRan = true;
-              } else if (operation.operationType === 'update') {
-                // IMPORTANT: Prioritize toggles over generic updates.
-                // Task completion is stored in `task_status` via `toggle_task_status` RPC, not on `trip_tasks`.
-                if (operation.data?.completed !== undefined && handlers.onTaskToggle) {
-                  await handlers.onTaskToggle(operation.entityId!, operation.data);
-                  handlerRan = true;
-                } else if (handlers.onTaskUpdate) {
-                  await handlers.onTaskUpdate(operation.entityId!, operation.data);
-                  handlerRan = true;
-                }
-              }
-              break;
-
-            case 'poll_vote':
-              if (operation.operationType === 'create' && handlers.onPollVote) {
-                await handlers.onPollVote(operation.entityId!, operation.data);
-                handlerRan = true;
-              }
-              break;
-
-            case 'calendar_event':
-              if (operation.operationType === 'create' && handlers.onCalendarEventCreate) {
-                await handlers.onCalendarEventCreate(operation.tripId, operation.data);
-                handlerRan = true;
-              } else if (operation.operationType === 'update' && handlers.onCalendarEventUpdate) {
-                await handlers.onCalendarEventUpdate(operation.entityId!, operation.data);
-                handlerRan = true;
-              } else if (operation.operationType === 'delete' && handlers.onCalendarEventDelete) {
-                await handlers.onCalendarEventDelete(operation.entityId!);
-                handlerRan = true;
-              }
-              break;
-          }
-
-          // CRITICAL: Only remove operation if a handler actually ran and succeeded
-          // This prevents data loss when handlers are not provided for all entity types
-          if (!handlerRan) {
-            // No handler for this operation type - skip it (don't remove, don't fail)
-            console.warn(
-              `[OfflineSync] No handler provided for ${operation.entityType}:${operation.operationType} operation ${operation.id}. ` +
-                `Operation preserved in queue for later processing.`,
-            );
-            // Reset status back to pending so it can be processed later with proper handlers
-            // DO NOT remove from queue - this would cause permanent data loss
-            await this.updateOperationStatus(operation.id, 'pending');
-            return { status: 'skipped' };
-          }
-
-          // Handler ran successfully - safe to remove from queue
-          // Only reached if handlerRan === true
-          await this.removeOperation(operation.id);
-          return { status: 'processed' };
-        } catch (error) {
-          console.error(`Failed to sync operation ${operation.id}:`, error);
-
-          const updated = await this.updateOperationStatus(operation.id, 'pending', true);
-
-          if (updated && updated.retryCount >= MAX_RETRIES) {
-            await this.updateOperationStatus(operation.id, 'failed');
-            return { status: 'failed' };
-          }
-
-          return { status: 'retry' };
-        }
-      }),
-    );
+    const results = await Promise.all(readyOps.map(op => this.syncOperation(op, handlers)));
 
     return {
-      processed: results.filter(r => r.status === 'processed').length,
-      failed: results.filter(r => r.status === 'failed').length,
+      processed: results.filter(r => r === 'processed').length,
+      failed: results.filter(r => r === 'failed').length,
     };
+  }
+
+  /**
+   * Internal helper to sync a single operation
+   */
+  private async syncOperation(
+    operation: QueuedSyncOperation,
+    handlers: SyncHandlers,
+  ): Promise<'processed' | 'failed' | 'retry' | 'skipped'> {
+    const { id, entityType, operationType, tripId, entityId, data } = operation;
+
+    try {
+      // Atomically update status to 'syncing' - if operation was already removed, this returns null
+      const updated = await this.updateOperationStatus(id, 'syncing');
+      if (!updated) {
+        return 'skipped';
+      }
+
+      let handlerRan = false;
+
+      // Route to appropriate handler
+      switch (entityType) {
+        case 'chat_message':
+          if (operationType === 'create' && handlers.onChatMessageCreate) {
+            await handlers.onChatMessageCreate(tripId, data);
+            handlerRan = true;
+          } else if (operationType === 'update' && entityId && handlers.onChatMessageUpdate) {
+            await handlers.onChatMessageUpdate(entityId, data);
+            handlerRan = true;
+          }
+          break;
+
+        case 'task': {
+          if (operationType === 'create' && handlers.onTaskCreate) {
+            await handlers.onTaskCreate(tripId, data);
+            handlerRan = true;
+            break;
+          }
+
+          if (operationType === 'update' && entityId) {
+            // Task completion is stored via toggle_task_status RPC
+            const isToggle = data && typeof data === 'object' && 'completed' in data;
+
+            if (isToggle && handlers.onTaskToggle) {
+              await handlers.onTaskToggle(entityId, data);
+              handlerRan = true;
+            } else if (handlers.onTaskUpdate) {
+              await handlers.onTaskUpdate(entityId, data);
+              handlerRan = true;
+            }
+          }
+          break;
+        }
+
+        case 'poll_vote':
+          if (operationType === 'create' && entityId && handlers.onPollVote) {
+            await handlers.onPollVote(entityId, data);
+            handlerRan = true;
+          }
+          break;
+
+        case 'calendar_event':
+          if (operationType === 'create' && handlers.onCalendarEventCreate) {
+            await handlers.onCalendarEventCreate(tripId, data);
+            handlerRan = true;
+          } else if (operationType === 'update' && entityId && handlers.onCalendarEventUpdate) {
+            await handlers.onCalendarEventUpdate(entityId, data);
+            handlerRan = true;
+          } else if (operationType === 'delete' && entityId && handlers.onCalendarEventDelete) {
+            await handlers.onCalendarEventDelete(entityId);
+            handlerRan = true;
+          }
+          break;
+      }
+
+      if (!handlerRan) {
+        console.warn(
+          `[OfflineSync] No handler provided for ${entityType}:${operationType} operation ${id}.`,
+        );
+        await this.updateOperationStatus(id, 'pending');
+        return 'skipped';
+      }
+
+      await this.removeOperation(id);
+      return 'processed';
+    } catch (error) {
+      console.error(`Failed to sync operation ${id}:`, error);
+      const updatedRetry = await this.updateOperationStatus(id, 'pending', true);
+      if (updatedRetry && updatedRetry.retryCount >= MAX_RETRIES) {
+        await this.updateOperationStatus(id, 'failed');
+        return 'failed';
+      }
+      return 'retry';
+    }
   }
 
   /**
