@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { toast } from 'sonner';
 import { useParams } from 'react-router-dom';
@@ -34,6 +34,7 @@ import { useUnreadCounts } from '@/hooks/useUnreadCounts';
 import { supabase } from '@/integrations/supabase/client';
 import { parseMessage } from '@/services/chatContentParser';
 import { useChatReadReceipts } from '../hooks/useChatReadReceipts';
+import { useChatTypingIndicators } from '../hooks/useChatTypingIndicators';
 import { useChatReactions } from '../hooks/useChatReactions';
 import { MessageTypeBar } from './MessageTypeBar';
 import { ChatSearchOverlay } from './ChatSearchOverlay';
@@ -115,6 +116,15 @@ export const TripChat = React.memo(
   }: TripChatProps) => {
     const [demoMessages, setDemoMessages] = useState<MockMessage[]>([]);
 
+    const { typingUsers, typingServiceRef } = useChatTypingIndicators(
+      demoMode.isDemoMode,
+      resolvedTripId,
+      user,
+      effectiveChatMode,
+      tripMembers.length,
+      activeChannel,
+    );
+
     const { readStatusesByMessage, setReadStatusesByMessage } = useChatReadReceipts(
       demoMode.isDemoMode,
       user?.id,
@@ -123,8 +133,7 @@ export const TripChat = React.memo(
     );
 
     const [_activeChannelId, _setActiveChannelId] = useState<string | null>(null);
-    const [typingUsers, setTypingUsers] = useState<Array<{ userId: string; userName: string }>>([]);
-    const typingServiceRef = useRef<TypingIndicatorService | null>(null);
+
     const [showSearchOverlay, setShowSearchOverlay] = useState(false);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
     const [activeThreadMessage, setActiveThreadMessage] = useState<{
@@ -166,6 +175,7 @@ export const TripChat = React.memo(
       isLoadingMore,
       toggleReaction,
       reload,
+      activeChannel,
     } = useTripChat(shouldSkipLiveChat ? undefined : resolvedTripId);
 
     const { isRefreshing, pullDistance } = usePullToRefresh({
@@ -262,14 +272,7 @@ export const TripChat = React.memo(
       return [...new Set(participants.map(p => p.role).filter(Boolean))];
     }, [isPro, participants]);
 
-    // Initialize role channels hook for Pro/Enterprise trips
-    const {
-      availableChannels,
-      activeChannel,
-      messages: _channelMessages,
-      setActiveChannel,
-      sendMessage: _sendChannelMessage,
-    } = useRoleChannels(resolvedTripId, userRole, participantRoles);
+
 
     // Mobile-specific hooks
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -308,7 +311,7 @@ export const TripChat = React.memo(
       enabled: !demoMode.isDemoMode && !!user?.id,
     });
 
-    // Initialize typing indicators — disabled for restricted chat modes or large groups
+    // --- Stream Native Typing Indicators ---
     const shouldEnableTyping =
       !demoMode.isDemoMode &&
       !!user?.id &&
@@ -317,25 +320,31 @@ export const TripChat = React.memo(
       tripMembers.length <= 50;
 
     useEffect(() => {
-      if (!shouldEnableTyping) return;
+      if (!shouldEnableTyping || !resolvedTripId || !activeChannel) return;
 
-      const userName = user?.displayName || user?.email?.split('@')[0] || 'You';
-      typingServiceRef.current = new TypingIndicatorService(resolvedTripId, user!.id, userName);
-
-      typingServiceRef.current.initialize(setTypingUsers).catch(error => {
-        if (import.meta.env.DEV) {
-          console.error(error);
+      const handleTypingStart = (event: any) => {
+        if (event.user?.id && event.user.id !== user?.id) {
+          setTypingUsers(prev => {
+            if (prev.some(u => u.userId === event.user.id)) return prev;
+            return [...prev, { userId: event.user.id, userName: event.user.name || event.user.id }];
+          });
         }
-      });
+      };
+
+      const handleTypingStop = (event: any) => {
+        if (event.user?.id) {
+          setTypingUsers(prev => prev.filter(u => u.userId !== event.user.id));
+        }
+      };
+
+      activeChannel.on('typing.start', handleTypingStart);
+      activeChannel.on('typing.stop', handleTypingStop);
 
       return () => {
-        typingServiceRef.current?.cleanup().catch(error => {
-          if (import.meta.env.DEV) {
-            console.error(error);
-          }
-        });
+        activeChannel.off('typing.start', handleTypingStart);
+        activeChannel.off('typing.stop', handleTypingStop);
       };
-    }, [shouldEnableTyping, resolvedTripId, user?.id, user?.displayName, user?.email]);
+    }, [shouldEnableTyping, resolvedTripId, user?.id, activeChannel]);
 
     const liveFormattedMessages = useMemo(() => {
       if (demoMode.isDemoMode) return [];
@@ -344,53 +353,135 @@ export const TripChat = React.memo(
       const messageMap = new Map(liveMessages.map(msg => [msg.id, msg]));
 
       return liveMessages.map(message => {
-        // Resolve replyTo context if reply_to_id exists
+        // Stream uses message.user, Supabase used message.user_id / message.author_name
+        const streamUser = (message as any).user;
+        const msgUserId = streamUser?.id || (message as any).user_id;
+        const msgAuthorName = streamUser?.name || (message as any).author_name;
+        const msgContent = (message as any).text || (message as any).content || '';
+        const msgCreatedAt = (message as any).created_at || new Date().toISOString();
+        const msgUpdatedAt = (message as any).updated_at || msgCreatedAt;
+        const msgParentId = (message as any).parent_id || (message as any).reply_to_id;
+        const customType = (message as any).message_type;
+
+        // Media attachment parsing from Stream
+        let mediaType: string | undefined;
+        let mediaUrl: string | undefined;
+        let linkPreview: any = (message as any).link_preview;
+
+        if ((message as any).attachments && (message as any).attachments.length > 0) {
+          const firstAttachment = (message as any).attachments[0];
+          if (firstAttachment.type === 'image') {
+            mediaType = 'image';
+            mediaUrl = firstAttachment.image_url || firstAttachment.asset_url;
+          } else if (firstAttachment.type === 'video') {
+            mediaType = 'video';
+            mediaUrl = firstAttachment.asset_url;
+          } else if (firstAttachment.type === 'file') {
+            mediaType = 'file';
+            mediaUrl = firstAttachment.asset_url;
+          }
+
+          // URL enrichment attachment = link preview
+          const urlAttachment = (message as any).attachments.find(
+            (a: any) => a.og_scrape_url || a.title_link,
+          );
+          if (urlAttachment && !linkPreview) {
+            linkPreview = {
+              url: urlAttachment.og_scrape_url || urlAttachment.title_link,
+              title: urlAttachment.title,
+              description: urlAttachment.text,
+              image: urlAttachment.image_url || urlAttachment.thumb_url,
+            };
+          }
+        } else {
+          mediaType = (message as any).media_type;
+          mediaUrl = (message as any).media_url;
+        }
+
+        // Reactions formatting from Stream native payload to expected shape
+        const formattedReactions: Record<string, any> = {};
+        if ((message as any).reaction_counts) {
+          for (const [type, count] of Object.entries((message as any).reaction_counts)) {
+            formattedReactions[type] = {
+              count: count as number,
+              userReacted: !!(message as any).own_reactions?.some((r: any) => r.type === type),
+              users:
+                (message as any).latest_reactions
+                  ?.filter((r: any) => r.type === type)
+                  .map((r: any) => r.user?.id) || [],
+            };
+          }
+        }
+
+        // Resolve replyTo context if parent_id exists
         let replyTo;
-        if ((message as any).reply_to_id) {
-          const parentMsg = messageMap.get((message as any).reply_to_id);
+        if (msgParentId) {
+          const parentMsg = messageMap.get(msgParentId);
           if (parentMsg) {
+            const pStreamUser = (parentMsg as any).user;
             replyTo = {
               id: parentMsg.id,
-              text: parentMsg.content,
-              sender: parentMsg.author_name,
+              text: (parentMsg as any).text || (parentMsg as any).content,
+              sender: pStreamUser?.name || (parentMsg as any).author_name,
             };
+          }
+        }
+
+        // Map Stream's built-in read state
+        const readStatuses: any[] = [];
+        if (activeChannel?.state?.read) {
+          for (const [readerId, readState] of Object.entries(activeChannel.state.read)) {
+            // Check if the user read up to or past this message's timestamp
+            const readAt = new Date(readState.last_read);
+            const msgDate = new Date(msgCreatedAt);
+            if (readAt >= msgDate && readerId !== user?.id && readerId !== msgUserId) {
+              const member = tripMembers.find(m => m.id === readerId);
+              if (member) {
+                readStatuses.push({
+                  user_id: readerId,
+                  read_at: readState.last_read,
+                  user: {
+                    id: readerId,
+                    display_name: member.name,
+                    avatar_url: member.avatar,
+                  },
+                });
+              }
+            }
           }
         }
 
         return {
           id: message.id,
-          text: message.content,
+          text: msgContent,
           sender: {
-            // Prefer user_id for accurate ownership detection, fallback to author_name for display.
-            // For system messages user_id may be null (by design).
-            id: message.user_id || message.author_name || 'system',
+            id: msgUserId || msgAuthorName || 'system',
             name: (() => {
-              const member = tripMembers.find(m => m.id === (message.user_id || ''));
-              // If member found and has a resolved profile name, use it.
-              // If member not found (left trip / deleted account), prefer stored author_name snapshot.
+              const member = tripMembers.find(m => m.id === (msgUserId || ''));
               if (member) return member.name;
-              return message.author_name || 'System';
+              return msgAuthorName || 'System';
             })(),
-            // Canonical avatar comes from `profiles.avatar_url` via `useTripMembers`.
-            // System messages should render without avatar in MessageItem.
-            avatar:
-              tripMembers.find(m => m.id === (message.user_id || ''))?.avatar || defaultAvatar,
-            // Store original user_id separately for ownership checks
-            userId: message.user_id,
+            avatar: tripMembers.find(m => m.id === (msgUserId || ''))?.avatar || defaultAvatar,
+            userId: msgUserId,
           },
-          createdAt: message.created_at,
-          isBroadcast: message.message_type === 'broadcast',
-          isPayment: message.message_type === 'payment',
-          isEdited: message.is_edited || false,
-          editedAt: message.edited_at,
-          // Ensure system messages are never filtered out by dedupe/memoization layers
-          // and can be rendered via the special system-message UI path.
-          tags: message.message_type === 'system' ? (['system'] as string[]) : ([] as string[]),
-          linkPreview: message.link_preview,
-          replyTo, // Pass resolved reply context
+          createdAt: msgCreatedAt,
+          isBroadcast: customType === 'broadcast',
+          isPayment: customType === 'payment',
+          isEdited: msgCreatedAt !== msgUpdatedAt,
+          editedAt: msgCreatedAt !== msgUpdatedAt ? msgUpdatedAt : undefined,
+          tags: customType === 'system' ? (['system'] as string[]) : ([] as string[]),
+          linkPreview,
+          replyTo,
+          mediaType,
+          mediaUrl,
+          reactions:
+            Object.keys(formattedReactions).length > 0
+              ? formattedReactions
+              : (message as any).reactions,
+          readStatuses,
         };
       });
-    }, [liveMessages, demoMode.isDemoMode, tripMembers]);
+    }, [liveMessages, demoMode.isDemoMode, tripMembers, activeChannel?.state?.read, user?.id]);
 
     const handleSendMessage = async (
       isBroadcast = false,
@@ -750,7 +841,9 @@ export const TripChat = React.memo(
                           onRetry={handleRetryFailedMessage}
                           systemMessagePrefs={isConsumer ? systemMessagePrefs : undefined}
                           tripMembers={tripMembers}
-                          readStatuses={readStatusesByMessage[message.id]}
+                          readStatuses={
+                            message.readStatuses || readStatusesByMessage[message.id] || []
+                          }
                           showSenderInfo={showSenderInfo}
                           reactionUserNamesById={reactionUserNamesById}
                           isAdmin={isUserAdmin}
@@ -812,18 +905,14 @@ export const TripChat = React.memo(
                 disableFileUpload={!canUploadMedia}
                 safeAreaBottom={false}
                 onTypingChange={isTyping => {
-                  if (!demoMode.isDemoMode && typingServiceRef.current) {
+                  if (!demoMode.isDemoMode && resolvedTripId && user?.id && activeChannel) {
                     if (isTyping) {
-                      typingServiceRef.current.startTyping().catch(error => {
-                        if (import.meta.env.DEV) {
-                          console.error(error);
-                        }
+                      activeChannel.keystroke().catch(err => {
+                        if (import.meta.env.DEV) console.error('[Stream] keystroke failed', err);
                       });
                     } else {
-                      typingServiceRef.current.stopTyping().catch(error => {
-                        if (import.meta.env.DEV) {
-                          console.error(error);
-                        }
+                      activeChannel.stopTyping().catch(err => {
+                        if (import.meta.env.DEV) console.error('[Stream] stopTyping failed', err);
                       });
                     }
                   }

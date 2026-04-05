@@ -11,6 +11,7 @@ export function useChatReadReceipts(
   userId: string | undefined,
   resolvedTripId: string | undefined,
   liveMessages: any[],
+  activeChannel?: any,
 ) {
   const [readStatusesByMessage, setReadStatusesByMessage] = useState<Record<string, any[]>>({});
 
@@ -69,7 +70,11 @@ export function useChatReadReceipts(
     if (markReadTimerRef.current) clearTimeout(markReadTimerRef.current);
     markReadTimerRef.current = setTimeout(async () => {
       try {
-        await markMessagesAsRead(newUnmarkedIds, resolvedTripId, userId);
+        if (activeChannel && typeof activeChannel.markRead === 'function') {
+          await activeChannel.markRead();
+        } else {
+          await markMessagesAsRead(newUnmarkedIds, resolvedTripId, userId);
+        }
         newUnmarkedIds.forEach(id => markedMessageIdsRef.current.add(id));
       } catch (error) {
         if (import.meta.env.DEV) {
@@ -81,7 +86,7 @@ export function useChatReadReceipts(
     return () => {
       if (markReadTimerRef.current) clearTimeout(markReadTimerRef.current);
     };
-  }, [liveMessages, userId, resolvedTripId, isDemoMode]);
+  }, [liveMessages, userId, resolvedTripId, isDemoMode, activeChannel]);
 
   // Fetch read statuses for own messages (only when own message count changes)
   const ownMessageCountRef = useRef(0);
