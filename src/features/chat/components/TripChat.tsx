@@ -25,13 +25,8 @@ import { useRoleChannels } from '@/hooks/useRoleChannels';
 import { ChannelChatView } from '@/components/pro/channels/ChannelChatView';
 import { TypingIndicator } from './TypingIndicator';
 import { TypingIndicatorService } from '@/services/typingIndicatorService';
-import {
-  markMessagesAsRead,
-  subscribeToReadReceipts,
-  getMessagesReadStatus,
-} from '@/services/readReceiptService';
+import {} from '@/services/readReceiptService';
 import { useUnreadCounts } from '@/hooks/useUnreadCounts';
-import { supabase } from '@/integrations/supabase/client';
 import { parseMessage } from '@/services/chatContentParser';
 import { MessageTypeBar } from './MessageTypeBar';
 import { ChatSearchOverlay } from './ChatSearchOverlay';
@@ -40,7 +35,6 @@ import { isConsumerTrip } from '@/utils/tripTierDetector';
 import {
   toggleMessageReaction,
   getMessagesReactions,
-  subscribeToReactions,
   type ReactionType,
 } from '@/services/chatService';
 import { ThreadView } from './ThreadView';
@@ -688,58 +682,13 @@ export const TripChat = React.memo(
                 users: data.users || [],
               };
             }
-        return;
-      }
-      // Supabase Authenticated mode: persist to database
-      // Optimistic update
-      setReactions(prev => {
-        const updated = { ...prev };
-        if (!updated[messageId]) {
-          updated[messageId] = {};
-        }
-        const current = updated[messageId][reactionType] || {
-          count: 0,
-          userReacted: false,
-          users: [],
-        };
-        const wasReacted = current.userReacted;
-        updated[messageId][reactionType] = {
-          count: wasReacted ? Math.max(0, current.count - 1) : current.count + 1,
-          userReacted: !wasReacted,
-          users: wasReacted
-            ? current.users.filter(id => id !== user.id)
-            : Array.from(new Set([...current.users, user.id])),
-        };
-        return updated;
-      });
-
-      // Persist to backend (Supabase path)
-      const result = await toggleMessageReaction(messageId, user.id, reactionType as ReactionType);
-      if (result.error) {
-        if (import.meta.env.DEV)
-          console.error('[TripChat] Failed to toggle reaction:', result.error);
-        // Revert on failure - refetch reactions
-        const messageIds = liveMessages.map(m => m.id);
-        const freshReactions = await getMessagesReactions(messageIds, user.id);
-        const formatted: Record<
-          string,
-          Record<string, { count: number; userReacted: boolean; users: string[] }>
-        > = {};
-        for (const [msgId, typeMap] of Object.entries(freshReactions)) {
-          formatted[msgId] = {};
-          for (const [type, data] of Object.entries(typeMap)) {
-            formatted[msgId][type] = {
-              count: data.count,
-              userReacted: data.userReacted,
-              users: data.users || [],
-            };
           }
+          setReactions(formatted);
+          toast.error('Failed to update reaction');
         }
-        setReactions(formatted);
       }
     };
 
-    // Handle opening a thread
     const handleOpenThread = (messageId: string) => {
       const message =
         liveMessages.find(m => m.id === messageId) || demoMessages.find(m => m.id === messageId);
