@@ -127,6 +127,10 @@ DECLARE
   v_sent_count INTEGER := 0;
   v_project_ref TEXT := current_setting('app.settings.supabase_project_ref', true);
   v_service_role_key TEXT := current_setting('app.settings.supabase_service_role_key', true);
+  v_has_net_extension BOOLEAN := EXISTS (
+    SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'net' AND p.proname = 'http_post'
+  );
 BEGIN
   -- Loop through each recipient
   FOREACH v_user_id IN ARRAY p_user_ids LOOP
@@ -181,7 +185,7 @@ BEGIN
         
         -- Call push notification service if enabled
         -- We use net.http_post (asynchronous) to avoid blocking the database transaction
-        IF v_preferences.push_enabled AND v_project_ref IS NOT NULL AND v_service_role_key IS NOT NULL THEN
+        IF v_preferences.push_enabled AND v_project_ref IS NOT NULL AND v_service_role_key IS NOT NULL AND v_has_net_extension THEN
           PERFORM net.http_post(
             url := format('https://%s.supabase.co/functions/v1/send-push-notification', v_project_ref),
             headers := jsonb_build_object(
