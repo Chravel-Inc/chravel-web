@@ -67,6 +67,7 @@ These are set as Supabase project secrets (`supabase secrets set KEY=value`).
 | **APNS Config** | Apple | `APNS_BUNDLE_ID`, `APNS_ENVIRONMENT` | `push-notifications` | Match bundle ID; set to `development` for TestFlight | Y |
 | **FCM (Android)** | Firebase | `FCM_SERVER_KEY` | `push-notifications` | Firebase Console | Y — not needed for iOS |
 | **Twilio SMS** | Twilio | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER` | SMS functions | Twilio Console | Y — SMS not required for core |
+| **Twilio Messaging Service** | Twilio | `TWILIO_MESSAGING_SERVICE_SID` | SMS functions | Twilio Console > Messaging Services | Y — if set, used instead of `TWILIO_PHONE_NUMBER` for A2P 10DLC compliance |
 | **Google Maps Server** | Google | `GOOGLE_MAPS_API_KEY` | `google-maps-proxy` | GCP Console | Y — proxy optional |
 | **Google Vision** | Google | `GOOGLE_VISION_API_KEY` | `process-receipt-ocr` | GCP Console | Y — OCR optional |
 

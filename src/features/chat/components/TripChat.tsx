@@ -161,6 +161,7 @@ export const TripChat = React.memo(
       messages: liveMessages,
       isLoading: liveLoading,
       sendMessageAsync: sendTripMessage,
+      isCreating: isSendingMessage,
       loadMore: loadMoreMessages,
       hasMore,
       isLoadingMore,
@@ -231,25 +232,12 @@ export const TripChat = React.memo(
       isConsumer ? resolvedTripId : '',
     );
 
-    // ⚡ PERFORMANCE: Skip expensive hooks in demo mode for numeric trip IDs
-    const shouldSkipLiveChat = demoMode.isDemoMode && /^\d+$/.test(resolvedTripId);
-
-    // Fetch privacy config for the trip (after shouldSkipLiveChat is defined)
+    // Fetch privacy config for the trip
     const { data: privacyConfig } = useTripPrivacyConfig(
       shouldSkipLiveChat ? undefined : resolvedTripId,
     );
 
-    // Live chat hooks - only initialize for authenticated trips
     const { tripMembers } = useTripMembers(shouldSkipLiveChat ? undefined : resolvedTripId);
-    const {
-      messages: liveMessages,
-      isLoading: liveLoading,
-      sendMessageAsync: sendTripMessage,
-      isCreating: isSendingMessage,
-      loadMore: loadMoreMessages,
-      hasMore,
-      isLoadingMore,
-    } = useTripChat(shouldSkipLiveChat ? undefined : resolvedTripId);
 
     // Local mutable state derived from hasMore to avoid assigning to a const binding
     const [hasMoreState, setHasMoreState] = useState(hasMore);
@@ -277,8 +265,6 @@ export const TripChat = React.memo(
       if (!isPro) return [];
       return [...new Set(participants.map(p => p.role).filter(Boolean))];
     }, [isPro, participants]);
-
-
 
     // Mobile-specific hooks
     const messagesEndRef = useRef<HTMLDivElement>(null);

@@ -14,6 +14,7 @@ import {
 import {
   formatTimeForTimezone,
   generateSmsMessage,
+  SMS_APP_BASE_URL,
   type SmsTemplateData,
 } from '../_shared/smsTemplates.ts';
 import { sendWebPushNotification, type WebPushSubscription } from '../_shared/webPushUtils.ts';
@@ -85,7 +86,11 @@ const sendGridFromEmail = Deno.env.get('SENDGRID_FROM_EMAIL') || 'support@chrave
 const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
 const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
 const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER');
+const twilioMessagingServiceSid = Deno.env.get('TWILIO_MESSAGING_SERVICE_SID');
 const internalSecret = Deno.env.get('NOTIFICATION_DISPATCH_SECRET');
+
+const SMS_MAX_ATTEMPTS = 3;
+const SMS_RETRY_BACKOFF_MINUTES = [2, 10, 30];
 
 const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY');
 const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY');
@@ -200,9 +205,14 @@ function buildSmsTemplateData(
     (typeof metadata.start_time === 'string' && metadata.start_time) ||
     undefined;
 
+  const deepLink = notification.trip_id
+    ? `${SMS_APP_BASE_URL}/trip/${notification.trip_id}`
+    : undefined;
+
   return {
     tripName,
     senderName,
+    deepLink,
     amount:
       typeof metadata.amount === 'number' || typeof metadata.amount === 'string'
         ? (metadata.amount as number | string)
@@ -281,9 +291,20 @@ async function sendSms(
   ok: boolean;
   providerMessageId?: string;
   error?: string;
+  httpStatus?: number;
 }> {
-  if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
+  if (!twilioAccountSid || !twilioAuthToken || (!twilioPhoneNumber && !twilioMessagingServiceSid)) {
     return { ok: false, error: 'Twilio credentials are not configured' };
+  }
+
+  const smsParams: Record<string, string> = {
+    To: phoneNumber,
+    Body: message,
+  };
+  if (twilioMessagingServiceSid) {
+    smsParams.MessagingServiceSid = twilioMessagingServiceSid;
+  } else {
+    smsParams.From = twilioPhoneNumber!;
   }
 
   const credentials = btoa(`${twilioAccountSid}:${twilioAuthToken}`);
@@ -295,11 +316,7 @@ async function sendSms(
         Authorization: `Basic ${credentials}`,
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: new URLSearchParams({
-        From: twilioPhoneNumber,
-        To: phoneNumber,
-        Body: message,
-      }),
+      body: new URLSearchParams(smsParams),
     },
   );
 
@@ -307,6 +324,7 @@ async function sendSms(
   if (!response.ok) {
     return {
       ok: false,
+      httpStatus: response.status,
       error: `Twilio error ${response.status}: ${responseText.substring(0, 200)}`,
     };
   }
@@ -439,34 +457,24 @@ serve(async req => {
   try {
     const body = (await req.json().catch(() => ({}))) as DispatchRequest;
     const limit = Math.min(Math.max(body.limit || 100, 1), 500);
-    const nowIso = new Date().toISOString();
 
-    let deliveriesQuery = supabase
-      .from('notification_deliveries')
-      .select('id, notification_id, recipient_user_id, channel, attempts')
-      .eq('status', 'queued')
-      .lte('next_attempt_at', nowIso)
-      .order('created_at', { ascending: true })
-      .limit(limit);
+    // Atomically claim queued deliveries via FOR UPDATE SKIP LOCKED to prevent
+    // duplicate sends when concurrent cron invocations overlap.
+    const { data: claimedRows, error: claimError } = await supabase.rpc(
+      'claim_notification_deliveries',
+      {
+        p_limit: limit,
+        p_channels: body.channels?.length ? body.channels : null,
+        p_delivery_ids: body.deliveryIds?.length ? body.deliveryIds : null,
+        p_notification_ids: body.notificationIds?.length ? body.notificationIds : null,
+      },
+    );
 
-    if (body.deliveryIds?.length) {
-      deliveriesQuery = deliveriesQuery.in('id', body.deliveryIds);
+    if (claimError) {
+      throw claimError;
     }
 
-    if (body.notificationIds?.length) {
-      deliveriesQuery = deliveriesQuery.in('notification_id', body.notificationIds);
-    }
-
-    if (body.channels?.length) {
-      deliveriesQuery = deliveriesQuery.in('channel', body.channels);
-    }
-
-    const { data: queuedRows, error: deliveriesError } = await deliveriesQuery;
-    if (deliveriesError) {
-      throw deliveriesError;
-    }
-
-    const deliveries = (queuedRows || []) as DeliveryRow[];
+    const deliveries = (claimedRows || []) as DeliveryRow[];
     if (deliveries.length === 0) {
       return new Response(
         JSON.stringify({ success: true, processed: 0, message: 'No queued deliveries' }),
@@ -1010,12 +1018,34 @@ serve(async req => {
           metadata: { category },
         });
       } else {
-        await markDelivery(supabase, delivery.id, {
-          status: 'failed',
-          error: smsResult.error || 'sms_delivery_failed',
-          attempts: delivery.attempts + 1,
-        });
-        summary.failed.sms++;
+        const newAttempts = delivery.attempts + 1;
+        const isRetryable =
+          smsResult.httpStatus !== undefined &&
+          (smsResult.httpStatus >= 500 || smsResult.httpStatus === 429);
+        const shouldRetry = isRetryable && newAttempts < SMS_MAX_ATTEMPTS;
+
+        if (shouldRetry) {
+          const backoffMinutes =
+            SMS_RETRY_BACKOFF_MINUTES[
+              Math.min(newAttempts - 1, SMS_RETRY_BACKOFF_MINUTES.length - 1)
+            ];
+          const nextAttemptAt = new Date(Date.now() + backoffMinutes * 60 * 1000).toISOString();
+          await markDelivery(supabase, delivery.id, {
+            status: 'queued',
+            error: `retry_${newAttempts}:${smsResult.error || 'transient_failure'}`,
+            attempts: newAttempts,
+            next_attempt_at: nextAttemptAt,
+          });
+          summary.deferred++;
+        } else {
+          await markDelivery(supabase, delivery.id, {
+            status: 'failed',
+            error: smsResult.error || 'sms_delivery_failed',
+            attempts: newAttempts,
+          });
+          summary.failed.sms++;
+        }
+
         await logDeliveryAttempt(supabase, {
           userId,
           channel: 'sms',
@@ -1024,7 +1054,7 @@ serve(async req => {
           recipient: smsPhone,
           status: 'failed',
           error: smsResult.error,
-          metadata: { category },
+          metadata: { category, attempt: newAttempts, willRetry: shouldRetry },
         });
       }
     }
