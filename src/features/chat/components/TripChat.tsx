@@ -111,22 +111,6 @@ export const TripChat = React.memo(
   }: TripChatProps) => {
     const [demoMessages, setDemoMessages] = useState<MockMessage[]>([]);
 
-    const { typingUsers, typingServiceRef } = useChatTypingIndicators(
-      demoMode.isDemoMode,
-      resolvedTripId,
-      user,
-      effectiveChatMode,
-      tripMembers.length,
-      activeChannel,
-    );
-
-    const { readStatusesByMessage, setReadStatusesByMessage } = useChatReadReceipts(
-      demoMode.isDemoMode,
-      user?.id,
-      resolvedTripId,
-      liveMessages,
-    );
-
     const [_activeChannelId, _setActiveChannelId] = useState<string | null>(null);
 
     const [showSearchOverlay, setShowSearchOverlay] = useState(false);
