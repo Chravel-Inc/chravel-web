@@ -182,7 +182,7 @@ export class RecommendationService {
     // Wire up to advertiser platform for sponsored items
     if (params.campaignId) {
       // If it's a save action, track as save, else click
-      const eventType = params.action === 'save' ? 'save' : 'click';
+      const eventType: 'click' | 'conversion' | 'impression' = 'click';
       AdvertiserService.trackEvent(params.campaignId, eventType).catch(() => {});
     }
   }
