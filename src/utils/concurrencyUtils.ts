@@ -3,9 +3,21 @@
  * Uses crypto.randomUUID when available, falls back to timestamp + random.
  */
 export function generateMutationId(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
+  if (typeof crypto !== 'undefined') {
+    if (typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+    // Fallback for environments where crypto is available but randomUUID is not (e.g. non-secure contexts)
+    if (typeof crypto.getRandomValues === 'function') {
+      const array = new Uint8Array(16);
+      crypto.getRandomValues(array);
+      const hex = Array.from(array)
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+      return `mut_${Date.now()}_${hex.slice(0, 8)}`;
+    }
   }
+  // Ultimate fallback (should be extremely rare in modern environments)
   return `mut_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
