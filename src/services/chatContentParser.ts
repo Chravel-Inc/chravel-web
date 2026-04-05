@@ -18,6 +18,8 @@ import { calendarService, CreateEventData } from './calendarService';
 import { fetchOGMetadata } from './ogMetadataService';
 import { insertLinkIndex } from './linkService';
 
+import { taskStorageService } from './taskStorageService';
+
 export interface ParsedReceipt {
   extracted_text: string;
   structured_data: {
@@ -77,6 +79,7 @@ export interface ParsedContent {
   type: 'receipt' | 'itinerary' | 'link' | 'message' | 'todo';
   receipt?: ParsedReceipt;
   itinerary?: ParsedItinerary;
+  todos?: ParsedTodo[];
   entities?: ExtractedEntities;
   linkPreview?: {
     title?: string;
@@ -86,7 +89,7 @@ export interface ParsedContent {
   };
   confidence: number;
   suggestions?: Array<{
-    action: 'create_calendar_event' | 'none';
+    action: 'create_calendar_event' | 'create_todo' | 'extract_receipt' | 'none';
     data?: Record<string, unknown>;
     message: string;
   }>;
@@ -134,6 +137,14 @@ export async function parseReceipt(imageUrl: string, tripId: string): Promise<Pa
 
     // Generate suggestions
     const suggestions: ParsedContent['suggestions'] = [];
+
+    if (receipt.structured_data.total_cost) {
+      suggestions.push({
+        action: 'extract_receipt',
+        data: receipt as unknown as Record<string, unknown>,
+        message: `Extract receipt for $${receipt.structured_data.total_cost}`,
+      });
+    }
 
     if (receipt.structured_data.dates && receipt.structured_data.dates.length > 0) {
       suggestions.push({
@@ -342,9 +353,34 @@ export async function parseMessage(messageText: string, tripId: string): Promise
         }
       });
     }
+
+    // Also check for todo items
+    const { data: todoData } = await supabase.functions.invoke('enhanced-ai-parser', {
+      body: {
+        messageText,
+        extractionType: 'todo',
+        tripId,
+      },
+    });
+
+    const todos: ParsedTodo[] = todoData?.todos || [];
+
+    if (todos.length > 0) {
+      todos.forEach(todo => {
+        if (todo.confidence > 0.7) {
+          suggestions.push({
+            action: 'create_todo',
+            data: todo as unknown as Record<string, unknown>,
+            message: `Create todo: "${todo.title}"`,
+          });
+        }
+      });
+    }
+
     return {
       type: 'message',
       entities,
+      todos: todos.length > 0 ? todos : undefined,
       confidence: extractedData?.confidence_overall || 0.7,
       suggestions,
     };
@@ -431,6 +467,28 @@ export async function applySuggestion(
 
         const result = await calendarService.createEvent(eventData);
         return result.event?.id || null;
+      }
+
+      case 'create_todo': {
+        if (!suggestion.data) return null;
+        const sd = suggestion.data as Record<string, unknown>;
+
+        const result = await taskStorageService.createTask(tripId, {
+          title: (sd.title as string) || 'New Task',
+          description: sd.description as string,
+          due_at: sd.due_date ? new Date(sd.due_date as string).toISOString() : undefined,
+          is_poll: false,
+          assignedTo: [],
+        });
+
+        return result.id;
+      }
+
+      case 'extract_receipt': {
+        if (!suggestion.data) return null;
+
+        // This acts as a signal for the UI to handle the receipt
+        return `receipt_extraction:${Date.now()}`;
       }
 
       default:

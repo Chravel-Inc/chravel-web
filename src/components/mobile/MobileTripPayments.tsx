@@ -1,13 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogClose,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { formatShortDate } from '@/utils/dateFormatters';
 import { formatCurrency } from '@/services/currencyService';
@@ -356,6 +349,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
     };
   }, [tripId, demoActive, queryClient]);
 
+
   const selectedPayment = useMemo(() => {
     if (!selectedPaymentId) return null;
     return effectivePayments.find(p => p.id === selectedPaymentId) || null;
@@ -699,8 +693,9 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
         </button>
       </div>
 
+
       {/* Payment Detail Modal */}
-      <Dialog open={!!selectedPaymentId} onOpenChange={open => !open && setSelectedPaymentId(null)}>
+      <Dialog open={!!selectedPaymentId} onOpenChange={(open) => !open && setSelectedPaymentId(null)}>
         <DialogContent className="sm:max-w-md w-[90vw] rounded-xl">
           <DialogHeader>
             <DialogTitle>Payment Details</DialogTitle>
@@ -723,9 +718,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
                 </p>
                 <div className="flex items-center gap-1.5 px-3 py-1 bg-card rounded-full border border-border">
                   {getStatusIcon(selectedPayment.status)}
-                  <span
-                    className={`text-sm font-medium ${selectedPayment.isSettled ? 'text-green-500' : 'text-yellow-500'}`}
-                  >
+                  <span className={`text-sm font-medium ${selectedPayment.isSettled ? 'text-green-500' : 'text-yellow-500'}`}>
                     {selectedPayment.isSettled ? 'Settled' : 'Pending'}
                   </span>
                 </div>
@@ -734,29 +727,20 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
               <div className="space-y-3 bg-card/50 p-4 rounded-xl border border-border">
                 <div className="flex justify-between items-center pb-3 border-b border-border/50">
                   <span className="text-sm text-muted-foreground">Paid by</span>
-                  <span className="text-sm font-medium text-foreground">
-                    {selectedPayment.payer}
-                  </span>
+                  <span className="text-sm font-medium text-foreground">{selectedPayment.payer}</span>
                 </div>
                 <div className="flex justify-between items-center pb-3 border-b border-border/50">
                   <span className="text-sm text-muted-foreground">Date</span>
-                  <span className="text-sm font-medium text-foreground">
-                    {formatShortDate(selectedPayment.date)}
-                  </span>
+                  <span className="text-sm font-medium text-foreground">{formatShortDate(selectedPayment.date)}</span>
                 </div>
                 <div className="flex justify-between items-center pb-3 border-b border-border/50">
                   <span className="text-sm text-muted-foreground">Split</span>
-                  <span className="text-sm font-medium text-foreground">
-                    {selectedPayment.splitCount} ways
-                  </span>
+                  <span className="text-sm font-medium text-foreground">{selectedPayment.splitCount} ways</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Per person</span>
                   <span className="text-sm font-medium text-foreground">
-                    {formatCurrencyFn(
-                      selectedPayment.amount / selectedPayment.splitCount,
-                      selectedPayment.currency,
-                    )}
+                    {formatCurrencyFn(selectedPayment.amount / selectedPayment.splitCount, selectedPayment.currency)}
                   </span>
                 </div>
               </div>
@@ -768,17 +752,10 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
                     {selectedPayment.splitWith.map(userId => {
                       const member = effectiveTripMembers.find(m => m.id === userId);
                       return (
-                        <div
-                          key={userId}
-                          className="flex items-center gap-2 bg-card/50 px-2.5 py-1.5 rounded-full border border-border"
-                        >
+                        <div key={userId} className="flex items-center gap-2 bg-card/50 px-2.5 py-1.5 rounded-full border border-border">
                           <Avatar className="w-5 h-5">
-                            <AvatarImage
-                              src={member?.avatar || getConsistentAvatar(member?.name || 'Unknown')}
-                            />
-                            <AvatarFallback className="text-[10px]">
-                              {getInitials(member?.name || 'Unknown')}
-                            </AvatarFallback>
+                            <AvatarImage src={member?.avatar || getConsistentAvatar(member?.name || 'Unknown')} />
+                            <AvatarFallback className="text-[10px]">{getInitials(member?.name || 'Unknown')}</AvatarFallback>
                           </Avatar>
                           <span className="text-xs font-medium">{member?.name || 'Unknown'}</span>
                         </div>
