@@ -260,14 +260,14 @@ export const useRoleChannels = (tripId: string, _userRole: string, roles?: strin
   // Channel list, CRUD, and metadata still come from Supabase.
   const effectiveMessages: RoleChannelMessage[] =
     useStream && activeChannel
-      ? streamProChannel.messages.map(m => ({
+      ? streamProChannel.messages.map((m: any) => ({
           id: m.id,
-          channelId: m.channelId,
-          senderId: m.senderId,
-          senderName: m.senderName,
-          senderAvatar: m.senderAvatar,
-          content: m.content,
-          createdAt: m.createdAt,
+          channelId: m.channelId ?? m.channel?.id ?? '',
+          senderId: m.senderId ?? m.user?.id ?? '',
+          senderName: m.senderName ?? m.user?.name ?? '',
+          senderAvatar: m.senderAvatar ?? m.user?.image ?? '',
+          content: m.content ?? m.text ?? '',
+          createdAt: m.createdAt ?? m.created_at ?? '',
         }))
       : messages;
 

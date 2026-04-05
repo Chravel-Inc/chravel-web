@@ -123,14 +123,14 @@ export const Broadcasts = () => {
   const broadcasts: BroadcastData[] = isDemoMode
     ? demoBroadcasts
     : useStream
-      ? streamBroadcasts.broadcasts.map(sb => ({
+      ? streamBroadcasts.broadcasts.map((sb: any) => ({
           id: sb.id,
-          sender: sb.sender,
-          message: sb.message,
-          timestamp: new Date(sb.createdAt),
-          category: mapPriorityToCategory(sb.priority),
-          recipients: (sb.metadata.recipients as string) || 'everyone',
-          responses: { coming: 0, wait: 0, cant: 0 }, // RSVP stays in Supabase
+          sender: sb.sender ?? sb.user?.name ?? 'Unknown',
+          message: sb.message ?? sb.text ?? '',
+          timestamp: new Date(sb.createdAt ?? sb.created_at),
+          category: mapPriorityToCategory(sb.priority ?? sb.extra_data?.priority),
+          recipients: ((sb.metadata ?? sb.extra_data)?.recipients as string) || 'everyone',
+          responses: { coming: 0, wait: 0, cant: 0 },
         }))
       : dbBroadcasts.map(mapBroadcastToDisplay);
 

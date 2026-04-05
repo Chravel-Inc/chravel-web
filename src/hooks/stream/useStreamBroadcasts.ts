@@ -75,7 +75,7 @@ export function useStreamBroadcasts(tripId: string | undefined) {
     if (!channel) return;
 
     const handleEvent = () => {
-      const messages = [...channel.state.messages] as MessageResponse[];
+      const messages = [...channel.state.messages] as unknown as MessageResponse[];
       setBroadcasts(messages.reverse()); // newest first
     };
 
