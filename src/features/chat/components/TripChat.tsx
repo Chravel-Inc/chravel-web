@@ -313,40 +313,7 @@ export const TripChat = React.memo(
       enabled: !demoMode.isDemoMode && !!user?.id,
     });
 
-    // --- Stream Native Typing Indicators ---
-    const shouldEnableTyping =
-      !demoMode.isDemoMode &&
-      !!user?.id &&
-      !!resolvedTripId &&
-      effectiveChatMode === 'everyone' &&
-      tripMembers.length <= 50;
-
-    useEffect(() => {
-      if (!shouldEnableTyping || !resolvedTripId || !activeChannel) return;
-
-      const handleTypingStart = (event: any) => {
-        if (event.user?.id && event.user.id !== user?.id) {
-          setTypingUsers(prev => {
-            if (prev.some(u => u.userId === event.user.id)) return prev;
-            return [...prev, { userId: event.user.id, userName: event.user.name || event.user.id }];
-          });
-        }
-      };
-
-      const handleTypingStop = (event: any) => {
-        if (event.user?.id) {
-          setTypingUsers(prev => prev.filter(u => u.userId !== event.user.id));
-        }
-      };
-
-      activeChannel.on('typing.start', handleTypingStart);
-      activeChannel.on('typing.stop', handleTypingStop);
-
-      return () => {
-        activeChannel.off('typing.start', handleTypingStart);
-        activeChannel.off('typing.stop', handleTypingStop);
-      };
-    }, [shouldEnableTyping, resolvedTripId, user?.id, activeChannel]);
+    // Note: typing indicators are now fully handled by useChatTypingIndicators hook above
 
     const liveFormattedMessages = useMemo(() => {
       if (demoMode.isDemoMode) return [];
@@ -720,10 +687,10 @@ export const TripChat = React.memo(
       // For inline reply:
       const content = demoMode.isDemoMode
         ? (message as MockMessage).text
-        : (message as TripChatMessage).content;
+        : (message as unknown as TripChatMessage).content;
       const authorName = demoMode.isDemoMode
         ? (message as MockMessage).sender.name
-        : (message as TripChatMessage).author_name || 'User'; // Fallback
+        : (message as unknown as TripChatMessage).author_name || 'User'; // Fallback
 
       setReply(messageId, content, authorName);
     };
