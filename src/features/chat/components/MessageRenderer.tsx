@@ -87,6 +87,19 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({
     }
   };
 
+  const getSafeUrl = (url?: string) => {
+    if (!url) return '#';
+    try {
+      const parsed = new URL(url, 'https://dummy.com');
+      if (['javascript:', 'vbscript:', 'data:'].includes(parsed.protocol)) {
+        return '#';
+      }
+      return url;
+    } catch {
+      return '#';
+    }
+  };
+
   // Render file attachments
   const renderFileAttachments = () => {
     if (!hasAttachments) return null;
@@ -95,10 +108,11 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({
       <div className="mt-2 space-y-2">
         {message.attachments.map((attachment: any, index: number) => {
           if (attachment.type === 'file') {
+            const safeUrl = getSafeUrl(attachment.url);
             return (
               <a
                 key={index}
-                href={attachment.url}
+                href={safeUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-lg transition-colors"
@@ -122,9 +136,12 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({
     if (!hasLinkPreview || typeof message.link_preview !== 'object') return null;
 
     const preview = message.link_preview;
+    const rawUrl = preview.url || message.content || '';
+    const safeUrl = getSafeUrl(rawUrl);
+
     return (
       <a
-        href={preview.url || message.content}
+        href={safeUrl}
         target="_blank"
         rel="noopener noreferrer"
         className="mt-2 block bg-gray-800 hover:bg-gray-700 rounded-lg overflow-hidden transition-colors"
