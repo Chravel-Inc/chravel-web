@@ -25,13 +25,8 @@ import { useRoleChannels } from '@/hooks/useRoleChannels';
 import { ChannelChatView } from '@/components/pro/channels/ChannelChatView';
 import { TypingIndicator } from './TypingIndicator';
 import { TypingIndicatorService } from '@/services/typingIndicatorService';
-import {
-  markMessagesAsRead,
-  subscribeToReadReceipts,
-  getMessagesReadStatus,
-} from '@/services/readReceiptService';
+import {} from '@/services/readReceiptService';
 import { useUnreadCounts } from '@/hooks/useUnreadCounts';
-import { supabase } from '@/integrations/supabase/client';
 import { parseMessage } from '@/services/chatContentParser';
 import { useChatReadReceipts } from '../hooks/useChatReadReceipts';
 import { useChatTypingIndicators } from '../hooks/useChatTypingIndicators';
@@ -43,7 +38,6 @@ import { isConsumerTrip } from '@/utils/tripTierDetector';
 import {
   toggleMessageReaction,
   getMessagesReactions,
-  subscribeToReactions,
   type ReactionType,
 } from '@/services/chatService';
 import { ThreadView } from './ThreadView';
@@ -608,7 +602,6 @@ export const TripChat = React.memo(
       toggleReaction,
     );
 
-    // Handle opening a thread
     const handleOpenThread = (messageId: string) => {
       const message =
         liveMessages.find(m => m.id === messageId) || demoMessages.find(m => m.id === messageId);
