@@ -1,0 +1,152 @@
+-----
+4d3b682a | Sun Apr 5 11:22:30 2026 -0700 | Merge pull request #110 from Chravel-Inc/claude/fix-twilio-notifications-z00fm
+Add SMS retry logic and atomic delivery claiming
+-----
+8a799add | Sun Apr 5 11:17:37 2026 -0700 | Merge pull request #111 from Chravel-Inc/claude/add-sms-terms-page-w3Cgv
+fix: restore Supabase credentials to fix broken auth
+-----
+9d728fbb | Sun Apr 5 10:50:05 2026 -0700 | Merge pull request #104 from Chravel-Inc/claude/debug-preview-build-Ov9Fb
+fix(auth): restore OAuth redirect to /auth instead of landing page
+-----
+9055dace | Sun Apr 5 17:01:26 2026 +0000 | Public SMS Terms implemented
+Added a new public /sms-terms page and wired route to document the SMS opt-in flow for Twilio toll-free verification. Updated App routing to expose the page publicly. Adapted use of the proof-of-consent URL in Twilio flow. Also integrated initial fixes across codebase to align typing and data shape (types casts, safer dynamic imports, and public/private route handling) to support the new page and overall compliance.
+
+X-Lovable-Edit-ID: edt-f93ea484-9cd1-4921-a01b-7d2c6e5fe093
+Co-authored-by: ChravelApp <263244170+ChravelApp@users.noreply.github.com>
+
+-----
+303380d6 | Sun Apr 5 16:54:50 2026 +0000 | Add SmsTerms page and route
+Add a public SMS Terms & Consent page at /sms-terms and wire it into App.tsx for toll-free verification proof. Implement new SmsTerms.tsx with detailed consent content, opt-in flow, and contact/privacy links. Register lazy-loaded route and public path check.
+
+X-Lovable-Edit-ID: edt-7eb6b747-1874-4e33-b79f-95895803b60e
+Co-authored-by: ChravelApp <263244170+ChravelApp@users.noreply.github.com>
+
+-----
+520d1e10 | Sun Apr 5 16:53:36 2026 +0000 | Save plan in Lovable
+
+-----
+08885267 | Sun Apr 5 09:18:06 2026 -0700 | Merge pull request #106 from Chravel-Inc/codex/optimize-gmail-import-worker-for-performance
+⚡ Parallelize gmail-import-worker message fetch pipeline with bounded concurrency
+-----
+2fe35068 | Sun Apr 5 16:17:10 2026 +0000 | Update plan
+Plan file updated during planning mode
+
+X-Lovable-Edit-ID: edt-2c9ff73c-19dd-4f9d-882d-976295c264c0
+Co-authored-by: ChravelApp <263244170+ChravelApp@users.noreply.github.com>
+
+-----
+1396260c | Sun Apr 5 08:48:35 2026 -0700 | Merge pull request #105 from Chravel-Inc/claude/remove-capacitor-code-8fLoL
+Remove Capacitor iOS native app and consolidate to web-only
+-----
+3a26c419 | Sun Apr 5 00:04:47 2026 -0700 | Merge pull request #12 from Chravel-Inc/codex/conduct-forensic-audit-and-stream-migration-plan
+docs: forensic Stream migration plan + immediate chat latency root cause
+-----
+9398313b | Sat Apr 4 23:58:23 2026 -0700 | Merge pull request #39 from Chravel-Inc/cursor/development-environment-setup-af50
+Add Cursor Cloud development environment setup instructions
+-----
+7c3ff528 | Sat Apr 4 23:56:45 2026 -0700 | Merge pull request #69 from Chravel-Inc/perf-parallelize-offline-sync-2734677301814694445
+⚡ Parallelize offline sync operation updates
+-----
+7b452d96 | Sat Apr 4 23:54:32 2026 -0700 | Merge pull request #71 from Chravel-Inc/fix-mutation-id-generation-17593954555007768288
+🔒 fix insecure random number generation in mutation id fallback
+-----
+5585ce05 | Sat Apr 4 23:28:39 2026 -0700 | Merge pull request #80 from Chravel-Inc/jules-9309963786671366197-38a6c3b8
+docs: Technical Debt Sweep and Perf Audit
+-----
+9c3fd5b4 | Sat Apr 4 23:15:38 2026 -0700 | Merge pull request #99 from Chravel-Inc/jules-10376556728168181880-8cd7f311
+⚡ Optimize bulk calendar event deletion fallback
+-----
+47f400a6 | Sat Apr 4 22:22:19 2026 -0700 | Merge pull request #74 from Chravel-Inc/fix/xss-link-previews-15647148183076382240
+🔒 Fix XSS vulnerability in link previews and file attachments
+-----
+3d343e8f | Sat Apr 4 22:14:45 2026 -0700 | Merge pull request #77 from Chravel-Inc/jules-14051133914345309428-088f30ff
+🧪 Add tests for schemaAdapters
+-----
+64452175 | Sat Apr 4 21:55:18 2026 -0700 | Merge pull request #93 from Chravel-Inc/jules-1153550726010662882-3fb20584
+🧹 fix: Remove unimplemented suggestion actions to improve code health
+-----
+737ac853 | Sat Apr 4 21:02:16 2026 -0700 | Merge pull request #96 from Chravel-Inc/fix-tripchat-merge-conflicts-and-refactor-12654197671100632558
+fix(chat): fix TripChat syntax error and refactor hooks
+-----
+833e6c20 | Sat Apr 4 20:43:32 2026 -0700 | Merge pull request #97 from Chravel-Inc/fix-livekit-voice-audit-17097819165562101236
+LiveKit Voice Architecture Audit
+-----
+9f3a6e11 | Sat Apr 4 20:20:19 2026 -0700 | Merge pull request #63 from Chravel-Inc/refactor-lovable-concierge-11812238359605385551
+Refactor: Complete transition of AI concierge to pure Gemini / LiveKit
+-----
+79e70aba | Sat Apr 4 20:19:09 2026 -0700 | Merge pull request #98 from Chravel-Inc/fix/tripchat-syntax-error-5166477221421608198
+fix: resolve syntax error and duplicate block in TripChat.tsx
+-----
+3be5c688 | Sat Apr 4 20:17:07 2026 -0700 | Merge pull request #95 from Chravel-Inc/fix-chat-content-parser-unimplemented-receipt-extraction-15182285407460214009
+🧹 [Code Health] Implement extract_receipt and create_todo parsing actions
+-----
+d080c4a1 | Sat Apr 4 20:13:53 2026 -0700 | Merge pull request #100 from Chravel-Inc/fix/tripchat-syntax-error-1237553962983208222
+fix: syntax error in TripChat toggleReaction block
+-----
+ad6cea40 | Sat Apr 4 20:10:46 2026 -0700 | Merge pull request #65 from Chravel-Inc/fix-push-notification-trigger-7524735110791891357
+Call push notification service from SQL trigger
+-----
+41f1f98c | Sat Apr 4 18:55:02 2026 -0700 | Merge pull request #84 from Chravel-Inc/getstream-audit-report-18077997912486798302
+docs: Add GetStream architecture and quality audit report
+-----
+b6759e75 | Sat Apr 4 18:42:56 2026 -0700 | Merge pull request #94 from Chravel-Inc/jules-add-scheduled-messages-admin-dashboard-17477835237208189889
+🧹 Add scheduled messages for Pro Trips in Admin Dashboard
+-----
+c546f58b | Sun Apr 5 01:21:51 2026 +0000 | Investigated preview failure
+Co-authored-by: ChravelApp <263244170+ChravelApp@users.noreply.github.com>
+
+-----
+56a674dd | Sat Apr 4 18:21:16 2026 -0700 | Merge pull request #92 from Chravel-Inc/jules-digest-slack-437984777843982687
+chore: generate daily engineering digest
+-----
+dd4cdee8 | Sun Apr 5 01:12:26 2026 +0000 | Fix preview and TS issues
+- Repaired TripChat.tsx syntax by correcting handleReaction block and removing stray braces
+- Added hotel_search to query classifier context slices and updated context builder
+- Adjusted recommendation service to use explicit event type
+- Updated livekit-token token roomConfig handling to ensure safe metadata usage
+
+X-Lovable-Edit-ID: edt-8ab742d8-db03-4118-9e39-1e425c0efa25
+Co-authored-by: ChravelApp <263244170+ChravelApp@users.noreply.github.com>
+
+-----
+d499dc58 | Sat Apr 4 18:00:11 2026 -0700 | Merge pull request #90 from Chravel-Inc/feat/functional-recommendations-backend-4911847089350472002
+Functional Recommendations Backend
+-----
+a84e7b3b | Sat Apr 4 17:02:25 2026 -0700 | Merge pull request #83 from Chravel-Inc/jules-2633609034902766350-f6a1e1f8
+feat: add payment detail modal to mobile payments
+-----
+f6b49bf5 | Sat Apr 4 23:54:45 2026 +0000 | Fix TS type fixes
+Refactor TripGrid pendingTrips type back to Trip[] and adjust rendering to use Trip fields; loosen Trip interface to accept aggregate fields; fix tokenValidation tests usage; fix TripChat message typing and imports; update associated mocks and tests accordingly.
+
+X-Lovable-Edit-ID: edt-30609223-6db0-466b-9816-f966d4bb6885
+Co-authored-by: ChravelApp <263244170+ChravelApp@users.noreply.github.com>
+
+-----
+2697ab45 | Sat Apr 4 23:52:10 2026 +0000 | Save plan in Lovable
+
+-----
+11fddb56 | Sat Apr 4 23:47:05 2026 +0000 | Update plan
+Plan file updated during planning mode
+
+X-Lovable-Edit-ID: edt-e3a50421-7e8e-4c62-aa41-1efe6291cf9d
+Co-authored-by: ChravelApp <263244170+ChravelApp@users.noreply.github.com>
+
+-----
+15f971a7 | Sat Apr 4 16:11:49 2026 -0700 | Merge pull request #87 from Chravel-Inc/platform-audit-constitution-16729558187463451652
+docs: create platform audit constitution
+-----
+32deb36c | Sat Apr 4 16:03:35 2026 -0700 | Merge pull request #91 from Chravel-Inc/fix-tripchat-build-error-15189641249303472096
+Fix TripChat.tsx build syntax error
+-----
+ea96d434 | Sat Apr 4 16:00:36 2026 -0700 | Merge pull request #88 from Chravel-Inc/chore/dead-code-cleanup-12996260863781055966
+Surgical Dead Code Cleanup (Messaging, Share Extension, Payment)
+-----
+c03745df | Sat Apr 4 22:54:23 2026 +0000 | Update plan
+Plan file updated during planning mode
+
+X-Lovable-Edit-ID: edt-31d3a828-70a4-485e-9068-e47b7de159de
+Co-authored-by: ChravelApp <263244170+ChravelApp@users.noreply.github.com>
+
+-----
+eda8c6e1 | Sat Apr 4 15:40:15 2026 -0700 | Merge pull request #76 from Chravel-Inc/fix/role-channel-member-count-3637837158958337031
+Fix role channel member count
