@@ -139,7 +139,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     const handleReaction = () => {
       // Stream mutates channel.state.messages in place on reaction events.
       // Re-cloning the array forces React to re-render.
-      setMessages([...channel.state.messages] as MessageResponse[]);
+      setMessages([...channel.state.messages] as unknown as MessageResponse[]);
     };
 
     channel.on('message.new', handleNewMessage);
@@ -304,7 +304,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
 
         // Optimistically check if we already reacted
         const message = messages.find(m => m.id === messageId);
-        const hasReacted = message?.reactions?.[reactionType]?.userReacted;
+        const hasReacted = (message as any)?.reactions?.[reactionType]?.userReacted;
 
         try {
           if (hasReacted) {

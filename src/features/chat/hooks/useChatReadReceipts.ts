@@ -29,9 +29,9 @@ export function useChatReadReceipts(
   useEffect(() => {
     if (isDemoMode || !userId || !resolvedTripId) return;
 
-    const subscription = subscribeToReadReceipts(resolvedTripId, newStatus => {
+    const subscription = subscribeToReadReceipts(resolvedTripId, (newStatus: any) => {
       setReadStatusesByMessage(prev => {
-        const msgId = newStatus.message_id;
+        const msgId = (newStatus as any).message_id;
         if (
           !prev[msgId] &&
           !markedMessageIdsRef.current.has(msgId) &&
@@ -39,7 +39,7 @@ export function useChatReadReceipts(
         )
           return prev;
         const currentStatuses = prev[msgId] || [];
-        if (currentStatuses.some((s: any) => s.user_id === newStatus.user_id)) {
+        if (currentStatuses.some((s: any) => s.user_id === (newStatus as any).user_id)) {
           return prev;
         }
         return {

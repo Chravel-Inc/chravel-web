@@ -121,7 +121,7 @@ export async function configureRevenueCat(
 
   try {
     // Configure RevenueCat
-    await purchases.configure({
+    await (purchases as any).configure({
       apiKey,
       appUserID: userId,
     });
@@ -159,7 +159,7 @@ export async function getCustomerInfo(
   }
 
   try {
-    const { customerInfo } = await purchases.getCustomerInfo();
+    const { customerInfo } = await (purchases as any).getCustomerInfo();
     return {
       success: true,
       supported: true,
@@ -197,7 +197,7 @@ export async function getOfferings(
 
   try {
     // getOfferings returns PurchasesOfferings directly
-    const offerings = await purchases.getOfferings();
+    const offerings = await (purchases as any).getOfferings();
     return {
       success: true,
       supported: true,
@@ -237,7 +237,7 @@ export async function purchasePackage(
 
   try {
     // Get offerings first to find the package
-    const offerings = await purchases.getOfferings();
+    const offerings = await (purchases as any).getOfferings();
     const offering = offerings?.all?.[offeringIdentifier] || offerings?.current;
 
     if (!offering) {
@@ -249,7 +249,7 @@ export async function purchasePackage(
       return { success: false, supported: true, errorCode: 'UNKNOWN', error: 'Package not found' };
     }
 
-    const { customerInfo } = await purchases.purchasePackage({ aPackage: pkg });
+    const { customerInfo } = await (purchases as any).purchasePackage({ aPackage: pkg });
 
     console.log('[RevenueCat] Purchase successful');
     return {
@@ -300,7 +300,7 @@ export async function restorePurchases(
   }
 
   try {
-    const { customerInfo } = await purchases.restorePurchases();
+    const { customerInfo } = await (purchases as any).restorePurchases();
     console.log('[RevenueCat] Restore successful');
     return {
       success: true,
@@ -332,7 +332,7 @@ export async function logoutRevenueCat(): Promise<RevenueCatResult> {
   }
 
   try {
-    await purchases.logOut();
+    await (purchases as any).logOut();
     console.log('[RevenueCat] Logged out');
     return { success: true, supported: true };
   } catch (error) {

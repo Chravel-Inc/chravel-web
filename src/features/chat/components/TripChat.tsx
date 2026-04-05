@@ -26,6 +26,10 @@ import { ChannelChatView } from '@/components/pro/channels/ChannelChatView';
 import { TypingIndicator } from './TypingIndicator';
 import { TypingIndicatorService } from '@/services/typingIndicatorService';
 import {} from '@/services/readReceiptService';
+import { supabase } from '@/integrations/supabase/client';
+import { subscribeToReactions } from '@/services/chatService';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { PullToRefreshIndicator } from '@/components/mobile/PullToRefreshIndicator';
 import { useUnreadCounts } from '@/hooks/useUnreadCounts';
 import { parseMessage } from '@/services/chatContentParser';
 import { useChatReadReceipts } from '../hooks/useChatReadReceipts';
@@ -107,22 +111,6 @@ export const TripChat = React.memo(
   }: TripChatProps) => {
     const [demoMessages, setDemoMessages] = useState<MockMessage[]>([]);
 
-    const { typingUsers, typingServiceRef } = useChatTypingIndicators(
-      demoMode.isDemoMode,
-      resolvedTripId,
-      user,
-      effectiveChatMode,
-      tripMembers.length,
-      activeChannel,
-    );
-
-    const { readStatusesByMessage, setReadStatusesByMessage } = useChatReadReceipts(
-      demoMode.isDemoMode,
-      user?.id,
-      resolvedTripId,
-      liveMessages,
-    );
-
     const [_activeChannelId, _setActiveChannelId] = useState<string | null>(null);
 
     const [showSearchOverlay, setShowSearchOverlay] = useState(false);
@@ -203,7 +191,29 @@ export const TripChat = React.memo(
       chatModeUserRole === 'organizer' ||
       chatModeUserRole === 'owner';
 
-    // Optimistic cache updates for edit/delete (MessageActions does the API call)
+    // Role channels for pro trips
+    const {
+      availableChannels,
+      setActiveChannel,
+    } = useRoleChannels(isPro ? resolvedTripId : undefined, user?.id || '');
+
+    // Typing indicators + read receipts — must be after all deps are declared
+    const { typingUsers, typingServiceRef } = useChatTypingIndicators(
+      demoMode.isDemoMode,
+      resolvedTripId,
+      user,
+      effectiveChatMode,
+      tripMembers.length,
+      activeChannel,
+    );
+
+    const { readStatusesByMessage, setReadStatusesByMessage } = useChatReadReceipts(
+      demoMode.isDemoMode,
+      user?.id,
+      resolvedTripId,
+      liveMessages,
+    );
+
     const handleMessageEdit = useCallback(
       (messageId: string, newContent: string) => {
         if (demoMode.isDemoMode || !resolvedTripId) return;
@@ -303,40 +313,7 @@ export const TripChat = React.memo(
       enabled: !demoMode.isDemoMode && !!user?.id,
     });
 
-    // --- Stream Native Typing Indicators ---
-    const shouldEnableTyping =
-      !demoMode.isDemoMode &&
-      !!user?.id &&
-      !!resolvedTripId &&
-      effectiveChatMode === 'everyone' &&
-      tripMembers.length <= 50;
-
-    useEffect(() => {
-      if (!shouldEnableTyping || !resolvedTripId || !activeChannel) return;
-
-      const handleTypingStart = (event: any) => {
-        if (event.user?.id && event.user.id !== user?.id) {
-          setTypingUsers(prev => {
-            if (prev.some(u => u.userId === event.user.id)) return prev;
-            return [...prev, { userId: event.user.id, userName: event.user.name || event.user.id }];
-          });
-        }
-      };
-
-      const handleTypingStop = (event: any) => {
-        if (event.user?.id) {
-          setTypingUsers(prev => prev.filter(u => u.userId !== event.user.id));
-        }
-      };
-
-      activeChannel.on('typing.start', handleTypingStart);
-      activeChannel.on('typing.stop', handleTypingStop);
-
-      return () => {
-        activeChannel.off('typing.start', handleTypingStart);
-        activeChannel.off('typing.stop', handleTypingStop);
-      };
-    }, [shouldEnableTyping, resolvedTripId, user?.id, activeChannel]);
+    // Note: typing indicators are now fully handled by useChatTypingIndicators hook above
 
     const liveFormattedMessages = useMemo(() => {
       if (demoMode.isDemoMode) return [];
@@ -710,10 +687,10 @@ export const TripChat = React.memo(
       // For inline reply:
       const content = demoMode.isDemoMode
         ? (message as MockMessage).text
-        : (message as TripChatMessage).content;
+        : (message as unknown as TripChatMessage).content;
       const authorName = demoMode.isDemoMode
         ? (message as MockMessage).sender.name
-        : (message as TripChatMessage).author_name || 'User'; // Fallback
+        : (message as unknown as TripChatMessage).author_name || 'User'; // Fallback
 
       setReply(messageId, content, authorName);
     };
@@ -899,9 +876,9 @@ export const TripChat = React.memo(
               isPro={isPro}
               broadcastCount={broadcastCount}
               unreadCount={messageUnreadCount}
-              availableChannels={availableChannels}
-              activeChannel={activeChannel}
-              onChannelSelect={channel => {
+              availableChannels={availableChannels as any}
+              activeChannel={activeChannel as any}
+              onChannelSelect={(channel: any) => {
                 setActiveChannel(channel);
                 setMessageFilter('channels');
               }}
@@ -910,9 +887,9 @@ export const TripChat = React.memo(
             {/* Conditional Content Area */}
             {messageFilter === 'channels' && activeChannel ? (
               <ChannelChatView
-                channel={activeChannel}
-                availableChannels={availableChannels}
-                onChannelChange={setActiveChannel}
+                channel={activeChannel as any}
+                availableChannels={availableChannels as any}
+                onChannelChange={setActiveChannel as any}
               />
             ) : (
               <>

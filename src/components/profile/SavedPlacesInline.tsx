@@ -109,9 +109,10 @@ export const SavedPlacesInline: React.FC = () => {
             const img = item.image_url;
             const category = item.rec_type;
             const city = item.location || item.city || '';
-            const rating = item.data?.rating as number | undefined;
-            const distance = item.data?.distance as string | undefined;
-            const external = item.external_link || item.data?.externalLink || '#';
+            const itemData = item.data as Record<string, unknown> | undefined;
+            const rating = itemData?.rating as number | undefined;
+            const distance = itemData?.distance as string | undefined;
+            const external = item.external_link || (itemData?.externalLink as string) || '#';
 
             return (
               <article

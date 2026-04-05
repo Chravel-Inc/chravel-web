@@ -181,12 +181,14 @@ export class AppleIAPProvider extends BaseBillingProvider {
     const url = 'itms-apps://apps.apple.com/account/subscriptions';
 
     try {
-      // Use Capacitor App plugin to open the URL natively
-      const { App } = await import('@capacitor/app');
-      // @ts-expect-error - openUrl exists in Capacitor App plugin
-      await App.openUrl?.({ url });
+      // Try Capacitor App plugin if available
+      const mod = await import(/* @vite-ignore */ '@capacitor/app' as string).catch(() => null);
+      if (mod?.App?.openUrl) {
+        await mod.App.openUrl({ url });
+      } else {
+        window.location.assign(url);
+      }
     } catch {
-      // Fallback: use location.assign on native, window.open on web
       if (typeof window !== 'undefined') {
         window.location.assign(url);
       }

@@ -74,7 +74,7 @@ export function useStreamProChannel(channelId: string | null) {
     if (!channel || !channelId) return;
 
     const handleEvent = () => {
-      setMessages([...channel.state.messages] as MessageResponse[]);
+      setMessages([...channel.state.messages] as unknown as MessageResponse[]);
     };
 
     channel.on('message.new', handleEvent);

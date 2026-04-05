@@ -9,7 +9,8 @@ export const AdminDashboard = () => {
   const [scheduledMessages, setScheduledMessages] = useState<ScheduledMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { data: proTrips } = useProTrips();
+  const proTripsResult = useProTrips();
+  const proTrips = (proTripsResult as any).data || proTripsResult.proTrips;
 
   // Modal state
   const [selectedTripId, setSelectedTripId] = useState<string>('');

@@ -114,7 +114,8 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
 
     // App Store compliance guard:
     // Consumer digital subscriptions on iOS native must use Apple IAP.
-    if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+    const cap = (globalThis as any).Capacitor;
+    if (cap?.isNativePlatform?.() && cap?.getPlatform?.() === 'ios') {
       toast.error('In-app purchases for iOS are coming soon. Please use the web app for now.');
       return;
     }
@@ -130,7 +131,7 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
         body: {
           tier: tierMap[tier],
           billing_cycle: billingCycle,
-          platform: Capacitor.getPlatform(),
+          platform: cap?.getPlatform?.() ?? 'web',
         },
       });
 

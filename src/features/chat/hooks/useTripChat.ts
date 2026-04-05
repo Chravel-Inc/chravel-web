@@ -590,7 +590,7 @@ const useSupabaseTripChat = (tripId: string | undefined, options?: { enabled?: b
         };
 
         // Save to cache for immediate display
-        await saveMessagesToCache(tripId, [optimisticMessage]);
+        await saveMessagesToCache(tripId, [optimisticMessage as any]);
 
         // Track offline-queued message telemetry
         messageEvents.sent({
