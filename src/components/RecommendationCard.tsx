@@ -65,9 +65,15 @@ export const RecommendationCard = ({
     }
   }, [inView, impressionId, recommendation, user?.id, tripId, surface, position]);
 
-  const trackClick = async (action: 'view' | 'save' | 'book' | 'external_link' | 'add_to_trip' | 'hide') => {
+  const trackClick = async (
+    action: 'view' | 'save' | 'book' | 'external_link' | 'add_to_trip' | 'hide',
+  ) => {
     if (impressionId) {
-      await RecommendationService.trackClick({ impressionId, action, campaignId: recommendation.campaignId });
+      await RecommendationService.trackClick({
+        impressionId,
+        action,
+        campaignId: recommendation.campaignId,
+      });
     } else {
       // In case they clicked before the impression fully fired/returned
       if (!recommendation.uuid) return;
@@ -82,7 +88,12 @@ export const RecommendationCard = ({
         position,
         campaignId: recommendation.campaignId,
       }).then(id => {
-        if (id) RecommendationService.trackClick({ impressionId: id, action, campaignId: recommendation.campaignId });
+        if (id)
+          RecommendationService.trackClick({
+            impressionId: id,
+            action,
+            campaignId: recommendation.campaignId,
+          });
       });
     }
   };
@@ -110,7 +121,10 @@ export const RecommendationCard = ({
   };
 
   return (
-    <Card ref={ref} className="group relative overflow-hidden bg-card/80 backdrop-blur-md border border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-enterprise-md">
+    <Card
+      ref={ref}
+      className="group relative overflow-hidden bg-card/80 backdrop-blur-md border border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-enterprise-md"
+    >
       {/* Header with title and sponsor badge */}
       <div className="p-4 pb-2">
         <div className="flex items-start justify-between mb-2">
@@ -250,11 +264,7 @@ export const RecommendationCard = ({
           >
             {recommendation.ctaButton.text}
           </Button>
-          <Button
-            variant="outline"
-            className="px-3"
-            onClick={handleSaveClick}
-          >
+          <Button variant="outline" className="px-3" onClick={handleSaveClick}>
             Save
           </Button>
         </div>

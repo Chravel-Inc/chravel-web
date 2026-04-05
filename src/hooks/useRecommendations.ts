@@ -1,5 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import { RecommendationService, RecommendationFilters, SponsoredFilters } from '@/services/recommendationService';
+import {
+  RecommendationService,
+  RecommendationFilters,
+  SponsoredFilters,
+} from '@/services/recommendationService';
 import type { Recommendation } from '@/data/recommendations/types';
 
 interface UseRecommendationsOptions {
@@ -13,14 +17,23 @@ interface UseRecommendationsOptions {
 
 export const useRecommendations = (options: UseRecommendationsOptions | string = 'all') => {
   // Backwards compatibility for when we pass just the activeFilter string
-  const opts: UseRecommendationsOptions = typeof options === 'string' ? { type: options as Recommendation['type'] | 'all' } : options;
+  const opts: UseRecommendationsOptions =
+    typeof options === 'string' ? { type: options as Recommendation['type'] | 'all' } : options;
   const activeFilter = opts.type;
 
-  const typeFilter = activeFilter === 'all' ? undefined : activeFilter as Recommendation['type'];
+  const typeFilter = activeFilter === 'all' ? undefined : (activeFilter as Recommendation['type']);
   const cityFilter = opts.city;
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['recommendations', activeFilter, cityFilter, opts.location, opts.tripType, opts.limit, opts.sponsoredRatio],
+    queryKey: [
+      'recommendations',
+      activeFilter,
+      cityFilter,
+      opts.location,
+      opts.tripType,
+      opts.limit,
+      opts.sponsoredRatio,
+    ],
     queryFn: async () => {
       const organicFilters: RecommendationFilters = {
         city: cityFilter,
