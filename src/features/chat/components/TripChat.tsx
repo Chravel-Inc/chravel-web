@@ -617,32 +617,6 @@ export const TripChat = React.memo(
 
       if (toggleReaction) {
         // Stream path — Stream SDK handles optimistic updates internally
-      // Authenticated mode: persist to database
-      // Optimistic update
-      setReactions(prev => {
-        const updated = { ...prev };
-        if (!updated[messageId]) {
-          updated[messageId] = {};
-        }
-        const current = updated[messageId][reactionType] || {
-          count: 0,
-          userReacted: false,
-          users: [],
-        };
-        const wasReacted = current.userReacted;
-        updated[messageId][reactionType] = {
-          count: wasReacted ? Math.max(0, current.count - 1) : current.count + 1,
-          userReacted: !wasReacted,
-          users: wasReacted
-            ? current.users.filter(id => id !== user.id)
-            : Array.from(new Set([...current.users, user.id])),
-        };
-        return updated;
-      });
-
-      // Persist to backend
-      if (toggleReaction) {
-        // Stream path
         await toggleReaction(messageId, reactionType);
       } else {
         // Supabase path — optimistic update + persist
