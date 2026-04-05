@@ -42,7 +42,9 @@ export const useMediaManagement = (tripId: string) => {
           tripTier === 'consumer' &&
           TripSpecificMockDataService.getTripMediaItems(parseInt(tripId)).length > 0
         ) {
-          items = TripSpecificMockDataService.getTripMediaItems(parseInt(tripId)) as unknown as MediaItem[];
+          items = TripSpecificMockDataService.getTripMediaItems(
+            parseInt(tripId),
+          ) as unknown as MediaItem[];
         } else if (tripTier === 'pro' && proTripMockData[tripId]) {
           const proData = proTripMockData[tripId];
           items = [
