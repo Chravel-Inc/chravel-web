@@ -769,7 +769,6 @@ export const TripChat = React.memo(
           pullDistance={pullDistance}
           threshold={80}
         />
-        {/* Search Overlay Modal */}
         {showSearchOverlay && (
           <ChatSearchOverlay
             tripId={resolvedTripId}

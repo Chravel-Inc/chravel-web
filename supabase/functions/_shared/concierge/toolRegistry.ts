@@ -1,7 +1,7 @@
 /**
  * Tool Registry — Single source of truth for all concierge tool declarations.
  *
- * Both the text concierge (lovable-concierge) and voice concierge
+ * Both the text concierge (text-concierge) and voice concierge
  * (gemini-voice-session) derive their tool lists from this registry,
  * eliminating drift between the two paths.
  *
@@ -9,7 +9,7 @@
  *
  * SAFETY NOTES:
  * - Tool parameter schemas are identical to the existing inline declarations
- *   in lovable-concierge/index.ts (lines 1303-2047) and voiceToolDeclarations.ts.
+ *   in text-concierge/index.ts (lines 1303-2047) and voiceToolDeclarations.ts.
  *   No schema changes — this is a pure extraction/consolidation.
  * - QUERY_CLASS_TOOLS only controls which tools are AVAILABLE to the LLM for a
  *   given query class. All actual authorization happens in toolRouter.ts and
@@ -50,6 +50,26 @@ export const ALL_TOOL_DECLARATIONS: ToolDeclaration[] = [
         notes: { type: 'string', description: 'Additional notes or description' },
       },
       required: ['title', 'datetime', 'idempotency_key'],
+    },
+  },
+
+  {
+    name: 'extractReceipt',
+    description:
+      'Parse a receipt to automatically extract payment information (amount, vendor, currency) for either splitting a payment or saving as a photo.',
+    parameters: {
+      type: 'object',
+      properties: {
+        idempotency_key: {
+          type: 'string',
+          description: 'Unique string to prevent duplicate tool execution',
+        },
+        fileUrl: { type: 'string', description: 'The URL of the receipt image or file to extract' },
+        totalAmount: { type: 'number', description: 'The total amount of the receipt, if known' },
+        vendor: { type: 'string', description: 'The vendor or merchant name, if known' },
+        currency: { type: 'string', description: 'Currency code (e.g. USD)' },
+      },
+      required: ['idempotency_key', 'fileUrl'],
     },
   },
   {
@@ -906,7 +926,7 @@ const QUERY_CLASS_TOOLS: Record<QueryClass, string[] | 'all'> = {
     'emitBulkDeletePreview',
     'detectCalendarConflicts',
   ],
-  task_action: ['createTask', 'updateTask', 'deleteTask'],
+  task_action: ['createTask', 'extractReceipt', 'updateTask', 'deleteTask'],
   payment_query: ['getPaymentSummary', 'settleExpense'],
   trip_search: ['searchTripData', 'searchTripArtifacts', 'getDeepLink'],
   place_navigation: [
@@ -970,6 +990,7 @@ export function getToolsForQueryClass(queryClass: QueryClass): ToolDeclaration[]
 const VOICE_DESCRIPTION_OVERRIDES: Record<string, string> = {
   addToCalendar: 'Add an event to the trip calendar',
   createTask: 'Create a task for the trip group',
+  extractReceipt: 'Parse a receipt to extract payment info',
   createPoll: 'Create a poll for the group to vote on',
   getPaymentSummary: 'Get a summary of who owes money to whom in the trip',
   searchPlaces: 'Search for nearby places like restaurants, hotels, or attractions',
