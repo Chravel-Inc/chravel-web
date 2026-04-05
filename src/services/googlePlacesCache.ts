@@ -61,7 +61,7 @@ export async function getCachedPlace<T extends ConvertedPlace | ConvertedPredict
   cacheKey: string,
 ): Promise<T | null> {
   try {
-    const { data, error } = await supabase.rpc('get_places_cache' as any, {
+    const { data, error } = await supabase.rpc('get_places_cache' as unknown, {
       p_cache_key: cacheKey,
     });
 

@@ -125,10 +125,10 @@ export async function processGlobalSyncQueue(): Promise<{
       } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const optionIds: string[] = Array.isArray((data as any)?.optionIds)
-        ? (data as any).optionIds
-        : typeof (data as any)?.optionIds === 'string'
-          ? [(data as any).optionIds]
+      const optionIds: string[] = Array.isArray((data as unknown)?.optionIds)
+        ? (data as unknown).optionIds
+        : typeof (data as unknown)?.optionIds === 'string'
+          ? [(data as unknown).optionIds]
           : [];
 
       if (optionIds.length === 0) {
@@ -171,7 +171,7 @@ export async function processGlobalSyncQueue(): Promise<{
 
     // Calendar event handlers
     onCalendarEventCreate: async (tripId, data) => {
-      const result = await calendarService.createEvent(data as any);
+      const result = await calendarService.createEvent(data as unknown);
       if (!result) throw new Error('Failed to create calendar event');
       return result;
     },

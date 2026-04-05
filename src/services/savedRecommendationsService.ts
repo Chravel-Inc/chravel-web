@@ -11,7 +11,7 @@ export interface SavedRecommendationRow {
   city: string | null;
   external_link: string | null;
   image_url: string | null;
-  data: any;
+  data: unknown;
   created_at: string;
   updated_at: string;
 }

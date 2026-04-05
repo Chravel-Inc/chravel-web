@@ -37,7 +37,7 @@ class SystemMessageService {
         user_id: user?.id || null,
         message_type: 'system',
         system_event_type: eventType,
-        payload: payload as any,
+        payload: payload as unknown,
       });
 
       if (error) {

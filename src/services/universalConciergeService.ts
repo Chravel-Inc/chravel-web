@@ -197,7 +197,7 @@ export class UniversalConciergeService {
           if (import.meta.env.DEV) {
             console.error('Failed to build comprehensive context, using fallback:', contextError);
           }
-          comprehensiveContext = tripContext as any; // Use original context as fallback
+          comprehensiveContext = tripContext as unknown; // Use original context as fallback
         }
       }
 

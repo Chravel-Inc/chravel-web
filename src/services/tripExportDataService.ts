@@ -491,7 +491,7 @@ export async function getExportData(
             name: fileName,
             type: f.file_type,
             uploaded_at: f.created_at,
-            uploaded_by: (f.profiles as any)?.display_name || 'Unknown',
+            uploaded_by: (f.profiles as unknown)?.display_name || 'Unknown',
             artifact_category: enrichment?.category,
             artifact_summary: enrichment?.summary || undefined,
           };
@@ -504,7 +504,7 @@ export async function getExportData(
         return aEnriched - bEnriched;
       });
 
-      (result as any).attachments = attachments;
+      (result as unknown).attachments = attachments;
       result.attachments =
         files?.map(f => ({
           name: f.name,

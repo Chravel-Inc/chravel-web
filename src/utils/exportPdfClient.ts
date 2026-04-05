@@ -4,8 +4,6 @@
  * Generates PDFs using jsPDF when server export fails or for mock trips
  */
 
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { ExportSection, PDFCustomizationOptions, PDFProgressCallback } from '@/types/tripExport';
 
 /**
@@ -22,7 +20,7 @@ import { ExportSection, PDFCustomizationOptions, PDFProgressCallback } from '@/t
  * @param fallback The fallback Y position if finalY is not available
  * @returns The finalY position or fallback
  */
-function getFinalY(doc: jsPDF, fallback: number): number {
+function getFinalY(doc: any, fallback: number): number {
   const last = (doc as any).lastAutoTable;
   const val = last?.finalY;
   return typeof val === 'number' && isFinite(val) ? val : fallback;
@@ -76,7 +74,7 @@ async function getFontAsBase64(url: string, timeoutMs: number = 5000): Promise<s
  * Falls back to built-in Helvetica font if loading fails (e.g., in offline PWA mode).
  * @param doc The jsPDF instance.
  */
-async function embedNotoSansFont(doc: jsPDF): Promise<void> {
+async function embedNotoSansFont(doc: any): Promise<void> {
   try {
     // Load fonts in parallel for faster loading (especially on mobile)
     const [fontNormal, fontBold, fontItalic, fontBoldItalic] = await Promise.all([
@@ -270,6 +268,9 @@ export async function generateClientPDF(
     onProgress?: PDFProgressCallback;
   },
 ): Promise<Blob> {
+  const { default: jsPDF } = await import('jspdf');
+  const { default: autoTable } = await import('jspdf-autotable');
+
   const { customization, onProgress } = options || {};
   // Clamp maxItemsPerSection to ensure it's always >= 1 to prevent infinite loops
   // Negative or zero values would cause chunkArray's loop to never progress
@@ -1091,7 +1092,7 @@ export async function generateClientPDF(
   return doc.output('blob');
 }
 
-function checkPageBreak(doc: jsPDF, currentY: number, requiredSpace: number) {
+function checkPageBreak(doc: any, currentY: number, requiredSpace: number) {
   const pageHeight = doc.internal.pageSize.getHeight();
   if (currentY + requiredSpace > pageHeight - 60) {
     doc.addPage();
