@@ -540,10 +540,7 @@ export const useTripPolls = (tripId: string) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId, isDemoMode] });
       void haptics.medium();
-      toast({
-        title: 'Vote recorded',
-        description: 'Your vote has been saved.',
-      });
+      // Removed noisy success toast
     },
     onError: (error: Error, vars, context) => {
       // Keep optimistic update when offline (queued).
@@ -643,10 +640,7 @@ export const useTripPolls = (tripId: string) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId, isDemoMode] });
-      toast({
-        title: 'Vote removed',
-        description: 'Your vote has been removed.',
-      });
+      // Removed noisy success toast
     },
     onError: () => {
       toast({
