@@ -25,14 +25,12 @@ import { useRoleChannels } from '@/hooks/useRoleChannels';
 import { ChannelChatView } from '@/components/pro/channels/ChannelChatView';
 import { TypingIndicator } from './TypingIndicator';
 import { TypingIndicatorService } from '@/services/typingIndicatorService';
-import {
-  markMessagesAsRead,
-  subscribeToReadReceipts,
-  getMessagesReadStatus,
-} from '@/services/readReceiptService';
+import {} from '@/services/readReceiptService';
 import { useUnreadCounts } from '@/hooks/useUnreadCounts';
-import { supabase } from '@/integrations/supabase/client';
 import { parseMessage } from '@/services/chatContentParser';
+import { useChatReadReceipts } from '../hooks/useChatReadReceipts';
+import { useChatTypingIndicators } from '../hooks/useChatTypingIndicators';
+import { useChatReactions } from '../hooks/useChatReactions';
 import { MessageTypeBar } from './MessageTypeBar';
 import { ChatSearchOverlay } from './ChatSearchOverlay';
 import { useEffectiveSystemMessagePreferences } from '@/hooks/useSystemMessagePreferences';
@@ -40,7 +38,6 @@ import { isConsumerTrip } from '@/utils/tripTierDetector';
 import {
   toggleMessageReaction,
   getMessagesReactions,
-  subscribeToReactions,
   type ReactionType,
 } from '@/services/chatService';
 import { ThreadView } from './ThreadView';
@@ -109,14 +106,25 @@ export const TripChat = React.memo(
     participants = [],
   }: TripChatProps) => {
     const [demoMessages, setDemoMessages] = useState<MockMessage[]>([]);
-    const [reactions, setReactions] = useState<
-      Record<string, Record<string, { count: number; userReacted: boolean; users: string[] }>>
-    >({});
 
-    const [readStatusesByMessage, setReadStatusesByMessage] = useState<Record<string, any[]>>({});
+    const { typingUsers, typingServiceRef } = useChatTypingIndicators(
+      demoMode.isDemoMode,
+      resolvedTripId,
+      user,
+      effectiveChatMode,
+      tripMembers.length,
+      activeChannel,
+    );
+
+    const { readStatusesByMessage, setReadStatusesByMessage } = useChatReadReceipts(
+      demoMode.isDemoMode,
+      user?.id,
+      resolvedTripId,
+      liveMessages,
+    );
+
     const [_activeChannelId, _setActiveChannelId] = useState<string | null>(null);
-    const [typingUsers, setTypingUsers] = useState<Array<{ userId: string; userName: string }>>([]);
-    const typingServiceRef = useRef<TypingIndicatorService | null>(null);
+
     const [showSearchOverlay, setShowSearchOverlay] = useState(false);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
     const [activeThreadMessage, setActiveThreadMessage] = useState<{
@@ -270,14 +278,7 @@ export const TripChat = React.memo(
       return [...new Set(participants.map(p => p.role).filter(Boolean))];
     }, [isPro, participants]);
 
-    // Initialize role channels hook for Pro/Enterprise trips
-    const {
-      availableChannels,
-      activeChannel,
-      messages: _channelMessages,
-      setActiveChannel,
-      sendMessage: _sendChannelMessage,
-    } = useRoleChannels(resolvedTripId, userRole, participantRoles);
+
 
     // Mobile-specific hooks
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -350,45 +351,6 @@ export const TripChat = React.memo(
         activeChannel.off('typing.stop', handleTypingStop);
       };
     }, [shouldEnableTyping, resolvedTripId, user?.id, activeChannel]);
-
-    // --- Stream Native Read Receipts ---
-    const markReadTimerRef = useRef<NodeJS.Timeout | null>(null);
-    const markedMessageIdsRef = useRef<Set<string>>(new Set());
-
-    useEffect(() => {
-      if (
-        demoMode.isDemoMode ||
-        !user?.id ||
-        !resolvedTripId ||
-        liveMessages.length === 0 ||
-        !activeChannel
-      )
-        return;
-
-      const newUnmarkedIds = liveMessages
-        .filter(
-          msg => (msg.user as any)?.id !== user.id && !markedMessageIdsRef.current.has(msg.id),
-        )
-        .map(msg => msg.id);
-
-      if (newUnmarkedIds.length === 0) return;
-
-      if (markReadTimerRef.current) clearTimeout(markReadTimerRef.current);
-      markReadTimerRef.current = setTimeout(async () => {
-        try {
-          await activeChannel.markRead();
-          newUnmarkedIds.forEach(id => markedMessageIdsRef.current.add(id));
-        } catch (error) {
-          if (import.meta.env.DEV) {
-            console.error('[Stream] markRead failed:', error);
-          }
-        }
-      }, 1000);
-
-      return () => {
-        if (markReadTimerRef.current) clearTimeout(markReadTimerRef.current);
-      };
-    }, [liveMessages, user?.id, resolvedTripId, demoMode.isDemoMode, activeChannel]);
 
     const liveFormattedMessages = useMemo(() => {
       if (demoMode.isDemoMode) return [];
@@ -747,89 +709,13 @@ export const TripChat = React.memo(
       }
     };
 
-    const handleReaction = async (messageId: string, reactionType: string) => {
-      if (demoMode.isDemoMode || !user?.id) {
-        // Demo mode: local-only reactions
-        const updatedReactions = { ...reactions };
-        if (!updatedReactions[messageId]) {
-          updatedReactions[messageId] = {};
-        }
+    const { reactions, setReactions, handleReaction } = useChatReactions(
+      demoMode.isDemoMode,
+      user?.id,
+      liveMessages,
+      toggleReaction,
+    );
 
-        const currentReaction = updatedReactions[messageId][reactionType] || {
-          count: 0,
-          userReacted: false,
-          users: [],
-        };
-        currentReaction.userReacted = !currentReaction.userReacted;
-        currentReaction.count += currentReaction.userReacted ? 1 : -1;
-        if (user?.id) {
-          currentReaction.users = currentReaction.userReacted
-            ? Array.from(new Set([...currentReaction.users, user.id]))
-            : currentReaction.users.filter(id => id !== user.id);
-        }
-
-        updatedReactions[messageId][reactionType] = currentReaction;
-        setReactions(updatedReactions);
-        return;
-      }
-
-      if (toggleReaction) {
-        // Stream path — Stream SDK handles optimistic updates internally
-        await toggleReaction(messageId, reactionType);
-      } else {
-        // Supabase path — optimistic update + persist
-        setReactions(prev => {
-          const updated = { ...prev };
-          if (!updated[messageId]) {
-            updated[messageId] = {};
-          }
-          const current = updated[messageId][reactionType] || {
-            count: 0,
-            userReacted: false,
-            users: [],
-          };
-          const wasReacted = current.userReacted;
-          updated[messageId][reactionType] = {
-            count: wasReacted ? Math.max(0, current.count - 1) : current.count + 1,
-            userReacted: !wasReacted,
-            users: wasReacted
-              ? current.users.filter(id => id !== user.id)
-              : Array.from(new Set([...current.users, user.id])),
-          };
-          return updated;
-        });
-
-        const result = await toggleMessageReaction(
-          messageId,
-          user.id,
-          reactionType as ReactionType,
-        );
-        if (result.error) {
-          if (import.meta.env.DEV)
-            console.error('[TripChat] Failed to toggle reaction:', result.error);
-          // Revert on failure - refetch reactions
-          const messageIds = liveMessages.map(m => m.id);
-          const freshReactions = await getMessagesReactions(messageIds, user.id);
-          const formatted: Record<
-            string,
-            Record<string, { count: number; userReacted: boolean; users: string[] }>
-          > = {};
-          for (const [msgId, typeMap] of Object.entries(freshReactions)) {
-            formatted[msgId] = {};
-            for (const [type, data] of Object.entries(typeMap)) {
-              formatted[msgId][type] = {
-                count: data.count,
-                userReacted: data.userReacted,
-                users: data.users || [],
-              };
-            }
-          }
-          setReactions(formatted);
-        }
-      }
-    };
-
-    // Handle opening a thread
     const handleOpenThread = (messageId: string) => {
       const message =
         liveMessages.find(m => m.id === messageId) || demoMessages.find(m => m.id === messageId);
