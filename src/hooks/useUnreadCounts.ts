@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-/** Minimal message shape for unread counting - compatible with useTripChat */
+/** Minimal message shape for unread counting - compatible with useTripChat and useUnifiedMessages */
 interface UnreadMessage {
   id: string;
   user_id?: string;

@@ -21,7 +21,7 @@ describe('concurrencyUtils', () => {
     it('should use crypto.randomUUID when available', () => {
       const mockUUID = '123e4567-e89b-12d3-a456-426614174000';
       const mockCrypto = {
-        randomUUID: vi.fn().mockReturnValue(mockUUID),
+        randomUUID: vi.fn().mockReturnValue(mockUUID)
       };
 
       Object.defineProperty(globalThis, 'crypto', {
