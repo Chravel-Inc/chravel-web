@@ -340,6 +340,9 @@ export const TripChat = React.memo(
     }, [shouldEnableTyping, resolvedTripId, user?.id, activeChannel]);
 
     // --- Stream Native Read Receipts ---
+    const markReadTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const markedMessageIdsRef = useRef<Set<string>>(new Set());
+
     useEffect(() => {
       if (
         demoMode.isDemoMode ||
