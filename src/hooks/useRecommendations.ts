@@ -20,7 +20,7 @@ export const useRecommendations = (options: UseRecommendationsOptions | string =
   const cityFilter = opts.city;
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['recommendations', activeFilter, cityFilter, opts.location, opts.tripType, opts.limit],
+    queryKey: ['recommendations', activeFilter, cityFilter, opts.location, opts.tripType, opts.limit, opts.sponsoredRatio],
     queryFn: async () => {
       const organicFilters: RecommendationFilters = {
         city: cityFilter,

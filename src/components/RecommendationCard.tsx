@@ -39,8 +39,9 @@ export const RecommendationCard = ({
   useEffect(() => {
     if (inView && !impressionId) {
       const trackImpressionAsync = async () => {
-        // Use uuid if available (for real DB items) or id as string fallback
-        const itemId = recommendation.uuid || String(recommendation.id);
+        // Track only if we have a real UUID (to avoid DB constraint errors)
+        if (!recommendation.uuid) return;
+        const itemId = recommendation.uuid;
         const itemType = recommendation.isSponsored ? 'sponsored' : 'organic';
 
         try {
@@ -56,7 +57,7 @@ export const RecommendationCard = ({
           setImpressionId(id);
         } catch (err) {
           // Silent failure - don't break UX
-          console.error('Failed to track impression:', err);
+          // Silently ignore impression tracking errors
         }
       };
 
@@ -69,7 +70,8 @@ export const RecommendationCard = ({
       await RecommendationService.trackClick({ impressionId, action, campaignId: recommendation.campaignId });
     } else {
       // In case they clicked before the impression fully fired/returned
-      const itemId = recommendation.uuid || String(recommendation.id);
+      if (!recommendation.uuid) return;
+      const itemId = recommendation.uuid;
       const itemType = recommendation.isSponsored ? 'sponsored' : 'organic';
       RecommendationService.trackImpression({
         itemId,

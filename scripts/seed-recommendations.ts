@@ -7,8 +7,8 @@ import { tourRecommendations } from '../src/data/recommendations/tours';
 import { experienceRecommendations } from '../src/data/recommendations/experiences';
 import { transportationRecommendations } from '../src/data/recommendations/transportation';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseKey = process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
   console.error('Missing VITE_SUPABASE_URL or VITE_SUPABASE_SERVICE_ROLE_KEY');
@@ -53,9 +53,10 @@ async function seed() {
 
   if (error) {
     console.error('Error seeding recommendations:', error);
+    process.exit(1);
   } else {
     console.log('Successfully seeded recommendations:', data?.length);
   }
 }
 
-seed().catch(console.error);
+seed().catch((err) => { console.error(err); process.exit(1); });

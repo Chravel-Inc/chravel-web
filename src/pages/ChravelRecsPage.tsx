@@ -15,8 +15,8 @@ export const ChravelRecsPage = () => {
   const [appliedCityFilter, setAppliedCityFilter] = useState('');
 
   // Use the new async hook passing city for backend filtering when appropriate
-  const { recommendations, isLoading } = useRecommendations({
-    type: activeFilter as any,
+  const { recommendations, isLoading, error } = useRecommendations({
+    type: activeFilter as import('@/data/recommendations/types').Recommendation['type'] | 'all',
     city: appliedCityFilter || undefined
   });
 
@@ -47,7 +47,7 @@ export const ChravelRecsPage = () => {
     setAppliedCityFilter('');
   };
 
-  const handleSaveToTrip = async (rec: any) => {
+  const handleSaveToTrip = async (rec: import('@/data/recommendations/types').Recommendation) => {
     // The previous implementation was passing an ID in the mock, but the toggleSave takes a full rec.
     // The onSaveToTrip prop from RecommendationCard passes an ID originally, but we'll adapt it.
     // Actually, looking closely, `RecommendationCard` passes the ID back to `onSaveToTrip`. We need to pass the full `rec`.
@@ -147,12 +147,16 @@ export const ChravelRecsPage = () => {
                 <div className="flex justify-center items-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
+              ) : error ? (
+                <div className="flex justify-center items-center py-12 text-destructive">
+                  <p>Failed to load recommendations. Please try again.</p>
+                </div>
               ) : (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {displayRecs.map(rec => (
                       <RecommendationCard
-                        key={rec.id}
+                        key={rec.uuid ?? rec.campaignId ?? rec.id}
                         recommendation={rec}
                         onSaveToTrip={() => handleSaveToTrip(rec)}
                       />
