@@ -37,7 +37,7 @@ export interface ChatModelRequest {
 }
 
 export interface ChatModelResponse {
-  provider: 'gemini' | 'lovable';
+  provider: 'gemini';
   model: string;
   raw: any;
 }
@@ -49,16 +49,12 @@ export interface EmbeddingModelRequest {
 }
 
 export interface EmbeddingModelResponse {
-  provider: 'gemini' | 'lovable';
+  provider: 'gemini';
   model: string;
   embeddings: number[][];
 }
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-const AI_PROVIDER = (Deno.env.get('AI_PROVIDER') || 'gemini').toLowerCase();
-const ENABLE_LOVABLE_FALLBACK =
-  (Deno.env.get('GEMINI_ENABLE_LOVABLE_FALLBACK') || 'true').toLowerCase() !== 'false';
 
 const DEFAULT_FLASH_MODEL = 'gemini-3-flash-preview';
 const DEFAULT_PRO_MODEL = 'gemini-3.1-pro-preview';
@@ -117,11 +113,6 @@ function normalizeChatModel(model?: string): string {
   return normalized;
 }
 
-function normalizeLovableChatModel(model?: string): string {
-  const geminiModel = normalizeChatModel(model);
-  return geminiModel.startsWith('google/') ? geminiModel : `google/${geminiModel}`;
-}
-
 function normalizeEmbeddingModel(model?: string): string {
   if (!model) return DEFAULT_EMBEDDING_MODEL;
   const stripped = model
@@ -130,11 +121,6 @@ function normalizeEmbeddingModel(model?: string): string {
     .replace(/^google\//, '');
   if (!stripped) return DEFAULT_EMBEDDING_MODEL;
   return stripped;
-}
-
-function normalizeLovableEmbeddingModel(model?: string): string {
-  const normalized = normalizeEmbeddingModel(model);
-  return normalized.startsWith('google/') ? normalized : `google/${normalized}`;
 }
 
 function flattenContentToText(
@@ -342,102 +328,21 @@ async function callGeminiChat(request: ChatModelRequest): Promise<ChatModelRespo
   };
 }
 
-async function callLovableChat(request: ChatModelRequest): Promise<ChatModelResponse> {
-  if (!LOVABLE_API_KEY) {
-    throw new Error('LOVABLE_API_KEY not configured');
-  }
-
-  const timeoutMs = request.timeoutMs ?? DEFAULT_CHAT_TIMEOUT_MS;
-  const model = normalizeLovableChatModel(request.model);
-
-  const payload: Record<string, unknown> = {
-    model,
-    messages: request.messages,
-    temperature: request.temperature ?? 0.1,
-    max_tokens: request.maxTokens ?? 2048,
-  };
-
-  if (request.responseFormat) {
-    payload.response_format = request.responseFormat;
-  }
-  if (request.tools) {
-    payload.tools = request.tools;
-  }
-  if (request.toolConfig) {
-    payload.toolConfig = request.toolConfig;
-  }
-
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(timeoutMs),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`[Lovable] API error ${response.status}: ${errorText.substring(0, 800)}`);
-    throw new Error(`Lovable API error ${response.status}`);
-  }
-
-  const raw = await response.json();
-  return {
-    provider: 'lovable',
-    model,
-    raw,
-  };
-}
-
 export async function invokeChatModel(request: ChatModelRequest): Promise<ChatModelResponse> {
-  const provider = AI_PROVIDER === 'lovable' ? 'lovable' : 'gemini';
-
-  if (provider === 'lovable') {
-    return callLovableChat(request);
-  }
-
   if (!GEMINI_API_KEY) {
-    if (ENABLE_LOVABLE_FALLBACK && LOVABLE_API_KEY) {
-      console.warn('[Gemini] GEMINI_API_KEY missing, routing to Lovable fallback');
-      return callLovableChat(request);
-    }
     throw new Error('GEMINI_API_KEY not configured');
   }
 
-  try {
-    return await callGeminiChat(request);
-  } catch (error) {
-    if (ENABLE_LOVABLE_FALLBACK && LOVABLE_API_KEY) {
-      console.warn('[Gemini] Direct call failed, routing to Lovable fallback:', error);
-      return callLovableChat(request);
-    }
-    throw error;
-  }
+  return await callGeminiChat(request);
 }
 
-export function extractTextFromChatResponse(raw: any, provider: 'gemini' | 'lovable'): string {
-  if (provider === 'gemini') {
-    const candidate = raw?.candidates?.[0];
-    const parts: Array<{ text?: string }> = candidate?.content?.parts || [];
-    return parts
-      .filter(part => typeof part.text === 'string')
-      .map(part => part.text as string)
-      .join('');
-  }
-
-  const content = raw?.choices?.[0]?.message?.content;
-  if (typeof content === 'string') return content;
-  if (Array.isArray(content)) {
-    return content.map(part => (typeof part?.text === 'string' ? part.text : '')).join('');
-  }
-  return '';
-}
-
-function extractEmbeddingsFromLovable(raw: any): number[][] {
-  const rows: any[] = raw?.data || [];
-  return rows.map(row => row?.embedding).filter((embedding: unknown) => Array.isArray(embedding));
+export function extractTextFromChatResponse(raw: any, provider: 'gemini'): string {
+  const candidate = raw?.candidates?.[0];
+  const parts: Array<{ text?: string }> = candidate?.content?.parts || [];
+  return parts
+    .filter(part => typeof part.text === 'string')
+    .map(part => part.text as string)
+    .join('');
 }
 
 async function embedWithGemini(
@@ -493,85 +398,21 @@ async function embedWithGemini(
   return embeddings;
 }
 
-async function embedWithLovable(
-  input: string[],
-  model: string,
-  timeoutMs: number,
-): Promise<number[][]> {
-  if (!LOVABLE_API_KEY) {
-    throw new Error('LOVABLE_API_KEY not configured');
-  }
-
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/embeddings', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model,
-      input,
-    }),
-    signal: AbortSignal.timeout(timeoutMs),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`[Lovable] Embeddings error ${response.status}: ${errorText.substring(0, 500)}`);
-    throw new Error(`Lovable embeddings error ${response.status}`);
-  }
-
-  const raw = await response.json();
-  return extractEmbeddingsFromLovable(raw);
-}
-
 export async function invokeEmbeddingModel(
   request: EmbeddingModelRequest,
 ): Promise<EmbeddingModelResponse> {
   const input = Array.isArray(request.input) ? request.input : [request.input];
   const timeoutMs = request.timeoutMs ?? DEFAULT_EMBED_TIMEOUT_MS;
   const geminiModel = normalizeEmbeddingModel(request.model);
-  const lovableModel = normalizeLovableEmbeddingModel(request.model);
-  const provider = AI_PROVIDER === 'lovable' ? 'lovable' : 'gemini';
-
-  if (provider === 'lovable') {
-    const embeddings = await embedWithLovable(input, lovableModel, timeoutMs);
-    return {
-      provider: 'lovable',
-      model: lovableModel,
-      embeddings,
-    };
-  }
 
   if (!GEMINI_API_KEY) {
-    if (ENABLE_LOVABLE_FALLBACK && LOVABLE_API_KEY) {
-      const embeddings = await embedWithLovable(input, lovableModel, timeoutMs);
-      return {
-        provider: 'lovable',
-        model: lovableModel,
-        embeddings,
-      };
-    }
     throw new Error('GEMINI_API_KEY not configured');
   }
 
-  try {
-    const embeddings = await embedWithGemini(input, geminiModel, timeoutMs);
-    return {
-      provider: 'gemini',
-      model: geminiModel,
-      embeddings,
-    };
-  } catch (error) {
-    if (ENABLE_LOVABLE_FALLBACK && LOVABLE_API_KEY) {
-      console.warn('[Gemini] Embeddings failed, routing to Lovable fallback:', error);
-      const embeddings = await embedWithLovable(input, lovableModel, timeoutMs);
-      return {
-        provider: 'lovable',
-        model: lovableModel,
-        embeddings,
-      };
-    }
-    throw error;
-  }
+  const embeddings = await embedWithGemini(input, geminiModel, timeoutMs);
+  return {
+    provider: 'gemini',
+    model: geminiModel,
+    embeddings,
+  };
 }

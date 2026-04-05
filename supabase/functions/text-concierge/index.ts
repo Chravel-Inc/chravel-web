@@ -41,7 +41,6 @@ import { QUERY_CLASS_SLICES } from '../_shared/contextBuilder.ts';
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY'); // kept as fallback
-const FORCE_LOVABLE_PROVIDER = (Deno.env.get('AI_PROVIDER') || '').toLowerCase() === 'lovable';
 
 // Defense-in-depth: reject if GEMINI_API_KEY matches the client-side Maps API key pattern.
 // The Maps key (VITE_GOOGLE_MAPS_API_KEY) should NEVER be used server-side for Gemini.
@@ -70,7 +69,7 @@ interface ChatMessage {
   content: string;
 }
 
-interface LovableConciergeRequest {
+interface TextConciergeRequest {
   message: string;
   tripContext?: any;
   tripId?: string;
@@ -90,7 +89,7 @@ interface LovableConciergeRequest {
 }
 
 // Input validation schema - increased limits for better context handling
-const LovableConciergeSchema = z.object({
+const TextConciergeSchema = z.object({
   message: z
     .string()
     .min(1, 'Message cannot be empty')
@@ -321,10 +320,9 @@ async function streamGeminiToSSE(
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     const errMsg = errorData.error?.message || JSON.stringify(errorData);
-    // If Gemini returns 403 (unregistered callers / API key restrictions),
-    // signal the caller to fall back to the Lovable gateway instead of crashing.
+    // If Gemini returns 403 (unregistered callers / API key restrictions)
     if (response.status === 403) {
-      throw Object.assign(new Error(`Gemini 403: ${errMsg}`), { gemini403: true });
+      throw new Error(`Gemini 403: ${errMsg}`);
     }
     throw new Error(`Gemini streaming API Error: ${response.status} - ${errMsg}`);
   }
@@ -396,7 +394,7 @@ async function streamGeminiToSSE(
         const capabilityToken = await generateCapabilityToken({
           user_id: userId,
           trip_id: tripId,
-          allowed_tools: ['*'], // Allowing all for Lovable Concierge scope; router enforces trip limits
+          allowed_tools: ['*'], // Allowing all for Text Concierge scope; router enforces trip limits
         });
         result = await executeToolSecurely(
           supabase,
@@ -562,16 +560,16 @@ serve(async req => {
     if (req.method === 'GET') {
       return createSecureResponse({
         status: 'healthy',
-        service: 'lovable-concierge',
+        service: 'text-concierge',
         timestamp: new Date().toISOString(),
         message: 'AI Concierge service is online',
         geminiConfigured: !!GEMINI_API_KEY,
-        provider: GEMINI_API_KEY && !FORCE_LOVABLE_PROVIDER ? 'gemini' : 'lovable',
+        provider: 'gemini',
       });
     }
 
-    if (!GEMINI_API_KEY && !LOVABLE_API_KEY) {
-      throw new Error('No AI API key configured (GEMINI_API_KEY or LOVABLE_API_KEY)');
+    if (!GEMINI_API_KEY) {
+      throw new Error('No AI API key configured (GEMINI_API_KEY)');
     }
 
     // Validate input
@@ -581,15 +579,15 @@ serve(async req => {
     if (requestBody.message === 'ping' || requestBody.message === 'health_check') {
       return createSecureResponse({
         status: 'healthy',
-        service: 'lovable-concierge',
+        service: 'text-concierge',
         timestamp: new Date().toISOString(),
         message: 'AI Concierge service is online',
       });
     }
-    const validation = validateInput(LovableConciergeSchema, requestBody);
+    const validation = validateInput(TextConciergeSchema, requestBody);
 
     if (!validation.success) {
-      logError('LOVABLE_CONCIERGE_VALIDATION', validation.error);
+      logError('TEXT_CONCIERGE_VALIDATION', validation.error);
       return createErrorResponse(validation.error, 400);
     }
 
@@ -683,11 +681,11 @@ serve(async req => {
     // enforcement without reducing user-visible throughput.
     const rlResult = await checkRateLimit(
       supabase,
-      `lovable-concierge:${user.id}`,
+      `text-concierge:${user.id}`,
       30,
       60,
       user.id,
-      'lovable-concierge',
+      'text-concierge',
     );
     if (!rlResult.allowed) {
       return new Response(
@@ -1397,52 +1395,6 @@ serve(async req => {
             }
           } catch (streamError: any) {
             console.error('[Gemini/Stream] Streaming failed:', streamError);
-            // Try Lovable gateway fallback for ANY Gemini streaming error
-            // (not just 403). This ensures users always get a response.
-            const reason = streamError?.gemini403
-              ? 'Gemini 403 (unregistered callers)'
-              : `Gemini streaming error: ${streamError?.message || 'unknown'}`;
-            console.warn(`[Gemini/Stream] Attempting Lovable gateway fallback: ${reason}`);
-            try {
-              if (LOVABLE_API_KEY) {
-                const fallbackResp = await fetch(
-                  'https://ai.gateway.lovable.dev/v1/chat/completions',
-                  {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-                    },
-                    body: JSON.stringify({
-                      model: `google/${selectedModel}`,
-                      messages: messages.map(msg => ({ role: msg.role, content: msg.content })),
-                      temperature,
-                      max_tokens: config.maxTokens || 2048,
-                    }),
-                    signal: AbortSignal.timeout(45_000),
-                  },
-                );
-                if (fallbackResp.ok) {
-                  const fallbackData = await fallbackResp.json();
-                  const fallbackText = fallbackData?.choices?.[0]?.message?.content;
-                  if (fallbackText) {
-                    controller.enqueue(sseEvent({ type: 'chunk', text: fallbackText }));
-                    controller.enqueue(
-                      sseEvent({ type: 'metadata', model: 'lovable-gateway-fallback' }),
-                    );
-                    controller.enqueue(sseEvent({ type: 'done' }));
-                  } else {
-                    throw new Error('No content in fallback response');
-                  }
-                } else {
-                  throw new Error(`Lovable gateway returned ${fallbackResp.status}`);
-                }
-              } else {
-                throw new Error('No LOVABLE_API_KEY for fallback');
-              }
-            } catch (fallbackErr) {
-              console.error('[Gemini/Stream] Lovable fallback also failed:', fallbackErr);
-              controller.enqueue(
                 sseEvent({
                   type: 'error',
                   message: 'AI service temporarily unavailable. Please try again.',
@@ -1469,228 +1421,6 @@ serve(async req => {
         },
         status: 200,
       });
-    }
-
-    // ========== LOVABLE GATEWAY PROVIDER (unified for initial + runtime fallback) ==========
-    const invokeLovableGateway = async (
-      modelLabel: string,
-      reason?: string,
-    ): Promise<Response | null> => {
-      if (!LOVABLE_API_KEY) return null;
-
-      const lovableTools = functionDeclarations.map(declaration => ({
-        type: 'function',
-        function: declaration,
-      }));
-
-      const lovableMessages: Array<Record<string, unknown>> = messages.map(msg => ({
-        role: msg.role,
-        content: msg.content,
-      }));
-
-      // Append attachments to last user message
-      if (attachments.length > 0) {
-        const attachmentParts = attachments.map(att => ({
-          type: 'image_url' as const,
-          image_url: { url: `data:${att.mimeType};base64,${att.data}` },
-        }));
-
-        const lastUserIdx = lovableMessages.findLastIndex(m => m.role === 'user');
-        if (lastUserIdx >= 0) {
-          const existing = lovableMessages[lastUserIdx].content;
-          const existingParts =
-            typeof existing === 'string'
-              ? [{ type: 'text' as const, text: existing }]
-              : Array.isArray(existing)
-                ? existing
-                : [];
-          lovableMessages[lastUserIdx] = {
-            ...lovableMessages[lastUserIdx],
-            content: [...existingParts, ...attachmentParts],
-          };
-        } else {
-          lovableMessages.push({ role: 'user', content: attachmentParts });
-        }
-      }
-
-      const callLovable = (msgs: Array<Record<string, unknown>>) =>
-        fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: `google/${selectedModel}`,
-            messages: msgs,
-            temperature,
-            max_tokens: config.maxTokens || 2048,
-            tools: lovableTools,
-            tool_choice: 'auto',
-          }),
-          signal: AbortSignal.timeout(45_000),
-        });
-
-      const response = await callLovable(lovableMessages);
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(
-          `Lovable ${modelLabel} error: ${response.status} - ${errText || 'Unknown gateway error'}`,
-        );
-      }
-
-      let data = await response.json();
-      let lovableUsage = data?.usage || {};
-      let lovableMessage = data?.choices?.[0]?.message || null;
-      const executedFunctions: string[] = [];
-
-      // Handle tool calls
-      const toolCalls = Array.isArray(lovableMessage?.tool_calls) ? lovableMessage.tool_calls : [];
-      if (toolCalls.length > 0) {
-        const toolResultMessages: Array<{ role: 'tool'; tool_call_id: string; content: string }> =
-          [];
-
-        for (const toolCall of toolCalls) {
-          const functionName = String(toolCall?.function?.name || '');
-          if (!functionName) continue;
-
-          // Parse tool arguments
-          let parsedArgs: Record<string, unknown> = {};
-          const rawArgs = toolCall?.function?.arguments;
-          if (typeof rawArgs === 'string') {
-            try {
-              parsedArgs = JSON.parse(rawArgs || '{}');
-            } catch (_) {
-              /* skip */
-            }
-          } else if (rawArgs && typeof rawArgs === 'object') {
-            parsedArgs = rawArgs as Record<string, unknown>;
-          }
-
-          executedFunctions.push(functionName);
-
-          let functionResult: any;
-          try {
-            const capabilityToken = await generateCapabilityToken({
-              user_id: user?.id,
-              trip_id: tripId,
-              allowed_tools: ['*'],
-            });
-            functionResult = await executeToolSecurely(
-              supabase,
-              capabilityToken,
-              functionName,
-              parsedArgs,
-              locationData,
-            );
-          } catch (toolError) {
-            console.error(`[LovableTool] Error executing ${functionName}:`, toolError);
-            functionResult = {
-              error: `Failed to execute ${functionName}: ${toolError instanceof Error ? toolError.message : String(toolError)}`,
-            };
-          }
-
-          toolResultMessages.push({
-            role: 'tool',
-            tool_call_id: String(toolCall?.id || functionName),
-            content: JSON.stringify(functionResult),
-          });
-        }
-
-        // Follow-up call with tool results
-        const followUpResponse = await callLovable([
-          ...lovableMessages,
-          { role: 'assistant', content: lovableMessage?.content || '', tool_calls: toolCalls },
-          ...toolResultMessages,
-        ]);
-        if (!followUpResponse.ok) {
-          const errText = await followUpResponse.text();
-          throw new Error(
-            `Lovable ${modelLabel} follow-up error: ${followUpResponse.status} - ${errText || 'Unknown'}`,
-          );
-        }
-        data = await followUpResponse.json();
-        lovableUsage = data?.usage || lovableUsage;
-        lovableMessage = data?.choices?.[0]?.message || lovableMessage;
-      }
-
-      // Extract response text
-      const rawContent = lovableMessage?.content;
-      const responseText =
-        typeof rawContent === 'string'
-          ? rawContent
-          : Array.isArray(rawContent)
-            ? rawContent
-                .map((part: any) => (typeof part?.text === 'string' ? part.text : ''))
-                .join('')
-            : 'Sorry, I could not generate a response right now.';
-
-      // Increment usage
-      if (!serverDemoMode && user && tripQueryLimit !== null && tripId !== 'unknown') {
-        const incrementUsageResult = await incrementConciergeTripUsage(
-          supabase,
-          tripId,
-          tripQueryLimit,
-          user.id,
-          usagePlan,
-        );
-        if (incrementUsageResult.status === 'verification_unavailable') {
-          console.error(
-            '[Usage] Failed to increment trip concierge usage:',
-            incrementUsageResult.error,
-          );
-          return buildUsageVerificationUnavailableResponse(corsHeaders);
-        }
-        if (incrementUsageResult.status === 'limit_reached') {
-          return buildTripLimitReachedResponse(corsHeaders, usagePlan);
-        }
-        if (incrementUsageResult.status === 'monthly_limit_reached') {
-          return buildMonthlyLimitReachedResponse(corsHeaders, usagePlan);
-        }
-      }
-
-      return new Response(
-        JSON.stringify({
-          response: responseText,
-          usage: {
-            prompt_tokens: lovableUsage.prompt_tokens || 0,
-            completion_tokens: lovableUsage.completion_tokens || 0,
-            total_tokens: lovableUsage.total_tokens || 0,
-          },
-          sources: [],
-          googleMapsWidget: null,
-          success: true,
-          model: modelLabel,
-          ...(reason ? { fallbackReason: reason } : {}),
-          functionCalls: executedFunctions.length > 0 ? executedFunctions : undefined,
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
-      );
-    };
-
-    // Runtime fallback wrapper (returns null instead of throwing)
-    const runRuntimeLovableFallback = async (reason: string): Promise<Response | null> => {
-      try {
-        return await invokeLovableGateway('lovable-gateway-runtime-fallback', reason);
-      } catch (fallbackError) {
-        console.error('[AI] Lovable runtime fallback failed:', fallbackError);
-        return null;
-      }
-    };
-
-    if (FORCE_LOVABLE_PROVIDER || !GEMINI_API_KEY) {
-      if (!LOVABLE_API_KEY) {
-        throw new Error('No AI provider key configured');
-      }
-      console.warn(
-        FORCE_LOVABLE_PROVIDER
-          ? '[AI] AI_PROVIDER=lovable; routing concierge through Lovable gateway'
-          : '[AI] GEMINI_API_KEY missing; falling back to Lovable gateway',
-      );
-
-      const lovableResponse = await invokeLovableGateway('lovable-gateway-fallback');
-      if (lovableResponse) return lovableResponse;
-      throw new Error('Lovable gateway returned no response');
     }
 
     try {
@@ -1951,15 +1681,7 @@ serve(async req => {
         },
       );
     } catch (geminiError) {
-      console.error(
-        '[Gemini] Direct concierge call failed, attempting Lovable runtime fallback:',
-        geminiError,
-      );
-
-      const fallbackResponse = await runRuntimeLovableFallback('gemini_runtime_error');
-      if (fallbackResponse) {
-        return fallbackResponse;
-      }
+      console.error('[Gemini] Direct concierge call failed:', geminiError);
 
       const messageText = geminiError instanceof Error ? geminiError.message : String(geminiError);
       if (messageText.includes('429')) {

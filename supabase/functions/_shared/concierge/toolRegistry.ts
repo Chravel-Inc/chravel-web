@@ -1,7 +1,7 @@
 /**
  * Tool Registry — Single source of truth for all concierge tool declarations.
  *
- * Both the text concierge (lovable-concierge) and voice concierge
+ * Both the text concierge (text-concierge) and voice concierge
  * (gemini-voice-session) derive their tool lists from this registry,
  * eliminating drift between the two paths.
  *
@@ -9,7 +9,7 @@
  *
  * SAFETY NOTES:
  * - Tool parameter schemas are identical to the existing inline declarations
- *   in lovable-concierge/index.ts (lines 1303-2047) and voiceToolDeclarations.ts.
+ *   in text-concierge/index.ts (lines 1303-2047) and voiceToolDeclarations.ts.
  *   No schema changes — this is a pure extraction/consolidation.
  * - QUERY_CLASS_TOOLS only controls which tools are AVAILABLE to the LLM for a
  *   given query class. All actual authorization happens in toolRouter.ts and
