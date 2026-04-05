@@ -13,7 +13,8 @@ describe('sanitizeConciergeContent', () => {
 
   describe('Fenced JSON stripping', () => {
     it('should strip fenced tool-plan JSON with json tag', () => {
-      const input = 'Here is your plan:\n```json\n{\n  "plan_version": 1,\n  "actions": []\n}\n```\nLet me know if you like it.';
+      const input =
+        'Here is your plan:\n```json\n{\n  "plan_version": 1,\n  "actions": []\n}\n```\nLet me know if you like it.';
       const result = sanitizeConciergeContent(input);
       expect(result).toContain('Here is your plan:');
       expect(result).toContain('Let me know if you like it.');
@@ -22,7 +23,8 @@ describe('sanitizeConciergeContent', () => {
     });
 
     it('should strip fenced tool-plan JSON without language tag', () => {
-      const input = 'I will create a task for you.\n```\n{\n  "type": "create_task",\n  "title": "Buy milk"\n}\n```';
+      const input =
+        'I will create a task for you.\n```\n{\n  "type": "create_task",\n  "title": "Buy milk"\n}\n```';
       const result = sanitizeConciergeContent(input);
       expect(result).toContain('I will create a task for you.');
       expect(result).not.toContain('create_task');
