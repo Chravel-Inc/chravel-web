@@ -43,6 +43,8 @@ import {
 import { ThreadView } from './ThreadView';
 import { useTripPrivacyConfig, getEffectivePrivacyMode } from '@/hooks/useTripPrivacyConfig';
 import { useTripChatMode } from '@/hooks/useTripChatMode';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { PullToRefreshIndicator } from '@/components/mobile/PullToRefreshIndicator';
 import { useLinkPreviews } from '../hooks/useLinkPreviews';
 
 interface TripChatProps {
@@ -107,22 +109,6 @@ export const TripChat = React.memo(
   }: TripChatProps) => {
     const [demoMessages, setDemoMessages] = useState<MockMessage[]>([]);
 
-    const { typingUsers, typingServiceRef } = useChatTypingIndicators(
-      demoMode.isDemoMode,
-      resolvedTripId,
-      user,
-      effectiveChatMode,
-      tripMembers.length,
-      activeChannel,
-    );
-
-    const { readStatusesByMessage, setReadStatusesByMessage } = useChatReadReceipts(
-      demoMode.isDemoMode,
-      user?.id,
-      resolvedTripId,
-      liveMessages,
-    );
-
     const [_activeChannelId, _setActiveChannelId] = useState<string | null>(null);
 
     const [showSearchOverlay, setShowSearchOverlay] = useState(false);
@@ -157,10 +143,26 @@ export const TripChat = React.memo(
     // ⚡ PERFORMANCE: Skip expensive hooks in demo mode for numeric trip IDs
     const shouldSkipLiveChat = demoMode.isDemoMode && /^\d+$/.test(resolvedTripId);
 
+    const { data: privacyConfig } = useTripPrivacyConfig(
+      shouldSkipLiveChat ? undefined : resolvedTripId,
+    );
+
+    const { tripMembers } = useTripMembers(shouldSkipLiveChat ? undefined : resolvedTripId);
+
+    // Chat mode enforcement — UI layer (server-side RLS is authoritative)
+    const {
+      effectiveChatMode,
+      canPost: canPostToChat,
+      canUploadMedia,
+      isLoading: chatModeLoading,
+      userRole: chatModeUserRole,
+    } = useTripChatMode(demoMode.isDemoMode ? undefined : resolvedTripId, user?.id);
+
     const {
       messages: liveMessages,
       isLoading: liveLoading,
       sendMessageAsync: sendTripMessage,
+      isCreating: isSendingMessage,
       loadMore: loadMoreMessages,
       hasMore,
       isLoadingMore,
@@ -180,15 +182,6 @@ export const TripChat = React.memo(
         }
       },
     });
-
-    // Chat mode enforcement — UI layer (server-side RLS is authoritative)
-    const {
-      effectiveChatMode,
-      canPost: canPostToChat,
-      canUploadMedia,
-      isLoading: chatModeLoading,
-      userRole: chatModeUserRole,
-    } = useTripChatMode(demoMode.isDemoMode ? undefined : resolvedTripId, user?.id);
 
     const isUserAdmin =
       chatModeUserRole === 'admin' ||
@@ -231,25 +224,21 @@ export const TripChat = React.memo(
       isConsumer ? resolvedTripId : '',
     );
 
-    // ⚡ PERFORMANCE: Skip expensive hooks in demo mode for numeric trip IDs
-    const shouldSkipLiveChat = demoMode.isDemoMode && /^\d+$/.test(resolvedTripId);
-
-    // Fetch privacy config for the trip (after shouldSkipLiveChat is defined)
-    const { data: privacyConfig } = useTripPrivacyConfig(
-      shouldSkipLiveChat ? undefined : resolvedTripId,
+    const { typingUsers, typingServiceRef } = useChatTypingIndicators(
+      demoMode.isDemoMode,
+      resolvedTripId,
+      user,
+      effectiveChatMode,
+      tripMembers.length,
+      activeChannel,
     );
 
-    // Live chat hooks - only initialize for authenticated trips
-    const { tripMembers } = useTripMembers(shouldSkipLiveChat ? undefined : resolvedTripId);
-    const {
-      messages: liveMessages,
-      isLoading: liveLoading,
-      sendMessageAsync: sendTripMessage,
-      isCreating: isSendingMessage,
-      loadMore: loadMoreMessages,
-      hasMore,
-      isLoadingMore,
-    } = useTripChat(shouldSkipLiveChat ? undefined : resolvedTripId);
+    const { readStatusesByMessage, setReadStatusesByMessage } = useChatReadReceipts(
+      demoMode.isDemoMode,
+      user?.id,
+      resolvedTripId,
+      liveMessages,
+    );
 
     // Local mutable state derived from hasMore to avoid assigning to a const binding
     const [hasMoreState, setHasMoreState] = useState(hasMore);
@@ -277,8 +266,6 @@ export const TripChat = React.memo(
       if (!isPro) return [];
       return [...new Set(participants.map(p => p.role).filter(Boolean))];
     }, [isPro, participants]);
-
-
 
     // Mobile-specific hooks
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -316,41 +303,6 @@ export const TripChat = React.memo(
       userId: user?.id || null,
       enabled: !demoMode.isDemoMode && !!user?.id,
     });
-
-    // --- Stream Native Typing Indicators ---
-    const shouldEnableTyping =
-      !demoMode.isDemoMode &&
-      !!user?.id &&
-      !!resolvedTripId &&
-      effectiveChatMode === 'everyone' &&
-      tripMembers.length <= 50;
-
-    useEffect(() => {
-      if (!shouldEnableTyping || !resolvedTripId || !activeChannel) return;
-
-      const handleTypingStart = (event: any) => {
-        if (event.user?.id && event.user.id !== user?.id) {
-          setTypingUsers(prev => {
-            if (prev.some(u => u.userId === event.user.id)) return prev;
-            return [...prev, { userId: event.user.id, userName: event.user.name || event.user.id }];
-          });
-        }
-      };
-
-      const handleTypingStop = (event: any) => {
-        if (event.user?.id) {
-          setTypingUsers(prev => prev.filter(u => u.userId !== event.user.id));
-        }
-      };
-
-      activeChannel.on('typing.start', handleTypingStart);
-      activeChannel.on('typing.stop', handleTypingStop);
-
-      return () => {
-        activeChannel.off('typing.start', handleTypingStart);
-        activeChannel.off('typing.stop', handleTypingStop);
-      };
-    }, [shouldEnableTyping, resolvedTripId, user?.id, activeChannel]);
 
     const liveFormattedMessages = useMemo(() => {
       if (demoMode.isDemoMode) return [];
