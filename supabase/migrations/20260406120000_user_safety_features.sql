@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS public.content_reports (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   reporter_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   reported_user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  trip_id uuid REFERENCES public.trips(id) ON DELETE SET NULL,
+  trip_id text REFERENCES public.trips(id) ON DELETE SET NULL,
   message_id uuid,
   reason text NOT NULL CHECK (reason IN ('spam', 'harassment', 'inappropriate', 'other')),
   details text,
