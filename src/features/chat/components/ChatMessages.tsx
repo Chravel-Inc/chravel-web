@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import { MessageCircle, Trash2 } from 'lucide-react';
 import { ChatMessage } from './types';
 import { GoogleMapsWidget } from './GoogleMapsWidget';
@@ -63,8 +63,6 @@ interface ChatMessagesProps {
   messages: (ChatMessage | ChatMessageWithGrounding)[];
   isTyping: boolean;
   showMapWidgets?: boolean;
-  /** IDs of blocked users whose messages should be hidden */
-  blockedUserIds?: string[];
   onDeleteMessage?: (messageId: string) => void;
   onTabChange?: (tab: string) => void;
   onSavePlace?: (place: PlaceResult) => void;
@@ -116,7 +114,6 @@ export const ChatMessages = ({
   messages,
   isTyping,
   showMapWidgets = false,
-  blockedUserIds = [],
   onDeleteMessage,
   onTabChange,
   onSavePlace,

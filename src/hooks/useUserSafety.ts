@@ -67,7 +67,7 @@ export function useReportContent() {
   });
 
   return {
-    reportContent: reportMutation.mutate,
+    reportContent: reportMutation.mutateAsync,
     isReporting: reportMutation.isPending,
   };
 }

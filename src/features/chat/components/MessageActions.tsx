@@ -48,13 +48,13 @@ export interface MessageActionsProps {
   onEdit?: (messageId: string, newContent: string) => void;
   onDelete?: (messageId: string) => void;
   onReply?: (messageId: string) => void;
-  onBlockUser?: (userId: string) => void;
+  onBlockUser?: (userId: string) => Promise<void> | void;
   onReportContent?: (params: {
     reportedUserId: string;
     messageId: string;
     reason: ReportReason;
     details?: string;
-  }) => void;
+  }) => Promise<void> | void;
   isBlockingUser?: boolean;
   isReportingContent?: boolean;
 }
@@ -305,10 +305,14 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isBlockingUser}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
+              onClick={async () => {
                 if (senderUserId) {
-                  onBlockUser?.(senderUserId);
-                  setShowBlockDialog(false);
+                  try {
+                    await onBlockUser?.(senderUserId);
+                    setShowBlockDialog(false);
+                  } catch {
+                    // Error toast handled by hook
+                  }
                 }
               }}
               disabled={isBlockingUser}
@@ -325,14 +329,18 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
         <ReportDialog
           open={showReportDialog}
           onOpenChange={setShowReportDialog}
-          onSubmit={(reason, details) => {
-            onReportContent?.({
-              reportedUserId: senderUserId,
-              messageId,
-              reason,
-              details,
-            });
-            setShowReportDialog(false);
+          onSubmit={async (reason, details) => {
+            try {
+              await onReportContent?.({
+                reportedUserId: senderUserId,
+                messageId,
+                reason,
+                details,
+              });
+              setShowReportDialog(false);
+            } catch {
+              // Error toast handled by hook
+            }
           }}
           isSubmitting={isReportingContent}
         />

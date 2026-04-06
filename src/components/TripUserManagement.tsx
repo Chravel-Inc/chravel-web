@@ -135,7 +135,7 @@ export const TripUserManagement = ({
                 </div>
               </div>
 
-              {canRemoveUser(tripUser) && (
+              {tripUser.id !== currentUserId && (
                 <div className="relative">
                   <button
                     onClick={() =>
@@ -148,12 +148,36 @@ export const TripUserManagement = ({
 
                   {showUserActions === tripUser.id && (
                     <div className="absolute right-0 top-full mt-2 bg-gray-900/95 backdrop-blur-md border border-gray-700 rounded-xl shadow-xl z-10 min-w-[180px]">
+                      {canRemoveUser(tripUser) && (
+                        <button
+                          onClick={() => setUserToRemove(tripUser)}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-red-300 hover:bg-red-500/10 rounded-t-xl transition-colors"
+                        >
+                          <UserMinus size={16} />
+                          Remove from trip
+                        </button>
+                      )}
                       <button
-                        onClick={() => setUserToRemove(tripUser)}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-red-300 hover:bg-red-500/10 rounded-xl transition-colors"
+                        onClick={() => {
+                          setUserToBlock(tripUser);
+                          setShowUserActions(null);
+                        }}
+                        disabled={isBlockingUser}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-white/5 transition-colors"
                       >
-                        <UserMinus size={16} />
-                        Remove from trip
+                        <Ban size={16} />
+                        Block User
+                      </button>
+                      <button
+                        onClick={() => {
+                          setUserToReport(tripUser);
+                          setShowUserActions(null);
+                        }}
+                        disabled={isReportingUser}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-white/5 rounded-b-xl transition-colors"
+                      >
+                        <Flag size={16} />
+                        Report
                       </button>
                     </div>
                   )}

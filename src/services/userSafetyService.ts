@@ -22,8 +22,14 @@ export async function getBlockedUsers(): Promise<string[]> {
 }
 
 export async function blockUser(blockedId: string): Promise<boolean> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
   const { error } = await supabase.from('user_blocks' as never).insert({
-    blocker_id: (await supabase.auth.getUser()).data.user?.id,
+    blocker_id: user.id,
     blocked_id: blockedId,
   } as never);
 
