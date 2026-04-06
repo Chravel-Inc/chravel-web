@@ -36,7 +36,7 @@ export interface UseSmartImportDropzoneReturn {
 }
 
 type DropzoneGetRootProps = ReturnType<typeof useDropzone>['getRootProps'];
-type DropzoneRootPropsOptions = Parameters<DropzoneGetRootProps>[0];
+type DropzoneRootProps = NonNullable<Parameters<DropzoneGetRootProps>[0]>;
 type DropzoneCaptureHandler = DragEventHandler<HTMLElement>;
 
 function withPreventDefaultCapture(handler?: DropzoneCaptureHandler): DropzoneCaptureHandler {
@@ -115,14 +115,17 @@ export function useSmartImportDropzone({
     preventDropOnDocument: true,
   });
 
-  const getRootProps = useCallback<DropzoneGetRootProps>(
-    (props?: DropzoneRootPropsOptions) =>
-      baseGetRootProps({
-        ...props,
+  const getRootProps = useCallback(
+    <T extends DropzoneRootProps>(props?: T): T => {
+      const mergedProps = {
+        ...(props ?? {}),
         onDragEnterCapture: withPreventDefaultCapture(props?.onDragEnterCapture),
         onDragOverCapture: withPreventDefaultCapture(props?.onDragOverCapture),
         onDropCapture: withPreventDefaultCapture(props?.onDropCapture),
-      }),
+      } as T;
+
+      return baseGetRootProps(mergedProps);
+    },
     [baseGetRootProps],
   );
 
