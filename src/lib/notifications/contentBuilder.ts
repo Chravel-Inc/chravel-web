@@ -73,6 +73,9 @@ const BRAND_PREFIX = 'ChravelApp:';
 const FROM_EMAIL = 'support@chravelapp.com';
 const FROM_NAME = 'ChravelApp';
 const APP_URL = 'https://app.chravelapp.com';
+const SETTINGS_URL = 'https://www.chravel.app';
+const SETTINGS_CTA_TEXT =
+  'Want fewer notifications like this? Log in and update your notification settings.';
 
 export { FROM_EMAIL, FROM_NAME };
 
@@ -90,7 +93,7 @@ function ctaUrl(tripId?: string): string {
 }
 
 function footerLine(): string {
-  return 'You received this because you have notifications enabled on ChravelApp. Manage your preferences in Settings.';
+  return `You received this because you have notifications enabled on ChravelApp. ${SETTINGS_CTA_TEXT} ${SETTINGS_URL}`;
 }
 
 // ---------------------------------------------------------------------------
