@@ -43,28 +43,28 @@ const DEMO_COVERS_BASE =
  * Non-storage URLs are returned as-is.
  */
 export function toLandscapeOgImage(url: string): string {
-  const STORAGE_OBJECT_PREFIX = 'jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/';
-  if (url.includes(STORAGE_OBJECT_PREFIX)) {
-    return (
-      url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/') +
-      '?width=1200&height=630&resize=cover'
-    );
-  }
-  // Unsplash supports native image API resizing via query params.
-  // Parse the URL and check the hostname exactly to prevent substring bypass
-  // (e.g. attacker.com?q=images.unsplash.com would match a naive .includes() check).
-  try {
-    const parsed = new URL(url);
-    if (parsed.hostname === 'images.unsplash.com' || parsed.hostname.endsWith('.unsplash.com')) {
-      parsed.searchParams.set('w', '1200');
-      parsed.searchParams.set('h', '630');
-      parsed.searchParams.set('fit', 'crop');
-      return parsed.toString();
+    const STORAGE_OBJECT_PREFIX = 'jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/';
+    if (url.includes(STORAGE_OBJECT_PREFIX)) {
+          return (
+                  url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/') +
+                  '?width=1200&height=630&resize=cover'
+                );
     }
-  } catch {
+    // Unsplash supports native image API resizing via query params.
+    // Parse the URL and check the hostname exactly to prevent substring bypass
+    // (e.g. attacker.com?q=images.unsplash.com would match a naive .includes() check).
+    try {
+          const parsed = new URL(url);
+          if (parsed.hostname === 'images.unsplash.com' || parsed.hostname.endsWith('.unsplash.com')) {
+                  parsed.searchParams.set('w', '1200');
+                  parsed.searchParams.set('h', '630');
+                  parsed.searchParams.set('fit', 'crop');
+                  return parsed.toString();
+          }
+    } catch {
+          return url;
+    }
     return url;
-  }
-  return url;
 }
 
 /**
@@ -79,9 +79,8 @@ export function isValidImageUrl(url: string): boolean {
     if (parsed.protocol !== 'https:') return false;
     // Known image hosts are always valid
     // Use exact hostname match to prevent substring bypass attacks
-    if (parsed.hostname === 'unsplash.com' || parsed.hostname.endsWith('.unsplash.com'))
-      return true;
-    if (parsed.hostname === 'supabase.co' || parsed.hostname.endsWith('.supabase.co')) return true;
+        if (parsed.hostname === 'unsplash.com' || parsed.hostname.endsWith('.unsplash.com')) return true;
+        if (parsed.hostname === 'supabase.co' || parsed.hostname.endsWith('.supabase.co')) return true;
     // Check for common image extensions in pathname
     if (/\.(jpe?g|png|gif|webp|avif|svg)(\?|$)/i.test(parsed.pathname)) return true;
     return false;

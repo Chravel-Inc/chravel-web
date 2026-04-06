@@ -65,14 +65,14 @@ export function createErrorResponse(
   status: number = 400,
   req?: Request,
 ): Response {
-  // Sanitize the error message to avoid leaking internal stack traces or system paths
-  const rawMessage = typeof error === 'string' ? error : error.message;
-  // Strip stack trace lines (lines starting with "at ") and trim to safe length
-  const message = rawMessage
-    .split('\n')[0] // Only the first line — avoids multi-line stack traces
-    .replace(/\s+at\s+.*/g, '') // Remove inline "at ..." stack frames
-    .trim()
-    .substring(0, 500); // Cap length
+    // Sanitize the error message to avoid leaking internal stack traces or system paths
+    const rawMessage = typeof error === 'string' ? error : error.message;
+    // Strip stack trace lines (lines starting with "at ") and trim to safe length
+    const message = rawMessage
+      .split('\n')[0] // Only the first line — avoids multi-line stack traces
+      .replace(/\s+at\s+.*/g, '') // Remove inline "at ..." stack frames
+      .trim()
+      .substring(0, 500); // Cap length
   return createSecureResponse({ error: message }, status, {}, req);
 }
 

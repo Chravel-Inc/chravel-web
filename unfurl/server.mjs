@@ -26,12 +26,12 @@ const APP_BASE_URL = process.env.APP_BASE_URL ?? 'https://chravel.app';
 
 /** Escape special HTML characters to prevent XSS when exception text flows into HTML responses. */
 function escapeHtml(text) {
-  return String(text)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
 }
 
 function send(res, statusCode, headers, body) {
