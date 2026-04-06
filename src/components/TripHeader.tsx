@@ -449,7 +449,7 @@ export const TripHeader = ({
                 alt={`${trip.title} cover`}
                 onError={() => {
                   // In demo mode, try bundled fallback before giving up
-                  if (!coverFallbackSrc) {
+                  if (isDemoMode && !coverFallbackSrc) {
                     const fallback = getDemoTripCoverFallback(trip.id);
                     if (fallback) {
                       setCoverFallbackSrc(fallback);
