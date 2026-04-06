@@ -1,0 +1,45 @@
+{
+  "timestamp": "2026-04-06T19:24:19.354Z",
+  "baseUrl": "http://localhost:4173",
+  "device": "ipad",
+  "results": [
+    {
+      "name": "01-home-dashboard",
+      "device": "iPad Pro 12.9\"",
+      "status": "success",
+      "tripUsed": "/demo",
+      "tab": null,
+      "dimensions": "2048x2732"
+    },
+    {
+      "name": "02-trip-chat",
+      "device": "iPad Pro 12.9\"",
+      "status": "success",
+      "tripUsed": "/trip/4",
+      "tab": "chat",
+      "dimensions": "2048x2732"
+    },
+    {
+      "name": "03-calendar-itinerary",
+      "device": "iPad Pro 12.9\"",
+      "status": "success",
+      "tripUsed": "/trip/8",
+      "tab": "calendar",
+      "dimensions": "2048x2732"
+    },
+    {
+      "name": "04-maps-places",
+      "device": "iPad Pro 12.9\"",
+      "status": "success",
+      "tripUsed": "/trip/2",
+      "tab": "places",
+      "dimensions": "2048x2732"
+    }
+  ],
+  "summary": {
+    "total": 4,
+    "success": 4,
+    "warning": 0,
+    "failed": 0
+  }
+}
