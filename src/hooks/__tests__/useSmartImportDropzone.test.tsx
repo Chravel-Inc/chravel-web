@@ -78,6 +78,43 @@ describe('useSmartImportDropzone', () => {
     expect(rootProps).toBeDefined();
     expect(Object.keys(rootProps).length).toBeGreaterThan(0);
   });
+
+  it('prevents default during capture when dragging over nested content', async () => {
+    const onFileSelected = vi.fn();
+    const captureSpy = vi.fn();
+
+    const TestComponent = () => {
+      const { getRootProps, getInputProps } = useSmartImportDropzone({
+        onFileSelected,
+      });
+
+      return (
+        <div {...getRootProps({ onDragOverCapture: captureSpy })} data-testid="dropzone">
+          <button type="button" data-testid="child">
+            Choose File
+          </button>
+          <input {...getInputProps()} />
+        </div>
+      );
+    };
+
+    const { getByTestId } = render(<TestComponent />);
+    const child = getByTestId('child');
+
+    const preventDefaultSpy = vi.fn();
+    const dragOverEvent = new Event('dragover', {
+      bubbles: true,
+      cancelable: true,
+    });
+    dragOverEvent.preventDefault = preventDefaultSpy;
+
+    await act(async () => {
+      child.dispatchEvent(dragOverEvent);
+    });
+
+    expect(captureSpy).toHaveBeenCalled();
+    expect(preventDefaultSpy).toHaveBeenCalled();
+  });
 });
 
 describe('isSmartImportFileTypeValid', () => {
