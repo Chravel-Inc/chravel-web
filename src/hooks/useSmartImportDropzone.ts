@@ -6,7 +6,7 @@
  * Uses react-dropzone for robust DnD handling (fixes desktop drop not firing).
  */
 
-import { useCallback } from 'react';
+import { useCallback, type DragEventHandler } from 'react';
 import { useDropzone, FileRejection } from 'react-dropzone';
 import { toast } from 'sonner';
 
@@ -33,6 +33,17 @@ export interface UseSmartImportDropzoneReturn {
   getRootProps: ReturnType<typeof useDropzone>['getRootProps'];
   getInputProps: ReturnType<typeof useDropzone>['getInputProps'];
   isDragActive: boolean;
+}
+
+type DropzoneGetRootProps = ReturnType<typeof useDropzone>['getRootProps'];
+type DropzoneRootPropsOptions = Parameters<DropzoneGetRootProps>[0];
+type DropzoneCaptureHandler = DragEventHandler<HTMLElement>;
+
+function withPreventDefaultCapture(handler?: DropzoneCaptureHandler): DropzoneCaptureHandler {
+  return event => {
+    handler?.(event);
+    event.preventDefault();
+  };
 }
 
 /**
@@ -92,7 +103,7 @@ export function useSmartImportDropzone({
     });
   }, []);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps: baseGetRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     onDropRejected,
     accept: SMART_IMPORT_ACCEPT,
@@ -103,6 +114,17 @@ export function useSmartImportDropzone({
     noKeyboard: false,
     preventDropOnDocument: true,
   });
+
+  const getRootProps = useCallback<DropzoneGetRootProps>(
+    (props?: DropzoneRootPropsOptions) =>
+      baseGetRootProps({
+        ...props,
+        onDragEnterCapture: withPreventDefaultCapture(props?.onDragEnterCapture),
+        onDragOverCapture: withPreventDefaultCapture(props?.onDragOverCapture),
+        onDropCapture: withPreventDefaultCapture(props?.onDropCapture),
+      }),
+    [baseGetRootProps],
+  );
 
   return {
     getRootProps,
