@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Search, ImagePlus, Sparkles, PhoneOff } from 'lucide-react';
 import { ConciergeSearchModal } from './ai/ConciergeSearchModal';
@@ -341,8 +341,11 @@ export const AIConciergeChat = ({
   // 🔀 STREAM: Concierge history persistence via Stream
   const streamConciergeFlag = useFeatureFlag('stream-chat-concierge', false);
   const streamConciergeEnabled = streamConciergeFlag && !!getStreamClient()?.userID && !isDemoMode;
-  // Hook called for side-effect (Stream channel hydration); result used in future phase
-  useStreamConciergeHistory(
+  const {
+    messages: streamHistoryMessages,
+    isLoading: isStreamHistoryLoading,
+    isLoaded: isStreamHistoryLoaded,
+  } = useStreamConciergeHistory(
     streamConciergeEnabled ? tripId : undefined,
     streamConciergeEnabled ? user?.id : undefined,
   );
@@ -425,6 +428,38 @@ export const AIConciergeChat = ({
     isLoading: isHistoryLoading,
     error: historyError,
   } = useConciergeHistory(tripId);
+  const mergedHistoryMessages = useMemo(() => {
+    const mappedStreamMessages: ChatMessage[] = streamHistoryMessages.map(message => ({
+      id: `stream-history-${message.id}`,
+      type: message.type,
+      content: message.content,
+      timestamp: message.timestamp,
+      sources: message.sources,
+      googleMapsWidget: message.googleMapsWidget,
+      googleMapsWidgetContextToken: message.googleMapsWidgetContextToken,
+      functionCallPlaces: message.functionCallPlaces as ChatMessage['functionCallPlaces'],
+      functionCallFlights: message.functionCallFlights as ChatMessage['functionCallFlights'],
+      usage: message.usage,
+    }));
+
+    const combined = [...historyMessages, ...mappedStreamMessages];
+    if (combined.length === 0) {
+      return combined;
+    }
+
+    const dedupedByFingerprint = new Map<string, ChatMessage>();
+    combined.forEach(message => {
+      const fingerprint = `${message.type}|${message.content.trim()}|${message.timestamp}`;
+      if (!dedupedByFingerprint.has(fingerprint)) {
+        dedupedByFingerprint.set(fingerprint, message);
+      }
+    });
+
+    return Array.from(dedupedByFingerprint.values()).sort(
+      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+    );
+  }, [historyMessages, streamHistoryMessages]);
+
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [aiStatus, setAiStatus] = useState<
@@ -926,9 +961,12 @@ export const AIConciergeChat = ({
   // where messages.length might read a stale value if the user submits at the same
   // instant history loads. The functional setState updater is the source of truth.
   useEffect(() => {
-    if (isHistoryLoading || hasHydratedRef.current) return;
+    const isAnyHistoryLoading =
+      isHistoryLoading ||
+      (streamConciergeEnabled && isStreamHistoryLoading && !isStreamHistoryLoaded);
+    if (isAnyHistoryLoading || hasHydratedRef.current) return;
 
-    if (historyError) {
+    if (historyError && mergedHistoryMessages.length === 0) {
       if (import.meta.env.DEV) {
         console.error('[AIConciergeChat] Failed to load persisted history:', historyError);
       }
@@ -942,18 +980,25 @@ export const AIConciergeChat = ({
       return;
     }
 
-    if (historyMessages.length > 0) {
+    if (mergedHistoryMessages.length > 0) {
       // Use functional updater so we read the live messages state, not a closure copy.
       setMessages(prev => {
         if (prev.length > 0) return prev; // user already sent a message — don't overwrite
-        return historyMessages;
+        return mergedHistoryMessages;
       });
       setHistoryLoadedFromServer(true);
     }
 
     hasHydratedRef.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isHistoryLoading, historyError, historyMessages]);
+  }, [
+    isHistoryLoading,
+    isStreamHistoryLoading,
+    isStreamHistoryLoaded,
+    streamConciergeEnabled,
+    historyError,
+    mergedHistoryMessages,
+  ]);
 
   // Fallback when offline: show cached messages from localStorage.
   useEffect(() => {
