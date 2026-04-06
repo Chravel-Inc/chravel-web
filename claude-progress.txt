@@ -217,6 +217,13 @@
   - `src/integrations/supabase/types.ts`
 - Verified no logic or data-shape changes (`eslint` warnings unchanged; zero new errors) and full gate now passes: `npm run validate` + `npm run build`.
 - Risk profile: low (format-only). Restores CI/deploy path without rolling back recent product updates.
+2026-04-06 — Dashboard Requests UX split (outgoing card + incoming approval list)
+- Updated Requests filter in `TripGrid` to a 2-tab experience:
+  - Outgoing tab keeps grayed-out pending trip cards and adds `Cancel request` CTA per card.
+  - Incoming tab now shows a simple approval queue list (`requester → trip + date`) with direct "Review request" CTA into trip People/Requests.
+- Extended `PendingTripCard` with optional secondary CTA for non-interactive cards so outbound pending requests can be canceled without enabling full card interactivity.
+- Added focused UI regression test for `PendingTripCard` CTAs.
+- Verification: `npm run test:run -- src/components/trip/__tests__/PendingTripCard.test.tsx src/hooks/__tests__/useDashboardJoinRequests.test.ts`, `npm run typecheck`, `npm run lint:check`, `npm run build`.
 2026-04-06 — TestFlight email notifications forensic audit + rollout recommendation
 - Traced settings toggle -> `notification_preferences.email_enabled` persistence in consumer notifications UI and verified the backend path is live (not mock): `notifications` insert trigger queues channel deliveries and `dispatch-notification-deliveries` sends via SendGrid.
 - Confirmed sender identity source of truth: `SENDGRID_FROM_EMAIL` env with fallback `support@chravelapp.com`; sender name `ChravelApp`.
