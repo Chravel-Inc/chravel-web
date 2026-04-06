@@ -444,18 +444,16 @@ export function validateInput<T>(
 
 export function sanitizeString(input: string, maxLength: number = 1000): string {
   // Apply replacements in a loop until stable to prevent bypass via nested patterns
-    let result = input;
-    let previous: string;
-    do {
-          previous = result;
-          result = result
-            .replace(/[<>'"]/g, '') // Remove potentially dangerous characters
-            .replace(/javascript:/gi, '') // Remove javascript: protocol
-            .replace(/on\w+=/gi, ''); // Remove event handlers
-    } while (result !== previous);
-    return result
-      .trim()
-      .substring(0, maxLength);
+  let result = input;
+  let previous: string;
+  do {
+    previous = result;
+    result = result
+      .replace(/[<>'"]/g, '') // Remove potentially dangerous characters
+      .replace(/javascript:/gi, '') // Remove javascript: protocol
+      .replace(/on\w+=/gi, ''); // Remove event handlers
+  } while (result !== previous);
+  return result.trim().substring(0, maxLength);
 }
 
 export function sanitizeEmail(email: string): string {

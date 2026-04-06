@@ -34,6 +34,7 @@ import { useDemoTripMembersStore } from '../store/demoTripMembersStore';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { buildTripCoverStoragePath, TRIP_COVER_BUCKET } from '../utils/tripCoverStorage';
+import { getDemoTripCoverFallback } from '@/data/demoTripCoverFallbacks';
 
 // Stable empty array to prevent Zustand selector reference changes causing infinite re-renders
 const EMPTY_MEMBERS_ARRAY: Array<{
@@ -170,6 +171,7 @@ export const TripHeader = ({
   const leaveTrip = preloadedLeaveTrip ?? memberHookData.leaveTrip;
   const [isUploading, setIsUploading] = useState(false);
   const [hasCoverLoadError, setHasCoverLoadError] = useState(false);
+  const [coverFallbackSrc, setCoverFallbackSrc] = useState<string | undefined>(undefined);
   const [showCropModal, setShowCropModal] = useState(false);
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
 
@@ -405,6 +407,7 @@ export const TripHeader = ({
 
   useEffect(() => {
     setHasCoverLoadError(false);
+    setCoverFallbackSrc(undefined);
   }, [coverPhoto]);
 
   const handleCropCancel = () => {
@@ -436,15 +439,25 @@ export const TripHeader = ({
           {coverPhoto && !hasCoverLoadError && (
             <div className="absolute inset-0">
               <img
-                src={coverPhoto}
+                src={coverFallbackSrc ?? coverPhoto}
                 alt=""
                 aria-hidden="true"
                 className="absolute inset-0 w-full h-full object-cover blur-md scale-110 opacity-45"
               />
               <img
-                src={coverPhoto}
+                src={coverFallbackSrc ?? coverPhoto}
                 alt={`${trip.title} cover`}
-                onError={() => setHasCoverLoadError(true)}
+                onError={() => {
+                  // In demo mode, try bundled fallback before giving up
+                  if (isDemoMode && !coverFallbackSrc) {
+                    const fallback = getDemoTripCoverFallback(trip.id);
+                    if (fallback) {
+                      setCoverFallbackSrc(fallback);
+                      return;
+                    }
+                  }
+                  setHasCoverLoadError(true);
+                }}
                 className={cn(
                   'absolute inset-0 w-full h-full',
                   coverDisplayMode === 'contain' ? 'object-contain' : 'object-cover',
