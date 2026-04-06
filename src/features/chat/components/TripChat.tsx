@@ -48,6 +48,7 @@ import { ThreadView } from './ThreadView';
 import { useTripPrivacyConfig, getEffectivePrivacyMode } from '@/hooks/useTripPrivacyConfig';
 import { useTripChatMode } from '@/hooks/useTripChatMode';
 import { useLinkPreviews } from '../hooks/useLinkPreviews';
+import { useBlockedUsers, useReportContent } from '@/hooks/useUserSafety';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -141,6 +142,8 @@ export const TripChat = React.memo(
     const demoMode = useDemoMode();
     const { user } = useAuth();
     const queryClient = useQueryClient();
+    const { blockedUserIds, blockUser: blockUserAction, isBlocking } = useBlockedUsers();
+    const { reportContent: reportContentAction, isReporting } = useReportContent();
 
     // ⚡ PERFORMANCE: Skip expensive hooks in demo mode for numeric trip IDs
     const shouldSkipLiveChat = demoMode.isDemoMode && /^\d+$/.test(resolvedTripId);
@@ -761,8 +764,15 @@ export const TripChat = React.memo(
 
     const filteredMessages = filterMessages(messagesToShow as any);
 
+    const visibleMessages = useMemo(() => {
+      if (blockedUserIds.length === 0) return filteredMessages;
+      return filteredMessages.filter(
+        (msg: any) => !msg.sender?.id || !blockedUserIds.includes(msg.sender.id),
+      );
+    }, [filteredMessages, blockedUserIds]);
+
     const messagesWithFailed = useMemo(() => {
-      if (failedMessages.length === 0) return filteredMessages;
+      if (failedMessages.length === 0) return visibleMessages;
       const failedFormatted = failedMessages.map(fm => ({
         id: fm.id,
         text: fm.text,
@@ -771,8 +781,8 @@ export const TripChat = React.memo(
         status: 'failed' as const,
         linkPreview: undefined as undefined,
       }));
-      return [...filteredMessages, ...failedFormatted];
-    }, [filteredMessages, failedMessages, user?.id, user?.avatar]);
+      return [...visibleMessages, ...failedFormatted];
+    }, [visibleMessages, failedMessages, user?.id, user?.avatar]);
 
     const linkPreviewFallbacks = useLinkPreviews(
       messagesWithFailed.map(message => ({
@@ -918,6 +928,18 @@ export const TripChat = React.memo(
                           showSenderInfo={showSenderInfo}
                           reactionUserNamesById={reactionUserNamesById}
                           isAdmin={isUserAdmin}
+                          onBlockUser={demoMode.isDemoMode ? undefined : blockUserAction}
+                          onReportContent={
+                            demoMode.isDemoMode
+                              ? undefined
+                              : params =>
+                                  reportContentAction({
+                                    ...params,
+                                    tripId: resolvedTripId,
+                                  })
+                          }
+                          isBlockingUser={isBlocking}
+                          isReportingContent={isReporting}
                         />
                       </div>
                     )}

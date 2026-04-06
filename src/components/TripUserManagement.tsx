@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { UserMinus, LogOut, MoreVertical, AlertTriangle, X } from 'lucide-react';
+import { UserMinus, LogOut, MoreVertical, AlertTriangle, X, Ban, Flag } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { ReportDialog, ReportReason } from '@/features/chat/components/ReportDialog';
 
 interface TripUser {
   id: string;
@@ -17,6 +18,14 @@ interface TripUserManagementProps {
   currentUserId: string;
   onUserRemoved: (userId: string) => void;
   onLeaveTrip: () => void;
+  onBlockUser?: (userId: string) => void;
+  onReportUser?: (params: {
+    reportedUserId: string;
+    reason: ReportReason;
+    details?: string;
+  }) => void;
+  isBlockingUser?: boolean;
+  isReportingUser?: boolean;
 }
 
 export const TripUserManagement = ({
@@ -26,11 +35,17 @@ export const TripUserManagement = ({
   currentUserId,
   onUserRemoved,
   onLeaveTrip,
+  onBlockUser,
+  onReportUser,
+  isBlockingUser = false,
+  isReportingUser = false,
 }: TripUserManagementProps) => {
   const { user: _user } = useAuth();
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [userToRemove, setUserToRemove] = useState<TripUser | null>(null);
   const [showUserActions, setShowUserActions] = useState<string | null>(null);
+  const [userToBlock, setUserToBlock] = useState<TripUser | null>(null);
+  const [userToReport, setUserToReport] = useState<TripUser | null>(null);
 
   const currentUser = users.find(u => u.id === currentUserId);
   const isOwner = currentUser?.role === 'owner';
@@ -120,7 +135,7 @@ export const TripUserManagement = ({
                 </div>
               </div>
 
-              {canRemoveUser(tripUser) && (
+              {tripUser.id !== currentUserId && (
                 <div className="relative">
                   <button
                     onClick={() =>
@@ -133,12 +148,36 @@ export const TripUserManagement = ({
 
                   {showUserActions === tripUser.id && (
                     <div className="absolute right-0 top-full mt-2 bg-gray-900/95 backdrop-blur-md border border-gray-700 rounded-xl shadow-xl z-10 min-w-[180px]">
+                      {canRemoveUser(tripUser) && (
+                        <button
+                          onClick={() => setUserToRemove(tripUser)}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-red-300 hover:bg-red-500/10 rounded-t-xl transition-colors"
+                        >
+                          <UserMinus size={16} />
+                          Remove from trip
+                        </button>
+                      )}
                       <button
-                        onClick={() => setUserToRemove(tripUser)}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-red-300 hover:bg-red-500/10 rounded-xl transition-colors"
+                        onClick={() => {
+                          setUserToBlock(tripUser);
+                          setShowUserActions(null);
+                        }}
+                        disabled={isBlockingUser}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-white/5 transition-colors"
                       >
-                        <UserMinus size={16} />
-                        Remove from trip
+                        <Ban size={16} />
+                        Block User
+                      </button>
+                      <button
+                        onClick={() => {
+                          setUserToReport(tripUser);
+                          setShowUserActions(null);
+                        }}
+                        disabled={isReportingUser}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-white/5 rounded-b-xl transition-colors"
+                      >
+                        <Flag size={16} />
+                        Report
                       </button>
                     </div>
                   )}
@@ -238,6 +277,59 @@ export const TripUserManagement = ({
           </div>
         </div>
       )}
+
+      {/* Block User Confirmation Modal */}
+      {userToBlock && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-8 max-w-md w-full">
+            <div className="flex items-center gap-3 text-red-400 mb-4">
+              <Ban size={24} />
+              <h3 className="text-xl font-bold text-white">Block User?</h3>
+            </div>
+            <p className="text-gray-300 mb-6">
+              You will no longer see messages from {userToBlock.name}. You can unblock them later
+              from Settings.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setUserToBlock(null)}
+                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  onBlockUser?.(userToBlock.id);
+                  setUserToBlock(null);
+                }}
+                disabled={isBlockingUser}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl transition-colors"
+              >
+                {isBlockingUser ? 'Blocking...' : 'Block'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Report User Dialog */}
+      <ReportDialog
+        open={!!userToReport}
+        onOpenChange={open => {
+          if (!open) setUserToReport(null);
+        }}
+        onSubmit={(reason, details) => {
+          if (userToReport) {
+            onReportUser?.({
+              reportedUserId: userToReport.id,
+              reason,
+              details,
+            });
+            setUserToReport(null);
+          }
+        }}
+        isSubmitting={isReportingUser}
+      />
 
       {/* Click outside to close user actions */}
       {showUserActions && (

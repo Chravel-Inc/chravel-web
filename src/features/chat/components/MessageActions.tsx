@@ -6,7 +6,7 @@
  */
 
 import React, { useState } from 'react';
-import { Edit, Trash2, MoreVertical, MessageSquareReply, Copy } from 'lucide-react';
+import { Edit, Trash2, MoreVertical, MessageSquareReply, Copy, Ban, Flag } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +34,7 @@ import {
   deleteChatMessage,
   deleteChannelMessage,
 } from '@/services/chatService';
+import { ReportDialog, ReportReason } from './ReportDialog';
 export interface MessageActionsProps {
   messageId: string;
   messageContent: string;
@@ -42,9 +43,20 @@ export interface MessageActionsProps {
   isDeleted?: boolean;
   /** Admins can delete any message (server-side RLS enforced via migration 20260315000002) */
   isAdmin?: boolean;
+  /** Sender user ID — needed for block/report actions */
+  senderUserId?: string;
   onEdit?: (messageId: string, newContent: string) => void;
   onDelete?: (messageId: string) => void;
   onReply?: (messageId: string) => void;
+  onBlockUser?: (userId: string) => Promise<void> | void;
+  onReportContent?: (params: {
+    reportedUserId: string;
+    messageId: string;
+    reason: ReportReason;
+    details?: string;
+  }) => Promise<void> | void;
+  isBlockingUser?: boolean;
+  isReportingContent?: boolean;
 }
 
 export const MessageActions: React.FC<MessageActionsProps> = ({
@@ -54,12 +66,19 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
   isOwnMessage,
   isDeleted = false,
   isAdmin = false,
+  senderUserId,
   onEdit,
   onDelete,
   onReply,
+  onBlockUser,
+  onReportContent,
+  isBlockingUser = false,
+  isReportingContent = false,
 }) => {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showBlockDialog, setShowBlockDialog] = useState(false);
+  const [showReportDialog, setShowReportDialog] = useState(false);
   const [editedContent, setEditedContent] = useState(messageContent);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -201,6 +220,23 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
               </DropdownMenuItem>
             </>
           )}
+          {/* Block & Report — available for other users' messages */}
+          {!isOwnMessage && senderUserId && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setShowBlockDialog(true)} disabled={isBlockingUser}>
+                <Ban className="mr-2 h-4 w-4" />
+                Block User
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setShowReportDialog(true)}
+                disabled={isReportingContent}
+              >
+                <Flag className="mr-2 h-4 w-4" />
+                Report
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -255,6 +291,60 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Block User Confirmation Dialog */}
+      <AlertDialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
+        <AlertDialogContent className="bg-gray-900 border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Block User</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400">
+              You will no longer see messages from this user. You can unblock them later from
+              Settings.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBlockingUser}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (senderUserId) {
+                  try {
+                    await onBlockUser?.(senderUserId);
+                    setShowBlockDialog(false);
+                  } catch {
+                    // Error toast handled by hook
+                  }
+                }
+              }}
+              disabled={isBlockingUser}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isBlockingUser ? 'Blocking...' : 'Block'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Report Content Dialog */}
+      {senderUserId && (
+        <ReportDialog
+          open={showReportDialog}
+          onOpenChange={setShowReportDialog}
+          onSubmit={async (reason, details) => {
+            try {
+              await onReportContent?.({
+                reportedUserId: senderUserId,
+                messageId,
+                reason,
+                details,
+              });
+              setShowReportDialog(false);
+            } catch {
+              // Error toast handled by hook
+            }
+          }}
+          isSubmitting={isReportingContent}
+        />
+      )}
     </>
   );
 };
