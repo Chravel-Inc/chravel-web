@@ -84,6 +84,17 @@ export interface MessageBubbleProps {
   reactionUserNamesById?: Record<string, string>;
   /** Admins can delete any message (server-side RLS enforced) */
   isAdmin?: boolean;
+  /** Sender user ID for block/report actions */
+  senderUserId?: string;
+  onBlockUser?: (userId: string) => void;
+  onReportContent?: (params: {
+    reportedUserId: string;
+    messageId: string;
+    reason: any;
+    details?: string;
+  }) => void;
+  isBlockingUser?: boolean;
+  isReportingContent?: boolean;
 }
 
 export const MessageBubble = memo(
@@ -120,6 +131,11 @@ export const MessageBubble = memo(
     replyTo,
     reactionUserNamesById,
     isAdmin = false,
+    senderUserId,
+    onBlockUser,
+    onReportContent,
+    isBlockingUser = false,
+    isReportingContent = false,
   }: MessageBubbleProps) => {
     const [showReactions, setShowReactions] = useState(false);
     const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -509,9 +525,14 @@ export const MessageBubble = memo(
                 isOwnMessage={isOwnMessage}
                 isDeleted={isDeleted}
                 isAdmin={isAdmin}
+                senderUserId={senderUserId}
                 onEdit={onEdit}
                 onDelete={onDelete}
                 onReply={onReply}
+                onBlockUser={onBlockUser}
+                onReportContent={onReportContent}
+                isBlockingUser={isBlockingUser}
+                isReportingContent={isReportingContent}
               />
             </div>
             <div
