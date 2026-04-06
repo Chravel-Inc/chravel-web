@@ -29,9 +29,9 @@ export default function Healthz() {
     const runChecks = async () => {
       const env = (import.meta as any)?.env ?? {};
       const isPreview =
-                typeof window !== 'undefined' &&
-                (window.location.hostname === 'lovableproject.com' ||
-                           window.location.hostname.endsWith('.lovableproject.com'));
+        typeof window !== 'undefined' &&
+        (window.location.hostname === 'lovableproject.com' ||
+          window.location.hostname.endsWith('.lovableproject.com'));
 
       let sessionStatus = null;
       let dbReachable = false;
