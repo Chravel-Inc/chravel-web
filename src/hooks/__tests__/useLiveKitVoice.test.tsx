@@ -197,4 +197,39 @@ describe('useLiveKitVoice', () => {
     expect(result.current.state).toBe('ready');
     expect(result.current.diagnostics.connectionStatus).toBe('open');
   });
+
+  it('fails fast when agent does not join within the 10s readiness window', async () => {
+    const { result } = renderHook(() =>
+      useLiveKitVoice({
+        tripId: 'trip-timeout',
+      }),
+    );
+
+    await act(async () => {
+      await result.current.startSession();
+    });
+
+    expect(result.current.state).toBe('error');
+    expect(result.current.error).toContain('Agent did not join within timeout');
+  }, 15_000);
+
+  it('returns to idle cleanly after stop/disconnect', async () => {
+    const { result } = renderHook(() =>
+      useLiveKitVoice({
+        tripId: 'trip-stop',
+      }),
+    );
+
+    const room = await startSessionAndJoin(result);
+
+    await act(async () => {
+      await result.current.endSession();
+    });
+
+    expect(room.disconnect).toHaveBeenCalledTimes(1);
+    expect(result.current.state).toBe('idle');
+    expect(result.current.userTranscript).toBe('');
+    expect(result.current.assistantTranscript).toBe('');
+    expect(result.current.diagnostics.connectionStatus).toBe('closed');
+  });
 });
