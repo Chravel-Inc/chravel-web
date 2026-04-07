@@ -66,3 +66,7 @@ A daily staging check is available via GitHub Actions workflow:
 This workflow runs Playwright against `E2E_STAGING_BASE_URL`, uploads traces/screenshots/reports as artifacts, and posts a Slack summary when `CI_SLACK_WEBHOOK_URL` is configured.
 
 See `docs/ACTIVE/CURSOR_AUTOMATION_E2E_PROMPT.md` for a ready-to-use Cursor Automation prompt and secret checklist.
+
+Manual trigger options:
+- GitHub UI: **Actions → Scheduled E2E Staging → Run workflow**
+- CLI: `gh workflow run scheduled-e2e-staging.yml --ref main`

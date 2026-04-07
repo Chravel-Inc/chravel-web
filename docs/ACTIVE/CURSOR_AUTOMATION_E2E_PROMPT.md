@@ -64,6 +64,41 @@ Failure handling:
 - `E2E_TEST_PASSWORD`
 - `CI_SLACK_WEBHOOK_URL`
 
+
+## How to trigger the workflow
+
+### Option A: GitHub UI (fastest)
+
+1. Go to **GitHub → Actions → Scheduled E2E Staging**.
+2. Click **Run workflow**.
+3. Choose branch `main`.
+4. Optional inputs:
+   - `target_url`: override staging URL for this run only
+   - `grep`: run a subset of tests
+   - `notify_slack`: `true` to send Slack summary
+5. Click **Run workflow** and open the run details page to monitor status/artifacts.
+
+### Option B: GitHub CLI
+
+```bash
+gh workflow run scheduled-e2e-staging.yml --ref main
+```
+
+With optional overrides:
+
+```bash
+gh workflow run scheduled-e2e-staging.yml --ref main \
+  -f target_url=https://staging.chravel.app \
+  -f grep=@smoke \
+  -f notify_slack=true
+```
+
+List recent runs:
+
+```bash
+gh run list --workflow scheduled-e2e-staging.yml --limit 5
+```
+
 ## V1 flow coverage recommendation
 
 For high-signal daily checks, start with stable core journeys first:
