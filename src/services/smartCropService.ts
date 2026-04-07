@@ -70,6 +70,20 @@ export const smartCropService = {
   },
 
   /**
+   * Return a full-image crop for contain mode.
+   * This preserves the original framing instead of forcing a banner crop.
+   */
+  calculateContainCrop(): CropSettings {
+    return {
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 100,
+      scale: 1,
+    };
+  },
+
+  /**
    * Check if the image aspect ratio differs significantly from target
    * Used to determine if "Adjust Position" should be shown
    */

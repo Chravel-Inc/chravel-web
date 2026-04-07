@@ -258,3 +258,10 @@
 - Added race-safe connection readiness subscription to `useStreamConciergeHistory` so Stream concierge history hydrates after delayed Stream connects.
 - Updated `AIConciergeChat` history hydration to merge/dedupe/sort legacy Supabase (`ai_queries`) history with Stream concierge channel history, preventing history gaps across migration boundary.
 - Verification: `npm run lint && npm run typecheck && npm run build` pass (existing baseline warnings only).
+
+2026-04-07 — Trip cover upload unblock + contain-mode crop fidelity
+- Added migration `supabase/migrations/20260407110000_fix_trip_cover_upload_policy.sql` to remove `can_upload_media_to_trip(...)` from trip-cover storage INSERT policy; membership check remains required.
+- Extended cover crop UX with explicit `displayMode` propagation (`cover` vs `contain`) through `EditTripModal -> TripCoverPhotoUpload -> CoverPhotoCropModal` and `TripHeader` crop modal.
+- In contain mode, crop modal now preserves full image aspect ratio and exports up to 1920px longest side instead of forced 3:1 crop.
+- Improved upload error surfacing in `TripCoverPhotoUpload` toast to include the storage error message; standardized cache-busting query param to `?v=` in `TripHeader`.
+- Verification: `npm run lint && npm run typecheck && npm run build` (lint warnings only, no errors; typecheck/build pass).

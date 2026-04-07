@@ -13,6 +13,7 @@ interface CoverPhotoCropModalProps {
   imageSrc: string;
   onCropComplete: (croppedBlob: Blob) => void;
   aspectRatio?: number; // 3 for desktop (3:1), 4/3 for mobile drawer
+  displayMode?: 'cover' | 'contain';
 }
 
 // Desktop default: 3:1 wide banner
@@ -24,6 +25,7 @@ export const CoverPhotoCropModal = ({
   imageSrc,
   onCropComplete,
   aspectRatio = DEFAULT_ASPECT_RATIO,
+  displayMode = 'cover',
 }: CoverPhotoCropModalProps) => {
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<Crop>();
@@ -43,12 +45,10 @@ export const CoverPhotoCropModal = ({
       const orientation = smartCropService.detectOrientation(naturalWidth, naturalHeight);
       setImageOrientation(orientation);
 
-      // Calculate smart initial crop based on orientation and target aspect
-      const smartCrop = smartCropService.calculateSmartCrop(
-        naturalWidth,
-        naturalHeight,
-        aspectRatio,
-      );
+      const smartCrop =
+        displayMode === 'contain'
+          ? smartCropService.calculateContainCrop()
+          : smartCropService.calculateSmartCrop(naturalWidth, naturalHeight, aspectRatio);
 
       // Convert smart crop to react-image-crop format
       const initialCrop: Crop = {
@@ -63,7 +63,7 @@ export const CoverPhotoCropModal = ({
       setCompletedCrop(initialCrop);
       setScale(smartCrop.scale);
     },
-    [aspectRatio],
+    [aspectRatio, displayMode],
   );
 
   const updatePreview = useCallback(() => {
@@ -74,19 +74,42 @@ export const CoverPhotoCropModal = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const pixelCrop = {
-      x: (completedCrop.x / 100) * image.naturalWidth,
-      y: (completedCrop.y / 100) * image.naturalHeight,
-      width: (completedCrop.width / 100) * image.naturalWidth,
-      height: (completedCrop.height / 100) * image.naturalHeight,
-    };
+    const pixelCrop =
+      displayMode === 'contain'
+        ? { x: 0, y: 0, width: image.naturalWidth, height: image.naturalHeight }
+        : {
+            x: (completedCrop.x / 100) * image.naturalWidth,
+            y: (completedCrop.y / 100) * image.naturalHeight,
+            width: (completedCrop.width / 100) * image.naturalWidth,
+            height: (completedCrop.height / 100) * image.naturalHeight,
+          };
 
-    // Dynamic preview size based on aspect ratio
     const previewWidth = 600;
     const previewHeight = Math.round(previewWidth / aspectRatio);
 
     canvas.width = previewWidth;
     canvas.height = previewHeight;
+
+    if (displayMode === 'contain') {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const drawRatio = Math.min(canvas.width / pixelCrop.width, canvas.height / pixelCrop.height);
+      const drawWidth = pixelCrop.width * drawRatio;
+      const drawHeight = pixelCrop.height * drawRatio;
+      const drawX = (canvas.width - drawWidth) / 2;
+      const drawY = (canvas.height - drawHeight) / 2;
+      ctx.drawImage(
+        image,
+        0,
+        0,
+        pixelCrop.width,
+        pixelCrop.height,
+        drawX,
+        drawY,
+        drawWidth,
+        drawHeight,
+      );
+      return;
+    }
 
     ctx.drawImage(
       image,
@@ -99,7 +122,7 @@ export const CoverPhotoCropModal = ({
       canvas.width,
       canvas.height,
     );
-  }, [completedCrop, scale, aspectRatio]);
+  }, [completedCrop, scale, aspectRatio, displayMode]);
 
   React.useEffect(() => {
     updatePreview();
@@ -116,31 +139,53 @@ export const CoverPhotoCropModal = ({
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error('No canvas context');
 
-      const pixelCrop = {
-        x: (completedCrop.x / 100) * image.naturalWidth,
-        y: (completedCrop.y / 100) * image.naturalHeight,
-        width: (completedCrop.width / 100) * image.naturalWidth,
-        height: (completedCrop.height / 100) * image.naturalHeight,
-      };
+      const pixelCrop =
+        displayMode === 'contain'
+          ? { x: 0, y: 0, width: image.naturalWidth, height: image.naturalHeight }
+          : {
+              x: (completedCrop.x / 100) * image.naturalWidth,
+              y: (completedCrop.y / 100) * image.naturalHeight,
+              width: (completedCrop.width / 100) * image.naturalWidth,
+              height: (completedCrop.height / 100) * image.naturalHeight,
+            };
 
-      // Dynamic output size based on aspect ratio (maintain 1200px width)
-      const outputWidth = 1200;
-      const outputHeight = Math.round(outputWidth / aspectRatio);
+      const longestSide = Math.max(pixelCrop.width, pixelCrop.height);
+      const resizeRatio = displayMode === 'contain' && longestSide > 1920 ? 1920 / longestSide : 1;
+      const outputWidth =
+        displayMode === 'contain' ? Math.round(pixelCrop.width * resizeRatio) : 1200;
+      const outputHeight =
+        displayMode === 'contain'
+          ? Math.round(pixelCrop.height * resizeRatio)
+          : Math.round(outputWidth / aspectRatio);
 
       canvas.width = outputWidth;
       canvas.height = outputHeight;
 
-      ctx.drawImage(
-        image,
-        pixelCrop.x / scale,
-        pixelCrop.y / scale,
-        pixelCrop.width / scale,
-        pixelCrop.height / scale,
-        0,
-        0,
-        canvas.width,
-        canvas.height,
-      );
+      if (displayMode === 'contain') {
+        ctx.drawImage(
+          image,
+          pixelCrop.x,
+          pixelCrop.y,
+          pixelCrop.width,
+          pixelCrop.height,
+          0,
+          0,
+          canvas.width,
+          canvas.height,
+        );
+      } else {
+        ctx.drawImage(
+          image,
+          pixelCrop.x / scale,
+          pixelCrop.y / scale,
+          pixelCrop.width / scale,
+          pixelCrop.height / scale,
+          0,
+          0,
+          canvas.width,
+          canvas.height,
+        );
+      }
 
       canvas.toBlob(
         blob => {
@@ -160,6 +205,9 @@ export const CoverPhotoCropModal = ({
 
   // Get orientation-specific guidance text
   const getOrientationHint = () => {
+    if (displayMode === 'contain') {
+      return 'Full image mode – original aspect ratio will be preserved';
+    }
     if (imageOrientation === 'portrait') {
       return 'Portrait photo detected – centered vertically for best fit';
     }
@@ -186,8 +234,9 @@ export const CoverPhotoCropModal = ({
               crop={crop}
               onChange={(_, percentCrop) => setCrop(percentCrop)}
               onComplete={(_, percentCrop) => setCompletedCrop(percentCrop)}
-              aspect={aspectRatio}
+              aspect={displayMode === 'contain' ? undefined : aspectRatio}
               className="max-h-[40vh]"
+              disabled={displayMode === 'contain'}
             >
               <img
                 ref={imgRef}
@@ -211,6 +260,7 @@ export const CoverPhotoCropModal = ({
               max={3}
               step={0.1}
               className="flex-1"
+              disabled={displayMode === 'contain'}
             />
             <ZoomIn size={18} className="text-muted-foreground flex-shrink-0" />
             <span className="text-sm text-muted-foreground w-12 flex-shrink-0">

@@ -390,7 +390,7 @@ export const TripHeader = ({
       }
 
       // Add cache-busting param for re-crops
-      const finalUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+      const finalUrl = `${urlData.publicUrl}?v=${Date.now()}`;
       await updateCoverPhoto(finalUrl);
     } catch (error) {
       console.error('Cover photo upload error:', error);
@@ -832,6 +832,7 @@ export const TripHeader = ({
           imageSrc={cropImageSrc}
           onCropComplete={handleCropComplete}
           aspectRatio={drawerLayout ? 4 / 3 : 3}
+          displayMode={coverDisplayMode}
         />
       )}
 
