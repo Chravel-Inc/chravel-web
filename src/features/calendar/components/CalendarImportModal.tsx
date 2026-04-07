@@ -289,7 +289,11 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-hidden flex flex-col" onDragOver={(e) => e.preventDefault()} onDrop={(e) => e.preventDefault()}>
+      <DialogContent
+        className="max-w-lg max-h-[85vh] overflow-hidden flex flex-col"
+        onDragOver={e => e.preventDefault()}
+        onDrop={e => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="w-5 h-5" />
