@@ -97,7 +97,7 @@ export async function connectStreamClient(): Promise<StreamChat | null> {
         }
       }
 
-      await clientInstance.connectUser ({ id: userId }, token);
+      await clientInstance.connectUser({ id: userId }, token);
       notifyConnectedSubscribers();
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Unknown error';
