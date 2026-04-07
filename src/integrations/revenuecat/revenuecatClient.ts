@@ -21,7 +21,6 @@ import type {
   DerivedPlan,
 } from './types';
 import type { SubscriptionTier } from '@/billing/types';
-import despia from 'despia-native';
 import { toast } from 'sonner';
 
 // RevenueCat Capacitor plugin removed — native IAP handled by chravel-mobile.
@@ -412,12 +411,4 @@ export function setupGlobalPurchaseListener() {
       // Force reload entitlements if needed, or rely on realtime updates
     };
   }
-}
-
-/**
- * Launch native paywall via despia-native
- */
-export function launchNativePaywall(userId: string, offeringId: string = 'default') {
-  console.log('[Native] Launching paywall for user:', userId);
-  despia(`revenuecat://launchPaywall?external_id=${userId}&offering=${offeringId}`);
 }
