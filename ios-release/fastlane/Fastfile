@@ -198,6 +198,27 @@ platform :ios do
   end
 
   # ============================================================================
+  # Screenshot Generation (Playwright downstream generator)
+  # ============================================================================
+
+  desc "Generate iPhone App Store screenshots via Playwright"
+  lane :generate_store_screenshots_iphone do
+    sh("cd ../.. && npm run screenshots:appstore:iphone")
+  end
+
+  desc "Generate iPad App Store screenshots via Playwright"
+  lane :generate_store_screenshots_ipad do
+    sh("cd ../.. && npm run screenshots:appstore:ipad")
+  end
+
+  desc "Generate all App Store screenshots + marketing composites"
+  lane :generate_store_screenshots_all do
+    sh("cd ../.. && npm run screenshots:appstore:all")
+    sh("cd ../.. && npm run screenshots:marketing")
+    sh("cd ../.. && python3 appstore/scripts/prepare_fastlane_screenshots.py")
+  end
+
+  # ============================================================================
   # Versioning
   # ============================================================================
 

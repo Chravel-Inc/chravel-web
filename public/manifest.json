@@ -6,7 +6,7 @@
   "start_url": "/",
   "display": "standalone",
   "background_color": "#181A21",
-  "theme_color": "#3A60D0",
+  "theme_color": "#c49746",
   "orientation": "portrait-primary",
   "categories": ["travel", "productivity", "business"],
   "lang": "en",

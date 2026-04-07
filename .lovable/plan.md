@@ -1,32 +1,44 @@
 
 
-## Create Public SMS Terms & Consent Page
+## Fix: Drag-and-Drop Not Working in Calendar Import Modal
 
-### Purpose
-Twilio toll-free verification requires a publicly accessible URL proving how SMS opt-in consent is collected. This page will serve as that proof.
+### Root Cause
 
-### What gets built
+The Radix UI `DialogOverlay` is a `fixed inset-0` element that covers the entire viewport. When you drag a file from your desktop into the browser, the drag events first hit the overlay. The overlay has no drag handlers and default browser behavior takes over — the file either gets opened by the browser or the drag is silently consumed.
 
-**New file: `src/pages/SmsTerms.tsx`**
-- Matches the existing layout pattern from `TermsOfService.tsx` and `PrivacyPolicy.tsx` (dark background, prose styling, back button)
-- Content sections:
-  1. **What is Chravel SMS** — transactional trip notifications, not marketing
-  2. **How Users Opt In** — paid plan required → Settings > Notifications > Enable SMS toggle → confirmation SMS sent → user replies YES
-  3. **Message Categories** — calendar reminders, broadcasts, payments, tasks, polls, join requests, basecamp updates
-  4. **Message Frequency** — up to 10 messages per day
-  5. **How to Opt Out** — reply STOP, or disable in app Settings
-  6. **Data Rates** — standard "Msg & data rates may apply"
-  7. **Privacy** — links to `/privacy` and `/terms`
-  8. **Contact** — support@chravelapp.com, privacy@chravelapp.com
+The `react-dropzone` hook's `preventDropOnDocument: true` option adds document-level handlers that call `preventDefault` on stray drops, but the Radix portal rendering can interfere with event propagation between the overlay and the dropzone inside the dialog content.
 
-**Modified file: `src/App.tsx`**
-- Add lazy import for `SmsTerms`
-- Add `<Route path="/sms-terms" ...>` (public, no auth — placed next to `/terms` route)
-- Add `/sms-terms` to the `isPublicRoute` check in `OfflineAwareRoutes`
+Additionally, the Radix `DialogContent` component has internal focus-trapping and pointer-event management that can intercept native drag events before they reach the dropzone div.
 
-### After deployment
-Use **`https://chravel.lovable.app/sms-terms`** as the "Proof of consent (opt-in) collected" URL in the Twilio toll-free verification form.
+### Fix
 
-### No other files affected
-The existing build errors shown are pre-existing and unrelated to this change.
+**File: `src/components/ui/dialog.tsx`** (1 change)
+
+Add `pointer-events: none` to the `DialogOverlay` so drag events pass through it to the content underneath. The overlay still blocks clicks (Radix handles dismissal via its own `onPointerDownOutside` mechanism on the content, not via overlay click handlers).
+
+**File: `src/features/calendar/components/CalendarImportModal.tsx`** (1 change)
+
+Add explicit `onDragOver` with `preventDefault` on the `DialogContent` element as a safety net. This ensures the browser doesn't intercept drag events at the dialog level before they reach the nested dropzone div. Pass it via the `className` or `onDragOver` prop.
+
+Specifically:
+- On the `<DialogContent>` element, add `onDragOver={(e) => e.preventDefault()}` to allow drops inside
+- This is the standard fix for "drop not working inside modals" — the browser's default `dragover` behavior is to reject drops unless `preventDefault` is called
+
+**File: `src/hooks/useSmartImportDropzone.ts`** (no changes needed)
+
+The hook configuration is correct. The issue is entirely in the DOM layer above it.
+
+### Why This Is Safe
+
+- `pointer-events: none` on the overlay only affects mouse/touch/drag events — Radix Dialog dismissal uses `onPointerDownOutside` on the Content component, not overlay click detection
+- The `onDragOver` preventDefault on DialogContent is a no-op for non-drag interactions
+- All three import modals (Calendar, Agenda, Lineup) share this `DialogContent` and `useSmartImportDropzone`, so the fix applies to all of them automatically
+
+### Verification
+
+- Drag a PDF from desktop into the import modal dropzone — should show "Drop your file here..." feedback and process the file on drop
+- Verify "Choose File" click still works
+- Verify URL import still works
+- Verify clicking outside the dialog still closes it
+- Verify the same fix works on the Agenda and Lineup import modals
 

@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
+import { useDemoMode } from '@/hooks/useDemoMode';
 import { supabase } from '@/integrations/supabase/client';
+import { DEMO_CONCIERGE_HISTORY } from '@/mockData/demoConciergeMessages';
 import type { HotelResult } from '@/features/chat/components/HotelResultCards';
 
 /**
@@ -76,6 +78,9 @@ function isValidTripId(tripId: string): boolean {
 /**
  * Fetches the authenticated user's persisted AI concierge history for a trip.
  *
+ * In demo mode, returns pre-seeded mock conversation data instead of
+ * querying the database (no auth session exists in demo mode).
+ *
  * Queries the `ai_queries` table directly (the previous RPC
  * `get_concierge_trip_history` does not exist in the database).
  *
@@ -89,11 +94,17 @@ export function useConciergeHistory(tripId: string): {
   refetch: () => void;
 } {
   const { user } = useAuth();
-  const enabled = isValidTripId(tripId) && !!user;
+  const { isDemoMode } = useDemoMode();
+  const enabled = isValidTripId(tripId) && (!!user || isDemoMode);
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['conciergeHistory', tripId, user?.id ?? 'anon'],
+    queryKey: ['conciergeHistory', tripId, user?.id ?? 'anon', isDemoMode ? 'demo' : 'live'],
     queryFn: async (): Promise<ConciergeChatMessage[]> => {
+      // Demo mode: return pre-seeded mock conversation data
+      if (isDemoMode && DEMO_CONCIERGE_HISTORY[tripId]) {
+        return DEMO_CONCIERGE_HISTORY[tripId];
+      }
+
       if (!user?.id) return [];
 
       const { data: rows, error: queryError } = await supabase

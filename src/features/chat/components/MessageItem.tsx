@@ -29,6 +29,15 @@ interface MessageItemProps {
   reactionUserNamesById?: Record<string, string>;
   /** Pass-through for admin message deletion */
   isAdmin?: boolean;
+  onBlockUser?: (userId: string) => void;
+  onReportContent?: (params: {
+    reportedUserId: string;
+    messageId: string;
+    reason: any;
+    details?: string;
+  }) => void;
+  isBlockingUser?: boolean;
+  isReportingContent?: boolean;
 }
 
 export const MessageItem = memo(
@@ -46,6 +55,10 @@ export const MessageItem = memo(
     readStatuses,
     reactionUserNamesById,
     isAdmin = false,
+    onBlockUser,
+    onReportContent,
+    isBlockingUser = false,
+    isReportingContent = false,
   }: MessageItemProps) => {
     const { user } = useAuth();
     const messageWithGrounding = message as unknown as ChatMessageWithGrounding;
@@ -140,6 +153,11 @@ export const MessageItem = memo(
           replyTo={message.replyTo}
           reactionUserNamesById={reactionUserNamesById}
           isAdmin={isAdmin}
+          senderUserId={senderUserId}
+          onBlockUser={onBlockUser}
+          onReportContent={onReportContent}
+          isBlockingUser={isBlockingUser}
+          isReportingContent={isReportingContent}
         />
       </div>
     );

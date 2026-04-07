@@ -1,3 +1,10 @@
+2026-04-07 — Scheduled staging E2E automation + Cursor prompt handoff (Trigger instructions follow-up)
+- Added dedicated workflow `.github/workflows/scheduled-e2e-staging.yml` for daily staging validation (Playwright chromium), artifact upload, run summary, and optional Slack webhook notification.
+- Added operator-ready prompt doc `docs/ACTIVE/CURSOR_AUTOMATION_E2E_PROMPT.md` to let Cursor Automations dispatch the workflow, wait for completion, and post structured thread summaries.
+- Added explicit trigger instructions (GitHub UI + GitHub CLI commands) to reduce operator confusion when manually running the workflow.
+- Updated `e2e/README.md` with a new Scheduled staging automation section linking workflow + prompt doc.
+- Verification: `npx prettier --check .github/workflows/scheduled-e2e-staging.yml docs/ACTIVE/CURSOR_AUTOMATION_E2E_PROMPT.md e2e/README.md`.
+
 2026-04-05 — CI reliability hardening (deterministic, split signal, artifact reuse)
 - Refactored `.github/workflows/ci.yml` into deterministic, lower-flake jobs with pinned runner (`ubuntu-24.04`), pinned Node (`20.19.0`), workflow-level concurrency cancelation, and explicit per-job timeouts.
 - Split PR signal into `static-checks`, `unit-tests`, `build`, and lightweight `e2e-smoke` while moving full Playwright suite to `main`/nightly/manual (`e2e-full`) to reduce flaky PR blocking.
@@ -217,15 +224,37 @@
   - `src/integrations/supabase/types.ts`
 - Verified no logic or data-shape changes (`eslint` warnings unchanged; zero new errors) and full gate now passes: `npm run validate` + `npm run build`.
 - Risk profile: low (format-only). Restores CI/deploy path without rolling back recent product updates.
-2026-04-06 — Dashboard Requests split tabs + outbound cancel action
-- Updated home Requests surface to show two explicit tabs: "Waiting on trips" (outgoing pending invites) and "People to review" (incoming join approvals) so both request types are visible without relying only on Alerts or per-trip People tab.
-- Preserved outgoing card pattern as grayed trip cards while adding an explicit in-card "Cancel request" CTA for outbound pending requests; incoming cards remain actionable with "Review in trip" CTA.
-- Added `cancelOutboundRequest` in `useDashboardJoinRequests` with owner-scoped pending delete filter (`id + user_id + status='pending'`) and demo-mode parity.
-- Added focused regression test `src/hooks/__tests__/useDashboardJoinRequests.test.ts` for direction splitting utility used by Requests tab logic.
-- Verification: `npm run test:run -- src/hooks/__tests__/useDashboardJoinRequests.test.ts`, `npm run typecheck`, `npm run lint:check`, `npm run build`.
-2026-04-07 — PR #137 merge-blocking fix: outbound request cancel path aligned with RLS
-- Audited PR #137 feedback and confirmed Cursor bot high-severity finding: client-side delete in `useDashboardJoinRequests.cancelOutboundRequest` conflicted with `trip_join_requests` DELETE RLS (admin-only), creating possible false-positive success UX.
-- Replaced direct table delete with a new narrow `SECURITY DEFINER` RPC `cancel_own_join_request(_request_id uuid)` in migration `20260407000001_add_cancel_own_join_request_rpc.sql`; enforces auth, ownership (`auth.uid() = user_id`), and `status='pending'` before deletion.
-- Updated hook to call RPC and map structured success/failure responses via `mapCancelOwnJoinRequestResult`, eliminating optimistic local success when backend deny/no-op occurs.
-- Expanded unit tests in `useDashboardJoinRequests.test.ts` to cover cancel-response mapping (success/failure/null guard).
-- Validation: targeted tests + typecheck + lint + build pass locally after installing missing deps (`npm install`).
+2026-04-06 — Dashboard Requests UX split (outgoing card + incoming approval list)
+- Updated Requests filter in `TripGrid` to a 2-tab experience:
+  - Outgoing tab keeps grayed-out pending trip cards and adds `Cancel request` CTA per card.
+  - Incoming tab now shows a simple approval queue list (`requester → trip + date`) with direct "Review request" CTA into trip People/Requests.
+- Extended `PendingTripCard` with optional secondary CTA for non-interactive cards so outbound pending requests can be canceled without enabling full card interactivity.
+- Added focused UI regression test for `PendingTripCard` CTAs.
+- Verification: `npm run test:run -- src/components/trip/__tests__/PendingTripCard.test.tsx src/hooks/__tests__/useDashboardJoinRequests.test.ts`, `npm run typecheck`, `npm run lint:check`, `npm run build`.
+2026-04-06 — TestFlight email notifications forensic audit + rollout recommendation
+- Traced settings toggle -> `notification_preferences.email_enabled` persistence in consumer notifications UI and verified the backend path is live (not mock): `notifications` insert trigger queues channel deliveries and `dispatch-notification-deliveries` sends via SendGrid.
+- Confirmed sender identity source of truth: `SENDGRID_FROM_EMAIL` env with fallback `support@chravelapp.com`; sender name `ChravelApp`.
+- Documented exact current-format content for broadcasts/trip invites/basecamp updates and created a concrete hardening plan (test-email UX, canonical type mapping audit, deliverability/ops checks) in `docs/plans/email-notifications-testflight-audit-2026-04-06.md`.
+2026-04-06 — Email footer CTA hardening for TestFlight clarity
+- Updated shared notification email builder (`supabase/functions/_shared/notificationContentBuilder.ts`) to include an explicit subtle footer CTA explaining how to stop/reduce similar emails and linked settings destination to `https://www.chravel.app`.
+- Aligned frontend notification content builder copy in `src/lib/notifications/contentBuilder.ts` to prevent drift in preview/dev tooling.
+- Expanded regression test assertions in `src/lib/__tests__/notificationContentBuilder.test.ts` to lock CTA sentence and website URL in email footer text.
+- Verification: `npm run test:run -- src/lib/__tests__/notificationContentBuilder.test.ts`, `npm run typecheck`.
+
+2026-04-06 — LiveKit voice readiness hardening (worker/token/smoke alignment)
+- Added `docs/ops/LIVEKIT_VOICE_READINESS_RUNBOOK.md` with explicit dependency chain and gate criteria so `livekit-token` success cannot be treated as end-to-end voice readiness.
+- Added focused hook regressions in `src/hooks/__tests__/useLiveKitVoice.test.tsx`:
+  - agent join timeout enforced at 10s
+  - stop/disconnect returns UI state to idle cleanly
+- Verification: `npm run test:run -- src/hooks/__tests__/useLiveKitVoice.test.tsx`.
+2026-04-06 — Trip chat Stream bootstrap race + Supabase dead-path removal
+- Added Stream client connection subscriber API in `src/services/stream/streamClient.ts` (`onStreamClientConnected`) and notify hooks on initial connect + reconnect (`connection.changed` online).
+- Hardened `useStreamTripChat` initialization to wait for client readiness and retry channel watch when Stream connects; added 10s timeout fail-safe for missing Stream config/connection.
+- Simplified `useTripChat` to Stream-only implementation by deleting the unreachable Supabase hook implementation.
+- Removed dead Supabase reaction fetch/subscription paths from `TripChat.tsx`, switched thread-open mapping to formatted messages, and routed edit/delete through Stream channel APIs.
+- Verification: `npm run lint && npm run typecheck && npm run build` pass (lint warnings baseline only).
+2026-04-06 — Stream migration history continuity (Supabase -> Stream)
+- Added legacy trip chat history merge in `useStreamTripChat`: on channel bootstrap, load recent `trip_chat_messages` rows from Supabase, map to Stream-shaped messages, merge/dedupe/sort with Stream channel state so pre-migration messages still render in TripChat.
+- Added race-safe connection readiness subscription to `useStreamConciergeHistory` so Stream concierge history hydrates after delayed Stream connects.
+- Updated `AIConciergeChat` history hydration to merge/dedupe/sort legacy Supabase (`ai_queries`) history with Stream concierge channel history, preventing history gaps across migration boundary.
+- Verification: `npm run lint && npm run typecheck && npm run build` pass (existing baseline warnings only).

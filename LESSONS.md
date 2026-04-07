@@ -350,4 +350,18 @@
 - **Applies when:** Building user-owned cancellation paths on shared moderation tables like `trip_join_requests`.
 - **Evidence:** Dashboard outbound cancel path in PR #137 originally used client DELETE (`id + user_id + pending`) but conflicted with admin-only DELETE policy; replacing with `cancel_own_join_request` RPC resolved correctness risk.
 - **Provenance:** April 2026 PR #137 merge-readiness audit and fix.
+### Stream chat hooks should react to client connection events, not one-time client snapshots
+- **Tip:** If a chat hook checks `getStreamClient()?.userID` only once during mount, it can permanently miss initialization when auth/token connection finishes later. Expose a small `onStreamClientConnected` subscriber in the singleton client module and re-run channel bootstrap when the callback fires.
+- **Applies when:** Stream-backed hooks mount before `connectUser()` resolves (slow auth, mobile resume, reconnect cycles).
+- **Avoid when:** The hook itself owns/awaits the client connection promise directly.
+- **Evidence:** Trip chat mounted before Stream connect, hit early return, and stayed blank until hard refresh; adding connection subscriber + readiness state + timeout restored automatic history bootstrap and send readiness.
+- **Provenance:** April 2026 GetStream trip chat race-condition fix (`streamClient.ts`, `useStreamTripChat.ts`).
+- **Confidence:** high
+
+### During chat backend migrations, hydrate from both old and new stores with deterministic dedupe
+- **Tip:** For phased messaging migrations (Supabase -> Stream), treat history as a dual-source read problem until a full backfill is complete: load from both stores, normalize shape, dedupe by stable fingerprint, and sort by server timestamp. This prevents silent history gaps for pre-migration conversations.
+- **Applies when:** Users can have conversation history written before and after a backend cutover.
+- **Avoid when:** Historical data has already been fully copied and validated in the destination store.
+- **Evidence:** Trip chat and concierge showed post-migration messages but could miss pre-migration history when Stream-only hydration paths were used.
+- **Provenance:** April 2026 Stream continuity hardening (`useStreamTripChat`, `useStreamConciergeHistory`, `AIConciergeChat`).
 - **Confidence:** high

@@ -32,6 +32,7 @@ import { useDemoMode } from '@/hooks/useDemoMode';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { SortableTripGrid } from '../dashboard/SortableTripGrid';
 import { Button } from '../ui/button';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Trip {
   id: number | string;
@@ -86,7 +87,9 @@ export const TripGrid = React.memo(
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-    const [requestTab, setRequestTab] = useState<'outgoing' | 'incoming'>('outgoing');
+    const [requestsTab, setRequestsTab] = useState<'outgoing' | 'incoming'>('outgoing');
+    const [dismissedRequestIds, setDismissedRequestIds] = useState<Set<string>>(new Set());
+    const [cancelingRequestIds, setCancelingRequestIds] = useState<Set<string>>(new Set());
     const [archivedTrips, setArchivedTrips] = useState<
       Array<{
         id: string;
@@ -136,6 +139,14 @@ export const TripGrid = React.memo(
     const activePendingTrips = useMemo(() => pendingTrips, [pendingTrips]);
     const activeProTrips = useMemo(() => proTrips, [proTrips]);
     const activeEvents = useMemo(() => events, [events]);
+    const visibleJoinRequests = useMemo(
+      () => dashboardJoinRequests.filter(request => !dismissedRequestIds.has(request.id)),
+      [dashboardJoinRequests, dismissedRequestIds],
+    );
+    const { outbound: outgoingRequests, inbound: incomingRequests } = useMemo(
+      () => splitJoinRequestsByDirection(visibleJoinRequests),
+      [visibleJoinRequests],
+    );
 
     // Fetch archived trips when filter is 'archived'
     useEffect(() => {
@@ -325,6 +336,59 @@ export const TripGrid = React.memo(
       [user?.id, isDemoMode, handleSwipeDelete],
     );
 
+    const handleCancelJoinRequest = useCallback(
+      async (requestId: string) => {
+        if (isDemoMode) {
+          toast({
+            title: 'Demo mode',
+            description: 'Cancel request is disabled in demo mode.',
+          });
+          return;
+        }
+
+        if (!user?.id) {
+          toast({
+            title: 'Not logged in',
+            description: 'You must be logged in to cancel a request.',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        setCancelingRequestIds(prev => new Set(prev).add(requestId));
+
+        try {
+          const { error } = await supabase
+            .from('trip_join_requests')
+            .delete()
+            .eq('id', requestId)
+            .eq('user_id', user.id)
+            .eq('status', 'pending');
+
+          if (error) throw error;
+
+          setDismissedRequestIds(prev => new Set(prev).add(requestId));
+          toast({
+            title: 'Request canceled',
+            description: 'Your join request was canceled.',
+          });
+        } catch {
+          toast({
+            title: 'Unable to cancel request',
+            description: 'Please try again in a moment.',
+            variant: 'destructive',
+          });
+        } finally {
+          setCancelingRequestIds(prev => {
+            const next = new Set(prev);
+            next.delete(requestId);
+            return next;
+          });
+        }
+      },
+      [isDemoMode, toast, user?.id],
+    );
+
     // Get location-filtered recommendations for travel recs view
     const {
       recommendations: filteredRecommendations,
@@ -370,7 +434,7 @@ export const TripGrid = React.memo(
 
     const hasContent =
       activeFilter === 'requests'
-        ? filteredRequests.length > 0
+        ? visibleJoinRequests.length > 0
         : activeFilter === 'archived'
           ? archivedTrips.length > 0
           : viewMode === 'myTrips'
@@ -503,103 +567,114 @@ export const TripGrid = React.memo(
           )}
 
           {activeFilter === 'requests' && (
-            <div className="flex w-full rounded-xl bg-secondary/50 p-1">
-              <button
-                type="button"
-                className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-medium min-h-[44px] transition-colors ${
-                  requestTab === 'outgoing'
-                    ? 'bg-background text-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-                onClick={() => setRequestTab('outgoing')}
+            <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-card/40 p-1 w-full sm:w-fit">
+              <Button
+                size="sm"
+                variant={requestsTab === 'outgoing' ? 'default' : 'ghost'}
+                onClick={() => setRequestsTab('outgoing')}
+                className="min-h-[44px]"
               >
-                Waiting on trips ({requestCounts.outgoing})
-              </button>
-              <button
-                type="button"
-                className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-medium min-h-[44px] transition-colors ${
-                  requestTab === 'incoming'
-                    ? 'bg-background text-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-                onClick={() => setRequestTab('incoming')}
+                Outgoing ({outgoingRequests.length})
+              </Button>
+              <Button
+                size="sm"
+                variant={requestsTab === 'incoming' ? 'default' : 'ghost'}
+                onClick={() => setRequestsTab('incoming')}
+                className="min-h-[44px]"
               >
-                People to review ({requestCounts.incoming})
-              </button>
+                Incoming ({incomingRequests.length})
+              </Button>
             </div>
           )}
 
           <div
-            className={`grid gap-6 w-full ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3'}`}
+            className={`grid gap-6 w-full ${
+              activeFilter === 'requests' && requestsTab === 'incoming'
+                ? 'grid-cols-1'
+                : isMobile
+                  ? 'grid-cols-1'
+                  : 'md:grid-cols-2 lg:grid-cols-3'
+            }`}
           >
             {activeFilter === 'requests' ? (
-              filteredRequests.map(request => {
-                const isInbound = request.direction === 'inbound';
-                const tripType = request.trip?.trip_type;
-                const path =
-                  tripType === 'pro'
-                    ? `/pro-trip/${request.trip_id}`
-                    : tripType === 'event'
-                      ? `/event/${request.trip_id}`
-                      : `/trip/${request.trip_id}`;
-                const openTripPeople = () =>
-                  navigate(`${path}?showCollaborators=${isInbound ? 'requests' : 'members'}`);
+              requestsTab === 'outgoing' ? (
+                outgoingRequests.length > 0 ? (
+                  outgoingRequests.map(request => (
+                    <RequestTripCard
+                      key={request.id}
+                      tripId={request.trip_id}
+                      tripName={request.trip?.name || 'Trip'}
+                      destination={request.trip?.destination}
+                      startDate={request.trip?.start_date}
+                      coverImage={request.trip?.cover_image_url}
+                      requestedAt={request.requested_at}
+                      statusBadge="Pending Approval"
+                      interactive={false}
+                      secondaryCtaLabel="Cancel request"
+                      onSecondaryCta={() => handleCancelJoinRequest(request.id)}
+                      isSecondaryCtaLoading={cancelingRequestIds.has(request.id)}
+                    />
+                  ))
+                ) : (
+                  <div className="col-span-full rounded-xl border border-border/50 bg-card/30 p-6 text-center">
+                    <p className="text-lg font-semibold">No outgoing requests</p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Trip requests you send will appear here as grayed-out trip cards.
+                    </p>
+                  </div>
+                )
+              ) : incomingRequests.length > 0 ? (
+                incomingRequests.map(request => {
+                  const tripType = request.trip?.trip_type;
+                  const path =
+                    tripType === 'pro'
+                      ? `/pro-trip/${request.trip_id}`
+                      : tripType === 'event'
+                        ? `/event/${request.trip_id}`
+                        : `/trip/${request.trip_id}`;
+                  const openTripPeople = () => navigate(`${path}?showCollaborators=requests`);
 
-                const cancelRequest = async () => {
-                  if (!onCancelDashboardRequest) return;
-                  const result = await onCancelDashboardRequest(request.id);
-                  if (result?.success) {
-                    toast({
-                      title: 'Request canceled',
-                      description: 'You will no longer be waiting on this trip invite.',
-                    });
-                    return;
-                  }
-                  toast({
-                    title: 'Unable to cancel request',
-                    description: result?.message || 'Please try again.',
-                    variant: 'destructive',
-                  });
-                };
-
-                return (
-                  <RequestTripCard
-                    key={request.id}
-                    tripId={request.trip_id}
-                    tripName={request.trip?.name || 'Trip'}
-                    destination={request.trip?.destination}
-                    startDate={request.trip?.start_date}
-                    coverImage={request.trip?.cover_image_url}
-                    requestedAt={request.requested_at}
-                    statusBadge={isInbound ? 'Wants to join' : 'Pending Approval'}
-                    subtitle={
-                      isInbound
-                        ? `${request.requesterLabel ?? 'Someone'} requested to join`
-                        : 'Waiting for organizer approval'
-                    }
-                    interactive={isInbound}
-                    ctaLabel={
-                      isInbound
-                        ? 'Review in trip'
-                        : onCancelDashboardRequest
-                          ? 'Cancel request'
-                          : undefined
-                    }
-                    onCta={
-                      isInbound
-                        ? openTripPeople
-                        : onCancelDashboardRequest
-                          ? cancelRequest
-                          : undefined
-                    }
-                    ctaVariant={isInbound ? 'primary' : 'destructive'}
-                    disabledCta={!isInbound && !onCancelDashboardRequest}
-                    ctaHelperText={
-                      !isInbound ? 'You can cancel while this trip is still pending.' : undefined
-                    }
-                  />
-                );
-              })
+                  return (
+                    <div
+                      key={request.id}
+                      className="rounded-xl border border-border/60 bg-card/40 p-4 flex flex-col gap-3"
+                    >
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">Pending approval</p>
+                        <p className="text-base font-medium">
+                          {request.requesterLabel ?? 'Someone'} requests to join{' '}
+                          <span className="text-gold-primary">{request.trip?.name || 'Trip'}</span>
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {request.trip?.start_date
+                            ? new Date(request.trip.start_date).toLocaleDateString(undefined, {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })
+                            : 'Date TBD'}
+                          {request.trip?.destination ? ` • ${request.trip.destination}` : ''}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="min-h-[44px] w-full sm:w-fit"
+                        onClick={openTripPeople}
+                      >
+                        Review request
+                      </Button>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="col-span-full rounded-xl border border-border/50 bg-card/30 p-6 text-center">
+                  <p className="text-lg font-semibold">No incoming requests</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    People waiting for your approval will show here.
+                  </p>
+                </div>
+              )
             ) : activeFilter === 'archived' ? (
               archivedTrips.map(trip => (
                 <ArchivedTripCard

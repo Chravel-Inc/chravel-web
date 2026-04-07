@@ -121,6 +121,8 @@ describe('buildNotificationContent', () => {
         expect(content.ctaLabel).toBe('Open in ChravelApp');
         expect(content.ctaUrl).toContain('trip-123');
         expect(content.footerText).toContain('notifications enabled');
+        expect(content.footerText).toContain('Want fewer notifications like this?');
+        expect(content.footerText).toContain('https://www.chravel.app');
       }
     });
   });

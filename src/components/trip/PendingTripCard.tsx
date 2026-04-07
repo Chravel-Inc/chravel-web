@@ -18,9 +18,9 @@ interface PendingTripCardProps {
   interactive?: boolean;
   ctaLabel?: string;
   onCta?: () => void;
-  ctaVariant?: 'primary' | 'destructive';
-  disabledCta?: boolean;
-  ctaHelperText?: string;
+  secondaryCtaLabel?: string;
+  onSecondaryCta?: () => void;
+  isSecondaryCtaLoading?: boolean;
 }
 
 export const PendingTripCard: React.FC<PendingTripCardProps> = ({
@@ -35,9 +35,9 @@ export const PendingTripCard: React.FC<PendingTripCardProps> = ({
   interactive = false,
   ctaLabel,
   onCta,
-  ctaVariant = 'primary',
-  disabledCta = false,
-  ctaHelperText,
+  secondaryCtaLabel,
+  onSecondaryCta,
+  isSecondaryCtaLoading = false,
 }) => {
   const ctaClassName =
     ctaVariant === 'destructive'
@@ -110,7 +110,16 @@ export const PendingTripCard: React.FC<PendingTripCardProps> = ({
             {ctaLabel}
           </button>
         )}
-        {ctaHelperText && <p className="mt-2 text-xs text-muted-foreground/70">{ctaHelperText}</p>}
+        {!interactive && secondaryCtaLabel && onSecondaryCta && (
+          <button
+            type="button"
+            className="mt-3 w-full text-sm font-medium rounded-lg border border-border/80 bg-background/30 py-2.5 px-3 hover:bg-background/50 min-h-[44px] text-foreground disabled:opacity-60 disabled:cursor-not-allowed"
+            onClick={onSecondaryCta}
+            disabled={isSecondaryCtaLoading}
+          >
+            {isSecondaryCtaLoading ? 'Canceling…' : secondaryCtaLabel}
+          </button>
+        )}
       </CardContent>
     </Card>
   );
