@@ -69,7 +69,9 @@ secondary_category("Productivity")
 # Configured in App Store Connect manually
 
 # Price tier (0 = Free)
-price_tier(0)
+# Commented out — Apple deprecated this API field in ASC.
+# Price is already configured in App Store Connect.
+# price_tier(0)
 
 # Privacy policy URL (locale hash format required by deliver 2.220+)
 privacy_url({ "default" => "https://chravel.app/privacy" })
