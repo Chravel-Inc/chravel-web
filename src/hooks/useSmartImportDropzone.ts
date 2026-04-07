@@ -103,7 +103,11 @@ export function useSmartImportDropzone({
     });
   }, []);
 
-  const { getRootProps: baseGetRootProps, getInputProps, isDragActive } = useDropzone({
+  const {
+    getRootProps: baseGetRootProps,
+    getInputProps,
+    isDragActive,
+  } = useDropzone({
     onDrop,
     onDropRejected,
     accept: SMART_IMPORT_ACCEPT,

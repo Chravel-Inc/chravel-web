@@ -17,6 +17,7 @@ interface TripCoverPhotoUploadProps {
   tripName?: string;
   className?: string;
   aspectRatio?: number; // 3 for desktop (3:1), 4/3 for mobile drawer
+  displayMode?: 'cover' | 'contain';
 }
 
 export const TripCoverPhotoUpload = ({
@@ -27,6 +28,7 @@ export const TripCoverPhotoUpload = ({
   tripName,
   className = '',
   aspectRatio = 3, // Default to 3:1 desktop banner
+  displayMode = 'cover',
 }: TripCoverPhotoUploadProps) => {
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
@@ -129,8 +131,15 @@ export const TripCoverPhotoUpload = ({
           setTimeout(() => setUploadSuccess(false), 2000);
         }
       } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
         console.error('Photo upload error:', error);
-        toast.error('Failed to upload photo. Please try again.');
+        if (message.includes('policy') || message.includes('permission')) {
+          toast.error(
+            'Upload blocked by trip permissions. Ask a trip admin to change media upload settings.',
+          );
+        } else {
+          toast.error(`Failed to upload photo: ${message}`);
+        }
       } finally {
         setIsUploading(false);
         setSelectedImageSrc('');
@@ -299,6 +308,7 @@ export const TripCoverPhotoUpload = ({
           imageSrc={selectedImageSrc}
           onCropComplete={handleCropComplete}
           aspectRatio={aspectRatio}
+          displayMode={displayMode}
         />
       )}
 
