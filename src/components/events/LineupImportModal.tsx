@@ -46,6 +46,7 @@ import {
 } from '@/utils/lineupImportParsers';
 import { toast } from 'sonner';
 import { useSmartImportDropzone } from '@/hooks/useSmartImportDropzone';
+import { useModalFileDropGuard } from '@/hooks/useModalFileDropGuard';
 
 export type LineupImportMode = 'merge' | 'replace';
 
@@ -88,6 +89,7 @@ export const LineupImportModal: React.FC<LineupImportModalProps> = ({
   const [urlInput, setUrlInput] = useState('');
   const [gmailCandidates, setGmailCandidates] = useState<SmartImportCandidate[]>([]);
   const [parsingSource, setParsingSource] = useState<'file' | 'text' | 'url' | 'gmail'>('file');
+  const { onDragOverCapture, onDropCapture } = useModalFileDropGuard({ enabled: isOpen });
 
   const processParseResult = useCallback((result: LineupParseResult) => {
     setParseResult(result);
@@ -186,7 +188,11 @@ export const LineupImportModal: React.FC<LineupImportModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={open => !open && handleClose()}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent
+        className="max-w-lg max-h-[85vh] overflow-hidden flex flex-col"
+        onDragOverCapture={onDragOverCapture}
+        onDropCapture={onDropCapture}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="w-5 h-5" />
