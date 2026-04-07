@@ -495,6 +495,11 @@ export const AIConciergeChat = ({
   // reference changes. Avoids the stale-closure race where messages.length is
   // read from a stale closure but the user has already submitted a message.
   const hasHydratedRef = useRef(false);
+  useEffect(() => {
+    if (streamConciergeEnabled && !isStreamHistoryLoaded && messages.length === 0) {
+      hasHydratedRef.current = false;
+    }
+  }, [streamConciergeEnabled, isStreamHistoryLoaded, messages.length]);
 
   // ─── Voice ─────────────────────────────────────────────────────────────────
   // When DUPLEX_VOICE_ENABLED is true, the waveform button tries Gemini Live
