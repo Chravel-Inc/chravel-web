@@ -21,6 +21,9 @@ import { authDebug } from '@/utils/authDebug';
 import { telemetry } from '@/telemetry/service';
 import { toast } from '@/hooks/use-toast';
 import { logAuthEvent } from '@/utils/authTelemetry';
+import { buildSessionDerivedUser } from '@/lib/sessionDerivedUser';
+
+const TRIPS_QUERY_KEY = 'trips';
 
 // Timeout utility to prevent indefinite hanging on database queries
 const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> => {
@@ -429,6 +432,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     [ensureProfileExists],
   );
 
+  /** Warm React Query cache for dashboard trips in parallel with profile enrichment. */
+  const prefetchUserTrips = useCallback((userId: string) => {
+    void queryClient.prefetchQuery({
+      queryKey: [TRIPS_QUERY_KEY, userId, false],
+      queryFn: async () => {
+        const { tripService } = await import('@/services/tripService');
+        return tripService.getUserTrips(false, undefined, userId);
+      },
+      staleTime: 1000 * 60 * 5,
+    });
+  }, []);
+
   /**
    * Force refresh session when token is invalid.
    * Returns refreshed session or null if refresh fails.
@@ -527,15 +542,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               const refreshed = await forceRefreshSession();
               if (refreshed) {
                 setSession(refreshed);
-                const transformedUser = await transformUser(refreshed.user);
-                setUser(transformedUser);
+                setUser(buildSessionDerivedUser(refreshed.user));
+                prefetchUserTrips(refreshed.user.id);
+                void transformUser(refreshed.user).then(u => {
+                  if (u) setUser(u);
+                });
               }
               setIsLoading(false);
               return;
             }
             setSession(retry.data.session);
-            const transformedUser = await transformUser(retry.data.session.user);
-            setUser(transformedUser);
+            setUser(buildSessionDerivedUser(retry.data.session.user));
+            prefetchUserTrips(retry.data.session.user.id);
+            void transformUser(retry.data.session.user).then(u => {
+              if (u) setUser(u);
+            });
             setIsLoading(false);
             return;
           }
@@ -561,8 +582,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               hasExpiresAt: Boolean(refreshedSession.expires_at),
             });
             setSession(refreshedSession);
-            const transformedUser = await transformUser(refreshedSession.user);
-            setUser(transformedUser);
+            setUser(buildSessionDerivedUser(refreshedSession.user));
+            prefetchUserTrips(refreshedSession.user.id);
+            void transformUser(refreshedSession.user).then(u => {
+              if (u) setUser(u);
+            });
           } else {
             authDebug('init:getSession:tokenInvalid:refreshFailed');
             setUser(shouldUseDemoUserRef.current ? demoUser : null);
@@ -583,8 +607,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const { data: refreshed } = await supabase.auth.refreshSession();
             if (refreshed.session && isSessionTokenValid(refreshed.session.access_token)) {
               setSession(refreshed.session);
-              const transformedUser = await transformUser(refreshed.session.user);
-              setUser(transformedUser);
+              setUser(buildSessionDerivedUser(refreshed.session.user));
+              prefetchUserTrips(refreshed.session.user.id);
+              void transformUser(refreshed.session.user).then(u => {
+                if (u) setUser(u);
+              });
               setIsLoading(false);
               return;
             }
@@ -619,8 +646,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             });
           }
           try {
-            const transformedUser = await transformUser(session.user);
-            setUser(transformedUser);
+            setUser(buildSessionDerivedUser(session.user));
+            prefetchUserTrips(session.user.id);
+            void transformUser(session.user).then(u => {
+              if (u) setUser(u);
+            });
           } catch (err) {
             authDebug('init:transformUser:error', { error: String(err) });
             if (import.meta.env.DEV) {
@@ -706,27 +736,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         // Defer async work with setTimeout(0) to avoid Supabase auth deadlock
         setTimeout(() => {
+          setUser(buildSessionDerivedUser(session.user));
+          prefetchUserTrips(session.user.id);
+          setIsLoading(false);
+
           transformUser(session.user)
             .then(transformedUser => {
               authDebug('onAuthStateChange:transformUser:success');
-              setUser(transformedUser);
-              setIsLoading(false);
-
-              // Identify user in analytics (no email for privacy)
-              telemetry.identify({
-                id: transformedUser.id,
-                display_name: transformedUser.displayName ?? undefined,
-                is_pro: transformedUser.isPro ?? undefined,
-                organization_id: transformedUser.organizationId ?? undefined,
-              });
+              if (transformedUser) {
+                setUser(transformedUser);
+                // Identify user in analytics (no email for privacy)
+                telemetry.identify({
+                  id: transformedUser.id,
+                  display_name: transformedUser.displayName ?? undefined,
+                  is_pro: transformedUser.isPro ?? undefined,
+                  organization_id: transformedUser.organizationId ?? undefined,
+                });
+              }
             })
             .catch(err => {
               authDebug('onAuthStateChange:transformUser:error', { error: String(err) });
               if (import.meta.env.DEV) {
                 console.error('[Auth] Error transforming user:', err);
               }
-              setUser(null);
-              setIsLoading(false);
+              setUser(buildSessionDerivedUser(session.user));
             });
         }, 0);
       } else {
@@ -753,7 +786,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       subscription.unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- forceRefreshSession is stable (useCallback with no deps), adding it risks auth re-init loops
-  }, [transformUser, demoUser]);
+  }, [transformUser, demoUser, prefetchUserTrips]);
 
   // Visibility change listener: refresh session when user returns to tab
   useEffect(() => {

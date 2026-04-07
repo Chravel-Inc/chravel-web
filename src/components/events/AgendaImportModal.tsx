@@ -39,6 +39,7 @@ import {
 } from '@/utils/agendaImportParsers';
 import { toast } from 'sonner';
 import { useSmartImportDropzone } from '@/hooks/useSmartImportDropzone';
+import { useModalFileDropGuard } from '@/hooks/useModalFileDropGuard';
 
 interface AgendaImportModalProps {
   isOpen: boolean;
@@ -114,6 +115,7 @@ export const AgendaImportModal: React.FC<AgendaImportModalProps> = ({
   const [pasteText, setPasteText] = useState('');
   const [urlInput, setUrlInput] = useState('');
   const [parsingSource, setParsingSource] = useState<'file' | 'text' | 'url'>('file');
+  const { onDragOverCapture, onDropCapture } = useModalFileDropGuard({ enabled: isOpen });
 
   const processParseResult = useCallback(
     (result: AgendaParseResult) => {
@@ -266,7 +268,11 @@ export const AgendaImportModal: React.FC<AgendaImportModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent
+        className="max-w-lg max-h-[85vh] overflow-hidden flex flex-col"
+        onDragOverCapture={onDragOverCapture}
+        onDropCapture={onDropCapture}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="w-5 h-5" />

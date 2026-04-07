@@ -71,7 +71,9 @@ const BRAND_PREFIX = 'ChravelApp:';
 export const FROM_EMAIL = 'support@chravelapp.com';
 export const FROM_NAME = 'ChravelApp';
 const APP_URL = 'https://app.chravelapp.com';
-const SETTINGS_URL = `${APP_URL}/settings`;
+const SETTINGS_URL = 'https://www.chravel.app';
+const SETTINGS_CTA_TEXT =
+  'Want fewer notifications like this? Log in and update your notification settings.';
 
 // ---------------------------------------------------------------------------
 // Formatting helpers
@@ -276,7 +278,7 @@ function buildEmail(input: NotificationContentInput): EmailContent {
 <a href="${escapeHtml(cta)}" target="_blank" style="display:inline-block;padding:14px 28px;color:#000;font-size:16px;font-weight:600;text-decoration:none;">Open in ChravelApp</a>
 </td></tr></table></td></tr>
 <tr><td style="padding:20px 32px;border-top:1px solid #333;">
-<p style="margin:0;font-size:12px;color:#666;line-height:1.5;">You received this because you have notifications enabled on ChravelApp.<br/><a href="${escapeHtml(SETTINGS_URL)}" style="color:#f59e0b;text-decoration:underline;">Manage notification settings</a></p>
+<p style="margin:0;font-size:12px;color:#666;line-height:1.5;">You received this because you have notifications enabled on ChravelApp.<br/>${escapeHtml(SETTINGS_CTA_TEXT)} <a href="${escapeHtml(SETTINGS_URL)}" style="color:#f59e0b;text-decoration:underline;">Manage notification settings</a></p>
 </td></tr></table></td></tr></table></body></html>`;
 
   return {
@@ -284,10 +286,11 @@ function buildEmail(input: NotificationContentInput): EmailContent {
     previewText: push.body,
     heading: push.title,
     bodyHtml,
-    bodyText: `${push.title}\n\n${push.body}\n\nOpen in ChravelApp: ${cta}\n\n---\nYou received this because you have notifications enabled. Manage settings: ${SETTINGS_URL}`,
+    bodyText: `${push.title}\n\n${push.body}\n\nOpen in ChravelApp: ${cta}\n\n---\nYou received this because you have notifications enabled.\n${SETTINGS_CTA_TEXT}\nManage settings: ${SETTINGS_URL}`,
     ctaLabel: 'Open in ChravelApp',
     ctaUrl: cta,
-    footerText: 'You received this because you have notifications enabled on ChravelApp.',
+    footerText:
+      'You received this because you have notifications enabled on ChravelApp. Want fewer notifications like this? Log in and update your notification settings at https://www.chravel.app.',
   };
 }
 

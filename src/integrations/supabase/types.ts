@@ -528,6 +528,64 @@ export type Database = {
         }
         Relationships: []
       }
+      content_reports: {
+        Row: {
+          created_at: string
+          details: string | null
+          id: string
+          message_id: string | null
+          reason: string
+          reported_user_id: string
+          reporter_id: string
+          status: string
+          trip_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          message_id?: string | null
+          reason: string
+          reported_user_id: string
+          reporter_id: string
+          status?: string
+          trip_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          message_id?: string | null
+          reason?: string
+          reported_user_id?: string
+          reporter_id?: string
+          status?: string
+          trip_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_reports_reported_user_id_fkey"
+            columns: ["reported_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_reports_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dashboard_card_order: {
         Row: {
           dashboard_type: string
@@ -1349,6 +1407,68 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      notification_deliveries: {
+        Row: {
+          attempt_count: number
+          channel: string
+          created_at: string
+          error_message: string | null
+          id: string
+          last_attempted_at: string | null
+          max_attempts: number
+          metadata: Json | null
+          next_attempt_at: string
+          notification_id: string
+          provider_message_id: string | null
+          recipient: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["notification_delivery_status"]
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          channel: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          last_attempted_at?: string | null
+          max_attempts?: number
+          metadata?: Json | null
+          next_attempt_at?: string
+          notification_id: string
+          provider_message_id?: string | null
+          recipient?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["notification_delivery_status"]
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          channel?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          last_attempted_at?: string | null
+          max_attempts?: number
+          metadata?: Json | null
+          next_attempt_at?: string
+          notification_id?: string
+          provider_message_id?: string | null
+          recipient?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["notification_delivery_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_deliveries_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_logs: {
         Row: {
@@ -3630,6 +3750,42 @@ export type Database = {
           },
         ]
       }
+      user_blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_blocks_blocked_id_fkey"
+            columns: ["blocked_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_blocks_blocker_id_fkey"
+            columns: ["blocker_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_entitlements: {
         Row: {
           created_at: string
@@ -4036,6 +4192,37 @@ export type Database = {
           reset_at: string
         }[]
       }
+      claim_notification_deliveries: {
+        Args: {
+          p_channels?: string[]
+          p_delivery_ids?: string[]
+          p_limit?: number
+          p_notification_ids?: string[]
+        }
+        Returns: {
+          attempt_count: number
+          channel: string
+          created_at: string
+          error_message: string | null
+          id: string
+          last_attempted_at: string | null
+          max_attempts: number
+          metadata: Json | null
+          next_attempt_at: string
+          notification_id: string
+          provider_message_id: string | null
+          recipient: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["notification_delivery_status"]
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "notification_deliveries"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       cleanup_rate_limits: { Args: never; Returns: undefined }
       create_event_with_conflict_check: {
         Args: {
@@ -4232,6 +4419,7 @@ export type Database = {
         Args: { _trip_id: string; _user_id: string }
         Returns: boolean
       }
+      is_user_sms_entitled: { Args: { p_user_id: string }; Returns: boolean }
       log_basecamp_change: {
         Args: {
           p_action: string
@@ -4338,6 +4526,12 @@ export type Database = {
     }
     Enums: {
       app_role: "consumer" | "pro" | "enterprise_admin"
+      notification_delivery_status:
+        | "queued"
+        | "processing"
+        | "sent"
+        | "failed"
+        | "cancelled"
       org_member_role: "owner" | "admin" | "member"
       org_status: "active" | "trial" | "cancelled" | "expired" | "suspended"
       org_subscription_tier:
@@ -4474,6 +4668,13 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["consumer", "pro", "enterprise_admin"],
+      notification_delivery_status: [
+        "queued",
+        "processing",
+        "sent",
+        "failed",
+        "cancelled",
+      ],
       org_member_role: ["owner", "admin", "member"],
       org_status: ["active", "trial", "cancelled", "expired", "suspended"],
       org_subscription_tier: [

@@ -25,17 +25,18 @@ export const ExitDemoButton: React.FC<ExitDemoButtonProps> = ({ onNavigate }) =>
           exit={{ opacity: 0, scale: 0.9 }}
           transition={{ duration: 0.2 }}
           onClick={() => setShowModal(true)}
+          aria-label="Exit demo mode"
           className={`
-            fixed z-50 flex items-center gap-1.5 
-            px-3 py-1.5 
-            bg-background/80 backdrop-blur-sm 
-            border border-orange-500/30 
+            fixed z-50 flex items-center justify-center gap-1
+            px-1.5 py-0.5
+            bg-background/80 backdrop-blur-sm
+            border border-orange-500/30
             rounded-lg shadow-lg
             text-orange-600 dark:text-orange-400
             hover:bg-orange-500/10 hover:border-orange-500/50
             transition-colors duration-200
-            text-xs font-medium
-            ${isMobile ? 'top-0 left-3' : 'top-4 right-4'}
+            text-[0.5625rem] font-medium
+            ${isMobile ? 'top-0 left-3 min-h-[44px] min-w-[44px]' : 'top-4 left-4'}
           `}
           style={
             isMobile
@@ -46,7 +47,7 @@ export const ExitDemoButton: React.FC<ExitDemoButtonProps> = ({ onNavigate }) =>
               : undefined
           }
         >
-          <LogOut size={14} />
+          <LogOut size={8} />
           <span>Exit Demo</span>
         </motion.button>
       </AnimatePresence>
