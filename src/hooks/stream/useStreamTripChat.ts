@@ -19,7 +19,6 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   getStreamApiKey,
   getStreamClient,
-  onStreamClientConnectionStatusChange,
   onStreamClientConnected,
 } from '@/services/stream/streamClient';
 import { CHANNEL_TYPE_TRIP, tripChannelId } from '@/services/stream/streamChannelFactory';
@@ -135,6 +134,35 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     return () => window.clearTimeout(timer);
   }, [isEnabled, tripId, streamClientReady]);
 
+  useEffect(() => {
+    const unsubscribe = onStreamClientConnected(() => {
+      setStreamClientReady(true);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    if (!isEnabled || !tripId) return;
+
+    if (streamClientReady) return;
+
+    const timer = window.setTimeout(() => {
+      if (streamClientReady || getStreamClient()?.userID) return;
+
+      if (!getStreamApiKey()) {
+        setError(new Error('Stream chat is not configured'));
+        setIsLoading(false);
+        return;
+      }
+
+      setError(new Error('Timed out waiting for chat connection'));
+      setIsLoading(false);
+    }, 10000);
+
+    return () => window.clearTimeout(timer);
+  }, [isEnabled, tripId, streamClientReady]);
+
   // Initialize channel and load messages
   useEffect(() => {
     if (!tripId || !isEnabled) {
@@ -204,15 +232,54 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     const init = async () => {
       try {
         const channel = client.channel(CHANNEL_TYPE_TRIP, tripChannelId(tripId));
-        await channel.watch({ state: true, messages: { limit: PAGE_SIZE } });
-        const { mergedMessages, streamMessagesCount } = await loadMergedMessages(channel);
+        const state = await channel.watch({ state: true, messages: { limit: PAGE_SIZE } });
+        const streamMessages = (state.messages || []) as MessageResponse[];
+
+        const { data: legacyRows, error: legacyError } = await supabase
+          .from('trip_chat_messages')
+          .select(
+            'id,content,author_name,user_id,created_at,updated_at,media_type,media_url,link_preview,privacy_mode,message_type,reply_to_id',
+          )
+          .eq('trip_id', tripId)
+          .eq('is_deleted', false)
+          .order('created_at', { ascending: true })
+          .limit(LEGACY_MESSAGE_LIMIT);
+
+        if (legacyError && import.meta.env.DEV) {
+          console.warn('[Stream] Legacy trip chat backfill failed:', legacyError.message);
+        }
+
+        const legacyMessages = mapLegacyRowsToStreamMessages(
+          (legacyRows || []) as LegacyTripChatRow[],
+        );
+        const mergedMessages = [...streamMessages];
+        const seenMessageIds = new Set(streamMessages.map(message => message.id));
+        const seenFingerprints = new Set(
+          streamMessages.map(
+            message =>
+              `${message.user?.id || 'unknown'}|${(message.text || '').trim()}|${message.created_at}`,
+          ),
+        );
+        for (const legacyMessage of legacyMessages) {
+          if (seenMessageIds.has(legacyMessage.id)) continue;
+          const fingerprint = `${legacyMessage.user?.id || 'unknown'}|${(legacyMessage.text || '').trim()}|${legacyMessage.created_at}`;
+          if (seenFingerprints.has(fingerprint)) continue;
+          mergedMessages.push(legacyMessage);
+          seenFingerprints.add(fingerprint);
+        }
+        mergedMessages.sort((a, b) => {
+          const aDate = new Date(a.created_at || 0).getTime();
+          const bDate = new Date(b.created_at || 0).getTime();
+          return aDate - bDate;
+        });
 
         if (cancelled) return;
 
         channelRef.current = channel;
         setActiveChannel(channel);
+
         setMessages(mergedMessages);
-        setHasMore(streamMessagesCount === PAGE_SIZE);
+        setHasMore(streamMessages.length === PAGE_SIZE);
         setError(null);
         setIsLoading(false);
       } catch (err) {

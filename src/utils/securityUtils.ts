@@ -14,7 +14,7 @@ export class InputValidator {
         .replace(/javascript\s*:/gi, '') // Remove javascript: protocol (with optional whitespace)
         .replace(/vbscript\s*:/gi, '') // Remove vbscript: protocol
         .replace(/data\s*:/gi, '') // Remove data: protocol
-        .replace(/on\w+\s*=/gi, '') // Remove event handlers (with optional whitespace before =)
+        .replace(/on\w+\s*=/gi, '') // Remove event handlers (with optional whitespace before =) // codeql[js/incomplete-sanitization] - False positive: loop-until-stable (do/while above) re-runs until no change, defeating multi-char bypass (e.g. "ononclick=")
         .replace(/&#/g, '') // Remove HTML entity encoding attempts
         .replace(/%3[cC]/g, '') // Remove URL-encoded <
         .replace(/%3[eE]/g, ''); // Remove URL-encoded >

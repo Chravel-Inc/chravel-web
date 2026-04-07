@@ -10,11 +10,7 @@
 
 import { useState, useEffect } from 'react';
 import { useFeatureFlag } from '@/lib/featureFlags';
-import {
-  getStreamClient,
-  onStreamClientConnected,
-  onStreamClientConnectionStatusChange,
-} from '@/services/stream/streamClient';
+import { getStreamClient, onStreamClientConnected } from '@/services/stream/streamClient';
 import {
   loadConciergeHistory,
   type ConciergeMessage,
@@ -34,13 +30,6 @@ export function useStreamConciergeHistory(tripId: string | undefined, userId: st
       setStreamConnected(true);
     });
 
-    return unsubscribe;
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = onStreamClientConnectionStatusChange(isConnected => {
-      setStreamConnected(isConnected);
-    });
     return unsubscribe;
   }, []);
 

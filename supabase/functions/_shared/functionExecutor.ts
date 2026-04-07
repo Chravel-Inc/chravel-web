@@ -2018,8 +2018,8 @@ async function _executeImpl(
       do {
         prevText = textContent;
         textContent = textContent
-          .replace(/<script[^>]*>[\s\S]*?<\/script\s*>/gi, '')
-          .replace(/<style[^>]*>[\s\S]*?<\/style\s*>/gi, '')
+          .replace(/<script[^>]*>[\s\S]*?<\/script\s*>/gi, '') // codeql[js/incomplete-sanitization] - False positive: loop-until-stable handles nested tags; output is LLM context only, never rendered
+          .replace(/<style[^>]*>[\s\S]*?<\/style\s*>/gi, '') // codeql[js/incomplete-sanitization] - False positive: same loop-until-stable guarantee
           .replace(/<[^>]+>/g, ' ')
           .replace(/\s+/g, ' ');
       } while (textContent !== prevText);

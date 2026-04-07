@@ -447,14 +447,15 @@ export const AIConciergeChat = ({
       return combined;
     }
 
-    const dedupedById = new Map<string, ChatMessage>();
+    const dedupedByFingerprint = new Map<string, ChatMessage>();
     combined.forEach(message => {
-      if (!dedupedById.has(message.id)) {
-        dedupedById.set(message.id, message);
+      const fingerprint = `${message.type}|${message.content.trim()}|${message.timestamp}`;
+      if (!dedupedByFingerprint.has(fingerprint)) {
+        dedupedByFingerprint.set(fingerprint, message);
       }
     });
 
-    return Array.from(dedupedById.values()).sort(
+    return Array.from(dedupedByFingerprint.values()).sort(
       (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
     );
   }, [historyMessages, streamHistoryMessages]);
