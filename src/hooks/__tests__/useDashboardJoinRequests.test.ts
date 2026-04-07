@@ -1,32 +1,38 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   splitJoinRequestsByDirection,
   type DashboardJoinRequest,
-} from '../useDashboardJoinRequests';
+} from '@/hooks/useDashboardJoinRequests';
 
 describe('splitJoinRequestsByDirection', () => {
-  it('partitions inbound vs outbound', () => {
+  it('separates outbound and inbound requests', () => {
     const rows: DashboardJoinRequest[] = [
       {
-        id: '1',
-        trip_id: 't1',
-        user_id: 'u1',
-        requested_at: '2026-01-01',
+        id: 'out-1',
+        trip_id: 'trip-1',
+        user_id: 'user-1',
+        requested_at: '2026-04-01T00:00:00Z',
         direction: 'outbound',
       },
       {
-        id: '2',
-        trip_id: 't1',
-        user_id: 'u2',
-        requested_at: '2026-01-02',
+        id: 'in-1',
+        trip_id: 'trip-2',
+        user_id: 'user-2',
+        requested_at: '2026-04-02T00:00:00Z',
         direction: 'inbound',
-        requesterLabel: 'Alex',
+      },
+      {
+        id: 'out-2',
+        trip_id: 'trip-3',
+        user_id: 'user-1',
+        requested_at: '2026-04-03T00:00:00Z',
+        direction: 'outbound',
       },
     ];
-    const { outbound, inbound } = splitJoinRequestsByDirection(rows);
-    expect(outbound).toHaveLength(1);
-    expect(outbound[0].id).toBe('1');
-    expect(inbound).toHaveLength(1);
-    expect(inbound[0].id).toBe('2');
+
+    const result = splitJoinRequestsByDirection(rows);
+
+    expect(result.outbound.map(r => r.id)).toEqual(['out-1', 'out-2']);
+    expect(result.inbound.map(r => r.id)).toEqual(['in-1']);
   });
 });

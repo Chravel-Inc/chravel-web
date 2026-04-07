@@ -186,9 +186,40 @@ export function useDashboardJoinRequests(isDemoMode = false) {
     };
   }, [user?.id, isDemoMode, fetchRequests]);
 
+  const cancelOutboundRequest = useCallback(
+    async (requestId: string): Promise<{ success: boolean; message?: string }> => {
+      if (!user?.id) {
+        return { success: false, message: 'You must be logged in to cancel requests.' };
+      }
+
+      if (isDemoMode) {
+        setRequests(prev =>
+          prev.filter(request => !(request.id === requestId && request.direction === 'outbound')),
+        );
+        return { success: true };
+      }
+
+      const { error } = await supabase
+        .from('trip_join_requests')
+        .delete()
+        .eq('id', requestId)
+        .eq('user_id', user.id)
+        .eq('status', 'pending');
+
+      if (error) {
+        return { success: false, message: error.message || 'Failed to cancel request.' };
+      }
+
+      setRequests(prev => prev.filter(request => request.id !== requestId));
+      return { success: true };
+    },
+    [isDemoMode, user?.id],
+  );
+
   return {
     requests,
     isLoading,
     refetch: fetchRequests,
+    cancelOutboundRequest,
   };
 }

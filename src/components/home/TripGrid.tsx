@@ -23,7 +23,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { ToastAction } from '../ui/toast';
 import { useQueryClient } from '@tanstack/react-query';
-import type { DashboardJoinRequest } from '@/hooks/useDashboardJoinRequests';
+import {
+  splitJoinRequestsByDirection,
+  type DashboardJoinRequest,
+} from '@/hooks/useDashboardJoinRequests';
 import { useNavigate } from 'react-router-dom';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
@@ -54,6 +57,9 @@ interface TripGridProps {
   onCreateTrip?: () => void;
   activeFilter?: string;
   dashboardJoinRequests?: DashboardJoinRequest[];
+  onCancelDashboardRequest?: (
+    requestId: string,
+  ) => Promise<{ success: boolean; message?: string }> | undefined;
   // Callback when a trip is archived/hidden/deleted (for demo mode refresh)
   onTripStateChange?: () => void;
 }
@@ -69,6 +75,7 @@ export const TripGrid = React.memo(
     onCreateTrip,
     activeFilter = 'all',
     dashboardJoinRequests = [],
+    onCancelDashboardRequest,
     onTripStateChange,
   }: TripGridProps) => {
     const isMobile = useIsMobile();
@@ -79,6 +86,7 @@ export const TripGrid = React.memo(
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [requestTab, setRequestTab] = useState<'outgoing' | 'incoming'>('outgoing');
     const [archivedTrips, setArchivedTrips] = useState<
       Array<{
         id: string;
@@ -95,6 +103,21 @@ export const TripGrid = React.memo(
     const { tier: _tier } = useConsumerSubscription();
     const { deleteTrip } = useDeleteTrip();
     const [reorderMode, setReorderMode] = useState<'my_trips' | 'pro' | 'events' | null>(null);
+
+    useEffect(() => {
+      if (activeFilter !== 'requests') {
+        return;
+      }
+
+      const hasOutgoing = dashboardJoinRequests.some(request => request.direction === 'outbound');
+      const hasIncoming = dashboardJoinRequests.some(request => request.direction === 'inbound');
+
+      if (!hasOutgoing && hasIncoming) {
+        setRequestTab('incoming');
+      } else if (hasOutgoing && !hasIncoming) {
+        setRequestTab('outgoing');
+      }
+    }, [activeFilter, dashboardJoinRequests]);
 
     // Stable identity fns for dnd-kit — inline lambdas change every render and retrigger order sync.
     const getMyTripId = useCallback((trip: Trip) => trip.id.toString(), []);
@@ -312,6 +335,30 @@ export const TripGrid = React.memo(
       viewMode === 'travelRecs' ? manualLocation : undefined,
     );
 
+    const splitRequests = useMemo(
+      () => splitJoinRequestsByDirection(dashboardJoinRequests),
+      [dashboardJoinRequests],
+    );
+
+    const requestCounts = useMemo(
+      () => ({
+        incoming: splitRequests.inbound.length,
+        outgoing: splitRequests.outbound.length,
+      }),
+      [splitRequests.inbound.length, splitRequests.outbound.length],
+    );
+
+    const filteredRequests = useMemo(() => {
+      if (activeFilter !== 'requests') return dashboardJoinRequests;
+      return requestTab === 'incoming' ? splitRequests.inbound : splitRequests.outbound;
+    }, [
+      activeFilter,
+      dashboardJoinRequests,
+      requestTab,
+      splitRequests.inbound,
+      splitRequests.outbound,
+    ]);
+
     // Show loading skeleton
     if (loading) {
       return (
@@ -321,10 +368,9 @@ export const TripGrid = React.memo(
       );
     }
 
-    // Check if we have content for the current view mode (using filtered data)
     const hasContent =
       activeFilter === 'requests'
-        ? dashboardJoinRequests.length > 0
+        ? filteredRequests.length > 0
         : activeFilter === 'archived'
           ? archivedTrips.length > 0
           : viewMode === 'myTrips'
@@ -345,7 +391,9 @@ export const TripGrid = React.memo(
             icon: Clock,
             title: 'No pending requests',
             description:
-              'Outgoing: trips you asked to join. Incoming: people waiting for approval on trips you help manage. Open a trip’s People tab to approve.',
+              requestTab === 'outgoing'
+                ? "No outgoing requests right now. When you request to join a trip, it'll appear here as a grayed card until approved."
+                : 'No incoming requests right now. Incoming approvals are listed here so you can review quickly without opening each trip first.',
             actionLabel: undefined,
             onAction: undefined,
           };
@@ -454,11 +502,38 @@ export const TripGrid = React.memo(
             </Alert>
           )}
 
+          {activeFilter === 'requests' && (
+            <div className="flex w-full rounded-xl bg-secondary/50 p-1">
+              <button
+                type="button"
+                className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-medium min-h-[44px] transition-colors ${
+                  requestTab === 'outgoing'
+                    ? 'bg-background text-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                onClick={() => setRequestTab('outgoing')}
+              >
+                Waiting on trips ({requestCounts.outgoing})
+              </button>
+              <button
+                type="button"
+                className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-medium min-h-[44px] transition-colors ${
+                  requestTab === 'incoming'
+                    ? 'bg-background text-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                onClick={() => setRequestTab('incoming')}
+              >
+                People to review ({requestCounts.incoming})
+              </button>
+            </div>
+          )}
+
           <div
             className={`grid gap-6 w-full ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3'}`}
           >
             {activeFilter === 'requests' ? (
-              dashboardJoinRequests.map(request => {
+              filteredRequests.map(request => {
                 const isInbound = request.direction === 'inbound';
                 const tripType = request.trip?.trip_type;
                 const path =
@@ -469,6 +544,23 @@ export const TripGrid = React.memo(
                       : `/trip/${request.trip_id}`;
                 const openTripPeople = () =>
                   navigate(`${path}?showCollaborators=${isInbound ? 'requests' : 'members'}`);
+
+                const cancelRequest = async () => {
+                  if (!onCancelDashboardRequest) return;
+                  const result = await onCancelDashboardRequest(request.id);
+                  if (result?.success) {
+                    toast({
+                      title: 'Request canceled',
+                      description: 'You will no longer be waiting on this trip invite.',
+                    });
+                    return;
+                  }
+                  toast({
+                    title: 'Unable to cancel request',
+                    description: result?.message || 'Please try again.',
+                    variant: 'destructive',
+                  });
+                };
 
                 return (
                   <RequestTripCard
@@ -483,11 +575,28 @@ export const TripGrid = React.memo(
                     subtitle={
                       isInbound
                         ? `${request.requesterLabel ?? 'Someone'} requested to join`
-                        : undefined
+                        : 'Waiting for organizer approval'
                     }
                     interactive={isInbound}
-                    ctaLabel={isInbound ? 'Review in trip' : undefined}
-                    onCta={isInbound ? openTripPeople : undefined}
+                    ctaLabel={
+                      isInbound
+                        ? 'Review in trip'
+                        : onCancelDashboardRequest
+                          ? 'Cancel request'
+                          : undefined
+                    }
+                    onCta={
+                      isInbound
+                        ? openTripPeople
+                        : onCancelDashboardRequest
+                          ? cancelRequest
+                          : undefined
+                    }
+                    ctaVariant={isInbound ? 'primary' : 'destructive'}
+                    disabledCta={!isInbound && !onCancelDashboardRequest}
+                    ctaHelperText={
+                      !isInbound ? 'You can cancel while this trip is still pending.' : undefined
+                    }
                   />
                 );
               })

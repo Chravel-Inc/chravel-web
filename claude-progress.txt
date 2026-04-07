@@ -217,3 +217,9 @@
   - `src/integrations/supabase/types.ts`
 - Verified no logic or data-shape changes (`eslint` warnings unchanged; zero new errors) and full gate now passes: `npm run validate` + `npm run build`.
 - Risk profile: low (format-only). Restores CI/deploy path without rolling back recent product updates.
+2026-04-06 — Dashboard Requests split tabs + outbound cancel action
+- Updated home Requests surface to show two explicit tabs: "Waiting on trips" (outgoing pending invites) and "People to review" (incoming join approvals) so both request types are visible without relying only on Alerts or per-trip People tab.
+- Preserved outgoing card pattern as grayed trip cards while adding an explicit in-card "Cancel request" CTA for outbound pending requests; incoming cards remain actionable with "Review in trip" CTA.
+- Added `cancelOutboundRequest` in `useDashboardJoinRequests` with owner-scoped pending delete filter (`id + user_id + status='pending'`) and demo-mode parity.
+- Added focused regression test `src/hooks/__tests__/useDashboardJoinRequests.test.ts` for direction splitting utility used by Requests tab logic.
+- Verification: `npm run test:run -- src/hooks/__tests__/useDashboardJoinRequests.test.ts`, `npm run typecheck`, `npm run lint:check`, `npm run build`.

@@ -192,8 +192,11 @@ const Index = () => {
 
   // Fetch pending join requests for the current user (for "Requests" counter)
   // Must be declared before handleRefresh which depends on refetchPendingTrips
-  const { requests: dashboardJoinRequests, refetch: refetchDashboardJoinRequests } =
-    useDashboardJoinRequests(isDemoMode);
+  const {
+    requests: dashboardJoinRequests,
+    refetch: refetchDashboardJoinRequests,
+    cancelOutboundRequest,
+  } = useDashboardJoinRequests(isDemoMode);
 
   // Callback to refresh trip list when a trip is archived/hidden/deleted
   const handleTripStateChange = useCallback(() => {
@@ -839,6 +842,7 @@ const Index = () => {
                   onCreateTrip={handleCreateTrip}
                   activeFilter={recsFilter}
                   dashboardJoinRequests={filteredDashboardJoinRequests}
+                  onCancelDashboardRequest={cancelOutboundRequest}
                   onTripStateChange={handleTripStateChange}
                 />
               </div>
@@ -1011,6 +1015,7 @@ const Index = () => {
                 onCreateTrip={handleCreateTrip}
                 activeFilter={recsFilter}
                 dashboardJoinRequests={filteredDashboardJoinRequests}
+                onCancelDashboardRequest={cancelOutboundRequest}
                 onTripStateChange={handleTripStateChange}
               />
             </div>
@@ -1244,6 +1249,7 @@ const Index = () => {
             onCreateTrip={handleCreateTrip}
             activeFilter={activeFilter}
             dashboardJoinRequests={filteredDashboardJoinRequests}
+            onCancelDashboardRequest={cancelOutboundRequest}
             onTripStateChange={handleTripStateChange}
           />
         </div>

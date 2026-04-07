@@ -18,6 +18,9 @@ interface PendingTripCardProps {
   interactive?: boolean;
   ctaLabel?: string;
   onCta?: () => void;
+  ctaVariant?: 'primary' | 'destructive';
+  disabledCta?: boolean;
+  ctaHelperText?: string;
 }
 
 export const PendingTripCard: React.FC<PendingTripCardProps> = ({
@@ -32,7 +35,15 @@ export const PendingTripCard: React.FC<PendingTripCardProps> = ({
   interactive = false,
   ctaLabel,
   onCta,
+  ctaVariant = 'primary',
+  disabledCta = false,
+  ctaHelperText,
 }) => {
+  const ctaClassName =
+    ctaVariant === 'destructive'
+      ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+      : 'bg-primary text-primary-foreground hover:bg-primary/90';
+
   return (
     <Card
       className={`relative overflow-hidden bg-card/50 border-border ${
@@ -89,15 +100,17 @@ export const PendingTripCard: React.FC<PendingTripCardProps> = ({
         <p className="text-xs text-muted-foreground/60">
           Requested {format(new Date(requestedAt), 'MMM d, yyyy')}
         </p>
-        {interactive && ctaLabel && onCta && (
+        {ctaLabel && onCta && (
           <button
             type="button"
-            className="mt-3 w-full text-sm font-medium rounded-lg bg-primary text-primary-foreground py-2.5 px-3 hover:bg-primary/90 min-h-[44px]"
+            className={`mt-3 w-full text-sm font-medium rounded-lg py-2.5 px-3 min-h-[44px] transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${ctaClassName}`}
             onClick={onCta}
+            disabled={disabledCta}
           >
             {ctaLabel}
           </button>
         )}
+        {ctaHelperText && <p className="mt-2 text-xs text-muted-foreground/70">{ctaHelperText}</p>}
       </CardContent>
     </Card>
   );
