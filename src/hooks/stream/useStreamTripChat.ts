@@ -88,6 +88,51 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
   const channelRef = useRef<Channel | null>(null);
   // State mirror of channelRef for triggering the event subscription effect
   const [activeChannel, setActiveChannel] = useState<Channel | null>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = onStreamClientConnected(() => {
+      setStreamClientReady(true);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = onStreamClientConnectionStatusChange(isConnected => {
+      if (!isMountedRef.current) return;
+      setStreamClientReady(isConnected);
+    });
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    if (!isEnabled || !tripId) return;
+
+    if (streamClientReady && getStreamClient()?.userID) return;
+
+    const timer = window.setTimeout(() => {
+      if (streamClientReady || getStreamClient()?.userID) return;
+
+      if (!getStreamApiKey()) {
+        setError(new Error('Stream chat is not configured'));
+        setIsLoading(false);
+        return;
+      }
+
+      setError(new Error('Timed out waiting for chat connection'));
+      setIsLoading(false);
+    }, 10000);
+
+    return () => window.clearTimeout(timer);
+  }, [isEnabled, tripId, streamClientReady]);
 
   useEffect(() => {
     const unsubscribe = onStreamClientConnected(() => {
@@ -131,6 +176,58 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     }
 
     let cancelled = false;
+
+    const loadMergedMessages = async (
+      channel: Channel,
+    ): Promise<{ mergedMessages: MessageResponse[]; streamMessagesCount: number }> => {
+      const state = await channel.query({
+        messages: { limit: PAGE_SIZE },
+      });
+      const streamMessages = (state.messages || []) as MessageResponse[];
+
+      const { data: legacyRows, error: legacyError } = await supabase
+        .from('trip_chat_messages')
+        .select(
+          'id,content,author_name,user_id,created_at,updated_at,media_type,media_url,link_preview,privacy_mode,message_type,reply_to_id',
+        )
+        .eq('trip_id', tripId)
+        .eq('is_deleted', false)
+        .order('created_at', { ascending: true })
+        .limit(LEGACY_MESSAGE_LIMIT);
+
+      if (legacyError && import.meta.env.DEV) {
+        console.warn('[Stream] Legacy trip chat backfill failed:', legacyError.message);
+      }
+
+      const legacyMessages = mapLegacyRowsToStreamMessages(
+        (legacyRows || []) as LegacyTripChatRow[],
+      );
+      const mergedMessages = [...streamMessages];
+      const seenMessageIds = new Set(streamMessages.map(message => message.id));
+      const seenFingerprints = new Set(
+        streamMessages.map(
+          message =>
+            `${message.user?.id || 'unknown'}|${(message.text || '').trim()}|${message.created_at}`,
+        ),
+      );
+      for (const legacyMessage of legacyMessages) {
+        if (seenMessageIds.has(legacyMessage.id)) continue;
+        const fingerprint = `${legacyMessage.user?.id || 'unknown'}|${(legacyMessage.text || '').trim()}|${legacyMessage.created_at}`;
+        if (seenFingerprints.has(fingerprint)) continue;
+        mergedMessages.push(legacyMessage);
+        seenFingerprints.add(fingerprint);
+      }
+      mergedMessages.sort((a, b) => {
+        const aDate = new Date(a.created_at || 0).getTime();
+        const bDate = new Date(b.created_at || 0).getTime();
+        return aDate - bDate;
+      });
+
+      return {
+        mergedMessages,
+        streamMessagesCount: streamMessages.length,
+      };
+    };
 
     const init = async () => {
       try {
@@ -207,14 +304,41 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
 
   const reload = useCallback(async () => {
     if (!tripId || !isEnabled || !channelRef.current) return;
+    const channel = channelRef.current;
 
     try {
       setIsLoading(true);
-      const state = await channelRef.current.query({
+      const state = await channel.query({
         messages: { limit: PAGE_SIZE },
       });
-      setMessages((state.messages || []) as MessageResponse[]);
-      setHasMore((state.messages || []).length === PAGE_SIZE);
+
+      const streamMessages = (state.messages || []) as MessageResponse[];
+      const { data: legacyRows } = await supabase
+        .from('trip_chat_messages')
+        .select(
+          'id,content,author_name,user_id,created_at,updated_at,media_type,media_url,link_preview,privacy_mode,message_type,reply_to_id',
+        )
+        .eq('trip_id', tripId)
+        .eq('is_deleted', false)
+        .order('created_at', { ascending: true })
+        .limit(LEGACY_MESSAGE_LIMIT);
+
+      const legacyMessages = mapLegacyRowsToStreamMessages(
+        (legacyRows || []) as LegacyTripChatRow[],
+      );
+      const mergedMessages = [...streamMessages];
+      const seenIds = new Set(streamMessages.map(message => message.id));
+      legacyMessages.forEach(legacyMessage => {
+        if (!seenIds.has(legacyMessage.id)) {
+          mergedMessages.push(legacyMessage);
+        }
+      });
+      mergedMessages.sort(
+        (a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime(),
+      );
+
+      setMessages(mergedMessages);
+      setHasMore(streamMessages.length === PAGE_SIZE);
     } catch (err) {
       if (import.meta.env.DEV) {
         console.error('[Stream] reload failed:', err);
@@ -294,9 +418,19 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     ) => {
       const channel = channelRef.current;
       if (!channel || !tripId) return;
+      const normalizedContent = content.trim();
+      if (!normalizedContent) return;
+      if (normalizedContent.length > 4000) {
+        toast({
+          title: 'Message too long',
+          description: 'Please keep messages under 4000 characters.',
+          variant: 'destructive',
+        });
+        return;
+      }
 
       const payload: Record<string, unknown> = {
-        text: content,
+        text: normalizedContent,
       };
 
       if (privacyMode && privacyMode !== 'standard') {
@@ -305,7 +439,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       if (messageType && messageType !== 'text') {
         payload.message_type = messageType;
       }
-      if (replyToId) {
+      if (replyToId && !replyToId.startsWith('legacy-')) {
         payload.parent_id = replyToId;
       }
       if (mentionedUserIds && mentionedUserIds.length > 0) {
@@ -323,7 +457,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
             message_type:
               (messageType as 'text' | 'media' | 'broadcast' | 'payment' | 'system') || 'text',
             has_media: Boolean(mediaUrl),
-            character_count: content.length,
+            character_count: normalizedContent.length,
             is_offline_queued: false,
           });
         })

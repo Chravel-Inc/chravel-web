@@ -1,3 +1,10 @@
+2026-04-07 — Scheduled staging E2E automation + Cursor prompt handoff (Trigger instructions follow-up)
+- Added dedicated workflow `.github/workflows/scheduled-e2e-staging.yml` for daily staging validation (Playwright chromium), artifact upload, run summary, and optional Slack webhook notification.
+- Added operator-ready prompt doc `docs/ACTIVE/CURSOR_AUTOMATION_E2E_PROMPT.md` to let Cursor Automations dispatch the workflow, wait for completion, and post structured thread summaries.
+- Added explicit trigger instructions (GitHub UI + GitHub CLI commands) to reduce operator confusion when manually running the workflow.
+- Updated `e2e/README.md` with a new Scheduled staging automation section linking workflow + prompt doc.
+- Verification: `npx prettier --check .github/workflows/scheduled-e2e-staging.yml docs/ACTIVE/CURSOR_AUTOMATION_E2E_PROMPT.md e2e/README.md`.
+
 2026-04-05 — CI reliability hardening (deterministic, split signal, artifact reuse)
 - Refactored `.github/workflows/ci.yml` into deterministic, lower-flake jobs with pinned runner (`ubuntu-24.04`), pinned Node (`20.19.0`), workflow-level concurrency cancelation, and explicit per-job timeouts.
 - Split PR signal into `static-checks`, `unit-tests`, `build`, and lightweight `e2e-smoke` while moving full Playwright suite to `main`/nightly/manual (`e2e-full`) to reduce flaky PR blocking.

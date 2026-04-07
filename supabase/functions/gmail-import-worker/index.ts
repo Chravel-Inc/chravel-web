@@ -136,20 +136,21 @@ function extractEmailBody(payload: Record<string, unknown>): string {
 
   if (plainText) return plainText;
 
-    // Apply HTML stripping in a loop until stable to prevent bypass via nested patterns.
-    // Use \s* in closing tags (</script\s*>) to match tags with optional whitespace like </script >.
-    let stripped = htmlText;
-    let prevStripped: string;
-    do {
-          prevStripped = stripped;
-          stripped = stripped
-            .replace(/<style[^>]*>[\s\S]*?<\/style\s*>/gi, '')
-            .replace(/<script[^>]*>[\s\S]*?<\/script\s*>/gi, '')
-            .replace(/<[^>]+>/g, ' ')
-            .replace(/&nbsp;/g, ' ')
-            .replace(/\s+/g, ' ');
-    } while (stripped !== prevStripped);
-    return stripped.trim();
+  // Apply HTML stripping in a loop until stable to prevent bypass via nested patterns.
+  // Use \s* in closing tags (</script\s*>) to match tags with optional whitespace like </script >.
+  let stripped = htmlText;
+  let prevStripped: string;
+  do {
+    prevStripped = stripped;
+    stripped = stripped
+      .replace(/<style[^>]*>[\s\S]*?<\/style\s*>/gi, '')
+      .replace(/<script[^>]*>[\s\S]*?<\/script\s*>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/\s+/g, ' ');
+  } while (stripped !== prevStripped);
+  return stripped.trim();
+}
 
 function extractAttachmentHints(payload: Record<string, unknown>): string[] {
   const hints: string[] = [];
