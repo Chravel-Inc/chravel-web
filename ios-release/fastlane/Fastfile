@@ -176,7 +176,8 @@ platform :ios do
       force: true,
       overwrite_screenshots: true,
       price_tier: nil,
-      run_precheck_before_submit: false
+      run_precheck_before_submit: false,
+      ignore_language_directory_validation: true
     )
   end
 
