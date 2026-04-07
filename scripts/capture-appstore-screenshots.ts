@@ -66,9 +66,9 @@ const IPHONE_SHOTS: ShotDef[] = [
   { name: '02-trip-chat', tripPath: '/trip/1', tab: 'chat' },
   {
     name: '03-calendar-itinerary',
-    tripPath: '/trip/2',
+    tripPath: '/trip/5',
     tab: 'calendar',
-    fallbackTrips: ['/trip/8', '/trip/4'],
+    fallbackTrips: ['/trip/2', '/trip/8'],
   },
   {
     name: '04-ai-concierge',
