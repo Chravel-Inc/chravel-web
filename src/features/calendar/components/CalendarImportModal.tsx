@@ -36,6 +36,7 @@ import { format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 import { tripKeys } from '@/lib/queryKeys';
 import { useSmartImportDropzone } from '@/hooks/useSmartImportDropzone';
+import { useModalFileDropGuard } from '@/hooks/useModalFileDropGuard';
 import { validateImportUrl } from '@/features/calendar/utils/importUrlValidation';
 
 interface CalendarImportModalProps {
@@ -86,6 +87,7 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
   const [urlInput, setUrlInput] = useState('');
   const [parsingSource, setParsingSource] = useState<'file' | 'text' | 'url'>('file');
   const queryClient = useQueryClient();
+  const { onDragOverCapture, onDropCapture } = useModalFileDropGuard({ enabled: isOpen });
 
   const processParseResult = useCallback(
     (result: SmartParseResult) => {
@@ -289,7 +291,11 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-hidden flex flex-col" onDragOver={(e) => e.preventDefault()} onDrop={(e) => e.preventDefault()}>
+      <DialogContent
+        className="max-w-lg max-h-[85vh] overflow-hidden flex flex-col"
+        onDragOverCapture={onDragOverCapture}
+        onDropCapture={onDropCapture}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="w-5 h-5" />
