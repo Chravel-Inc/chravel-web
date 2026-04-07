@@ -1,3 +1,10 @@
+2026-04-07 — Scheduled staging E2E automation + Cursor prompt handoff (Trigger instructions follow-up)
+- Added dedicated workflow `.github/workflows/scheduled-e2e-staging.yml` for daily staging validation (Playwright chromium), artifact upload, run summary, and optional Slack webhook notification.
+- Added operator-ready prompt doc `docs/ACTIVE/CURSOR_AUTOMATION_E2E_PROMPT.md` to let Cursor Automations dispatch the workflow, wait for completion, and post structured thread summaries.
+- Added explicit trigger instructions (GitHub UI + GitHub CLI commands) to reduce operator confusion when manually running the workflow.
+- Updated `e2e/README.md` with a new Scheduled staging automation section linking workflow + prompt doc.
+- Verification: `npx prettier --check .github/workflows/scheduled-e2e-staging.yml docs/ACTIVE/CURSOR_AUTOMATION_E2E_PROMPT.md e2e/README.md`.
+
 2026-04-05 — CI reliability hardening (deterministic, split signal, artifact reuse)
 - Refactored `.github/workflows/ci.yml` into deterministic, lower-flake jobs with pinned runner (`ubuntu-24.04`), pinned Node (`20.19.0`), workflow-level concurrency cancelation, and explicit per-job timeouts.
 - Split PR signal into `static-checks`, `unit-tests`, `build`, and lightweight `e2e-smoke` while moving full Playwright suite to `main`/nightly/manual (`e2e-full`) to reduce flaky PR blocking.
@@ -233,3 +240,21 @@
 - Aligned frontend notification content builder copy in `src/lib/notifications/contentBuilder.ts` to prevent drift in preview/dev tooling.
 - Expanded regression test assertions in `src/lib/__tests__/notificationContentBuilder.test.ts` to lock CTA sentence and website URL in email footer text.
 - Verification: `npm run test:run -- src/lib/__tests__/notificationContentBuilder.test.ts`, `npm run typecheck`.
+
+2026-04-06 — LiveKit voice readiness hardening (worker/token/smoke alignment)
+- Added `docs/ops/LIVEKIT_VOICE_READINESS_RUNBOOK.md` with explicit dependency chain and gate criteria so `livekit-token` success cannot be treated as end-to-end voice readiness.
+- Added focused hook regressions in `src/hooks/__tests__/useLiveKitVoice.test.tsx`:
+  - agent join timeout enforced at 10s
+  - stop/disconnect returns UI state to idle cleanly
+- Verification: `npm run test:run -- src/hooks/__tests__/useLiveKitVoice.test.tsx`.
+2026-04-06 — Trip chat Stream bootstrap race + Supabase dead-path removal
+- Added Stream client connection subscriber API in `src/services/stream/streamClient.ts` (`onStreamClientConnected`) and notify hooks on initial connect + reconnect (`connection.changed` online).
+- Hardened `useStreamTripChat` initialization to wait for client readiness and retry channel watch when Stream connects; added 10s timeout fail-safe for missing Stream config/connection.
+- Simplified `useTripChat` to Stream-only implementation by deleting the unreachable Supabase hook implementation.
+- Removed dead Supabase reaction fetch/subscription paths from `TripChat.tsx`, switched thread-open mapping to formatted messages, and routed edit/delete through Stream channel APIs.
+- Verification: `npm run lint && npm run typecheck && npm run build` pass (lint warnings baseline only).
+2026-04-06 — Stream migration history continuity (Supabase -> Stream)
+- Added legacy trip chat history merge in `useStreamTripChat`: on channel bootstrap, load recent `trip_chat_messages` rows from Supabase, map to Stream-shaped messages, merge/dedupe/sort with Stream channel state so pre-migration messages still render in TripChat.
+- Added race-safe connection readiness subscription to `useStreamConciergeHistory` so Stream concierge history hydrates after delayed Stream connects.
+- Updated `AIConciergeChat` history hydration to merge/dedupe/sort legacy Supabase (`ai_queries`) history with Stream concierge channel history, preventing history gaps across migration boundary.
+- Verification: `npm run lint && npm run typecheck && npm run build` pass (existing baseline warnings only).

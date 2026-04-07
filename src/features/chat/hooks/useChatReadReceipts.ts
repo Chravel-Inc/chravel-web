@@ -13,6 +13,8 @@ export function useChatReadReceipts(
   liveMessages: any[],
   activeChannel?: any,
 ) {
+  const getMessageUserId = (msg: any): string | undefined => msg.user_id || msg.user?.id;
+
   const [readStatusesByMessage, setReadStatusesByMessage] = useState<Record<string, any[]>>({});
 
   const markedMessageIdsRef = useRef<Set<string>>(new Set());
@@ -22,7 +24,7 @@ export function useChatReadReceipts(
   useEffect(() => {
     if (!userId) return;
     ownMessageIdsRef.current = new Set(
-      liveMessages.filter(msg => msg.user_id === userId).map(msg => msg.id),
+      liveMessages.filter(msg => getMessageUserId(msg) === userId).map(msg => msg.id),
     );
   }, [liveMessages, userId]);
 
@@ -62,7 +64,7 @@ export function useChatReadReceipts(
     if (isDemoMode || !userId || !resolvedTripId || liveMessages.length === 0) return;
 
     const newUnmarkedIds = liveMessages
-      .filter(msg => msg.user_id !== userId && !markedMessageIdsRef.current.has(msg.id))
+      .filter(msg => getMessageUserId(msg) !== userId && !markedMessageIdsRef.current.has(msg.id))
       .map(msg => msg.id);
 
     if (newUnmarkedIds.length === 0) return;
@@ -93,7 +95,7 @@ export function useChatReadReceipts(
   useEffect(() => {
     if (isDemoMode || !userId || liveMessages.length === 0) return;
 
-    const ownMessages = liveMessages.filter(msg => msg.user_id === userId);
+    const ownMessages = liveMessages.filter(msg => getMessageUserId(msg) === userId);
     if (ownMessages.length === ownMessageCountRef.current) return;
     ownMessageCountRef.current = ownMessages.length;
 

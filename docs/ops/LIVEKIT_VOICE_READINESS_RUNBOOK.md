@@ -64,7 +64,7 @@ In Chravel UI:
 1. Open trip → AI Concierge.
 2. Tap **Start Live**.
 3. Confirm agent joins within **10 seconds**.
-4. Speak a short prompt (for example, "Give me one plan update").
+4. Speak a short prompt (for example, “Give me one plan update”).
 5. Tap **Stop/Disconnect**.
 6. Confirm UI returns to idle with no stuck spinner/transcript artifacts.
 
@@ -98,7 +98,7 @@ Likely root causes:
 
 ## Operational Guardrails
 
-- Never mark voice "ready" using only token logs.
+- Never mark voice “ready” using only token logs.
 - Include both:
   - control-plane proof (worker present + healthy)
   - data-plane proof (live session smoke pass)
