@@ -16,9 +16,7 @@ const ALLOWED_ORIGINS = [
   'http://127.0.0.1:5173',
   'http://127.0.0.1:3000',
   'http://127.0.0.1:8080',
-  // Mobile app (Capacitor)
-  'capacitor://localhost',
-  'ionic://localhost',
+  // Mobile app / local dev
   'http://localhost',
   // Preview/staging domains: use ADDITIONAL_ALLOWED_ORIGINS env var
   // Do NOT add wildcard subdomain matchers like '.vercel.app' here.

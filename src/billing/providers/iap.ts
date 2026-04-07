@@ -180,18 +180,8 @@ export class AppleIAPProvider extends BaseBillingProvider {
     // Deep link to iOS subscription settings
     const url = 'itms-apps://apps.apple.com/account/subscriptions';
 
-    try {
-      // Try Capacitor App plugin if available
-      const mod = await import(/* @vite-ignore */ '@capacitor/app' as string).catch(() => null);
-      if (mod?.App?.openUrl) {
-        await mod.App.openUrl({ url });
-      } else {
-        window.location.assign(url);
-      }
-    } catch {
-      if (typeof window !== 'undefined') {
-        window.location.assign(url);
-      }
+    if (typeof window !== 'undefined') {
+      window.location.assign(url);
     }
   }
 
