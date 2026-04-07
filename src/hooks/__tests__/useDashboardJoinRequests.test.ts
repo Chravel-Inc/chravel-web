@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  mapCancelOwnJoinRequestResult,
   splitJoinRequestsByDirection,
   type DashboardJoinRequest,
 } from '@/hooks/useDashboardJoinRequests';
@@ -34,5 +35,32 @@ describe('splitJoinRequestsByDirection', () => {
 
     expect(result.outbound.map(r => r.id)).toEqual(['out-1', 'out-2']);
     expect(result.inbound.map(r => r.id)).toEqual(['in-1']);
+  });
+});
+
+describe('mapCancelOwnJoinRequestResult', () => {
+  it('maps successful RPC response', () => {
+    expect(mapCancelOwnJoinRequestResult({ success: true, message: 'ok' })).toEqual({
+      success: true,
+    });
+  });
+
+  it('maps explicit RPC failure response', () => {
+    expect(
+      mapCancelOwnJoinRequestResult({
+        success: false,
+        message: 'Only pending requests can be canceled',
+      }),
+    ).toEqual({
+      success: false,
+      message: 'Only pending requests can be canceled',
+    });
+  });
+
+  it('guards against null payloads', () => {
+    expect(mapCancelOwnJoinRequestResult(null)).toEqual({
+      success: false,
+      message: 'Unable to cancel request.',
+    });
   });
 });

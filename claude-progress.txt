@@ -223,3 +223,9 @@
 - Added `cancelOutboundRequest` in `useDashboardJoinRequests` with owner-scoped pending delete filter (`id + user_id + status='pending'`) and demo-mode parity.
 - Added focused regression test `src/hooks/__tests__/useDashboardJoinRequests.test.ts` for direction splitting utility used by Requests tab logic.
 - Verification: `npm run test:run -- src/hooks/__tests__/useDashboardJoinRequests.test.ts`, `npm run typecheck`, `npm run lint:check`, `npm run build`.
+2026-04-07 — PR #137 merge-blocking fix: outbound request cancel path aligned with RLS
+- Audited PR #137 feedback and confirmed Cursor bot high-severity finding: client-side delete in `useDashboardJoinRequests.cancelOutboundRequest` conflicted with `trip_join_requests` DELETE RLS (admin-only), creating possible false-positive success UX.
+- Replaced direct table delete with a new narrow `SECURITY DEFINER` RPC `cancel_own_join_request(_request_id uuid)` in migration `20260407000001_add_cancel_own_join_request_rpc.sql`; enforces auth, ownership (`auth.uid() = user_id`), and `status='pending'` before deletion.
+- Updated hook to call RPC and map structured success/failure responses via `mapCancelOwnJoinRequestResult`, eliminating optimistic local success when backend deny/no-op occurs.
+- Expanded unit tests in `useDashboardJoinRequests.test.ts` to cover cancel-response mapping (success/failure/null guard).
+- Validation: targeted tests + typecheck + lint + build pass locally after installing missing deps (`npm install`).

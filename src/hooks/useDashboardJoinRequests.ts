@@ -46,6 +46,20 @@ type JoinRequestRow = {
   trips: TripJoinRow | TripJoinRow[] | null;
 };
 
+type CancelOwnJoinRequestResult = {
+  success?: boolean;
+  message?: string;
+};
+
+export function mapCancelOwnJoinRequestResult(data: CancelOwnJoinRequestResult | null): {
+  success: boolean;
+  message?: string;
+} {
+  if (!data) return { success: false, message: 'Unable to cancel request.' };
+  if (data.success) return { success: true };
+  return { success: false, message: data.message || 'Unable to cancel request.' };
+}
+
 export function splitJoinRequestsByDirection(rows: DashboardJoinRequest[]): {
   outbound: DashboardJoinRequest[];
   inbound: DashboardJoinRequest[];
@@ -199,16 +213,22 @@ export function useDashboardJoinRequests(isDemoMode = false) {
         return { success: true };
       }
 
-      const { error } = await supabase
-        .from('trip_join_requests')
-        .delete()
-        .eq('id', requestId)
-        .eq('user_id', user.id)
-        .eq('status', 'pending');
+      // typed RPC shim until supabase types are regenerated
+      const rpc = supabase.rpc.bind(supabase) as unknown as <T>(
+        fn: string,
+        params?: Record<string, string>,
+      ) => Promise<{ data: T | null; error: { message?: string } | null }>;
+
+      const { data, error } = await rpc<CancelOwnJoinRequestResult>('cancel_own_join_request', {
+        _request_id: requestId,
+      });
 
       if (error) {
         return { success: false, message: error.message || 'Failed to cancel request.' };
       }
+
+      const result = mapCancelOwnJoinRequestResult(data);
+      if (!result.success) return result;
 
       setRequests(prev => prev.filter(request => request.id !== requestId));
       return { success: true };
