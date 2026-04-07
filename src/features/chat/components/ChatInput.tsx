@@ -562,6 +562,7 @@ export const ChatInput = ({
 
           {/* Send Button — persistent gold rim; broadcast mode keeps orange gradient */}
           <button
+            data-testid="chat-send-btn"
             onClick={handleSend}
             disabled={(!inputMessage.trim() && !isShareUploading) || isTyping}
             className={
