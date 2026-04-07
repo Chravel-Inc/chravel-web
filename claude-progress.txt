@@ -233,6 +233,13 @@
 - Aligned frontend notification content builder copy in `src/lib/notifications/contentBuilder.ts` to prevent drift in preview/dev tooling.
 - Expanded regression test assertions in `src/lib/__tests__/notificationContentBuilder.test.ts` to lock CTA sentence and website URL in email footer text.
 - Verification: `npm run test:run -- src/lib/__tests__/notificationContentBuilder.test.ts`, `npm run typecheck`.
+
+2026-04-06 — LiveKit voice readiness hardening (worker/token/smoke alignment)
+- Added `docs/ops/LIVEKIT_VOICE_READINESS_RUNBOOK.md` with explicit dependency chain and gate criteria so `livekit-token` success cannot be treated as end-to-end voice readiness.
+- Added focused hook regressions in `src/hooks/__tests__/useLiveKitVoice.test.tsx`:
+  - agent join timeout enforced at 10s
+  - stop/disconnect returns UI state to idle cleanly
+- Verification: `npm run test:run -- src/hooks/__tests__/useLiveKitVoice.test.tsx`.
 2026-04-06 — Trip chat Stream bootstrap race + Supabase dead-path removal
 - Added Stream client connection subscriber API in `src/services/stream/streamClient.ts` (`onStreamClientConnected`) and notify hooks on initial connect + reconnect (`connection.changed` online).
 - Hardened `useStreamTripChat` initialization to wait for client readiness and retry channel watch when Stream connects; added 10s timeout fail-safe for missing Stream config/connection.
