@@ -196,9 +196,16 @@ export default defineAgent({
     log('agent:tools_registered', { count: ALL_TOOLS.length });
 
     // ── Configure Gemini RealtimeModel ─────────────────────────────────────
+    const googleApiKey = process.env.GOOGLE_API_KEY;
+    if (!googleApiKey) {
+      log('agent:error', { error: 'GOOGLE_API_KEY not configured' });
+      sendError(ctx.room, 'Voice agent misconfigured: missing AI key', 'config_error');
+      return;
+    }
+
     const model = new RealtimeModel({
       model: GEMINI_MODEL,
-      apiKey: process.env.GOOGLE_API_KEY,
+      apiKey: googleApiKey,
       voice: voice,
       instructions: systemPrompt,
     });
