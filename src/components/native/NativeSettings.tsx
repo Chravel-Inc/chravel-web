@@ -22,11 +22,7 @@ import { hapticService } from '@/services/hapticService';
 import { NativeList, NativeListSection, NativeListItem, NativeToggleItem } from './NativeList';
 import { NativeLargeTitle } from './NativeLargeTitle';
 import { NativeSubscriptionPaywall } from './NativeSubscriptionPaywall';
-import {
-  getPlatform,
-  isNativePlatform,
-  launchNativePaywall,
-} from '@/integrations/revenuecat/revenuecatClient';
+import { getPlatform } from '@/integrations/revenuecat/revenuecatClient';
 
 interface NativeSettingsProps {
   user?: {
@@ -80,15 +76,8 @@ export const NativeSettings = ({
 
   const handleUpgrade = useCallback(async () => {
     await hapticService.light();
-
-    if (isNativePlatform() && user?.id) {
-      // Use native RevenueCat Paywall via despia-native
-      launchNativePaywall(user.id);
-    } else {
-      // Fallback to JS-based paywall for web/dev
-      setShowPaywall(true);
-    }
-  }, [user?.id]);
+    setShowPaywall(true);
+  }, []);
 
   const handleLogout = useCallback(async () => {
     await hapticService.warning();
