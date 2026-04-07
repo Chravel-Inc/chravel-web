@@ -300,6 +300,8 @@ export const TripTabs = ({
                     <TooltipTrigger asChild>
                       <button
                         key={tab.id}
+                        data-tab={tab.id}
+                        data-active={isActive ? 'true' : 'false'}
                         onClick={() => handleTabChange(tab.id, enabled)}
                         onMouseEnter={() => enabled && handleTabHover(tab.id)}
                         onTouchStart={() => enabled && handleTabHover(tab.id)}

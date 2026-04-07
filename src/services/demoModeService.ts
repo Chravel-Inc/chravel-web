@@ -878,15 +878,66 @@ class DemoModeService {
   // Personal Basecamp Methods (Demo Mode)
   // ============================================
 
+  // Default basecamps for demo mode — shown when no session basecamp has been set
+  private static readonly DEFAULT_BASECAMPS: Record<
+    string,
+    Omit<SessionPersonalBasecamp, 'id' | 'created_at' | 'updated_at'>
+  > = {
+    '2': {
+      trip_id: '2',
+      user_id: 'demo-user',
+      name: 'Aman Tokyo',
+      address: 'The Otemachi Tower, 1-5-6 Otemachi, Chiyoda-ku, Tokyo',
+      latitude: 35.6867,
+      longitude: 139.7639,
+      type: 'hotel',
+      confirmation_number: 'AT-2026-1205',
+    },
+    '3': {
+      trip_id: '3',
+      user_id: 'demo-user',
+      name: 'COMO Shambhala Estate',
+      address: 'Banjar Begawan, Payangan, Ubud, Bali 80571',
+      latitude: -8.4095,
+      longitude: 115.3624,
+      type: 'hotel',
+      confirmation_number: 'CS-2026-7842',
+    },
+    '8': {
+      trip_id: '8',
+      user_id: 'demo-user',
+      name: 'AZULIK Tulum',
+      address: 'Carr. Tulum-Boca Paila Km 5, Tulum, Q.R. 77780',
+      latitude: 20.1986,
+      longitude: -87.4378,
+      type: 'hotel',
+      confirmation_number: 'AZ-2026-3391',
+    },
+  };
+
   /**
-   * Get personal basecamp for a trip in demo mode
+   * Get personal basecamp for a trip in demo mode.
+   * Falls back to DEFAULT_BASECAMPS if no session basecamp has been set.
    */
   getSessionPersonalBasecamp(
     tripId: string,
     sessionUserId: string,
   ): SessionPersonalBasecamp | null {
     const key = `${tripId}:${sessionUserId}`;
-    return this.sessionPersonalBasecamps.get(key) || null;
+    const sessionEntry = this.sessionPersonalBasecamps.get(key);
+    if (sessionEntry) return sessionEntry;
+
+    const defaultData = DemoModeService.DEFAULT_BASECAMPS[tripId];
+    if (defaultData) {
+      return {
+        id: `default-basecamp-${tripId}`,
+        ...defaultData,
+        user_id: sessionUserId,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+    }
+    return null;
   }
 
   /**
