@@ -228,6 +228,7 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
               onPhotoRemoved={removeCoverPhoto}
               tripName={trip.title}
               className="h-48 w-full"
+              displayMode={coverDisplayMode}
             />
             <div className="mt-3">
               <label className="text-xs text-gray-400 mb-2 block">Photo display</label>
