@@ -5,13 +5,12 @@ Adapt Chravel marketing screenshots for Google Play Store.
 Takes existing App Store marketing composites (iPhone + iPad) and crops/resizes
 them to meet Play Store dimension and aspect ratio requirements.
 
-Play Store constraints:
+Play Store constraints (from Google Play Console):
   - Format: 24-bit PNG or JPEG, no alpha, max 8MB
-  - Min 320px, Max 3840px per side
-  - Aspect ratio max 2:1 (longer side <= 2x shorter side)
-  - Phone:      1080x1920  (9:16)   — 2-8 screenshots
-  - 7" Tablet:  1200x1920  (10:16)  — 4-8 screenshots
-  - 10" Tablet: 1800x2560  (~9:16)  — 4-8 screenshots
+  - Aspect ratio: MUST be exactly 16:9 or 9:16
+  - Phone:      320-3840px per side, min 1080px for promotion eligibility
+  - 7" Tablet:  320-3840px per side, 9:16
+  - 10" Tablet: 1080-7680px per side, 9:16
 
 Approach: center-crop source to target aspect ratio, then resize.
 
@@ -19,9 +18,9 @@ Usage:
     python appstore/scripts/generate_playstore_screenshots.py
 
 Output:
-    playstore/screenshots/phone/*.png       (8 screenshots, 1080x1920)
-    playstore/screenshots/tablet-7/*.png    (4 screenshots, 1200x1920)
-    playstore/screenshots/tablet-10/*.png   (4 screenshots, 1800x2560)
+    playstore/screenshots/phone/*.png       (8 screenshots, 1080x1920, 9:16)
+    playstore/screenshots/tablet-7/*.png    (4 screenshots, 1440x2560, 9:16)
+    playstore/screenshots/tablet-10/*.png   (4 screenshots, 2160x3840, 9:16)
 """
 
 import os
@@ -42,10 +41,10 @@ PHONE_OUT = os.path.join(PLAY_BASE, "phone")
 TABLET7_OUT = os.path.join(PLAY_BASE, "tablet-7")
 TABLET10_OUT = os.path.join(PLAY_BASE, "tablet-10")
 
-# Target dimensions
-PHONE_SIZE = (1080, 1920)
-TABLET7_SIZE = (1200, 1920)
-TABLET10_SIZE = (1800, 2560)
+# Target dimensions — ALL must be exactly 9:16 aspect ratio
+PHONE_SIZE = (1080, 1920)     # 9:16, within 320-3840
+TABLET7_SIZE = (1440, 2560)   # 9:16, within 320-3840
+TABLET10_SIZE = (2160, 3840)  # 9:16, within 1080-7680
 
 
 def center_crop_to_aspect(img, target_w, target_h):
