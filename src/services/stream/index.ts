@@ -13,6 +13,7 @@ export {
   getStreamApiKey,
   connectStreamClient,
   disconnectStreamClient,
+  onStreamClientConnectionStatusChange,
 } from './streamClient';
 
 // Token management
