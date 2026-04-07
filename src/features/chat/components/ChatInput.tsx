@@ -28,10 +28,12 @@ import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { CTA_GRADIENT, CTA_INTERACTIVE, CTA_DISABLED, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
+import { CTA_GRADIENT, CTA_INTERACTIVE, CTA_DISABLED } from '@/lib/ctaButtonStyles';
 
 /** Chat-specific button — 32px on mobile for more text input room, 40px on sm+ */
-const CTA_BUTTON_CHAT = `size-8 min-w-[32px] sm:size-10 sm:min-w-[40px] rounded-full flex items-center justify-center shrink-0 select-none touch-manipulation ${CTA_GRADIENT} ${CTA_INTERACTIVE} ${CTA_DISABLED}`;
+/** Chat-specific icon class — 14px on mobile, 18px on sm+ */
+const CTA_ICON_CHAT = 'w-3.5 h-3.5 sm:w-[18px] sm:h-[18px]';
+const CTA_BUTTON_CHAT = `size-6 min-w-[24px] sm:size-10 sm:min-w-[40px] rounded-full flex items-center justify-center shrink-0 select-none touch-manipulation ${CTA_GRADIENT} ${CTA_INTERACTIVE} ${CTA_DISABLED}`;
 import { hapticService as haptics } from '@/services/hapticService';
 import { MentionPicker, TripMember } from './MentionPicker';
 import { VoiceButton } from './VoiceButton';
@@ -444,7 +446,7 @@ export const ChatInput = ({
           <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
             <PopoverTrigger asChild>
               <button className={CTA_BUTTON_CHAT} aria-label="Insert emoji">
-                <Smile size={18} className="text-white" />
+                <Smile className={`${CTA_ICON_CHAT} text-white`} />
               </button>
             </PopoverTrigger>
             <PopoverContent
@@ -496,7 +498,7 @@ export const ChatInput = ({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className={CTA_BUTTON_CHAT} aria-label="Message options">
-                <Plus size={CTA_ICON_SIZE} className="text-white" />
+                <Plus className={`${CTA_ICON_CHAT} text-white`} />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
@@ -565,15 +567,15 @@ export const ChatInput = ({
             className={
               isBroadcastMode
                 ? cn(
-                    'size-8 min-w-[32px] sm:size-10 sm:min-w-[40px] rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-[#B91C1C] to-[#991B1B] hover:opacity-90 shrink-0 select-none touch-manipulation',
+                    'size-6 min-w-[24px] sm:size-10 sm:min-w-[40px] rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-[#B91C1C] to-[#991B1B] hover:opacity-90 shrink-0 select-none touch-manipulation',
                   )
                 : CTA_BUTTON_CHAT
             }
           >
             {isTyping ? (
-              <Loader2 size={CTA_ICON_SIZE} className="text-white animate-spin" />
+              <Loader2 className={`${CTA_ICON_CHAT} text-white animate-spin`} />
             ) : (
-              <Send size={CTA_ICON_SIZE} className="text-white" />
+              <Send className={`${CTA_ICON_CHAT} text-white`} />
             )}
           </button>
 

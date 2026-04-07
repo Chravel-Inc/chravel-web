@@ -66,7 +66,7 @@ export const VoiceButton = ({
           <button
             type="button"
             onClick={handleClick}
-            className={`relative ${small ? 'size-8 min-w-[32px] sm:size-10 sm:min-w-[40px]' : 'size-11'} rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 shrink-0 select-none touch-manipulation ${getStyle()}`}
+            className={`relative ${small ? 'size-6 min-w-[24px] sm:size-10 sm:min-w-[40px]' : 'size-11'} rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 shrink-0 select-none touch-manipulation ${getStyle()}`}
             aria-label={getTooltip()}
             aria-pressed={isActive}
           >
@@ -92,9 +92,17 @@ export const VoiceButton = ({
             )}
             <span className="relative z-10">
               {isConnecting ? (
-                <Loader2 size={CTA_ICON_SIZE} className="animate-spin" />
+                <Loader2
+                  size={small ? undefined : CTA_ICON_SIZE}
+                  className={
+                    small ? 'w-3.5 h-3.5 sm:w-[18px] sm:h-[18px] animate-spin' : 'animate-spin'
+                  }
+                />
               ) : (
-                <AudioLines size={CTA_ICON_SIZE} />
+                <AudioLines
+                  size={small ? undefined : CTA_ICON_SIZE}
+                  className={small ? 'w-3.5 h-3.5 sm:w-[18px] sm:h-[18px]' : undefined}
+                />
               )}
             </span>
             {!isEligible && (
