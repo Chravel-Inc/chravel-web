@@ -344,3 +344,27 @@
 - **Evidence:** CI reliability pass added `static-checks`, `unit-tests`, `build`, `e2e-smoke` (PR), and `e2e-full` (main/nightly), plus `PLAYWRIGHT_SKIP_BUILD=1` path in Playwright config and shared `web-dist` artifact.
 - **Provenance:** April 2026 CI reliability hardening.
 - **Confidence:** high
+
+### Stream chat hooks should react to client connection events, not one-time client snapshots
+- **Tip:** If a chat hook checks `getStreamClient()?.userID` only once during mount, it can permanently miss initialization when auth/token connection finishes later. Expose a small `onStreamClientConnected` subscriber in the singleton client module and re-run channel bootstrap when the callback fires.
+- **Applies when:** Stream-backed hooks mount before `connectUser()` resolves (slow auth, mobile resume, reconnect cycles).
+- **Avoid when:** The hook itself owns/awaits the client connection promise directly.
+- **Evidence:** Trip chat mounted before Stream connect, hit early return, and stayed blank until hard refresh; adding connection subscriber + readiness state + timeout restored automatic history bootstrap and send readiness.
+- **Provenance:** April 2026 GetStream trip chat race-condition fix (`streamClient.ts`, `useStreamTripChat.ts`).
+- **Confidence:** high
+
+### During chat backend migrations, hydrate from both old and new stores with deterministic dedupe
+- **Tip:** For phased messaging migrations (Supabase -> Stream), treat history as a dual-source read problem until a full backfill is complete: load from both stores, normalize shape, dedupe by stable fingerprint, and sort by server timestamp. This prevents silent history gaps for pre-migration conversations.
+- **Applies when:** Users can have conversation history written before and after a backend cutover.
+- **Avoid when:** Historical data has already been fully copied and validated in the destination store.
+- **Evidence:** Trip chat and concierge showed post-migration messages but could miss pre-migration history when Stream-only hydration paths were used.
+- **Provenance:** April 2026 Stream continuity hardening (`useStreamTripChat`, `useStreamConciergeHistory`, `AIConciergeChat`).
+- **Confidence:** high
+
+### Connection-ready booleans in hooks must have an explicit disconnect path
+- **Tip:** If a hook stores `streamClientReady=true` from a connect callback but never resets it on disconnect/logout, later sessions can deadlock initialization (`ready=true` while no client/user exists). Expose a connection-status subscriber from the singleton client and drive hook readiness from status transitions, not one-way events.
+- **Applies when:** Stream/WebSocket SDKs where connect and disconnect can happen without full component remount.
+- **Avoid when:** The hook lifecycle is guaranteed to remount on every auth transition.
+- **Evidence:** PR #122 review found `streamClientReady` could stay true after disconnect, blocking init/timeout logic until remount.
+- **Provenance:** April 2026 PR audit hardening (`streamClient.ts`, `useStreamTripChat.ts`, `useStreamConciergeHistory.ts`).
+- **Confidence:** high

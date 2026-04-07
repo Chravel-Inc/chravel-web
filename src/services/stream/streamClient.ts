@@ -23,6 +23,21 @@ const STREAM_API_KEY = import.meta.env.VITE_STREAM_API_KEY;
 let clientInstance: StreamChat | null = null;
 let connectionPromise: Promise<void> | null = null;
 let isConnecting = false;
+const connectedSubscribers = new Set<() => void>();
+const connectionStatusSubscribers = new Set<(isConnected: boolean) => void>();
+let connectionChangedListenerAttached = false;
+
+const notifyConnectedSubscribers = () => {
+  connectedSubscribers.forEach(callback => {
+    callback();
+  });
+};
+
+const notifyConnectionStatusSubscribers = (isConnected: boolean) => {
+  connectionStatusSubscribers.forEach(callback => {
+    callback(isConnected);
+  });
+};
 
 /**
  * Get the Stream API key from environment.
@@ -38,6 +53,33 @@ export function getStreamApiKey(): string | null {
  */
 export function getStreamClient(): StreamChat | null {
   return clientInstance;
+}
+
+/**
+ * Subscribe to Stream connection-ready events.
+ * Callback is invoked whenever Stream is connected (initial connect + reconnect).
+ */
+export function onStreamClientConnected(callback: () => void): () => void {
+  connectedSubscribers.add(callback);
+
+  return () => {
+    connectedSubscribers.delete(callback);
+  };
+}
+
+/**
+ * Subscribe to Stream connection status changes.
+ * `true` => connected/online, `false` => disconnected/offline.
+ */
+export function onStreamClientConnectionStatusChange(
+  callback: (isConnected: boolean) => void,
+): () => void {
+  connectionStatusSubscribers.add(callback);
+  callback(Boolean(clientInstance?.userID));
+
+  return () => {
+    connectionStatusSubscribers.delete(callback);
+  };
 }
 
 /**
@@ -67,9 +109,20 @@ export async function connectStreamClient(): Promise<StreamChat | null> {
 
       if (!clientInstance) {
         clientInstance = StreamChat.getInstance(STREAM_API_KEY);
+        if (!connectionChangedListenerAttached) {
+          clientInstance.on('connection.changed', event => {
+            if (event.online) {
+              notifyConnectedSubscribers();
+            }
+            notifyConnectionStatusSubscribers(Boolean(event.online));
+          });
+          connectionChangedListenerAttached = true;
+        }
       }
 
       await clientInstance.connectUser({ id: userId }, token);
+      notifyConnectedSubscribers();
+      notifyConnectionStatusSubscribers(true);
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Unknown error';
       if (import.meta.env.DEV) {
@@ -100,6 +153,8 @@ export async function disconnectStreamClient(): Promise<void> {
       // Ignore disconnect errors
     }
     clientInstance = null;
+    connectionChangedListenerAttached = false;
+    notifyConnectionStatusSubscribers(false);
   }
 }
 
