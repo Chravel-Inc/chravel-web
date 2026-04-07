@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js start",
-    "dev": "tsx src/index.ts dev"
+    "dev": "tsx src/index.ts dev",
+    "download-files": "node dist/index.js download-files"
   },
   "dependencies": {
     "@livekit/agents": "^1.0.47",

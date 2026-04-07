@@ -63,6 +63,8 @@ const { RealtimeModel } = beta.realtime;
 // Future (pending LiveKit plugin fix for Issue #1179): gemini-3.1-flash-live-preview
 const GEMINI_MODEL = process.env.GEMINI_LIVE_MODEL || 'gemini-live-2.5-flash-native-audio';
 const DEFAULT_VOICE = 'Charon';
+/** Must match RoomAgentDispatch.agentName in supabase/functions/livekit-token */
+const LIVEKIT_AGENT_NAME = process.env.LIVEKIT_AGENT_NAME || 'chravel-voice';
 
 function log(event: string, data?: Record<string, unknown>): void {
   const ts = new Date().toISOString();
@@ -195,10 +197,17 @@ export default defineAgent({
 
     log('agent:tools_registered', { count: ALL_TOOLS.length });
 
+    const googleApiKey = process.env.GOOGLE_API_KEY?.trim();
+    if (!googleApiKey) {
+      log('agent:error', { error: 'GOOGLE_API_KEY not configured' });
+      sendError(ctx.room, 'Voice agent misconfigured: missing AI key', 'config_error');
+      return;
+    }
+
     // ── Configure Gemini RealtimeModel ─────────────────────────────────────
     const model = new RealtimeModel({
       model: GEMINI_MODEL,
-      apiKey: process.env.GOOGLE_API_KEY,
+      apiKey: googleApiKey,
       voice: voice,
       instructions: systemPrompt,
     });
@@ -314,5 +323,6 @@ export default defineAgent({
 cli.runApp(
   new WorkerOptions({
     agent: import.meta.url,
+    agentName: LIVEKIT_AGENT_NAME,
   }),
 );

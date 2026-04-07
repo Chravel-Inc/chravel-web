@@ -12,7 +12,11 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { AccessToken } from 'livekit-server-sdk';
+import {
+  AccessToken,
+  RoomAgentDispatch,
+  RoomConfiguration,
+} from 'livekit-server-sdk';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { requireSecrets } from '../_shared/validateSecrets.ts';
 
@@ -129,21 +133,22 @@ serve(async req => {
       canPublishData: true,
     });
 
-    // Set room metadata for the agent to read
-    // The agent extracts tripId, userId, voice from this metadata
-    (token as any).roomConfig = {
-      metadata: JSON.stringify({
-        tripId,
-        userId: user.id,
-        voice,
-      }),
-      emptyTimeout: 30, // Auto-close room after 30s empty
+    // Serialized into JWT as `roomConfig` — dispatches explicit agent + sets room metadata
+    // (plain object assignment is NOT serialized by AccessToken.toJwt())
+    const roomMetadata = JSON.stringify({
+      tripId,
+      userId: user.id,
+      voice,
+    });
+    token.roomConfig = new RoomConfiguration({
+      metadata: roomMetadata,
+      emptyTimeout: 30,
       agents: [
-        {
+        new RoomAgentDispatch({
           agentName: 'chravel-voice',
-        } as any, // intentional: RoomAgentDispatch protobuf type requires full constructor; cast is safe for metadata-only usage
+        }),
       ],
-    };
+    });
 
     const jwt = await token.toJwt();
 

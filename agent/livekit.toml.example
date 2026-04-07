@@ -1,0 +1,10 @@
+# Copy to livekit.toml and fill values from LiveKit Cloud (Agents → your deployment),
+# or run: lk agent config
+#
+# Required for: lk agent deploy and GitHub Action "Deploy LiveKit Voice Agent"
+
+[project]
+  subdomain = "your-subdomain"
+
+[agent]
+  id = "your-agent-id"

@@ -1,0 +1,38 @@
+name: Deploy LiveKit Voice Agent
+
+# Manual deploy of `agent/` to LiveKit Cloud (livekit/deploy-action).
+# Prerequisites:
+# - Repo secrets: LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET
+# - agent/livekit.toml committed (copy from livekit.toml.example; fill subdomain + agent id)
+# - Optional LIVEKIT_AGENT_SECRET_LIST → SECRET_LIST for GOOGLE_API_KEY, SUPABASE_*, etc.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-livekit-agent
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Require agent/livekit.toml
+        run: |
+          if [ ! -f agent/livekit.toml ]; then
+            echo "::error::Missing agent/livekit.toml — copy agent/livekit.toml.example, fill subdomain and agent id, commit, then re-run."
+            exit 1
+          fi
+
+      - name: Deploy LiveKit Cloud Agent
+        uses: livekit/deploy-action@v2.12.1
+        env:
+          LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
+          LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
+          LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
+          SECRET_LIST: ${{ secrets.LIVEKIT_AGENT_SECRET_LIST }}
+        with:
+          OPERATION: deploy
+          WORKING_DIRECTORY: agent
