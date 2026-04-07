@@ -58,6 +58,9 @@ interface TripGridProps {
   onCreateTrip?: () => void;
   activeFilter?: string;
   dashboardJoinRequests?: DashboardJoinRequest[];
+  onCancelDashboardRequest?: (
+    requestId: string,
+  ) => Promise<{ success: boolean; message?: string }> | undefined;
   // Callback when a trip is archived/hidden/deleted (for demo mode refresh)
   onTripStateChange?: () => void;
 }
@@ -73,6 +76,7 @@ export const TripGrid = React.memo(
     onCreateTrip,
     activeFilter = 'all',
     dashboardJoinRequests = [],
+    onCancelDashboardRequest,
     onTripStateChange,
   }: TripGridProps) => {
     const isMobile = useIsMobile();
@@ -102,6 +106,21 @@ export const TripGrid = React.memo(
     const { tier: _tier } = useConsumerSubscription();
     const { deleteTrip } = useDeleteTrip();
     const [reorderMode, setReorderMode] = useState<'my_trips' | 'pro' | 'events' | null>(null);
+
+    useEffect(() => {
+      if (activeFilter !== 'requests') {
+        return;
+      }
+
+      const hasOutgoing = dashboardJoinRequests.some(request => request.direction === 'outbound');
+      const hasIncoming = dashboardJoinRequests.some(request => request.direction === 'inbound');
+
+      if (!hasOutgoing && hasIncoming) {
+        setRequestTab('incoming');
+      } else if (hasOutgoing && !hasIncoming) {
+        setRequestTab('outgoing');
+      }
+    }, [activeFilter, dashboardJoinRequests]);
 
     // Stable identity fns for dnd-kit — inline lambdas change every render and retrigger order sync.
     const getMyTripId = useCallback((trip: Trip) => trip.id.toString(), []);
@@ -380,6 +399,30 @@ export const TripGrid = React.memo(
       viewMode === 'travelRecs' ? manualLocation : undefined,
     );
 
+    const splitRequests = useMemo(
+      () => splitJoinRequestsByDirection(dashboardJoinRequests),
+      [dashboardJoinRequests],
+    );
+
+    const requestCounts = useMemo(
+      () => ({
+        incoming: splitRequests.inbound.length,
+        outgoing: splitRequests.outbound.length,
+      }),
+      [splitRequests.inbound.length, splitRequests.outbound.length],
+    );
+
+    const filteredRequests = useMemo(() => {
+      if (activeFilter !== 'requests') return dashboardJoinRequests;
+      return requestTab === 'incoming' ? splitRequests.inbound : splitRequests.outbound;
+    }, [
+      activeFilter,
+      dashboardJoinRequests,
+      requestTab,
+      splitRequests.inbound,
+      splitRequests.outbound,
+    ]);
+
     // Show loading skeleton
     if (loading) {
       return (
@@ -389,7 +432,6 @@ export const TripGrid = React.memo(
       );
     }
 
-    // Check if we have content for the current view mode (using filtered data)
     const hasContent =
       activeFilter === 'requests'
         ? visibleJoinRequests.length > 0
@@ -413,7 +455,9 @@ export const TripGrid = React.memo(
             icon: Clock,
             title: 'No pending requests',
             description:
-              'Outgoing: trips you asked to join. Incoming: people waiting for approval on trips you help manage. Open a trip’s People tab to approve.',
+              requestTab === 'outgoing'
+                ? "No outgoing requests right now. When you request to join a trip, it'll appear here as a grayed card until approved."
+                : 'No incoming requests right now. Incoming approvals are listed here so you can review quickly without opening each trip first.',
             actionLabel: undefined,
             onAction: undefined,
           };

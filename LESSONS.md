@@ -345,6 +345,11 @@
 - **Provenance:** April 2026 CI reliability hardening.
 - **Confidence:** high
 
+### Client-side deletes on RLS-protected tables must never assume success without row-level confirmation
+- **Tip:** If a mutation target has restrictive DELETE policies (e.g., admin-only), requester-facing “cancel” flows should use a narrowly scoped `SECURITY DEFINER` RPC that codifies authorization/ownership rules and returns explicit success/failure payloads. Avoid direct `.delete()` from the browser for these cases because RLS no-op/deny can produce misleading UX if local state is optimistically removed.
+- **Applies when:** Building user-owned cancellation paths on shared moderation tables like `trip_join_requests`.
+- **Evidence:** Dashboard outbound cancel path in PR #137 originally used client DELETE (`id + user_id + pending`) but conflicted with admin-only DELETE policy; replacing with `cancel_own_join_request` RPC resolved correctness risk.
+- **Provenance:** April 2026 PR #137 merge-readiness audit and fix.
 ### Stream chat hooks should react to client connection events, not one-time client snapshots
 - **Tip:** If a chat hook checks `getStreamClient()?.userID` only once during mount, it can permanently miss initialization when auth/token connection finishes later. Expose a small `onStreamClientConnected` subscriber in the singleton client module and re-run channel bootstrap when the callback fires.
 - **Applies when:** Stream-backed hooks mount before `connectUser()` resolves (slow auth, mobile resume, reconnect cycles).
