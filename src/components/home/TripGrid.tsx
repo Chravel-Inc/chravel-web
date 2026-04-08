@@ -116,9 +116,9 @@ export const TripGrid = React.memo(
       const hasIncoming = dashboardJoinRequests.some(request => request.direction === 'inbound');
 
       if (!hasOutgoing && hasIncoming) {
-        setRequestTab('incoming');
+        setRequestsTab('incoming');
       } else if (hasOutgoing && !hasIncoming) {
-        setRequestTab('outgoing');
+        setRequestsTab('outgoing');
       }
     }, [activeFilter, dashboardJoinRequests]);
 
@@ -414,11 +414,11 @@ export const TripGrid = React.memo(
 
     const filteredRequests = useMemo(() => {
       if (activeFilter !== 'requests') return dashboardJoinRequests;
-      return requestTab === 'incoming' ? splitRequests.inbound : splitRequests.outbound;
+      return requestsTab === 'incoming' ? splitRequests.inbound : splitRequests.outbound;
     }, [
       activeFilter,
       dashboardJoinRequests,
-      requestTab,
+      requestsTab,
       splitRequests.inbound,
       splitRequests.outbound,
     ]);
@@ -455,7 +455,7 @@ export const TripGrid = React.memo(
             icon: Clock,
             title: 'No pending requests',
             description:
-              requestTab === 'outgoing'
+              requestsTab === 'outgoing'
                 ? "No outgoing requests right now. When you request to join a trip, it'll appear here as a grayed card until approved."
                 : 'No incoming requests right now. Incoming approvals are listed here so you can review quickly without opening each trip first.',
             actionLabel: undefined,
