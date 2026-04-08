@@ -9,6 +9,7 @@ import {
   Bell,
   DollarSign,
   Copy,
+  Settings2,
 } from 'lucide-react';
 import type { PendingAction } from '@/hooks/usePendingActions';
 
@@ -32,6 +33,7 @@ const TOOL_CONFIG: Record<string, { icon: React.ElementType; label: string; colo
   bulkMarkTasksDone: { icon: CheckSquare, label: 'Bulk Complete Tasks', color: 'text-green-400' },
   cloneActivity: { icon: Copy, label: 'Clone Activity', color: 'text-purple-400' },
   addExpense: { icon: DollarSign, label: 'Expense', color: 'text-orange-400' },
+  updateTripDetails: { icon: Settings2, label: 'Trip Update', color: 'text-blue-400' },
 };
 
 function getActionTitle(action: PendingAction): string {
@@ -68,6 +70,10 @@ function getActionTitle(action: PendingAction): string {
     }
     case 'addExpense':
       return (payload.description as string) || 'New expense';
+    case 'updateTripDetails': {
+      const fields = Object.keys(payload).filter(k => k !== 'trip_id');
+      return fields.length > 0 ? `Update trip ${fields.join(', ')}` : 'Update trip details';
+    }
     default:
       return 'Unknown action';
   }
@@ -143,6 +149,11 @@ function getActionDetail(action: PendingAction): string | null {
       const amount = payload.amount as number | undefined;
       const currency = (payload.currency as string) || 'USD';
       return amount != null ? `${currency} ${amount}` : null;
+    }
+    case 'updateTripDetails': {
+      const name = payload.name as string | undefined;
+      const destination = payload.destination as string | undefined;
+      return name ? `Name: "${name}"` : destination ? `Destination: ${destination}` : null;
     }
     default:
       return null;

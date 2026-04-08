@@ -229,6 +229,23 @@ export function usePendingActions(tripId: string) {
           break;
         }
 
+        case 'updateTripDetails': {
+          // Build update payload from stored fields
+          const updatePayload: Record<string, unknown> = {};
+          if (payload.name) updatePayload.name = payload.name;
+          if (payload.destination !== undefined) updatePayload.destination = payload.destination;
+          if (payload.description !== undefined) updatePayload.description = payload.description;
+          if (payload.start_date !== undefined) updatePayload.start_date = payload.start_date;
+          if (payload.end_date !== undefined) updatePayload.end_date = payload.end_date;
+          if (Object.keys(updatePayload).length === 0) break;
+          const { error } = await (supabase as any)
+            .from('trips')
+            .update(updatePayload)
+            .eq('id', action.trip_id);
+          if (error) throw error;
+          break;
+        }
+
         default:
           throw new Error(`Unknown tool: ${action.tool_name}`);
       }
@@ -262,6 +279,7 @@ export function usePendingActions(tripId: string) {
         bulkMarkTasksDone: 'Tasks marked complete',
         cloneActivity: 'Activity cloned',
         addExpense: 'Expense added',
+        updateTripDetails: 'Trip details updated',
       };
       const label = toolLabelMap[action.tool_name] || 'Action confirmed';
       const isVerb = [
@@ -291,6 +309,9 @@ export function usePendingActions(tripId: string) {
           break;
         case 'addExpense':
           queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) });
+          break;
+        case 'updateTripDetails':
+          queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
           break;
         default:
           break;

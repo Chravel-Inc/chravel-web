@@ -1141,6 +1141,22 @@ const getTripInfo: ToolDefinition = {
   execute: (_args, ctx) => callEdgeFunction(ctx, 'getTripInfo', {}),
 };
 
+const updateTripDetails: ToolDefinition = {
+  name: 'updateTripDetails',
+  description:
+    'Update core trip details: name, destination, description, start date, or end date. Requires user confirmation.',
+  schema: z.object({
+    name: z.string().optional().describe('New trip name'),
+    destination: z.string().optional().describe('New destination (city, country)'),
+    description: z.string().optional().describe('New trip description'),
+    startDate: z.string().optional().describe('New start date (YYYY-MM-DD)'),
+    endDate: z.string().optional().describe('New end date (YYYY-MM-DD)'),
+    idempotency_key: z.string().optional(),
+  }),
+  execute: (args, ctx) =>
+    insertPendingAction(ctx, 'updateTripDetails', { ...args, tripId: ctx.tripId }),
+};
+
 // ── Export All Tools ───────────────────────────────────────────────────────────
 
 export const ALL_TOOLS: ToolDefinition[] = [
@@ -1223,4 +1239,6 @@ export const ALL_TOOLS: ToolDefinition[] = [
   getPollResults,
   getTripLinks,
   getTripInfo,
+  // Tool #75
+  updateTripDetails,
 ];

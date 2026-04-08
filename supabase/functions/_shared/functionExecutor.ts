@@ -3690,6 +3690,50 @@ async function _executeImpl(
       };
     }
 
+    case 'updateTripDetails': {
+      const { name, destination, description, startDate, endDate, idempotency_key } = args;
+
+      const updates: Record<string, unknown> = {};
+      if (name) updates.name = String(name);
+      if (destination !== undefined) updates.destination = destination ? String(destination) : null;
+      if (description !== undefined) updates.description = description ? String(description) : null;
+      if (startDate) updates.start_date = String(startDate);
+      if (endDate) updates.end_date = String(endDate);
+
+      if (Object.keys(updates).length === 0) {
+        return { error: 'At least one field to update is required' };
+      }
+
+      const dedupeId = idempotency_key || null;
+      const { data: pending, error: pendingError } = await supabase
+        .from('trip_pending_actions')
+        .insert({
+          trip_id: tripId,
+          user_id: userId || '00000000-0000-0000-0000-000000000000',
+          tool_name: 'updateTripDetails',
+          ...(dedupeId ? { tool_call_id: dedupeId } : {}),
+          payload: {
+            ...updates,
+            trip_id: tripId,
+          },
+          source_type: 'ai_concierge',
+        })
+        .select('id')
+        .single();
+      if (pendingError) throw pendingError;
+
+      const summary = Object.entries(updates)
+        .map(([k, v]) => `${k}: "${v}"`)
+        .join(', ');
+      return {
+        success: true,
+        pending: true,
+        pendingActionId: pending.id,
+        actionType: 'update_trip_details',
+        message: `I'd like to update the trip: ${summary}. Please confirm in the trip chat.`,
+      };
+    }
+
     default:
       return { error: `Unknown function: ${functionName}` };
   }

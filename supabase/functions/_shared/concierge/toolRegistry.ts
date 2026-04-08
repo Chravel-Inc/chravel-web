@@ -34,7 +34,7 @@ export interface ToolDeclaration {
   };
 }
 
-// ── All 74 Tool Declarations (text-path, richest descriptions) ───────────────
+// ── All 75 Tool Declarations (text-path, richest descriptions) ───────────────
 
 export const ALL_TOOL_DECLARATIONS: ToolDeclaration[] = [
   {
@@ -1451,6 +1451,23 @@ export const ALL_TOOL_DECLARATIONS: ToolDeclaration[] = [
       required: [],
     },
   },
+  {
+    name: 'updateTripDetails',
+    description:
+      'Update core details of this trip: name, destination, description, start date, or end date. Requires user confirmation before applying changes.',
+    parameters: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'New trip name' },
+        destination: { type: 'string', description: 'New destination (city, country)' },
+        description: { type: 'string', description: 'New trip description' },
+        startDate: { type: 'string', description: 'New start date (YYYY-MM-DD)' },
+        endDate: { type: 'string', description: 'New end date (YYYY-MM-DD)' },
+        idempotency_key: { type: 'string' },
+      },
+      required: [],
+    },
+  },
 ];
 
 // ── Universal tools (always included regardless of query class) ──────────────
@@ -1520,6 +1537,7 @@ const QUERY_CLASS_TOOLS: Record<QueryClass, string[] | 'all'> = {
     'getTripLinks',
     'getRecentActivity',
     'getTripInfo',
+    'updateTripDetails',
   ],
   place_navigation: [
     'getDirectionsETA',
@@ -1590,7 +1608,7 @@ export function getToolsForQueryClass(queryClass: QueryClass): ToolDeclaration[]
 
 /**
  * Voice-friendly tool declarations with shorter descriptions.
- * Both text and voice paths have all 74 tools; voice just uses briefer descriptions.
+ * Both text and voice paths have all 75 tools; voice just uses briefer descriptions.
  */
 const VOICE_DESCRIPTION_OVERRIDES: Record<string, string> = {
   addToCalendar: 'Add an event to the trip calendar',
@@ -1671,6 +1689,7 @@ const VOICE_DESCRIPTION_OVERRIDES: Record<string, string> = {
   getPollResults: 'Get current vote counts for trip polls.',
   getTripLinks: 'Get saved links and places for this trip.',
   getTripInfo: 'Get basic details about the trip.',
+  updateTripDetails: 'Update the trip name, destination, dates, or description.',
 };
 
 /**
