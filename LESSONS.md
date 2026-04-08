@@ -382,4 +382,10 @@
 - **Avoid when:** The `as any` cast is for reading an untyped property that demonstrably exists at runtime.
 - **Evidence:** `(token as any).roomConfig = {...}` in `livekit-token/index.ts` was dead code — `AccessToken.toJwt()` ignored it, causing voice to silently fail.
 - **Provenance:** April 2026 LiveKit voice stack forensic audit.
+### In network-isolated Playwright environments, use app demo mode for UI-layer messaging verification
+- **Tip:** When Playwright fixtures call Supabase APIs (signUp, signIn) in a network-isolated sandbox, they throw `ConnectTimeoutError`. Wrap fixture auth calls in try/catch returning null, then call `test.skip()` when auth is null. For UI-layer verification (trip chat, concierge, pro channels), navigate to `/demo` — it boots the app with local mock data and no network calls. Tab panels in TripTabs all stay mounted with `display:none` when inactive, so use class discriminators to target textareas (e.g., `textarea[class*="rounded-2xl"]` for Concierge, not `.first()` which returns the hidden Chat input).
+- **Applies when:** CI/staging Playwright suites, PR smoke tests, network-isolated sandbox environments, local development without Supabase credentials.
+- **Avoid when:** Tests must verify actual Stream message delivery or real DB writes — those require staging with `SUPABASE_SERVICE_ROLE_KEY`.
+- **Evidence:** GetStream messaging e2e suite: 8 CHAT-SMOKE tests pass in isolation using `/demo` mode; 8 CHAT-001/002/003 authenticated tests skip gracefully with clear message when credentials are unavailable. `data-testid="chat-send-btn"` added to `ChatInput` for stable send button targeting.
+- **Provenance:** April 2026 GetStream messaging e2e suite (`claude/fix-getstream-messaging-xmHa9`).
 - **Confidence:** high
