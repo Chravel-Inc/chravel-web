@@ -24,11 +24,18 @@ let clientInstance: StreamChat | null = null;
 let connectionPromise: Promise<void> | null = null;
 let isConnecting = false;
 const connectedSubscribers = new Set<() => void>();
+const statusChangeSubscribers = new Set<(isConnected: boolean) => void>();
 let connectionChangedListenerAttached = false;
 
 const notifyConnectedSubscribers = () => {
   connectedSubscribers.forEach(callback => {
     callback();
+  });
+};
+
+const notifyStatusChangeSubscribers = (isConnected: boolean) => {
+  statusChangeSubscribers.forEach(callback => {
+    callback(isConnected);
   });
 };
 
@@ -61,6 +68,20 @@ export function onStreamClientConnected(callback: () => void): () => void {
 }
 
 /**
+ * Subscribe to Stream connection status changes (both connect and disconnect).
+ * Callback receives `true` when connected, `false` when disconnected.
+ */
+export function onStreamClientConnectionStatusChange(
+  callback: (isConnected: boolean) => void,
+): () => void {
+  statusChangeSubscribers.add(callback);
+
+  return () => {
+    statusChangeSubscribers.delete(callback);
+  };
+}
+
+/**
  * Connect the StreamChat client for the authenticated user.
  * Safe to call multiple times — returns existing connection if active.
  */
@@ -89,6 +110,7 @@ export async function connectStreamClient(): Promise<StreamChat | null> {
         clientInstance = StreamChat.getInstance(STREAM_API_KEY);
         if (!connectionChangedListenerAttached) {
           clientInstance.on('connection.changed', event => {
+            notifyStatusChangeSubscribers(!!event.online);
             if (event.online) {
               notifyConnectedSubscribers();
             }
@@ -99,6 +121,7 @@ export async function connectStreamClient(): Promise<StreamChat | null> {
 
       await clientInstance.connectUser({ id: userId }, token);
       notifyConnectedSubscribers();
+      notifyStatusChangeSubscribers(true);
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Unknown error';
       if (import.meta.env.DEV) {

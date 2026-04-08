@@ -17,7 +17,9 @@ interface PendingTripCardProps {
   /** When true, card is clickable and shows a primary CTA instead of disabled styling. */
   interactive?: boolean;
   ctaLabel?: string;
+  ctaVariant?: 'default' | 'destructive';
   onCta?: () => void;
+  isCtaLoading?: boolean;
   secondaryCtaLabel?: string;
   onSecondaryCta?: () => void;
   isSecondaryCtaLoading?: boolean;
@@ -36,13 +38,16 @@ export const PendingTripCard: React.FC<PendingTripCardProps> = ({
   subtitle,
   interactive = false,
   ctaLabel,
+  ctaVariant = 'default',
   onCta,
+  isCtaLoading = false,
   secondaryCtaLabel,
   onSecondaryCta,
   isSecondaryCtaLoading = false,
   ctaVariant = 'default',
   disabledCta = false,
 }) => {
+  const disabledCta = isCtaLoading;
   const ctaClassName =
     ctaVariant === 'destructive'
       ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
