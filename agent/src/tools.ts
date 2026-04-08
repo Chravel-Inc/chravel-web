@@ -1,5 +1,5 @@
 /**
- * Tool Definitions — All 38 concierge tools ported to LiveKit agent format.
+ * Tool Definitions — All 42 concierge tools ported to LiveKit agent format.
  *
  * Single source of truth is _shared/concierge/toolRegistry.ts.
  * This file mirrors those declarations using Zod schemas for the agent framework.
@@ -652,6 +652,62 @@ const getHotelDetails: ToolDefinition = {
   execute: (args, ctx) => callEdgeFunction(ctx, 'getHotelDetails', args),
 };
 
+const emitBulkDeletePreview: ToolDefinition = {
+  name: 'emitBulkDeletePreview',
+  description:
+    'Search for trip calendar events matching criteria and show a deletion preview card for user confirmation. Use when user wants to remove multiple events: "remove all away games", "delete the Houston, Austin, San Antonio dates", "remove all events after March 15", "clear imported games". Shows a preview — NEVER deletes directly. User selects which events to remove.',
+  schema: z.object({
+    idempotency_key: z.string(),
+    titleContains: z
+      .string()
+      .optional()
+      .describe('Search events whose title contains this text (case-insensitive)'),
+    locationContains: z
+      .string()
+      .optional()
+      .describe('Search events whose location contains this text'),
+    afterDate: z
+      .string()
+      .optional()
+      .describe(
+        'Only events starting after this date (ISO 8601). Interpreted as end-of-day in trip timezone (exclusive of the given date).',
+      ),
+    beforeDate: z
+      .string()
+      .optional()
+      .describe(
+        'Only events starting before this date (ISO 8601). Interpreted as start-of-day in trip timezone (exclusive of the given date).',
+      ),
+    category: z.string().optional().describe('Filter by event category'),
+    eventTitles: z
+      .array(z.string())
+      .optional()
+      .describe(
+        'Specific event titles to match. Uses exact-first matching: tries exact match, then startsWith, then contains only if no closer matches found.',
+      ),
+    matchMode: z
+      .enum(['exact', 'contains', 'auto'])
+      .optional()
+      .describe('How to match eventTitles. Default: auto (exact-first, falls back to contains)'),
+  }),
+  execute: (args, ctx) =>
+    insertPendingAction(ctx, 'emitBulkDeletePreview', { ...args, tripId: ctx.tripId }),
+};
+
+const bulkDeleteCalendarEvents: ToolDefinition = {
+  name: 'bulkDeleteCalendarEvents',
+  description:
+    'Permanently delete multiple calendar events from a trip. MUST extract the IDs to delete. No undo. Provide clear context to the user about what was deleted.',
+  schema: z.object({
+    event_ids: z.array(z.string()).describe('The IDs of the calendar events to delete.'),
+    idempotency_key: z
+      .string()
+      .describe('A unique UUID v4 string for this mutation to prevent duplicate executions.'),
+  }),
+  execute: (args, ctx) =>
+    insertPendingAction(ctx, 'bulkDeleteCalendarEvents', { ...args, tripId: ctx.tripId }),
+};
+
 // ── Export All Tools ───────────────────────────────────────────────────────────
 
 export const ALL_TOOLS: ToolDefinition[] = [
@@ -698,4 +754,6 @@ export const ALL_TOOLS: ToolDefinition[] = [
   makeReservation,
   searchHotels,
   getHotelDetails,
+  emitBulkDeletePreview,
+  bulkDeleteCalendarEvents,
 ];
