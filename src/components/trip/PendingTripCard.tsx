@@ -39,10 +39,7 @@ export const PendingTripCard: React.FC<PendingTripCardProps> = ({
   onSecondaryCta,
   isSecondaryCtaLoading = false,
 }) => {
-  const ctaClassName =
-    ctaVariant === 'destructive'
-      ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
-      : 'bg-primary text-primary-foreground hover:bg-primary/90';
+  const ctaClassName = 'bg-primary text-primary-foreground hover:bg-primary/90';
 
   return (
     <Card
@@ -105,7 +102,7 @@ export const PendingTripCard: React.FC<PendingTripCardProps> = ({
             type="button"
             className={`mt-3 w-full text-sm font-medium rounded-lg py-2.5 px-3 min-h-[44px] transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${ctaClassName}`}
             onClick={onCta}
-            disabled={disabledCta}
+            disabled={!interactive}
           >
             {ctaLabel}
           </button>

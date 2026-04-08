@@ -16,8 +16,8 @@ export default function DeleteAccountPage() {
         <div className="prose prose-invert max-w-none">
           <h1 className="text-4xl font-bold mb-4">Delete Your Account</h1>
           <p className="text-muted-foreground mb-8">
-            We're sorry to see you go. Here's how to delete your Chravel account and what happens
-            to your data.
+            We're sorry to see you go. Here's how to delete your Chravel account and what happens to
+            your data.
           </p>
 
           <section className="mb-8">
@@ -26,10 +26,16 @@ export default function DeleteAccountPage() {
               <h2 className="text-2xl font-semibold m-0">How to Delete Your Account</h2>
             </div>
             <ol className="space-y-3 text-foreground/90 list-decimal list-inside">
-              <li>Open the Chravel app or visit <strong>chravel.app</strong></li>
+              <li>
+                Open the Chravel app or visit <strong>chravel.app</strong>
+              </li>
               <li>Sign in to your account</li>
-              <li>Go to <strong>Settings → General Settings → Account Management</strong></li>
-              <li>Tap <strong>"Delete Account"</strong></li>
+              <li>
+                Go to <strong>Settings → General Settings → Account Management</strong>
+              </li>
+              <li>
+                Tap <strong>"Delete Account"</strong>
+              </li>
               <li>Confirm your identity by re-entering your password</li>
               <li>Confirm the deletion</li>
             </ol>
@@ -67,8 +73,8 @@ export default function DeleteAccountPage() {
                 required by applicable law and regulatory obligations
               </li>
               <li>
-                <strong>Abuse reports</strong> — reports related to safety or trust violations may be
-                retained to protect the community
+                <strong>Abuse reports</strong> — reports related to safety or trust violations may
+                be retained to protect the community
               </li>
             </ul>
           </section>
@@ -81,8 +87,8 @@ export default function DeleteAccountPage() {
             <p className="text-foreground/90">
               After requesting deletion, your account enters a <strong>30-day grace period</strong>.
               During this time, you can cancel the deletion by signing back in and choosing to
-              restore your account. After 30 days, the deletion is <strong>permanent and
-              irreversible</strong>.
+              restore your account. After 30 days, the deletion is{' '}
+              <strong>permanent and irreversible</strong>.
             </p>
           </section>
 
@@ -92,8 +98,8 @@ export default function DeleteAccountPage() {
               <h2 className="text-2xl font-semibold m-0">Can't Access Your Account?</h2>
             </div>
             <p className="text-foreground/90 mb-4">
-              If you're unable to sign in to request deletion, you can contact our support team
-              and we'll process your request manually after verifying your identity.
+              If you're unable to sign in to request deletion, you can contact our support team and
+              we'll process your request manually after verifying your identity.
             </p>
             <a
               href="mailto:support@chravel.app?subject=Account%20Deletion%20Request"

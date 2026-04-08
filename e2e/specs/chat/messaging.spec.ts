@@ -7,9 +7,11 @@
  *   - Pro trip channels (CHAT-003)
  *   - UI structure smoke tests (CHAT-SMOKE)
  *
- * Auth strategy: Uses Supabase anon-key signUp directly — no service-role key
- * required. If email-confirmation is enabled on the project the auth tests skip
- * gracefully and only smoke tests run.
+ * Auth strategy: Attempts anon-key signUp via env vars (SUPABASE_URL +
+ * SUPABASE_ANON_KEY). If the project requires email confirmation, signUp
+ * returns no session → CHAT-001/002/003 skip gracefully, CHAT-SMOKE always
+ * runs. For full authenticated coverage, run against a staging project with
+ * email confirmation disabled.
  */
 
 import { test as base, expect } from '@playwright/test';
@@ -18,15 +20,12 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-const SUPABASE_URL =
-  process.env.SUPABASE_URL ||
-  process.env.VITE_SUPABASE_URL ||
-  'https://jmjiyekmxwsxkfnqwyaa.supabase.co';
-
-const SUPABASE_ANON_KEY =
-  process.env.SUPABASE_ANON_KEY ||
-  process.env.VITE_SUPABASE_ANON_KEY ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINhI';
+// Credentials are required only for CHAT-001/002/003 authenticated tests.
+// CHAT-SMOKE tests use demo mode and require no credentials.
+// If either var is unset the fixture catches the resulting error, returns null,
+// and the authenticated tests skip gracefully.
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
 const DEFAULT_PASSWORD = 'TestPassword123!E2E';
 
@@ -43,35 +42,6 @@ async function signUpTestUser(email: string): Promise<{ session: string; userId:
   if (error) throw new Error(`signUp failed: ${error.message}`);
   if (!data.session) return null; // email confirmation required — caller must skip
   return { session: data.session.access_token, userId: data.user!.id };
-}
-
-/** Inject a Supabase session into the browser's localStorage then navigate. */
-
-async function _injectSession(page: Page, accessToken: string) {
-  // Set up the session the same way Supabase Auth SDK expects it
-  await page.goto('/');
-  await page.evaluate(
-    ([url, _key, token]) => {
-      const storageKey = 'chravel-auth-session';
-      const fakeSession = {
-        access_token: token,
-        token_type: 'bearer',
-        expires_in: 3600,
-        expires_at: Math.floor(Date.now() / 1000) + 3600,
-        refresh_token: 'e2e-no-refresh',
-        user: { id: 'placeholder', aud: 'authenticated', email: 'e2e@test.chravel.com' },
-      };
-      localStorage.setItem(storageKey, JSON.stringify(fakeSession));
-
-      // Also set supabase's internal storage key format
-      const projectRef = new URL(url).hostname.split('.')[0];
-      localStorage.setItem(
-        `sb-${projectRef}-auth-token`,
-        JSON.stringify({ access_token: token, token_type: 'bearer' }),
-      );
-    },
-    [SUPABASE_URL, SUPABASE_ANON_KEY, accessToken],
-  );
 }
 
 /** Create an authenticated Supabase client from a token. */
@@ -108,13 +78,24 @@ async function createTrip(
     return null;
   }
 
-  // Also add creator as admin member
-  await client.from('trip_members').insert({
+  // Add creator as admin member — required for RLS-gated chat access
+  const { error: memberError } = await client.from('trip_members').insert({
     trip_id: data.id,
     user_id: options.userId,
     role: 'admin',
     status: 'active',
   });
+
+  if (memberError) {
+    console.warn(`[E2E] createTrip member insert failed: ${memberError.message}`);
+    // Roll back the orphan trip so cleanup is not needed
+    await client
+      .from('trips')
+      .delete()
+      .eq('id', data.id)
+      .catch(() => null);
+    return null;
+  }
 
   return data.id;
 }
@@ -190,11 +171,13 @@ const test = base.extend<E2EFixtures>({
 
     await provide(auth);
 
-    // Cleanup: best-effort delete via anon client (will fail if RLS blocks it)
+    // Cleanup: best-effort delete via authenticated client (may fail if RLS blocks)
     if (auth) {
       try {
         const client = makeAuthClient(auth.session);
+        // Delete trip_members first (foreign key), then orphan trips
         await client.from('trip_members').delete().eq('user_id', auth.userId);
+        await client.from('trips').delete().eq('creator_id', auth.userId);
       } catch {
         // ignore cleanup failures
       }
@@ -564,8 +547,9 @@ test.describe('CHAT-002: AI Concierge', () => {
     await conciergeTab.waitFor({ state: 'visible', timeout: 15000 });
     await conciergeTab.click();
 
-    // Concierge renders a textarea for input
-    const textarea = page.locator('textarea').first();
+    // Concierge uses rounded-2xl; Chat tab textarea uses rounded-full.
+    // Scoping to rounded-2xl avoids targeting the hidden Chat input (still in DOM).
+    const textarea = page.locator('textarea[class*="rounded-2xl"]').first();
     await expect(textarea).toBeVisible({ timeout: 15000 });
     await expect(textarea).toBeEnabled();
   });
@@ -599,29 +583,31 @@ test.describe('CHAT-002: AI Concierge', () => {
     await conciergeTab.waitFor({ state: 'visible', timeout: 15000 });
     await conciergeTab.click();
 
-    const textarea = page.locator('textarea').first();
-    await textarea.waitFor({ state: 'visible', timeout: 15000 });
-    await textarea.fill('What restaurants are near the Eiffel Tower?');
-    await textarea.press('Enter');
+    // Scope to the Concierge textarea (rounded-2xl) — Chat textarea (rounded-full)
+    // stays mounted in the DOM with display:none and must not be targeted here.
+    const conciergeInput = page.locator('textarea[class*="rounded-2xl"]').first();
+    await conciergeInput.waitFor({ state: 'visible', timeout: 15000 });
+    await conciergeInput.fill('What restaurants are near the Eiffel Tower?');
+    await conciergeInput.press('Enter');
 
-    // UI must react: input clears, loading indicator appears, or a response bubble appears
-    const reacted = await Promise.race([
-      page
-        .locator('[class*="animate-spin"]')
-        .first()
-        .waitFor({ state: 'visible', timeout: 8000 })
-        .then(() => 'loading'),
-      page
-        .locator('textarea')
-        .first()
-        .waitFor({ state: 'visible', timeout: 8000 })
-        .then(async () => {
-          const val = await page.locator('textarea').first().inputValue();
-          return val === '' ? 'cleared' : 'unchanged';
-        }),
-    ]).catch(() => 'timeout');
-
-    expect(['loading', 'cleared']).toContain(reacted);
+    // UI must react: either a loading spinner appears OR the concierge input clears.
+    // expect.poll avoids the flaky Promise.race pattern where the second branch
+    // resolves immediately because a textarea is already visible.
+    await expect
+      .poll(
+        async () => {
+          const spinnerVisible = await page
+            .locator('[class*="animate-spin"]')
+            .first()
+            .isVisible()
+            .catch(() => false);
+          if (spinnerVisible) return true;
+          const val = await conciergeInput.inputValue().catch(() => 'error');
+          return val === '';
+        },
+        { timeout: 12000 },
+      )
+      .toBe(true);
   });
 });
 
