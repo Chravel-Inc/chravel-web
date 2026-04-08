@@ -264,7 +264,7 @@ export const LazyRoute: React.FC<LazyRouteProps> = ({ children, fallback = <Defa
   // Clear all caches and reload the page
   const handleClearAndReload = useCallback(async () => {
     await clearAllCaches();
-    // Force a fresh mount to get new chunks (Capacitor-safe)
+    // Force a fresh mount to get new chunks
     await safeReload(true);
   }, []);
 

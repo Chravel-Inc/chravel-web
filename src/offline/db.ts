@@ -5,7 +5,7 @@ import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
  *
  * Why a wrapper?
  * - Centralizes schema + migrations (avoids scattered openDB calls)
- * - Keeps offline stores consistent across web + Capacitor (same WebView storage)
+ * - Keeps offline stores consistent across web and PWA
  */
 
 export type OfflineQueueStatus = 'pending' | 'syncing' | 'failed';

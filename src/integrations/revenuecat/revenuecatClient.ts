@@ -1,7 +1,7 @@
 /**
  * RevenueCat Client Wrapper
  *
- * Platform-aware wrapper for RevenueCat Capacitor plugin.
+ * Platform-aware wrapper for RevenueCat.
  * Handles demo mode, web fallbacks, and graceful degradation.
  */
 
@@ -23,7 +23,7 @@ import type {
 import type { SubscriptionTier } from '@/billing/types';
 import { toast } from 'sonner';
 
-// RevenueCat Capacitor plugin removed — native IAP handled by chravel-mobile.
+// Native IAP handled by chravel-mobile.
 // This variable is kept as a null placeholder for the loadPurchasesPlugin() interface.
 const Purchases: unknown | null = null;
 

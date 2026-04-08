@@ -1,7 +1,6 @@
 /**
  * Platform-agnostic persistent storage
  * Web: Uses localStorage
- * Mobile: Implemented by the native shell (e.g., via Capacitor plugins)
  */
 
 export interface PlatformStorage {
