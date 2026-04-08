@@ -484,6 +484,14 @@ const App = () => {
                         }
                       />
                       <Route
+                        path="/delete-account"
+                        element={
+                          <LazyRoute>
+                            <DeleteAccountPage />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
                         path="/profile"
                         element={
                           <LazyRoute>
