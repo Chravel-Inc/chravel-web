@@ -42,7 +42,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
 
   // Intersection Observer for lazy loading — useLayoutEffect guarantees the ref
   // is attached before we call observe(), preventing the race where useEffect
-  // fires before the wrapper div is in the DOM (seen in Capacitor WebView).
+  // fires before the wrapper div is in the DOM.
   useLayoutEffect(() => {
     if (!lazy || priority || isInView) return;
 

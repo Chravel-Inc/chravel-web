@@ -1,7 +1,7 @@
 /**
  * RevenueCat TypeScript Types
  *
- * Simplified types for RevenueCat Capacitor plugin responses
+ * Simplified types for RevenueCat responses
  */
 
 import type { SubscriptionTier } from '@/billing/types';
