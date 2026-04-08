@@ -1,36 +1,25 @@
 
 
-## Build a Public "Delete Account" Page for Google Play Store
+## Fix: Runtime crash blocking app load
 
-Google Play requires a publicly accessible URL where users can request account deletion. Chravel already has full account deletion logic in Settings (with 30-day grace period, re-auth, cancellation). This page needs to be a standalone, unauthenticated informational page that explains the process and links users to the in-app settings.
+The app crashes on `/` because of **variable name typos** in `TripGrid.tsx` and **missing props** in `PendingTripCard.tsx`. These are pre-existing bugs, not caused by the delete-account page.
 
-### What gets built
+### Root cause
 
-**New file: `src/pages/DeleteAccountPage.tsx`**
-- Public page (no auth required) at `/delete-account`
-- Chravel branding, dark theme matching existing legal pages (Privacy, Support, Terms)
-- Content:
-  - App name "Chravel" prominently displayed
-  - Steps to request account deletion (open app → Settings → Account Management → Delete Account)
-  - What data gets deleted (profile, trips, messages, media, payment history, AI conversation history)
-  - What data is retained and for how long (anonymized analytics retained 90 days, legal/financial records per regulatory requirements)
-  - 30-day cancellation window explained
-  - Contact email (support@chravel.app) for users who can't access their account
-- Back link to home page
+1. **`TripGrid.tsx`** — State is declared as `requestsTab` / `setRequestsTab` (line 90), but lines 119, 121, 417, 421, and 458 reference `requestTab` / `setRequestTab` (missing the "s"). This causes `ReferenceError: requestTab is not defined` at runtime.
 
-**Modified file: `src/App.tsx`**
-- Add lazy import for `DeleteAccountPage`
-- Add route: `<Route path="/delete-account" ... />`
-- Add `/delete-account` to the list of paths excluded from mobile app layout (alongside `/privacy`, `/support`, etc.)
+2. **`PendingTripCard.tsx`** — The component body uses `ctaVariant` (line 43) and `disabledCta` (line 108), but neither is declared in the `PendingTripCardProps` interface or destructured from props.
 
-### URL to provide to Google Play
+### Fix
 
-After publishing: `https://chravel.lovable.app/delete-account`
+**File: `src/components/home/TripGrid.tsx`**
+- Replace all 5 occurrences of `requestTab` → `requestsTab` and `setRequestTab` → `setRequestsTab`
 
-(Or your custom domain: `https://chravel.app/delete-account`)
+**File: `src/components/trip/PendingTripCard.tsx`**
+- Add `ctaVariant?: 'default' | 'destructive'` and `disabledCta?: boolean` to the interface
+- Destructure both (with defaults) in the component params
 
-### Technical details
-- Follows exact same pattern as `PrivacyPolicy.tsx` / `SupportPage.tsx` — static content, no auth, dark theme
-- No new dependencies
-- No backend changes needed — the actual deletion flow already exists via `request_account_deletion` RPC
+### What this does NOT touch
+- The delete-account page (already built, unaffected)
+- Any other build errors in edge functions or services (those are pre-existing type issues that don't affect the frontend runtime)
 
