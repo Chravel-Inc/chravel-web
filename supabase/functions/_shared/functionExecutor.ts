@@ -2458,17 +2458,19 @@ async function _executeImpl(
       const ordered: string[] = [start];
       const unvisited = new Set(remaining);
 
-      // Build a lookup from the raw matrix response
-      const rows: any[] = matrixResult.matrix || [];
-      let currentIdx = 0; // index in origins (0 = start)
+      // getDistanceMatrix returns { rows: [{ elements: [{ durationSeconds, ... }] }] }
+      // origins[0]=start, origins[1..N]=remaining; destinations[0..N-1]=remaining, destinations[N]=start
+      const matrixRows: any[] = matrixResult.rows || [];
+      let currentIdx = 0; // index into origins array (0 = start)
 
       while (unvisited.size > 0) {
         let bestDuration = Infinity;
         let bestDest = '';
         for (const loc of unvisited) {
           const destIdx = remaining.indexOf(loc);
-          const cell = rows[currentIdx]?.[destIdx];
-          const secs = cell?.duration_seconds ?? cell?.duration?.value ?? Infinity;
+          const cell = matrixRows[currentIdx]?.elements?.[destIdx];
+          const secs =
+            cell?.durationSeconds ?? cell?.duration_seconds ?? cell?.duration?.value ?? Infinity;
           if (secs < bestDuration) {
             bestDuration = secs;
             bestDest = loc;
@@ -2507,19 +2509,37 @@ async function _executeImpl(
       if (error) return { error: error.message };
       if (!events || events.length === 0) return { success: true, conflicts: [], count: 0 };
 
+      // Full O(n²) interval overlap — adjacent-pair check misses overlaps between
+      // non-consecutive events (e.g. A 9-11, B 9:30-12, C 10-10:30 → A/C not adjacent).
       const conflicts: any[] = [];
-      for (let i = 0; i < events.length - 1; i++) {
-        const a = events[i];
-        const b = events[i + 1];
-        if (!a.end_time || !b.start_time) continue;
-        if (new Date(b.start_time) < new Date(a.end_time)) {
-          conflicts.push({
-            eventA: { id: a.id, title: a.title, start: a.start_time, end: a.end_time },
-            eventB: { id: b.id, title: b.title, start: b.start_time, end: b.end_time },
-            overlapMinutes: Math.round(
-              (new Date(a.end_time).getTime() - new Date(b.start_time).getTime()) / 60000,
-            ),
-          });
+      const seenPairs = new Set<string>();
+      for (let i = 0; i < events.length; i++) {
+        for (let j = i + 1; j < events.length; j++) {
+          const a = events[i];
+          const b = events[j];
+          if (!a.end_time || !b.start_time) continue;
+          // Events overlap when one starts before the other ends
+          if (
+            new Date(b.start_time) < new Date(a.end_time) &&
+            new Date(a.start_time) < new Date(b.end_time || b.start_time)
+          ) {
+            const pairKey = `${a.id}:${b.id}`;
+            if (seenPairs.has(pairKey)) continue;
+            seenPairs.add(pairKey);
+            const overlapStart = Math.max(
+              new Date(a.start_time).getTime(),
+              new Date(b.start_time).getTime(),
+            );
+            const overlapEnd = Math.min(
+              new Date(a.end_time).getTime(),
+              new Date(b.end_time || b.start_time).getTime(),
+            );
+            conflicts.push({
+              eventA: { id: a.id, title: a.title, start: a.start_time, end: a.end_time },
+              eventB: { id: b.id, title: b.title, start: b.start_time, end: b.end_time },
+              overlapMinutes: Math.max(0, Math.round((overlapEnd - overlapStart) / 60000)),
+            });
+          }
         }
       }
 

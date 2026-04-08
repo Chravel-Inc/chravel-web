@@ -273,8 +273,10 @@ export function usePendingActions(tripId: string) {
         createTask: 'Task',
         createPoll: 'Poll',
         addToCalendar: 'Calendar event',
-        addReminder: 'Reminder',
-        setTripBudget: 'Trip budget',
+        // addReminder / setTripBudget: data lives in the pending action row (no dedicated
+        // DB table yet). Label as "noted" to avoid implying full persistence.
+        addReminder: 'Reminder noted',
+        setTripBudget: 'Budget noted',
         duplicateCalendarEvent: 'Event duplicated',
         bulkMarkTasksDone: 'Tasks marked complete',
         cloneActivity: 'Activity cloned',
@@ -287,6 +289,9 @@ export function usePendingActions(tripId: string) {
         'Tasks marked complete',
         'Activity cloned',
         'Expense added',
+        'Reminder noted',
+        'Budget noted',
+        'Trip details updated',
       ].includes(label);
       toast.success(isVerb ? label : `${label} created`);
 

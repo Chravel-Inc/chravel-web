@@ -20,6 +20,7 @@ import {
   getStreamApiKey,
   getStreamClient,
   onStreamClientConnected,
+  onStreamClientConnectionStatusChange,
 } from '@/services/stream/streamClient';
 import { CHANNEL_TYPE_TRIP, tripChannelId } from '@/services/stream/streamChannelFactory';
 import { messageEvents } from '@/telemetry/events';
