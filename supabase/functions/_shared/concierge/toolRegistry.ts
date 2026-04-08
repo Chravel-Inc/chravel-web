@@ -877,6 +877,338 @@ export const ALL_TOOL_DECLARATIONS: ToolDeclaration[] = [
       required: ['event_ids', 'idempotency_key'],
     },
   },
+
+  // ── New Tools (60-tool expansion) ──────────────────────────────────────────
+
+  {
+    name: 'optimizeItinerary',
+    description:
+      'Suggest an optimal ordering of trip stops or activities to minimize total travel time. Use when a user has multiple places to visit and asks "what\'s the best order?" or "how should we route our day?"',
+    parameters: {
+      type: 'object',
+      properties: {
+        locations: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'List of addresses or place names to order optimally (2–10 items)',
+        },
+        startingPoint: {
+          type: 'string',
+          description:
+            'Starting location such as the hotel address (optional, uses first item if omitted)',
+        },
+        mode: {
+          type: 'string',
+          description: 'Transport mode: driving (default), walking, bicycling, transit',
+        },
+      },
+      required: ['locations'],
+    },
+  },
+  {
+    name: 'detectScheduleConflicts',
+    description:
+      'Scan the full trip calendar for overlapping events or scheduling issues. Returns a list of conflicts with affected event titles and times. Use proactively when adding back-to-back events or when a user asks "does anything overlap?"',
+    parameters: {
+      type: 'object',
+      properties: {
+        date: {
+          type: 'string',
+          description:
+            'ISO date (YYYY-MM-DD) to check a specific day. Omit to scan all trip dates.',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'generatePackingList',
+    description:
+      'Generate a personalized packing list based on destination, trip duration, expected weather, and planned activities. Returns categorized suggestions (clothing, documents, gear, toiletries).',
+    parameters: {
+      type: 'object',
+      properties: {
+        destination: { type: 'string', description: 'Destination city or country' },
+        startDate: { type: 'string', description: 'Trip start date (YYYY-MM-DD)' },
+        endDate: { type: 'string', description: 'Trip end date (YYYY-MM-DD)' },
+        activities: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Planned activity types: beach, hiking, formal dining, skiing, business, etc.',
+        },
+      },
+      required: ['destination'],
+    },
+  },
+  {
+    name: 'addReminder',
+    description:
+      'Set a time-based reminder for a trip activity, task, or custom message. Delivered as an in-app notification at the specified time.',
+    parameters: {
+      type: 'object',
+      properties: {
+        idempotency_key: { type: 'string' },
+        message: { type: 'string', description: 'Reminder message content' },
+        remindAt: {
+          type: 'string',
+          description: 'ISO 8601 datetime for when to send the reminder',
+        },
+        entityType: { type: 'string', description: 'Optional: event, task, or custom' },
+        entityId: {
+          type: 'string',
+          description: 'Optional: ID of the associated event or task',
+        },
+      },
+      required: ['message', 'remindAt'],
+    },
+  },
+  {
+    name: 'getVisaRequirements',
+    description:
+      "Look up visa and entry requirements for a destination country based on the traveler's passport nationality. Returns visa type needed, required documents, processing time, and cost.",
+    parameters: {
+      type: 'object',
+      properties: {
+        destination: { type: 'string', description: 'Destination country name or code' },
+        passportCountry: {
+          type: 'string',
+          description: 'Passport nationality, e.g. "US", "United Kingdom", "Canada"',
+        },
+      },
+      required: ['destination'],
+    },
+  },
+  {
+    name: 'getTravelAdvisories',
+    description:
+      'Get current travel safety advisories, warnings, and entry restrictions for a destination country from official government sources.',
+    parameters: {
+      type: 'object',
+      properties: {
+        destination: { type: 'string', description: 'Destination country or city' },
+      },
+      required: ['destination'],
+    },
+  },
+  {
+    name: 'getLocalPhrases',
+    description:
+      'Get common useful phrases in the local language for a destination, with pronunciation tips. Covers greetings, dining, transport, shopping, and emergencies.',
+    parameters: {
+      type: 'object',
+      properties: {
+        destination: { type: 'string', description: 'Destination city or country' },
+        category: {
+          type: 'string',
+          description:
+            'Optional focus: greetings, dining, transport, emergency, shopping, or all (default: all)',
+        },
+      },
+      required: ['destination'],
+    },
+  },
+  {
+    name: 'trackFlightStatus',
+    description:
+      'Get real-time status for a specific flight number: departure and arrival times, gate, delays, and current flight status.',
+    parameters: {
+      type: 'object',
+      properties: {
+        flightNumber: {
+          type: 'string',
+          description: 'IATA flight number, e.g. "AA443" or "UA1234"',
+        },
+        date: { type: 'string', description: 'Flight date (YYYY-MM-DD). Defaults to today.' },
+      },
+      required: ['flightNumber'],
+    },
+  },
+  {
+    name: 'searchCarRentals',
+    description:
+      'Search for car rental options at a destination or airport. Returns links to major rental providers and pricing guidance for the requested dates.',
+    parameters: {
+      type: 'object',
+      properties: {
+        location: {
+          type: 'string',
+          description: 'Pickup location — city, airport code, or address',
+        },
+        pickupDate: { type: 'string', description: 'Pickup date (YYYY-MM-DD)' },
+        returnDate: { type: 'string', description: 'Return date (YYYY-MM-DD)' },
+        carType: {
+          type: 'string',
+          description: 'Optional: economy, compact, SUV, minivan, luxury',
+        },
+      },
+      required: ['location'],
+    },
+  },
+  {
+    name: 'searchPublicTransit',
+    description:
+      'Find public transit routes (subway, bus, train, tram) between two locations. Returns line names, transfer points, and estimated journey time.',
+    parameters: {
+      type: 'object',
+      properties: {
+        origin: { type: 'string', description: 'Starting address or location' },
+        destination: { type: 'string', description: 'Destination address or location' },
+        departureTime: { type: 'string', description: 'Optional ISO 8601 departure datetime' },
+      },
+      required: ['origin', 'destination'],
+    },
+  },
+  {
+    name: 'searchExperiences',
+    description:
+      'Search for bookable tours, activities, and experiences near a destination: cooking classes, city tours, adventure activities, cultural workshops, wine tastings.',
+    parameters: {
+      type: 'object',
+      properties: {
+        destination: { type: 'string', description: 'City or destination to search near' },
+        category: {
+          type: 'string',
+          description: 'Optional: food & drink, outdoor, culture, wellness, adventure, sightseeing',
+        },
+        date: { type: 'string', description: 'Optional preferred date (YYYY-MM-DD)' },
+      },
+      required: ['destination'],
+    },
+  },
+  {
+    name: 'getLocalEvents',
+    description:
+      'Find concerts, festivals, sports games, markets, and other events near the trip destination. Use when a user asks "what\'s happening in [city]?" or "any events during our trip?"',
+    parameters: {
+      type: 'object',
+      properties: {
+        destination: { type: 'string', description: 'City or region to search' },
+        startDate: { type: 'string', description: 'Start date for event search (YYYY-MM-DD)' },
+        endDate: { type: 'string', description: 'End date for event search (YYYY-MM-DD)' },
+        category: {
+          type: 'string',
+          description: 'Optional: music, sports, food, arts, festival, market',
+        },
+      },
+      required: ['destination'],
+    },
+  },
+  {
+    name: 'findNearby',
+    description:
+      'Find practical nearby amenities: ATMs, pharmacies, hospitals, supermarkets, gas stations, laundromats, or post offices. Use when travelers need something urgently near their hotel or current location.',
+    parameters: {
+      type: 'object',
+      properties: {
+        placeType: {
+          type: 'string',
+          description:
+            'Type of place: atm, pharmacy, hospital, supermarket, gas_station, laundry, post_office, bank, police',
+        },
+        near: {
+          type: 'string',
+          description:
+            'Location to search near: address, place name, or "trip hotel" to use trip basecamp',
+        },
+        limit: { type: 'number', description: 'Max results to return (default 5, max 10)' },
+      },
+      required: ['placeType'],
+    },
+  },
+  {
+    name: 'setTripBudget',
+    description:
+      'Set a budget target for the trip — total or per category — so the group can track spending against a goal.',
+    parameters: {
+      type: 'object',
+      properties: {
+        idempotency_key: { type: 'string' },
+        totalBudget: {
+          type: 'number',
+          description: "Total trip budget in the group's currency",
+        },
+        currency: { type: 'string', description: 'Currency code, e.g. USD, EUR, GBP' },
+        categoryBudgets: {
+          type: 'object',
+          description:
+            'Optional per-category budgets, e.g. { "food": 500, "accommodation": 1200, "transport": 300 }',
+        },
+        notes: { type: 'string', description: 'Optional budget notes' },
+      },
+      required: ['totalBudget'],
+    },
+  },
+  {
+    name: 'splitTaskAssignments',
+    description:
+      'Bulk-create and assign tasks across trip members. Use when the group needs to divide responsibilities: "split up the planning tasks", "assign one person to each city".',
+    parameters: {
+      type: 'object',
+      properties: {
+        idempotency_key: { type: 'string' },
+        tasks: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              title: { type: 'string', description: 'Task title' },
+              assignee: {
+                type: 'string',
+                description: 'Member display name or "auto" to distribute evenly',
+              },
+              dueDate: { type: 'string', description: 'Due date (YYYY-MM-DD)' },
+              notes: { type: 'string' },
+            },
+            required: ['title'],
+          },
+          description: 'List of tasks to create with optional assignees',
+        },
+      },
+      required: ['tasks'],
+    },
+  },
+  {
+    name: 'getTripStats',
+    description:
+      'Get aggregate statistics for the trip: total spend, cost per day, cost per person, number of activities, most expensive category, and days until departure.',
+    parameters: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: 'shareItinerary',
+    description:
+      'Generate a shareable link to the trip itinerary that can be sent to people outside the app or used for printing.',
+    parameters: {
+      type: 'object',
+      properties: {
+        format: {
+          type: 'string',
+          description: 'Optional: "web" (default shareable link) or "print" (print-friendly view)',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'getEmergencyContacts',
+    description:
+      "Get local emergency contact numbers for a destination: police, ambulance, fire brigade, tourist helplines, and the traveler's embassy contact if passport country is provided.",
+    parameters: {
+      type: 'object',
+      properties: {
+        destination: { type: 'string', description: 'Country or city name' },
+        passportCountry: {
+          type: 'string',
+          description: "Optional: traveler's nationality for relevant embassy contact",
+        },
+      },
+      required: ['destination'],
+    },
+  },
 ];
 
 // ── Universal tools (always included regardless of query class) ──────────────
@@ -890,7 +1222,7 @@ const UNIVERSAL_TOOL_NAMES = new Set(['verify_artifact', 'explainPermission', 'c
 
 const QUERY_CLASS_TOOLS: Record<QueryClass, string[] | 'all'> = {
   general_knowledge: [],
-  weather_time: ['searchWeb', 'getWeatherForecast'],
+  weather_time: ['searchWeb', 'getWeatherForecast', 'getTravelAdvisories', 'generatePackingList'],
   restaurant_recommendation: [
     'searchPlaces',
     'getPlaceDetails',
@@ -898,6 +1230,8 @@ const QUERY_CLASS_TOOLS: Record<QueryClass, string[] | 'all'> = {
     'emitReservationDraft',
     'searchWeb',
     'getStaticMapUrl',
+    'searchExperiences',
+    'getLocalPhrases',
   ],
   calendar_action: [
     'addToCalendar',
@@ -905,16 +1239,33 @@ const QUERY_CLASS_TOOLS: Record<QueryClass, string[] | 'all'> = {
     'deleteCalendarEvent',
     'emitBulkDeletePreview',
     'detectCalendarConflicts',
+    'optimizeItinerary',
+    'detectScheduleConflicts',
+    'addReminder',
   ],
-  task_action: ['createTask', 'updateTask', 'deleteTask'],
-  payment_query: ['getPaymentSummary', 'settleExpense'],
-  trip_search: ['searchTripData', 'searchTripArtifacts', 'getDeepLink'],
+  task_action: ['createTask', 'updateTask', 'deleteTask', 'addReminder', 'splitTaskAssignments'],
+  payment_query: ['getPaymentSummary', 'settleExpense', 'setTripBudget', 'getTripStats'],
+  trip_search: [
+    'searchTripData',
+    'searchTripArtifacts',
+    'getDeepLink',
+    'getVisaRequirements',
+    'getTravelAdvisories',
+    'getLocalEvents',
+    'getTripStats',
+    'shareItinerary',
+  ],
   place_navigation: [
     'getDirectionsETA',
     'getDistanceMatrix',
     'getStaticMapUrl',
     'getTimezone',
     'validateAddress',
+    'optimizeItinerary',
+    'searchPublicTransit',
+    'findNearby',
+    'getLocalPhrases',
+    'getEmergencyContacts',
   ],
   booking_reservation: [
     'emitReservationDraft',
@@ -924,17 +1275,25 @@ const QUERY_CLASS_TOOLS: Record<QueryClass, string[] | 'all'> = {
     'browseWebsite',
     'addToCalendar',
     'setBasecamp',
+    'searchCarRentals',
+    'searchExperiences',
   ],
   broadcast_notification: ['createBroadcast', 'createNotification'],
   trip_summary: 'all',
   poll_action: ['createPoll'],
   media_search: ['searchImages', 'searchWeb'],
-  flight_search: ['searchFlights', 'savePlace', 'searchWeb'],
+  flight_search: [
+    'searchFlights',
+    'savePlace',
+    'searchWeb',
+    'trackFlightStatus',
+    'getVisaRequirements',
+  ],
   hotel_search: ['searchHotels', 'getHotelDetails', 'savePlace', 'searchWeb'],
   trip_image: ['generateTripImage', 'setTripHeaderImage'],
   smart_import: ['emitSmartImportPreview', 'addToCalendar', 'setBasecamp', 'browseWebsite'],
   basecamp_action: ['setBasecamp', 'searchPlaces', 'getPlaceDetails', 'validateAddress'],
-  agenda_action: ['addToAgenda', 'addToCalendar'],
+  agenda_action: ['addToAgenda', 'addToCalendar', 'optimizeItinerary'],
 };
 
 /**
@@ -1012,6 +1371,25 @@ const VOICE_DESCRIPTION_OVERRIDES: Record<string, string> = {
   getDeepLink: 'Generate an in-app deep link for a specific trip entity.',
   explainPermission: 'Explain whether an action is allowed and why.',
   verify_artifact: 'Verify created artifact existence by ID or idempotency key.',
+  // New tools (60-tool expansion)
+  optimizeItinerary: 'Suggest the best order to visit multiple stops to minimize travel time.',
+  detectScheduleConflicts: 'Scan the trip calendar for overlapping or conflicting events.',
+  generatePackingList: 'Generate a packing list based on destination, weather, and activities.',
+  addReminder: 'Set a time-based reminder for an activity, task, or custom message.',
+  getVisaRequirements: 'Look up visa and entry requirements for a destination country.',
+  getTravelAdvisories: 'Get current travel safety advisories for a destination.',
+  getLocalPhrases: 'Get useful phrases in the local language with pronunciation tips.',
+  trackFlightStatus: 'Get real-time status for a flight number: delays, gate, arrival time.',
+  searchCarRentals: 'Search for car rental options at a destination or airport.',
+  searchPublicTransit: 'Find public transit routes between two locations.',
+  searchExperiences: 'Search for bookable tours and activities near a destination.',
+  getLocalEvents: 'Find concerts, festivals, and events near the destination during the trip.',
+  findNearby: 'Find nearby ATMs, pharmacies, hospitals, or other practical amenities.',
+  setTripBudget: 'Set a budget target for the trip to track spending against a goal.',
+  splitTaskAssignments: 'Bulk-create and assign tasks across trip members.',
+  getTripStats: 'Get aggregate trip statistics: total spend, cost per day, activity count.',
+  shareItinerary: 'Generate a shareable link to the trip itinerary.',
+  getEmergencyContacts: 'Get local emergency numbers and embassy contacts for a destination.',
 };
 
 /**

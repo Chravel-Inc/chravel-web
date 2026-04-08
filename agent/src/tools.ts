@@ -1,5 +1,5 @@
 /**
- * Tool Definitions — All 42 concierge tools ported to LiveKit agent format.
+ * Tool Definitions — All 60 concierge tools ported to LiveKit agent format.
  *
  * Single source of truth is _shared/concierge/toolRegistry.ts.
  * This file mirrors those declarations using Zod schemas for the agent framework.
@@ -652,6 +652,268 @@ const getHotelDetails: ToolDefinition = {
   execute: (args, ctx) => callEdgeFunction(ctx, 'getHotelDetails', args),
 };
 
+// ── New Tools (60-tool expansion) ────────────────────────────────────────────
+
+const optimizeItinerary: ToolDefinition = {
+  name: 'optimizeItinerary',
+  description:
+    'Suggest an optimal ordering of trip stops or activities to minimize total travel time.',
+  schema: z.object({
+    locations: z
+      .array(z.string())
+      .describe('List of addresses or place names to order optimally (2–10 items)'),
+    startingPoint: z.string().optional().describe('Starting location such as the hotel address'),
+    mode: z
+      .string()
+      .optional()
+      .describe('Transport mode: driving (default), walking, bicycling, transit'),
+  }),
+  execute: (args, ctx) => callEdgeFunction(ctx, 'optimizeItinerary', args),
+};
+
+const detectScheduleConflicts: ToolDefinition = {
+  name: 'detectScheduleConflicts',
+  description: 'Scan the full trip calendar for overlapping events or scheduling issues.',
+  schema: z.object({
+    date: z
+      .string()
+      .optional()
+      .describe('ISO date (YYYY-MM-DD) to check a specific day. Omit to scan all trip dates.'),
+  }),
+  execute: (args, ctx) => callEdgeFunction(ctx, 'detectScheduleConflicts', args),
+};
+
+const generatePackingList: ToolDefinition = {
+  name: 'generatePackingList',
+  description:
+    'Generate a personalized packing list based on destination, trip duration, expected weather, and planned activities.',
+  schema: z.object({
+    destination: z.string().describe('Destination city or country'),
+    startDate: z.string().optional().describe('Trip start date (YYYY-MM-DD)'),
+    endDate: z.string().optional().describe('Trip end date (YYYY-MM-DD)'),
+    activities: z
+      .array(z.string())
+      .optional()
+      .describe('Planned activity types: beach, hiking, formal dining, skiing, business, etc.'),
+  }),
+  execute: (args, ctx) => callEdgeFunction(ctx, 'generatePackingList', args),
+};
+
+const addReminder: ToolDefinition = {
+  name: 'addReminder',
+  description:
+    'Set a time-based reminder for a trip activity, task, or custom message. Delivered as an in-app notification at the specified time.',
+  schema: z.object({
+    idempotency_key: z.string().optional(),
+    message: z.string().describe('Reminder message content'),
+    remindAt: z.string().describe('ISO 8601 datetime for when to send the reminder'),
+    entityType: z.string().optional().describe('Optional: event, task, or custom'),
+    entityId: z.string().optional().describe('Optional: ID of the associated event or task'),
+  }),
+  execute: (args, ctx) => insertPendingAction(ctx, 'addReminder', { ...args, tripId: ctx.tripId }),
+};
+
+const getVisaRequirements: ToolDefinition = {
+  name: 'getVisaRequirements',
+  description:
+    "Look up visa and entry requirements for a destination country based on the traveler's passport nationality.",
+  schema: z.object({
+    destination: z.string().describe('Destination country name or code'),
+    passportCountry: z
+      .string()
+      .optional()
+      .describe('Passport nationality, e.g. "US", "United Kingdom", "Canada"'),
+  }),
+  execute: (args, ctx) => callEdgeFunction(ctx, 'getVisaRequirements', args),
+};
+
+const getTravelAdvisories: ToolDefinition = {
+  name: 'getTravelAdvisories',
+  description:
+    'Get current travel safety advisories, warnings, and entry restrictions for a destination country.',
+  schema: z.object({
+    destination: z.string().describe('Destination country or city'),
+  }),
+  execute: (args, ctx) => callEdgeFunction(ctx, 'getTravelAdvisories', args),
+};
+
+const getLocalPhrases: ToolDefinition = {
+  name: 'getLocalPhrases',
+  description:
+    'Get common useful phrases in the local language for a destination, with pronunciation tips.',
+  schema: z.object({
+    destination: z.string().describe('Destination city or country'),
+    category: z
+      .string()
+      .optional()
+      .describe(
+        'Optional focus: greetings, dining, transport, emergency, shopping, or all (default: all)',
+      ),
+  }),
+  execute: (args, ctx) => callEdgeFunction(ctx, 'getLocalPhrases', args),
+};
+
+const trackFlightStatus: ToolDefinition = {
+  name: 'trackFlightStatus',
+  description:
+    'Get real-time status for a specific flight number: departure and arrival times, gate, delays, and current flight status.',
+  schema: z.object({
+    flightNumber: z.string().describe('IATA flight number, e.g. "AA443" or "UA1234"'),
+    date: z.string().optional().describe('Flight date (YYYY-MM-DD). Defaults to today.'),
+  }),
+  execute: (args, ctx) => callEdgeFunction(ctx, 'trackFlightStatus', args),
+};
+
+const searchCarRentals: ToolDefinition = {
+  name: 'searchCarRentals',
+  description:
+    'Search for car rental options at a destination or airport. Returns links to major rental providers and pricing guidance.',
+  schema: z.object({
+    location: z.string().describe('Pickup location — city, airport code, or address'),
+    pickupDate: z.string().optional().describe('Pickup date (YYYY-MM-DD)'),
+    returnDate: z.string().optional().describe('Return date (YYYY-MM-DD)'),
+    carType: z.string().optional().describe('Optional: economy, compact, SUV, minivan, luxury'),
+  }),
+  execute: (args, ctx) => callEdgeFunction(ctx, 'searchCarRentals', args),
+};
+
+const searchPublicTransit: ToolDefinition = {
+  name: 'searchPublicTransit',
+  description: 'Find public transit routes (subway, bus, train, tram) between two locations.',
+  schema: z.object({
+    origin: z.string().describe('Starting address or location'),
+    destination: z.string().describe('Destination address or location'),
+    departureTime: z.string().optional().describe('Optional ISO 8601 departure datetime'),
+  }),
+  execute: (args, ctx) => callEdgeFunction(ctx, 'searchPublicTransit', args),
+};
+
+const searchExperiences: ToolDefinition = {
+  name: 'searchExperiences',
+  description:
+    'Search for bookable tours, activities, and experiences near a destination: cooking classes, city tours, adventure activities, cultural workshops.',
+  schema: z.object({
+    destination: z.string().describe('City or destination to search near'),
+    category: z
+      .string()
+      .optional()
+      .describe('Optional: food & drink, outdoor, culture, wellness, adventure, sightseeing'),
+    date: z.string().optional().describe('Optional preferred date (YYYY-MM-DD)'),
+  }),
+  execute: (args, ctx) => callEdgeFunction(ctx, 'searchExperiences', args),
+};
+
+const getLocalEvents: ToolDefinition = {
+  name: 'getLocalEvents',
+  description:
+    'Find concerts, festivals, sports games, markets, and other events near the trip destination.',
+  schema: z.object({
+    destination: z.string().describe('City or region to search'),
+    startDate: z.string().optional().describe('Start date for event search (YYYY-MM-DD)'),
+    endDate: z.string().optional().describe('End date for event search (YYYY-MM-DD)'),
+    category: z
+      .string()
+      .optional()
+      .describe('Optional: music, sports, food, arts, festival, market'),
+  }),
+  execute: (args, ctx) => callEdgeFunction(ctx, 'getLocalEvents', args),
+};
+
+const findNearby: ToolDefinition = {
+  name: 'findNearby',
+  description:
+    'Find practical nearby amenities: ATMs, pharmacies, hospitals, supermarkets, gas stations, laundromats, or post offices.',
+  schema: z.object({
+    placeType: z
+      .string()
+      .describe(
+        'Type of place: atm, pharmacy, hospital, supermarket, gas_station, laundry, post_office, bank, police',
+      ),
+    near: z
+      .string()
+      .optional()
+      .describe(
+        'Location to search near: address, place name, or "trip hotel" to use trip basecamp',
+      ),
+    limit: z.number().optional().describe('Max results to return (default 5, max 10)'),
+  }),
+  execute: (args, ctx) => callEdgeFunction(ctx, 'findNearby', args),
+};
+
+const setTripBudget: ToolDefinition = {
+  name: 'setTripBudget',
+  description:
+    'Set a budget target for the trip — total or per category — so the group can track spending against a goal.',
+  schema: z.object({
+    idempotency_key: z.string().optional(),
+    totalBudget: z.number().describe("Total trip budget in the group's currency"),
+    currency: z.string().optional().describe('Currency code, e.g. USD, EUR, GBP'),
+    categoryBudgets: z.record(z.number()).optional().describe('Per-category budgets'),
+    notes: z.string().optional().describe('Optional budget notes'),
+  }),
+  execute: (args, ctx) =>
+    insertPendingAction(ctx, 'setTripBudget', { ...args, tripId: ctx.tripId }),
+};
+
+const splitTaskAssignments: ToolDefinition = {
+  name: 'splitTaskAssignments',
+  description:
+    'Bulk-create and assign tasks across trip members. Use when the group needs to divide responsibilities.',
+  schema: z.object({
+    idempotency_key: z.string().optional(),
+    tasks: z
+      .array(
+        z.object({
+          title: z.string().describe('Task title'),
+          assignee: z
+            .string()
+            .optional()
+            .describe('Member display name or "auto" to distribute evenly'),
+          dueDate: z.string().optional().describe('Due date (YYYY-MM-DD)'),
+          notes: z.string().optional(),
+        }),
+      )
+      .describe('List of tasks to create with optional assignees'),
+  }),
+  execute: (args, ctx) =>
+    insertPendingAction(ctx, 'splitTaskAssignments', { ...args, tripId: ctx.tripId }),
+};
+
+const getTripStats: ToolDefinition = {
+  name: 'getTripStats',
+  description:
+    'Get aggregate statistics for the trip: total spend, cost per day, cost per person, number of activities, and days until departure.',
+  schema: z.object({}),
+  execute: (args, ctx) => callEdgeFunction(ctx, 'getTripStats', args),
+};
+
+const shareItinerary: ToolDefinition = {
+  name: 'shareItinerary',
+  description:
+    'Generate a shareable link to the trip itinerary that can be sent to people outside the app or used for printing.',
+  schema: z.object({
+    format: z
+      .string()
+      .optional()
+      .describe('Optional: "web" (default shareable link) or "print" (print-friendly view)'),
+  }),
+  execute: (args, ctx) => callEdgeFunction(ctx, 'shareItinerary', args),
+};
+
+const getEmergencyContacts: ToolDefinition = {
+  name: 'getEmergencyContacts',
+  description:
+    "Get local emergency contact numbers for a destination: police, ambulance, fire brigade, tourist helplines, and the traveler's embassy contact.",
+  schema: z.object({
+    destination: z.string().describe('Country or city name'),
+    passportCountry: z
+      .string()
+      .optional()
+      .describe("Optional: traveler's nationality for relevant embassy contact"),
+  }),
+  execute: (args, ctx) => callEdgeFunction(ctx, 'getEmergencyContacts', args),
+};
+
 const emitBulkDeletePreview: ToolDefinition = {
   name: 'emitBulkDeletePreview',
   description:
@@ -756,4 +1018,23 @@ export const ALL_TOOLS: ToolDefinition[] = [
   getHotelDetails,
   emitBulkDeletePreview,
   bulkDeleteCalendarEvents,
+  // New tools (60-tool expansion)
+  optimizeItinerary,
+  detectScheduleConflicts,
+  generatePackingList,
+  addReminder,
+  getVisaRequirements,
+  getTravelAdvisories,
+  getLocalPhrases,
+  trackFlightStatus,
+  searchCarRentals,
+  searchPublicTransit,
+  searchExperiences,
+  getLocalEvents,
+  findNearby,
+  setTripBudget,
+  splitTaskAssignments,
+  getTripStats,
+  shareItinerary,
+  getEmergencyContacts,
 ];
