@@ -970,6 +970,177 @@ const bulkDeleteCalendarEvents: ToolDefinition = {
     insertPendingAction(ctx, 'bulkDeleteCalendarEvents', { ...args, tripId: ctx.tripId }),
 };
 
+// ── New Tools (74-tool expansion) ─────────────────────────────────────────────
+
+const duplicateCalendarEvent: ToolDefinition = {
+  name: 'duplicateCalendarEvent',
+  description:
+    'Duplicate an existing trip calendar event to a new date. Copies all fields and adjusts the date. Requires user confirmation.',
+  schema: z.object({
+    eventId: z.string().describe('UUID of the event to duplicate'),
+    newDate: z.string().describe('ISO 8601 date (YYYY-MM-DD) for the new occurrence'),
+    idempotency_key: z.string().optional(),
+  }),
+  execute: (args, ctx) =>
+    insertPendingAction(ctx, 'duplicateCalendarEvent', { ...args, tripId: ctx.tripId }),
+};
+
+const bulkMarkTasksDone: ToolDefinition = {
+  name: 'bulkMarkTasksDone',
+  description:
+    'Mark multiple trip tasks as complete. Accepts explicit task IDs or a filter keyword to match by title. Requires user confirmation.',
+  schema: z.object({
+    taskIds: z.array(z.string()).optional().describe('Explicit list of task UUIDs to mark done'),
+    filter: z
+      .string()
+      .optional()
+      .describe('Title keyword to find matching tasks (e.g., "packing")'),
+    idempotency_key: z.string().optional(),
+  }),
+  execute: (args, ctx) =>
+    insertPendingAction(ctx, 'bulkMarkTasksDone', { ...args, tripId: ctx.tripId }),
+};
+
+const cloneActivity: ToolDefinition = {
+  name: 'cloneActivity',
+  description:
+    'Clone an existing trip calendar event to one or more new dates, preserving duration and details. Requires user confirmation.',
+  schema: z.object({
+    eventId: z.string().describe('UUID of the source event to clone'),
+    targetDates: z
+      .array(z.string())
+      .describe('ISO 8601 date strings (YYYY-MM-DD) to clone the event onto'),
+    idempotency_key: z.string().optional(),
+  }),
+  execute: (args, ctx) =>
+    insertPendingAction(ctx, 'cloneActivity', { ...args, tripId: ctx.tripId }),
+};
+
+const addExpense: ToolDefinition = {
+  name: 'addExpense',
+  description:
+    'Log a new shared expense to the trip. Supports optional split across participants. Requires user confirmation.',
+  schema: z.object({
+    description: z.string().describe('What the expense is for (e.g., "Airport taxi")'),
+    amount: z.number().positive().describe('Expense amount'),
+    currency: z.string().optional().describe('Currency code, e.g. "USD". Defaults to USD.'),
+    splitParticipants: z
+      .array(z.string())
+      .optional()
+      .describe('Optional user display names or IDs to split with'),
+    idempotency_key: z.string().optional(),
+  }),
+  execute: (args, ctx) => insertPendingAction(ctx, 'addExpense', { ...args, tripId: ctx.tripId }),
+};
+
+const moveCalendarEvent: ToolDefinition = {
+  name: 'moveCalendarEvent',
+  description:
+    'Move an existing trip calendar event to a new date and optionally a new time. Preserves event duration.',
+  schema: z.object({
+    eventId: z.string().describe('UUID of the event to move'),
+    newDate: z.string().describe('ISO 8601 date (YYYY-MM-DD)'),
+    newTime: z
+      .string()
+      .optional()
+      .describe('New start time HH:MM (24h); keeps original time if omitted'),
+  }),
+  execute: (args, ctx) => callEdgeFunction(ctx, 'moveCalendarEvent', args),
+};
+
+const closePoll: ToolDefinition = {
+  name: 'closePoll',
+  description: 'Close an active trip poll so no further votes can be cast. Returns final results.',
+  schema: z.object({
+    pollId: z.string().describe('UUID of the poll to close'),
+  }),
+  execute: (args, ctx) => callEdgeFunction(ctx, 'closePoll', args),
+};
+
+const getRecentActivity: ToolDefinition = {
+  name: 'getRecentActivity',
+  description:
+    "Get a chronological summary of recent changes to the trip. Use when user asks 'what's new', 'what changed', or 'catch me up'.",
+  schema: z.object({
+    days: z.number().optional().describe('How many days back to look (default: 7)'),
+    limit: z.number().optional().describe('Max activity items to return (default: 20)'),
+  }),
+  execute: (args, ctx) => callEdgeFunction(ctx, 'getRecentActivity', args),
+};
+
+const getTaskSummary: ToolDefinition = {
+  name: 'getTaskSummary',
+  description:
+    'Get a summary of trip tasks grouped by status (todo/done/overdue), optionally filtered by assignee.',
+  schema: z.object({
+    assignee: z.string().optional().describe('Filter by assignee display name or user ID'),
+  }),
+  execute: (args, ctx) => callEdgeFunction(ctx, 'getTaskSummary', args),
+};
+
+const getGroupAvailability: ToolDefinition = {
+  name: 'getGroupAvailability',
+  description:
+    'Find free time windows in the trip calendar — slots where no events are scheduled. Uses shared trip calendar only.',
+  schema: z.object({
+    date: z.string().describe('ISO 8601 date (YYYY-MM-DD) to check availability for'),
+    dayCount: z.number().optional().describe('Number of consecutive days to check (default: 1)'),
+  }),
+  execute: (args, ctx) => callEdgeFunction(ctx, 'getGroupAvailability', args),
+};
+
+const getUpcomingReminders: ToolDefinition = {
+  name: 'getUpcomingReminders',
+  description: 'List upcoming reminders set for this trip via the AI concierge.',
+  schema: z.object({
+    limit: z.number().optional().describe('Max reminders to return (default: 10)'),
+  }),
+  execute: (args, ctx) => callEdgeFunction(ctx, 'getUpcomingReminders', args),
+};
+
+const searchTripChats: ToolDefinition = {
+  name: 'searchTripChats',
+  description: 'Search trip chat messages for a keyword or phrase.',
+  schema: z.object({
+    query: z.string().describe('Text to search for in chat messages'),
+    limit: z.number().optional().describe('Max results (default: 20)'),
+  }),
+  execute: (args, ctx) => callEdgeFunction(ctx, 'searchTripChats', args),
+};
+
+const getPollResults: ToolDefinition = {
+  name: 'getPollResults',
+  description: 'Get current results and vote counts for one or all active polls in the trip.',
+  schema: z.object({
+    pollId: z
+      .string()
+      .optional()
+      .describe('UUID of a specific poll. Omit to return all active polls.'),
+  }),
+  execute: (args, ctx) => callEdgeFunction(ctx, 'getPollResults', args),
+};
+
+const getTripLinks: ToolDefinition = {
+  name: 'getTripLinks',
+  description: 'Get saved links and places for this trip (the Explore/Places section).',
+  schema: z.object({
+    category: z
+      .string()
+      .optional()
+      .describe('Filter by category (e.g., "restaurant", "hotel", "activity")'),
+    limit: z.number().optional().describe('Max results (default: 30)'),
+  }),
+  execute: (args, ctx) => callEdgeFunction(ctx, 'getTripLinks', args),
+};
+
+const getTripInfo: ToolDefinition = {
+  name: 'getTripInfo',
+  description:
+    'Get basic details about this trip: name, destination, start/end dates, description, type, timezone.',
+  schema: z.object({}),
+  execute: (_args, ctx) => callEdgeFunction(ctx, 'getTripInfo', {}),
+};
+
 // ── Export All Tools ───────────────────────────────────────────────────────────
 
 export const ALL_TOOLS: ToolDefinition[] = [
@@ -1037,4 +1208,19 @@ export const ALL_TOOLS: ToolDefinition[] = [
   getTripStats,
   shareItinerary,
   getEmergencyContacts,
+  // New tools (74-tool expansion)
+  duplicateCalendarEvent,
+  bulkMarkTasksDone,
+  cloneActivity,
+  addExpense,
+  moveCalendarEvent,
+  closePoll,
+  getRecentActivity,
+  getTaskSummary,
+  getGroupAvailability,
+  getUpcomingReminders,
+  searchTripChats,
+  getPollResults,
+  getTripLinks,
+  getTripInfo,
 ];

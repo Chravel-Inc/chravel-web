@@ -3072,6 +3072,624 @@ async function _executeImpl(
       };
     }
 
+    // ========== NEW TOOLS (74-TOOL EXPANSION) ==========
+
+    case 'duplicateCalendarEvent': {
+      const { eventId, newDate, idempotency_key } = args;
+      if (!eventId) return { error: 'eventId is required' };
+      if (!newDate) return { error: 'newDate is required' };
+
+      // Fetch source event and verify it belongs to this trip
+      const { data: src, error: fetchErr } = await supabase
+        .from('trip_events')
+        .select('title, start_time, end_time, location, description, event_category')
+        .eq('id', String(eventId))
+        .eq('trip_id', tripId)
+        .single();
+      if (fetchErr || !src) return { error: 'Event not found in this trip' };
+
+      // Compute duration and apply to newDate
+      const srcStart = new Date(src.start_time);
+      const srcEnd = src.end_time ? new Date(src.end_time) : null;
+      const durationMs = srcEnd ? srcEnd.getTime() - srcStart.getTime() : 3600000;
+
+      const [year, month, day] = String(newDate).split('-').map(Number);
+      const newStart = new Date(srcStart);
+      newStart.setFullYear(year, month - 1, day);
+      const newEnd = new Date(newStart.getTime() + durationMs);
+
+      const dedupeId = idempotency_key || null;
+      const { data: pending, error: pendingError } = await supabase
+        .from('trip_pending_actions')
+        .insert({
+          trip_id: tripId,
+          user_id: userId || '00000000-0000-0000-0000-000000000000',
+          tool_name: 'duplicateCalendarEvent',
+          ...(dedupeId ? { tool_call_id: dedupeId } : {}),
+          payload: {
+            source_event_id: String(eventId),
+            source_title: src.title,
+            new_start_time: newStart.toISOString(),
+            new_end_time: newEnd.toISOString(),
+            location: src.location || null,
+            description: src.description || null,
+            event_category: src.event_category || null,
+          },
+          source_type: 'ai_concierge',
+        })
+        .select('id')
+        .single();
+      if (pendingError) throw pendingError;
+      return {
+        success: true,
+        pending: true,
+        pendingActionId: pending.id,
+        actionType: 'duplicate_calendar_event',
+        message: `I'd like to duplicate "${src.title}" to ${newDate}. Please confirm in the trip chat.`,
+      };
+    }
+
+    case 'bulkMarkTasksDone': {
+      const { taskIds, filter, idempotency_key } = args;
+      let resolvedIds: string[] = Array.isArray(taskIds) ? taskIds.map(String) : [];
+
+      if (resolvedIds.length === 0 && filter) {
+        // Resolve IDs from filter keyword
+        const filterStr = String(filter).trim();
+        const { data: matched } = await supabase
+          .from('trip_tasks')
+          .select('id, title')
+          .eq('trip_id', tripId)
+          .eq('completed', false)
+          .ilike('title', `%${filterStr}%`);
+        resolvedIds = (matched || []).map((t: { id: string }) => t.id);
+      }
+
+      if (resolvedIds.length === 0) {
+        return { error: 'No matching tasks found to mark done' };
+      }
+
+      const dedupeId = idempotency_key || null;
+      const { data: pending, error: pendingError } = await supabase
+        .from('trip_pending_actions')
+        .insert({
+          trip_id: tripId,
+          user_id: userId || '00000000-0000-0000-0000-000000000000',
+          tool_name: 'bulkMarkTasksDone',
+          ...(dedupeId ? { tool_call_id: dedupeId } : {}),
+          payload: {
+            task_ids: resolvedIds,
+            filter_description: filter ? String(filter) : `${resolvedIds.length} tasks`,
+          },
+          source_type: 'ai_concierge',
+        })
+        .select('id')
+        .single();
+      if (pendingError) throw pendingError;
+      return {
+        success: true,
+        pending: true,
+        pendingActionId: pending.id,
+        actionType: 'bulk_mark_tasks_done',
+        taskCount: resolvedIds.length,
+        message: `I'd like to mark ${resolvedIds.length} task(s) as complete. Please confirm in the trip chat.`,
+      };
+    }
+
+    case 'cloneActivity': {
+      const { eventId, targetDates, idempotency_key } = args;
+      if (!eventId) return { error: 'eventId is required' };
+      if (!Array.isArray(targetDates) || targetDates.length === 0) {
+        return { error: 'targetDates must be a non-empty array' };
+      }
+
+      const { data: src, error: fetchErr } = await supabase
+        .from('trip_events')
+        .select('title, start_time, end_time, location, description, event_category')
+        .eq('id', String(eventId))
+        .eq('trip_id', tripId)
+        .single();
+      if (fetchErr || !src) return { error: 'Event not found in this trip' };
+
+      const srcStart = new Date(src.start_time);
+      const srcEnd = src.end_time ? new Date(src.end_time) : null;
+      const durationMs = srcEnd ? srcEnd.getTime() - srcStart.getTime() : 3600000;
+
+      const clones = targetDates.map((dateStr: string) => {
+        const [y, m, d] = String(dateStr).split('-').map(Number);
+        const newStart = new Date(srcStart);
+        newStart.setFullYear(y, m - 1, d);
+        return {
+          title: src.title,
+          start_time: newStart.toISOString(),
+          end_time: new Date(newStart.getTime() + durationMs).toISOString(),
+          location: src.location || null,
+          description: src.description || null,
+          event_category: src.event_category || null,
+        };
+      });
+
+      const dedupeId = idempotency_key || null;
+      const { data: pending, error: pendingError } = await supabase
+        .from('trip_pending_actions')
+        .insert({
+          trip_id: tripId,
+          user_id: userId || '00000000-0000-0000-0000-000000000000',
+          tool_name: 'cloneActivity',
+          ...(dedupeId ? { tool_call_id: dedupeId } : {}),
+          payload: { clones, source_event_id: String(eventId) },
+          source_type: 'ai_concierge',
+        })
+        .select('id')
+        .single();
+      if (pendingError) throw pendingError;
+      return {
+        success: true,
+        pending: true,
+        pendingActionId: pending.id,
+        actionType: 'clone_activity',
+        cloneCount: clones.length,
+        message: `I'd like to clone "${src.title}" to ${clones.length} date(s). Please confirm in the trip chat.`,
+      };
+    }
+
+    case 'addExpense': {
+      const { description, amount, currency, splitParticipants, idempotency_key } = args;
+      if (!description) return { error: 'description is required' };
+      if (amount == null || Number(amount) <= 0)
+        return { error: 'amount must be a positive number' };
+
+      const dedupeId = idempotency_key || null;
+      const splitCount =
+        Array.isArray(splitParticipants) && splitParticipants.length > 0
+          ? splitParticipants.length
+          : 1;
+
+      const { data: pending, error: pendingError } = await supabase
+        .from('trip_pending_actions')
+        .insert({
+          trip_id: tripId,
+          user_id: userId || '00000000-0000-0000-0000-000000000000',
+          tool_name: 'addExpense',
+          ...(dedupeId ? { tool_call_id: dedupeId } : {}),
+          payload: {
+            description: String(description),
+            amount: Number(amount),
+            currency: currency ? String(currency).toUpperCase() : 'USD',
+            split_count: splitCount,
+            split_participants: Array.isArray(splitParticipants) ? splitParticipants : [],
+            created_by: userId || null,
+            trip_id: tripId,
+          },
+          source_type: 'ai_concierge',
+        })
+        .select('id')
+        .single();
+      if (pendingError) throw pendingError;
+      return {
+        success: true,
+        pending: true,
+        pendingActionId: pending.id,
+        actionType: 'add_expense',
+        message: `I'd like to log a ${currency || 'USD'} ${amount} expense for "${description}". Please confirm in the trip chat.`,
+      };
+    }
+
+    case 'moveCalendarEvent': {
+      const { eventId, newDate, newTime } = args;
+      if (!eventId) return { error: 'eventId is required' };
+      if (!newDate) return { error: 'newDate is required' };
+
+      const { data: existing, error: fetchErr } = await supabase
+        .from('trip_events')
+        .select('id, title, start_time, end_time')
+        .eq('id', String(eventId))
+        .eq('trip_id', tripId)
+        .single();
+      if (fetchErr || !existing) return { error: 'Event not found in this trip' };
+
+      const srcStart = new Date(existing.start_time);
+      const srcEnd = existing.end_time ? new Date(existing.end_time) : null;
+      const durationMs = srcEnd ? srcEnd.getTime() - srcStart.getTime() : 3600000;
+
+      const [year, month, day] = String(newDate).split('-').map(Number);
+      const newStart = new Date(srcStart);
+      newStart.setFullYear(year, month - 1, day);
+
+      if (newTime) {
+        const [h, m] = String(newTime).split(':').map(Number);
+        newStart.setHours(h, m, 0, 0);
+      }
+
+      const newEnd = new Date(newStart.getTime() + durationMs);
+
+      const { data, error } = await supabase
+        .from('trip_events')
+        .update({ start_time: newStart.toISOString(), end_time: newEnd.toISOString() })
+        .eq('id', String(eventId))
+        .eq('trip_id', tripId)
+        .select()
+        .single();
+      if (error) throw error;
+      return {
+        success: true,
+        event: data,
+        actionType: 'move_calendar_event',
+        message: `Moved "${existing.title}" to ${newDate}${newTime ? ` at ${newTime}` : ''}`,
+      };
+    }
+
+    case 'closePoll': {
+      const { pollId } = args;
+      if (!pollId) return { error: 'pollId is required' };
+
+      const { data: existing, error: fetchErr } = await supabase
+        .from('trip_polls')
+        .select('id, question, status')
+        .eq('id', String(pollId))
+        .eq('trip_id', tripId)
+        .single();
+      if (fetchErr || !existing) return { error: 'Poll not found in this trip' };
+      if (existing.status === 'closed') return { error: 'Poll is already closed' };
+
+      const { data, error } = await supabase
+        .from('trip_polls')
+        .update({ status: 'closed' })
+        .eq('id', String(pollId))
+        .eq('trip_id', tripId)
+        .select()
+        .single();
+      if (error) throw error;
+      return {
+        success: true,
+        poll: data,
+        actionType: 'close_poll',
+        message: `Closed poll: "${existing.question}"`,
+      };
+    }
+
+    case 'getRecentActivity': {
+      const limit = Math.min(Number(args.limit || 20), 50);
+      const days = Math.min(Number(args.days || 7), 30);
+      const since = new Date(Date.now() - days * 86400000).toISOString();
+
+      // Try trip_activity_log first (rich structured data)
+      const { data: activityLog, error: logErr } = await supabase
+        .from('trip_activity_log')
+        .select('id, action, object_type, object_id, user_id, source_type, metadata, created_at')
+        .eq('trip_id', tripId)
+        .gte('created_at', since)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (!logErr && activityLog && activityLog.length > 0) {
+        return {
+          success: true,
+          source: 'activity_log',
+          days,
+          count: activityLog.length,
+          activity: activityLog,
+          message: `Found ${activityLog.length} activity item(s) in the last ${days} day(s)`,
+        };
+      }
+
+      // Fallback: union of recent tasks + events + links
+      const [{ data: tasks }, { data: events }, { data: links }] = await Promise.all([
+        supabase
+          .from('trip_tasks')
+          .select('id, title, completed, updated_at')
+          .eq('trip_id', tripId)
+          .gte('updated_at', since)
+          .order('updated_at', { ascending: false })
+          .limit(10),
+        supabase
+          .from('trip_events')
+          .select('id, title, start_time, updated_at')
+          .eq('trip_id', tripId)
+          .gte('updated_at', since)
+          .order('updated_at', { ascending: false })
+          .limit(10),
+        supabase
+          .from('trip_links')
+          .select('id, title, url, category, updated_at')
+          .eq('trip_id', tripId)
+          .gte('updated_at', since)
+          .order('updated_at', { ascending: false })
+          .limit(10),
+      ]);
+
+      const combined = [
+        ...(tasks || []).map((t: any) => ({ ...t, type: 'task' })),
+        ...(events || []).map((e: any) => ({ ...e, type: 'event' })),
+        ...(links || []).map((l: any) => ({ ...l, type: 'link' })),
+      ]
+        .sort(
+          (a: any, b: any) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
+        )
+        .slice(0, limit);
+
+      return {
+        success: true,
+        source: 'union_query',
+        days,
+        count: combined.length,
+        activity: combined,
+        message:
+          combined.length > 0
+            ? `Found ${combined.length} recent change(s) in the last ${days} day(s)`
+            : `No activity found in the last ${days} day(s)`,
+      };
+    }
+
+    case 'getTaskSummary': {
+      const { assignee } = args;
+
+      let query = supabase
+        .from('trip_tasks')
+        .select('id, title, completed, completed_at, due_at, description')
+        .eq('trip_id', tripId);
+
+      if (assignee) {
+        // assignee is stored as a display name string in trip_tasks
+        query = (query as any).ilike('assignee', `%${String(assignee)}%`);
+      }
+
+      const { data: tasks, error } = await query;
+      if (error) throw error;
+
+      const all = tasks || [];
+      const done = all.filter((t: any) => t.completed);
+      const overdue = all.filter(
+        (t: any) => !t.completed && t.due_at && new Date(t.due_at) < new Date(),
+      );
+      const todo = all.filter(
+        (t: any) => !t.completed && !(t.due_at && new Date(t.due_at) < new Date()),
+      );
+
+      return {
+        success: true,
+        total: all.length,
+        done: done.length,
+        todo: todo.length,
+        overdue: overdue.length,
+        tasks: all,
+        message: `${all.length} total task(s): ${done.length} done, ${todo.length} to-do, ${overdue.length} overdue`,
+      };
+    }
+
+    case 'getGroupAvailability': {
+      const { date, dayCount } = args;
+      if (!date) return { error: 'date is required' };
+
+      const count = Math.min(Number(dayCount || 1), 7);
+      const [y, mo, d] = String(date).split('-').map(Number);
+      const startDate = new Date(Date.UTC(y, mo - 1, d));
+      const endDate = new Date(Date.UTC(y, mo - 1, d + count));
+
+      const { data: events, error } = await supabase
+        .from('trip_events')
+        .select('id, title, start_time, end_time')
+        .eq('trip_id', tripId)
+        .gte('start_time', startDate.toISOString())
+        .lt('start_time', endDate.toISOString())
+        .order('start_time', { ascending: true });
+      if (error) throw error;
+
+      // Group events by calendar day and find gaps > 60 min
+      const byDay: Record<string, { start: Date; end: Date; title: string }[]> = {};
+      for (const ev of events || []) {
+        const day = ev.start_time.substring(0, 10);
+        if (!byDay[day]) byDay[day] = [];
+        byDay[day].push({
+          title: ev.title,
+          start: new Date(ev.start_time),
+          end: ev.end_time
+            ? new Date(ev.end_time)
+            : new Date(new Date(ev.start_time).getTime() + 3600000),
+        });
+      }
+
+      const freeWindows: { date: string; from: string; to: string; durationHours: number }[] = [];
+
+      for (let i = 0; i < count; i++) {
+        const dayStart = new Date(startDate.getTime() + i * 86400000);
+        const dayStr = dayStart.toISOString().substring(0, 10);
+        const dayEvents = (byDay[dayStr] || []).sort(
+          (a: any, b: any) => a.start.getTime() - b.start.getTime(),
+        );
+
+        // Check window from 08:00 to start of first event
+        const morningStart = new Date(dayStart);
+        morningStart.setUTCHours(8, 0, 0, 0);
+        const eveningEnd = new Date(dayStart);
+        eveningEnd.setUTCHours(22, 0, 0, 0);
+
+        if (dayEvents.length === 0) {
+          freeWindows.push({
+            date: dayStr,
+            from: '08:00',
+            to: '22:00',
+            durationHours: 14,
+          });
+          continue;
+        }
+
+        let cursor = morningStart;
+        for (const ev of dayEvents) {
+          const gapMs = ev.start.getTime() - cursor.getTime();
+          if (gapMs >= 3600000) {
+            freeWindows.push({
+              date: dayStr,
+              from: cursor.toISOString().substring(11, 16),
+              to: ev.start.toISOString().substring(11, 16),
+              durationHours: Math.round(gapMs / 360000) / 10,
+            });
+          }
+          cursor = ev.end.getTime() > cursor.getTime() ? ev.end : cursor;
+        }
+        // Gap after last event until 22:00
+        const afterGap = eveningEnd.getTime() - cursor.getTime();
+        if (afterGap >= 3600000) {
+          freeWindows.push({
+            date: dayStr,
+            from: cursor.toISOString().substring(11, 16),
+            to: '22:00',
+            durationHours: Math.round(afterGap / 360000) / 10,
+          });
+        }
+      }
+
+      return {
+        success: true,
+        date: String(date),
+        dayCount: count,
+        freeWindows,
+        totalScheduledEvents: (events || []).length,
+        message:
+          freeWindows.length > 0
+            ? `Found ${freeWindows.length} free window(s) over ${count} day(s)`
+            : `No free windows over 1 hour found in the requested period`,
+      };
+    }
+
+    case 'getUpcomingReminders': {
+      const limit = Math.min(Number(args.limit || 10), 50);
+
+      const { data: reminders, error } = await (supabase as any)
+        .from('trip_pending_actions')
+        .select('id, payload, created_at')
+        .eq('trip_id', tripId)
+        .eq('tool_name', 'addReminder')
+        .in('status', ['pending', 'confirmed'])
+        .order('created_at', { ascending: true })
+        .limit(limit);
+      if (error) throw error;
+
+      const now = new Date();
+      const upcoming = (reminders || []).filter((r: any) => {
+        const remindAt = r.payload?.remind_at;
+        return remindAt && new Date(remindAt) > now;
+      });
+
+      return {
+        success: true,
+        count: upcoming.length,
+        reminders: upcoming.map((r: any) => ({
+          id: r.id,
+          message: r.payload?.message,
+          remind_at: r.payload?.remind_at,
+          entity_type: r.payload?.entity_type,
+          entity_id: r.payload?.entity_id,
+        })),
+        message:
+          upcoming.length > 0
+            ? `${upcoming.length} upcoming reminder(s) found`
+            : 'No upcoming reminders',
+      };
+    }
+
+    case 'searchTripChats': {
+      const { query: chatQuery, limit } = args;
+      const searchStr = String(chatQuery || '').trim();
+      if (!searchStr) return { error: 'query is required' };
+
+      const resultLimit = Math.min(Number(limit || 20), 50);
+
+      const { data: messages, error } = await supabase
+        .from('trip_chat_messages')
+        .select('id, content, sender_id, created_at')
+        .eq('trip_id', tripId)
+        .ilike('content', `%${searchStr}%`)
+        .order('created_at', { ascending: false })
+        .limit(resultLimit);
+      if (error) throw error;
+
+      return {
+        success: true,
+        query: searchStr,
+        count: (messages || []).length,
+        messages: messages || [],
+        message:
+          (messages || []).length > 0
+            ? `Found ${messages!.length} message(s) matching "${searchStr}"`
+            : `No messages found matching "${searchStr}"`,
+      };
+    }
+
+    case 'getPollResults': {
+      const { pollId } = args;
+
+      let query = supabase
+        .from('trip_polls')
+        .select('id, question, options, status, total_votes, created_at')
+        .eq('trip_id', tripId);
+
+      if (pollId) {
+        query = query.eq('id', String(pollId));
+      } else {
+        query = (query as any).in('status', ['active', 'closed']);
+      }
+
+      const { data: polls, error } = await query
+        .order('created_at', { ascending: false })
+        .limit(10);
+      if (error) throw error;
+
+      return {
+        success: true,
+        count: (polls || []).length,
+        polls: polls || [],
+        message: (polls || []).length > 0 ? `Found ${polls!.length} poll(s)` : 'No polls found',
+      };
+    }
+
+    case 'getTripLinks': {
+      const { category, limit } = args;
+      const resultLimit = Math.min(Number(limit || 30), 100);
+
+      let query = supabase
+        .from('trip_links')
+        .select('id, url, title, description, category, created_at')
+        .eq('trip_id', tripId);
+
+      if (category) {
+        query = query.ilike('category', `%${String(category)}%`);
+      }
+
+      const { data: links, error } = await query
+        .order('created_at', { ascending: false })
+        .limit(resultLimit);
+      if (error) throw error;
+
+      return {
+        success: true,
+        count: (links || []).length,
+        links: links || [],
+        message:
+          (links || []).length > 0
+            ? `Found ${links!.length} saved link(s)${category ? ` in category "${category}"` : ''}`
+            : 'No saved links found',
+      };
+    }
+
+    case 'getTripInfo': {
+      const { data: trip, error } = await supabase
+        .from('trips')
+        .select(
+          'id, name, destination, start_date, end_date, description, trip_type, primary_timezone',
+        )
+        .eq('id', tripId)
+        .single();
+      if (error) throw error;
+      if (!trip) return { error: 'Trip not found' };
+
+      return {
+        success: true,
+        trip,
+        message: `Trip: ${trip.name}${trip.destination ? ` → ${trip.destination}` : ''}`,
+      };
+    }
+
     default:
       return { error: `Unknown function: ${functionName}` };
   }

@@ -7,6 +7,10 @@
  *
  * On confirm: the original mutation payload is executed and the pending action is resolved.
  * On reject: the pending action is marked rejected (no shared-state write).
+ *
+ * Security: all Supabase writes use the authenticated user's JWT; RLS enforces trip
+ * membership on trip_events, trip_tasks, and trip_payment_messages. trip_id is always
+ * sourced from the pending action row (server-verified), never from user input.
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -80,7 +84,8 @@ export function usePendingActions(tripId: string) {
 
       const payload = action.payload as Record<string, unknown>;
 
-      // Execute the original mutation based on tool_name
+      // Execute the original mutation based on tool_name.
+      // trip_id always comes from the action row (server-verified), not user input.
       switch (action.tool_name) {
         case 'createTask': {
           // intentional: source_type column may not be in generated types yet
@@ -138,6 +143,92 @@ export function usePendingActions(tripId: string) {
           break;
         }
 
+        case 'addReminder':
+        case 'setTripBudget': {
+          // The pending action row IS the record — no dedicated table exists yet.
+          // Marking confirmed (done below) signals user approval.
+          // TODO: future migration should introduce trip_reminders / trip_budgets tables.
+          break;
+        }
+
+        case 'duplicateCalendarEvent': {
+          // Payload contains pre-computed new start/end times stored by functionExecutor.
+          const { error } = await (supabase as any).from('trip_events').insert({
+            trip_id: action.trip_id,
+            created_by: user.id,
+            title: payload.source_title as string,
+            start_time: payload.new_start_time as string,
+            end_time: (payload.new_end_time as string | null) || null,
+            location: (payload.location as string | null) || null,
+            description: (payload.description as string | null) || null,
+            event_category: (payload.event_category as string | null) || null,
+            source_type: 'ai_concierge',
+          });
+          if (error) throw error;
+          break;
+        }
+
+        case 'bulkMarkTasksDone': {
+          const taskIds = payload.task_ids as string[];
+          if (!Array.isArray(taskIds) || taskIds.length === 0) {
+            throw new Error('No task IDs in payload');
+          }
+          // eq(trip_id) adds defense-in-depth on top of RLS
+          const { error } = await (supabase as any)
+            .from('trip_tasks')
+            .update({ completed: true, completed_at: new Date().toISOString() })
+            .in('id', taskIds)
+            .eq('trip_id', action.trip_id);
+          if (error) throw error;
+          break;
+        }
+
+        case 'cloneActivity': {
+          // Payload contains pre-computed clone objects stored by functionExecutor
+          const clones = payload.clones as Array<{
+            title: string;
+            start_time: string;
+            end_time: string | null;
+            location: string | null;
+            description: string | null;
+            event_category: string | null;
+          }>;
+          if (!Array.isArray(clones) || clones.length === 0) {
+            throw new Error('No clones in payload');
+          }
+          const { error } = await (supabase as any).from('trip_events').insert(
+            clones.map(c => ({
+              trip_id: action.trip_id,
+              created_by: user.id,
+              title: c.title,
+              start_time: c.start_time,
+              end_time: c.end_time || null,
+              location: c.location || null,
+              description: c.description || null,
+              event_category: c.event_category || null,
+              source_type: 'ai_concierge',
+            })),
+          );
+          if (error) throw error;
+          break;
+        }
+
+        case 'addExpense': {
+          // trip_payment_messages.trip_id is TEXT (not UUID) per schema
+          const { error } = await (supabase as any).from('trip_payment_messages').insert({
+            trip_id: action.trip_id,
+            created_by: (payload.created_by as string) || user.id,
+            amount: payload.amount as number,
+            currency: (payload.currency as string) || 'USD',
+            description: payload.description as string,
+            split_count: (payload.split_count as number) || 1,
+            split_participants: (payload.split_participants as unknown[]) || [],
+            payment_methods: [],
+          });
+          if (error) throw error;
+          break;
+        }
+
         default:
           throw new Error(`Unknown tool: ${action.tool_name}`);
       }
@@ -161,24 +252,48 @@ export function usePendingActions(tripId: string) {
       return action;
     },
     onSuccess: action => {
-      const toolLabel =
-        action.tool_name === 'createTask'
-          ? 'Task'
-          : action.tool_name === 'createPoll'
-            ? 'Poll'
-            : action.tool_name === 'addToCalendar'
-              ? 'Calendar event'
-              : 'Action';
-      toast.success(`${toolLabel} created`);
+      const toolLabelMap: Record<string, string> = {
+        createTask: 'Task',
+        createPoll: 'Poll',
+        addToCalendar: 'Calendar event',
+        addReminder: 'Reminder',
+        setTripBudget: 'Trip budget',
+        duplicateCalendarEvent: 'Event duplicated',
+        bulkMarkTasksDone: 'Tasks marked complete',
+        cloneActivity: 'Activity cloned',
+        addExpense: 'Expense added',
+      };
+      const label = toolLabelMap[action.tool_name] || 'Action confirmed';
+      const isVerb = [
+        'Event duplicated',
+        'Tasks marked complete',
+        'Activity cloned',
+        'Expense added',
+      ].includes(label);
+      toast.success(isVerb ? label : `${label} created`);
 
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey });
-      if (action.tool_name === 'createTask') {
-        queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId] });
-      } else if (action.tool_name === 'createPoll') {
-        queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId] });
-      } else if (action.tool_name === 'addToCalendar') {
-        queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
+      switch (action.tool_name) {
+        case 'createTask':
+          queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId] });
+          break;
+        case 'createPoll':
+          queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId] });
+          break;
+        case 'addToCalendar':
+        case 'duplicateCalendarEvent':
+        case 'cloneActivity':
+          queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
+          break;
+        case 'bulkMarkTasksDone':
+          queryClient.invalidateQueries({ queryKey: tripKeys.tasks(tripId) });
+          break;
+        case 'addExpense':
+          queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) });
+          break;
+        default:
+          break;
       }
     },
     onError: (error: Error) => {

@@ -1,5 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { CalendarPlus, CheckSquare, BarChart3, Check, X, Loader2 } from 'lucide-react';
+import {
+  CalendarPlus,
+  CheckSquare,
+  BarChart3,
+  Check,
+  X,
+  Loader2,
+  Bell,
+  DollarSign,
+  Copy,
+} from 'lucide-react';
 import type { PendingAction } from '@/hooks/usePendingActions';
 
 interface PendingActionCardProps {
@@ -16,6 +26,12 @@ const TOOL_CONFIG: Record<string, { icon: React.ElementType; label: string; colo
   createTask: { icon: CheckSquare, label: 'Task', color: 'text-green-400' },
   createPoll: { icon: BarChart3, label: 'Poll', color: 'text-blue-400' },
   addToCalendar: { icon: CalendarPlus, label: 'Calendar Event', color: 'text-purple-400' },
+  addReminder: { icon: Bell, label: 'Reminder', color: 'text-yellow-400' },
+  setTripBudget: { icon: DollarSign, label: 'Trip Budget', color: 'text-green-400' },
+  duplicateCalendarEvent: { icon: Copy, label: 'Duplicate Event', color: 'text-purple-400' },
+  bulkMarkTasksDone: { icon: CheckSquare, label: 'Bulk Complete Tasks', color: 'text-green-400' },
+  cloneActivity: { icon: Copy, label: 'Clone Activity', color: 'text-purple-400' },
+  addExpense: { icon: DollarSign, label: 'Expense', color: 'text-orange-400' },
 };
 
 function getActionTitle(action: PendingAction): string {
@@ -27,6 +43,31 @@ function getActionTitle(action: PendingAction): string {
       return (payload.question as string) || 'Untitled poll';
     case 'addToCalendar':
       return (payload.title as string) || 'Untitled event';
+    case 'addReminder':
+      return (payload.message as string) || 'Reminder';
+    case 'setTripBudget': {
+      const amt = payload.total_budget as number | undefined;
+      const cur = (payload.currency as string) || 'USD';
+      return amt != null ? `Budget: ${amt} ${cur}` : 'Set trip budget';
+    }
+    case 'duplicateCalendarEvent':
+      return (payload.source_title as string) || 'Duplicate event';
+    case 'bulkMarkTasksDone': {
+      const ids = payload.task_ids as unknown[] | undefined;
+      const count = Array.isArray(ids) ? ids.length : 0;
+      return `Mark ${count} task${count !== 1 ? 's' : ''} complete`;
+    }
+    case 'cloneActivity': {
+      const clones = payload.clones as unknown[] | undefined;
+      const count = Array.isArray(clones) ? clones.length : 0;
+      const title =
+        Array.isArray(clones) && clones.length > 0
+          ? ((clones[0] as Record<string, unknown>).title as string)
+          : 'Activity';
+      return `Clone "${title}" × ${count}`;
+    }
+    case 'addExpense':
+      return (payload.description as string) || 'New expense';
     default:
       return 'Unknown action';
   }
@@ -56,6 +97,52 @@ function getActionDetail(action: PendingAction): string | null {
       }
       if (payload.location) parts.push(payload.location as string);
       return parts.join(' · ') || null;
+    }
+    case 'addReminder': {
+      const remindAt = payload.remind_at as string | undefined;
+      if (!remindAt) return null;
+      try {
+        return `Remind at ${new Date(remindAt).toLocaleString()}`;
+      } catch {
+        return remindAt;
+      }
+    }
+    case 'setTripBudget': {
+      const cats = payload.category_budgets as Record<string, number> | undefined;
+      if (!cats || Object.keys(cats).length === 0) return null;
+      return Object.entries(cats)
+        .slice(0, 3)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join(', ');
+    }
+    case 'duplicateCalendarEvent': {
+      const newStart = payload.new_start_time as string | undefined;
+      if (!newStart) return null;
+      try {
+        return `New date: ${new Date(newStart).toLocaleString()}`;
+      } catch {
+        return null;
+      }
+    }
+    case 'bulkMarkTasksDone':
+      return (payload.filter_description as string) || null;
+    case 'cloneActivity': {
+      const clones = payload.clones as Array<{ start_time?: string }> | undefined;
+      if (!Array.isArray(clones) || clones.length === 0) return null;
+      try {
+        const dates = clones
+          .slice(0, 3)
+          .map(c => (c.start_time ? new Date(c.start_time).toLocaleDateString() : ''))
+          .filter(Boolean);
+        return dates.join(', ') + (clones.length > 3 ? ', …' : '');
+      } catch {
+        return null;
+      }
+    }
+    case 'addExpense': {
+      const amount = payload.amount as number | undefined;
+      const currency = (payload.currency as string) || 'USD';
+      return amount != null ? `${currency} ${amount}` : null;
     }
     default:
       return null;

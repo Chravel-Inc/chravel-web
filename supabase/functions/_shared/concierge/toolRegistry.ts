@@ -34,7 +34,7 @@ export interface ToolDeclaration {
   };
 }
 
-// ── All 38 Tool Declarations (text-path, richest descriptions) ───────────────
+// ── All 74 Tool Declarations (text-path, richest descriptions) ───────────────
 
 export const ALL_TOOL_DECLARATIONS: ToolDeclaration[] = [
   {
@@ -1209,6 +1209,248 @@ export const ALL_TOOL_DECLARATIONS: ToolDeclaration[] = [
       required: ['destination'],
     },
   },
+
+  // ── New tools (74-tool expansion) ───────────────────────────────────────────
+
+  {
+    name: 'duplicateCalendarEvent',
+    description:
+      'Duplicate an existing trip calendar event to a new date. Copies all fields (title, location, description) and adjusts the date. Requires user confirmation before creating.',
+    parameters: {
+      type: 'object',
+      properties: {
+        eventId: { type: 'string', description: 'UUID of the event to duplicate' },
+        newDate: {
+          type: 'string',
+          description: 'ISO 8601 date string (YYYY-MM-DD) for the new occurrence',
+        },
+        idempotency_key: { type: 'string' },
+      },
+      required: ['eventId', 'newDate'],
+    },
+  },
+  {
+    name: 'bulkMarkTasksDone',
+    description:
+      'Mark multiple trip tasks as complete in one action. Accepts either an explicit list of task IDs or a filter keyword (e.g., "packing") to match by title. Requires user confirmation before updating.',
+    parameters: {
+      type: 'object',
+      properties: {
+        taskIds: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional explicit list of task UUIDs to mark done',
+        },
+        filter: {
+          type: 'string',
+          description: 'Optional title keyword to find matching tasks (e.g., "packing", "airport")',
+        },
+        idempotency_key: { type: 'string' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'cloneActivity',
+    description:
+      'Clone an existing trip calendar event to one or more new dates, preserving its duration and details. Useful for recurring activities like daily standups or multi-day tours. Requires user confirmation.',
+    parameters: {
+      type: 'object',
+      properties: {
+        eventId: { type: 'string', description: 'UUID of the source event to clone' },
+        targetDates: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'ISO 8601 date strings (YYYY-MM-DD) to clone the event onto',
+        },
+        idempotency_key: { type: 'string' },
+      },
+      required: ['eventId', 'targetDates'],
+    },
+  },
+  {
+    name: 'addExpense',
+    description:
+      'Log a new shared expense to the trip. Supports optional split across participants. Requires user confirmation before creating the expense record.',
+    parameters: {
+      type: 'object',
+      properties: {
+        description: {
+          type: 'string',
+          description: 'What the expense is for (e.g., "Airport taxi")',
+        },
+        amount: { type: 'number', description: 'Expense amount (positive number)' },
+        currency: {
+          type: 'string',
+          description: 'Currency code (e.g., "USD", "EUR"). Defaults to USD.',
+        },
+        splitParticipants: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional: list of user display names or IDs to split with',
+        },
+        idempotency_key: { type: 'string' },
+      },
+      required: ['description', 'amount'],
+    },
+  },
+  {
+    name: 'moveCalendarEvent',
+    description:
+      'Move an existing trip calendar event to a new date and optionally a new time. Preserves the event duration. Executes immediately without a confirmation step.',
+    parameters: {
+      type: 'object',
+      properties: {
+        eventId: { type: 'string', description: 'UUID of the event to move' },
+        newDate: { type: 'string', description: 'ISO 8601 date string (YYYY-MM-DD)' },
+        newTime: {
+          type: 'string',
+          description:
+            'Optional new start time in HH:MM (24h) format; keeps original time if omitted',
+        },
+      },
+      required: ['eventId', 'newDate'],
+    },
+  },
+  {
+    name: 'closePoll',
+    description:
+      'Close an active trip poll so no further votes can be cast. Returns the final results.',
+    parameters: {
+      type: 'object',
+      properties: {
+        pollId: { type: 'string', description: 'UUID of the poll to close' },
+      },
+      required: ['pollId'],
+    },
+  },
+  {
+    name: 'getRecentActivity',
+    description:
+      "Get a chronological summary of recent changes to the trip: new tasks, calendar events, saved links, and other activity. Useful for catching up after being away. Use this when the user asks 'what's new', 'what changed', or 'catch me up'.",
+    parameters: {
+      type: 'object',
+      properties: {
+        days: {
+          type: 'number',
+          description: 'How many days back to look (default: 7)',
+        },
+        limit: {
+          type: 'number',
+          description: 'Maximum number of activity items to return (default: 20)',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'getTaskSummary',
+    description:
+      'Get a summary of trip tasks grouped by status (todo/done/overdue) and optionally filtered by assignee. Shows progress at a glance.',
+    parameters: {
+      type: 'object',
+      properties: {
+        assignee: {
+          type: 'string',
+          description: 'Optional: filter by assignee display name or user ID',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'getGroupAvailability',
+    description:
+      'Find free time windows in the trip calendar for a given date or range — time slots where no events are scheduled. Useful for planning group activities or meals when everyone is free. Uses only the shared trip calendar (not individual member calendars).',
+    parameters: {
+      type: 'object',
+      properties: {
+        date: {
+          type: 'string',
+          description: 'ISO 8601 date string (YYYY-MM-DD) to check availability for',
+        },
+        dayCount: {
+          type: 'number',
+          description: 'Number of consecutive days to check (default: 1)',
+        },
+      },
+      required: ['date'],
+    },
+  },
+  {
+    name: 'getUpcomingReminders',
+    description:
+      'List upcoming reminders that have been set for this trip via the AI concierge. Shows message, entity reference, and scheduled time.',
+    parameters: {
+      type: 'object',
+      properties: {
+        limit: {
+          type: 'number',
+          description: 'Maximum reminders to return (default: 10)',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'searchTripChats',
+    description:
+      'Search through trip chat messages for a keyword or phrase. Returns matching messages with sender and timestamp.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Text to search for in chat messages' },
+        limit: {
+          type: 'number',
+          description: 'Maximum results to return (default: 20)',
+        },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'getPollResults',
+    description: 'Get the current results and vote counts for one or all active polls in the trip.',
+    parameters: {
+      type: 'object',
+      properties: {
+        pollId: {
+          type: 'string',
+          description: 'Optional: UUID of a specific poll. If omitted, returns all active polls.',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'getTripLinks',
+    description:
+      'Get the saved links and places for this trip (the Explore/Places section). Returns URLs, titles, and categories.',
+    parameters: {
+      type: 'object',
+      properties: {
+        category: {
+          type: 'string',
+          description: 'Optional: filter by category (e.g., "restaurant", "hotel", "activity")',
+        },
+        limit: {
+          type: 'number',
+          description: 'Maximum results (default: 30)',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'getTripInfo',
+    description:
+      'Get basic details about this trip: name, destination, start and end dates, description, trip type, and timezone.',
+    parameters: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+  },
 ];
 
 // ── Universal tools (always included regardless of query class) ──────────────
@@ -1242,9 +1484,29 @@ const QUERY_CLASS_TOOLS: Record<QueryClass, string[] | 'all'> = {
     'optimizeItinerary',
     'detectScheduleConflicts',
     'addReminder',
+    'duplicateCalendarEvent',
+    'moveCalendarEvent',
+    'cloneActivity',
+    'getGroupAvailability',
+    'getUpcomingReminders',
   ],
-  task_action: ['createTask', 'updateTask', 'deleteTask', 'addReminder', 'splitTaskAssignments'],
-  payment_query: ['getPaymentSummary', 'settleExpense', 'setTripBudget', 'getTripStats'],
+  task_action: [
+    'createTask',
+    'updateTask',
+    'deleteTask',
+    'addReminder',
+    'splitTaskAssignments',
+    'bulkMarkTasksDone',
+    'getTaskSummary',
+    'getUpcomingReminders',
+  ],
+  payment_query: [
+    'getPaymentSummary',
+    'settleExpense',
+    'setTripBudget',
+    'getTripStats',
+    'addExpense',
+  ],
   trip_search: [
     'searchTripData',
     'searchTripArtifacts',
@@ -1254,6 +1516,10 @@ const QUERY_CLASS_TOOLS: Record<QueryClass, string[] | 'all'> = {
     'getLocalEvents',
     'getTripStats',
     'shareItinerary',
+    'searchTripChats',
+    'getTripLinks',
+    'getRecentActivity',
+    'getTripInfo',
   ],
   place_navigation: [
     'getDirectionsETA',
@@ -1280,7 +1546,7 @@ const QUERY_CLASS_TOOLS: Record<QueryClass, string[] | 'all'> = {
   ],
   broadcast_notification: ['createBroadcast', 'createNotification'],
   trip_summary: 'all',
-  poll_action: ['createPoll'],
+  poll_action: ['createPoll', 'closePoll', 'getPollResults'],
   media_search: ['searchImages', 'searchWeb'],
   flight_search: [
     'searchFlights',
@@ -1324,7 +1590,7 @@ export function getToolsForQueryClass(queryClass: QueryClass): ToolDeclaration[]
 
 /**
  * Voice-friendly tool declarations with shorter descriptions.
- * Both text and voice paths have all 38 tools; voice just uses briefer descriptions.
+ * Both text and voice paths have all 74 tools; voice just uses briefer descriptions.
  */
 const VOICE_DESCRIPTION_OVERRIDES: Record<string, string> = {
   addToCalendar: 'Add an event to the trip calendar',
@@ -1390,6 +1656,21 @@ const VOICE_DESCRIPTION_OVERRIDES: Record<string, string> = {
   getTripStats: 'Get aggregate trip statistics: total spend, cost per day, activity count.',
   shareItinerary: 'Generate a shareable link to the trip itinerary.',
   getEmergencyContacts: 'Get local emergency numbers and embassy contacts for a destination.',
+  // New tools (74-tool expansion)
+  duplicateCalendarEvent: 'Copy an existing calendar event to a new date.',
+  bulkMarkTasksDone: 'Mark multiple tasks as completed at once.',
+  cloneActivity: 'Clone a calendar event to one or more new dates.',
+  addExpense: 'Log a new shared expense to the trip.',
+  moveCalendarEvent: 'Move an event to a new date or time.',
+  closePoll: 'Close a poll so no further votes can be cast.',
+  getRecentActivity: 'Get a summary of recent changes to the trip.',
+  getTaskSummary: 'Get task progress grouped by status and assignee.',
+  getGroupAvailability: 'Find free time windows in the trip calendar.',
+  getUpcomingReminders: 'List upcoming reminders set for this trip.',
+  searchTripChats: 'Search trip chat messages for a keyword.',
+  getPollResults: 'Get current vote counts for trip polls.',
+  getTripLinks: 'Get saved links and places for this trip.',
+  getTripInfo: 'Get basic details about the trip.',
 };
 
 /**
