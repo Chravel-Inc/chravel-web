@@ -1,44 +1,36 @@
 
 
-## Fix: Drag-and-Drop Not Working in Calendar Import Modal
+## Build a Public "Delete Account" Page for Google Play Store
 
-### Root Cause
+Google Play requires a publicly accessible URL where users can request account deletion. Chravel already has full account deletion logic in Settings (with 30-day grace period, re-auth, cancellation). This page needs to be a standalone, unauthenticated informational page that explains the process and links users to the in-app settings.
 
-The Radix UI `DialogOverlay` is a `fixed inset-0` element that covers the entire viewport. When you drag a file from your desktop into the browser, the drag events first hit the overlay. The overlay has no drag handlers and default browser behavior takes over — the file either gets opened by the browser or the drag is silently consumed.
+### What gets built
 
-The `react-dropzone` hook's `preventDropOnDocument: true` option adds document-level handlers that call `preventDefault` on stray drops, but the Radix portal rendering can interfere with event propagation between the overlay and the dropzone inside the dialog content.
+**New file: `src/pages/DeleteAccountPage.tsx`**
+- Public page (no auth required) at `/delete-account`
+- Chravel branding, dark theme matching existing legal pages (Privacy, Support, Terms)
+- Content:
+  - App name "Chravel" prominently displayed
+  - Steps to request account deletion (open app → Settings → Account Management → Delete Account)
+  - What data gets deleted (profile, trips, messages, media, payment history, AI conversation history)
+  - What data is retained and for how long (anonymized analytics retained 90 days, legal/financial records per regulatory requirements)
+  - 30-day cancellation window explained
+  - Contact email (support@chravel.app) for users who can't access their account
+- Back link to home page
 
-Additionally, the Radix `DialogContent` component has internal focus-trapping and pointer-event management that can intercept native drag events before they reach the dropzone div.
+**Modified file: `src/App.tsx`**
+- Add lazy import for `DeleteAccountPage`
+- Add route: `<Route path="/delete-account" ... />`
+- Add `/delete-account` to the list of paths excluded from mobile app layout (alongside `/privacy`, `/support`, etc.)
 
-### Fix
+### URL to provide to Google Play
 
-**File: `src/components/ui/dialog.tsx`** (1 change)
+After publishing: `https://chravel.lovable.app/delete-account`
 
-Add `pointer-events: none` to the `DialogOverlay` so drag events pass through it to the content underneath. The overlay still blocks clicks (Radix handles dismissal via its own `onPointerDownOutside` mechanism on the content, not via overlay click handlers).
+(Or your custom domain: `https://chravel.app/delete-account`)
 
-**File: `src/features/calendar/components/CalendarImportModal.tsx`** (1 change)
-
-Add explicit `onDragOver` with `preventDefault` on the `DialogContent` element as a safety net. This ensures the browser doesn't intercept drag events at the dialog level before they reach the nested dropzone div. Pass it via the `className` or `onDragOver` prop.
-
-Specifically:
-- On the `<DialogContent>` element, add `onDragOver={(e) => e.preventDefault()}` to allow drops inside
-- This is the standard fix for "drop not working inside modals" — the browser's default `dragover` behavior is to reject drops unless `preventDefault` is called
-
-**File: `src/hooks/useSmartImportDropzone.ts`** (no changes needed)
-
-The hook configuration is correct. The issue is entirely in the DOM layer above it.
-
-### Why This Is Safe
-
-- `pointer-events: none` on the overlay only affects mouse/touch/drag events — Radix Dialog dismissal uses `onPointerDownOutside` on the Content component, not overlay click detection
-- The `onDragOver` preventDefault on DialogContent is a no-op for non-drag interactions
-- All three import modals (Calendar, Agenda, Lineup) share this `DialogContent` and `useSmartImportDropzone`, so the fix applies to all of them automatically
-
-### Verification
-
-- Drag a PDF from desktop into the import modal dropzone — should show "Drop your file here..." feedback and process the file on drop
-- Verify "Choose File" click still works
-- Verify URL import still works
-- Verify clicking outside the dialog still closes it
-- Verify the same fix works on the Agenda and Lineup import modals
+### Technical details
+- Follows exact same pattern as `PrivacyPolicy.tsx` / `SupportPage.tsx` — static content, no auth, dark theme
+- No new dependencies
+- No backend changes needed — the actual deletion flow already exists via `request_account_deletion` RPC
 
