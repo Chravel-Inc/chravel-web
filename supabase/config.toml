@@ -69,8 +69,6 @@ verify_jwt = true
 [functions.stripe-webhook]
 verify_jwt = false
 
-[functions.organization-billing-portal]
-verify_jwt = true
 
 [functions.fetch-invoices]
 verify_jwt = true
@@ -130,7 +128,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.seed-carlton-social]
-verify_jwt = false
+verify_jwt = true
 
 [functions.regenerate-all-embeddings]
 verify_jwt = false

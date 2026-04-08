@@ -43,12 +43,12 @@ const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY'); // kept as fallback
 const FORCE_LOVABLE_PROVIDER = (Deno.env.get('AI_PROVIDER') || '').toLowerCase() === 'lovable';
 
-// Defense-in-depth: reject if GEMINI_API_KEY matches the client-side Maps API key pattern.
-// The Maps key (VITE_GOOGLE_MAPS_API_KEY) should NEVER be used server-side for Gemini.
-const MAPS_API_KEY = Deno.env.get('VITE_GOOGLE_MAPS_API_KEY');
+// Defense-in-depth: reject if GEMINI_API_KEY matches the server-side Maps API key.
+// GOOGLE_MAPS_API_KEY should NEVER be used as the Gemini API key.
+const MAPS_API_KEY = Deno.env.get('GOOGLE_MAPS_API_KEY');
 if (GEMINI_API_KEY && MAPS_API_KEY && GEMINI_API_KEY === MAPS_API_KEY) {
   console.error(
-    '[SECURITY] GEMINI_API_KEY matches VITE_GOOGLE_MAPS_API_KEY — misconfiguration detected. Gemini calls will be disabled.',
+    '[SECURITY] GEMINI_API_KEY matches GOOGLE_MAPS_API_KEY — misconfiguration detected. Gemini calls will be disabled.',
   );
 }
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
