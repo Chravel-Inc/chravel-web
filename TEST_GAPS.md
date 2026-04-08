@@ -116,3 +116,13 @@
 - **Suggested tests:** Scheduled staging drills that (1) inject provider outage, (2) force queue saturation, (3) execute restore rehearsal and verify Tier-0 journeys.
 - **Priority:** high
 - **Provenance:** March 2026 reliability constitution audit
+
+## LiveKit voice end-to-end integration test
+
+- **Area:** `supabase/functions/livekit-token/index.ts`, `agent/src/index.ts`, `src/hooks/useLiveKitVoice.ts`
+- **Why this gap matters:** The two P0 voice bugs (dead roomConfig code + missing agent deployment) survived code review because no integration test validates the end-to-end path from token generation through agent dispatch to audio roundtrip.
+- **Missing coverage:** (1) Test that `createRoom()` is called with correct metadata and agent dispatch. (2) Test that the agent receives non-empty room metadata. (3) Test that the agent joins within the 10s SLA. (4) Smoke test for audio roundtrip in staging.
+- **Failure mode if untested:** Voice appears "code-complete" but silently fails at runtime because the room has no metadata or agent dispatch.
+- **Suggested tests:** Integration test mocking `RoomServiceClient` to verify call args. E2E staging test that creates a real room and asserts agent joins.
+- **Priority:** critical
+- **Provenance:** April 2026 LiveKit voice stack forensic audit

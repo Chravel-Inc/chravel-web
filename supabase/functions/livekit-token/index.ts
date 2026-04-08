@@ -1,23 +1,32 @@
 /**
  * LiveKit Token Generator — Supabase Edge Function
  *
- * Authenticates the user via their Supabase JWT, then generates a LiveKit room
- * token that auto-dispatches the voice agent. The room is ephemeral (one per
- * voice session) and auto-closes after 30s empty.
+ * Authenticates the user via their Supabase JWT, creates a LiveKit room with
+ * metadata + agent dispatch via RoomServiceClient, then returns a join token.
+ * The room is ephemeral (one per voice session) and auto-closes after 30s empty.
  *
  * POST /livekit-token
- * Body: { tripId: string }
+ * Body: { tripId: string, voice?: string }
  * Returns: { token: string, wsUrl: string, roomName: string }
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { AccessToken } from 'livekit-server-sdk';
+import { AccessToken, RoomServiceClient } from 'livekit-server-sdk';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { requireSecrets } from '../_shared/validateSecrets.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+/**
+ * Convert a LiveKit WSS URL to HTTPS for the RoomServiceClient.
+ * RoomServiceClient uses HTTP/Twirp, not WebSocket.
+ * wss://foo.livekit.cloud → https://foo.livekit.cloud
+ */
+function toHttpUrl(wssUrl: string): string {
+  return wssUrl.replace(/^wss:\/\//, 'https://').replace(/^ws:\/\//, 'http://');
+}
 
 serve(async req => {
   const corsHeaders = getCorsHeaders(req);
@@ -108,13 +117,34 @@ serve(async req => {
       });
     }
 
-    // ── Generate LiveKit Token ─────────────────────────────────────────────
+    // ── Create LiveKit Room + Generate Token ──────────────────────────────
     const shortId = crypto.randomUUID().split('-')[0];
     const roomName = `voice-${tripId}-${shortId}`;
     const ALLOWED_VOICES = ['Aoede', 'Charon', 'Fenrir', 'Kore', 'Puck'];
     const rawVoice = typeof body?.voice === 'string' ? body.voice : 'Charon';
     const voice = ALLOWED_VOICES.includes(rawVoice) ? rawVoice : 'Charon';
 
+    // Create the room explicitly via RoomServiceClient so metadata and agent
+    // dispatch are set server-side. The previous approach of setting
+    // (token as any).roomConfig was dead code — AccessToken.toJwt() does not
+    // serialize arbitrary properties, and RoomConfiguration lacks a metadata field.
+    const httpUrl = toHttpUrl(LIVEKIT_URL);
+    const roomService = new RoomServiceClient(httpUrl, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
+
+    await roomService.createRoom({
+      name: roomName,
+      metadata: JSON.stringify({
+        tripId,
+        userId: user.id,
+        voice,
+      }),
+      emptyTimeout: 30,
+      agents: [{ agentName: 'chravel-voice' }],
+    });
+
+    console.log('[livekit-token] room:created', { roomName, tripId, voice });
+
+    // Generate a join-only token (room already exists, no roomCreate needed)
     const token = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
       identity: user.id,
       name: user.user_metadata?.display_name || user.email || 'User',
@@ -123,27 +153,10 @@ serve(async req => {
     token.addGrant({
       room: roomName,
       roomJoin: true,
-      roomCreate: true,
       canPublish: true,
       canSubscribe: true,
       canPublishData: true,
     });
-
-    // Set room metadata for the agent to read
-    // The agent extracts tripId, userId, voice from this metadata
-    (token as any).roomConfig = {
-      metadata: JSON.stringify({
-        tripId,
-        userId: user.id,
-        voice,
-      }),
-      emptyTimeout: 30, // Auto-close room after 30s empty
-      agents: [
-        {
-          agentName: 'chravel-voice',
-        } as any, // intentional: RoomAgentDispatch protobuf type requires full constructor; cast is safe for metadata-only usage
-      ],
-    };
 
     const jwt = await token.toJwt();
 

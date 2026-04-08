@@ -276,3 +276,16 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Related files:** `src/components/media/MediaTile.tsx`, `src/components/media/MediaViewerModal.tsx`, `src/components/mobile/MediaGridItem.tsx`, `src/hooks/useResolvedTripMediaUrl.ts`
 - **Fixed in:** March 2026 media forensic fix
 - **Confidence:** high
+
+---
+
+## LiveKit Token roomConfig Dead Code
+
+- **Symptom:** Voice sessions always fail with "Agent did not join within timeout" — the room is created but has no metadata or agent dispatch instructions.
+- **Risk:** HIGH — complete voice feature outage. Room connects but no agent is dispatched.
+- **Root cause:** `livekit-token/index.ts` set `(token as any).roomConfig = {...}` on an `AccessToken` instance. `AccessToken.toJwt()` does not serialize arbitrary JS properties. Additionally, `RoomConfiguration` (the protobuf type) does not have a `metadata` field, so even the "correct" token-based approach cannot set room metadata.
+- **Smallest safe fix:** Use `RoomServiceClient.createRoom()` to create the room with metadata and `agents: [{agentName: 'chravel-voice'}]` before returning the join token. Remove `roomCreate: true` from the token grant.
+- **Why this persists:** The `(token as any)` cast bypasses type checking, and code review treated the comment "intentional cast" as sufficient justification. No integration test validates agent dispatch.
+- **Related files:** `supabase/functions/livekit-token/index.ts`, `agent/src/index.ts` (reads `ctx.room.metadata`)
+- **Fixed in:** April 2026 LiveKit voice stack audit
+- **Confidence:** high

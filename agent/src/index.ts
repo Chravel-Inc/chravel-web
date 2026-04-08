@@ -75,6 +75,17 @@ function log(event: string, data?: Record<string, unknown>): void {
 
 export const prewarm = async (proc: JobProcess): Promise<void> => {
   log('prewarm:start');
+
+  // Validate required env vars early so failures are visible in LiveKit Cloud logs
+  const missing: string[] = [];
+  if (!process.env.GOOGLE_API_KEY) missing.push('GOOGLE_API_KEY');
+  if (!process.env.SUPABASE_URL) missing.push('SUPABASE_URL');
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) missing.push('SUPABASE_SERVICE_ROLE_KEY');
+  if (missing.length > 0) {
+    log('prewarm:env_missing', { missing });
+    // Don't throw — let sessions fail with clear per-session errors instead of crashing the worker
+  }
+
   // Pre-initialize Supabase client (connection pool warmup)
   try {
     getSupabase();
@@ -196,9 +207,16 @@ export default defineAgent({
     log('agent:tools_registered', { count: ALL_TOOLS.length });
 
     // ── Configure Gemini RealtimeModel ─────────────────────────────────────
+    const googleApiKey = process.env.GOOGLE_API_KEY;
+    if (!googleApiKey) {
+      log('agent:error', { error: 'GOOGLE_API_KEY not configured' });
+      sendError(ctx.room, 'Voice agent misconfigured: missing AI key', 'config_error');
+      return;
+    }
+
     const model = new RealtimeModel({
       model: GEMINI_MODEL,
-      apiKey: process.env.GOOGLE_API_KEY,
+      apiKey: googleApiKey,
       voice: voice,
       instructions: systemPrompt,
     });

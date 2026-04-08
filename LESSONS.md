@@ -365,3 +365,21 @@
 - **Evidence:** Trip chat and concierge showed post-migration messages but could miss pre-migration history when Stream-only hydration paths were used.
 - **Provenance:** April 2026 Stream continuity hardening (`useStreamTripChat`, `useStreamConciergeHistory`, `AIConciergeChat`).
 - **Confidence:** high
+
+### Standalone agents need their own deployment pipeline — edge function CI does not cover them
+
+- **Tip:** When a feature depends on a separately-deployed backend process (LiveKit agent, background worker, external service), always create dedicated CI/CD and verify the deployment pipeline before considering the feature "code-complete." Code that is correct in isolation is worthless if it never runs.
+- **Applies when:** Introducing any backend component that runs outside Supabase Edge Functions (LiveKit agents, Temporal workers, standalone Node.js services).
+- **Avoid when:** The component is a Supabase Edge Function already covered by `deploy-functions.yml`.
+- **Evidence:** The `agent/` directory had complete, well-written code but no Dockerfile, no CI workflow, and was never deployed to LiveKit Cloud — making the entire voice feature non-functional.
+- **Provenance:** April 2026 LiveKit voice stack forensic audit.
+- **Confidence:** high
+
+### Never use `(x as any).property = value` to set SDK configuration — verify the API surface
+
+- **Tip:** When an SDK class doesn't expose a property you need, that's a signal to use a different API (e.g., `RoomServiceClient.createRoom()` instead of `AccessToken.roomConfig`). Type assertions that bypass the type system to set properties are almost always dead code — serialization methods only process known fields.
+- **Applies when:** Configuring third-party SDK objects, setting JWT claims, building protobuf messages.
+- **Avoid when:** The `as any` cast is for reading an untyped property that demonstrably exists at runtime.
+- **Evidence:** `(token as any).roomConfig = {...}` in `livekit-token/index.ts` was dead code — `AccessToken.toJwt()` ignored it, causing voice to silently fail.
+- **Provenance:** April 2026 LiveKit voice stack forensic audit.
+- **Confidence:** high
