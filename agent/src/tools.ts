@@ -1,5 +1,5 @@
 /**
- * Tool Definitions — All 60 concierge tools ported to LiveKit agent format.
+ * Tool Definitions — All 75 concierge tools ported to LiveKit agent format.
  *
  * Single source of truth is _shared/concierge/toolRegistry.ts.
  * This file mirrors those declarations using Zod schemas for the agent framework.

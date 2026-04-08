@@ -1162,7 +1162,7 @@ serve(async req => {
     const functionDeclarations = classTools;
 
     // REMOVED: 744 lines of inline tool declarations previously here (lines 1300-2044).
-    // All 38 tool schemas now live in _shared/concierge/toolRegistry.ts.
+    // All 75 tool schemas now live in _shared/concierge/toolRegistry.ts.
     // Schemas are byte-for-byte identical — this is a pure extraction, not a modification.
 
     // ========== BUILD GEMINI TOOLS ==========
