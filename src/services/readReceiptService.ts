@@ -9,8 +9,23 @@
 import { supabase } from '@/integrations/supabase/client';
 
 // Temporary type definitions until database types regenerated
-type ReadStatus = unknown;
-type ReadStatusInsert = unknown;
+interface ReadStatus {
+  id: string;
+  message_id: string;
+  user_id: string;
+  trip_id: string | null;
+  message_type: string;
+  read_at: string;
+  created_at: string;
+}
+
+interface ReadStatusInsert {
+  message_id: string;
+  user_id: string;
+  trip_id?: string | null;
+  message_type: string;
+  read_at: string;
+}
 
 /**
  * Mark a message as read for the current user

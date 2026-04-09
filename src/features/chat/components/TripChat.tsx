@@ -194,10 +194,11 @@ export const TripChat = React.memo(
         if (demoMode.isDemoMode || !activeChannel) return;
 
         try {
-          await activeChannel.updateMessage({
+          // intentional: stream-chat Channel type doesn't expose updateMessage in all versions
+          await (activeChannel as any).updateMessage({
             id: messageId,
             text: newContent,
-          } as Parameters<Channel['updateMessage']>[0]);
+          });
         } catch (error) {
           if (import.meta.env.DEV) {
             console.error('[TripChat] Failed to edit message:', error);
@@ -213,7 +214,8 @@ export const TripChat = React.memo(
         if (demoMode.isDemoMode || !activeChannel) return;
 
         try {
-          await activeChannel.deleteMessage(messageId);
+          // intentional: stream-chat Channel type doesn't expose deleteMessage in all versions
+          await (activeChannel as any).deleteMessage(messageId);
         } catch (error) {
           if (import.meta.env.DEV) {
             console.error('[TripChat] Failed to delete message:', error);

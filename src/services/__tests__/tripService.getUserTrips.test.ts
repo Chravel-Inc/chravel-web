@@ -86,6 +86,7 @@ describe('tripService.getUserTrips', () => {
     let tripMembersQueryCount = 0;
     let firstMemberQueryChain: ChainableResponse<unknown[]> | null = null;
 
+    // intentional: mock implementation doesn't match full Supabase generics
     vi.mocked(supabase.from).mockImplementation(((table: string) => {
       if (table === 'trips') {
         tripsQueryCount += 1;

@@ -22,7 +22,7 @@ describe('buildSessionDerivedUser', () => {
       id: 'u2',
       email: 'jane@example.com',
       user_metadata: { display_name: 'Jane D.' },
-    } as SupabaseUser;
+    } as unknown as SupabaseUser;
 
     expect(buildSessionDerivedUser(u).displayName).toBe('Jane D.');
   });

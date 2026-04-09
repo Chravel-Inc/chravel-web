@@ -223,7 +223,8 @@ class RoleChannelService {
 
       if (error) throw error;
 
-      return (data || []).map((d: unknown) => ({
+      // intentional: join shape not in generated types
+      return (data || []).map((d: any) => ({
         id: d.id,
         channelId: d.channel_id,
         senderId: d.sender_id,
