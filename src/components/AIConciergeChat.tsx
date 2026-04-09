@@ -51,6 +51,7 @@ import {
   isConciergeWriteAction,
 } from '@/lib/conciergeInvalidation';
 import { sanitizeConciergeContent } from '@/lib/sanitizeConciergeContent';
+import { isScrollNearBottom } from '@/lib/chatStickToBottom';
 import { usePendingActions } from '@/hooks/usePendingActions';
 
 const EMPTY_SESSION: ConciergeSession = {
@@ -562,6 +563,14 @@ export const AIConciergeChat = ({
     userId: user?.id ?? '',
   });
 
+  /** True while the user has scrolled up in the concierge transcript (disables auto stick-to-bottom). */
+  const userScrolledUpRef = useRef(false);
+  const voiceAssistantStreamTsRef = useRef<string | null>(null);
+  const voiceUserStreamTsRef = useRef<string | null>(null);
+  const streamAbortRef = useRef<(() => void) | null>(null);
+  const chatScrollRef = useRef<HTMLDivElement | null>(null);
+  const stickToBottomRafRef = useRef<number | null>(null);
+
   const handleLiveTurnComplete = useCallback(
     async (userText: string, assistantText: string, toolResults?: ToolCallResult[]) => {
       const now = new Date().toISOString();
@@ -648,6 +657,8 @@ export const AIConciergeChat = ({
       // Clear both streaming bubbles now that the finalised messages have been
       // appended to `messages` above. This prevents any flash of the transient
       // bubbles before the permanent messages appear.
+      voiceAssistantStreamTsRef.current = null;
+      voiceUserStreamTsRef.current = null;
       setStreamingVoiceMessage(null);
       setStreamingUserMessage(null);
 
@@ -826,8 +837,23 @@ export const AIConciergeChat = ({
   // Whether Gemini Live session is active (for Live button + inline voice UI)
   const isLiveSessionActive = DUPLEX_VOICE_ENABLED && liveState !== 'idle' && liveState !== 'error';
 
+  // Track manual scroll-up so streaming tokens don't yank the viewport (scroll jank / "vibrating").
+  useEffect(() => {
+    if (isLiveSessionActive) return;
+    const el = chatScrollRef.current;
+    if (!el) return;
+    const onScroll = (): void => {
+      userScrolledUpRef.current = !isScrollNearBottom(el);
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [isLiveSessionActive, tripId]);
+
   const handleEndLiveSession = useCallback(async () => {
     await endLiveSession();
+    voiceAssistantStreamTsRef.current = null;
+    voiceUserStreamTsRef.current = null;
     // Explicitly clear streaming bubbles to prevent stale transcripts
     // when user force-stops mid-turn (race condition with useEffect cleanup)
     setStreamingVoiceMessage(null);
@@ -898,56 +924,51 @@ export const AIConciergeChat = ({
   ]);
 
   // Fix 2: Keep the streaming voice bubble in sync with liveAssistantTranscript.
-  // While Gemini Live is in 'playing' state, update the transient bubble so the
-  // chat shows the assistant's response growing in real-time (like ChatGPT/Grok).
-  // When the turn completes, handleLiveTurnComplete clears it and appends the
-  // finalised message to `messages`, so there is no duplication.
+  // Stable timestamp on the transient message avoids remounting the bubble every
+  // transcript tick (reduces subtree churn + layout thrash alongside stick-to-bottom).
   useEffect(() => {
     if (liveState === 'playing' && liveAssistantTranscript) {
+      if (!voiceAssistantStreamTsRef.current) {
+        voiceAssistantStreamTsRef.current = new Date().toISOString();
+      }
       setStreamingVoiceMessage({
         id: 'voice-streaming-live',
         type: 'assistant',
         content: liveAssistantTranscript,
-        timestamp: new Date().toISOString(),
+        timestamp: voiceAssistantStreamTsRef.current,
         isStreamingVoice: true,
       });
     } else if (liveState === 'idle' || liveState === 'error' || liveState === 'ready') {
-      // Session ended or reset without a completed turn — clear any leftover bubble.
+      voiceAssistantStreamTsRef.current = null;
       setStreamingVoiceMessage(null);
     }
   }, [liveState, liveAssistantTranscript]);
 
-  // Keep the live user STT bubble in sync with liveUserTranscript.
-  // While Gemini Live is listening/sending, show the interim user transcript as a
-  // user-side bubble so the speaker can see their words appearing in the chat
-  // (the "I'm hearing you" indicator).  Cleared when the turn finalises.
   useEffect(() => {
     const isUserSpeaking =
       liveState === 'listening' || liveState === 'sending' || liveState === 'interrupted';
 
     if (isUserSpeaking && liveUserTranscript) {
+      if (!voiceUserStreamTsRef.current) {
+        voiceUserStreamTsRef.current = new Date().toISOString();
+      }
       setStreamingUserMessage({
         id: 'voice-user-streaming-live',
         type: 'user',
         content: liveUserTranscript,
-        timestamp: new Date().toISOString(),
+        timestamp: voiceUserStreamTsRef.current,
         isStreamingVoice: true,
       });
     } else if (liveState === 'idle' || liveState === 'error' || liveState === 'ready') {
-      // Session ended — clear any leftover user bubble.
+      voiceUserStreamTsRef.current = null;
       setStreamingUserMessage(null);
     } else if (liveState === 'playing') {
-      // Assistant started speaking — user turn is complete, clear user bubble.
+      voiceUserStreamTsRef.current = null;
       setStreamingUserMessage(null);
     }
   }, [liveState, liveUserTranscript]);
 
-  // ── End voice ────────────────────────────────────────────────────────────
-
   // Abort in-flight stream when component unmounts (prevents setState on unmounted + wasted bandwidth)
-  const streamAbortRef = useRef<(() => void) | null>(null);
-  const chatScrollRef = useRef<HTMLDivElement | null>(null);
-
   // Track mount state + abort in-flight streams on unmount
   useEffect(() => {
     isMounted.current = true;
@@ -1027,16 +1048,41 @@ export const AIConciergeChat = ({
     }
   }, [messages, tripId, setStoreMessages]);
 
-  // Auto-scroll to bottom when new messages, typing indicator, or streaming voice
-  // bubbles appear/update — keeps the live transcript visible as it grows.
+  // Stick to bottom when the transcript grows, coalesced to one scroll per frame so
+  // rapid streaming updates don't thrash scrollTop (felt as "vibrating" answers).
   useEffect(() => {
-    if (
-      chatScrollRef.current &&
-      (messages.length > 0 || isTyping || streamingVoiceMessage || streamingUserMessage)
-    ) {
-      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    if (isLiveSessionActive) return;
+
+    const shouldStick =
+      !userScrolledUpRef.current &&
+      (messages.length > 0 || isTyping || streamingVoiceMessage || streamingUserMessage);
+
+    if (!shouldStick) return;
+
+    if (stickToBottomRafRef.current != null) {
+      cancelAnimationFrame(stickToBottomRafRef.current);
     }
-  }, [messages.length, isTyping, messages, streamingVoiceMessage, streamingUserMessage]);
+    stickToBottomRafRef.current = requestAnimationFrame(() => {
+      stickToBottomRafRef.current = null;
+      const el = chatScrollRef.current;
+      if (!el || userScrolledUpRef.current) return;
+      el.scrollTop = el.scrollHeight;
+    });
+
+    return () => {
+      if (stickToBottomRafRef.current != null) {
+        cancelAnimationFrame(stickToBottomRafRef.current);
+        stickToBottomRafRef.current = null;
+      }
+    };
+  }, [
+    isLiveSessionActive,
+    messages.length,
+    messages,
+    isTyping,
+    streamingVoiceMessage,
+    streamingUserMessage,
+  ]);
 
   // Failsafe: if a stream callback never finalizes, release typing state so
   // users can still send a follow-up without needing a hard refresh.
@@ -1314,6 +1360,7 @@ export const AIConciergeChat = ({
     };
 
     setMessages(prev => [...prev, userMessage]);
+    userScrolledUpRef.current = false;
     const currentInput = messageToSend;
 
     // 🔀 STREAM: Persist user message to Stream concierge channel
