@@ -221,13 +221,13 @@ export class EnhancedTripContextService {
       polls,
       chatHistory: chatHistory.slice(-20), // Keep recent messages
       receipts,
-      preferences,
+      preferences: preferences as any,
       spendingPatterns,
       groupDynamics,
       visitedPlaces,
       weatherContext,
       // 🆕 Enhanced context for AI Concierge
-      tasks,
+      tasks: tasks as any,
     };
   }
 

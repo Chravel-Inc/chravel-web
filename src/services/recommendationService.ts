@@ -48,7 +48,7 @@ export class RecommendationService {
    */
   static async getOrganicItems(filters?: RecommendationFilters): Promise<Recommendation[]> {
     // intentional: recommendation_items not yet in generated types
-    let query = (supabase as unknown)
+    let query = (supabase as any)
       .from('recommendation_items')
       .select('*')
       .eq('is_active', true)
@@ -138,7 +138,7 @@ export class RecommendationService {
    */
   static async trackImpression(params: ImpressionParams): Promise<string | null> {
     // intentional: recommendation tables not yet in generated types
-    const { data, error } = await (supabase as unknown)
+    const { data, error } = await (supabase as any)
       .from('recommendation_impressions')
       .insert({
         item_id: params.itemId,
@@ -170,7 +170,7 @@ export class RecommendationService {
    */
   static async trackClick(params: ClickParams): Promise<void> {
     // intentional: recommendation tables not yet in generated types
-    const { error } = await (supabase as unknown).from('recommendation_clicks').insert({
+    const { error } = await (supabase as any).from('recommendation_clicks').insert({
       impression_id: params.impressionId,
       action: params.action,
     });
@@ -197,7 +197,7 @@ export class RecommendationService {
     feedbackType: 'not_interested' | 'hide' | 'report' | 'save' | 'love';
   }): Promise<void> {
     // intentional: recommendation tables not yet in generated types
-    const { error } = await (supabase as unknown).from('recommendation_feedback').insert({
+    const { error } = await (supabase as any).from('recommendation_feedback').insert({
       user_id: params.userId,
       item_id: params.itemId,
       item_type: params.itemType,
@@ -215,7 +215,7 @@ export class RecommendationService {
    */
   static async getHiddenItemIds(userId: string): Promise<string[]> {
     // intentional: recommendation tables not yet in generated types
-    const { data, error } = await (supabase as unknown)
+    const { data, error } = await (supabase as any)
       .from('recommendation_feedback')
       .select('item_id')
       .eq('user_id', userId)

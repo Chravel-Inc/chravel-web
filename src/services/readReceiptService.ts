@@ -116,7 +116,7 @@ export async function getMessagesReadStatus(
 
   // Group by message_id
   const grouped: Record<string, ReadStatus[]> = {};
-  (data || []).forEach((status: unknown) => {
+  (data || []).forEach((status: any) => {
     if (!grouped[status.message_id]) {
       grouped[status.message_id] = [];
     }
