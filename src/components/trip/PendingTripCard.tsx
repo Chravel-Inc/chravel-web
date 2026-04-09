@@ -23,7 +23,6 @@ interface PendingTripCardProps {
   secondaryCtaLabel?: string;
   onSecondaryCta?: () => void;
   isSecondaryCtaLoading?: boolean;
-  ctaVariant?: 'default' | 'destructive';
   disabledCta?: boolean;
 }
 
@@ -44,10 +43,9 @@ export const PendingTripCard: React.FC<PendingTripCardProps> = ({
   secondaryCtaLabel,
   onSecondaryCta,
   isSecondaryCtaLoading = false,
-  ctaVariant = 'default',
   disabledCta = false,
 }) => {
-  const disabledCta = isCtaLoading;
+  const isCtaDisabled = disabledCta || isCtaLoading;
   const ctaClassName =
     ctaVariant === 'destructive'
       ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
@@ -114,7 +112,7 @@ export const PendingTripCard: React.FC<PendingTripCardProps> = ({
             type="button"
             className={`mt-3 w-full text-sm font-medium rounded-lg py-2.5 px-3 min-h-[44px] transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${ctaClassName}`}
             onClick={onCta}
-            disabled={disabledCta}
+            disabled={isCtaDisabled}
           >
             {ctaLabel}
           </button>

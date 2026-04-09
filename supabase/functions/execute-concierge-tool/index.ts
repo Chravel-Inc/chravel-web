@@ -147,19 +147,24 @@ serve(async (req: Request) => {
     }
 
     const tripIdStr = typeof tripId === 'string' ? tripId : '';
+    if (!tripIdStr) {
+      return new Response(JSON.stringify({ error: 'tripId (string) is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const argsObj: Record<string, unknown> =
       args !== null && typeof args === 'object' && !Array.isArray(args)
         ? (args as Record<string, unknown>)
         : {};
 
-    if (tripIdStr) {
-      const tripAccess = await verifyConciergeTripAccess(supabase, tripIdStr, userId);
-      if (!tripAccess.allowed) {
-        return new Response(JSON.stringify({ error: tripAccess.error }), {
-          status: tripAccess.status || 403,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
+    const tripAccess = await verifyConciergeTripAccess(supabase, tripIdStr, userId);
+    if (!tripAccess.allowed) {
+      return new Response(JSON.stringify({ error: tripAccess.error }), {
+        status: tripAccess.status || 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const usagePlanResolution = await resolveUsagePlanForUser(supabase, userId);
@@ -202,7 +207,7 @@ serve(async (req: Request) => {
     // Generate a short-lived capability token scoped to this user + trip.
     const capabilityToken = await generateCapabilityToken({
       user_id: userId,
-      trip_id: tripId as string,
+      trip_id: tripIdStr,
       allowed_tools: ['*'],
     });
 
