@@ -66,15 +66,21 @@ serve(async req => {
     // Process each scheduled broadcast
     for (const broadcast of scheduledBroadcasts) {
       try {
-        // Mark as sent
-        const { error: updateError } = await supabase
+        // Claim row: PostgREST returns no error when 0 rows match — must check count.
+        const { data: claimed, error: updateError } = await supabase
           .from('broadcasts')
           .update({ is_sent: true })
           .eq('id', broadcast.id)
-          .eq('is_sent', false); // Optimistic lock — skip if already sent by another tick
+          .eq('is_sent', false)
+          .select('id');
 
         if (updateError) {
           throw updateError;
+        }
+
+        if (!claimed || claimed.length === 0) {
+          // Another tick already sent this row — do not count or enqueue duplicate work.
+          continue;
         }
 
         // Get trip members to notify (exclude the sender)
@@ -86,6 +92,11 @@ serve(async req => {
           .neq('user_id', broadcast.created_by);
 
         if (membersError) {
+          await supabase
+            .from('broadcasts')
+            .update({ is_sent: false })
+            .eq('id', broadcast.id)
+            .eq('is_sent', true);
           throw membersError;
         }
 
@@ -112,10 +123,19 @@ serve(async req => {
           const { error: notifError } = await supabase.from('notifications').insert(notifications);
 
           if (notifError) {
-            console.warn(
-              `Failed to create notifications for broadcast ${broadcast.id}:`,
-              notifError,
-            );
+            const { error: rollbackError } = await supabase
+              .from('broadcasts')
+              .update({ is_sent: false })
+              .eq('id', broadcast.id)
+              .eq('is_sent', true);
+
+            if (rollbackError) {
+              console.error(
+                `Failed to rollback is_sent for broadcast ${broadcast.id} after notification error:`,
+                rollbackError,
+              );
+            }
+            throw notifError;
           }
         }
 

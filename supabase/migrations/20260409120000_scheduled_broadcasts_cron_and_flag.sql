@@ -18,7 +18,7 @@ DECLARE
     current_setting('app.settings.supabase_project_ref', true),
     'jmjiyekmxwsxkfnqwyaa'
   );
-  v_cron_secret TEXT := COALESCE(current_setting('app.settings.cron_secret', true), '');
+  v_cron_secret TEXT := NULLIF(trim(COALESCE(current_setting('app.settings.cron_secret', true), '')), '');
   v_has_cron BOOLEAN;
   v_has_http_post BOOLEAN;
 BEGIN
@@ -41,22 +41,26 @@ BEGIN
     EXCEPTION WHEN OTHERS THEN NULL;
     END;
 
-    PERFORM cron.schedule(
-      'chravel-send-scheduled-broadcasts',
-      '* * * * *',
-      format($job$
-      SELECT net.http_post(
-        url := 'https://%s.supabase.co/functions/v1/send-scheduled-broadcasts',
-        headers := jsonb_build_object(
-          'Content-Type', 'application/json',
-          'x-cron-secret', %L
-        ),
-        body := '{}'::jsonb
+    IF v_cron_secret IS NOT NULL THEN
+      PERFORM cron.schedule(
+        'chravel-send-scheduled-broadcasts',
+        '* * * * *',
+        format($job$
+        SELECT net.http_post(
+          url := 'https://%s.supabase.co/functions/v1/send-scheduled-broadcasts',
+          headers := jsonb_build_object(
+            'Content-Type', 'application/json',
+            'x-cron-secret', %L
+          ),
+          body := '{}'::jsonb
+        );
+        $job$, v_project_ref, v_cron_secret)
       );
-      $job$, v_project_ref, v_cron_secret)
-    );
 
-    RAISE NOTICE 'Scheduled cron job: chravel-send-scheduled-broadcasts (every minute)';
+      RAISE NOTICE 'Scheduled cron job: chravel-send-scheduled-broadcasts (every minute)';
+    ELSE
+      RAISE NOTICE 'app.settings.cron_secret not set — not scheduling chravel-send-scheduled-broadcasts (set non-empty secret on database then apply follow-up migration or reschedule manually)';
+    END IF;
   ELSE
     RAISE NOTICE 'pg_cron or pg_net not available — skipping cron job for send-scheduled-broadcasts';
   END IF;

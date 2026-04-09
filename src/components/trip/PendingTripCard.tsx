@@ -23,7 +23,6 @@ interface PendingTripCardProps {
   secondaryCtaLabel?: string;
   onSecondaryCta?: () => void;
   isSecondaryCtaLoading?: boolean;
-  ctaVariant?: 'default' | 'destructive';
   disabledCta?: boolean;
 }
 

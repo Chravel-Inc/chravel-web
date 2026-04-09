@@ -123,7 +123,8 @@ export const broadcastService = {
         .delete()
         .eq('id', broadcastId)
         .eq('created_by', user.id)
-        .eq('is_sent', false);
+        .eq('is_sent', false)
+        .not('scheduled_for', 'is', null);
 
       return !error;
     } catch (error) {
