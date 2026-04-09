@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Send, MapPin, Languages, Calendar, Image, X } from 'lucide-react';
+import { Send, MapPin, Languages, Calendar, Image, Lock, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -15,6 +15,8 @@ import { toast } from 'sonner';
 import { useBroadcastComposer } from '../hooks/useBroadcastComposer';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useUnifiedEntitlements } from '@/hooks/useUnifiedEntitlements';
+import { useFeatureFlag } from '@/lib/featureFlags';
 
 interface Participant {
   id: string | number;
@@ -47,6 +49,9 @@ export const BroadcastComposer = ({
   const [uploadingAttachments, setUploadingAttachments] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
+  const { canUse } = useUnifiedEntitlements();
+  const scheduledBroadcastsFlag = useFeatureFlag('scheduled_broadcasts', true);
+  const canSchedule = scheduledBroadcastsFlag && canUse('scheduled_broadcasts');
 
   const {
     message,
@@ -270,15 +275,25 @@ export const BroadcastComposer = ({
                 <span className="hidden sm:inline">Add details</span>
                 <span className="sm:hidden">Details</span>
               </button>
-              <button
-                onClick={() => setShowScheduler(!showScheduler)}
-                className={`text-slate-400 hover:text-white text-sm flex items-center gap-1 ${
-                  scheduledFor ? 'text-blue-400' : ''
-                }`}
-              >
-                <Calendar size={14} />
-                Schedule
-              </button>
+              {canSchedule ? (
+                <button
+                  onClick={() => setShowScheduler(!showScheduler)}
+                  className={`text-slate-400 hover:text-white text-sm flex items-center gap-1 ${
+                    scheduledFor ? 'text-blue-400' : ''
+                  }`}
+                >
+                  <Calendar size={14} />
+                  Schedule
+                </button>
+              ) : (
+                <button
+                  onClick={() => toast.info('Upgrade to Explorer or above to schedule broadcasts')}
+                  className="text-slate-500 text-sm flex items-center gap-1 cursor-not-allowed"
+                >
+                  <Lock size={14} />
+                  Schedule
+                </button>
+              )}
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadingAttachments}

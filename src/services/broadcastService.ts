@@ -76,6 +76,7 @@ export const broadcastService = {
         .from('broadcasts')
         .select('*')
         .eq('trip_id', tripId)
+        .or('is_sent.eq.true,scheduled_for.is.null')
         .order('created_at', { ascending: false })
         .limit(200);
 
@@ -86,6 +87,50 @@ export const broadcastService = {
         console.error('Error fetching broadcasts:', error);
       }
       return [];
+    }
+  },
+
+  async getScheduledBroadcasts(tripId: string): Promise<Broadcast[]> {
+    try {
+      const { data, error } = await supabase
+        .from('broadcasts')
+        .select('*')
+        .eq('trip_id', tripId)
+        .eq('is_sent', false)
+        .not('scheduled_for', 'is', null)
+        .gt('scheduled_for', new Date().toISOString())
+        .order('scheduled_for', { ascending: true });
+
+      if (error) throw error;
+      return (data || []) as Broadcast[];
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error fetching scheduled broadcasts:', error);
+      }
+      return [];
+    }
+  },
+
+  async cancelScheduledBroadcast(broadcastId: string): Promise<boolean> {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { error } = await supabase
+        .from('broadcasts')
+        .delete()
+        .eq('id', broadcastId)
+        .eq('created_by', user.id)
+        .eq('is_sent', false);
+
+      return !error;
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error cancelling scheduled broadcast:', error);
+      }
+      return false;
     }
   },
 

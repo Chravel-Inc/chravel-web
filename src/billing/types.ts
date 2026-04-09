@@ -50,7 +50,8 @@ export type EntitlementId =
   | 'approval_workflows' // Request approval flows
   | 'quickbooks_integration' // Accounting integration
   | 'compliance_audit' // Audit logs
-  | 'voice_concierge'; // Gemini Voice in AI Concierge
+  | 'voice_concierge' // Gemini Voice in AI Concierge
+  | 'scheduled_broadcasts'; // Schedule broadcasts for future delivery
 
 /**
  * User subscription tiers
@@ -115,7 +116,8 @@ export type FeatureName =
   | 'approvals'
   | 'quickbooks'
   | 'audit'
-  | 'voice_concierge';
+  | 'voice_concierge'
+  | 'scheduled_broadcasts';
 
 /**
  * Context for feature checks (usage counts, limits, etc.)

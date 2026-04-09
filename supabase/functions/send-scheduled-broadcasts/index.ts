@@ -8,10 +8,12 @@ import {
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { verifyCronAuth } from '../_shared/cronGuard.ts';
 
+const BATCH_LIMIT = 50;
+
 /**
- * Edge function to send scheduled broadcasts
- * This should be called by a cron job (e.g., Supabase Cron or external scheduler)
- * every minute to check for broadcasts that need to be sent
+ * Edge function to send scheduled broadcasts.
+ * Called by pg_cron every minute. Picks up all broadcasts whose
+ * scheduled_for has passed and that haven't been sent yet.
  */
 serve(async req => {
   const corsHeaders = getCorsHeaders(req);
@@ -29,18 +31,18 @@ serve(async req => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get current time (with 1 minute buffer to account for cron timing)
     const now = new Date();
-    const oneMinuteAgo = new Date(now.getTime() - 60 * 1000);
 
-    // Find broadcasts scheduled for sending
+    // Find all unsent broadcasts whose scheduled time has passed.
+    // No lower bound — if a previous cron tick was missed, we still pick them up.
     const { data: scheduledBroadcasts, error: fetchError } = await supabase
       .from('broadcasts')
       .select('*')
       .eq('is_sent', false)
       .not('scheduled_for', 'is', null)
       .lte('scheduled_for', now.toISOString())
-      .gte('scheduled_for', oneMinuteAgo.toISOString());
+      .order('scheduled_for', { ascending: true })
+      .limit(BATCH_LIMIT);
 
     if (fetchError) {
       console.error('Error fetching scheduled broadcasts:', fetchError);
@@ -68,58 +70,52 @@ serve(async req => {
         const { error: updateError } = await supabase
           .from('broadcasts')
           .update({ is_sent: true })
-          .eq('id', broadcast.id);
+          .eq('id', broadcast.id)
+          .eq('is_sent', false); // Optimistic lock — skip if already sent by another tick
 
         if (updateError) {
           throw updateError;
         }
 
-        // Get trip members to notify
+        // Get trip members to notify (exclude the sender)
         const { data: members, error: membersError } = await supabase
           .from('trip_members')
           .select('user_id')
           .eq('trip_id', broadcast.trip_id)
           .eq('status', 'active')
-          .neq('user_id', broadcast.created_by); // Don't notify the sender
+          .neq('user_id', broadcast.created_by);
 
         if (membersError) {
           throw membersError;
         }
 
-        // Send push notifications if priority warrants it
-        if (broadcast.priority === 'urgent' || broadcast.priority === 'reminder') {
-          if (members && members.length > 0) {
-            const userIds = members.map(m => m.user_id);
-            const { data: tokens } = await supabase
-              .from('push_tokens')
-              .select('token')
-              .in('user_id', userIds);
+        // Create in-app notifications for each trip member.
+        // The DB trigger on notifications inserts into notification_deliveries,
+        // and the dispatch-notification-deliveries cron job handles push/email/SMS.
+        if (members && members.length > 0) {
+          const notifications = members.map(m => ({
+            user_id: m.user_id,
+            type: 'broadcast',
+            title: broadcast.priority === 'urgent' ? 'Urgent Broadcast' : 'Scheduled Broadcast',
+            message: broadcast.message.substring(0, 200),
+            trip_id: broadcast.trip_id,
+            metadata: {
+              category: 'broadcasts',
+              broadcast_id: broadcast.id,
+              priority: broadcast.priority,
+              high_priority: broadcast.priority === 'urgent',
+            },
+            is_read: false,
+            is_visible: true,
+          }));
 
-            if (tokens && tokens.length > 0) {
-              // Invoke push notification function
-              const { error: pushError } = await supabase.functions.invoke('push-notifications', {
-                body: {
-                  action: 'send_push',
-                  userId: broadcast.created_by,
-                  tokens: tokens.map(t => t.token),
-                  title:
-                    broadcast.priority === 'urgent'
-                      ? '🚨 Urgent Broadcast'
-                      : '📢 Scheduled Broadcast',
-                  body: broadcast.message.substring(0, 100),
-                  data: {
-                    type: 'broadcast',
-                    broadcastId: broadcast.id,
-                    tripId: broadcast.trip_id,
-                    url: `/trips/${broadcast.trip_id}/broadcasts`,
-                  },
-                },
-              });
+          const { error: notifError } = await supabase.from('notifications').insert(notifications);
 
-              if (pushError) {
-                console.warn(`Failed to send push for broadcast ${broadcast.id}:`, pushError);
-              }
-            }
+          if (notifError) {
+            console.warn(
+              `Failed to create notifications for broadcast ${broadcast.id}:`,
+              notifError,
+            );
           }
         }
 

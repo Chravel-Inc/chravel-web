@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { BroadcastComposer } from './BroadcastComposer';
 import { BroadcastList } from './BroadcastList';
 import { BroadcastFilters } from './BroadcastFilters';
-import { Radio, Clock } from 'lucide-react';
+import { Radio, Clock, X } from 'lucide-react';
 import { beyonceCowboyCarterTour } from '@/data/pro-trips/beyonceCowboyCarterTour';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useParams } from 'react-router-dom';
@@ -240,12 +240,28 @@ export const Broadcasts = () => {
 
   const filteredBroadcasts = applyFilters(recentBroadcasts);
 
-  // Count scheduled (pending) broadcasts
-  const scheduledBroadcasts = isDemoMode
-    ? []
-    : dbBroadcasts.filter(
-        b => b.scheduled_for && !b.is_sent && new Date(b.scheduled_for) > new Date(),
-      );
+  // Fetch scheduled (pending) broadcasts separately since they're filtered out of the main feed
+  const { data: scheduledBroadcasts = [] } = useQuery({
+    queryKey: [...tripKeys.broadcasts(currentTripId), 'scheduled'],
+    queryFn: () => broadcastService.getScheduledBroadcasts(currentTripId),
+    enabled: !!currentTripId && !isDemoMode,
+    staleTime: 30 * 1000,
+  });
+
+  const handleCancelScheduled = useCallback(
+    async (broadcastId: string) => {
+      const success = await broadcastService.cancelScheduledBroadcast(broadcastId);
+      if (success) {
+        queryClient.invalidateQueries({
+          queryKey: [...tripKeys.broadcasts(currentTripId), 'scheduled'],
+        });
+        toast.success('Scheduled broadcast cancelled');
+      } else {
+        toast.error('Failed to cancel scheduled broadcast');
+      }
+    },
+    [currentTripId, queryClient],
+  );
 
   return (
     <div className="p-4 sm:p-6">
@@ -259,14 +275,45 @@ export const Broadcasts = () => {
 
       {/* Scheduled broadcasts indicator */}
       {scheduledBroadcasts.length > 0 && (
-        <div className="mb-4 p-3 bg-blue-600/10 border border-blue-500/30 rounded-lg">
-          <div className="flex items-center gap-2 text-blue-400 text-sm">
+        <div className="mb-4 p-3 bg-blue-600/10 border border-blue-500/30 rounded-lg space-y-2">
+          <div className="flex items-center gap-2 text-blue-400 text-sm font-medium">
             <Clock size={14} />
             <span>
               {scheduledBroadcasts.length} scheduled broadcast
               {scheduledBroadcasts.length > 1 ? 's' : ''} pending
             </span>
           </div>
+          {scheduledBroadcasts.map(sb => (
+            <div
+              key={sb.id}
+              className="flex items-center justify-between gap-2 pl-6 text-xs text-slate-300"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <Clock size={10} className="text-slate-500 flex-shrink-0" />
+                <span className="truncate">
+                  {sb.message.substring(0, 60)}
+                  {sb.message.length > 60 ? '...' : ''}
+                </span>
+                <span className="text-slate-500 flex-shrink-0">
+                  {sb.scheduled_for
+                    ? new Date(sb.scheduled_for).toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                      })
+                    : ''}
+                </span>
+              </div>
+              <button
+                onClick={() => handleCancelScheduled(sb.id)}
+                className="text-slate-500 hover:text-red-400 flex-shrink-0 p-1"
+                title="Cancel scheduled broadcast"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ))}
         </div>
       )}
 

@@ -58,6 +58,7 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
       'payments_extended',
       'pdf_export',
       'calendar_sync',
+      'scheduled_broadcasts',
     ],
   },
 
@@ -85,6 +86,7 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
       'pro_trip_creation',
       'events_create',
       'events_attendees_100',
+      'scheduled_broadcasts',
     ],
   },
 
@@ -114,6 +116,7 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
       'channels_enabled',
       'roles_enabled',
       'roster_management',
+      'scheduled_broadcasts',
     ],
   },
 
@@ -140,6 +143,7 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
       'logistics_management',
       'events_create',
       'events_attendees_200',
+      'scheduled_broadcasts',
     ],
   },
 
@@ -169,6 +173,7 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
       'approval_workflows',
       'quickbooks_integration',
       'compliance_audit',
+      'scheduled_broadcasts',
     ],
   },
 };
