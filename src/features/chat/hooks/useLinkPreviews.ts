@@ -32,84 +32,163 @@ function getDomain(url: string): string {
 }
 
 /**
+ * Stable fingerprint so the effect does not re-run on every parent re-render
+ * (new array identity) while still reacting to real message content changes.
+ */
+function fingerprintMessages(
+  messages: Array<{ id: string; text: string; linkPreview?: unknown }>,
+): string {
+  return JSON.stringify(
+    messages.map(m => ({
+      id: m.id,
+      text: m.text,
+      lp: m.linkPreview != null ? 1 : 0,
+    })),
+  );
+}
+
+/**
  * Client-side link preview enrichment for messages.
  * Detects URLs in message content and fetches OG metadata via the
  * existing fetch-og-metadata edge function.
  *
  * Returns a map of messageId → LinkPreview for messages that have URLs
  * and whose previews have been fetched.
+ *
+ * Important: the fetch effect must NOT depend on `previews` state. Including it
+ * caused a feedback loop (each preview completion re-ran the effect and walked
+ * the full message list), which thrashed React reconciliation in long concierge
+ * threads — especially older bubbles that often contain URLs.
  */
 export function useLinkPreviews(
   messages: Array<{ id: string; text: string; linkPreview?: unknown }>,
 ): Record<string, LinkPreview> {
   const [previews, setPreviews] = useState<Record<string, LinkPreview>>({});
+  const previewsRef = useRef<Record<string, LinkPreview>>({});
+  previewsRef.current = previews;
   // Tracks URLs currently being fetched or successfully fetched (prevents concurrent dupes)
   const fetchedUrlsRef = useRef<Set<string>>(new Set());
   // Tracks URLs that failed, with retry count (allows one retry)
   const failedUrlsRef = useRef<Map<string, number>>(new Map());
+  // Message ids we have finished processing (success, failure cap, no URL, or server preview)
+  const finishedMessageIdsRef = useRef<Set<string>>(new Set());
   const MAX_RETRIES = 1;
+  const BATCH_SIZE = 3;
+
+  const messagesFingerprint = fingerprintMessages(messages);
 
   useEffect(() => {
     if (messages.length === 0) return;
 
-    // Find messages with URLs that don't already have link previews
-    const messagesToFetch: Array<{ id: string; url: string }> = [];
+    finishedMessageIdsRef.current = new Set();
 
     for (const msg of messages) {
-      // Skip if this message already has a DB-stored link preview
-      if (msg.linkPreview) continue;
-      // Skip if we already fetched for this message
-      if (previews[msg.id]) continue;
-
+      if (msg.linkPreview) {
+        finishedMessageIdsRef.current.add(msg.id);
+        continue;
+      }
       const url = extractUrl(msg.text);
-      if (!url) continue;
-      // Skip if we already fetched this URL successfully (dedup across messages)
-      if (fetchedUrlsRef.current.has(url)) continue;
-      // Skip if this URL has exceeded max retries
-      const failCount = failedUrlsRef.current.get(url) ?? 0;
-      if (failCount > MAX_RETRIES) continue;
-
-      messagesToFetch.push({ id: msg.id, url });
-      // Mark as in-flight to prevent concurrent duplicate fetches
-      fetchedUrlsRef.current.add(url);
+      if (!url) {
+        finishedMessageIdsRef.current.add(msg.id);
+        continue;
+      }
+      const cached = previewsRef.current[msg.id];
+      if (cached && cached.url === url) {
+        finishedMessageIdsRef.current.add(msg.id);
+        if (!fetchedUrlsRef.current.has(url)) {
+          fetchedUrlsRef.current.add(url);
+        }
+      }
     }
 
-    if (messagesToFetch.length === 0) return;
+    let cancelled = false;
 
-    // Fetch OG metadata for new URLs (max 3 concurrent)
-    const fetchAll = async () => {
-      const results: Record<string, LinkPreview> = {};
+    const drainQueue = async (): Promise<void> => {
+      while (!cancelled) {
+        const batch: Array<{ id: string; url: string }> = [];
 
-      // Process in small batches to avoid overwhelming the edge function
-      const BATCH_SIZE = 3;
-      for (let i = 0; i < messagesToFetch.length; i += BATCH_SIZE) {
-        const batch = messagesToFetch.slice(i, i + BATCH_SIZE);
-        const promises = batch.map(async ({ id, url }) => {
-          const metadata: OGMetadata = await fetchOGMetadata(url);
-          if (!metadata.error) {
-            results[id] = {
-              url,
-              title: metadata.title,
-              description: metadata.description,
-              image: metadata.image,
-              domain: getDomain(url),
-            };
-          } else {
-            // Remove from in-flight set so it can be retried on next render
-            fetchedUrlsRef.current.delete(url);
-            failedUrlsRef.current.set(url, (failedUrlsRef.current.get(url) ?? 0) + 1);
+        for (const msg of messages) {
+          if (batch.length >= BATCH_SIZE) break;
+
+          if (msg.linkPreview) {
+            finishedMessageIdsRef.current.add(msg.id);
+            continue;
           }
-        });
-        await Promise.all(promises);
-      }
+          if (finishedMessageIdsRef.current.has(msg.id)) continue;
 
-      if (Object.keys(results).length > 0) {
-        setPreviews(prev => ({ ...prev, ...results }));
+          const url = extractUrl(msg.text);
+          if (!url) {
+            finishedMessageIdsRef.current.add(msg.id);
+            continue;
+          }
+
+          const failCount = failedUrlsRef.current.get(url) ?? 0;
+          if (failCount > MAX_RETRIES) {
+            finishedMessageIdsRef.current.add(msg.id);
+            continue;
+          }
+
+          // Same dedupe as before: one in-flight/success slot per URL (first message wins).
+          // Mark duplicate-URL messages finished so the drain loop cannot spin forever.
+          if (fetchedUrlsRef.current.has(url)) {
+            finishedMessageIdsRef.current.add(msg.id);
+            continue;
+          }
+
+          batch.push({ id: msg.id, url });
+          fetchedUrlsRef.current.add(url);
+        }
+
+        if (batch.length === 0) break;
+
+        const results: Record<string, LinkPreview> = {};
+
+        await Promise.all(
+          batch.map(async ({ id, url }) => {
+            const metadata: OGMetadata = await fetchOGMetadata(url);
+            if (cancelled) return;
+            if (!metadata.error) {
+              results[id] = {
+                url,
+                title: metadata.title,
+                description: metadata.description,
+                image: metadata.image,
+                domain: getDomain(url),
+              };
+            } else {
+              fetchedUrlsRef.current.delete(url);
+              failedUrlsRef.current.set(url, (failedUrlsRef.current.get(url) ?? 0) + 1);
+            }
+          }),
+        );
+
+        if (cancelled) return;
+
+        for (const { id, url } of batch) {
+          if (results[id]) {
+            finishedMessageIdsRef.current.add(id);
+          } else {
+            const fc = failedUrlsRef.current.get(url) ?? 0;
+            if (fc > MAX_RETRIES) {
+              finishedMessageIdsRef.current.add(id);
+            }
+          }
+        }
+
+        if (Object.keys(results).length > 0) {
+          setPreviews(prev => ({ ...prev, ...results }));
+        }
       }
     };
 
-    fetchAll();
-  }, [messages, previews]);
+    void drainQueue();
+
+    return () => {
+      cancelled = true;
+    };
+    // Intentionally omit `messages` — array identity churns every render; fingerprint captures content.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messagesFingerprint]);
 
   return previews;
 }
