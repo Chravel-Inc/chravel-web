@@ -1,0 +1,25 @@
+{
+  "name": "build-macos-apps",
+  "description": "macOS development workflows for building, debugging, packaging, and shipping native macOS apps",
+  "version": "latest",
+  "author": {
+    "name": "Mosif",
+    "url": "https://github.com/mosif16"
+  },
+  "homepage": "https://github.com/mosif16/codex-skills/tree/main/build-macos-apps",
+  "repository": "https://github.com/mosif16/codex-skills",
+  "license": "MIT",
+  "keywords": ["macos", "swiftui", "appkit", "xcode", "notarization", "codesigning"],
+  "skills": [
+    "appkit-interop",
+    "build-run-debug",
+    "liquid-glass",
+    "packaging-notarization",
+    "signing-entitlements",
+    "swiftpm-macos",
+    "swiftui-patterns",
+    "telemetry",
+    "test-triage",
+    "view-refactor"
+  ]
+}
