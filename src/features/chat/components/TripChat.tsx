@@ -137,7 +137,8 @@ export const TripChat = React.memo(
       isLoadingMore,
       toggleReaction,
       reload,
-      activeChannel,
+      /** GetStream trip channel — do not conflate with role `TripChannel` from useRoleChannels */
+      activeChannel: tripStreamChannel,
     } = useTripChat(shouldSkipLiveChat ? undefined : resolvedTripId);
 
     const { isRefreshing, pullDistance } = usePullToRefresh({
@@ -166,11 +167,12 @@ export const TripChat = React.memo(
       chatModeUserRole === 'organizer' ||
       chatModeUserRole === 'owner';
 
-    // Role channels for pro trips
-    const { availableChannels, setActiveChannel } = useRoleChannels(
-      isPro ? resolvedTripId : undefined,
-      user?.id || '',
-    );
+    // Role channels for pro trips (Supabase metadata; optional Stream transport via flag)
+    const {
+      availableChannels,
+      setActiveChannel: setSelectedTripChannel,
+      activeChannel: selectedTripChannel,
+    } = useRoleChannels(isPro ? resolvedTripId : undefined, user?.id || '');
 
     // Typing indicators + read receipts — must be after all deps are declared
     const { typingUsers, typingServiceRef } = useChatTypingIndicators(
@@ -179,7 +181,7 @@ export const TripChat = React.memo(
       user,
       effectiveChatMode,
       tripMembers.length,
-      activeChannel,
+      tripStreamChannel,
     );
 
     const { readStatusesByMessage } = useChatReadReceipts(
@@ -191,11 +193,11 @@ export const TripChat = React.memo(
 
     const handleMessageEdit = useCallback(
       async (messageId: string, newContent: string) => {
-        if (demoMode.isDemoMode || !activeChannel) return;
+        if (demoMode.isDemoMode || !tripStreamChannel) return;
 
         try {
           // intentional: stream-chat Channel type doesn't expose updateMessage in all versions
-          await (activeChannel as any).updateMessage({
+          await (tripStreamChannel as any).updateMessage({
             id: messageId,
             text: newContent,
           });
@@ -206,16 +208,16 @@ export const TripChat = React.memo(
           toast.error('Failed to edit message');
         }
       },
-      [demoMode.isDemoMode, activeChannel],
+      [demoMode.isDemoMode, tripStreamChannel],
     );
 
     const handleMessageDelete = useCallback(
       async (messageId: string) => {
-        if (demoMode.isDemoMode || !activeChannel) return;
+        if (demoMode.isDemoMode || !tripStreamChannel) return;
 
         try {
           // intentional: stream-chat Channel type doesn't expose deleteMessage in all versions
-          await (activeChannel as any).deleteMessage(messageId);
+          await (tripStreamChannel as any).deleteMessage(messageId);
         } catch (error) {
           if (import.meta.env.DEV) {
             console.error('[TripChat] Failed to delete message:', error);
@@ -223,7 +225,7 @@ export const TripChat = React.memo(
           toast.error('Failed to delete message');
         }
       },
-      [demoMode.isDemoMode, activeChannel],
+      [demoMode.isDemoMode, tripStreamChannel],
     );
 
     // System message preferences - only for consumer trips
@@ -381,8 +383,8 @@ export const TripChat = React.memo(
 
         // Map Stream's built-in read state
         const readStatuses: any[] = [];
-        if (activeChannel?.state?.read) {
-          for (const [readerId, readState] of Object.entries(activeChannel.state.read)) {
+        if (tripStreamChannel?.state?.read) {
+          for (const [readerId, readState] of Object.entries(tripStreamChannel.state.read)) {
             // Check if the user read up to or past this message's timestamp
             const readAt = new Date(readState.last_read);
             const msgDate = new Date(msgCreatedAt);
@@ -433,7 +435,7 @@ export const TripChat = React.memo(
           readStatuses,
         };
       });
-    }, [liveMessages, demoMode.isDemoMode, tripMembers, activeChannel?.state?.read, user?.id]);
+    }, [liveMessages, demoMode.isDemoMode, tripMembers, tripStreamChannel?.state?.read, user?.id]);
 
     const handleSendMessage = async (
       isBroadcast = false,
@@ -627,16 +629,16 @@ export const TripChat = React.memo(
       setDemoMessages(formattedMessages);
     }, [demoMode.isDemoMode, isPro, isEvent, params.proTripId, params.eventId, user?.id]);
 
-    // Auto-select first channel when switching to 'channels' filter
+    // Auto-select first role channel when switching to 'channels' filter
     useEffect(() => {
-      if (messageFilter === 'channels' && availableChannels.length > 0 && !activeChannel) {
+      if (messageFilter === 'channels' && availableChannels.length > 0 && !selectedTripChannel) {
         // Sort alphabetically and select first
         const sortedChannels = [...availableChannels].sort((a, b) =>
           a.channelName.localeCompare(b.channelName),
         );
-        setActiveChannel(sortedChannels[0]);
+        setSelectedTripChannel(sortedChannels[0]);
       }
-    }, [messageFilter, availableChannels, activeChannel, setActiveChannel]);
+    }, [messageFilter, availableChannels, selectedTripChannel, setSelectedTripChannel]);
 
     // Determine which messages to show - authenticated trips show ONLY live messages
     const messagesToShow = demoMode.isDemoMode ? demoMessages : liveFormattedMessages;
@@ -766,19 +768,19 @@ export const TripChat = React.memo(
               broadcastCount={broadcastCount}
               unreadCount={messageUnreadCount}
               availableChannels={availableChannels as any}
-              activeChannel={activeChannel as any}
+              activeChannel={selectedTripChannel as any}
               onChannelSelect={(channel: any) => {
-                setActiveChannel(channel);
+                setSelectedTripChannel(channel);
                 setMessageFilter('channels');
               }}
             />
 
             {/* Conditional Content Area */}
-            {messageFilter === 'channels' && activeChannel ? (
+            {messageFilter === 'channels' && selectedTripChannel ? (
               <ChannelChatView
-                channel={activeChannel as any}
+                channel={selectedTripChannel as any}
                 availableChannels={availableChannels as any}
-                onChannelChange={setActiveChannel as any}
+                onChannelChange={setSelectedTripChannel as any}
               />
             ) : (
               <>
@@ -877,13 +879,13 @@ export const TripChat = React.memo(
                 disableFileUpload={!canUploadMedia}
                 safeAreaBottom={false}
                 onTypingChange={isTyping => {
-                  if (!demoMode.isDemoMode && resolvedTripId && user?.id && activeChannel) {
+                  if (!demoMode.isDemoMode && resolvedTripId && user?.id && tripStreamChannel) {
                     if (isTyping) {
-                      activeChannel.keystroke().catch(err => {
+                      tripStreamChannel.keystroke().catch(err => {
                         if (import.meta.env.DEV) console.error('[Stream] keystroke failed', err);
                       });
                     } else {
-                      activeChannel.stopTyping().catch(err => {
+                      tripStreamChannel.stopTyping().catch(err => {
                         if (import.meta.env.DEV) console.error('[Stream] stopTyping failed', err);
                       });
                     }
