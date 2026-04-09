@@ -114,6 +114,7 @@ export async function connectStreamClient(): Promise<StreamChat | null> {
             if (event.online) {
               notifyConnectedSubscribers();
             }
+            notifyConnectionStatusSubscribers(!!event.online);
           });
           connectionChangedListenerAttached = true;
         }

@@ -126,3 +126,20 @@
 - **Suggested tests:** Integration test mocking `RoomServiceClient` to verify call args. E2E staging test that creates a real room and asserts agent joins.
 - **Priority:** critical
 - **Provenance:** April 2026 LiveKit voice stack forensic audit
+## Stream hook initialization race — pro channels, broadcasts, concierge history
+- **Area:** `src/hooks/stream/useStreamProChannel.ts`, `src/hooks/stream/useStreamBroadcasts.ts`, `src/hooks/stream/useStreamConciergeHistory.ts`
+- **Why this gap matters:** `useStreamTripChat` had a race condition (fixed April 2026 via `onStreamClientConnected` subscriber + `streamClientReady` state). The three hooks above have the identical structural pattern — they check `getStreamClient()?.userID` once at mount and bail out if falsy, meaning they stay broken if Stream connects after the component mounts. The bug is dormant only if these hooks consistently mount after Stream is fully connected.
+- **Missing coverage:** No test that exercises these hooks mounting before `connectStreamClient()` resolves. No test that the hooks recover when Stream connects asynchronously.
+- **Failure mode if untested:** Pro channels, broadcast list, and concierge history silently show empty/loading state until the user hard-refreshes, especially on mobile where token fetch is slower.
+- **Suggested tests:** Unit test each hook with a mocked Stream client that connects 200ms after mount — assert data loads without requiring a re-mount.
+- **Priority:** medium-high
+- **Provenance:** April 2026 GetStream messaging rebase (`claude/fix-getstream-messaging-xmHa9`)
+
+## Authenticated e2e messaging tests require SUPABASE_SERVICE_ROLE_KEY
+- **Area:** `e2e/specs/chat/messaging.spec.ts` (CHAT-001, CHAT-002, CHAT-003)
+- **Why this gap matters:** The 8 smoke tests (CHAT-SMOKE-01..08) run and pass in any environment using demo mode. The 8 authenticated tests that verify actual Stream message delivery, concierge query/response, and pro channel rendering skip when `SUPABASE_SERVICE_ROLE_KEY` is not set. They have never run in CI.
+- **Missing coverage:** Actual Stream `channel.sendMessage()` delivery, `message.new` WebSocket event receipt, concierge query-to-response cycle, and pro channel member filter.
+- **Failure mode if untested:** Stream integration could be broken in staging and only discovered by a human spot-check.
+- **Suggested tests:** Run `e2e/specs/chat/messaging.spec.ts --grep "CHAT-001|CHAT-002|CHAT-003"` against staging with `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_URL` set. Add to scheduled staging E2E workflow.
+- **Priority:** high
+- **Provenance:** April 2026 messaging e2e suite (`claude/fix-getstream-messaging-xmHa9`)

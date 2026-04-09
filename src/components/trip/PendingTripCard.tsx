@@ -112,7 +112,7 @@ export const PendingTripCard: React.FC<PendingTripCardProps> = ({
             type="button"
             className={`mt-3 w-full text-sm font-medium rounded-lg py-2.5 px-3 min-h-[44px] transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${ctaClassName}`}
             onClick={onCta}
-            disabled={disabledCta}
+            disabled={!interactive}
           >
             {ctaLabel}
           </button>

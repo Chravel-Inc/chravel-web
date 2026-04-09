@@ -288,6 +288,18 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Why this persists:** The `(token as any)` cast bypasses type checking, and code review treated the comment "intentional cast" as sufficient justification. No integration test validates agent dispatch.
 - **Related files:** `supabase/functions/livekit-token/index.ts`, `agent/src/index.ts` (reads `ctx.room.metadata`)
 - **Fixed in:** April 2026 LiveKit voice stack audit
+## Supabase Edge Function unclosed scope causes silent deploy failure
+- **Status:** fixed
+- **Subsystem:** any edge function / supabase/functions/
+- **Bug class:** Deno TypeScript syntax / unclosed brace
+- **Symptom:** Edge function deploys without error but throws a parse/runtime error at invocation; or `supabase functions deploy` succeeds but function body is structurally broken.
+- **User-facing impact:** High — the entire function becomes non-functional at runtime.
+- **Trigger conditions:** A helper function's closing `}` is missing, usually due to a refactor that moves code without closing the outer function. TypeScript compiler may not catch this if there are no type errors in the partial parse tree.
+- **Likely root cause:** Manual editing of large edge functions without bracket-balance validation.
+- **How to confirm:** `node -e "const fs=require('fs'); const c=fs.readFileSync('<function>/index.ts','utf8'); let d=0; c.split('').forEach(ch=>{if(ch==='{')d++;if(ch==='}')d--;}); console.log('brace balance:',d);"` — result must be 0.
+- **Smallest safe fix:** Add the missing `}` after the last statement of the unclosed function.
+- **Regression risks:** None — purely additive bracket.
+- **Related files:** `supabase/functions/gmail-import-worker/index.ts` (fixed April 2026)
 - **Confidence:** high
 
 ---
