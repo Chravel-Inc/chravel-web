@@ -258,3 +258,10 @@
 - Added race-safe connection readiness subscription to `useStreamConciergeHistory` so Stream concierge history hydrates after delayed Stream connects.
 - Updated `AIConciergeChat` history hydration to merge/dedupe/sort legacy Supabase (`ai_queries`) history with Stream concierge channel history, preventing history gaps across migration boundary.
 - Verification: `npm run lint && npm run typecheck && npm run build` pass (existing baseline warnings only).
+
+2026-04-09 — Native macOS Module 1 scaffold (SwiftUI shell)
+- Added `/macos` Swift package scaffold for a native macOS app target (`ChravelMacApp`) with macOS 15 platform baseline.
+- Implemented foundational native shell: `NavigationSplitView` sidebar, workspace destinations for all parity modules, toolbar actions, keyboard shortcuts, and Settings scene.
+- Added lightweight telemetry wrapper via `OSLog` (`AppLogger`) and wired launch/toolbar interaction events.
+- Added baseline tests for destination model integrity (`AppDestinationTests`) to lock sidebar parity coverage as modules are implemented.
+- Verification: `cd macos && swift test` fails in this Linux CI environment due missing Apple `SwiftUI` module; code is intended to build on macOS hosts.
