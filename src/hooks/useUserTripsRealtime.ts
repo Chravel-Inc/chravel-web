@@ -38,7 +38,7 @@ export function useUserTripsRealtime(userId: string | undefined, isDemoMode: boo
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*', // INSERT (new join request) + UPDATE (approval/rejection) + DELETE (cancel)
           schema: 'public',
           table: 'trip_join_requests',
           filter: `user_id=eq.${userId}`,
