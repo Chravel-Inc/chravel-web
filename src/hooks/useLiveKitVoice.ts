@@ -20,7 +20,7 @@ import type {
   VoiceConversationTurn,
   ToolCallResult,
 } from './useGeminiLive';
-import { LIVEKIT_WS_URL } from '@/config/voiceFeatureFlags';
+import { LIVEKIT_WS_URL, VOICE_LIVE_ENABLED } from '@/config/voiceFeatureFlags';
 import * as circuitBreaker from '@/voice/circuitBreaker';
 import type { FailureCategory } from '@/voice/circuitBreaker';
 import { supabase } from '@/integrations/supabase/client';
@@ -276,6 +276,12 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
   // ── Start Session ────────────────────────────────────────────────────────
 
   const startSession = useCallback(async () => {
+    if (!VOICE_LIVE_ENABLED) {
+      setError('Voice is currently disabled.');
+      setState('error');
+      onError?.('Voice is currently disabled.');
+      return;
+    }
     if (sessionActiveRef.current) return;
     if (circuitBreaker.isOpen()) {
       setCircuitBreakerOpen(true);

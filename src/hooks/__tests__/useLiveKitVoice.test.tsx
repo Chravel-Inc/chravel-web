@@ -62,6 +62,11 @@ vi.mock('@/integrations/supabase/client', () => ({
   },
 }));
 
+vi.mock('@/config/voiceFeatureFlags', async importOriginal => {
+  const mod = await importOriginal<typeof import('@/config/voiceFeatureFlags')>();
+  return { ...mod, VOICE_LIVE_ENABLED: true };
+});
+
 import { LIVEKIT_WS_URL } from '@/config/voiceFeatureFlags';
 import { useLiveKitVoice } from '../useLiveKitVoice';
 

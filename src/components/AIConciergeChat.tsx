@@ -30,7 +30,7 @@ import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { useGeminiLive } from '@/hooks/useGeminiLive';
 import type { ToolCallResult } from '@/hooks/useGeminiLive';
 import { useLiveKitVoice } from '@/hooks/useLiveKitVoice';
-import { VOICE_RUNTIME } from '@/config/voiceFeatureFlags';
+import { VOICE_RUNTIME, VOICE_LIVE_ENABLED } from '@/config/voiceFeatureFlags';
 import { useVoiceToolHandler } from '@/hooks/useVoiceToolHandler';
 import { VoiceLiveInline } from '@/features/chat/components/VoiceLiveInline';
 import { CTA_BUTTON, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
@@ -72,6 +72,8 @@ const UPLOAD_ENABLED = true;
  * surface via toast notifications.
  */
 const DUPLEX_VOICE_ENABLED = true;
+/** LiveKit/Vertex Live header control + inline session UI (gated by env; dictation stays on DUPLEX_VOICE_ENABLED). */
+const LIVE_VOICE_UI_ENABLED = DUPLEX_VOICE_ENABLED && VOICE_LIVE_ENABLED;
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface AIConciergeChatProps {
@@ -824,7 +826,8 @@ export const AIConciergeChat = ({
   const convoVoiceState: VoiceState = dictationState;
 
   // Whether Gemini Live session is active (for Live button + inline voice UI)
-  const isLiveSessionActive = DUPLEX_VOICE_ENABLED && liveState !== 'idle' && liveState !== 'error';
+  const isLiveSessionActive =
+    LIVE_VOICE_UI_ENABLED && liveState !== 'idle' && liveState !== 'error';
 
   const handleEndLiveSession = useCallback(async () => {
     await endLiveSession();
@@ -845,7 +848,7 @@ export const AIConciergeChat = ({
 
   // Live button — Gemini Live toggle. Stops dictation if active first.
   const handleLiveToggle = useCallback(async () => {
-    if (!DUPLEX_VOICE_ENABLED) return;
+    if (!LIVE_VOICE_UI_ENABLED) return;
 
     // Stop dictation if running
     if (isDictationActive) {
@@ -2290,7 +2293,7 @@ export const AIConciergeChat = ({
             >
               <Search size={CTA_ICON_SIZE} className="text-white" />
             </button>
-            {DUPLEX_VOICE_ENABLED && (
+            {LIVE_VOICE_UI_ENABLED && (
               <button
                 type="button"
                 onClick={handleLiveToggle}

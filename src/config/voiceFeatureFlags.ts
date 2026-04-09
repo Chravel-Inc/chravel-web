@@ -31,8 +31,13 @@ const getEnv = (key: VoiceEnvKey, fallback: string): string => {
 
 const parseBool = (value: string): boolean => value.toLowerCase() === 'true' || value === '1';
 
-/** Voice Live (Gemini bidirectional) enabled. Default: true — both dictation and conversation modes available. */
-export const VOICE_LIVE_ENABLED = parseBool(getEnv('VITE_VOICE_LIVE_ENABLED', 'true'));
+/**
+ * Voice Live (LiveKit / Vertex bidirectional) enabled.
+ * Default: false — avoids showing a broken Live control until Supabase LiveKit secrets,
+ * LiveKit worker `chravel-voice`, and `VITE_LIVEKIT_WS_URL` are verified (see
+ * docs/ops/LIVEKIT_VOICE_READINESS_RUNBOOK.md). Set `VITE_VOICE_LIVE_ENABLED=true` to enable.
+ */
+export const VOICE_LIVE_ENABLED = parseBool(getEnv('VITE_VOICE_LIVE_ENABLED', 'false'));
 
 /** Extra diagnostics (connection codes, audio params) when true. Default: false. */
 export const VOICE_DIAGNOSTICS_ENABLED = parseBool(
