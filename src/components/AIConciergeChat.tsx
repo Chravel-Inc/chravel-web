@@ -2526,7 +2526,7 @@ export const AIConciergeChat = ({
             acceptedFileTypes={ALL_ACCEPTED_TYPES}
             convoVoiceState={convoVoiceState}
             onConvoToggle={handleConvoToggle}
-            isVoiceEligible={DUPLEX_VOICE_ENABLED}
+            isVoiceEligible={true}
             onQuickAction={
               UPLOAD_ENABLED && (attachedImages.length > 0 || attachedDocuments.length > 0)
                 ? (action: string) => {
