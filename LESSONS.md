@@ -144,6 +144,12 @@
 - **Avoid when:** First session initialization before any successful connection
 - **Evidence:** Gemini Live auto-reconnect paths were previously mapped to `requesting_mic`; inline status looked like fresh mic permission setup instead of network recovery. Adding `reconnecting` improved state-machine clarity and user feedback while preserving containment in the chat window.
 - **Provenance:** March 2026 concierge live-mode hardening
+### Ship live voice behind a hard UI kill switch until control-plane and data-plane checks both pass
+- **Tip:** Keep a simple top-level UI gate (for example `DUPLEX_VOICE_ENABLED`) for live voice CTA rendering so product can instantly hide entry points without deleting architecture when external dependencies are unstable.
+- **Applies when:** Voice stacks that depend on external worker infrastructure (LiveKit workers, third-party AI keys, service-role tool bridges).
+- **Avoid when:** The voice path is fully offline/local and has no external control-plane dependencies.
+- **Evidence:** Live voice failures can originate outside frontend code (missing LiveKit/Supabase secrets, worker offline, agent-dispatch mismatch). Hiding the CTA prevented repeated user-facing breakage while preserving the existing LiveKit hooks and edge functions for rapid re-enable.
+- **Provenance:** April 2026 LiveKit forensic pass + fallback hardening.
 ### Notification deep-link mappers should read both metadata and first-class columns
 - **Tip:** When notification rows store routing identifiers in both dedicated columns (e.g., `notifications.trip_id`) and metadata JSON, mapping code should prefer metadata but fall back to column values. Legacy rows and mixed writer paths (RPC helper vs direct inserts) often populate only one.
 - **Applies when:** Building in-app notification lists, badge payload mappers, or tap-to-route logic.

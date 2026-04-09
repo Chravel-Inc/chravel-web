@@ -1,3 +1,12 @@
+2026-04-09 — LiveKit voice forensic pass + safety gate fallback (hide Live CTA)
+- Completed code-level dependency audit for live voice path:
+  - Frontend runtime: `AIConciergeChat -> useLiveKitVoice -> /functions/v1/livekit-token`.
+  - Tool path: voice tool calls route through `execute-concierge-tool`.
+  - Infra requirements confirmed in runbook: Supabase secrets (`LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `LIVEKIT_URL`) + LiveKit worker env (`GOOGLE_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_LIVE_MODEL`).
+- Added immediate no-regression fallback by setting `DUPLEX_VOICE_ENABLED = false` in `AIConciergeChat` so the "Live" button is hidden while preserving all LiveKit architecture and hooks for later re-enable.
+- Added regression test in `src/components/__tests__/AIConciergeChat.test.tsx` to lock hidden Live CTA behavior while safety gate is off.
+- Verification: `npm run test:run -- src/components/__tests__/AIConciergeChat.test.tsx`, `npm run typecheck`, `npm run lint:check`.
+
 2026-04-07 — Scheduled staging E2E automation + Cursor prompt handoff (Trigger instructions follow-up)
 - Added dedicated workflow `.github/workflows/scheduled-e2e-staging.yml` for daily staging validation (Playwright chromium), artifact upload, run summary, and optional Slack webhook notification.
 - Added operator-ready prompt doc `docs/ACTIVE/CURSOR_AUTOMATION_E2E_PROMPT.md` to let Cursor Automations dispatch the workflow, wait for completion, and post structured thread summaries.
