@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { parseCalendarFile, parseURLSchedule } from '@/utils/calendarImportParsers';
 import { SmartImportGmail } from '@/features/smart-import/components/SmartImportGmail';
 import { SmartImportReview } from '@/features/smart-import/components/SmartImportReview';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ParseConfig {
   targetType: 'roster' | 'schedule' | 'events';
@@ -93,17 +94,18 @@ export const SmartImport = ({
         formData.append('extractionType', parseConfig.targetType);
         formData.append('targetCollection', targetCollection);
 
-        const response = await fetch('/api/supabase/functions/file-ai-parser', {
-          method: 'POST',
-          body: formData,
-        });
+        const { data: result, error: invokeError } = await supabase.functions.invoke(
+          'file-ai-parser',
+          {
+            body: formData,
+          },
+        );
 
-        if (!response.ok) {
+        if (invokeError) {
           throw new Error('Failed to process file');
         }
 
-        const result = await response.json();
-        const importedData = result.extracted_data;
+        const importedData = result?.extracted_data;
 
         // Process the data based on target type
         const processedData = processImportedData(importedData, parseConfig.targetType);
@@ -155,24 +157,22 @@ export const SmartImport = ({
         return;
       }
 
-      const response = await fetch('/api/supabase/functions/file-ai-parser', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const { data: result, error: invokeError } = await supabase.functions.invoke(
+        'file-ai-parser',
+        {
+          body: {
+            url: urlInput,
+            extractionType: parseConfig.targetType,
+            targetCollection: targetCollection,
+          },
         },
-        body: JSON.stringify({
-          url: urlInput,
-          extractionType: parseConfig.targetType,
-          targetCollection: targetCollection,
-        }),
-      });
+      );
 
-      if (!response.ok) {
+      if (invokeError) {
         throw new Error('Failed to process URL');
       }
 
-      const result = await response.json();
-      const importedData = result.extracted_data;
+      const importedData = result?.extracted_data;
 
       const processedData = processImportedData(importedData, parseConfig.targetType);
 

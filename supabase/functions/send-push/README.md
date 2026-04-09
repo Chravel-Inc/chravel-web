@@ -6,16 +6,24 @@ Sends push notifications to Chravel users via FCM (Android/Web) and APNs (iOS).
 
 Configure these in the [Supabase Edge Functions settings](https://supabase.com/dashboard/project/jmjiyekmxwsxkfnqwyaa/settings/functions):
 
-### Firebase Cloud Messaging (Android & Web)
+### Firebase Cloud Messaging V1 (Android & Web)
+
+Uses the same service account key as Vertex AI — no additional secret needed.
 
 | Secret | Description |
 |--------|-------------|
-| `FCM_SERVER_KEY` | Firebase Cloud Messaging server key |
+| `VERTEX_SERVICE_ACCOUNT_KEY` | Firebase/GCP service account key (base64-encoded JSON) |
+| `VERTEX_PROJECT_ID` | GCP/Firebase project ID |
 
-**How to get:**
-1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Select your project → Project Settings → Cloud Messaging
-3. Copy the "Server key" under Cloud Messaging API (Legacy)
+**Setup:**
+1. Go to [Firebase Console](https://console.firebase.google.com/) → Project Settings → Service Accounts
+2. Click "Generate new private key" to download the JSON file
+3. Base64-encode it: `base64 -i serviceAccountKey.json | tr -d '\n'`
+4. Store the base64 string as `VERTEX_SERVICE_ACCOUNT_KEY` in Supabase
+5. Store your project ID (e.g., `the-travel-app-467106`) as `VERTEX_PROJECT_ID`
+6. Ensure "Firebase Cloud Messaging API" is enabled in [GCP Console](https://console.cloud.google.com/apis/library/fcm.googleapis.com)
+
+> **Note:** The legacy FCM Server Key API was shut down June 2024. This function uses FCM V1 with OAuth2.
 
 ### Apple Push Notification service (iOS)
 
@@ -131,8 +139,8 @@ const { data, error } = await supabase.functions.invoke('send-push', {
 - [x] Edge function scaffold
 - [x] Device token lookup
 - [x] Platform routing (iOS/Android/Web)
-- [ ] FCM integration (requires `FCM_SERVER_KEY`)
-- [ ] APNs integration (requires APNs secrets)
+- [x] FCM V1 integration (uses `VERTEX_SERVICE_ACCOUNT_KEY` + `VERTEX_PROJECT_ID`)
+- [x] APNs integration (uses APNS secrets)
 - [ ] Web Push integration (requires VAPID keys)
 - [ ] Invalid token cleanup (disable tokens that return 410)
 

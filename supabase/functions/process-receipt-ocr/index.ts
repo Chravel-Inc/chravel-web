@@ -272,7 +272,7 @@ async function fetchImageAsBase64(url: string): Promise<string> {
 }
 
 async function processWithGoogleVision(imageBase64: string): Promise<OCRResult> {
-  const apiKey = Deno.env.get('GOOGLE_VISION_API_KEY') || Deno.env.get('VITE_GOOGLE_MAPS_API_KEY');
+  const apiKey = Deno.env.get('GOOGLE_VISION_API_KEY');
 
   if (!apiKey) {
     throw new Error('Google Vision API key not configured');
