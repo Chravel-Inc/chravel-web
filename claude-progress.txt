@@ -258,3 +258,8 @@
 - Added race-safe connection readiness subscription to `useStreamConciergeHistory` so Stream concierge history hydrates after delayed Stream connects.
 - Updated `AIConciergeChat` history hydration to merge/dedupe/sort legacy Supabase (`ai_queries`) history with Stream concierge channel history, preventing history gaps across migration boundary.
 - Verification: `npm run lint && npm run typecheck && npm run build` pass (existing baseline warnings only).
+2026-04-09 — Trip invite conversion fix (preview-to-join invite code preservation)
+- Root cause: `TripPreview` resolved invite codes via client `trip_invites` query after loading preview data. In environments where invite-code reads are blocked by RLS/permissions drift, this query returned null and overwrote join context, so authenticated non-members repeatedly saw "Ask the trip organizer for an invite link" despite opening from an invite flow.
+- Fix: moved active invite-code resolution into `get-trip-preview` edge function (service-role path), returned `trip.active_invite_code`, and wired `TripPreview` to consume that source-of-truth (removed client-side invite lookup that could null out join context).
+- Added regression test `src/pages/__tests__/TripPreview.inviteFlow.test.tsx` to enforce that authenticated non-members route to `/join/:code` when preview payload includes an invite code.
+- Verification: `npm run test:run -- src/pages/__tests__/TripPreview.inviteFlow.test.tsx`, `npm run typecheck`.
