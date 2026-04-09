@@ -209,14 +209,23 @@ serve(async (req): Promise<Response> => {
       });
     }
 
-    // Fetch trip details including archive status
-    const { data: trip, error: tripError } = await supabaseClient
-      .from('trips')
-      .select(
-        'id, name, destination, start_date, end_date, cover_image_url, trip_type, is_archived',
-      )
-      .eq('id', invite.trip_id)
-      .single();
+    // Trip row + member count in parallel (saves one DB round-trip vs sequential)
+    const [tripResult, memberCountResult] = await Promise.all([
+      supabaseClient
+        .from('trips')
+        .select(
+          'id, name, destination, start_date, end_date, cover_image_url, trip_type, is_archived',
+        )
+        .eq('id', invite.trip_id)
+        .single(),
+      supabaseClient
+        .from('trip_members')
+        .select('*', { count: 'exact', head: true })
+        .eq('trip_id', invite.trip_id),
+    ]);
+
+    const { data: trip, error: tripError } = tripResult;
+    const memberCount = memberCountResult.count;
 
     if (tripError || !trip) {
       logStep('Trip not found', { error: tripError?.message });
@@ -244,12 +253,6 @@ serve(async (req): Promise<Response> => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-
-    // Get member count
-    const { count: memberCount } = await supabaseClient
-      .from('trip_members')
-      .select('*', { count: 'exact', head: true })
-      .eq('trip_id', invite.trip_id);
 
     logStep('Success', { tripName: trip.name, memberCount });
 

@@ -138,6 +138,16 @@ describe('AuthModal', () => {
       });
     });
 
+    it('centers the sheet vertically on all breakpoints (tablet-safe)', async () => {
+      render(<AuthModal isOpen={true} onClose={mockOnClose} />, {
+        wrapper: createTestWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('auth-modal-backdrop')).toHaveClass('items-center');
+      });
+    });
+
     it('calls onClose when X button is clicked', async () => {
       render(<AuthModal isOpen={true} onClose={mockOnClose} />, {
         wrapper: createTestWrapper(),
