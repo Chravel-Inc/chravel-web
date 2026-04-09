@@ -390,6 +390,7 @@ async function sendPush(
   ok: boolean;
   providerMessageId?: string;
   error?: string;
+  invalidTokens?: string[];
 }> {
   const result = await sendFcmV1(tokens, {
     notification: { title, body },
@@ -397,9 +398,15 @@ async function sendPush(
   });
 
   if (result.success.length > 0) {
-    return { ok: true };
+    const partialNote =
+      result.failed.length > 0 ? ` (${result.failed.length}/${tokens.length} tokens failed)` : '';
+    return { ok: true, invalidTokens: result.invalidTokens, error: partialNote || undefined };
   }
-  return { ok: false, error: `All ${result.failed.length} FCM V1 deliveries failed` };
+  return {
+    ok: false,
+    error: `All ${result.failed.length} FCM V1 deliveries failed`,
+    invalidTokens: result.invalidTokens,
+  };
 }
 
 serve(async req => {

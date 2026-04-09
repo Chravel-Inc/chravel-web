@@ -75,12 +75,12 @@ interface SendResult {
 async function sendFCM(
   tokens: string[],
   notification: NotificationContent,
-): Promise<{ success: string[]; failed: string[] }> {
+): Promise<{ success: string[]; failed: string[]; invalidTokens: string[] }> {
   const result = await sendFcmV1(tokens, {
     notification: { title: notification.title, body: notification.body },
     data: notification.data ? toFcmData(notification.data as Record<string, unknown>) : undefined,
   });
-  return { success: result.success, failed: result.failed };
+  return { success: result.success, failed: result.failed, invalidTokens: result.invalidTokens };
 }
 
 // ============================================================================
@@ -467,6 +467,21 @@ Deno.serve(async req => {
       const fcmResult = await sendFCM(androidTokens, body.notification);
       results.sent += fcmResult.success.length;
       results.failed += fcmResult.failed.length;
+
+      // Disable invalid FCM tokens (UNREGISTERED / NOT_FOUND) to prevent future failures
+      if (fcmResult.invalidTokens?.length) {
+        console.log(
+          `[send-push] Disabling ${fcmResult.invalidTokens.length} invalid Android tokens`,
+        );
+        const { error: disableError } = await supabase
+          .from('push_device_tokens')
+          .update({ disabled_at: new Date().toISOString() })
+          .in('token', fcmResult.invalidTokens);
+
+        if (disableError) {
+          console.error('[send-push] Failed to disable invalid tokens:', disableError);
+        }
+      }
     }
 
     if (webTokens.length > 0) {

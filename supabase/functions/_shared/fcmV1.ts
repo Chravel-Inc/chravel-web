@@ -109,7 +109,8 @@ export async function sendFcmV1(tokens: string[], message: FcmV1Message): Promis
       }),
     );
 
-    for (const result of results) {
+    for (let j = 0; j < results.length; j++) {
+      const result = results[j];
       if (result.status === 'fulfilled') {
         const v = result.value;
         if (v.ok) {
@@ -120,6 +121,8 @@ export async function sendFcmV1(tokens: string[], message: FcmV1Message): Promis
           console.warn(`[fcm-v1] Send failed: ${v.error}`);
         }
       } else {
+        // Network/timeout failure — count the token as failed
+        failed.push(batch[j]);
         console.error('[fcm-v1] Request error:', result.reason);
       }
     }
