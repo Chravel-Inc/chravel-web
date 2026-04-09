@@ -71,7 +71,10 @@ const UPLOAD_ENABLED = true;
  * dictation instead. Transcripts appear as normal chat bubbles and errors
  * surface via toast notifications.
  */
-const DUPLEX_VOICE_ENABLED = true;
+// TODO: Re-enable once LiveKit voice agent is fully deployed and configured
+// Prerequisites: (1) chravel-voice worker deployed to LiveKit Cloud, (2) LIVEKIT_* secrets in Supabase,
+// (3) GOOGLE_API_KEY + SUPABASE_* env vars in LiveKit Cloud worker
+const DUPLEX_VOICE_ENABLED = false;
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface AIConciergeChatProps {
