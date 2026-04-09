@@ -1,78 +1,45 @@
 
 
-## Product Launch Video v2 — Real Screenshots + chravel.app branding
+## Fix: Voice Dictation Paywall + Concierge Error + Build Errors
 
-### Overview
-Build a new ~30-second product launch video using real app screenshots (both mobile and web desktop) embedded in the Remotion composition. Fix the `chravel.com` → `chravel.app` domain issue. Also fix the `PendingTripCard.tsx` build error as a prerequisite.
+### Issue 1: Voice dictation locked behind upgrade paywall
 
-### Prerequisites (fix build error)
-**File: `src/components/trip/PendingTripCard.tsx`**
-- Remove duplicate `ctaVariant` on line 26 and duplicate `ctaVariant` on line 47
-- Remove duplicate `disabledCta` on line 48 and the `const disabledCta` redeclaration on line 50
+**Root cause:** `AIConciergeChat.tsx` line 2529 passes `isVoiceEligible={DUPLEX_VOICE_ENABLED}`, where `DUPLEX_VOICE_ENABLED = false` (line 76). This constant gates **Gemini Live** (duplex voice), but it's incorrectly also gating basic **Web Speech API dictation**, which should always be available.
 
-### Video Architecture
+**Fix in `src/components/AIConciergeChat.tsx`:**
+- Change line 2529 from `isVoiceEligible={DUPLEX_VOICE_ENABLED}` to `isVoiceEligible={true}`
+- Basic dictation (Web Speech API) is always free — the paywall should only apply to Gemini Live duplex voice, which has its own separate button gated by `DUPLEX_VOICE_ENABLED`
 
-**Duration:** 30 seconds at 30fps = 900 frames (keeps within 600s render timeout)
+### Issue 2: Concierge returns "Sorry, I encountered an error processing your request"
 
-**Assets to copy into `remotion/public/screenshots/`:**
-- Mobile: 8 screenshots from `appstore/screenshots/iPhone-6.7/` (raw simulator captures)
-- Web: Capture 4 desktop screenshots from chravel.app using browser tools, save into the remotion public folder
+**Root cause:** CORS origin mismatch. The Lovable preview origin (`https://id-preview--20feaa04-0946-4c68-a68d-0eb88cc1b9c4.lovable.app`) is **not** in the CORS allowlist in `supabase/functions/_shared/cors.ts`. The edge function returns 200 OK, but the CORS `Access-Control-Allow-Origin` header defaults to `https://chravel.app`, so the browser blocks the response body — manifesting as "Failed to fetch" in the network log. The SSE streaming path catches this error and shows the fallback error message.
 
-**Scene breakdown (7 scenes):**
+**Fix in `supabase/functions/_shared/cors.ts`:**
+- Add `.lovable.app` as a suffix matcher to `ALLOWED_ORIGINS` — this allows `*.lovable.app` preview URLs. This is safe because only Lovable preview deployments use this domain.
 
-| # | Scene | Duration | Content |
-|---|-------|----------|---------|
-| 1 | Logo Reveal | 3s (90f) | Reuse existing `LogoReveal` component |
-| 2 | "Group Travel Made Easy" text | 3s (90f) | Reuse `TextReveal` with updated copy |
-| 3 | Web Dashboard Showcase | 5s (150f) | Desktop screenshot in a browser frame mockup showing the trip dashboard — establishes "this is a real app" |
-| 4 | Mobile Feature Carousel | 8s (240f) | Cycle through 4 mobile screenshots (Chat, Calendar, AI Concierge, Expense Splitting) in a PhoneFrame, each showing for ~2s with slide transitions |
-| 5 | Web + Mobile Side-by-Side | 5s (150f) | Desktop screenshot on left, phone on right — shows cross-platform story |
-| 6 | Mobile Feature Carousel 2 | 4s (120f) | Cycle through remaining 4 screenshots (Maps, Media, Polls, Home) |
-| 7 | CTA / End Card | 4s (120f) | Updated `CallToAction` with `chravel.app` + EndCard |
+**Note:** This only affects the Lovable preview environment. Production (`chravel.app`) is already in the allowlist and works fine.
 
-**Total with transitions:** ~900 frames (30s)
+### Issue 3: Build errors (3 files)
 
-### New Components to Create
+**3a. `src/services/stream/streamClient.ts` line 117:**
+- `notifyConnectionStatusSubscribers` is called but never defined. It's a duplicate of `notifyStatusChangeSubscribers` (which exists and is called on the adjacent line 113).
+- **Fix:** Remove line 117 (the redundant call).
 
-1. **`remotion/src/compositions/ProductLaunchV2.tsx`** — Main composition orchestrating all scenes
-2. **`remotion/src/components/BrowserFrame.tsx`** — Desktop browser window mockup (dark chrome, address bar showing `chravel.app`, rounded corners, shadow) to display web screenshots
-3. **`remotion/src/components/ScreenshotShowcase.tsx`** — Displays a screenshot inside either a PhoneFrame or BrowserFrame with entrance animation
-4. **`remotion/src/components/ScreenshotCarousel.tsx`** — Cycles through multiple screenshots with slide transitions, showing a label for each feature
+**3b. `supabase/functions/livekit-token/index.ts` line 142:**
+- `agents: [{ agentName: 'chravel-voice' }]` — the `RoomAgentDispatch` type from the LiveKit SDK requires more fields than just `agentName`.
+- **Fix:** Cast to `any` with intentional comment: `agents: [{ agentName: 'chravel-voice' } as any]`
 
-### Modifications
+**3c. `supabase/functions/send-push/index.ts` line 81:**
+- `notification.data as Record<string, unknown>` fails because `PushPayload` doesn't have an index signature.
+- **Fix:** Double-cast: `notification.data as unknown as Record<string, unknown>`
 
-- **`remotion/src/components/CallToAction.tsx`** — Change `chravel.com` to `chravel.app` (line 139)
-- **`remotion/src/Root.tsx`** — Register the new `ProductLaunchV2` composition
+### Summary of changes
 
-### Screenshot Capture Strategy
-
-Since screenshots can't be directly saved from browser tools to the filesystem, I'll use a Python script to:
-1. Copy the existing mobile screenshots from `appstore/screenshots/iPhone-6.7/` into `remotion/public/screenshots/mobile/`
-2. For web screenshots, I'll take screenshots via the browser of the live `chravel.app` site and save them to `remotion/public/screenshots/web/`
-
-Alternatively, since chravel.app loads correctly in the browser, I can use `fetch_website` with screenshot format to capture web pages.
-
-### Render Process
-
-Use the existing remotion setup with the programmatic render script pattern:
-1. Copy mobile screenshots to `remotion/public/screenshots/`
-2. Capture web screenshots to `remotion/public/screenshots/`
-3. Build all components
-4. Render via `cd remotion && node scripts/render-remotion.mjs` targeting the new composition
-5. Output to `/mnt/documents/chravel-product-launch-v2.mp4`
-
-### Key Differences from Previous Video
-- **Real screenshots** instead of mock UI components drawn in code
-- **Both web desktop and mobile** versions shown
-- **`chravel.app`** consistently used everywhere (fixes the `.com` bug)
-- **Shorter** (30s vs 60s) — punchier, more focused
-- **Browser frame** for web screenshots adds credibility
-- Same Chravel dark/gold design language throughout
-
-### Technical Notes
-- Screenshots referenced via `staticFile('screenshots/mobile/01-home-dashboard.png')` etc.
-- `<Img>` component from Remotion ensures assets load before rendering
-- No `backdropFilter` (sandbox constraint)
-- `muted: true` in render script (sandbox ffmpeg constraint)
-- `concurrency: 1` for stability
+| File | Change |
+|------|--------|
+| `src/components/AIConciergeChat.tsx` | `isVoiceEligible={true}` |
+| `supabase/functions/_shared/cors.ts` | Add `.lovable.app` to ALLOWED_ORIGINS |
+| `src/services/stream/streamClient.ts` | Remove duplicate `notifyConnectionStatusSubscribers` call |
+| `supabase/functions/livekit-token/index.ts` | Cast agent dispatch to `any` |
+| `supabase/functions/send-push/index.ts` | Double-cast `notification.data` |
 
