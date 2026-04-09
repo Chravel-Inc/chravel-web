@@ -9,8 +9,23 @@
 import { supabase } from '@/integrations/supabase/client';
 
 // Temporary type definitions until database types regenerated
-type ReadStatus = unknown;
-type ReadStatusInsert = unknown;
+interface ReadStatus {
+  id: string;
+  message_id: string;
+  user_id: string;
+  trip_id: string | null;
+  message_type: string;
+  read_at: string;
+  created_at: string;
+}
+
+interface ReadStatusInsert {
+  message_id: string;
+  user_id: string;
+  trip_id?: string | null;
+  message_type: string;
+  read_at: string;
+}
 
 /**
  * Mark a message as read for the current user
@@ -101,7 +116,7 @@ export async function getMessagesReadStatus(
 
   // Group by message_id
   const grouped: Record<string, ReadStatus[]> = {};
-  (data || []).forEach((status: unknown) => {
+  (data || []).forEach((status: any) => {
     if (!grouped[status.message_id]) {
       grouped[status.message_id] = [];
     }

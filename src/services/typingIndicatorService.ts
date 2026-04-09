@@ -130,7 +130,7 @@ export class TypingIndicatorService {
     const TYPING_TIMEOUT = 5000; // 5 seconds
 
     Object.values(state).forEach(presences => {
-      presences.forEach((presence: unknown) => {
+      presences.forEach((presence: any) => {
         if (
           presence.typing === true &&
           presence.userId !== this.userId &&

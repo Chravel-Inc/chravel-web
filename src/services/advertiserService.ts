@@ -198,7 +198,8 @@ export class AdvertiserService {
       if (!advertiser) throw new Error('No advertiser profile found');
 
       // Start a transaction
-      const { data: campaign, error: campaignError } = await supabase
+      // intentional: campaigns insert includes fields not in generated types
+      const { data: campaign, error: campaignError } = await (supabase as any)
         .from('campaigns')
         .insert({
           advertiser_id: advertiser.id,

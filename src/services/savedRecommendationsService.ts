@@ -57,7 +57,7 @@ export const savedRecommendationsService = {
     const payload = mapRecommendationToRow(rec, userId);
     const { data, error } = await supabase
       .from('saved_recommendations')
-      .insert(payload)
+      .insert(payload as any)
       .select('*')
       .maybeSingle();
     if (error && error.code !== '23505') {
@@ -95,7 +95,7 @@ export const savedRecommendationsService = {
       added_by: userId,
       trip_id: String(tripId),
       title: saved.title,
-      url: saved.external_link || (saved.data?.externalLink ?? ''),
+      url: saved.external_link || ((saved.data as any)?.externalLink ?? ''),
       description: saved.location || saved.city || null,
       category: typeof saved.rec_type === 'string' ? saved.rec_type : 'recommendation',
     });
