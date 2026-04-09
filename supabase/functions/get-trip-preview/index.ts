@@ -12,6 +12,7 @@ type TripPreview = {
   cover_image_url: string | null;
   trip_type: string | null;
   member_count: number;
+  active_invite_code?: string | null;
   description?: string | null;
 };
 
@@ -91,6 +92,19 @@ serve(async (req): Promise<Response> => {
       member_count: memberCount ?? 0,
       description: tripRow.description,
     };
+
+    const nowIso = new Date().toISOString();
+    const { data: inviteRow } = await supabaseClient
+      .from('trip_invites')
+      .select('code')
+      .eq('trip_id', tripId)
+      .eq('is_active', true)
+      .or(`expires_at.is.null,expires_at.gte.${nowIso}`)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    trip.active_invite_code = inviteRow?.code ?? null;
 
     return new Response(JSON.stringify({ success: true, trip }), {
       status: 200,
