@@ -407,3 +407,9 @@
 - **Evidence:** Discovered when implementing `addExpense` confirm handler in `usePendingActions.ts` (April 2026).
 - **Provenance:** April 2026, 74-tool expansion.
 - **Confidence:** high
+### For invite conversion CTAs, never let a secondary client lookup overwrite invite context derived from edge previews
+- **Tip:** If a preview edge function already has service-role access, return the canonical active invite code in that payload and use it directly for join CTA routing. Do not fetch `trip_invites` again client-side as a second authority; policy drift can return `null` and break conversions.
+- **Applies when:** Public/anonymous trip preview pages that route users into authenticated join flows.
+- **Evidence:** `TripPreview` was nulling `activeInviteCode` via client invite query and showing "ask for invite link" toast after login even when invite context existed.
+- **Provenance:** April 2026 invite flow deep-dive (`get-trip-preview` + `TripPreview` fix).
+- **Confidence:** high

@@ -258,8 +258,8 @@
 - Added race-safe connection readiness subscription to `useStreamConciergeHistory` so Stream concierge history hydrates after delayed Stream connects.
 - Updated `AIConciergeChat` history hydration to merge/dedupe/sort legacy Supabase (`ai_queries`) history with Stream concierge channel history, preventing history gaps across migration boundary.
 - Verification: `npm run lint && npm run typecheck && npm run build` pass (existing baseline warnings only).
-2026-04-09 — Dashboard pending-request resilience fallback (join-request visibility regression hardening)
-- Root-caused a likely dashboard Requests regression path to brittle `useDashboardJoinRequests` hydration: a single joined query (`trip_join_requests` + embedded `trips`) failed closed and returned an empty requests list when relation/schema drift occurred.
-- Added compatibility fallback in `src/hooks/useDashboardJoinRequests.ts`: on joined-query failure, retry from base `trip_join_requests`, then best-effort hydrate trip summaries via a second `trips` lookup. Also added timestamp compatibility helper (`requested_at` → `created_at`) to avoid silent drops in mixed-schema environments.
-- Added regression tests in `src/hooks/__tests__/useDashboardJoinRequests.test.ts` for timestamp fallback behavior.
-- Verification: `npm run test:run -- src/hooks/__tests__/useDashboardJoinRequests.test.ts`, `npm run typecheck`, `npm run build`; `npm run lint:check` still fails on pre-existing repo lint errors in unrelated files.
+2026-04-09 — Trip invite conversion fix (preview-to-join invite code preservation)
+- Root cause: `TripPreview` resolved invite codes via client `trip_invites` query after loading preview data. In environments where invite-code reads are blocked by RLS/permissions drift, this query returned null and overwrote join context, so authenticated non-members repeatedly saw "Ask the trip organizer for an invite link" despite opening from an invite flow.
+- Fix: moved active invite-code resolution into `get-trip-preview` edge function (service-role path), returned `trip.active_invite_code`, and wired `TripPreview` to consume that source-of-truth (removed client-side invite lookup that could null out join context).
+- Added regression test `src/pages/__tests__/TripPreview.inviteFlow.test.tsx` to enforce that authenticated non-members route to `/join/:code` when preview payload includes an invite code.
+- Verification: `npm run test:run -- src/pages/__tests__/TripPreview.inviteFlow.test.tsx`, `npm run typecheck`.

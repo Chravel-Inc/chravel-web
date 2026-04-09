@@ -316,3 +316,14 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Related files:** `src/hooks/usePendingActions.ts`, `src/features/chat/components/PendingActionCard.tsx`
 - **Fixed in:** April 2026, 74-tool expansion (`0d9bed1`)
 - **Confidence:** high
+## Invite CTA loops "ask for invite link" after auth (preview path)
+- **Status:** fixed
+- **Subsystem:** invite conversion / trip preview CTA routing
+- **Bug class:** source-of-truth overwrite / permission drift
+- **Symptom:** User opens invite flow, authenticates, then "Request to Join" repeatedly shows a toast asking for an invite link they already had.
+- **Trigger conditions:** `TripPreview` loaded without membership and client-side `trip_invites` query returns null (RLS/policy mismatch, anon/auth context drift).
+- **Likely root cause:** CTA routing depended on a client invite query that could overwrite valid invite context with `null`.
+- **Smallest safe fix:** Return `active_invite_code` from service-role `get-trip-preview` and route CTA from that payload; avoid secondary client query as authority.
+- **Related files:** `src/pages/TripPreview.tsx`, `supabase/functions/get-trip-preview/index.ts`
+- **Fixed in:** April 2026 invite flow deep-dive pass
+- **Confidence:** medium-high
