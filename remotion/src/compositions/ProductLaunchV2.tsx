@@ -128,8 +128,7 @@ const SideBySideScene: React.FC = () => {
           transform: `translateY(${labelY}px)`,
         }}
       >
-        Web & Mobile.{' '}
-        <span style={{ color: COLORS.gold }}>One Platform.</span>
+        Web & Mobile. <span style={{ color: COLORS.gold }}>One Platform.</span>
       </div>
     </AbsoluteFill>
   );
@@ -219,8 +218,8 @@ const MobileCarouselScene: React.FC<{
 
 export const ProductLaunchV2: React.FC = () => {
   // Scene timings (frames)
-  const S1 = 80;  // Logo reveal
-  const S2 = 80;  // Text reveal
+  const S1 = 80; // Logo reveal
+  const S2 = 80; // Text reveal
   const S3 = 140; // Web dashboard
   const S4 = 220; // Mobile carousel 1
   const S5 = 140; // Side by side
