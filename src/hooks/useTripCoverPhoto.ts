@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { tripKeys } from '@/lib/queryKeys';
 import { useAuth } from './useAuth';
@@ -8,6 +8,25 @@ import { demoModeService } from '@/services/demoModeService';
 import { toast } from 'sonner';
 
 export type CoverDisplayMode = 'cover' | 'contain';
+
+/**
+ * Trip detail queries use user-scoped keys: ['trip', tripId, authUserId].
+ * setQueriesData({ queryKey: ['trip', id] }) does not match those entries, so
+ * cover updates were lost on refetch (stale cache → hook sync overwrote local state).
+ */
+export function patchTripDetailQueries(
+  queryClient: QueryClient,
+  tripId: string,
+  patch: Partial<{ cover_image_url: string | null; cover_display_mode: CoverDisplayMode }>,
+): void {
+  queryClient.setQueriesData(
+    {
+      predicate: q =>
+        Array.isArray(q.queryKey) && q.queryKey[0] === 'trip' && q.queryKey[1] === tripId,
+    },
+    old => (old && typeof old === 'object' && !Array.isArray(old) ? { ...old, ...patch } : old),
+  );
+}
 
 export const useTripCoverPhoto = (
   tripId: string,
@@ -46,12 +65,16 @@ export const useTripCoverPhoto = (
       // Use URL hostname check to prevent substring bypass (e.g. evil.com?q=unsplash.com)
       const isKnownHost = (() => {
         try {
-          const { hostname } = new URL(photoUrl);
-          return (
-            hostname === 'unsplash.com' ||
-            hostname.endsWith('.unsplash.com') ||
+          const u = new URL(photoUrl);
+          const { hostname, pathname } = u;
+          const isSupabaseStorage =
             hostname === 'supabase.co' ||
-            hostname.endsWith('.supabase.co')
+            hostname.endsWith('.supabase.co') ||
+            hostname === 'supabaseusercontent.com' ||
+            hostname.endsWith('.supabaseusercontent.com') ||
+            pathname.includes('/storage/v1/object/public/trip-media/');
+          return (
+            hostname === 'unsplash.com' || hostname.endsWith('.unsplash.com') || isSupabaseStorage
           );
         } catch {
           return false;
@@ -100,9 +123,7 @@ export const useTripCoverPhoto = (
       }
 
       setCoverPhoto(photoUrl);
-      queryClient.setQueriesData({ queryKey: tripKeys.detail(tripId) }, old =>
-        old && typeof old === 'object' ? { ...old, cover_image_url: photoUrl } : old,
-      );
+      patchTripDetailQueries(queryClient, tripId, { cover_image_url: photoUrl });
       // Trip list uses ['trips', ...]; trip detail uses ['trip', tripId, userId] — invalidate both
       queryClient.invalidateQueries({ queryKey: tripKeys.all });
       queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
@@ -163,9 +184,7 @@ export const useTripCoverPhoto = (
       }
 
       setCoverPhoto(undefined);
-      queryClient.setQueriesData({ queryKey: tripKeys.detail(tripId) }, old =>
-        old && typeof old === 'object' ? { ...old, cover_image_url: null } : old,
-      );
+      patchTripDetailQueries(queryClient, tripId, { cover_image_url: null });
       queryClient.invalidateQueries({ queryKey: tripKeys.all });
       queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
       toast.success('Cover photo removed');
@@ -206,9 +225,7 @@ export const useTripCoverPhoto = (
       }
 
       setCoverDisplayMode(mode);
-      queryClient.setQueriesData({ queryKey: tripKeys.detail(tripId) }, old =>
-        old && typeof old === 'object' ? { ...old, cover_display_mode: mode } : old,
-      );
+      patchTripDetailQueries(queryClient, tripId, { cover_display_mode: mode });
       queryClient.invalidateQueries({ queryKey: tripKeys.all });
       queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
       return true;

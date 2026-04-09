@@ -51,6 +51,10 @@ function createWrapper() {
     defaultOptions: { queries: { retry: false } },
   });
   queryClient.invalidateQueries = invalidateSpy;
+  return { queryClient, Wrapper: createQueryWrapper(queryClient) };
+}
+
+function createQueryWrapper(queryClient: InstanceType<typeof QueryClient>) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
@@ -63,25 +67,32 @@ describe('useTripCoverPhoto', () => {
   });
 
   it('invalidates trip list and trip detail queries after successful cover update', async () => {
-    const wrapper = createWrapper();
-    const { result } = renderHook(() => useTripCoverPhoto('trip-abc'), { wrapper });
+    const { Wrapper, queryClient } = createWrapper();
+    const detailKey = ['trip', 'trip-abc', 'user-x'] as const;
+    queryClient.setQueryData(detailKey, {
+      id: 'trip-abc',
+      cover_image_url: 'https://old.example/cover.jpg',
+    });
+    const { result } = renderHook(() => useTripCoverPhoto('trip-abc'), { wrapper: Wrapper });
 
+    const newUrl = 'https://abc.supabase.co/storage/v1/object/public/trip-media/cover.jpg?t=1';
     await act(async () => {
-      const ok = await result.current.updateCoverPhoto(
-        'https://abc.supabase.co/storage/v1/object/public/trip-media/cover.jpg?t=1',
-      );
+      const ok = await result.current.updateCoverPhoto(newUrl);
       expect(ok).toBe(true);
     });
 
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: tripKeys.all });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: tripKeys.detail('trip-abc') });
+    expect(queryClient.getQueryData(detailKey)).toEqual(
+      expect.objectContaining({ cover_image_url: newUrl }),
+    );
   });
 
   it('syncs local coverPhoto when initialPhotoUrl prop updates (e.g. after refetch)', async () => {
-    const wrapper = createWrapper();
+    const { Wrapper } = createWrapper();
     const { result, rerender } = renderHook(
       ({ url }: { url?: string }) => useTripCoverPhoto('trip-abc', url),
-      { wrapper, initialProps: { url: undefined as string | undefined } },
+      { wrapper: Wrapper, initialProps: { url: undefined as string | undefined } },
     );
 
     expect(result.current.coverPhoto).toBeUndefined();
@@ -96,9 +107,11 @@ describe('useTripCoverPhoto', () => {
   });
 
   it('updates cover display mode and invalidates trip queries', async () => {
-    const wrapper = createWrapper();
+    const { Wrapper, queryClient } = createWrapper();
+    const detailKey = ['trip', 'trip-abc', 'user-y'] as const;
+    queryClient.setQueryData(detailKey, { id: 'trip-abc', cover_display_mode: 'cover' });
     const { result } = renderHook(() => useTripCoverPhoto('trip-abc', undefined, 'cover'), {
-      wrapper,
+      wrapper: Wrapper,
     });
 
     await act(async () => {
@@ -109,5 +122,22 @@ describe('useTripCoverPhoto', () => {
     expect(result.current.coverDisplayMode).toBe('contain');
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: tripKeys.all });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: tripKeys.detail('trip-abc') });
+    expect(queryClient.getQueryData(detailKey)).toEqual(
+      expect.objectContaining({ cover_display_mode: 'contain' }),
+    );
+  });
+
+  it('accepts supabaseusercontent.com cover URLs for persistence', async () => {
+    const { Wrapper } = createWrapper();
+    const { result } = renderHook(() => useTripCoverPhoto('trip-abc'), { wrapper: Wrapper });
+    const cdnUrl =
+      'https://xyz.supabaseusercontent.com/storage/v1/object/public/trip-media/trip-covers/trip-abc/cover.jpg';
+
+    await act(async () => {
+      const ok = await result.current.updateCoverPhoto(cdnUrl);
+      expect(ok).toBe(true);
+    });
+
+    expect(maybeSingleMock).toHaveBeenCalled();
   });
 });
