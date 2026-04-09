@@ -2430,6 +2430,1330 @@ async function _executeImpl(
       return { success: true, exists: !!data, found_id: data?.id || null };
     }
 
+    // ── New Tools (60-tool expansion) ────────────────────────────────────────
+
+    case 'optimizeItinerary': {
+      // Nearest-neighbor TSP heuristic using the Distance Matrix API.
+      const { locations, startingPoint, mode } = args;
+      const locs: string[] = Array.isArray(locations) ? locations.map(String) : [];
+      if (locs.length < 2) return { error: 'At least 2 locations are required' };
+      if (!GOOGLE_MAPS_API_KEY) return { error: 'Google API key not configured' };
+
+      const start = startingPoint ? String(startingPoint) : locs[0];
+      const remaining = startingPoint ? [...locs] : locs.slice(1);
+      const travelMode = String(mode || 'driving');
+
+      // Get distance matrix: start vs all remaining, then build greedy route
+      const matrixResult = await _executeImpl(
+        supabase,
+        'getDistanceMatrix',
+        { origins: [start, ...remaining], destinations: [...remaining, start], mode: travelMode },
+        tripId,
+        userId,
+        locationContext,
+      );
+      if (matrixResult.error) return matrixResult;
+
+      // Greedy nearest-neighbor from the start
+      const ordered: string[] = [start];
+      const unvisited = new Set(remaining);
+
+      // getDistanceMatrix returns { rows: [{ elements: [{ durationSeconds, ... }] }] }
+      // origins[0]=start, origins[1..N]=remaining; destinations[0..N-1]=remaining, destinations[N]=start
+      const matrixRows: any[] = matrixResult.rows || [];
+      let currentIdx = 0; // index into origins array (0 = start)
+
+      while (unvisited.size > 0) {
+        let bestDuration = Infinity;
+        let bestDest = '';
+        for (const loc of unvisited) {
+          const destIdx = remaining.indexOf(loc);
+          const cell = matrixRows[currentIdx]?.elements?.[destIdx];
+          const secs =
+            cell?.durationSeconds ?? cell?.duration_seconds ?? cell?.duration?.value ?? Infinity;
+          if (secs < bestDuration) {
+            bestDuration = secs;
+            bestDest = loc;
+          }
+        }
+        if (!bestDest) break;
+        ordered.push(bestDest);
+        unvisited.delete(bestDest);
+        currentIdx = remaining.indexOf(bestDest) + 1; // +1 because origins[0]=start
+      }
+
+      return {
+        success: true,
+        suggestedOrder: ordered,
+        mode: travelMode,
+        message: `Optimized order for ${ordered.length} stops`,
+      };
+    }
+
+    case 'detectScheduleConflicts': {
+      const { date } = args;
+      let query = supabase
+        .from('trip_events')
+        .select('id, title, start_time, end_time')
+        .eq('trip_id', tripId)
+        .not('start_time', 'is', null)
+        .order('start_time', { ascending: true });
+
+      if (date) {
+        const dayStart = new Date(`${date}T00:00:00Z`).toISOString();
+        const dayEnd = new Date(`${date}T23:59:59Z`).toISOString();
+        query = query.gte('start_time', dayStart).lte('start_time', dayEnd);
+      }
+
+      const { data: events, error } = await query.limit(200);
+      if (error) return { error: error.message };
+      if (!events || events.length === 0) return { success: true, conflicts: [], count: 0 };
+
+      // Full O(n²) interval overlap — adjacent-pair check misses overlaps between
+      // non-consecutive events (e.g. A 9-11, B 9:30-12, C 10-10:30 → A/C not adjacent).
+      const conflicts: any[] = [];
+      const seenPairs = new Set<string>();
+      for (let i = 0; i < events.length; i++) {
+        for (let j = i + 1; j < events.length; j++) {
+          const a = events[i];
+          const b = events[j];
+          if (!a.end_time || !b.start_time) continue;
+          // Events overlap when one starts before the other ends
+          if (
+            new Date(b.start_time) < new Date(a.end_time) &&
+            new Date(a.start_time) < new Date(b.end_time || b.start_time)
+          ) {
+            const pairKey = `${a.id}:${b.id}`;
+            if (seenPairs.has(pairKey)) continue;
+            seenPairs.add(pairKey);
+            const overlapStart = Math.max(
+              new Date(a.start_time).getTime(),
+              new Date(b.start_time).getTime(),
+            );
+            const overlapEnd = Math.min(
+              new Date(a.end_time).getTime(),
+              new Date(b.end_time || b.start_time).getTime(),
+            );
+            conflicts.push({
+              eventA: { id: a.id, title: a.title, start: a.start_time, end: a.end_time },
+              eventB: { id: b.id, title: b.title, start: b.start_time, end: b.end_time },
+              overlapMinutes: Math.max(0, Math.round((overlapEnd - overlapStart) / 60000)),
+            });
+          }
+        }
+      }
+
+      return {
+        success: true,
+        conflicts,
+        count: conflicts.length,
+        message:
+          conflicts.length === 0
+            ? 'No scheduling conflicts found'
+            : `Found ${conflicts.length} conflict${conflicts.length === 1 ? '' : 's'}`,
+      };
+    }
+
+    case 'generatePackingList': {
+      const { destination, startDate, endDate, activities } = args;
+      if (!destination) return { error: 'Destination is required' };
+
+      // Get weather context to improve suggestions
+      const weatherResult = await _executeImpl(
+        supabase,
+        'getWeatherForecast',
+        { location: String(destination), date: startDate || undefined },
+        tripId,
+        userId,
+        locationContext,
+      );
+
+      const activityList = Array.isArray(activities) ? activities.join(', ') : '';
+      const duration =
+        startDate && endDate
+          ? Math.ceil(
+              (new Date(String(endDate)).getTime() - new Date(String(startDate)).getTime()) /
+                86400000,
+            )
+          : null;
+
+      const query = [
+        `packing list for ${destination}`,
+        duration ? `${duration} day trip` : '',
+        activityList ? `activities: ${activityList}` : '',
+      ]
+        .filter(Boolean)
+        .join(', ');
+
+      const searchResult = await _executeImpl(
+        supabase,
+        'searchWeb',
+        { query: `travel packing list ${query}`, count: 3 },
+        tripId,
+        userId,
+        locationContext,
+      );
+
+      return {
+        success: true,
+        destination: String(destination),
+        duration: duration ? `${duration} days` : null,
+        activities: activityList || null,
+        weatherContext: weatherResult.searchResults || [],
+        searchResults: searchResult.success ? searchResult.results : [],
+        message: `Packing suggestions for ${destination}${duration ? ` (${duration} days)` : ''}`,
+      };
+    }
+
+    case 'addReminder': {
+      const { message, remindAt, entityType, entityId, idempotency_key } = args;
+      if (!message) return { error: 'message is required' };
+      if (!remindAt) return { error: 'remindAt is required' };
+
+      const { data: pending, error: pendingError } = await supabase
+        .from('trip_pending_actions')
+        .insert({
+          trip_id: tripId,
+          user_id: userId || '00000000-0000-0000-0000-000000000000',
+          tool_name: 'addReminder',
+          ...(idempotency_key ? { tool_call_id: idempotency_key } : {}),
+          payload: {
+            message: String(message),
+            remind_at: String(remindAt),
+            entity_type: entityType || 'custom',
+            entity_id: entityId || null,
+            trip_id: tripId,
+            user_id: userId,
+          },
+          source_type: 'ai_concierge',
+        })
+        .select('id')
+        .single();
+
+      if (pendingError) throw pendingError;
+      return {
+        success: true,
+        pending: true,
+        pendingActionId: pending.id,
+        actionType: 'add_reminder',
+        message: `Reminder set: "${message}" at ${remindAt}`,
+      };
+    }
+
+    case 'getVisaRequirements': {
+      const { destination, passportCountry } = args;
+      if (!destination) return { error: 'Destination is required' };
+
+      const q = passportCountry
+        ? `visa requirements ${destination} for ${passportCountry} passport citizens 2024`
+        : `visa requirements to visit ${destination} 2024`;
+
+      const searchResult = await _executeImpl(
+        supabase,
+        'searchWeb',
+        { query: q, count: 5 },
+        tripId,
+        userId,
+        locationContext,
+      );
+
+      return {
+        success: true,
+        destination: String(destination),
+        passportCountry: passportCountry ? String(passportCountry) : null,
+        results: searchResult.success ? searchResult.results : [],
+        message: `Visa requirements for ${destination}${passportCountry ? ` (${passportCountry} passport)` : ''}`,
+      };
+    }
+
+    case 'getTravelAdvisories': {
+      const { destination } = args;
+      if (!destination) return { error: 'Destination is required' };
+
+      const searchResult = await _executeImpl(
+        supabase,
+        'searchWeb',
+        {
+          query: `travel advisory warning ${destination} site:travel.state.gov OR site:gov.uk/foreign-travel-advice 2024`,
+          count: 5,
+        },
+        tripId,
+        userId,
+        locationContext,
+      );
+
+      return {
+        success: true,
+        destination: String(destination),
+        results: searchResult.success ? searchResult.results : [],
+        message: `Travel advisories for ${destination}`,
+      };
+    }
+
+    case 'getLocalPhrases': {
+      const { destination, category } = args;
+      if (!destination) return { error: 'Destination is required' };
+
+      const cat = category ? String(category) : 'essential travel';
+      const searchResult = await _executeImpl(
+        supabase,
+        'searchWeb',
+        {
+          query: `common ${cat} phrases in local language ${destination} with pronunciation guide`,
+          count: 3,
+        },
+        tripId,
+        userId,
+        locationContext,
+      );
+
+      return {
+        success: true,
+        destination: String(destination),
+        category: cat,
+        results: searchResult.success ? searchResult.results : [],
+        message: `Local phrases for ${destination} (${cat})`,
+      };
+    }
+
+    case 'trackFlightStatus': {
+      const { flightNumber, date } = args;
+      if (!flightNumber) return { error: 'flightNumber is required' };
+
+      const dateStr = date ? String(date) : new Date().toISOString().split('T')[0];
+      const searchResult = await _executeImpl(
+        supabase,
+        'searchWeb',
+        {
+          query: `flight status ${flightNumber} ${dateStr} departure arrival delay gate`,
+          count: 5,
+        },
+        tripId,
+        userId,
+        locationContext,
+      );
+
+      return {
+        success: true,
+        flightNumber: String(flightNumber),
+        date: dateStr,
+        results: searchResult.success ? searchResult.results : [],
+        message: `Flight status for ${flightNumber} on ${dateStr}`,
+      };
+    }
+
+    case 'searchCarRentals': {
+      const { location, pickupDate, returnDate, carType } = args;
+      if (!location) return { error: 'location is required' };
+
+      const q = [
+        `car rental ${location}`,
+        pickupDate ? `pickup ${pickupDate}` : '',
+        returnDate ? `return ${returnDate}` : '',
+        carType ? `${carType} car` : '',
+      ]
+        .filter(Boolean)
+        .join(' ');
+
+      const searchResult = await _executeImpl(
+        supabase,
+        'searchWeb',
+        { query: q, count: 5 },
+        tripId,
+        userId,
+        locationContext,
+      );
+
+      return {
+        success: true,
+        location: String(location),
+        pickupDate: pickupDate ? String(pickupDate) : null,
+        returnDate: returnDate ? String(returnDate) : null,
+        carType: carType ? String(carType) : null,
+        results: searchResult.success ? searchResult.results : [],
+        message: `Car rental options near ${location}`,
+      };
+    }
+
+    case 'searchPublicTransit': {
+      const { origin, destination, departureTime } = args;
+      if (!origin || !destination) return { error: 'origin and destination are required' };
+
+      // Use Directions API with transit mode
+      const directionsResult = await _executeImpl(
+        supabase,
+        'getDirectionsETA',
+        {
+          origin: String(origin),
+          destination: String(destination),
+          mode: 'transit',
+          departureTime: departureTime ? String(departureTime) : undefined,
+        },
+        tripId,
+        userId,
+        locationContext,
+      );
+
+      return {
+        success: true,
+        origin: String(origin),
+        destination: String(destination),
+        transit: directionsResult,
+        message: `Public transit from ${origin} to ${destination}`,
+      };
+    }
+
+    case 'searchExperiences': {
+      const { destination, category, date } = args;
+      if (!destination) return { error: 'destination is required' };
+
+      const cat = category ? String(category) : 'tours and activities';
+      const q = [
+        `${cat} ${destination}`,
+        date ? `available ${date}` : '',
+        'book tickets experiences',
+      ]
+        .filter(Boolean)
+        .join(' ');
+
+      const searchResult = await _executeImpl(
+        supabase,
+        'searchWeb',
+        { query: q, count: 5 },
+        tripId,
+        userId,
+        locationContext,
+      );
+
+      return {
+        success: true,
+        destination: String(destination),
+        category: cat,
+        date: date ? String(date) : null,
+        results: searchResult.success ? searchResult.results : [],
+        message: `${cat} experiences near ${destination}`,
+      };
+    }
+
+    case 'getLocalEvents': {
+      const { destination, startDate, endDate, category } = args;
+      if (!destination) return { error: 'destination is required' };
+
+      const cat = category ? String(category) : 'events';
+      const dateRange =
+        startDate && endDate ? `${startDate} to ${endDate}` : startDate ? `from ${startDate}` : '';
+
+      const q = `${cat} ${destination} ${dateRange} concerts festivals things to do`.trim();
+      const searchResult = await _executeImpl(
+        supabase,
+        'searchWeb',
+        { query: q, count: 5 },
+        tripId,
+        userId,
+        locationContext,
+      );
+
+      return {
+        success: true,
+        destination: String(destination),
+        category: cat,
+        dateRange: dateRange || null,
+        results: searchResult.success ? searchResult.results : [],
+        message: `Events in ${destination}${dateRange ? ` (${dateRange})` : ''}`,
+      };
+    }
+
+    case 'findNearby': {
+      const { placeType, near, limit } = args;
+      if (!placeType) return { error: 'placeType is required' };
+
+      // Map friendly names to Google Places types
+      const typeMap: Record<string, string> = {
+        atm: 'atm',
+        pharmacy: 'pharmacy',
+        hospital: 'hospital',
+        supermarket: 'supermarket',
+        gas_station: 'gas_station',
+        laundry: 'laundry',
+        post_office: 'post_office',
+        bank: 'bank',
+        police: 'police',
+      };
+      const googleType = typeMap[String(placeType).toLowerCase()] || String(placeType);
+
+      // Resolve "trip hotel" to location context coordinates
+      let searchNear = near ? String(near) : undefined;
+      if (searchNear === 'trip hotel' && locationContext?.lat && locationContext?.lng) {
+        searchNear = undefined; // will rely on nearLat/nearLng below
+      }
+
+      const placesResult = await _executeImpl(
+        supabase,
+        'searchPlaces',
+        {
+          query: googleType,
+          nearLat: !searchNear && locationContext?.lat ? locationContext.lat : undefined,
+          nearLng: !searchNear && locationContext?.lng ? locationContext.lng : undefined,
+          ...(searchNear ? { query: `${googleType} near ${searchNear}` } : {}),
+        },
+        tripId,
+        userId,
+        locationContext,
+      );
+
+      const results = placesResult.places || placesResult.results || [];
+      const maxResults = Math.min(Number(limit) || 5, 10);
+
+      return {
+        success: true,
+        placeType: String(placeType),
+        places: results.slice(0, maxResults),
+        message: `Nearby ${placeType} results`,
+      };
+    }
+
+    case 'setTripBudget': {
+      const { totalBudget, currency, categoryBudgets, notes, idempotency_key } = args;
+      if (totalBudget == null) return { error: 'totalBudget is required' };
+
+      const { data: pending, error: pendingError } = await supabase
+        .from('trip_pending_actions')
+        .insert({
+          trip_id: tripId,
+          user_id: userId || '00000000-0000-0000-0000-000000000000',
+          tool_name: 'setTripBudget',
+          ...(idempotency_key ? { tool_call_id: idempotency_key } : {}),
+          payload: {
+            total_budget: Number(totalBudget),
+            currency: currency ? String(currency).toUpperCase() : 'USD',
+            category_budgets: categoryBudgets || {},
+            notes: notes || null,
+            trip_id: tripId,
+          },
+          source_type: 'ai_concierge',
+        })
+        .select('id')
+        .single();
+
+      if (pendingError) throw pendingError;
+      return {
+        success: true,
+        pending: true,
+        pendingActionId: pending.id,
+        actionType: 'set_trip_budget',
+        message: `Trip budget set to ${totalBudget} ${currency || 'USD'}`,
+      };
+    }
+
+    case 'splitTaskAssignments': {
+      const { tasks, idempotency_key } = args;
+      if (!Array.isArray(tasks) || tasks.length === 0) {
+        return { error: 'tasks array is required and must not be empty' };
+      }
+
+      // Insert one pending action per task so each gets individual confirm/deny
+      const results: any[] = [];
+      for (let i = 0; i < tasks.length; i++) {
+        const task = tasks[i] as {
+          title: string;
+          assignee?: string;
+          dueDate?: string;
+          notes?: string;
+        };
+        const taskKey = idempotency_key ? `${idempotency_key}_${i}` : undefined;
+
+        const { data: pending, error: pendingError } = await supabase
+          .from('trip_pending_actions')
+          .insert({
+            trip_id: tripId,
+            user_id: userId || '00000000-0000-0000-0000-000000000000',
+            tool_name: 'createTask',
+            ...(taskKey ? { tool_call_id: taskKey } : {}),
+            payload: {
+              title: String(task.title || '').trim(),
+              description: task.notes || null,
+              creator_id: userId || '',
+              due_at: task.dueDate || null,
+              assignee_hint: task.assignee || null,
+              trip_id: tripId,
+            },
+            source_type: 'ai_concierge',
+          })
+          .select('id')
+          .single();
+
+        if (pendingError) throw pendingError;
+        results.push({ title: task.title, assignee: task.assignee, pendingActionId: pending.id });
+      }
+
+      return {
+        success: true,
+        pending: true,
+        tasks: results,
+        count: results.length,
+        message: `${results.length} task${results.length === 1 ? '' : 's'} queued for confirmation`,
+      };
+    }
+
+    case 'getTripStats': {
+      // Aggregate spend from payment messages
+      const { data: payments, error: payErr } = await supabase
+        .from('trip_payment_messages')
+        .select('amount, currency, created_at')
+        .eq('trip_id', tripId);
+      if (payErr) return { error: payErr.message };
+
+      // Activity count from trip events
+      const { count: eventCount, error: evtErr } = await supabase
+        .from('trip_events')
+        .select('id', { count: 'exact', head: true })
+        .eq('trip_id', tripId);
+      if (evtErr) return { error: evtErr.message };
+
+      // Member count
+      const { count: memberCount, error: memErr } = await supabase
+        .from('trip_members')
+        .select('id', { count: 'exact', head: true })
+        .eq('trip_id', tripId);
+      if (memErr) return { error: memErr.message };
+
+      // Trip dates for days-remaining calculation
+      const { data: tripData } = await supabase
+        .from('trips')
+        .select('start_date, end_date, name')
+        .eq('id', tripId)
+        .maybeSingle();
+
+      const totalSpend = (payments || []).reduce((s: number, p: any) => s + (p.amount || 0), 0);
+      const tripDays =
+        tripData?.start_date && tripData?.end_date
+          ? Math.ceil(
+              (new Date(tripData.end_date).getTime() - new Date(tripData.start_date).getTime()) /
+                86400000,
+            )
+          : null;
+      const daysUntilDeparture = tripData?.start_date
+        ? Math.ceil((new Date(tripData.start_date).getTime() - Date.now()) / 86400000)
+        : null;
+
+      return {
+        success: true,
+        tripName: tripData?.name || null,
+        totalSpend,
+        costPerDay: tripDays && tripDays > 0 ? Math.round(totalSpend / tripDays) : null,
+        costPerPerson: memberCount && memberCount > 0 ? Math.round(totalSpend / memberCount) : null,
+        activityCount: eventCount || 0,
+        memberCount: memberCount || 0,
+        tripDays,
+        daysUntilDeparture,
+        paymentCount: (payments || []).length,
+        message: `Trip stats for ${tripData?.name || tripId}`,
+      };
+    }
+
+    case 'shareItinerary': {
+      const { format } = args;
+      const view = format === 'print' ? 'print' : 'itinerary';
+      const appUrl = Deno.env.get('APP_URL') || 'https://app.chravel.app';
+      const shareUrl = `${appUrl}/trip/${tripId}?view=${view}&share=1`;
+
+      return {
+        success: true,
+        shareUrl,
+        format: view,
+        tripId,
+        message: `Shareable itinerary link generated`,
+      };
+    }
+
+    case 'getEmergencyContacts': {
+      const { destination, passportCountry } = args;
+      if (!destination) return { error: 'destination is required' };
+
+      const q = passportCountry
+        ? `emergency phone numbers ${destination} police ambulance fire ${passportCountry} embassy`
+        : `emergency phone numbers ${destination} police ambulance fire tourist helpline`;
+
+      const searchResult = await _executeImpl(
+        supabase,
+        'searchWeb',
+        { query: q, count: 5 },
+        tripId,
+        userId,
+        locationContext,
+      );
+
+      return {
+        success: true,
+        destination: String(destination),
+        passportCountry: passportCountry ? String(passportCountry) : null,
+        results: searchResult.success ? searchResult.results : [],
+        message: `Emergency contacts for ${destination}`,
+      };
+    }
+
+    // ========== NEW TOOLS (74-TOOL EXPANSION) ==========
+
+    case 'duplicateCalendarEvent': {
+      const { eventId, newDate, idempotency_key } = args;
+      if (!eventId) return { error: 'eventId is required' };
+      if (!newDate) return { error: 'newDate is required' };
+
+      // Fetch source event and verify it belongs to this trip
+      const { data: src, error: fetchErr } = await supabase
+        .from('trip_events')
+        .select('title, start_time, end_time, location, description, event_category')
+        .eq('id', String(eventId))
+        .eq('trip_id', tripId)
+        .single();
+      if (fetchErr || !src) return { error: 'Event not found in this trip' };
+
+      // Compute duration and apply to newDate
+      const srcStart = new Date(src.start_time);
+      const srcEnd = src.end_time ? new Date(src.end_time) : null;
+      const durationMs = srcEnd ? srcEnd.getTime() - srcStart.getTime() : 3600000;
+
+      const [year, month, day] = String(newDate).split('-').map(Number);
+      const newStart = new Date(srcStart);
+      newStart.setFullYear(year, month - 1, day);
+      const newEnd = new Date(newStart.getTime() + durationMs);
+
+      const dedupeId = idempotency_key || null;
+      const { data: pending, error: pendingError } = await supabase
+        .from('trip_pending_actions')
+        .insert({
+          trip_id: tripId,
+          user_id: userId || '00000000-0000-0000-0000-000000000000',
+          tool_name: 'duplicateCalendarEvent',
+          ...(dedupeId ? { tool_call_id: dedupeId } : {}),
+          payload: {
+            source_event_id: String(eventId),
+            source_title: src.title,
+            new_start_time: newStart.toISOString(),
+            new_end_time: newEnd.toISOString(),
+            location: src.location || null,
+            description: src.description || null,
+            event_category: src.event_category || null,
+          },
+          source_type: 'ai_concierge',
+        })
+        .select('id')
+        .single();
+      if (pendingError) throw pendingError;
+      return {
+        success: true,
+        pending: true,
+        pendingActionId: pending.id,
+        actionType: 'duplicate_calendar_event',
+        message: `I'd like to duplicate "${src.title}" to ${newDate}. Please confirm in the trip chat.`,
+      };
+    }
+
+    case 'bulkMarkTasksDone': {
+      const { taskIds, filter, idempotency_key } = args;
+      let resolvedIds: string[] = Array.isArray(taskIds) ? taskIds.map(String) : [];
+
+      if (resolvedIds.length === 0 && filter) {
+        // Resolve IDs from filter keyword
+        const filterStr = String(filter).trim();
+        const { data: matched } = await supabase
+          .from('trip_tasks')
+          .select('id, title')
+          .eq('trip_id', tripId)
+          .eq('completed', false)
+          .ilike('title', `%${filterStr}%`);
+        resolvedIds = (matched || []).map((t: { id: string }) => t.id);
+      }
+
+      if (resolvedIds.length === 0) {
+        return { error: 'No matching tasks found to mark done' };
+      }
+
+      const dedupeId = idempotency_key || null;
+      const { data: pending, error: pendingError } = await supabase
+        .from('trip_pending_actions')
+        .insert({
+          trip_id: tripId,
+          user_id: userId || '00000000-0000-0000-0000-000000000000',
+          tool_name: 'bulkMarkTasksDone',
+          ...(dedupeId ? { tool_call_id: dedupeId } : {}),
+          payload: {
+            task_ids: resolvedIds,
+            filter_description: filter ? String(filter) : `${resolvedIds.length} tasks`,
+          },
+          source_type: 'ai_concierge',
+        })
+        .select('id')
+        .single();
+      if (pendingError) throw pendingError;
+      return {
+        success: true,
+        pending: true,
+        pendingActionId: pending.id,
+        actionType: 'bulk_mark_tasks_done',
+        taskCount: resolvedIds.length,
+        message: `I'd like to mark ${resolvedIds.length} task(s) as complete. Please confirm in the trip chat.`,
+      };
+    }
+
+    case 'cloneActivity': {
+      const { eventId, targetDates, idempotency_key } = args;
+      if (!eventId) return { error: 'eventId is required' };
+      if (!Array.isArray(targetDates) || targetDates.length === 0) {
+        return { error: 'targetDates must be a non-empty array' };
+      }
+
+      const { data: src, error: fetchErr } = await supabase
+        .from('trip_events')
+        .select('title, start_time, end_time, location, description, event_category')
+        .eq('id', String(eventId))
+        .eq('trip_id', tripId)
+        .single();
+      if (fetchErr || !src) return { error: 'Event not found in this trip' };
+
+      const srcStart = new Date(src.start_time);
+      const srcEnd = src.end_time ? new Date(src.end_time) : null;
+      const durationMs = srcEnd ? srcEnd.getTime() - srcStart.getTime() : 3600000;
+
+      const clones = targetDates.map((dateStr: string) => {
+        const [y, m, d] = String(dateStr).split('-').map(Number);
+        const newStart = new Date(srcStart);
+        newStart.setFullYear(y, m - 1, d);
+        return {
+          title: src.title,
+          start_time: newStart.toISOString(),
+          end_time: new Date(newStart.getTime() + durationMs).toISOString(),
+          location: src.location || null,
+          description: src.description || null,
+          event_category: src.event_category || null,
+        };
+      });
+
+      const dedupeId = idempotency_key || null;
+      const { data: pending, error: pendingError } = await supabase
+        .from('trip_pending_actions')
+        .insert({
+          trip_id: tripId,
+          user_id: userId || '00000000-0000-0000-0000-000000000000',
+          tool_name: 'cloneActivity',
+          ...(dedupeId ? { tool_call_id: dedupeId } : {}),
+          payload: { clones, source_event_id: String(eventId) },
+          source_type: 'ai_concierge',
+        })
+        .select('id')
+        .single();
+      if (pendingError) throw pendingError;
+      return {
+        success: true,
+        pending: true,
+        pendingActionId: pending.id,
+        actionType: 'clone_activity',
+        cloneCount: clones.length,
+        message: `I'd like to clone "${src.title}" to ${clones.length} date(s). Please confirm in the trip chat.`,
+      };
+    }
+
+    case 'addExpense': {
+      const { description, amount, currency, splitParticipants, idempotency_key } = args;
+      if (!description) return { error: 'description is required' };
+      if (amount == null || Number(amount) <= 0)
+        return { error: 'amount must be a positive number' };
+
+      const dedupeId = idempotency_key || null;
+      const splitCount =
+        Array.isArray(splitParticipants) && splitParticipants.length > 0
+          ? splitParticipants.length
+          : 1;
+
+      const { data: pending, error: pendingError } = await supabase
+        .from('trip_pending_actions')
+        .insert({
+          trip_id: tripId,
+          user_id: userId || '00000000-0000-0000-0000-000000000000',
+          tool_name: 'addExpense',
+          ...(dedupeId ? { tool_call_id: dedupeId } : {}),
+          payload: {
+            description: String(description),
+            amount: Number(amount),
+            currency: currency ? String(currency).toUpperCase() : 'USD',
+            split_count: splitCount,
+            split_participants: Array.isArray(splitParticipants) ? splitParticipants : [],
+            created_by: userId || null,
+            trip_id: tripId,
+          },
+          source_type: 'ai_concierge',
+        })
+        .select('id')
+        .single();
+      if (pendingError) throw pendingError;
+      return {
+        success: true,
+        pending: true,
+        pendingActionId: pending.id,
+        actionType: 'add_expense',
+        message: `I'd like to log a ${currency || 'USD'} ${amount} expense for "${description}". Please confirm in the trip chat.`,
+      };
+    }
+
+    case 'moveCalendarEvent': {
+      const { eventId, newDate, newTime } = args;
+      if (!eventId) return { error: 'eventId is required' };
+      if (!newDate) return { error: 'newDate is required' };
+
+      const { data: existing, error: fetchErr } = await supabase
+        .from('trip_events')
+        .select('id, title, start_time, end_time')
+        .eq('id', String(eventId))
+        .eq('trip_id', tripId)
+        .single();
+      if (fetchErr || !existing) return { error: 'Event not found in this trip' };
+
+      const srcStart = new Date(existing.start_time);
+      const srcEnd = existing.end_time ? new Date(existing.end_time) : null;
+      const durationMs = srcEnd ? srcEnd.getTime() - srcStart.getTime() : 3600000;
+
+      const [year, month, day] = String(newDate).split('-').map(Number);
+      const newStart = new Date(srcStart);
+      newStart.setFullYear(year, month - 1, day);
+
+      if (newTime) {
+        const [h, m] = String(newTime).split(':').map(Number);
+        newStart.setHours(h, m, 0, 0);
+      }
+
+      const newEnd = new Date(newStart.getTime() + durationMs);
+
+      const { data, error } = await supabase
+        .from('trip_events')
+        .update({ start_time: newStart.toISOString(), end_time: newEnd.toISOString() })
+        .eq('id', String(eventId))
+        .eq('trip_id', tripId)
+        .select()
+        .single();
+      if (error) throw error;
+      return {
+        success: true,
+        event: data,
+        actionType: 'move_calendar_event',
+        message: `Moved "${existing.title}" to ${newDate}${newTime ? ` at ${newTime}` : ''}`,
+      };
+    }
+
+    case 'closePoll': {
+      const { pollId } = args;
+      if (!pollId) return { error: 'pollId is required' };
+
+      const { data: existing, error: fetchErr } = await supabase
+        .from('trip_polls')
+        .select('id, question, status')
+        .eq('id', String(pollId))
+        .eq('trip_id', tripId)
+        .single();
+      if (fetchErr || !existing) return { error: 'Poll not found in this trip' };
+      if (existing.status === 'closed') return { error: 'Poll is already closed' };
+
+      const { data, error } = await supabase
+        .from('trip_polls')
+        .update({ status: 'closed' })
+        .eq('id', String(pollId))
+        .eq('trip_id', tripId)
+        .select()
+        .single();
+      if (error) throw error;
+      return {
+        success: true,
+        poll: data,
+        actionType: 'close_poll',
+        message: `Closed poll: "${existing.question}"`,
+      };
+    }
+
+    case 'getRecentActivity': {
+      const limit = Math.min(Number(args.limit || 20), 50);
+      const days = Math.min(Number(args.days || 7), 30);
+      const since = new Date(Date.now() - days * 86400000).toISOString();
+
+      // Try trip_activity_log first (rich structured data)
+      const { data: activityLog, error: logErr } = await supabase
+        .from('trip_activity_log')
+        .select('id, action, object_type, object_id, user_id, source_type, metadata, created_at')
+        .eq('trip_id', tripId)
+        .gte('created_at', since)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (!logErr && activityLog && activityLog.length > 0) {
+        return {
+          success: true,
+          source: 'activity_log',
+          days,
+          count: activityLog.length,
+          activity: activityLog,
+          message: `Found ${activityLog.length} activity item(s) in the last ${days} day(s)`,
+        };
+      }
+
+      // Fallback: union of recent tasks + events + links
+      const [{ data: tasks }, { data: events }, { data: links }] = await Promise.all([
+        supabase
+          .from('trip_tasks')
+          .select('id, title, completed, updated_at')
+          .eq('trip_id', tripId)
+          .gte('updated_at', since)
+          .order('updated_at', { ascending: false })
+          .limit(10),
+        supabase
+          .from('trip_events')
+          .select('id, title, start_time, updated_at')
+          .eq('trip_id', tripId)
+          .gte('updated_at', since)
+          .order('updated_at', { ascending: false })
+          .limit(10),
+        supabase
+          .from('trip_links')
+          .select('id, title, url, category, updated_at')
+          .eq('trip_id', tripId)
+          .gte('updated_at', since)
+          .order('updated_at', { ascending: false })
+          .limit(10),
+      ]);
+
+      const combined = [
+        ...(tasks || []).map((t: any) => ({ ...t, type: 'task' })),
+        ...(events || []).map((e: any) => ({ ...e, type: 'event' })),
+        ...(links || []).map((l: any) => ({ ...l, type: 'link' })),
+      ]
+        .sort(
+          (a: any, b: any) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
+        )
+        .slice(0, limit);
+
+      return {
+        success: true,
+        source: 'union_query',
+        days,
+        count: combined.length,
+        activity: combined,
+        message:
+          combined.length > 0
+            ? `Found ${combined.length} recent change(s) in the last ${days} day(s)`
+            : `No activity found in the last ${days} day(s)`,
+      };
+    }
+
+    case 'getTaskSummary': {
+      const { assignee } = args;
+
+      let query = supabase
+        .from('trip_tasks')
+        .select('id, title, completed, completed_at, due_at, description')
+        .eq('trip_id', tripId);
+
+      if (assignee) {
+        // assignee is stored as a display name string in trip_tasks
+        query = (query as any).ilike('assignee', `%${String(assignee)}%`);
+      }
+
+      const { data: tasks, error } = await query;
+      if (error) throw error;
+
+      const all = tasks || [];
+      const done = all.filter((t: any) => t.completed);
+      const overdue = all.filter(
+        (t: any) => !t.completed && t.due_at && new Date(t.due_at) < new Date(),
+      );
+      const todo = all.filter(
+        (t: any) => !t.completed && !(t.due_at && new Date(t.due_at) < new Date()),
+      );
+
+      return {
+        success: true,
+        total: all.length,
+        done: done.length,
+        todo: todo.length,
+        overdue: overdue.length,
+        tasks: all,
+        message: `${all.length} total task(s): ${done.length} done, ${todo.length} to-do, ${overdue.length} overdue`,
+      };
+    }
+
+    case 'getGroupAvailability': {
+      const { date, dayCount } = args;
+      if (!date) return { error: 'date is required' };
+
+      const count = Math.min(Number(dayCount || 1), 7);
+      const [y, mo, d] = String(date).split('-').map(Number);
+      const startDate = new Date(Date.UTC(y, mo - 1, d));
+      const endDate = new Date(Date.UTC(y, mo - 1, d + count));
+
+      const { data: events, error } = await supabase
+        .from('trip_events')
+        .select('id, title, start_time, end_time')
+        .eq('trip_id', tripId)
+        .gte('start_time', startDate.toISOString())
+        .lt('start_time', endDate.toISOString())
+        .order('start_time', { ascending: true });
+      if (error) throw error;
+
+      // Group events by calendar day and find gaps > 60 min
+      const byDay: Record<string, { start: Date; end: Date; title: string }[]> = {};
+      for (const ev of events || []) {
+        const day = ev.start_time.substring(0, 10);
+        if (!byDay[day]) byDay[day] = [];
+        byDay[day].push({
+          title: ev.title,
+          start: new Date(ev.start_time),
+          end: ev.end_time
+            ? new Date(ev.end_time)
+            : new Date(new Date(ev.start_time).getTime() + 3600000),
+        });
+      }
+
+      const freeWindows: { date: string; from: string; to: string; durationHours: number }[] = [];
+
+      for (let i = 0; i < count; i++) {
+        const dayStart = new Date(startDate.getTime() + i * 86400000);
+        const dayStr = dayStart.toISOString().substring(0, 10);
+        const dayEvents = (byDay[dayStr] || []).sort(
+          (a: any, b: any) => a.start.getTime() - b.start.getTime(),
+        );
+
+        // Check window from 08:00 to start of first event
+        const morningStart = new Date(dayStart);
+        morningStart.setUTCHours(8, 0, 0, 0);
+        const eveningEnd = new Date(dayStart);
+        eveningEnd.setUTCHours(22, 0, 0, 0);
+
+        if (dayEvents.length === 0) {
+          freeWindows.push({
+            date: dayStr,
+            from: '08:00',
+            to: '22:00',
+            durationHours: 14,
+          });
+          continue;
+        }
+
+        let cursor = morningStart;
+        for (const ev of dayEvents) {
+          const gapMs = ev.start.getTime() - cursor.getTime();
+          if (gapMs >= 3600000) {
+            freeWindows.push({
+              date: dayStr,
+              from: cursor.toISOString().substring(11, 16),
+              to: ev.start.toISOString().substring(11, 16),
+              durationHours: Math.round(gapMs / 360000) / 10,
+            });
+          }
+          cursor = ev.end.getTime() > cursor.getTime() ? ev.end : cursor;
+        }
+        // Gap after last event until 22:00
+        const afterGap = eveningEnd.getTime() - cursor.getTime();
+        if (afterGap >= 3600000) {
+          freeWindows.push({
+            date: dayStr,
+            from: cursor.toISOString().substring(11, 16),
+            to: '22:00',
+            durationHours: Math.round(afterGap / 360000) / 10,
+          });
+        }
+      }
+
+      return {
+        success: true,
+        date: String(date),
+        dayCount: count,
+        freeWindows,
+        totalScheduledEvents: (events || []).length,
+        message:
+          freeWindows.length > 0
+            ? `Found ${freeWindows.length} free window(s) over ${count} day(s)`
+            : `No free windows over 1 hour found in the requested period`,
+      };
+    }
+
+    case 'getUpcomingReminders': {
+      const limit = Math.min(Number(args.limit || 10), 50);
+
+      const { data: reminders, error } = await (supabase as any)
+        .from('trip_pending_actions')
+        .select('id, payload, created_at')
+        .eq('trip_id', tripId)
+        .eq('tool_name', 'addReminder')
+        .in('status', ['pending', 'confirmed'])
+        .order('created_at', { ascending: true })
+        .limit(limit);
+      if (error) throw error;
+
+      const now = new Date();
+      const upcoming = (reminders || []).filter((r: any) => {
+        const remindAt = r.payload?.remind_at;
+        return remindAt && new Date(remindAt) > now;
+      });
+
+      return {
+        success: true,
+        count: upcoming.length,
+        reminders: upcoming.map((r: any) => ({
+          id: r.id,
+          message: r.payload?.message,
+          remind_at: r.payload?.remind_at,
+          entity_type: r.payload?.entity_type,
+          entity_id: r.payload?.entity_id,
+        })),
+        message:
+          upcoming.length > 0
+            ? `${upcoming.length} upcoming reminder(s) found`
+            : 'No upcoming reminders',
+      };
+    }
+
+    case 'searchTripChats': {
+      const { query: chatQuery, limit } = args;
+      const searchStr = String(chatQuery || '').trim();
+      if (!searchStr) return { error: 'query is required' };
+
+      const resultLimit = Math.min(Number(limit || 20), 50);
+
+      const { data: messages, error } = await supabase
+        .from('trip_chat_messages')
+        .select('id, content, sender_id, created_at')
+        .eq('trip_id', tripId)
+        .ilike('content', `%${searchStr}%`)
+        .order('created_at', { ascending: false })
+        .limit(resultLimit);
+      if (error) throw error;
+
+      return {
+        success: true,
+        query: searchStr,
+        count: (messages || []).length,
+        messages: messages || [],
+        message:
+          (messages || []).length > 0
+            ? `Found ${messages!.length} message(s) matching "${searchStr}"`
+            : `No messages found matching "${searchStr}"`,
+      };
+    }
+
+    case 'getPollResults': {
+      const { pollId } = args;
+
+      let query = supabase
+        .from('trip_polls')
+        .select('id, question, options, status, total_votes, created_at')
+        .eq('trip_id', tripId);
+
+      if (pollId) {
+        query = query.eq('id', String(pollId));
+      } else {
+        query = (query as any).in('status', ['active', 'closed']);
+      }
+
+      const { data: polls, error } = await query
+        .order('created_at', { ascending: false })
+        .limit(10);
+      if (error) throw error;
+
+      return {
+        success: true,
+        count: (polls || []).length,
+        polls: polls || [],
+        message: (polls || []).length > 0 ? `Found ${polls!.length} poll(s)` : 'No polls found',
+      };
+    }
+
+    case 'getTripLinks': {
+      const { category, limit } = args;
+      const resultLimit = Math.min(Number(limit || 30), 100);
+
+      let query = supabase
+        .from('trip_links')
+        .select('id, url, title, description, category, created_at')
+        .eq('trip_id', tripId);
+
+      if (category) {
+        query = query.ilike('category', `%${String(category)}%`);
+      }
+
+      const { data: links, error } = await query
+        .order('created_at', { ascending: false })
+        .limit(resultLimit);
+      if (error) throw error;
+
+      return {
+        success: true,
+        count: (links || []).length,
+        links: links || [],
+        message:
+          (links || []).length > 0
+            ? `Found ${links!.length} saved link(s)${category ? ` in category "${category}"` : ''}`
+            : 'No saved links found',
+      };
+    }
+
+    case 'getTripInfo': {
+      const { data: trip, error } = await supabase
+        .from('trips')
+        .select(
+          'id, name, destination, start_date, end_date, description, trip_type, primary_timezone',
+        )
+        .eq('id', tripId)
+        .single();
+      if (error) throw error;
+      if (!trip) return { error: 'Trip not found' };
+
+      return {
+        success: true,
+        trip,
+        message: `Trip: ${trip.name}${trip.destination ? ` → ${trip.destination}` : ''}`,
+      };
+    }
+
+    case 'updateTripDetails': {
+      const { name, destination, description, startDate, endDate, idempotency_key } = args;
+
+      const updates: Record<string, unknown> = {};
+      if (name) updates.name = String(name);
+      if (destination !== undefined) updates.destination = destination ? String(destination) : null;
+      if (description !== undefined) updates.description = description ? String(description) : null;
+      if (startDate) updates.start_date = String(startDate);
+      if (endDate) updates.end_date = String(endDate);
+
+      if (Object.keys(updates).length === 0) {
+        return { error: 'At least one field to update is required' };
+      }
+
+      const dedupeId = idempotency_key || null;
+      const { data: pending, error: pendingError } = await supabase
+        .from('trip_pending_actions')
+        .insert({
+          trip_id: tripId,
+          user_id: userId || '00000000-0000-0000-0000-000000000000',
+          tool_name: 'updateTripDetails',
+          ...(dedupeId ? { tool_call_id: dedupeId } : {}),
+          payload: {
+            ...updates,
+            trip_id: tripId,
+          },
+          source_type: 'ai_concierge',
+        })
+        .select('id')
+        .single();
+      if (pendingError) throw pendingError;
+
+      const summary = Object.entries(updates)
+        .map(([k, v]) => `${k}: "${v}"`)
+        .join(', ');
+      return {
+        success: true,
+        pending: true,
+        pendingActionId: pending.id,
+        actionType: 'update_trip_details',
+        message: `I'd like to update the trip: ${summary}. Please confirm in the trip chat.`,
+      };
+    }
+
     default:
       return { error: `Unknown function: ${functionName}` };
   }

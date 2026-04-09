@@ -3,7 +3,7 @@
  *
  * Now derived from the shared tool registry (single source of truth).
  * Voice declarations use shorter descriptions optimized for audio responses.
- * All 38 tools are available in both text and voice paths — no drift.
+ * All 75 tools are available in both text and voice paths — no drift.
  */
 import { getToolsForVoice } from './concierge/toolRegistry.ts';
 

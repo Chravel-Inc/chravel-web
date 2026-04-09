@@ -30,7 +30,8 @@ class SystemMessageService {
       } = await supabase.auth.getUser();
       const authorName = payload?.actorName || user?.email?.split('@')[0] || 'System';
 
-      const { error } = await supabase.from('trip_chat_messages').insert({
+      // intentional: trip_chat_messages insert shape includes fields not in generated types
+      const { error } = await (supabase as any).from('trip_chat_messages').insert({
         trip_id: tripId,
         content: body,
         author_name: authorName,

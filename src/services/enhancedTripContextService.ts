@@ -221,13 +221,13 @@ export class EnhancedTripContextService {
       polls,
       chatHistory: chatHistory.slice(-20), // Keep recent messages
       receipts,
-      preferences,
+      preferences: preferences as any,
       spendingPatterns,
       groupDynamics,
       visitedPlaces,
       weatherContext,
       // 🆕 Enhanced context for AI Concierge
-      tasks,
+      tasks: tasks as any,
     };
   }
 
@@ -560,12 +560,13 @@ export class EnhancedTripContextService {
     return { mostActiveParticipants, recentDecisions, consensusLevel };
   }
 
-  private static extractVisitedPlaces(itinerary: unknown[], photos: TripPhoto[]): string[] {
+  // intentional: itinerary items come from mock data with loose shape
+  private static extractVisitedPlaces(itinerary: any[], photos: TripPhoto[]): string[] {
     const places = new Set<string>();
 
     // From itinerary
-    itinerary.forEach(day => {
-      day.events?.forEach((event: unknown) => {
+    itinerary.forEach((day: any) => {
+      day.events?.forEach((event: any) => {
         if (event.location) places.add(event.location);
       });
     });
@@ -586,12 +587,13 @@ export class EnhancedTripContextService {
     };
   }
 
-  private static getUpcomingEvents(itinerary: unknown[], currentDate: string): unknown[] {
+  // intentional: itinerary items come from mock data with loose shape
+  private static getUpcomingEvents(itinerary: any[], currentDate: string): any[] {
     return itinerary
-      .filter(day => day.date >= currentDate)
+      .filter((day: any) => day.date >= currentDate)
       .flatMap(
-        day =>
-          day.events?.map((event: unknown) => ({
+        (day: any) =>
+          day.events?.map((event: any) => ({
             ...event,
             date: day.date,
           })) || [],

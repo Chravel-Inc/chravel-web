@@ -301,3 +301,18 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Regression risks:** None — purely additive bracket.
 - **Related files:** `supabase/functions/gmail-import-worker/index.ts` (fixed April 2026)
 - **Confidence:** high
+
+---
+
+## Pending Action Confirm Throws "Unknown tool: X"
+
+- **Symptom:** User clicks "Confirm" on an AI-generated pending action card (e.g., a reminder, budget, or new expense). The card dismisses but no data is created. Browser console shows `Error: Unknown tool: addReminder`.
+- **Risk:** MEDIUM — silent data loss; user believes the action was confirmed.
+- **Root cause:** `usePendingActions.ts` `confirmMutation` switch statement only had cases for `createTask`, `createPoll`, and `addToCalendar`. Any other `tool_name` hits the `default: throw new Error('Unknown tool: ...')` path. The confirm status update still fails because the throw propagates before the `trip_pending_actions` row is marked confirmed.
+- **How to confirm:** Add a pending action via AI for any non-original-3 tool (e.g., "set a reminder", "set a trip budget", "log an expense"). Open DevTools Network tab. Click Confirm. Watch for the thrown error in the mutation's `onError` handler toast.
+- **Smallest safe fix:** Add an explicit `case` for every tool that uses `insertPendingAction` in `functionExecutor.ts`. For tools where the pending action row IS the record (no secondary DB write needed), use `case 'toolName': { break; }`. For tools that do create data (addExpense → trip_payment_messages, duplicateCalendarEvent → trip_events), add the matching insert/update.
+- **Also fix:** `PendingActionCard.tsx` `TOOL_CONFIG` — missing entries fall through to "Unknown action" label and default icon.
+- **Regression surfaces:** Every future pending-buffer write tool added without updating `usePendingActions.ts`.
+- **Related files:** `src/hooks/usePendingActions.ts`, `src/features/chat/components/PendingActionCard.tsx`
+- **Fixed in:** April 2026, 74-tool expansion (`0d9bed1`)
+- **Confidence:** high

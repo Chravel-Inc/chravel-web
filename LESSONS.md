@@ -389,3 +389,21 @@
 - **Evidence:** GetStream messaging e2e suite: 8 CHAT-SMOKE tests pass in isolation using `/demo` mode; 8 CHAT-001/002/003 authenticated tests skip gracefully with clear message when credentials are unavailable. `data-testid="chat-send-btn"` added to `ChatInput` for stable send button targeting.
 - **Provenance:** April 2026 GetStream messaging e2e suite (`claude/fix-getstream-messaging-xmHa9`).
 - **Confidence:** high
+
+### Pending-buffer write tools require 5-file sync — 3-file assumption breaks confirms
+
+- **Tip:** The AI concierge has two write patterns: (1) **direct execution** — tool logic runs immediately in `functionExecutor.ts`; (2) **pending buffer** — tool inserts a row to `trip_pending_actions` and the user must confirm via the chat card. Pending-buffer tools require 5 files to work end-to-end: `toolRegistry.ts`, `agent/src/tools.ts`, `functionExecutor.ts` (the 3-file assumption), **plus** `usePendingActions.ts` (confirm handler that executes the actual DB write) and `PendingActionCard.tsx` (TOOL_CONFIG for icon/label display). Omitting either frontend file means confirms silently fail with "Unknown tool: X" or render as "Unknown action". For tools where the pending_action row IS the record (e.g., `addReminder`, `setTripBudget`) — no secondary DB write on confirm; just break.
+- **Applies when:** Adding any pending-buffer write tool to the AI concierge; auditing why a tool's confirm card doesn't create data.
+- **Avoid when:** Direct-execution tools (`updateCalendarEvent`, `deleteTask`, `settleExpense`, `moveCalendarEvent`) — these run entirely in `functionExecutor.ts` and never touch the frontend confirm flow.
+- **Evidence:** `addReminder` and `setTripBudget` were silently broken since their addition (60-tool expansion). Discovered during 74-tool gap analysis in April 2026. Fixed by adding cases to `usePendingActions.ts` and entries to `PendingActionCard.tsx`.
+- **Provenance:** April 2026, 74→75 tool expansion (`0d9bed1`).
+- **Confidence:** high
+
+### trip_payment_messages.trip_id is TEXT, not UUID
+
+- **Tip:** Unlike every other `trip_*` table which uses `UUID` for `trip_id`, `trip_payment_messages.trip_id` is `TEXT NOT NULL` (per migration `20250902153921_...`). Any direct insert or filter must pass a string, not expect UUID coercion. This will silently succeed on insert (Postgres accepts UUID strings as TEXT) but will cause type mismatches if you attempt JOIN operations expecting UUID equality.
+- **Applies when:** Inserting to or joining `trip_payment_messages`; building expense tools; writing payment-related migrations.
+- **Avoid when:** Reading — selects work fine since UUID strings are valid TEXT.
+- **Evidence:** Discovered when implementing `addExpense` confirm handler in `usePendingActions.ts` (April 2026).
+- **Provenance:** April 2026, 74-tool expansion.
+- **Confidence:** high

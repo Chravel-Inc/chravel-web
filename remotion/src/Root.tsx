@@ -9,6 +9,7 @@ import { PollsAndTasks, POLLS_TASKS_DURATION } from './compositions/PollsAndTask
 import { TabNavigationHero, TAB_NAV_DURATION } from './compositions/TabNavigationHero';
 import { BeforeAfterChaos, BEFORE_AFTER_DURATION } from './compositions/BeforeAfterChaos';
 import { BRollOverlay, BROLL_OVERLAY_DURATION } from './compositions/BRollOverlay';
+import { ProductLaunchV2, PRODUCT_LAUNCH_V2_DURATION } from './compositions/ProductLaunchV2';
 
 const FPS = 30;
 const WIDTH = 1920;
@@ -22,6 +23,16 @@ export const RemotionRoot = () => {
         id="ChravelLaunch"
         component={ChravelLaunch}
         durationInFrames={FPS * 60}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+      />
+
+      {/* Product Launch V2 — real screenshots */}
+      <Composition
+        id="ProductLaunchV2"
+        component={ProductLaunchV2}
+        durationInFrames={PRODUCT_LAUNCH_V2_DURATION}
         fps={FPS}
         width={WIDTH}
         height={HEIGHT}

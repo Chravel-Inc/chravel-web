@@ -136,7 +136,7 @@ export const CallToAction: React.FC = () => {
           transform: `translateY(${interpolate(urlProgress, [0, 1], [15, 0])}px)`,
         }}
       >
-        chravel.com
+        chravel.app
       </div>
     </AbsoluteFill>
   );
