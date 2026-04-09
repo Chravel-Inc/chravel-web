@@ -39,9 +39,9 @@ serve(async req => {
     }
 
     // Call Google Cloud Text-to-Speech API
-    const apiKey = Deno.env.get('GOOGLE_CLOUD_API_KEY');
+    const apiKey = Deno.env.get('GOOGLE_CLOUD_TTS_API_KEY');
     if (!apiKey) {
-      throw new Error('Missing GOOGLE_CLOUD_API_KEY');
+      throw new Error('Missing GOOGLE_CLOUD_TTS_API_KEY');
     }
 
     const response = await fetch(
