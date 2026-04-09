@@ -1,10 +1,11 @@
 /**
  * Send Push Notification Edge Function
  *
- * Sends push notifications to users via FCM (Android/Web) and APNs (iOS).
+ * Sends push notifications to users via FCM V1 (Android/Web) and APNs (iOS).
  *
  * Required secrets (to be configured in Supabase):
- * - FCM_SERVER_KEY: Firebase Cloud Messaging server key for Android/Web
+ * - VERTEX_SERVICE_ACCOUNT_KEY: Firebase/GCP service account key (base64 JSON) — used for FCM V1
+ * - VERTEX_PROJECT_ID: GCP/Firebase project ID — used for FCM V1 endpoint
  * - APNS_KEY_ID: Apple Push Notification service key ID
  * - APNS_TEAM_ID: Apple Developer Team ID
  * - APNS_PRIVATE_KEY: APNs private key (.p8 file contents)
@@ -16,6 +17,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { sendFcmV1, toFcmData } from '../_shared/fcmV1.ts';
 
 // Push notification payload types
 interface PushPayload {
@@ -74,45 +76,11 @@ async function sendFCM(
   tokens: string[],
   notification: NotificationContent,
 ): Promise<{ success: string[]; failed: string[] }> {
-  const fcmServerKey = Deno.env.get('FCM_SERVER_KEY');
-
-  if (!fcmServerKey) {
-    console.warn('[send-push] FCM_SERVER_KEY not configured, skipping FCM delivery');
-    return { success: [], failed: tokens };
-  }
-
-  const success: string[] = [];
-  const failed: string[] = [];
-
-  // TODO: Implement actual FCM HTTP v1 API call
-  // For now, log and mark as failed until FCM is configured
-  //
-  // Reference: https://firebase.google.com/docs/cloud-messaging/send-message
-  //
-  // const response = await fetch('https://fcm.googleapis.com/fcm/send', {
-  //   method: 'POST',
-  //   headers: {
-  //     'Authorization': `key=${fcmServerKey}`,
-  //     'Content-Type': 'application/json',
-  //   },
-  //   body: JSON.stringify({
-  //     registration_ids: tokens,
-  //     notification: {
-  //       title: notification.title,
-  //       body: notification.body,
-  //     },
-  //     data: notification.data,
-  //   }),
-  // });
-
-  console.log(
-    `[send-push] FCM: Would send to ${tokens.length} tokens (TODO: implement FCM integration)`,
-  );
-
-  // Mark all as failed until implemented
-  failed.push(...tokens);
-
-  return { success, failed };
+  const result = await sendFcmV1(tokens, {
+    notification: { title: notification.title, body: notification.body },
+    data: notification.data ? toFcmData(notification.data as Record<string, unknown>) : undefined,
+  });
+  return { success: result.success, failed: result.failed };
 }
 
 // ============================================================================

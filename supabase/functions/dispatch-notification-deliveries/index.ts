@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { sendFcmV1, toFcmData } from '../_shared/fcmV1.ts';
 import {
   DEFAULT_NOTIFICATION_PREFERENCES,
   getMinutesUntilQuietHoursEnd,
@@ -80,7 +81,6 @@ interface SmsOptInRow {
   opted_in: boolean;
 }
 
-const fcmServerKey = Deno.env.get('FCM_SERVER_KEY');
 const sendGridApiKey = Deno.env.get('SENDGRID_API_KEY');
 const sendGridFromEmail = Deno.env.get('SENDGRID_FROM_EMAIL') || 'support@chravelapp.com';
 const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
@@ -391,40 +391,15 @@ async function sendPush(
   providerMessageId?: string;
   error?: string;
 }> {
-  if (!fcmServerKey) {
-    return { ok: false, error: 'FCM server key is not configured' };
-  }
-
-  const response = await fetch('https://fcm.googleapis.com/fcm/send', {
-    method: 'POST',
-    headers: {
-      Authorization: `key=${fcmServerKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      registration_ids: tokens,
-      notification: { title, body },
-      data,
-    }),
+  const result = await sendFcmV1(tokens, {
+    notification: { title, body },
+    data: data ? toFcmData(data) : undefined,
   });
 
-  const responseText = await response.text();
-  if (!response.ok) {
-    return { ok: false, error: `FCM error ${response.status}: ${responseText.substring(0, 200)}` };
-  }
-
-  try {
-    const parsed = JSON.parse(responseText);
-    if ((parsed.success || 0) > 0) {
-      return {
-        ok: true,
-        providerMessageId: parsed.multicast_id ? String(parsed.multicast_id) : undefined,
-      };
-    }
-    return { ok: false, error: parsed.results?.[0]?.error || 'No push delivery succeeded' };
-  } catch {
+  if (result.success.length > 0) {
     return { ok: true };
   }
+  return { ok: false, error: `All ${result.failed.length} FCM V1 deliveries failed` };
 }
 
 serve(async req => {
