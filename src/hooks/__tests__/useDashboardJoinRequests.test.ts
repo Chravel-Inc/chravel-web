@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getJoinRequestRequestedAt,
   mapCancelOwnJoinRequestResult,
   splitJoinRequestsByDirection,
   type DashboardJoinRequest,
@@ -62,5 +63,25 @@ describe('mapCancelOwnJoinRequestResult', () => {
       success: false,
       message: 'Unable to cancel request.',
     });
+  });
+});
+
+describe('getJoinRequestRequestedAt', () => {
+  it('uses requested_at when available', () => {
+    expect(
+      getJoinRequestRequestedAt({
+        requested_at: '2026-04-09T00:00:00Z',
+        created_at: '2026-04-08T00:00:00Z',
+      }),
+    ).toBe('2026-04-09T00:00:00Z');
+  });
+
+  it('falls back to created_at when requested_at is missing', () => {
+    expect(
+      getJoinRequestRequestedAt({
+        requested_at: null,
+        created_at: '2026-04-08T00:00:00Z',
+      }),
+    ).toBe('2026-04-08T00:00:00Z');
   });
 });

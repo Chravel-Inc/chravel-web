@@ -258,3 +258,8 @@
 - Added race-safe connection readiness subscription to `useStreamConciergeHistory` so Stream concierge history hydrates after delayed Stream connects.
 - Updated `AIConciergeChat` history hydration to merge/dedupe/sort legacy Supabase (`ai_queries`) history with Stream concierge channel history, preventing history gaps across migration boundary.
 - Verification: `npm run lint && npm run typecheck && npm run build` pass (existing baseline warnings only).
+2026-04-09 — Dashboard pending-request resilience fallback (join-request visibility regression hardening)
+- Root-caused a likely dashboard Requests regression path to brittle `useDashboardJoinRequests` hydration: a single joined query (`trip_join_requests` + embedded `trips`) failed closed and returned an empty requests list when relation/schema drift occurred.
+- Added compatibility fallback in `src/hooks/useDashboardJoinRequests.ts`: on joined-query failure, retry from base `trip_join_requests`, then best-effort hydrate trip summaries via a second `trips` lookup. Also added timestamp compatibility helper (`requested_at` → `created_at`) to avoid silent drops in mixed-schema environments.
+- Added regression tests in `src/hooks/__tests__/useDashboardJoinRequests.test.ts` for timestamp fallback behavior.
+- Verification: `npm run test:run -- src/hooks/__tests__/useDashboardJoinRequests.test.ts`, `npm run typecheck`, `npm run build`; `npm run lint:check` still fails on pre-existing repo lint errors in unrelated files.
