@@ -25,7 +25,11 @@ final class SupabaseChatRepositoryTests: XCTestCase {
     let session = URLSession(configuration: configuration)
 
     ChatMockURLProtocol.handler = { request in
-      XCTAssertTrue(request.url?.absoluteString.contains("trip_chat_messages") == true)
+      XCTAssertEqual(request.url?.path, "/rest/v1/trip_chat_messages")
+      XCTAssertFalse(request.url?.absoluteString.contains("%3F") ?? true)
+      let query = request.url?.query ?? ""
+      XCTAssertTrue(query.contains("select=id,trip_id,content,created_at,sender_name,sender_id"))
+      XCTAssertTrue(query.contains("trip_id=eq.trip-42"))
       return (
         HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
         responseBody
@@ -66,6 +70,11 @@ final class SupabaseChatRepositoryTests: XCTestCase {
 
     ChatMockURLProtocol.handler = { request in
       XCTAssertEqual(request.httpMethod, "POST")
+      XCTAssertEqual(request.url?.path, "/rest/v1/trip_chat_messages")
+      XCTAssertEqual(
+        request.url?.query,
+        "select=id,trip_id,content,created_at,sender_name,sender_id"
+      )
       XCTAssertEqual(request.value(forHTTPHeaderField: "Prefer"), "return=representation")
       return (
         HTTPURLResponse(url: request.url!, statusCode: 201, httpVersion: nil, headerFields: nil)!,

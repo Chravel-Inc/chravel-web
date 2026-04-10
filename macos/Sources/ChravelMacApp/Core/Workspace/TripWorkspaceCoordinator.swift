@@ -21,6 +21,7 @@ final class TripWorkspaceCoordinator {
   var chatLoadState: ChatLoadState = .idle
   var draftMessage = ""
   var isSending = false
+  var transientChatError: String?
 
   init(chatRepository: ChatRepository, realtimeService: ChatRealtimeService) {
     self.chatRepository = chatRepository
@@ -38,10 +39,12 @@ final class TripWorkspaceCoordinator {
     guard let tripId else {
       messages = []
       chatLoadState = .idle
+      transientChatError = nil
       return
     }
 
     chatLoadState = .loading
+    transientChatError = nil
 
     do {
       let latest = try await chatRepository.fetchRecentMessages(tripId: tripId, session: session)
@@ -80,9 +83,10 @@ final class TripWorkspaceCoordinator {
       messages.removeAll { $0.id == optimistic.id }
       messages.append(persisted)
       sortMessages()
+      transientChatError = nil
     } catch {
       messages.removeAll { $0.id == optimistic.id }
-      chatLoadState = .failed("Unable to send message")
+      transientChatError = "Unable to send message. Please retry."
       AppLogger.navigation.error("Chat send failed for trip \(tripId, privacy: .public)")
     }
 
@@ -98,9 +102,14 @@ final class TripWorkspaceCoordinator {
           guard !Task.isCancelled else { return }
           mergeIncoming(incoming)
           chatLoadState = .ready
+          transientChatError = nil
         }
       } catch {
-        chatLoadState = .failed("Realtime connection lost")
+        if chatLoadState == .loading {
+          chatLoadState = .failed("Unable to load chat history")
+        } else {
+          transientChatError = "Realtime connection lost. Use refresh to reconnect."
+        }
         AppLogger.navigation.error("Realtime stream failed for trip \(tripId, privacy: .public)")
       }
     }

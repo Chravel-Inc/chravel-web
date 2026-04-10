@@ -43,6 +43,7 @@ Set these vars to point the macOS app to a live backend:
 ```bash
 export CHRAVEL_SUPABASE_URL="https://<project-ref>.supabase.co"
 export CHRAVEL_SUPABASE_ANON_KEY="<anon-key>"
+# Prefer temporary shell scope or Keychain/launchctl for local token handling.
 export CHRAVEL_SUPABASE_ACCESS_TOKEN="<user-access-token>"
 ```
 

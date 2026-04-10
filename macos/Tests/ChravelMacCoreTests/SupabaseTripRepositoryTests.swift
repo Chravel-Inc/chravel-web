@@ -26,6 +26,11 @@ final class SupabaseTripRepositoryTests: XCTestCase {
     MockURLProtocol.handler = { request in
       XCTAssertEqual(request.value(forHTTPHeaderField: "apikey"), "anon")
       XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer token")
+      XCTAssertEqual(request.url?.path, "/rest/v1/trips")
+      XCTAssertFalse(request.url?.absoluteString.contains("%3F") ?? true)
+      let query = request.url?.query ?? ""
+      XCTAssertTrue(query.contains("select=id,title,destination,start_date,end_date"))
+      XCTAssertTrue(query.contains("order=start_date.desc.nullslast"))
 
       return (
         HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,

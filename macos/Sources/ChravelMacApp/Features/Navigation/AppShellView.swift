@@ -114,6 +114,13 @@ struct AppShellView: View {
     }
 
     VStack(spacing: 12) {
+      if let transientChatError = workspaceCoordinator.transientChatError {
+        Text(transientChatError)
+          .font(.footnote)
+          .foregroundStyle(.red)
+          .frame(maxWidth: .infinity, alignment: .leading)
+      }
+
       switch workspaceCoordinator.chatLoadState {
       case .idle:
         Text("Chat not loaded yet")

@@ -292,3 +292,10 @@
 - Updated `AGENTS.md` Cursor Cloud setup guidance to remove stale claim about hardcoded Supabase fallback credentials.
 - Documented the current requirement for `VITE_SUPABASE_URL` plus `VITE_SUPABASE_PUBLISHABLE_KEY` (or legacy anon key) in `.env.local`.
 - Verification: `npm run typecheck`.
+2026-04-10 — PR #164 merge-readiness hardening (cursor review + conflict-safe state handling)
+- Fixed `SupabaseRESTClient` URL assembly by replacing `appending(path:)` with explicit `URLComponents` path/query composition so PostgREST query strings are preserved correctly.
+- Added regression assertions in Supabase chat/trip repository tests to lock path/query behavior and prevent `%3F` path-encoding regressions.
+- Refined `TripWorkspaceCoordinator` chat error state machine: send/realtime failures now use transient inline error messaging and no longer downgrade hydrated chat to global failed state.
+- Surfaced transient chat errors in `AppShellView` while preserving message list visibility and send workflow.
+- Updated `macos/README.md` token guidance to recommend temporary shell scope / Keychain-style handling for access tokens.
+- Verification: `cd macos && swift test`; `npm run typecheck`.

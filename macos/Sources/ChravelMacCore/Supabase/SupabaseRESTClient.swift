@@ -5,6 +5,7 @@ import FoundationNetworking
 
 public enum SupabaseRESTError: Error, Equatable {
   case invalidResponse
+  case invalidURL(String)
   case unexpectedStatus(Int)
 }
 
@@ -28,7 +29,7 @@ public struct SupabaseRESTClient {
     accessToken: String?,
     additionalHeaders: [String: String] = [:],
   ) async throws -> Data {
-    let url = config.projectURL.appending(path: path)
+    let url = try buildURL(path: path)
     var request = URLRequest(url: url)
     request.httpMethod = method
     request.httpBody = body
@@ -56,4 +57,31 @@ public struct SupabaseRESTClient {
 
     return data
   }
+
+  private func buildURL(path: String) throws -> URL {
+    let split = path.split(separator: "?", maxSplits: 1, omittingEmptySubsequences: false)
+    let rawPath = String(split.first ?? "")
+    let normalizedPath = rawPath.hasPrefix("/") ? rawPath : "/\(rawPath)"
+
+    guard var components = URLComponents(url: config.projectURL, resolvingAgainstBaseURL: false) else {
+      throw SupabaseRESTError.invalidURL(path)
+    }
+
+    let basePath = components.percentEncodedPath
+    if basePath.isEmpty || basePath == "/" {
+      components.percentEncodedPath = normalizedPath
+    } else {
+      let trimmedBase = basePath.hasSuffix("/") ? String(basePath.dropLast()) : basePath
+      components.percentEncodedPath = trimmedBase + normalizedPath
+    }
+
+    components.percentEncodedQuery = split.count == 2 ? String(split[1]) : nil
+
+    guard let url = components.url else {
+      throw SupabaseRESTError.invalidURL(path)
+    }
+
+    return url
+  }
+
 }
