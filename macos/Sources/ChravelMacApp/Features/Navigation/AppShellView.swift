@@ -4,6 +4,7 @@ import SwiftUI
 struct AppShellView: View {
   @Bindable var appState: AppState
   @Bindable var sessionCoordinator: SessionCoordinator
+  @Bindable var workspaceCoordinator: TripWorkspaceCoordinator
 
   var body: some View {
     NavigationSplitView {
@@ -27,6 +28,15 @@ struct AppShellView: View {
                     .foregroundStyle(.secondary)
                 }
               }
+              .contentShape(Rectangle())
+              .onTapGesture {
+                appState.selectedTripId = trip.id
+                Task {
+                  await workspaceCoordinator.selectTrip(trip.id, session: sessionCoordinator.session)
+                }
+              }
+              .background(appState.selectedTripId == trip.id ? Color.accentColor.opacity(0.15) : .clear)
+              .clipShape(RoundedRectangle(cornerRadius: 8))
             }
           }
         }
@@ -52,6 +62,7 @@ struct AppShellView: View {
         Button {
           Task {
             await sessionCoordinator.bootstrap()
+            await workspaceCoordinator.selectTrip(appState.selectedTripId, session: sessionCoordinator.session)
           }
         } label: {
           Label("Refresh", systemImage: "arrow.clockwise")
@@ -85,8 +96,54 @@ struct AppShellView: View {
           .foregroundStyle(.red)
       }
 
+      if destination == .chat {
+        chatPane
+      }
+
       Spacer(minLength: 0)
     }
     .padding(24)
+  }
+
+  @ViewBuilder
+  private var chatPane: some View {
+    if appState.selectedTripId == nil {
+      Text("Select a trip from the sidebar to load chat.")
+        .foregroundStyle(.secondary)
+      return
+    }
+
+    switch workspaceCoordinator.chatLoadState {
+    case .idle:
+      Text("Chat not loaded yet")
+        .foregroundStyle(.secondary)
+    case .loading:
+      ProgressView("Loading messages…")
+    case .ready:
+      if workspaceCoordinator.messages.isEmpty {
+        Text("No messages yet")
+          .foregroundStyle(.secondary)
+      } else {
+        List(workspaceCoordinator.messages) { message in
+          VStack(alignment: .leading, spacing: 4) {
+            HStack {
+              Text(message.senderName)
+                .font(.subheadline.bold())
+              Spacer()
+              Text(message.createdAt, style: .time)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+            Text(message.content)
+              .font(.callout)
+          }
+          .padding(.vertical, 4)
+        }
+        .frame(minHeight: 240)
+      }
+    case let .failed(errorMessage):
+      Text(errorMessage)
+        .foregroundStyle(.red)
+    }
   }
 }

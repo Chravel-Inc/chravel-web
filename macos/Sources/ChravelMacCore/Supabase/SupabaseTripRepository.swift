@@ -39,11 +39,3 @@ private struct SupabaseTripRow: Decodable {
     case endDate = "end_date"
   }
 }
-
-private extension JSONDecoder {
-  static var supabase: JSONDecoder {
-    let decoder = JSONDecoder()
-    decoder.dateDecodingStrategy = .iso8601
-    return decoder
-  }
-}

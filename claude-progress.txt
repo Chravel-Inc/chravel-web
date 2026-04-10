@@ -271,3 +271,8 @@
 - Added `SessionCoordinator` (`@Observable`, main-actor) to bootstrap auth session + trip hydration and expose load states for native UI.
 - Updated app shell to surface hydrated trip list in sidebar and refresh bootstrap on demand.
 - Added core test suite (`ChravelMacCoreTests`) for config validation, mock repository behavior, and Supabase trip decoding via stubbed URLProtocol.
+2026-04-10 — Native macOS Module 3 (trip workspace + chat hydration)
+- Added chat domain model/protocol (`ChatMessage`, `ChatRepository`) and both mock + Supabase chat repositories.
+- Introduced `TripWorkspaceCoordinator` to hydrate chat messages for selected trip and expose explicit `ChatLoadState` to UI.
+- Updated app shell to support trip selection, chat hydration, and native chat message list rendering for selected trip.
+- Added core tests for mock chat filtering and Supabase chat decoding fallback behavior (`sender_name` -> `sender_id`).
