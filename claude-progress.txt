@@ -287,3 +287,8 @@
 - Implemented `PollingChatRealtimeService` as first transport backend, yielding AsyncThrowingStream snapshots.
 - Refactored `TripWorkspaceCoordinator` to consume realtime streams and merge incoming snapshots with optimistic local sends.
 - Added tests for polling realtime service snapshot behavior.
+
+2026-04-10 — AGENTS runtime-env accuracy correction
+- Updated `AGENTS.md` Cursor Cloud setup guidance to remove stale claim about hardcoded Supabase fallback credentials.
+- Documented the current requirement for `VITE_SUPABASE_URL` plus `VITE_SUPABASE_PUBLISHABLE_KEY` (or legacy anon key) in `.env.local`.
+- Verification: `npm run typecheck`.

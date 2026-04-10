@@ -307,7 +307,7 @@ This is a single-service frontend app. The only local service is the **Vite dev 
 npm run dev   # Vite on http://localhost:8080
 ```
 
-The Supabase client at `src/integrations/supabase/client.ts` has hardcoded fallback credentials (`KNOWN_PROJECT_URL` / `KNOWN_PROJECT_ANON_KEY`), so the app boots and connects to the hosted Supabase project **without any `.env` file**. For full third-party integrations (Google Maps, Stripe, PostHog, Sentry), copy `.env.example` to `.env.local` and fill in keys.
+The Supabase client now requires runtime env credentials (`VITE_SUPABASE_URL` and either `VITE_SUPABASE_PUBLISHABLE_KEY` or `VITE_SUPABASE_ANON_KEY`) — there is no hardcoded fallback. For local/dev setup, copy `.env.example` to `.env.local` and fill in keys (plus any third-party integrations like Google Maps, Stripe, PostHog, Sentry as needed).
 
 ### Quality checks (see `package.json` scripts)
 
