@@ -26,13 +26,14 @@ async function fetchToImageResponse(
   req: Request,
   upstreamUrl: string,
   extraHeaders: Record<string, string> = {},
+  redirectPolicy: RequestRedirect = 'error',
 ): Promise<Response> {
   const cors = getCorsHeaders(req);
 
   const upstream = await fetch(upstreamUrl, {
     headers: extraHeaders,
     signal: AbortSignal.timeout(12_000),
-    redirect: 'error', // SECURITY: Prevent redirect-chain SSRF to internal hosts
+    redirect: redirectPolicy, // 'error' for generic URLs (SSRF), 'follow' for trusted Google endpoints
   });
 
   if (!upstream.ok) {
@@ -103,10 +104,12 @@ serve(async req => {
       upstreamParams.set('maxWidthPx', String(maxWidthPx));
     if (Number.isFinite(maxHeightPx) && maxHeightPx > 0)
       upstreamParams.set('maxHeightPx', String(maxHeightPx));
+    upstreamParams.set('skipHttpRedirect', 'true');
     upstreamParams.set('key', GOOGLE_MAPS_API_KEY);
 
     const upstreamUrl = `https://places.googleapis.com/v1/${placePhotoName}/media?${upstreamParams.toString()}`;
-    return fetchToImageResponse(req, upstreamUrl);
+    // Safe to follow redirects: upstream URL is hardcoded to places.googleapis.com (no SSRF risk)
+    return fetchToImageResponse(req, upstreamUrl, {}, 'follow');
   }
 
   // --- Static map mode ---
