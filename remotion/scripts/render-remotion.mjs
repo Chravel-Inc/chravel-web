@@ -11,7 +11,7 @@ const outputPath = process.argv[3] || '/mnt/documents/chravel-product-launch-v2.
 console.log(`Bundling entry point...`);
 const bundled = await bundle({
   entryPoint: path.resolve(__dirname, '../src/index.ts'),
-  webpackOverride: (config) => config,
+  webpackOverride: config => config,
 });
 
 console.log(`Opening browser...`);
@@ -30,7 +30,9 @@ const composition = await selectComposition({
   puppeteerInstance: browser,
 });
 
-console.log(`Rendering ${composition.durationInFrames} frames (${composition.durationInFrames / composition.fps}s)...`);
+console.log(
+  `Rendering ${composition.durationInFrames} frames (${composition.durationInFrames / composition.fps}s)...`,
+);
 await renderMedia({
   composition,
   serveUrl: bundled,
