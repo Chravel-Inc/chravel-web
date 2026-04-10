@@ -265,3 +265,9 @@
 - Added lightweight telemetry wrapper via `OSLog` (`AppLogger`) and wired launch/toolbar interaction events.
 - Added baseline tests for destination model integrity (`AppDestinationTests`) to lock sidebar parity coverage as modules are implemented.
 - Verification: `cd macos && swift test` fails in this Linux CI environment due missing Apple `SwiftUI` module; code is intended to build on macOS hosts.
+2026-04-09 — Native macOS Module 2 (auth/session + repository skeleton)
+- Added `ChravelMacCore` library target with domain models (`UserSession`, `TripSummary`), repository/auth protocols, Supabase config parsing, REST client, and Supabase adapters (`SupabaseAuthProvider`, `SupabaseTripRepository`).
+- Added mock providers (`MockAuthProvider`, `MockTripRepository`) and wired runtime fallback in `SessionFactory` when Supabase env vars are absent.
+- Added `SessionCoordinator` (`@Observable`, main-actor) to bootstrap auth session + trip hydration and expose load states for native UI.
+- Updated app shell to surface hydrated trip list in sidebar and refresh bootstrap on demand.
+- Added core test suite (`ChravelMacCoreTests`) for config validation, mock repository behavior, and Supabase trip decoding via stubbed URLProtocol.

@@ -1,13 +1,35 @@
+import ChravelMacCore
 import SwiftUI
 
 struct AppShellView: View {
   @Bindable var appState: AppState
+  @Bindable var sessionCoordinator: SessionCoordinator
 
   var body: some View {
     NavigationSplitView {
-      List(AppDestination.allCases, selection: $appState.selectedDestination) { destination in
-        Label(destination.title, systemImage: destination.systemImage)
-          .tag(destination)
+      List(selection: $appState.selectedDestination) {
+        Section("Workspace") {
+          ForEach(AppDestination.allCases) { destination in
+            Label(destination.title, systemImage: destination.systemImage)
+              .tag(destination)
+          }
+        }
+
+        if !sessionCoordinator.trips.isEmpty {
+          Section("Trips") {
+            ForEach(sessionCoordinator.trips) { trip in
+              VStack(alignment: .leading, spacing: 2) {
+                Text(trip.title)
+                  .font(.subheadline)
+                if let destination = trip.destination {
+                  Text(destination)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+              }
+            }
+          }
+        }
       }
       .listStyle(.sidebar)
       .navigationTitle("Chravel")
@@ -28,9 +50,11 @@ struct AppShellView: View {
 
       ToolbarItem(placement: .primaryAction) {
         Button {
-          AppLogger.event("Open quick actions", category: AppLogger.navigation)
+          Task {
+            await sessionCoordinator.bootstrap()
+          }
         } label: {
-          Label("Quick Actions", systemImage: "bolt")
+          Label("Refresh", systemImage: "arrow.clockwise")
         }
       }
     }
@@ -46,9 +70,20 @@ struct AppShellView: View {
     VStack(alignment: .leading, spacing: 12) {
       Text(destination.title)
         .font(.largeTitle.bold())
-      Text("Module scaffold ready for native implementation.")
-        .font(.callout)
-        .foregroundStyle(.secondary)
+
+      switch sessionCoordinator.loadState {
+      case .idle:
+        Text("Ready to connect account and load trips.")
+          .foregroundStyle(.secondary)
+      case .loading:
+        ProgressView("Loading account and trips…")
+      case .ready:
+        Text("Loaded \(sessionCoordinator.trips.count) trip(s).")
+          .foregroundStyle(.secondary)
+      case let .failed(message):
+        Text(message)
+          .foregroundStyle(.red)
+      }
 
       Spacer(minLength: 0)
     }

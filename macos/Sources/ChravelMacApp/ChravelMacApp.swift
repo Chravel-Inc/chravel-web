@@ -3,13 +3,15 @@ import SwiftUI
 @main
 struct ChravelMacApp: App {
   @State private var appState = AppState()
+  @State private var sessionCoordinator = SessionFactory.makeCoordinator()
 
   var body: some Scene {
     WindowGroup("Chravel") {
-      AppShellView(appState: appState)
+      AppShellView(appState: appState, sessionCoordinator: sessionCoordinator)
         .frame(minWidth: 1100, minHeight: 720)
-        .onAppear {
+        .task {
           AppLogger.event("App launched")
+          await sessionCoordinator.bootstrap()
         }
     }
     .commands {
