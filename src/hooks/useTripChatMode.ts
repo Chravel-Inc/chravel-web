@@ -31,6 +31,8 @@ interface TripChatModeResult {
 export function useTripChatMode(
   tripId: string | undefined,
   userId: string | undefined,
+  /** When false, consumer/pro shell — never treat main chat as announcements-only. */
+  surfaceIsEvent?: boolean,
 ): TripChatModeResult {
   const [chatMode, setChatMode] = useState<ChatMode>(null);
   const [mediaUploadMode, setMediaUploadMode] = useState<MediaUploadMode>(null);
@@ -108,7 +110,12 @@ export function useTripChatMode(
   }, [tripId, userId, enabled]);
 
   const isAdmin = userRole === 'admin' || userRole === 'organizer' || userRole === 'owner';
-  const effectiveChatMode = resolveEffectiveMainChatMode(chatMode, tripType, attendeeCount);
+  const effectiveChatMode = resolveEffectiveMainChatMode(
+    chatMode,
+    tripType,
+    attendeeCount,
+    surfaceIsEvent,
+  );
 
   const canPost = canPostInMainChat({
     chatMode,
@@ -116,6 +123,7 @@ export function useTripChatMode(
     attendeeCount,
     userRole,
     isLoading,
+    surfaceIsEvent,
   });
 
   const canUploadMedia: boolean = (() => {
