@@ -18,9 +18,7 @@ export const useTripCoverPhoto = (
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
   const queryClient = useQueryClient();
-  const [coverPhoto, setCoverPhoto] = useState<string | undefined>(
-    normalizeTripCoverUrl(initialPhotoUrl),
-  );
+  const [coverPhoto, setCoverPhoto] = useState<string | undefined>(initialPhotoUrl);
   const [coverDisplayMode, setCoverDisplayMode] = useState<CoverDisplayMode>(initialDisplayMode);
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -28,11 +26,11 @@ export const useTripCoverPhoto = (
   useEffect(() => {
     if (isDemoMode) {
       const demoPhoto = demoModeService.getCoverPhoto(tripId);
-      setCoverPhoto(normalizeTripCoverUrl(demoPhoto ?? initialPhotoUrl));
+      setCoverPhoto(demoPhoto ?? initialPhotoUrl);
       setCoverDisplayMode(initialDisplayMode);
       return;
     }
-    setCoverPhoto(normalizeTripCoverUrl(initialPhotoUrl));
+    setCoverPhoto(initialPhotoUrl);
     setCoverDisplayMode(initialDisplayMode);
   }, [isDemoMode, tripId, initialPhotoUrl, initialDisplayMode]);
 
@@ -84,11 +82,12 @@ export const useTripCoverPhoto = (
 
     setIsUpdating(true);
     try {
+      const normalizedPhotoUrl = normalizeTripCoverUrl(photoUrl) ?? photoUrl;
       // Use .select() to verify the update actually happened
       // RLS policy "Trip creators can update their trips" handles authorization
       const { data, error } = await supabase
         .from('trips')
-        .update({ cover_image_url: photoUrl })
+        .update({ cover_image_url: normalizedPhotoUrl })
         .eq('id', tripId)
         .select('id')
         .maybeSingle();
@@ -102,7 +101,6 @@ export const useTripCoverPhoto = (
         return false;
       }
 
-      const normalizedPhotoUrl = normalizeTripCoverUrl(photoUrl);
       setCoverPhoto(normalizedPhotoUrl);
       queryClient.setQueriesData({ queryKey: tripKeys.detail(tripId) }, old =>
         old && typeof old === 'object' ? { ...old, cover_image_url: normalizedPhotoUrl } : old,

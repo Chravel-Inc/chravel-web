@@ -272,3 +272,7 @@
 - Added `normalizeTripCoverInRow(...)` in `tripService` and applied it to `getUserTrips`, `getTripById`, and edge-function fallback `fetchTripByIdViaEdgeFunction` so signed `trip-covers` URLs are canonicalized at the data source.
 - Added regression assertions in `tripConverter.test.ts` and `tripService.getUserTrips.test.ts` for signed cover URL normalization.
 - Verification: targeted tests + typecheck + build pass.
+2026-04-10 — Future-only cover policy adjustment (no legacy URL rewriting at read-time)
+- Per product direction, removed read-path normalization from `tripService`, `tripConverter`, and `useProTrips` to avoid touching already-working legacy covers.
+- Kept cache invalidation hardening in `useTripCoverPhoto` and changed cover update writes to persist canonicalized URL only for new/future updates.
+- This keeps existing legacy photo behavior unchanged while ensuring future cover updates use stable URL format.

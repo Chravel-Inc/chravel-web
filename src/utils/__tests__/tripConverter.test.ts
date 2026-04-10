@@ -78,19 +78,6 @@ describe('tripConverter', () => {
       expect(mockTrip.dateRange).toBe('not-a-date - also-not-a-date');
     });
 
-    it('normalizes signed trip cover URLs to stable public URLs', () => {
-      const signedCoverTrip = {
-        ...baseSupabaseTrip,
-        cover_image_url:
-          'https://abc.supabase.co/storage/v1/object/sign/trip-media/trip-covers/trip-123/cover.jpg?token=expiring',
-      };
-
-      const mockTrip = convertSupabaseTripToMock(signedCoverTrip);
-      expect(mockTrip.coverPhoto).toBe(
-        'https://abc.supabase.co/storage/v1/object/public/trip-media/trip-covers/trip-123/cover.jpg',
-      );
-    });
-
     it('returns empty date range if dates are missing', () => {
       const noDateTrip = {
         ...baseSupabaseTrip,

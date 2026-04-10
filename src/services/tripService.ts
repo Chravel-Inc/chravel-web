@@ -5,7 +5,6 @@ import { tripsData } from '@/data/tripsData';
 import { adaptTripsDataToTripSchema } from '@/utils/schemaAdapters';
 import { FORMER_MEMBER_LABEL } from '@/lib/resolveDisplayName';
 import { formatLocalDate } from '@/utils/dateHelpers';
-import { normalizeTripCoverUrl } from '@/utils/tripCoverStorage';
 
 /**
  * Normalizes date input to YYYY-MM-DD format for database date columns
@@ -95,13 +94,6 @@ interface TripDetailFunctionResponse {
   error_code?: TripDetailErrorCode;
 }
 
-function normalizeTripCoverInRow<T extends { cover_image_url?: string | null }>(row: T): T {
-  return {
-    ...row,
-    cover_image_url: normalizeTripCoverUrl(row.cover_image_url),
-  };
-}
-
 const fetchTripByIdViaEdgeFunction = async (tripId: string): Promise<Trip | null> => {
   const { data, error } = await supabase.functions.invoke('get-trip-detail', {
     body: { tripId },
@@ -129,7 +121,7 @@ const fetchTripByIdViaEdgeFunction = async (tripId: string): Promise<Trip | null
     throw new Error(response.error || 'Failed to load trip');
   }
 
-  return response.trip ? normalizeTripCoverInRow(response.trip) : null;
+  return response.trip ?? null;
 };
 
 export const tripService = {
@@ -505,11 +497,11 @@ export const tripService = {
         if (trip.created_by && (!memberSet || !memberSet.has(trip.created_by))) {
           count += 1;
         }
-        return normalizeTripCoverInRow({
+        return {
           ...trip,
           trip_members: [{ count }],
           trip_events_places: [{ count: placesCountMap.get(trip.id) || 0 }],
-        });
+        };
       });
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -541,7 +533,7 @@ export const tripService = {
     }
 
     if (data) {
-      return normalizeTripCoverInRow(data as Trip);
+      return data as Trip;
     }
 
     // No error but no data could be RLS filtering; fall back to server-side access check
