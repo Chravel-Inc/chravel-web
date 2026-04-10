@@ -22,6 +22,13 @@ export const useTripCoverPhoto = (
   const [coverDisplayMode, setCoverDisplayMode] = useState<CoverDisplayMode>(initialDisplayMode);
   const [isUpdating, setIsUpdating] = useState(false);
 
+  const invalidateTripCoverQueries = () => {
+    queryClient.invalidateQueries({ queryKey: tripKeys.all });
+    queryClient.invalidateQueries({ queryKey: ['proTrips'] });
+    queryClient.invalidateQueries({ queryKey: ['events'] });
+    queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
+  };
+
   // Keep local state aligned with TanStack Query / parent props (detail key is ['trip', id, userId], not ['trips'])
   useEffect(() => {
     if (isDemoMode) {
@@ -105,11 +112,7 @@ export const useTripCoverPhoto = (
       queryClient.setQueriesData({ queryKey: tripKeys.detail(tripId) }, old =>
         old && typeof old === 'object' ? { ...old, cover_image_url: normalizedPhotoUrl } : old,
       );
-      // Trip list uses ['trips', ...]; trip detail uses ['trip', tripId, userId] — invalidate both
-      queryClient.invalidateQueries({ queryKey: tripKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['proTrips'] });
-      queryClient.invalidateQueries({ queryKey: ['events'] });
-      queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
+      invalidateTripCoverQueries();
       toast.success('Cover photo updated');
       return true;
     } catch (error) {
@@ -170,10 +173,7 @@ export const useTripCoverPhoto = (
       queryClient.setQueriesData({ queryKey: tripKeys.detail(tripId) }, old =>
         old && typeof old === 'object' ? { ...old, cover_image_url: null } : old,
       );
-      queryClient.invalidateQueries({ queryKey: tripKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['proTrips'] });
-      queryClient.invalidateQueries({ queryKey: ['events'] });
-      queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
+      invalidateTripCoverQueries();
       toast.success('Cover photo removed');
       return true;
     } catch (error) {
@@ -215,10 +215,7 @@ export const useTripCoverPhoto = (
       queryClient.setQueriesData({ queryKey: tripKeys.detail(tripId) }, old =>
         old && typeof old === 'object' ? { ...old, cover_display_mode: mode } : old,
       );
-      queryClient.invalidateQueries({ queryKey: tripKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['proTrips'] });
-      queryClient.invalidateQueries({ queryKey: ['events'] });
-      queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
+      invalidateTripCoverQueries();
       return true;
     } catch (error) {
       console.error('Error updating cover display mode:', error);
