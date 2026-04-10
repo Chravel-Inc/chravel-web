@@ -1,39 +1,46 @@
 
-Goal: restore concierge requests in preview and confirm dictation remains free.
 
-What I found
-- Dictation paywall is already removed in source: `src/components/AIConciergeChat.tsx` passes `isVoiceEligible={true}` into `AiChatInput`. The lock icon only appears when `VoiceButton` receives `isEligible={false}`, so if you still saw a lock, the preview was likely stale/cached rather than the current code path.
-- The remaining failure is CORS, not request parsing. Console and network traces show both the concierge health ping and the real concierge POST fail with browser-level `Failed to fetch`.
-- The active browser origin is `https://20feaa04-0946-4c68-a68d-0eb88cc1b9c4.lovableproject.com`.
-- Shared CORS in `supabase/functions/_shared/cors.ts` allows `chravel.app`, localhost, and `.lovable.app`, but not the active `.lovableproject.com` origin. That means the browser blocks the edge-function response before `lovable-concierge` can process the request.
+## Revised Plan: Fix Hotel Photos + "Open in Maps"
 
-Implementation plan
-1. Fix the shared CORS allowlist
-   - File: `supabase/functions/_shared/cors.ts`
-   - Add the exact active preview origin `https://20feaa04-0946-4c68-a68d-0eb88cc1b9c4.lovableproject.com` using `ADDITIONAL_ALLOWED_ORIGINS` (preferred) or an exact-code fallback.
-   - Do not add wildcard `.lovableproject.com`.
+### Issue 1: Hotel Photos Not Loading
 
-2. Add regression tests
-   - File: `supabase/functions/_shared/__tests__/cors.security.test.ts`
-   - Add coverage that:
-     - allows the exact approved `.lovableproject.com` origin
-     - rejects unrelated `https://evil.lovableproject.com`
-   - Keep unauthorized shared-host origins blocked.
+**Root cause:** `fetchToImageResponse` uses `redirect: 'error'` (line 35). Google Places Photo API v1 returns a 302 redirect. The fetch throws on redirect, returning 500 to the browser.
 
-3. Redeploy the affected edge functions
-   - Minimum: `lovable-concierge` and `google-maps-proxy`
-   - Reason: the concierge request and startup health checks both depend on the shared CORS helper.
+**Fix (two layers of protection):**
 
-4. Improve diagnostics for next time
-   - Files: `src/services/conciergeGateway.ts`, optionally `src/services/apiHealthCheck.ts`
-   - Mirror the existing `tripService` pattern so raw `Failed to fetch` becomes a clearer preview-origin/CORS diagnostic for engineers while keeping user-facing messaging simple.
+1. **`supabase/functions/image-proxy/index.ts`** — Refactor `fetchToImageResponse` to accept a `redirectPolicy` parameter (default `'error'` for SSRF safety on generic URLs). In the placePhotoName code path:
+   - Add `skipHttpRedirect=true` to upstream params (tells Google to return bytes directly)
+   - Pass `redirect: 'follow'` as the redirect policy (safe because the upstream URL is hardcoded to `places.googleapis.com`, not user-controlled — no SSRF risk)
+   - This means if `skipHttpRedirect` is ever ignored, the redirect still works
 
-5. Verify end-to-end
-   - Hard refresh the preview after deploy.
-   - Confirm the dictation button is unlocked.
-   - Confirm `ping` to `lovable-concierge` succeeds from the preview.
-   - Re-run the same “add these flights to my calendar” request and confirm it no longer falls back to “Sorry, I encountered an error processing your request.”
-   - Confirm `Access-Control-Allow-Origin` echoes the preview origin.
+2. **No new env vars or API key scopes needed** — `skipHttpRedirect` is a standard Google Places Photo param, and `redirect: 'follow'` is a fetch option. The existing `GOOGLE_MAPS_API_KEY` already has Places Photo access.
 
-Technical note
-- There is a separate security inconsistency in the current repo: tests say random `*.lovable.app` origins should be rejected, but runtime code still contains a `.lovable.app` suffix matcher. I’ll keep this fix surgical and avoid widening CORS further; if needed, I can follow with a separate hardening pass to move all preview access to exact env-managed origins only.
+3. **Rollback:** Revert the single file. The generic URL proxy path remains unchanged (`redirect: 'error'`).
+
+**Verification:** After deploy, use `supabase--curl_edge_functions` to hit the image-proxy with a known `placePhotoName` and confirm HTTP 200 with `content-type: image/*`.
+
+### Issue 2: "Open in Maps" Blocked
+
+**Root cause:** Lovable preview runs in a sandboxed iframe missing `allow-popups`. Both `<a target="_blank">` and `window.open()` are blocked. This is a **preview-only limitation** — production (`chravel.app`) works correctly.
+
+**Fix in `src/features/chat/components/PlaceResultCards.tsx`:**
+- Replace `<a target="_blank">` with a `<button>` that attempts `window.open()`
+- When blocked (returns `null`), copy URL to clipboard with inline feedback: **"Copied! Paste in your browser"** (not a generic toast — this will be the primary path in preview)
+- On production where `window.open()` succeeds, the button behaves like the original link
+
+**Testing note:** This fix cannot be verified in the Lovable preview. The clipboard fallback is the only working path in preview. Real navigation must be tested on `chravel.app`.
+
+### Summary
+
+| File | Change |
+|------|--------|
+| `supabase/functions/image-proxy/index.ts` | Add `skipHttpRedirect=true` + pass `redirect: 'follow'` for placePhotoName path only |
+| `src/features/chat/components/PlaceResultCards.tsx` | `window.open()` + clipboard fallback with inline "Copied!" message |
+
+**Deploy:** `image-proxy` edge function
+
+**Verification steps:**
+1. `curl` the image-proxy with a real `placePhotoName` → expect 200 + image bytes
+2. In preview: confirm hotel photos render; confirm "Open in Maps" copies link with inline feedback
+3. On production: confirm "Open in Maps" opens Google Maps in new tab
+
