@@ -621,7 +621,6 @@ export const TripGrid = React.memo(
                         dateRange: formatRequestStartDate(request.trip?.start_date),
                         participants: [],
                         coverPhoto: request.trip?.cover_image_url,
-                        created_by: request.user_id,
                         peopleCount: 0,
                         placesCount: 0,
                       }}

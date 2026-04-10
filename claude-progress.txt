@@ -1,3 +1,8 @@
+2026-04-10 — PR #168 review follow-up (cursor bot comments addressed)
+- Fixed pending status visibility on mobile by rendering `TripCard` pending badge at all breakpoints (no longer `hidden md:flex`).
+- Removed misleading outbound request mapping field in `TripGrid` (`created_by: request.user_id`) to avoid semantic drift/footgun in future card logic.
+- Re-verified targeted tests + typecheck + build after follow-up.
+
 
 2026-04-10 — Requests tab pending-trip card parity + realtime invalidation hardening
 - Replaced dashboard outbound pending-request rendering path to use `TripCard` in `pendingApproval` mode instead of the grayed `PendingTripCard` variant.

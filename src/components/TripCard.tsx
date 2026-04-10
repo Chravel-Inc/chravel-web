@@ -454,7 +454,7 @@ export const TripCard = ({
                   </div>
                 )}
                 {pendingApproval && (
-                  <div className="hidden md:flex gap-2 mt-1">
+                  <div className="flex gap-2 mt-1">
                     <Badge
                       variant="secondary"
                       className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30"
