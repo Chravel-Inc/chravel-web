@@ -78,6 +78,12 @@ interface TripCardProps {
   onDeleteSuccess?: () => void;
   /** When true, loads cover photo eagerly (for above-the-fold cards) */
   priority?: boolean;
+  /** Render a normal-looking card in pending mode with trip actions disabled. */
+  pendingApproval?: boolean;
+  pendingBadgeLabel?: string;
+  pendingSecondaryActionLabel?: string;
+  onPendingSecondaryAction?: () => void;
+  isPendingSecondaryActionLoading?: boolean;
 }
 
 export const TripCard = ({
@@ -86,6 +92,11 @@ export const TripCard = ({
   onHideSuccess,
   onDeleteSuccess,
   priority = false,
+  pendingApproval = false,
+  pendingBadgeLabel = 'Pending Approval',
+  pendingSecondaryActionLabel,
+  onPendingSecondaryAction,
+  isPendingSecondaryActionLoading = false,
 }: TripCardProps) => {
   const navigate = useNavigate();
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -119,6 +130,7 @@ export const TripCard = ({
   }, [prefetch, tripIdStr]);
 
   const handleViewTrip = () => {
+    if (pendingApproval) return;
     navigate(`/trip/${trip.id}`);
   };
 
@@ -441,6 +453,16 @@ export const TripCard = ({
                     )}
                   </div>
                 )}
+                {pendingApproval && (
+                  <div className="hidden md:flex gap-2 mt-1">
+                    <Badge
+                      variant="secondary"
+                      className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30"
+                    >
+                      {pendingBadgeLabel}
+                    </Badge>
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-2 text-white/80 mb-1 md:mb-3 text-sm md:text-base">
@@ -454,40 +476,42 @@ export const TripCard = ({
               <span className="font-medium truncate">{trip.dateRange}</span>
             </div>
           </div>
-          {/* Archive menu - works on both mobile and desktop */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="text-white/60 hover:text-white transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 p-2 hover:bg-white/10 rounded-lg md:rounded-xl">
-                <MoreHorizontal size={18} className="md:hidden" />
-                <MoreHorizontal size={20} className="hidden md:block" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-background border-border">
-              <DropdownMenuItem
-                onClick={() => setShowArchiveDialog(true)}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <Archive className="mr-2 h-4 w-4" />
-                Archive Trip
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={handleHideTrip}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <EyeOff className="mr-2 h-4 w-4" />
-                Hide Trip
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => setShowDeleteDialog(true)}
-                className="text-destructive hover:text-destructive"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete for me
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Archive menu - hidden for pending-approval cards */}
+          {!pendingApproval && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="text-white/60 hover:text-white transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 p-2 hover:bg-white/10 rounded-lg md:rounded-xl">
+                  <MoreHorizontal size={18} className="md:hidden" />
+                  <MoreHorizontal size={20} className="hidden md:block" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-background border-border">
+                <DropdownMenuItem
+                  onClick={() => setShowArchiveDialog(true)}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <Archive className="mr-2 h-4 w-4" />
+                  Archive Trip
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleHideTrip}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <EyeOff className="mr-2 h-4 w-4" />
+                  Hide Trip
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => setShowDeleteDialog(true)}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete for me
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
 
@@ -512,8 +536,12 @@ export const TripCard = ({
         <div className="grid grid-cols-2 gap-2 md:gap-3">
           {/* Top Row */}
           <button
-            onClick={() => setShowExportModal(true)}
-            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gold-primary/30 hover:border-gold-primary/50 text-xs md:text-sm flex items-center justify-center gap-1.5"
+            onClick={() => {
+              if (pendingApproval) return;
+              setShowExportModal(true);
+            }}
+            disabled={pendingApproval}
+            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gold-primary/30 hover:border-gold-primary/50 text-xs md:text-sm flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <FileDown size={14} className="md:hidden" />
             <FileDown size={16} className="hidden md:block" />
@@ -521,8 +549,12 @@ export const TripCard = ({
           </button>
 
           <button
-            onClick={() => setShowInviteModal(true)}
-            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gold-primary/30 hover:border-gold-primary/50 text-xs md:text-sm flex items-center justify-center gap-1.5"
+            onClick={() => {
+              if (pendingApproval) return;
+              setShowInviteModal(true);
+            }}
+            disabled={pendingApproval}
+            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gold-primary/30 hover:border-gold-primary/50 text-xs md:text-sm flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <User size={14} className="md:hidden" />
             <User size={16} className="hidden md:block" />
@@ -534,18 +566,33 @@ export const TripCard = ({
             onClick={handleViewTrip}
             onMouseEnter={handlePrefetch}
             onFocus={handlePrefetch}
-            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gold-primary/30 hover:border-gold-primary/50 text-xs md:text-sm"
+            disabled={pendingApproval}
+            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gold-primary/30 hover:border-gold-primary/50 text-xs md:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             View
           </button>
 
           <button
-            onClick={() => setShowShareModal(true)}
-            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gold-primary/30 hover:border-gold-primary/50 text-xs md:text-sm"
+            onClick={() => {
+              if (pendingApproval) return;
+              setShowShareModal(true);
+            }}
+            disabled={pendingApproval}
+            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gold-primary/30 hover:border-gold-primary/50 text-xs md:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Share
           </button>
         </div>
+        {pendingApproval && pendingSecondaryActionLabel && onPendingSecondaryAction && (
+          <button
+            type="button"
+            onClick={onPendingSecondaryAction}
+            disabled={isPendingSecondaryActionLoading}
+            className="mt-3 w-full text-sm font-medium rounded-lg py-2.5 px-3 min-h-[44px] border border-border/80 bg-background/30 hover:bg-background/50 text-foreground disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isPendingSecondaryActionLoading ? 'Canceling…' : pendingSecondaryActionLabel}
+          </button>
+        )}
       </div>
 
       <InviteModal
