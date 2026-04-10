@@ -19,7 +19,7 @@ import type {
   VoiceDiagnostics,
   VoiceConversationTurn,
   ToolCallResult,
-} from './useGeminiLive';
+} from '@/types/voice';
 import { LIVEKIT_WS_URL } from '@/config/voiceFeatureFlags';
 import * as circuitBreaker from '@/voice/circuitBreaker';
 import type { FailureCategory } from '@/voice/circuitBreaker';

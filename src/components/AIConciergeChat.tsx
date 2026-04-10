@@ -27,10 +27,8 @@ import type { HotelResult } from '@/features/chat/components/HotelResultCards';
 import { toast } from 'sonner';
 import { useWebSpeechVoice } from '@/hooks/useWebSpeechVoice';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
-import { useGeminiLive } from '@/hooks/useGeminiLive';
-import type { ToolCallResult } from '@/hooks/useGeminiLive';
 import { useLiveKitVoice } from '@/hooks/useLiveKitVoice';
-import { VOICE_RUNTIME } from '@/config/voiceFeatureFlags';
+import type { ToolCallResult } from '@/types/voice';
 import { useVoiceToolHandler } from '@/hooks/useVoiceToolHandler';
 import { VoiceLiveInline } from '@/features/chat/components/VoiceLiveInline';
 import { CTA_BUTTON, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
@@ -504,13 +502,9 @@ export const AIConciergeChat = ({
   }, [streamConciergeEnabled, isStreamHistoryLoaded, messages.length]);
 
   // ─── Voice ─────────────────────────────────────────────────────────────────
-  // When DUPLEX_VOICE_ENABLED is true, the waveform button tries Gemini Live
-  // first.  If bidirectional audio fails, we fall back to Web Speech API
-  // Dictation and Gemini Live are now separate controls — no auto-fallback needed.
-  // When DUPLEX_VOICE_ENABLED is false, the waveform button uses basic Web
-  // Speech API dictation. Transcribed text fills the input field so the user
-  // can review/edit before sending. All Gemini Live hooks remain initialised
-  // (hooks rules) but are not invoked.
+  // When DUPLEX_VOICE_ENABLED is true, the waveform button starts a LiveKit
+  // bidirectional voice session. When false, it is hidden entirely.
+  // Web Speech API dictation (microphone icon) is always available.
 
   // ── Dictation (Web Speech API) ──────────────────────────────────────────
   // Dictation callback: fill the text input with the transcribed speech
@@ -558,8 +552,8 @@ export const AIConciergeChat = ({
    */
   const [streamingUserMessage, setStreamingUserMessage] = useState<ChatMessage | null>(null);
 
-  // Gemini Live bidirectional voice — always initialized (hooks rules)
-  const { handleToolCall } = useVoiceToolHandler({
+  // Voice tool handler — reserved for future LiveKit client-side tool routing
+  const { handleToolCall: _handleToolCall } = useVoiceToolHandler({
     tripId,
     userId: user?.id ?? '',
   });
@@ -765,62 +759,24 @@ export const AIConciergeChat = ({
     });
   }, []);
 
+  // LiveKit voice — sole voice runtime (Vertex AI removed)
   const {
-    // Both hooks always called (Rules of Hooks). Only the active runtime's startSession is invoked.
-    state: vertexState,
-    error: vertexError,
-    userTranscript: vertexUserTranscript,
-    assistantTranscript: vertexAssistantTranscript,
-    conversationHistory: vertexConversationHistory,
-    diagnostics: vertexDiagnostics,
-    startSession: startVertexSession,
-    endSession: endVertexSession,
-    circuitBreakerOpen: vertexCircuitBreakerOpen,
-    resetCircuitBreaker: vertexResetCircuitBreaker,
-  } = useGeminiLive({
-    tripId,
-    onToolCall: handleToolCall,
-    onTurnComplete: VOICE_RUNTIME === 'vertex' ? handleLiveTurnComplete : undefined,
-    onError: VOICE_RUNTIME === 'vertex' ? handleLiveError : undefined,
-  });
-
-  // LiveKit voice hook — tripId is the same prop passed to the component,
-  // ensuring trip context is always in sync. Both hooks are always called
-  // per React Rules of Hooks, but only the active runtime's callbacks fire.
-  const {
-    state: lkState,
-    error: lkError,
-    userTranscript: lkUserTranscript,
-    assistantTranscript: lkAssistantTranscript,
-    conversationHistory: lkConversationHistory,
-    diagnostics: lkDiagnostics,
-    startSession: startLkSession,
-    endSession: endLkSession,
-    circuitBreakerOpen: lkCircuitBreakerOpen,
-    resetCircuitBreaker: lkResetCircuitBreaker,
+    state: liveState,
+    error: liveError,
+    userTranscript: liveUserTranscript,
+    assistantTranscript: liveAssistantTranscript,
+    conversationHistory: liveConversationHistory,
+    diagnostics: liveDiagnostics,
+    startSession: startLiveSession,
+    endSession: endLiveSession,
+    circuitBreakerOpen: liveCircuitBreakerOpen,
+    resetCircuitBreaker: liveResetCircuitBreaker,
   } = useLiveKitVoice({
     tripId,
-    onTurnComplete: VOICE_RUNTIME === 'livekit' ? handleLiveTurnComplete : undefined,
-    onRichCard: VOICE_RUNTIME === 'livekit' ? handleLiveRichCard : undefined,
-    onError: VOICE_RUNTIME === 'livekit' ? handleLiveError : undefined,
+    onTurnComplete: handleLiveTurnComplete,
+    onRichCard: handleLiveRichCard,
+    onError: handleLiveError,
   });
-
-  // Select active voice runtime — VOICE_RUNTIME is a build-time constant
-  // so only one path is ever active. Both hooks idle harmlessly when inactive.
-  const liveState = VOICE_RUNTIME === 'livekit' ? lkState : vertexState;
-  const liveError = VOICE_RUNTIME === 'livekit' ? lkError : vertexError;
-  const liveUserTranscript = VOICE_RUNTIME === 'livekit' ? lkUserTranscript : vertexUserTranscript;
-  const liveAssistantTranscript =
-    VOICE_RUNTIME === 'livekit' ? lkAssistantTranscript : vertexAssistantTranscript;
-  const liveConversationHistory =
-    VOICE_RUNTIME === 'livekit' ? lkConversationHistory : vertexConversationHistory;
-  const liveDiagnostics = VOICE_RUNTIME === 'livekit' ? lkDiagnostics : vertexDiagnostics;
-  const startLiveSession = VOICE_RUNTIME === 'livekit' ? startLkSession : startVertexSession;
-  const endLiveSession = VOICE_RUNTIME === 'livekit' ? endLkSession : endVertexSession;
-  const liveCircuitBreakerOpen =
-    VOICE_RUNTIME === 'livekit' ? lkCircuitBreakerOpen : vertexCircuitBreakerOpen;
-  const liveResetCircuitBreaker =
-    VOICE_RUNTIME === 'livekit' ? lkResetCircuitBreaker : vertexResetCircuitBreaker;
 
   // Voice state for VoiceButton — dictation only (Live is separate button now)
   const convoVoiceState: VoiceState = dictationState;
