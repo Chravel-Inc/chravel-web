@@ -299,3 +299,7 @@
 - Surfaced transient chat errors in `AppShellView` while preserving message list visibility and send workflow.
 - Updated `macos/README.md` token guidance to recommend temporary shell scope / Keychain-style handling for access tokens.
 - Verification: `cd macos && swift test`; `npm run typecheck`.
+2026-04-10 — Added PR #164 rebase runbook for terminal + GitHub conflict resolution
+- Added `docs/ACTIVE/PR_164_REBASE_RUNBOOK.md` with step-by-step recovery for `fatal: not a git repository` and a safe rebase flow (`fetch`, `rebase`, conflict resolution, `--force-with-lease`).
+- Included PR-specific conflict triage order to reduce merge regression risk.
+- Verification: `npx prettier --check docs/ACTIVE/PR_164_REBASE_RUNBOOK.md`.
