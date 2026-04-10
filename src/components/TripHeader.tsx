@@ -391,7 +391,10 @@ export const TripHeader = ({
 
       // Add cache-busting param for re-crops
       const finalUrl = `${urlData.publicUrl}?v=${Date.now()}`;
-      await updateCoverPhoto(finalUrl);
+      const saved = await updateCoverPhoto(finalUrl);
+      if (!saved) {
+        toast.error('Photo uploaded but could not be saved to the trip.');
+      }
     } catch (error) {
       console.error('Cover photo upload error:', error);
       toast.error('Failed to upload cover photo');
