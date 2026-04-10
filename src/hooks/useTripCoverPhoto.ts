@@ -22,6 +22,13 @@ export const useTripCoverPhoto = (
   const [coverDisplayMode, setCoverDisplayMode] = useState<CoverDisplayMode>(initialDisplayMode);
   const [isUpdating, setIsUpdating] = useState(false);
 
+  const invalidateTripCoverQueries = () => {
+    queryClient.invalidateQueries({ queryKey: tripKeys.all });
+    queryClient.invalidateQueries({ queryKey: ['proTrips'] });
+    queryClient.invalidateQueries({ queryKey: ['events'] });
+    queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
+  };
+
   // Keep local state aligned with TanStack Query / parent props (detail key is ['trip', id, userId], not ['trips'])
   useEffect(() => {
     if (isDemoMode) {
@@ -116,11 +123,12 @@ export const useTripCoverPhoto = (
 
     setIsUpdating(true);
     try {
+      const normalizedPhotoUrl = normalizeTripCoverUrl(photoUrl) ?? photoUrl;
       // Use .select() to verify the update actually happened
       // RLS policy "Trip members can update trip details" handles authorization
       const { data, error } = await supabase
         .from('trips')
-        .update({ cover_image_url: photoUrl })
+        .update({ cover_image_url: normalizedPhotoUrl })
         .eq('id', tripId)
         .select('id, cover_image_url')
         .maybeSingle();
@@ -220,6 +228,10 @@ export const useTripCoverPhoto = (
 
       // Update local state
       setCoverPhoto(undefined);
+      queryClient.setQueriesData({ queryKey: tripKeys.detail(tripId) }, old =>
+        old && typeof old === 'object' ? { ...old, cover_image_url: null } : old,
+      );
+      invalidateTripCoverQueries();
 
       // Update query cache
       updateTripCacheWithCoverPhoto(null);

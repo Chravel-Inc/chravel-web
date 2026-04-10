@@ -62,7 +62,7 @@ describe('useTripCoverPhoto', () => {
     maybeSingleMock.mockResolvedValue({ data: { id: 'trip-abc' }, error: null });
   });
 
-  it('invalidates trip list and trip detail queries after successful cover update', async () => {
+  it('invalidates trip list/detail + pro/event collections after successful cover update', async () => {
     const wrapper = createWrapper();
     const { result } = renderHook(() => useTripCoverPhoto('trip-abc'), { wrapper });
 
@@ -74,6 +74,8 @@ describe('useTripCoverPhoto', () => {
     });
 
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: tripKeys.all });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['proTrips'] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['events'] });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: tripKeys.detail('trip-abc') });
   });
 
@@ -95,7 +97,7 @@ describe('useTripCoverPhoto', () => {
     });
   });
 
-  it('updates cover display mode and invalidates trip queries', async () => {
+  it('updates cover display mode and invalidates all trip collections', async () => {
     const wrapper = createWrapper();
     const { result } = renderHook(() => useTripCoverPhoto('trip-abc', undefined, 'cover'), {
       wrapper,
@@ -108,6 +110,8 @@ describe('useTripCoverPhoto', () => {
 
     expect(result.current.coverDisplayMode).toBe('contain');
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: tripKeys.all });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['proTrips'] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['events'] });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: tripKeys.detail('trip-abc') });
   });
 });
