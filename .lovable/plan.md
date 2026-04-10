@@ -1,45 +1,39 @@
 
+Goal: restore concierge requests in preview and confirm dictation remains free.
 
-## Fix: Voice Dictation Paywall + Concierge Error + Build Errors
+What I found
+- Dictation paywall is already removed in source: `src/components/AIConciergeChat.tsx` passes `isVoiceEligible={true}` into `AiChatInput`. The lock icon only appears when `VoiceButton` receives `isEligible={false}`, so if you still saw a lock, the preview was likely stale/cached rather than the current code path.
+- The remaining failure is CORS, not request parsing. Console and network traces show both the concierge health ping and the real concierge POST fail with browser-level `Failed to fetch`.
+- The active browser origin is `https://20feaa04-0946-4c68-a68d-0eb88cc1b9c4.lovableproject.com`.
+- Shared CORS in `supabase/functions/_shared/cors.ts` allows `chravel.app`, localhost, and `.lovable.app`, but not the active `.lovableproject.com` origin. That means the browser blocks the edge-function response before `lovable-concierge` can process the request.
 
-### Issue 1: Voice dictation locked behind upgrade paywall
+Implementation plan
+1. Fix the shared CORS allowlist
+   - File: `supabase/functions/_shared/cors.ts`
+   - Add the exact active preview origin `https://20feaa04-0946-4c68-a68d-0eb88cc1b9c4.lovableproject.com` using `ADDITIONAL_ALLOWED_ORIGINS` (preferred) or an exact-code fallback.
+   - Do not add wildcard `.lovableproject.com`.
 
-**Root cause:** `AIConciergeChat.tsx` line 2529 passes `isVoiceEligible={DUPLEX_VOICE_ENABLED}`, where `DUPLEX_VOICE_ENABLED = false` (line 76). This constant gates **Gemini Live** (duplex voice), but it's incorrectly also gating basic **Web Speech API dictation**, which should always be available.
+2. Add regression tests
+   - File: `supabase/functions/_shared/__tests__/cors.security.test.ts`
+   - Add coverage that:
+     - allows the exact approved `.lovableproject.com` origin
+     - rejects unrelated `https://evil.lovableproject.com`
+   - Keep unauthorized shared-host origins blocked.
 
-**Fix in `src/components/AIConciergeChat.tsx`:**
-- Change line 2529 from `isVoiceEligible={DUPLEX_VOICE_ENABLED}` to `isVoiceEligible={true}`
-- Basic dictation (Web Speech API) is always free — the paywall should only apply to Gemini Live duplex voice, which has its own separate button gated by `DUPLEX_VOICE_ENABLED`
+3. Redeploy the affected edge functions
+   - Minimum: `lovable-concierge` and `google-maps-proxy`
+   - Reason: the concierge request and startup health checks both depend on the shared CORS helper.
 
-### Issue 2: Concierge returns "Sorry, I encountered an error processing your request"
+4. Improve diagnostics for next time
+   - Files: `src/services/conciergeGateway.ts`, optionally `src/services/apiHealthCheck.ts`
+   - Mirror the existing `tripService` pattern so raw `Failed to fetch` becomes a clearer preview-origin/CORS diagnostic for engineers while keeping user-facing messaging simple.
 
-**Root cause:** CORS origin mismatch. The Lovable preview origin (`https://id-preview--20feaa04-0946-4c68-a68d-0eb88cc1b9c4.lovable.app`) is **not** in the CORS allowlist in `supabase/functions/_shared/cors.ts`. The edge function returns 200 OK, but the CORS `Access-Control-Allow-Origin` header defaults to `https://chravel.app`, so the browser blocks the response body — manifesting as "Failed to fetch" in the network log. The SSE streaming path catches this error and shows the fallback error message.
+5. Verify end-to-end
+   - Hard refresh the preview after deploy.
+   - Confirm the dictation button is unlocked.
+   - Confirm `ping` to `lovable-concierge` succeeds from the preview.
+   - Re-run the same “add these flights to my calendar” request and confirm it no longer falls back to “Sorry, I encountered an error processing your request.”
+   - Confirm `Access-Control-Allow-Origin` echoes the preview origin.
 
-**Fix in `supabase/functions/_shared/cors.ts`:**
-- Add `.lovable.app` as a suffix matcher to `ALLOWED_ORIGINS` — this allows `*.lovable.app` preview URLs. This is safe because only Lovable preview deployments use this domain.
-
-**Note:** This only affects the Lovable preview environment. Production (`chravel.app`) is already in the allowlist and works fine.
-
-### Issue 3: Build errors (3 files)
-
-**3a. `src/services/stream/streamClient.ts` line 117:**
-- `notifyConnectionStatusSubscribers` is called but never defined. It's a duplicate of `notifyStatusChangeSubscribers` (which exists and is called on the adjacent line 113).
-- **Fix:** Remove line 117 (the redundant call).
-
-**3b. `supabase/functions/livekit-token/index.ts` line 142:**
-- `agents: [{ agentName: 'chravel-voice' }]` — the `RoomAgentDispatch` type from the LiveKit SDK requires more fields than just `agentName`.
-- **Fix:** Cast to `any` with intentional comment: `agents: [{ agentName: 'chravel-voice' } as any]`
-
-**3c. `supabase/functions/send-push/index.ts` line 81:**
-- `notification.data as Record<string, unknown>` fails because `PushPayload` doesn't have an index signature.
-- **Fix:** Double-cast: `notification.data as unknown as Record<string, unknown>`
-
-### Summary of changes
-
-| File | Change |
-|------|--------|
-| `src/components/AIConciergeChat.tsx` | `isVoiceEligible={true}` |
-| `supabase/functions/_shared/cors.ts` | Add `.lovable.app` to ALLOWED_ORIGINS |
-| `src/services/stream/streamClient.ts` | Remove duplicate `notifyConnectionStatusSubscribers` call |
-| `supabase/functions/livekit-token/index.ts` | Cast agent dispatch to `any` |
-| `supabase/functions/send-push/index.ts` | Double-cast `notification.data` |
-
+Technical note
+- There is a separate security inconsistency in the current repo: tests say random `*.lovable.app` origins should be rejected, but runtime code still contains a `.lovable.app` suffix matcher. I’ll keep this fix surgical and avoid widening CORS further; if needed, I can follow with a separate hardening pass to move all preview access to exact env-managed origins only.
