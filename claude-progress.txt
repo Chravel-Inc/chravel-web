@@ -291,3 +291,9 @@
 - Added polling-based realtime hydration loop (6s refresh) tied to selected trip to avoid stale chat state between sends.
 - Updated chat UI with native composer (`TextField` + send button + disabled/loading states).
 - Added regression tests for mock in-memory send persistence and Supabase POST insert path behavior.
+2026-04-10 — Concierge action-plan mode flag (legacy vs tool_first)
+- Added env-gated prompt behavior in `supabase/functions/_shared/concierge/promptAssembler.ts` via `CONCIERGE_ACTION_PLAN_MODE`.
+- `legacy` mode preserves mandatory Action Plan JSON preamble block; `tool_first` mode replaces it with deterministic tool-execution guidance (call required tools directly, then concise summary).
+- Booking and safety constraints remain unchanged in core persona section.
+- Added regression tests in `supabase/functions/_shared/__tests__/promptAssembler.actionPlanMode.test.ts` to verify write-intent tool requirements persist, legacy JSON block is absent in `tool_first`, and write-class prompt length is shorter in `tool_first`.
+- Verification: `npm run test:run -- supabase/functions/_shared/__tests__/promptAssembler.actionPlanMode.test.ts`, `npm run typecheck`.

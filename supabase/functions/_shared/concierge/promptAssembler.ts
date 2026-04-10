@@ -27,6 +27,8 @@ export interface PromptAssemblyOptions {
   useChainOfThought?: boolean;
 }
 
+type ConciergeActionPlanMode = 'legacy' | 'tool_first';
+
 // ── Query class sets for conditional layers ──────────────────────────────────
 
 /** Classes that create/modify trip artifacts and need the Action Plan JSON mandate */
@@ -153,6 +155,23 @@ User: "Add a reminder to pack sunscreen and put our flight on the calendar for J
 \`\`\`
 Then call \`createTask\` AND \`addToCalendar\`.
 ❌ INCORRECT — responding with "Sure, I can help with that!" without the JSON plan block. This causes ZERO tools to fire.`;
+}
+
+function toolFirstActionGuidance(): string {
+  return `
+**NON-NEGOTIABLE WORKFLOW (ALWAYS FOLLOW):**
+1) EXECUTE: For write intents, call all required tools directly and sequentially.
+2) COMPLETE: Do not stop after the first tool if more actions are requested.
+3) RESPOND: Return a concise confirmation summary after tool calls finish.
+
+**WRITE INTENT RULE:**
+- If the user asks to create/update trip artifacts (task, calendar event, booking draft, poll, broadcast, save/import), you MUST execute the required tool calls in this turn.
+- Do NOT output any Action Plan JSON preamble before tool calls.`;
+}
+
+function getConciergeActionPlanMode(): ConciergeActionPlanMode {
+  const rawMode = Deno.env.get('CONCIERGE_ACTION_PLAN_MODE')?.trim().toLowerCase();
+  return rawMode === 'tool_first' ? 'tool_first' : 'legacy';
 }
 
 function naturalLanguageTriggers(): string {
@@ -334,13 +353,14 @@ export function assemblePrompt(options: PromptAssemblyOptions): string {
   // ── Build trip-aware prompt from layers ──────────────────────────────────
 
   const layers: string[] = [];
+  const actionPlanMode = getConciergeActionPlanMode();
 
   // 1. Core persona (always)
   layers.push(corePersona());
 
   // 2. Action Plan mandate (only for write-action classes)
   if (WRITE_ACTION_CLASSES.has(queryClass)) {
-    layers.push(actionPlanMandate());
+    layers.push(actionPlanMode === 'tool_first' ? toolFirstActionGuidance() : actionPlanMandate());
   }
 
   // 3. Natural language triggers (only for task/calendar/summary)
