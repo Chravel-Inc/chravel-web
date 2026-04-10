@@ -45,7 +45,9 @@ describe('CORS Security Tests', () => {
 
     it('should allow the exact lovableproject.com preview origin', async () => {
       const isOriginAllowed = await getIsOriginAllowed();
-      expect(isOriginAllowed('https://20feaa04-0946-4c68-a68d-0eb88cc1b9c4.lovableproject.com')).toBe(true);
+      expect(
+        isOriginAllowed('https://20feaa04-0946-4c68-a68d-0eb88cc1b9c4.lovableproject.com'),
+      ).toBe(true);
     });
 
     it('should reject unrelated lovableproject.com origins', async () => {

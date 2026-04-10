@@ -17,10 +17,7 @@ type ScreenshotCarouselProps = {
   frameDuration: number; // total frames for this carousel
 };
 
-export const ScreenshotCarousel: React.FC<ScreenshotCarouselProps> = ({
-  items,
-  frameDuration,
-}) => {
+export const ScreenshotCarousel: React.FC<ScreenshotCarouselProps> = ({ items, frameDuration }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 

@@ -79,7 +79,9 @@ async function sendFCM(
   const result = await sendFcmV1(tokens, {
     notification: { title: notification.title, body: notification.body },
     // intentional: PushPayload lacks index signature for Record<string, unknown> cast
-    data: notification.data ? toFcmData(notification.data as unknown as Record<string, unknown>) : undefined,
+    data: notification.data
+      ? toFcmData(notification.data as unknown as Record<string, unknown>)
+      : undefined,
   });
   return { success: result.success, failed: result.failed, invalidTokens: result.invalidTokens };
 }

@@ -72,7 +72,7 @@ export const BrowserFrame: React.FC<BrowserFrameProps> = ({
       >
         {/* Traffic lights */}
         <div style={{ display: 'flex', gap: 7 }}>
-          {['#ff5f57', '#febc2e', '#28c840'].map((color) => (
+          {['#ff5f57', '#febc2e', '#28c840'].map(color => (
             <div
               key={color}
               style={{
