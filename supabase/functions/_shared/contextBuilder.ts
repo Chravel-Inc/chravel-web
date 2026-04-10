@@ -177,6 +177,7 @@ const NAME_RESOLUTION_SLICES = new Set<ContextSlice>([
 
 export const QUERY_CLASS_SLICES: Record<QueryClass, ContextSlice[]> = {
   general_knowledge: [],
+  trip_lookup_light: ['metadata', 'calendar', 'places'],
   weather_time: ['metadata'],
   restaurant_recommendation: ['metadata', 'places', 'preferences'],
   calendar_action: ['metadata', 'calendar', 'members'],
