@@ -45,6 +45,48 @@ final class SupabaseChatRepositoryTests: XCTestCase {
     XCTAssertEqual(messages.first?.senderName, "user-77")
     XCTAssertEqual(messages.first?.content, "Bus leaves at 7")
   }
+
+  func testSendMessageUsesInsertEndpoint() async throws {
+    let responseBody = """
+    [
+      {
+        "id": "chat-2",
+        "trip_id": "trip-42",
+        "content": "Confirmed the van.",
+        "created_at": "2026-09-01T12:10:00Z",
+        "sender_name": "you@chravel.app",
+        "sender_id": "u1"
+      }
+    ]
+    """.data(using: .utf8)!
+
+    let configuration = URLSessionConfiguration.ephemeral
+    configuration.protocolClasses = [ChatMockURLProtocol.self]
+    let session = URLSession(configuration: configuration)
+
+    ChatMockURLProtocol.handler = { request in
+      XCTAssertEqual(request.httpMethod, "POST")
+      XCTAssertEqual(request.value(forHTTPHeaderField: "Prefer"), "return=representation")
+      return (
+        HTTPURLResponse(url: request.url!, statusCode: 201, httpVersion: nil, headerFields: nil)!,
+        responseBody
+      )
+    }
+
+    let config = SupabaseConfig(projectURL: URL(string: "https://demo.supabase.co")!, anonKey: "anon")
+    let client = SupabaseRESTClient(config: config, session: session)
+    let repository = SupabaseChatRepository(client: client)
+
+    let sent = try await repository.sendMessage(
+      tripId: "trip-42",
+      text: "Confirmed the van.",
+      session: UserSession(userId: "u1", email: "you@chravel.app", accessToken: "token"),
+      senderName: "you@chravel.app"
+    )
+
+    XCTAssertEqual(sent.id, "chat-2")
+    XCTAssertEqual(sent.content, "Confirmed the van.")
+  }
 }
 
 private final class ChatMockURLProtocol: URLProtocol, @unchecked Sendable {

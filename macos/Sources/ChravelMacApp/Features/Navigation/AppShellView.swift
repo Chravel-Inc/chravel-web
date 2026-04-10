@@ -113,37 +113,63 @@ struct AppShellView: View {
       return
     }
 
-    switch workspaceCoordinator.chatLoadState {
-    case .idle:
-      Text("Chat not loaded yet")
-        .foregroundStyle(.secondary)
-    case .loading:
-      ProgressView("Loading messages…")
-    case .ready:
-      if workspaceCoordinator.messages.isEmpty {
-        Text("No messages yet")
+    VStack(spacing: 12) {
+      switch workspaceCoordinator.chatLoadState {
+      case .idle:
+        Text("Chat not loaded yet")
           .foregroundStyle(.secondary)
-      } else {
-        List(workspaceCoordinator.messages) { message in
-          VStack(alignment: .leading, spacing: 4) {
-            HStack {
-              Text(message.senderName)
-                .font(.subheadline.bold())
-              Spacer()
-              Text(message.createdAt, style: .time)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+      case .loading:
+        ProgressView("Loading messages…")
+      case .ready:
+        if workspaceCoordinator.messages.isEmpty {
+          Text("No messages yet")
+            .foregroundStyle(.secondary)
+        } else {
+          List(workspaceCoordinator.messages) { message in
+            VStack(alignment: .leading, spacing: 4) {
+              HStack {
+                Text(message.senderName)
+                  .font(.subheadline.bold())
+                Spacer()
+                Text(message.createdAt, style: .time)
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+              }
+              Text(message.content)
+                .font(.callout)
             }
-            Text(message.content)
-              .font(.callout)
+            .padding(.vertical, 4)
           }
-          .padding(.vertical, 4)
+          .frame(minHeight: 240)
         }
-        .frame(minHeight: 240)
+      case let .failed(errorMessage):
+        Text(errorMessage)
+          .foregroundStyle(.red)
       }
-    case let .failed(errorMessage):
-      Text(errorMessage)
-        .foregroundStyle(.red)
+
+      HStack(spacing: 8) {
+        TextField("Message your group", text: $workspaceCoordinator.draftMessage, axis: .vertical)
+          .textFieldStyle(.roundedBorder)
+          .lineLimit(1...4)
+
+        Button {
+          Task {
+            await workspaceCoordinator.sendCurrentDraft(session: sessionCoordinator.session)
+          }
+        } label: {
+          if workspaceCoordinator.isSending {
+            ProgressView()
+              .controlSize(.small)
+          } else {
+            Image(systemName: "paperplane.fill")
+          }
+        }
+        .buttonStyle(.borderedProminent)
+        .disabled(
+          workspaceCoordinator.draftMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+            workspaceCoordinator.isSending
+        )
+      }
     }
   }
 }

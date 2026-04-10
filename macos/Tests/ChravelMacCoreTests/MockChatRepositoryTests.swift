@@ -12,4 +12,19 @@ final class MockChatRepositoryTests: XCTestCase {
     XCTAssertEqual(vegasMessages.count, 1)
     XCTAssertTrue(tokyoMessages.allSatisfy { $0.tripId == "trip-1" })
   }
+
+  func testSendMessagePersistsToInMemoryFeed() async throws {
+    let repository = MockChatRepository()
+
+    _ = try await repository.sendMessage(
+      tripId: "trip-2",
+      text: "I can take the Friday dinner booking.",
+      session: nil,
+      senderName: "You"
+    )
+
+    let vegasMessages = try await repository.fetchRecentMessages(tripId: "trip-2", session: nil)
+    XCTAssertEqual(vegasMessages.count, 2)
+    XCTAssertTrue(vegasMessages.contains(where: { $0.content == "I can take the Friday dinner booking." }))
+  }
 }

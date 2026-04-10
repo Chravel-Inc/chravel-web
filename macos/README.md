@@ -1,4 +1,4 @@
-# Chravel macOS (Modules 1-3 scaffold)
+# Chravel macOS (Modules 1-4 scaffold)
 
 This directory contains the native macOS desktop app foundation for Chravel.
 
@@ -16,6 +16,10 @@ This directory contains the native macOS desktop app foundation for Chravel.
   - Chat repository protocol + Supabase adapter
   - Trip selection drives native chat history load
   - Mock chat repository fallback
+- Module 4 chat loop hardening:
+  - Native compose/send flow with optimistic UI updates
+  - Background polling-based realtime hydration loop per selected trip
+  - Message send endpoint support in Supabase adapter
 - Basic command menu + keyboard shortcuts (`⌘1`, `⌘2`, `⌘3`)
 - Settings scene scaffold
 - Lightweight telemetry via `OSLog`
@@ -43,5 +47,5 @@ If env vars are absent, the app falls back to mock session/trips/chat.
 
 ## Next module
 
-- Realtime coordinator actor for live chat updates and reconnect handling
-- Native message compose/send flow with optimistic updates
+- Replace polling with websocket realtime coordinator (Supabase channel-based)
+- Read receipts, typing indicators, and delivery status
