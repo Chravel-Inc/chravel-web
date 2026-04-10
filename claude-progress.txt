@@ -258,3 +258,12 @@
 - Added race-safe connection readiness subscription to `useStreamConciergeHistory` so Stream concierge history hydrates after delayed Stream connects.
 - Updated `AIConciergeChat` history hydration to merge/dedupe/sort legacy Supabase (`ai_queries`) history with Stream concierge channel history, preventing history gaps across migration boundary.
 - Verification: `npm run lint && npm run typecheck && npm run build` pass (existing baseline warnings only).
+2026-04-09 — Trip cover photo persistence + legacy URL normalization hardening
+- Root-caused cross-surface cover regressions to two classes:
+  1) cache invalidation gap after cover mutations (`useTripCoverPhoto` only invalidated `['trips']`/detail, not `['proTrips']`/`['events']`), causing Pro/Event dashboards to stay stale after "success" toasts;
+  2) legacy signed cover URLs persisted in `cover_image_url` (`/object/sign/trip-media/trip-covers/...`) expiring over time and causing intermittent broken previously-uploaded covers.
+- Added shared URL normalizer (`normalizeTripCoverUrl`) in `src/utils/tripCoverStorage.ts` to rewrite signed `trip-covers` URLs to stable public URLs.
+- Wired normalization through trip conversion/data hydration (`tripConverter`, `useProTrips`) and through `useTripCoverPhoto` local state updates.
+- Expanded cover mutation invalidation in `useTripCoverPhoto` to include `['proTrips']` + `['events']` for consumer/pro/event parity.
+- Added/updated regression tests: `src/utils/__tests__/tripCoverStorage.test.ts`, `src/hooks/__tests__/useTripCoverPhoto.test.tsx`.
+- Verification: targeted tests + typecheck + build pass; lint currently fails on pre-existing repo errors in `remotion/scripts/render-remotion.mjs`.

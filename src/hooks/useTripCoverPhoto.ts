@@ -6,6 +6,7 @@ import { useAuth } from './useAuth';
 import { useDemoMode } from './useDemoMode';
 import { demoModeService } from '@/services/demoModeService';
 import { toast } from 'sonner';
+import { normalizeTripCoverUrl } from '@/utils/tripCoverStorage';
 
 export type CoverDisplayMode = 'cover' | 'contain';
 
@@ -17,7 +18,9 @@ export const useTripCoverPhoto = (
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
   const queryClient = useQueryClient();
-  const [coverPhoto, setCoverPhoto] = useState<string | undefined>(initialPhotoUrl);
+  const [coverPhoto, setCoverPhoto] = useState<string | undefined>(
+    normalizeTripCoverUrl(initialPhotoUrl),
+  );
   const [coverDisplayMode, setCoverDisplayMode] = useState<CoverDisplayMode>(initialDisplayMode);
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -25,11 +28,11 @@ export const useTripCoverPhoto = (
   useEffect(() => {
     if (isDemoMode) {
       const demoPhoto = demoModeService.getCoverPhoto(tripId);
-      setCoverPhoto(demoPhoto ?? initialPhotoUrl);
+      setCoverPhoto(normalizeTripCoverUrl(demoPhoto ?? initialPhotoUrl));
       setCoverDisplayMode(initialDisplayMode);
       return;
     }
-    setCoverPhoto(initialPhotoUrl);
+    setCoverPhoto(normalizeTripCoverUrl(initialPhotoUrl));
     setCoverDisplayMode(initialDisplayMode);
   }, [isDemoMode, tripId, initialPhotoUrl, initialDisplayMode]);
 
@@ -99,12 +102,15 @@ export const useTripCoverPhoto = (
         return false;
       }
 
-      setCoverPhoto(photoUrl);
+      const normalizedPhotoUrl = normalizeTripCoverUrl(photoUrl);
+      setCoverPhoto(normalizedPhotoUrl);
       queryClient.setQueriesData({ queryKey: tripKeys.detail(tripId) }, old =>
-        old && typeof old === 'object' ? { ...old, cover_image_url: photoUrl } : old,
+        old && typeof old === 'object' ? { ...old, cover_image_url: normalizedPhotoUrl } : old,
       );
       // Trip list uses ['trips', ...]; trip detail uses ['trip', tripId, userId] — invalidate both
       queryClient.invalidateQueries({ queryKey: tripKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['proTrips'] });
+      queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
       toast.success('Cover photo updated');
       return true;
@@ -167,6 +173,8 @@ export const useTripCoverPhoto = (
         old && typeof old === 'object' ? { ...old, cover_image_url: null } : old,
       );
       queryClient.invalidateQueries({ queryKey: tripKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['proTrips'] });
+      queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
       toast.success('Cover photo removed');
       return true;
@@ -210,6 +218,8 @@ export const useTripCoverPhoto = (
         old && typeof old === 'object' ? { ...old, cover_display_mode: mode } : old,
       );
       queryClient.invalidateQueries({ queryKey: tripKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['proTrips'] });
+      queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
       return true;
     } catch (error) {

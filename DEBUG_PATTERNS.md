@@ -316,3 +316,15 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Related files:** `src/hooks/usePendingActions.ts`, `src/features/chat/components/PendingActionCard.tsx`
 - **Fixed in:** April 2026, 74-tool expansion (`0d9bed1`)
 - **Confidence:** high
+
+## Trip cover photo "success toast but not updated" across dashboard surfaces
+- **Status:** fixed
+- **Subsystem:** trip cover media / dashboard caching
+- **Bug class:** cache invalidation + expiring URL persistence
+- **Symptom:** Upload flow shows success toast, but cover appears unchanged on Pro/Event/consumer dashboard cards; older covers intermittently stop loading.
+- **Likely root cause:** Cover mutation invalidates only `['trips']` cache while some surfaces read `['proTrips']`/`['events']`; additionally, signed storage URLs persisted in `cover_image_url` expire.
+- **Smallest safe fix:** Invalidate all trip collection keys after cover writes/removals/display-mode updates; normalize signed `trip-covers` URLs to public URLs at read boundaries.
+- **Regression risks:** Missing one query key or reintroducing signed URL persistence in conversion layers.
+- **Related files:** `src/hooks/useTripCoverPhoto.ts`, `src/utils/tripCoverStorage.ts`, `src/utils/tripConverter.ts`, `src/hooks/useProTrips.ts`
+- **Fixed in:** April 2026 cover persistence hardening.
+- **Confidence:** high

@@ -407,3 +407,10 @@
 - **Evidence:** Discovered when implementing `addExpense` confirm handler in `usePendingActions.ts` (April 2026).
 - **Provenance:** April 2026, 74-tool expansion.
 - **Confidence:** high
+
+### Normalize signed cover URLs at read boundaries for public cover paths
+- **Tip:** If cover images are intended to be publicly readable (`trip-media/trip-covers/*`), normalize any persisted signed storage URLs to public object URLs before rendering/caching. Signed URLs expire and create intermittent "old cover broken" regressions that look random to users.
+- **Applies when:** Trip/event/pro card and header surfaces consume `trips.cover_image_url` across multiple query caches.
+- **Evidence:** Cover uploads showed success while previously uploaded covers intermittently failed; rows contained signed `trip-covers` URLs. Rewriting to stable public URLs plus broader query invalidation (`['trips']`, `['proTrips']`, `['events']`) restored consistency.
+- **Provenance:** April 2026 trip cover persistence hardening.
+- **Confidence:** high

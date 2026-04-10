@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { ProTripData } from '@/types/pro';
 import { normalizeLegacyCategory } from '@/types/proCategories';
 import { EventData } from '@/types/events';
+import { normalizeTripCoverUrl } from './tripCoverStorage';
 
 /**
  * Converts a Supabase trip to the mock trip format expected by UI components
@@ -43,7 +44,7 @@ export function convertSupabaseTripToMock(supabaseTrip: SupabaseTrip): MockTrip 
     dateRange,
     description: supabaseTrip.description || '',
     participants: [], // Participants loaded separately via trip_members
-    coverPhoto: supabaseTrip.cover_image_url,
+    coverPhoto: normalizeTripCoverUrl(supabaseTrip.cover_image_url),
     coverDisplayMode: supabaseTrip.cover_display_mode ?? undefined,
     trip_type: (supabaseTrip.trip_type || 'consumer') as 'consumer' | 'pro' | 'event',
     archived: supabaseTrip.is_archived,
@@ -109,7 +110,7 @@ export function convertSupabaseTripToProTrip(supabaseTrip: SupabaseTrip): ProTri
     trip_type: 'pro',
     privacy_mode: 'standard',
     ai_access_enabled: true,
-    coverPhoto: supabaseTrip.cover_image_url ?? undefined,
+    coverPhoto: normalizeTripCoverUrl(supabaseTrip.cover_image_url),
     coverDisplayMode: supabaseTrip.cover_display_mode ?? undefined,
     card_color: (supabaseTrip as Record<string, unknown>).card_color as string | undefined,
   };
@@ -151,7 +152,7 @@ export function convertSupabaseTripToEvent(supabaseTrip: SupabaseTrip): EventDat
       categories: [],
     },
     itinerary: [],
-    coverPhoto: supabaseTrip.cover_image_url ?? undefined,
+    coverPhoto: normalizeTripCoverUrl(supabaseTrip.cover_image_url),
     coverDisplayMode: supabaseTrip.cover_display_mode ?? undefined,
     card_color: (supabaseTrip as Record<string, unknown>).card_color as string | undefined,
     organizer_display_name: supabaseTrip.organizer_display_name ?? undefined,

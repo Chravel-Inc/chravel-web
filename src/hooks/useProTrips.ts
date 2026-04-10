@@ -5,6 +5,7 @@ import { useDemoMode } from './useDemoMode';
 import { ProTripData } from '@/types/pro';
 import { supabase } from '@/integrations/supabase/client';
 import { proTripMockData } from '@/data/proTripMockData';
+import { normalizeTripCoverUrl } from '@/utils/tripCoverStorage';
 
 const PRO_TRIPS_QUERY_KEY = 'proTrips';
 
@@ -22,7 +23,7 @@ function mapSupabaseTripToProTripData(trip: Record<string, unknown>): ProTripDat
     description: String(trip.description || ''),
     location: String(trip.destination || ''),
     dateRange,
-    coverPhoto: trip.cover_image_url as string | undefined,
+    coverPhoto: normalizeTripCoverUrl(trip.cover_image_url as string | undefined),
     card_color: trip.card_color as string | undefined,
     proTripCategory: trip.pro_trip_category as ProTripData['proTripCategory'],
     tags: (trip.tags as string[]) || [],
