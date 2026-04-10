@@ -1,7 +1,11 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
 import { getCorsHeaders } from '../_shared/cors.ts';
-import { invokeChatModel, extractTextFromChatResponse } from '../_shared/gemini.ts';
+import {
+  invokeChatModel,
+  extractTextFromChatResponse,
+  DEFAULT_GEMINI_FLASH_MODEL,
+} from '../_shared/gemini.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
@@ -57,7 +61,7 @@ async function runParserModel(
   options?: { maxTokens?: number; temperature?: number; timeoutMs?: number },
 ): Promise<string> {
   const result = await invokeChatModel({
-    model: 'gemini-3-flash-preview',
+    model: DEFAULT_GEMINI_FLASH_MODEL,
     messages,
     maxTokens: options?.maxTokens ?? 4000,
     temperature: options?.temperature ?? 0.1,

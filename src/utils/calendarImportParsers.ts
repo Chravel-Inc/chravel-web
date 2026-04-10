@@ -629,11 +629,21 @@ interface ScrapeScheduleEvent {
   location?: string;
 }
 
+interface ScrapeScheduleResponse {
+  success?: boolean;
+  error?: string;
+  scrape_method?: string;
+  events?: ScrapeScheduleEvent[];
+  events_found?: number;
+  events_filtered?: number;
+}
+
 export async function parseURLSchedule(url: string): Promise<SmartParseResult> {
   try {
     const { data, error } = await supabase.functions.invoke('scrape-schedule', {
       body: { url },
     });
+    const response = (data ?? {}) as ScrapeScheduleResponse;
 
     if (error) {
       return {
@@ -644,19 +654,22 @@ export async function parseURLSchedule(url: string): Promise<SmartParseResult> {
       };
     }
 
-    if (!data?.success) {
+    if (!response.success) {
+      const methodHint = response.scrape_method ? ` (${response.scrape_method})` : '';
       return {
         events: [],
-        errors: [data?.error || 'No schedule data found on this page'],
+        errors: [
+          response.error ? `${response.error}${methodHint}` : 'No schedule data found on this page',
+        ],
         isValid: false,
         sourceFormat: 'url',
-        urlMeta: data?.events_found
-          ? { eventsFound: data.events_found, eventsFiltered: data.events_filtered }
+        urlMeta: response.events_found
+          ? { eventsFound: response.events_found, eventsFiltered: response.events_filtered ?? 0 }
           : undefined,
       };
     }
 
-    const scheduleEvents: ScrapeScheduleEvent[] = data.events ?? [];
+    const scheduleEvents: ScrapeScheduleEvent[] = response.events ?? [];
     const events: ICSParsedEvent[] = [];
     for (let i = 0; i < scheduleEvents.length; i++) {
       const se = scheduleEvents[i];
@@ -679,8 +692,8 @@ export async function parseURLSchedule(url: string): Promise<SmartParseResult> {
       isValid: events.length > 0,
       sourceFormat: 'url',
       urlMeta: {
-        eventsFound: data.events_found,
-        eventsFiltered: data.events_filtered,
+        eventsFound: response.events_found ?? events.length,
+        eventsFiltered: response.events_filtered ?? 0,
       },
     };
   } catch (err) {

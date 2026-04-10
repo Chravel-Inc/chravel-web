@@ -1,3 +1,21 @@
+2026-04-10 — Smart Import parser/model consolidation follow-up (low-risk architecture alignment)
+- Implemented shared URL scrape helper `supabase/functions/_shared/urlScraper.ts` and refactored all Smart Import URL functions to use one scrape chain:
+  - `scrape-schedule`, `scrape-agenda`, `scrape-lineup` now all run Firecrawl → direct fetch → reader proxy with consistent behavior.
+- Centralized Gemini Flash default to explicit 3.1 Flash via `GEMINI_FLASH_MODEL` env (default `gemini-3.1-flash`) in `_shared/gemini.ts`.
+  - Added backward alias normalization for `gemini-3-flash-preview` so existing callers/configs are auto-mapped.
+  - Updated parser-style functions (`scrape-*`, `enhanced-ai-parser`, `file-ai-parser`, `demo-concierge`) to consume shared default instead of hardcoded model strings.
+- Updated env examples with `GEMINI_FLASH_MODEL` documentation.
+- Verification: `npm run test:run -- src/utils/__tests__/calendarImportParsers.url.test.ts src/utils/__tests__/lineupImportParsers.test.ts`, `npm run typecheck`, `npm run build`; `npm run lint:check` still fails on pre-existing unrelated repo lint errors.
+
+2026-04-10 — Smart Import URL resilience hardening (bot-protected schedule links)
+- Root-caused URL Smart Import failures to the `scrape-schedule` fallback chain stopping after Firecrawl + direct fetch. Some external domains return anti-bot blocks to both, resulting in hard extraction failure even when human-readable content exists via reader-proxy endpoints.
+- Added a third-tier fallback in `supabase/functions/scrape-schedule/index.ts`:
+  - Firecrawl (primary) → browser-header fetch (secondary) → reader-proxy text fetch (tertiary).
+  - Preserved existing SSRF guard + auth checks and kept behavior fail-closed when all fetch paths fail.
+- Improved error observability by surfacing `scrape_method` in error payloads and plumbing that through frontend parser errors (`parseURLSchedule`) to aid incident triage.
+- Added focused regression tests in `src/utils/__tests__/calendarImportParsers.url.test.ts` covering method-hint propagation and URL meta fallback defaults.
+- Verification: `npm run test:run -- src/utils/__tests__/calendarImportParsers.url.test.ts`, `npm run typecheck`, `npm run build`; `npm run lint:check` still fails on known pre-existing repo lint errors in unrelated files.
+
 2026-04-09 — LiveKit voice forensic pass + safety gate fallback (hide Live CTA)
 - Completed code-level dependency audit for live voice path:
   - Frontend runtime: `AIConciergeChat -> useLiveKitVoice -> /functions/v1/livekit-token`.
