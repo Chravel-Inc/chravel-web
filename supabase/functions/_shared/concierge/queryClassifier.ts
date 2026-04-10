@@ -12,6 +12,7 @@
 
 export type QueryClass =
   | 'general_knowledge'
+  | 'trip_lookup_light'
   | 'weather_time'
   | 'restaurant_recommendation'
   | 'calendar_action'
@@ -111,9 +112,19 @@ const TRIP_OWNERSHIP_PATTERN = /\b(our|my|we're|who's going|who is going|our tri
  * 5. Trip-scoped or ownership patterns → trip_summary (conservative fallback)
  * 6. Ambiguous → general_knowledge
  */
-export function classifyQuery(message: string, hasAttachments: boolean): QueryClass {
+export function classifyQuery(
+  message: string,
+  hasAttachments: boolean,
+  options?: { attachmentIntent?: 'smart_import' | 'summarize' | 'qa' },
+): QueryClass {
+  const attachmentIntent = options?.attachmentIntent;
+  if (hasAttachments && attachmentIntent === 'smart_import') return 'smart_import';
+  if (hasAttachments && (attachmentIntent === 'summarize' || attachmentIntent === 'qa')) {
+    return 'trip_lookup_light';
+  }
+
   const q = message.trim();
-  if (q.length < 4) return 'trip_summary'; // Very short: default to full context
+  if (q.length < 4) return 'trip_lookup_light'; // Very short: keep context lean by default
 
   const normalized = q.toLowerCase();
 
@@ -157,9 +168,9 @@ export function classifyQuery(message: string, hasAttachments: boolean): QueryCl
   }
 
   // 7. Trip-scoped or artifact terms → conservative fallback to full context
-  if (TRIP_SCOPED_QUERY_PATTERN.test(normalized)) return 'trip_summary';
-  if (ARTIFACT_QUERY_PATTERN.test(normalized)) return 'trip_summary';
-  if (TRIP_OWNERSHIP_PATTERN.test(normalized)) return 'trip_summary';
+  if (TRIP_SCOPED_QUERY_PATTERN.test(normalized)) return 'trip_lookup_light';
+  if (ARTIFACT_QUERY_PATTERN.test(normalized)) return 'trip_lookup_light';
+  if (TRIP_OWNERSHIP_PATTERN.test(normalized)) return 'trip_lookup_light';
 
   // 8. General web-only patterns without trip terms → general knowledge
   const generalWebPattern =

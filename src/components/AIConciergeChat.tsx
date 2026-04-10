@@ -233,6 +233,7 @@ const _ALLOWED_IMAGE_TYPES = new Set([
   'image/heic',
   'image/heif',
 ]);
+type AttachmentIntent = 'smart_import' | 'summarize' | 'qa';
 const ALLOWED_DOCUMENT_TYPES = new Set([
   'application/pdf',
   'text/calendar',
@@ -467,6 +468,7 @@ export const AIConciergeChat = ({
   >('connected');
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
   const [attachedDocuments, setAttachedDocuments] = useState<File[]>([]);
+  const [attachmentIntent, setAttachmentIntent] = useState<AttachmentIntent>('smart_import');
   const [searchOpen, setSearchOpen] = useState(false);
   const handleSendMessageRef = useRef<(messageOverride?: string) => Promise<void>>(async () =>
     Promise.resolve(),
@@ -1235,9 +1237,13 @@ export const AIConciergeChat = ({
     const attachmentCount = selectedImages.length + selectedDocuments.length;
     const messageToSend =
       typedMessage ||
-      (hasDocumentAttachments
-        ? `Please analyze the attached file(s) and extract any travel events, reservations, or itinerary items. Show me a preview before adding to calendar.`
-        : `Please analyze the ${selectedImages.length} attached image(s).`);
+      (attachmentIntent === 'summarize'
+        ? `Please summarize the attached file(s) and highlight key travel details.`
+        : attachmentIntent === 'qa'
+          ? `Please analyze the attached file(s). I'll ask follow-up questions next.`
+          : hasDocumentAttachments
+            ? `Please analyze the attached file(s) and extract any travel events, reservations, or itinerary items. Show me a preview before adding to calendar.`
+            : `Please analyze the ${selectedImages.length} attached image(s).`);
     const userDisplayContent =
       typedMessage || `Attached ${attachmentCount} file${attachmentCount === 1 ? '' : 's'}`;
 
@@ -1372,6 +1378,7 @@ export const AIConciergeChat = ({
           temperature: 0.55,
           maxTokens: 4096,
         },
+        ...(hasAnyAttachments && !typedMessage ? { attachmentIntent } : {}),
       };
 
       // === STREAMING PATH ===
@@ -2435,6 +2442,23 @@ export const AIConciergeChat = ({
           className="chat-composer z-10 bg-black/30 px-3 pt-2 flex-shrink-0"
           style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)' }}
         >
+          {UPLOAD_ENABLED &&
+            (attachedImages.length > 0 || attachedDocuments.length > 0) &&
+            inputMessage.trim().length === 0 && (
+              <div className="mb-2">
+                <label className="block text-[11px] text-gray-400 mb-1">Attachment intent</label>
+                <select
+                  value={attachmentIntent}
+                  onChange={e => setAttachmentIntent(e.target.value as AttachmentIntent)}
+                  className="w-full h-11 rounded-xl bg-zinc-900/80 border border-white/10 px-3 text-sm text-white"
+                  aria-label="Attachment intent"
+                >
+                  <option value="smart_import">Extract events (Smart Import)</option>
+                  <option value="summarize">Summarize file/image</option>
+                  <option value="qa">Q&A on this file/image</option>
+                </select>
+              </div>
+            )}
           {/* End session button — aligned above dictation button on same vertical axis */}
           {isLiveSessionActive && (
             <div className="mb-2 w-11">
