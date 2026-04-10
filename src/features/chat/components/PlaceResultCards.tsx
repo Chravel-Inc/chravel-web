@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   MapPin,
   Star,
@@ -6,6 +6,7 @@ import {
   UtensilsCrossed,
   BookmarkPlus,
   BookmarkCheck,
+  Check,
 } from 'lucide-react';
 
 export interface PlaceResult {
@@ -59,6 +60,8 @@ export const PlaceResultCards: React.FC<PlaceResultCardsProps> = ({
   isUrlSaved,
   isSaving,
 }) => {
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+
   if (!places || places.length === 0) return null;
 
   return (
@@ -138,15 +141,30 @@ export const PlaceResultCards: React.FC<PlaceResultCardsProps> = ({
               <div className="flex items-center gap-3 mt-1.5">
                 {/* Open in Maps */}
                 {mapsHref && (
-                  <a
-                    href={mapsHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const win = window.open(mapsHref, '_blank', 'noopener,noreferrer');
+                      if (!win) {
+                        navigator.clipboard.writeText(mapsHref).catch(() => {});
+                        setCopiedIdx(idx);
+                        setTimeout(() => setCopiedIdx(prev => (prev === idx ? null : prev)), 2500);
+                      }
+                    }}
                     className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline w-fit"
                   >
-                    <ExternalLink size={10} />
-                    Open in Maps
-                  </a>
+                    {copiedIdx === idx ? (
+                      <>
+                        <Check size={10} />
+                        Copied! Paste in browser
+                      </>
+                    ) : (
+                      <>
+                        <ExternalLink size={10} />
+                        Open in Maps
+                      </>
+                    )}
+                  </button>
                 )}
 
                 {/* Save to Trip */}

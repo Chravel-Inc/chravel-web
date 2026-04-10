@@ -19,6 +19,7 @@ interface TripPreviewData {
   cover_image_url: string | null;
   trip_type: string | null;
   member_count: number;
+  active_invite_code?: string | null;
   description?: string | null;
 }
 
@@ -157,34 +158,6 @@ const TripPreview = () => {
     };
   }, [user, tripId]);
 
-  // Fetch active invite code for real trips — runs for ALL users (including
-  // unauthenticated) so the CTA can route through the join flow after signup.
-  // RLS policy "Anyone can view active trip invites" allows anon reads.
-  useEffect(() => {
-    if (!tripId || !isUuid(tripId)) return;
-
-    let mounted = true;
-
-    async function fetchInviteCode() {
-      const { data: invite } = await supabase
-        .from('trip_invites')
-        .select('code')
-        .eq('trip_id', tripId!)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (!mounted) return;
-      setActiveInviteCode(invite?.code || null);
-    }
-
-    fetchInviteCode();
-    return () => {
-      mounted = false;
-    };
-  }, [tripId]);
-
   const fetchTripPreview = async () => {
     if (!tripId) return;
 
@@ -207,8 +180,10 @@ const TripPreview = () => {
           cover_image_url: demoTrip.coverPhoto || null,
           trip_type: 'consumer',
           member_count: demoTrip.participants.length,
+          active_invite_code: null,
           description: null,
         });
+        setActiveInviteCode(null);
         setLoading(false);
         return;
       }
@@ -226,6 +201,7 @@ const TripPreview = () => {
       }
 
       setTripData(data.trip as TripPreviewData);
+      setActiveInviteCode(data.trip.active_invite_code || null);
     } catch (err) {
       console.error('Error fetching trip preview:', err);
       setError('Failed to load trip details');

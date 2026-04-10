@@ -170,6 +170,13 @@ describe('AIConciergeChat', () => {
       });
     });
 
+    it('hides the live voice CTA while duplex voice is safety-gated off', () => {
+      renderWithProviders(<AIConciergeChat tripId="test-trip" />);
+      expect(
+        screen.queryByRole('switch', { name: /start live voice session/i }),
+      ).not.toBeInTheDocument();
+    });
+
     it('removes legacy status pills from header', () => {
       renderWithProviders(<AIConciergeChat tripId="test-trip" />);
       expect(screen.queryByText(/ready with web search/i)).not.toBeInTheDocument();

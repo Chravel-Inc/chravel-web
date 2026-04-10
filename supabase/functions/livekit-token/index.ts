@@ -139,7 +139,8 @@ serve(async req => {
         voice,
       }),
       emptyTimeout: 30,
-      agents: [{ agentName: 'chravel-voice' }],
+      // intentional: RoomAgentDispatch requires fields we don't need for basic agent dispatch
+      agents: [{ agentName: 'chravel-voice' } as any],
     });
 
     console.log('[livekit-token] room:created', { roomName, tripId, voice });

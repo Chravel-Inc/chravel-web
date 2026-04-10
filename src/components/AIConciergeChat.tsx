@@ -66,12 +66,14 @@ const EMPTY_SESSION: ConciergeSession = {
 // ─── Feature Flags ────────────────────────────────────────────────────────────
 const UPLOAD_ENABLED = true;
 /**
- * DUPLEX_VOICE_ENABLED — When true, the waveform button starts Gemini Live
- * bidirectional voice (Vertex AI). When false, it uses basic Web Speech API
- * dictation instead. Transcripts appear as normal chat bubbles and errors
- * surface via toast notifications.
+ * DUPLEX_VOICE_ENABLED — master safety gate for live voice UX.
+ *
+ * Keep this `false` until LiveKit end-to-end readiness is confirmed
+ * (token issuance + agent join + tool execution + clean disconnect).
+ * This hides the "Live" CTA but preserves all LiveKit architecture for
+ * a future re-enable by flipping this constant.
  */
-const DUPLEX_VOICE_ENABLED = true;
+const DUPLEX_VOICE_ENABLED = false;
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface AIConciergeChatProps {
@@ -2524,7 +2526,7 @@ export const AIConciergeChat = ({
             acceptedFileTypes={ALL_ACCEPTED_TYPES}
             convoVoiceState={convoVoiceState}
             onConvoToggle={handleConvoToggle}
-            isVoiceEligible={DUPLEX_VOICE_ENABLED}
+            isVoiceEligible={true}
             onQuickAction={
               UPLOAD_ENABLED && (attachedImages.length > 0 || attachedDocuments.length > 0)
                 ? (action: string) => {
