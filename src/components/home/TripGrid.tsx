@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
-import { PendingTripCard as RequestTripCard } from '../trip/PendingTripCard';
+import { TripCard } from '../TripCard';
 import { EventCard } from '../EventCard';
 import { MobileEventCard } from '../MobileEventCard';
 import { RecommendationCard } from '../RecommendationCard';
@@ -46,6 +46,7 @@ interface Trip {
   }>;
   placesCount?: number;
   created_by?: string;
+  coverPhoto?: string;
 }
 
 interface TripGridProps {
@@ -79,6 +80,17 @@ export const TripGrid = React.memo(
     onCancelDashboardRequest,
     onTripStateChange,
   }: TripGridProps) => {
+    const formatRequestStartDate = useCallback((startDate?: string) => {
+      if (!startDate) return 'Date TBD';
+      const date = new Date(startDate);
+      if (Number.isNaN(date.getTime())) return 'Date TBD';
+      return date.toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    }, []);
+
     const isMobile = useIsMobile();
     const navigate = useNavigate();
     const [manualLocation, setManualLocation] = useState<string>('');
@@ -456,7 +468,7 @@ export const TripGrid = React.memo(
             title: 'No pending requests',
             description:
               requestsTab === 'outgoing'
-                ? "No outgoing requests right now. When you request to join a trip, it'll appear here as a grayed card until approved."
+                ? "No outgoing requests right now. When you request to join a trip, it'll appear here while approval is pending."
                 : 'No incoming requests right now. Incoming approvals are listed here so you can review quickly without opening each trip first.',
             actionLabel: undefined,
             onAction: undefined,
@@ -600,26 +612,30 @@ export const TripGrid = React.memo(
               requestsTab === 'outgoing' ? (
                 outgoingRequests.length > 0 ? (
                   outgoingRequests.map(request => (
-                    <RequestTripCard
+                    <TripCard
                       key={request.id}
-                      tripId={request.trip_id}
-                      tripName={request.trip?.name || 'Trip'}
-                      destination={request.trip?.destination}
-                      startDate={request.trip?.start_date}
-                      coverImage={request.trip?.cover_image_url}
-                      requestedAt={request.requested_at}
-                      statusBadge="Pending Approval"
-                      interactive={false}
-                      secondaryCtaLabel="Cancel request"
-                      onSecondaryCta={() => handleCancelJoinRequest(request.id)}
-                      isSecondaryCtaLoading={cancelingRequestIds.has(request.id)}
+                      trip={{
+                        id: request.trip_id,
+                        title: request.trip?.name || 'Trip',
+                        location: request.trip?.destination || 'Destination TBD',
+                        dateRange: formatRequestStartDate(request.trip?.start_date),
+                        participants: [],
+                        coverPhoto: request.trip?.cover_image_url,
+                        peopleCount: 0,
+                        placesCount: 0,
+                      }}
+                      pendingApproval
+                      pendingBadgeLabel="Pending Approval"
+                      pendingSecondaryActionLabel="Cancel request"
+                      onPendingSecondaryAction={() => handleCancelJoinRequest(request.id)}
+                      isPendingSecondaryActionLoading={cancelingRequestIds.has(request.id)}
                     />
                   ))
                 ) : (
                   <div className="col-span-full rounded-xl border border-border/50 bg-card/30 p-6 text-center">
                     <p className="text-lg font-semibold">No outgoing requests</p>
                     <p className="text-sm text-muted-foreground mt-2">
-                      Trip requests you send will appear here as grayed-out trip cards.
+                      Trip requests you send will appear here while awaiting approval.
                     </p>
                   </div>
                 )
@@ -710,15 +726,14 @@ export const TripGrid = React.memo(
                 />
                 {/* Pending trips after (not draggable) */}
                 {activePendingTrips.map(request => (
-                  <RequestTripCard
+                  <TripCard
                     key={request.id}
-                    tripId={String(request.id)}
-                    tripName={request.title || 'Trip'}
-                    destination={request.location}
-                    startDate={request.dateRange}
-                    coverImage={undefined}
-                    requestedAt={undefined}
-                    statusBadge="Pending Approval"
+                    trip={{
+                      ...request,
+                      participants: request.participants ?? [],
+                    }}
+                    pendingApproval
+                    pendingBadgeLabel="Pending Approval"
                   />
                 ))}
                 {/* Reorder mode Done button */}
