@@ -75,7 +75,8 @@ describe('tripService.getUserTrips', () => {
       trip_type: 'consumer',
       created_at: '2026-03-01T00:00:00.000Z',
       updated_at: '2026-03-01T00:00:00.000Z',
-      cover_image_url: null,
+      cover_image_url:
+        'https://abc.supabase.co/storage/v1/object/sign/trip-media/trip-covers/trip-member-1/cover.jpg?token=expiring',
       created_by: 'owner-user',
       is_archived: false,
       card_color: null,
@@ -138,5 +139,8 @@ describe('tripService.getUserTrips', () => {
     expect(trips).toHaveLength(1);
     expect(trips[0].id).toBe('trip-member-1');
     expect(trips[0].membership_status).toBe('member');
+    expect(trips[0].cover_image_url).toBe(
+      'https://abc.supabase.co/storage/v1/object/public/trip-media/trip-covers/trip-member-1/cover.jpg',
+    );
   });
 });

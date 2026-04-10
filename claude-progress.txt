@@ -267,3 +267,8 @@
 - Expanded cover mutation invalidation in `useTripCoverPhoto` to include `['proTrips']` + `['events']` for consumer/pro/event parity.
 - Added/updated regression tests: `src/utils/__tests__/tripCoverStorage.test.ts`, `src/hooks/__tests__/useTripCoverPhoto.test.tsx`.
 - Verification: targeted tests + typecheck + build pass; lint currently fails on pre-existing repo errors in `remotion/scripts/render-remotion.mjs`.
+2026-04-10 — Trip cover hardening follow-up (service-layer normalization)
+- Previous patch normalized cover URLs in converters/hooks, but missed raw trip-service return paths consumed by some surfaces before conversion.
+- Added `normalizeTripCoverInRow(...)` in `tripService` and applied it to `getUserTrips`, `getTripById`, and edge-function fallback `fetchTripByIdViaEdgeFunction` so signed `trip-covers` URLs are canonicalized at the data source.
+- Added regression assertions in `tripConverter.test.ts` and `tripService.getUserTrips.test.ts` for signed cover URL normalization.
+- Verification: targeted tests + typecheck + build pass.
