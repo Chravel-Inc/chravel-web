@@ -99,11 +99,8 @@ class OfflineSyncService {
       throw new Error('Basecamp updates are not supported offline.');
     }
 
-    const streamConfigured = Boolean(import.meta.env.VITE_STREAM_API_KEY);
-    const streamConnected = Boolean(getStreamClient()?.userID);
-
     // Stream handles its own queueing only when configured + enabled + connected.
-    if (entityType === 'chat_message' && streamConfigured && streamConnected) {
+    if (entityType === 'chat_message' && isStreamChatActive()) {
       if (import.meta.env.DEV) {
         console.log('[OfflineSync] Bypassing custom queue for chat message (Stream active)');
       }
