@@ -14,6 +14,7 @@
  */
 
 import { getOfflineDb } from '@/offline/db';
+import { getStreamClient } from '@/services/stream/streamClient';
 
 // ============================================================================
 // Types
@@ -92,12 +93,13 @@ class OfflineSyncService {
       throw new Error('Basecamp updates are not supported offline.');
     }
 
-    // Stream handles its own offline queueing, so skip custom queueing
-    // if Stream is active and entity is chat message
-    // We check the environment variable directly since this service runs outside React context
-    if (entityType === 'chat_message' && import.meta.env.VITE_STREAM_API_KEY) {
+    const streamConfigured = Boolean(import.meta.env.VITE_STREAM_API_KEY);
+    const streamConnected = Boolean(getStreamClient()?.userID);
+
+    // Stream handles its own queueing only when configured + enabled + connected.
+    if (entityType === 'chat_message' && streamConfigured && streamConnected) {
       if (import.meta.env.DEV) {
-        console.log('[OfflineSync] Bypassing custom queue for chat message due to Stream config');
+        console.log('[OfflineSync] Bypassing custom queue for chat message (Stream active)');
       }
       return `stream_handled_${Date.now()}`;
     }
