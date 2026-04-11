@@ -5,32 +5,32 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const compositionId = process.argv[2] || 'ProductLaunchV2';
-const outputPath = process.argv[3] || '/mnt/documents/chravel-product-launch-v2.mp4';
+const compositionId = globalThis.process?.argv?.[2] || 'ProductLaunchV2';
+const outputPath = globalThis.process?.argv?.[3] || '/mnt/documents/chravel-product-launch-v2.mp4';
 
-console.log(`Bundling entry point...`);
+globalThis.console?.log(`Bundling entry point...`);
 const bundled = await bundle({
   entryPoint: path.resolve(__dirname, '../src/index.ts'),
   webpackOverride: config => config,
 });
 
-console.log(`Opening browser...`);
+globalThis.console?.log(`Opening browser...`);
 const browser = await openBrowser('chrome', {
-  browserExecutable: process.env.PUPPETEER_EXECUTABLE_PATH ?? '/bin/chromium',
+  browserExecutable: globalThis.process?.env.PUPPETEER_EXECUTABLE_PATH ?? '/bin/chromium',
   chromiumOptions: {
     args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
   },
   chromeMode: 'chrome-for-testing',
 });
 
-console.log(`Selecting composition "${compositionId}"...`);
+globalThis.console?.log(`Selecting composition "${compositionId}"...`);
 const composition = await selectComposition({
   serveUrl: bundled,
   id: compositionId,
   puppeteerInstance: browser,
 });
 
-console.log(
+globalThis.console?.log(
   `Rendering ${composition.durationInFrames} frames (${composition.durationInFrames / composition.fps}s)...`,
 );
 await renderMedia({
@@ -43,5 +43,5 @@ await renderMedia({
   concurrency: 1,
 });
 
-console.log(`Done! Output: ${outputPath}`);
+globalThis.console?.log(`Done! Output: ${outputPath}`);
 await browser.close({ silent: false });
