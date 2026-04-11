@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { TripChannel, ChannelMessage } from '../../../types/roleChannels';
-import { channelService } from '../../../services/channelService';
 import { useToast } from '../../../hooks/use-toast';
 import { getDemoChannelsForTrip } from '../../../data/demoChannelData';
 import { VirtualizedMessageContainer } from '@/features/chat/components/VirtualizedMessageContainer';
@@ -18,13 +17,6 @@ import {
   formatToastDescription,
   validateMessageContent,
 } from '@/utils/channelErrors';
-import {
-  toggleMessageReaction,
-  getMessagesReactions,
-  subscribeToReactions,
-  type ReactionType,
-} from '@/services/chatService';
-import { supabase } from '@/integrations/supabase/client';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -178,6 +170,42 @@ export const ChannelChatView = ({
     setReplyingTo(null);
   }, []);
 
+  // Transform ChannelMessage to ChatMessage format for MessageItem
+  const transportMessages = useMemo<ChannelMessage[]>(() => {
+    if (!useStreamTransport) return messages;
+
+    const streamMessages = streamProChannel.messages;
+    const streamById = new Map<string, MessageResponse>(
+      streamMessages.map(msg => [String(msg.id), msg as MessageResponse]),
+    );
+
+    return streamMessages.map(streamMsg => {
+      const parentId = streamMsg.parent_id ?? undefined;
+      const parent = parentId ? streamById.get(parentId) : undefined;
+      const metadata = parent
+        ? {
+            replyTo: {
+              id: String(parent.id),
+              text: parent.text || '',
+              sender: parent.user?.name || 'Unknown',
+            },
+          }
+        : undefined;
+
+      return {
+        id: String(streamMsg.id),
+        channelId: channel.id,
+        senderId: streamMsg.user?.id || '',
+        senderName: streamMsg.user?.name || 'Unknown',
+        senderAvatar: streamMsg.user?.image,
+        content: streamMsg.text || '',
+        messageType: 'text',
+        metadata,
+        createdAt: streamMsg.created_at || new Date().toISOString(),
+      };
+    });
+  }, [channel.id, messages, streamProChannel.messages, useStreamTransport]);
+
   const formattedMessages = useMemo(() => {
     return transportMessages.map(msg => {
       const metadata = msg.metadata as Record<string, unknown> | null;
@@ -244,59 +272,18 @@ export const ChannelChatView = ({
   }, [streamProChannel.messages, useStreamTransport, user?.id]);
 
   useEffect(() => {
-    if (useStreamTransport) {
-      return;
-    }
-
-    loadMessages();
-
-    // Subscribe to real-time updates (skip for demo channels)
-    const DEMO_TRIP_IDS = [
-      'lakers-road-trip',
-      'beyonce-cowboy-carter-tour',
-      'eli-lilly-c-suite-retreat-2026',
-    ];
-    if (!DEMO_TRIP_IDS.includes(channel.tripId)) {
-      const unsubscribe = channelService.subscribeToChannel(
-        channel.id,
-        newMsg => {
-          setMessages(prev => [...prev, newMsg]);
-        },
-        deletedMessageId => {
-          // Remove deleted message completely from the list
-          setMessages(prev => prev.filter(msg => msg.id !== deletedMessageId));
-        },
-      );
-      return unsubscribe;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadMessages depends on channel.id already in deps
-  }, [channel.id, channel.tripId, useStreamTransport]);
-
-  const loadMessages = async () => {
-    if (useStreamTransport) {
-      return;
-    }
-
-    setLoading(true);
-
-    // Check if this is a demo channel
-    const DEMO_TRIP_IDS = [
-      'lakers-road-trip',
-      'beyonce-cowboy-carter-tour',
-      'eli-lilly-c-suite-retreat-2026',
-    ];
-    if (DEMO_TRIP_IDS.includes(channel.tripId)) {
-      const { messagesByChannel } = getDemoChannelsForTrip(channel.tripId);
-      const demoMessages = messagesByChannel.get(channel.id) || [];
-      setMessages(demoMessages);
+    // Demo-only message hydration; non-demo channels are Stream-backed.
+    if (!isDemoChannel) {
       setLoading(false);
       return;
     }
 
-    const msgs = await channelService.getMessages(channel.id);
-    setMessages(msgs);
+    setLoading(true);
+    const { messagesByChannel } = getDemoChannelsForTrip(channel.tripId);
+    const demoMessages = messagesByChannel.get(channel.id) || [];
+    setMessages(demoMessages);
     setLoading(false);
-  };
+  }, [channel.id, channel.tripId, isDemoChannel]);
 
   const handleSendMessage = async (isBroadcast = false) => {
     if (!inputMessage.trim() || sending) return;
@@ -409,70 +396,6 @@ export const ChannelChatView = ({
     }
   };
 
-  // Load reactions for visible messages and subscribe to realtime updates
-  useEffect(() => {
-    if (!user?.id || isDemoChannel || useStreamTransport || transportMessages.length === 0) return;
-
-    const messageIds = transportMessages.map(m => m.id);
-
-    const loadReactions = async () => {
-      const fetched = await getMessagesReactions(messageIds, user.id);
-      const formatted: typeof reactions = {};
-      for (const [msgId, typeMap] of Object.entries(fetched)) {
-        formatted[msgId] = {};
-        for (const [type, data] of Object.entries(typeMap)) {
-          formatted[msgId][type] = {
-            count: data.count,
-            userReacted: data.userReacted,
-            users: data.users || [],
-          };
-        }
-      }
-      setReactions(formatted);
-    };
-
-    loadReactions();
-
-    const knownIds = new Set(messageIds);
-    const reactionChannel = subscribeToReactions(
-      channel.tripId,
-      payload => {
-        setReactions(prev => {
-          const updated = { ...prev };
-          if (!updated[payload.messageId]) {
-            updated[payload.messageId] = {};
-          }
-          const current = updated[payload.messageId][payload.reactionType] || {
-            count: 0,
-            userReacted: false,
-            users: [],
-          };
-
-          if (payload.eventType === 'INSERT') {
-            updated[payload.messageId][payload.reactionType] = {
-              count: current.count + 1,
-              userReacted: payload.userId === user.id ? true : current.userReacted,
-              users: Array.from(new Set([...current.users, payload.userId])),
-            };
-          } else if (payload.eventType === 'DELETE') {
-            updated[payload.messageId][payload.reactionType] = {
-              count: Math.max(0, current.count - 1),
-              userReacted: payload.userId === user.id ? false : current.userReacted,
-              users: current.users.filter(id => id !== payload.userId),
-            };
-          }
-
-          return updated;
-        });
-      },
-      knownIds,
-    );
-
-    return () => {
-      supabase.removeChannel(reactionChannel);
-    };
-  }, [user?.id, channel.id, channel.tripId, transportMessages, isDemoChannel, useStreamTransport]);
-
   const handleReaction = useCallback(
     async (messageId: string, reactionType: string) => {
       if (!user?.id) return;
@@ -500,7 +423,7 @@ export const ChannelChatView = ({
         return;
       }
 
-      // Optimistic update
+      // Optimistic update (UI only — Stream is canonical for persistence)
       setReactions(prev => {
         const updated = { ...prev };
         if (!updated[messageId]) updated[messageId] = {};
@@ -520,40 +443,21 @@ export const ChannelChatView = ({
         return updated;
       });
 
-      // Persist to database
-      if (useStreamTransport && streamProChannel.activeChannel) {
-        const ownReaction = streamProChannel.activeChannel.state.messages
-          .find(msg => msg.id === messageId)
-          ?.own_reactions?.some(r => r.type === reactionType);
-
-        if (ownReaction) {
-          await streamProChannel.activeChannel.deleteReaction(messageId, reactionType);
-        } else {
-          await streamProChannel.activeChannel.sendReaction(messageId, { type: reactionType });
-        }
+      if (!streamProChannel.activeChannel) {
         return;
       }
 
-      const result = await toggleMessageReaction(messageId, user.id, reactionType as ReactionType);
-      if (result.error) {
-        // Revert on failure — refetch all reactions
-        const messageIds = messages.map(m => m.id);
-        const freshReactions = await getMessagesReactions(messageIds, user.id);
-        const formatted: typeof reactions = {};
-        for (const [msgId, typeMap] of Object.entries(freshReactions)) {
-          formatted[msgId] = {};
-          for (const [type, data] of Object.entries(typeMap)) {
-            formatted[msgId][type] = {
-              count: data.count,
-              userReacted: data.userReacted,
-              users: data.users || [],
-            };
-          }
-        }
-        setReactions(formatted);
+      const ownReaction = streamProChannel.activeChannel.state.messages
+        .find(msg => msg.id === messageId)
+        ?.own_reactions?.some(r => r.type === reactionType);
+
+      if (ownReaction) {
+        await streamProChannel.activeChannel.deleteReaction(messageId, reactionType);
+      } else {
+        await streamProChannel.activeChannel.sendReaction(messageId, { type: reactionType });
       }
     },
-    [user?.id, messages, isDemoChannel, useStreamTransport, streamProChannel.activeChannel],
+    [user?.id, isDemoChannel, streamProChannel.activeChannel],
   );
 
   // Calculate member count from available channels, with direct DB fallback
