@@ -4,6 +4,7 @@ import { useProTrips } from '@/hooks/useProTrips';
 import { Button } from '@/components/ui/button';
 import { Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { useFeatureFlag } from '@/lib/featureFlags';
 
 export interface ScheduledMessage {
   id: string;
@@ -20,6 +21,7 @@ export const AdminDashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const proTripsResult = useProTrips();
   const proTrips = (proTripsResult as any).data || proTripsResult.proTrips;
+  const isBroadcastSchedulingEnabled = useFeatureFlag('broadcast-scheduling-enabled', false);
 
   // Modal state
   const [selectedTripId, setSelectedTripId] = useState<string>('');
@@ -63,6 +65,11 @@ export const AdminDashboard = () => {
   }, []);
 
   const handleScheduleMessage = async () => {
+    if (!isBroadcastSchedulingEnabled) {
+      toast.error('Broadcast scheduling is temporarily unavailable');
+      return;
+    }
+
     if (!selectedTripId || !content) {
       toast.error('Please select a trip and enter message content');
       return;
@@ -122,13 +129,15 @@ export const AdminDashboard = () => {
         <div className="mb-6 pb-6 border-b border-slate-700">
           <Button
             onClick={() => setIsModalOpen(true)}
+            disabled={!isBroadcastSchedulingEnabled}
             className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
           >
             <Plus size={16} />
             Schedule Pro Trip Message
           </Button>
           <p className="text-sm text-slate-400 mt-2">
-            Scheduled messages are only available for Pro Trips.
+            Scheduled messages for Pro Trips are temporarily unavailable while scheduling is
+            disabled.
           </p>
         </div>
 
@@ -177,7 +186,7 @@ export const AdminDashboard = () => {
       </div>
 
       {/* Schedule Modal */}
-      {isModalOpen && (
+      {isModalOpen && isBroadcastSchedulingEnabled && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
           <div className="bg-slate-900 border border-slate-700 rounded-lg p-6 max-w-md w-full relative">
             <button

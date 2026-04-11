@@ -55,6 +55,33 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'warn',
       'react-hooks/exhaustive-deps': 'warn',
       'react-hooks/rules-of-hooks': 'error',
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: './enhancedTripContextService',
+              message:
+                'Deprecated. Use TripContextAggregator from src/services/tripContextAggregator.ts as the single source of truth.',
+            },
+            {
+              name: '../services/enhancedTripContextService',
+              message:
+                'Deprecated. Use TripContextAggregator from src/services/tripContextAggregator.ts as the single source of truth.',
+            },
+            {
+              name: '@/services/enhancedTripContextService',
+              message:
+                'Deprecated. Use TripContextAggregator from src/services/tripContextAggregator.ts as the single source of truth.',
+            },
+            {
+              name: 'src/services/enhancedTripContextService',
+              message:
+                'Deprecated. Use TripContextAggregator from src/services/tripContextAggregator.ts as the single source of truth.',
+            },
+          ],
+        },
+      ],
     },
   },
 );

@@ -63,6 +63,12 @@ const RETRY_DELAY = 5000; // 5 seconds
 const CACHE_EXPIRY_DAYS = 30;
 const CACHE_EXPIRY_MS = CACHE_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
 
+function isStreamChatActive(): boolean {
+  const streamConfigured = Boolean(import.meta.env.VITE_STREAM_API_KEY);
+  const streamConnected = Boolean(getStreamClient()?.userID);
+  return streamConfigured && streamConnected;
+}
+
 // ============================================================================
 // Database Initialization
 // ============================================================================
@@ -367,6 +373,13 @@ class OfflineSyncService {
       }
 
       let handlerRan = false;
+
+      // Backward-compat cleanup: if legacy chat operations exist in IndexedDB from pre-Stream
+      // sessions, drop them once Stream chat is active to avoid dual-write replay.
+      if (entityType === 'chat_message' && isStreamChatActive()) {
+        await this.removeOperation(id);
+        return 'processed';
+      }
 
       // Route to appropriate handler
       switch (entityType) {

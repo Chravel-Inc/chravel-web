@@ -15,7 +15,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import {
   getStreamApiKey,
   getStreamClient,
@@ -27,7 +26,6 @@ import { messageEvents } from '@/telemetry/events';
 import type { Channel, Event, MessageResponse } from 'stream-chat';
 
 const PAGE_SIZE = 30;
-
 
 /**
  * Stream-backed trip chat hook.
@@ -183,7 +181,6 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       });
 
       const streamMessages = (state.messages || []) as MessageResponse[];
-      setMessages(streamMessages);
       setHasMore(streamMessages.length === PAGE_SIZE);
     } catch (err) {
       if (import.meta.env.DEV) {
@@ -391,9 +388,6 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
   // Load more (older messages)
   const toggleReaction = useCallback(
     async (messageId: string, reactionType: string) => {
-      if (messageId.startsWith('legacy-')) {
-        return;
-      }
       if (!channelRef.current) return;
       const channel = channelRef.current;
 
