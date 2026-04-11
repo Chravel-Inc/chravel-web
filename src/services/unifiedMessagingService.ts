@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { isFeatureFlagEnabled } from '@/lib/featureFlags';
 
 export interface ScheduledMessage {
   id: string;
@@ -10,6 +11,17 @@ export interface ScheduledMessage {
 }
 
 class UnifiedMessagingService {
+  private schedulingDisabledLogged = false;
+
+  private logSchedulingDisabledOnce() {
+    if (!import.meta.env.DEV || this.schedulingDisabledLogged) return;
+
+    this.schedulingDisabledLogged = true;
+    console.info(
+      '[UnifiedMessagingService] Broadcast scheduling is disabled via feature flag: broadcast-scheduling-enabled',
+    );
+  }
+
   async getScheduledMessages(tripId?: string): Promise<ScheduledMessage[]> {
     try {
       // In a real app, this would query the unified scheduled messages table
@@ -49,6 +61,12 @@ class UnifiedMessagingService {
     priority: 'urgent' | 'reminder' | 'fyi' = 'fyi',
   ): Promise<boolean> {
     try {
+      const schedulingEnabled = await isFeatureFlagEnabled('broadcast-scheduling-enabled', false);
+      if (!schedulingEnabled) {
+        this.logSchedulingDisabledOnce();
+        return false;
+      }
+
       const {
         data: { user },
       } = await supabase.auth.getUser();
