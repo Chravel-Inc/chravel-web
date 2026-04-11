@@ -1,3 +1,15 @@
+2026-04-11 — Broadcast scheduling kill-switch hardening (admin flow + service guard)
+- Added server-driven feature flag gate `broadcast-scheduling-enabled` with safe default `false` on Admin Dashboard scheduling UX (`src/pages/AdminDashboard.tsx`).
+  - "Schedule Pro Trip Message" action is disabled while flag is off.
+  - UI copy now explicitly states scheduling is temporarily unavailable.
+  - `handleScheduleMessage` exits early with user-facing toast when disabled.
+- Hardened `unifiedMessagingService.scheduleMessage(...)` with early short-circuit when flag is disabled to prevent any auth lookup/insert attempt.
+  - Added one-time development log for disabled scheduler path.
+- Added focused regression tests:
+  - `src/pages/__tests__/AdminDashboard.test.tsx` verifies disabled CTA + unavailable copy.
+  - `src/services/__tests__/unifiedMessagingService.test.ts` verifies disabled flag returns false and no insert/auth call path.
+- Verification: `npm run test:run -- src/services/__tests__/unifiedMessagingService.test.ts src/pages/__tests__/AdminDashboard.test.tsx`, `npm run typecheck`; `npm run build` and `npm run lint:check` still fail on pre-existing unrelated repo issues.
+
 2026-04-10 — Smart Import parser/model consolidation follow-up (low-risk architecture alignment)
 - Implemented shared URL scrape helper `supabase/functions/_shared/urlScraper.ts` and refactored all Smart Import URL functions to use one scrape chain:
   - `scrape-schedule`, `scrape-agenda`, `scrape-lineup` now all run Firecrawl → direct fetch → reader proxy with consistent behavior.
@@ -352,6 +364,14 @@
 - Implemented minimal stable immediate-send contract in `src/services/broadcastService.ts`: explicit insert payload mapping (trip_id/message/priority/metadata/created_by), forced `is_sent: true`, and no `scheduled_for` persistence.
 - Added focused regression test `src/services/__tests__/broadcastService.test.ts` asserting insert payload excludes `scheduled_for` and marks sends immediate.
 - Verification: `npm run test:run -- src/services/__tests__/broadcastService.test.ts`, `npm run typecheck`.
+2026-04-11 — Broadcast priority canonicalization + legacy alias compatibility hardening
+- Updated `Broadcasts` mappings so outgoing Stream payload for `logistics` category now uses canonical `reminder` priority (no longer `important`).
+- Added backward-compatible render mapping for legacy incoming priority aliases (`important` and `logistics`) to keep display category stable.
+- Hardened `useStreamBroadcasts` to normalize incoming/outgoing priority values to canonical set (`urgent | reminder | fyi`) and include normalized priority in outgoing metadata.
+- Added focused regression tests:
+  - `src/features/broadcasts/components/__tests__/Broadcasts.priorityMapping.test.ts`
+  - `src/hooks/stream/__tests__/useStreamBroadcasts.priority.test.tsx`
+- Verification: `npm run test:run -- src/features/broadcasts/components/__tests__/Broadcasts.priorityMapping.test.ts src/hooks/stream/__tests__/useStreamBroadcasts.priority.test.tsx`, `npm run typecheck`.
 2026-04-11 — Concierge context source-of-truth hardening (EnhancedTripContextService retirement)
 - Verified `EnhancedTripContextService` had zero runtime imports via repo grep (`rg "enhancedTripContextService|EnhancedTripContextService" src -n`) and confirmed concierge runtime already uses `TripContextAggregator` in `UniversalConciergeService`.
 - Removed deprecated runtime file `src/services/enhancedTripContextService.ts` to eliminate accidental resurrection risk.
