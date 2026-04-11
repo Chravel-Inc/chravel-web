@@ -66,12 +66,6 @@ export class AppleIAPProvider extends BaseBillingProvider {
     }
 
     // TODO: Fetch products from App Store
-    // const productIds = [
-    //   'com.chravel.explorer.monthly',
-    //   'com.chravel.explorer.annual',
-    //   'com.chravel.frequentchraveler.monthly',
-    //   'com.chravel.frequentchraveler.annual',
-    // ];
     // const products = await InAppPurchases.getProducts({ productIds });
 
     // For now, return config-based products
