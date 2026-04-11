@@ -28,6 +28,8 @@ export interface CreateBroadcastData {
   trip_id: string;
   message: string;
   priority?: 'urgent' | 'reminder' | 'fyi';
+  // Deprecated in current UI flow: broadcasts are immediate-send only.
+  // Keep optional type for backward compatibility, but do not persist this field here.
   scheduled_for?: string;
   attachment_urls?: string[];
   metadata?: Record<string, unknown>;
@@ -42,11 +44,12 @@ export const broadcastService = {
       if (!user) throw new Error('User not authenticated');
 
       const insertData: Record<string, unknown> = {
-        ...broadcastData,
+        trip_id: broadcastData.trip_id,
+        message: broadcastData.message,
         created_by: user.id,
         priority: broadcastData.priority || 'fyi',
         metadata: broadcastData.metadata || {},
-        is_sent: !broadcastData.scheduled_for, // If not scheduled, mark as sent immediately
+        is_sent: true,
       };
 
       // Add attachment_urls if provided
