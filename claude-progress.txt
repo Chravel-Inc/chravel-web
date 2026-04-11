@@ -338,6 +338,11 @@
 - Deleted obsolete `src/features/broadcasts/components/BroadcastScheduler.tsx` per product direction to fully remove scheduling UI path.
 - Verified there are no remaining source imports/usages of `BroadcastScheduler` via `rg "BroadcastScheduler" src -n`.
 - Verification: `npm run typecheck` and `npm run build` pass; `npm run lint:check` still fails on pre-existing unrelated repo lint errors (including `remotion/scripts/render-remotion.mjs`).
+2026-04-11 — Broadcast scheduling safe reintroduction prerequisites doc
+- Added `docs/ACTIVE/SCHEDULING_REINTRO_PREREQUISITES.md` with explicit TODO checklist for safe scheduling return.
+- Captured required preconditions: idempotent worker semantics, downtime catch-up logic, queueing/monitoring/alerting, and entitlement gate enforcement.
+- Added re-enable DoD + rollout kill-switch note to prevent premature launch.
+- Verification: markdown doc review (`sed -n`) and git diff inspection.
 2026-04-11 — MVP disablement for scheduled broadcast dispatcher
 - Removed Edge Function source at `supabase/functions/send-scheduled-broadcasts/index.ts` to stop deployment/invocation via all-functions deploy flows.
 - Added migration `20260411000000_disable_scheduled_broadcasts_cron.sql` to defensively unschedule cron jobs named `send-scheduled-broadcasts` and `chravel-send-scheduled-broadcasts` when pg_cron is present.
