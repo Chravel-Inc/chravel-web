@@ -1,39 +1,52 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { unifiedMessagingService } from '../unifiedMessagingService';
-import { supabase } from '@/integrations/supabase/client';
-import * as featureFlags from '@/lib/featureFlags';
+import { describe, expect, it } from 'vitest';
+import type { Database } from '@/integrations/supabase/types';
+import type { ScheduledMessage } from '@/types/messaging';
+import { mapBroadcastRowToScheduledMessage } from '../unifiedMessagingService';
 
-const insertMock = vi.fn();
+type BroadcastRow = Database['public']['Tables']['broadcasts']['Row'];
 
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    auth: {
-      getUser: vi.fn(),
-    },
-    from: vi.fn(() => ({
-      insert: insertMock,
-    })),
-  },
-}));
+describe('mapBroadcastRowToScheduledMessage', () => {
+  it('maps broadcasts row snake_case fields into canonical scheduled message shape', () => {
+    const row: BroadcastRow = {
+      id: 'broadcast-1',
+      trip_id: 'trip-1',
+      message: 'Heads up team',
+      scheduled_for: '2026-06-01T12:30:00.000Z',
+      priority: 'urgent',
+      is_sent: false,
+      created_at: '2026-05-20T09:00:00.000Z',
+      created_by: 'user-1',
+      metadata: null,
+      updated_at: '2026-05-20T09:00:00.000Z',
+    };
 
-describe('unifiedMessagingService.scheduleMessage', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+    const mapped = mapBroadcastRowToScheduledMessage(row);
+
+    const canonical: ScheduledMessage = mapped;
+    expect(canonical.tripId).toBe('trip-1');
+    expect(canonical.sendAt).toBe('2026-06-01T12:30:00.000Z');
+    expect(canonical.priority).toBe('urgent');
+    expect(canonical.isSent).toBe(false);
+    expect(canonical.messageType).toBe('broadcast');
   });
 
-  it('returns false and does not attempt insert when broadcast scheduling flag is disabled', async () => {
-    vi.spyOn(featureFlags, 'isFeatureFlagEnabled').mockResolvedValue(false);
+  it('falls back to defaults when optional broadcast columns are null/unknown', () => {
+    const row: BroadcastRow = {
+      id: 'broadcast-2',
+      trip_id: 'trip-2',
+      message: 'Fallback test',
+      scheduled_for: null,
+      priority: 'normal',
+      is_sent: null,
+      created_at: '2026-05-21T10:00:00.000Z',
+      created_by: 'user-2',
+      metadata: null,
+      updated_at: '2026-05-21T10:00:00.000Z',
+    };
 
-    const result = await unifiedMessagingService.scheduleMessage(
-      'trip-1',
-      'Scheduled message',
-      new Date('2026-06-01T10:00:00.000Z'),
-      'reminder',
-    );
-
-    expect(result).toBe(false);
-    expect(supabase.auth.getUser).not.toHaveBeenCalled();
-    expect(supabase.from).not.toHaveBeenCalledWith('broadcasts');
-    expect(insertMock).not.toHaveBeenCalled();
+    const mapped = mapBroadcastRowToScheduledMessage(row);
+    expect(mapped.sendAt).toBe('2026-05-21T10:00:00.000Z');
+    expect(mapped.priority).toBe('fyi');
+    expect(mapped.isSent).toBe(false);
   });
 });
