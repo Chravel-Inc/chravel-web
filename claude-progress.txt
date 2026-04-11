@@ -338,3 +338,8 @@
 - Deleted obsolete `src/features/broadcasts/components/BroadcastScheduler.tsx` per product direction to fully remove scheduling UI path.
 - Verified there are no remaining source imports/usages of `BroadcastScheduler` via `rg "BroadcastScheduler" src -n`.
 - Verification: `npm run typecheck` and `npm run build` pass; `npm run lint:check` still fails on pre-existing unrelated repo lint errors (including `remotion/scripts/render-remotion.mjs`).
+2026-04-11 — Broadcast immediate-send hardening (scheduled_for stripped from UI create path)
+- Root-caused unintended scheduling field pass-through risk to `broadcastService.createBroadcast` using broad payload spread (`...broadcastData`), which could persist `scheduled_for` if any caller includes it.
+- Implemented minimal stable immediate-send contract in `src/services/broadcastService.ts`: explicit insert payload mapping (trip_id/message/priority/metadata/created_by), forced `is_sent: true`, and no `scheduled_for` persistence.
+- Added focused regression test `src/services/__tests__/broadcastService.test.ts` asserting insert payload excludes `scheduled_for` and marks sends immediate.
+- Verification: `npm run test:run -- src/services/__tests__/broadcastService.test.ts`, `npm run typecheck`.
