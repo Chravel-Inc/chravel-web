@@ -1,9 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { unifiedMessagingService, ScheduledMessage } from '@/services/unifiedMessagingService';
+import { supabase } from '@/integrations/supabase/client';
 import { useProTrips } from '@/hooks/useProTrips';
 import { Button } from '@/components/ui/button';
 import { Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
+
+export interface ScheduledMessage {
+  id: string;
+  trip_id: string;
+  content: string;
+  sendAt: string;
+  priority: 'urgent' | 'reminder' | 'fyi';
+  created_at?: string;
+}
 
 export const AdminDashboard = () => {
   const [scheduledMessages, setScheduledMessages] = useState<ScheduledMessage[]>([]);
@@ -24,8 +33,28 @@ export const AdminDashboard = () => {
 
   const fetchMessages = async () => {
     setIsLoading(true);
-    const messages = await unifiedMessagingService.getScheduledMessages();
-    setScheduledMessages(messages);
+    try {
+      const { data, error } = await supabase
+        .from('broadcasts')
+        .select('*')
+        .not('scheduled_for', 'is', null)
+        .gt('scheduled_for', new Date().toISOString())
+        .order('scheduled_for', { ascending: true });
+
+      if (error) throw error;
+
+      const messages = (data || []).map(b => ({
+        id: b.id,
+        trip_id: b.trip_id,
+        content: b.message,
+        sendAt: b.scheduled_for,
+        priority: b.priority as 'urgent' | 'reminder' | 'fyi',
+      }));
+      setScheduledMessages(messages);
+    } catch (error) {
+      console.error('[AdminDashboard] Error fetching scheduled messages:', error);
+      setScheduledMessages([]);
+    }
     setIsLoading(false);
   };
 
@@ -57,19 +86,28 @@ export const AdminDashboard = () => {
       return;
     }
 
-    const success = await unifiedMessagingService.scheduleMessage(
-      selectedTripId,
-      content,
-      scheduledDate,
-      priority,
-    );
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
 
-    if (success) {
+      const { error } = await supabase.from('broadcasts').insert({
+        trip_id: selectedTripId,
+        message: content,
+        priority: priority,
+        scheduled_for: scheduledDate.toISOString(),
+        is_sent: false,
+        created_by: user.id,
+      });
+
+      if (error) throw error;
       toast.success('Message scheduled successfully');
       setIsModalOpen(false);
       setContent('');
       fetchMessages();
-    } else {
+    } catch (error) {
+      console.error('[AdminDashboard] Error scheduling message:', error);
       toast.error('Failed to schedule message');
     }
   };

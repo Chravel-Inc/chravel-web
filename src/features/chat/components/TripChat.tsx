@@ -25,8 +25,6 @@ import { WifiOff } from 'lucide-react';
 import { useRoleChannels } from '@/hooks/useRoleChannels';
 import { ChannelChatView } from '@/components/pro/channels/ChannelChatView';
 import { TypingIndicator } from './TypingIndicator';
-import { TypingIndicatorService } from '@/services/typingIndicatorService';
-import {} from '@/services/readReceiptService';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '@/components/mobile/PullToRefreshIndicator';
 import { useUnreadCounts } from '@/hooks/useUnreadCounts';
@@ -173,7 +171,7 @@ export const TripChat = React.memo(
     );
 
     // Typing indicators + read receipts — must be after all deps are declared
-    const { typingUsers, typingServiceRef } = useChatTypingIndicators(
+    const { typingUsers } = useChatTypingIndicators(
       demoMode.isDemoMode,
       resolvedTripId,
       user,
