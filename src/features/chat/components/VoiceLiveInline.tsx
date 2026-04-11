@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { RotateCcw, Mic, AlertTriangle, Loader2, WifiOff } from 'lucide-react';
-import type { GeminiLiveState, VoiceDiagnostics } from '@/hooks/useGeminiLive';
+import type { GeminiLiveState, VoiceDiagnostics } from '@/types/voice';
 
 interface VoiceLiveInlineProps {
   liveState: GeminiLiveState;

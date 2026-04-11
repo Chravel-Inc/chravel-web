@@ -1,7 +1,11 @@
 import 'https://deno.land/x/xhr@0.1.0/mod.ts';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
-import { invokeChatModel, extractTextFromChatResponse } from '../_shared/gemini.ts';
+import {
+  invokeChatModel,
+  extractTextFromChatResponse,
+  DEFAULT_GEMINI_FLASH_MODEL,
+} from '../_shared/gemini.ts';
 import { validateExternalHttpsUrl } from '../_shared/validation.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { requireAuth } from '../_shared/requireAuth.ts';
@@ -44,7 +48,7 @@ async function runParserModel(
   options?: { maxTokens?: number; temperature?: number; timeoutMs?: number },
 ): Promise<unknown> {
   const aiResult = await invokeChatModel({
-    model: 'gemini-3-flash-preview',
+    model: DEFAULT_GEMINI_FLASH_MODEL,
     messages,
     maxTokens: options?.maxTokens ?? 2000,
     temperature: options?.temperature ?? 0.1,

@@ -35,6 +35,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { buildTripCoverStoragePath, TRIP_COVER_BUCKET } from '../utils/tripCoverStorage';
 import { getDemoTripCoverFallback } from '@/data/demoTripCoverFallbacks';
+import { isBlobOrDataUrl } from '@/utils/mediaUtils';
 
 // Stable empty array to prevent Zustand selector reference changes causing infinite re-renders
 const EMPTY_MEMBERS_ARRAY: Array<{
@@ -350,7 +351,7 @@ export const TripHeader = ({
       const objectUrl = URL.createObjectURL(croppedBlob);
       await updateCoverPhoto(objectUrl);
       // Clean up crop source if it was a blob
-      if (cropImageSrc?.startsWith('blob:')) {
+      if (cropImageSrc && isBlobOrDataUrl(cropImageSrc)) {
         URL.revokeObjectURL(cropImageSrc);
       }
       setCropImageSrc(null);
@@ -364,9 +365,11 @@ export const TripHeader = ({
     }
 
     setIsUploading(true);
+    let uploadedFilePath: string | null = null;
     try {
       const fileName = `${trip.id}-${Date.now()}.jpg`;
       const filePath = buildTripCoverStoragePath(trip.id.toString(), fileName);
+      uploadedFilePath = filePath;
 
       const { error: uploadError } = await supabase.storage
         .from(TRIP_COVER_BUCKET)
@@ -379,6 +382,7 @@ export const TripHeader = ({
       if (uploadError) {
         console.error('Upload error:', uploadError);
         toast.error(`Failed to upload: ${uploadError.message}`);
+        uploadedFilePath = null;
         return;
       }
 
@@ -391,14 +395,37 @@ export const TripHeader = ({
 
       // Add cache-busting param for re-crops
       const finalUrl = `${urlData.publicUrl}?v=${Date.now()}`;
-      await updateCoverPhoto(finalUrl);
+      const success = await updateCoverPhoto(finalUrl);
+
+      // If database update failed, clean up the orphaned storage file
+      if (!success && uploadedFilePath) {
+        console.warn(
+          '[TripHeader] Database update failed, cleaning up storage file:',
+          uploadedFilePath,
+        );
+        await supabase.storage
+          .from(TRIP_COVER_BUCKET)
+          .remove([uploadedFilePath])
+          .catch(err => {
+            console.error('Failed to clean up orphaned storage file:', err);
+          });
+      }
     } catch (error) {
       console.error('Cover photo upload error:', error);
       toast.error('Failed to upload cover photo');
+      // Clean up storage file if it was uploaded
+      if (uploadedFilePath) {
+        await supabase.storage
+          .from(TRIP_COVER_BUCKET)
+          .remove([uploadedFilePath])
+          .catch(err => {
+            console.error('Failed to clean up orphaned storage file:', err);
+          });
+      }
     } finally {
       setIsUploading(false);
       // Clean up crop source if it was a blob
-      if (cropImageSrc?.startsWith('blob:')) {
+      if (cropImageSrc && isBlobOrDataUrl(cropImageSrc)) {
         URL.revokeObjectURL(cropImageSrc);
       }
       setCropImageSrc(null);
@@ -412,7 +439,7 @@ export const TripHeader = ({
 
   const handleCropCancel = () => {
     setShowCropModal(false);
-    if (cropImageSrc?.startsWith('blob:')) {
+    if (cropImageSrc && isBlobOrDataUrl(cropImageSrc)) {
       URL.revokeObjectURL(cropImageSrc);
     }
     setCropImageSrc(null);

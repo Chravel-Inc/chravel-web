@@ -1,11 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { tripKeys } from '@/lib/queryKeys';
+import { isBlobOrDataUrl } from '@/utils/mediaUtils';
+import { normalizeTripCoverUrl } from '@/utils/tripCoverStorage';
 import { useAuth } from './useAuth';
 import { useDemoMode } from './useDemoMode';
 import { demoModeService } from '@/services/demoModeService';
 import { toast } from 'sonner';
+import type { Trip } from '@/services/tripService';
 
 export type CoverDisplayMode = 'cover' | 'contain';
 
@@ -21,6 +24,13 @@ export const useTripCoverPhoto = (
   const [coverDisplayMode, setCoverDisplayMode] = useState<CoverDisplayMode>(initialDisplayMode);
   const [isUpdating, setIsUpdating] = useState(false);
 
+  const invalidateTripCoverQueries = () => {
+    queryClient.invalidateQueries({ queryKey: tripKeys.all });
+    queryClient.invalidateQueries({ queryKey: ['proTrips'] });
+    queryClient.invalidateQueries({ queryKey: ['events'] });
+    queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
+  };
+
   // Keep local state aligned with TanStack Query / parent props (detail key is ['trip', id, userId], not ['trips'])
   useEffect(() => {
     if (isDemoMode) {
@@ -33,10 +43,44 @@ export const useTripCoverPhoto = (
     setCoverDisplayMode(initialDisplayMode);
   }, [isDemoMode, tripId, initialPhotoUrl, initialDisplayMode]);
 
+  /**
+   * Helper to update all trip query cache entries with new cover photo URL.
+   * Uses predicate matching to handle query keys with userId suffix.
+   */
+  const updateTripCacheWithCoverPhoto = useCallback(
+    (photoUrl: string | null) => {
+      // Update all trip detail queries that match this tripId
+      // Uses predicate to match ['trip', tripId, ...] regardless of userId suffix
+      queryClient.setQueriesData<Trip | null>(
+        {
+          predicate: query => {
+            const key = query.queryKey;
+            return Array.isArray(key) && key[0] === 'trip' && key[1] === tripId;
+          },
+        },
+        old => {
+          if (old && typeof old === 'object') {
+            return { ...old, cover_image_url: photoUrl };
+          }
+          return old;
+        },
+      );
+
+      // Also update trip list entries
+      queryClient.setQueriesData<Trip[]>({ queryKey: tripKeys.all }, old => {
+        if (!Array.isArray(old)) return old;
+        return old.map(trip =>
+          trip.id === tripId ? { ...trip, cover_image_url: photoUrl } : trip,
+        );
+      });
+    },
+    [queryClient, tripId],
+  );
+
   const updateCoverPhoto = async (photoUrl: string): Promise<boolean> => {
-    // Reject blob URLs from being saved to database (except in demo mode)
-    if (photoUrl.startsWith('blob:') && !isDemoMode) {
-      console.warn('[useTripCoverPhoto] Rejecting blob URL - not persistable');
+    // Reject blob/data URLs from being saved to database (except in demo mode)
+    if (isBlobOrDataUrl(photoUrl) && !isDemoMode) {
+      console.warn('[useTripCoverPhoto] Rejecting non-persistable URL:', photoUrl);
       toast.error('Upload in progress, please wait...');
       return false;
     }
@@ -81,13 +125,14 @@ export const useTripCoverPhoto = (
 
     setIsUpdating(true);
     try {
+      const normalizedPhotoUrl = normalizeTripCoverUrl(photoUrl) ?? photoUrl;
       // Use .select() to verify the update actually happened
-      // RLS policy "Trip creators can update their trips" handles authorization
+      // RLS policy "Trip members can update trip details" handles authorization
       const { data, error } = await supabase
         .from('trips')
-        .update({ cover_image_url: photoUrl })
+        .update({ cover_image_url: normalizedPhotoUrl })
         .eq('id', tripId)
-        .select('id')
+        .select('id, cover_image_url')
         .maybeSingle();
 
       if (error) throw error;
@@ -99,13 +144,34 @@ export const useTripCoverPhoto = (
         return false;
       }
 
+      // Verify the cover_image_url was actually updated
+      if (data.cover_image_url !== photoUrl) {
+        console.error('[useTripCoverPhoto] cover_image_url mismatch after update', {
+          expected: photoUrl,
+          actual: data.cover_image_url,
+        });
+        toast.error('Cover photo update failed - please try again');
+        return false;
+      }
+
+      // Update local state immediately
       setCoverPhoto(photoUrl);
-      queryClient.setQueriesData({ queryKey: tripKeys.detail(tripId) }, old =>
-        old && typeof old === 'object' ? { ...old, cover_image_url: photoUrl } : old,
-      );
-      // Trip list uses ['trips', ...]; trip detail uses ['trip', tripId, userId] — invalidate both
-      queryClient.invalidateQueries({ queryKey: tripKeys.all });
-      queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
+
+      // Update query cache using predicate matching for all trip detail queries
+      updateTripCacheWithCoverPhoto(photoUrl);
+
+      // Invalidate and refetch to ensure consistency
+      // Using refetchQueries ensures immediate fresh data rather than background refetch
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: tripKeys.all }),
+        queryClient.refetchQueries({
+          predicate: query => {
+            const key = query.queryKey;
+            return Array.isArray(key) && key[0] === 'trip' && key[1] === tripId;
+          },
+        }),
+      ]);
+
       toast.success('Cover photo updated');
       return true;
     } catch (error) {
@@ -162,12 +228,27 @@ export const useTripCoverPhoto = (
         }
       }
 
+      // Update local state
       setCoverPhoto(undefined);
       queryClient.setQueriesData({ queryKey: tripKeys.detail(tripId) }, old =>
         old && typeof old === 'object' ? { ...old, cover_image_url: null } : old,
       );
-      queryClient.invalidateQueries({ queryKey: tripKeys.all });
-      queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
+      invalidateTripCoverQueries();
+
+      // Update query cache
+      updateTripCacheWithCoverPhoto(null);
+
+      // Invalidate and refetch
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: tripKeys.all }),
+        queryClient.refetchQueries({
+          predicate: query => {
+            const key = query.queryKey;
+            return Array.isArray(key) && key[0] === 'trip' && key[1] === tripId;
+          },
+        }),
+      ]);
+
       toast.success('Cover photo removed');
       return true;
     } catch (error) {
@@ -206,11 +287,34 @@ export const useTripCoverPhoto = (
       }
 
       setCoverDisplayMode(mode);
-      queryClient.setQueriesData({ queryKey: tripKeys.detail(tripId) }, old =>
-        old && typeof old === 'object' ? { ...old, cover_display_mode: mode } : old,
+
+      // Update cache with predicate matching
+      queryClient.setQueriesData<Trip | null>(
+        {
+          predicate: query => {
+            const key = query.queryKey;
+            return Array.isArray(key) && key[0] === 'trip' && key[1] === tripId;
+          },
+        },
+        old => {
+          if (old && typeof old === 'object') {
+            return { ...old, cover_display_mode: mode };
+          }
+          return old;
+        },
       );
-      queryClient.invalidateQueries({ queryKey: tripKeys.all });
-      queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
+
+      // Invalidate and refetch
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: tripKeys.all }),
+        queryClient.refetchQueries({
+          predicate: query => {
+            const key = query.queryKey;
+            return Array.isArray(key) && key[0] === 'trip' && key[1] === tripId;
+          },
+        }),
+      ]);
+
       return true;
     } catch (error) {
       console.error('Error updating cover display mode:', error);

@@ -80,6 +80,15 @@ describe('SettingsLayout', () => {
     expect(scrollableArea).toBeInTheDocument();
   });
 
+  it('adds safe-area bottom padding to mobile content so last actions stay reachable', () => {
+    mockUseIsMobile.mockReturnValue(true);
+    const { container } = render(<SettingsLayout {...defaultProps} />);
+
+    const inner = container.querySelector('.flex-1.min-h-0.overflow-y-auto > div');
+    expect(inner).toBeTruthy();
+    expect(inner?.className).toContain('safe-area-inset-bottom');
+  });
+
   it('has min-h-0 on main element for proper flex shrinking (desktop)', () => {
     mockUseIsMobile.mockReturnValue(false);
     const { container } = render(<SettingsLayout {...defaultProps} />);

@@ -75,6 +75,8 @@ const COT_CLASSES = new Set<QueryClass>([
   'place_navigation',
 ]);
 
+const ACTION_PLAN_MODE = (Deno.env.get('CONCIERGE_ACTION_PLAN_MODE') || 'tool_first').toLowerCase();
+
 // ── Prompt Layer Functions ───────────────────────────────────────────────────
 
 function corePersona(): string {
@@ -339,7 +341,7 @@ export function assemblePrompt(options: PromptAssemblyOptions): string {
   layers.push(corePersona());
 
   // 2. Action Plan mandate (only for write-action classes)
-  if (WRITE_ACTION_CLASSES.has(queryClass)) {
+  if (WRITE_ACTION_CLASSES.has(queryClass) && ACTION_PLAN_MODE === 'legacy') {
     layers.push(actionPlanMandate());
   }
 

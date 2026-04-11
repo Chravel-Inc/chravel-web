@@ -17,6 +17,7 @@
     "src/__tests__/calendar-conflict.test.tsx",
     "src/__tests__/chat-flow.test.tsx",
     "src/__tests__/payment-balance.test.tsx",
-    "src/__tests__/trip-creation-flow.test.tsx"
+    "src/__tests__/trip-creation-flow.test.tsx",
+    "e2e/specs/chat/messaging.spec.ts"
   ]
 }

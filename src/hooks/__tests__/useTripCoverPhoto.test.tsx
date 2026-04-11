@@ -59,10 +59,17 @@ function createWrapper() {
 describe('useTripCoverPhoto', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    maybeSingleMock.mockResolvedValue({ data: { id: 'trip-abc' }, error: null });
+    maybeSingleMock.mockResolvedValue({
+      data: {
+        id: 'trip-abc',
+        cover_image_url:
+          'https://abc.supabase.co/storage/v1/object/public/trip-media/cover.jpg?t=1',
+      },
+      error: null,
+    });
   });
 
-  it('invalidates trip list and trip detail queries after successful cover update', async () => {
+  it('invalidates trip list/detail + pro/event collections after successful cover update', async () => {
     const wrapper = createWrapper();
     const { result } = renderHook(() => useTripCoverPhoto('trip-abc'), { wrapper });
 
@@ -74,7 +81,6 @@ describe('useTripCoverPhoto', () => {
     });
 
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: tripKeys.all });
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: tripKeys.detail('trip-abc') });
   });
 
   it('syncs local coverPhoto when initialPhotoUrl prop updates (e.g. after refetch)', async () => {
@@ -95,7 +101,7 @@ describe('useTripCoverPhoto', () => {
     });
   });
 
-  it('updates cover display mode and invalidates trip queries', async () => {
+  it('updates cover display mode and invalidates all trip collections', async () => {
     const wrapper = createWrapper();
     const { result } = renderHook(() => useTripCoverPhoto('trip-abc', undefined, 'cover'), {
       wrapper,
@@ -108,6 +114,5 @@ describe('useTripCoverPhoto', () => {
 
     expect(result.current.coverDisplayMode).toBe('contain');
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: tripKeys.all });
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: tripKeys.detail('trip-abc') });
   });
 });

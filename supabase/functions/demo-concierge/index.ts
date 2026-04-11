@@ -1,6 +1,10 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { invokeChatModel, extractTextFromChatResponse } from '../_shared/gemini.ts';
+import {
+  invokeChatModel,
+  extractTextFromChatResponse,
+  DEFAULT_GEMINI_FLASH_MODEL,
+} from '../_shared/gemini.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { getClientIp } from '../_shared/security.ts';
 
@@ -119,11 +123,13 @@ serve(async req => {
       .filter((item: any) => item.content.length > 0);
 
     const requestedModel =
-      typeof body?.config?.model === 'string' ? body.config.model.trim() : 'gemini-3-flash-preview';
+      typeof body?.config?.model === 'string'
+        ? body.config.model.trim()
+        : DEFAULT_GEMINI_FLASH_MODEL;
     const allowedModel =
       requestedModel.includes('pro') || requestedModel.includes('thinking')
-        ? 'gemini-3-flash-preview'
-        : requestedModel || 'gemini-3-flash-preview';
+        ? DEFAULT_GEMINI_FLASH_MODEL
+        : requestedModel || DEFAULT_GEMINI_FLASH_MODEL;
     const temperature = clamp(body?.config?.temperature, 0, 1, 0.5);
     const maxTokens = clamp(body?.config?.maxTokens, 128, 768, 512);
 

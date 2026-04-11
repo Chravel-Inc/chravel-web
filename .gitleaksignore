@@ -29,7 +29,7 @@ docs/IOS_RELEASE_MANUAL_STEPS.md:curl-auth-header:218
 docs/SPRINT_2_MANUAL_STEPS.md:curl-auth-header:329
 docs/_archive/root/PUSH_NOTIFICATION_RLS_FIX.md:curl-auth-header:148
 docs/ios/appendix-edge-functions.md:curl-auth-header:563
-supabase/functions/send-push/README.md:curl-auth-header:98
+supabase/functions/send-push/README.md:curl-auth-header:106
 
 # generic-api-key false positives
 # deno.lock: SHA-256 content hashes that happen to match the pattern
@@ -47,7 +47,7 @@ scripts/__tests__/validate-env.test.ts:generic-api-key:511
 # they do not contain embedded private keys. The match is on the PEM header string literal
 # used to strip the armor before passing to crypto.subtle.importKey().
 supabase/functions/_shared/vertexAuth.ts:private-key:47
-supabase/functions/send-push/index.ts:private-key:166
+supabase/functions/send-push/index.ts:private-key:134
 
 # gcp-api-key in test fixture (fake key used to test error sanitization)
 supabase/functions/_shared/__tests__/errorSanitization.test.ts:gcp-api-key:72

@@ -43,12 +43,12 @@ const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY'); // kept as fallback
 const FORCE_LOVABLE_PROVIDER = (Deno.env.get('AI_PROVIDER') || '').toLowerCase() === 'lovable';
 
-// Defense-in-depth: reject if GEMINI_API_KEY matches the client-side Maps API key pattern.
-// The Maps key (VITE_GOOGLE_MAPS_API_KEY) should NEVER be used server-side for Gemini.
-const MAPS_API_KEY = Deno.env.get('VITE_GOOGLE_MAPS_API_KEY');
+// Defense-in-depth: reject if GEMINI_API_KEY matches the server-side Maps API key.
+// GOOGLE_MAPS_API_KEY should NEVER be used as the Gemini API key.
+const MAPS_API_KEY = Deno.env.get('GOOGLE_MAPS_API_KEY');
 if (GEMINI_API_KEY && MAPS_API_KEY && GEMINI_API_KEY === MAPS_API_KEY) {
   console.error(
-    '[SECURITY] GEMINI_API_KEY matches VITE_GOOGLE_MAPS_API_KEY — misconfiguration detected. Gemini calls will be disabled.',
+    '[SECURITY] GEMINI_API_KEY matches GOOGLE_MAPS_API_KEY — misconfiguration detected. Gemini calls will be disabled.',
   );
 }
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -64,6 +64,12 @@ interface HistoryCacheEntry {
 }
 const historyCache = new Map<string, HistoryCacheEntry>();
 const HISTORY_CACHE_TTL_MS = 30_000;
+const RAG_DOC_IDS_CACHE_TTL_MS = 30_000;
+const RAG_SOFT_TIMEOUT_MS = Number(Deno.env.get('RAG_SOFT_TIMEOUT_MS') || 120);
+const ragDocIdsCache = new Map<
+  string,
+  { docIds: string[]; sourceByDocId: Map<string, string>; expiresAt: number }
+>();
 
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -81,6 +87,7 @@ interface LovableConciergeRequest {
   }>;
   chatHistory?: ChatMessage[];
   isDemoMode?: boolean;
+  attachmentIntent?: 'smart_import' | 'summarize' | 'qa';
   config?: {
     model?: string;
     temperature?: number;
@@ -137,6 +144,7 @@ const LovableConciergeSchema = z.object({
     .max(20, 'Chat history too long (max 20 messages)')
     .optional(),
   isDemoMode: z.boolean().optional(),
+  attachmentIntent: z.enum(['smart_import', 'summarize', 'qa']).optional(),
   stream: z.boolean().optional(),
   config: z
     .object({
@@ -708,7 +716,9 @@ serve(async req => {
     // collapses that to the duration of the single slowest query.
     const hasTripId = tripId && tripId !== 'unknown';
     // Classify query into one of 18 classes for conditional tool/context/prompt loading
-    const queryClass = classifyQuery(message, attachments.length > 0);
+    const queryClass = classifyQuery(message, attachments.length > 0, {
+      attachmentIntent: validatedData.attachmentIntent,
+    });
     const tripRelated = isTripRelatedClass(queryClass);
     const runRAGRetrieval = tripRelated && shouldRunRAGRetrieval(message, tripId);
 
@@ -760,30 +770,42 @@ serve(async req => {
         // Skip entirely when trip has no kb content — saves DB round-trip
         runRAGRetrieval
           ? (async () => {
+              const startedAt = performance.now();
               try {
-                const { data: hasKbDocs, error: kbCheckError } = await supabase
-                  .from('kb_documents')
-                  .select('id')
-                  .eq('trip_id', tripId)
-                  .limit(1)
-                  .maybeSingle();
+                const now = Date.now();
+                const cached = ragDocIdsCache.get(tripId);
+                let allowedDocIds: string[] = [];
+                let docSourceMap = new Map<string, string>();
 
-                if (kbCheckError || !hasKbDocs) {
-                  return '';
+                if (cached && cached.expiresAt > now) {
+                  allowedDocIds = cached.docIds;
+                  docSourceMap = cached.sourceByDocId;
+                } else {
+                  const { data: tripDocs, error: docsError } = await supabase
+                    .from('kb_documents')
+                    .select('id, source')
+                    .eq('trip_id', tripId);
+                  if (docsError || !tripDocs?.length) {
+                    return {
+                      context: '',
+                      ragMeta: { attempted: true, hit: false, skipped: 'no_docs' },
+                    };
+                  }
+                  allowedDocIds = tripDocs.map((d: any) => d.id);
+                  docSourceMap = new Map(tripDocs.map((d: any) => [d.id, d.source || 'unknown']));
+                  ragDocIdsCache.set(tripId, {
+                    docIds: allowedDocIds,
+                    sourceByDocId: docSourceMap,
+                    expiresAt: now + RAG_DOC_IDS_CACHE_TTL_MS,
+                  });
                 }
 
-                // Pre-fetch doc IDs owned by this trip to enforce trip isolation at query time.
-                // This is more secure than the previous post-filter: it prevents cross-trip
-                // chunks from being returned even if RLS on kb_chunks is misconfigured.
-                const { data: tripDocs } = await supabase
-                  .from('kb_documents')
-                  .select('id, source')
-                  .eq('trip_id', tripId);
-
-                const allowedDocIds = (tripDocs || []).map((d: any) => d.id);
-                if (!allowedDocIds.length) return '';
-
-                const docSourceMap = new Map((tripDocs || []).map((d: any) => [d.id, d.source]));
+                if (!allowedDocIds.length) {
+                  return {
+                    context: '',
+                    ragMeta: { attempted: true, hit: false, skipped: 'no_docs' },
+                  };
+                }
 
                 console.log('Using keyword-only search for RAG retrieval');
                 const { data: keywordResults, error: keywordError } = await supabase
@@ -795,11 +817,24 @@ serve(async req => {
                   })
                   .limit(10);
 
-                if (keywordError || !keywordResults?.length) return '';
+                if (keywordError || !keywordResults?.length) {
+                  const ragMs = Math.round(performance.now() - startedAt);
+                  return {
+                    context: '',
+                    ragMeta: { attempted: true, hit: false, ragMs, skipped: 'no_matches' },
+                  };
+                }
 
                 console.log(
                   `Found ${keywordResults.length} relevant context items via keyword search`,
                 );
+                const ragMs = Math.round(performance.now() - startedAt);
+                if (ragMs > RAG_SOFT_TIMEOUT_MS) {
+                  return {
+                    context: '',
+                    ragMeta: { attempted: true, hit: false, ragMs, skipped: 'soft_timeout' },
+                  };
+                }
                 let ctx = '\n\n=== RELEVANT TRIP CONTEXT (Keyword Search) ===\n';
                 ctx += 'Retrieved using keyword matching:\n';
                 keywordResults.forEach((result: any, idx: number) => {
@@ -811,13 +846,23 @@ serve(async req => {
                 });
                 ctx +=
                   '\n\nIMPORTANT: Use this retrieved context to provide accurate answers. Cite sources when possible.';
-                return ctx;
+                return {
+                  context: ctx,
+                  ragMeta: { attempted: true, hit: true, ragMs, skipped: null },
+                };
               } catch (ragError) {
                 console.error('RAG retrieval failed:', ragError);
-                return '';
+                const ragMs = Math.round(performance.now() - startedAt);
+                return {
+                  context: '',
+                  ragMeta: { attempted: true, hit: false, ragMs, skipped: 'error' },
+                };
               }
             })()
-          : Promise.resolve(''),
+          : Promise.resolve({
+              context: '',
+              ragMeta: { attempted: false, hit: false, ragMs: 0, skipped: 'not_requested' },
+            }),
 
         // 5. Privacy config check
         hasTripId && !serverDemoMode
@@ -969,7 +1014,8 @@ serve(async req => {
       }
     }
 
-    const ragContext = ragResult || '';
+    const ragContext = ragResult?.context || '';
+    const ragMeta = ragResult?.ragMeta || { attempted: false, hit: false, ragMs: 0, skipped: null };
 
     // --- MERGE CHAT HISTORY ---
     // Priority: client-provided chatHistory (in-memory session) takes precedence over
@@ -1375,6 +1421,10 @@ serve(async req => {
                   has_map_widget: !!googleMapsWidget,
                   function_calls: streamFnCalls,
                   streamed: true,
+                  rag_attempted: ragMeta.attempted,
+                  rag_hit: ragMeta.hit,
+                  rag_ms: ragMeta.ragMs,
+                  rag_skipped_reason: ragMeta.skipped,
                 },
                 user?.id,
               );
@@ -1899,6 +1949,10 @@ serve(async req => {
               grounding_sources: citations.length,
               has_map_widget: !!googleMapsWidget,
               function_calls: functionCallResults.map(r => r.name),
+              rag_attempted: ragMeta.attempted,
+              rag_hit: ragMeta.hit,
+              rag_ms: ragMeta.ragMs,
+              rag_skipped_reason: ragMeta.skipped,
             },
             user?.id,
           );

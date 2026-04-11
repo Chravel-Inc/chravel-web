@@ -14,7 +14,12 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { validateExternalHttpsUrl } from '../_shared/validation.ts';
-import { invokeChatModel, extractTextFromChatResponse } from '../_shared/gemini.ts';
+import {
+  invokeChatModel,
+  extractTextFromChatResponse,
+  DEFAULT_GEMINI_FLASH_MODEL,
+} from '../_shared/gemini.ts';
+import { scrapeUrlContentForAi, getScrapeContentTypeLabel } from '../_shared/urlScraper.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -32,94 +37,6 @@ interface AgendaSession {
 
 /** Max characters of content to send to Gemini */
 const MAX_CONTENT_LENGTH = 1_000_000;
-
-/**
- * Attempt to scrape a URL using Firecrawl's headless browser.
- * Returns rendered markdown content, or null if Firecrawl is not configured or fails.
- */
-async function scrapeWithFirecrawl(
-  url: string,
-): Promise<{ markdown: string; method: 'firecrawl' } | null> {
-  const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
-  if (!apiKey) {
-    console.log('[scrape-agenda] FIRECRAWL_API_KEY not set, skipping Firecrawl');
-    return null;
-  }
-
-  try {
-    console.log('[scrape-agenda] Attempting Firecrawl scrape...');
-    const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url,
-        formats: ['markdown'],
-        onlyMainContent: true,
-        waitFor: 3000, // Wait 3s for JS to render
-      }),
-      signal: AbortSignal.timeout(20000), // 20s timeout for Firecrawl
-    });
-
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error(`[scrape-agenda] Firecrawl error ${response.status}:`, errorData);
-      return null;
-    }
-
-    const data = await response.json();
-    const markdown = data?.data?.markdown || data?.markdown || '';
-
-    if (!markdown || markdown.trim().length < 50) {
-      console.log('[scrape-agenda] Firecrawl returned empty/minimal content, falling back');
-      return null;
-    }
-
-    console.log(`[scrape-agenda] Firecrawl success: ${markdown.length} chars of markdown`);
-    return { markdown, method: 'firecrawl' };
-  } catch (err) {
-    console.error('[scrape-agenda] Firecrawl failed:', err);
-    return null;
-  }
-}
-
-/**
- * Fallback: fetch raw HTML with browser-like headers.
- */
-async function scrapeWithFetch(url: string): Promise<{ html: string; method: 'fetch' } | null> {
-  try {
-    console.log('[scrape-agenda] Falling back to raw fetch...');
-    const pageResponse = await fetch(url, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-        Accept:
-          'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-User': '?1',
-        'Cache-Control': 'no-cache',
-      },
-      signal: AbortSignal.timeout(15000),
-    });
-
-    if (!pageResponse.ok) {
-      console.error(`[scrape-agenda] HTTP ${pageResponse.status} from ${url}`);
-      return null;
-    }
-
-    const html = await pageResponse.text();
-    console.log(`[scrape-agenda] Raw fetch: ${html.length} chars`);
-    return { html, method: 'fetch' };
-  } catch (err) {
-    console.error('[scrape-agenda] Fetch error:', err);
-    return null;
-  }
-}
 
 serve(async req => {
   const corsHeaders = getCorsHeaders(req);
@@ -177,28 +94,21 @@ serve(async req => {
 
     console.log(`[scrape-agenda] Processing URL: ${url}`);
 
-    // ── Scrape: Firecrawl first, then raw fetch fallback ──
+    // ── Scrape: Firecrawl -> raw fetch -> reader proxy fallback ──
     let contentForAI = '';
-    let scrapeMethod = 'unknown';
-
-    const firecrawlResult = await scrapeWithFirecrawl(url);
-    if (firecrawlResult) {
-      contentForAI = firecrawlResult.markdown;
-      scrapeMethod = 'firecrawl';
-    } else {
-      const fetchResult = await scrapeWithFetch(url);
-      if (!fetchResult) {
-        return new Response(
-          JSON.stringify({
-            error:
-              'Could not access this website. The site may block automated requests. Try uploading a screenshot or PDF instead.',
-          }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-        );
-      }
-      contentForAI = fetchResult.html;
-      scrapeMethod = 'fetch';
+    const scrapeResult = await scrapeUrlContentForAi(url, { logPrefix: 'scrape-agenda' });
+    if (!scrapeResult) {
+      return new Response(
+        JSON.stringify({
+          error:
+            'Could not access this website. The page appears to block automated fetches. Try uploading a screenshot or PDF instead.',
+          scrape_method: 'blocked',
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
     }
+    contentForAI = scrapeResult.content;
+    const scrapeMethod: 'firecrawl' | 'fetch' | 'reader_proxy' = scrapeResult.method;
 
     // ── Cap content ──
     if (contentForAI.length > MAX_CONTENT_LENGTH) {
@@ -213,8 +123,7 @@ serve(async req => {
     );
 
     // ── Send to Gemini for extraction (45s timeout) ──
-    const contentType =
-      scrapeMethod === 'firecrawl' ? 'rendered webpage content (markdown)' : 'webpage HTML';
+    const contentType = getScrapeContentTypeLabel(scrapeMethod);
 
     const systemPrompt = `You are an expert at extracting event agenda sessions, show dates, tour dates, and scheduled performances from websites.
 
@@ -254,7 +163,7 @@ Example output (showing different levels of available data):
     let rawContent = '';
     try {
       const aiResult = await invokeChatModel({
-        model: 'gemini-3-flash-preview',
+        model: DEFAULT_GEMINI_FLASH_MODEL,
         messages: [
           { role: 'system', content: systemPrompt },
           {

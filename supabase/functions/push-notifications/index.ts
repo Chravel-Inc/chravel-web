@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { sendFcmV1, toFcmData } from '../_shared/fcmV1.ts';
 import {
   generateSmsMessage,
   isSmsEligibleCategory,
@@ -145,45 +146,19 @@ async function sendPushNotification(
   { userId, tokens, title, body, data, icon, badge }: any,
   corsHeaders: Record<string, string>,
 ) {
-  const fcmServerKey = Deno.env.get('FCM_SERVER_KEY');
+  const tokenList: string[] = Array.isArray(tokens) ? tokens : [tokens];
 
-  if (!fcmServerKey) {
-    throw new Error('FCM server key not configured');
-  }
-
-  const fcmPayload = {
-    registration_ids: Array.isArray(tokens) ? tokens : [tokens],
-    notification: {
-      title,
-      body,
-      icon: icon || '/favicon.ico',
-      badge: badge || '/favicon.ico',
-      click_action: data?.url || '/',
-    },
-    data: data || {},
+  const result = await sendFcmV1(tokenList, {
+    notification: { title, body },
+    data: data ? toFcmData(data) : undefined,
     webpush: {
-      fcm_options: {
-        link: data?.url || '/',
+      notification: {
+        icon: icon || '/favicon.ico',
+        badge: badge || '/favicon.ico',
       },
+      fcm_options: { link: data?.url || '/' },
     },
-  };
-
-  const response = await fetch('https://fcm.googleapis.com/fcm/send', {
-    method: 'POST',
-    headers: {
-      Authorization: `key=${fcmServerKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(fcmPayload),
-    signal: AbortSignal.timeout(15_000),
   });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`FCM error: ${error}`);
-  }
-
-  const result = await response.json();
 
   await supabase.from('notification_logs').insert({
     user_id: userId,
@@ -191,14 +166,18 @@ async function sendPushNotification(
     title,
     body,
     data,
-    success: result.success || 0,
-    failure: result.failure || 0,
+    success: result.success.length,
+    failure: result.failed.length,
     sent_at: new Date().toISOString(),
   });
 
-  return new Response(JSON.stringify(result), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
+  return new Response(
+    JSON.stringify({
+      success: result.success.length,
+      failure: result.failed.length,
+    }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+  );
 }
 
 async function sendEmailNotification(

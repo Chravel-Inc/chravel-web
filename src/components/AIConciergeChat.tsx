@@ -27,10 +27,8 @@ import type { HotelResult } from '@/features/chat/components/HotelResultCards';
 import { toast } from 'sonner';
 import { useWebSpeechVoice } from '@/hooks/useWebSpeechVoice';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
-import { useGeminiLive } from '@/hooks/useGeminiLive';
-import type { ToolCallResult } from '@/hooks/useGeminiLive';
 import { useLiveKitVoice } from '@/hooks/useLiveKitVoice';
-import { VOICE_RUNTIME } from '@/config/voiceFeatureFlags';
+import type { ToolCallResult } from '@/types/voice';
 import { useVoiceToolHandler } from '@/hooks/useVoiceToolHandler';
 import { VoiceLiveInline } from '@/features/chat/components/VoiceLiveInline';
 import { CTA_BUTTON, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
@@ -39,7 +37,6 @@ import { useConciergeSessionStore, type ConciergeSession } from '@/store/concier
 import { useSaveToTripPlaces } from '@/hooks/useSaveToTripPlaces';
 import { useConciergeReadAloud } from '@/hooks/useConciergeReadAloud';
 import { buildSpeechText } from '@/lib/buildSpeechText';
-import { useFeatureFlag } from '@/lib/featureFlags';
 import { getStreamClient } from '@/services/stream/streamClient';
 import {
   persistUserMessage as streamPersistUserMessage,
@@ -66,12 +63,14 @@ const EMPTY_SESSION: ConciergeSession = {
 // ─── Feature Flags ────────────────────────────────────────────────────────────
 const UPLOAD_ENABLED = true;
 /**
- * DUPLEX_VOICE_ENABLED — When true, the waveform button starts Gemini Live
- * bidirectional voice (Vertex AI). When false, it uses basic Web Speech API
- * dictation instead. Transcripts appear as normal chat bubbles and errors
- * surface via toast notifications.
+ * DUPLEX_VOICE_ENABLED — master safety gate for live voice UX.
+ *
+ * Keep this `false` until LiveKit end-to-end readiness is confirmed
+ * (token issuance + agent join + tool execution + clean disconnect).
+ * This hides the "Live" CTA but preserves all LiveKit architecture for
+ * a future re-enable by flipping this constant.
  */
-const DUPLEX_VOICE_ENABLED = true;
+const DUPLEX_VOICE_ENABLED = false;
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface AIConciergeChatProps {
@@ -233,6 +232,7 @@ const _ALLOWED_IMAGE_TYPES = new Set([
   'image/heic',
   'image/heif',
 ]);
+type AttachmentIntent = 'smart_import' | 'summarize' | 'qa';
 const ALLOWED_DOCUMENT_TYPES = new Set([
   'application/pdf',
   'text/calendar',
@@ -339,8 +339,7 @@ export const AIConciergeChat = ({
   const setStoreMessages = useConciergeSessionStore(s => s.setMessages);
 
   // 🔀 STREAM: Concierge history persistence via Stream
-  const streamConciergeFlag = useFeatureFlag('stream-chat-concierge', false);
-  const streamConciergeEnabled = streamConciergeFlag && !!getStreamClient()?.userID && !isDemoMode;
+  const streamConciergeEnabled = !!getStreamClient()?.userID && !isDemoMode;
   const {
     messages: streamHistoryMessages,
     isLoading: isStreamHistoryLoading,
@@ -428,21 +427,26 @@ export const AIConciergeChat = ({
     isLoading: isHistoryLoading,
     error: historyError,
   } = useConciergeHistory(tripId);
-  const mergedHistoryMessages = useMemo(() => {
-    const mappedStreamMessages: ChatMessage[] = streamHistoryMessages.map(message => ({
-      id: `stream-history-${message.id}`,
-      type: message.type,
-      content: message.content,
-      timestamp: message.timestamp,
-      sources: message.sources,
-      googleMapsWidget: message.googleMapsWidget,
-      googleMapsWidgetContextToken: message.googleMapsWidgetContextToken,
-      functionCallPlaces: message.functionCallPlaces as ChatMessage['functionCallPlaces'],
-      functionCallFlights: message.functionCallFlights as ChatMessage['functionCallFlights'],
-      usage: message.usage,
-    }));
+  const canonicalHistoryMessages = useMemo(() => {
+    if (streamConciergeEnabled) {
+      return streamHistoryMessages.map(message => ({
+        id: `stream-history-${message.id}`,
+        type: message.type,
+        content: message.content,
+        timestamp: message.timestamp,
+        sources: message.sources,
+        googleMapsWidget: message.googleMapsWidget,
+        googleMapsWidgetContextToken: message.googleMapsWidgetContextToken,
+        functionCallPlaces: message.functionCallPlaces as ChatMessage['functionCallPlaces'],
+        functionCallFlights: message.functionCallFlights as ChatMessage['functionCallFlights'],
+        usage: message.usage,
+      }));
+    }
 
-    const combined = [...historyMessages, ...mappedStreamMessages];
+    return historyMessages;
+  }, [historyMessages, streamConciergeEnabled, streamHistoryMessages]);
+  const mergedHistoryMessages = useMemo(() => {
+    const combined = [...canonicalHistoryMessages];
     if (combined.length === 0) {
       return combined;
     }
@@ -458,7 +462,7 @@ export const AIConciergeChat = ({
     return Array.from(dedupedByFingerprint.values()).sort(
       (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
     );
-  }, [historyMessages, streamHistoryMessages]);
+  }, [canonicalHistoryMessages]);
 
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -467,6 +471,7 @@ export const AIConciergeChat = ({
   >('connected');
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
   const [attachedDocuments, setAttachedDocuments] = useState<File[]>([]);
+  const [attachmentIntent, setAttachmentIntent] = useState<AttachmentIntent>('smart_import');
   const [searchOpen, setSearchOpen] = useState(false);
   const handleSendMessageRef = useRef<(messageOverride?: string) => Promise<void>>(async () =>
     Promise.resolve(),
@@ -502,13 +507,9 @@ export const AIConciergeChat = ({
   }, [streamConciergeEnabled, isStreamHistoryLoaded, messages.length]);
 
   // ─── Voice ─────────────────────────────────────────────────────────────────
-  // When DUPLEX_VOICE_ENABLED is true, the waveform button tries Gemini Live
-  // first.  If bidirectional audio fails, we fall back to Web Speech API
-  // Dictation and Gemini Live are now separate controls — no auto-fallback needed.
-  // When DUPLEX_VOICE_ENABLED is false, the waveform button uses basic Web
-  // Speech API dictation. Transcribed text fills the input field so the user
-  // can review/edit before sending. All Gemini Live hooks remain initialised
-  // (hooks rules) but are not invoked.
+  // When DUPLEX_VOICE_ENABLED is true, the waveform button starts a LiveKit
+  // bidirectional voice session. When false, it is hidden entirely.
+  // Web Speech API dictation (microphone icon) is always available.
 
   // ── Dictation (Web Speech API) ──────────────────────────────────────────
   // Dictation callback: fill the text input with the transcribed speech
@@ -556,8 +557,8 @@ export const AIConciergeChat = ({
    */
   const [streamingUserMessage, setStreamingUserMessage] = useState<ChatMessage | null>(null);
 
-  // Gemini Live bidirectional voice — always initialized (hooks rules)
-  const { handleToolCall } = useVoiceToolHandler({
+  // Voice tool handler — reserved for future LiveKit client-side tool routing
+  const { handleToolCall: _handleToolCall } = useVoiceToolHandler({
     tripId,
     userId: user?.id ?? '',
   });
@@ -763,62 +764,24 @@ export const AIConciergeChat = ({
     });
   }, []);
 
+  // LiveKit voice — sole voice runtime (Vertex AI removed)
   const {
-    // Both hooks always called (Rules of Hooks). Only the active runtime's startSession is invoked.
-    state: vertexState,
-    error: vertexError,
-    userTranscript: vertexUserTranscript,
-    assistantTranscript: vertexAssistantTranscript,
-    conversationHistory: vertexConversationHistory,
-    diagnostics: vertexDiagnostics,
-    startSession: startVertexSession,
-    endSession: endVertexSession,
-    circuitBreakerOpen: vertexCircuitBreakerOpen,
-    resetCircuitBreaker: vertexResetCircuitBreaker,
-  } = useGeminiLive({
-    tripId,
-    onToolCall: handleToolCall,
-    onTurnComplete: VOICE_RUNTIME === 'vertex' ? handleLiveTurnComplete : undefined,
-    onError: VOICE_RUNTIME === 'vertex' ? handleLiveError : undefined,
-  });
-
-  // LiveKit voice hook — tripId is the same prop passed to the component,
-  // ensuring trip context is always in sync. Both hooks are always called
-  // per React Rules of Hooks, but only the active runtime's callbacks fire.
-  const {
-    state: lkState,
-    error: lkError,
-    userTranscript: lkUserTranscript,
-    assistantTranscript: lkAssistantTranscript,
-    conversationHistory: lkConversationHistory,
-    diagnostics: lkDiagnostics,
-    startSession: startLkSession,
-    endSession: endLkSession,
-    circuitBreakerOpen: lkCircuitBreakerOpen,
-    resetCircuitBreaker: lkResetCircuitBreaker,
+    state: liveState,
+    error: liveError,
+    userTranscript: liveUserTranscript,
+    assistantTranscript: liveAssistantTranscript,
+    conversationHistory: liveConversationHistory,
+    diagnostics: liveDiagnostics,
+    startSession: startLiveSession,
+    endSession: endLiveSession,
+    circuitBreakerOpen: liveCircuitBreakerOpen,
+    resetCircuitBreaker: liveResetCircuitBreaker,
   } = useLiveKitVoice({
     tripId,
-    onTurnComplete: VOICE_RUNTIME === 'livekit' ? handleLiveTurnComplete : undefined,
-    onRichCard: VOICE_RUNTIME === 'livekit' ? handleLiveRichCard : undefined,
-    onError: VOICE_RUNTIME === 'livekit' ? handleLiveError : undefined,
+    onTurnComplete: handleLiveTurnComplete,
+    onRichCard: handleLiveRichCard,
+    onError: handleLiveError,
   });
-
-  // Select active voice runtime — VOICE_RUNTIME is a build-time constant
-  // so only one path is ever active. Both hooks idle harmlessly when inactive.
-  const liveState = VOICE_RUNTIME === 'livekit' ? lkState : vertexState;
-  const liveError = VOICE_RUNTIME === 'livekit' ? lkError : vertexError;
-  const liveUserTranscript = VOICE_RUNTIME === 'livekit' ? lkUserTranscript : vertexUserTranscript;
-  const liveAssistantTranscript =
-    VOICE_RUNTIME === 'livekit' ? lkAssistantTranscript : vertexAssistantTranscript;
-  const liveConversationHistory =
-    VOICE_RUNTIME === 'livekit' ? lkConversationHistory : vertexConversationHistory;
-  const liveDiagnostics = VOICE_RUNTIME === 'livekit' ? lkDiagnostics : vertexDiagnostics;
-  const startLiveSession = VOICE_RUNTIME === 'livekit' ? startLkSession : startVertexSession;
-  const endLiveSession = VOICE_RUNTIME === 'livekit' ? endLkSession : endVertexSession;
-  const liveCircuitBreakerOpen =
-    VOICE_RUNTIME === 'livekit' ? lkCircuitBreakerOpen : vertexCircuitBreakerOpen;
-  const liveResetCircuitBreaker =
-    VOICE_RUNTIME === 'livekit' ? lkResetCircuitBreaker : vertexResetCircuitBreaker;
 
   // Voice state for VoiceButton — dictation only (Live is separate button now)
   const convoVoiceState: VoiceState = dictationState;
@@ -1277,9 +1240,13 @@ export const AIConciergeChat = ({
     const attachmentCount = selectedImages.length + selectedDocuments.length;
     const messageToSend =
       typedMessage ||
-      (hasDocumentAttachments
-        ? `Please analyze the attached file(s) and extract any travel events, reservations, or itinerary items. Show me a preview before adding to calendar.`
-        : `Please analyze the ${selectedImages.length} attached image(s).`);
+      (attachmentIntent === 'summarize'
+        ? `Please summarize the attached file(s) and highlight key travel details.`
+        : attachmentIntent === 'qa'
+          ? `Please analyze the attached file(s). I'll ask follow-up questions next.`
+          : hasDocumentAttachments
+            ? `Please analyze the attached file(s) and extract any travel events, reservations, or itinerary items. Show me a preview before adding to calendar.`
+            : `Please analyze the ${selectedImages.length} attached image(s).`);
     const userDisplayContent =
       typedMessage || `Attached ${attachmentCount} file${attachmentCount === 1 ? '' : 's'}`;
 
@@ -1414,6 +1381,7 @@ export const AIConciergeChat = ({
           temperature: 0.55,
           maxTokens: 4096,
         },
+        ...(hasAnyAttachments && !typedMessage ? { attachmentIntent } : {}),
       };
 
       // === STREAMING PATH ===
@@ -2477,6 +2445,23 @@ export const AIConciergeChat = ({
           className="chat-composer z-10 bg-black/30 px-3 pt-2 flex-shrink-0"
           style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)' }}
         >
+          {UPLOAD_ENABLED &&
+            (attachedImages.length > 0 || attachedDocuments.length > 0) &&
+            inputMessage.trim().length === 0 && (
+              <div className="mb-2">
+                <label className="block text-[11px] text-gray-400 mb-1">Attachment intent</label>
+                <select
+                  value={attachmentIntent}
+                  onChange={e => setAttachmentIntent(e.target.value as AttachmentIntent)}
+                  className="w-full h-11 rounded-xl bg-zinc-900/80 border border-white/10 px-3 text-sm text-white"
+                  aria-label="Attachment intent"
+                >
+                  <option value="smart_import">Extract events (Smart Import)</option>
+                  <option value="summarize">Summarize file/image</option>
+                  <option value="qa">Q&A on this file/image</option>
+                </select>
+              </div>
+            )}
           {/* End session button — aligned above dictation button on same vertical axis */}
           {isLiveSessionActive && (
             <div className="mb-2 w-11">
@@ -2524,7 +2509,7 @@ export const AIConciergeChat = ({
             acceptedFileTypes={ALL_ACCEPTED_TYPES}
             convoVoiceState={convoVoiceState}
             onConvoToggle={handleConvoToggle}
-            isVoiceEligible={DUPLEX_VOICE_ENABLED}
+            isVoiceEligible={true}
             onQuickAction={
               UPLOAD_ENABLED && (attachedImages.length > 0 || attachedDocuments.length > 0)
                 ? (action: string) => {

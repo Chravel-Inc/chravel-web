@@ -1,78 +1,46 @@
 
 
-## Product Launch Video v2 — Real Screenshots + chravel.app branding
+## Revised Plan: Fix Hotel Photos + "Open in Maps"
 
-### Overview
-Build a new ~30-second product launch video using real app screenshots (both mobile and web desktop) embedded in the Remotion composition. Fix the `chravel.com` → `chravel.app` domain issue. Also fix the `PendingTripCard.tsx` build error as a prerequisite.
+### Issue 1: Hotel Photos Not Loading
 
-### Prerequisites (fix build error)
-**File: `src/components/trip/PendingTripCard.tsx`**
-- Remove duplicate `ctaVariant` on line 26 and duplicate `ctaVariant` on line 47
-- Remove duplicate `disabledCta` on line 48 and the `const disabledCta` redeclaration on line 50
+**Root cause:** `fetchToImageResponse` uses `redirect: 'error'` (line 35). Google Places Photo API v1 returns a 302 redirect. The fetch throws on redirect, returning 500 to the browser.
 
-### Video Architecture
+**Fix (two layers of protection):**
 
-**Duration:** 30 seconds at 30fps = 900 frames (keeps within 600s render timeout)
+1. **`supabase/functions/image-proxy/index.ts`** — Refactor `fetchToImageResponse` to accept a `redirectPolicy` parameter (default `'error'` for SSRF safety on generic URLs). In the placePhotoName code path:
+   - Add `skipHttpRedirect=true` to upstream params (tells Google to return bytes directly)
+   - Pass `redirect: 'follow'` as the redirect policy (safe because the upstream URL is hardcoded to `places.googleapis.com`, not user-controlled — no SSRF risk)
+   - This means if `skipHttpRedirect` is ever ignored, the redirect still works
 
-**Assets to copy into `remotion/public/screenshots/`:**
-- Mobile: 8 screenshots from `appstore/screenshots/iPhone-6.7/` (raw simulator captures)
-- Web: Capture 4 desktop screenshots from chravel.app using browser tools, save into the remotion public folder
+2. **No new env vars or API key scopes needed** — `skipHttpRedirect` is a standard Google Places Photo param, and `redirect: 'follow'` is a fetch option. The existing `GOOGLE_MAPS_API_KEY` already has Places Photo access.
 
-**Scene breakdown (7 scenes):**
+3. **Rollback:** Revert the single file. The generic URL proxy path remains unchanged (`redirect: 'error'`).
 
-| # | Scene | Duration | Content |
-|---|-------|----------|---------|
-| 1 | Logo Reveal | 3s (90f) | Reuse existing `LogoReveal` component |
-| 2 | "Group Travel Made Easy" text | 3s (90f) | Reuse `TextReveal` with updated copy |
-| 3 | Web Dashboard Showcase | 5s (150f) | Desktop screenshot in a browser frame mockup showing the trip dashboard — establishes "this is a real app" |
-| 4 | Mobile Feature Carousel | 8s (240f) | Cycle through 4 mobile screenshots (Chat, Calendar, AI Concierge, Expense Splitting) in a PhoneFrame, each showing for ~2s with slide transitions |
-| 5 | Web + Mobile Side-by-Side | 5s (150f) | Desktop screenshot on left, phone on right — shows cross-platform story |
-| 6 | Mobile Feature Carousel 2 | 4s (120f) | Cycle through remaining 4 screenshots (Maps, Media, Polls, Home) |
-| 7 | CTA / End Card | 4s (120f) | Updated `CallToAction` with `chravel.app` + EndCard |
+**Verification:** After deploy, use `supabase--curl_edge_functions` to hit the image-proxy with a known `placePhotoName` and confirm HTTP 200 with `content-type: image/*`.
 
-**Total with transitions:** ~900 frames (30s)
+### Issue 2: "Open in Maps" Blocked
 
-### New Components to Create
+**Root cause:** Lovable preview runs in a sandboxed iframe missing `allow-popups`. Both `<a target="_blank">` and `window.open()` are blocked. This is a **preview-only limitation** — production (`chravel.app`) works correctly.
 
-1. **`remotion/src/compositions/ProductLaunchV2.tsx`** — Main composition orchestrating all scenes
-2. **`remotion/src/components/BrowserFrame.tsx`** — Desktop browser window mockup (dark chrome, address bar showing `chravel.app`, rounded corners, shadow) to display web screenshots
-3. **`remotion/src/components/ScreenshotShowcase.tsx`** — Displays a screenshot inside either a PhoneFrame or BrowserFrame with entrance animation
-4. **`remotion/src/components/ScreenshotCarousel.tsx`** — Cycles through multiple screenshots with slide transitions, showing a label for each feature
+**Fix in `src/features/chat/components/PlaceResultCards.tsx`:**
+- Replace `<a target="_blank">` with a `<button>` that attempts `window.open()`
+- When blocked (returns `null`), copy URL to clipboard with inline feedback: **"Copied! Paste in your browser"** (not a generic toast — this will be the primary path in preview)
+- On production where `window.open()` succeeds, the button behaves like the original link
 
-### Modifications
+**Testing note:** This fix cannot be verified in the Lovable preview. The clipboard fallback is the only working path in preview. Real navigation must be tested on `chravel.app`.
 
-- **`remotion/src/components/CallToAction.tsx`** — Change `chravel.com` to `chravel.app` (line 139)
-- **`remotion/src/Root.tsx`** — Register the new `ProductLaunchV2` composition
+### Summary
 
-### Screenshot Capture Strategy
+| File | Change |
+|------|--------|
+| `supabase/functions/image-proxy/index.ts` | Add `skipHttpRedirect=true` + pass `redirect: 'follow'` for placePhotoName path only |
+| `src/features/chat/components/PlaceResultCards.tsx` | `window.open()` + clipboard fallback with inline "Copied!" message |
 
-Since screenshots can't be directly saved from browser tools to the filesystem, I'll use a Python script to:
-1. Copy the existing mobile screenshots from `appstore/screenshots/iPhone-6.7/` into `remotion/public/screenshots/mobile/`
-2. For web screenshots, I'll take screenshots via the browser of the live `chravel.app` site and save them to `remotion/public/screenshots/web/`
+**Deploy:** `image-proxy` edge function
 
-Alternatively, since chravel.app loads correctly in the browser, I can use `fetch_website` with screenshot format to capture web pages.
-
-### Render Process
-
-Use the existing remotion setup with the programmatic render script pattern:
-1. Copy mobile screenshots to `remotion/public/screenshots/`
-2. Capture web screenshots to `remotion/public/screenshots/`
-3. Build all components
-4. Render via `cd remotion && node scripts/render-remotion.mjs` targeting the new composition
-5. Output to `/mnt/documents/chravel-product-launch-v2.mp4`
-
-### Key Differences from Previous Video
-- **Real screenshots** instead of mock UI components drawn in code
-- **Both web desktop and mobile** versions shown
-- **`chravel.app`** consistently used everywhere (fixes the `.com` bug)
-- **Shorter** (30s vs 60s) — punchier, more focused
-- **Browser frame** for web screenshots adds credibility
-- Same Chravel dark/gold design language throughout
-
-### Technical Notes
-- Screenshots referenced via `staticFile('screenshots/mobile/01-home-dashboard.png')` etc.
-- `<Img>` component from Remotion ensures assets load before rendering
-- No `backdropFilter` (sandbox constraint)
-- `muted: true` in render script (sandbox ffmpeg constraint)
-- `concurrency: 1` for stability
+**Verification steps:**
+1. `curl` the image-proxy with a real `placePhotoName` → expect 200 + image bytes
+2. In preview: confirm hotel photos render; confirm "Open in Maps" copies link with inline feedback
+3. On production: confirm "Open in Maps" opens Google Maps in new tab
 

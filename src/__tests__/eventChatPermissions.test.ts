@@ -68,6 +68,25 @@ describe('eventChatPermissions', () => {
     expect(resolveEffectiveMainChatMode('broadcasts', 'event', 30)).toBe('broadcasts');
   });
 
+  it('treats broadcasts as everyone when DB says event but UI shell is consumer/pro', () => {
+    expect(resolveEffectiveMainChatMode('broadcasts', 'event', 30, false)).toBe('everyone');
+
+    const memberCanPost = canPostInMainChat({
+      chatMode: 'broadcasts',
+      tripType: 'event',
+      attendeeCount: 30,
+      userRole: 'member',
+      isLoading: false,
+      surfaceIsEvent: false,
+    });
+
+    expect(memberCanPost).toBe(true);
+  });
+
+  it('still enforces broadcasts on true event shell even if trip_type row is wrong', () => {
+    expect(resolveEffectiveMainChatMode('broadcasts', 'consumer', 4, true)).toBe('broadcasts');
+  });
+
   it('allows consumer trip member to post even if chat_mode is broadcasts', () => {
     const memberCanPost = canPostInMainChat({
       chatMode: 'broadcasts',
@@ -119,6 +138,19 @@ describe('eventChatPermissions', () => {
         attendeeCount: 4,
         userRole: null,
         isLoading: true,
+      }),
+    ).toBe(true);
+  });
+
+  it('allows optimistic posting while loading on consumer/pro shell even if row is event+broadcasts', () => {
+    expect(
+      canPostInMainChat({
+        chatMode: 'broadcasts',
+        tripType: 'event',
+        attendeeCount: 30,
+        userRole: null,
+        isLoading: true,
+        surfaceIsEvent: false,
       }),
     ).toBe(true);
   });

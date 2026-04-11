@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Send, MapPin, Languages, Calendar, Image, X } from 'lucide-react';
+import { Send, MapPin, Languages, Image, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -9,7 +9,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { RecipientSelector } from './RecipientSelector';
-import { BroadcastScheduler } from './BroadcastScheduler';
 import { broadcastService } from '@/services/broadcastService';
 import { toast } from 'sonner';
 import { useBroadcastComposer } from '../hooks/useBroadcastComposer';
@@ -41,8 +40,6 @@ export const BroadcastComposer = ({
   onSend,
 }: BroadcastComposerProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [scheduledFor, setScheduledFor] = useState<Date | null>(null);
-  const [showScheduler, setShowScheduler] = useState(false);
   const [attachments, setAttachments] = useState<string[]>([]);
   const [uploadingAttachments, setUploadingAttachments] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -171,7 +168,6 @@ export const BroadcastComposer = ({
             : category === 'logistics'
               ? ('reminder' as const)
               : ('urgent' as const),
-        scheduled_for: scheduledFor ? scheduledFor.toISOString() : undefined,
         attachment_urls: attachments.length > 0 ? attachments : undefined,
         metadata: {
           location: location.trim() || undefined,
@@ -187,9 +183,7 @@ export const BroadcastComposer = ({
         // which fires on broadcast INSERT and routes through the centralized delivery pipeline.
         // No client-side push call needed.
 
-        toast.success(
-          scheduledFor ? 'Broadcast scheduled successfully!' : 'Broadcast sent successfully!',
-        );
+        toast.success('Broadcast sent successfully!');
 
         // Call the optional onSend callback for any additional handling
         onSend?.({
@@ -201,8 +195,6 @@ export const BroadcastComposer = ({
 
         // Reset form
         resetForm();
-        setScheduledFor(null);
-        setShowScheduler(false);
         setAttachments([]);
       } else {
         toast.error('Failed to send broadcast. Please try again.');
@@ -269,15 +261,6 @@ export const BroadcastComposer = ({
                 <MapPin size={14} />
                 <span className="hidden sm:inline">Add details</span>
                 <span className="sm:hidden">Details</span>
-              </button>
-              <button
-                onClick={() => setShowScheduler(!showScheduler)}
-                className={`text-slate-400 hover:text-white text-sm flex items-center gap-1 ${
-                  scheduledFor ? 'text-blue-400' : ''
-                }`}
-              >
-                <Calendar size={14} />
-                Schedule
               </button>
               <button
                 onClick={() => fileInputRef.current?.click()}
@@ -366,15 +349,6 @@ export const BroadcastComposer = ({
                 className="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:border-primary"
               />
             </div>
-          )}
-
-          {/* Scheduler */}
-          {showScheduler && (
-            <BroadcastScheduler
-              scheduledFor={scheduledFor}
-              onScheduleChange={setScheduledFor}
-              onCancel={() => setShowScheduler(false)}
-            />
           )}
         </div>
       </div>

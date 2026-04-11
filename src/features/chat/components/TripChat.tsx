@@ -160,7 +160,7 @@ export const TripChat = React.memo(
       canUploadMedia,
       isLoading: chatModeLoading,
       userRole: chatModeUserRole,
-    } = useTripChatMode(demoMode.isDemoMode ? undefined : resolvedTripId, user?.id);
+    } = useTripChatMode(demoMode.isDemoMode ? undefined : resolvedTripId, user?.id, isEvent);
 
     const isUserAdmin =
       chatModeUserRole === 'admin' ||

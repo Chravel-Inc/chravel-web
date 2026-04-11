@@ -17,14 +17,25 @@ export function resolveEffectiveMainChatMode(
   chatMode: ChatMode,
   tripType: TripType,
   attendeeCount: number,
+  surfaceIsEvent?: boolean,
 ): Exclude<ChatMode, null> {
   // Keep null mode permissive to match existing server policy (`chat_mode IS NULL` allows posting).
   const normalizedMode = chatMode ?? 'everyone';
 
-  // 'broadcasts' mode is event-only; non-event trips should never be locked to broadcasts.
-  // Guards against migration 20260214211051 which set DEFAULT 'broadcasts' for all trips.
-  if (normalizedMode === 'broadcasts' && tripType !== 'event') {
-    return 'everyone';
+  if (normalizedMode === 'broadcasts') {
+    // Consumer/pro shells never show announcements-only lock (product rule).
+    if (surfaceIsEvent === false) {
+      return 'everyone';
+    }
+    // Event shell: honor trips.chat_mode even if trip_type is misclassified (wrong row data).
+    if (surfaceIsEvent === true) {
+      return 'broadcasts';
+    }
+    // Legacy callers (no surface): non-event DB rows should not stay in broadcasts.
+    if (tripType !== 'event') {
+      return 'everyone';
+    }
+    return 'broadcasts';
   }
 
   if (normalizedMode === 'everyone' && isLargeEvent(tripType, attendeeCount)) {
@@ -39,9 +50,16 @@ export function canPostInMainChat(params: {
   attendeeCount: number;
   userRole: string | null;
   isLoading: boolean;
+  /** When false, main chat is never announcements-locked (consumer/pro shell). */
+  surfaceIsEvent?: boolean;
 }): boolean {
-  const { chatMode, tripType, attendeeCount, userRole, isLoading } = params;
-  const effectiveMode = resolveEffectiveMainChatMode(chatMode, tripType, attendeeCount);
+  const { chatMode, tripType, attendeeCount, userRole, isLoading, surfaceIsEvent } = params;
+  const effectiveMode = resolveEffectiveMainChatMode(
+    chatMode,
+    tripType,
+    attendeeCount,
+    surfaceIsEvent,
+  );
 
   // While chat mode + membership are still fetching, show the composer for trips that
   // resolve to open chat. RLS remains authoritative; this fixes a multi-second blank

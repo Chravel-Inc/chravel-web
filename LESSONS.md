@@ -144,12 +144,25 @@
 - **Avoid when:** First session initialization before any successful connection
 - **Evidence:** Gemini Live auto-reconnect paths were previously mapped to `requesting_mic`; inline status looked like fresh mic permission setup instead of network recovery. Adding `reconnecting` improved state-machine clarity and user feedback while preserving containment in the chat window.
 - **Provenance:** March 2026 concierge live-mode hardening
+### Ship live voice behind a hard UI kill switch until control-plane and data-plane checks both pass
+- **Tip:** Keep a simple top-level UI gate (for example `DUPLEX_VOICE_ENABLED`) for live voice CTA rendering so product can instantly hide entry points without deleting architecture when external dependencies are unstable.
+- **Applies when:** Voice stacks that depend on external worker infrastructure (LiveKit workers, third-party AI keys, service-role tool bridges).
+- **Avoid when:** The voice path is fully offline/local and has no external control-plane dependencies.
+- **Evidence:** Live voice failures can originate outside frontend code (missing LiveKit/Supabase secrets, worker offline, agent-dispatch mismatch). Hiding the CTA prevented repeated user-facing breakage while preserving the existing LiveKit hooks and edge functions for rapid re-enable.
+- **Provenance:** April 2026 LiveKit forensic pass + fallback hardening.
 ### Notification deep-link mappers should read both metadata and first-class columns
 - **Tip:** When notification rows store routing identifiers in both dedicated columns (e.g., `notifications.trip_id`) and metadata JSON, mapping code should prefer metadata but fall back to column values. Legacy rows and mixed writer paths (RPC helper vs direct inserts) often populate only one.
 - **Applies when:** Building in-app notification lists, badge payload mappers, or tap-to-route logic.
 - **Avoid when:** The schema enforces a single canonical field and legacy data is guaranteed migrated.
 - **Evidence:** Join approval notifications were visible but lacked actionable routing in-app because mapper read only `metadata.trip_id` and ignored `trip_id` column from direct inserts.
 - **Provenance:** March 2026 join approval forensic fix (`useNotificationRealtime` mapping hardening).
+- **Confidence:** high
+
+### Kill-switched write features should be gated in both UI and service layers
+- **Tip:** For operational kill switches (for example feature flags in `feature_flags`), disable the UI entry point and also hard-stop the write service call path. UI-only gates can be bypassed via stale tabs/devtools/manual invocation, while service-only gates create confusing UX.
+- **Applies when:** Temporarily disabling mutation flows like scheduled broadcasts, AI write tools, or admin-only batch actions.
+- **Evidence:** Broadcast scheduling was disabled in Admin Dashboard via `broadcast-scheduling-enabled` and additionally short-circuited in `unifiedMessagingService.scheduleMessage` to return `false` before auth/insert.
+- **Provenance:** April 2026 broadcast scheduling kill-switch hardening.
 - **Confidence:** high
 ### Treat schema migrations as a product compatibility API, not just SQL files
 - **Tip:** In large Supabase/Postgres repos, migration safety is mostly about compatibility windows and operational sequencing, not syntax correctness. Enforce expand/contract phases, one concern per migration, and dual-version app/schema test windows. Without that, even “idempotent” SQL can break rolling deploys.
@@ -382,6 +395,12 @@
 - **Avoid when:** The `as any` cast is for reading an untyped property that demonstrably exists at runtime.
 - **Evidence:** `(token as any).roomConfig = {...}` in `livekit-token/index.ts` was dead code — `AccessToken.toJwt()` ignored it, causing voice to silently fail.
 - **Provenance:** April 2026 LiveKit voice stack forensic audit.
+### In network-isolated Playwright environments, use app demo mode for UI-layer messaging verification
+- **Tip:** When Playwright fixtures call Supabase APIs (signUp, signIn) in a network-isolated sandbox, they throw `ConnectTimeoutError`. Wrap fixture auth calls in try/catch returning null, then call `test.skip()` when auth is null. For UI-layer verification (trip chat, concierge, pro channels), navigate to `/demo` — it boots the app with local mock data and no network calls. Tab panels in TripTabs all stay mounted with `display:none` when inactive, so use class discriminators to target textareas (e.g., `textarea[class*="rounded-2xl"]` for Concierge, not `.first()` which returns the hidden Chat input).
+- **Applies when:** CI/staging Playwright suites, PR smoke tests, network-isolated sandbox environments, local development without Supabase credentials.
+- **Avoid when:** Tests must verify actual Stream message delivery or real DB writes — those require staging with `SUPABASE_SERVICE_ROLE_KEY`.
+- **Evidence:** GetStream messaging e2e suite: 8 CHAT-SMOKE tests pass in isolation using `/demo` mode; 8 CHAT-001/002/003 authenticated tests skip gracefully with clear message when credentials are unavailable. `data-testid="chat-send-btn"` added to `ChatInput` for stable send button targeting.
+- **Provenance:** April 2026 GetStream messaging e2e suite (`claude/fix-getstream-messaging-xmHa9`).
 - **Confidence:** high
 
 ### Pending-buffer write tools require 5-file sync — 3-file assumption breaks confirms
@@ -400,4 +419,16 @@
 - **Avoid when:** Reading — selects work fine since UUID strings are valid TEXT.
 - **Evidence:** Discovered when implementing `addExpense` confirm handler in `usePendingActions.ts` (April 2026).
 - **Provenance:** April 2026, 74-tool expansion.
+- **Confidence:** high
+### For invite conversion CTAs, never let a secondary client lookup overwrite invite context derived from edge previews
+- **Tip:** If a preview edge function already has service-role access, return the canonical active invite code in that payload and use it directly for join CTA routing. Do not fetch `trip_invites` again client-side as a second authority; policy drift can return `null` and break conversions.
+- **Applies when:** Public/anonymous trip preview pages that route users into authenticated join flows.
+- **Evidence:** `TripPreview` was nulling `activeInviteCode` via client invite query and showing "ask for invite link" toast after login even when invite context existed.
+- **Provenance:** April 2026 invite flow deep-dive (`get-trip-preview` + `TripPreview` fix).
+- **Confidence:** high
+### Retiring a deprecated service should be enforced with an import-level guard, not just file deletion
+- **Tip:** When deprecating a previously shipped service, pair deletion/move with a lint-level `no-restricted-imports` rule so future code cannot silently reintroduce old architecture paths.
+- **Applies when:** Promoting a single-source-of-truth module and removing legacy alternatives.
+- **Evidence:** `EnhancedTripContextService` was unreferenced and removed; adding lint restrictions for common relative/alias import paths hardens `TripContextAggregator` as the sole concierge context path.
+- **Provenance:** April 2026 concierge context hardening.
 - **Confidence:** high

@@ -1,4 +1,5 @@
 import { withCircuitBreaker } from './circuitBreaker.ts';
+import { normalizeGeminiModel } from './gemini.ts';
 
 const GOOGLE_MAPS_API_KEY = Deno.env.get('GOOGLE_MAPS_API_KEY');
 const GOOGLE_CUSTOM_SEARCH_CX = Deno.env.get('GOOGLE_CUSTOM_SEARCH_CX');
@@ -2049,7 +2050,11 @@ async function _executeImpl(
         : 'Extract key information useful for travel planning';
 
       // Use Gemini to analyze the page content
-      const analysisUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+      const browsingModel = normalizeGeminiModel(
+        Deno.env.get('CONCIERGE_TOOL_MODEL') || Deno.env.get('BROWSE_WEBSITE_MODEL') || undefined,
+        'flash',
+      );
+      const analysisUrl = `https://generativelanguage.googleapis.com/v1beta/models/${browsingModel}:generateContent?key=${GEMINI_API_KEY}`;
       const analysisResponse = await withCircuitBreaker('gemini', () =>
         fetch(analysisUrl, {
           method: 'POST',
