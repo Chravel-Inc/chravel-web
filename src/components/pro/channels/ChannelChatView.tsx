@@ -116,6 +116,42 @@ export const ChannelChatView = ({
     }
   };
 
+  // Transform ChannelMessage to ChatMessage format for MessageItem
+  const transportMessages = useMemo<ChannelMessage[]>(() => {
+    if (!useStreamTransport) return messages;
+
+    const streamMessages = streamProChannel.messages;
+    const streamById = new Map<string, MessageResponse>(
+      streamMessages.map(msg => [String(msg.id), msg as MessageResponse]),
+    );
+
+    return streamMessages.map(streamMsg => {
+      const parentId = streamMsg.parent_id ?? undefined;
+      const parent = parentId ? streamById.get(parentId) : undefined;
+      const metadata = parent
+        ? {
+            replyTo: {
+              id: String(parent.id),
+              text: parent.text || '',
+              sender: parent.user?.name || 'Unknown',
+            },
+          }
+        : undefined;
+
+      return {
+        id: String(streamMsg.id),
+        channelId: channel.id,
+        senderId: streamMsg.user?.id || '',
+        senderName: streamMsg.user?.name || 'Unknown',
+        senderAvatar: streamMsg.user?.image,
+        content: streamMsg.text || '',
+        messageType: 'text',
+        metadata,
+        createdAt: streamMsg.created_at || new Date().toISOString(),
+      };
+    });
+  }, [channel.id, messages, streamProChannel.messages, useStreamTransport]);
+
   // Handle opening a reply
   const handleOpenReply = useCallback(
     (messageId: string) => {
@@ -311,13 +347,16 @@ export const ChannelChatView = ({
     }
 
     try {
-      const parentId = replyingTo ? replyingTo.id : undefined;
-      const sent = await streamProChannel.sendMessage(inputMessage.trim(), { parentId });
-      if (!sent) {
-        throw new Error('Failed to send via Stream');
+      if (useStreamTransport) {
+        const parentId = replyingTo ? replyingTo.id : undefined;
+        const sent = await streamProChannel.sendMessage(inputMessage.trim(), { parentId });
+        if (!sent) {
+          throw new Error('Failed to send via Stream');
+        }
+        setInputMessage('');
+        clearReply();
+        return;
       }
-      setInputMessage('');
-      clearReply();
     } catch (error) {
       if (import.meta.env.DEV) console.error('[ChannelChatView] Send failed:', error);
       const mapped = mapChannelSendError(error);

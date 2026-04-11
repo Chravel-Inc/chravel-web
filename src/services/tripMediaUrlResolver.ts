@@ -3,6 +3,7 @@ import {
   extractTripMediaStoragePath,
   extractUploadPathFromMetadata,
 } from '@/services/mediaService';
+import { isBlobOrDataUrl } from '@/utils/mediaUtils';
 
 type CachedSignedUrl = {
   signedUrl: string;
@@ -11,10 +12,6 @@ type CachedSignedUrl = {
 
 // Small in-memory cache to avoid re-signing the same URL repeatedly during a session.
 const signedUrlCache = new Map<string, CachedSignedUrl>();
-
-function isBlobOrDataUrl(url: string): boolean {
-  return url.startsWith('blob:') || url.startsWith('data:');
-}
 
 function isTripMediaStorageUrl(url: string): boolean {
   return url.includes('/storage/v1/object/') && url.includes('/trip-media/');
