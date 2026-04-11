@@ -9,7 +9,6 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useFeatureFlag } from '@/lib/featureFlags';
 import { getStreamClient, onStreamClientConnected } from '@/services/stream/streamClient';
 import {
   loadConciergeHistory,
@@ -17,9 +16,8 @@ import {
 } from '@/services/stream/adapters/conciergeAdapter';
 
 export function useStreamConciergeHistory(tripId: string | undefined, userId: string | undefined) {
-  const streamEnabled = useFeatureFlag('stream-chat-concierge', false);
   const [streamConnected, setStreamConnected] = useState(Boolean(getStreamClient()?.userID));
-  const useStream = streamEnabled && streamConnected;
+  const useStream = streamConnected;
 
   const [messages, setMessages] = useState<ConciergeMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -62,6 +60,6 @@ export function useStreamConciergeHistory(tripId: string | undefined, userId: st
     messages,
     isLoading,
     isLoaded,
-    streamEnabled: useStream,
+    streamEnabled: true,
   };
 }

@@ -352,3 +352,9 @@
 - Implemented minimal stable immediate-send contract in `src/services/broadcastService.ts`: explicit insert payload mapping (trip_id/message/priority/metadata/created_by), forced `is_sent: true`, and no `scheduled_for` persistence.
 - Added focused regression test `src/services/__tests__/broadcastService.test.ts` asserting insert payload excludes `scheduled_for` and marks sends immediate.
 - Verification: `npm run test:run -- src/services/__tests__/broadcastService.test.ts`, `npm run typecheck`.
+
+2026-04-11 — Broadcasts Stream transport hard-cutover (phase follow-up)
+- Removed residual `stream-chat-broadcasts` feature-flag gating from `Broadcasts`; Stream is now selected whenever connected and not in demo mode.
+- Stopped unnecessary legacy DB broadcast query/subscription when Stream transport is active to avoid dual-source reads and duplicate realtime paths.
+- Added focused regression test `src/features/broadcasts/components/__tests__/Broadcasts.transport.test.ts` covering deterministic transport selection logic.
+- Verification: `npm run test:run -- src/features/broadcasts/components/__tests__/Broadcasts.transport.test.ts`, `npm run typecheck`, `npm run build` pass; `npm run lint:check` still fails on known pre-existing repo-wide lint baseline.
