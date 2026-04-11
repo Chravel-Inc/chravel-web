@@ -37,7 +37,6 @@ import { useConciergeSessionStore, type ConciergeSession } from '@/store/concier
 import { useSaveToTripPlaces } from '@/hooks/useSaveToTripPlaces';
 import { useConciergeReadAloud } from '@/hooks/useConciergeReadAloud';
 import { buildSpeechText } from '@/lib/buildSpeechText';
-import { useFeatureFlag } from '@/lib/featureFlags';
 import { getStreamClient } from '@/services/stream/streamClient';
 import {
   persistUserMessage as streamPersistUserMessage,
@@ -340,8 +339,7 @@ export const AIConciergeChat = ({
   const setStoreMessages = useConciergeSessionStore(s => s.setMessages);
 
   // 🔀 STREAM: Concierge history persistence via Stream
-  const streamConciergeFlag = useFeatureFlag('stream-chat-concierge', false);
-  const streamConciergeEnabled = streamConciergeFlag && !!getStreamClient()?.userID && !isDemoMode;
+  const streamConciergeEnabled = !!getStreamClient()?.userID && !isDemoMode;
   const {
     messages: streamHistoryMessages,
     isLoading: isStreamHistoryLoading,

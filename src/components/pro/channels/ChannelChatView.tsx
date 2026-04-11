@@ -11,8 +11,6 @@ import { useLinkPreviews } from '@/features/chat/hooks/useLinkPreviews';
 import { useAuth } from '@/hooks/useAuth';
 import { getMockAvatar } from '@/utils/mockAvatars';
 import { useRoleAssignments } from '@/hooks/useRoleAssignments';
-import { useFeatureFlag } from '@/lib/featureFlags';
-import { getStreamClient } from '@/services/stream/streamClient';
 import { useStreamProChannel } from '@/hooks/stream/useStreamProChannel';
 import { Button } from '@/components/ui/button';
 import {
@@ -87,8 +85,7 @@ export const ChannelChatView = ({
   ];
   const isDemoChannel = DEMO_TRIP_IDS.includes(channel.tripId);
 
-  const streamChannelsEnabled = useFeatureFlag('stream-chat-channels', false);
-  const useStreamTransport = streamChannelsEnabled && !!getStreamClient()?.userID && !isDemoChannel;
+  const useStreamTransport = !isDemoChannel;
   const streamProChannel = useStreamProChannel(useStreamTransport ? channel.id : null);
 
   // Handle user leaving the channel/role (self-service)

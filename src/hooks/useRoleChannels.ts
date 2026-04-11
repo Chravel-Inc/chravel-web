@@ -9,8 +9,6 @@ import { getDemoChannelsForTrip } from '../data/demoChannelData';
 import { TripChannel, ChannelMessage } from '../types/roleChannels';
 import { useDemoMode } from './useDemoMode';
 import { MockRolesService } from '@/services/mockRolesService';
-import { useFeatureFlag } from '@/lib/featureFlags';
-import { getStreamClient } from '@/services/stream/streamClient';
 import { useStreamProChannel } from './stream/useStreamProChannel';
 
 // All demo trip IDs including Pro and Event trips
@@ -69,21 +67,18 @@ const convertToRoleChannelMessage = (msg: ChannelMessage): RoleChannelMessage =>
 
 export const useRoleChannels = (tripId: string, _userRole: string, roles?: string[]) => {
   const { isDemoMode } = useDemoMode();
-  const streamFlagEnabled = useFeatureFlag('stream-chat-channels', false);
-  const streamConnected = !!getStreamClient()?.userID;
   const [availableChannels, setAvailableChannels] = useState<TripChannel[]>([]);
   const [activeChannel, setActiveChannel] = useState<TripChannel | null>(null);
   const [messages, setMessages] = useState<RoleChannelMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [demoMessages, setDemoMessages] = useState<Map<string, ChannelMessage[]>>(new Map());
+  const isDemoTrip = isDemoMode && DEMO_TRIP_IDS.includes(tripId);
 
-  // 🔀 STREAM ROUTING: Stream hook always called (Rules of Hooks), disabled when flag is off
-  const useStream = streamFlagEnabled && streamConnected;
+  // Stream is default message transport outside demo mode.
+  const useStream = !isDemoTrip;
   const streamChannelId = useStream && activeChannel ? activeChannel.id : null;
   const streamProChannel = useStreamProChannel(streamChannelId);
-
-  const isDemoTrip = isDemoMode && DEMO_TRIP_IDS.includes(tripId);
 
   // Load channels for this trip
   const loadChannels = useCallback(async () => {
