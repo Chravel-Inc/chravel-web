@@ -157,6 +157,13 @@
 - **Evidence:** Join approval notifications were visible but lacked actionable routing in-app because mapper read only `metadata.trip_id` and ignored `trip_id` column from direct inserts.
 - **Provenance:** March 2026 join approval forensic fix (`useNotificationRealtime` mapping hardening).
 - **Confidence:** high
+
+### Kill-switched write features should be gated in both UI and service layers
+- **Tip:** For operational kill switches (for example feature flags in `feature_flags`), disable the UI entry point and also hard-stop the write service call path. UI-only gates can be bypassed via stale tabs/devtools/manual invocation, while service-only gates create confusing UX.
+- **Applies when:** Temporarily disabling mutation flows like scheduled broadcasts, AI write tools, or admin-only batch actions.
+- **Evidence:** Broadcast scheduling was disabled in Admin Dashboard via `broadcast-scheduling-enabled` and additionally short-circuited in `unifiedMessagingService.scheduleMessage` to return `false` before auth/insert.
+- **Provenance:** April 2026 broadcast scheduling kill-switch hardening.
+- **Confidence:** high
 ### Treat schema migrations as a product compatibility API, not just SQL files
 - **Tip:** In large Supabase/Postgres repos, migration safety is mostly about compatibility windows and operational sequencing, not syntax correctness. Enforce expand/contract phases, one concern per migration, and dual-version app/schema test windows. Without that, even “idempotent” SQL can break rolling deploys.
 - **Applies when:** Any migration touches shared high-traffic tables (`trips`, `trip_members`, `trip_chat_messages`, `notifications`) or changes RLS/enum/status behavior
@@ -418,4 +425,10 @@
 - **Applies when:** Public/anonymous trip preview pages that route users into authenticated join flows.
 - **Evidence:** `TripPreview` was nulling `activeInviteCode` via client invite query and showing "ask for invite link" toast after login even when invite context existed.
 - **Provenance:** April 2026 invite flow deep-dive (`get-trip-preview` + `TripPreview` fix).
+- **Confidence:** high
+### Retiring a deprecated service should be enforced with an import-level guard, not just file deletion
+- **Tip:** When deprecating a previously shipped service, pair deletion/move with a lint-level `no-restricted-imports` rule so future code cannot silently reintroduce old architecture paths.
+- **Applies when:** Promoting a single-source-of-truth module and removing legacy alternatives.
+- **Evidence:** `EnhancedTripContextService` was unreferenced and removed; adding lint restrictions for common relative/alias import paths hardens `TripContextAggregator` as the sole concierge context path.
+- **Provenance:** April 2026 concierge context hardening.
 - **Confidence:** high

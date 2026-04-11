@@ -116,20 +116,6 @@ export const ChannelChatView = ({
     }
   };
 
-  // Handle opening a reply
-  const handleOpenReply = useCallback(
-    (messageId: string) => {
-      const msg = transportMessages.find(m => m.id === messageId);
-      if (!msg) return;
-      setReplyingTo({
-        id: msg.id,
-        text: msg.content,
-        senderName: msg.senderName,
-      });
-    },
-    [transportMessages],
-  );
-
   const clearReply = useCallback(() => {
     setReplyingTo(null);
   }, []);
@@ -240,6 +226,20 @@ export const ChannelChatView = ({
       return acc;
     }, {});
   }, [streamProChannel.messages, useStreamTransport, user?.id]);
+
+  // Handle opening a reply
+  const handleOpenReply = useCallback(
+    (messageId: string) => {
+      const msg = transportMessages.find(m => m.id === messageId);
+      if (!msg) return;
+      setReplyingTo({
+        id: msg.id,
+        text: msg.content,
+        senderName: msg.senderName,
+      });
+    },
+    [transportMessages],
+  );
 
   useEffect(() => {
     // Demo-only message hydration; non-demo channels are Stream-backed.
