@@ -1481,6 +1481,15 @@ const UNIVERSAL_TOOL_NAMES = new Set(['verify_artifact', 'explainPermission', 'c
 
 const QUERY_CLASS_TOOLS: Record<QueryClass, string[] | 'all'> = {
   general_knowledge: [],
+  trip_lookup_light: [
+    'searchTripData',
+    'getTripInfo',
+    'getTripStats',
+    'searchTripChats',
+    'searchTripArtifacts',
+    'getTripLinks',
+    'getRecentActivity',
+  ],
   weather_time: ['searchWeb', 'getWeatherForecast', 'getTravelAdvisories', 'generatePackingList'],
   restaurant_recommendation: [
     'searchPlaces',

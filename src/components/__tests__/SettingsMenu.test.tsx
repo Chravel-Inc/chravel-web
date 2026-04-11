@@ -179,12 +179,15 @@ describe('SettingsMenu hardening (never crash across modes)', () => {
 
   it('renders for an authenticated user (mobile) and shows account section', () => {
     mockIsMobile = true;
-    renderMenu();
+    const { container } = renderMenu();
 
     expect(screen.getByText('Settings')).toBeInTheDocument();
     expect(screen.getByText('Signed in as')).toBeInTheDocument();
     expect(screen.getByText('test@example.com')).toBeInTheDocument();
     expect(screen.getByTestId('consumer-settings')).toBeInTheDocument();
+    // Above NativeTabBar (both were z-50; tab bar rendered later and intercepted taps)
+    const overlay = container.querySelector('.fixed.inset-0.z-\\[60\\]');
+    expect(overlay).toBeTruthy();
   });
 
   it('enables Advertiser access in app-preview mode', () => {

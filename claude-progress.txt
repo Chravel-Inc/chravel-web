@@ -15,6 +15,22 @@
 - Improved error observability by surfacing `scrape_method` in error payloads and plumbing that through frontend parser errors (`parseURLSchedule`) to aid incident triage.
 - Added focused regression tests in `src/utils/__tests__/calendarImportParsers.url.test.ts` covering method-hint propagation and URL meta fallback defaults.
 - Verification: `npm run test:run -- src/utils/__tests__/calendarImportParsers.url.test.ts`, `npm run typecheck`, `npm run build`; `npm run lint:check` still fails on known pre-existing repo lint errors in unrelated files.
+2026-04-10 — PR #168 review follow-up (cursor bot comments addressed)
+- Fixed pending status visibility on mobile by rendering `TripCard` pending badge at all breakpoints (no longer `hidden md:flex`).
+- Removed misleading outbound request mapping field in `TripGrid` (`created_by: request.user_id`) to avoid semantic drift/footgun in future card logic.
+- Re-verified targeted tests + typecheck + build after follow-up.
+
+
+2026-04-10 — Requests tab pending-trip card parity + realtime invalidation hardening
+- Replaced dashboard outbound pending-request rendering path to use `TripCard` in `pendingApproval` mode instead of the grayed `PendingTripCard` variant.
+- Extended `TripCard` with pending-safe behavior: preserve standard visual shell, show pending badge, disable Recap/Invite/View/Share, block navigation, and optionally render cancel-request CTA.
+- Updated Requests empty-state copy to remove references to grayed-out cards.
+- Expanded `useUserTripsRealtime` join-request subscription from UPDATE-only to `*` (INSERT/UPDATE/DELETE) and added explicit payload filter helper coverage for join-request events.
+- Removed obsolete duplicate pending card components/tests (`src/components/PendingTripCard.tsx`, `src/components/trip/PendingTripCard.tsx`).
+- Added regression tests:
+  - `src/components/__tests__/TripCard.pendingApproval.test.tsx`
+  - `src/components/home/__tests__/TripGrid.requests.test.tsx`
+  - updated `src/hooks/__tests__/useUserTripsRealtime.test.ts`
 
 2026-04-09 — LiveKit voice forensic pass + safety gate fallback (hide Live CTA)
 - Completed code-level dependency audit for live voice path:
@@ -314,3 +330,7 @@
 - Fixed `parseURLSchedule` error-path `urlMeta` guard to preserve valid `events_found: 0` (was previously dropped due to truthy check).
 - Added regression test in `src/utils/__tests__/calendarImportParsers.url.test.ts` to lock zero-count metadata behavior.
 - Verification: `npm run test:run -- src/utils/__tests__/calendarImportParsers.url.test.ts`, `npm run typecheck`.
+2026-04-10 — AGENTS constitution update: optional subsystem strategy
+- Added compact Section 16 in root `AGENTS.md` defining when to create nested subsystem AGENTS files and what local-only rules each should contain (`/src/components`, `/src/hooks`, `/supabase`, `/supabase/functions`, optional `/src/pages` or `/appstore`).
+- Added mandatory subsystem scoring protocol (before/after 0–100, post-fix 90+ target, explicit justification if below 90).
+- Added external blocker handoff requirement: short human steps + copy-pasteable AGENTIC BROWSER SCRIPT.

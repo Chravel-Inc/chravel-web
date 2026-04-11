@@ -14,8 +14,21 @@ type MemberChangePayload = {
   old?: { user_id?: string | null } | null;
 };
 
+type JoinRequestChangePayload = {
+  eventType?: 'INSERT' | 'UPDATE' | 'DELETE';
+  new?: { user_id?: string | null } | null;
+  old?: { user_id?: string | null } | null;
+};
+
 export function shouldInvalidateTripsForMemberChange(
   payload: MemberChangePayload,
+  userId: string,
+): boolean {
+  return payload.new?.user_id === userId || payload.old?.user_id === userId;
+}
+
+export function shouldInvalidateTripsForJoinRequestChange(
+  payload: JoinRequestChangePayload,
   userId: string,
 ): boolean {
   return payload.new?.user_id === userId || payload.old?.user_id === userId;
@@ -38,12 +51,18 @@ export function useUserTripsRealtime(userId: string | undefined, isDemoMode: boo
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*',
           schema: 'public',
           table: 'trip_join_requests',
           filter: `user_id=eq.${userId}`,
         },
-        invalidateTrips,
+        payload => {
+          if (
+            shouldInvalidateTripsForJoinRequestChange(payload as JoinRequestChangePayload, userId)
+          ) {
+            invalidateTrips();
+          }
+        },
       )
       .on(
         'postgres_changes',
