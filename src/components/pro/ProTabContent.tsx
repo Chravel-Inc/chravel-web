@@ -265,7 +265,8 @@ export const ProTabContent = ({
       case 'ai-chat':
         return <AIConciergeChat tripId={tripId} basecamp={basecamp} onTabChange={onTabChange} />;
       default:
-        return <TripTabs activeTab="chat" onTabChange={() => {}} tripId={tripId} />;
+        // Uncontrolled: nested TripTabs manages its own tab state (parent Pro nav uses other cases).
+        return <TripTabs tripId={tripId} />;
     }
   };
 
