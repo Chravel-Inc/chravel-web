@@ -27,6 +27,31 @@ interface FeatureFlagRow {
   rollout_percentage: number;
 }
 
+async function fetchFeatureFlagRow(key: string): Promise<FeatureFlagRow | null> {
+  // intentional: feature_flags table not yet in generated Supabase types
+  const { data, error } = await (supabase as any)
+    .from('feature_flags')
+    .select('key, enabled, rollout_percentage')
+    .eq('key', key)
+    .single();
+
+  if (error || !data) return null;
+  return data as FeatureFlagRow;
+}
+
+function resolveFeatureFlagEnabled(data: FeatureFlagRow | null, defaultValue: boolean): boolean {
+  if (!data) return defaultValue;
+  if (!data.enabled) return false;
+
+  // Percentage rollout (deterministic per flag key, not per user)
+  if (data.rollout_percentage < 100) {
+    const hash = simpleHash(data.key);
+    return hash % 100 < data.rollout_percentage;
+  }
+
+  return true;
+}
+
 // ---------------------------------------------------------------------------
 // Hook
 // ---------------------------------------------------------------------------
@@ -39,33 +64,25 @@ interface FeatureFlagRow {
 export function useFeatureFlag(key: string, defaultValue: boolean = true): boolean {
   const { data } = useQuery({
     queryKey: ['feature-flag', key],
-    queryFn: async (): Promise<FeatureFlagRow | null> => {
-      // intentional: feature_flags table not yet in generated Supabase types
-      const { data, error } = await (supabase as any)
-        .from('feature_flags')
-        .select('key, enabled, rollout_percentage')
-        .eq('key', key)
-        .single();
-
-      if (error || !data) return null;
-      return data as FeatureFlagRow;
-    },
+    queryFn: async (): Promise<FeatureFlagRow | null> => fetchFeatureFlagRow(key),
     staleTime: 60_000, // Cache for 1 minute — kill switch takes effect within 60s
     gcTime: 5 * 60_000,
     retry: 1,
     refetchOnWindowFocus: true, // Re-check when user returns to tab
   });
 
-  if (!data) return defaultValue;
-  if (!data.enabled) return false;
+  return resolveFeatureFlagEnabled(data, defaultValue);
+}
 
-  // Percentage rollout (deterministic per flag key, not per user)
-  if (data.rollout_percentage < 100) {
-    const hash = simpleHash(key);
-    return hash % 100 < data.rollout_percentage;
-  }
-
-  return true;
+/**
+ * Non-React helper for services that need runtime feature-flag checks.
+ */
+export async function isFeatureFlagEnabled(
+  key: string,
+  defaultValue: boolean = true,
+): Promise<boolean> {
+  const data = await fetchFeatureFlagRow(key);
+  return resolveFeatureFlagEnabled(data, defaultValue);
 }
 
 /**

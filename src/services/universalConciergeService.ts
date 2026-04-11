@@ -183,6 +183,8 @@ export class UniversalConciergeService {
       // Check if demo mode is enabled for AI answers
       const isDemoMode = await demoModeService.isDemoModeEnabled();
 
+      // Architectural invariant: TripContextAggregator is the single source of truth
+      // for concierge context assembly in production code.
       // 🆕 Enhanced: Get comprehensive trip context with caching
       let comprehensiveContext = ContextCacheService.get(tripContext.tripId);
 
