@@ -104,7 +104,10 @@ export async function connectStreamClient(): Promise<StreamChat | null> {
   isConnecting = true;
   connectionPromise = (async () => {
     try {
-      const { token, userId } = await getStreamToken();
+      const { token, userId, apiKey } = await getStreamToken();
+      if (apiKey && apiKey !== STREAM_API_KEY) {
+        throw new Error('Stream API key mismatch between client env and stream-token response');
+      }
 
       if (!clientInstance) {
         clientInstance = StreamChat.getInstance(STREAM_API_KEY);
@@ -157,8 +160,10 @@ export async function disconnectStreamClient(): Promise<void> {
 }
 
 // ── Auto-disconnect on Supabase logout ────────────────────────────────────
-supabase.auth.onAuthStateChange(event => {
-  if (event === 'SIGNED_OUT') {
-    disconnectStreamClient();
-  }
-});
+if (typeof supabase.auth?.onAuthStateChange === 'function') {
+  supabase.auth.onAuthStateChange(event => {
+    if (event === 'SIGNED_OUT') {
+      disconnectStreamClient();
+    }
+  });
+}
