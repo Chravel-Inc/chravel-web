@@ -3,7 +3,6 @@ import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { toast } from 'sonner';
 import { useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import type { Channel } from 'stream-chat';
 import { demoModeService } from '@/services/demoModeService';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useChatComposer } from '../hooks/useChatComposer';
@@ -185,6 +184,7 @@ export const TripChat = React.memo(
       user?.id,
       resolvedTripId,
       liveMessages,
+      activeChannel ?? undefined,
     );
 
     const handleMessageEdit = useCallback(
@@ -292,6 +292,7 @@ export const TripChat = React.memo(
       messages: liveMessages,
       userId: user?.id || null,
       enabled: !demoMode.isDemoMode && !!user?.id,
+      streamChannel: activeChannel ?? null,
     });
 
     // Note: typing indicators are now fully handled by useChatTypingIndicators hook above

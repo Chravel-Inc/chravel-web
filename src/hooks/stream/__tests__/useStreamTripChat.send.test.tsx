@@ -28,22 +28,6 @@ vi.mock('@/services/stream/streamClient', () => ({
   onStreamClientConnectionStatusChange: vi.fn(() => () => {}),
 }));
 
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            order: vi.fn(() => ({
-              limit: vi.fn().mockResolvedValue({ data: [], error: null }),
-            })),
-          })),
-        })),
-      })),
-    })),
-  },
-}));
-
 vi.mock('@/hooks/use-toast', () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));

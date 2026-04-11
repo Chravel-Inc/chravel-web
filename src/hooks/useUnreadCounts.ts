@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import type { Channel } from 'stream-chat';
 import { supabase } from '@/integrations/supabase/client';
 
-/** Minimal message shape for unread counting - compatible with useTripChat */
+/** Minimal message shape for unread counting - compatible with useTripChat / Stream MessageResponse */
 interface UnreadMessage {
   id: string;
   user_id?: string;
   privacy_mode?: string;
   message_type?: string;
+  created_at?: string;
+  user?: { id?: string };
 }
 
 interface UseUnreadCountsOptions {
@@ -14,11 +17,52 @@ interface UseUnreadCountsOptions {
   messages: UnreadMessage[];
   userId: string | null;
   enabled?: boolean;
+  /**
+   * When provided (including `null` while the Stream channel is still connecting), unread counts
+   * are derived from Stream read cursors — not `message_read_receipts` (Stream message IDs do not
+   * match Supabase rows). Omit entirely to keep the legacy receipt-based path.
+   */
+  streamChannel?: Channel | null;
 }
 
 interface UnreadCounts {
   broadcastCount: number;
   messageUnreadCount: number;
+}
+
+function getSenderId(msg: UnreadMessage): string | undefined {
+  return msg.user?.id ?? msg.user_id;
+}
+
+function computeStreamUnreadCounts(
+  channel: Channel,
+  stableMessages: UnreadMessage[],
+  userId: string,
+): UnreadCounts {
+  const myRead = channel.state?.read?.[userId];
+  const lastReadAt =
+    myRead?.last_read != null ? new Date(myRead.last_read as string | Date) : null;
+
+  const unreadFromOthers = stableMessages.filter(msg => {
+    const senderId = getSenderId(msg);
+    if (!senderId || senderId === userId) return false;
+    const createdRaw = msg.created_at;
+    if (!createdRaw) return true;
+    const msgTime = new Date(createdRaw);
+    if (Number.isNaN(msgTime.getTime())) return true;
+    if (!lastReadAt || Number.isNaN(lastReadAt.getTime())) return true;
+    return msgTime > lastReadAt;
+  });
+
+  const unreadBroadcasts = unreadFromOthers.filter(
+    msg => msg.privacy_mode === 'broadcast' || msg.message_type === 'broadcast',
+  ).length;
+  const totalUnread = unreadFromOthers.length;
+
+  return {
+    broadcastCount: unreadBroadcasts,
+    messageUnreadCount: totalUnread - unreadBroadcasts,
+  };
 }
 
 /**
@@ -31,10 +75,15 @@ export function useUnreadCounts({
   messages,
   userId,
   enabled = true,
+  streamChannel,
 }: UseUnreadCountsOptions): UnreadCounts {
   const [broadcastCount, setBroadcastCount] = useState(0);
   const [messageUnreadCount, setMessageUnreadCount] = useState(0);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Bumped on Stream read events so we re-derive counts from `channel.state.read`. */
+  const [streamReadBump, setStreamReadBump] = useState(0);
+
+  const usesStreamUnread = streamChannel !== undefined;
 
   // Stabilize message IDs to avoid re-render loops from new array references.
   // Only recalculates when the actual set of message IDs changes.
@@ -67,7 +116,7 @@ export function useUnreadCounts({
       );
 
       const unreadMessages = stableMessages.filter(
-        msg => !readMessageIds.has(msg.id) && msg.user_id !== userId,
+        msg => !readMessageIds.has(msg.id) && getSenderId(msg) !== userId,
       );
       const totalUnread = unreadMessages.length;
       const unreadBroadcasts = unreadMessages.filter(
@@ -91,7 +140,48 @@ export function useUnreadCounts({
     }, 500);
   }, [calculateUnreadCounts]);
 
+  // Stream trip chat: unread follows channel read cursors (markRead / message.read).
   useEffect(() => {
+    if (!usesStreamUnread || !enabled) return;
+
+    if (!userId || !tripId || stableMessages.length === 0 || streamChannel == null) {
+      setBroadcastCount(0);
+      setMessageUnreadCount(0);
+      return;
+    }
+
+    const next = computeStreamUnreadCounts(streamChannel, stableMessages, userId);
+    setBroadcastCount(next.broadcastCount);
+    setMessageUnreadCount(next.messageUnreadCount);
+  }, [
+    usesStreamUnread,
+    enabled,
+    userId,
+    tripId,
+    stableMessages,
+    streamChannel,
+    streamReadBump,
+  ]);
+
+  useEffect(() => {
+    if (!usesStreamUnread || !enabled || streamChannel == null) return;
+
+    const bump = (): void => {
+      setStreamReadBump(n => n + 1);
+    };
+
+    streamChannel.on('message.read', bump);
+    streamChannel.on('notification.mark_read', bump);
+
+    return () => {
+      streamChannel.off('message.read', bump);
+      streamChannel.off('notification.mark_read', bump);
+    };
+  }, [usesStreamUnread, enabled, streamChannel]);
+
+  useEffect(() => {
+    if (usesStreamUnread) return;
+
     if (!enabled || !userId || !tripId || stableMessages.length === 0) {
       setBroadcastCount(0);
       setMessageUnreadCount(0);
@@ -124,7 +214,15 @@ export function useUnreadCounts({
       }
       supabase.removeChannel(channel);
     };
-  }, [tripId, userId, stableMessages, enabled, calculateUnreadCounts, debouncedCalculate]);
+  }, [
+    usesStreamUnread,
+    tripId,
+    userId,
+    stableMessages,
+    enabled,
+    calculateUnreadCounts,
+    debouncedCalculate,
+  ]);
 
   return { broadcastCount, messageUnreadCount };
 }

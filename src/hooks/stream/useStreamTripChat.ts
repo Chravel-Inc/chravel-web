@@ -92,35 +92,6 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     return () => window.clearTimeout(timer);
   }, [isEnabled, tripId, streamClientReady]);
 
-  useEffect(() => {
-    const unsubscribe = onStreamClientConnected(() => {
-      setStreamClientReady(true);
-    });
-
-    return unsubscribe;
-  }, []);
-
-  useEffect(() => {
-    if (!isEnabled || !tripId) return;
-
-    if (streamClientReady) return;
-
-    const timer = window.setTimeout(() => {
-      if (streamClientReady || getStreamClient()?.userID) return;
-
-      if (!getStreamApiKey()) {
-        setError(new Error('Stream chat is not configured'));
-        setIsLoading(false);
-        return;
-      }
-
-      setError(new Error('Timed out waiting for chat connection'));
-      setIsLoading(false);
-    }, 10000);
-
-    return () => window.clearTimeout(timer);
-  }, [isEnabled, tripId, streamClientReady]);
-
   // Initialize channel and load messages
   useEffect(() => {
     if (!tripId || !isEnabled) {
@@ -181,6 +152,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       });
 
       const streamMessages = (state.messages || []) as MessageResponse[];
+      setMessages(streamMessages);
       setHasMore(streamMessages.length === PAGE_SIZE);
     } catch (err) {
       if (import.meta.env.DEV) {

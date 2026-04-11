@@ -170,42 +170,6 @@ export const ChannelChatView = ({
     setReplyingTo(null);
   }, []);
 
-  // Transform ChannelMessage to ChatMessage format for MessageItem
-  const transportMessages = useMemo<ChannelMessage[]>(() => {
-    if (!useStreamTransport) return messages;
-
-    const streamMessages = streamProChannel.messages;
-    const streamById = new Map<string, MessageResponse>(
-      streamMessages.map(msg => [String(msg.id), msg as MessageResponse]),
-    );
-
-    return streamMessages.map(streamMsg => {
-      const parentId = streamMsg.parent_id ?? undefined;
-      const parent = parentId ? streamById.get(parentId) : undefined;
-      const metadata = parent
-        ? {
-            replyTo: {
-              id: String(parent.id),
-              text: parent.text || '',
-              sender: parent.user?.name || 'Unknown',
-            },
-          }
-        : undefined;
-
-      return {
-        id: String(streamMsg.id),
-        channelId: channel.id,
-        senderId: streamMsg.user?.id || '',
-        senderName: streamMsg.user?.name || 'Unknown',
-        senderAvatar: streamMsg.user?.image,
-        content: streamMsg.text || '',
-        messageType: 'text',
-        metadata,
-        createdAt: streamMsg.created_at || new Date().toISOString(),
-      };
-    });
-  }, [channel.id, messages, streamProChannel.messages, useStreamTransport]);
-
   const formattedMessages = useMemo(() => {
     return transportMessages.map(msg => {
       const metadata = msg.metadata as Record<string, unknown> | null;
