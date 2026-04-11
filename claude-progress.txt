@@ -372,3 +372,11 @@
   - `src/features/broadcasts/components/__tests__/Broadcasts.priorityMapping.test.ts`
   - `src/hooks/stream/__tests__/useStreamBroadcasts.priority.test.tsx`
 - Verification: `npm run test:run -- src/features/broadcasts/components/__tests__/Broadcasts.priorityMapping.test.ts src/hooks/stream/__tests__/useStreamBroadcasts.priority.test.tsx`, `npm run typecheck`.
+2026-04-11 — Concierge context source-of-truth hardening (EnhancedTripContextService retirement)
+- Verified `EnhancedTripContextService` had zero runtime imports via repo grep (`rg "enhancedTripContextService|EnhancedTripContextService" src -n`) and confirmed concierge runtime already uses `TripContextAggregator` in `UniversalConciergeService`.
+- Removed deprecated runtime file `src/services/enhancedTripContextService.ts` to eliminate accidental resurrection risk.
+- Added architectural guardrails:
+  - ESLint `no-restricted-imports` entries blocking `enhancedTripContextService` import paths.
+  - `src/services/CONCIERGE_CONTEXT_ARCHITECTURE.md` documenting `TripContextAggregator` as the single source of truth.
+  - Inline invariant comment near context assembly in `UniversalConciergeService`.
+- Verification: `npm run typecheck`, `npm run lint:check`, `npm run test:run -- src/services/__tests__/tripContextAggregator.test.ts`.
