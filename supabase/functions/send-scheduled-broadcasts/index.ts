@@ -55,6 +55,56 @@ serve(async req => {
       });
     }
 
+    // 1. Mark all as sent in one batch
+    const broadcastIds = scheduledBroadcasts.map(b => b.id);
+    const { error: updateError } = await supabase
+      .from('broadcasts')
+      .update({ is_sent: true })
+      .in('id', broadcastIds);
+
+    if (updateError) {
+      console.error('Error batch updating broadcasts:', updateError);
+      return createErrorResponse('Failed to update broadcasts status', 500);
+    }
+
+    // 2. Pre-fetch all trip members for all involved trips
+    const tripIds = [...new Set(scheduledBroadcasts.map(b => b.trip_id))];
+    const { data: allMembers, error: membersError } = await supabase
+      .from('trip_members')
+      .select('trip_id, user_id')
+      .in('trip_id', tripIds)
+      .eq('status', 'active');
+
+    if (membersError) {
+      console.error('Error fetching trip members:', membersError);
+      return createErrorResponse('Failed to fetch trip members', 500);
+    }
+
+    // 3. Pre-fetch all push tokens for all involved users
+    const allUserIds = [...new Set(allMembers?.map(m => m.user_id) || [])];
+    const { data: allTokens, error: tokensError } = await supabase
+      .from('push_tokens')
+      .select('user_id, token')
+      .in('user_id', allUserIds);
+
+    if (tokensError) {
+      console.error('Error fetching push tokens:', tokensError);
+      return createErrorResponse('Failed to fetch push tokens', 500);
+    }
+
+    // Map data for easy lookup
+    const membersByTrip = (allMembers || []).reduce((acc, curr) => {
+      if (!acc[curr.trip_id]) acc[curr.trip_id] = [];
+      acc[curr.trip_id].push(curr.user_id);
+      return acc;
+    }, {} as Record<string, string[]>);
+
+    const tokensByUser = (allTokens || []).reduce((acc, curr) => {
+      if (!acc[curr.user_id]) acc[curr.user_id] = [];
+      acc[curr.user_id].push(curr.token);
+      return acc;
+    }, {} as Record<string, string[]>);
+
     const results = {
       sent: 0,
       failed: 0,
@@ -64,44 +114,23 @@ serve(async req => {
     // Process each scheduled broadcast
     for (const broadcast of scheduledBroadcasts) {
       try {
-        // Mark as sent
-        const { error: updateError } = await supabase
-          .from('broadcasts')
-          .update({ is_sent: true })
-          .eq('id', broadcast.id);
-
-        if (updateError) {
-          throw updateError;
-        }
-
-        // Get trip members to notify
-        const { data: members, error: membersError } = await supabase
-          .from('trip_members')
-          .select('user_id')
-          .eq('trip_id', broadcast.trip_id)
-          .eq('status', 'active')
-          .neq('user_id', broadcast.created_by); // Don't notify the sender
-
-        if (membersError) {
-          throw membersError;
-        }
-
         // Send push notifications if priority warrants it
         if (broadcast.priority === 'urgent' || broadcast.priority === 'reminder') {
-          if (members && members.length > 0) {
-            const userIds = members.map(m => m.user_id);
-            const { data: tokens } = await supabase
-              .from('push_tokens')
-              .select('token')
-              .in('user_id', userIds);
+          const tripMembers = membersByTrip[broadcast.trip_id] || [];
+          // Filter out the creator in memory
+          const notifyUserIds = tripMembers.filter(userId => userId !== broadcast.created_by);
 
-            if (tokens && tokens.length > 0) {
+          if (notifyUserIds.length > 0) {
+            // Collect all tokens for these users
+            const tokens = notifyUserIds.flatMap(userId => tokensByUser[userId] || []);
+
+            if (tokens.length > 0) {
               // Invoke push notification function
               const { error: pushError } = await supabase.functions.invoke('push-notifications', {
                 body: {
                   action: 'send_push',
                   userId: broadcast.created_by,
-                  tokens: tokens.map(t => t.token),
+                  tokens,
                   title:
                     broadcast.priority === 'urgent'
                       ? '🚨 Urgent Broadcast'
