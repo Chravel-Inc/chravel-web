@@ -391,3 +391,8 @@
 - Updated `offlineMessageQueue.processQueue()` to drop legacy queued chat ops when Stream is configured, preventing stale pre-cutover replay into Supabase chat tables.
 - Added/updated regression tests in `src/services/__tests__/globalSyncProcessor.test.ts` and `src/services/__tests__/offlineMessageQueue.test.ts` for configured-vs-unconfigured Stream behavior.
 - Verification: `npm run test:run -- src/services/__tests__/globalSyncProcessor.test.ts src/services/__tests__/offlineMessageQueue.test.ts`, `npm run typecheck`, `npm run build`; lint baseline unchanged.
+
+2026-04-11 — PR #202 merge-conflict cleanup follow-up (functionExecutor test import hygiene)
+- Root cause: conflict resolution left duplicate `vi` import declarations in `supabase/functions/_shared/__tests__/functionExecutor.test.ts`, creating brittle test-module syntax and reviewer confusion.
+- Consolidated Vitest imports to one declaration and added explicit intentional-boundary comment for `(globalThis as any).Deno` test harness injection.
+- Verification: `npm run test:run -- supabase/functions/_shared/__tests__/functionExecutor.test.ts src/services/__tests__/globalSyncProcessor.test.ts src/components/pro/channels/__tests__/ChannelChatView.stream.test.tsx`; `npm run typecheck`; `npm run build`.

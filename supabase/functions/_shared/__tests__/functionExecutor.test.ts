@@ -1,10 +1,10 @@
-import { vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
 vi.mock('https://deno.land/x/zod@v3.22.4/mod.ts', async () => {
   return await import('zod');
 });
-import { describe, it, expect, vi } from 'vitest';
-
 // Mock Deno global before importing the module
+// intentional: Deno is injected on globalThis in the edge-runtime test boundary.
 (globalThis as any).Deno = {
   env: {
     get: vi.fn().mockReturnValue('mock-key'),
