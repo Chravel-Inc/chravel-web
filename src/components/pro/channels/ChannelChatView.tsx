@@ -116,61 +116,7 @@ export const ChannelChatView = ({
     }
   };
 
-  // Transform ChannelMessage to ChatMessage format for MessageItem
-  const transportMessages = useMemo<ChannelMessage[]>(() => {
-    if (!useStreamTransport) return messages;
-
-  // Transform ChannelMessage to ChatMessage format for MessageItem
-  const transportMessages = useMemo<ChannelMessage[]>(() => {
-    if (!useStreamTransport) return messages;
-
-    const streamMessages = streamProChannel.messages;
-    const streamById = new Map<string, MessageResponse>(
-      streamMessages.map(msg => [String(msg.id), msg as MessageResponse]),
-    );
-
-    return streamMessages.map(streamMsg => {
-      const parentId = streamMsg.parent_id ?? undefined;
-      const parent = parentId ? streamById.get(parentId) : undefined;
-      const metadata = parent
-        ? {
-            replyTo: {
-              id: String(parent.id),
-              text: parent.text || '',
-              sender: parent.user?.name || 'Unknown',
-      return {
-        id: String(streamMsg.id),
-        channelId: channel.id,
-        senderId: streamMsg.user?.id || '',
-        senderName: streamMsg.user?.name || 'Unknown',
-        senderAvatar: streamMsg.user?.image,
-        content: streamMsg.text || '',
-        messageType: 'text',
-        metadata,
-        createdAt: streamMsg.created_at || new Date().toISOString(),
-      };
-    });
-  }, [channel.id, messages, streamProChannel.messages, useStreamTransport]);
-
-  // Handle opening a reply
-  const handleOpenReply = useCallback(
-    (messageId: string) => {
-      const msg = transportMessages.find(m => m.id === messageId);
-      if (!msg) return;
-      setReplyingTo({
-        id: msg.id,
-        text: msg.content,
-        senderName: msg.senderName,
-      });
-    },
-    [transportMessages],
-  );
-
-  const clearReply = useCallback(() => {
-    setReplyingTo(null);
-  }, []);
-
-  // Transform ChannelMessage to ChatMessage format for MessageItem
+// Transform ChannelMessage to ChatMessage format for MessageItem
   const transportMessages = useMemo<ChannelMessage[]>(() => {
     if (!useStreamTransport) return messages;
 
