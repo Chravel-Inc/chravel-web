@@ -151,6 +151,12 @@ export const useRoleChannels = (tripId: string, _userRole: string, roles?: strin
       return;
     }
 
+    if (useStream) {
+      // Stream owns message transport when enabled; avoid duplicate Supabase listeners.
+      setMessages([]);
+      return;
+    }
+
     const loadMessages = async () => {
       // Use channelService for proper RLS enforcement
       const channelMessages = await channelService.getMessages(activeChannel.id);
@@ -183,7 +189,7 @@ export const useRoleChannels = (tripId: string, _userRole: string, roles?: strin
     });
 
     return unsubscribe;
-  }, [activeChannel, isDemoTrip, demoMessages]);
+  }, [activeChannel, isDemoTrip, demoMessages, useStream]);
 
   const createChannel = async (roleName: string): Promise<boolean> => {
     const channel = await roleChannelService.createRoleChannel(tripId, roleName);
@@ -262,12 +268,12 @@ export const useRoleChannels = (tripId: string, _userRole: string, roles?: strin
     useStream && activeChannel
       ? streamProChannel.messages.map((m: any) => ({
           id: m.id,
-          channelId: m.channelId ?? m.channel?.id ?? '',
-          senderId: m.senderId ?? m.user?.id ?? '',
-          senderName: m.senderName ?? m.user?.name ?? '',
-          senderAvatar: m.senderAvatar ?? m.user?.image ?? '',
-          content: m.content ?? m.text ?? '',
-          createdAt: m.createdAt ?? m.created_at ?? '',
+          channelId: activeChannel.id,
+          senderId: m.user?.id ?? '',
+          senderName: m.user?.name ?? '',
+          senderAvatar: m.user?.image ?? '',
+          content: m.text ?? '',
+          createdAt: m.created_at ?? '',
         }))
       : messages;
 

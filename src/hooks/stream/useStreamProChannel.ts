@@ -93,14 +93,18 @@ export function useStreamProChannel(channelId: string | null) {
   }, [activeStreamChannel, channelId]);
 
   const sendMessage = useCallback(
-    async (content: string, attachments?: any[]): Promise<boolean> => {
+    async (
+      content: string,
+      options?: { attachments?: any[]; parentId?: string },
+    ): Promise<boolean> => {
       const channel = channelRef.current;
       if (!channel) return false;
 
       try {
         await channel.sendMessage({
           text: content,
-          attachments: attachments || undefined,
+          attachments: options?.attachments || undefined,
+          parent_id: options?.parentId,
         });
         return true;
       } catch {

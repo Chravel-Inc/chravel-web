@@ -429,21 +429,26 @@ export const AIConciergeChat = ({
     isLoading: isHistoryLoading,
     error: historyError,
   } = useConciergeHistory(tripId);
-  const mergedHistoryMessages = useMemo(() => {
-    const mappedStreamMessages: ChatMessage[] = streamHistoryMessages.map(message => ({
-      id: `stream-history-${message.id}`,
-      type: message.type,
-      content: message.content,
-      timestamp: message.timestamp,
-      sources: message.sources,
-      googleMapsWidget: message.googleMapsWidget,
-      googleMapsWidgetContextToken: message.googleMapsWidgetContextToken,
-      functionCallPlaces: message.functionCallPlaces as ChatMessage['functionCallPlaces'],
-      functionCallFlights: message.functionCallFlights as ChatMessage['functionCallFlights'],
-      usage: message.usage,
-    }));
+  const canonicalHistoryMessages = useMemo(() => {
+    if (streamConciergeEnabled) {
+      return streamHistoryMessages.map(message => ({
+        id: `stream-history-${message.id}`,
+        type: message.type,
+        content: message.content,
+        timestamp: message.timestamp,
+        sources: message.sources,
+        googleMapsWidget: message.googleMapsWidget,
+        googleMapsWidgetContextToken: message.googleMapsWidgetContextToken,
+        functionCallPlaces: message.functionCallPlaces as ChatMessage['functionCallPlaces'],
+        functionCallFlights: message.functionCallFlights as ChatMessage['functionCallFlights'],
+        usage: message.usage,
+      }));
+    }
 
-    const combined = [...historyMessages, ...mappedStreamMessages];
+    return historyMessages;
+  }, [historyMessages, streamConciergeEnabled, streamHistoryMessages]);
+  const mergedHistoryMessages = useMemo(() => {
+    const combined = [...canonicalHistoryMessages];
     if (combined.length === 0) {
       return combined;
     }
@@ -459,7 +464,7 @@ export const AIConciergeChat = ({
     return Array.from(dedupedByFingerprint.values()).sort(
       (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
     );
-  }, [historyMessages, streamHistoryMessages]);
+  }, [canonicalHistoryMessages]);
 
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
