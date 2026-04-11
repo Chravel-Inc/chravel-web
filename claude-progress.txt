@@ -371,6 +371,11 @@
 - Added focused regression test `src/features/broadcasts/components/__tests__/Broadcasts.transport.test.ts` covering deterministic transport selection logic.
 - Verification: `npm run test:run -- src/features/broadcasts/components/__tests__/Broadcasts.transport.test.ts`, `npm run typecheck`, `npm run build` pass; `npm run lint:check` still fails on known pre-existing repo-wide lint baseline.
 
+2026-04-11 — Offline sync legacy chat replay drain (next phase)
+- Added a single `isStreamChatActive()` guard in `offlineSyncService` and reused it in both enqueue + sync paths.
+- `syncOperation` now drops pre-existing queued `chat_message` ops when Stream is active, preventing legacy DB replay after reconnect/cutover.
+- Added regression test coverage in `src/services/__tests__/offlineSyncService.test.ts` for legacy queued-chat cleanup while preserving existing non-chat queue semantics.
+- Verification: `npm run test:run -- src/services/__tests__/offlineSyncService.test.ts`, `npm run typecheck`, `npm run build` pass; `npm run lint:check` still fails on known repo baseline.
 2026-04-11 — Chat search dead-code removal + overlay regression test
 - Confirmed legacy `MessageSearch` component and `messageSearchService` were not referenced outside their own files; removed both to eliminate duplicate search paths.
 - Re-verified TripChat search integration remains solely `TripChat -> ChatSearchOverlay -> chatSearchService`.
