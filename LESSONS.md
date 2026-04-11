@@ -419,3 +419,9 @@
 - **Evidence:** `TripPreview` was nulling `activeInviteCode` via client invite query and showing "ask for invite link" toast after login even when invite context existed.
 - **Provenance:** April 2026 invite flow deep-dive (`get-trip-preview` + `TripPreview` fix).
 - **Confidence:** high
+### Retiring a deprecated service should be enforced with an import-level guard, not just file deletion
+- **Tip:** When deprecating a previously shipped service, pair deletion/move with a lint-level `no-restricted-imports` rule so future code cannot silently reintroduce old architecture paths.
+- **Applies when:** Promoting a single-source-of-truth module and removing legacy alternatives.
+- **Evidence:** `EnhancedTripContextService` was unreferenced and removed; adding lint restrictions for common relative/alias import paths hardens `TripContextAggregator` as the sole concierge context path.
+- **Provenance:** April 2026 concierge context hardening.
+- **Confidence:** high

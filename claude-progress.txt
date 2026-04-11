@@ -352,3 +352,11 @@
 - Implemented minimal stable immediate-send contract in `src/services/broadcastService.ts`: explicit insert payload mapping (trip_id/message/priority/metadata/created_by), forced `is_sent: true`, and no `scheduled_for` persistence.
 - Added focused regression test `src/services/__tests__/broadcastService.test.ts` asserting insert payload excludes `scheduled_for` and marks sends immediate.
 - Verification: `npm run test:run -- src/services/__tests__/broadcastService.test.ts`, `npm run typecheck`.
+2026-04-11 — Concierge context source-of-truth hardening (EnhancedTripContextService retirement)
+- Verified `EnhancedTripContextService` had zero runtime imports via repo grep (`rg "enhancedTripContextService|EnhancedTripContextService" src -n`) and confirmed concierge runtime already uses `TripContextAggregator` in `UniversalConciergeService`.
+- Removed deprecated runtime file `src/services/enhancedTripContextService.ts` to eliminate accidental resurrection risk.
+- Added architectural guardrails:
+  - ESLint `no-restricted-imports` entries blocking `enhancedTripContextService` import paths.
+  - `src/services/CONCIERGE_CONTEXT_ARCHITECTURE.md` documenting `TripContextAggregator` as the single source of truth.
+  - Inline invariant comment near context assembly in `UniversalConciergeService`.
+- Verification: `npm run typecheck`, `npm run lint:check`, `npm run test:run -- src/services/__tests__/tripContextAggregator.test.ts`.
