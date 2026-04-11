@@ -35,6 +35,7 @@ import { EVENT_PARITY_COL_START, EVENT_PARITY_ROW_CLASS } from '@/lib/tabParity'
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { hasPaidAccess } from '@/utils/paidAccess';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { getMediaCategory } from '@/utils/mediaUtils';
 
 interface AgendaPermissions {
   canView: boolean;
@@ -67,10 +68,6 @@ const DEMO_FILES: AgendaFile[] = [
 
 function isPdfMime(mimeType: string): boolean {
   return mimeType === 'application/pdf';
-}
-
-function isImageMime(mimeType: string): boolean {
-  return mimeType.startsWith('image/');
 }
 
 export const AgendaModal = ({
@@ -799,7 +796,7 @@ export const AgendaModal = ({
                   className="bg-white/5 border-white/10 hover:bg-white/10 transition-colors"
                 >
                   <CardContent className="p-3">
-                    {isImageMime(file.mimeType) ? (
+                    {getMediaCategory(file.mimeType) === 'image' ? (
                       /* Image file card */
                       <div className="space-y-2">
                         <div className="relative rounded-lg overflow-hidden bg-white/5">

@@ -30,7 +30,7 @@ describe('mediaUtils', () => {
     });
 
     it('should return true for data URLs', () => {
-      expect(isBlobOrDataUrl('data:image/png;base64,ivbor...')).toBe(true);
+      expect(isBlobOrDataUrl('data:image/png;base64,stub')).toBe(true);
     });
 
     it('should return false for standard URLs', () => {
