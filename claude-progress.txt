@@ -368,9 +368,13 @@
 2026-04-11 — Scheduled broadcast type canonicalization + row-mapping regression test
 - Chose `ScheduledMessage` in `src/types/messaging.ts` as canonical scheduled broadcast type and tightened it to require `tripId`, `sendAt`, `isSent`, and strict priority union.
 - Updated `unifiedMessagingService` to consume canonical type, map `broadcasts` snake_case row fields into camelCase via `mapBroadcastRowToScheduledMessage`, and normalize null/unknown priority to `fyi`.
+- `mapBroadcastRowToScheduledMessage` sets `senderId`/`senderName` from `created_by` (short display label when UUID-length) so `ScheduledMessage extends InboxMessage` satisfies `tsc`.
 - Updated `AdminDashboard` to consume shared `ScheduledMessage` from `src/types/messaging.ts` and removed service-local type dependency.
 - Added focused test `src/services/__tests__/unifiedMessagingService.test.ts` to lock row-shape -> canonical-shape mapping and fallback behavior.
-- Verification: `npm run test:run -- src/services/__tests__/unifiedMessagingService.test.ts`, `npm run typecheck`; `npm run build` still fails on pre-existing unrelated duplicate symbol in `src/components/pro/channels/ChannelChatView.tsx`.
+- Verification: `npm run test:run -- src/services/__tests__/unifiedMessagingService.test.ts`, `npm run typecheck`, `npm run build` pass.
+2026-04-11 — ChannelChatView transportMessages merge corruption fix
+- Removed accidental duplicate `transportMessages` `useMemo` blocks and restored valid `metadata.replyTo` object + `return` structure (was breaking `npm run build`).
+- Verification: `npm run typecheck`, `npm run build`, `npm run lint:check` (0 errors).
 2026-04-11 — Broadcasts Stream transport hard-cutover (phase follow-up)
 - Removed residual `stream-chat-broadcasts` feature-flag gating from `Broadcasts`; Stream is now selected whenever connected and not in demo mode.
 - Stopped unnecessary legacy DB broadcast query/subscription when Stream transport is active to avoid dual-source reads and duplicate realtime paths.

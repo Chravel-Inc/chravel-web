@@ -28,6 +28,8 @@ describe('mapBroadcastRowToScheduledMessage', () => {
     expect(canonical.priority).toBe('urgent');
     expect(canonical.isSent).toBe(false);
     expect(canonical.messageType).toBe('broadcast');
+    expect(canonical.senderId).toBe('user-1');
+    expect(canonical.senderName).toBe('user-1');
   });
 
   it('falls back to defaults when optional broadcast columns are null/unknown', () => {
@@ -48,5 +50,27 @@ describe('mapBroadcastRowToScheduledMessage', () => {
     expect(mapped.sendAt).toBe('2026-05-21T10:00:00.000Z');
     expect(mapped.priority).toBe('fyi');
     expect(mapped.isSent).toBe(false);
+    expect(mapped.senderId).toBe('user-2');
+    expect(mapped.senderName).toBe('user-2');
+  });
+
+  it('uses a shortened display name for long creator user ids', () => {
+    const longId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+    const row: BroadcastRow = {
+      id: 'broadcast-3',
+      trip_id: 'trip-3',
+      message: 'Long id test',
+      scheduled_for: '2026-06-02T12:00:00.000Z',
+      priority: 'fyi',
+      is_sent: false,
+      created_at: '2026-05-22T09:00:00.000Z',
+      created_by: longId,
+      metadata: null,
+      updated_at: '2026-05-22T09:00:00.000Z',
+    };
+
+    const mapped = mapBroadcastRowToScheduledMessage(row);
+    expect(mapped.senderId).toBe(longId);
+    expect(mapped.senderName).toBe('User aaaaaaaa…');
   });
 });
