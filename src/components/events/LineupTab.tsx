@@ -46,6 +46,7 @@ import {
   AlertDialogTitle,
 } from '../ui/alert-dialog';
 import { formatSessionDateTime } from '@/lib/formatSessionDateTime';
+import { isPdfMime, isImageMime } from '@/utils/mime';
 import { toast } from 'sonner';
 import { EVENT_PARITY_COL_START, EVENT_PARITY_ROW_CLASS } from '@/lib/tabParity';
 import { ActionPill } from '../ui/ActionPill';
@@ -206,8 +207,6 @@ export const LineupTab = ({
     await deleteFile(file.storagePath);
   };
 
-  const isPdfMime = (mime: string) => mime === 'application/pdf';
-  const isImageMime = (mime: string) => mime.startsWith('image/');
 
   return (
     <div className="relative p-4 space-y-4">

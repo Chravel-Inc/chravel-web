@@ -39,3 +39,11 @@ export function getUploadContentType(file: File): string {
   // Fall back to extension inference.
   return inferMimeTypeFromFilename(file.name) ?? 'application/octet-stream';
 }
+
+export function isPdfMime(mimeType: string): boolean {
+  return mimeType === 'application/pdf';
+}
+
+export function isImageMime(mimeType: string): boolean {
+  return mimeType.startsWith('image/');
+}

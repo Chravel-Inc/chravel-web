@@ -31,6 +31,7 @@ import { useEventAgenda } from '@/hooks/useEventAgenda';
 import { useEventAgendaFiles } from '@/hooks/useEventAgendaFiles';
 import { EventAgendaItem, AgendaFile } from '@/types/events';
 import { formatSessionDateTime } from '@/lib/formatSessionDateTime';
+import { isPdfMime, isImageMime } from '@/utils/mime';
 import { EVENT_PARITY_COL_START, EVENT_PARITY_ROW_CLASS } from '@/lib/tabParity';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { hasPaidAccess } from '@/utils/paidAccess';
@@ -65,13 +66,7 @@ const DEMO_FILES: AgendaFile[] = [
   },
 ];
 
-function isPdfMime(mimeType: string): boolean {
-  return mimeType === 'application/pdf';
-}
 
-function isImageMime(mimeType: string): boolean {
-  return mimeType.startsWith('image/');
-}
 
 export const AgendaModal = ({
   eventId,

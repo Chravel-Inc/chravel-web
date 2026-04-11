@@ -34,6 +34,7 @@ import { useEventAgenda } from '@/hooks/useEventAgenda';
 import { useEventAgendaFiles } from '@/hooks/useEventAgendaFiles';
 import { EventAgendaItem, AgendaFile } from '@/types/events';
 import { formatSessionDateTime } from '@/lib/formatSessionDateTime';
+import { isPdfMime, isImageMime } from '@/utils/mime';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { hasPaidAccess } from '@/utils/paidAccess';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
@@ -56,13 +57,7 @@ interface EnhancedAgendaTabProps {
   onLineupUpdate?: (speakerNames: string[]) => void;
 }
 
-function isPdfMime(mimeType: string): boolean {
-  return mimeType === 'application/pdf';
-}
 
-function isImageMime(mimeType: string): boolean {
-  return mimeType.startsWith('image/');
-}
 
 export const EnhancedAgendaTab = ({
   eventId,
