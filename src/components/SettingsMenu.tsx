@@ -58,7 +58,7 @@ export const SettingsMenu = ({
     return (
       <>
         <div
-          className={`fixed inset-0 z-50 ${isMobile ? 'bg-black' : 'bg-black/80 backdrop-blur-sm flex items-center justify-center p-4'}`}
+          className={`fixed inset-0 z-[60] ${isMobile ? 'bg-black' : 'bg-black/80 backdrop-blur-sm flex items-center justify-center p-4'}`}
           onClick={!isMobile ? onClose : undefined}
         >
           <div
@@ -116,7 +116,7 @@ export const SettingsMenu = ({
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-0 md:p-4"
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-0 md:p-4"
         onClick={onClose}
       >
         <div
