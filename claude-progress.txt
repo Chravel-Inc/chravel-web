@@ -364,6 +364,12 @@
 - Implemented minimal stable immediate-send contract in `src/services/broadcastService.ts`: explicit insert payload mapping (trip_id/message/priority/metadata/created_by), forced `is_sent: true`, and no `scheduled_for` persistence.
 - Added focused regression test `src/services/__tests__/broadcastService.test.ts` asserting insert payload excludes `scheduled_for` and marks sends immediate.
 - Verification: `npm run test:run -- src/services/__tests__/broadcastService.test.ts`, `npm run typecheck`.
+
+2026-04-11 — Chat search dead-code removal + overlay regression test
+- Confirmed legacy `MessageSearch` component and `messageSearchService` were not referenced outside their own files; removed both to eliminate duplicate search paths.
+- Re-verified TripChat search integration remains solely `TripChat -> ChatSearchOverlay -> chatSearchService`.
+- Added focused test `src/features/chat/components/__tests__/ChatSearchOverlay.test.tsx` validating filter query parsing handoff (`parseMessageSearchQuery`) and unified results rendering/selection across messages + broadcasts.
+- Verification: `npm run typecheck` passed; `npm run lint:check` fails on pre-existing repo lint baseline + remotion script no-undef errors; `npm run build` fails on pre-existing duplicate symbol in `ChannelChatView.tsx`; targeted Vitest invocation hangs in this environment (`vitest run ...ChatSearchOverlay.test.tsx`) and times out without output.
 2026-04-11 — Broadcast priority canonicalization + legacy alias compatibility hardening
 - Updated `Broadcasts` mappings so outgoing Stream payload for `logistics` category now uses canonical `reminder` priority (no longer `important`).
 - Added backward-compatible render mapping for legacy incoming priority aliases (`important` and `logistics`) to keep display category stable.
