@@ -343,3 +343,12 @@
 - Captured required preconditions: idempotent worker semantics, downtime catch-up logic, queueing/monitoring/alerting, and entitlement gate enforcement.
 - Added re-enable DoD + rollout kill-switch note to prevent premature launch.
 - Verification: markdown doc review (`sed -n`) and git diff inspection.
+2026-04-11 — MVP disablement for scheduled broadcast dispatcher
+- Removed Edge Function source at `supabase/functions/send-scheduled-broadcasts/index.ts` to stop deployment/invocation via all-functions deploy flows.
+- Added migration `20260411000000_disable_scheduled_broadcasts_cron.sql` to defensively unschedule cron jobs named `send-scheduled-broadcasts` and `chravel-send-scheduled-broadcasts` when pg_cron is present.
+- Verification: `npm run typecheck` (pass), migration is no-op safe when cron schema absent.
+2026-04-11 — Broadcast immediate-send hardening (scheduled_for stripped from UI create path)
+- Root-caused unintended scheduling field pass-through risk to `broadcastService.createBroadcast` using broad payload spread (`...broadcastData`), which could persist `scheduled_for` if any caller includes it.
+- Implemented minimal stable immediate-send contract in `src/services/broadcastService.ts`: explicit insert payload mapping (trip_id/message/priority/metadata/created_by), forced `is_sent: true`, and no `scheduled_for` persistence.
+- Added focused regression test `src/services/__tests__/broadcastService.test.ts` asserting insert payload excludes `scheduled_for` and marks sends immediate.
+- Verification: `npm run test:run -- src/services/__tests__/broadcastService.test.ts`, `npm run typecheck`.
