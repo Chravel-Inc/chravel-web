@@ -120,6 +120,10 @@ export const ChannelChatView = ({
   const transportMessages = useMemo<ChannelMessage[]>(() => {
     if (!useStreamTransport) return messages;
 
+  // Transform ChannelMessage to ChatMessage format for MessageItem
+  const transportMessages = useMemo<ChannelMessage[]>(() => {
+    if (!useStreamTransport) return messages;
+
     const streamMessages = streamProChannel.messages;
     const streamById = new Map<string, MessageResponse>(
       streamMessages.map(msg => [String(msg.id), msg as MessageResponse]),
@@ -134,10 +138,6 @@ export const ChannelChatView = ({
               id: String(parent.id),
               text: parent.text || '',
               sender: parent.user?.name || 'Unknown',
-            },
-          }
-        : undefined;
-
       return {
         id: String(streamMsg.id),
         channelId: channel.id,
