@@ -116,6 +116,10 @@ export const ChannelChatView = ({
     }
   };
 
+  // Transform ChannelMessage to ChatMessage format for MessageItem
+  const transportMessages = useMemo<ChannelMessage[]>(() => {
+    if (!useStreamTransport) return messages;
+
   // Handle opening a reply
   const handleOpenReply = useCallback(
     (messageId: string) => {
@@ -133,10 +137,6 @@ export const ChannelChatView = ({
   const clearReply = useCallback(() => {
     setReplyingTo(null);
   }, []);
-
-  // Transform ChannelMessage to ChatMessage format for MessageItem
-  const transportMessages = useMemo<ChannelMessage[]>(() => {
-    if (!useStreamTransport) return messages;
 
     const streamMessages = streamProChannel.messages;
     const streamById = new Map<string, MessageResponse>(
