@@ -311,13 +311,16 @@ export const ChannelChatView = ({
     }
 
     try {
-      const parentId = replyingTo ? replyingTo.id : undefined;
-      const sent = await streamProChannel.sendMessage(inputMessage.trim(), { parentId });
-      if (!sent) {
-        throw new Error('Failed to send via Stream');
+      if (useStreamTransport) {
+        const parentId = replyingTo ? replyingTo.id : undefined;
+        const sent = await streamProChannel.sendMessage(inputMessage.trim(), { parentId });
+        if (!sent) {
+          throw new Error('Failed to send via Stream');
+        }
+        setInputMessage('');
+        clearReply();
+        return;
       }
-      setInputMessage('');
-      clearReply();
     } catch (error) {
       if (import.meta.env.DEV) console.error('[ChannelChatView] Send failed:', error);
       const mapped = mapChannelSendError(error);

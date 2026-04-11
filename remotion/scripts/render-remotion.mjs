@@ -1,3 +1,4 @@
+/* global process, console */
 import { bundle } from '@remotion/bundler';
 import { renderMedia, selectComposition, openBrowser } from '@remotion/renderer';
 import path from 'path';
