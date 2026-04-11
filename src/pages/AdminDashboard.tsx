@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { unifiedMessagingService, ScheduledMessage } from '@/services/unifiedMessagingService';
+import { unifiedMessagingService } from '@/services/unifiedMessagingService';
 import { useProTrips } from '@/hooks/useProTrips';
+import type { ScheduledMessage } from '@/types/messaging';
 import { Button } from '@/components/ui/button';
 import { Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -125,7 +126,7 @@ export const AdminDashboard = () => {
                     })}
                   </p>
                   <p className="text-slate-500 font-mono text-xs">
-                    Trip: {m.trip_id.substring(0, 8)}...
+                    Trip: {m.tripId ? `${m.tripId.substring(0, 8)}...` : 'N/A'}
                   </p>
                 </div>
               </li>
@@ -187,7 +188,7 @@ export const AdminDashboard = () => {
                 <select
                   className="w-full bg-slate-800 border border-slate-700 rounded-md p-2 text-white"
                   value={priority}
-                  onChange={e => setPriority(e.target.value as any)}
+                  onChange={e => setPriority(e.target.value as 'urgent' | 'reminder' | 'fyi')}
                 >
                   <option value="fyi">FYI (Normal)</option>
                   <option value="reminder">Reminder</option>

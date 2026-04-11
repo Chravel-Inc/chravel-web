@@ -352,3 +352,10 @@
 - Implemented minimal stable immediate-send contract in `src/services/broadcastService.ts`: explicit insert payload mapping (trip_id/message/priority/metadata/created_by), forced `is_sent: true`, and no `scheduled_for` persistence.
 - Added focused regression test `src/services/__tests__/broadcastService.test.ts` asserting insert payload excludes `scheduled_for` and marks sends immediate.
 - Verification: `npm run test:run -- src/services/__tests__/broadcastService.test.ts`, `npm run typecheck`.
+
+2026-04-11 — Scheduled broadcast type canonicalization + row-mapping regression test
+- Chose `ScheduledMessage` in `src/types/messaging.ts` as canonical scheduled broadcast type and tightened it to require `tripId`, `sendAt`, `isSent`, and strict priority union.
+- Updated `unifiedMessagingService` to consume canonical type, map `broadcasts` snake_case row fields into camelCase via `mapBroadcastRowToScheduledMessage`, and normalize null/unknown priority to `fyi`.
+- Updated `AdminDashboard` to consume shared `ScheduledMessage` from `src/types/messaging.ts` and removed service-local type dependency.
+- Added focused test `src/services/__tests__/unifiedMessagingService.test.ts` to lock row-shape -> canonical-shape mapping and fallback behavior.
+- Verification: `npm run test:run -- src/services/__tests__/unifiedMessagingService.test.ts`, `npm run typecheck`; `npm run build` still fails on pre-existing unrelated duplicate symbol in `src/components/pro/channels/ChannelChatView.tsx`.
