@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { tripKeys } from '@/lib/queryKeys';
 import { isBlobOrDataUrl } from '@/utils/mediaUtils';
+import { normalizeTripCoverUrl } from '@/utils/tripCoverStorage';
 import { useAuth } from './useAuth';
 import { useDemoMode } from './useDemoMode';
 import { demoModeService } from '@/services/demoModeService';

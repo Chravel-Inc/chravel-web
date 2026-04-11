@@ -19,7 +19,7 @@ const ALLOWED_ORIGINS = [
   // Mobile app / local dev
   'http://localhost',
   // Lovable preview deployments
-  '.lovable.app',
+  // '.lovable.app',
   // Lovable project preview (exact origin — do NOT use wildcard .lovableproject.com)
   'https://20feaa04-0946-4c68-a68d-0eb88cc1b9c4.lovableproject.com',
   // Preview/staging domains: use ADDITIONAL_ALLOWED_ORIGINS env var
