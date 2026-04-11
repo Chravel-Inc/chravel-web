@@ -31,6 +31,23 @@ describe('calendarImportParsers parseURLSchedule', () => {
     expect(result.errors[0]).toContain('(blocked)');
   });
 
+  it('preserves zero-count url meta on unsuccessful parses', async () => {
+    vi.mocked(supabase.functions.invoke).mockResolvedValue({
+      data: {
+        success: false,
+        error: 'No schedule found',
+        events_found: 0,
+        events_filtered: 0,
+      },
+      error: null,
+    } as unknown as Awaited<ReturnType<typeof supabase.functions.invoke>>);
+
+    const result = await parseURLSchedule('https://example.com/no-events');
+
+    expect(result.isValid).toBe(false);
+    expect(result.urlMeta).toEqual({ eventsFound: 0, eventsFiltered: 0 });
+  });
+
   it('maps events and falls back url meta counts safely', async () => {
     vi.mocked(supabase.functions.invoke).mockResolvedValue({
       data: {

@@ -309,3 +309,8 @@
 - Added polling-based realtime hydration loop (6s refresh) tied to selected trip to avoid stale chat state between sends.
 - Updated chat UI with native composer (`TextField` + send button + disabled/loading states).
 - Added regression tests for mock in-memory send persistence and Supabase POST insert path behavior.
+
+2026-04-11 — URL smart-import zero-count metadata regression hardening
+- Fixed `parseURLSchedule` error-path `urlMeta` guard to preserve valid `events_found: 0` (was previously dropped due to truthy check).
+- Added regression test in `src/utils/__tests__/calendarImportParsers.url.test.ts` to lock zero-count metadata behavior.
+- Verification: `npm run test:run -- src/utils/__tests__/calendarImportParsers.url.test.ts`, `npm run typecheck`.

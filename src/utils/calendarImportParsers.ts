@@ -663,9 +663,10 @@ export async function parseURLSchedule(url: string): Promise<SmartParseResult> {
         ],
         isValid: false,
         sourceFormat: 'url',
-        urlMeta: response.events_found
-          ? { eventsFound: response.events_found, eventsFiltered: response.events_filtered ?? 0 }
-          : undefined,
+        urlMeta:
+          typeof response.events_found === 'number'
+            ? { eventsFound: response.events_found, eventsFiltered: response.events_filtered ?? 0 }
+            : undefined,
       };
     }
 
