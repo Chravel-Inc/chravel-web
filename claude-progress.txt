@@ -364,3 +364,11 @@
 - Implemented minimal stable immediate-send contract in `src/services/broadcastService.ts`: explicit insert payload mapping (trip_id/message/priority/metadata/created_by), forced `is_sent: true`, and no `scheduled_for` persistence.
 - Added focused regression test `src/services/__tests__/broadcastService.test.ts` asserting insert payload excludes `scheduled_for` and marks sends immediate.
 - Verification: `npm run test:run -- src/services/__tests__/broadcastService.test.ts`, `npm run typecheck`.
+2026-04-11 — Broadcast priority canonicalization + legacy alias compatibility hardening
+- Updated `Broadcasts` mappings so outgoing Stream payload for `logistics` category now uses canonical `reminder` priority (no longer `important`).
+- Added backward-compatible render mapping for legacy incoming priority aliases (`important` and `logistics`) to keep display category stable.
+- Hardened `useStreamBroadcasts` to normalize incoming/outgoing priority values to canonical set (`urgent | reminder | fyi`) and include normalized priority in outgoing metadata.
+- Added focused regression tests:
+  - `src/features/broadcasts/components/__tests__/Broadcasts.priorityMapping.test.ts`
+  - `src/hooks/stream/__tests__/useStreamBroadcasts.priority.test.tsx`
+- Verification: `npm run test:run -- src/features/broadcasts/components/__tests__/Broadcasts.priorityMapping.test.ts src/hooks/stream/__tests__/useStreamBroadcasts.priority.test.tsx`, `npm run typecheck`.
