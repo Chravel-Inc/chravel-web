@@ -60,13 +60,15 @@ const AI_PROVIDER = (Deno.env.get('AI_PROVIDER') || 'gemini').toLowerCase();
 const ENABLE_LOVABLE_FALLBACK =
   (Deno.env.get('GEMINI_ENABLE_LOVABLE_FALLBACK') || 'true').toLowerCase() !== 'false';
 
-const DEFAULT_FLASH_MODEL = 'gemini-3-flash-preview';
+const DEFAULT_FLASH_MODEL = (Deno.env.get('GEMINI_FLASH_MODEL') || 'gemini-3.1-flash').trim();
 const DEFAULT_PRO_MODEL = 'gemini-3.1-pro-preview';
 const DEFAULT_EMBEDDING_MODEL = 'text-embedding-004';
 const DEFAULT_CHAT_TIMEOUT_MS = 45_000;
 const DEFAULT_EMBED_TIMEOUT_MS = 30_000;
 
 const CHAT_MODEL_ALIASES: Record<string, string> = {
+  'gemini-3-flash-preview': DEFAULT_FLASH_MODEL,
+  'google/gemini-3-flash-preview': DEFAULT_FLASH_MODEL,
   'gemini-2.5-flash': DEFAULT_FLASH_MODEL,
   'google/gemini-2.5-flash': DEFAULT_FLASH_MODEL,
   'gemini-2.5-pro': DEFAULT_PRO_MODEL,
@@ -77,6 +79,8 @@ const CHAT_MODEL_ALIASES: Record<string, string> = {
   'gemini-3-pro-preview': DEFAULT_PRO_MODEL,
   'google/gemini-3-pro-preview': DEFAULT_PRO_MODEL,
 };
+
+export const DEFAULT_GEMINI_FLASH_MODEL = DEFAULT_FLASH_MODEL;
 
 export function normalizeGeminiModel(
   requestedModel: string | undefined,

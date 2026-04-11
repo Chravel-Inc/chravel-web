@@ -10,7 +10,12 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { validateExternalUrlBeforeFetch } from '../_shared/validation.ts';
-import { invokeChatModel, extractTextFromChatResponse } from '../_shared/gemini.ts';
+import {
+  invokeChatModel,
+  extractTextFromChatResponse,
+  DEFAULT_GEMINI_FLASH_MODEL,
+} from '../_shared/gemini.ts';
+import { scrapeUrlContentForAi, getScrapeContentTypeLabel } from '../_shared/urlScraper.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -18,62 +23,6 @@ const MAX_CONTENT_LENGTH = 1_000_000;
 
 interface LineupExtractionResponse {
   names: string[];
-}
-
-async function scrapeWithFirecrawl(
-  url: string,
-): Promise<{ content: string; method: 'firecrawl' } | null> {
-  const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
-  if (!apiKey) return null;
-
-  try {
-    const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url,
-        formats: ['markdown'],
-        onlyMainContent: true,
-        waitFor: 3000,
-      }),
-      signal: AbortSignal.timeout(20000),
-    });
-
-    if (!response.ok) return null;
-
-    const data = await response.json();
-    const markdown = data?.data?.markdown || data?.markdown || '';
-    if (!markdown || markdown.trim().length < 50) return null;
-
-    return { content: markdown, method: 'firecrawl' };
-  } catch {
-    return null;
-  }
-}
-
-async function scrapeWithFetch(url: string): Promise<{ content: string; method: 'fetch' } | null> {
-  try {
-    const pageResponse = await fetch(url, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-        Accept:
-          'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
-      signal: AbortSignal.timeout(15000),
-    });
-
-    if (!pageResponse.ok) return null;
-
-    const html = await pageResponse.text();
-    return { content: html, method: 'fetch' };
-  } catch {
-    return null;
-  }
 }
 
 function normalizeNames(names: string[]): string[] {
@@ -152,7 +101,7 @@ serve(async req => {
 
     let contentForAI = '';
     let contentType = 'pasted text';
-    let scrapeMethod: 'firecrawl' | 'fetch' | 'text' = 'text';
+    let scrapeMethod: 'firecrawl' | 'fetch' | 'reader_proxy' | 'text' = 'text';
 
     if (url) {
       if (url.startsWith('http://')) url = url.replace('http://', 'https://');
@@ -167,26 +116,20 @@ serve(async req => {
         );
       }
 
-      const firecrawlResult = await scrapeWithFirecrawl(url);
-      if (firecrawlResult) {
-        contentForAI = firecrawlResult.content;
-        scrapeMethod = 'firecrawl';
-        contentType = 'rendered webpage content (markdown)';
-      } else {
-        const fetchResult = await scrapeWithFetch(url);
-        if (!fetchResult) {
-          return new Response(
-            JSON.stringify({
-              error:
-                'Could not access this website. Try another URL or paste text from the lineup page.',
-            }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-          );
-        }
-        contentForAI = fetchResult.content;
-        scrapeMethod = 'fetch';
-        contentType = 'webpage HTML';
+      const scrapeResult = await scrapeUrlContentForAi(url, { logPrefix: 'scrape-lineup' });
+      if (!scrapeResult) {
+        return new Response(
+          JSON.stringify({
+            error:
+              'Could not access this website. The page appears to block automated fetches. Try another URL or paste text from the lineup page.',
+            scrape_method: 'blocked',
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
       }
+      contentForAI = scrapeResult.content;
+      scrapeMethod = scrapeResult.method;
+      contentType = getScrapeContentTypeLabel(scrapeResult.method);
     } else {
       contentForAI = text;
     }
@@ -209,7 +152,7 @@ Rules:
 6) If no names are found, return: {"names": []}`;
 
     const aiResult = await invokeChatModel({
-      model: 'gemini-3-flash-preview',
+      model: DEFAULT_GEMINI_FLASH_MODEL,
       messages: [
         { role: 'system', content: systemPrompt },
         {
