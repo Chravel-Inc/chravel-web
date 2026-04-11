@@ -10,6 +10,7 @@ import { TripChannel, ChannelMessage } from '../types/roleChannels';
 import { useDemoMode } from './useDemoMode';
 import { MockRolesService } from '@/services/mockRolesService';
 import { useStreamProChannel } from './stream/useStreamProChannel';
+import type { MessageResponse } from 'stream-chat';
 
 // All demo trip IDs including Pro and Event trips
 const DEMO_TRIP_IDS = [
@@ -151,39 +152,6 @@ export const useRoleChannels = (tripId: string, _userRole: string, roles?: strin
       setMessages([]);
       return;
     }
-
-    const loadMessages = async () => {
-      // Use channelService for proper RLS enforcement
-      const channelMessages = await channelService.getMessages(activeChannel.id);
-      // Convert to RoleChannelMessage format
-      const formattedMessages: RoleChannelMessage[] = channelMessages.map(msg => ({
-        id: msg.id,
-        channelId: msg.channelId,
-        senderId: msg.senderId,
-        senderName: msg.senderName || 'Unknown',
-        senderAvatar: msg.senderAvatar,
-        content: msg.content,
-        createdAt: msg.createdAt,
-      }));
-      setMessages(formattedMessages);
-    };
-
-    loadMessages();
-
-    // Subscribe to new messages using channelService
-    const unsubscribe = channelService.subscribeToChannel(activeChannel.id, newMessage => {
-      const formattedMessage: RoleChannelMessage = {
-        id: newMessage.id,
-        channelId: newMessage.channelId,
-        senderId: newMessage.senderId,
-        senderName: newMessage.senderName || 'Unknown',
-        content: newMessage.content,
-        createdAt: newMessage.createdAt,
-      };
-      setMessages(prev => [...prev, formattedMessage]);
-    });
-
-    return unsubscribe;
   }, [activeChannel, isDemoTrip, demoMessages, useStream]);
 
   const createChannel = async (roleName: string): Promise<boolean> => {
@@ -248,20 +216,15 @@ export const useRoleChannels = (tripId: string, _userRole: string, roles?: strin
       return true;
     }
 
-    // Use channelService which properly respects RLS policies.
-    // Errors (RLS denial, network, etc.) now throw and are handled by the caller.
-    await channelService.sendMessage({
-      channelId: activeChannel.id,
-      content,
-    });
-    return true;
+    // Non-demo path is Stream-only in current architecture.
+    return false;
   };
 
   // When Stream is active, use Stream messages and sendMessage.
   // Channel list, CRUD, and metadata still come from Supabase.
   const effectiveMessages: RoleChannelMessage[] =
     useStream && activeChannel
-      ? streamProChannel.messages.map((m: any) => ({
+      ? streamProChannel.messages.map((m: MessageResponse) => ({
           id: m.id,
           channelId: activeChannel.id,
           senderId: m.user?.id ?? '',

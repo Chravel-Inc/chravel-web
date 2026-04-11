@@ -357,25 +357,6 @@ export const ChannelChatView = ({
         clearReply();
         return;
       }
-
-      const replyMetadata = replyingTo
-        ? {
-            replyTo: {
-              id: replyingTo.id,
-              text: replyingTo.text,
-              sender: replyingTo.senderName,
-            },
-          }
-        : undefined;
-
-      await channelService.sendMessage({
-        channelId: channel.id,
-        content: inputMessage.trim(),
-        messageType: isBroadcast ? 'broadcast' : 'regular',
-        metadata: replyMetadata,
-      });
-      setInputMessage('');
-      clearReply();
     } catch (error) {
       if (import.meta.env.DEV) console.error('[ChannelChatView] Send failed:', error);
       const mapped = mapChannelSendError(error);
