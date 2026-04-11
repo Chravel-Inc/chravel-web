@@ -66,10 +66,6 @@ export class AppleIAPProvider extends BaseBillingProvider {
     }
 
     // TODO: Fetch products from App Store
-    const productIds = Object.values(BILLING_PRODUCTS)
-      .flatMap(p => [p.appleProductIdMonthly, p.appleProductIdAnnual])
-      .filter((id): id is string => Boolean(id));
-
     // const products = await InAppPurchases.getProducts({ productIds });
 
     // For now, return config-based products
