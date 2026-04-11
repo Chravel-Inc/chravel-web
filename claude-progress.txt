@@ -379,3 +379,9 @@
 - Verification: `npm run test:run -- src/hooks/stream/__tests__/useStreamProChannel.test.tsx src/services/__tests__/globalSyncProcessor.test.ts src/services/__tests__/offlineSyncService.test.ts`, `npm run typecheck`, `npm run build` pass; `npm run lint:check` remains failing on known baseline.
 2026-04-11 — Codex PR recreation
 - Re-created PR from latest Stream cutover commit after GitHub/Codex notification requiring a fresh PR object.
+
+2026-04-11 — PR #196 audit merge-blockers resolved (cursor feedback)
+- Fixed stream auth disconnect guard in `streamClient` to support both string and payload-shaped auth event callbacks and reliably disconnect on `SIGNED_OUT`.
+- Removed duplicate `useEffect` subscriptions/timeouts in `useStreamTripChat` to eliminate duplicate connection listeners and duplicate timeout error paths.
+- Added focused regression test `src/services/stream/__tests__/streamClient.auth.test.ts` validating sign-out disconnect path via auth payload object shape.
+- Verification: `npm run test:run -- src/services/stream/__tests__/streamClient.auth.test.ts src/hooks/stream/__tests__/useStreamTripChat.send.test.tsx src/hooks/stream/__tests__/useStreamProChannel.test.tsx`, `npm run typecheck`, `npm run build` pass; `npm run lint:check` still fails on known repo lint baseline.
