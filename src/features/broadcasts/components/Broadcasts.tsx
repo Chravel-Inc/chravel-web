@@ -34,18 +34,28 @@ interface BroadcastData {
   userResponse?: 'coming' | 'wait' | 'cant';
 }
 
-function mapPriorityToCategory(
+export function mapPriorityToCategory(
   priority: string | null,
 ): 'chill' | 'logistics' | 'urgent' | 'emergency' {
   switch (priority) {
     case 'urgent':
       return 'urgent';
+    case 'important':
+    case 'logistics':
     case 'reminder':
       return 'logistics';
     case 'fyi':
     default:
       return 'chill';
   }
+}
+
+export function mapCategoryToPriority(
+  category: 'chill' | 'logistics' | 'urgent',
+): 'urgent' | 'reminder' | 'fyi' {
+  if (category === 'urgent') return 'urgent';
+  if (category === 'logistics') return 'reminder';
+  return 'fyi';
 }
 
 function mapBroadcastToDisplay(
@@ -159,12 +169,7 @@ export const Broadcasts = () => {
       setDemoBroadcasts(prev => [broadcast, ...prev]);
     } else {
       if (useStream) {
-        const priority =
-          newBroadcast.category === 'urgent'
-            ? 'urgent'
-            : newBroadcast.category === 'logistics'
-              ? 'important'
-              : 'fyi';
+        const priority = mapCategoryToPriority(newBroadcast.category);
         streamBroadcasts
           .sendBroadcast(newBroadcast.message, priority, {
             recipients: newBroadcast.recipients,

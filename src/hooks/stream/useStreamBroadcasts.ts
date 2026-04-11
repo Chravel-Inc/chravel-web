@@ -12,7 +12,33 @@
 import { useState, useEffect, useRef } from 'react';
 import { getStreamClient } from '@/services/stream/streamClient';
 import { CHANNEL_TYPE_BROADCAST, broadcastChannelId } from '@/services/stream/streamChannelFactory';
-import type { Channel, Event, MessageResponse, UserResponse } from 'stream-chat';
+import type { Channel, MessageResponse } from 'stream-chat';
+
+type BroadcastPriority = 'urgent' | 'reminder' | 'fyi';
+
+function normalizeBroadcastPriority(priority: unknown): BroadcastPriority {
+  if (priority === 'urgent') return 'urgent';
+  if (priority === 'reminder' || priority === 'important' || priority === 'logistics') {
+    return 'reminder';
+  }
+  return 'fyi';
+}
+
+function normalizeMessagePriority(message: MessageResponse): MessageResponse {
+  const normalized = normalizeBroadcastPriority(
+    (message as Record<string, unknown>).priority ??
+      ((message.extra_data as Record<string, unknown> | undefined)?.priority as string | undefined),
+  );
+
+  return {
+    ...message,
+    priority: normalized,
+    extra_data: {
+      ...(message.extra_data as Record<string, unknown> | undefined),
+      priority: normalized,
+    },
+  } as MessageResponse;
+}
 
 export function useStreamBroadcasts(tripId: string | undefined) {
   const [broadcasts, setBroadcasts] = useState<MessageResponse[]>([]);
@@ -49,7 +75,7 @@ export function useStreamBroadcasts(tripId: string | undefined) {
         channelRef.current = channel;
         setActiveChannel(channel);
 
-        const initial = (state.messages || []) as MessageResponse[];
+        const initial = ((state.messages || []) as MessageResponse[]).map(normalizeMessagePriority);
         setBroadcasts(initial.reverse()); // newest first
         setIsLoading(false);
       } catch {
@@ -75,7 +101,9 @@ export function useStreamBroadcasts(tripId: string | undefined) {
     if (!channel) return;
 
     const handleEvent = () => {
-      const messages = [...channel.state.messages] as unknown as MessageResponse[];
+      const messages = ([...channel.state.messages] as unknown as MessageResponse[]).map(
+        normalizeMessagePriority,
+      );
       setBroadcasts(messages.reverse()); // newest first
     };
 
@@ -97,10 +125,14 @@ export function useStreamBroadcasts(tripId: string | undefined) {
   ) => {
     const channel = channelRef.current;
     if (!channel) return;
+    const normalizedPriority = normalizeBroadcastPriority(priority);
     await channel.sendMessage({
       text,
-      priority,
-      metadata,
+      priority: normalizedPriority,
+      metadata: {
+        ...metadata,
+        priority: normalizedPriority,
+      },
     } as Parameters<Channel['sendMessage']>[0]);
   };
 

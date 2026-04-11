@@ -1,3 +1,8 @@
+
+import { vi } from 'vitest';
+vi.mock('https://deno.land/x/zod@v3.22.4/mod.ts', async () => {
+  return await import('zod');
+});
 import { describe, it, expect, vi } from 'vitest';
 
 // Mock Deno global before importing the module
