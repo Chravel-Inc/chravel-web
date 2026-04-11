@@ -10,10 +10,19 @@ const isScheduledPriority = (value: string | null): value is ScheduledPriority =
   return value === 'urgent' || value === 'reminder' || value === 'fyi';
 };
 
+/** Display label for scheduled broadcast author when profile names are not joined on the row. */
+const scheduledBroadcastSenderDisplayName = (userId: string): string => {
+  if (!userId) return 'Unknown sender';
+  if (userId.length <= 12) return userId;
+  return `User ${userId.slice(0, 8)}…`;
+};
+
 export const mapBroadcastRowToScheduledMessage = (row: BroadcastRow): ScheduledMessage => ({
   id: row.id,
   tripId: row.trip_id,
   content: row.message,
+  senderId: row.created_by,
+  senderName: scheduledBroadcastSenderDisplayName(row.created_by),
   sendAt: row.scheduled_for ?? row.created_at,
   isSent: row.is_sent ?? false,
   priority: isScheduledPriority(row.priority) ? row.priority : 'fyi',
