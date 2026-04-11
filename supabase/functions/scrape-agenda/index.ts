@@ -96,7 +96,6 @@ serve(async req => {
 
     // ── Scrape: Firecrawl -> raw fetch -> reader proxy fallback ──
     let contentForAI = '';
-    let scrapeMethod: 'firecrawl' | 'fetch' | 'reader_proxy' | 'unknown' = 'unknown';
     const scrapeResult = await scrapeUrlContentForAi(url, { logPrefix: 'scrape-agenda' });
     if (!scrapeResult) {
       return new Response(
@@ -109,7 +108,7 @@ serve(async req => {
       );
     }
     contentForAI = scrapeResult.content;
-    scrapeMethod = scrapeResult.method;
+    const scrapeMethod: 'firecrawl' | 'fetch' | 'reader_proxy' = scrapeResult.method;
 
     // ── Cap content ──
     if (contentForAI.length > MAX_CONTENT_LENGTH) {
