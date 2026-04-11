@@ -1,8 +1,4 @@
-<<<<<<< cursor/chravelapp-bug-resolution-cc5b
-/* eslint-env node */
-=======
 /* global process, console */
->>>>>>> main
 import { bundle } from '@remotion/bundler';
 import { renderMedia, selectComposition, openBrowser } from '@remotion/renderer';
 import path from 'path';
