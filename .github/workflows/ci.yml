@@ -205,6 +205,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run full E2E tests
+        id: e2e
         run: npm run test:e2e
         env:
           PLAYWRIGHT_TEST_BASE_URL: 'http://localhost:8080'
@@ -217,3 +218,26 @@ jobs:
           name: playwright-full-report
           path: test-results/
           retention-days: 30
+
+      - name: Notify Slack (E2E nightly / manual, optional)
+        if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_E2E_WEBHOOK_URL }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "SLACK_E2E_WEBHOOK_URL not set; skipping Slack notification."
+            exit 0
+          fi
+          if [ "${{ steps.e2e.outcome }}" = "success" ]; then
+            EMOJI=":white_check_mark:"
+            STATE="passed"
+          else
+            EMOJI=":x:"
+            STATE="failed"
+          fi
+          MSG="${EMOJI} Chravel CI — E2E Full ${STATE}: ${RUN_URL}"
+          export MSG
+          curl -sS -X POST -H 'Content-type: application/json' \
+            --data "$(python3 -c 'import json, os; print(json.dumps({"text": os.environ["MSG"]}))')" \
+            "$SLACK_WEBHOOK_URL"
