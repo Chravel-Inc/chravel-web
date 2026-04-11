@@ -127,7 +127,7 @@ export const ChannelChatView = ({
   // Handle opening a reply
   const handleOpenReply = useCallback(
     (messageId: string) => {
-      const msg = messages.find(m => m.id === messageId);
+      const msg = transportMessages.find(m => m.id === messageId);
       if (!msg) return;
       setReplyingTo({
         id: msg.id,
@@ -135,7 +135,7 @@ export const ChannelChatView = ({
         senderName: msg.senderName,
       });
     },
-    [messages],
+    [transportMessages],
   );
 
   const clearReply = useCallback(() => {
@@ -210,6 +210,38 @@ export const ChannelChatView = ({
       linkPreview: linkPreviews[msg.id] || undefined,
     }));
   }, [formattedMessages, linkPreviews]);
+
+  const streamReactionMap = useMemo(() => {
+    if (!useStreamTransport || !user?.id) {
+      return {};
+    }
+
+    return streamProChannel.messages.reduce<
+      Record<string, Record<string, { count: number; userReacted: boolean; users: string[] }>>
+    >((acc, streamMessage) => {
+      const counts = (streamMessage.reaction_counts || {}) as Record<string, number>;
+      const own = new Set((streamMessage.own_reactions || []).map(reaction => reaction.type));
+      const latest = (streamMessage.latest_reactions || []) as Array<{
+        type: string;
+        user?: { id?: string };
+      }>;
+
+      const byType: Record<string, { count: number; userReacted: boolean; users: string[] }> = {};
+      Object.entries(counts).forEach(([type, count]) => {
+        const users = latest
+          .filter(reaction => reaction.type === type && reaction.user?.id)
+          .map(reaction => reaction.user!.id as string);
+        byType[type] = {
+          count,
+          userReacted: own.has(type),
+          users: Array.from(new Set(users)),
+        };
+      });
+
+      acc[String(streamMessage.id)] = byType;
+      return acc;
+    }, {});
+  }, [streamProChannel.messages, useStreamTransport, user?.id]);
 
   useEffect(() => {
     if (useStreamTransport) {
@@ -647,9 +679,7 @@ export const ChannelChatView = ({
 
       {/* Reuse VirtualizedMessageContainer */}
       <div className="flex-1">
-        {useStreamTransport ? (
-          streamProChannel.isLoading
-        ) : loading ? (
+        {useStreamTransport && streamProChannel.isLoading ? (
           <div className="flex-1 overflow-y-auto p-4 space-y-4" aria-label="Loading messages">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="flex items-start gap-3 animate-pulse">
@@ -665,7 +695,23 @@ export const ChannelChatView = ({
               </div>
             ))}
           </div>
-        ) : messages.length === 0 ? (
+        ) : !useStreamTransport && loading ? (
+          <div className="flex-1 overflow-y-auto p-4 space-y-4" aria-label="Loading messages">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="flex items-start gap-3 animate-pulse">
+                <div className="w-8 h-8 rounded-full bg-white/10 flex-shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="h-3 bg-white/10 rounded w-24" />
+                    <div className="h-2 bg-white/5 rounded w-16" />
+                  </div>
+                  <div className="h-4 bg-white/10 rounded w-3/4" />
+                  {i % 2 === 0 && <div className="h-4 bg-white/10 rounded w-1/2" />}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : transportMessages.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
             <div className="bg-white/5 rounded-full p-4 mb-4">
               <Lock size={24} className="text-gray-500" />
@@ -683,7 +729,9 @@ export const ChannelChatView = ({
             renderMessage={(message: any) => (
               <MessageItem
                 message={message}
-                reactions={reactions[message.id]}
+                reactions={
+                  useStreamTransport ? streamReactionMap[message.id] : reactions[message.id]
+                }
                 onReaction={handleReaction}
                 onReply={handleOpenReply}
               />
