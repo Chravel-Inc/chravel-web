@@ -334,3 +334,7 @@
 - Added compact Section 16 in root `AGENTS.md` defining when to create nested subsystem AGENTS files and what local-only rules each should contain (`/src/components`, `/src/hooks`, `/supabase`, `/supabase/functions`, optional `/src/pages` or `/appstore`).
 - Added mandatory subsystem scoring protocol (before/after 0–100, post-fix 90+ target, explicit justification if below 90).
 - Added external blocker handoff requirement: short human steps + copy-pasteable AGENTIC BROWSER SCRIPT.
+2026-04-11 — Broadcast scheduler component removal cleanup
+- Deleted obsolete `src/features/broadcasts/components/BroadcastScheduler.tsx` per product direction to fully remove scheduling UI path.
+- Verified there are no remaining source imports/usages of `BroadcastScheduler` via `rg "BroadcastScheduler" src -n`.
+- Verification: `npm run typecheck` and `npm run build` pass; `npm run lint:check` still fails on pre-existing unrelated repo lint errors (including `remotion/scripts/render-remotion.mjs`).
