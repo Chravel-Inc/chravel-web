@@ -96,7 +96,7 @@ serve(async req => {
 
     // ── Scrape: Firecrawl -> raw fetch -> reader proxy fallback ──
     let contentForAI = '';
-    let scrapeMethod: UrlScrapeMethod | 'unknown' = 'unknown';
+    let scrapeMethod: UrlScrapeMethod;
     const scrapeResult = await scrapeUrlContentForAi(url, { logPrefix: 'scrape-schedule' });
     if (!scrapeResult) {
       return new Response(
