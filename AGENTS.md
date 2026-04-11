@@ -347,3 +347,64 @@ Husky pre-commit hook runs `lint-staged`. Install hooks with `npx husky install`
   prompt-engineering.md    → Expanded prompting guide for AI tools
   touring-intel.md         → CAA touring data extraction patterns (separate concern)
 ```
+
+-----
+
+## 16. OPTIONAL SUBSYSTEM AGENTS.md FILES
+
+Use nested `AGENTS.md` files only for subsystems with **materially different constraints/risk**. Root `AGENTS.md` remains the constitution + routing layer; subsystem files are local operating manuals.
+
+**Create vs not create:**
+- Create a nested file when a directory has unique failure modes, deploy/runbook constraints, or specialized verification loops.
+- Do **not** create nested files to restate global rules already covered in §§0,4,5,8,9,14,15.
+
+**Recommended optional map:**
+```
+/src/components/AGENTS.md
+/src/hooks/AGENTS.md
+/supabase/AGENTS.md
+/supabase/functions/AGENTS.md
+# Optional only if justified by complexity/ownership split:
+/src/pages/AGENTS.md
+/appstore/AGENTS.md
+```
+
+### What each optional nested file should contain
+
+- **`/src/components/AGENTS.md`**
+  - **Purpose:** UI interaction quality + mobile ergonomics guardrails.
+  - **Local rules:** visual states matrix (loading/empty/error/success), a11y/tap-target checks, render-cost constraints, screenshot expectations for visible changes.
+  - **Do not repeat:** global workflow/checklist/anti-pattern tables from root.
+
+- **`/src/hooks/AGENTS.md`**
+  - **Purpose:** data-flow correctness and cache/realtime discipline.
+  - **Local rules:** query key ownership, invalidation contracts, optimistic update rollback patterns, auth-hydration and stale-data safeguards.
+  - **Do not repeat:** generic type-safety and PR template text from root.
+
+- **`/supabase/AGENTS.md`**
+  - **Purpose:** schema/RLS/migration safety policy.
+  - **Local rules:** migration compatibility windows, backward-safe DDL sequencing, RLS verification steps, env/secret handling boundaries.
+  - **Do not repeat:** frontend UX/mobile guidance from root.
+
+- **`/supabase/functions/AGENTS.md`**
+  - **Purpose:** edge function runtime reliability + security invariants.
+  - **Local rules:** idempotency, CORS/auth guard behavior, timeout/retry policy, structured logging/error-envelope contract, per-function test harness requirements.
+  - **Do not repeat:** repo-wide docs index or generic coding conventions.
+
+- **`/src/pages/AGENTS.md` or `/appstore/AGENTS.md` (optional)**
+  - **Purpose:** only when route-level orchestration or store-distribution flows have constraints not covered elsewhere.
+  - **Local rules:** cross-module composition contracts, navigation/deeplink invariants, release checklist boundaries.
+  - **Do not repeat:** component/hook-level internals unless that directory owns them.
+
+### Required scoring + blocker protocol (applies via nested files)
+
+For every touched component/module/flow in the scoped subsystem:
+1. Record **Before score (0–100)** and **After score (0–100)**.
+2. **Post-fix target is 90+ minimum.**
+3. If any post-fix score is below 90, explain the exact gap and why.
+4. If reaching 90+ is blocked by external systems (console/config/secrets/portals), include both:
+   - **A) Human instructions:** short operator checklist.
+   - **B) `AGENTIC BROWSER SCRIPT`:** copy-pasteable, sequential UI steps for the external console.
+
+Keep scoring/runbook detail in the nested file for that subsystem (or linked docs), not in this root file.
+

@@ -308,3 +308,7 @@
 - Added polling-based realtime hydration loop (6s refresh) tied to selected trip to avoid stale chat state between sends.
 - Updated chat UI with native composer (`TextField` + send button + disabled/loading states).
 - Added regression tests for mock in-memory send persistence and Supabase POST insert path behavior.
+2026-04-10 — AGENTS constitution update: optional subsystem strategy
+- Added compact Section 16 in root `AGENTS.md` defining when to create nested subsystem AGENTS files and what local-only rules each should contain (`/src/components`, `/src/hooks`, `/supabase`, `/supabase/functions`, optional `/src/pages` or `/appstore`).
+- Added mandatory subsystem scoring protocol (before/after 0–100, post-fix 90+ target, explicit justification if below 90).
+- Added external blocker handoff requirement: short human steps + copy-pasteable AGENTIC BROWSER SCRIPT.
