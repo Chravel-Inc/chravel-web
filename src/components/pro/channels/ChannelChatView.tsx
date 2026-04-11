@@ -120,38 +120,6 @@ export const ChannelChatView = ({
   const transportMessages = useMemo<ChannelMessage[]>(() => {
     if (!useStreamTransport) return messages;
 
-    const streamMessages = streamProChannel.messages;
-    const streamById = new Map<string, MessageResponse>(
-      streamMessages.map(msg => [String(msg.id), msg as MessageResponse]),
-    );
-
-    return streamMessages.map(streamMsg => {
-      const parentId = streamMsg.parent_id ?? undefined;
-      const parent = parentId ? streamById.get(parentId) : undefined;
-      const metadata = parent
-        ? {
-            replyTo: {
-              id: String(parent.id),
-              text: parent.text || '',
-              sender: parent.user?.name || 'Unknown',
-            },
-          }
-        : undefined;
-
-      return {
-        id: String(streamMsg.id),
-        channelId: channel.id,
-        senderId: streamMsg.user?.id || '',
-        senderName: streamMsg.user?.name || 'Unknown',
-        senderAvatar: streamMsg.user?.image,
-        content: streamMsg.text || '',
-        messageType: 'text',
-        metadata,
-        createdAt: streamMsg.created_at || new Date().toISOString(),
-      };
-    });
-  }, [channel.id, messages, streamProChannel.messages, useStreamTransport]);
-
   // Handle opening a reply
   const handleOpenReply = useCallback(
     (messageId: string) => {
@@ -169,6 +137,44 @@ export const ChannelChatView = ({
   const clearReply = useCallback(() => {
     setReplyingTo(null);
   }, []);
+
+    const streamMessages = streamProChannel.messages;
+    const streamById = new Map<string, MessageResponse>(
+      streamMessages.map(msg => [String(msg.id), msg as MessageResponse]),
+    );
+
+    return streamMessages.map(streamMsg => {
+      const parentId = streamMsg.parent_id ?? undefined;
+      const parent = parentId ? streamById.get(parentId) : undefined;
+      const streamExtra = streamMsg as MessageResponse & {
+        isBroadcast?: boolean;
+        metadata?: Record<string, unknown>;
+      };
+      const metadata: Record<string, unknown> = {};
+      if (parent) {
+        metadata.replyTo = {
+          id: String(parent.id),
+          text: parent.text || '',
+          sender: parent.user?.name || 'Unknown',
+        };
+      }
+      if (streamExtra.isBroadcast === true) {
+        metadata.isBroadcast = true;
+      }
+
+      return {
+        id: String(streamMsg.id),
+        channelId: channel.id,
+        senderId: streamMsg.user?.id || '',
+        senderName: streamMsg.user?.name || 'Unknown',
+        senderAvatar: streamMsg.user?.image,
+        content: streamMsg.text || '',
+        messageType: streamExtra.isBroadcast ? 'system' : 'text',
+        metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+        createdAt: streamMsg.created_at || new Date().toISOString(),
+      };
+    });
+  }, [channel.id, messages, streamProChannel.messages, useStreamTransport]);
 
   const formattedMessages = useMemo(() => {
     return transportMessages.map(msg => {

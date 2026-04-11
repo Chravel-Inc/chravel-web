@@ -161,9 +161,14 @@ export async function disconnectStreamClient(): Promise<void> {
 
 // ── Auto-disconnect on Supabase logout ────────────────────────────────────
 if (typeof supabase.auth?.onAuthStateChange === 'function') {
-  supabase.auth.onAuthStateChange(event => {
-    if (event === 'SIGNED_OUT') {
-      disconnectStreamClient();
+  supabase.auth.onAuthStateChange((eventOrPayload, _session) => {
+    const authEvent =
+      typeof eventOrPayload === 'string'
+        ? eventOrPayload
+        : (eventOrPayload as { event?: string } | null)?.event;
+
+    if (authEvent === 'SIGNED_OUT') {
+      void disconnectStreamClient();
     }
   });
 }

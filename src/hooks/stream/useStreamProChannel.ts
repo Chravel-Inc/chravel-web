@@ -9,7 +9,11 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getStreamClient } from '@/services/stream/streamClient';
+import {
+  getStreamClient,
+  onStreamClientConnected,
+  onStreamClientConnectionStatusChange,
+} from '@/services/stream/streamClient';
 import { CHANNEL_TYPE_CHANNEL, proChannelId } from '@/services/stream/streamChannelFactory';
 import type { Channel, Event, MessageResponse, UserResponse } from 'stream-chat';
 
@@ -18,9 +22,24 @@ const PAGE_SIZE = 30;
 export function useStreamProChannel(channelId: string | null) {
   const [messages, setMessages] = useState<MessageResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [streamReady, setStreamReady] = useState(Boolean(getStreamClient()?.userID));
 
   const channelRef = useRef<Channel | null>(null);
   const [activeStreamChannel, setActiveStreamChannel] = useState<Channel | null>(null);
+
+  useEffect(() => {
+    const unsubscribeConnected = onStreamClientConnected(() => {
+      setStreamReady(true);
+    });
+    const unsubscribeStatus = onStreamClientConnectionStatusChange(isConnected => {
+      setStreamReady(isConnected);
+    });
+
+    return () => {
+      unsubscribeConnected();
+      unsubscribeStatus();
+    };
+  }, []);
 
   // Watch channel when channelId changes
   useEffect(() => {
@@ -32,7 +51,7 @@ export function useStreamProChannel(channelId: string | null) {
     }
 
     const client = getStreamClient();
-    if (!client?.userID) return;
+    if (!client?.userID || !streamReady) return;
 
     let cancelled = false;
     setIsLoading(true);
@@ -66,7 +85,7 @@ export function useStreamProChannel(channelId: string | null) {
         setActiveStreamChannel(null);
       }
     };
-  }, [channelId]);
+  }, [channelId, streamReady]);
 
   // Realtime events
   useEffect(() => {
@@ -95,7 +114,7 @@ export function useStreamProChannel(channelId: string | null) {
   const sendMessage = useCallback(
     async (
       content: string,
-      options?: { attachments?: any[]; parentId?: string },
+      options?: { attachments?: any[]; parentId?: string; isBroadcast?: boolean },
     ): Promise<boolean> => {
       const channel = channelRef.current;
       if (!channel) return false;
@@ -105,6 +124,7 @@ export function useStreamProChannel(channelId: string | null) {
           text: content,
           attachments: options?.attachments || undefined,
           parent_id: options?.parentId,
+          isBroadcast: options?.isBroadcast || undefined,
         });
         return true;
       } catch {
