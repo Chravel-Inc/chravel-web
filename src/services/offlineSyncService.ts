@@ -14,6 +14,7 @@
  */
 
 import { getOfflineDb } from '@/offline/db';
+import { getStreamClient } from '@/services/stream/streamClient';
 
 // ============================================================================
 // Types
@@ -62,6 +63,12 @@ const RETRY_DELAY = 5000; // 5 seconds
 const CACHE_EXPIRY_DAYS = 30;
 const CACHE_EXPIRY_MS = CACHE_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
 
+function isStreamChatActive(): boolean {
+  const streamConfigured = Boolean(import.meta.env.VITE_STREAM_API_KEY);
+  const streamConnected = Boolean(getStreamClient()?.userID);
+  return streamConfigured && streamConnected;
+}
+
 // ============================================================================
 // Database Initialization
 // ============================================================================
@@ -92,12 +99,10 @@ class OfflineSyncService {
       throw new Error('Basecamp updates are not supported offline.');
     }
 
-    // Stream handles its own offline queueing, so skip custom queueing
-    // if Stream is active and entity is chat message
-    // We check the environment variable directly since this service runs outside React context
-    if (entityType === 'chat_message' && import.meta.env.VITE_STREAM_API_KEY) {
+    // Stream handles its own queueing only when configured + enabled + connected.
+    if (entityType === 'chat_message' && isStreamChatActive()) {
       if (import.meta.env.DEV) {
-        console.log('[OfflineSync] Bypassing custom queue for chat message due to Stream config');
+        console.log('[OfflineSync] Bypassing custom queue for chat message (Stream active)');
       }
       return `stream_handled_${Date.now()}`;
     }
@@ -365,6 +370,13 @@ class OfflineSyncService {
       }
 
       let handlerRan = false;
+
+      // Backward-compat cleanup: if legacy chat operations exist in IndexedDB from pre-Stream
+      // sessions, drop them once Stream chat is active to avoid dual-write replay.
+      if (entityType === 'chat_message' && isStreamChatActive()) {
+        await this.removeOperation(id);
+        return 'processed';
+      }
 
       // Route to appropriate handler
       switch (entityType) {
