@@ -453,6 +453,12 @@
   - `src/services/__tests__/offlineMessageQueue.test.ts` adds configured-but-disconnected guard case (must not drop, should process legacy send).
   - `src/pages/__tests__/AdminDashboard.test.tsx` asserts no scheduled fetch call when scheduling flag is off.
 - Verification: targeted tests + `npm run typecheck` + `npm run build`; `npm run lint:check` remains warnings-only baseline.
+
+2026-04-12 — Stream migration phase: useShareAsset transport de-duplication
+- Added stream-first message transport helper `sendTripMessageViaStream` in `src/services/stream/tripMessageTransport.ts` to centralize trip attachment/link message mapping for Stream channels.
+- Updated `useShareAsset` to use canonical transport selection (`Stream active -> Stream send`, fallback -> legacy `sendChatMessage`) instead of always writing `trip_chat_messages`.
+- Added focused tests `src/services/stream/__tests__/tripMessageTransport.test.ts` to lock active/inactive behavior and payload normalization.
+- Verification: `npm run test:run -- src/services/stream/__tests__/tripMessageTransport.test.ts`, `npm run typecheck`, `npm run build`.
 2026-04-11 — Chat search dead-code removal + overlay regression test
 - Confirmed legacy `MessageSearch` component and `messageSearchService` were not referenced outside their own files; removed both to eliminate duplicate search paths.
 - Re-verified TripChat search integration remains solely `TripChat -> ChatSearchOverlay -> chatSearchService`.
