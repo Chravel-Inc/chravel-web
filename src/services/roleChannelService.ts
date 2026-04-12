@@ -1,4 +1,5 @@
 import { supabase } from '../integrations/supabase/client';
+import { isStreamConfigured } from './stream/streamTransportGuards';
 // Re-export types for compatibility
 export type RoleChannel = {
   id: string;
@@ -167,6 +168,15 @@ class RoleChannelService {
    */
   async sendChannelMessage(channelId: string, content: string): Promise<RoleChannelMessage | null> {
     try {
+      if (isStreamConfigured()) {
+        throw Object.assign(
+          new Error(
+            'Legacy roleChannelService.sendChannelMessage is disabled when Stream transport is configured.',
+          ),
+          { code: 'STREAM_CANONICAL_TRANSPORT' },
+        );
+      }
+
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -201,6 +211,10 @@ class RoleChannelService {
    * Get messages for a role channel
    */
   async getChannelMessages(channelId: string): Promise<RoleChannelMessage[]> {
+    if (isStreamConfigured()) {
+      return [];
+    }
+
     try {
       const { data, error } = await supabase
         .from('channel_messages')
@@ -244,6 +258,10 @@ class RoleChannelService {
    * Subscribe to new messages in a channel
    */
   subscribeToChannel(channelId: string, onMessage: (message: RoleChannelMessage) => void) {
+    if (isStreamConfigured()) {
+      return () => {};
+    }
+
     const subscription = supabase
       .channel(`channel_messages:${channelId}`)
       .on(

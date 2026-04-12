@@ -11,6 +11,7 @@ import {
   SendMessageRequest,
 } from '../types/roleChannels';
 import { rateLimiter } from '../utils/concurrencyUtils';
+import { isStreamConfigured } from './stream/streamTransportGuards';
 
 interface AdminPermissions {
   can_manage_roles: boolean;
@@ -707,6 +708,15 @@ class ChannelService {
       broadcastCategory?: 'chill' | 'logistics' | 'urgent';
     },
   ): Promise<ChannelMessage> {
+    if (isStreamConfigured()) {
+      throw Object.assign(
+        new Error(
+          'Legacy Supabase channel send is disabled when Stream transport is configured. Use Stream channel transport instead.',
+        ),
+        { code: 'STREAM_CANONICAL_TRANSPORT' },
+      );
+    }
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -775,6 +785,10 @@ class ChannelService {
   }
 
   async getMessages(channelId: string, limit = 50): Promise<ChannelMessage[]> {
+    if (isStreamConfigured()) {
+      return [];
+    }
+
     try {
       // Join with profiles to get sender names
       const { data } = await supabase
@@ -858,6 +872,10 @@ class ChannelService {
     onMessage: (msg: ChannelMessage) => void,
     onMessageDeleted?: (messageId: string) => void,
   ): () => void {
+    if (isStreamConfigured()) {
+      return () => {};
+    }
+
     const ch = supabase
       .channel(`chan_${channelId}`)
       .on(

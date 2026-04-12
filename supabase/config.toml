@@ -132,3 +132,12 @@ verify_jwt = true
 
 [functions.regenerate-all-embeddings]
 verify_jwt = false
+
+[functions.stream-token]
+verify_jwt = true
+
+[functions.stream-setup-permissions]
+verify_jwt = true
+
+[functions.create-default-channels]
+verify_jwt = true
