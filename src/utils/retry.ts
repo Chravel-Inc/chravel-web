@@ -41,7 +41,18 @@ export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   options: RetryOptions = {},
 ): Promise<T> {
-  const { maxRetries = 3, initialDelay = 1000, maxDelay = 10000, onRetry, onFailure } = options;
+  const {
+    maxRetries: _maxRetries = 3,
+    initialDelay: _initialDelay = 1000,
+    maxDelay: _maxDelay = 10000,
+    onRetry,
+    onFailure,
+  } = options;
+
+  // Sanitize inputs
+  const maxRetries = Math.max(0, _maxRetries);
+  const initialDelay = Math.max(0, _initialDelay);
+  const maxDelay = Math.max(0, _maxDelay);
 
   let lastError: Error;
 

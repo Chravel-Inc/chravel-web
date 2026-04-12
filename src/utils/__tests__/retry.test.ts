@@ -223,6 +223,52 @@ describe('retry utility', () => {
     });
   });
 
+  describe('Edge cases', () => {
+    it('should sanitize negative maxRetries to 0 and attempt exactly once', async () => {
+      const error = new Error('fail');
+      const failOnce = vi.fn().mockRejectedValue(error);
+
+      let caughtError = null;
+      try {
+        await retryWithBackoff(failOnce, { maxRetries: -5 });
+      } catch (e) {
+        caughtError = e;
+      }
+
+      expect(failOnce).toHaveBeenCalledTimes(1);
+      expect(caughtError).toBe(error);
+    });
+
+    it('should sanitize negative initialDelay to 0', async () => {
+      const error = new Error('fail');
+      const failThenSucceed = vi.fn().mockRejectedValueOnce(error).mockResolvedValueOnce('success');
+
+      const promise = retryWithBackoff(failThenSucceed, { initialDelay: -100 });
+
+      // Delay is 0, so it will retry immediately (in the next microtask/tick)
+      // We don't need to advance timers by 1000ms
+      await vi.advanceTimersByTimeAsync(0);
+      const result = await promise;
+
+      expect(result).toBe('success');
+      expect(failThenSucceed).toHaveBeenCalledTimes(2);
+    });
+
+    it('should sanitize negative maxDelay to 0', async () => {
+      const error = new Error('fail');
+      const failThenSucceed = vi.fn().mockRejectedValueOnce(error).mockResolvedValueOnce('success');
+
+      // Math.min(1000 * 2^0, 0) -> 0
+      const promise = retryWithBackoff(failThenSucceed, { initialDelay: 1000, maxDelay: -500 });
+
+      await vi.advanceTimersByTimeAsync(0);
+      const result = await promise;
+
+      expect(result).toBe('success');
+      expect(failThenSucceed).toHaveBeenCalledTimes(2);
+    });
+  });
+
   describe('isRetryableError', () => {
     it('should return true for network errors', () => {
       const networkError = new Error('network request failed');
