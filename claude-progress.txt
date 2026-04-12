@@ -396,3 +396,8 @@
 - Root cause: conflict resolution left duplicate `vi` import declarations in `supabase/functions/_shared/__tests__/functionExecutor.test.ts`, creating brittle test-module syntax and reviewer confusion.
 - Consolidated Vitest imports to one declaration and added explicit intentional-boundary comment for `(globalThis as any).Deno` test harness injection.
 - Verification: `npm run test:run -- supabase/functions/_shared/__tests__/functionExecutor.test.ts src/services/__tests__/globalSyncProcessor.test.ts src/components/pro/channels/__tests__/ChannelChatView.stream.test.tsx`; `npm run typecheck`; `npm run build`.
+
+2026-04-11 — PR #202 follow-up: remove residual conflict-marker artifacts outside transport files
+- Root cause: repository still contained unresolved merge-marker tokens in tracked utility/docs artifacts (`resolver.js`, `docs/ACTIVE/SECURITY_AUDIT_REPORT_2026.md`) even though core PR #202 code files were clean.
+- Deleted obsolete `resolver.js` merge-helper artifact and rewrote security report patch snippets from `<<<<<<< SEARCH`/`>>>>>>> REPLACE` format to plain `Before`/`After` fenced examples.
+- Verification: `rg -n "^<<<<<<< |^>>>>>>> " -S .`; `npm run test:run -- src/services/__tests__/globalSyncProcessor.test.ts src/components/pro/channels/__tests__/ChannelChatView.stream.test.tsx`; `npm run typecheck`.
