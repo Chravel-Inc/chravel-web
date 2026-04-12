@@ -8,6 +8,7 @@
  */
 
 import { offlineSyncService } from './offlineSyncService';
+import { supabase } from '@/integrations/supabase/client';
 import { sendChatMessage, sendRichChatMessage } from './chatService';
 import { calendarService } from './calendarService';
 import { shouldUseLegacyChatSync } from './stream/streamTransportGuards';
@@ -65,7 +66,6 @@ export async function processGlobalSyncQueue(): Promise<{
 
     // Task handlers - delegate to task service
     onTaskCreate: async (tripId, data) => {
-      const { supabase } = await import('@/integrations/supabase/client');
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -88,7 +88,6 @@ export async function processGlobalSyncQueue(): Promise<{
       return newTask;
     },
     onTaskUpdate: async (entityId, data) => {
-      const { supabase } = await import('@/integrations/supabase/client');
       const { data: updated, error } = await supabase
         .from('trip_tasks')
         .update(data)
@@ -100,7 +99,6 @@ export async function processGlobalSyncQueue(): Promise<{
       return updated;
     },
     onTaskToggle: async (entityId, data) => {
-      const { supabase } = await import('@/integrations/supabase/client');
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -128,7 +126,6 @@ export async function processGlobalSyncQueue(): Promise<{
 
     // Poll handlers (MVP: votes only)
     onPollVote: async (pollId, data) => {
-      const { supabase } = await import('@/integrations/supabase/client');
       const {
         data: { user },
       } = await supabase.auth.getUser();
