@@ -211,6 +211,10 @@ class RoleChannelService {
    * Get messages for a role channel
    */
   async getChannelMessages(channelId: string): Promise<RoleChannelMessage[]> {
+    if (isStreamConfigured()) {
+      return [];
+    }
+
     try {
       const { data, error } = await supabase
         .from('channel_messages')
@@ -254,6 +258,10 @@ class RoleChannelService {
    * Subscribe to new messages in a channel
    */
   subscribeToChannel(channelId: string, onMessage: (message: RoleChannelMessage) => void) {
+    if (isStreamConfigured()) {
+      return () => {};
+    }
+
     const subscription = supabase
       .channel(`channel_messages:${channelId}`)
       .on(

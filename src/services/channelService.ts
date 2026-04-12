@@ -785,6 +785,10 @@ class ChannelService {
   }
 
   async getMessages(channelId: string, limit = 50): Promise<ChannelMessage[]> {
+    if (isStreamConfigured()) {
+      return [];
+    }
+
     try {
       // Join with profiles to get sender names
       const { data } = await supabase
@@ -868,6 +872,10 @@ class ChannelService {
     onMessage: (msg: ChannelMessage) => void,
     onMessageDeleted?: (messageId: string) => void,
   ): () => void {
+    if (isStreamConfigured()) {
+      return () => {};
+    }
+
     const ch = supabase
       .channel(`chan_${channelId}`)
       .on(
