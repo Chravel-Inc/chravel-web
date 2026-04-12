@@ -432,6 +432,39 @@
 - Added shared guard module `src/services/stream/streamTransportGuards.ts` (`isStreamConfigured`, `shouldUseLegacyChatSync`) and rewired all three services to use this single source of truth.
 - Added focused unit tests `src/services/stream/__tests__/streamTransportGuards.test.ts` to lock blank-vs-configured API key semantics.
 - Verification: `npm run test:run -- src/services/__tests__/globalSyncProcessor.test.ts src/services/__tests__/offlineMessageQueue.test.ts src/services/__tests__/offlineSyncService.test.ts src/services/stream/__tests__/streamTransportGuards.test.ts`; `npm run typecheck`; `npm run build`.
+
+2026-04-12 — Next stream-migration phase: global sync static Supabase import hardening
+- Root cause: `globalSyncProcessor` used repeated dynamic imports of `@/integrations/supabase/client`, creating unnecessary lazy-import churn and noisy mixed import-mode build warnings in migration-critical sync code.
+- Replaced dynamic Supabase imports in `globalSyncProcessor` with one static top-level import and kept existing Stream guard behavior + handler wiring unchanged.
+- Verification: `npm run test:run -- src/services/__tests__/globalSyncProcessor.test.ts src/services/__tests__/offlineSyncService.test.ts src/services/__tests__/offlineMessageQueue.test.ts src/services/stream/__tests__/streamTransportGuards.test.ts`; `npm run typecheck`; `npm run build`.
+2026-04-12 — PR #210 merge-readiness audit follow-up (review comments resolved)
+- Addressed merge-relevant offline sync correctness issue: `offlineSyncService.syncOperation` now drops legacy `chat_message` ops when Stream is configured but not connected *and* legacy chat handlers are intentionally omitted, preventing infinite pending retries/spin.
+- Hardened scheduled broadcast mapping contract: `mapBroadcastRowToScheduledMessage` now populates required `InboxMessage` fields (`senderId`, `senderName`) to satisfy `ScheduledMessage` shape and prevent future undefined sender regressions.
+- Added targeted regression tests:
+  - `src/services/__tests__/offlineSyncService.test.ts` now covers "Stream configured but disconnected + no legacy handlers" chat queue cleanup path.
+  - `src/services/__tests__/unifiedMessagingService.test.ts` now asserts sender defaults in schedule mapper output.
+- Verification: targeted tests + typecheck + build (lint baseline remains unchanged repository-wide warning/error baseline).
+2026-04-12 — PR #213 cursor review follow-up (merge-blocking + medium + low feedback)
+- Fixed merge-blocking Pro channel loading state: `useStreamProChannel` now clears `isLoading` on the early return branch when Stream client/user or readiness is unavailable, preventing perpetual spinner when Stream is configured but not connected.
+- Fixed medium offline data-loss risk: `offlineMessageQueue.processQueue()` now drops legacy queued chat ops only when Stream chat is actually active (`isStreamChatActive(getStreamClient()?.userID)`), not merely when API key is configured.
+- Addressed low product-consistency nit: `AdminDashboard` now short-circuits scheduled-message fetch when `broadcast-scheduling-enabled` is false, aligning read-path behavior with disabled scheduling UI.
+- Added/updated targeted regression tests:
+  - `src/hooks/stream/__tests__/useStreamProChannel.test.tsx` adds disconnect-before-init loading reset case.
+  - `src/services/__tests__/offlineMessageQueue.test.ts` adds configured-but-disconnected guard case (must not drop, should process legacy send).
+  - `src/pages/__tests__/AdminDashboard.test.tsx` asserts no scheduled fetch call when scheduling flag is off.
+- Verification: targeted tests + `npm run typecheck` + `npm run build`; `npm run lint:check` remains warnings-only baseline.
+
+2026-04-12 — Stream migration phase: useShareAsset transport de-duplication
+- Added stream-first message transport helper `sendTripMessageViaStream` in `src/services/stream/tripMessageTransport.ts` to centralize trip attachment/link message mapping for Stream channels.
+- Updated `useShareAsset` to use canonical transport selection (`Stream active -> Stream send`, fallback -> legacy `sendChatMessage`) instead of always writing `trip_chat_messages`.
+- Added focused tests `src/services/stream/__tests__/tripMessageTransport.test.ts` to lock active/inactive behavior and payload normalization.
+- Verification: `npm run test:run -- src/services/stream/__tests__/tripMessageTransport.test.ts`, `npm run typecheck`, `npm run build`.
+
+2026-04-12 — Stream migration phase: legacy channel send guardrails (service-layer)
+- Added Stream-canonical runtime guard to `channelService.sendMessage` so legacy Supabase `channel_messages` writes are blocked when `VITE_STREAM_API_KEY` is configured.
+- Added equivalent guard to `roleChannelService.sendChannelMessage` to prevent accidental reintroduction of dual-write paths.
+- Added focused regression tests in `src/__tests__/channel-send-flow.test.ts` and `src/services/__tests__/roleChannelService.test.ts` covering Stream-configured guard behavior.
+- Verification: `npm run test:run -- src/__tests__/channel-send-flow.test.ts src/services/__tests__/roleChannelService.test.ts`, `npm run typecheck`, `npm run build`.
 2026-04-11 — Chat search dead-code removal + overlay regression test
 - Confirmed legacy `MessageSearch` component and `messageSearchService` were not referenced outside their own files; removed both to eliminate duplicate search paths.
 - Re-verified TripChat search integration remains solely `TripChat -> ChatSearchOverlay -> chatSearchService`.

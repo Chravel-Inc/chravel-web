@@ -242,4 +242,28 @@ describe('offlineSyncService - Data Loss Prevention', () => {
     const remainingOps = await offlineSyncService.getQueuedOperations();
     expect(remainingOps.map(op => op.id)).not.toContain(chatQueueId);
   });
+
+  it('drops queued legacy chat operations when Stream is configured but not yet connected and no legacy handlers are provided', async () => {
+    vi.stubEnv('VITE_STREAM_API_KEY', '');
+    getStreamClientMock.mockReturnValue(null);
+
+    const chatQueueId = await offlineSyncService.queueOperation(
+      'chat_message',
+      'create',
+      'trip-123',
+      { content: 'Legacy queued message', author_name: 'User' },
+    );
+
+    vi.stubEnv('VITE_STREAM_API_KEY', 'stream-key');
+    getStreamClientMock.mockReturnValue(null);
+
+    const result = await offlineSyncService.processSyncQueue({
+      // Intentionally omit legacy chat handlers to mirror stream-first globalSyncProcessor.
+      onTaskCreate: vi.fn().mockResolvedValue({ id: 'task-1' }),
+    });
+
+    expect(result.processed).toBe(1);
+    const remainingOps = await offlineSyncService.getQueuedOperations();
+    expect(remainingOps.map(op => op.id)).not.toContain(chatQueueId);
+  });
 });

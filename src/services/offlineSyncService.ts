@@ -15,7 +15,7 @@
 
 import { getOfflineDb } from '@/offline/db';
 import { getStreamClient } from '@/services/stream/streamClient';
-import { isStreamChatActive } from '@/services/stream/streamTransportGuards';
+import { isStreamChatActive, isStreamConfigured } from '@/services/stream/streamTransportGuards';
 
 // ============================================================================
 // Types
@@ -370,6 +370,18 @@ class OfflineSyncService {
       // Backward-compat cleanup: if legacy chat operations exist in IndexedDB from pre-Stream
       // sessions, drop them once Stream chat is active to avoid dual-write replay.
       if (entityType === 'chat_message' && isStreamChatActive(getStreamClient()?.userID)) {
+        await this.removeOperation(id);
+        return 'processed';
+      }
+      // Stream cutover safety: when Stream is configured (canonical transport) but not yet
+      // connected, legacy chat handlers may be intentionally omitted by global sync.
+      // Drop stale legacy chat queue entries to avoid permanent pending retries/noise.
+      if (
+        entityType === 'chat_message' &&
+        isStreamConfigured() &&
+        !handlers.onChatMessageCreate &&
+        !handlers.onChatMessageUpdate
+      ) {
         await this.removeOperation(id);
         return 'processed';
       }

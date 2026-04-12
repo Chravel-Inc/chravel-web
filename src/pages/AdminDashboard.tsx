@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { unifiedMessagingService } from '@/services/unifiedMessagingService';
 import { useProTrips } from '@/hooks/useProTrips';
 import type { ScheduledMessage } from '@/types/messaging';
@@ -25,16 +25,22 @@ export const AdminDashboard = () => {
   const [minute, setMinute] = useState('00');
   const [ampm, setAmpm] = useState<'AM' | 'PM'>('PM');
 
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
+    if (!isBroadcastSchedulingEnabled) {
+      setScheduledMessages([]);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     const messages = await unifiedMessagingService.getScheduledMessages();
     setScheduledMessages(messages);
     setIsLoading(false);
-  };
+  }, [isBroadcastSchedulingEnabled]);
 
   useEffect(() => {
     fetchMessages();
-  }, []);
+  }, [fetchMessages]);
 
   const handleScheduleMessage = async () => {
     if (!isBroadcastSchedulingEnabled) {

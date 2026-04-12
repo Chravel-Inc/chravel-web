@@ -19,6 +19,7 @@ const mockChannel = {
 const channelFactoryMock = vi.fn(() => mockChannel);
 const getStreamClientMock = vi.fn();
 let onConnectedCallback: (() => void) | null = null;
+let onConnectionStatusCallback: ((isConnected: boolean) => void) | null = null;
 
 vi.mock('@/services/stream/streamClient', () => ({
   getStreamClient: (...args: unknown[]) => getStreamClientMock(...args),
@@ -28,13 +29,19 @@ vi.mock('@/services/stream/streamClient', () => ({
       onConnectedCallback = null;
     };
   },
-  onStreamClientConnectionStatusChange: () => () => {},
+  onStreamClientConnectionStatusChange: (cb: (isConnected: boolean) => void) => {
+    onConnectionStatusCallback = cb;
+    return () => {
+      onConnectionStatusCallback = null;
+    };
+  },
 }));
 
 describe('useStreamProChannel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     onConnectedCallback = null;
+    onConnectionStatusCallback = null;
     watchMock.mockResolvedValue({ messages: [] });
     sendMessageMock.mockResolvedValue({ message: { id: 'm1' } });
     getStreamClientMock.mockReturnValue({
@@ -80,5 +87,25 @@ describe('useStreamProChannel', () => {
 
     expect(sendMessageMock).toHaveBeenCalledTimes(1);
     expect(sendMessageMock.mock.calls[0]?.[0]?.isBroadcast).toBe(true);
+  });
+
+  it('clears loading when stream disconnects before channel init can proceed', async () => {
+    getStreamClientMock.mockReturnValue({
+      userID: 'user-1',
+      channel: channelFactoryMock,
+    });
+    watchMock.mockImplementation(
+      () => new Promise(resolve => setTimeout(() => resolve({ messages: [] }), 20)),
+    );
+
+    const { result } = renderHook(() => useStreamProChannel('channel-1'));
+
+    await act(async () => {
+      onConnectionStatusCallback?.(false);
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
   });
 });
