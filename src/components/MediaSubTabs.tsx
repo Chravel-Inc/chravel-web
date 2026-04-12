@@ -24,6 +24,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { toast } from 'sonner';
 import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
+import { getMediaCategory } from '@/utils/mediaUtils';
 
 interface MediaItem {
   id: string;
@@ -193,12 +194,6 @@ export const MediaSubTabs = ({
     }
   };
 
-  const getMediaTypeFromMime = (mimeType: string): 'image' | 'video' | 'document' => {
-    if (mimeType.startsWith('image/')) return 'image';
-    if (mimeType.startsWith('video/')) return 'video';
-    return 'document';
-  };
-
   const handleFileUpload = async (
     files: FileList | null,
     activeTabType: 'photos' | 'videos' | 'files',
@@ -224,7 +219,7 @@ export const MediaSubTabs = ({
       let uploadedCount = 0;
 
       for (const file of Array.from(files)) {
-        const detectedType = getMediaTypeFromMime(file.type);
+        const detectedType = getMediaCategory(file.type);
 
         // Validation & Routing Logic
         let finalMediaType: 'image' | 'video' | 'document' = detectedType;

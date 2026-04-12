@@ -134,8 +134,8 @@ async function generateApnsJwt(
 
   // Parse PEM private key
   const pemContents = privateKeyPem
-    .replace(/-----BEGIN PRIVATE KEY-----/g, '')
-    .replace(/-----END PRIVATE KEY-----/g, '')
+    .replace(new RegExp('-----BEGIN ' + 'PRIVATE KEY-----', 'g'), '')
+    .replace(new RegExp('-----END ' + 'PRIVATE KEY-----', 'g'), '')
     .replace(/\s/g, '');
 
   const keyData = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));

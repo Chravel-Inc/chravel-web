@@ -1,19 +1,14 @@
 /**
  * useStreamClient — React hook for Stream client lifecycle
  *
- * Connects the Stream client when the user is authenticated AND
- * at least one Stream feature flag is enabled.
+ * Connects the Stream client whenever Stream is configured and user is authenticated.
  * Disconnects on logout. Returns connection status.
  *
  * Mount this once at the app shell level (e.g. AppInitializer).
- *
- * Usage:
- *   const { isConnected, isConnecting } = useStreamClient();
  */
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useFeatureFlag } from '@/lib/featureFlags';
 import {
   connectStreamClient,
   disconnectStreamClient,
@@ -30,20 +25,12 @@ export function useStreamClient(): UseStreamClientResult {
   const { user } = useAuth();
   const isAuthenticated = !!user;
 
-  // Connect if ANY Stream surface is enabled — not just trip chat
-  const tripFlag = useFeatureFlag('stream-chat-trip', false);
-  const channelsFlag = useFeatureFlag('stream-chat-channels', false);
-  const broadcastsFlag = useFeatureFlag('stream-chat-broadcasts', false);
-  const conciergeFlag = useFeatureFlag('stream-chat-concierge', false);
-  const anyStreamEnabled = tripFlag || channelsFlag || broadcastsFlag || conciergeFlag;
-
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Don't connect if Stream is not configured or no flags are enabled
-    if (!getStreamApiKey() || !anyStreamEnabled || !isAuthenticated || !user) {
+    if (!getStreamApiKey() || !isAuthenticated || !user) {
       return;
     }
 
@@ -76,7 +63,7 @@ export function useStreamClient(): UseStreamClientResult {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, user, anyStreamEnabled]);
+  }, [isAuthenticated, user]);
 
   // Disconnect on unmount / logout
   useEffect(() => {

@@ -37,6 +37,7 @@ import { formatSessionDateTime } from '@/lib/formatSessionDateTime';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { hasPaidAccess } from '@/utils/paidAccess';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { getMediaCategory } from '@/utils/mediaUtils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -58,10 +59,6 @@ interface EnhancedAgendaTabProps {
 
 function isPdfMime(mimeType: string): boolean {
   return mimeType === 'application/pdf';
-}
-
-function isImageMime(mimeType: string): boolean {
-  return mimeType.startsWith('image/');
 }
 
 export const EnhancedAgendaTab = ({
@@ -372,7 +369,7 @@ export const EnhancedAgendaTab = ({
           {agendaFiles.map(file => (
             <Card key={file.id} className="bg-card/50 border-border">
               <CardContent className="p-4">
-                {isImageMime(file.mimeType) ? (
+                {getMediaCategory(file.mimeType) === 'image' ? (
                   /* Image file card */
                   <div className="space-y-3">
                     <div className="relative rounded-lg overflow-hidden bg-muted/20">

@@ -35,6 +35,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { buildTripCoverStoragePath, TRIP_COVER_BUCKET } from '../utils/tripCoverStorage';
 import { getDemoTripCoverFallback } from '@/data/demoTripCoverFallbacks';
+import { isBlobOrDataUrl } from '@/utils/mediaUtils';
 
 // Stable empty array to prevent Zustand selector reference changes causing infinite re-renders
 const EMPTY_MEMBERS_ARRAY: Array<{
@@ -350,7 +351,7 @@ export const TripHeader = ({
       const objectUrl = URL.createObjectURL(croppedBlob);
       await updateCoverPhoto(objectUrl);
       // Clean up crop source if it was a blob
-      if (cropImageSrc?.startsWith('blob:')) {
+      if (cropImageSrc && isBlobOrDataUrl(cropImageSrc)) {
         URL.revokeObjectURL(cropImageSrc);
       }
       setCropImageSrc(null);
@@ -424,7 +425,7 @@ export const TripHeader = ({
     } finally {
       setIsUploading(false);
       // Clean up crop source if it was a blob
-      if (cropImageSrc?.startsWith('blob:')) {
+      if (cropImageSrc && isBlobOrDataUrl(cropImageSrc)) {
         URL.revokeObjectURL(cropImageSrc);
       }
       setCropImageSrc(null);
@@ -438,7 +439,7 @@ export const TripHeader = ({
 
   const handleCropCancel = () => {
     setShowCropModal(false);
-    if (cropImageSrc?.startsWith('blob:')) {
+    if (cropImageSrc && isBlobOrDataUrl(cropImageSrc)) {
       URL.revokeObjectURL(cropImageSrc);
     }
     setCropImageSrc(null);

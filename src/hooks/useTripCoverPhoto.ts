@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { tripKeys } from '@/lib/queryKeys';
+import { isBlobOrDataUrl } from '@/utils/mediaUtils';
+import { normalizeTripCoverUrl } from '@/utils/tripCoverStorage';
 import { useAuth } from './useAuth';
 import { useDemoMode } from './useDemoMode';
 import { demoModeService } from '@/services/demoModeService';
@@ -76,9 +78,9 @@ export const useTripCoverPhoto = (
   );
 
   const updateCoverPhoto = async (photoUrl: string): Promise<boolean> => {
-    // Reject blob URLs from being saved to database (except in demo mode)
-    if (photoUrl.startsWith('blob:') && !isDemoMode) {
-      console.warn('[useTripCoverPhoto] Rejecting blob URL - not persistable');
+    // Reject blob/data URLs from being saved to database (except in demo mode)
+    if (isBlobOrDataUrl(photoUrl) && !isDemoMode) {
+      console.warn('[useTripCoverPhoto] Rejecting non-persistable URL:', photoUrl);
       toast.error('Upload in progress, please wait...');
       return false;
     }

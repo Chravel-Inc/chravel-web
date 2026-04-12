@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { uploadToStorage, insertMediaIndex, insertFileIndex } from '@/services/uploadService';
 import { insertLinkIndex, fetchOpenGraphData } from '@/services/linkService';
 import { sendChatMessage } from '@/services/chatService';
+import { sendTripMessageViaStream } from '@/services/stream/tripMessageTransport';
 import { autoParseContent, ParsedContent } from '@/services/chatContentParser';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -22,6 +23,24 @@ export function useShareAsset(tripId: string) {
   const [parsedContent, setParsedContent] = useState<ParsedContent | null>(null);
   const { user } = useAuth();
   const userId = user?.id || '';
+
+  async function sendMessageWithCanonicalTransport(payload: Record<string, unknown>) {
+    const streamResult = await sendTripMessageViaStream({
+      tripId,
+      content: (payload.content as string) || '',
+      mediaType: payload.media_type as string | undefined,
+      mediaUrl: payload.media_url as string | undefined,
+      privacyMode: payload.privacy_mode as string | undefined,
+      messageType: payload.message_type as string | undefined,
+      attachments: payload.attachments as unknown[] | undefined,
+      linkPreview: payload.link_preview as
+        | { url?: string; title?: string; image?: string; description?: string }
+        | undefined,
+    });
+
+    if (streamResult) return streamResult;
+    return sendChatMessage(payload);
+  }
 
   async function shareFile(kind: ShareKind, file: File, onProgress?: (progress: number) => void) {
     const fileId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -87,7 +106,7 @@ export function useShareAsset(tripId: string) {
         });
 
         // Create chat message with attachment
-        const messageResult = await sendChatMessage({
+        const messageResult = await sendMessageWithCanonicalTransport({
           trip_id: tripId,
           user_id: userId,
           author_name: user?.email?.split('@')[0] || 'Former Member',
@@ -145,7 +164,7 @@ export function useShareAsset(tripId: string) {
           uploadedBy: userId,
         });
 
-        const messageResult = await sendChatMessage({
+        const messageResult = await sendMessageWithCanonicalTransport({
           trip_id: tripId,
           user_id: userId,
           author_name: user?.email?.split('@')[0] || 'Former Member',
@@ -241,7 +260,7 @@ export function useShareAsset(tripId: string) {
       });
 
       // Create chat message
-      await sendChatMessage({
+      await sendMessageWithCanonicalTransport({
         trip_id: tripId,
         user_id: userId,
         author_name: user?.email?.split('@')[0] || 'Former Member',

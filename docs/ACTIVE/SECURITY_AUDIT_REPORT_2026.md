@@ -20,7 +20,7 @@ An extensive security audit of the `chravelapp.com` codebase was conducted targe
 **Exact Fix:**
 *Already applied directly to the codebase during this audit.*
 ```typescript
-<<<<<<< SEARCH
+// Before
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -32,7 +32,8 @@ serve(async req => {
   }
 
   try {
-=======
+
+// After
 import { getCorsHeaders } from '../_shared/cors.ts';
 
 serve(async req => {
@@ -43,7 +44,6 @@ serve(async req => {
   }
 
   try {
->>>>>>> REPLACE
 ```
 
 ### 2.2. Critical Vulnerability in `jspdf` Dependency
@@ -72,23 +72,23 @@ Run `npm audit fix` to bump `jspdf` and related packages to secure versions.
 **Exact Fix:**
 Modify the fallback to fail-closed rather than fail-open if strict rate limiting is required.
 ```typescript
-<<<<<<< SEARCH
-  // Fallback: in-process rate limiting (not distributed, but better than nothing)
-  const isAllowed = applyLocalRateLimit(key, limitWindow, maxRequests);
+// Before
+// Fallback: in-process rate limiting (not distributed, but better than nothing)
+const isAllowed = applyLocalRateLimit(key, limitWindow, maxRequests);
 
-  if (!isAllowed) {
-    return {
-=======
-  // Strict Rate Limiting: Fail closed if the database cannot verify the limit.
-  console.error('[Rate Limit] DB fallback triggered. Failing closed.');
+if (!isAllowed) {
   return {
-    isAllowed: false,
-    response: new Response(JSON.stringify({ error: 'Rate limit service unavailable' }), {
-      status: 429,
-      headers: { 'Content-Type': 'application/json' },
-    }),
-  };
->>>>>>> REPLACE
+
+// After
+// Strict Rate Limiting: Fail closed if the database cannot verify the limit.
+console.error('[Rate Limit] DB fallback triggered. Failing closed.');
+return {
+  isAllowed: false,
+  response: new Response(JSON.stringify({ error: 'Rate limit service unavailable' }), {
+    status: 429,
+    headers: { 'Content-Type': 'application/json' },
+  }),
+};
 ```
 
 ### 3.3. Supabase Auth Session Stored in LocalStorage
