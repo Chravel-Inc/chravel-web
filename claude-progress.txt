@@ -524,3 +524,9 @@
   - `src/features/concierge/hooks/__tests__/useConciergeStreaming.test.ts` covers empty-input no-op and offline fallback (appends user+assistant offline messages, no stream invoke).
   - `src/features/concierge/hooks/__tests__/useConciergeVoice.test.ts` validates live transcript/state exposure contract from `useLiveKitVoice`.
 - Verification: `npm run test -- src/features/concierge/hooks/__tests__/useConciergeStreaming.test.ts src/features/concierge/hooks/__tests__/useConciergeVoice.test.ts`; `npm run test -- src/components/__tests__/AIConciergeChat.test.tsx`; `npm run typecheck`; `npm run lint`; `npm run build`.
+2026-04-12 — Concierge streaming lifecycle hardening (next deferred-risk phase)
+- Expanded `useConciergeStreaming` hook test coverage to lock additional streaming lifecycle behavior:
+  - metadata updates set AI status connected and patch usage/sources onto the active assistant stream message
+  - idle watchdog timeout path appends timeout fallback copy, stops typing, and aborts stream
+- Kept production hook logic unchanged in this pass (test-only safety hardening).
+- Verification: `npm run test -- src/features/concierge/hooks/__tests__/useConciergeStreaming.test.ts src/features/concierge/hooks/__tests__/useConciergeVoice.test.ts`; `npm run test -- src/components/__tests__/AIConciergeChat.test.tsx`; `npm run typecheck`; `npm run lint`; `npm run build`.
