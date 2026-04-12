@@ -5,6 +5,7 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import { supabase } from '@/integrations/supabase/client';
 import type { ChatMessageInsert } from './chatService';
+import { isStreamConfigured } from './stream/streamTransportGuards';
 
 interface QueuedMessage {
   id: string; // Temporary ID for tracking
@@ -86,7 +87,7 @@ export async function processQueue(): Promise<{
   const db = await getDB();
   const pendingMessages = await db.getAllFromIndex('queue', 'by-status', 'pending');
 
-  if (isStreamChatCanonical()) {
+  if (isStreamConfigured()) {
     // Stream is canonical for chat transport. Legacy queued DB writes must not replay.
     await Promise.all(pendingMessages.map(message => db.delete('queue', message.id)));
     return { success: 0, failed: 0, dropped: pendingMessages.length };

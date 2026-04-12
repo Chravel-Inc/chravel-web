@@ -15,6 +15,7 @@
 
 import { getOfflineDb } from '@/offline/db';
 import { getStreamClient } from '@/services/stream/streamClient';
+import { isStreamChatActive } from '@/services/stream/streamTransportGuards';
 
 // ============================================================================
 // Types
@@ -100,7 +101,7 @@ class OfflineSyncService {
     }
 
     // Stream handles its own queueing only when configured + enabled + connected.
-    if (entityType === 'chat_message' && isStreamChatActive()) {
+    if (entityType === 'chat_message' && isStreamChatActive(getStreamClient()?.userID)) {
       if (import.meta.env.DEV) {
         console.log('[OfflineSync] Bypassing custom queue for chat message (Stream active)');
       }
@@ -373,7 +374,7 @@ class OfflineSyncService {
 
       // Backward-compat cleanup: if legacy chat operations exist in IndexedDB from pre-Stream
       // sessions, drop them once Stream chat is active to avoid dual-write replay.
-      if (entityType === 'chat_message' && isStreamChatActive()) {
+      if (entityType === 'chat_message' && isStreamChatActive(getStreamClient()?.userID)) {
         await this.removeOperation(id);
         return 'processed';
       }

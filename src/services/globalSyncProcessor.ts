@@ -10,12 +10,9 @@
 import { offlineSyncService } from './offlineSyncService';
 import { sendChatMessage, sendRichChatMessage } from './chatService';
 import { calendarService } from './calendarService';
-import { getStreamClient } from './stream/streamClient';
+import { shouldUseLegacyChatSync } from './stream/streamTransportGuards';
 
-export function shouldUseLegacyChatSync(): boolean {
-  const streamConfigured = Boolean(import.meta.env.VITE_STREAM_API_KEY);
-  return !streamConfigured;
-}
+export { shouldUseLegacyChatSync };
 
 /**
  * Process sync queue with all handlers
