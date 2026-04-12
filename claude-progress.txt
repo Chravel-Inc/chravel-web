@@ -506,3 +506,8 @@
   - AIConcierge orchestrator now delegates `handleSendMessage` to this hook.
 - Preserved behavior: auth checks, tripId threading, stream callbacks, pending action invalidations, and offline fallback remain intact.
 - Verification: `npm run typecheck && npm run build`, `npm run lint`, `npm run test -- src/components/__tests__/AIConciergeChat.test.tsx`.
+2026-04-12 — Concierge deferred-risk follow-up: hook-level regression tests
+- Added focused tests for extracted hooks:
+  - `src/features/concierge/hooks/__tests__/useConciergeStreaming.test.ts` covers empty-input no-op and offline fallback (appends user+assistant offline messages, no stream invoke).
+  - `src/features/concierge/hooks/__tests__/useConciergeVoice.test.ts` validates live transcript/state exposure contract from `useLiveKitVoice`.
+- Verification: `npm run test -- src/features/concierge/hooks/__tests__/useConciergeStreaming.test.ts src/features/concierge/hooks/__tests__/useConciergeVoice.test.ts`; `npm run test -- src/components/__tests__/AIConciergeChat.test.tsx`; `npm run typecheck`; `npm run lint`; `npm run build`.
