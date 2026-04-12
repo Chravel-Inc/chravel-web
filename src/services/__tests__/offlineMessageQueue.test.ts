@@ -9,6 +9,8 @@ import {
   queueMessage,
 } from '@/services/offlineMessageQueue';
 
+const getStreamClientMock = vi.fn();
+
 vi.mock('@/integrations/supabase/client', () => {
   return {
     supabase: {
@@ -17,9 +19,15 @@ vi.mock('@/integrations/supabase/client', () => {
   };
 });
 
+vi.mock('@/services/stream/streamClient', () => ({
+  getStreamClient: (...args: unknown[]) => getStreamClientMock(...args),
+}));
+
 describe('offlineMessageQueue', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
+    vi.stubEnv('VITE_STREAM_API_KEY', '');
+    getStreamClientMock.mockReturnValue(null);
     await clearQueue();
   });
 
@@ -50,9 +58,58 @@ describe('offlineMessageQueue', () => {
 
     const result = await processQueue();
 
-    expect(result).toEqual({ success: 1, failed: 0 });
+    expect(result).toEqual({ success: 1, failed: 0, dropped: 0 });
     expect(await getQueuedMessages()).toEqual([]);
     expect(fromMock).toHaveBeenCalledWith('trip_chat_messages');
     expect(insert).toHaveBeenCalledTimes(1);
+  });
+
+  it('drops queued legacy chat operations when Stream is configured', async () => {
+    vi.stubEnv('VITE_STREAM_API_KEY', 'stream-key');
+    getStreamClientMock.mockReturnValue({ userID: 'stream-user-1' });
+
+    await queueMessage({
+      trip_id: 'trip_2',
+      content: 'Legacy queued message',
+      author_name: 'Me',
+      client_message_id: '00000000-0000-4000-8000-000000000001',
+      privacy_mode: 'standard',
+      message_type: 'text',
+    } as unknown as Parameters<typeof queueMessage>[0]);
+
+    const result = await processQueue();
+
+    expect(result).toEqual({ success: 0, failed: 0, dropped: 1 });
+    expect(await getQueuedMessages()).toEqual([]);
+    expect(supabase.from).not.toHaveBeenCalled();
+  });
+
+  it('does not drop queued messages when Stream is configured but not connected', async () => {
+    vi.stubEnv('VITE_STREAM_API_KEY', 'stream-key');
+    getStreamClientMock.mockReturnValue(null);
+
+    const fromMock = vi.mocked(supabase.from);
+    const single = vi.fn().mockResolvedValue({
+      data: { id: 'db-message-1' },
+      error: null,
+    });
+    const select = vi.fn(() => ({ single }));
+    const insert = vi.fn(() => ({ select }));
+    fromMock.mockReturnValue({ insert } as unknown as ReturnType<typeof supabase.from>);
+
+    await queueMessage({
+      trip_id: 'trip_3',
+      content: 'Legacy queued message',
+      author_name: 'Me',
+      client_message_id: '00000000-0000-4000-8000-000000000003',
+      privacy_mode: 'standard',
+      message_type: 'text',
+    } as unknown as Parameters<typeof queueMessage>[0]);
+
+    const result = await processQueue();
+
+    expect(result).toEqual({ success: 1, failed: 0, dropped: 0 });
+    expect(fromMock).toHaveBeenCalledWith('trip_chat_messages');
+    expect(await getQueuedMessages()).toEqual([]);
   });
 });

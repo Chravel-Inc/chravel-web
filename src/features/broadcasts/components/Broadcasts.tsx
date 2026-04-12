@@ -13,7 +13,6 @@ import { broadcastService } from '@/services/broadcastService';
 import type { Broadcast } from '@/services/broadcastService';
 import { tripKeys } from '@/lib/queryKeys';
 import { toast } from 'sonner';
-import { useFeatureFlag } from '@/lib/featureFlags';
 import { getStreamClient } from '@/services/stream/streamClient';
 import { useStreamBroadcasts } from '../../../hooks/stream/useStreamBroadcasts';
 
@@ -35,18 +34,28 @@ interface BroadcastData {
   userResponse?: 'coming' | 'wait' | 'cant';
 }
 
-function mapPriorityToCategory(
+export function mapPriorityToCategory(
   priority: string | null,
 ): 'chill' | 'logistics' | 'urgent' | 'emergency' {
   switch (priority) {
     case 'urgent':
       return 'urgent';
+    case 'important':
+    case 'logistics':
     case 'reminder':
       return 'logistics';
     case 'fyi':
     default:
       return 'chill';
   }
+}
+
+export function mapCategoryToPriority(
+  category: 'chill' | 'logistics' | 'urgent',
+): 'urgent' | 'reminder' | 'fyi' {
+  if (category === 'urgent') return 'urgent';
+  if (category === 'logistics') return 'reminder';
+  return 'fyi';
 }
 
 function mapBroadcastToDisplay(
@@ -67,6 +76,13 @@ function mapBroadcastToDisplay(
   };
 }
 
+export function shouldUseStreamBroadcasts(params: {
+  isDemoMode: boolean;
+  streamConnected: boolean;
+}): boolean {
+  return !params.isDemoMode && params.streamConnected;
+}
+
 export const Broadcasts = () => {
   const { tripId, eventId, proTripId } = useParams();
   const { isDemoMode } = useDemoMode();
@@ -82,10 +98,9 @@ export const Broadcasts = () => {
   const { priority, setPriority, applyFilters, hasActiveFilters, clearFilters } =
     useBroadcastFilters();
 
-  // 🔀 STREAM ROUTING: Use Stream for broadcast delivery when flag is on
-  const streamFlagEnabled = useFeatureFlag('stream-chat-broadcasts', false);
+  // Stream is now the canonical transport when connected (demo mode always stays local).
   const streamConnected = !!getStreamClient()?.userID;
-  const useStream = streamFlagEnabled && streamConnected && !isDemoMode;
+  const useStream = shouldUseStreamBroadcasts({ isDemoMode, streamConnected });
   const streamBroadcasts = useStreamBroadcasts(useStream ? currentTripId : undefined);
 
   const [demoBroadcasts, setDemoBroadcasts] = useState<BroadcastData[]>([
@@ -103,12 +118,12 @@ export const Broadcasts = () => {
   const { data: dbBroadcasts = [], isLoading } = useQuery({
     queryKey: tripKeys.broadcasts(currentTripId),
     queryFn: () => broadcastService.getTripBroadcasts(currentTripId),
-    enabled: !!currentTripId && !isDemoMode,
+    enabled: !!currentTripId && !isDemoMode && !useStream,
     staleTime: 30 * 1000,
   });
 
   useEffect(() => {
-    if (isDemoMode || !currentTripId) return;
+    if (isDemoMode || !currentTripId || useStream) return;
     const unsub = broadcastService.subscribeToBroadcasts(currentTripId, newBroadcast => {
       queryClient.setQueryData<Broadcast[]>(tripKeys.broadcasts(currentTripId), (prev = []) => [
         newBroadcast,
@@ -118,7 +133,7 @@ export const Broadcasts = () => {
     return () => {
       unsub();
     };
-  }, [currentTripId, isDemoMode, queryClient]);
+  }, [currentTripId, isDemoMode, queryClient, useStream]);
 
   const broadcasts: BroadcastData[] = isDemoMode
     ? demoBroadcasts
@@ -154,12 +169,7 @@ export const Broadcasts = () => {
       setDemoBroadcasts(prev => [broadcast, ...prev]);
     } else {
       if (useStream) {
-        const priority =
-          newBroadcast.category === 'urgent'
-            ? 'urgent'
-            : newBroadcast.category === 'logistics'
-              ? 'important'
-              : 'fyi';
+        const priority = mapCategoryToPriority(newBroadcast.category);
         streamBroadcasts
           .sendBroadcast(newBroadcast.message, priority, {
             recipients: newBroadcast.recipients,

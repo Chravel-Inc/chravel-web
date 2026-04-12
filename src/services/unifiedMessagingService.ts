@@ -1,15 +1,42 @@
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
+import type { ScheduledMessage } from '@/types/messaging';
+import { isFeatureFlagEnabled } from '@/lib/featureFlags';
 
-export interface ScheduledMessage {
-  id: string;
-  trip_id: string;
-  content: string;
-  sendAt: string;
-  priority: 'urgent' | 'reminder' | 'fyi';
-  created_at?: string;
-}
+type BroadcastRow = Database['public']['Tables']['broadcasts']['Row'];
+type ScheduledPriority = NonNullable<ScheduledMessage['priority']>;
+
+const isScheduledPriority = (value: string | null): value is ScheduledPriority => {
+  return value === 'urgent' || value === 'reminder' || value === 'fyi';
+};
+
+export const mapBroadcastRowToScheduledMessage = (row: BroadcastRow): ScheduledMessage => ({
+  id: row.id,
+  tripId: row.trip_id,
+  content: row.message,
+  senderId: row.created_by ?? 'system',
+  senderName: 'System',
+  sendAt: row.scheduled_for ?? row.created_at,
+  isSent: row.is_sent ?? false,
+  priority: isScheduledPriority(row.priority) ? row.priority : 'fyi',
+  timestamp: row.created_at,
+  isRead: false,
+  isBroadcast: true,
+  messageType: 'broadcast',
+});
 
 class UnifiedMessagingService {
+  private schedulingDisabledLogged = false;
+
+  private logSchedulingDisabledOnce() {
+    if (!import.meta.env.DEV || this.schedulingDisabledLogged) return;
+
+    this.schedulingDisabledLogged = true;
+    console.info(
+      '[UnifiedMessagingService] Broadcast scheduling is disabled via feature flag: broadcast-scheduling-enabled',
+    );
+  }
+
   async getScheduledMessages(tripId?: string): Promise<ScheduledMessage[]> {
     try {
       // In a real app, this would query the unified scheduled messages table
@@ -29,13 +56,7 @@ class UnifiedMessagingService {
 
       if (error) throw error;
 
-      return (data || []).map(b => ({
-        id: b.id,
-        trip_id: b.trip_id,
-        content: b.message,
-        sendAt: b.scheduled_for,
-        priority: b.priority as 'urgent' | 'reminder' | 'fyi',
-      }));
+      return (data || []).map(mapBroadcastRowToScheduledMessage);
     } catch (error) {
       console.error('[UnifiedMessagingService] Error fetching scheduled messages:', error);
       return [];
@@ -49,6 +70,12 @@ class UnifiedMessagingService {
     priority: 'urgent' | 'reminder' | 'fyi' = 'fyi',
   ): Promise<boolean> {
     try {
+      const schedulingEnabled = await isFeatureFlagEnabled('broadcast-scheduling-enabled', false);
+      if (!schedulingEnabled) {
+        this.logSchedulingDisabledOnce();
+        return false;
+      }
+
       const {
         data: { user },
       } = await supabase.auth.getUser();

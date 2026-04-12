@@ -48,7 +48,13 @@ export interface UnifiedInboxData {
   totalUnread: number;
 }
 
+/**
+ * Canonical UI/domain type for scheduled broadcast messages.
+ * Services must map DB `broadcasts` rows into this camelCase shape.
+ */
 export interface ScheduledMessage extends InboxMessage {
+  tripId: string;
   sendAt: string;
   isSent: boolean;
+  priority: 'urgent' | 'reminder' | 'fyi';
 }
