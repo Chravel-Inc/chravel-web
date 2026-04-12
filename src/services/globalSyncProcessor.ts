@@ -51,6 +51,7 @@ export async function processGlobalSyncQueue(): Promise<{
     onChatMessageUpdate: shouldProcessLegacyChat
       ? async (entityId, data) => {
           // Chat message updates are rare, but handle if needed
+          const { supabase } = await import('@/integrations/supabase/client');
           const { data: updated, error } = await supabase
             .from('trip_chat_messages')
             .update(data)

@@ -1,3 +1,15 @@
+2026-04-11 — Broadcast scheduling kill-switch hardening (admin flow + service guard)
+- Added server-driven feature flag gate `broadcast-scheduling-enabled` with safe default `false` on Admin Dashboard scheduling UX (`src/pages/AdminDashboard.tsx`).
+  - "Schedule Pro Trip Message" action is disabled while flag is off.
+  - UI copy now explicitly states scheduling is temporarily unavailable.
+  - `handleScheduleMessage` exits early with user-facing toast when disabled.
+- Hardened `unifiedMessagingService.scheduleMessage(...)` with early short-circuit when flag is disabled to prevent any auth lookup/insert attempt.
+  - Added one-time development log for disabled scheduler path.
+- Added focused regression tests:
+  - `src/pages/__tests__/AdminDashboard.test.tsx` verifies disabled CTA + unavailable copy.
+  - `src/services/__tests__/unifiedMessagingService.test.ts` verifies disabled flag returns false and no insert/auth call path.
+- Verification: `npm run test:run -- src/services/__tests__/unifiedMessagingService.test.ts src/pages/__tests__/AdminDashboard.test.tsx`, `npm run typecheck`; `npm run build` and `npm run lint:check` still fail on pre-existing unrelated repo issues.
+
 2026-04-10 — Smart Import parser/model consolidation follow-up (low-risk architecture alignment)
 - Implemented shared URL scrape helper `supabase/functions/_shared/urlScraper.ts` and refactored all Smart Import URL functions to use one scrape chain:
   - `scrape-schedule`, `scrape-agenda`, `scrape-lineup` now all run Firecrawl → direct fetch → reader proxy with consistent behavior.
@@ -425,3 +437,25 @@
 - Root cause: `globalSyncProcessor` used repeated dynamic imports of `@/integrations/supabase/client`, creating unnecessary lazy-import churn and noisy mixed import-mode build warnings in migration-critical sync code.
 - Replaced dynamic Supabase imports in `globalSyncProcessor` with one static top-level import and kept existing Stream guard behavior + handler wiring unchanged.
 - Verification: `npm run test:run -- src/services/__tests__/globalSyncProcessor.test.ts src/services/__tests__/offlineSyncService.test.ts src/services/__tests__/offlineMessageQueue.test.ts src/services/stream/__tests__/streamTransportGuards.test.ts`; `npm run typecheck`; `npm run build`.
+2026-04-11 — Chat search dead-code removal + overlay regression test
+- Confirmed legacy `MessageSearch` component and `messageSearchService` were not referenced outside their own files; removed both to eliminate duplicate search paths.
+- Re-verified TripChat search integration remains solely `TripChat -> ChatSearchOverlay -> chatSearchService`.
+- Added focused test `src/features/chat/components/__tests__/ChatSearchOverlay.test.tsx` validating filter query parsing handoff (`parseMessageSearchQuery`) and unified results rendering/selection across messages + broadcasts.
+- Verification: `npm run typecheck` passed; `npm run lint:check` fails on pre-existing repo lint baseline + remotion script no-undef errors; `npm run build` fails on pre-existing duplicate symbol in `ChannelChatView.tsx`; targeted Vitest invocation hangs in this environment (`vitest run ...ChatSearchOverlay.test.tsx`) and times out without output.
+
+2026-04-11 — Broadcast priority canonicalization + legacy alias compatibility hardening
+- Updated `Broadcasts` mappings so outgoing Stream payload for `logistics` category now uses canonical `reminder` priority (no longer `important`).
+- Added backward-compatible render mapping for legacy incoming priority aliases (`important` and `logistics`) to keep display category stable.
+- Hardened `useStreamBroadcasts` to normalize incoming/outgoing priority values to canonical set (`urgent | reminder | fyi`) and include normalized priority in outgoing metadata.
+- Added focused regression tests:
+  - `src/features/broadcasts/components/__tests__/Broadcasts.priorityMapping.test.ts`
+  - `src/hooks/stream/__tests__/useStreamBroadcasts.priority.test.tsx`
+- Verification: `npm run test:run -- src/features/broadcasts/components/__tests__/Broadcasts.priorityMapping.test.ts src/hooks/stream/__tests__/useStreamBroadcasts.priority.test.tsx`, `npm run typecheck`.
+
+2026-04-11 — Concierge context source-of-truth hardening (EnhancedTripContextService retirement)
+- Verified `EnhancedTripContextService` had zero runtime imports via repo grep (`rg "enhancedTripContextService|EnhancedTripContextService" src -n`) and confirmed concierge runtime already uses `TripContextAggregator` in `UniversalConciergeService`.
+- Removed deprecated runtime file `src/services/enhancedTripContextService.ts` to eliminate accidental resurrection risk.
+- Added architectural guardrails:
+  - ESLint `no-restricted-imports` entries blocking `enhancedTripContextService` import paths.
+  - `src/services/CONCIERGE_CONTEXT_ARCHITECTURE.md` documenting `TripContextAggregator` as the single source of truth.
+  - Inline invariant comment near context assembly in `UniversalConciergeService`.
