@@ -12,7 +12,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
-import { validateExternalHttpsUrl } from '../_shared/validation.ts';
+import { validateExternalUrlBeforeFetch } from '../_shared/validation.ts';
 import {
   invokeChatModel,
   extractTextFromChatResponse,
@@ -85,7 +85,7 @@ serve(async req => {
     if (!url.startsWith('https://')) url = 'https://' + url;
 
     // SSRF protection
-    if (!validateExternalHttpsUrl(url)) {
+    if (!(await validateExternalUrlBeforeFetch(url))) {
       return new Response(
         JSON.stringify({ error: 'URL must be HTTPS and external (no internal/private networks)' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
