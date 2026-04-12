@@ -47,7 +47,7 @@ const envKey =
   (env.VITE_SUPABASE_ANON_KEY as string | undefined) ||
   (env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined);
 
-// Track env source for diagnostics (DevEnvBanner, Healthz)
+// Track env source for diagnostics (Healthz / observability)
 const urlFromEnv = Boolean(envUrl);
 const keyFromEnv = Boolean(envKey);
 export const isUsingEnvVars = urlFromEnv && keyFromEnv;
