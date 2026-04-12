@@ -8,8 +8,20 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import 'fake-indexeddb/auto';
 import { offlineSyncService } from '../offlineSyncService';
 
+const { getStreamClientMock } = vi.hoisted(() => ({
+  getStreamClientMock: vi.fn(() => null),
+}));
+
+vi.mock('@/services/stream/streamClient', () => ({
+  getStreamClient: getStreamClientMock,
+}));
+
 describe('offlineSyncService - Data Loss Prevention', () => {
   beforeEach(async () => {
+    vi.clearAllMocks();
+    vi.stubEnv('VITE_STREAM_API_KEY', '');
+    getStreamClientMock.mockReturnValue(null);
+
     // Clear queue before each test
     const operations = await offlineSyncService.getQueuedOperations();
     for (const op of operations) {
@@ -204,5 +216,30 @@ describe('offlineSyncService - Data Loss Prevention', () => {
         { address: 'X' },
       ),
     ).rejects.toThrow('Basecamp');
+  });
+
+  it('drops queued legacy chat operations when Stream is active', async () => {
+    // Queue message while Stream is inactive to emulate a pre-cutover queued legacy op.
+    vi.stubEnv('VITE_STREAM_API_KEY', '');
+    getStreamClientMock.mockReturnValue(null);
+
+    const chatQueueId = await offlineSyncService.queueOperation(
+      'chat_message',
+      'create',
+      'trip-123',
+      { content: 'Legacy queued message', author_name: 'User' },
+    );
+
+    // Stream becomes active before queue flush.
+    vi.stubEnv('VITE_STREAM_API_KEY', 'stream-key');
+    getStreamClientMock.mockReturnValue({ userID: 'user-1' });
+
+    const result = await offlineSyncService.processSyncQueue({
+      onChatMessageCreate: vi.fn().mockResolvedValue({ id: 'db-message' }),
+    });
+
+    expect(result.processed).toBe(1);
+    const remainingOps = await offlineSyncService.getQueuedOperations();
+    expect(remainingOps.map(op => op.id)).not.toContain(chatQueueId);
   });
 });

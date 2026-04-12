@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { CoverPhotoCropModal } from './CoverPhotoCropModal';
 import { CoverPhotoFullscreenModal } from './CoverPhotoFullscreenModal';
 import { buildTripCoverStoragePath, TRIP_COVER_BUCKET } from '@/utils/tripCoverStorage';
+import { isBlobOrDataUrl } from '@/utils/mediaUtils';
 
 interface TripCoverPhotoUploadProps {
   tripId: string;
@@ -63,7 +64,7 @@ export const TripCoverPhotoUpload = ({
       setIsUploading(true);
 
       // Clean up the original preview URL if it was a blob
-      if (selectedImageSrc && selectedImageSrc.startsWith('blob:')) {
+      if (selectedImageSrc && isBlobOrDataUrl(selectedImageSrc)) {
         URL.revokeObjectURL(selectedImageSrc);
       }
 
@@ -150,7 +151,7 @@ export const TripCoverPhotoUpload = ({
 
   const handleCropCancel = useCallback(() => {
     setShowCropModal(false);
-    if (selectedImageSrc && selectedImageSrc.startsWith('blob:')) {
+    if (selectedImageSrc && isBlobOrDataUrl(selectedImageSrc)) {
       URL.revokeObjectURL(selectedImageSrc);
     }
     setSelectedImageSrc('');

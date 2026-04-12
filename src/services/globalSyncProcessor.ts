@@ -11,6 +11,11 @@ import { offlineSyncService } from './offlineSyncService';
 import { sendChatMessage, sendRichChatMessage } from './chatService';
 import { calendarService } from './calendarService';
 
+export function shouldUseLegacyChatSync(): boolean {
+  const streamConfigured = Boolean(import.meta.env.VITE_STREAM_API_KEY);
+  return !streamConfigured;
+}
+
 /**
  * Process sync queue with all handlers
  *
@@ -31,28 +36,34 @@ export async function processGlobalSyncQueue(): Promise<{
   // Get all operations before processing to check for skipped ones
   const allOperations = await offlineSyncService.getQueuedOperations({ status: 'pending' });
 
+  const shouldProcessLegacyChat = shouldUseLegacyChatSync();
+
   const result = await offlineSyncService.processSyncQueue({
     // Chat message handlers
-    onChatMessageCreate: async (tripId, data) => {
-      // Prefer rich sender with client_message_id dedupe (if provided).
-      if (data?.client_message_id) {
-        return await sendRichChatMessage(data);
-      }
-      return await sendChatMessage(data);
-    },
-    onChatMessageUpdate: async (entityId, data) => {
-      // Chat message updates are rare, but handle if needed
-      const { supabase } = await import('@/integrations/supabase/client');
-      const { data: updated, error } = await supabase
-        .from('trip_chat_messages')
-        .update(data)
-        .eq('id', entityId)
-        .select()
-        .single();
+    onChatMessageCreate: shouldProcessLegacyChat
+      ? async (_tripId, data) => {
+          // Prefer rich sender with client_message_id dedupe (if provided).
+          if (data?.client_message_id) {
+            return await sendRichChatMessage(data);
+          }
+          return await sendChatMessage(data);
+        }
+      : undefined,
+    onChatMessageUpdate: shouldProcessLegacyChat
+      ? async (entityId, data) => {
+          // Chat message updates are rare, but handle if needed
+          const { supabase } = await import('@/integrations/supabase/client');
+          const { data: updated, error } = await supabase
+            .from('trip_chat_messages')
+            .update(data)
+            .eq('id', entityId)
+            .select()
+            .single();
 
-      if (error) throw error;
-      return updated;
-    },
+          if (error) throw error;
+          return updated;
+        }
+      : undefined,
 
     // Task handlers - delegate to task service
     onTaskCreate: async (tripId, data) => {
