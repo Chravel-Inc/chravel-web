@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { unifiedMessagingService, ScheduledMessage } from '@/services/unifiedMessagingService';
+import { unifiedMessagingService } from '@/services/unifiedMessagingService';
 import { useProTrips } from '@/hooks/useProTrips';
+import type { ScheduledMessage } from '@/types/messaging';
 import { Button } from '@/components/ui/button';
 import { Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { useFeatureFlag } from '@/lib/featureFlags';
 
 export const AdminDashboard = () => {
   const [scheduledMessages, setScheduledMessages] = useState<ScheduledMessage[]>([]);
@@ -11,6 +13,7 @@ export const AdminDashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const proTripsResult = useProTrips();
   const proTrips = (proTripsResult as any).data || proTripsResult.proTrips;
+  const isBroadcastSchedulingEnabled = useFeatureFlag('broadcast-scheduling-enabled', false);
 
   // Modal state
   const [selectedTripId, setSelectedTripId] = useState<string>('');
@@ -34,6 +37,11 @@ export const AdminDashboard = () => {
   }, []);
 
   const handleScheduleMessage = async () => {
+    if (!isBroadcastSchedulingEnabled) {
+      toast.error('Broadcast scheduling is temporarily unavailable');
+      return;
+    }
+
     if (!selectedTripId || !content) {
       toast.error('Please select a trip and enter message content');
       return;
@@ -84,13 +92,15 @@ export const AdminDashboard = () => {
         <div className="mb-6 pb-6 border-b border-slate-700">
           <Button
             onClick={() => setIsModalOpen(true)}
+            disabled={!isBroadcastSchedulingEnabled}
             className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
           >
             <Plus size={16} />
             Schedule Pro Trip Message
           </Button>
           <p className="text-sm text-slate-400 mt-2">
-            Scheduled messages are only available for Pro Trips.
+            Scheduled messages for Pro Trips are temporarily unavailable while scheduling is
+            disabled.
           </p>
         </div>
 
@@ -125,7 +135,7 @@ export const AdminDashboard = () => {
                     })}
                   </p>
                   <p className="text-slate-500 font-mono text-xs">
-                    Trip: {m.trip_id.substring(0, 8)}...
+                    Trip: {m.tripId ? `${m.tripId.substring(0, 8)}...` : 'N/A'}
                   </p>
                 </div>
               </li>
@@ -139,7 +149,7 @@ export const AdminDashboard = () => {
       </div>
 
       {/* Schedule Modal */}
-      {isModalOpen && (
+      {isModalOpen && isBroadcastSchedulingEnabled && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
           <div className="bg-slate-900 border border-slate-700 rounded-lg p-6 max-w-md w-full relative">
             <button
@@ -187,7 +197,7 @@ export const AdminDashboard = () => {
                 <select
                   className="w-full bg-slate-800 border border-slate-700 rounded-md p-2 text-white"
                   value={priority}
-                  onChange={e => setPriority(e.target.value as any)}
+                  onChange={e => setPriority(e.target.value as 'urgent' | 'reminder' | 'fyi')}
                 >
                   <option value="fyi">FYI (Normal)</option>
                   <option value="reminder">Reminder</option>

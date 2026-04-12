@@ -2,6 +2,7 @@ import React from 'react';
 import { Trash2 } from 'lucide-react';
 import { TripMediaRenderer } from './TripMediaRenderer';
 import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
+import { getMediaCategory } from '@/utils/mediaUtils';
 
 interface MediaTileProps {
   id: string;
@@ -37,8 +38,9 @@ export const MediaTile = React.memo(function MediaTile({
 }: MediaTileProps) {
   const resolvedUrl = useResolvedTripMediaUrl({ url, metadata });
   const mediaUrl = resolvedUrl ?? url;
-  const isVideo = mimeType.startsWith('video/');
-  const isImage = mimeType.startsWith('image/');
+  const category = getMediaCategory(mimeType);
+  const isVideo = category === 'video';
+  const isImage = category === 'image';
   const isMedia = isVideo || isImage;
   const displayName = fileName ?? 'Trip media';
 

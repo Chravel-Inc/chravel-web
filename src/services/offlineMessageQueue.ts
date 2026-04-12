@@ -28,6 +28,10 @@ const MAX_RETRIES = 3;
 
 let dbInstance: IDBPDatabase<OfflineQueueDB> | null = null;
 
+function isStreamChatCanonical(): boolean {
+  return Boolean(import.meta.env.VITE_STREAM_API_KEY);
+}
+
 async function getDB(): Promise<IDBPDatabase<OfflineQueueDB>> {
   if (dbInstance) return dbInstance;
 
@@ -74,9 +78,19 @@ export async function getQueuedMessages(): Promise<QueuedMessage[]> {
 /**
  * Process queued messages when connection is restored
  */
-export async function processQueue(): Promise<{ success: number; failed: number }> {
+export async function processQueue(): Promise<{
+  success: number;
+  failed: number;
+  dropped: number;
+}> {
   const db = await getDB();
   const pendingMessages = await db.getAllFromIndex('queue', 'by-status', 'pending');
+
+  if (isStreamChatCanonical()) {
+    // Stream is canonical for chat transport. Legacy queued DB writes must not replay.
+    await Promise.all(pendingMessages.map(message => db.delete('queue', message.id)));
+    return { success: 0, failed: 0, dropped: pendingMessages.length };
+  }
 
   let success = 0;
   let failed = 0;
@@ -136,7 +150,7 @@ export async function processQueue(): Promise<{ success: number; failed: number 
     }
   }
 
-  return { success, failed };
+  return { success, failed, dropped: 0 };
 }
 
 /**

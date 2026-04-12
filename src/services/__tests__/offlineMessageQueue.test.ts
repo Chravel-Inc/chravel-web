@@ -20,6 +20,7 @@ vi.mock('@/integrations/supabase/client', () => {
 describe('offlineMessageQueue', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
+    vi.stubEnv('VITE_STREAM_API_KEY', '');
     await clearQueue();
   });
 
@@ -50,9 +51,28 @@ describe('offlineMessageQueue', () => {
 
     const result = await processQueue();
 
-    expect(result).toEqual({ success: 1, failed: 0 });
+    expect(result).toEqual({ success: 1, failed: 0, dropped: 0 });
     expect(await getQueuedMessages()).toEqual([]);
     expect(fromMock).toHaveBeenCalledWith('trip_chat_messages');
     expect(insert).toHaveBeenCalledTimes(1);
+  });
+
+  it('drops queued legacy chat operations when Stream is configured', async () => {
+    vi.stubEnv('VITE_STREAM_API_KEY', 'stream-key');
+
+    await queueMessage({
+      trip_id: 'trip_2',
+      content: 'Legacy queued message',
+      author_name: 'Me',
+      client_message_id: '00000000-0000-4000-8000-000000000001',
+      privacy_mode: 'standard',
+      message_type: 'text',
+    } as unknown as Parameters<typeof queueMessage>[0]);
+
+    const result = await processQueue();
+
+    expect(result).toEqual({ success: 0, failed: 0, dropped: 1 });
+    expect(await getQueuedMessages()).toEqual([]);
+    expect(supabase.from).not.toHaveBeenCalled();
   });
 });
