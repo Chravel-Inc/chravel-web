@@ -28,6 +28,8 @@ describe('mapBroadcastRowToScheduledMessage', () => {
     expect(canonical.priority).toBe('urgent');
     expect(canonical.isSent).toBe(false);
     expect(canonical.messageType).toBe('broadcast');
+    expect(canonical.senderId).toBe('user-1');
+    expect(canonical.senderName).toBe('System');
   });
 
   it('falls back to defaults when optional broadcast columns are null/unknown', () => {
@@ -48,5 +50,7 @@ describe('mapBroadcastRowToScheduledMessage', () => {
     expect(mapped.sendAt).toBe('2026-05-21T10:00:00.000Z');
     expect(mapped.priority).toBe('fyi');
     expect(mapped.isSent).toBe(false);
+    expect(mapped.senderId).toBe('user-2');
+    expect(mapped.senderName).toBe('System');
   });
 });

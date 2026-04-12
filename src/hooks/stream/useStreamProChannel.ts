@@ -51,7 +51,10 @@ export function useStreamProChannel(channelId: string | null) {
     }
 
     const client = getStreamClient();
-    if (!client?.userID || !streamReady) return;
+    if (!client?.userID || !streamReady) {
+      setIsLoading(false);
+      return;
+    }
 
     let cancelled = false;
     setIsLoading(true);
