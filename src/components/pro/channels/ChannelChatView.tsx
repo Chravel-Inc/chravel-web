@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { TripChannel, ChannelMessage } from '../../../types/roleChannels';
-import { channelService } from '../../../services/channelService';
 import { useToast } from '../../../hooks/use-toast';
 import { getDemoChannelsForTrip } from '../../../data/demoChannelData';
 import { VirtualizedMessageContainer } from '@/features/chat/components/VirtualizedMessageContainer';
@@ -11,19 +10,13 @@ import { useLinkPreviews } from '@/features/chat/hooks/useLinkPreviews';
 import { useAuth } from '@/hooks/useAuth';
 import { getMockAvatar } from '@/utils/mockAvatars';
 import { useRoleAssignments } from '@/hooks/useRoleAssignments';
+import { useStreamProChannel } from '@/hooks/stream/useStreamProChannel';
 import { Button } from '@/components/ui/button';
 import {
   mapChannelSendError,
   formatToastDescription,
   validateMessageContent,
 } from '@/utils/channelErrors';
-import {
-  toggleMessageReaction,
-  getMessagesReactions,
-  subscribeToReactions,
-  type ReactionType,
-} from '@/services/chatService';
-import { supabase } from '@/integrations/supabase/client';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,6 +30,7 @@ import {
 
 import { useRolePermissions } from '@/hooks/useRolePermissions';
 import { Lock, LogOut, MoreVertical } from 'lucide-react';
+import type { MessageResponse } from 'stream-chat';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -83,6 +77,9 @@ export const ChannelChatView = ({
   ];
   const isDemoChannel = DEMO_TRIP_IDS.includes(channel.tripId);
 
+  const useStreamTransport = !isDemoChannel;
+  const streamProChannel = useStreamProChannel(useStreamTransport ? channel.id : null);
+
   // Handle user leaving the channel/role (self-service)
   const handleLeaveChannel = async () => {
     if (!user?.id || !channel.requiredRoleId) {
@@ -119,27 +116,54 @@ export const ChannelChatView = ({
     }
   };
 
-  // Handle opening a reply
-  const handleOpenReply = useCallback(
-    (messageId: string) => {
-      const msg = messages.find(m => m.id === messageId);
-      if (!msg) return;
-      setReplyingTo({
-        id: msg.id,
-        text: msg.content,
-        senderName: msg.senderName,
-      });
-    },
-    [messages],
-  );
-
   const clearReply = useCallback(() => {
     setReplyingTo(null);
   }, []);
 
   // Transform ChannelMessage to ChatMessage format for MessageItem
+  const transportMessages = useMemo<ChannelMessage[]>(() => {
+    if (!useStreamTransport) return messages;
+
+    const streamMessages = streamProChannel.messages;
+    const streamById = new Map<string, MessageResponse>(
+      streamMessages.map(msg => [String(msg.id), msg as MessageResponse]),
+    );
+
+    return streamMessages.map(streamMsg => {
+      const parentId = streamMsg.parent_id ?? undefined;
+      const parent = parentId ? streamById.get(parentId) : undefined;
+      const streamExtra = streamMsg as MessageResponse & {
+        isBroadcast?: boolean;
+        metadata?: Record<string, unknown>;
+      };
+      const metadata: Record<string, unknown> = {};
+      if (parent) {
+        metadata.replyTo = {
+          id: String(parent.id),
+          text: parent.text || '',
+          sender: parent.user?.name || 'Unknown',
+        };
+      }
+      if (streamExtra.isBroadcast === true) {
+        metadata.isBroadcast = true;
+      }
+
+      return {
+        id: String(streamMsg.id),
+        channelId: channel.id,
+        senderId: streamMsg.user?.id || '',
+        senderName: streamMsg.user?.name || 'Unknown',
+        senderAvatar: streamMsg.user?.image,
+        content: streamMsg.text || '',
+        messageType: streamExtra.isBroadcast ? 'system' : 'text',
+        metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+        createdAt: streamMsg.created_at || new Date().toISOString(),
+      };
+    });
+  }, [channel.id, messages, streamProChannel.messages, useStreamTransport]);
+
   const formattedMessages = useMemo(() => {
-    return messages.map(msg => {
+    return transportMessages.map(msg => {
       const metadata = msg.metadata as Record<string, unknown> | null;
       const replyTo = metadata?.replyTo as { id: string; text: string; sender: string } | undefined;
 
@@ -158,7 +182,7 @@ export const ChannelChatView = ({
         replyTo: replyTo || undefined,
       };
     });
-  }, [messages]);
+  }, [transportMessages]);
 
   // Client-side link preview enrichment for channel messages
   const linkPreviews = useLinkPreviews(formattedMessages);
@@ -171,52 +195,65 @@ export const ChannelChatView = ({
     }));
   }, [formattedMessages, linkPreviews]);
 
-  useEffect(() => {
-    loadMessages();
-
-    // Subscribe to real-time updates (skip for demo channels)
-    const DEMO_TRIP_IDS = [
-      'lakers-road-trip',
-      'beyonce-cowboy-carter-tour',
-      'eli-lilly-c-suite-retreat-2026',
-    ];
-    if (!DEMO_TRIP_IDS.includes(channel.tripId)) {
-      const unsubscribe = channelService.subscribeToChannel(
-        channel.id,
-        newMsg => {
-          setMessages(prev => [...prev, newMsg]);
-        },
-        deletedMessageId => {
-          // Remove deleted message completely from the list
-          setMessages(prev => prev.filter(msg => msg.id !== deletedMessageId));
-        },
-      );
-      return unsubscribe;
+  const streamReactionMap = useMemo(() => {
+    if (!useStreamTransport || !user?.id) {
+      return {};
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadMessages depends on channel.id already in deps
-  }, [channel.id, channel.tripId]);
 
-  const loadMessages = async () => {
-    setLoading(true);
+    return streamProChannel.messages.reduce<
+      Record<string, Record<string, { count: number; userReacted: boolean; users: string[] }>>
+    >((acc, streamMessage) => {
+      const counts = (streamMessage.reaction_counts || {}) as Record<string, number>;
+      const own = new Set((streamMessage.own_reactions || []).map(reaction => reaction.type));
+      const latest = (streamMessage.latest_reactions || []) as Array<{
+        type: string;
+        user?: { id?: string };
+      }>;
 
-    // Check if this is a demo channel
-    const DEMO_TRIP_IDS = [
-      'lakers-road-trip',
-      'beyonce-cowboy-carter-tour',
-      'eli-lilly-c-suite-retreat-2026',
-    ];
-    if (DEMO_TRIP_IDS.includes(channel.tripId)) {
-      const { messagesByChannel } = getDemoChannelsForTrip(channel.tripId);
-      const demoMessages = messagesByChannel.get(channel.id) || [];
-      setMessages(demoMessages);
+      const byType: Record<string, { count: number; userReacted: boolean; users: string[] }> = {};
+      Object.entries(counts).forEach(([type, count]) => {
+        const users = latest
+          .filter(reaction => reaction.type === type && reaction.user?.id)
+          .map(reaction => reaction.user!.id as string);
+        byType[type] = {
+          count,
+          userReacted: own.has(type),
+          users: Array.from(new Set(users)),
+        };
+      });
+
+      acc[String(streamMessage.id)] = byType;
+      return acc;
+    }, {});
+  }, [streamProChannel.messages, useStreamTransport, user?.id]);
+
+  // Handle opening a reply
+  const handleOpenReply = useCallback(
+    (messageId: string) => {
+      const msg = transportMessages.find(m => m.id === messageId);
+      if (!msg) return;
+      setReplyingTo({
+        id: msg.id,
+        text: msg.content,
+        senderName: msg.senderName,
+      });
+    },
+    [transportMessages],
+  );
+
+  useEffect(() => {
+    // Demo-only message hydration; non-demo channels are Stream-backed.
+    if (!isDemoChannel) {
       setLoading(false);
       return;
     }
 
-    const msgs = await channelService.getMessages(channel.id);
-    setMessages(msgs);
+    setLoading(true);
+    const { messagesByChannel } = getDemoChannelsForTrip(channel.tripId);
+    const demoMessages = messagesByChannel.get(channel.id) || [];
+    setMessages(demoMessages);
     setLoading(false);
-  };
+  }, [channel.id, channel.tripId, isDemoChannel]);
 
   const handleSendMessage = async (isBroadcast = false) => {
     if (!inputMessage.trim() || sending) return;
@@ -280,22 +317,14 @@ export const ChannelChatView = ({
     }
 
     try {
-      const replyMetadata = replyingTo
-        ? {
-            replyTo: {
-              id: replyingTo.id,
-              text: replyingTo.text,
-              sender: replyingTo.senderName,
-            },
-          }
-        : undefined;
-
-      await channelService.sendMessage({
-        channelId: channel.id,
-        content: inputMessage.trim(),
-        messageType: isBroadcast ? 'broadcast' : 'regular',
-        metadata: replyMetadata,
+      const parentId = replyingTo ? replyingTo.id : undefined;
+      const sent = await streamProChannel.sendMessage(inputMessage.trim(), {
+        parentId,
+        isBroadcast,
       });
+      if (!sent) {
+        throw new Error('Failed to send via Stream');
+      }
       setInputMessage('');
       clearReply();
     } catch (error) {
@@ -317,71 +346,6 @@ export const ChannelChatView = ({
       handleSendMessage();
     }
   };
-
-  // Load reactions for visible messages and subscribe to realtime updates
-  useEffect(() => {
-    if (!user?.id || isDemoChannel || messages.length === 0) return;
-
-    const messageIds = messages.map(m => m.id);
-
-    const loadReactions = async () => {
-      const fetched = await getMessagesReactions(messageIds, user.id);
-      const formatted: typeof reactions = {};
-      for (const [msgId, typeMap] of Object.entries(fetched)) {
-        formatted[msgId] = {};
-        for (const [type, data] of Object.entries(typeMap)) {
-          formatted[msgId][type] = {
-            count: data.count,
-            userReacted: data.userReacted,
-            users: data.users || [],
-          };
-        }
-      }
-      setReactions(formatted);
-    };
-
-    loadReactions();
-
-    const knownIds = new Set(messageIds);
-    const reactionChannel = subscribeToReactions(
-      channel.tripId,
-      payload => {
-        setReactions(prev => {
-          const updated = { ...prev };
-          if (!updated[payload.messageId]) {
-            updated[payload.messageId] = {};
-          }
-          const current = updated[payload.messageId][payload.reactionType] || {
-            count: 0,
-            userReacted: false,
-            users: [],
-          };
-
-          if (payload.eventType === 'INSERT') {
-            updated[payload.messageId][payload.reactionType] = {
-              count: current.count + 1,
-              userReacted: payload.userId === user.id ? true : current.userReacted,
-              users: Array.from(new Set([...current.users, payload.userId])),
-            };
-          } else if (payload.eventType === 'DELETE') {
-            updated[payload.messageId][payload.reactionType] = {
-              count: Math.max(0, current.count - 1),
-              userReacted: payload.userId === user.id ? false : current.userReacted,
-              users: current.users.filter(id => id !== payload.userId),
-            };
-          }
-
-          return updated;
-        });
-      },
-      knownIds,
-    );
-
-    return () => {
-      supabase.removeChannel(reactionChannel);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- messages.length tracks when message list changes
-  }, [user?.id, channel.id, channel.tripId, messages.length, isDemoChannel]);
 
   const handleReaction = useCallback(
     async (messageId: string, reactionType: string) => {
@@ -410,7 +374,7 @@ export const ChannelChatView = ({
         return;
       }
 
-      // Optimistic update
+      // Optimistic update (UI only — Stream is canonical for persistence)
       setReactions(prev => {
         const updated = { ...prev };
         if (!updated[messageId]) updated[messageId] = {};
@@ -430,27 +394,21 @@ export const ChannelChatView = ({
         return updated;
       });
 
-      // Persist to database
-      const result = await toggleMessageReaction(messageId, user.id, reactionType as ReactionType);
-      if (result.error) {
-        // Revert on failure — refetch all reactions
-        const messageIds = messages.map(m => m.id);
-        const freshReactions = await getMessagesReactions(messageIds, user.id);
-        const formatted: typeof reactions = {};
-        for (const [msgId, typeMap] of Object.entries(freshReactions)) {
-          formatted[msgId] = {};
-          for (const [type, data] of Object.entries(typeMap)) {
-            formatted[msgId][type] = {
-              count: data.count,
-              userReacted: data.userReacted,
-              users: data.users || [],
-            };
-          }
-        }
-        setReactions(formatted);
+      if (!streamProChannel.activeChannel) {
+        return;
+      }
+
+      const ownReaction = streamProChannel.activeChannel.state.messages
+        .find(msg => msg.id === messageId)
+        ?.own_reactions?.some(r => r.type === reactionType);
+
+      if (ownReaction) {
+        await streamProChannel.activeChannel.deleteReaction(messageId, reactionType);
+      } else {
+        await streamProChannel.activeChannel.sendReaction(messageId, { type: reactionType });
       }
     },
-    [user?.id, messages, isDemoChannel],
+    [user?.id, isDemoChannel, streamProChannel.activeChannel],
   );
 
   // Calculate member count from available channels, with direct DB fallback
@@ -576,7 +534,7 @@ export const ChannelChatView = ({
 
       {/* Reuse VirtualizedMessageContainer */}
       <div className="flex-1">
-        {loading ? (
+        {useStreamTransport && streamProChannel.isLoading ? (
           <div className="flex-1 overflow-y-auto p-4 space-y-4" aria-label="Loading messages">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="flex items-start gap-3 animate-pulse">
@@ -592,7 +550,23 @@ export const ChannelChatView = ({
               </div>
             ))}
           </div>
-        ) : messages.length === 0 ? (
+        ) : !useStreamTransport && loading ? (
+          <div className="flex-1 overflow-y-auto p-4 space-y-4" aria-label="Loading messages">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="flex items-start gap-3 animate-pulse">
+                <div className="w-8 h-8 rounded-full bg-white/10 flex-shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="h-3 bg-white/10 rounded w-24" />
+                    <div className="h-2 bg-white/5 rounded w-16" />
+                  </div>
+                  <div className="h-4 bg-white/10 rounded w-3/4" />
+                  {i % 2 === 0 && <div className="h-4 bg-white/10 rounded w-1/2" />}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : transportMessages.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
             <div className="bg-white/5 rounded-full p-4 mb-4">
               <Lock size={24} className="text-gray-500" />
@@ -610,7 +584,9 @@ export const ChannelChatView = ({
             renderMessage={(message: any) => (
               <MessageItem
                 message={message}
-                reactions={reactions[message.id]}
+                reactions={
+                  useStreamTransport ? streamReactionMap[message.id] : reactions[message.id]
+                }
                 onReaction={handleReaction}
                 onReply={handleOpenReply}
               />

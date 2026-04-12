@@ -13,6 +13,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Download, AlertCircle, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
+import { getMediaCategory } from '@/utils/mediaUtils';
 
 export interface MediaViewerItem {
   id?: string;
@@ -31,12 +32,6 @@ interface MediaViewerModalProps {
   onClose: () => void;
   /** Optional callback when index changes */
   onIndexChange?: (index: number) => void;
-}
-
-function getMediaCategory(mimeType: string): 'video' | 'image' | 'document' {
-  if (mimeType.startsWith('video/')) return 'video';
-  if (mimeType.startsWith('image/')) return 'image';
-  return 'document';
 }
 
 export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({

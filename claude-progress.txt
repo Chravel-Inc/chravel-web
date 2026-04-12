@@ -352,3 +352,83 @@
 - Implemented minimal stable immediate-send contract in `src/services/broadcastService.ts`: explicit insert payload mapping (trip_id/message/priority/metadata/created_by), forced `is_sent: true`, and no `scheduled_for` persistence.
 - Added focused regression test `src/services/__tests__/broadcastService.test.ts` asserting insert payload excludes `scheduled_for` and marks sends immediate.
 - Verification: `npm run test:run -- src/services/__tests__/broadcastService.test.ts`, `npm run typecheck`.
+
+2026-04-11 — Broadcasts Stream transport hard-cutover (phase follow-up)
+- Removed residual `stream-chat-broadcasts` feature-flag gating from `Broadcasts`; Stream is now selected whenever connected and not in demo mode.
+- Stopped unnecessary legacy DB broadcast query/subscription when Stream transport is active to avoid dual-source reads and duplicate realtime paths.
+- Added focused regression test `src/features/broadcasts/components/__tests__/Broadcasts.transport.test.ts` covering deterministic transport selection logic.
+- Verification: `npm run test:run -- src/features/broadcasts/components/__tests__/Broadcasts.transport.test.ts`, `npm run typecheck`, `npm run build` pass; `npm run lint:check` still fails on known pre-existing repo-wide lint baseline.
+
+2026-04-11 — Offline sync legacy chat replay drain (next phase)
+- Added a single `isStreamChatActive()` guard in `offlineSyncService` and reused it in both enqueue + sync paths.
+- `syncOperation` now drops pre-existing queued `chat_message` ops when Stream is active, preventing legacy DB replay after reconnect/cutover.
+- Added regression test coverage in `src/services/__tests__/offlineSyncService.test.ts` for legacy queued-chat cleanup while preserving existing non-chat queue semantics.
+- Verification: `npm run test:run -- src/services/__tests__/offlineSyncService.test.ts`, `npm run typecheck`, `npm run build` pass; `npm run lint:check` still fails on known repo baseline.
+
+2026-04-11 — Global sync processor Stream-first chat handler cutover
+- Added `shouldUseLegacyChatSync()` in `globalSyncProcessor` to gate legacy chat sync handlers by Stream active state.
+- When Stream is configured+connected, global sync no longer provides legacy `chat_message` create/update handlers to offline queue processing.
+- Added focused tests in `src/services/__tests__/globalSyncProcessor.test.ts` covering routing guard behavior for Stream active/inactive states.
+- Verification: `npm run test:run -- src/services/__tests__/globalSyncProcessor.test.ts src/services/__tests__/offlineSyncService.test.ts`, `npm run typecheck`, `npm run build` pass; `npm run lint:check` still fails on known baseline.
+
+2026-04-11 — PR #194 audit follow-up: Stream pro-channel reconnect + broadcast flag parity
+- Fixed `useStreamProChannel` reconnect race by subscribing to Stream client connected/status events and gating channel watch on `streamReady`.
+- Extended `useStreamProChannel.sendMessage` options with `isBroadcast` and include it in Stream payload.
+- Fixed `ChannelChatView` Stream transport mapping to preserve `isBroadcast` metadata and system message rendering parity; send path now passes broadcast intent to Stream.
+- Added focused regression tests `src/hooks/stream/__tests__/useStreamProChannel.test.tsx` covering reconnect-triggered watch and `isBroadcast` payload wiring.
+- Verification: `npm run test:run -- src/hooks/stream/__tests__/useStreamProChannel.test.tsx src/services/__tests__/globalSyncProcessor.test.ts src/services/__tests__/offlineSyncService.test.ts`, `npm run typecheck`, `npm run build` pass; `npm run lint:check` remains failing on known baseline.
+2026-04-11 — Codex PR recreation
+- Re-created PR from latest Stream cutover commit after GitHub/Codex notification requiring a fresh PR object.
+
+2026-04-11 — PR #196 audit merge-blockers resolved (cursor feedback)
+- Fixed stream auth disconnect guard in `streamClient` to support both string and payload-shaped auth event callbacks and reliably disconnect on `SIGNED_OUT`.
+- Removed duplicate `useEffect` subscriptions/timeouts in `useStreamTripChat` to eliminate duplicate connection listeners and duplicate timeout error paths.
+- Added focused regression test `src/services/stream/__tests__/streamClient.auth.test.ts` validating sign-out disconnect path via auth payload object shape.
+- Verification: `npm run test:run -- src/services/stream/__tests__/streamClient.auth.test.ts src/hooks/stream/__tests__/useStreamTripChat.send.test.tsx src/hooks/stream/__tests__/useStreamProChannel.test.tsx`, `npm run typecheck`, `npm run build` pass; `npm run lint:check` still fails on known repo lint baseline.
+2026-04-11 — Stream canonical sync phase: disable legacy DB replay in global/legacy queues
+- Root cause: legacy sync fallbacks could still write `trip_chat_messages` when Stream was configured but not yet connected, reintroducing split-brain transport.
+- Updated `shouldUseLegacyChatSync()` in `globalSyncProcessor` to disable legacy chat handlers whenever Stream is configured (connection timing no longer re-enables DB writes).
+- Updated `offlineMessageQueue.processQueue()` to drop legacy queued chat ops when Stream is configured, preventing stale pre-cutover replay into Supabase chat tables.
+- Added/updated regression tests in `src/services/__tests__/globalSyncProcessor.test.ts` and `src/services/__tests__/offlineMessageQueue.test.ts` for configured-vs-unconfigured Stream behavior.
+- Verification: `npm run test:run -- src/services/__tests__/globalSyncProcessor.test.ts src/services/__tests__/offlineMessageQueue.test.ts`, `npm run typecheck`, `npm run build`; lint baseline unchanged.
+
+2026-04-11 — PR #202 merge-conflict cleanup follow-up (functionExecutor test import hygiene)
+- Root cause: conflict resolution left duplicate `vi` import declarations in `supabase/functions/_shared/__tests__/functionExecutor.test.ts`, creating brittle test-module syntax and reviewer confusion.
+- Consolidated Vitest imports to one declaration and added explicit intentional-boundary comment for `(globalThis as any).Deno` test harness injection.
+- Verification: `npm run test:run -- supabase/functions/_shared/__tests__/functionExecutor.test.ts src/services/__tests__/globalSyncProcessor.test.ts src/components/pro/channels/__tests__/ChannelChatView.stream.test.tsx`; `npm run typecheck`; `npm run build`.
+
+2026-04-11 — PR #202 follow-up: remove residual conflict-marker artifacts outside transport files
+- Root cause: repository still contained unresolved merge-marker tokens in tracked utility/docs artifacts (`resolver.js`, `docs/ACTIVE/SECURITY_AUDIT_REPORT_2026.md`) even though core PR #202 code files were clean.
+- Deleted obsolete `resolver.js` merge-helper artifact and rewrote security report patch snippets from `<<<<<<< SEARCH`/`>>>>>>> REPLACE` format to plain `Before`/`After` fenced examples.
+- Verification: `rg -n "^<<<<<<< |^>>>>>>> " -S .`; `npm run test:run -- src/services/__tests__/globalSyncProcessor.test.ts src/components/pro/channels/__tests__/ChannelChatView.stream.test.tsx`; `npm run typecheck`.
+
+2026-04-12 — Next phase: global sync processor handler-wiring regression hardening
+- Root cause: `globalSyncProcessor` behavior guarantees (Stream configured => no legacy chat handlers) were only indirectly covered by `shouldUseLegacyChatSync` unit tests, leaving queue-handler wiring vulnerable to regression.
+- Expanded `src/services/__tests__/globalSyncProcessor.test.ts` with focused handler-wiring coverage:
+  - Stream configured => `processSyncQueue` receives no legacy chat create/update handlers.
+  - Stream unconfigured => legacy create handler exists and routes plain payload to `sendChatMessage` and dedupe payload (`client_message_id`) to `sendRichChatMessage`.
+- Verification: `npm run test:run -- src/services/__tests__/globalSyncProcessor.test.ts`; `npm run typecheck`; `npm run build`.
+
+2026-04-12 — Next stream-migration phase: offline legacy-queue outcome semantics hardening
+- Root cause: `offlineMessageQueue.processQueue()` reported dropped legacy chat operations as `success` when Stream was canonical, masking data-loss prevention events as delivered sends.
+- Updated queue process result contract to return `{ success, failed, dropped }` and classify Stream-canonical queue deletions as `dropped` instead of `success`.
+- Updated `src/services/__tests__/offlineMessageQueue.test.ts` to lock new semantics (`legacy duplicate` => success, `stream canonical drop` => dropped).
+- Verification: `npm run test:run -- src/services/__tests__/offlineMessageQueue.test.ts src/services/__tests__/globalSyncProcessor.test.ts`; `npm run typecheck`; `npm run build`.
+
+2026-04-12 — Next stream-migration phase: canonical transport guard consolidation
+- Root cause: Stream-canonical checks were duplicated across `globalSyncProcessor`, `offlineSyncService`, and `offlineMessageQueue` with divergent helper names (`shouldUseLegacyChatSync`, `isStreamChatActive`, `isStreamChatCanonical`), increasing drift risk.
+- Added shared guard module `src/services/stream/streamTransportGuards.ts` (`isStreamConfigured`, `shouldUseLegacyChatSync`) and rewired all three services to use this single source of truth.
+- Added focused unit tests `src/services/stream/__tests__/streamTransportGuards.test.ts` to lock blank-vs-configured API key semantics.
+- Verification: `npm run test:run -- src/services/__tests__/globalSyncProcessor.test.ts src/services/__tests__/offlineMessageQueue.test.ts src/services/__tests__/offlineSyncService.test.ts src/services/stream/__tests__/streamTransportGuards.test.ts`; `npm run typecheck`; `npm run build`.
+
+2026-04-12 — Next stream-migration phase: global sync static Supabase import hardening
+- Root cause: `globalSyncProcessor` used repeated dynamic imports of `@/integrations/supabase/client`, creating unnecessary lazy-import churn and noisy mixed import-mode build warnings in migration-critical sync code.
+- Replaced dynamic Supabase imports in `globalSyncProcessor` with one static top-level import and kept existing Stream guard behavior + handler wiring unchanged.
+- Verification: `npm run test:run -- src/services/__tests__/globalSyncProcessor.test.ts src/services/__tests__/offlineSyncService.test.ts src/services/__tests__/offlineMessageQueue.test.ts src/services/stream/__tests__/streamTransportGuards.test.ts`; `npm run typecheck`; `npm run build`.
+2026-04-12 — PR #210 merge-readiness audit follow-up (review comments resolved)
+- Addressed merge-relevant offline sync correctness issue: `offlineSyncService.syncOperation` now drops legacy `chat_message` ops when Stream is configured but not connected *and* legacy chat handlers are intentionally omitted, preventing infinite pending retries/spin.
+- Hardened scheduled broadcast mapping contract: `mapBroadcastRowToScheduledMessage` now populates required `InboxMessage` fields (`senderId`, `senderName`) to satisfy `ScheduledMessage` shape and prevent future undefined sender regressions.
+- Added targeted regression tests:
+  - `src/services/__tests__/offlineSyncService.test.ts` now covers "Stream configured but disconnected + no legacy handlers" chat queue cleanup path.
+  - `src/services/__tests__/unifiedMessagingService.test.ts` now asserts sender defaults in schedule mapper output.
+- Verification: targeted tests + typecheck + build (lint baseline remains unchanged repository-wide warning/error baseline).
