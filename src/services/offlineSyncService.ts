@@ -14,6 +14,8 @@
  */
 
 import { getOfflineDb } from '@/offline/db';
+import { getStreamClient } from '@/services/stream/streamClient';
+import { isStreamChatActive, isStreamConfigured } from '@/services/stream/streamTransportGuards';
 
 // ============================================================================
 // Types
@@ -92,12 +94,10 @@ class OfflineSyncService {
       throw new Error('Basecamp updates are not supported offline.');
     }
 
-    // Stream handles its own offline queueing, so skip custom queueing
-    // if Stream is active and entity is chat message
-    // We check the environment variable directly since this service runs outside React context
-    if (entityType === 'chat_message' && import.meta.env.VITE_STREAM_API_KEY) {
+    // Stream handles its own queueing only when configured + enabled + connected.
+    if (entityType === 'chat_message' && isStreamChatActive(getStreamClient()?.userID)) {
       if (import.meta.env.DEV) {
-        console.log('[OfflineSync] Bypassing custom queue for chat message due to Stream config');
+        console.log('[OfflineSync] Bypassing custom queue for chat message (Stream active)');
       }
       return `stream_handled_${Date.now()}`;
     }
@@ -365,6 +365,25 @@ class OfflineSyncService {
       }
 
       let handlerRan = false;
+
+      // Backward-compat cleanup: if legacy chat operations exist in IndexedDB from pre-Stream
+      // sessions, drop them once Stream chat is active to avoid dual-write replay.
+      if (entityType === 'chat_message' && isStreamChatActive(getStreamClient()?.userID)) {
+        await this.removeOperation(id);
+        return 'processed';
+      }
+      // Stream cutover safety: when Stream is configured (canonical transport) but not yet
+      // connected, legacy chat handlers may be intentionally omitted by global sync.
+      // Drop stale legacy chat queue entries to avoid permanent pending retries/noise.
+      if (
+        entityType === 'chat_message' &&
+        isStreamConfigured() &&
+        !handlers.onChatMessageCreate &&
+        !handlers.onChatMessageUpdate
+      ) {
+        await this.removeOperation(id);
+        return 'processed';
+      }
 
       // Route to appropriate handler
       switch (entityType) {

@@ -630,10 +630,10 @@ const Index = () => {
   const handleTabChange = useCallback(
     (tab: TabId) => {
       closeAllTabModals();
-      setActiveTab(tab);
       // Use setTimeout(0) so the close renders before the open,
       // preventing stacking artifacts
       setTimeout(() => {
+        setActiveTab(tab);
         switch (tab) {
           case 'trips':
             setShowTripTypeSwitcher(true);
@@ -904,13 +904,17 @@ const Index = () => {
             onTabChange={handleTabChange}
             onNewPress={() => {
               closeAllTabModals();
-              setActiveTab('new');
-              setTimeout(() => setIsCreateModalOpen(true), 0);
+              setTimeout(() => {
+                setActiveTab('new');
+                setIsCreateModalOpen(true);
+              }, 0);
             }}
             onSearchPress={() => {
               closeAllTabModals();
-              setActiveTab('search');
-              setTimeout(() => setIsSearchOpen(true), 0);
+              setTimeout(() => {
+                setActiveTab('search');
+                setIsSearchOpen(true);
+              }, 0);
             }}
             alertsBadge={notificationUnreadCount}
             tripTypeLabel={getTripTypeForTabBar()}
@@ -1085,13 +1089,17 @@ const Index = () => {
           onTabChange={handleTabChange}
           onNewPress={() => {
             closeAllTabModals();
-            setActiveTab('new');
-            setTimeout(() => setIsCreateModalOpen(true), 0);
+            setTimeout(() => {
+              setActiveTab('new');
+              setIsCreateModalOpen(true);
+            }, 0);
           }}
           onSearchPress={() => {
             closeAllTabModals();
-            setActiveTab('search');
-            setTimeout(() => setIsSearchOpen(true), 0);
+            setTimeout(() => {
+              setActiveTab('search');
+              setIsSearchOpen(true);
+            }, 0);
           }}
           alertsBadge={notificationUnreadCount}
           tripTypeLabel={getTripTypeForTabBar()}
@@ -1297,13 +1305,17 @@ const Index = () => {
         onTabChange={handleTabChange}
         onNewPress={() => {
           closeAllTabModals();
-          setActiveTab('new');
-          setTimeout(() => setIsCreateModalOpen(true), 0);
+          setTimeout(() => {
+            setActiveTab('new');
+            setIsCreateModalOpen(true);
+          }, 0);
         }}
         onSearchPress={() => {
           closeAllTabModals();
-          setActiveTab('search');
-          setTimeout(() => setIsSearchOpen(true), 0);
+          setTimeout(() => {
+            setActiveTab('search');
+            setIsSearchOpen(true);
+          }, 0);
         }}
         alertsBadge={notificationUnreadCount}
         tripTypeLabel={getTripTypeForTabBar()}
