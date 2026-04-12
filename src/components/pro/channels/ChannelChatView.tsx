@@ -138,6 +138,10 @@ export const ChannelChatView = ({
     setReplyingTo(null);
   }, []);
 
+  // Transform ChannelMessage to ChatMessage format for MessageItem
+  const transportMessages = useMemo<ChannelMessage[]>(() => {
+    if (!useStreamTransport) return messages;
+
     const streamMessages = streamProChannel.messages;
     const streamById = new Map<string, MessageResponse>(
       streamMessages.map(msg => [String(msg.id), msg as MessageResponse]),

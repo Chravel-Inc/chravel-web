@@ -23,6 +23,11 @@ export function shouldUseLegacyChatSync(): boolean {
   return !streamConfigured;
 }
 
+export function shouldUseLegacyChatSync(): boolean {
+  const streamConfigured = Boolean(import.meta.env.VITE_STREAM_API_KEY);
+  return !streamConfigured;
+}
+
 /**
  * Process sync queue with all handlers
  *
