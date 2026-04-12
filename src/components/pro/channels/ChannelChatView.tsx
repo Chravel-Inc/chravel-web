@@ -121,22 +121,19 @@ export const ChannelChatView = ({
     if (!useStreamTransport) return messages;
 
   // Handle opening a reply
-  const handleOpenReply = useCallback(
-    (messageId: string) => {
-      const msg = transportMessages.find(m => m.id === messageId);
-      if (!msg) return;
-      setReplyingTo({
-        id: msg.id,
-        text: msg.content,
-        senderName: msg.senderName,
-      });
-    },
-    [transportMessages],
-  );
+  const handleOpenReply = (messageId: string) => {
+    const msg = transportMessages.find(m => m.id === messageId);
+    if (!msg) return;
+    setReplyingTo({
+      id: msg.id,
+      text: msg.content,
+      senderName: msg.senderName,
+    });
+  };
 
-  const clearReply = useCallback(() => {
+  const clearReply = () => {
     setReplyingTo(null);
-  }, []);
+  };
 
   // Transform ChannelMessage to ChatMessage format for MessageItem
   const transportMessages = useMemo<ChannelMessage[]>(() => {
