@@ -481,3 +481,22 @@
   - ESLint `no-restricted-imports` entries blocking `enhancedTripContextService` import paths.
   - `src/services/CONCIERGE_CONTEXT_ARCHITECTURE.md` documenting `TripContextAggregator` as the single source of truth.
   - Inline invariant comment near context assembly in `UniversalConciergeService`.
+2026-04-12 — AIConciergeChat structural refactor kickoff (types/utils/hooks extraction scaffolding)
+- Extracted concierge logic primitives into new module `src/features/concierge/`:
+  - `types.ts` for shared concierge chat contracts (`ChatMessage`, invoke payload, attachment/fallback shapes, `AiStatus`).
+  - `utils/chatHelpers.ts` for constants, timeout invoke helper, attachment encoder, rich metadata extractor, and fallback response builder.
+  - Hook scaffolds: `useConciergeMessages`, `useConciergeVoice`, `useSmartImportActions`, `useConciergeAttachments`.
+- Updated `src/services/conciergeCacheService.ts` to import `ChatMessage` from the new concierge types module.
+- Added backward-compat re-export in `AIConciergeChat.tsx`: `export type { ChatMessage } from '@/features/concierge/types'`.
+- Updated `CLAUDE.md` technical debt note to current measured file size (`AIConciergeChat.tsx`: 2,306 lines).
+- Verification: `npm run typecheck`, `npm run lint`, `npm run build`, `npm run test -- src/components/__tests__/AIConciergeChat.test.tsx`.
+2026-04-12 — AIConciergeChat full logic extraction completion pass
+- Completed next-phase reduction: `src/components/AIConciergeChat.tsx` now functions as a thin orchestrator at 540 lines.
+- Wired previously extracted hooks into live component flow:
+  - `useConciergeMessages` now owns message lifecycle state/effects and exposes `isHistoryLoading` for skeleton gating.
+  - `useConciergeAttachments` and `useSmartImportActions` own attachment/import action state.
+  - `useConciergeVoice` owns dictation + LiveKit state/callbacks and now exposes transcript/session controls used by `VoiceLiveInline`.
+- Added `useConciergeStreaming.ts` and moved the full send/streaming callback pipeline out of the component.
+  - AIConcierge orchestrator now delegates `handleSendMessage` to this hook.
+- Preserved behavior: auth checks, tripId threading, stream callbacks, pending action invalidations, and offline fallback remain intact.
+- Verification: `npm run typecheck && npm run build`, `npm run lint`, `npm run test -- src/components/__tests__/AIConciergeChat.test.tsx`.
