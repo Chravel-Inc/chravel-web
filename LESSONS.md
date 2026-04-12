@@ -432,3 +432,10 @@
 - **Evidence:** `EnhancedTripContextService` was unreferenced and removed; adding lint restrictions for common relative/alias import paths hardens `TripContextAggregator` as the sole concierge context path.
 - **Provenance:** April 2026 concierge context hardening.
 - **Confidence:** high
+
+### Decompose god-components by extracting stateful domains before moving large async pipelines
+- **Tip:** For very large React components, extract independent state/effect domains first (messages, voice, attachments, action-state), then move the largest async handler (stream/send pipeline) last. This shrinks orchestration complexity while preserving behavior and makes the final high-risk move mostly parameter threading.
+- **Applies when:** A single component mixes UI render, realtime/streaming callbacks, and multiple feature domains.
+- **Evidence:** `AIConciergeChat.tsx` reduction from 2,306 lines to 540 lines succeeded by first wiring `useConciergeMessages/useConciergeVoice/useConciergeAttachments/useSmartImportActions`, then extracting `handleSendMessage` into `useConciergeStreaming`.
+- **Provenance:** April 2026 concierge refactor completion.
+- **Confidence:** medium
