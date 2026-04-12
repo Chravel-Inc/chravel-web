@@ -18,6 +18,8 @@ import { ConciergeDemoScreen } from './demo/screens/ConciergeDemoScreen';
 import { PaymentsTrackingDemoScreen } from './demo/screens/PaymentsTrackingDemoScreen';
 import { PlacesDemoScreen } from './demo/screens/PlacesDemoScreen';
 import { MediaDemoScreen } from './demo/screens/MediaDemoScreen';
+import { PollsDemoScreen } from './demo/screens/PollsDemoScreen';
+import { TasksDemoScreen } from './demo/screens/TasksDemoScreen';
 import { FinalCTAScreen } from './demo/screens/FinalCTAScreen';
 import { PhoneFrame } from './demo/PhoneFrame';
 import { useOnboardingLayout } from './demo/useOnboardingLayout';
@@ -32,7 +34,7 @@ interface OnboardingCarouselProps {
   onCreateTrip: () => void;
 }
 
-const TOTAL_SCREENS = 8;
+const TOTAL_SCREENS = 10;
 
 interface ScreenConfig {
   component:
@@ -92,6 +94,20 @@ const screens: ScreenConfig[] = [
     title: 'Pin your spots.',
     subtitle: 'Save hotels, restaurants, and landmarks — your group always knows where to go.',
     pill: 'places',
+    showInFrame: true,
+  },
+  {
+    component: PollsDemoScreen,
+    title: 'Decide together.',
+    subtitle: 'Polls that settle debates — destination, budget, plans.',
+    pill: 'polls',
+    showInFrame: true,
+  },
+  {
+    component: TasksDemoScreen,
+    title: 'Everyone knows their part.',
+    subtitle: "Assign tasks, set deadlines, track who's done.",
+    pill: 'tasks',
     showInFrame: true,
   },
   { component: FinalCTAScreen, title: '', subtitle: '', showInFrame: false },

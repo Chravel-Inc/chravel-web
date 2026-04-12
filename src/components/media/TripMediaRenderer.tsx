@@ -14,6 +14,7 @@
 
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Play, AlertCircle, Download, ImageOff } from 'lucide-react';
+import { getMediaCategory, isBlobOrDataUrl } from '@/utils/mediaUtils';
 
 interface TripMediaRendererProps {
   /** Full URL to the media file */
@@ -34,19 +35,6 @@ interface TripMediaRendererProps {
   autoPlay?: boolean;
   /** Optional error callback */
   onError?: (error: React.SyntheticEvent) => void;
-}
-
-/**
- * Determines the media category from a MIME type
- */
-function getMediaCategory(mimeType: string): 'video' | 'image' | 'document' {
-  if (mimeType.startsWith('video/')) return 'video';
-  if (mimeType.startsWith('image/')) return 'image';
-  return 'document';
-}
-
-function isBlobOrDataUrl(url: string): boolean {
-  return url.startsWith('blob:') || url.startsWith('data:');
 }
 
 function describeMediaError(target: EventTarget | null): string | undefined {
