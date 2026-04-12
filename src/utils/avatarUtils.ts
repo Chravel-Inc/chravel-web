@@ -6,6 +6,7 @@
  * - Consistent color generation from name hash
  * - Improved initials extraction
  */
+import { isBlobOrDataUrl } from './mediaUtils';
 
 /**
  * Extracts initials from a person's name
@@ -35,8 +36,8 @@ export const isValidAvatarUrl = (avatarUrl?: string | null): boolean => {
   // Accept local paths starting with '/'
   if (avatarUrl.startsWith('/')) return true;
 
-  // Accept data URIs (for SVG avatars)
-  if (avatarUrl.startsWith('data:')) return true;
+  // Accept blob or data URIs (for SVG or uploaded avatars)
+  if (isBlobOrDataUrl(avatarUrl)) return true;
 
   // Check for valid URL format and common image extensions
   try {
