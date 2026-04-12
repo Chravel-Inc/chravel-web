@@ -14,6 +14,8 @@ export const mapBroadcastRowToScheduledMessage = (row: BroadcastRow): ScheduledM
   id: row.id,
   tripId: row.trip_id,
   content: row.message,
+  senderId: row.created_by ?? 'system',
+  senderName: 'System',
   sendAt: row.scheduled_for ?? row.created_at,
   isSent: row.is_sent ?? false,
   priority: isScheduledPriority(row.priority) ? row.priority : 'fyi',

@@ -39,5 +39,6 @@ describe('AdminDashboard broadcast scheduling disabled state', () => {
     ).toBeInTheDocument();
 
     expect(screen.getByRole('button', { name: 'Schedule Pro Trip Message' })).toBeDisabled();
+    expect(getScheduledMessagesMock).not.toHaveBeenCalled();
   });
 });
