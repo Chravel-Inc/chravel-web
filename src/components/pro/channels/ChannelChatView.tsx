@@ -241,6 +241,20 @@ export const ChannelChatView = ({
     }, {});
   }, [streamProChannel.messages, useStreamTransport, user?.id]);
 
+  // Handle opening a reply
+  const handleOpenReply = useCallback(
+    (messageId: string) => {
+      const msg = transportMessages.find(m => m.id === messageId);
+      if (!msg) return;
+      setReplyingTo({
+        id: msg.id,
+        text: msg.content,
+        senderName: msg.senderName,
+      });
+    },
+    [transportMessages],
+  );
+
   useEffect(() => {
     // Demo-only message hydration; non-demo channels are Stream-backed.
     if (!isDemoChannel) {
@@ -317,16 +331,16 @@ export const ChannelChatView = ({
     }
 
     try {
-      if (useStreamTransport) {
-        const parentId = replyingTo ? replyingTo.id : undefined;
-        const sent = await streamProChannel.sendMessage(inputMessage.trim(), { parentId });
-        if (!sent) {
-          throw new Error('Failed to send via Stream');
-        }
-        setInputMessage('');
-        clearReply();
-        return;
+      const parentId = replyingTo ? replyingTo.id : undefined;
+      const sent = await streamProChannel.sendMessage(inputMessage.trim(), {
+        parentId,
+        isBroadcast,
+      });
+      if (!sent) {
+        throw new Error('Failed to send via Stream');
       }
+      setInputMessage('');
+      clearReply();
     } catch (error) {
       if (import.meta.env.DEV) console.error('[ChannelChatView] Send failed:', error);
       const mapped = mapChannelSendError(error);
