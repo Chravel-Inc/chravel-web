@@ -9,7 +9,7 @@
  * - Query similarity matching for offline responses
  */
 
-import { ChatMessage } from '../components/AIConciergeChat';
+import type { ChatMessage } from '@/features/concierge/types';
 
 interface CachedResponse {
   query: string;

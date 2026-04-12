@@ -197,7 +197,7 @@ iOS → Capacitor shell → same web app → same Supabase backend
 ## Known Tech Debt (Critical Items)
 
 - `lovable-concierge` edge function: 2,155-line monolith
-- `AIConciergeChat.tsx`: 2,088-line god component
+- `AIConciergeChat.tsx`: 2,306-line god component
 - Flat `src/hooks/` (100 files) and `src/services/` (82 files) — need modularization
 - Only 5 of ~12 domains use `src/features/` pattern
 - ~160 tables with potential orphans (mock tables in prod schema)

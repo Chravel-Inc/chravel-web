@@ -49,265 +49,39 @@ import {
 } from '@/lib/conciergeInvalidation';
 import { sanitizeConciergeContent } from '@/lib/sanitizeConciergeContent';
 import { usePendingActions } from '@/hooks/usePendingActions';
+import {
+  ALLOWED_DOCUMENT_TYPES,
+  ALLOWED_IMAGE_TYPES as _ALLOWED_IMAGE_TYPES,
+  ALL_ACCEPTED_TYPES,
+  DUPLEX_VOICE_ENABLED,
+  EMPTY_SESSION,
+  FAST_RESPONSE_TIMEOUT_MS,
+  MAX_CHAT_HISTORY_MESSAGES,
+  MAX_DOCUMENT_SIZE_BYTES as _MAX_DOCUMENT_SIZE_BYTES,
+  MAX_IMAGE_SIZE_BYTES as _MAX_IMAGE_SIZE_BYTES,
+  MAX_SINGLE_MESSAGE_LENGTH,
+  UPLOAD_ENABLED,
+  _uniqueId,
+  extractRichMetadata,
+  fileToAttachmentPayload,
+  generateFallbackResponse,
+  invokeConciergeWithTimeout,
+} from '@/features/concierge/utils/chatHelpers';
+import type {
+  AIConciergeChatProps,
+  AiStatus,
+  AttachmentIntent,
+  ChatMessage,
+  ConciergeAttachment,
+  ConciergeInvokePayload,
+  FallbackTripContext,
+} from '@/features/concierge/types';
+import { useConciergeAttachments } from '@/features/concierge/hooks/useConciergeAttachments';
+import { useSmartImportActions } from '@/features/concierge/hooks/useSmartImportActions';
+import { useConciergeMessages } from '@/features/concierge/hooks/useConciergeMessages';
+import { useConciergeVoice } from '@/features/concierge/hooks/useConciergeVoice';
 
-const EMPTY_SESSION: ConciergeSession = {
-  tripId: '',
-  messages: [],
-  voiceState: 'idle',
-  lastError: null,
-  lastErrorAt: null,
-  lastSuccessAt: null,
-  historyLoadedFromServer: false,
-};
-
-// ─── Feature Flags ────────────────────────────────────────────────────────────
-const UPLOAD_ENABLED = true;
-/**
- * DUPLEX_VOICE_ENABLED — master safety gate for live voice UX.
- *
- * Keep this `false` until LiveKit end-to-end readiness is confirmed
- * (token issuance + agent join + tool execution + clean disconnect).
- * This hides the "Live" CTA but preserves all LiveKit architecture for
- * a future re-enable by flipping this constant.
- */
-const DUPLEX_VOICE_ENABLED = false;
-// ─────────────────────────────────────────────────────────────────────────────
-
-interface AIConciergeChatProps {
-  tripId: string;
-  basecamp?: { name: string; address: string };
-  preferences?: TripPreferences;
-  isDemoMode?: boolean;
-  onTabChange?: (tab: string) => void;
-}
-
-export interface ChatMessage {
-  id: string;
-  type: 'user' | 'assistant';
-  content: string;
-  timestamp: string;
-  pendingActions?: Array<{
-    id: string;
-    toolName: string;
-    actionType: string;
-    message: string;
-    title?: string;
-    detail?: string | null;
-  }>;
-  usage?: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
-  };
-  sources?: Array<{
-    title: string;
-    url: string;
-    snippet: string;
-    source?: string;
-  }>;
-  googleMapsWidget?: string;
-  googleMapsWidgetContextToken?: string;
-  /** Rich place results from searchPlaces / getPlaceDetails tool calls */
-  functionCallPlaces?: Array<{
-    placeId?: string | null;
-    name: string;
-    address?: string;
-    rating?: number | null;
-    userRatingCount?: number | null;
-    priceLevel?: string | null;
-    mapsUrl?: string | null;
-    previewPhotoUrl?: string | null;
-    photoUrls?: string[];
-  }>;
-  /** Rich flight results from searchFlights tool calls */
-  functionCallFlights?: Array<{
-    origin: string;
-    destination: string;
-    departureDate: string;
-    returnDate?: string;
-    passengers: number;
-    deeplink: string;
-    provider?: string | null;
-    price?: { amount?: number | null; currency?: string | null; display?: string | null } | null;
-    airline?: string | null;
-    flightNumber?: string | null;
-    stops?: number | null;
-    durationMinutes?: number | null;
-    departTime?: string | null;
-    arriveTime?: string | null;
-    refundable?: boolean | null;
-  }>;
-  /** Rich hotel results from searchHotels tool calls or trip_cards event */
-  functionCallHotels?: HotelResult[];
-  /** Action results from concierge write tools (createPoll, createTask, etc.) */
-  conciergeActions?: Array<{
-    actionType: string;
-    success: boolean;
-    message: string;
-    entityId?: string;
-    entityName?: string;
-    scope?: string;
-    status?: 'success' | 'failure' | 'duplicate' | 'skipped';
-  }>;
-  /** Reservation draft cards from emitReservationDraft tool */
-  reservationDrafts?: ReservationDraft[];
-  /** Smart Import preview data from emitSmartImportPreview tool */
-  smartImportPreview?: {
-    previewEvents: SmartImportPreviewEvent[];
-    tripId: string;
-    totalEvents: number;
-    duplicateCount: number;
-    lodgingName?: string;
-  };
-  /** Smart Import status messages (parsing progress) */
-  smartImportStatus?: { status: SmartImportStatus; message: string };
-  /** Bulk Delete preview data from emitBulkDeletePreview tool */
-  bulkDeletePreview?: {
-    previewEvents: SmartImportPreviewEvent[];
-    previewToken: string;
-    tripId: string;
-    totalEvents: number;
-  };
-  /**
-   * True while this message is the live-streaming voice response from Gemini
-   * Live (Fix 2).  Rendered with a pulsing ring so the user sees the assistant
-   * is still speaking.  Cleared by handleLiveTurnComplete when the turn ends.
-   */
-  isStreamingVoice?: boolean;
-}
-
-interface ConciergeInvokePayload {
-  response?: string;
-  usage?: ChatMessage['usage'];
-  sources?: ChatMessage['sources'];
-  citations?: ChatMessage['sources'];
-  googleMapsWidget?: string;
-  googleMapsWidgetContextToken?: string;
-  success?: boolean;
-  error?: string;
-  places?: Array<Record<string, unknown>>;
-  flights?: Array<Record<string, unknown>>;
-  hotels?: Array<Record<string, unknown>>;
-  conciergeActions?: Array<Record<string, unknown>>;
-}
-
-interface ConciergeAttachment {
-  mimeType: string;
-  data: string;
-  name?: string;
-}
-
-interface FallbackEvent {
-  title?: string;
-  name?: string;
-  startTime?: string;
-  location?: string;
-}
-
-interface FallbackPayment {
-  isSettled?: boolean;
-  settled?: boolean;
-  amount?: number;
-  description?: string;
-  paidBy?: string;
-  createdByName?: string;
-}
-
-interface FallbackTripContext {
-  itinerary?: FallbackEvent[];
-  calendar?: FallbackEvent[];
-  payments?: FallbackPayment[];
-}
-
-const FAST_RESPONSE_TIMEOUT_MS = 60_000;
-const MAX_CHAT_HISTORY_MESSAGES = 10;
-const MAX_SINGLE_MESSAGE_LENGTH = 3000;
-const _MAX_IMAGE_SIZE_BYTES = 4 * 1024 * 1024; // 4 MB — keeps base64 under 6 MB server limit
-const _MAX_DOCUMENT_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB for documents
-const _ALLOWED_IMAGE_TYPES = new Set([
-  'image/jpeg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-  'image/heic',
-  'image/heif',
-]);
-type AttachmentIntent = 'smart_import' | 'summarize' | 'qa';
-const ALLOWED_DOCUMENT_TYPES = new Set([
-  'application/pdf',
-  'text/calendar',
-  'text/csv',
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-]);
-/** All accepted file types for drag-drop and paste */
-const ALL_ACCEPTED_TYPES = new Set([..._ALLOWED_IMAGE_TYPES, ...ALLOWED_DOCUMENT_TYPES]);
-
-/** Extract rich card metadata from a ChatMessage for persistence to ai_queries.metadata */
-function extractRichMetadata(msg: ChatMessage | undefined | null): Record<string, unknown> | null {
-  if (!msg) return null;
-  const meta: Record<string, unknown> = {};
-  if (msg.functionCallPlaces?.length) meta.functionCallPlaces = msg.functionCallPlaces;
-  if (msg.functionCallFlights?.length) meta.functionCallFlights = msg.functionCallFlights;
-  if (msg.functionCallHotels?.length) meta.functionCallHotels = msg.functionCallHotels;
-  if (msg.googleMapsWidget) meta.googleMapsWidget = msg.googleMapsWidget;
-  if (msg.conciergeActions?.length) meta.conciergeActions = msg.conciergeActions;
-  if (msg.sources?.length) meta.sources = msg.sources;
-  return Object.keys(meta).length > 0 ? meta : null;
-}
-
-/** Simple unique ID generator for chat messages */
-const _uniqueId = (prefix: string) =>
-  `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-
-const fileToAttachmentPayload = async (file: File): Promise<ConciergeAttachment> => {
-  const dataUrl = await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result ?? ''));
-    reader.onerror = () => reject(new Error(`Failed to read "${file.name}"`));
-    reader.readAsDataURL(file);
-  });
-
-  const base64Index = dataUrl.indexOf('base64,');
-  if (base64Index < 0) {
-    throw new Error(`Unable to encode "${file.name}" for upload`);
-  }
-
-  return {
-    mimeType: file.type || 'image/jpeg',
-    data: dataUrl.substring(base64Index + 'base64,'.length),
-    name: file.name,
-  };
-};
-
-const invokeConciergeWithTimeout = async (
-  requestBody: Record<string, unknown> & { message: string },
-  options: { demoMode?: boolean } = {},
-): Promise<{ data: ConciergeInvokePayload | null; error: { message?: string } | null }> => {
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
-
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(() => {
-      reject(new Error('AI request timed out'));
-    }, FAST_RESPONSE_TIMEOUT_MS);
-  });
-
-  try {
-    const response = (await Promise.race([
-      invokeConcierge(requestBody, options),
-      timeoutPromise,
-    ])) as {
-      data: ConciergeInvokePayload | null;
-      error: { message?: string } | null;
-    };
-
-    return response;
-  } finally {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-  }
-};
+export type { ChatMessage } from '@/features/concierge/types';
 
 export const AIConciergeChat = ({
   tripId,

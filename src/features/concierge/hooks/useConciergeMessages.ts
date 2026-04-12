@@ -1,0 +1,235 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { useOfflineStatus } from '@/hooks/useOfflineStatus';
+import { useConciergeHistory } from '@/hooks/useConciergeHistory';
+import { useConciergeSessionStore } from '@/store/conciergeSessionStore';
+import { useStreamConciergeHistory } from '@/hooks/stream/useStreamConciergeHistory';
+import { getStreamClient } from '@/services/stream/streamClient';
+import { conciergeCacheService } from '@/services/conciergeCacheService';
+import { supabase } from '@/integrations/supabase/client';
+import { FAST_RESPONSE_TIMEOUT_MS, EMPTY_SESSION } from '@/features/concierge/utils/chatHelpers';
+import type { AiStatus, ChatMessage } from '@/features/concierge/types';
+
+interface Params {
+  tripId: string;
+  isDemoMode: boolean;
+  userId?: string;
+  userPlan: 'free' | 'explorer' | 'frequent_chraveler';
+}
+
+export function useConciergeMessages({ tripId, isDemoMode, userId, userPlan }: Params) {
+  const { user } = useAuth();
+  const { isOffline } = useOfflineStatus();
+  const storeSessionRaw = useConciergeSessionStore(s => s.sessions[tripId]);
+  const storeSession = storeSessionRaw ?? EMPTY_SESSION;
+  const setStoreMessages = useConciergeSessionStore(s => s.setMessages);
+
+  const streamConciergeEnabled = !!getStreamClient()?.userID && !isDemoMode;
+  const {
+    messages: streamHistoryMessages,
+    isLoading: isStreamHistoryLoading,
+    isLoaded: isStreamHistoryLoaded,
+  } = useStreamConciergeHistory(
+    streamConciergeEnabled ? tripId : undefined,
+    streamConciergeEnabled ? userId : undefined,
+  );
+
+  const [messages, setMessages] = useState<ChatMessage[]>(() =>
+    storeSession.messages.length > 0 ? (storeSession.messages as ChatMessage[]) : [],
+  );
+  const messagesRef = useRef<ChatMessage[]>(messages);
+  const [inputMessage, setInputMessage] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [aiStatus, setAiStatus] = useState<AiStatus>('connected');
+  const [historyLoadedFromServer, setHistoryLoadedFromServer] = useState(
+    storeSession.historyLoadedFromServer,
+  );
+
+  const isMounted = useRef(true);
+  const streamAbortRef = useRef<(() => void) | null>(null);
+  const chatScrollRef = useRef<HTMLDivElement | null>(null);
+  const hasHydratedRef = useRef(false);
+
+  const buildLimitReachedMessage = useCallback((): ChatMessage => {
+    const plan = userPlan === 'explorer' ? 'Explorer' : 'free';
+    const ctaTarget =
+      userPlan === 'explorer' ? 'Frequent Chraveler' : 'Explorer or Frequent Chraveler';
+    return {
+      id: `limit-reached-${Date.now()}`,
+      type: 'assistant',
+      content:
+        `Thanks so much for your question! Unfortunately you've reached your Concierge limit ` +
+        `for this trip on the ${plan} plan. Upgrade to the ${ctaTarget} plan to keep chatting ` +
+        `with your AI Concierge and get even more personalised trip recommendations.`,
+      timestamp: new Date().toISOString(),
+    };
+  }, [userPlan]);
+
+  const {
+    data: historyMessages,
+    isLoading: isHistoryLoading,
+    error: historyError,
+  } = useConciergeHistory(tripId);
+  const canonicalHistoryMessages = useMemo(() => {
+    if (streamConciergeEnabled) {
+      return streamHistoryMessages.map(message => ({
+        id: `stream-history-${message.id}`,
+        type: message.type,
+        content: message.content,
+        timestamp: message.timestamp,
+        sources: message.sources,
+        googleMapsWidget: message.googleMapsWidget,
+        googleMapsWidgetContextToken: message.googleMapsWidgetContextToken,
+        functionCallPlaces: message.functionCallPlaces as ChatMessage['functionCallPlaces'],
+        functionCallFlights: message.functionCallFlights as ChatMessage['functionCallFlights'],
+        usage: message.usage,
+      }));
+    }
+    return historyMessages;
+  }, [historyMessages, streamConciergeEnabled, streamHistoryMessages]);
+
+  const mergedHistoryMessages = useMemo(() => {
+    const combined = [...canonicalHistoryMessages];
+    if (combined.length === 0) return combined;
+    const dedupedByFingerprint = new Map<string, ChatMessage>();
+    combined.forEach(message => {
+      const fingerprint = `${message.type}|${message.content.trim()}|${message.timestamp}`;
+      if (!dedupedByFingerprint.has(fingerprint)) dedupedByFingerprint.set(fingerprint, message);
+    });
+    return Array.from(dedupedByFingerprint.values()).sort(
+      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+    );
+  }, [canonicalHistoryMessages]);
+
+  useEffect(() => {
+    if (streamConciergeEnabled && !isStreamHistoryLoaded && messages.length === 0) {
+      hasHydratedRef.current = false;
+    }
+  }, [streamConciergeEnabled, isStreamHistoryLoaded, messages.length]);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+      streamAbortRef.current?.();
+      streamAbortRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const isAnyHistoryLoading =
+      isHistoryLoading ||
+      (streamConciergeEnabled && isStreamHistoryLoading && !isStreamHistoryLoaded);
+    if (isAnyHistoryLoading || hasHydratedRef.current) return;
+
+    if (historyError && mergedHistoryMessages.length === 0) {
+      const cached = conciergeCacheService.getCachedMessages(tripId, user?.id ?? 'anonymous');
+      if (cached.length > 0) {
+        setMessages(prev => (prev.length === 0 ? cached : prev));
+      }
+      hasHydratedRef.current = true;
+      return;
+    }
+
+    if (mergedHistoryMessages.length > 0) {
+      setMessages(prev => (prev.length > 0 ? prev : mergedHistoryMessages));
+      setHistoryLoadedFromServer(true);
+    }
+
+    hasHydratedRef.current = true;
+  }, [
+    isHistoryLoading,
+    isStreamHistoryLoading,
+    isStreamHistoryLoaded,
+    streamConciergeEnabled,
+    historyError,
+    mergedHistoryMessages,
+    tripId,
+    user?.id,
+  ]);
+
+  useEffect(() => {
+    if (!isOffline || messages.length > 0) return;
+    const cached = conciergeCacheService.getCachedMessages(tripId, user?.id ?? 'anonymous');
+    if (cached.length > 0) setMessages(cached);
+  }, [isOffline, messages.length, tripId, user?.id]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+    if (messages.length > 0) {
+      setStoreMessages(
+        tripId,
+        messages as import('@/store/conciergeSessionStore').ConciergeSessionMessage[],
+      );
+    }
+  }, [messages, tripId, setStoreMessages]);
+
+  useEffect(() => {
+    if (!isTyping) return;
+    const watchdog = setTimeout(() => {
+      if (!isMounted.current) return;
+      setIsTyping(false);
+      setAiStatus(prev => (prev === 'thinking' ? 'timeout' : prev));
+    }, FAST_RESPONSE_TIMEOUT_MS + 5000);
+    return () => clearTimeout(watchdog);
+  }, [isTyping]);
+
+  useEffect(() => {
+    if (aiStatus === 'connected' || messages.length > 0) return;
+    const timeout = setTimeout(() => {
+      if (isMounted.current && aiStatus === 'checking') setAiStatus('timeout');
+    }, 8000);
+    return () => clearTimeout(timeout);
+  }, [aiStatus, messages.length]);
+
+  useEffect(() => {
+    if (isOffline) setAiStatus('offline');
+    else if (aiStatus === 'offline') setAiStatus('connected');
+  }, [isOffline, aiStatus]);
+
+  const handleDeleteMessage = useCallback(
+    async (messageId: string) => {
+      setMessages(prev => prev.filter(m => m.id !== messageId));
+      const historyMatch = messageId.match(/^history-(user|assistant)-([^-]+)/);
+      if (historyMatch && user?.id) {
+        const [, role, rowId] = historyMatch;
+        if (role === 'user') {
+          await supabase.from('ai_queries').delete().eq('id', rowId).eq('user_id', user.id);
+          const pairedPrefix = `history-assistant-${rowId}`;
+          setMessages(prev => prev.filter(m => !m.id.startsWith(pairedPrefix)));
+        } else {
+          await supabase
+            .from('ai_queries')
+            .update({ response_text: null })
+            .eq('id', rowId)
+            .eq('user_id', user.id);
+        }
+      }
+    },
+    [user?.id],
+  );
+
+  return {
+    user,
+    isOffline,
+    streamConciergeEnabled,
+    isStreamHistoryLoading,
+    isStreamHistoryLoaded,
+    messages,
+    setMessages,
+    messagesRef,
+    inputMessage,
+    setInputMessage,
+    isTyping,
+    setIsTyping,
+    aiStatus,
+    setAiStatus,
+    historyLoadedFromServer,
+    setHistoryLoadedFromServer,
+    isMounted,
+    streamAbortRef,
+    chatScrollRef,
+    buildLimitReachedMessage,
+    handleDeleteMessage,
+  };
+}
