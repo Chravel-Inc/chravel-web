@@ -459,6 +459,12 @@
 - Updated `useShareAsset` to use canonical transport selection (`Stream active -> Stream send`, fallback -> legacy `sendChatMessage`) instead of always writing `trip_chat_messages`.
 - Added focused tests `src/services/stream/__tests__/tripMessageTransport.test.ts` to lock active/inactive behavior and payload normalization.
 - Verification: `npm run test:run -- src/services/stream/__tests__/tripMessageTransport.test.ts`, `npm run typecheck`, `npm run build`.
+
+2026-04-12 — Stream migration phase: legacy channel send guardrails (service-layer)
+- Added Stream-canonical runtime guard to `channelService.sendMessage` so legacy Supabase `channel_messages` writes are blocked when `VITE_STREAM_API_KEY` is configured.
+- Added equivalent guard to `roleChannelService.sendChannelMessage` to prevent accidental reintroduction of dual-write paths.
+- Added focused regression tests in `src/__tests__/channel-send-flow.test.ts` and `src/services/__tests__/roleChannelService.test.ts` covering Stream-configured guard behavior.
+- Verification: `npm run test:run -- src/__tests__/channel-send-flow.test.ts src/services/__tests__/roleChannelService.test.ts`, `npm run typecheck`, `npm run build`.
 2026-04-11 — Chat search dead-code removal + overlay regression test
 - Confirmed legacy `MessageSearch` component and `messageSearchService` were not referenced outside their own files; removed both to eliminate duplicate search paths.
 - Re-verified TripChat search integration remains solely `TripChat -> ChatSearchOverlay -> chatSearchService`.
