@@ -120,25 +120,7 @@ export const ChannelChatView = ({
   const transportMessages = useMemo<ChannelMessage[]>(() => {
     if (!useStreamTransport) return messages;
 
-  // Handle opening a reply
-  const handleOpenReply = useCallback(
-    (messageId: string) => {
-      const msg = transportMessages.find(m => m.id === messageId);
-      if (!msg) return;
-      setReplyingTo({
-        id: msg.id,
-        text: msg.content,
-        senderName: msg.senderName,
-      });
-    },
-    [transportMessages],
-  );
-
-  const clearReply = useCallback(() => {
-    setReplyingTo(null);
-  }, []);
-
-    const streamMessages = streamProChannel.messages;
+const streamMessages = streamProChannel.messages;
     const streamById = new Map<string, MessageResponse>(
       streamMessages.map(msg => [String(msg.id), msg as MessageResponse]),
     );
@@ -240,6 +222,11 @@ export const ChannelChatView = ({
       return acc;
     }, {});
   }, [streamProChannel.messages, useStreamTransport, user?.id]);
+
+
+  const clearReply = useCallback(() => {
+    setReplyingTo(null);
+  }, []);
 
   // Handle opening a reply
   const handleOpenReply = useCallback(

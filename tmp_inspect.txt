@@ -1,0 +1,28 @@
+   118
+   119	  // Transform ChannelMessage to ChatMessage format for MessageItem
+   120	  const transportMessages = useMemo<ChannelMessage[]>(() => {
+   121	    if (!useStreamTransport) return messages;
+   122
+   123	  // Handle opening a reply
+   124	  const handleOpenReply = useCallback(
+   125	    (messageId: string) => {
+   126	      const msg = transportMessages.find(m => m.id === messageId);
+   127	      if (!msg) return;
+   128	      setReplyingTo({
+   129	        id: msg.id,
+   130	        text: msg.content,
+   131	        senderName: msg.senderName,
+   132	      });
+   133	    },
+   134	    [transportMessages],
+   135	  );
+   136
+   137	  const clearReply = useCallback(() => {
+   138	    setReplyingTo(null);
+   139	  }, []);
+   140
+   141	    const streamMessages = streamProChannel.messages;
+   142	    const streamById = new Map<string, MessageResponse>(
+   143	      streamMessages.map(msg => [String(msg.id), msg as MessageResponse]),
+   144	    );
+   145
