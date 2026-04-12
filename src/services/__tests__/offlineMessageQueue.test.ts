@@ -51,7 +51,7 @@ describe('offlineMessageQueue', () => {
 
     const result = await processQueue();
 
-    expect(result).toEqual({ success: 1, failed: 0 });
+    expect(result).toEqual({ success: 1, failed: 0, dropped: 0 });
     expect(await getQueuedMessages()).toEqual([]);
     expect(fromMock).toHaveBeenCalledWith('trip_chat_messages');
     expect(insert).toHaveBeenCalledTimes(1);
@@ -71,7 +71,7 @@ describe('offlineMessageQueue', () => {
 
     const result = await processQueue();
 
-    expect(result).toEqual({ success: 1, failed: 0 });
+    expect(result).toEqual({ success: 0, failed: 0, dropped: 1 });
     expect(await getQueuedMessages()).toEqual([]);
     expect(supabase.from).not.toHaveBeenCalled();
   });

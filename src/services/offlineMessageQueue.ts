@@ -78,14 +78,18 @@ export async function getQueuedMessages(): Promise<QueuedMessage[]> {
 /**
  * Process queued messages when connection is restored
  */
-export async function processQueue(): Promise<{ success: number; failed: number }> {
+export async function processQueue(): Promise<{
+  success: number;
+  failed: number;
+  dropped: number;
+}> {
   const db = await getDB();
   const pendingMessages = await db.getAllFromIndex('queue', 'by-status', 'pending');
 
   if (isStreamChatCanonical()) {
     // Stream is canonical for chat transport. Legacy queued DB writes must not replay.
     await Promise.all(pendingMessages.map(message => db.delete('queue', message.id)));
-    return { success: pendingMessages.length, failed: 0 };
+    return { success: 0, failed: 0, dropped: pendingMessages.length };
   }
 
   let success = 0;
@@ -146,7 +150,7 @@ export async function processQueue(): Promise<{ success: number; failed: number 
     }
   }
 
-  return { success, failed };
+  return { success, failed, dropped: 0 };
 }
 
 /**

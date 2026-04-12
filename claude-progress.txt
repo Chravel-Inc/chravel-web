@@ -420,6 +420,12 @@
   - Stream configured => `processSyncQueue` receives no legacy chat create/update handlers.
   - Stream unconfigured => legacy create handler exists and routes plain payload to `sendChatMessage` and dedupe payload (`client_message_id`) to `sendRichChatMessage`.
 - Verification: `npm run test:run -- src/services/__tests__/globalSyncProcessor.test.ts`; `npm run typecheck`; `npm run build`.
+
+2026-04-12 — Next stream-migration phase: offline legacy-queue outcome semantics hardening
+- Root cause: `offlineMessageQueue.processQueue()` reported dropped legacy chat operations as `success` when Stream was canonical, masking data-loss prevention events as delivered sends.
+- Updated queue process result contract to return `{ success, failed, dropped }` and classify Stream-canonical queue deletions as `dropped` instead of `success`.
+- Updated `src/services/__tests__/offlineMessageQueue.test.ts` to lock new semantics (`legacy duplicate` => success, `stream canonical drop` => dropped).
+- Verification: `npm run test:run -- src/services/__tests__/offlineMessageQueue.test.ts src/services/__tests__/globalSyncProcessor.test.ts`; `npm run typecheck`; `npm run build`.
 2026-04-11 — Chat search dead-code removal + overlay regression test
 - Confirmed legacy `MessageSearch` component and `messageSearchService` were not referenced outside their own files; removed both to eliminate duplicate search paths.
 - Re-verified TripChat search integration remains solely `TripChat -> ChatSearchOverlay -> chatSearchService`.
