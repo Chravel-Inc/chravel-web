@@ -120,7 +120,7 @@ export const ChannelChatView = ({
   const transportMessages = useMemo<ChannelMessage[]>(() => {
     if (!useStreamTransport) return messages;
 
-const streamMessages = streamProChannel.messages;
+    const streamMessages = streamProChannel.messages;
     const streamById = new Map<string, MessageResponse>(
       streamMessages.map(msg => [String(msg.id), msg as MessageResponse]),
     );
@@ -222,7 +222,6 @@ const streamMessages = streamProChannel.messages;
       return acc;
     }, {});
   }, [streamProChannel.messages, useStreamTransport, user?.id]);
-
 
   const clearReply = useCallback(() => {
     setReplyingTo(null);
