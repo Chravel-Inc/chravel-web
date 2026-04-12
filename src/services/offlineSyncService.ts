@@ -64,11 +64,6 @@ const RETRY_DELAY = 5000; // 5 seconds
 const CACHE_EXPIRY_DAYS = 30;
 const CACHE_EXPIRY_MS = CACHE_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
 
-function isStreamChatActive(): boolean {
-  const streamConfigured = Boolean(import.meta.env.VITE_STREAM_API_KEY);
-  const streamConnected = Boolean(getStreamClient()?.userID);
-  return streamConfigured && streamConnected;
-}
 
 // ============================================================================
 // Database Initialization

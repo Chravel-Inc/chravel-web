@@ -29,9 +29,6 @@ const MAX_RETRIES = 3;
 
 let dbInstance: IDBPDatabase<OfflineQueueDB> | null = null;
 
-function isStreamChatCanonical(): boolean {
-  return Boolean(import.meta.env.VITE_STREAM_API_KEY);
-}
 
 async function getDB(): Promise<IDBPDatabase<OfflineQueueDB>> {
   if (dbInstance) return dbInstance;
