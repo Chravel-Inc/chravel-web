@@ -15,6 +15,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { AccessToken, RoomServiceClient } from 'livekit-server-sdk';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { requireSecrets } from '../_shared/validateSecrets.ts';
+import { getBearerToken } from '../_shared/authHeaders.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -66,10 +67,18 @@ serve(async req => {
       global: { headers: { Authorization: authHeader } },
     });
 
+    const token = getBearerToken(authHeader);
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'Invalid authentication header format' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+    } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
       console.error('[livekit-token] Auth failed:', authError?.message);
