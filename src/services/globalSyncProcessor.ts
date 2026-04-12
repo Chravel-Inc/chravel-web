@@ -10,6 +10,23 @@
 import { offlineSyncService } from './offlineSyncService';
 import { sendChatMessage, sendRichChatMessage } from './chatService';
 import { calendarService } from './calendarService';
+import { getStreamClient } from './stream/streamClient';
+
+export function shouldUseLegacyChatSync(): boolean {
+  const streamConfigured = Boolean(import.meta.env.VITE_STREAM_API_KEY);
+  const streamConnected = Boolean(getStreamClient()?.userID);
+  return !(streamConfigured && streamConnected);
+}
+
+export function shouldUseLegacyChatSync(): boolean {
+  const streamConfigured = Boolean(import.meta.env.VITE_STREAM_API_KEY);
+  return !streamConfigured;
+}
+
+export function shouldUseLegacyChatSync(): boolean {
+  const streamConfigured = Boolean(import.meta.env.VITE_STREAM_API_KEY);
+  return !streamConfigured;
+}
 
 export function shouldUseLegacyChatSync(): boolean {
   const streamConfigured = Boolean(import.meta.env.VITE_STREAM_API_KEY);
