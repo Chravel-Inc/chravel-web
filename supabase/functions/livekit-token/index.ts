@@ -67,8 +67,8 @@ serve(async req => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const token = getBearerToken(authHeader);
-    if (!token) {
+    const bearerToken = getBearerToken(authHeader);
+    if (!bearerToken) {
       return new Response(JSON.stringify({ error: 'Invalid authentication header format' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -78,7 +78,7 @@ serve(async req => {
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser(token);
+    } = await supabase.auth.getUser(bearerToken);
 
     if (authError || !user) {
       console.error('[livekit-token] Auth failed:', authError?.message);
