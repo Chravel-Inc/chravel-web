@@ -1,6 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { Database, Json } from '@/integrations/supabase/types';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { createNoopRealtimeChannel } from './stream/noopRealtimeChannel';
+import { isStreamConfigured } from './stream/streamTransportGuards';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -376,6 +378,10 @@ export function subscribeToThreadReplies(
   parentMessageId: string,
   callback: (message: MessageRow) => void,
 ): RealtimeChannel {
+  if (isStreamConfigured()) {
+    return createNoopRealtimeChannel();
+  }
+
   const channel = supabase
     .channel(`thread-${parentMessageId}`)
     .on(
@@ -401,6 +407,10 @@ export function subscribeToMediaUpdates(
   tripId: string,
   callback: (message: MessageRow) => void,
 ): RealtimeChannel {
+  if (isStreamConfigured()) {
+    return createNoopRealtimeChannel();
+  }
+
   const channel = supabase
     .channel(`media-${tripId}`)
     .on(

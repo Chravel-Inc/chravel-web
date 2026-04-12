@@ -17,6 +17,8 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { isStreamConfigured } from './stream/streamTransportGuards';
+import { createNoopRealtimeChannel } from './stream/noopRealtimeChannel';
 
 type PostgresPayload = RealtimePostgresChangesPayload<Record<string, unknown>>;
 
@@ -38,6 +40,10 @@ export function createTripChatChannel(
   tripId: string,
   handlers: TripChannelHandlers,
 ): RealtimeChannel {
+  if (isStreamConfigured()) {
+    return createNoopRealtimeChannel();
+  }
+
   const channel = supabase.channel(`trip_chat_mux:${tripId}`);
 
   if (handlers.onChatInsert) {

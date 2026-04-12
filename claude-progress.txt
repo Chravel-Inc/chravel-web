@@ -465,6 +465,19 @@
 - Added equivalent guard to `roleChannelService.sendChannelMessage` to prevent accidental reintroduction of dual-write paths.
 - Added focused regression tests in `src/__tests__/channel-send-flow.test.ts` and `src/services/__tests__/roleChannelService.test.ts` covering Stream-configured guard behavior.
 - Verification: `npm run test:run -- src/__tests__/channel-send-flow.test.ts src/services/__tests__/roleChannelService.test.ts`, `npm run typecheck`, `npm run build`.
+
+2026-04-12 — Stream migration phase: legacy channel read/subscription guardrails
+- Added Stream-configured guards to `channelService.getMessages` + `channelService.subscribeToChannel` to prevent stale Supabase channel read/realtime paths from running in canonical Stream environments.
+- Added matching guards to `roleChannelService.getChannelMessages` + `roleChannelService.subscribeToChannel` for parity and duplicate-listener prevention.
+- Added focused regression tests `src/services/__tests__/channelLegacyRealtimeGuards.test.ts` asserting Supabase `from`/`channel` are not called when Stream is configured.
+- Verification: `npm run test:run -- src/services/__tests__/channelLegacyRealtimeGuards.test.ts src/__tests__/channel-send-flow.test.ts src/services/__tests__/roleChannelService.test.ts`, `npm run typecheck`, `npm run build`.
+
+2026-04-12 — Stream migration phase: trip-chat legacy realtime subscription guardrails
+- Added Stream-configured runtime guard to `createTripChatChannel` in `src/services/tripRealtimeMultiplexer.ts` so legacy Supabase `trip_chat_messages` multiplexed listeners do not start in canonical Stream environments.
+- Added Stream-configured no-op realtime guards to `chatService.subscribeToThreadReplies` + `chatService.subscribeToMediaUpdates` to prevent legacy Supabase thread/media subscriptions when Stream transport is configured.
+- Added shared helper `src/services/stream/noopRealtimeChannel.ts` to keep no-op channel behavior consistent across guarded legacy subscription entry points.
+- Added focused regression tests `src/services/__tests__/tripChatLegacyRealtimeGuards.test.ts` asserting Supabase `channel` is not called in Stream-configured mode and legacy mode still subscribes.
+- Verification: `npm run test:run -- src/services/__tests__/tripChatLegacyRealtimeGuards.test.ts src/services/__tests__/channelLegacyRealtimeGuards.test.ts`, `npm run typecheck`, `npm run build`.
 2026-04-11 — Chat search dead-code removal + overlay regression test
 - Confirmed legacy `MessageSearch` component and `messageSearchService` were not referenced outside their own files; removed both to eliminate duplicate search paths.
 - Re-verified TripChat search integration remains solely `TripChat -> ChatSearchOverlay -> chatSearchService`.
