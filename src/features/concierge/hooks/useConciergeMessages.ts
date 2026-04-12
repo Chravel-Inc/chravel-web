@@ -213,6 +213,7 @@ export function useConciergeMessages({ tripId, isDemoMode, userId, userPlan }: P
     user,
     isOffline,
     streamConciergeEnabled,
+    isHistoryLoading,
     isStreamHistoryLoading,
     isStreamHistoryLoaded,
     messages,

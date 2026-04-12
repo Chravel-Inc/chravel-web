@@ -271,10 +271,13 @@ export function useConciergeVoice({
     streamingVoiceMessage,
     streamingUserMessage,
     liveState,
+    liveUserTranscript,
+    liveAssistantTranscript,
     liveError,
     liveConversationHistory,
     liveDiagnostics,
     liveCircuitBreakerOpen,
     liveResetCircuitBreaker,
+    startLiveSession,
   };
 }

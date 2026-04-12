@@ -1,52 +1,19 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Search, ImagePlus, Sparkles, PhoneOff } from 'lucide-react';
 import { ConciergeSearchModal } from './ai/ConciergeSearchModal';
-import { TripPreferences } from '../types/consumer';
 import { useBasecamp } from '../contexts/BasecampContext';
 import { ChatMessages } from '@/features/chat/components/ChatMessages';
 import { AiChatInput } from '@/features/chat/components/AiChatInput';
 import { useConciergeUsage } from '../hooks/useConciergeUsage';
-import { useOfflineStatus } from '../hooks/useOfflineStatus';
 import { useAuth } from '@/hooks/useAuth';
-import { useConciergeHistory } from '../hooks/useConciergeHistory';
-import { conciergeCacheService } from '../services/conciergeCacheService';
 import { useAIConciergePreferences } from '../hooks/useAIConciergePreferences';
-import {
-  invokeConcierge,
-  invokeConciergeStream,
-  type StreamMetadataEvent,
-  type ReservationDraft,
-  type TripCard,
-  type StreamSmartImportPreviewEvent,
-  type StreamBulkDeletePreviewEvent,
-  type SmartImportPreviewEvent,
-  type SmartImportStatus,
-} from '@/services/conciergeGateway';
-import type { HotelResult } from '@/features/chat/components/HotelResultCards';
 import { toast } from 'sonner';
-import { useWebSpeechVoice } from '@/hooks/useWebSpeechVoice';
-import type { VoiceState } from '@/hooks/useWebSpeechVoice';
-import { useLiveKitVoice } from '@/hooks/useLiveKitVoice';
-import type { ToolCallResult } from '@/types/voice';
-import { useVoiceToolHandler } from '@/hooks/useVoiceToolHandler';
 import { VoiceLiveInline } from '@/features/chat/components/VoiceLiveInline';
 import { CTA_BUTTON, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
-import { supabase } from '@/integrations/supabase/client';
-import { useConciergeSessionStore, type ConciergeSession } from '@/store/conciergeSessionStore';
 import { useSaveToTripPlaces } from '@/hooks/useSaveToTripPlaces';
 import { useConciergeReadAloud } from '@/hooks/useConciergeReadAloud';
 import { buildSpeechText } from '@/lib/buildSpeechText';
-import { getStreamClient } from '@/services/stream/streamClient';
-import {
-  persistUserMessage as streamPersistUserMessage,
-  persistAssistantMessage as streamPersistAssistantMessage,
-} from '@/services/stream/adapters/conciergeAdapter';
-import { useStreamConciergeHistory } from '@/hooks/stream/useStreamConciergeHistory';
-import {
-  getConciergeInvalidationQueryKey,
-  isConciergeWriteAction,
-} from '@/lib/conciergeInvalidation';
 import { sanitizeConciergeContent } from '@/lib/sanitizeConciergeContent';
 import { usePendingActions } from '@/hooks/usePendingActions';
 import {
@@ -54,32 +21,16 @@ import {
   ALLOWED_IMAGE_TYPES as _ALLOWED_IMAGE_TYPES,
   ALL_ACCEPTED_TYPES,
   DUPLEX_VOICE_ENABLED,
-  EMPTY_SESSION,
-  FAST_RESPONSE_TIMEOUT_MS,
-  MAX_CHAT_HISTORY_MESSAGES,
   MAX_DOCUMENT_SIZE_BYTES as _MAX_DOCUMENT_SIZE_BYTES,
   MAX_IMAGE_SIZE_BYTES as _MAX_IMAGE_SIZE_BYTES,
-  MAX_SINGLE_MESSAGE_LENGTH,
   UPLOAD_ENABLED,
-  _uniqueId,
-  extractRichMetadata,
-  fileToAttachmentPayload,
-  generateFallbackResponse,
-  invokeConciergeWithTimeout,
 } from '@/features/concierge/utils/chatHelpers';
-import type {
-  AIConciergeChatProps,
-  AiStatus,
-  AttachmentIntent,
-  ChatMessage,
-  ConciergeAttachment,
-  ConciergeInvokePayload,
-  FallbackTripContext,
-} from '@/features/concierge/types';
+import type { AIConciergeChatProps, AttachmentIntent } from '@/features/concierge/types';
 import { useConciergeAttachments } from '@/features/concierge/hooks/useConciergeAttachments';
 import { useSmartImportActions } from '@/features/concierge/hooks/useSmartImportActions';
 import { useConciergeMessages } from '@/features/concierge/hooks/useConciergeMessages';
 import { useConciergeVoice } from '@/features/concierge/hooks/useConciergeVoice';
+import { useConciergeStreaming } from '@/features/concierge/hooks/useConciergeStreaming';
 
 export type { ChatMessage } from '@/features/concierge/types';
 
@@ -91,6 +42,7 @@ export const AIConciergeChat = ({
   onTabChange,
 }: AIConciergeChatProps) => {
   const { basecamp: globalBasecamp } = useBasecamp();
+  const { user: authUser } = useAuth();
   const conciergeQueryClient = useQueryClient();
   const {
     usage: _usage,
@@ -98,8 +50,6 @@ export const AIConciergeChat = ({
     isLimitedPlan,
     userPlan,
   } = useConciergeUsage(tripId);
-  const { isOffline } = useOfflineStatus();
-  const { user } = useAuth();
   const {
     confirmAction,
     rejectAction,
@@ -108,20 +58,6 @@ export const AIConciergeChat = ({
   } = usePendingActions(tripId);
   const loadedPreferences = useAIConciergePreferences();
   const effectivePreferences = preferences ?? loadedPreferences;
-  const storeSessionRaw = useConciergeSessionStore(s => s.sessions[tripId]);
-  const storeSession = storeSessionRaw ?? EMPTY_SESSION;
-  const setStoreMessages = useConciergeSessionStore(s => s.setMessages);
-
-  // 🔀 STREAM: Concierge history persistence via Stream
-  const streamConciergeEnabled = !!getStreamClient()?.userID && !isDemoMode;
-  const {
-    messages: streamHistoryMessages,
-    isLoading: isStreamHistoryLoading,
-    isLoaded: isStreamHistoryLoaded,
-  } = useStreamConciergeHistory(
-    streamConciergeEnabled ? tripId : undefined,
-    streamConciergeEnabled ? user?.id : undefined,
-  );
 
   const handleNavigateToPlaces = useCallback(() => {
     if (onTabChange) onTabChange('places');
@@ -129,7 +65,7 @@ export const AIConciergeChat = ({
 
   const { savePlace, saveFlight, saveHotel, isUrlSaved, isSaving } = useSaveToTripPlaces({
     tripId,
-    userId: user?.id ?? 'anonymous',
+    userId: authUser?.id ?? 'anonymous',
     isDemoMode,
     onNavigateToPlaces: handleNavigateToPlaces,
   });
@@ -138,18 +74,89 @@ export const AIConciergeChat = ({
   const {
     playbackState: ttsPlaybackState,
     playingMessageId: ttsPlayingMessageId,
-    errorMessage: ttsError,
     play: ttsPlayRaw,
     stop: ttsStop,
   } = useConciergeReadAloud();
 
-  // Hydrate from Zustand store on mount (preserves messages across tab switches)
-  const [messages, setMessages] = useState<ChatMessage[]>(() =>
-    storeSession.messages.length > 0 ? (storeSession.messages as ChatMessage[]) : [],
-  );
-  const messagesRef = useRef<ChatMessage[]>(messages);
+  const {
+    messages,
+    setMessages,
+    messagesRef,
+    inputMessage,
+    setInputMessage,
+    isTyping,
+    setIsTyping,
+    setAiStatus,
+    historyLoadedFromServer,
+    isMounted,
+    streamAbortRef,
+    chatScrollRef,
+    streamConciergeEnabled,
+    isHistoryLoading,
+    isOffline,
+    user,
+    buildLimitReachedMessage,
+    handleDeleteMessage,
+  } = useConciergeMessages({
+    tripId,
+    isDemoMode,
+    userId: authUser?.id,
+    userPlan,
+  });
 
-  /** Play TTS for an assistant message, building speech text from its content + cards. */
+  const {
+    attachedImages,
+    setAttachedImages,
+    attachedDocuments,
+    setAttachedDocuments,
+    attachmentIntent,
+    setAttachmentIntent,
+    fileInputRef,
+    clearAttachments,
+  } = useConciergeAttachments();
+
+  const {
+    smartImportStates,
+    bulkDeleteStates,
+    handleSmartImportConfirm,
+    handleSmartImportDismiss,
+    handleBulkDeleteConfirm,
+    handleBulkDeleteDismiss,
+  } = useSmartImportActions({
+    tripId,
+    userId: user?.id,
+    setMessages,
+    queryClient: conciergeQueryClient,
+  });
+
+  const {
+    convoVoiceState,
+    handleConvoToggle,
+    handleLiveToggle,
+    handleEndLiveSession,
+    isLiveSessionActive,
+    streamingVoiceMessage,
+    streamingUserMessage,
+    liveState,
+    liveUserTranscript,
+    liveAssistantTranscript,
+    liveError,
+    liveConversationHistory,
+    liveDiagnostics,
+    liveCircuitBreakerOpen,
+    liveResetCircuitBreaker,
+    startLiveSession,
+  } = useConciergeVoice({
+    tripId,
+    userId: user?.id,
+    isDemoMode,
+    isLimitedPlan,
+    incrementUsageOnSuccess,
+    setMessages,
+    setInputMessage,
+    buildLimitReachedMessage,
+  });
+
   const handleTTSPlay = useCallback(
     (messageId: string) => {
       const msg = messagesRef.current.find(m => m.id === messageId);
@@ -179,593 +186,15 @@ export const AIConciergeChat = ({
 
       void ttsPlayRaw(messageId, speechText);
     },
-    [ttsPlayRaw],
+    [messagesRef, ttsPlayRaw],
   );
 
-  // Show toast on TTS errors
-  useEffect(() => {
-    if (ttsError && ttsPlaybackState === 'error') {
-      toast.error('Voice playback failed', { description: ttsError });
-    }
-  }, [ttsError, ttsPlaybackState]);
-
-  // True after the chat is hydrated from the server DB (not just cache/empty).
-  // Used to show the "Picked up where you left off" chip.
-  const [historyLoadedFromServer, setHistoryLoadedFromServer] = useState(
-    storeSession.historyLoadedFromServer,
-  );
-
-  // --- Persisted history hydration ---
-  const {
-    data: historyMessages,
-    isLoading: isHistoryLoading,
-    error: historyError,
-  } = useConciergeHistory(tripId);
-  const canonicalHistoryMessages = useMemo(() => {
-    if (streamConciergeEnabled) {
-      return streamHistoryMessages.map(message => ({
-        id: `stream-history-${message.id}`,
-        type: message.type,
-        content: message.content,
-        timestamp: message.timestamp,
-        sources: message.sources,
-        googleMapsWidget: message.googleMapsWidget,
-        googleMapsWidgetContextToken: message.googleMapsWidgetContextToken,
-        functionCallPlaces: message.functionCallPlaces as ChatMessage['functionCallPlaces'],
-        functionCallFlights: message.functionCallFlights as ChatMessage['functionCallFlights'],
-        usage: message.usage,
-      }));
-    }
-
-    return historyMessages;
-  }, [historyMessages, streamConciergeEnabled, streamHistoryMessages]);
-  const mergedHistoryMessages = useMemo(() => {
-    const combined = [...canonicalHistoryMessages];
-    if (combined.length === 0) {
-      return combined;
-    }
-
-    const dedupedByFingerprint = new Map<string, ChatMessage>();
-    combined.forEach(message => {
-      const fingerprint = `${message.type}|${message.content.trim()}|${message.timestamp}`;
-      if (!dedupedByFingerprint.has(fingerprint)) {
-        dedupedByFingerprint.set(fingerprint, message);
-      }
-    });
-
-    return Array.from(dedupedByFingerprint.values()).sort(
-      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
-    );
-  }, [canonicalHistoryMessages]);
-
-  const [inputMessage, setInputMessage] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [aiStatus, setAiStatus] = useState<
-    'checking' | 'connected' | 'limited' | 'error' | 'thinking' | 'offline' | 'degraded' | 'timeout'
-  >('connected');
-  const [attachedImages, setAttachedImages] = useState<File[]>([]);
-  const [attachedDocuments, setAttachedDocuments] = useState<File[]>([]);
-  const [attachmentIntent, setAttachmentIntent] = useState<AttachmentIntent>('smart_import');
   const [searchOpen, setSearchOpen] = useState(false);
   const handleSendMessageRef = useRef<(messageOverride?: string) => Promise<void>>(async () =>
     Promise.resolve(),
   );
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const isMounted = useRef(true);
-
-  /** Build a concierge-style assistant message when the user has hit their query limit. */
-  const buildLimitReachedMessage = useCallback((): ChatMessage => {
-    const plan = userPlan === 'explorer' ? 'Explorer' : 'free';
-    const ctaTarget =
-      userPlan === 'explorer' ? 'Frequent Chraveler' : 'Explorer or Frequent Chraveler';
-    return {
-      id: `limit-reached-${Date.now()}`,
-      type: 'assistant',
-      content:
-        `Thanks so much for your question! Unfortunately you've reached your Concierge limit ` +
-        `for this trip on the ${plan} plan. Upgrade to the ${ctaTarget} plan to keep chatting ` +
-        `with your AI Concierge and get even more personalised trip recommendations.`,
-      timestamp: new Date().toISOString(),
-    };
-  }, [userPlan]);
-
-  // Guard so history hydration only fires once per mount, even if historyMessages
-  // reference changes. Avoids the stale-closure race where messages.length is
-  // read from a stale closure but the user has already submitted a message.
-  const hasHydratedRef = useRef(false);
-  useEffect(() => {
-    if (streamConciergeEnabled && !isStreamHistoryLoaded && messages.length === 0) {
-      hasHydratedRef.current = false;
-    }
-  }, [streamConciergeEnabled, isStreamHistoryLoaded, messages.length]);
-
-  // ─── Voice ─────────────────────────────────────────────────────────────────
-  // When DUPLEX_VOICE_ENABLED is true, the waveform button starts a LiveKit
-  // bidirectional voice session. When false, it is hidden entirely.
-  // Web Speech API dictation (microphone icon) is always available.
-
-  // ── Dictation (Web Speech API) ──────────────────────────────────────────
-  // Dictation callback: fill the text input with the transcribed speech
-  const handleDictationResult = useCallback((text: string) => {
-    if (text.trim()) {
-      setInputMessage(prev => {
-        const separator = prev && !prev.endsWith(' ') ? ' ' : '';
-        return prev + separator + text.trim();
-      });
-    }
-  }, []);
-
-  const { voiceState: dictationState, toggleVoice: toggleDictation } =
-    useWebSpeechVoice(handleDictationResult);
-
-  // Dictation active state — used for fallback mode detection
-  const isDictationActive = dictationState !== 'idle' && dictationState !== 'error';
-
-  /**
-   * Fix 2 — streaming voice response bubble.
-   *
-   * While Gemini Live is in 'playing' state (assistant speaking), we maintain
-   * a transient ChatMessage here so the chat scroll area shows a live-updating
-   * bubble — matching ChatGPT / Grok behaviour where the assistant's turn is
-   * visible in the chat *while* it is being spoken.
-   *
-   * Lifecycle:
-   *   liveAssistantTranscript updates + liveState === 'playing'  → set here
-   *   handleLiveTurnComplete fires (turn finalised)              → set to null
-   *   liveState goes to idle/error/ready without a complete turn → set to null
-   */
-  const [streamingVoiceMessage, setStreamingVoiceMessage] = useState<ChatMessage | null>(null);
-
-  /**
-   * Live user speech-to-text bubble.
-   *
-   * While Gemini Live is listening or sending (user is speaking), we show a
-   * transient user-side bubble with the interim STT transcript so the user can
-   * see their own words appearing in chat — the "I'm hearing you" indicator.
-   *
-   * Lifecycle:
-   *   liveUserTranscript updates + liveState === 'listening'|'sending'|'interrupted'  → set here
-   *   handleLiveTurnComplete fires (user utterance finalised)                           → set to null
-   *   liveState goes to idle/error/ready/playing without turn completion                → set to null
-   */
-  const [streamingUserMessage, setStreamingUserMessage] = useState<ChatMessage | null>(null);
-
-  // Voice tool handler — reserved for future LiveKit client-side tool routing
-  const { handleToolCall: _handleToolCall } = useVoiceToolHandler({
-    tripId,
-    userId: user?.id ?? '',
-  });
-
-  const handleLiveTurnComplete = useCallback(
-    async (userText: string, assistantText: string, toolResults?: ToolCallResult[]) => {
-      const now = new Date().toISOString();
-      const newMessages: ChatMessage[] = [];
-      if (userText) {
-        newMessages.push({
-          id: `voice-user-${Date.now()}`,
-          type: 'user',
-          content: userText,
-          timestamp: now,
-        });
-      }
-      if (assistantText) {
-        // Build rich card metadata from voice tool results
-        const assistantMsg: ChatMessage = {
-          id: `voice-assistant-${Date.now()}`,
-          type: 'assistant',
-          content: assistantText,
-          timestamp: now,
-        };
-
-        // Map tool results to rich card fields on the assistant message
-        if (toolResults && toolResults.length > 0) {
-          for (const tr of toolResults) {
-            if (
-              (tr.name === 'searchPlaces' || tr.name === 'getPlaceDetails') &&
-              tr.result?.success
-            ) {
-              const places = tr.result.places ?? (tr.result.place ? [tr.result.place] : []);
-              if (Array.isArray(places) && places.length > 0) {
-                assistantMsg.functionCallPlaces = places as ChatMessage['functionCallPlaces'];
-              }
-            }
-            if (tr.name === 'searchFlights' && tr.result?.success && tr.result.flights) {
-              assistantMsg.functionCallFlights = tr.result
-                .flights as ChatMessage['functionCallFlights'];
-            }
-            if (
-              (tr.name === 'searchWeb' || tr.name === 'searchImages') &&
-              tr.result?.success &&
-              tr.result.results
-            ) {
-              assistantMsg.sources = (
-                tr.result.results as Array<{ title: string; url: string; snippet: string }>
-              ).map(r => ({
-                title: r.title || '',
-                url: r.url || '',
-                snippet: r.snippet || '',
-              }));
-            }
-            if (
-              (tr.name === 'addToCalendar' ||
-                tr.name === 'createTask' ||
-                tr.name === 'createPoll') &&
-              tr.result?.success
-            ) {
-              if (tr.result.pending && tr.result.pendingActionId) {
-                if (!assistantMsg.pendingActions) assistantMsg.pendingActions = [];
-                assistantMsg.pendingActions.push({
-                  id: tr.result.pendingActionId as string,
-                  toolName: tr.name,
-                  actionType: (tr.result.actionType as string) || tr.name,
-                  message: (tr.result.message as string) || '',
-                });
-              } else {
-                if (!assistantMsg.conciergeActions) assistantMsg.conciergeActions = [];
-                assistantMsg.conciergeActions.push({
-                  actionType: (tr.result.actionType as string) || tr.name,
-                  success: !!tr.result.success,
-                  message: (tr.result.message as string) || '',
-                });
-              }
-            }
-          }
-        }
-
-        newMessages.push(assistantMsg);
-      }
-      if (newMessages.length > 0) {
-        // Immediate in-memory update — keeps the UI responsive.
-        setMessages(prev => [...prev, ...newMessages]);
-      }
-
-      // Clear both streaming bubbles now that the finalised messages have been
-      // appended to `messages` above. This prevents any flash of the transient
-      // bubbles before the permanent messages appear.
-      setStreamingVoiceMessage(null);
-      setStreamingUserMessage(null);
-
-      // Persist the completed voice turn to Supabase (ai_queries table).
-      // We store both sides as a single row: query_text = user utterance,
-      // response_text = assistant reply.  Only persists when both sides are
-      // present and the user is authenticated.
-      //
-      // Awaited (not fire-and-forget) so the insert completes before the user
-      // navigates away or starts a new turn, preventing silent data loss.
-      if (userText && assistantText && user?.id) {
-        try {
-          // Find the assistant message we just created to extract rich card metadata
-          const voiceAssistantMsg = newMessages.find(m => m.type === 'assistant');
-          const richMeta = extractRichMetadata(voiceAssistantMsg);
-
-          // Type assertion needed: metadata column exists in DB but may not be in generated types
-          const { error: persistError } = await supabase.from('ai_queries').insert({
-            trip_id: tripId,
-            user_id: user.id,
-            query_text: userText,
-            response_text: assistantText,
-            created_at: now,
-            ...(richMeta ? { metadata: richMeta } : {}),
-          } as Record<string, unknown>);
-
-          if (persistError) {
-            if (import.meta.env.DEV) {
-              console.error('[Voice] Failed to persist voice turn:', persistError.message);
-            }
-            toast.warning('Voice turn not saved', {
-              description: 'Your voice conversation could not be saved to history.',
-            });
-          }
-        } catch (err) {
-          if (import.meta.env.DEV) {
-            console.error('[Voice] Unexpected error persisting voice turn:', err);
-          }
-          toast.warning('Voice turn not saved', {
-            description: 'Your voice conversation could not be saved to history.',
-          });
-        }
-      }
-    },
-    [user?.id, tripId],
-  );
-
-  const handleLiveError = useCallback((msg: string) => {
-    toast.error('Voice error', { description: msg });
-  }, []);
-
-  // Rich card callback for LiveKit voice: when the agent sends tool results
-  // as data messages, map them to ChatMessage fields on the latest assistant message.
-  const handleLiveRichCard = useCallback((toolName: string, cardData: Record<string, unknown>) => {
-    setMessages(prev => {
-      // Find the last assistant message to attach rich cards to
-      const lastIdx = prev.length - 1;
-      if (lastIdx < 0) return prev;
-      const last = prev[lastIdx];
-      if (last.type !== 'assistant') return prev;
-
-      const updated = [...prev];
-      const msg = { ...last };
-
-      if (
-        (toolName === 'searchPlaces' || toolName === 'getPlaceDetails') &&
-        cardData.places &&
-        Array.isArray(cardData.places)
-      ) {
-        msg.functionCallPlaces = cardData.places as ChatMessage['functionCallPlaces'];
-      } else if (
-        toolName === 'searchFlights' &&
-        cardData.flights &&
-        Array.isArray(cardData.flights)
-      ) {
-        msg.functionCallFlights = cardData.flights as ChatMessage['functionCallFlights'];
-      } else if (toolName === 'searchFlights' && cardData.success) {
-        // Single flight result from searchFlights
-        msg.functionCallFlights = [
-          cardData as unknown as NonNullable<ChatMessage['functionCallFlights']>[0],
-        ];
-      } else if (toolName === 'searchHotels' && cardData.hotels && Array.isArray(cardData.hotels)) {
-        msg.functionCallHotels = cardData.hotels as HotelResult[];
-      } else if (
-        (toolName === 'searchWeb' || toolName === 'searchImages') &&
-        cardData.results &&
-        Array.isArray(cardData.results)
-      ) {
-        msg.sources = (
-          cardData.results as Array<{ title: string; url: string; snippet: string }>
-        ).map(r => ({
-          title: r.title || '',
-          url: r.url || '',
-          snippet: r.snippet || '',
-        }));
-      } else if (
-        (toolName === 'addToCalendar' || toolName === 'createTask' || toolName === 'createPoll') &&
-        cardData.success
-      ) {
-        if (!msg.conciergeActions) msg.conciergeActions = [];
-        msg.conciergeActions = [
-          ...msg.conciergeActions,
-          {
-            actionType: (cardData.actionType as string) || toolName,
-            success: !!cardData.success,
-            message: (cardData.message as string) || '',
-          },
-        ];
-      }
-
-      updated[lastIdx] = msg;
-      return updated;
-    });
-  }, []);
-
-  // LiveKit voice — sole voice runtime (Vertex AI removed)
-  const {
-    state: liveState,
-    error: liveError,
-    userTranscript: liveUserTranscript,
-    assistantTranscript: liveAssistantTranscript,
-    conversationHistory: liveConversationHistory,
-    diagnostics: liveDiagnostics,
-    startSession: startLiveSession,
-    endSession: endLiveSession,
-    circuitBreakerOpen: liveCircuitBreakerOpen,
-    resetCircuitBreaker: liveResetCircuitBreaker,
-  } = useLiveKitVoice({
-    tripId,
-    onTurnComplete: handleLiveTurnComplete,
-    onRichCard: handleLiveRichCard,
-    onError: handleLiveError,
-  });
-
-  // Voice state for VoiceButton — dictation only (Live is separate button now)
-  const convoVoiceState: VoiceState = dictationState;
-
-  // Whether Gemini Live session is active (for Live button + inline voice UI)
-  const isLiveSessionActive = DUPLEX_VOICE_ENABLED && liveState !== 'idle' && liveState !== 'error';
-
-  const handleEndLiveSession = useCallback(async () => {
-    await endLiveSession();
-    // Explicitly clear streaming bubbles to prevent stale transcripts
-    // when user force-stops mid-turn (race condition with useEffect cleanup)
-    setStreamingVoiceMessage(null);
-    setStreamingUserMessage(null);
-  }, [endLiveSession]);
-
-  // Waveform button — dictation only. Stops Live if active first.
-  const handleConvoToggle = useCallback(() => {
-    if (isLiveSessionActive) {
-      void handleEndLiveSession();
-      setInputMessage('');
-    }
-    toggleDictation();
-  }, [isLiveSessionActive, handleEndLiveSession, toggleDictation]);
-
-  // Live button — Gemini Live toggle. Stops dictation if active first.
-  const handleLiveToggle = useCallback(async () => {
-    if (!DUPLEX_VOICE_ENABLED) return;
-
-    // Stop dictation if running
-    if (isDictationActive) {
-      toggleDictation();
-      setInputMessage('');
-    }
-
-    // If Live is already active, stop it
-    if (isLiveSessionActive) {
-      await handleEndLiveSession();
-      return;
-    }
-
-    // If previous session errored, clean up before retrying
-    if (liveState === 'error') {
-      await handleEndLiveSession();
-    }
-
-    // Check plan limits
-    if (isLimitedPlan && !isDemoMode) {
-      let incrementResult;
-      try {
-        incrementResult = await incrementUsageOnSuccess();
-      } catch {
-        toast.error('Unable to verify Concierge allowance. Please try again.');
-        return;
-      }
-      if (!incrementResult.incremented) {
-        setMessages(prev => [...prev, buildLimitReachedMessage()]);
-        return;
-      }
-    }
-
-    try {
-      await startLiveSession();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to start live voice session';
-      toast.error(msg);
-    }
-  }, [
-    liveState,
-    isDictationActive,
-    toggleDictation,
-    isLiveSessionActive,
-    handleEndLiveSession,
-    startLiveSession,
-    isLimitedPlan,
-    incrementUsageOnSuccess,
-    buildLimitReachedMessage,
-  ]);
-
-  // Fix 2: Keep the streaming voice bubble in sync with liveAssistantTranscript.
-  // While Gemini Live is in 'playing' state, update the transient bubble so the
-  // chat shows the assistant's response growing in real-time (like ChatGPT/Grok).
-  // When the turn completes, handleLiveTurnComplete clears it and appends the
-  // finalised message to `messages`, so there is no duplication.
-  useEffect(() => {
-    if (liveState === 'playing' && liveAssistantTranscript) {
-      setStreamingVoiceMessage({
-        id: 'voice-streaming-live',
-        type: 'assistant',
-        content: liveAssistantTranscript,
-        timestamp: new Date().toISOString(),
-        isStreamingVoice: true,
-      });
-    } else if (liveState === 'idle' || liveState === 'error' || liveState === 'ready') {
-      // Session ended or reset without a completed turn — clear any leftover bubble.
-      setStreamingVoiceMessage(null);
-    }
-  }, [liveState, liveAssistantTranscript]);
-
-  // Keep the live user STT bubble in sync with liveUserTranscript.
-  // While Gemini Live is listening/sending, show the interim user transcript as a
-  // user-side bubble so the speaker can see their words appearing in the chat
-  // (the "I'm hearing you" indicator).  Cleared when the turn finalises.
-  useEffect(() => {
-    const isUserSpeaking =
-      liveState === 'listening' || liveState === 'sending' || liveState === 'interrupted';
-
-    if (isUserSpeaking && liveUserTranscript) {
-      setStreamingUserMessage({
-        id: 'voice-user-streaming-live',
-        type: 'user',
-        content: liveUserTranscript,
-        timestamp: new Date().toISOString(),
-        isStreamingVoice: true,
-      });
-    } else if (liveState === 'idle' || liveState === 'error' || liveState === 'ready') {
-      // Session ended — clear any leftover user bubble.
-      setStreamingUserMessage(null);
-    } else if (liveState === 'playing') {
-      // Assistant started speaking — user turn is complete, clear user bubble.
-      setStreamingUserMessage(null);
-    }
-  }, [liveState, liveUserTranscript]);
-
-  // ── End voice ────────────────────────────────────────────────────────────
-
-  // Abort in-flight stream when component unmounts (prevents setState on unmounted + wasted bandwidth)
-  const streamAbortRef = useRef<(() => void) | null>(null);
-  const chatScrollRef = useRef<HTMLDivElement | null>(null);
-
-  // Track mount state + abort in-flight streams on unmount
-  useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-      streamAbortRef.current?.();
-      streamAbortRef.current = null;
-      // Clear any leftover streaming bubbles
-      setStreamingVoiceMessage(null);
-      setStreamingUserMessage(null);
-    };
-  }, []);
-
-  // Hydrate messages from persisted RPC history on mount.
-  // Fires once per mount via hasHydratedRef — eliminates the stale-closure race
-  // where messages.length might read a stale value if the user submits at the same
-  // instant history loads. The functional setState updater is the source of truth.
-  useEffect(() => {
-    const isAnyHistoryLoading =
-      isHistoryLoading ||
-      (streamConciergeEnabled && isStreamHistoryLoading && !isStreamHistoryLoaded);
-    if (isAnyHistoryLoading || hasHydratedRef.current) return;
-
-    if (historyError && mergedHistoryMessages.length === 0) {
-      if (import.meta.env.DEV) {
-        console.error('[AIConciergeChat] Failed to load persisted history:', historyError);
-      }
-      // Fallback: try localStorage cache (covers offline + RPC failure scenarios)
-      const userId = user?.id ?? 'anonymous';
-      const cached = conciergeCacheService.getCachedMessages(tripId, userId);
-      if (cached.length > 0) {
-        setMessages(prev => (prev.length === 0 ? cached : prev));
-      }
-      hasHydratedRef.current = true;
-      return;
-    }
-
-    if (mergedHistoryMessages.length > 0) {
-      // Use functional updater so we read the live messages state, not a closure copy.
-      setMessages(prev => {
-        if (prev.length > 0) return prev; // user already sent a message — don't overwrite
-        return mergedHistoryMessages;
-      });
-      setHistoryLoadedFromServer(true);
-    }
-
-    hasHydratedRef.current = true;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    isHistoryLoading,
-    isStreamHistoryLoading,
-    isStreamHistoryLoaded,
-    streamConciergeEnabled,
-    historyError,
-    mergedHistoryMessages,
-  ]);
-
-  // Fallback when offline: show cached messages from localStorage.
-  useEffect(() => {
-    if (!isOffline || messages.length > 0) return;
-    const userId = user?.id ?? 'anonymous';
-    const cached = conciergeCacheService.getCachedMessages(tripId, userId);
-    if (cached.length > 0) {
-      setMessages(cached);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOffline]);
-
-  // Sync messages to Zustand store so they persist across tab switches
-  useEffect(() => {
-    messagesRef.current = messages;
-    if (messages.length > 0) {
-      setStoreMessages(
-        tripId,
-        messages as import('@/store/conciergeSessionStore').ConciergeSessionMessage[],
-      );
-    }
-  }, [messages, tripId, setStoreMessages]);
 
   // Auto-scroll to bottom when new messages, typing indicator, or streaming voice
-  // bubbles appear/update — keeps the live transcript visible as it grows.
   useEffect(() => {
     if (
       chatScrollRef.current &&
@@ -773,1231 +202,43 @@ export const AIConciergeChat = ({
     ) {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
     }
-  }, [messages.length, isTyping, messages, streamingVoiceMessage, streamingUserMessage]);
-
-  // Failsafe: if a stream callback never finalizes, release typing state so
-  // users can still send a follow-up without needing a hard refresh.
-  useEffect(() => {
-    if (!isTyping) return;
-
-    const watchdog = setTimeout(() => {
-      if (!isMounted.current) return;
-      setIsTyping(false);
-      setAiStatus(prev => (prev === 'thinking' ? 'timeout' : prev));
-      if (import.meta.env.DEV) {
-        console.warn('[AIConciergeChat] Typing watchdog released a stuck request state.');
-      }
-    }, FAST_RESPONSE_TIMEOUT_MS + 5_000);
-
-    return () => clearTimeout(watchdog);
-  }, [isTyping]);
-
-  // ⚡ PERFORMANCE: 8-second initialization timeout to prevent indefinite loading
-  useEffect(() => {
-    if (aiStatus === 'connected' || messages.length > 0) {
-      return;
-    }
-
-    const timeout = setTimeout(() => {
-      if (isMounted.current && aiStatus === 'checking') {
-        if (import.meta.env.DEV) {
-          console.warn('[AIConciergeChat] Initialization timeout - showing fallback');
-        }
-        setAiStatus('timeout');
-      }
-    }, 8000);
-
-    return () => clearTimeout(timeout);
-  }, [aiStatus, messages.length]);
-
-  // Monitor offline status
-  useEffect(() => {
-    if (isOffline) {
-      setAiStatus('offline');
-    } else if (aiStatus === 'offline') {
-      setAiStatus('connected');
-    }
-  }, [isOffline, aiStatus]);
-
-  // ── Smart Import: confirm/dismiss handlers ──────────────────────────────
-  const [smartImportStates, setSmartImportStates] = useState<
-    Record<string, { isImporting: boolean; result: { imported: number; failed: number } | null }>
-  >({});
-
-  const handleSmartImportConfirm = useCallback(
-    async (messageId: string, events: SmartImportPreviewEvent[]) => {
-      if (!tripId || events.length === 0) return;
-
-      setSmartImportStates(prev => ({
-        ...prev,
-        [messageId]: { isImporting: true, result: null },
-      }));
-
-      try {
-        const { calendarService } = await import('@/services/calendarService');
-        const createEvents = events.map(evt => ({
-          trip_id: tripId,
-          title: evt.title,
-          start_time: evt.startTime,
-          end_time: evt.endTime || undefined,
-          location: evt.location || undefined,
-          event_category: evt.category || 'other',
-          include_in_itinerary: true,
-          source_type: 'ai_concierge_import',
-          source_data: {
-            imported_from: 'concierge_smart_import',
-            notes: evt.notes || undefined,
-            import_hash: `${tripId}|${evt.title.toLowerCase().trim()}|${evt.startTime}`,
-          },
-        }));
-
-        const result = await calendarService.bulkCreateEvents(createEvents);
-
-        setSmartImportStates(prev => ({
-          ...prev,
-          [messageId]: {
-            isImporting: false,
-            result: { imported: result.imported, failed: result.failed },
-          },
-        }));
-
-        if (result.imported > 0) {
-          toast.success(
-            `Added ${result.imported} event${result.imported !== 1 ? 's' : ''} to Calendar`,
-          );
-        }
-        if (result.failed > 0) {
-          toast.error(`${result.failed} event${result.failed !== 1 ? 's' : ''} failed to import`);
-        }
-      } catch {
-        setSmartImportStates(prev => ({
-          ...prev,
-          [messageId]: { isImporting: false, result: { imported: 0, failed: events.length } },
-        }));
-        toast.error('Failed to import events. Please try again.');
-      }
-    },
-    [tripId],
-  );
-
-  const handleSmartImportDismiss = useCallback((messageId: string) => {
-    setMessages(prev =>
-      prev.map(m => (m.id === messageId ? { ...m, smartImportPreview: undefined } : m)),
-    );
-  }, []);
-
-  // ── Bulk Delete: confirm/dismiss handlers ─────────────────────────────────
-  const [bulkDeleteStates, setBulkDeleteStates] = useState<
-    Record<
-      string,
-      {
-        isImporting: boolean;
-        result: { imported: number; failed: number; alreadyMissing?: number } | null;
-      }
-    >
-  >({});
-
-  const handleBulkDeleteConfirm = useCallback(
-    async (messageId: string, previewToken: string, events: SmartImportPreviewEvent[]) => {
-      if (!tripId || events.length === 0) return;
-
-      const selectedEventIds = events.map(e => e.id).filter(Boolean) as string[];
-      if (selectedEventIds.length === 0) return;
-
-      setBulkDeleteStates(prev => ({
-        ...prev,
-        [messageId]: { isImporting: true, result: null },
-      }));
-
-      try {
-        const { calendarService } = await import('@/services/calendarService');
-        const result = await calendarService.bulkDeleteEvents(selectedEventIds, tripId);
-
-        // Resolve the pending action for audit trail (non-blocking — deletion already succeeded)
-        // intentional: trip_pending_actions not yet in generated Supabase types
-        (supabase as any)
-          .from('trip_pending_actions')
-          .update({
-            status: 'confirmed',
-            resolved_at: new Date().toISOString(),
-            resolved_by: user?.id,
-          })
-          .eq('id', previewToken)
-          .eq('status', 'pending')
-          .then(() => {});
-
-        setBulkDeleteStates(prev => ({
-          ...prev,
-          [messageId]: {
-            isImporting: false,
-            result: {
-              imported: result.deleted,
-              failed: result.failed,
-              alreadyMissing: result.alreadyMissing,
-            },
-          },
-        }));
-
-        // Invalidate calendar queries so the UI refreshes
-        conciergeQueryClient.invalidateQueries({ queryKey: ['calendarEvents', tripId] });
-
-        if (result.deleted > 0) {
-          const extra =
-            result.alreadyMissing > 0 ? ` ${result.alreadyMissing} were already gone.` : '';
-          toast.success(
-            `Removed ${result.deleted} event${result.deleted !== 1 ? 's' : ''} from Calendar.${extra}`,
-          );
-        }
-        if (result.failed > 0) {
-          toast.error(`${result.failed} event${result.failed !== 1 ? 's' : ''} failed to remove`);
-        }
-      } catch {
-        setBulkDeleteStates(prev => ({
-          ...prev,
-          [messageId]: {
-            isImporting: false,
-            result: { imported: 0, failed: events.length },
-          },
-        }));
-        toast.error('Failed to remove events. Please try again.');
-      }
-    },
-    [tripId, user, conciergeQueryClient],
-  );
-
-  const handleBulkDeleteDismiss = useCallback((messageId: string) => {
-    setMessages(prev =>
-      prev.map(m => (m.id === messageId ? { ...m, bulkDeletePreview: undefined } : m)),
-    );
-  }, []);
-
-  // ── Delete a single concierge message (privacy) ──────────────────────────
-  const handleDeleteMessage = useCallback(
-    async (messageId: string) => {
-      // Remove from local state immediately
-      setMessages(prev => prev.filter(m => m.id !== messageId));
-
-      // If it's a persisted history message, also update DB
-      const historyMatch = messageId.match(/^history-(user|assistant)-([^-]+)/);
-      if (historyMatch && user?.id) {
-        const [, role, rowId] = historyMatch;
-        if (role === 'user') {
-          // Delete entire row (removes both Q and A from DB)
-          await supabase.from('ai_queries').delete().eq('id', rowId).eq('user_id', user.id);
-          // Also remove the paired assistant message from UI
-          const pairedPrefix = `history-assistant-${rowId}`;
-          setMessages(prev => prev.filter(m => !m.id.startsWith(pairedPrefix)));
-        } else {
-          // Just null out the response text in DB
-          await supabase
-            .from('ai_queries')
-            .update({ response_text: null })
-            .eq('id', rowId)
-            .eq('user_id', user.id);
-        }
-      }
-    },
-    [user?.id],
-  );
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- ref-sync pattern; wrapping in useCallback is impractical
-  const handleSendMessage = async (messageOverride?: string) => {
-    const typedMessage =
-      typeof messageOverride === 'string' ? messageOverride.trim() : inputMessage.trim();
-    const selectedImages = UPLOAD_ENABLED ? [...attachedImages] : [];
-    const selectedDocuments = UPLOAD_ENABLED ? [...attachedDocuments] : [];
-    const hasImageAttachments = selectedImages.length > 0;
-    const hasDocumentAttachments = selectedDocuments.length > 0;
-    const hasAnyAttachments = hasImageAttachments || hasDocumentAttachments;
-    if ((!typedMessage && !hasAnyAttachments) || isTyping) return;
-
-    const attachmentCount = selectedImages.length + selectedDocuments.length;
-    const messageToSend =
-      typedMessage ||
-      (attachmentIntent === 'summarize'
-        ? `Please summarize the attached file(s) and highlight key travel details.`
-        : attachmentIntent === 'qa'
-          ? `Please analyze the attached file(s). I'll ask follow-up questions next.`
-          : hasDocumentAttachments
-            ? `Please analyze the attached file(s) and extract any travel events, reservations, or itinerary items. Show me a preview before adding to calendar.`
-            : `Please analyze the ${selectedImages.length} attached image(s).`);
-    const userDisplayContent =
-      typedMessage || `Attached ${attachmentCount} file${attachmentCount === 1 ? '' : 's'}`;
-
-    if (isOffline) {
-      setMessages(prev => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          type: 'user',
-          content: messageToSend,
-          timestamp: new Date().toISOString(),
-        },
-        {
-          id: (Date.now() + 1).toString(),
-          type: 'assistant',
-          content:
-            "📡 **Offline Mode**\n\nI can't send this request while you're offline. Reconnect and try again.",
-          timestamp: new Date().toISOString(),
-        },
-      ]);
-      if (!messageOverride) {
-        setInputMessage('');
-      }
-      return;
-    }
-
-    const userMessage: ChatMessage = {
-      id: _uniqueId('user'),
-      type: 'user',
-      content: userDisplayContent,
-      timestamp: new Date().toISOString(),
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    const currentInput = messageToSend;
-
-    // 🔀 STREAM: Persist user message to Stream concierge channel
-    if (streamConciergeEnabled && user?.id) {
-      streamPersistUserMessage(tripId, user.id, userDisplayContent).catch(() => {
-        // Non-fatal — Stream persistence is optional
-      });
-    }
-
-    if (!messageOverride) {
-      setInputMessage('');
-    }
-    if (selectedImages.length > 0) {
-      setAttachedImages([]);
-    }
-    if (selectedDocuments.length > 0) {
-      setAttachedDocuments([]);
-    }
-    setIsTyping(true);
-    setAiStatus('thinking');
-
-    if (isLimitedPlan && !isDemoMode) {
-      // Atomically check AND increment usage via a single DB RPC call.
-      // A full text conversation counts as one query.
-      let incrementResult;
-      try {
-        incrementResult = await incrementUsageOnSuccess();
-      } catch {
-        toast.error('Unable to verify Concierge allowance. Please try again.');
-        setMessages(prev => prev.filter(m => m.id !== userMessage.id));
-        setIsTyping(false);
-        return;
-      }
-
-      if (!incrementResult.incremented) {
-        // Limit reached — reply with an inline assistant CTA instead of blocking.
-        setMessages(prev => [...prev, buildLimitReachedMessage()]);
-        setIsTyping(false);
-        return;
-      }
-    }
-
-    const fallbackContext = {
-      tripId,
-      title: 'Current Trip',
-      location: globalBasecamp?.address || basecamp?.address || 'Unknown location',
-      dateRange: new Date().toISOString().split('T')[0],
-      itinerary: [],
-      calendar: [],
-      payments: [],
-    };
-
-    const basecampLocation = globalBasecamp
-      ? {
-          name: globalBasecamp.name || 'Basecamp',
-          address: globalBasecamp.address,
-        }
-      : basecamp
-        ? {
-            name: basecamp.name || 'Basecamp',
-            address: basecamp.address,
-          }
-        : undefined;
-
-    let streamingStarted = false;
-
-    try {
-      let attachments: ConciergeAttachment[] = [];
-      if (selectedImages.length > 0) {
-        attachments = await Promise.all(selectedImages.map(fileToAttachmentPayload));
-      }
-      if (selectedDocuments.length > 0) {
-        const docAttachments = await Promise.all(selectedDocuments.map(fileToAttachmentPayload));
-        attachments = [...attachments, ...docAttachments];
-      }
-
-      // Slice the last N prior messages. The current user message is
-      // appended separately by the edge function, so N prior + 1 current = N+1
-      // messages of context. Cap at MAX_CHAT_HISTORY_MESSAGES to avoid
-      // exceeding Gemini's context window with long conversations.
-      const chatHistory = messages.slice(-MAX_CHAT_HISTORY_MESSAGES).map(msg => ({
-        role: msg.type === 'user' ? 'user' : 'assistant',
-        content:
-          msg.content.length > MAX_SINGLE_MESSAGE_LENGTH
-            ? msg.content.substring(0, MAX_SINGLE_MESSAGE_LENGTH) + '...[truncated]'
-            : msg.content,
-      }));
-
-      const requestBody = {
-        message: currentInput,
-        tripId,
-        preferences: effectivePreferences,
-        chatHistory,
-        attachments,
-        isDemoMode,
-        config: {
-          model: 'gemini-3-flash-preview',
-          temperature: 0.55,
-          maxTokens: 4096,
-        },
-        ...(hasAnyAttachments && !typedMessage ? { attachmentIntent } : {}),
-      };
-
-      // === STREAMING PATH ===
-      if (!isDemoMode) {
-        const streamingMessageId = _uniqueId('stream');
-        let receivedAnyChunk = false;
-        let accumulatedStreamContent = ''; // accumulates full text so we can cache after onDone
-        const streamTimer = { id: undefined as ReturnType<typeof setTimeout> | undefined };
-
-        const triggerStreamTimeout = () => {
-          streamAbortRef.current?.();
-          streamAbortRef.current = null;
-          if (!isMounted.current) return;
-          setAiStatus('timeout');
-          setIsTyping(false);
-          const timeoutContent = `⚠️ **Request timed out**\n\n${generateFallbackResponse(currentInput, fallbackContext, basecampLocation)}`;
-          setMessages(prev => {
-            const exists = prev.some(m => m.id === streamingMessageId);
-            if (exists) {
-              return prev.map(m =>
-                m.id === streamingMessageId ? { ...m, content: timeoutContent } : m,
-              );
-            }
-            return [
-              ...prev,
-              {
-                id: streamingMessageId,
-                type: 'assistant' as const,
-                content: timeoutContent,
-                timestamp: new Date().toISOString(),
-              },
-            ];
-          });
-        };
-
-        const resetStreamWatchdog = () => {
-          if (streamTimer.id) clearTimeout(streamTimer.id);
-          streamTimer.id = setTimeout(triggerStreamTimeout, FAST_RESPONSE_TIMEOUT_MS);
-        };
-
-        const updateStreamMsg = (updater: (msg: ChatMessage) => Partial<ChatMessage>) => {
-          setMessages(prev => {
-            const idx = prev.findIndex(m => m.id === streamingMessageId);
-            if (idx === -1) return prev;
-            const patch = updater(prev[idx]);
-            if (Object.keys(patch).length === 0) return prev;
-            const updated = [...prev];
-            updated[idx] = { ...updated[idx], ...patch };
-            return updated;
-          });
-        };
-
-        const streamHandle = invokeConciergeStream(
-          requestBody,
-          {
-            onActivity: () => {
-              resetStreamWatchdog();
-            },
-            onChunk: (text: string) => {
-              if (!isMounted.current) return;
-              accumulatedStreamContent += text; // always accumulate for caching
-              // Sanitize accumulated content so users never see leaked JSON mid-stream
-              const displayContent = sanitizeConciergeContent(accumulatedStreamContent);
-              if (!receivedAnyChunk) {
-                receivedAnyChunk = true;
-                setIsTyping(false);
-                setMessages(prev => {
-                  const idx = prev.findIndex(m => m.id === streamingMessageId);
-                  if (idx !== -1) {
-                    const updated = [...prev];
-                    updated[idx] = { ...updated[idx], content: displayContent };
-                    return updated;
-                  }
-                  return [
-                    ...prev,
-                    {
-                      id: streamingMessageId,
-                      type: 'assistant' as const,
-                      content: displayContent,
-                      timestamp: new Date().toISOString(),
-                    },
-                  ];
-                });
-                return;
-              }
-              updateStreamMsg(() => ({ content: displayContent }));
-            },
-            onFunctionCall: (name: string, result: Record<string, unknown>) => {
-              if (!isMounted.current) return;
-              // Tool execution means the stream is alive — prevent timeout.
-              receivedAnyChunk = true;
-              // Ensure the streaming message exists so place cards render immediately,
-              // even before the first text chunk arrives (tools run before LLM response).
-              const ensureAndPatch = (patch: Partial<ChatMessage>) => {
-                setMessages(prev => {
-                  const idx = prev.findIndex(m => m.id === streamingMessageId);
-                  if (idx !== -1) {
-                    const updated = [...prev];
-                    updated[idx] = { ...updated[idx], ...patch };
-                    return updated;
-                  }
-                  // Create placeholder message so place cards appear immediately
-                  return [
-                    ...prev,
-                    {
-                      id: streamingMessageId,
-                      type: 'assistant' as const,
-                      content: '',
-                      timestamp: new Date().toISOString(),
-                      ...patch,
-                    },
-                  ];
-                });
-              };
-
-              if (name === 'searchPlaces' && result.places && Array.isArray(result.places)) {
-                ensureAndPatch({
-                  functionCallPlaces: result.places as ChatMessage['functionCallPlaces'],
-                });
-              }
-              if (name === 'searchFlights' && result.success) {
-                const flightResult = {
-                  origin: result.origin as string,
-                  destination: result.destination as string,
-                  departureDate: result.departureDate as string,
-                  returnDate: result.returnDate as string | undefined,
-                  passengers: (result.passengers as number) || 1,
-                  deeplink: result.deeplink as string,
-                  provider: result.provider as string | null,
-                  price:
-                    (result.price as {
-                      amount?: number | null;
-                      currency?: string | null;
-                      display?: string | null;
-                    } | null) ?? null,
-                  airline: result.airline as string | null,
-                  flightNumber: result.flightNumber as string | null,
-                  stops: result.stops as number | null,
-                  durationMinutes: result.durationMinutes as number | null,
-                  departTime: result.departTime as string | null,
-                  arriveTime: result.arriveTime as string | null,
-                  refundable: result.refundable as boolean | null,
-                };
-                ensureAndPatch({
-                  functionCallFlights: [flightResult],
-                });
-              }
-              // searchHotels function call → hotel cards
-              if (name === 'searchHotels' && result.hotels && Array.isArray(result.hotels)) {
-                ensureAndPatch({
-                  functionCallHotels: result.hotels as HotelResult[],
-                });
-              }
-              // Single hotel detail from getHotelDetails
-              if (name === 'getHotelDetails' && result.success && result.title) {
-                const hotelResult: HotelResult = {
-                  id: result.id as string | null,
-                  provider: result.provider as string | null,
-                  title: result.title as string,
-                  subtitle: result.subtitle as string | null,
-                  badges: result.badges as string[] | undefined,
-                  price: result.price as HotelResult['price'],
-                  dates: result.dates as HotelResult['dates'],
-                  location: result.location as HotelResult['location'],
-                  details: result.details as HotelResult['details'],
-                  deep_links: result.deep_links as HotelResult['deep_links'],
-                };
-                setMessages(prev => {
-                  const idx = prev.findIndex(m => m.id === streamingMessageId);
-                  if (idx !== -1) {
-                    const existing = prev[idx].functionCallHotels || [];
-                    const updated = [...prev];
-                    updated[idx] = {
-                      ...updated[idx],
-                      functionCallHotels: [...existing, hotelResult],
-                    };
-                    return updated;
-                  }
-                  return [
-                    ...prev,
-                    {
-                      id: streamingMessageId,
-                      type: 'assistant' as const,
-                      content: '',
-                      timestamp: new Date().toISOString(),
-                      functionCallHotels: [hotelResult],
-                    },
-                  ];
-                });
-              }
-              if (name === 'getPlaceDetails' && result.success) {
-                const detailPlace = {
-                  placeId: result.placeId as string,
-                  name: result.name as string,
-                  address: result.address as string,
-                  rating: result.rating as number | null,
-                  userRatingCount: result.userRatingCount as number | null,
-                  priceLevel: result.priceLevel as string | null,
-                  mapsUrl: result.mapsUrl as string | null,
-                  previewPhotoUrl: (result.photoUrls as string[])?.[0] || null,
-                  photoUrls: result.photoUrls as string[],
-                };
-                setMessages(prev => {
-                  const idx = prev.findIndex(m => m.id === streamingMessageId);
-                  if (idx !== -1) {
-                    const existing = prev[idx].functionCallPlaces || [];
-                    const updated = [...prev];
-                    updated[idx] = {
-                      ...updated[idx],
-                      functionCallPlaces: [...existing, detailPlace],
-                    };
-                    return updated;
-                  }
-                  // Create placeholder with this first place detail
-                  return [
-                    ...prev,
-                    {
-                      id: streamingMessageId,
-                      type: 'assistant' as const,
-                      content: '',
-                      timestamp: new Date().toISOString(),
-                      functionCallPlaces: [detailPlace],
-                    },
-                  ];
-                });
-              }
-
-              // Handle concierge write actions (createPoll, createTask, savePlace, etc.)
-              if (isConciergeWriteAction(name) && result.actionType) {
-                if (result.pending && result.pendingActionId) {
-                  const pendingAction = {
-                    id: result.pendingActionId as string,
-                    toolName: name,
-                    actionType: result.actionType as string,
-                    message: (result.message as string) || '',
-                    title: (result.title as string) || (result.question as string) || undefined,
-                    detail: (result.detail as string) || null,
-                  };
-                  setMessages(prev => {
-                    const idx = prev.findIndex(m => m.id === streamingMessageId);
-                    if (idx !== -1) {
-                      const updated = [...prev];
-                      const existing = updated[idx].pendingActions || [];
-                      updated[idx] = {
-                        ...updated[idx],
-                        pendingActions: [...existing, pendingAction],
-                      };
-                      return updated;
-                    }
-                    return [
-                      ...prev,
-                      {
-                        id: streamingMessageId,
-                        type: 'assistant' as const,
-                        content: '',
-                        timestamp: new Date().toISOString(),
-                        pendingActions: [pendingAction],
-                      },
-                    ];
-                  });
-                  return;
-                }
-
-                // Extract entity name from nested result objects
-                const entityName =
-                  (result.entityName as string) ||
-                  ((result.poll as Record<string, unknown>)?.question as string) ||
-                  ((result.poll as Record<string, unknown>)?.title as string) ||
-                  ((result.task as Record<string, unknown>)?.title as string) ||
-                  ((result.task as Record<string, unknown>)?.name as string) ||
-                  ((result.event as Record<string, unknown>)?.title as string) ||
-                  ((result.event as Record<string, unknown>)?.name as string) ||
-                  ((result.link as Record<string, unknown>)?.name as string) ||
-                  ((result.link as Record<string, unknown>)?.title as string) ||
-                  ((result.agendaItem as Record<string, unknown>)?.title as string) ||
-                  ((result.place as Record<string, unknown>)?.name as string) ||
-                  (result.name as string) ||
-                  (result.title as string) ||
-                  undefined;
-
-                // Detect duplicate/skipped status from tool result
-                const status = result.duplicate
-                  ? ('duplicate' as const)
-                  : result.skipped
-                    ? ('skipped' as const)
-                    : result.success
-                      ? ('success' as const)
-                      : ('failure' as const);
-
-                const actionResult = {
-                  actionType: result.actionType as string,
-                  success: !!result.success,
-                  message: (result.message as string) || (result.error as string) || '',
-                  entityId:
-                    ((result.poll as Record<string, unknown>)?.id as string) ||
-                    ((result.task as Record<string, unknown>)?.id as string) ||
-                    ((result.event as Record<string, unknown>)?.id as string) ||
-                    ((result.link as Record<string, unknown>)?.id as string) ||
-                    ((result.agendaItem as Record<string, unknown>)?.id as string) ||
-                    undefined,
-                  entityName,
-                  scope: result.scope as string | undefined,
-                  status,
-                };
-                setMessages(prev => {
-                  const idx = prev.findIndex(m => m.id === streamingMessageId);
-                  if (idx !== -1) {
-                    const updated = [...prev];
-                    const existing = updated[idx].conciergeActions || [];
-                    updated[idx] = {
-                      ...updated[idx],
-                      conciergeActions: [...existing, actionResult],
-                    };
-                    return updated;
-                  }
-                  return [
-                    ...prev,
-                    {
-                      id: streamingMessageId,
-                      type: 'assistant' as const,
-                      content: '',
-                      timestamp: new Date().toISOString(),
-                      conciergeActions: [actionResult],
-                    },
-                  ];
-                });
-
-                // Invalidate relevant queries so tab data refreshes after AI write actions
-                if (result.success) {
-                  const queryKey = getConciergeInvalidationQueryKey(name, tripId);
-                  if (queryKey) {
-                    conciergeQueryClient.invalidateQueries({ queryKey });
-                  }
-                }
-              }
-            },
-            onReservationDraft: (draft: ReservationDraft) => {
-              if (!isMounted.current) return;
-              receivedAnyChunk = true;
-              setMessages(prev => {
-                const idx = prev.findIndex(m => m.id === streamingMessageId);
-                if (idx !== -1) {
-                  const updated = [...prev];
-                  const existing = updated[idx].reservationDrafts || [];
-                  updated[idx] = {
-                    ...updated[idx],
-                    reservationDrafts: [...existing, draft],
-                  };
-                  return updated;
-                }
-                return [
-                  ...prev,
-                  {
-                    id: streamingMessageId,
-                    type: 'assistant' as const,
-                    content: '',
-                    timestamp: new Date().toISOString(),
-                    reservationDrafts: [draft],
-                  },
-                ];
-              });
-            },
-            onSmartImportPreview: (preview: StreamSmartImportPreviewEvent) => {
-              if (!isMounted.current) return;
-              receivedAnyChunk = true;
-              setMessages(prev => {
-                const idx = prev.findIndex(m => m.id === streamingMessageId);
-                const previewData = {
-                  previewEvents: preview.previewEvents,
-                  tripId: preview.tripId,
-                  totalEvents: preview.totalEvents,
-                  duplicateCount: preview.duplicateCount,
-                  lodgingName: preview.lodgingName,
-                };
-                if (idx !== -1) {
-                  const updated = [...prev];
-                  updated[idx] = { ...updated[idx], smartImportPreview: previewData };
-                  return updated;
-                }
-                return [
-                  ...prev,
-                  {
-                    id: streamingMessageId,
-                    type: 'assistant' as const,
-                    content: '',
-                    timestamp: new Date().toISOString(),
-                    smartImportPreview: previewData,
-                  },
-                ];
-              });
-            },
-            onSmartImportStatus: (status: SmartImportStatus, message: string) => {
-              if (!isMounted.current) return;
-              receivedAnyChunk = true;
-              setIsTyping(false);
-              setMessages(prev => {
-                const idx = prev.findIndex(m => m.id === streamingMessageId);
-                const statusData = { status, message };
-                if (idx !== -1) {
-                  const updated = [...prev];
-                  updated[idx] = { ...updated[idx], smartImportStatus: statusData };
-                  return updated;
-                }
-                return [
-                  ...prev,
-                  {
-                    id: streamingMessageId,
-                    type: 'assistant' as const,
-                    content: '',
-                    timestamp: new Date().toISOString(),
-                    smartImportStatus: statusData,
-                  },
-                ];
-              });
-            },
-            onBulkDeletePreview: (preview: StreamBulkDeletePreviewEvent) => {
-              if (!isMounted.current) return;
-              receivedAnyChunk = true;
-              setMessages(prev => {
-                const idx = prev.findIndex(m => m.id === streamingMessageId);
-                const previewData = {
-                  previewEvents: preview.previewEvents,
-                  previewToken: preview.previewToken,
-                  tripId: preview.tripId,
-                  totalEvents: preview.totalEvents,
-                };
-                if (idx !== -1) {
-                  const updated = [...prev];
-                  updated[idx] = { ...updated[idx], bulkDeletePreview: previewData };
-                  return updated;
-                }
-                return [
-                  ...prev,
-                  {
-                    id: streamingMessageId,
-                    type: 'assistant' as const,
-                    content: '',
-                    timestamp: new Date().toISOString(),
-                    bulkDeletePreview: previewData,
-                  },
-                ];
-              });
-            },
-            // Handles the structured JSON-envelope trip_cards event from the AI Concierge.
-            // Cards are split into hotels and flights and attached to the streaming message.
-            onTripCards: (cards: TripCard[], message: string | null) => {
-              if (!isMounted.current) return;
-              receivedAnyChunk = true;
-
-              const hotelCards: HotelResult[] = [];
-              const flightCards: ChatMessage['functionCallFlights'] = [];
-
-              for (const card of cards) {
-                if (card.type === 'hotel') {
-                  hotelCards.push({
-                    id: card.id,
-                    provider: card.provider,
-                    title: card.title,
-                    subtitle: card.subtitle,
-                    badges: card.badges,
-                    price: card.price,
-                    dates: card.dates
-                      ? { check_in: card.dates.check_in, check_out: card.dates.check_out }
-                      : null,
-                    location: card.location
-                      ? {
-                          city: card.location.city,
-                          region: card.location.region,
-                          country: card.location.country,
-                        }
-                      : null,
-                    details: card.details
-                      ? {
-                          rating: card.details.rating,
-                          reviews_count: card.details.reviews_count,
-                          refundable: card.details.refundable,
-                          amenities: card.details.amenities,
-                        }
-                      : null,
-                    deep_links: card.deep_links,
-                  });
-                } else if (card.type === 'flight') {
-                  const airportCodes = card.location?.airport_codes ?? [];
-                  flightCards.push({
-                    origin: airportCodes[0] ?? '',
-                    destination: airportCodes[1] ?? '',
-                    departureDate: card.dates?.depart?.split('T')[0] ?? '',
-                    returnDate: undefined,
-                    passengers: 1,
-                    deeplink: card.deep_links?.primary ?? '',
-                    provider: card.provider,
-                    price: card.price,
-                    airline: card.details?.airline,
-                    flightNumber: card.details?.flight_number,
-                    stops: card.details?.stops,
-                    durationMinutes: card.details?.duration_minutes,
-                    departTime: card.dates?.depart ?? null,
-                    arriveTime: card.dates?.arrive ?? null,
-                    refundable: card.details?.refundable,
-                  });
-                }
-              }
-
-              setMessages(prev => {
-                const idx = prev.findIndex(m => m.id === streamingMessageId);
-                const patch: Partial<ChatMessage> = {};
-                if (hotelCards.length > 0) patch.functionCallHotels = hotelCards;
-                if (flightCards.length > 0) patch.functionCallFlights = flightCards;
-                // If backend also sends a summary message string, use it as content
-                if (message) patch.content = message;
-
-                if (idx !== -1) {
-                  const updated = [...prev];
-                  updated[idx] = { ...updated[idx], ...patch };
-                  return updated;
-                }
-                return [
-                  ...prev,
-                  {
-                    id: streamingMessageId,
-                    type: 'assistant' as const,
-                    content: message ?? '',
-                    timestamp: new Date().toISOString(),
-                    ...patch,
-                  },
-                ];
-              });
-            },
-            onMetadata: (metadata: StreamMetadataEvent) => {
-              if (metadata.keepAlive) {
-                return;
-              }
-              setAiStatus('connected');
-              updateStreamMsg(() => ({
-                usage: metadata.usage,
-                sources: metadata.sources as ChatMessage['sources'],
-                googleMapsWidget: metadata.googleMapsWidget ?? undefined,
-                googleMapsWidgetContextToken: metadata.googleMapsWidgetContextToken ?? undefined,
-              }));
-            },
-            onError: (errorMsg: string) => {
-              if (import.meta.env.DEV) {
-                console.error('[Stream] Concierge streaming error:', errorMsg);
-              }
-              if (!isMounted.current) return;
-              if (!receivedAnyChunk) {
-                setIsTyping(false);
-                setAiStatus('degraded');
-                setMessages(prev => [
-                  ...prev,
-                  {
-                    id: streamingMessageId,
-                    type: 'assistant' as const,
-                    content: generateFallbackResponse(
-                      currentInput,
-                      fallbackContext,
-                      basecampLocation,
-                    ),
-                    timestamp: new Date().toISOString(),
-                  },
-                ]);
-              }
-            },
-            onDone: () => {
-              clearTimeout(streamTimer.id);
-              streamAbortRef.current = null;
-              if (!isMounted.current) return;
-              setIsTyping(false);
-              if (!receivedAnyChunk) {
-                setMessages(prev => {
-                  // Check if cards/actions were already attached by tool calls
-                  const existing = prev.find(m => m.id === streamingMessageId);
-                  const hasCards =
-                    existing?.functionCallHotels?.length ||
-                    existing?.functionCallPlaces?.length ||
-                    (existing?.conciergeActions && existing.conciergeActions.length > 0);
-                  return [
-                    ...prev.filter(m => m.id !== streamingMessageId),
-                    {
-                      id: streamingMessageId,
-                      type: 'assistant' as const,
-                      content: hasCards
-                        ? "Here's what I found:"
-                        : 'Sorry, I encountered an error processing your request.',
-                      timestamp: new Date().toISOString(),
-                      ...(existing?.functionCallHotels
-                        ? { functionCallHotels: existing.functionCallHotels }
-                        : {}),
-                      ...(existing?.functionCallPlaces
-                        ? { functionCallPlaces: existing.functionCallPlaces }
-                        : {}),
-                      ...(existing?.conciergeActions
-                        ? { conciergeActions: existing.conciergeActions }
-                        : {}),
-                    },
-                  ];
-                });
-              } else {
-                updateStreamMsg(msg => {
-                  const hasCards =
-                    msg.functionCallHotels?.length ||
-                    msg.functionCallPlaces?.length ||
-                    (msg.conciergeActions && msg.conciergeActions.length > 0);
-                  return msg.content.length > 0 || hasCards
-                    ? {}
-                    : { content: 'Sorry, I encountered an error processing your request.' };
-                });
-                // Cache the completed response for offline fallback.
-                // Use the locally accumulated string — no setState read needed.
-                if (accumulatedStreamContent) {
-                  const latestStreamingMessage = messagesRef.current.find(
-                    msg => msg.id === streamingMessageId,
-                  );
-                  const cachedMsg: ChatMessage = latestStreamingMessage
-                    ? { ...latestStreamingMessage, content: accumulatedStreamContent }
-                    : {
-                        id: streamingMessageId,
-                        type: 'assistant',
-                        content: accumulatedStreamContent,
-                        timestamp: new Date().toISOString(),
-                      };
-                  conciergeCacheService.cacheMessage(
-                    tripId,
-                    currentInput,
-                    cachedMsg,
-                    user?.id ?? 'anonymous',
-                  );
-
-                  // 🔀 STREAM: Persist assistant message to Stream concierge channel
-                  if (streamConciergeEnabled && user?.id) {
-                    const streamMeta = latestStreamingMessage
-                      ? {
-                          sources: latestStreamingMessage.sources,
-                          googleMapsWidget: latestStreamingMessage.googleMapsWidget,
-                          googleMapsWidgetContextToken:
-                            latestStreamingMessage.googleMapsWidgetContextToken,
-                          functionCallPlaces: latestStreamingMessage.functionCallPlaces as
-                            | Array<Record<string, unknown>>
-                            | undefined,
-                        }
-                      : undefined;
-                    streamPersistAssistantMessage(
-                      tripId,
-                      user.id,
-                      accumulatedStreamContent,
-                      streamMeta,
-                    ).catch(() => {
-                      // Non-fatal — Stream persistence is optional
-                    });
-                  }
-
-                  // Persist rich card metadata to the ai_queries row that the
-                  // edge function already inserted.  We update the most recent
-                  // row matching this user + trip + query text.
-                  const richMeta = extractRichMetadata(latestStreamingMessage);
-                  if (richMeta && user?.id) {
-                    supabase
-                      .from('ai_queries')
-                      .update({ metadata: richMeta } as Record<string, unknown>)
-                      .eq('trip_id', tripId)
-                      .eq('user_id', user.id)
-                      .eq('query_text', currentInput)
-                      .order('created_at', { ascending: false })
-                      .limit(1)
-                      .then(({ error: metaErr }) => {
-                        if (metaErr && import.meta.env.DEV) {
-                          console.warn(
-                            '[Concierge] Failed to persist rich metadata:',
-                            metaErr.message,
-                          );
-                        }
-                      });
-                  }
-                }
-              }
-            },
-          },
-          { demoMode: isDemoMode },
-        );
-
-        streamAbortRef.current = streamHandle.abort;
-        streamingStarted = true;
-
-        resetStreamWatchdog();
-
-        return;
-      }
-
-      // === NON-STREAMING FALLBACK (demo mode) ===
-      const { data, error } = await invokeConciergeWithTimeout(requestBody, {
-        demoMode: isDemoMode,
-      });
-
-      if (!data || error) {
-        if (import.meta.env.DEV) {
-          console.warn('AI service unavailable or timed out, using graceful degradation');
-        }
-        setAiStatus('degraded');
-
-        const fallbackResponse = generateFallbackResponse(
-          currentInput,
-          fallbackContext,
-          basecampLocation,
-        );
-
-        const assistantMessage: ChatMessage = {
-          id: _uniqueId('assistant'),
-          type: 'assistant',
-          content: fallbackResponse,
-          timestamp: new Date().toISOString(),
-        };
-
-        setMessages(prev => [...prev, assistantMessage]);
-        setIsTyping(false);
-        return;
-      }
-
-      setAiStatus('connected');
-
-      const assistantMessage: ChatMessage = {
-        id: _uniqueId('assistant'),
-        type: 'assistant',
-        content: data.response || 'Sorry, I encountered an error processing your request.',
-        timestamp: new Date().toISOString(),
-        usage: data.usage,
-        sources: data.sources || data.citations,
-        googleMapsWidget: data.googleMapsWidget,
-        // Rich card fields from non-streaming fallback response
-        ...(data.places && Array.isArray(data.places)
-          ? { functionCallPlaces: data.places as ChatMessage['functionCallPlaces'] }
-          : {}),
-        ...(data.flights && Array.isArray(data.flights)
-          ? { functionCallFlights: data.flights as ChatMessage['functionCallFlights'] }
-          : {}),
-        ...(data.hotels && Array.isArray(data.hotels)
-          ? { functionCallHotels: data.hotels as unknown as ChatMessage['functionCallHotels'] }
-          : {}),
-        ...(data.conciergeActions && Array.isArray(data.conciergeActions)
-          ? { conciergeActions: data.conciergeActions as ChatMessage['conciergeActions'] }
-          : {}),
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
-      // Persist to localStorage cache for offline fallback
-      conciergeCacheService.cacheMessage(
-        tripId,
-        currentInput,
-        assistantMessage,
-        user?.id ?? 'anonymous',
-      );
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('AI Concierge error:', error);
-      }
-      setAiStatus('error');
-
-      try {
-        const fallbackResponse = generateFallbackResponse(
-          currentInput,
-          fallbackContext,
-          basecampLocation,
-        );
-        const errorMessage: ChatMessage = {
-          id: _uniqueId('assistant'),
-          type: 'assistant',
-          content: `⚠️ **AI Service Temporarily Unavailable**\n\n${fallbackResponse}\n\n*Note: This is a basic response. Full AI features will return once the service is restored.*`,
-          timestamp: new Date().toISOString(),
-        };
-        setMessages(prev => [...prev, errorMessage]);
-      } catch {
-        const errorMessage: ChatMessage = {
-          id: _uniqueId('assistant'),
-          type: 'assistant',
-          content: `I'm having trouble connecting to my AI services right now. Please try again in a moment.`,
-          timestamp: new Date().toISOString(),
-        };
-        setMessages(prev => [...prev, errorMessage]);
-      }
-    } finally {
-      if (!streamingStarted) {
-        setIsTyping(false);
-      }
-    }
-  };
-
-  const generateFallbackResponse = (
-    query: string,
-    tripContext: FallbackTripContext,
-    basecampLocation?: { name: string; address: string },
-  ): string => {
-    const lowerQuery = query.toLowerCase();
-
-    if (lowerQuery.match(/\b(where|location|address|directions|near|around|close)\b/)) {
-      if (basecampLocation) {
-        return `📍 **Location Information**\n\nBased on your trip basecamp:\n\n**${basecampLocation.name}**\n${basecampLocation.address}\n\nYou can use Google Maps to find directions and nearby places.`;
-      }
-      return `📍 I can help with location queries once the AI service is restored. For now, you can use the Places tab to search for locations.`;
-    }
-
-    if (lowerQuery.match(/\b(when|time|schedule|calendar|event|agenda|upcoming)\b/)) {
-      if (tripContext?.itinerary?.length || tripContext?.calendar?.length) {
-        const events = tripContext.itinerary || tripContext.calendar || [];
-        const upcoming = events.slice(0, 3);
-        let response = `📅 **Upcoming Events**\n\n`;
-        upcoming.forEach(event => {
-          response += `• ${event.title || event.name}`;
-          if (event.startTime) response += ` - ${event.startTime}`;
-          if (event.location) response += ` at ${event.location}`;
-          response += `\n`;
-        });
-        return response;
-      }
-      return `📅 Check the Calendar tab for your trip schedule.`;
-    }
-
-    if (lowerQuery.match(/\b(payment|money|owe|spent|cost|budget|expense)\b/)) {
-      if (tripContext?.payments?.length) {
-        const unsettled = tripContext.payments.filter(p => !p.isSettled && !p.settled);
-        if (unsettled.length > 0) {
-          const totalOwed = unsettled.reduce((sum: number, p) => sum + (p.amount || 0), 0);
-          let response = `💰 **Outstanding Payments**\n\n`;
-          unsettled.slice(0, 5).forEach(p => {
-            const paidBy = p.paidBy || p.createdByName || 'Someone';
-            response += `• ${p.description}: $${p.amount?.toFixed(2) || '0.00'} (paid by ${paidBy})\n`;
-          });
-          response += `\n**Total Outstanding:** $${totalOwed.toFixed(2)}`;
-          if (unsettled.length > 5) {
-            response += `\n\n_...and ${unsettled.length - 5} more payments. Check the Payments tab for full details._`;
-          }
-          return response;
-        }
-        return `💰 **All Settled!**\n\nNo outstanding payments for this trip. Check the Payments tab to add new expenses.`;
-      }
-      return `💰 No payment data available yet. Add expenses in the Payments tab to track who owes what.`;
-    }
-
-    if (lowerQuery.match(/\b(task|todo|complete|done|pending|assigned)\b/)) {
-      return `✅ Check the Tasks tab to see what needs to be completed.`;
-    }
-
-    return `I'm temporarily unavailable, but you can:\n\n• Use the **Places** tab to find locations\n• Check the **Calendar** for your schedule\n• View **Payments** for expense tracking\n• See **Tasks** for what needs to be done\n\nFull AI assistance will return shortly!`;
-  };
+  }, [
+    chatScrollRef,
+    messages.length,
+    isTyping,
+    messages,
+    streamingVoiceMessage,
+    streamingUserMessage,
+  ]);
+
+  const { handleSendMessage } = useConciergeStreaming({
+    tripId,
+    isDemoMode,
+    userId: user?.id,
+    isOffline,
+    isLimitedPlan,
+    inputMessage,
+    setInputMessage,
+    isTyping,
+    messages,
+    setMessages,
+    messagesRef,
+    isMounted,
+    streamAbortRef,
+    setIsTyping,
+    setAiStatus,
+    incrementUsageOnSuccess,
+    buildLimitReachedMessage,
+    basecamp,
+    globalBasecamp,
+    effectivePreferences,
+    attachedImages,
+    attachedDocuments,
+    attachmentIntent,
+    clearAttachments,
+    streamConciergeEnabled,
+    queryClient: conciergeQueryClient,
+  });
 
   useEffect(() => {
     handleSendMessageRef.current = handleSendMessage;
