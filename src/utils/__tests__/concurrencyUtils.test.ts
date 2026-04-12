@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { generateMutationId, rateLimiter } from '../concurrencyUtils';
+import type { OfflineQueue } from '../concurrencyUtils';
 
 describe('concurrencyUtils', () => {
   describe('generateMutationId', () => {
@@ -110,5 +111,84 @@ describe('concurrencyUtils', () => {
       expect(rateLimiter.getRemainingAttempts(key2, 1)).toBe(0);
       expect(rateLimiter.getRemainingAttempts(key1, 1)).toBe(0);
     });
+  });
+});
+
+describe('OfflineQueue', () => {
+  let queue: OfflineQueue;
+  let setOnline: (online: boolean) => void;
+  let originalConsoleError: typeof console.error;
+
+  beforeEach(async () => {
+    originalConsoleError = console.error;
+    console.error = vi.fn();
+    const concurrencyUtils = await import('../concurrencyUtils');
+    const { OfflineQueue, connectionMonitor } = concurrencyUtils;
+
+    // @ts-expect-error accessing private property for testing
+    connectionMonitor.listeners.clear();
+    // @ts-expect-error accessing private property for testing
+    connectionMonitor.isOnline = true;
+
+    setOnline = (online: boolean) => {
+      // @ts-expect-error accessing private property for testing
+      connectionMonitor.isOnline = online;
+      // @ts-expect-error accessing private property for testing
+      connectionMonitor.listeners.forEach((listener: (online: boolean) => void) =>
+        listener(online),
+      );
+    };
+
+    queue = new OfflineQueue();
+  });
+
+  afterEach(() => {
+    console.error = originalConsoleError;
+    vi.restoreAllMocks();
+  });
+
+  it('should process operations immediately when online', async () => {
+    const operation = vi.fn().mockResolvedValue('success');
+
+    queue.add('1', operation);
+
+    // Wait for processQueue async method to complete
+    await new Promise(resolve => setTimeout(resolve, 10));
+
+    expect(operation).toHaveBeenCalledTimes(1);
+  });
+
+  it('should defer operations when offline and process them when back online', async () => {
+    setOnline(false);
+    const operation = vi.fn().mockResolvedValue('success');
+
+    queue.add('1', operation);
+
+    await new Promise(resolve => setTimeout(resolve, 10));
+    expect(operation).toHaveBeenCalledTimes(0);
+
+    // Come back online
+    setOnline(true);
+
+    await new Promise(resolve => setTimeout(resolve, 10));
+    expect(operation).toHaveBeenCalledTimes(1);
+  });
+
+  it('should retry failed operations up to 3 times', async () => {
+    const error = new Error('Test error');
+    const operation = vi.fn().mockImplementation(() => {
+      return Promise.reject(error);
+    });
+
+    queue.add('1', operation);
+
+    // Wait for all retries to complete
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    expect(operation).toHaveBeenCalledTimes(3); // Initial call + 2 retries (based on < 3 check)
+    expect(console.error).toHaveBeenCalledWith(
+      'Failed to process queued operation 1 after 3 attempts:',
+      error,
+    );
   });
 });
