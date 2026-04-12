@@ -120,28 +120,6 @@ export const ChannelChatView = ({
   const transportMessages = useMemo<ChannelMessage[]>(() => {
     if (!useStreamTransport) return messages;
 
-  // Handle opening a reply
-  const handleOpenReply = useCallback(
-    (messageId: string) => {
-      const msg = transportMessages.find(m => m.id === messageId);
-      if (!msg) return;
-      setReplyingTo({
-        id: msg.id,
-        text: msg.content,
-        senderName: msg.senderName,
-      });
-    },
-    [transportMessages],
-  );
-
-  const clearReply = useCallback(() => {
-    setReplyingTo(null);
-  }, []);
-
-  // Transform ChannelMessage to ChatMessage format for MessageItem
-  const transportMessages = useMemo<ChannelMessage[]>(() => {
-    if (!useStreamTransport) return messages;
-
     const streamMessages = streamProChannel.messages;
     const streamById = new Map<string, MessageResponse>(
       streamMessages.map(msg => [String(msg.id), msg as MessageResponse]),
@@ -258,6 +236,10 @@ export const ChannelChatView = ({
     },
     [transportMessages],
   );
+
+  const clearReply = useCallback(() => {
+    setReplyingTo(null);
+  }, []);
 
   useEffect(() => {
     // Demo-only message hydration; non-demo channels are Stream-backed.
