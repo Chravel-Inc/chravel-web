@@ -116,24 +116,6 @@ export const ChannelChatView = ({
     }
   };
 
-  // Transform ChannelMessage to ChatMessage format for MessageItem
-  const transportMessages = useMemo<ChannelMessage[]>(() => {
-    if (!useStreamTransport) return messages;
-
-  // Handle opening a reply
-  const handleOpenReply = useCallback(
-    (messageId: string) => {
-      const msg = transportMessages.find(m => m.id === messageId);
-      if (!msg) return;
-      setReplyingTo({
-        id: msg.id,
-        text: msg.content,
-        senderName: msg.senderName,
-      });
-    },
-    [transportMessages],
-  );
-
   const clearReply = useCallback(() => {
     setReplyingTo(null);
   }, []);
