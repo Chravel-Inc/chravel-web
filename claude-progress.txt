@@ -626,6 +626,18 @@
 - Added focused regression tests in `src/hooks/__tests__/useUnreadCounts.test.ts` for high-confidence split, missing marker fallback, and mismatch fallback.
 - Verification: `npm run test:run -- src/hooks/__tests__/useUnreadCounts.test.ts`, `npm run typecheck`, `npm run lint:check -- src/hooks/useUnreadCounts.ts src/hooks/__tests__/useUnreadCounts.test.ts`.
 
+2026-04-13 — Stream webhook channel/event routing expansion + recipient dedupe hardening
+- Extended `supabase/functions/stream-webhook/index.ts` to explicitly handle `message.new`, `message.updated`, and `message.deleted`, and to ignore unsupported event/channel types with structured `{ ignored: true, reason }` responses.
+- Merged PR #229 CID fallbacks: effective CID from `message.cid`, `channel.cid`, root `cid`, or `channel_type:channel_id` before `parseStreamCid`.
+- Added centralized routing helpers in `supabase/functions/stream-webhook/eventRouting.ts` for Stream CID parsing, trip/concierge ID extraction, handled type constants, and sender-safe recipient deduplication.
+- Implemented channel-type-specific recipient resolution:
+  - `chravel-trip` + `chravel-broadcast` → `trip_members` (active/null status) excluding sender
+  - `chravel-channel` → `channel_members` excluding sender
+  - `chravel-concierge` → payload members + CID fallback, excluding sender and `ai-concierge-bot`
+- Notification fanout only for `message.new`; `message.updated` / `message.deleted` return early without membership queries. Notifications use `type: chat_message` (including broadcast Stream channels) so delivery follows `chat_messages` prefs.
+- Metadata includes `stream_webhook_id` plus `stream_channel_type` / `stream_channel_id`.
+- Added focused regression tests `supabase/functions/stream-webhook/__tests__/eventRouting.test.ts` covering required event/channel support, CID parsing, trip/concierge resolution, and recipient dedupe.
+- Verification: `npm run test:run -- supabase/functions/stream-webhook/__tests__/eventRouting.test.ts`, `npm run typecheck`, `npm run lint:check -- ...` (repo baseline warnings only), `npm run build`.
 2026-04-13 — Stream migration phase: chat read-receipt display source-of-truth guard
 - Root cause: `useChatReadReceipts` still subscribed to/fetched Supabase `message_read_receipts` in Stream-backed trip chat, creating dual read-status sources and unnecessary legacy realtime/query work.
 - Updated `src/features/chat/hooks/useChatReadReceipts.ts` to derive display read statuses directly from `activeChannel.state.read` in Stream mode and hard-gate legacy Supabase subscription/fetch paths to non-Stream mode only.
