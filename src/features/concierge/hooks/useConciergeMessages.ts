@@ -67,9 +67,14 @@ export function useConciergeMessages({ tripId, isDemoMode, userId, userPlan }: P
 
   const {
     data: historyMessages,
-    isLoading: isHistoryLoading,
+    isLoading: isSupabaseHistoryLoading,
     error: historyError,
   } = useConciergeHistory(tripId);
+
+  /** True while either Supabase history or Stream history is still loading (when Stream is enabled). */
+  const isHistoryLoading =
+    isSupabaseHistoryLoading ||
+    (streamConciergeEnabled && isStreamHistoryLoading && !isStreamHistoryLoaded);
   const canonicalHistoryMessages = useMemo(() => {
     if (streamConciergeEnabled) {
       return streamHistoryMessages.map(message => ({
@@ -117,10 +122,7 @@ export function useConciergeMessages({ tripId, isDemoMode, userId, userPlan }: P
   }, []);
 
   useEffect(() => {
-    const isAnyHistoryLoading =
-      isHistoryLoading ||
-      (streamConciergeEnabled && isStreamHistoryLoading && !isStreamHistoryLoaded);
-    if (isAnyHistoryLoading || hasHydratedRef.current) return;
+    if (isHistoryLoading || hasHydratedRef.current) return;
 
     if (historyError && mergedHistoryMessages.length === 0) {
       const cached = conciergeCacheService.getCachedMessages(tripId, user?.id ?? 'anonymous');
