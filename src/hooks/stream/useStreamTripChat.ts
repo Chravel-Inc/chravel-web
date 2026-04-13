@@ -378,7 +378,8 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
 
         // Optimistically check if we already reacted
         const message = messages.find(m => m.id === messageId);
-        const hasReacted = (message as any)?.reactions?.[reactionType]?.userReacted;
+        const hasReacted =
+          message?.own_reactions?.some(reaction => reaction.type === reactionType) ?? false;
 
         try {
           if (hasReacted) {
