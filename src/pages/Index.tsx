@@ -44,7 +44,7 @@ import {
   calculateProTripStats,
   calculateEventStats,
 } from '../utils/tripStatsCalculator';
-import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useMobilePortrait } from '../hooks/useMobilePortrait';
 import {
   convertSupabaseTripsToMock,
@@ -63,8 +63,9 @@ import { shouldShowOnboarding, capturePendingDestination } from '../utils/onboar
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../components/mobile/PullToRefreshIndicator';
 import { clearDataCaches } from '../utils/pwaCacheUtils';
+import { isInstalledApp } from '../utils/platformDetection';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 import { X } from 'lucide-react';
-import { getLaunchContext } from '../lib/runtime/launchContext';
 
 const Index = () => {
   usePerformanceMonitor('Index');
@@ -98,8 +99,6 @@ const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { demoView, isDemoMode, setDemoView } = useDemoMode();
   const isMobilePortrait = useMobilePortrait();
-  const launchContext = useMemo(() => getLaunchContext(), []);
-  const isInstalledAppContext = launchContext === 'installed_app';
 
   // Notification unread count for mobile tab bar badge
   const { unreadCount: notificationUnreadCount } = useNotificationRealtime();
@@ -742,20 +741,31 @@ const Index = () => {
     }
   }, [user, showOnboarding, location.pathname, getPendingDestination, setPendingDestination]);
 
-  if (isInstalledAppContext && demoView === 'off' && authLoading) {
-    return <div className="min-h-screen min-h-mobile-screen bg-background" aria-busy="true" />;
-  }
-
-  if (isInstalledAppContext && demoView === 'off' && !user) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  // MRKTING toggle: Show marketing page only for unauthenticated browser users
+  // MRKTING toggle: Show marketing page only for unauthenticated BROWSER users.
+  // Gate on authLoading to prevent marketing page flash during session hydration.
   if (demoView === 'off' && !user) {
+    // Auth is still hydrating — show neutral loading state on all platforms
+    if (authLoading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <LoadingSpinner size="lg" />
+        </div>
+      );
+    }
+
+    // Installed app (PWA standalone or native webview) — show auth gate, not marketing
+    if (isInstalledApp()) {
+      return (
+        <div className="min-h-screen bg-background">
+          <AuthModal isOpen={true} onClose={() => {}} />
+        </div>
+      );
+    }
+
+    // Browser — show marketing landing page (unchanged behavior)
     return (
       <div className="min-h-screen min-h-mobile-screen bg-background font-outfit">
         <FullPageLanding onSignUp={() => setIsAuthModalOpen(true)} />
-
         <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
       </div>
     );
