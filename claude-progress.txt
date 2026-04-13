@@ -644,3 +644,7 @@
 - Preserved mark-read behavior with explicit transport split: Stream mode uses `activeChannel.markRead()`, legacy mode retains `markMessagesAsRead(...)`.
 - Added focused regression tests `src/features/chat/hooks/__tests__/useChatReadReceipts.test.tsx` covering Stream-mode display derivation + legacy-path gating behavior.
 - Verification: `npm run test:run -- src/features/chat/hooks/__tests__/useChatReadReceipts.test.tsx`, `npm run typecheck`, `npm run lint:check -- src/features/chat/hooks/useChatReadReceipts.ts src/features/chat/hooks/__tests__/useChatReadReceipts.test.tsx`.
+
+2026-04-13 — TripChat read-receipt guard + focused markRead regression tests (rebase)
+- Kept `main` dual-path contract: Stream-backed channels use `activeChannel.markRead()` and `state.read` for display; legacy Supabase `markMessagesAsRead` + receipt subscription remain when the channel is not Stream-backed.
+- Added/retained `src/features/chat/hooks/__tests__/useChatReadReceipts.test.ts` to assert debounced `markRead` when a Stream-shaped channel is present and legacy subscription when `activeChannel` is null.

@@ -5,13 +5,14 @@ import {
   getMessagesReadStatus,
 } from '@/services/readReceiptService';
 import { supabase } from '@/integrations/supabase/client';
+import type { Channel } from 'stream-chat';
 
 export function useChatReadReceipts(
   isDemoMode: boolean,
   userId: string | undefined,
   resolvedTripId: string | undefined,
   liveMessages: any[],
-  activeChannel?: any,
+  activeChannel: Channel | null,
 ) {
   const getMessageUserId = (msg: any): string | undefined => msg.user_id || msg.user?.id;
 
@@ -110,7 +111,9 @@ export function useChatReadReceipts(
   }, [userId, resolvedTripId, isDemoMode, isStreamBackedChat]);
 
   useEffect(() => {
-    if (isDemoMode || !userId || !resolvedTripId || liveMessages.length === 0) return;
+    const canMarkReadViaChannel =
+      !isDemoMode && Boolean(activeChannel && typeof activeChannel.markRead === 'function');
+    if (!canMarkReadViaChannel || !userId || !resolvedTripId || liveMessages.length === 0) return;
 
     const newUnmarkedIds = liveMessages
       .filter(msg => getMessageUserId(msg) !== userId && !markedMessageIdsRef.current.has(msg.id))
