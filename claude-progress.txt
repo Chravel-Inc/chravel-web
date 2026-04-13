@@ -644,3 +644,9 @@
 - Preserved mark-read behavior with explicit transport split: Stream mode uses `activeChannel.markRead()`, legacy mode retains `markMessagesAsRead(...)`.
 - Added focused regression tests `src/features/chat/hooks/__tests__/useChatReadReceipts.test.tsx` covering Stream-mode display derivation + legacy-path gating behavior.
 - Verification: `npm run test:run -- src/features/chat/hooks/__tests__/useChatReadReceipts.test.tsx`, `npm run typecheck`, `npm run lint:check -- src/features/chat/hooks/useChatReadReceipts.ts src/features/chat/hooks/__tests__/useChatReadReceipts.test.tsx`.
+
+2026-04-13 — Remove dead trip realtime multiplexer module
+- Searched for `tripRealtimeMultiplexer` usage and confirmed no runtime imports remained in `src/`; only a legacy unit test import referenced the module.
+- Deleted unused `src/services/tripRealtimeMultiplexer.ts` to remove dead legacy Supabase realtime multiplexer surface.
+- Updated `src/services/__tests__/tripChatLegacyRealtimeGuards.test.ts` to keep Stream guard coverage via `chatService` subscriptions only.
+- Verification: `npm run test:run -- src/services/__tests__/tripChatLegacyRealtimeGuards.test.ts`, `npm run typecheck`, `npm run build`.
