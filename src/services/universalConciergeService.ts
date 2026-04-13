@@ -185,7 +185,7 @@ export class UniversalConciergeService {
 
       // Architectural invariant: TripContextAggregator is the single source of truth
       // for concierge context assembly in production code.
-      // 🆕 Enhanced: Get comprehensive trip context with caching
+      // Build comprehensive context and cache it for follow-up prompts.
       let comprehensiveContext = ContextCacheService.get(tripContext.tripId);
 
       if (!comprehensiveContext) {

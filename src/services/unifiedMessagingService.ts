@@ -1,12 +1,10 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
-import type { ScheduledMessage } from '@/types/messaging';
+import type { ScheduledMessage, ScheduledMessagePriority } from '@/types/messaging';
 import { isFeatureFlagEnabled } from '@/lib/featureFlags';
 
 type BroadcastRow = Database['public']['Tables']['broadcasts']['Row'];
-type ScheduledPriority = NonNullable<ScheduledMessage['priority']>;
-
-const isScheduledPriority = (value: string | null): value is ScheduledPriority => {
+const isScheduledPriority = (value: string | null): value is ScheduledMessagePriority => {
   return value === 'urgent' || value === 'reminder' || value === 'fyi';
 };
 
@@ -67,7 +65,7 @@ class UnifiedMessagingService {
     tripId: string,
     content: string,
     sendAt: Date,
-    priority: ScheduledPriority = 'fyi',
+    priority: ScheduledMessagePriority = 'fyi',
   ): Promise<boolean> {
     try {
       const schedulingEnabled = await isFeatureFlagEnabled('broadcast-scheduling-enabled', false);
