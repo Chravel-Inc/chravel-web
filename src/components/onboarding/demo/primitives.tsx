@@ -21,7 +21,7 @@ import {
   concierge,
   type DemoPill,
 } from './tokens';
-import { Clock, MapPin, ExternalLink, Video, Camera, FileText } from 'lucide-react';
+import { Clock, MapPin, ExternalLink, Video, Camera, FileText, Check } from 'lucide-react';
 
 // ── DemoAvatar ────────────────────────────────────────────────────────────
 
@@ -482,3 +482,140 @@ export const DemoMediaRow = ({ avatar, name, count, mediaType, tripName }: DemoM
     </div>
   );
 };
+
+// ── DemoPollOption (compact poll option with progress bar) ──────────────
+
+interface DemoPollOptionProps {
+  text: string;
+  votes: number;
+  totalVotes: number;
+  isLeading?: boolean;
+}
+
+export const DemoPollOption = ({ text, votes, totalVotes, isLeading }: DemoPollOptionProps) => {
+  const percentage = totalVotes > 0 ? (votes / totalVotes) * 100 : 0;
+
+  return (
+    <div className="w-full space-y-1 py-1">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-[11px] font-medium text-foreground truncate">{text}</span>
+          {isLeading && (
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 shrink-0">
+              Leading
+            </span>
+          )}
+        </div>
+        <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+          {votes} ({percentage.toFixed(0)}%)
+        </span>
+      </div>
+      <div className="w-full bg-muted/30 rounded-full h-1.5">
+        <div
+          className={cn(
+            'h-1.5 rounded-full transition-all duration-500',
+            isLeading
+              ? 'bg-gradient-to-r from-green-500 to-emerald-400'
+              : 'bg-gradient-to-r from-blue-500 via-blue-400 to-orange-500',
+          )}
+          style={{ width: `${Math.max(percentage, 0)}%` }}
+        />
+      </div>
+    </div>
+  );
+};
+
+// ── DemoPollCard (poll question + options wrapper) ──────────────────────
+
+interface DemoPollCardProps {
+  question: string;
+  options: { text: string; votes: number }[];
+  totalVotes: number;
+  className?: string;
+}
+
+export const DemoPollCard = ({ question, options, totalVotes, className }: DemoPollCardProps) => {
+  const maxVotes = Math.max(0, ...options.map(o => o.votes));
+  const hasVotes = totalVotes > 0;
+
+  return (
+    <div className={cn('bg-white/5 border border-white/10 rounded-xl p-3 space-y-1', className)}>
+      <p className="text-xs font-semibold text-foreground">{question}</p>
+      <div className="space-y-0.5">
+        {options.map((opt, i) => (
+          <DemoPollOption
+            key={i}
+            text={opt.text}
+            votes={opt.votes}
+            totalVotes={totalVotes}
+            isLeading={
+              hasVotes &&
+              opt.votes === maxVotes &&
+              options.filter(o => o.votes === maxVotes).length === 1
+            }
+          />
+        ))}
+      </div>
+      <p className="text-[10px] text-muted-foreground pt-0.5">
+        {totalVotes} vote{totalVotes !== 1 ? 's' : ''}
+      </p>
+    </div>
+  );
+};
+
+// ── DemoTaskRow (task item with checkbox, assignee, due date) ───────────
+
+interface DemoTaskRowProps {
+  title: string;
+  completed?: boolean;
+  assignee?: { initial: string; color: string; name: string };
+  dueLabel?: string;
+  highlight?: boolean;
+}
+
+export const DemoTaskRow = ({
+  title,
+  completed,
+  assignee,
+  dueLabel,
+  highlight,
+}: DemoTaskRowProps) => (
+  <div
+    className={cn(
+      'bg-white/5 border border-white/10 rounded-xl p-3 flex items-center gap-3',
+      completed && 'opacity-60',
+      highlight && 'ring-1 ring-primary/40',
+    )}
+  >
+    {/* Checkbox */}
+    <div
+      className={cn(
+        'w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0',
+        completed ? 'bg-green-500 border-green-500' : 'border-gray-500',
+      )}
+    >
+      {completed && <Check className="w-3 h-3 text-white" />}
+    </div>
+
+    {/* Content */}
+    <div className="flex-1 min-w-0">
+      <p
+        className={cn(
+          'text-xs font-medium',
+          completed ? 'text-muted-foreground line-through' : 'text-foreground',
+        )}
+      >
+        {title}
+      </p>
+      <div className="flex items-center gap-2 mt-0.5">
+        {assignee && (
+          <div className="flex items-center gap-1">
+            <DemoAvatar initial={assignee.initial} color={assignee.color} size="sm" />
+            <span className="text-[10px] text-muted-foreground">{assignee.name}</span>
+          </div>
+        )}
+        {dueLabel && <span className="text-[10px] text-orange-400">{dueLabel}</span>}
+      </div>
+    </div>
+  </div>
+);

@@ -1,3 +1,5 @@
+import { isBlobOrDataUrl } from './mediaUtils';
+
 export const TRIP_COVER_BUCKET = 'trip-media';
 export const TRIP_COVER_FOLDER = 'trip-covers';
 
@@ -15,7 +17,7 @@ export function buildTripCoverStoragePath(tripId: string, fileName: string): str
  */
 export function normalizeTripCoverUrl(url?: string | null): string | undefined {
   if (!url) return undefined;
-  if (url.startsWith('blob:') || url.startsWith('data:')) return url;
+  if (isBlobOrDataUrl(url)) return url;
 
   try {
     const parsed = new URL(url);

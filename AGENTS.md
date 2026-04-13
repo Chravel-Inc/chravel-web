@@ -407,4 +407,3 @@ For every touched component/module/flow in the scoped subsystem:
    - **B) `AGENTIC BROWSER SCRIPT`:** copy-pasteable, sequential UI steps for the external console.
 
 Keep scoring/runbook detail in the nested file for that subsystem (or linked docs), not in this root file.
-

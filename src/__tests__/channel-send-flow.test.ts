@@ -55,6 +55,7 @@ import { channelService } from '../services/channelService';
 describe('Channel Send Flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubEnv('VITE_STREAM_API_KEY', '');
   });
 
   // ============================================
@@ -238,6 +239,16 @@ describe('Channel Send Flow', () => {
         const mapped = mapChannelSendError(err);
         expect(mapped.title).toBe('Channel unavailable');
       }
+    });
+  });
+
+  describe('stream canonical transport guard', () => {
+    it('rejects legacy Supabase send path when stream is configured', async () => {
+      vi.stubEnv('VITE_STREAM_API_KEY', 'stream-key');
+
+      await expect(
+        channelService.sendMessage({ channelId: 'ch-1', content: 'test' }),
+      ).rejects.toMatchObject({ code: 'STREAM_CANONICAL_TRANSPORT' });
     });
   });
 });
