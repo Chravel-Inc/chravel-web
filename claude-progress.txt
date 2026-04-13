@@ -625,3 +625,10 @@
 - Added low-confidence fallback: when marker is missing/invalid or marker-derived unread set mismatches Stream total unread, UI now shows total unread only (`broadcastCount=0`, `messageUnreadCount=total`) to prevent misclassified badges.
 - Added focused regression tests in `src/hooks/__tests__/useUnreadCounts.test.ts` for high-confidence split, missing marker fallback, and mismatch fallback.
 - Verification: `npm run test:run -- src/hooks/__tests__/useUnreadCounts.test.ts`, `npm run typecheck`, `npm run lint:check -- src/hooks/useUnreadCounts.ts src/hooks/__tests__/useUnreadCounts.test.ts`.
+
+2026-04-13 — Stream migration phase: chat read-receipt display source-of-truth guard
+- Root cause: `useChatReadReceipts` still subscribed to/fetched Supabase `message_read_receipts` in Stream-backed trip chat, creating dual read-status sources and unnecessary legacy realtime/query work.
+- Updated `src/features/chat/hooks/useChatReadReceipts.ts` to derive display read statuses directly from `activeChannel.state.read` in Stream mode and hard-gate legacy Supabase subscription/fetch paths to non-Stream mode only.
+- Preserved mark-read behavior with explicit transport split: Stream mode uses `activeChannel.markRead()`, legacy mode retains `markMessagesAsRead(...)`.
+- Added focused regression tests `src/features/chat/hooks/__tests__/useChatReadReceipts.test.tsx` covering Stream-mode display derivation + legacy-path gating behavior.
+- Verification: `npm run test:run -- src/features/chat/hooks/__tests__/useChatReadReceipts.test.tsx`, `npm run typecheck`, `npm run lint:check -- src/features/chat/hooks/useChatReadReceipts.ts src/features/chat/hooks/__tests__/useChatReadReceipts.test.tsx`.
