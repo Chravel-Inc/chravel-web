@@ -196,12 +196,6 @@ export const TripChat = React.memo(
 
         const streamClient = getStreamClient();
         if (!streamClient) {
-          toast.error('Chat is not connected yet');
-          return;
-        }
-
-        const streamClient = getStreamClient();
-        if (!streamClient) {
           toast.error('Chat connection unavailable. Please try again.');
           return;
         }
