@@ -30,7 +30,6 @@ const MAX_RETRIES = 3;
 
 let dbInstance: IDBPDatabase<OfflineQueueDB> | null = null;
 
-
 async function getDB(): Promise<IDBPDatabase<OfflineQueueDB>> {
   if (dbInstance) return dbInstance;
 

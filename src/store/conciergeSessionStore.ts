@@ -12,6 +12,13 @@
 
 import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
+import type { ChatMessage } from '@/features/concierge/types';
+
+/**
+ * @deprecated Use ChatMessage from '@/features/concierge/types' instead.
+ * Kept as alias for backward compatibility.
+ */
+export type ConciergeSessionMessage = ChatMessage;
 
 export type VoiceSessionState =
   | 'idle'
@@ -20,45 +27,6 @@ export type VoiceSessionState =
   | 'thinking'
   | 'speaking'
   | 'error';
-
-export interface ConciergeSessionMessage {
-  id: string;
-  type: 'user' | 'assistant';
-  content: string;
-  timestamp: string;
-  usage?: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
-  };
-  sources?: Array<{
-    title: string;
-    url: string;
-    snippet: string;
-    source?: string;
-  }>;
-  googleMapsWidget?: string;
-  googleMapsWidgetContextToken?: string;
-  functionCallPlaces?: Array<{
-    placeId?: string | null;
-    name: string;
-    address?: string;
-    rating?: number | null;
-    userRatingCount?: number | null;
-    priceLevel?: string | null;
-    mapsUrl?: string | null;
-    previewPhotoUrl?: string | null;
-    photoUrls?: string[];
-  }>;
-  functionCallFlights?: Array<{
-    origin: string;
-    destination: string;
-    departureDate: string;
-    returnDate?: string;
-    passengers: number;
-    deeplink: string;
-  }>;
-}
 
 export interface ConciergeSession {
   tripId: string;

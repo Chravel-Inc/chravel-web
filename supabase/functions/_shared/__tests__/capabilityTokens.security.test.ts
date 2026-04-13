@@ -48,7 +48,7 @@ describe('Capability Tokens — Security Tests', () => {
         generateCapabilityToken({
           user_id: 'user_1',
           trip_id: 'trip_1',
-          allowed_tools: ['*'],
+          allowed_tools: ['addToCalendar'],
         }),
       ).rejects.toThrow(/SUPABASE_JWT_SECRET is required/);
     });
@@ -106,18 +106,18 @@ describe('Capability Tokens — Security Tests', () => {
       );
     });
 
-    it('should support wildcard tool allowlist', async () => {
+    it('should support multi-tool allowlist', async () => {
       const { generateCapabilityToken, verifyCapabilityToken } =
         await import('../security/capabilityTokens.ts');
 
       const token = await generateCapabilityToken({
         user_id: 'user_1',
         trip_id: 'trip_1',
-        allowed_tools: ['*'],
+        allowed_tools: ['addToCalendar', 'createTask'],
       });
 
       const verified = await verifyCapabilityToken(token);
-      expect(verified.allowed_tools).toEqual(['*']);
+      expect(verified.allowed_tools).toEqual(['addToCalendar', 'createTask']);
     });
 
     it('should import without crashing even when secret is missing', async () => {
