@@ -638,3 +638,9 @@
 - Metadata includes `stream_webhook_id` plus `stream_channel_type` / `stream_channel_id`.
 - Added focused regression tests `supabase/functions/stream-webhook/__tests__/eventRouting.test.ts` covering required event/channel support, CID parsing, trip/concierge resolution, and recipient dedupe.
 - Verification: `npm run test:run -- supabase/functions/stream-webhook/__tests__/eventRouting.test.ts`, `npm run typecheck`, `npm run lint:check -- ...` (repo baseline warnings only), `npm run build`.
+2026-04-13 — Stream migration phase: chat read-receipt display source-of-truth guard
+- Root cause: `useChatReadReceipts` still subscribed to/fetched Supabase `message_read_receipts` in Stream-backed trip chat, creating dual read-status sources and unnecessary legacy realtime/query work.
+- Updated `src/features/chat/hooks/useChatReadReceipts.ts` to derive display read statuses directly from `activeChannel.state.read` in Stream mode and hard-gate legacy Supabase subscription/fetch paths to non-Stream mode only.
+- Preserved mark-read behavior with explicit transport split: Stream mode uses `activeChannel.markRead()`, legacy mode retains `markMessagesAsRead(...)`.
+- Added focused regression tests `src/features/chat/hooks/__tests__/useChatReadReceipts.test.tsx` covering Stream-mode display derivation + legacy-path gating behavior.
+- Verification: `npm run test:run -- src/features/chat/hooks/__tests__/useChatReadReceipts.test.tsx`, `npm run typecheck`, `npm run lint:check -- src/features/chat/hooks/useChatReadReceipts.ts src/features/chat/hooks/__tests__/useChatReadReceipts.test.tsx`.
