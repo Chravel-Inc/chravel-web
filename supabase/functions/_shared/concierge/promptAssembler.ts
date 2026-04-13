@@ -29,20 +29,6 @@ export interface PromptAssemblyOptions {
 
 // ── Query class sets for conditional layers ──────────────────────────────────
 
-/** Classes that create/modify trip artifacts and need the Action Plan JSON mandate */
-const WRITE_ACTION_CLASSES = new Set<QueryClass>([
-  'calendar_action',
-  'task_action',
-  'booking_reservation',
-  'broadcast_notification',
-  'poll_action',
-  'basecamp_action',
-  'agenda_action',
-  'smart_import',
-  'trip_image',
-  'trip_summary', // Include for trip_summary since it can do anything
-]);
-
 /** Classes that benefit from natural language trigger instructions */
 const NATURAL_LANGUAGE_TRIGGER_CLASSES = new Set<QueryClass>([
   'task_action',
@@ -74,8 +60,6 @@ const COT_CLASSES = new Set<QueryClass>([
   'restaurant_recommendation',
   'place_navigation',
 ]);
-
-const ACTION_PLAN_MODE = (Deno.env.get('CONCIERGE_ACTION_PLAN_MODE') || 'tool_first').toLowerCase();
 
 // ── Prompt Layer Functions ───────────────────────────────────────────────────
 
@@ -110,51 +94,6 @@ Current date: ${new Date().toISOString().split('T')[0]}
 - If the next message switches to English, switch back to English.
 - Do NOT translate into English unless the user explicitly asks.
 - Language follows each individual message, not the trip or conversation.`;
-}
-
-function actionPlanMandate(): string {
-  return `
-**NON-NEGOTIABLE WORKFLOW (ALWAYS FOLLOW):**
-1) PLAN: You MUST output an Action Plan JSON block first.
-2) EXECUTE: Call all required tools sequentially to fulfill the plan.
-3) RESPOND: Output a concise user-facing summary after tools execute.
-
-**⚠️ FAILURE TO PRODUCE AN ACTION PLAN = TASK FAILURE ⚠️**
-If the user's message implies ANY write action (task, event, booking, poll, broadcast, save), you MUST emit the Action Plan JSON. Skipping it means the action will NOT be executed.
-
-**ACTION PLAN FORMAT:**
-Output a JSON block enclosed in \`\`\`json \`\`\` at the very start of your response, matching this schema:
-\`\`\`json
-{
-  "plan_version": "1.0",
-  "actions": [
-    {
-      "type": "create_task|create_calendar_event|save_place|save_link|create_poll|booking_assist|clarify",
-      "priority": "high|normal|low",
-      "title": "...",
-      "notes": "...",
-      "datetime_start": "ISO8601 or null",
-      "idempotency_key": "unique_string_for_this_action"
-    }
-  ]
-}
-\`\`\`
-*Idempotency Rule:* For each action, always set \`idempotency_key\` = \`hash(trip_id + message + action_type)\` (a unique string) to prevent duplicates on retries.
-
-**CORRECT vs INCORRECT example:**
-User: "Add a reminder to pack sunscreen and put our flight on the calendar for June 5 at 8am"
-✅ CORRECT — emit plan FIRST, then execute both tools:
-\`\`\`json
-{
-  "plan_version": "1.0",
-  "actions": [
-    { "type": "create_task", "priority": "normal", "title": "Pack sunscreen", "notes": null, "datetime_start": null, "idempotency_key": "task-pack-sunscreen" },
-    { "type": "create_calendar_event", "priority": "high", "title": "Flight", "notes": null, "datetime_start": "2026-06-05T08:00:00", "idempotency_key": "cal-flight-jun5" }
-  ]
-}
-\`\`\`
-Then call \`createTask\` AND \`addToCalendar\`.
-❌ INCORRECT — responding with "Sure, I can help with that!" without the JSON plan block. This causes ZERO tools to fire.`;
 }
 
 function naturalLanguageTriggers(): string {
@@ -340,56 +279,51 @@ export function assemblePrompt(options: PromptAssemblyOptions): string {
   // 1. Core persona (always)
   layers.push(corePersona());
 
-  // 2. Action Plan mandate (only for write-action classes)
-  if (WRITE_ACTION_CLASSES.has(queryClass) && ACTION_PLAN_MODE === 'legacy') {
-    layers.push(actionPlanMandate());
-  }
-
-  // 3. Natural language triggers (only for task/calendar/summary)
+  // 2. Natural language triggers (only for task/calendar/summary)
   if (NATURAL_LANGUAGE_TRIGGER_CLASSES.has(queryClass)) {
     layers.push(naturalLanguageTriggers());
   }
 
-  // 4. Trip metadata + basecamps (all trip-related classes)
+  // 3. Trip metadata + basecamps (all trip-related classes)
   layers.push(tripMetadataLayer(tripContext));
 
-  // 5. User preferences (only for recommendation-type classes)
+  // 4. User preferences (only for recommendation-type classes)
   if (PREFERENCE_CLASSES.has(queryClass)) {
     const prefsText = preferencesLayer(tripContext);
     if (prefsText) layers.push(prefsText);
   }
 
-  // 6. Calendar snippet (only for calendar-related classes)
+  // 5. Calendar snippet (only for calendar-related classes)
   if (CALENDAR_SNIPPET_CLASSES.has(queryClass)) {
     const calText = calendarSnippetLayer(tripContext);
     if (calText) layers.push(calText);
   }
 
-  // 7. RAG context (already conditional from caller)
+  // 6. RAG context (already conditional from caller)
   if (ragContext) {
     layers.push(ragContext);
   }
 
-  // 8. Few-shot examples (only matching class)
+  // 7. Few-shot examples (only matching class)
   const fewShot = fewShotExamples(queryClass);
   if (fewShot) layers.push(fewShot);
 
-  // 9. Chain-of-thought (only for complex recommendation/summary queries)
+  // 8. Chain-of-thought (only for complex recommendation/summary queries)
   if (useChainOfThought && COT_CLASSES.has(queryClass)) {
     layers.push(chainOfThoughtLayer());
   }
 
-  // 10. Save flight instruction (only for flight_search)
+  // 9. Save flight instruction (only for flight_search)
   if (queryClass === 'flight_search') {
     layers.push(saveFlightInstructionLayer());
   }
 
-  // 11. Image intent addendum (already conditional from caller)
+  // 10. Image intent addendum (already conditional from caller)
   if (imageIntentAddendum) {
     layers.push(imageIntentAddendum);
   }
 
-  // 12. Voice addendum (voice only)
+  // 11. Voice addendum (voice only)
   if (isVoice) {
     layers.push(VOICE_ADDENDUM);
   }

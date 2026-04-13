@@ -92,7 +92,6 @@ export const AIConciergeChat = ({
     isMounted,
     streamAbortRef,
     chatScrollRef,
-    streamConciergeEnabled,
     isHistoryLoading,
     isOffline,
     user,
@@ -244,7 +243,6 @@ export const AIConciergeChat = ({
     attachedDocuments,
     attachmentIntent,
     clearAttachments,
-    streamConciergeEnabled,
     queryClient: conciergeQueryClient,
   });
 

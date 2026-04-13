@@ -37,7 +37,9 @@ interface BroadcastData {
 export function mapPriorityToCategory(
   priority: string | null,
 ): 'chill' | 'logistics' | 'urgent' | 'emergency' {
-  switch (priority) {
+  const normalizedPriority = priority?.toLowerCase();
+
+  switch (normalizedPriority) {
     case 'urgent':
       return 'urgent';
     case 'important':
@@ -169,9 +171,8 @@ export const Broadcasts = () => {
       setDemoBroadcasts(prev => [broadcast, ...prev]);
     } else {
       if (useStream) {
-        const priority = mapCategoryToPriority(newBroadcast.category);
         streamBroadcasts
-          .sendBroadcast(newBroadcast.message, priority, {
+          .sendBroadcast(newBroadcast.message, mapCategoryToPriority(newBroadcast.category), {
             recipients: newBroadcast.recipients,
             location: newBroadcast.location,
           })

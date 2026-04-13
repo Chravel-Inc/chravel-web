@@ -13,7 +13,7 @@ export async function executeToolSecurely(
   const cap = await verifyCapabilityToken(capabilityToken);
 
   // 2. Verify tool is allowed
-  if (cap.allowed_tools[0] !== '*' && !cap.allowed_tools.includes(toolName)) {
+  if (!cap.allowed_tools.includes(toolName)) {
     throw new Error(
       `Permission denied: Tool '${toolName}' is not allowed by this capability token.`,
     );

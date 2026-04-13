@@ -80,6 +80,13 @@ export default tseslint.config(
                 'Deprecated. Use TripContextAggregator from src/services/tripContextAggregator.ts as the single source of truth.',
             },
           ],
+          patterns: [
+            {
+              group: ['**/enhancedTripContextService', '**/enhancedTripContextService.*'],
+              message:
+                'Deprecated. Use TripContextAggregator from src/services/tripContextAggregator.ts as the single source of truth.',
+            },
+          ],
         },
       ],
     },

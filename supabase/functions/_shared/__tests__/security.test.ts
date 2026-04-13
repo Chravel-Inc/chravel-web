@@ -43,7 +43,7 @@ describe('Capability Tokens', () => {
     const payload = {
       user_id: 'user_1',
       trip_id: 'trip_1',
-      allowed_tools: ['*'],
+      allowed_tools: ['addToCalendar', 'createTask'],
     };
     const token = await generateCapabilityToken(payload);
     const verified = await verifyCapabilityToken(token);
@@ -69,7 +69,7 @@ describe('Tool Router Security Air-Lock', () => {
     const token = await generateCapabilityToken({
       user_id: 'user_1',
       trip_id: 'trip_1', // Authorized trip
-      allowed_tools: ['*'],
+      allowed_tools: ['getTask'],
     });
 
     vi.mocked(functionExecutor.executeFunctionCall).mockResolvedValue({
@@ -108,7 +108,7 @@ describe('Tool Router Security Air-Lock', () => {
     const token = await generateCapabilityToken({
       user_id: 'user_1',
       trip_id: 'trip_1',
-      allowed_tools: ['*'],
+      allowed_tools: ['getUsers'],
     });
 
     vi.mocked(functionExecutor.executeFunctionCall).mockResolvedValue({

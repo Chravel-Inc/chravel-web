@@ -13,10 +13,6 @@ import type { HotelResult } from '@/features/chat/components/HotelResultCards';
 import type { TripPreferences } from '@/types/consumer';
 import { supabase } from '@/integrations/supabase/client';
 import {
-  persistUserMessage as streamPersistUserMessage,
-  persistAssistantMessage as streamPersistAssistantMessage,
-} from '@/services/stream/adapters/conciergeAdapter';
-import {
   getConciergeInvalidationQueryKey,
   isConciergeWriteAction,
 } from '@/lib/conciergeInvalidation';
@@ -64,7 +60,6 @@ interface Params {
   attachedDocuments: File[];
   attachmentIntent: AttachmentIntent;
   clearAttachments: () => void;
-  streamConciergeEnabled: boolean;
   queryClient: QueryClient;
 }
 
@@ -94,7 +89,6 @@ export function useConciergeStreaming(params: Params) {
     attachedDocuments,
     attachmentIntent,
     clearAttachments: _clearAttachments,
-    streamConciergeEnabled,
     queryClient: conciergeQueryClient,
   } = params;
 
@@ -153,13 +147,6 @@ export function useConciergeStreaming(params: Params) {
 
     setMessages(prev => [...prev, userMessage]);
     const currentInput = messageToSend;
-
-    // 🔀 STREAM: Persist user message to Stream concierge channel
-    if (streamConciergeEnabled && userId) {
-      streamPersistUserMessage(tripId, userId, userDisplayContent).catch(() => {
-        // Non-fatal — Stream persistence is optional
-      });
-    }
 
     if (!messageOverride) {
       setInputMessage('');
@@ -877,29 +864,6 @@ export function useConciergeStreaming(params: Params) {
                     cachedMsg,
                     userId ?? 'anonymous',
                   );
-
-                  // 🔀 STREAM: Persist assistant message to Stream concierge channel
-                  if (streamConciergeEnabled && userId) {
-                    const streamMeta = latestStreamingMessage
-                      ? {
-                          sources: latestStreamingMessage.sources,
-                          googleMapsWidget: latestStreamingMessage.googleMapsWidget,
-                          googleMapsWidgetContextToken:
-                            latestStreamingMessage.googleMapsWidgetContextToken,
-                          functionCallPlaces: latestStreamingMessage.functionCallPlaces as
-                            | Array<Record<string, unknown>>
-                            | undefined,
-                        }
-                      : undefined;
-                    streamPersistAssistantMessage(
-                      tripId,
-                      userId,
-                      accumulatedStreamContent,
-                      streamMeta,
-                    ).catch(() => {
-                      // Non-fatal — Stream persistence is optional
-                    });
-                  }
 
                   // Persist rich card metadata to the ai_queries row that the
                   // edge function already inserted.  We update the most recent

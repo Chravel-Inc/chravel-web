@@ -3,6 +3,12 @@
 - Confirmed trip chat search wiring remains `TripChat -> ChatSearchOverlay -> chatSearchService` with no alternate legacy search component path.
 - Expanded `ChatSearchOverlay` regression coverage with an additional focused case for parsed filter forwarding (`from:` + `day:`) and message-result selection callback behavior.
 - Verification: `rg -n "MessageSearch|messageSearchService" src`, `npm run typecheck`; targeted Vitest invocation for `ChatSearchOverlay.test.tsx` still hangs in this environment (pre-existing runner issue).
+2026-04-13 — Concierge context source-of-truth guardrail hardening
+- Verified `src/services/enhancedTripContextService.ts` is absent and no runtime imports/reference paths remain in `src/` (only architecture docs mention deprecation).
+- Confirmed `UniversalConciergeService` continues to build context exclusively via `TripContextAggregator.buildContext(...)`.
+- Strengthened architectural guardrail by expanding ESLint `no-restricted-imports` with wildcard patterns to block any path variant of `enhancedTripContextService`.
+- Updated `src/services/CONCIERGE_CONTEXT_ARCHITECTURE.md` to document wildcard lint coverage as the anti-regression control.
+- Verification: `npm run lint:check -- src/services/universalConciergeService.ts src/services/CONCIERGE_CONTEXT_ARCHITECTURE.md eslint.config.js`, `npm run typecheck`.
 
 2026-04-13 — Trip chat message edit path switched to Stream client update API
 - Root-caused edit failures/typing debt to `TripChat` invoking `(activeChannel as any).updateMessage(...)` directly, which bypassed the shared Stream client singleton and required an unsafe cast.
@@ -570,7 +576,40 @@
   - `npm run lint` ✅ (warnings-only baseline)
   - `npm run build` ✅
   - `npm run test:run -- src/hooks/stream/__tests__/useStreamBroadcasts.priority.test.tsx src/services/__tests__/tripChatLegacyRealtimeGuards.test.ts` ✅
+
+2026-04-13 — Stream migration follow-up hardening (post-merge review pass)
+- Hardened `useUnreadCounts` to keep Stream unread total authoritative even with partial/empty loaded message windows, while using `last_read` + loaded message metadata for broadcast-vs-message split.
+- Added focused tests `src/hooks/__tests__/useUnreadCounts.stream.test.tsx` covering loaded unread classification and empty-window behavior (no unread-total drop).
+- Hardened `supabase/functions/stream-webhook` request validation:
+  - Optional `x-api-key` check against `STREAM_API_KEY`
+  - Signature normalization (`sha256=` prefix handling, lowercase compare)
+  - JSON parse guard (400 on invalid payload)
+  - Idempotency key now prefers `X-Webhook-Id` header before event/body fallbacks.
+- Verification: `npm run typecheck`, `npm run test:run -- src/hooks/__tests__/useUnreadCounts.stream.test.tsx src/hooks/stream/__tests__/useStreamBroadcasts.priority.test.tsx`, `npm run build`, `npm run lint` (warnings-only baseline).
+
+2026-04-13 — PR #229 merge-blocker follow-up (Cursor review remediation)
+- Addressed merge-blocking Stream webhook bug: trip channel resolution now derives from event root (`cid`) with fallback to `channel_type/channel_id`, then maps `chravel-trip:trip-{id}` to trip id.
+- Addressed idempotency reliability concern: non-duplicate `webhook_events` insert failures now return HTTP 500 (fail closed) so Stream retries instead of silently dropping.
+- Addressed non-blocking search perf concern: universal Stream search channel fetch limit increased to 100 and per-channel search now runs in parallel via `Promise.all`.
+- Verification: `npm run typecheck`, `npm run test:run -- src/hooks/__tests__/useUnreadCounts.stream.test.tsx src/hooks/stream/__tests__/useStreamBroadcasts.priority.test.tsx`, `npm run build`, `npm run lint` (warnings-only baseline).
+
 2026-04-13 — AGENTS merge-conflict preflight protocol codified
 - Added required Step E "Merge Conflict Preflight" to `AGENTS.md` under Golden Workflow.
 - Captured semantic conflict-resolution rules (no blind accept current/incoming/both), required sync + divergence scan, dry-run merge check, post-resolution validation, and mandatory reporting fields.
 - Note: this local workspace has no configured git remote (`origin`) and no local `main` branch, so fetch-based preflight commands require operator repo remote setup to execute fully.
+
+2026-04-13 — Broadcast scheduling kill-switch test hardening
+- Added deterministic regression coverage in `src/services/__tests__/unifiedMessagingService.test.ts` for disabled scheduling path:
+  - `scheduleMessage` returns `false` when `broadcast-scheduling-enabled` is off.
+  - No auth lookup (`supabase.auth.getUser`) and no insert attempt (`broadcasts.insert`) occur while disabled.
+- Re-verified admin UI disabled copy/action lock in `src/pages/__tests__/AdminDashboard.test.tsx`.
+- Verification: `npm run test:run -- src/services/__tests__/unifiedMessagingService.test.ts src/pages/__tests__/AdminDashboard.test.tsx`, `npm run typecheck`, `npm run lint:check`, `npm run build`.
+
+2026-04-13 — Broadcast priority canonicalization hardening (reminder alias compatibility)
+- Root-caused potential enum drift to mixed priority aliases (`important`, `logistics`) crossing Broadcasts render mapping and Stream payload normalization.
+- Hardened `Broadcasts.mapPriorityToCategory` with case-insensitive normalization and explicit legacy alias support (`important` -> `logistics`) while preserving canonical render categories.
+- Confirmed stream send path uses canonical mapping (`logistics` category -> `reminder` priority) and updated `useStreamBroadcasts.sendBroadcast` to include canonical priority in both `priority` and `extra_data/metadata.priority` payload fields.
+- Added/updated regression tests for send + render mapping behavior:
+  - `src/features/broadcasts/components/__tests__/Broadcasts.priorityMapping.test.ts`
+  - `src/hooks/stream/__tests__/useStreamBroadcasts.priority.test.tsx`
+- Verification: `npm run test:run -- src/features/broadcasts/components/__tests__/Broadcasts.priorityMapping.test.ts src/hooks/stream/__tests__/useStreamBroadcasts.priority.test.tsx`, `npm run typecheck`, `npm run lint:check`, `npm run build`.
