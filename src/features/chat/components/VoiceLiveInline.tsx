@@ -86,13 +86,42 @@ export function VoiceLiveInline({
   const barRef = useRef<SVGSVGElement>(null);
   const rafRef = useRef<number>(0);
   const assistantScrollRef = useRef<HTMLDivElement>(null);
+  const assistantTranscriptInnerRef = useRef<HTMLDivElement>(null);
+  const stickAssistantScrollRef = useRef(true);
 
-  // Auto-scroll assistant transcript to bottom
+  // Pin transcript to bottom on content growth only (not on every transcript string commit),
+  // avoiding scroll/layout thrash during rapid streaming on iOS WKWebView.
   useEffect(() => {
-    if (assistantScrollRef.current) {
-      assistantScrollRef.current.scrollTop = assistantScrollRef.current.scrollHeight;
-    }
-  }, [assistantTranscript]);
+    const scrollEl = assistantScrollRef.current;
+    const innerEl = assistantTranscriptInnerRef.current;
+    if (!scrollEl || !innerEl || typeof ResizeObserver === 'undefined') return;
+
+    const applyScrollIfPinned = (): void => {
+      if (!stickAssistantScrollRef.current) return;
+      requestAnimationFrame(() => {
+        if (!stickAssistantScrollRef.current || !assistantScrollRef.current) return;
+        const el = assistantScrollRef.current;
+        el.scrollTop = el.scrollHeight;
+      });
+    };
+
+    const onScroll = (): void => {
+      const gap = scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight;
+      if (gap < 48) stickAssistantScrollRef.current = true;
+      else if (gap > 88) stickAssistantScrollRef.current = false;
+    };
+
+    scrollEl.addEventListener('scroll', onScroll, { passive: true });
+    const ro = new ResizeObserver(() => {
+      applyScrollIfPinned();
+    });
+    ro.observe(innerEl);
+
+    return () => {
+      scrollEl.removeEventListener('scroll', onScroll);
+      ro.disconnect();
+    };
+  }, []);
 
   // rAF loop: read RMS values and set CSS custom properties on the waveform
   const animateBar = useCallback(() => {
@@ -184,26 +213,28 @@ export function VoiceLiveInline({
         aria-label="Assistant speech"
         aria-live="polite"
       >
-        {assistantTranscript ? (
-          <p className="text-white/90 text-base leading-relaxed text-center whitespace-pre-wrap">
-            {assistantTranscript}
-          </p>
-        ) : conversationEmpty && barMode === 'listening' ? (
-          <div className="text-center space-y-2">
-            <Mic size={20} className="mx-auto text-white/20" aria-hidden="true" />
-            <p className="text-white/30 text-sm">Ask your concierge anything about this trip</p>
-            <p className="text-white/15 text-xs">
-              Try: &ldquo;What&rsquo;s on our schedule today?&rdquo;
+        <div ref={assistantTranscriptInnerRef}>
+          {assistantTranscript ? (
+            <p className="text-white/90 text-base leading-relaxed text-center whitespace-pre-wrap">
+              {assistantTranscript}
             </p>
-          </div>
-        ) : barMode === 'connecting' ? (
-          <div className="flex items-center justify-center gap-2">
-            <Loader2 size={14} className="animate-spin text-white/30" aria-hidden="true" />
-            <p className="text-white/25 text-sm text-center italic">
-              {diagnostics.substep || 'Setting up voice\u2026'}
-            </p>
-          </div>
-        ) : null}
+          ) : conversationEmpty && barMode === 'listening' ? (
+            <div className="text-center space-y-2">
+              <Mic size={20} className="mx-auto text-white/20" aria-hidden="true" />
+              <p className="text-white/30 text-sm">Ask your concierge anything about this trip</p>
+              <p className="text-white/15 text-xs">
+                Try: &ldquo;What&rsquo;s on our schedule today?&rdquo;
+              </p>
+            </div>
+          ) : barMode === 'connecting' ? (
+            <div className="flex items-center justify-center gap-2">
+              <Loader2 size={14} className="animate-spin text-white/30" aria-hidden="true" />
+              <p className="text-white/25 text-sm text-center italic">
+                {diagnostics.substep || 'Setting up voice\u2026'}
+              </p>
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {/* Gold waveform divider — full width of live content area */}

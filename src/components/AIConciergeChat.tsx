@@ -201,22 +201,53 @@ export const AIConciergeChat = ({
     Promise.resolve(),
   );
 
-  // Auto-scroll to bottom when new messages, typing indicator, or streaming voice
+  /** When true, growth of the message column should keep the viewport pinned to the latest line. */
+  const stickConciergeScrollToBottomRef = useRef(true);
+  const chatScrollContentRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
-    if (
-      chatScrollRef.current &&
-      (messages.length > 0 || isTyping || streamingVoiceMessage || streamingUserMessage)
-    ) {
-      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
-    }
-  }, [
-    chatScrollRef,
-    messages.length,
-    isTyping,
-    messages,
-    streamingVoiceMessage,
-    streamingUserMessage,
-  ]);
+    stickConciergeScrollToBottomRef.current = true;
+  }, [tripId]);
+
+  useEffect(() => {
+    if (isTyping) stickConciergeScrollToBottomRef.current = true;
+  }, [isTyping]);
+
+  // Pin-to-bottom without listing `messages` in deps: each streaming token used to run this on every
+  // React commit, forcing scrollTop = scrollHeight and layout thrash (especially bad on iOS WKWebView).
+  useEffect(() => {
+    const scrollEl = chatScrollRef.current;
+    const contentEl = chatScrollContentRef.current;
+    if (!scrollEl || !contentEl || typeof ResizeObserver === 'undefined') return;
+
+    const applyScrollIfPinned = (): void => {
+      if (!stickConciergeScrollToBottomRef.current) return;
+      requestAnimationFrame(() => {
+        if (!stickConciergeScrollToBottomRef.current || !chatScrollRef.current) return;
+        const el = chatScrollRef.current;
+        el.scrollTop = el.scrollHeight;
+      });
+    };
+
+    const onScroll = (): void => {
+      const gap = scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight;
+      if (gap < 56) stickConciergeScrollToBottomRef.current = true;
+      else if (gap > 100) stickConciergeScrollToBottomRef.current = false;
+    };
+
+    scrollEl.addEventListener('scroll', onScroll, { passive: true });
+
+    const ro = new ResizeObserver(() => {
+      applyScrollIfPinned();
+    });
+    ro.observe(contentEl);
+
+    return () => {
+      scrollEl.removeEventListener('scroll', onScroll);
+      ro.disconnect();
+    };
+    // Scroll container is unmounted while live voice is active; re-attach when it remounts.
+  }, [chatScrollRef, isLiveSessionActive]);
 
   const { handleSendMessage } = useConciergeStreaming({
     tripId,
@@ -406,58 +437,60 @@ export const AIConciergeChat = ({
             ref={chatScrollRef}
             className="flex-1 overflow-y-auto p-4 chat-scroll-container native-scroll min-h-0"
           >
-            {/* "Picked up where you left off" divider — shown once when server history hydrates */}
-            {historyLoadedFromServer && messages.length > 0 && (
-              <div className="flex items-center gap-2 mb-4">
-                <div className="flex-1 h-px bg-white/10" />
-                <span className="text-xs text-gray-500 whitespace-nowrap">
-                  ↩ Picked up where you left off
-                </span>
-                <div className="flex-1 h-px bg-white/10" />
-              </div>
-            )}
-            {/* Merge transient streaming bubbles into the message list so both the
+            <div ref={chatScrollContentRef}>
+              {/* "Picked up where you left off" divider — shown once when server history hydrates */}
+              {historyLoadedFromServer && messages.length > 0 && (
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="flex-1 h-px bg-white/10" />
+                  <span className="text-xs text-gray-500 whitespace-nowrap">
+                    ↩ Picked up where you left off
+                  </span>
+                  <div className="flex-1 h-px bg-white/10" />
+                </div>
+              )}
+              {/* Merge transient streaming bubbles into the message list so both the
                  user's live STT and the assistant's live TTS are visible in the
                  chat while Gemini Live is active.  Order: persisted messages →
                  user interim bubble (while listening) → assistant streaming bubble
                  (while playing).  handleLiveTurnComplete clears both transient
                  entries and appends the finalised messages, so there is no
                  duplication or flash. */}
-            {(messages.length > 0 || !!streamingVoiceMessage || !!streamingUserMessage) && (
-              <ChatMessages
-                messages={[
-                  ...messages,
-                  ...(streamingUserMessage ? [streamingUserMessage] : []),
-                  ...(streamingVoiceMessage ? [streamingVoiceMessage] : []),
-                ]}
-                isTyping={isTyping}
-                showMapWidgets={true}
-                onDeleteMessage={handleDeleteMessage}
-                onTabChange={onTabChange}
-                onSavePlace={savePlace}
-                onSaveFlight={saveFlight}
-                onSaveHotel={saveHotel}
-                isUrlSaved={isUrlSaved}
-                isSaving={isSaving}
-                onEditReservation={(prefill: string) => {
-                  setInputMessage(prefill);
-                }}
-                onSmartImportConfirm={handleSmartImportConfirm}
-                onSmartImportDismiss={handleSmartImportDismiss}
-                onBulkDeleteConfirm={handleBulkDeleteConfirm}
-                onBulkDeleteDismiss={handleBulkDeleteDismiss}
-                onConfirmPendingAction={confirmAction}
-                onRejectPendingAction={rejectAction}
-                isConfirmingPendingAction={isConfirmingPendingAction}
-                isRejectingPendingAction={isRejectingPendingAction}
-                smartImportStates={smartImportStates}
-                bulkDeleteStates={bulkDeleteStates}
-                ttsPlaybackState={ttsPlaybackState}
-                ttsPlayingMessageId={ttsPlayingMessageId}
-                onTTSPlay={handleTTSPlay}
-                onTTSStop={ttsStop}
-              />
-            )}
+              {(messages.length > 0 || !!streamingVoiceMessage || !!streamingUserMessage) && (
+                <ChatMessages
+                  messages={[
+                    ...messages,
+                    ...(streamingUserMessage ? [streamingUserMessage] : []),
+                    ...(streamingVoiceMessage ? [streamingVoiceMessage] : []),
+                  ]}
+                  isTyping={isTyping}
+                  showMapWidgets={true}
+                  onDeleteMessage={handleDeleteMessage}
+                  onTabChange={onTabChange}
+                  onSavePlace={savePlace}
+                  onSaveFlight={saveFlight}
+                  onSaveHotel={saveHotel}
+                  isUrlSaved={isUrlSaved}
+                  isSaving={isSaving}
+                  onEditReservation={(prefill: string) => {
+                    setInputMessage(prefill);
+                  }}
+                  onSmartImportConfirm={handleSmartImportConfirm}
+                  onSmartImportDismiss={handleSmartImportDismiss}
+                  onBulkDeleteConfirm={handleBulkDeleteConfirm}
+                  onBulkDeleteDismiss={handleBulkDeleteDismiss}
+                  onConfirmPendingAction={confirmAction}
+                  onRejectPendingAction={rejectAction}
+                  isConfirmingPendingAction={isConfirmingPendingAction}
+                  isRejectingPendingAction={isRejectingPendingAction}
+                  smartImportStates={smartImportStates}
+                  bulkDeleteStates={bulkDeleteStates}
+                  ttsPlaybackState={ttsPlaybackState}
+                  ttsPlayingMessageId={ttsPlayingMessageId}
+                  onTTSPlay={handleTTSPlay}
+                  onTTSStop={ttsStop}
+                />
+              )}
+            </div>
           </div>
         )}
 
