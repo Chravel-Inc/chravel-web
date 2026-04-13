@@ -68,6 +68,10 @@ describe('useStreamBroadcasts priority normalization', () => {
       expect.objectContaining({
         text: 'hello',
         priority: 'reminder',
+        extra_data: expect.objectContaining({
+          recipients: 'everyone',
+          priority: 'reminder',
+        }),
         metadata: expect.objectContaining({
           recipients: 'everyone',
           priority: 'reminder',

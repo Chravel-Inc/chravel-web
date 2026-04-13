@@ -10,8 +10,11 @@ describe('Broadcasts priority/category mapping', () => {
 
   it('maps incoming legacy and canonical priorities to render categories', () => {
     expect(mapPriorityToCategory('important')).toBe('logistics');
+    expect(mapPriorityToCategory('logistics')).toBe('logistics');
     expect(mapPriorityToCategory('reminder')).toBe('logistics');
+    expect(mapPriorityToCategory('IMPORTANT')).toBe('logistics');
     expect(mapPriorityToCategory('urgent')).toBe('urgent');
     expect(mapPriorityToCategory('fyi')).toBe('chill');
+    expect(mapPriorityToCategory(null)).toBe('chill');
   });
 });
