@@ -26,7 +26,6 @@ import { useRoleChannels } from '@/hooks/useRoleChannels';
 import { ChannelChatView } from '@/components/pro/channels/ChannelChatView';
 import { TypingIndicator } from './TypingIndicator';
 import { TypingIndicatorService } from '@/services/typingIndicatorService';
-import {} from '@/services/readReceiptService';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '@/components/mobile/PullToRefreshIndicator';
 import { useUnreadCounts } from '@/hooks/useUnreadCounts';
