@@ -647,4 +647,4 @@
 
 2026-04-13 — TripChat read-receipt guard + focused markRead regression tests (rebase)
 - Kept `main` dual-path contract: Stream-backed channels use `activeChannel.markRead()` and `state.read` for display; legacy Supabase `markMessagesAsRead` + receipt subscription remain when the channel is not Stream-backed.
-- Added/retained `src/features/chat/hooks/__tests__/useChatReadReceipts.test.ts` to assert debounced `markRead` when a Stream-shaped channel is present and legacy subscription when `activeChannel` is null.
+- Extended `src/features/chat/hooks/__tests__/useChatReadReceipts.test.tsx` with debounced `markRead` coverage (Stream-shaped channel) and null-channel legacy subscription assertion (avoids duplicate `*.test.ts` / `*.test.tsx` Vitest glob overlap).
