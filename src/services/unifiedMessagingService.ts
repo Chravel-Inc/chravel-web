@@ -67,7 +67,7 @@ class UnifiedMessagingService {
     tripId: string,
     content: string,
     sendAt: Date,
-    priority: 'urgent' | 'reminder' | 'fyi' = 'fyi',
+    priority: ScheduledPriority = 'fyi',
   ): Promise<boolean> {
     try {
       const schedulingEnabled = await isFeatureFlagEnabled('broadcast-scheduling-enabled', false);

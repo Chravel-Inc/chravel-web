@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { useFeatureFlag } from '@/lib/featureFlags';
 
 export const AdminDashboard = () => {
+  type ScheduledPriority = NonNullable<ScheduledMessage['priority']>;
   const [scheduledMessages, setScheduledMessages] = useState<ScheduledMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -18,7 +19,7 @@ export const AdminDashboard = () => {
   // Modal state
   const [selectedTripId, setSelectedTripId] = useState<string>('');
   const [content, setContent] = useState('');
-  const [priority, setPriority] = useState<'urgent' | 'reminder' | 'fyi'>('fyi');
+  const [priority, setPriority] = useState<ScheduledPriority>('fyi');
   const [month, setMonth] = useState((new Date().getMonth() + 1).toString());
   const [day, setDay] = useState(new Date().getDate().toString());
   const [hour, setHour] = useState('12');
@@ -203,7 +204,7 @@ export const AdminDashboard = () => {
                 <select
                   className="w-full bg-slate-800 border border-slate-700 rounded-md p-2 text-white"
                   value={priority}
-                  onChange={e => setPriority(e.target.value as 'urgent' | 'reminder' | 'fyi')}
+                  onChange={e => setPriority(e.target.value as ScheduledPriority)}
                 >
                   <option value="fyi">FYI (Normal)</option>
                   <option value="reminder">Reminder</option>
