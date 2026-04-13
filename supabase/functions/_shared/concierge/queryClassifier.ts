@@ -109,7 +109,7 @@ const TRIP_OWNERSHIP_PATTERN = /\b(our|my|we're|who's going|who is going|our tri
  * 2. Specific action patterns (calendar, task, payment, poll, broadcast, etc.)
  * 3. Domain-specific patterns (flight, booking, restaurant, navigation, etc.)
  * 4. Clearly general knowledge → general_knowledge
- * 5. Trip-scoped or ownership patterns → trip_summary (conservative fallback)
+ * 5. Trip-scoped or ownership patterns → trip_summary (conservative fallback; full tools)
  * 6. Ambiguous → general_knowledge
  */
 export function classifyQuery(
@@ -124,7 +124,9 @@ export function classifyQuery(
   }
 
   const q = message.trim();
-  if (q.length < 4) return 'trip_lookup_light'; // Very short: keep context lean by default
+  // Very short: default to full trip capability — users often send "ok", "yes", or a
+  // fragment that still expects the same tools as the prior turn.
+  if (q.length < 4) return 'trip_summary';
 
   const normalized = q.toLowerCase();
 
@@ -167,10 +169,11 @@ export function classifyQuery(
     return 'trip_search';
   }
 
-  // 7. Trip-scoped or artifact terms → conservative fallback to full context
-  if (TRIP_SCOPED_QUERY_PATTERN.test(normalized)) return 'trip_lookup_light';
-  if (ARTIFACT_QUERY_PATTERN.test(normalized)) return 'trip_lookup_light';
-  if (TRIP_OWNERSHIP_PATTERN.test(normalized)) return 'trip_lookup_light';
+  // 7. Trip-scoped or artifact terms → full tool surface (trip_summary) so writes and
+  // cross-domain actions stay available without bloating unrelated query classes.
+  if (TRIP_SCOPED_QUERY_PATTERN.test(normalized)) return 'trip_summary';
+  if (ARTIFACT_QUERY_PATTERN.test(normalized)) return 'trip_summary';
+  if (TRIP_OWNERSHIP_PATTERN.test(normalized)) return 'trip_summary';
 
   // 8. General web-only patterns without trip terms → general knowledge
   const generalWebPattern =
