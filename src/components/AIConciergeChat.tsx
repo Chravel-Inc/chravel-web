@@ -202,18 +202,34 @@ export const AIConciergeChat = ({
   );
 
   // Auto-scroll to bottom when new messages, typing indicator, or streaming voice
+  // Uses RAF batching to prevent iOS vibration bug caused by rapid scroll updates during streaming
   useEffect(() => {
-    if (
-      chatScrollRef.current &&
-      (messages.length > 0 || isTyping || streamingVoiceMessage || streamingUserMessage)
-    ) {
-      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    let rafId: number | null = null;
+
+    const scrollToBottom = () => {
+      if (rafId !== null) return; // Already scheduled
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        if (chatScrollRef.current) {
+          chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+        }
+      });
+    };
+
+    if (messages.length > 0 || isTyping || streamingVoiceMessage || streamingUserMessage) {
+      scrollToBottom();
     }
+
+    return () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+    };
   }, [
     chatScrollRef,
     messages.length,
     isTyping,
-    messages,
+    // messages removed - redundant with messages.length, was causing double-firing and scroll jitter
     streamingVoiceMessage,
     streamingUserMessage,
   ]);
