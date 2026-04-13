@@ -1,3 +1,15 @@
+2026-04-11 — Broadcast scheduling kill-switch hardening (admin flow + service guard)
+- Added server-driven feature flag gate `broadcast-scheduling-enabled` with safe default `false` on Admin Dashboard scheduling UX (`src/pages/AdminDashboard.tsx`).
+  - "Schedule Pro Trip Message" action is disabled while flag is off.
+  - UI copy now explicitly states scheduling is temporarily unavailable.
+  - `handleScheduleMessage` exits early with user-facing toast when disabled.
+- Hardened `unifiedMessagingService.scheduleMessage(...)` with early short-circuit when flag is disabled to prevent any auth lookup/insert attempt.
+  - Added one-time development log for disabled scheduler path.
+- Added focused regression tests:
+  - `src/pages/__tests__/AdminDashboard.test.tsx` verifies disabled CTA + unavailable copy.
+  - `src/services/__tests__/unifiedMessagingService.test.ts` verifies disabled flag returns false and no insert/auth call path.
+- Verification: `npm run test:run -- src/services/__tests__/unifiedMessagingService.test.ts src/pages/__tests__/AdminDashboard.test.tsx`, `npm run typecheck`; `npm run build` and `npm run lint:check` still fail on pre-existing unrelated repo issues.
+
 2026-04-10 — Smart Import parser/model consolidation follow-up (low-risk architecture alignment)
 - Implemented shared URL scrape helper `supabase/functions/_shared/urlScraper.ts` and refactored all Smart Import URL functions to use one scrape chain:
   - `scrape-schedule`, `scrape-agenda`, `scrape-lineup` now all run Firecrawl → direct fetch → reader proxy with consistent behavior.
@@ -472,3 +484,55 @@
 - Added Stream-configured guardrail to `systemMessageService.createSystemMessage` so consumer system-event inserts do not dual-write into `trip_chat_messages` in Stream-configured environments.
 - Added focused regression tests `src/services/__tests__/chatLegacyMutationGuards.test.ts` asserting guarded methods return/throw canonical transport outcomes and do not call Supabase `from/getUser` in Stream mode.
 - Verification: `npm run test:run -- src/services/__tests__/chatLegacyMutationGuards.test.ts src/services/__tests__/tripChatLegacyRealtimeGuards.test.ts`, `npm run typecheck`, `npm run build`.
+2026-04-11 — Chat search dead-code removal + overlay regression test
+- Confirmed legacy `MessageSearch` component and `messageSearchService` were not referenced outside their own files; removed both to eliminate duplicate search paths.
+- Re-verified TripChat search integration remains solely `TripChat -> ChatSearchOverlay -> chatSearchService`.
+- Added focused test `src/features/chat/components/__tests__/ChatSearchOverlay.test.tsx` validating filter query parsing handoff (`parseMessageSearchQuery`) and unified results rendering/selection across messages + broadcasts.
+- Verification: `npm run typecheck` passed; `npm run lint:check` fails on pre-existing repo lint baseline + remotion script no-undef errors; `npm run build` fails on pre-existing duplicate symbol in `ChannelChatView.tsx`; targeted Vitest invocation hangs in this environment (`vitest run ...ChatSearchOverlay.test.tsx`) and times out without output.
+
+2026-04-11 — Broadcast priority canonicalization + legacy alias compatibility hardening
+- Updated `Broadcasts` mappings so outgoing Stream payload for `logistics` category now uses canonical `reminder` priority (no longer `important`).
+- Added backward-compatible render mapping for legacy incoming priority aliases (`important` and `logistics`) to keep display category stable.
+- Hardened `useStreamBroadcasts` to normalize incoming/outgoing priority values to canonical set (`urgent | reminder | fyi`) and include normalized priority in outgoing metadata.
+- Added focused regression tests:
+  - `src/features/broadcasts/components/__tests__/Broadcasts.priorityMapping.test.ts`
+  - `src/hooks/stream/__tests__/useStreamBroadcasts.priority.test.tsx`
+- Verification: `npm run test:run -- src/features/broadcasts/components/__tests__/Broadcasts.priorityMapping.test.ts src/hooks/stream/__tests__/useStreamBroadcasts.priority.test.tsx`, `npm run typecheck`.
+
+2026-04-11 — Concierge context source-of-truth hardening (EnhancedTripContextService retirement)
+- Verified `EnhancedTripContextService` had zero runtime imports via repo grep (`rg "enhancedTripContextService|EnhancedTripContextService" src -n`) and confirmed concierge runtime already uses `TripContextAggregator` in `UniversalConciergeService`.
+- Removed deprecated runtime file `src/services/enhancedTripContextService.ts` to eliminate accidental resurrection risk.
+- Added architectural guardrails:
+  - ESLint `no-restricted-imports` entries blocking `enhancedTripContextService` import paths.
+  - `src/services/CONCIERGE_CONTEXT_ARCHITECTURE.md` documenting `TripContextAggregator` as the single source of truth.
+  - Inline invariant comment near context assembly in `UniversalConciergeService`.
+2026-04-12 — AIConciergeChat structural refactor kickoff (types/utils/hooks extraction scaffolding)
+- Extracted concierge logic primitives into new module `src/features/concierge/`:
+  - `types.ts` for shared concierge chat contracts (`ChatMessage`, invoke payload, attachment/fallback shapes, `AiStatus`).
+  - `utils/chatHelpers.ts` for constants, timeout invoke helper, attachment encoder, rich metadata extractor, and fallback response builder.
+  - Hook scaffolds: `useConciergeMessages`, `useConciergeVoice`, `useSmartImportActions`, `useConciergeAttachments`.
+- Updated `src/services/conciergeCacheService.ts` to import `ChatMessage` from the new concierge types module.
+- Added backward-compat re-export in `AIConciergeChat.tsx`: `export type { ChatMessage } from '@/features/concierge/types'`.
+- Updated `CLAUDE.md` technical debt note to current measured file size (`AIConciergeChat.tsx`: 2,306 lines).
+- Verification: `npm run typecheck`, `npm run lint`, `npm run build`, `npm run test -- src/components/__tests__/AIConciergeChat.test.tsx`.
+2026-04-12 — AIConciergeChat full logic extraction completion pass
+- Completed next-phase reduction: `src/components/AIConciergeChat.tsx` now functions as a thin orchestrator at 540 lines.
+- Wired previously extracted hooks into live component flow:
+  - `useConciergeMessages` now owns message lifecycle state/effects and exposes `isHistoryLoading` for skeleton gating.
+  - `useConciergeAttachments` and `useSmartImportActions` own attachment/import action state.
+  - `useConciergeVoice` owns dictation + LiveKit state/callbacks and now exposes transcript/session controls used by `VoiceLiveInline`.
+- Added `useConciergeStreaming.ts` and moved the full send/streaming callback pipeline out of the component.
+  - AIConcierge orchestrator now delegates `handleSendMessage` to this hook.
+- Preserved behavior: auth checks, tripId threading, stream callbacks, pending action invalidations, and offline fallback remain intact.
+- Verification: `npm run typecheck && npm run build`, `npm run lint`, `npm run test -- src/components/__tests__/AIConciergeChat.test.tsx`.
+2026-04-12 — Concierge deferred-risk follow-up: hook-level regression tests
+- Added focused tests for extracted hooks:
+  - `src/features/concierge/hooks/__tests__/useConciergeStreaming.test.ts` covers empty-input no-op and offline fallback (appends user+assistant offline messages, no stream invoke).
+  - `src/features/concierge/hooks/__tests__/useConciergeVoice.test.ts` validates live transcript/state exposure contract from `useLiveKitVoice`.
+- Verification: `npm run test -- src/features/concierge/hooks/__tests__/useConciergeStreaming.test.ts src/features/concierge/hooks/__tests__/useConciergeVoice.test.ts`; `npm run test -- src/components/__tests__/AIConciergeChat.test.tsx`; `npm run typecheck`; `npm run lint`; `npm run build`.
+2026-04-12 — Concierge streaming lifecycle hardening (next deferred-risk phase)
+- Expanded `useConciergeStreaming` hook test coverage to lock additional streaming lifecycle behavior:
+  - metadata updates set AI status connected and patch usage/sources onto the active assistant stream message
+  - idle watchdog timeout path appends timeout fallback copy, stops typing, and aborts stream
+- Kept production hook logic unchanged in this pass (test-only safety hardening).
+- Verification: `npm run test -- src/features/concierge/hooks/__tests__/useConciergeStreaming.test.ts src/features/concierge/hooks/__tests__/useConciergeVoice.test.ts`; `npm run test -- src/components/__tests__/AIConciergeChat.test.tsx`; `npm run typecheck`; `npm run lint`; `npm run build`.
