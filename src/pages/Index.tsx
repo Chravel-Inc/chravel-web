@@ -44,7 +44,7 @@ import {
   calculateProTripStats,
   calculateEventStats,
 } from '../utils/tripStatsCalculator';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useMobilePortrait } from '../hooks/useMobilePortrait';
 import {
   convertSupabaseTripsToMock,
@@ -64,6 +64,7 @@ import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../components/mobile/PullToRefreshIndicator';
 import { clearDataCaches } from '../utils/pwaCacheUtils';
 import { X } from 'lucide-react';
+import { getLaunchContext } from '../lib/runtime/launchContext';
 
 const Index = () => {
   usePerformanceMonitor('Index');
@@ -97,6 +98,8 @@ const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { demoView, isDemoMode, setDemoView } = useDemoMode();
   const isMobilePortrait = useMobilePortrait();
+  const launchContext = useMemo(() => getLaunchContext(), []);
+  const isInstalledAppContext = launchContext === 'installed_app';
 
   // Notification unread count for mobile tab bar badge
   const { unreadCount: notificationUnreadCount } = useNotificationRealtime();
@@ -739,7 +742,15 @@ const Index = () => {
     }
   }, [user, showOnboarding, location.pathname, getPendingDestination, setPendingDestination]);
 
-  // MRKTING toggle: Show marketing page only for unauthenticated users
+  if (isInstalledAppContext && demoView === 'off' && authLoading) {
+    return <div className="min-h-screen min-h-mobile-screen bg-background" aria-busy="true" />;
+  }
+
+  if (isInstalledAppContext && demoView === 'off' && !user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  // MRKTING toggle: Show marketing page only for unauthenticated browser users
   if (demoView === 'off' && !user) {
     return (
       <div className="min-h-screen min-h-mobile-screen bg-background font-outfit">
