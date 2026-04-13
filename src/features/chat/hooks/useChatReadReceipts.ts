@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   markMessagesAsRead,
   subscribeToReadReceipts,
@@ -21,6 +21,11 @@ export function useChatReadReceipts(
   const markReadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ownMessageIdsRef = useRef<Set<string>>(new Set());
 
+  const isStreamBackedChat = useMemo(
+    () => Boolean(activeChannel?.state?.read && typeof activeChannel?.markRead === 'function'),
+    [activeChannel],
+  );
+
   useEffect(() => {
     if (!userId) return;
     ownMessageIdsRef.current = new Set(
@@ -29,7 +34,51 @@ export function useChatReadReceipts(
   }, [liveMessages, userId]);
 
   useEffect(() => {
-    if (isDemoMode || !userId || !resolvedTripId) return;
+    if (!isStreamBackedChat) return;
+
+    const streamReadState = activeChannel?.state?.read;
+    if (!streamReadState) {
+      setReadStatusesByMessage({});
+      return;
+    }
+
+    const nextReadStatuses: Record<string, any[]> = {};
+
+    for (const message of liveMessages) {
+      const messageUserId = getMessageUserId(message);
+      const messageCreatedAt = (message as any).created_at ?? (message as any).createdAt;
+      if (!messageCreatedAt || !message?.id) continue;
+
+      const messageCreatedAtDate = new Date(messageCreatedAt);
+      if (Number.isNaN(messageCreatedAtDate.getTime())) continue;
+
+      const statusesForMessage: any[] = [];
+      for (const [readerId, readState] of Object.entries(streamReadState)) {
+        const readerLastRead = (readState as any)?.last_read;
+        if (!readerLastRead || readerId === userId || readerId === messageUserId) continue;
+
+        const readAtDate = new Date(readerLastRead);
+        if (Number.isNaN(readAtDate.getTime()) || readAtDate < messageCreatedAtDate) continue;
+
+        statusesForMessage.push({
+          id: `${message.id}:${readerId}`,
+          message_id: message.id,
+          user_id: readerId,
+          read_at: readerLastRead,
+          created_at: readerLastRead,
+        });
+      }
+
+      if (statusesForMessage.length > 0) {
+        nextReadStatuses[message.id] = statusesForMessage;
+      }
+    }
+
+    setReadStatusesByMessage(nextReadStatuses);
+  }, [activeChannel, isStreamBackedChat, liveMessages, userId]);
+
+  useEffect(() => {
+    if (isDemoMode || !userId || !resolvedTripId || isStreamBackedChat) return;
 
     const subscription = subscribeToReadReceipts(resolvedTripId, (newStatus: any) => {
       setReadStatusesByMessage(prev => {
@@ -58,7 +107,7 @@ export function useChatReadReceipts(
         }
       });
     };
-  }, [userId, resolvedTripId, isDemoMode]);
+  }, [userId, resolvedTripId, isDemoMode, isStreamBackedChat]);
 
   useEffect(() => {
     if (isDemoMode || !userId || !resolvedTripId || liveMessages.length === 0) return;
@@ -72,7 +121,7 @@ export function useChatReadReceipts(
     if (markReadTimerRef.current) clearTimeout(markReadTimerRef.current);
     markReadTimerRef.current = setTimeout(async () => {
       try {
-        if (activeChannel && typeof activeChannel.markRead === 'function') {
+        if (isStreamBackedChat) {
           await activeChannel.markRead();
         } else {
           await markMessagesAsRead(newUnmarkedIds, resolvedTripId, userId);
@@ -88,12 +137,12 @@ export function useChatReadReceipts(
     return () => {
       if (markReadTimerRef.current) clearTimeout(markReadTimerRef.current);
     };
-  }, [liveMessages, userId, resolvedTripId, isDemoMode, activeChannel]);
+  }, [liveMessages, userId, resolvedTripId, isDemoMode, activeChannel, isStreamBackedChat]);
 
-  // Fetch read statuses for own messages (only when own message count changes)
+  // Fetch read statuses for own messages only in legacy (Supabase) mode.
   const ownMessageCountRef = useRef(0);
   useEffect(() => {
-    if (isDemoMode || !userId || liveMessages.length === 0) return;
+    if (isDemoMode || !userId || liveMessages.length === 0 || isStreamBackedChat) return;
 
     const ownMessages = liveMessages.filter(msg => getMessageUserId(msg) === userId);
     if (ownMessages.length === ownMessageCountRef.current) return;
@@ -109,7 +158,7 @@ export function useChatReadReceipts(
           console.error('Failed to fetch read statuses', e);
         }
       });
-  }, [liveMessages, userId, isDemoMode]);
+  }, [liveMessages, userId, isDemoMode, isStreamBackedChat]);
 
   return { readStatusesByMessage, setReadStatusesByMessage };
 }
