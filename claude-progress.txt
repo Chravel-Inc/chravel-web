@@ -1,3 +1,10 @@
+2026-04-13 — Concierge context source-of-truth guardrail hardening
+- Verified `src/services/enhancedTripContextService.ts` is absent and no runtime imports/reference paths remain in `src/` (only architecture docs mention deprecation).
+- Confirmed `UniversalConciergeService` continues to build context exclusively via `TripContextAggregator.buildContext(...)`.
+- Strengthened architectural guardrail by expanding ESLint `no-restricted-imports` with wildcard patterns to block any path variant of `enhancedTripContextService`.
+- Updated `src/services/CONCIERGE_CONTEXT_ARCHITECTURE.md` to document wildcard lint coverage as the anti-regression control.
+- Verification: `npm run lint:check -- src/services/universalConciergeService.ts src/services/CONCIERGE_CONTEXT_ARCHITECTURE.md eslint.config.js`, `npm run typecheck`.
+
 2026-04-13 — Trip chat message edit path switched to Stream client update API
 - Root-caused edit failures/typing debt to `TripChat` invoking `(activeChannel as any).updateMessage(...)` directly, which bypassed the shared Stream client singleton and required an unsafe cast.
 - Replaced edit handler path to use Stream client API via `getStreamClient()` guard + user-visible missing-client toast, then `client.updateMessage({ id, text })` with typed payload (no `any` cast in edit path).
