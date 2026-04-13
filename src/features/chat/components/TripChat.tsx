@@ -43,6 +43,7 @@ import { useTripPrivacyConfig, getEffectivePrivacyMode } from '@/hooks/useTripPr
 import { useTripChatMode } from '@/hooks/useTripChatMode';
 import { useLinkPreviews } from '../hooks/useLinkPreviews';
 import { useBlockedUsers, useReportContent } from '@/hooks/useUserSafety';
+import { getStreamClient } from '@/services/stream/streamClient';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -193,9 +194,14 @@ export const TripChat = React.memo(
       async (messageId: string, newContent: string) => {
         if (demoMode.isDemoMode || !activeChannel) return;
 
+        const streamClient = getStreamClient();
+        if (!streamClient) {
+          toast.error('Chat connection unavailable. Please try again.');
+          return;
+        }
+
         try {
-          // intentional: stream-chat Channel type doesn't expose updateMessage in all versions
-          await (activeChannel as any).updateMessage({
+          await streamClient.updateMessage({
             id: messageId,
             text: newContent,
           });
