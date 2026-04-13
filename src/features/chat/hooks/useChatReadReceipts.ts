@@ -30,6 +30,8 @@ export function useChatReadReceipts(
 
   useEffect(() => {
     if (isDemoMode || !userId || !resolvedTripId) return;
+    // Stream handles read state natively via channel.state.read
+    if (activeChannel) return;
 
     const subscription = subscribeToReadReceipts(resolvedTripId, (newStatus: any) => {
       setReadStatusesByMessage(prev => {
@@ -58,7 +60,7 @@ export function useChatReadReceipts(
         }
       });
     };
-  }, [userId, resolvedTripId, isDemoMode]);
+  }, [userId, resolvedTripId, isDemoMode, activeChannel]);
 
   useEffect(() => {
     if (isDemoMode || !userId || !resolvedTripId || liveMessages.length === 0) return;
@@ -91,9 +93,11 @@ export function useChatReadReceipts(
   }, [liveMessages, userId, resolvedTripId, isDemoMode, activeChannel]);
 
   // Fetch read statuses for own messages (only when own message count changes)
+  // Stream handles read state natively; TripChat maps from activeChannel.state.read
   const ownMessageCountRef = useRef(0);
   useEffect(() => {
     if (isDemoMode || !userId || liveMessages.length === 0) return;
+    if (activeChannel) return;
 
     const ownMessages = liveMessages.filter(msg => getMessageUserId(msg) === userId);
     if (ownMessages.length === ownMessageCountRef.current) return;
@@ -109,7 +113,7 @@ export function useChatReadReceipts(
           console.error('Failed to fetch read statuses', e);
         }
       });
-  }, [liveMessages, userId, isDemoMode]);
+  }, [liveMessages, userId, isDemoMode, activeChannel]);
 
   return { readStatusesByMessage, setReadStatusesByMessage };
 }

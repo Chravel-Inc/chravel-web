@@ -6,15 +6,7 @@ import { isStreamConfigured } from './stream/streamTransportGuards';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-export type ReactionType = string;
-
 export type ChatMessageInsert = Database['public']['Tables']['trip_chat_messages']['Insert'];
-
-export interface ReactionCount {
-  count: number;
-  userReacted: boolean;
-  users: string[];
-}
 
 type MessageRow = Database['public']['Tables']['trip_chat_messages']['Row'];
 type MessageInsert = Database['public']['Tables']['trip_chat_messages']['Insert'];
@@ -168,6 +160,8 @@ export async function editChatMessage(messageId: string, newContent: string): Pr
 }
 
 export async function editChannelMessage(messageId: string, newContent: string): Promise<boolean> {
+  assertLegacyTripChatDbMutationAllowed('editChannelMessage');
+
   const { error } = await supabase
     .from('channel_messages')
     .update({ content: newContent, edited_at: new Date().toISOString() })
@@ -196,6 +190,8 @@ export async function deleteChatMessage(messageId: string): Promise<boolean> {
 }
 
 export async function deleteChannelMessage(messageId: string): Promise<boolean> {
+  assertLegacyTripChatDbMutationAllowed('deleteChannelMessage');
+
   const { error } = await supabase
     .from('channel_messages')
     .update({ deleted_at: new Date().toISOString() })
@@ -208,77 +204,7 @@ export async function deleteChannelMessage(messageId: string): Promise<boolean> 
   return true;
 }
 
-// ─── Reactions (message_reactions table-backed) ─────────────────────────────
-
-export async function toggleMessageReaction(
-  messageId: string,
-  userId: string,
-  reactionType: ReactionType,
-): Promise<{ data: unknown; error: unknown }> {
-  try {
-    // RPC not yet in generated Supabase types
-    const { data, error } = await (supabase as any).rpc('toggle_reaction', {
-      p_message_id: messageId,
-      p_user_id: userId,
-      p_reaction_type: reactionType,
-    });
-
-    if (error) throw error;
-
-    return { data: { toggled: true, result: data }, error: null };
-  } catch (error) {
-    return { data: null, error };
-  }
-}
-
-export async function getMessagesReactions(
-  messageIds: string[],
-  currentUserId?: string,
-): Promise<Record<string, Record<string, ReactionCount>>> {
-  if (!messageIds.length) return {};
-
-  try {
-    // Table not yet in generated Supabase types
-    const { data, error } = await (supabase as any)
-      .from('message_reactions')
-      .select('message_id, reaction_type, user_id')
-      .in('message_id', messageIds);
-
-    if (error) throw error;
-
-    const result: Record<string, Record<string, ReactionCount>> = {};
-
-    for (const row of data || []) {
-      const messageId = row.message_id;
-      const reactionType = row.reaction_type;
-      const reactionUserId = row.user_id;
-
-      if (!result[messageId]) {
-        result[messageId] = {};
-      }
-
-      if (!result[messageId][reactionType]) {
-        result[messageId][reactionType] = {
-          count: 0,
-          userReacted: false,
-          users: [],
-        };
-      }
-
-      const reaction = result[messageId][reactionType];
-      reaction.count += 1;
-      reaction.users.push(reactionUserId);
-      if (currentUserId && reactionUserId === currentUserId) {
-        reaction.userReacted = true;
-      }
-    }
-
-    return result;
-  } catch (error) {
-    if (import.meta.env.DEV) console.error('[chatService] getMessagesReactions error:', error);
-    return {};
-  }
-}
+// ─── Reactions (realtime subscription) ─────────────────────────────────────
 
 interface ReactionPayload {
   messageId: string;

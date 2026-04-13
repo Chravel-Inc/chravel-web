@@ -10,7 +10,11 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { getStreamClient, onStreamClientConnected } from '@/services/stream/streamClient';
+import {
+  getStreamClient,
+  onStreamClientConnected,
+  onStreamClientConnectionStatusChange,
+} from '@/services/stream/streamClient';
 import { CHANNEL_TYPE_BROADCAST, broadcastChannelId } from '@/services/stream/streamChannelFactory';
 import type { Channel, MessageResponse } from 'stream-chat';
 
@@ -49,11 +53,17 @@ export function useStreamBroadcasts(tripId: string | undefined) {
   const [streamClientReady, setStreamClientReady] = useState(Boolean(getStreamClient()?.userID));
 
   useEffect(() => {
-    const unsubscribe = onStreamClientConnected(() => {
+    const unsubscribeConnected = onStreamClientConnected(() => {
       setStreamClientReady(true);
     });
+    const unsubscribeStatus = onStreamClientConnectionStatusChange(isConnected => {
+      setStreamClientReady(isConnected);
+    });
 
-    return unsubscribe;
+    return () => {
+      unsubscribeConnected();
+      unsubscribeStatus();
+    };
   }, []);
 
   // Watch broadcast channel

@@ -4,8 +4,9 @@
  * Called directly in app flows (join trip, leave trip, role change)
  * to synchronously update Stream channel membership.
  *
- * This is the PRIMARY sync path. The webhook-based stream-sync edge function
- * is currently planned as a reconciliation backstop, but not yet active in all environments.
+ * This is the PRIMARY sync path. The webhook-based stream-webhook edge function
+ * (supabase/functions/stream-webhook) serves as a reconciliation backstop and
+ * handles server-side concerns like push notification delivery.
  *
  * Architecture:
  *   - Supabase remains source of truth for membership

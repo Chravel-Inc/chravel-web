@@ -23,6 +23,7 @@ vi.mock('@/services/stream/streamClient', () => ({
     channel: vi.fn(() => mockChannel),
   })),
   onStreamClientConnected: vi.fn(() => () => undefined),
+  onStreamClientConnectionStatusChange: vi.fn(() => () => undefined),
 }));
 
 describe('useStreamBroadcasts priority normalization', () => {
