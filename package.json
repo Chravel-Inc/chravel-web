@@ -29,6 +29,7 @@
     "test:e2e:debug": "playwright test --debug",
     "prepare": "husky install",
     "doctor": "bash scripts/doctor.sh",
+    "merge:preflight": "bash scripts/merge-conflict-preflight.sh",
     "validate-env": "npx tsx scripts/validate-env.ts",
     "screenshots:appstore": "npx tsx scripts/capture-appstore-screenshots.ts",
     "screenshots:appstore:iphone": "npx tsx scripts/capture-appstore-screenshots.ts --device=iphone",

@@ -1,0 +1,412 @@
+name: Merge Conflict Check
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: merge-check-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  merge-check:
+    name: Merge Conflict Preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Analyze merge state
+        id: merge
+        run: |
+          set -euo pipefail
+
+          BASE_SHA=${{ github.event.pull_request.base.sha }}
+          HEAD_SHA=${{ github.event.pull_request.head.sha }}
+          MERGE_BASE=$(git merge-base "$BASE_SHA" "$HEAD_SHA" 2>/dev/null || echo "")
+
+          if [ -z "$MERGE_BASE" ]; then
+            echo "status=error" >> $GITHUB_OUTPUT
+            echo "error=No common ancestor found" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Files changed on PR branch
+          PR_FILES=$(git diff --name-only "$MERGE_BASE"..."$HEAD_SHA" 2>/dev/null || echo "")
+          PR_COUNT=0
+          if [ -n "$PR_FILES" ]; then
+            PR_COUNT=$(echo "$PR_FILES" | wc -l | tr -d ' ')
+          fi
+
+          # Files changed on base since merge-base
+          BASE_FILES=$(git diff --name-only "$MERGE_BASE"..."$BASE_SHA" 2>/dev/null || echo "")
+          BASE_COUNT=0
+          if [ -n "$BASE_FILES" ]; then
+            BASE_COUNT=$(echo "$BASE_FILES" | wc -l | tr -d ' ')
+          fi
+
+          # Overlap
+          OVERLAP=""
+          if [ -n "$PR_FILES" ] && [ -n "$BASE_FILES" ]; then
+            OVERLAP=$(comm -12 <(echo "$PR_FILES" | sort) <(echo "$BASE_FILES" | sort) || echo "")
+          fi
+          OVERLAP_COUNT=0
+          if [ -n "$OVERLAP" ]; then
+            OVERLAP_COUNT=$(echo "$OVERLAP" | wc -l | tr -d ' ')
+          fi
+
+          # High-risk zone classification
+          HIGH_RISK_ZONES=(
+            "src/types/"
+            "supabase/migrations/"
+            "src/hooks/useAuth"
+            "supabase/functions/_shared/requireAuth"
+            "supabase/functions/_shared/cors"
+            "supabase/functions/_shared/validateSecrets"
+            "src/stores/"
+            "src/store/"
+            "src/components/ui/"
+            "src/lib/queryKeys"
+            "src/integrations/supabase/client"
+            "supabase/functions/lovable-concierge/"
+            "vercel.json"
+            "supabase/config.toml"
+            "package-lock.json"
+          )
+
+          # Union-merge files from .gitattributes (merge-tree doesn't respect merge drivers)
+          UNION_MERGE_FILES=("DEBUG_PATTERNS.md" "LESSONS.md" "TEST_GAPS.md" "agent_memory.jsonl")
+
+          HIGH_RISK_LIST=""
+          if [ -n "$OVERLAP" ]; then
+            while IFS= read -r file; do
+              for pattern in "${HIGH_RISK_ZONES[@]}"; do
+                if [[ "$file" == *"$pattern"* ]]; then
+                  HIGH_RISK_LIST="${HIGH_RISK_LIST}${file}\n"
+                  break
+                fi
+              done
+            done <<< "$OVERLAP"
+          fi
+
+          # Dry-run merge
+          MERGE_OUTPUT=$(git merge-tree --write-tree "$HEAD_SHA" "$BASE_SHA" 2>&1) && MERGE_EXIT=0 || MERGE_EXIT=$?
+
+          REAL_CONFLICTS=""
+          UNION_CONFLICTS=""
+          LOCKFILE_CONFLICT="false"
+
+          if [ "$MERGE_EXIT" -ne 0 ]; then
+            RAW=$(echo "$MERGE_OUTPUT" | grep "^CONFLICT" | sed 's/CONFLICT.*: //' | sed 's/ .*//' || echo "")
+            if [ -z "$RAW" ]; then
+              RAW=$(echo "$MERGE_OUTPUT" | grep "Merge conflict in" | sed 's/.*Merge conflict in //' || echo "")
+            fi
+
+            if [ -n "$RAW" ]; then
+              while IFS= read -r cfile; do
+                [ -z "$cfile" ] && continue
+                basename_file=$(basename "$cfile")
+                is_union="false"
+                for uf in "${UNION_MERGE_FILES[@]}"; do
+                  if [ "$basename_file" = "$uf" ]; then
+                    is_union="true"
+                    break
+                  fi
+                done
+
+                if [ "$is_union" = "true" ]; then
+                  UNION_CONFLICTS="${UNION_CONFLICTS}${cfile}\n"
+                elif [ "$cfile" = "package-lock.json" ]; then
+                  LOCKFILE_CONFLICT="true"
+                else
+                  REAL_CONFLICTS="${REAL_CONFLICTS}${cfile}\n"
+                fi
+              done <<< "$RAW"
+            fi
+          fi
+
+          HAS_REAL_CONFLICTS="false"
+          REAL_CONFLICT_COUNT=0
+          if [ -n "$REAL_CONFLICTS" ]; then
+            HAS_REAL_CONFLICTS="true"
+            REAL_CONFLICT_COUNT=$(echo -e "$REAL_CONFLICTS" | grep -c . || echo "0")
+          fi
+
+          # Write outputs
+          MERGE_BASE_SHORT=$(git rev-parse --short "$MERGE_BASE")
+          echo "merge_base=$MERGE_BASE_SHORT" >> $GITHUB_OUTPUT
+          echo "pr_files=$PR_COUNT" >> $GITHUB_OUTPUT
+          echo "base_files=$BASE_COUNT" >> $GITHUB_OUTPUT
+          echo "overlap_count=$OVERLAP_COUNT" >> $GITHUB_OUTPUT
+          echo "has_conflicts=$HAS_REAL_CONFLICTS" >> $GITHUB_OUTPUT
+          echo "conflict_count=$REAL_CONFLICT_COUNT" >> $GITHUB_OUTPUT
+          echo "lockfile_conflict=$LOCKFILE_CONFLICT" >> $GITHUB_OUTPUT
+          echo "status=ok" >> $GITHUB_OUTPUT
+
+          # Write detailed report to file
+          {
+            echo "## Merge Conflict Preflight"
+            echo ""
+
+            if [ "$HAS_REAL_CONFLICTS" = "true" ]; then
+              echo "**Status: ❌ CONFLICTS DETECTED**"
+            elif [ -n "$HIGH_RISK_LIST" ]; then
+              echo "**Status: ⚠️ CLEAN (high-risk overlap)**"
+            else
+              echo "**Status: ✅ CLEAN**"
+            fi
+
+            echo ""
+            echo "| Metric | Value |"
+            echo "|--------|-------|"
+            echo "| Merge-base | \`$MERGE_BASE_SHORT\` |"
+            echo "| Files changed (PR) | $PR_COUNT |"
+            echo "| Files changed (base) | $BASE_COUNT |"
+            echo "| Overlapping files | $OVERLAP_COUNT |"
+            echo ""
+
+            if [ -n "$HIGH_RISK_LIST" ]; then
+              echo "### High-Risk Overlap"
+              echo ""
+              echo -e "$HIGH_RISK_LIST" | while IFS= read -r f; do
+                [ -n "$f" ] && echo "- \`$f\`"
+              done
+              echo ""
+            fi
+
+            if [ "$HAS_REAL_CONFLICTS" = "true" ]; then
+              echo "### Merge Conflicts"
+              echo ""
+              echo "These files have textual conflicts that must be resolved:"
+              echo ""
+              echo -e "$REAL_CONFLICTS" | while IFS= read -r f; do
+                [ -n "$f" ] && echo "- \`$f\`"
+              done
+              echo ""
+            fi
+
+            if [ -n "$UNION_CONFLICTS" ]; then
+              echo "### Auto-Resolved (merge=union)"
+              echo ""
+              echo "These files use \`merge=union\` in \`.gitattributes\` and will auto-resolve:"
+              echo ""
+              echo -e "$UNION_CONFLICTS" | while IFS= read -r f; do
+                [ -n "$f" ] && echo "- \`$f\`"
+              done
+              echo ""
+            fi
+
+            if [ "$LOCKFILE_CONFLICT" = "true" ]; then
+              echo "### Lockfile"
+              echo ""
+              echo "\`package-lock.json\` has a conflict. Resolve by running \`npm install\` after merge."
+              echo ""
+            fi
+
+            echo "---"
+            echo "*Auto-generated by merge-conflict-check workflow*"
+          } > /tmp/merge-conflict-report.md
+
+      - name: Post merge conflict report
+        if: steps.merge.outputs.status == 'ok'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('/tmp/merge-conflict-report.md', 'utf8');
+            const marker = 'Merge Conflict Preflight';
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find(c =>
+              c.body.includes(marker) &&
+              c.user.type === 'Bot'
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      - name: Fail on merge conflicts
+        if: steps.merge.outputs.has_conflicts == 'true'
+        run: |
+          echo "::error::Merge conflicts detected with main branch (${{ steps.merge.outputs.conflict_count }} file(s))"
+          exit 1
+
+  cross-pr-overlap:
+    name: Cross-PR File Overlap
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect cross-PR file overlap
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const currentPR = context.payload.pull_request.number;
+            const baseSha = context.payload.pull_request.base.sha;
+            const headSha = context.payload.pull_request.head.sha;
+
+            // Get files changed in current PR
+            const { data: currentFiles } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: currentPR,
+              per_page: 100,
+            });
+            const currentFileSet = new Set(currentFiles.map(f => f.filename));
+
+            if (currentFileSet.size === 0) {
+              console.log('No files changed in current PR, skipping overlap check.');
+              return;
+            }
+
+            // List open PRs targeting main (cap at 20)
+            const { data: openPRs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              base: 'main',
+              per_page: 20,
+              sort: 'updated',
+              direction: 'desc',
+            });
+
+            const otherPRs = openPRs.filter(pr => pr.number !== currentPR);
+
+            if (otherPRs.length === 0) {
+              console.log('No other open PRs, skipping overlap check.');
+              return;
+            }
+
+            // Check each other PR for file overlap
+            const overlapMap = new Map(); // filename -> [PR numbers]
+
+            for (const pr of otherPRs) {
+              try {
+                const { data: files } = await github.rest.pulls.listFiles({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: pr.number,
+                  per_page: 100,
+                });
+
+                for (const file of files) {
+                  if (currentFileSet.has(file.filename)) {
+                    if (!overlapMap.has(file.filename)) {
+                      overlapMap.set(file.filename, []);
+                    }
+                    overlapMap.get(file.filename).push(`#${pr.number}`);
+                  }
+                }
+              } catch (e) {
+                console.log(`Skipping PR #${pr.number}: ${e.message}`);
+              }
+            }
+
+            if (overlapMap.size === 0) {
+              console.log('No cross-PR file overlap detected.');
+              // Remove stale comment if exists
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: currentPR,
+              });
+              const stale = comments.find(c =>
+                c.body.includes('Cross-PR File Overlap') &&
+                c.user.type === 'Bot'
+              );
+              if (stale) {
+                await github.rest.issues.deleteComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: stale.id,
+                });
+              }
+              return;
+            }
+
+            // High-risk zones
+            const highRiskPatterns = [
+              'src/types/', 'supabase/migrations/', 'src/hooks/useAuth',
+              'supabase/functions/_shared/', 'src/stores/', 'src/store/',
+              'src/components/ui/', 'src/lib/queryKeys',
+              'src/integrations/supabase/client', 'supabase/functions/lovable-concierge/',
+              'vercel.json', 'supabase/config.toml', 'package-lock.json',
+            ];
+
+            const isHighRisk = (file) => highRiskPatterns.some(p => file.includes(p));
+
+            // Build comment
+            let body = '## Cross-PR File Overlap\n\n';
+            body += 'This PR modifies files also modified by other open PRs. ';
+            body += 'This does **not** guarantee conflicts, but warrants awareness.\n\n';
+            body += '| File | Also modified by | Risk |\n';
+            body += '|------|-----------------|------|\n';
+
+            for (const [file, prs] of [...overlapMap.entries()].sort()) {
+              const risk = isHighRisk(file) ? '⚠️ High' : 'Low';
+              body += `| \`${file}\` | ${prs.join(', ')} | ${risk} |\n`;
+            }
+
+            body += '\n---\n*Auto-generated by merge-conflict-check workflow*\n';
+
+            // Upsert comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: currentPR,
+            });
+
+            const existing = comments.find(c =>
+              c.body.includes('Cross-PR File Overlap') &&
+              c.user.type === 'Bot'
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: currentPR,
+                body,
+              });
+            }
+
+            console.log(`Posted overlap report: ${overlapMap.size} files overlap with ${otherPRs.length} open PRs.`);

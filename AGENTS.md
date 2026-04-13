@@ -119,7 +119,21 @@ Treat conflict prevention as part of implementation, not an optional cleanup ste
 - **Core rule:** never blindly choose *accept current/incoming/both*; resolve conflicts semantically from architecture + source-of-truth contracts.
 - **Run preflight twice:** (1) before meaningful code edits, (2) again right before commit/push.
 
-Required sequence:
+**Automated tooling:**
+
+```bash
+# Local preflight — run before commit/push
+npm run merge:preflight                      # default: checks against origin/main
+bash scripts/merge-conflict-preflight.sh --base=develop  # custom base branch
+bash scripts/merge-conflict-preflight.sh --json          # machine-readable output
+```
+
+- Exit code 0 = clean (safe to push), 1 = conflicts detected, 2 = script error.
+- Filters `.gitattributes` union-merge files (DEBUG_PATTERNS.md, LESSONS.md, etc.) from conflict list — those auto-resolve.
+- Notes `package-lock.json` conflicts separately (resolve with `npm install`).
+- **CI workflow** (`merge-conflict-check.yml`) runs automatically on PRs to main — posts conflict report and cross-PR file overlap warnings.
+
+**Required sequence (manual or automated):**
 
 1. **Sync + divergence check**
    - Fetch latest base branch (`origin/main` unless otherwise specified).
@@ -128,7 +142,7 @@ Required sequence:
    - Flag overlap risk in shared types, schema/migrations, auth/session logic, stores, API contracts, prompt/tool registries, shared components, config/env, and lockfiles.
 
 2. **Dry-run merge check**
-   - Perform a safe dry-run merge in temporary worktree (or equivalent isolated approach).
+   - Run `npm run merge:preflight` or perform a safe dry-run merge via `git merge-tree --write-tree`.
    - If no conflicts, continue.
    - If conflicts exist, stop and resolve them before finalizing work.
 
