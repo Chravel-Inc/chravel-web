@@ -111,6 +111,41 @@ npm run typecheck && npm run lint && npm run build
 
 Run relevant unit/integration tests if present. Add at least one test if none exist for the touched area. Document manual verification steps for key flows.
 
+
+### Step E — Merge Conflict Preflight (required for meaningful changes)
+
+Treat conflict prevention as part of implementation, not an optional cleanup step.
+
+- **Core rule:** never blindly choose *accept current/incoming/both*; resolve conflicts semantically from architecture + source-of-truth contracts.
+- **Run preflight twice:** (1) before meaningful code edits, (2) again right before commit/push.
+
+Required sequence:
+
+1. **Sync + divergence check**
+   - Fetch latest base branch (`origin/main` unless otherwise specified).
+   - Compute merge-base with your working branch.
+   - Compare branch-changed files vs base-changed files since merge-base.
+   - Flag overlap risk in shared types, schema/migrations, auth/session logic, stores, API contracts, prompt/tool registries, shared components, config/env, and lockfiles.
+
+2. **Dry-run merge check**
+   - Perform a safe dry-run merge in temporary worktree (or equivalent isolated approach).
+   - If no conflicts, continue.
+   - If conflicts exist, stop and resolve them before finalizing work.
+
+3. **Conflict resolution standards**
+   - Keep **current** only when it intentionally supersedes stale behavior and does not violate newer shared contracts.
+   - Keep **incoming** only when base branch is the canonical source for shared types/APIs/schema/auth/safety behavior.
+   - Keep **both** only when changes are additive and non-contradictory.
+   - Use **manual recomposition** when shared contracts/state lifecycles/data flow changed incompatibly.
+   - Never keep both when it introduces duplicate side effects, duplicate queries/hooks, import/type conflicts, stale paths, double renders, or inconsistent state flow.
+
+4. **Validate after any resolution**
+   - Run lint, typecheck, relevant tests, and build when appropriate.
+   - Confirm no dead code, duplicate logic, regressions, or stale assumptions remain.
+
+5. **Report in delivery output**
+   - Include base branch, merge-base SHA, changed files (branch/base), overlap, dry-run result, conflict causes, per-conflict decision (`current`/`incoming`/`both`/`manual recomposition`), residual risks, tests run, and commit/push safety verdict.
+
 -----
 
 ## 5. CODE QUALITY GATES

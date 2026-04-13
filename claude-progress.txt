@@ -558,3 +558,7 @@
   - `npm run lint` ✅ (warnings-only baseline)
   - `npm run build` ✅
   - `npm run test:run -- src/hooks/stream/__tests__/useStreamBroadcasts.priority.test.tsx src/services/__tests__/tripChatLegacyRealtimeGuards.test.ts` ✅
+2026-04-13 — AGENTS merge-conflict preflight protocol codified
+- Added required Step E "Merge Conflict Preflight" to `AGENTS.md` under Golden Workflow.
+- Captured semantic conflict-resolution rules (no blind accept current/incoming/both), required sync + divergence scan, dry-run merge check, post-resolution validation, and mandatory reporting fields.
+- Note: this local workspace has no configured git remote (`origin`) and no local `main` branch, so fetch-based preflight commands require operator repo remote setup to execute fully.
