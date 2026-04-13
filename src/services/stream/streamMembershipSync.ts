@@ -4,13 +4,12 @@
  * Called directly in app flows (join trip, leave trip, role change)
  * to synchronously update Stream channel membership.
  *
- * This is the PRIMARY sync path. The webhook-based stream-sync edge function
- * is currently planned as a reconciliation backstop, but not yet active in all environments.
+ * This is the PRIMARY and ONLY membership sync path in the current release.
  *
  * Architecture:
  *   - Supabase remains source of truth for membership
  *   - This service pushes membership changes to Stream synchronously
- *   - Failed syncs are non-fatal; temporary drift can occur until a reconciliation job runs
+ *   - Failed syncs are non-fatal (no automatic retry/reconciliation job yet)
  */
 
 import { getStreamClient } from './streamClient';
@@ -42,7 +41,10 @@ export async function addMemberToTripChannels(tripId: string, userId: string): P
       const msg = error instanceof Error ? error.message : 'Unknown error';
       console.error('[StreamMembershipSync] addMember failed:', msg);
     }
-    // Non-fatal — avoid blocking trip flow; monitor for temporary membership drift
+    // Non-fatal — membership is already committed in Supabase.
+    // Retries: none in this module (caller fire-and-forget + no background reconciler yet).
+    // Operator action: monitor Stream join failures via client error telemetry/logs
+    // for "[StreamMembershipSync] addMember failed" and re-run membership sync manually if needed.
   }
 }
 
@@ -65,7 +67,10 @@ export async function removeMemberFromTripChannels(tripId: string, userId: strin
       const msg = error instanceof Error ? error.message : 'Unknown error';
       console.error('[StreamMembershipSync] removeMember failed:', msg);
     }
-    // Non-fatal — avoid blocking trip flow; monitor for temporary membership drift
+    // Non-fatal — membership is already committed in Supabase.
+    // Retries: none in this module (caller fire-and-forget + no background reconciler yet).
+    // Operator action: monitor Stream removal failures via client error telemetry/logs
+    // for "[StreamMembershipSync] removeMember failed" and re-run membership sync manually if needed.
   }
 }
 
