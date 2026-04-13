@@ -11,6 +11,13 @@
  * - Write queue for offline operations
  * - Conflict resolution (last-write-wins with version field)
  * - Automatic sync when connection restored
+ *
+ * Stream transport:
+ *   When Stream is the canonical chat transport (`isStreamChatActive`), chat
+ *   message entities skip the Supabase write queue entirely. The Stream SDK
+ *   manages its own offline buffer and retransmission. Non-chat entities
+ *   (tasks, calendar events, poll votes) always sync via Supabase regardless
+ *   of the Stream transport state.
  */
 
 import { getOfflineDb } from '@/offline/db';

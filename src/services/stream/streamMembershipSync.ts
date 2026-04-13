@@ -11,6 +11,12 @@
  *   - Supabase remains source of truth for membership
  *   - This service pushes membership changes to Stream synchronously
  *   - Failed syncs are non-fatal; temporary drift can occur until a reconciliation job runs
+ *
+ * Backfill:
+ *   Members who joined trips BEFORE the GetStream migration are not automatically
+ *   synced. Run `npx tsx scripts/backfill-stream-members.ts` to retroactively
+ *   add all existing trip_members to their Stream channels. Safe to re-run
+ *   (addMembers is idempotent in GetStream).
  */
 
 import { getStreamClient } from './streamClient';

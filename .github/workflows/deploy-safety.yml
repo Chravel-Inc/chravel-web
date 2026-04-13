@@ -33,6 +33,17 @@ jobs:
           # Detect env/config changes
           ENV_CHANGES=$(git diff --name-only $BASE_SHA $HEAD_SHA -- '.env*' 'scripts/validate-env.ts' 'vercel.json' 'render.yaml' 'supabase/config.toml' | wc -l)
 
+          # Check critical build-time env vars are referenced in code but
+          # commonly forgotten in Vercel project settings after migration.
+          MISSING_BUILD_VARS=""
+          for VAR in VITE_STREAM_API_KEY; do
+            if grep -rq "$VAR" src/ --include='*.ts' --include='*.tsx' 2>/dev/null; then
+              if ! grep -q "^$VAR=" .env.example 2>/dev/null && ! grep -q "^$VAR=" .env.production.example 2>/dev/null; then
+                MISSING_BUILD_VARS="${MISSING_BUILD_VARS}\n- \`$VAR\` used in code but missing from .env.example"
+              fi
+            fi
+          done
+
           # Detect workflow changes
           WORKFLOW_CHANGES=$(git diff --name-only $BASE_SHA $HEAD_SHA -- '.github/workflows/' | wc -l)
 
@@ -72,6 +83,11 @@ jobs:
 
           if [ "$AUTH_CHANGES" -gt 0 ]; then
             IMPACT="${IMPACT}\n### Auth/Supabase Integration Changes\n> Verify auth flows, RLS policies, and session handling.\n"
+            if [ "$RISK" != "HIGH" ]; then RISK="MEDIUM"; fi
+          fi
+
+          if [ -n "$MISSING_BUILD_VARS" ]; then
+            IMPACT="${IMPACT}\n### Build-Time Env Var Warning\n> The following VITE_ env vars are used in source but not in .env.example. Ensure they are set in Vercel project settings before deploying.\n${MISSING_BUILD_VARS}\n"
             if [ "$RISK" != "HIGH" ]; then RISK="MEDIUM"; fi
           fi
 

@@ -1,6 +1,18 @@
 /**
  * Offline Message Queue Service
- * Queues messages sent while offline and syncs them when connection is restored
+ *
+ * Queues messages sent while offline and syncs them when connection is restored.
+ *
+ * Transport architecture:
+ *   - When Stream is active (`isStreamChatActive`), the Stream SDK handles its
+ *     own offline persistence and retry. Legacy IndexedDB-queued messages are
+ *     dropped on flush to prevent duplicate writes to Supabase.
+ *   - When Stream is NOT configured, messages queue to IndexedDB and replay
+ *     against the Supabase `trip_chat_messages` table on reconnect.
+ *
+ * This dual-path is intentional: Stream's built-in offline cache is the
+ * canonical offline story once Stream is enabled; the IndexedDB path exists
+ * only as the legacy Supabase fallback.
  */
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import { supabase } from '@/integrations/supabase/client';
