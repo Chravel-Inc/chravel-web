@@ -17,8 +17,14 @@ import type { Channel, MessageResponse } from 'stream-chat';
 type BroadcastPriority = 'urgent' | 'reminder' | 'fyi';
 
 function normalizeBroadcastPriority(priority: unknown): BroadcastPriority {
-  if (priority === 'urgent') return 'urgent';
-  if (priority === 'reminder' || priority === 'important' || priority === 'logistics') {
+  const normalizedPriority = typeof priority === 'string' ? priority.toLowerCase() : '';
+
+  if (normalizedPriority === 'urgent') return 'urgent';
+  if (
+    normalizedPriority === 'reminder' ||
+    normalizedPriority === 'important' ||
+    normalizedPriority === 'logistics'
+  ) {
     return 'reminder';
   }
   return 'fyi';
@@ -138,6 +144,10 @@ export function useStreamBroadcasts(tripId: string | undefined) {
     await channel.sendMessage({
       text,
       priority: normalizedPriority,
+      extra_data: {
+        ...metadata,
+        priority: normalizedPriority,
+      },
       metadata: {
         ...metadata,
         priority: normalizedPriority,

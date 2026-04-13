@@ -575,9 +575,19 @@
 - Added required Step E "Merge Conflict Preflight" to `AGENTS.md` under Golden Workflow.
 - Captured semantic conflict-resolution rules (no blind accept current/incoming/both), required sync + divergence scan, dry-run merge check, post-resolution validation, and mandatory reporting fields.
 - Note: this local workspace has no configured git remote (`origin`) and no local `main` branch, so fetch-based preflight commands require operator repo remote setup to execute fully.
+
 2026-04-13 — Broadcast scheduling kill-switch test hardening
 - Added deterministic regression coverage in `src/services/__tests__/unifiedMessagingService.test.ts` for disabled scheduling path:
   - `scheduleMessage` returns `false` when `broadcast-scheduling-enabled` is off.
   - No auth lookup (`supabase.auth.getUser`) and no insert attempt (`broadcasts.insert`) occur while disabled.
 - Re-verified admin UI disabled copy/action lock in `src/pages/__tests__/AdminDashboard.test.tsx`.
 - Verification: `npm run test:run -- src/services/__tests__/unifiedMessagingService.test.ts src/pages/__tests__/AdminDashboard.test.tsx`, `npm run typecheck`, `npm run lint:check`, `npm run build`.
+
+2026-04-13 — Broadcast priority canonicalization hardening (reminder alias compatibility)
+- Root-caused potential enum drift to mixed priority aliases (`important`, `logistics`) crossing Broadcasts render mapping and Stream payload normalization.
+- Hardened `Broadcasts.mapPriorityToCategory` with case-insensitive normalization and explicit legacy alias support (`important` -> `logistics`) while preserving canonical render categories.
+- Confirmed stream send path uses canonical mapping (`logistics` category -> `reminder` priority) and updated `useStreamBroadcasts.sendBroadcast` to include canonical priority in both `priority` and `extra_data/metadata.priority` payload fields.
+- Added/updated regression tests for send + render mapping behavior:
+  - `src/features/broadcasts/components/__tests__/Broadcasts.priorityMapping.test.ts`
+  - `src/hooks/stream/__tests__/useStreamBroadcasts.priority.test.tsx`
+- Verification: `npm run test:run -- src/features/broadcasts/components/__tests__/Broadcasts.priorityMapping.test.ts src/hooks/stream/__tests__/useStreamBroadcasts.priority.test.tsx`, `npm run typecheck`, `npm run lint:check`, `npm run build`.
