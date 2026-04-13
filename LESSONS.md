@@ -439,3 +439,11 @@
 - **Evidence:** `AIConciergeChat.tsx` reduction from 2,306 lines to 540 lines succeeded by first wiring `useConciergeMessages/useConciergeVoice/useConciergeAttachments/useSmartImportActions`, then extracting `handleSendMessage` into `useConciergeStreaming`.
 - **Provenance:** April 2026 concierge refactor completion.
 - **Confidence:** medium
+
+### Stream connection lifecycle hooks require companion test-mock exports
+- **Tip:** When introducing `onStreamClientConnected`/status subscriptions in hooks, update existing Vitest module mocks to include the new exported subscription function; otherwise hooks fail at mount with missing export errors.
+- **Applies when:** Stream hook changes add new imports from `streamClient` (or any shared service module) in files with explicit `vi.mock(...)` fixtures.
+- **Avoid when:** Tests use `importOriginal` partial mocks that already forward untouched exports.
+- **Evidence:** `useStreamBroadcasts` readiness guard update caused `useStreamBroadcasts.priority.test.tsx` failures until the mock included `onStreamClientConnected: vi.fn(() => () => undefined)`.
+- **Provenance:** April 2026 Stream migration hardening pass.
+- **Confidence:** high

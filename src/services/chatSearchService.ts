@@ -4,6 +4,8 @@
  * CRITICAL: Never accesses channels, channel_messages, or channel_members
  */
 import { supabase } from '@/integrations/supabase/client';
+import { getStreamClient } from '@/services/stream/streamClient';
+import { CHANNEL_TYPE_TRIP, tripChannelId } from '@/services/stream/streamChannelFactory';
 import type { ParsedMessageSearchQuery } from '@/lib/parseMessageSearchQuery';
 
 export interface MessageSearchResult {
@@ -93,31 +95,36 @@ export async function searchTripMessages(
 ): Promise<MessageSearchResult[]> {
   if (!query.trim()) return [];
 
-  const { data, error } = await supabase
-    .from('trip_chat_messages')
-    .select(
-      `
-      id,
-      content,
-      author_name,
-      user_id,
-      created_at
-    `,
-    )
-    .eq('trip_id', tripId)
-    .ilike('content', `%${query}%`)
-    .order('created_at', { ascending: false })
-    .limit(limit);
+  const client = getStreamClient();
+  if (!client?.userID) return [];
 
-  if (error) {
-    console.error('Failed to search messages:', error);
+  try {
+    const channel = client.channel(CHANNEL_TYPE_TRIP, tripChannelId(tripId));
+    const result = await channel.search(
+      { text: query },
+      {
+        limit,
+        offset: 0,
+      },
+    );
+
+    return (result.results || []).map(item => {
+      const message = item.message;
+      return {
+        id: message.id,
+        content: message.text || '',
+        author_name: message.user?.name || message.user?.id || 'Unknown',
+        user_id: message.user?.id || null,
+        created_at: message.created_at || new Date().toISOString(),
+        type: 'message' as const,
+      };
+    });
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.error('Failed to search messages via Stream:', error);
+    }
     return [];
   }
-
-  return (data || []).map(msg => ({
-    ...msg,
-    type: 'message' as const,
-  }));
 }
 
 /**
@@ -184,35 +191,46 @@ async function searchTripMessagesWithFilters(
   parsed: ParsedMessageSearchQuery,
   limit: number = 50,
 ): Promise<MessageSearchResult[]> {
-  let query = supabase
-    .from('trip_chat_messages')
-    .select('id, content, author_name, user_id, created_at')
-    .eq('trip_id', tripId)
-    .order('created_at', { ascending: false })
-    .limit(limit);
+  const textQuery = parsed.text.trim();
+  if (!textQuery && !parsed.sender) return [];
 
-  if (parsed.text.trim()) {
-    query = query.ilike('content', `%${parsed.text}%`);
-  } else if (!parsed.sender) {
-    return [];
+  let streamResults: MessageSearchResult[] = [];
+
+  if (textQuery) {
+    streamResults = await searchTripMessages(tripId, textQuery, limit);
+  } else {
+    const client = getStreamClient();
+    if (!client?.userID) return [];
+
+    try {
+      const channel = client.channel(CHANNEL_TYPE_TRIP, tripChannelId(tripId));
+      const state = await channel.query({ messages: { limit } });
+      streamResults = (
+        (state.messages || []) as Array<{
+          id: string;
+          text?: string;
+          user?: { id?: string; name?: string };
+          created_at?: string;
+        }>
+      ).map(message => ({
+        id: message.id,
+        content: message.text || '',
+        author_name: message.user?.name || message.user?.id || 'Unknown',
+        user_id: message.user?.id || null,
+        created_at: message.created_at || new Date().toISOString(),
+        type: 'message' as const,
+      }));
+    } catch {
+      return [];
+    }
   }
 
-  const { data, error } = await query;
+  if (!parsed.sender) return streamResults;
 
-  if (error) {
-    console.error('Failed to search messages:', error);
-    return [];
-  }
+  const senderIds = await resolveSenderNameToIds(tripId, parsed.sender);
+  if (senderIds.length === 0) return [];
 
-  let results = (data || []).map(msg => ({ ...msg, type: 'message' as const }));
-
-  if (parsed.sender) {
-    const senderIds = await resolveSenderNameToIds(tripId, parsed.sender);
-    if (senderIds.length === 0) return [];
-    results = results.filter(m => m.user_id && senderIds.includes(m.user_id));
-  }
-
-  return results;
+  return streamResults.filter(m => m.user_id && senderIds.includes(m.user_id));
 }
 
 /**

@@ -1,6 +1,7 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck — Supabase generated types have SelectQueryError mismatches with runtime columns
 import { supabase } from '@/integrations/supabase/client';
+import { getStreamClient } from '@/services/stream/streamClient';
 
 export type ContentType =
   | 'trips'
@@ -145,32 +146,47 @@ async function searchMessagesAcrossTrips(
       }));
   }
 
-  const safeQuery = escapeSqlLike(query);
-
-  const { data, error } = await supabase
-    .from('trip_chat_messages')
-    .select('id, content, created_at, trip_id, author_name')
-    .ilike('content', `%${safeQuery}%`)
-    .order('created_at', { ascending: false })
-    .limit(20); // Reduced from 50 to 20
-
-  if (error) {
-    console.error('Message search error:', error);
+  const client = getStreamClient();
+  if (!client?.userID) {
     return [];
   }
 
-  return (data || []).map(msg => ({
-    id: msg.id,
-    contentType: 'messages' as const,
-    tripId: msg.trip_id,
-    tripName: 'Trip',
-    title: `Message from ${msg.author_name || 'User'}`,
-    snippet: (msg.content || '').slice(0, 150),
-    matchScore: 0.85,
-    deepLink: `/trip/${msg.trip_id}#chat-message-${msg.id}`,
-    metadata: { authorName: msg.author_name },
-    timestamp: msg.created_at,
-  }));
+  try {
+    const filter: Record<string, unknown> = { type: 'chravel-trip' };
+    if (tripIds && tripIds.length > 0) {
+      filter.id = { $in: tripIds.map(id => `trip-${id}`) };
+    }
+
+    const channels = await client.queryChannels(filter, { last_message_at: -1 }, { limit: 25 });
+    const results: UniversalSearchResult[] = [];
+
+    for (const channel of channels) {
+      const tripId = String(channel.data?.trip_id || '').trim();
+      if (!tripId) continue;
+
+      const searchResult = await channel.search({ text: query }, { limit: 20, offset: 0 });
+      for (const item of searchResult.results || []) {
+        const message = item.message;
+        results.push({
+          id: message.id,
+          contentType: 'messages' as const,
+          tripId,
+          tripName: String(channel.data?.name || 'Trip'),
+          title: `Message from ${message.user?.name || message.user?.id || 'User'}`,
+          snippet: (message.text || '').slice(0, 150),
+          matchScore: 0.85,
+          deepLink: `/trip/${tripId}#chat-message-${message.id}`,
+          metadata: { authorName: message.user?.name || message.user?.id || 'User' },
+          timestamp: message.created_at || undefined,
+        });
+      }
+    }
+
+    return results.slice(0, 20);
+  } catch (error) {
+    console.error('Message search error:', error);
+    return [];
+  }
 }
 
 /**
