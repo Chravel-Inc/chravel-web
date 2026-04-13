@@ -2,6 +2,14 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { createHmac } from 'node:crypto';
+import {
+  HANDLED_STREAM_CHANNEL_TYPES,
+  HANDLED_STREAM_EVENT_TYPES,
+  dedupeRecipients,
+  parseStreamCid,
+  resolveConciergeUserId,
+  resolveTripIdFromChannel,
+} from './eventRouting.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -15,6 +23,11 @@ type StreamWebhookEvent = {
   cid?: string;
   channel_type?: string;
   channel_id?: string;
+  channel?: {
+    cid?: string;
+    members?: Array<{ user_id?: string; user?: { id?: string } }>;
+  };
+  members?: Array<{ user_id?: string; user?: { id?: string } }>;
   message?: {
     id?: string;
     text?: string;
@@ -42,15 +55,15 @@ function verifySignature(payload: string, signatureHeader: string): boolean {
   return safeCompare(expected, provided);
 }
 
-function resolveTripIdFromEvent(event: StreamWebhookEvent): string | null {
-  const resolvedCid =
-    event.cid ||
-    (event.channel_type && event.channel_id ? `${event.channel_type}:${event.channel_id}` : null) ||
+/** Resolves Stream CID string from message, nested channel, event root, or type/id pair (PR #229). */
+function resolveEffectiveCid(event: StreamWebhookEvent): string {
+  return (
     event.message?.cid ||
-    '';
-
-  if (!resolvedCid.startsWith('chravel-trip:trip-')) return null;
-  return resolvedCid.replace('chravel-trip:trip-', '');
+    event.channel?.cid ||
+    event.cid ||
+    (event.channel_type && event.channel_id ? `${event.channel_type}:${event.channel_id}` : '') ||
+    ''
+  );
 }
 
 serve(async req => {
@@ -133,9 +146,53 @@ serve(async req => {
     });
   }
 
-  if (eventType === 'message.new' && event.message?.id) {
-    const tripId = resolveTripIdFromEvent(event);
+  if (!HANDLED_STREAM_EVENT_TYPES.has(eventType)) {
+    return new Response(
+      JSON.stringify({ ok: true, ignored: true, reason: 'event_type_not_handled' }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      },
+    );
+  }
 
+  // Only message.new fans out notifications; avoid membership DB reads for update/delete.
+  if (eventType !== 'message.new') {
+    return new Response(
+      JSON.stringify({ ok: true, ignored: true, reason: 'no_notification_side_effects' }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      },
+    );
+  }
+
+  const cid = resolveEffectiveCid(event);
+  const { channelType, channelId } = parseStreamCid(cid);
+
+  if (!channelType || !HANDLED_STREAM_CHANNEL_TYPES.has(channelType)) {
+    return new Response(
+      JSON.stringify({ ok: true, ignored: true, reason: 'channel_type_not_handled' }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      },
+    );
+  }
+
+  if (!event.message?.id) {
+    return new Response(JSON.stringify({ ok: true, ignored: true, reason: 'missing_message_id' }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const senderId = event.message?.user?.id;
+
+  let recipients: string[] = [];
+  const tripId = resolveTripIdFromChannel(channelType, channelId);
+
+  if (channelType === 'chravel-trip' || channelType === 'chravel-broadcast') {
     if (tripId) {
       const { data: members } = await supabase
         .from('trip_members')
@@ -143,34 +200,61 @@ serve(async req => {
         .eq('trip_id', tripId)
         .or('status.is.null,status.eq.active');
 
-      const senderId = event.message.user?.id;
-      const recipients = (members || [])
-        .map(member => member.user_id)
-        .filter(userId => !!userId && userId !== senderId);
+      recipients = dedupeRecipients(
+        (members || []).map(member => member.user_id),
+        senderId,
+      );
+    }
+  } else if (channelType === 'chravel-channel') {
+    const channelUuid = channelId?.startsWith('channel-')
+      ? channelId.replace('channel-', '')
+      : null;
+    if (channelUuid) {
+      const { data: members } = await supabase
+        .from('channel_members')
+        .select('user_id')
+        .eq('channel_id', channelUuid);
 
-      if (recipients.length > 0) {
-        const notificationRows = recipients.map(userId => ({
-          user_id: userId,
-          type: 'chat_message',
-          title: event.message?.user?.name || 'New message',
-          message: event.message?.text || 'sent a message',
-          trip_id: tripId,
-          metadata: {
-            source: 'stream-webhook',
-            stream_message_id: event.message?.id,
-            stream_event_type: eventType,
-            stream_webhook_id: webhookId || null,
-          },
-        }));
+      recipients = dedupeRecipients(
+        (members || []).map(member => member.user_id),
+        senderId,
+      );
+    }
+  } else if (channelType === 'chravel-concierge') {
+    const memberUserIds = [...(event.members || []), ...(event.channel?.members || [])].map(
+      member => member.user_id || member.user?.id,
+    );
+    const fallbackUserId = resolveConciergeUserId(channelType, channelId);
+    recipients = dedupeRecipients([...memberUserIds, fallbackUserId], senderId).filter(
+      userId => userId !== 'ai-concierge-bot',
+    );
+  }
 
-        const { error: notificationError } = await supabase
-          .from('notifications')
-          .insert(notificationRows);
+  if (recipients.length > 0) {
+    // Use chat_message for all Stream-sourced trip/broadcast/channel posts so delivery follows
+    // `chat_messages` prefs (broadcast channels are still trip chat surfaces in product terms).
+    const notificationRows = recipients.map(userId => ({
+      user_id: userId,
+      type: 'chat_message' as const,
+      title: event.message?.user?.name || 'New message',
+      message: event.message?.text || 'sent a message',
+      trip_id: tripId,
+      metadata: {
+        source: 'stream-webhook',
+        stream_message_id: event.message?.id,
+        stream_event_type: eventType,
+        stream_webhook_id: webhookId || null,
+        stream_channel_type: channelType,
+        stream_channel_id: channelId,
+      },
+    }));
 
-        if (notificationError) {
-          console.error('[stream-webhook] notification insert failed:', notificationError.message);
-        }
-      }
+    const { error: notificationError } = await supabase
+      .from('notifications')
+      .insert(notificationRows);
+
+    if (notificationError) {
+      console.error('[stream-webhook] notification insert failed:', notificationError.message);
     }
   }
 

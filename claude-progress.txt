@@ -625,3 +625,16 @@
 - Added low-confidence fallback: when marker is missing/invalid or marker-derived unread set mismatches Stream total unread, UI now shows total unread only (`broadcastCount=0`, `messageUnreadCount=total`) to prevent misclassified badges.
 - Added focused regression tests in `src/hooks/__tests__/useUnreadCounts.test.ts` for high-confidence split, missing marker fallback, and mismatch fallback.
 - Verification: `npm run test:run -- src/hooks/__tests__/useUnreadCounts.test.ts`, `npm run typecheck`, `npm run lint:check -- src/hooks/useUnreadCounts.ts src/hooks/__tests__/useUnreadCounts.test.ts`.
+
+2026-04-13 — Stream webhook channel/event routing expansion + recipient dedupe hardening
+- Extended `supabase/functions/stream-webhook/index.ts` to explicitly handle `message.new`, `message.updated`, and `message.deleted`, and to ignore unsupported event/channel types with structured `{ ignored: true, reason }` responses.
+- Merged PR #229 CID fallbacks: effective CID from `message.cid`, `channel.cid`, root `cid`, or `channel_type:channel_id` before `parseStreamCid`.
+- Added centralized routing helpers in `supabase/functions/stream-webhook/eventRouting.ts` for Stream CID parsing, trip/concierge ID extraction, handled type constants, and sender-safe recipient deduplication.
+- Implemented channel-type-specific recipient resolution:
+  - `chravel-trip` + `chravel-broadcast` → `trip_members` (active/null status) excluding sender
+  - `chravel-channel` → `channel_members` excluding sender
+  - `chravel-concierge` → payload members + CID fallback, excluding sender and `ai-concierge-bot`
+- Notification fanout only for `message.new`; `message.updated` / `message.deleted` return early without membership queries. Notifications use `type: chat_message` (including broadcast Stream channels) so delivery follows `chat_messages` prefs.
+- Metadata includes `stream_webhook_id` plus `stream_channel_type` / `stream_channel_id`.
+- Added focused regression tests `supabase/functions/stream-webhook/__tests__/eventRouting.test.ts` covering required event/channel support, CID parsing, trip/concierge resolution, and recipient dedupe.
+- Verification: `npm run test:run -- supabase/functions/stream-webhook/__tests__/eventRouting.test.ts`, `npm run typecheck`, `npm run lint:check -- ...` (repo baseline warnings only), `npm run build`.
