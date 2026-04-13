@@ -8,6 +8,7 @@ interface UnreadMessage {
   user?: { id?: string };
   privacy_mode?: string;
   message_type?: string;
+  created_at?: string;
 }
 
 interface UseUnreadCountsOptions {
@@ -26,8 +27,8 @@ interface UnreadCounts {
 /**
  * Hook to track unread counts for Stream-backed chat.
  * Source of truth:
- *   - activeChannel.countUnread() / activeChannel.state.read[userId]
- *   - local message metadata only for broadcast vs standard split
+ *   - total unread from Stream (`countUnread()` / `state.read[userId]`)
+ *   - broadcast vs standard split from loaded messages after `last_read`, clamped to Stream total
  */
 export function useUnreadCounts({
   tripId,
@@ -42,7 +43,7 @@ export function useUnreadCounts({
   const stableMessages = useMemo(() => messages, [messages]);
 
   useEffect(() => {
-    if (!enabled || !tripId || !userId || stableMessages.length === 0) {
+    if (!enabled || !tripId || !userId) {
       setBroadcastCount(0);
       setMessageUnreadCount(0);
       return;
@@ -57,18 +58,28 @@ export function useUnreadCounts({
       return;
     }
 
-    const unreadCandidates = stableMessages.filter(msg => {
+    // Use loaded messages newer than last_read when possible.
+    // If message window is partial, keep Stream total authoritative and clamp split safely.
+    const lastReadAt = activeChannel?.state.read?.[userId]?.last_read
+      ? new Date(activeChannel.state.read[userId].last_read).getTime()
+      : 0;
+
+    const unreadLoaded = stableMessages.filter(msg => {
       const senderId = msg.user?.id || msg.user_id;
-      return senderId !== userId;
+      if (senderId === userId) return false;
+      if (!lastReadAt) return true;
+      const createdAt = msg.created_at ? new Date(msg.created_at).getTime() : 0;
+      return createdAt > lastReadAt;
     });
 
-    const unreadTail = unreadCandidates.slice(-totalUnreadFromStream);
-    const unreadBroadcasts = unreadTail.filter(
+    const unreadLoadedTail = unreadLoaded.slice(-totalUnreadFromStream);
+    const estimatedUnreadBroadcasts = unreadLoadedTail.filter(
       msg => msg.privacy_mode === 'broadcast' || msg.message_type === 'broadcast',
     ).length;
 
-    setBroadcastCount(unreadBroadcasts);
-    setMessageUnreadCount(Math.max(0, totalUnreadFromStream - unreadBroadcasts));
+    const safeBroadcastCount = Math.min(estimatedUnreadBroadcasts, totalUnreadFromStream);
+    setBroadcastCount(safeBroadcastCount);
+    setMessageUnreadCount(Math.max(0, totalUnreadFromStream - safeBroadcastCount));
   }, [tripId, userId, stableMessages, enabled, activeChannel]);
 
   return { broadcastCount, messageUnreadCount };

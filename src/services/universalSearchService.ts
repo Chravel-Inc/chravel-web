@@ -157,32 +157,33 @@ async function searchMessagesAcrossTrips(
       filter.id = { $in: tripIds.map(id => `trip-${id}`) };
     }
 
-    const channels = await client.queryChannels(filter, { last_message_at: -1 }, { limit: 25 });
-    const results: UniversalSearchResult[] = [];
+    const channels = await client.queryChannels(filter, { last_message_at: -1 }, { limit: 100 });
 
-    for (const channel of channels) {
-      const tripId = String(channel.data?.trip_id || '').trim();
-      if (!tripId) continue;
+    const perChannelResults = await Promise.all(
+      channels.map(async channel => {
+        const tripId = String(channel.data?.trip_id || '').trim();
+        if (!tripId) return [] as UniversalSearchResult[];
 
-      const searchResult = await channel.search({ text: query }, { limit: 20, offset: 0 });
-      for (const item of searchResult.results || []) {
-        const message = item.message;
-        results.push({
-          id: message.id,
-          contentType: 'messages' as const,
-          tripId,
-          tripName: String(channel.data?.name || 'Trip'),
-          title: `Message from ${message.user?.name || message.user?.id || 'User'}`,
-          snippet: (message.text || '').slice(0, 150),
-          matchScore: 0.85,
-          deepLink: `/trip/${tripId}#chat-message-${message.id}`,
-          metadata: { authorName: message.user?.name || message.user?.id || 'User' },
-          timestamp: message.created_at || undefined,
+        const searchResult = await channel.search({ text: query }, { limit: 20, offset: 0 });
+        return (searchResult.results || []).map(item => {
+          const message = item.message;
+          return {
+            id: message.id,
+            contentType: 'messages' as const,
+            tripId,
+            tripName: String(channel.data?.name || 'Trip'),
+            title: `Message from ${message.user?.name || message.user?.id || 'User'}`,
+            snippet: (message.text || '').slice(0, 150),
+            matchScore: 0.85,
+            deepLink: `/trip/${tripId}#chat-message-${message.id}`,
+            metadata: { authorName: message.user?.name || message.user?.id || 'User' },
+            timestamp: message.created_at || undefined,
+          };
         });
-      }
-    }
+      }),
+    );
 
-    return results.slice(0, 20);
+    return perChannelResults.flat().slice(0, 20);
   } catch (error) {
     console.error('Message search error:', error);
     return [];
