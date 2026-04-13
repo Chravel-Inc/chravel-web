@@ -190,11 +190,12 @@ export const TripChat = React.memo(
       activeChannel,
     );
 
+    const streamClient = getStreamClient();
+
     const handleMessageEdit = useCallback(
       async (messageId: string, newContent: string) => {
         if (demoMode.isDemoMode) return;
 
-        const streamClient = getStreamClient();
         if (!streamClient) {
           toast.error('Chat connection unavailable. Please try again.');
           return;
@@ -219,7 +220,6 @@ export const TripChat = React.memo(
       async (messageId: string) => {
         if (demoMode.isDemoMode) return;
 
-        const streamClient = getStreamClient();
         if (!streamClient) {
           toast.error('Chat connection unavailable. Please try again.');
           return;
