@@ -1,3 +1,9 @@
+2026-04-13 — Chat search dead-code verification + overlay test expansion
+- Verified legacy `MessageSearch` component and `messageSearchService` have no runtime references in `src/` (files are already removed from the repo).
+- Confirmed trip chat search wiring remains `TripChat -> ChatSearchOverlay -> chatSearchService` with no alternate legacy search component path.
+- Expanded `ChatSearchOverlay` regression coverage with an additional focused case for parsed filter forwarding (`from:` + `day:`) and message-result selection callback behavior.
+- Verification: `rg -n "MessageSearch|messageSearchService" src`, `npm run typecheck`; targeted Vitest invocation for `ChatSearchOverlay.test.tsx` still hangs in this environment (pre-existing runner issue).
+
 2026-04-13 — Trip chat message edit path switched to Stream client update API
 - Root-caused edit failures/typing debt to `TripChat` invoking `(activeChannel as any).updateMessage(...)` directly, which bypassed the shared Stream client singleton and required an unsafe cast.
 - Replaced edit handler path to use Stream client API via `getStreamClient()` guard + user-visible missing-client toast, then `client.updateMessage({ id, text })` with typed payload (no `any` cast in edit path).
