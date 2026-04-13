@@ -3,6 +3,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { isConsumerTrip } from '@/utils/tripTierDetector';
 import { SystemEventType, SystemMessagePayload } from '@/types/systemMessages';
+import { isStreamConfigured } from './stream/streamTransportGuards';
 
 class SystemMessageService {
   private uploadBatchQueue: Map<string, { count: number; timer: NodeJS.Timeout }> = new Map();
@@ -18,6 +19,10 @@ class SystemMessageService {
     body: string,
     payload?: SystemMessagePayload,
   ): Promise<boolean> {
+    if (isStreamConfigured()) {
+      return false;
+    }
+
     // GUARD: Only create system messages for consumer trips
     if (!isConsumerTrip(tripId)) {
       console.log('[SystemMessage] Skipping for non-consumer trip:', tripId);
