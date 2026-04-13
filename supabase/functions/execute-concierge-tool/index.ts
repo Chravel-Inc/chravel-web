@@ -206,7 +206,7 @@ serve(async (req: Request) => {
     const capabilityToken = await generateCapabilityToken({
       user_id: userId,
       trip_id: tripIdStr,
-      allowed_tools: ['*'],
+      allowed_tools: [toolName],
     });
 
     const result = await executeToolSecurely(

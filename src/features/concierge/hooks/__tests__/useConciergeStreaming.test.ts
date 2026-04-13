@@ -53,7 +53,6 @@ function createBaseParams(overrides: Partial<Parameters<typeof useConciergeStrea
     attachedDocuments: [],
     attachmentIntent: 'smart_import',
     clearAttachments: vi.fn(),
-    streamConciergeEnabled: false,
     queryClient: new QueryClient(),
     ...overrides,
   };
@@ -80,7 +79,6 @@ describe('useConciergeStreaming', () => {
       inputMessage: '   ',
       messages: [],
       messagesRef: { current: [] },
-      streamConciergeEnabled: false,
     });
 
     const { result } = renderHook(() => useConciergeStreaming(params));
@@ -96,7 +94,6 @@ describe('useConciergeStreaming', () => {
   it('pushes offline fallback messages and does not start streaming when offline', async () => {
     const { params, getMessages } = createBaseParams({
       isOffline: true,
-      streamConciergeEnabled: true,
     });
 
     const { result } = renderHook(() => useConciergeStreaming(params));

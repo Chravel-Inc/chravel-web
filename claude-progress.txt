@@ -1,3 +1,10 @@
+2026-04-13 — Concierge context source-of-truth guardrail hardening
+- Verified `src/services/enhancedTripContextService.ts` is absent and no runtime imports/reference paths remain in `src/` (only architecture docs mention deprecation).
+- Confirmed `UniversalConciergeService` continues to build context exclusively via `TripContextAggregator.buildContext(...)`.
+- Strengthened architectural guardrail by expanding ESLint `no-restricted-imports` with wildcard patterns to block any path variant of `enhancedTripContextService`.
+- Updated `src/services/CONCIERGE_CONTEXT_ARCHITECTURE.md` to document wildcard lint coverage as the anti-regression control.
+- Verification: `npm run lint:check -- src/services/universalConciergeService.ts src/services/CONCIERGE_CONTEXT_ARCHITECTURE.md eslint.config.js`, `npm run typecheck`.
+
 2026-04-13 — Trip chat message edit path switched to Stream client update API
 - Root-caused edit failures/typing debt to `TripChat` invoking `(activeChannel as any).updateMessage(...)` directly, which bypassed the shared Stream client singleton and required an unsafe cast.
 - Replaced edit handler path to use Stream client API via `getStreamClient()` guard + user-visible missing-client toast, then `client.updateMessage({ id, text })` with typed payload (no `any` cast in edit path).
@@ -568,6 +575,14 @@
 - Added required Step E "Merge Conflict Preflight" to `AGENTS.md` under Golden Workflow.
 - Captured semantic conflict-resolution rules (no blind accept current/incoming/both), required sync + divergence scan, dry-run merge check, post-resolution validation, and mandatory reporting fields.
 - Note: this local workspace has no configured git remote (`origin`) and no local `main` branch, so fetch-based preflight commands require operator repo remote setup to execute fully.
+
+2026-04-13 — Broadcast scheduling kill-switch test hardening
+- Added deterministic regression coverage in `src/services/__tests__/unifiedMessagingService.test.ts` for disabled scheduling path:
+  - `scheduleMessage` returns `false` when `broadcast-scheduling-enabled` is off.
+  - No auth lookup (`supabase.auth.getUser`) and no insert attempt (`broadcasts.insert`) occur while disabled.
+- Re-verified admin UI disabled copy/action lock in `src/pages/__tests__/AdminDashboard.test.tsx`.
+- Verification: `npm run test:run -- src/services/__tests__/unifiedMessagingService.test.ts src/pages/__tests__/AdminDashboard.test.tsx`, `npm run typecheck`, `npm run lint:check`, `npm run build`.
+
 2026-04-13 — Broadcast priority canonicalization hardening (reminder alias compatibility)
 - Root-caused potential enum drift to mixed priority aliases (`important`, `logistics`) crossing Broadcasts render mapping and Stream payload normalization.
 - Hardened `Broadcasts.mapPriorityToCategory` with case-insensitive normalization and explicit legacy alias support (`important` -> `logistics`) while preserving canonical render categories.

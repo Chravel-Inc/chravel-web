@@ -1,7 +1,38 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Database } from '@/integrations/supabase/types';
 import type { ScheduledMessage } from '@/types/messaging';
-import { mapBroadcastRowToScheduledMessage } from '../unifiedMessagingService';
+
+const mockGetUser = vi.fn();
+const mockInsert = vi.fn();
+const mockIsFeatureFlagEnabled = vi.fn();
+
+vi.mock('@/lib/featureFlags', () => ({
+  isFeatureFlagEnabled: (...args: unknown[]) => mockIsFeatureFlagEnabled(...args),
+}));
+
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: {
+    auth: {
+      getUser: (...args: unknown[]) => mockGetUser(...args),
+    },
+    from: vi.fn((table: string) => {
+      if (table === 'broadcasts') {
+        return {
+          insert: (...args: unknown[]) => mockInsert(...args),
+        };
+      }
+
+      return {
+        insert: vi.fn(),
+      };
+    }),
+  },
+}));
+
+import {
+  mapBroadcastRowToScheduledMessage,
+  unifiedMessagingService,
+} from '../unifiedMessagingService';
 
 type BroadcastRow = Database['public']['Tables']['broadcasts']['Row'];
 
@@ -52,5 +83,28 @@ describe('mapBroadcastRowToScheduledMessage', () => {
     expect(mapped.isSent).toBe(false);
     expect(mapped.senderId).toBe('user-2');
     expect(mapped.senderName).toBe('System');
+  });
+});
+
+describe('UnifiedMessagingService scheduling feature flag guard', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockIsFeatureFlagEnabled.mockResolvedValue(false);
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+    mockInsert.mockResolvedValue({ error: null });
+  });
+
+  it('returns false and does not attempt auth/insert when broadcast scheduling is disabled', async () => {
+    const result = await unifiedMessagingService.scheduleMessage(
+      'trip-1',
+      'Disabled scheduler test',
+      new Date('2026-07-01T10:00:00.000Z'),
+      'fyi',
+    );
+
+    expect(result).toBe(false);
+    expect(mockIsFeatureFlagEnabled).toHaveBeenCalledWith('broadcast-scheduling-enabled', false);
+    expect(mockGetUser).not.toHaveBeenCalled();
+    expect(mockInsert).not.toHaveBeenCalled();
   });
 });

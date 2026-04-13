@@ -3,7 +3,7 @@ import { SignJWT, jwtVerify } from 'https://deno.land/x/jose@v5.2.0/index.ts';
 export interface CapabilityTokenPayload {
   user_id?: string;
   trip_id: string;
-  allowed_tools: string[]; // e.g. ["*"] or ["addToCalendar", "createTask"]
+  allowed_tools: string[]; // e.g. ["addToCalendar", "createTask"] — wildcards are not permitted
   exp?: number;
 }
 
