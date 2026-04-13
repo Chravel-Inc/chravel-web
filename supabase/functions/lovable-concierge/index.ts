@@ -65,7 +65,10 @@ interface HistoryCacheEntry {
 const historyCache = new Map<string, HistoryCacheEntry>();
 const HISTORY_CACHE_TTL_MS = 30_000;
 const RAG_DOC_IDS_CACHE_TTL_MS = 30_000;
-const RAG_SOFT_TIMEOUT_MS = Number(Deno.env.get('RAG_SOFT_TIMEOUT_MS') || 120);
+// Default 2500ms — 120ms was far too short and caused almost every keyword
+// search to be silently skipped (rag_skipped_reason: soft_timeout).
+// Env override still works for runtime tuning without redeployment.
+const RAG_SOFT_TIMEOUT_MS = Number(Deno.env.get('RAG_SOFT_TIMEOUT_MS') || 2500);
 const ragDocIdsCache = new Map<
   string,
   { docIds: string[]; sourceByDocId: Map<string, string>; expiresAt: number }

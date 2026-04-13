@@ -167,10 +167,15 @@ export function classifyQuery(
     return 'trip_search';
   }
 
-  // 7. Trip-scoped or artifact terms → conservative fallback to full context
-  if (TRIP_SCOPED_QUERY_PATTERN.test(normalized)) return 'trip_lookup_light';
-  if (ARTIFACT_QUERY_PATTERN.test(normalized)) return 'trip_lookup_light';
-  if (TRIP_OWNERSHIP_PATTERN.test(normalized)) return 'trip_lookup_light';
+  // 7. Trip-scoped or artifact terms → conservative fallback to FULL tool registry.
+  // IMPORTANT: These patterns catch broad trip vocabulary ("calendar", "task", "hotel",
+  // "our trip", etc.) that often implies write intent. Routing to trip_lookup_light
+  // (read-only tools) caused a regression where addToCalendar, createTask, createPoll,
+  // etc. were unavailable for normal trip queries. trip_summary loads ALL tools as a
+  // safe fallback — the model selects the appropriate one.
+  if (TRIP_SCOPED_QUERY_PATTERN.test(normalized)) return 'trip_summary';
+  if (ARTIFACT_QUERY_PATTERN.test(normalized)) return 'trip_summary';
+  if (TRIP_OWNERSHIP_PATTERN.test(normalized)) return 'trip_summary';
 
   // 8. General web-only patterns without trip terms → general knowledge
   const generalWebPattern =
