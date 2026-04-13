@@ -65,7 +65,10 @@ interface HistoryCacheEntry {
 const historyCache = new Map<string, HistoryCacheEntry>();
 const HISTORY_CACHE_TTL_MS = 30_000;
 const RAG_DOC_IDS_CACHE_TTL_MS = 30_000;
-const RAG_SOFT_TIMEOUT_MS = Number(Deno.env.get('RAG_SOFT_TIMEOUT_MS') || 120);
+// Soft cap for RAG path duration (milliseconds). The previous default (120) was
+// interpreted as 120ms and discarded almost all successful retrievals after
+// a normal Supabase round-trip. Default high enough to keep real hits; tune via env.
+const RAG_SOFT_TIMEOUT_MS = Number(Deno.env.get('RAG_SOFT_TIMEOUT_MS') || 2500);
 const ragDocIdsCache = new Map<
   string,
   { docIds: string[]; sourceByDocId: Map<string, string>; expiresAt: number }
