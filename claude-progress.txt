@@ -568,3 +568,9 @@
 - Added required Step E "Merge Conflict Preflight" to `AGENTS.md` under Golden Workflow.
 - Captured semantic conflict-resolution rules (no blind accept current/incoming/both), required sync + divergence scan, dry-run merge check, post-resolution validation, and mandatory reporting fields.
 - Note: this local workspace has no configured git remote (`origin`) and no local `main` branch, so fetch-based preflight commands require operator repo remote setup to execute fully.
+2026-04-13 — Broadcast scheduling kill-switch test hardening
+- Added deterministic regression coverage in `src/services/__tests__/unifiedMessagingService.test.ts` for disabled scheduling path:
+  - `scheduleMessage` returns `false` when `broadcast-scheduling-enabled` is off.
+  - No auth lookup (`supabase.auth.getUser`) and no insert attempt (`broadcasts.insert`) occur while disabled.
+- Re-verified admin UI disabled copy/action lock in `src/pages/__tests__/AdminDashboard.test.tsx`.
+- Verification: `npm run test:run -- src/services/__tests__/unifiedMessagingService.test.ts src/pages/__tests__/AdminDashboard.test.tsx`, `npm run typecheck`, `npm run lint:check`, `npm run build`.
