@@ -1,3 +1,9 @@
+2026-04-13 — Trip chat message edit path switched to Stream client update API
+- Root-caused edit failures/typing debt to `TripChat` invoking `(activeChannel as any).updateMessage(...)` directly, which bypassed the shared Stream client singleton and required an unsafe cast.
+- Replaced edit handler path to use Stream client API via `getStreamClient()` guard + user-visible missing-client toast, then `client.updateMessage({ id, text })` with typed payload (no `any` cast in edit path).
+- Added focused regression tests in `src/features/chat/utils/__tests__/updateStreamMessage.test.ts` to verify: expected update payload, missing-client toast handling, and update failure toast handling.
+- Verification: `npm run test:run -- src/features/chat/utils/__tests__/updateStreamMessage.test.ts`, `npm run typecheck`, `npm run lint:check`, `npm run build`.
+
 2026-04-11 — Broadcast scheduling kill-switch hardening (admin flow + service guard)
 - Added server-driven feature flag gate `broadcast-scheduling-enabled` with safe default `false` on Admin Dashboard scheduling UX (`src/pages/AdminDashboard.tsx`).
   - "Schedule Pro Trip Message" action is disabled while flag is off.
