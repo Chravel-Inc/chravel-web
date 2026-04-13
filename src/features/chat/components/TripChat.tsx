@@ -200,6 +200,12 @@ export const TripChat = React.memo(
           return;
         }
 
+        const streamClient = getStreamClient();
+        if (!streamClient) {
+          toast.error('Chat connection unavailable. Please try again.');
+          return;
+        }
+
         try {
           await streamClient.updateMessage({
             id: messageId,
