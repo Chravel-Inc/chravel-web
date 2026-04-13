@@ -650,3 +650,9 @@
 - Deleted unused `src/services/tripRealtimeMultiplexer.ts` to remove dead legacy Supabase realtime multiplexer surface.
 - Updated `src/services/__tests__/tripChatLegacyRealtimeGuards.test.ts` to keep Stream guard coverage via `chatService` subscriptions only.
 - Verification: `npm run test:run -- src/services/__tests__/tripChatLegacyRealtimeGuards.test.ts`, `npm run typecheck`, `npm run build`.
+2026-04-13 — Installed app entry gating for native WebView + PWA standalone
+- Added centralized launch-context utility `src/lib/runtime/launchContext.ts` to classify browser vs installed app context via `?app_context=native` and standalone PWA signals (`display-mode: standalone` + `navigator.standalone`).
+- Updated `src/pages/Index.tsx` root-entry behavior to prevent installed-context marketing flash: show neutral hydration shell while auth loads, then redirect logged-out installed users to `/auth`; browser users keep marketing homepage behavior unchanged.
+- Added focused regression test `src/lib/runtime/launchContext.test.ts` covering browser default, native query-param launch, and standalone PWA launch classification.
+- Verification: `npm run test:run -- src/lib/runtime/launchContext.test.ts`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`.
+- Merge preflight note: `git fetch origin main` not possible in this environment because no `origin` remote is configured.
