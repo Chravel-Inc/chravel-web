@@ -466,4 +466,10 @@
 - **Applies when:** Translating Stream webhook payloads into app-specific IDs for notification fanout/reconciliation.
 - **Evidence:** `stream-webhook` notification path failed because trip id derivation used `event.message.cid` and skipped inserts when that field was absent.
 - **Provenance:** April 2026 PR #229 cursor review remediation.
+### Never split unread subclasses from count-only tails when a read marker exists
+- **Tip:** If backend chat state exposes explicit per-user read markers (`last_read`), derive unread sets from that marker instead of approximating with `messages.slice(-unreadCount)`. Tail-slice heuristics silently misclassify message types when message ordering or visibility diverges from raw unread totals.
+- **Applies when:** Stream/chat UIs that show unread sub-counts (e.g., broadcast vs standard) in addition to total unread.
+- **Avoid when:** The product intentionally renders only a total unread badge with no subclass split.
+- **Evidence:** `useUnreadCounts` switched from tail approximation to marker-based split plus low-confidence fallback-to-total path when marker data is unavailable or mismatched.
+- **Provenance:** April 2026 unread-count hardening.
 - **Confidence:** high

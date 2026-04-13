@@ -619,3 +619,9 @@
   - `src/features/broadcasts/components/__tests__/Broadcasts.priorityMapping.test.ts`
   - `src/hooks/stream/__tests__/useStreamBroadcasts.priority.test.tsx`
 - Verification: `npm run test:run -- src/features/broadcasts/components/__tests__/Broadcasts.priorityMapping.test.ts src/hooks/stream/__tests__/useStreamBroadcasts.priority.test.tsx`, `npm run typecheck`, `npm run lint:check`, `npm run build`.
+
+2026-04-13 — useUnreadCounts split-confidence hardening (remove tail-slice approximation)
+- Replaced unread split logic in `src/hooks/useUnreadCounts.ts` to use explicit Stream read markers (`state.read[userId].last_read`) instead of tail-slicing recent messages by count.
+- Added low-confidence fallback: when marker is missing/invalid or marker-derived unread set mismatches Stream total unread, UI now shows total unread only (`broadcastCount=0`, `messageUnreadCount=total`) to prevent misclassified badges.
+- Added focused regression tests in `src/hooks/__tests__/useUnreadCounts.test.ts` for high-confidence split, missing marker fallback, and mismatch fallback.
+- Verification: `npm run test:run -- src/hooks/__tests__/useUnreadCounts.test.ts`, `npm run typecheck`, `npm run lint:check -- src/hooks/useUnreadCounts.ts src/hooks/__tests__/useUnreadCounts.test.ts`.
