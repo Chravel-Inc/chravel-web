@@ -218,13 +218,23 @@ export const useTripCoverPhoto = (
         return false;
       }
 
-      // Optional: Delete file from storage if needed
-      if (coverPhoto && coverPhoto.includes('/storage/v1/object/public/trip-media/')) {
-        const storagePath = coverPhoto
-          .split('/storage/v1/object/public/trip-media/')[1]
-          ?.split('?')[0];
-        if (storagePath) {
-          await supabase.storage.from('trip-media').remove([storagePath]);
+      // Delete file from storage if needed
+      if (coverPhoto) {
+        if (coverPhoto.includes('/storage/v1/object/public/trip-covers/')) {
+          const storagePath = coverPhoto
+            .split('/storage/v1/object/public/trip-covers/')[1]
+            ?.split('?')[0];
+          if (storagePath) {
+            await supabase.storage.from('trip-covers').remove([storagePath]);
+          }
+        } else if (coverPhoto.includes('/storage/v1/object/public/trip-media/')) {
+          // Legacy path: old uploads went to trip-media/trip-covers/
+          const storagePath = coverPhoto
+            .split('/storage/v1/object/public/trip-media/')[1]
+            ?.split('?')[0];
+          if (storagePath) {
+            await supabase.storage.from('trip-media').remove([storagePath]);
+          }
         }
       }
 

@@ -130,6 +130,8 @@ export const TripCoverPhotoUpload = ({
           setHasImageError(false);
           setUploadSuccess(true);
           setTimeout(() => setUploadSuccess(false), 2000);
+        } else {
+          toast.error('Failed to save cover photo to trip. Please try again.');
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error';

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { ZoomIn, ZoomOut, Check, X } from 'lucide-react';
 import { smartCropService } from '@/services/smartCropService';
+import { toast } from 'sonner';
 
 interface CoverPhotoCropModalProps {
   isOpen: boolean;
@@ -223,9 +224,12 @@ export const CoverPhotoCropModal = ({
 
       canvas.toBlob(
         blob => {
-          if (blob) {
-            onCropComplete(blob);
+          if (!blob) {
+            toast.error('Failed to process image. Try a different photo or smaller file size.');
+            setIsProcessing(false);
+            return;
           }
+          onCropComplete(blob);
           setIsProcessing(false);
         },
         'image/jpeg',
