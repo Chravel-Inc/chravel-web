@@ -1,7 +1,7 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { unifiedMessagingService } from '@/services/unifiedMessagingService';
 import { useProTrips } from '@/hooks/useProTrips';
-import type { ScheduledMessage } from '@/types/messaging';
+import type { ScheduledMessage, ScheduledMessagePriority } from '@/types/messaging';
 import { Button } from '@/components/ui/button';
 import { Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -18,7 +18,7 @@ export const AdminDashboard = () => {
   // Modal state
   const [selectedTripId, setSelectedTripId] = useState<string>('');
   const [content, setContent] = useState('');
-  const [priority, setPriority] = useState<'urgent' | 'reminder' | 'fyi'>('fyi');
+  const [priority, setPriority] = useState<ScheduledMessagePriority>('fyi');
   const [month, setMonth] = useState((new Date().getMonth() + 1).toString());
   const [day, setDay] = useState(new Date().getDate().toString());
   const [hour, setHour] = useState('12');
@@ -203,7 +203,7 @@ export const AdminDashboard = () => {
                 <select
                   className="w-full bg-slate-800 border border-slate-700 rounded-md p-2 text-white"
                   value={priority}
-                  onChange={e => setPriority(e.target.value as 'urgent' | 'reminder' | 'fyi')}
+                  onChange={e => setPriority(e.target.value as ScheduledMessagePriority)}
                 >
                   <option value="fyi">FYI (Normal)</option>
                   <option value="reminder">Reminder</option>

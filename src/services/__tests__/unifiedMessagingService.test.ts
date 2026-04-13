@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import type { Database } from '@/integrations/supabase/types';
 import type { ScheduledMessage } from '@/types/messaging';
 
@@ -54,6 +54,10 @@ describe('mapBroadcastRowToScheduledMessage', () => {
     const mapped = mapBroadcastRowToScheduledMessage(row);
 
     const canonical: ScheduledMessage = mapped;
+    expectTypeOf(mapped).toMatchTypeOf<ScheduledMessage>();
+    expectTypeOf(mapped).not.toHaveProperty('trip_id');
+    expectTypeOf(mapped).not.toHaveProperty('scheduled_for');
+    expectTypeOf(mapped).not.toHaveProperty('is_sent');
     expect(canonical.tripId).toBe('trip-1');
     expect(canonical.sendAt).toBe('2026-06-01T12:30:00.000Z');
     expect(canonical.priority).toBe('urgent');

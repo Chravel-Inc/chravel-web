@@ -58,3 +58,5 @@ export interface ScheduledMessage extends InboxMessage {
   isSent: boolean;
   priority: 'urgent' | 'reminder' | 'fyi';
 }
+
+export type ScheduledMessagePriority = ScheduledMessage['priority'];
