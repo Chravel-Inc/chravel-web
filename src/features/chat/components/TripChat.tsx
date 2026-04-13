@@ -213,7 +213,7 @@ export const TripChat = React.memo(
           toast.error('Failed to edit message');
         }
       },
-      [demoMode.isDemoMode],
+      [demoMode.isDemoMode, streamClient],
     );
 
     const handleMessageDelete = useCallback(
@@ -234,7 +234,7 @@ export const TripChat = React.memo(
           toast.error('Failed to delete message');
         }
       },
-      [demoMode.isDemoMode],
+      [demoMode.isDemoMode, streamClient],
     );
 
     // System message preferences - only for consumer trips
