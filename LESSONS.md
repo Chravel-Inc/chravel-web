@@ -439,3 +439,11 @@
 - **Evidence:** `AIConciergeChat.tsx` reduction from 2,306 lines to 540 lines succeeded by first wiring `useConciergeMessages/useConciergeVoice/useConciergeAttachments/useSmartImportActions`, then extracting `handleSendMessage` into `useConciergeStreaming`.
 - **Provenance:** April 2026 concierge refactor completion.
 - **Confidence:** medium
+
+### Stream message edits should use the singleton client API, not channel-level casts
+- **Tip:** For message edit flows, call `getStreamClient()` and `client.updateMessage({ id, text })` instead of `(activeChannel as any).updateMessage(...)`. This removes unsafe casts, centralizes connection readiness checks, and gives a single place to handle unavailable-client UX.
+- **Applies when:** Editing existing chat messages in TripChat/Channel surfaces that already depend on the Stream singleton lifecycle.
+- **Avoid when:** The code path intentionally operates on detached channel objects outside the singleton lifecycle (rare in this repo).
+- **Evidence:** `TripChat` edit handler previously used a channel-level `any` cast; replacing it with singleton `updateMessage` plus guard toast preserved UX while improving type-safety and testability.
+- **Provenance:** April 2026 TripChat edit-path hardening.
+- **Confidence:** high

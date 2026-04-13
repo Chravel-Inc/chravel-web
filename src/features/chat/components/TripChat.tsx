@@ -43,6 +43,7 @@ import { useTripPrivacyConfig, getEffectivePrivacyMode } from '@/hooks/useTripPr
 import { useTripChatMode } from '@/hooks/useTripChatMode';
 import { useLinkPreviews } from '../hooks/useLinkPreviews';
 import { useBlockedUsers, useReportContent } from '@/hooks/useUserSafety';
+import { updateStreamMessage } from '../utils/updateStreamMessage';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -193,18 +194,10 @@ export const TripChat = React.memo(
       async (messageId: string, newContent: string) => {
         if (demoMode.isDemoMode || !activeChannel) return;
 
-        try {
-          // intentional: stream-chat Channel type doesn't expose updateMessage in all versions
-          await (activeChannel as any).updateMessage({
-            id: messageId,
-            text: newContent,
-          });
-        } catch (error) {
-          if (import.meta.env.DEV) {
-            console.error('[TripChat] Failed to edit message:', error);
-          }
-          toast.error('Failed to edit message');
-        }
+        await updateStreamMessage({
+          id: messageId,
+          text: newContent,
+        });
       },
       [demoMode.isDemoMode, activeChannel],
     );
