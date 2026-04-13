@@ -1,12 +1,14 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect, useMemo } from 'react';
+import type { Channel } from 'stream-chat';
 
 /** Minimal message shape for unread counting - compatible with useTripChat */
 interface UnreadMessage {
   id: string;
   user_id?: string;
+  user?: { id?: string };
   privacy_mode?: string;
   message_type?: string;
+  created_at?: string;
 }
 
 interface UseUnreadCountsOptions {
@@ -14,6 +16,7 @@ interface UseUnreadCountsOptions {
   messages: UnreadMessage[];
   userId: string | null;
   enabled?: boolean;
+  activeChannel?: Channel | null;
 }
 
 interface UnreadCounts {
@@ -22,109 +25,62 @@ interface UnreadCounts {
 }
 
 /**
- * Hook to track unread message counts with real-time updates.
- * Debounces recalculation to avoid firing multiple times per second when
- * rapid read receipt events arrive (e.g. user scrolling through many messages).
+ * Hook to track unread counts for Stream-backed chat.
+ * Source of truth:
+ *   - total unread from Stream read state
+ *   - split by broadcast/non-broadcast from currently loaded unread messages
  */
 export function useUnreadCounts({
   tripId,
   messages,
   userId,
   enabled = true,
+  activeChannel,
 }: UseUnreadCountsOptions): UnreadCounts {
   const [broadcastCount, setBroadcastCount] = useState(0);
   const [messageUnreadCount, setMessageUnreadCount] = useState(0);
-  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Stabilize message IDs to avoid re-render loops from new array references.
-  // Only recalculates when the actual set of message IDs changes.
-  const messageIdList = useMemo(() => messages.map(m => m.id).join(','), [messages]);
-  const stableMessages = useMemo(() => messages, [messageIdList]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const calculateUnreadCounts = useCallback(async () => {
-    if (!userId || !tripId || stableMessages.length === 0) {
-      setBroadcastCount(0);
-      setMessageUnreadCount(0);
-      return;
-    }
-
-    try {
-      const messageIds = stableMessages.map(m => m.id);
-
-      const { data: readStatuses, error } = await supabase
-        .from('message_read_receipts')
-        .select('message_id')
-        .eq('user_id', userId)
-        .in('message_id', messageIds);
-
-      if (error) {
-        if (import.meta.env.DEV) console.error('Failed to fetch read statuses:', error);
-        return;
-      }
-
-      const readMessageIds = new Set(
-        (readStatuses ?? []).map((s: { message_id: string }) => s.message_id),
-      );
-
-      const unreadMessages = stableMessages.filter(
-        msg => !readMessageIds.has(msg.id) && msg.user_id !== userId,
-      );
-      const totalUnread = unreadMessages.length;
-      const unreadBroadcasts = unreadMessages.filter(
-        msg => msg.privacy_mode === 'broadcast' || msg.message_type === 'broadcast',
-      ).length;
-
-      setBroadcastCount(unreadBroadcasts);
-      setMessageUnreadCount(totalUnread - unreadBroadcasts);
-    } catch (error) {
-      if (import.meta.env.DEV) console.error('Error calculating unread counts:', error);
-    }
-  }, [tripId, userId, stableMessages]);
-
-  // Debounced version for realtime events
-  const debouncedCalculate = useCallback(() => {
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-    debounceTimerRef.current = setTimeout(() => {
-      calculateUnreadCounts();
-    }, 500);
-  }, [calculateUnreadCounts]);
+  const stableMessages = useMemo(() => messages, [messages]);
 
   useEffect(() => {
-    if (!enabled || !userId || !tripId || stableMessages.length === 0) {
+    if (!enabled || !tripId || !userId) {
       setBroadcastCount(0);
       setMessageUnreadCount(0);
       return;
     }
 
-    // Calculate immediately on mount / dependency change
-    calculateUnreadCounts();
+    const totalUnreadFromStream =
+      activeChannel?.countUnread?.() ?? activeChannel?.state.read?.[userId]?.unread_messages ?? 0;
 
-    // Subscribe to read status changes — debounced to avoid recalc storm
-    const channel = supabase
-      .channel(`unread_counts:${tripId}:${userId}`)
-      .on(
-        'postgres_changes' as any,
-        {
-          event: '*',
-          schema: 'public',
-          table: 'message_read_receipts',
-          filter: `user_id=eq.${userId}`,
-        },
-        () => {
-          debouncedCalculate();
-        },
-      )
-      .subscribe();
+    if (!totalUnreadFromStream) {
+      setBroadcastCount(0);
+      setMessageUnreadCount(0);
+      return;
+    }
 
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-      supabase.removeChannel(channel);
-    };
-  }, [tripId, userId, stableMessages, enabled, calculateUnreadCounts, debouncedCalculate]);
+    // Use loaded messages newer than last_read when possible.
+    // If message window is partial, keep Stream total authoritative and clamp split safely.
+    const lastReadAt = activeChannel?.state.read?.[userId]?.last_read
+      ? new Date(activeChannel.state.read[userId].last_read).getTime()
+      : 0;
+
+    const unreadLoaded = stableMessages.filter(msg => {
+      const senderId = msg.user?.id || msg.user_id;
+      if (senderId === userId) return false;
+      if (!lastReadAt) return true;
+      const createdAt = msg.created_at ? new Date(msg.created_at).getTime() : 0;
+      return createdAt > lastReadAt;
+    });
+
+    const unreadLoadedTail = unreadLoaded.slice(-totalUnreadFromStream);
+    const estimatedUnreadBroadcasts = unreadLoadedTail.filter(
+      msg => msg.privacy_mode === 'broadcast' || msg.message_type === 'broadcast',
+    ).length;
+
+    const safeBroadcastCount = Math.min(estimatedUnreadBroadcasts, totalUnreadFromStream);
+    setBroadcastCount(safeBroadcastCount);
+    setMessageUnreadCount(Math.max(0, totalUnreadFromStream - safeBroadcastCount));
+  }, [tripId, userId, stableMessages, enabled, activeChannel]);
 
   return { broadcastCount, messageUnreadCount };
 }

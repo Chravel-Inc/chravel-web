@@ -206,6 +206,18 @@ serve(async req => {
       results.push({ channelType: 'chravel-concierge', status: `error: ${msg}` });
     }
 
+    try {
+      await serverClient.upsertUser({
+        id: 'ai-concierge-bot',
+        name: 'AI Concierge',
+        role: 'admin',
+      });
+      results.push({ channelType: 'ai-concierge-bot', status: 'ok' });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      results.push({ channelType: 'ai-concierge-bot', status: `error: ${msg}` });
+    }
+
     return new Response(JSON.stringify({ success: true, results }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -5,12 +5,12 @@
  * to synchronously update Stream channel membership.
  *
  * This is the PRIMARY sync path. The webhook-based stream-sync edge function
- * serves as a reconciliation backstop only.
+ * is currently planned as a reconciliation backstop, but not yet active in all environments.
  *
  * Architecture:
  *   - Supabase remains source of truth for membership
  *   - This service pushes membership changes to Stream synchronously
- *   - Failed syncs are non-fatal (webhook backstop will catch drift)
+ *   - Failed syncs are non-fatal; temporary drift can occur until a reconciliation job runs
  */
 
 import { getStreamClient } from './streamClient';
@@ -42,7 +42,7 @@ export async function addMemberToTripChannels(tripId: string, userId: string): P
       const msg = error instanceof Error ? error.message : 'Unknown error';
       console.error('[StreamMembershipSync] addMember failed:', msg);
     }
-    // Non-fatal — webhook backstop will reconcile
+    // Non-fatal — avoid blocking trip flow; monitor for temporary membership drift
   }
 }
 
@@ -65,7 +65,7 @@ export async function removeMemberFromTripChannels(tripId: string, userId: strin
       const msg = error instanceof Error ? error.message : 'Unknown error';
       console.error('[StreamMembershipSync] removeMember failed:', msg);
     }
-    // Non-fatal — webhook backstop will reconcile
+    // Non-fatal — avoid blocking trip flow; monitor for temporary membership drift
   }
 }
 

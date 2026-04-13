@@ -439,3 +439,18 @@
 - **Evidence:** `AIConciergeChat.tsx` reduction from 2,306 lines to 540 lines succeeded by first wiring `useConciergeMessages/useConciergeVoice/useConciergeAttachments/useSmartImportActions`, then extracting `handleSendMessage` into `useConciergeStreaming`.
 - **Provenance:** April 2026 concierge refactor completion.
 - **Confidence:** medium
+
+### Stream connection lifecycle hooks require companion test-mock exports
+- **Tip:** When introducing `onStreamClientConnected`/status subscriptions in hooks, update existing Vitest module mocks to include the new exported subscription function; otherwise hooks fail at mount with missing export errors.
+- **Applies when:** Stream hook changes add new imports from `streamClient` (or any shared service module) in files with explicit `vi.mock(...)` fixtures.
+- **Avoid when:** Tests use `importOriginal` partial mocks that already forward untouched exports.
+- **Evidence:** `useStreamBroadcasts` readiness guard update caused `useStreamBroadcasts.priority.test.tsx` failures until the mock included `onStreamClientConnected: vi.fn(() => () => undefined)`.
+- **Provenance:** April 2026 Stream migration hardening pass.
+- **Confidence:** high
+
+### Unread badge splits must never override Stream total unread when history is partially loaded
+- **Tip:** When unread totals come from Stream (`countUnread` / read state), keep that total authoritative and treat per-type (broadcast vs message) split as an estimate from loaded unread messages. Never set total to zero just because the local message window is empty.
+- **Applies when:** Infinite-scroll or partial-history chat views with server-side unread counters.
+- **Evidence:** Initial Stream unread migration incorrectly zeroed unread when `messages.length === 0`; follow-up hardening preserved Stream total and clamped split logic safely.
+- **Provenance:** April 2026 Stream migration follow-up.
+- **Confidence:** high
