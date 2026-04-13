@@ -70,4 +70,43 @@ describe('ChatSearchOverlay search behavior', () => {
     await user.click(screen.getByText('Broadcast: Practice moved to field 2'));
     expect(onResultSelect).toHaveBeenCalledWith('bc-1', 'broadcast');
   });
+
+  it('passes parsed day + sender filters and supports selecting a message result', async () => {
+    const user = userEvent.setup();
+    const parsedQuery = {
+      text: 'meeting',
+      sender: 'Alex',
+      day: '2026-04-11',
+      isBroadcastOnly: false,
+    };
+
+    vi.mocked(parseMessageSearchQuery).mockReturnValue(parsedQuery);
+    vi.mocked(searchChatContentWithFilters).mockResolvedValue({
+      messages: [
+        {
+          id: 'msg-2',
+          content: 'Meeting moved to 3 PM',
+          author_name: 'Alex',
+          user_id: 'user-2',
+          created_at: '2026-04-11T15:00:00.000Z',
+          type: 'message',
+        },
+      ],
+      broadcasts: [],
+    });
+
+    const onResultSelect = vi.fn();
+    render(<ChatSearchOverlay tripId="trip-2" onClose={vi.fn()} onResultSelect={onResultSelect} />);
+
+    const searchInput = screen.getByPlaceholderText('Search messages and broadcasts...');
+    await user.type(searchInput, 'from:Alex day:2026-04-11 meeting');
+
+    await waitFor(() => {
+      expect(parseMessageSearchQuery).toHaveBeenCalledWith('from:Alex day:2026-04-11 meeting');
+      expect(searchChatContentWithFilters).toHaveBeenCalledWith('trip-2', parsedQuery);
+    });
+
+    await user.click(screen.getByText('Meeting moved to 3 PM'));
+    expect(onResultSelect).toHaveBeenCalledWith('msg-2', 'message');
+  });
 });
