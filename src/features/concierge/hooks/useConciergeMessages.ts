@@ -3,8 +3,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useOfflineStatus } from '@/hooks/useOfflineStatus';
 import { useConciergeHistory } from '@/hooks/useConciergeHistory';
 import { useConciergeSessionStore } from '@/store/conciergeSessionStore';
-import { useStreamConciergeHistory } from '@/hooks/stream/useStreamConciergeHistory';
-import { getStreamClient } from '@/services/stream/streamClient';
 import { conciergeCacheService } from '@/services/conciergeCacheService';
 import { supabase } from '@/integrations/supabase/client';
 import { FAST_RESPONSE_TIMEOUT_MS, EMPTY_SESSION } from '@/features/concierge/utils/chatHelpers';
@@ -23,16 +21,6 @@ export function useConciergeMessages({ tripId, isDemoMode, userId, userPlan }: P
   const storeSessionRaw = useConciergeSessionStore(s => s.sessions[tripId]);
   const storeSession = storeSessionRaw ?? EMPTY_SESSION;
   const setStoreMessages = useConciergeSessionStore(s => s.setMessages);
-
-  const streamConciergeEnabled = !!getStreamClient()?.userID && !isDemoMode;
-  const {
-    messages: streamHistoryMessages,
-    isLoading: isStreamHistoryLoading,
-    isLoaded: isStreamHistoryLoaded,
-  } = useStreamConciergeHistory(
-    streamConciergeEnabled ? tripId : undefined,
-    streamConciergeEnabled ? userId : undefined,
-  );
 
   const [messages, setMessages] = useState<ChatMessage[]>(() =>
     storeSession.messages.length > 0 ? (storeSession.messages as ChatMessage[]) : [],
@@ -70,26 +58,9 @@ export function useConciergeMessages({ tripId, isDemoMode, userId, userPlan }: P
     isLoading: isHistoryLoading,
     error: historyError,
   } = useConciergeHistory(tripId);
-  const canonicalHistoryMessages = useMemo(() => {
-    if (streamConciergeEnabled) {
-      return streamHistoryMessages.map(message => ({
-        id: `stream-history-${message.id}`,
-        type: message.type,
-        content: message.content,
-        timestamp: message.timestamp,
-        sources: message.sources,
-        googleMapsWidget: message.googleMapsWidget,
-        googleMapsWidgetContextToken: message.googleMapsWidgetContextToken,
-        functionCallPlaces: message.functionCallPlaces as ChatMessage['functionCallPlaces'],
-        functionCallFlights: message.functionCallFlights as ChatMessage['functionCallFlights'],
-        usage: message.usage,
-      }));
-    }
-    return historyMessages;
-  }, [historyMessages, streamConciergeEnabled, streamHistoryMessages]);
 
   const mergedHistoryMessages = useMemo(() => {
-    const combined = [...canonicalHistoryMessages];
+    const combined = [...(historyMessages ?? [])];
     if (combined.length === 0) return combined;
     const dedupedByFingerprint = new Map<string, ChatMessage>();
     combined.forEach(message => {
@@ -99,13 +70,7 @@ export function useConciergeMessages({ tripId, isDemoMode, userId, userPlan }: P
     return Array.from(dedupedByFingerprint.values()).sort(
       (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
     );
-  }, [canonicalHistoryMessages]);
-
-  useEffect(() => {
-    if (streamConciergeEnabled && !isStreamHistoryLoaded && messages.length === 0) {
-      hasHydratedRef.current = false;
-    }
-  }, [streamConciergeEnabled, isStreamHistoryLoaded, messages.length]);
+  }, [historyMessages]);
 
   useEffect(() => {
     isMounted.current = true;
@@ -117,10 +82,7 @@ export function useConciergeMessages({ tripId, isDemoMode, userId, userPlan }: P
   }, []);
 
   useEffect(() => {
-    const isAnyHistoryLoading =
-      isHistoryLoading ||
-      (streamConciergeEnabled && isStreamHistoryLoading && !isStreamHistoryLoaded);
-    if (isAnyHistoryLoading || hasHydratedRef.current) return;
+    if (isHistoryLoading || hasHydratedRef.current) return;
 
     if (historyError && mergedHistoryMessages.length === 0) {
       const cached = conciergeCacheService.getCachedMessages(tripId, user?.id ?? 'anonymous');
@@ -137,16 +99,7 @@ export function useConciergeMessages({ tripId, isDemoMode, userId, userPlan }: P
     }
 
     hasHydratedRef.current = true;
-  }, [
-    isHistoryLoading,
-    isStreamHistoryLoading,
-    isStreamHistoryLoaded,
-    streamConciergeEnabled,
-    historyError,
-    mergedHistoryMessages,
-    tripId,
-    user?.id,
-  ]);
+  }, [isHistoryLoading, historyError, mergedHistoryMessages, tripId, user?.id]);
 
   useEffect(() => {
     if (!isOffline || messages.length > 0) return;
@@ -212,10 +165,7 @@ export function useConciergeMessages({ tripId, isDemoMode, userId, userPlan }: P
   return {
     user,
     isOffline,
-    streamConciergeEnabled,
     isHistoryLoading,
-    isStreamHistoryLoading,
-    isStreamHistoryLoaded,
     messages,
     setMessages,
     messagesRef,

@@ -67,7 +67,11 @@ serve(async req => {
     });
   }
 
-  const signature = req.headers.get('x-signature') || req.headers.get('signature');
+  const signature =
+    req.headers.get('x-signature') ||
+    req.headers.get('X-Signature') ||
+    req.headers.get('signature');
+
   if (!signature) {
     return new Response(JSON.stringify({ error: 'Missing signature header' }), {
       status: 401,

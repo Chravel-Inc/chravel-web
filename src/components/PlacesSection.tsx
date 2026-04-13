@@ -182,21 +182,25 @@ export const PlacesSection = ({
           threshold={80}
         />
       )}
-      {/* ROW 1: Header with LEFT-aligned title and CENTERED tabs */}
-      <div className="mb-6 flex flex-row items-center justify-between w-full px-0 relative">
-        <h2 className="flex-none text-3xl font-bold text-white">Places</h2>
+      {/* Header: stack on narrow viewports so centered tabs never overlap the title (Android WebView). */}
+      <div
+        data-testid="places-section-header"
+        className="mb-6 flex w-full flex-col items-stretch gap-3 px-0 md:relative md:flex-row md:items-center md:justify-between md:gap-0"
+      >
+        <h2 className="shrink-0 text-xl font-bold text-white sm:text-2xl md:text-3xl">Places</h2>
 
-        {/* Centered Tab Navigation */}
-        <div className="absolute left-1/2 -translate-x-1/2">
-          <div className="bg-white/5 backdrop-blur-sm rounded-xl p-1 flex gap-1">
+        {/* Tab navigation: full-width row on mobile; visually centered on md+ without absolute positioning */}
+        <div className="flex w-full justify-center md:absolute md:left-1/2 md:w-auto md:-translate-x-1/2">
+          <div className="bg-white/5 backdrop-blur-sm rounded-lg p-0.5 flex gap-0.5 sm:rounded-xl sm:p-1 sm:gap-1">
             {(['basecamps', 'links'] as TabView[]).map(tab => (
               <button
                 key={tab}
+                type="button"
                 onClick={() => setActiveTab(tab)}
-                className={`py-2.5 px-4 rounded-lg text-xs sm:text-sm font-medium transition-all capitalize ${
+                className={`rounded-md px-2.5 py-1.5 text-[11px] font-medium capitalize transition-all sm:rounded-lg sm:px-3 sm:py-2 sm:text-xs md:px-4 md:text-sm ${
                   activeTab === tab
                     ? 'bg-white/10 text-white shadow-lg'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    : 'text-gray-400 hover:bg-white/5 hover:text-white'
                 }`}
               >
                 {tab === 'basecamps' ? 'Base Camps' : 'Explore'}
@@ -205,8 +209,8 @@ export const PlacesSection = ({
           </div>
         </div>
 
-        {/* Empty spacer for balance */}
-        <div className="flex-none w-[100px]"></div>
+        {/* Spacer balances the title on md+ so the tab group stays visually centered */}
+        <div className="hidden shrink-0 md:block md:w-[100px]" aria-hidden />
       </div>
 
       {/* Tab Content — ⚡ display:none keeps both sub-tabs mounted for instant switching */}

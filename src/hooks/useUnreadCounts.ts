@@ -27,8 +27,8 @@ interface UnreadCounts {
 /**
  * Hook to track unread counts for Stream-backed chat.
  * Source of truth:
- *   - total unread from Stream read state
- *   - split by broadcast/non-broadcast from currently loaded unread messages
+ *   - total unread from Stream (`countUnread()` / `state.read[userId]`)
+ *   - broadcast vs standard split from loaded messages after `last_read`, clamped to Stream total
  */
 export function useUnreadCounts({
   tripId,

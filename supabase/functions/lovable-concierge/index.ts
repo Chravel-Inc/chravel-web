@@ -40,7 +40,10 @@ import { assemblePrompt } from '../_shared/concierge/promptAssembler.ts';
 import { QUERY_CLASS_SLICES } from '../_shared/contextBuilder.ts';
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY'); // kept as fallback
+// DEPRECATED: Lovable gateway fallback is legacy. Gemini is the only production provider.
+// TODO: Remove LOVABLE_API_KEY fallback path in next cleanup sprint.
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+// DEPRECATED: See LOVABLE_API_KEY deprecation above.
 const FORCE_LOVABLE_PROVIDER = (Deno.env.get('AI_PROVIDER') || '').toLowerCase() === 'lovable';
 
 // Defense-in-depth: reject if GEMINI_API_KEY matches the server-side Maps API key.
@@ -65,7 +68,9 @@ interface HistoryCacheEntry {
 const historyCache = new Map<string, HistoryCacheEntry>();
 const HISTORY_CACHE_TTL_MS = 30_000;
 const RAG_DOC_IDS_CACHE_TTL_MS = 30_000;
-const RAG_SOFT_TIMEOUT_MS = Number(Deno.env.get('RAG_SOFT_TIMEOUT_MS') || 120);
+// Default 2500ms — 120ms caused nearly every keyword search to be silently
+// skipped (rag_skipped_reason: soft_timeout). Env override preserved for tuning.
+const RAG_SOFT_TIMEOUT_MS = Number(Deno.env.get('RAG_SOFT_TIMEOUT_MS') || 2500);
 const ragDocIdsCache = new Map<
   string,
   { docIds: string[]; sourceByDocId: Map<string, string>; expiresAt: number }
@@ -404,7 +409,7 @@ async function streamGeminiToSSE(
         const capabilityToken = await generateCapabilityToken({
           user_id: userId,
           trip_id: tripId,
-          allowed_tools: ['*'], // Allowing all for Lovable Concierge scope; router enforces trip limits
+          allowed_tools: [fc.name],
         });
         result = await executeToolSecurely(
           supabase,
@@ -1624,7 +1629,7 @@ serve(async req => {
             const capabilityToken = await generateCapabilityToken({
               user_id: user?.id,
               trip_id: tripId,
-              allowed_tools: ['*'],
+              allowed_tools: [functionName],
             });
             functionResult = await executeToolSecurely(
               supabase,
@@ -1809,7 +1814,7 @@ serve(async req => {
             const capabilityToken = await generateCapabilityToken({
               user_id: user?.id,
               trip_id: tripId,
-              allowed_tools: ['*'],
+              allowed_tools: [fc.name],
             });
             result = await executeToolSecurely(
               supabase,

@@ -55,11 +55,3 @@ export {
   conciergeToStreamChannel,
 } from './adapters/mappers/channelMapper';
 export type { StreamChannelConfig } from './adapters/mappers/channelMapper';
-
-// Concierge adapter
-export {
-  persistUserMessage,
-  persistAssistantMessage,
-  loadConciergeHistory,
-} from './adapters/conciergeAdapter';
-export type { ConciergeMessage } from './adapters/conciergeAdapter';
