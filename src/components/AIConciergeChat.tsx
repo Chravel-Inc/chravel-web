@@ -14,6 +14,16 @@ import { CTA_BUTTON, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 import { useSaveToTripPlaces } from '@/hooks/useSaveToTripPlaces';
 import { useConciergeReadAloud } from '@/hooks/useConciergeReadAloud';
 import { buildSpeechText } from '@/lib/buildSpeechText';
+import { getStreamClient } from '@/services/stream/streamClient';
+import {
+  persistUserMessage as streamPersistUserMessage,
+  persistAssistantMessage as streamPersistAssistantMessage,
+} from '@/services/stream/adapters/conciergeAdapter';
+import { useStreamConciergeHistory } from '@/hooks/stream/useStreamConciergeHistory';
+import {
+  getConciergeInvalidationQueryKey,
+  isConciergeWriteAction,
+} from '@/lib/conciergeInvalidation';
 import { sanitizeConciergeContent } from '@/lib/sanitizeConciergeContent';
 import { usePendingActions } from '@/hooks/usePendingActions';
 import {
@@ -58,6 +68,20 @@ export const AIConciergeChat = ({
   } = usePendingActions(tripId);
   const loadedPreferences = useAIConciergePreferences();
   const effectivePreferences = preferences ?? loadedPreferences;
+  const storeSessionRaw = useConciergeSessionStore(s => s.sessions[tripId]);
+  const storeSession = storeSessionRaw ?? EMPTY_SESSION;
+  const setStoreMessages = useConciergeSessionStore(s => s.setMessages);
+
+  // 🔀 STREAM: Concierge history persistence via Stream
+  const streamConciergeEnabled = !!getStreamClient()?.userID && !isDemoMode;
+  const {
+    messages: streamHistoryMessages,
+    isLoading: isStreamHistoryLoading,
+    isLoaded: isStreamHistoryLoaded,
+  } = useStreamConciergeHistory(
+    streamConciergeEnabled ? tripId : undefined,
+    streamConciergeEnabled ? user?.id : undefined,
+  );
 
   const handleNavigateToPlaces = useCallback(() => {
     if (onTabChange) onTabChange('places');
@@ -197,6 +221,63 @@ export const AIConciergeChat = ({
     }
   }, [ttsError, ttsPlaybackState]);
 
+  // True after the chat is hydrated from the server DB (not just cache/empty).
+  // Used to show the "Picked up where you left off" chip.
+  const [historyLoadedFromServer, setHistoryLoadedFromServer] = useState(
+    storeSession.historyLoadedFromServer,
+  );
+
+  // --- Persisted history hydration ---
+  const {
+    data: historyMessages,
+    isLoading: isHistoryLoading,
+    error: historyError,
+  } = useConciergeHistory(tripId);
+  const canonicalHistoryMessages = useMemo(() => {
+    if (streamConciergeEnabled) {
+      return streamHistoryMessages.map(message => ({
+        id: `stream-history-${message.id}`,
+        type: message.type,
+        content: message.content,
+        timestamp: message.timestamp,
+        sources: message.sources,
+        googleMapsWidget: message.googleMapsWidget,
+        googleMapsWidgetContextToken: message.googleMapsWidgetContextToken,
+        functionCallPlaces: message.functionCallPlaces as ChatMessage['functionCallPlaces'],
+        functionCallFlights: message.functionCallFlights as ChatMessage['functionCallFlights'],
+        usage: message.usage,
+      }));
+    }
+
+    return historyMessages;
+  }, [historyMessages, streamConciergeEnabled, streamHistoryMessages]);
+  const mergedHistoryMessages = useMemo(() => {
+    const combined = [...canonicalHistoryMessages];
+    if (combined.length === 0) {
+      return combined;
+    }
+
+    const dedupedByFingerprint = new Map<string, ChatMessage>();
+    combined.forEach(message => {
+      const fingerprint = `${message.type}|${message.content.trim()}|${message.timestamp}`;
+      if (!dedupedByFingerprint.has(fingerprint)) {
+        dedupedByFingerprint.set(fingerprint, message);
+      }
+    });
+
+    return Array.from(dedupedByFingerprint.values()).sort(
+      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+    );
+  }, [canonicalHistoryMessages]);
+
+  const [inputMessage, setInputMessage] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [aiStatus, setAiStatus] = useState<
+    'checking' | 'connected' | 'limited' | 'error' | 'thinking' | 'offline' | 'degraded' | 'timeout'
+  >('connected');
+  const [attachedImages, setAttachedImages] = useState<File[]>([]);
+  const [attachedDocuments, setAttachedDocuments] = useState<File[]>([]);
+  const [attachmentIntent, setAttachmentIntent] = useState<AttachmentIntent>('smart_import');
   const [searchOpen, setSearchOpen] = useState(false);
   const handleSendMessageRef = useRef<(messageOverride?: string) => Promise<void>>(async () =>
     Promise.resolve(),
