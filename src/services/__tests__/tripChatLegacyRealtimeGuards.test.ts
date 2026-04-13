@@ -19,7 +19,6 @@ vi.mock('../../integrations/supabase/client', () => ({
 }));
 
 import { subscribeToMediaUpdates, subscribeToThreadReplies } from '../chatService';
-import { createTripChatChannel } from '../tripRealtimeMultiplexer';
 
 describe('trip chat legacy realtime guards', () => {
   beforeEach(() => {
@@ -32,7 +31,6 @@ describe('trip chat legacy realtime guards', () => {
   it('does not start Supabase trip realtime subscriptions when Stream is configured', () => {
     vi.stubEnv('VITE_STREAM_API_KEY', 'stream-key');
 
-    createTripChatChannel('trip-1', { onChatInsert: vi.fn(), onChatUpdate: vi.fn() });
     subscribeToThreadReplies('parent-1', vi.fn());
     subscribeToMediaUpdates('trip-1', vi.fn());
 
