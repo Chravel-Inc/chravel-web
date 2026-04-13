@@ -43,8 +43,9 @@ export async function addMemberToTripChannels(tripId: string, userId: string): P
     }
     // Non-fatal — membership is already committed in Supabase.
     // Retries: none in this module (caller fire-and-forget + no background reconciler yet).
-    // Operator action: monitor Stream join failures via client error telemetry/logs
-    // for "[StreamMembershipSync] addMember failed" and re-run membership sync manually if needed.
+    // Operator note: console.error above is DEV-only; production builds do not emit these strings.
+    // In dev, grep the browser console for "[StreamMembershipSync] addMember failed". In prod there is
+    // no automated signal from this path yet — investigate via user report / Stream dashboard / manual repro.
   }
 }
 
@@ -69,8 +70,9 @@ export async function removeMemberFromTripChannels(tripId: string, userId: strin
     }
     // Non-fatal — membership is already committed in Supabase.
     // Retries: none in this module (caller fire-and-forget + no background reconciler yet).
-    // Operator action: monitor Stream removal failures via client error telemetry/logs
-    // for "[StreamMembershipSync] removeMember failed" and re-run membership sync manually if needed.
+    // Operator note: console.error above is DEV-only; production builds do not emit these strings.
+    // In dev, grep the browser console for "[StreamMembershipSync] removeMember failed". In prod there is
+    // no automated signal from this path yet — investigate via user report / Stream dashboard / manual repro.
   }
 }
 
