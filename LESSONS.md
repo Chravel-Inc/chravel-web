@@ -454,3 +454,10 @@
 - **Evidence:** Initial Stream unread migration incorrectly zeroed unread when `messages.length === 0`; follow-up hardening preserved Stream total and clamped split logic safely.
 - **Provenance:** April 2026 Stream migration follow-up.
 - **Confidence:** high
+
+### Stream webhook channel identity should be parsed from event root, not nested message object
+- **Tip:** For Stream `message.new` webhooks, resolve channel identity from root-level `cid` (or `channel_type` + `channel_id`) first. Do not rely on `message.cid` being present.
+- **Applies when:** Translating Stream webhook payloads into app-specific IDs for notification fanout/reconciliation.
+- **Evidence:** `stream-webhook` notification path failed because trip id derivation used `event.message.cid` and skipped inserts when that field was absent.
+- **Provenance:** April 2026 PR #229 cursor review remediation.
+- **Confidence:** high

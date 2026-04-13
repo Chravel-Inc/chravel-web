@@ -562,3 +562,9 @@
   - JSON parse guard (400 on invalid payload)
   - Idempotency key now prefers `X-Webhook-Id` header before event/body fallbacks.
 - Verification: `npm run typecheck`, `npm run test:run -- src/hooks/__tests__/useUnreadCounts.stream.test.tsx src/hooks/stream/__tests__/useStreamBroadcasts.priority.test.tsx`, `npm run build`, `npm run lint` (warnings-only baseline).
+
+2026-04-13 — PR #229 merge-blocker follow-up (Cursor review remediation)
+- Addressed merge-blocking Stream webhook bug: trip channel resolution now derives from event root (`cid`) with fallback to `channel_type/channel_id`, then maps `chravel-trip:trip-{id}` to trip id.
+- Addressed idempotency reliability concern: non-duplicate `webhook_events` insert failures now return HTTP 500 (fail closed) so Stream retries instead of silently dropping.
+- Addressed non-blocking search perf concern: universal Stream search channel fetch limit increased to 100 and per-channel search now runs in parallel via `Promise.all`.
+- Verification: `npm run typecheck`, `npm run test:run -- src/hooks/__tests__/useUnreadCounts.stream.test.tsx src/hooks/stream/__tests__/useStreamBroadcasts.priority.test.tsx`, `npm run build`, `npm run lint` (warnings-only baseline).

@@ -12,6 +12,9 @@ type StreamWebhookEvent = {
   type?: string;
   id?: string;
   created_at?: string;
+  cid?: string;
+  channel_type?: string;
+  channel_id?: string;
   message?: {
     id?: string;
     text?: string;
@@ -37,6 +40,17 @@ function verifySignature(payload: string, signatureHeader: string): boolean {
     .trim()
     .toLowerCase();
   return safeCompare(expected, provided);
+}
+
+function resolveTripIdFromEvent(event: StreamWebhookEvent): string | null {
+  const resolvedCid =
+    event.cid ||
+    (event.channel_type && event.channel_id ? `${event.channel_type}:${event.channel_id}` : null) ||
+    event.message?.cid ||
+    '';
+
+  if (!resolvedCid.startsWith('chravel-trip:trip-')) return null;
+  return resolvedCid.replace('chravel-trip:trip-', '');
 }
 
 serve(async req => {
@@ -108,14 +122,15 @@ serve(async req => {
   }
 
   if (idempotencyError) {
-    console.warn('[stream-webhook] idempotency insert failed:', idempotencyError.message);
+    console.error('[stream-webhook] idempotency insert failed:', idempotencyError.message);
+    return new Response(JSON.stringify({ error: 'Failed to persist webhook idempotency record' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 
   if (eventType === 'message.new' && event.message?.id) {
-    const channelId = event.message.cid || '';
-    const tripId = channelId.startsWith('chravel-trip:trip-')
-      ? channelId.replace('chravel-trip:trip-', '')
-      : null;
+    const tripId = resolveTripIdFromEvent(event);
 
     if (tripId) {
       const { data: members } = await supabase
