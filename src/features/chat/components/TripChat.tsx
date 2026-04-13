@@ -26,7 +26,6 @@ import { useRoleChannels } from '@/hooks/useRoleChannels';
 import { ChannelChatView } from '@/components/pro/channels/ChannelChatView';
 import { TypingIndicator } from './TypingIndicator';
 import { TypingIndicatorService } from '@/services/typingIndicatorService';
-import {} from '@/services/readReceiptService';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '@/components/mobile/PullToRefreshIndicator';
 import { useUnreadCounts } from '@/hooks/useUnreadCounts';
@@ -188,11 +187,18 @@ export const TripChat = React.memo(
       user?.id,
       resolvedTripId,
       liveMessages,
+      activeChannel,
     );
 
     const handleMessageEdit = useCallback(
       async (messageId: string, newContent: string) => {
-        if (demoMode.isDemoMode || !activeChannel) return;
+        if (demoMode.isDemoMode) return;
+
+        const streamClient = getStreamClient();
+        if (!streamClient) {
+          toast.error('Chat is not connected yet');
+          return;
+        }
 
         const streamClient = getStreamClient();
         if (!streamClient) {
@@ -212,16 +218,21 @@ export const TripChat = React.memo(
           toast.error('Failed to edit message');
         }
       },
-      [demoMode.isDemoMode, activeChannel],
+      [demoMode.isDemoMode],
     );
 
     const handleMessageDelete = useCallback(
       async (messageId: string) => {
-        if (demoMode.isDemoMode || !activeChannel) return;
+        if (demoMode.isDemoMode) return;
+
+        const streamClient = getStreamClient();
+        if (!streamClient) {
+          toast.error('Chat is not connected yet');
+          return;
+        }
 
         try {
-          // intentional: stream-chat Channel type doesn't expose deleteMessage in all versions
-          await (activeChannel as any).deleteMessage(messageId);
+          await streamClient.deleteMessage(messageId);
         } catch (error) {
           if (import.meta.env.DEV) {
             console.error('[TripChat] Failed to delete message:', error);
@@ -229,7 +240,7 @@ export const TripChat = React.memo(
           toast.error('Failed to delete message');
         }
       },
-      [demoMode.isDemoMode, activeChannel],
+      [demoMode.isDemoMode],
     );
 
     // System message preferences - only for consumer trips
@@ -300,6 +311,7 @@ export const TripChat = React.memo(
       messages: liveMessages,
       userId: user?.id || null,
       enabled: !demoMode.isDemoMode && !!user?.id,
+      activeChannel,
     });
 
     // Note: typing indicators are now fully handled by useChatTypingIndicators hook above

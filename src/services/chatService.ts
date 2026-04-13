@@ -19,6 +19,16 @@ export interface ReactionCount {
 type MessageRow = Database['public']['Tables']['trip_chat_messages']['Row'];
 type MessageInsert = Database['public']['Tables']['trip_chat_messages']['Insert'];
 
+function assertLegacyTripChatDbMutationAllowed(operation: string): void {
+  if (!isStreamConfigured()) return;
+
+  const err = new Error(
+    `Legacy chatService.${operation} is disabled when Stream transport is configured.`,
+  ) as Error & { code?: string };
+  err.code = 'STREAM_CANONICAL_TRANSPORT';
+  throw err;
+}
+
 // ─── Send messages ──────────────────────────────────────────────────────────
 
 /**
@@ -83,6 +93,8 @@ export function invalidateAuthorNameCache(): void {
  * to prevent spoofing — the client-supplied value is used only as a fallback.
  */
 export async function sendChatMessage(data: Record<string, unknown>): Promise<MessageRow> {
+  assertLegacyTripChatDbMutationAllowed('sendChatMessage');
+
   const clientName = (data.author_name || data.sender_display_name || 'Unknown') as string;
   // Derive author_name from the authenticated user's profile, not from the client
   const authorName = await resolveAuthorName(clientName);
@@ -121,6 +133,8 @@ export async function sendChatMessage(data: Record<string, unknown>): Promise<Me
  * Send a rich chat message with client_message_id dedupe.
  */
 export async function sendRichChatMessage(data: Record<string, unknown>): Promise<MessageRow> {
+  assertLegacyTripChatDbMutationAllowed('sendRichChatMessage');
+
   // Dedupe by client_message_id if provided
   if (data.client_message_id) {
     const { data: existing } = await supabase
@@ -139,6 +153,8 @@ export async function sendRichChatMessage(data: Record<string, unknown>): Promis
 // ─── Edit / Delete ──────────────────────────────────────────────────────────
 
 export async function editChatMessage(messageId: string, newContent: string): Promise<boolean> {
+  assertLegacyTripChatDbMutationAllowed('editChatMessage');
+
   const { error } = await supabase
     .from('trip_chat_messages')
     .update({ content: newContent, edited_at: new Date().toISOString(), is_edited: true })
@@ -165,6 +181,8 @@ export async function editChannelMessage(messageId: string, newContent: string):
 }
 
 export async function deleteChatMessage(messageId: string): Promise<boolean> {
+  assertLegacyTripChatDbMutationAllowed('deleteChatMessage');
+
   const { error } = await supabase
     .from('trip_chat_messages')
     .update({ is_deleted: true })

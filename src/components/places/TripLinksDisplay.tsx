@@ -432,15 +432,15 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
   return (
     <div className="space-y-4">
       {/* Header with Add Button */}
-      <div className="bg-glass-slate-card border border-glass-slate-border rounded-2xl p-4 md:p-6 shadow-enterprise-lg">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center bg-gradient-to-r from-red-600 to-red-700">
-              <Link2 className="w-5 h-5 md:w-6 md:h-6 text-white" />
+      <div className="bg-glass-slate-card border border-glass-slate-border rounded-2xl p-3 md:p-6 shadow-enterprise-lg">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-r from-red-600 to-red-700 sm:h-10 sm:w-10 sm:rounded-xl md:h-12 md:w-12">
+              <Link2 className="h-4 w-4 text-white sm:h-5 sm:w-5 md:h-6 md:w-6" />
             </div>
-            <div>
-              <h3 className="text-lg md:text-xl font-bold text-white">Explore</h3>
-              <p className="text-gray-400 text-xs md:text-sm">
+            <div className="min-w-0">
+              <h3 className="text-base font-bold text-white sm:text-lg md:text-xl">Explore</h3>
+              <p className="text-[11px] text-gray-400 sm:text-xs md:text-sm">
                 {links.length > 0
                   ? `${links.length} explore links • Drag to reorder`
                   : 'Save links for registries, activities, places & more'}
@@ -455,9 +455,9 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
                   <DialogTrigger asChild>
                     <button
                       onClick={() => resetForm()}
-                      className="bg-black/60 border border-white/30 text-white hover:bg-white/10 px-3.5 py-2.5 min-h-[42px] rounded-xl transition-all font-medium text-sm flex items-center"
+                      className="flex w-full min-h-[40px] shrink-0 items-center justify-center rounded-lg border border-white/30 bg-black/60 px-3 py-2 text-xs font-medium text-white transition-all hover:bg-white/10 sm:w-auto sm:min-h-[42px] sm:rounded-xl sm:px-3.5 sm:py-2.5 sm:text-sm"
                     >
-                      <Plus className="w-4 h-4 mr-1" />
+                      <Plus className="mr-1 h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       Add Link
                     </button>
                   </DialogTrigger>

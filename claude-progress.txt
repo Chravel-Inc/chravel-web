@@ -1,8 +1,3 @@
-2026-04-13 — TripChat edit-path follow-up (inline Stream client usage)
-- Addressed review feedback by inlining message-edit Stream update flow inside `TripChat.handleMessageEdit` and importing `getStreamClient` directly in `TripChat.tsx`.
-- Removed helper indirection and deleted `src/features/chat/utils/updateStreamMessage.ts` + its focused test file to keep this path surgical and local to the component.
-- Verification: `npm run test:run -- src/features/chat/components/__tests__/ChatInput.test.tsx`, `npm run typecheck`, `npm run lint:check`, `npm run build`.
-
 2026-04-13 — Trip chat message edit path switched to Stream client update API
 - Root-caused edit failures/typing debt to `TripChat` invoking `(activeChannel as any).updateMessage(...)` directly, which bypassed the shared Stream client singleton and required an unsafe cast.
 - Replaced edit handler path to use Stream client API via `getStreamClient()` guard + user-visible missing-client toast, then `client.updateMessage({ id, text })` with typed payload (no `any` cast in edit path).
@@ -489,6 +484,12 @@
 - Added shared helper `src/services/stream/noopRealtimeChannel.ts` to keep no-op channel behavior consistent across guarded legacy subscription entry points.
 - Added focused regression tests `src/services/__tests__/tripChatLegacyRealtimeGuards.test.ts` asserting Supabase `channel` is not called in Stream-configured mode and legacy mode still subscribes.
 - Verification: `npm run test:run -- src/services/__tests__/tripChatLegacyRealtimeGuards.test.ts src/services/__tests__/channelLegacyRealtimeGuards.test.ts`, `npm run typecheck`, `npm run build`.
+
+2026-04-13 — Stream migration phase: legacy trip-chat DB mutation guardrails
+- Added Stream-configured guardrail to `chatService` trip-chat mutation methods (`sendChatMessage`, `sendRichChatMessage`, `editChatMessage`, `deleteChatMessage`) to block legacy `trip_chat_messages` writes/updates when Stream is canonical.
+- Added Stream-configured guardrail to `systemMessageService.createSystemMessage` so consumer system-event inserts do not dual-write into `trip_chat_messages` in Stream-configured environments.
+- Added focused regression tests `src/services/__tests__/chatLegacyMutationGuards.test.ts` asserting guarded methods return/throw canonical transport outcomes and do not call Supabase `from/getUser` in Stream mode.
+- Verification: `npm run test:run -- src/services/__tests__/chatLegacyMutationGuards.test.ts src/services/__tests__/tripChatLegacyRealtimeGuards.test.ts`, `npm run typecheck`, `npm run build`.
 2026-04-11 — Chat search dead-code removal + overlay regression test
 - Confirmed legacy `MessageSearch` component and `messageSearchService` were not referenced outside their own files; removed both to eliminate duplicate search paths.
 - Re-verified TripChat search integration remains solely `TripChat -> ChatSearchOverlay -> chatSearchService`.
@@ -541,3 +542,29 @@
   - idle watchdog timeout path appends timeout fallback copy, stops typing, and aborts stream
 - Kept production hook logic unchanged in this pass (test-only safety hardening).
 - Verification: `npm run test -- src/features/concierge/hooks/__tests__/useConciergeStreaming.test.ts src/features/concierge/hooks/__tests__/useConciergeVoice.test.ts`; `npm run test -- src/components/__tests__/AIConciergeChat.test.tsx`; `npm run typecheck`; `npm run lint`; `npm run build`.
+
+2026-04-13 — Stream migration critical regression fixes (Tier 1 + targeted Tier 2)
+- Fixed TripChat Stream API misuse:
+  - Message edit now uses `getStreamClient().updateMessage(...)`.
+  - Message delete now uses `getStreamClient().deleteMessage(...)`.
+  - `useChatReadReceipts(...)` now receives `activeChannel` so `markRead()` path is no longer dead.
+  - Removed dead empty import from `TripChat`.
+- Fixed Stream reaction toggle detection in `useStreamTripChat` to use `own_reactions` instead of invalid legacy reaction shape.
+- Replaced unread-count hook read source from Supabase receipt joins to Stream-native channel unread state + local message classification (`broadcast` vs standard).
+- Removed dead Supabase fallback reaction transport from `useChatReactions`; Stream is now the single authenticated reaction path.
+- Added Stream-ready reconnect guard to `useStreamBroadcasts` via `onStreamClientConnected`, plus updated hook test mocks.
+- Added `ai-concierge-bot` provisioning in `stream-setup-permissions` via Stream `upsertUser`.
+- Added new `supabase/functions/stream-webhook` edge function with signature verification, idempotency insert, and `message.new` -> notifications write path.
+- Switched chat search services to Stream-backed message search:
+  - `chatSearchService` now uses channel search/query for trip messages.
+  - `universalSearchService` now uses Stream channel/query search for cross-trip messages.
+- Updated `streamMembershipSync` comments to stop claiming a guaranteed webhook backstop where it may not yet be active.
+- Verification:
+  - `npm run typecheck` ✅
+  - `npm run lint` ✅ (warnings-only baseline)
+  - `npm run build` ✅
+  - `npm run test:run -- src/hooks/stream/__tests__/useStreamBroadcasts.priority.test.tsx src/services/__tests__/tripChatLegacyRealtimeGuards.test.ts` ✅
+2026-04-13 — AGENTS merge-conflict preflight protocol codified
+- Added required Step E "Merge Conflict Preflight" to `AGENTS.md` under Golden Workflow.
+- Captured semantic conflict-resolution rules (no blind accept current/incoming/both), required sync + divergence scan, dry-run merge check, post-resolution validation, and mandatory reporting fields.
+- Note: this local workspace has no configured git remote (`origin`) and no local `main` branch, so fetch-based preflight commands require operator repo remote setup to execute fully.

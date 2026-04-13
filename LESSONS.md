@@ -446,4 +446,10 @@
 - **Avoid when:** The code path intentionally operates on detached channel objects outside the singleton lifecycle (rare in this repo).
 - **Evidence:** `TripChat` edit handler previously used a channel-level `any` cast; replacing it with singleton `updateMessage` plus guard toast preserved UX while improving type-safety and testability.
 - **Provenance:** April 2026 TripChat edit-path hardening.
+### Stream connection lifecycle hooks require companion test-mock exports
+- **Tip:** When introducing `onStreamClientConnected`/status subscriptions in hooks, update existing Vitest module mocks to include the new exported subscription function; otherwise hooks fail at mount with missing export errors.
+- **Applies when:** Stream hook changes add new imports from `streamClient` (or any shared service module) in files with explicit `vi.mock(...)` fixtures.
+- **Avoid when:** Tests use `importOriginal` partial mocks that already forward untouched exports.
+- **Evidence:** `useStreamBroadcasts` readiness guard update caused `useStreamBroadcasts.priority.test.tsx` failures until the mock included `onStreamClientConnected: vi.fn(() => () => undefined)`.
+- **Provenance:** April 2026 Stream migration hardening pass.
 - **Confidence:** high
