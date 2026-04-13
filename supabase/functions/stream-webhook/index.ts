@@ -6,11 +6,15 @@ import { createHmac } from 'node:crypto';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const STREAM_WEBHOOK_SECRET = Deno.env.get('STREAM_WEBHOOK_SECRET') || '';
+const STREAM_API_KEY = Deno.env.get('STREAM_API_KEY') || '';
 
 type StreamWebhookEvent = {
   type?: string;
   id?: string;
   created_at?: string;
+  cid?: string;
+  channel_type?: string;
+  channel_id?: string;
   message?: {
     id?: string;
     text?: string;
@@ -31,8 +35,22 @@ function safeCompare(a: string, b: string): boolean {
 function verifySignature(payload: string, signatureHeader: string): boolean {
   if (!STREAM_WEBHOOK_SECRET) return false;
   const expected = createHmac('sha256', STREAM_WEBHOOK_SECRET).update(payload).digest('hex');
-  const provided = signatureHeader.replace(/^sha256=/, '').trim();
+  const provided = signatureHeader
+    .replace(/^sha256=/i, '')
+    .trim()
+    .toLowerCase();
   return safeCompare(expected, provided);
+}
+
+function resolveTripIdFromEvent(event: StreamWebhookEvent): string | null {
+  const resolvedCid =
+    event.cid ||
+    (event.channel_type && event.channel_id ? `${event.channel_type}:${event.channel_id}` : null) ||
+    event.message?.cid ||
+    '';
+
+  if (!resolvedCid.startsWith('chravel-trip:trip-')) return null;
+  return resolvedCid.replace('chravel-trip:trip-', '');
 }
 
 serve(async req => {
@@ -61,6 +79,14 @@ serve(async req => {
     });
   }
 
+  const requestApiKey = req.headers.get('x-api-key') || '';
+  if (STREAM_API_KEY && requestApiKey && requestApiKey !== STREAM_API_KEY) {
+    return new Response(JSON.stringify({ error: 'Invalid api key header' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   const payload = await req.text();
   if (!verifySignature(payload, signature)) {
     return new Response(JSON.stringify({ error: 'Invalid webhook signature' }), {
@@ -69,9 +95,20 @@ serve(async req => {
     });
   }
 
-  const event = JSON.parse(payload) as StreamWebhookEvent;
+  let event: StreamWebhookEvent;
+  try {
+    event = JSON.parse(payload) as StreamWebhookEvent;
+  } catch {
+    return new Response(JSON.stringify({ error: 'Invalid JSON payload' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   const eventType = event.type || 'unknown';
-  const eventId = event.id || `${eventType}:${event.message?.id || crypto.randomUUID()}`;
+  const webhookId = req.headers.get('x-webhook-id') || req.headers.get('X-Webhook-Id');
+  const eventId =
+    webhookId || event.id || `${eventType}:${event.message?.id || crypto.randomUUID()}`;
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -89,14 +126,15 @@ serve(async req => {
   }
 
   if (idempotencyError) {
-    console.warn('[stream-webhook] idempotency insert failed:', idempotencyError.message);
+    console.error('[stream-webhook] idempotency insert failed:', idempotencyError.message);
+    return new Response(JSON.stringify({ error: 'Failed to persist webhook idempotency record' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 
   if (eventType === 'message.new' && event.message?.id) {
-    const channelId = event.message.cid || '';
-    const tripId = channelId.startsWith('chravel-trip:trip-')
-      ? channelId.replace('chravel-trip:trip-', '')
-      : null;
+    const tripId = resolveTripIdFromEvent(event);
 
     if (tripId) {
       const { data: members } = await supabase
@@ -121,6 +159,7 @@ serve(async req => {
             source: 'stream-webhook',
             stream_message_id: event.message?.id,
             stream_event_type: eventType,
+            stream_webhook_id: webhookId || null,
           },
         }));
 

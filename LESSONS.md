@@ -453,3 +453,17 @@
 - **Evidence:** `useStreamBroadcasts` readiness guard update caused `useStreamBroadcasts.priority.test.tsx` failures until the mock included `onStreamClientConnected: vi.fn(() => () => undefined)`.
 - **Provenance:** April 2026 Stream migration hardening pass.
 - **Confidence:** high
+
+### Unread badge splits must never override Stream total unread when history is partially loaded
+- **Tip:** When unread totals come from Stream (`countUnread` / read state), keep that total authoritative and treat per-type (broadcast vs message) split as an estimate from loaded unread messages. Never set total to zero just because the local message window is empty.
+- **Applies when:** Infinite-scroll or partial-history chat views with server-side unread counters.
+- **Evidence:** Initial Stream unread migration incorrectly zeroed unread when `messages.length === 0`; follow-up hardening preserved Stream total and clamped split logic safely.
+- **Provenance:** April 2026 Stream migration follow-up.
+- **Confidence:** high
+
+### Stream webhook channel identity should be parsed from event root, not nested message object
+- **Tip:** For Stream `message.new` webhooks, resolve channel identity from root-level `cid` (or `channel_type` + `channel_id`) first. Do not rely on `message.cid` being present.
+- **Applies when:** Translating Stream webhook payloads into app-specific IDs for notification fanout/reconciliation.
+- **Evidence:** `stream-webhook` notification path failed because trip id derivation used `event.message.cid` and skipped inserts when that field was absent.
+- **Provenance:** April 2026 PR #229 cursor review remediation.
+- **Confidence:** high
