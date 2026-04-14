@@ -18,6 +18,7 @@ import {
   resolveEffectiveEntitlement,
   type EntitlementRow,
 } from '../_shared/entitlementSelection.ts';
+import { isSuperAdminEmail } from '../_shared/superAdmins.ts';
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -79,14 +80,7 @@ serve(async req => {
     logStep('User authenticated', { userId: user.id, email: user.email });
 
     // Super admin bypass - return max tier without Stripe check
-    const SUPER_ADMIN_EMAILS = [
-      'ccamechi@gmail.com',
-      'christian@chravelapp.com',
-      'demo@chravelapp.com',
-      'phil@philquist.com',
-      'darren.hartgee@gmail.com',
-    ];
-    if (user.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+    if (isSuperAdminEmail(user.email)) {
       logStep('Super admin detected - bypassing Stripe check', { email: user.email });
       return createSecureResponse({
         subscribed: true,

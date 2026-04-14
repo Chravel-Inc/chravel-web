@@ -7,6 +7,7 @@ import {
   isSmsEligibleCategory,
   type SmsTemplateData,
 } from '../_shared/smsTemplates.ts';
+import { isSuperAdminEmail } from '../_shared/superAdmins.ts';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
@@ -22,24 +23,9 @@ const SMS_ENTITLED_PLANS = new Set([
   'pro-enterprise',
 ]);
 
-// Founder/super-admin emails — bypass SMS entitlement (matches client SUPER_ADMIN_EMAILS)
-// Env SUPER_ADMIN_EMAILS can extend: "email1@x.com,email2@x.com"
-const _envAdmins = (Deno.env.get('SUPER_ADMIN_EMAILS') || '')
-  .split(',')
-  .map((e: string) => e.trim().toLowerCase())
-  .filter(Boolean);
-const SUPER_ADMIN_EMAILS = new Set([
-  'ccamechi@gmail.com',
-  'christian@chravelapp.com',
-  'demo@chravelapp.com',
-  'phil@philquist.com',
-  'darren.hartgee@gmail.com',
-  ..._envAdmins,
-]);
-
 async function isSmsEntitled(userId: string, userEmail?: string): Promise<boolean> {
   // Super-admin email allowlist bypass (matches is_super_admin() and client)
-  if (userEmail && SUPER_ADMIN_EMAILS.has(userEmail.toLowerCase())) {
+  if (isSuperAdminEmail(userEmail)) {
     return true;
   }
 

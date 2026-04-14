@@ -16,7 +16,15 @@ const envAdminList = envAdmins
   .map(e => e.trim().toLowerCase())
   .filter(Boolean);
 
+// `demo@chravelapp.com` bypass is intentionally opt-in (never default).
+// Enable only in controlled demo/staging environments:
+//   - VITE_SUPER_ADMIN_ENABLE_DEMO_EMAIL=true
+//   - or include demo@chravelapp.com in VITE_SUPER_ADMIN_EMAILS
+const includeDemoAdmin =
+  String(import.meta.env.VITE_SUPER_ADMIN_ENABLE_DEMO_EMAIL || '').toLowerCase() === 'true';
+const demoAdminList = includeDemoAdmin ? ['demo@chravelapp.com'] : [];
+
 // Merge founder emails with env-configured emails, deduplicated
 export const SUPER_ADMIN_EMAILS = [
-  ...new Set([...FOUNDER_EMAILS.map(e => e.toLowerCase()), ...envAdminList]),
+  ...new Set([...FOUNDER_EMAILS.map(e => e.toLowerCase()), ...demoAdminList, ...envAdminList]),
 ];
