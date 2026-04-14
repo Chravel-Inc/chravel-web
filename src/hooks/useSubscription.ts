@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import {
-  pickPrimaryEntitlement,
+  resolveEffectiveEntitlement,
   hasEffectiveAccess,
   type EntitlementSelectorRow,
 } from '@/lib/entitlements/selectors';
+import { getTierFromProductId } from '@/constants/stripe';
 
 export interface Subscription {
   plan:
@@ -49,19 +50,21 @@ export function useSubscription() {
           .in('purchase_type', ['subscription', 'pass'])
           .order('updated_at', { ascending: false });
 
-        const entitlement = pickPrimaryEntitlement(entitlementRows as EntitlementSelectorRow[]);
+        const entitlement = resolveEffectiveEntitlement(
+          entitlementRows as EntitlementSelectorRow[],
+        );
 
         if (!entError && entitlement && entitlement.plan !== 'free') {
           const plan = entitlement.plan as Subscription['plan'];
           const status = entitlement.status as Subscription['status'];
-          const periodEnd = entitlement.current_period_end || null;
-          const isStillAccessible = hasEffectiveAccess(status, periodEnd);
+          const periodEnd = entitlement.currentPeriodEnd || null;
+          const isStillAccessible = entitlement.hasAccess;
 
           setSubscription({
             plan: isStillAccessible ? plan : 'free',
             status: isStillAccessible ? status : 'expired',
             currentPeriodEnd: periodEnd,
-            purchaseType: (entitlement.purchase_type as Subscription['purchaseType']) || null,
+            purchaseType: (entitlement.purchaseType as Subscription['purchaseType']) || null,
           });
           setLoading(false);
           return;
@@ -88,19 +91,7 @@ export function useSubscription() {
           subStatus === 'active' || subStatus === 'trialing' || subStatus === 'past_due';
 
         if (isActive && productId) {
-          if (productId.includes('explorer')) {
-            plan = 'explorer';
-          } else if (productId.includes('frequent') || productId.includes('chraveler')) {
-            plan = 'frequent-chraveler';
-          } else if (productId.includes('enterprise')) {
-            plan = 'pro-enterprise';
-          } else if (productId.includes('growth')) {
-            plan = 'pro-growth';
-          } else if (productId.includes('starter') || productId.includes('pro')) {
-            plan = 'pro-starter';
-          } else {
-            plan = 'explorer';
-          }
+          plan = getTierFromProductId(productId) as Subscription['plan'];
         }
 
         setSubscription({
@@ -124,7 +115,7 @@ export function useSubscription() {
 
   const plan = subscription?.plan ?? 'free';
   const status = subscription?.status ?? 'inactive';
-  const isActive = status === 'active' || status === 'trialing' || status === 'past_due';
+  const isActive = hasEffectiveAccess(status, subscription?.currentPeriodEnd ?? null);
   const isPaidPlan = plan !== 'free';
 
   return {

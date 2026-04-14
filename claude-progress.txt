@@ -1,3 +1,23 @@
+2026-04-14 — Shared entitlement resolution contract + call-site convergence
+- Added shared effective-entitlement contracts in both runtime layers:
+  - `src/lib/entitlements/selectors.ts` now exports `resolveEffectiveEntitlement(...)` with canonical effective-access evaluation (`active`, `trialing`, `past_due`, `canceled` with future `current_period_end`).
+  - `supabase/functions/_shared/entitlementSelection.ts` now exports equivalent `resolveEffectiveEntitlement(...)` for edge functions.
+- Updated entitlement consumers to use the same resolver semantics and reduced ad-hoc product-id parsing:
+  - `useSubscription` now resolves from `user_entitlements` via shared resolver and uses `hasEffectiveAccess(...)` for booleans (including canceled+future access), with legacy profile fallback mapped via `getTierFromProductId(...)`.
+  - `resolveEffectiveTier` in `src/services/entitlementService.ts` now reads `user_entitlements` first through the shared resolver and uses standardized legacy tier mapping.
+  - `useConciergeUsage` now resolves plan from shared entitlement resolver (including `past_due` + canceled/future behavior) and uses centralized tier mapping for legacy fallback.
+  - `useConsumerSubscription` now trusts backend `tier/status` and removes frontend product-id parsing fallback.
+- Updated `supabase/functions/check-subscription/index.ts` to read `user_entitlements` first and only execute legacy Stripe lookup when entitlement rows are missing; response now includes consistent `status` payload.
+- Added regression coverage for canceled+future effective access in both selector test suites:
+  - `src/lib/entitlements/__tests__/selectors.test.ts`
+  - `supabase/functions/_shared/__tests__/entitlementSelection.test.ts`
+- Verification:
+  - `npm run test:run -- src/lib/entitlements/__tests__/selectors.test.ts src/services/__tests__/entitlementService.test.ts supabase/functions/_shared/__tests__/entitlementSelection.test.ts`
+  - `npm run typecheck`
+  - `npm run lint:check` (baseline warnings only)
+  - `npm run build`
+  - `npm run merge:preflight` (blocked in this environment: cannot fetch `origin/main`)
+
 2026-04-14 — Smart Import Gmail discoverability hardening (no-trip context)
 - Root-caused Gmail visibility confusion in Smart Import modal to conditional rendering that only showed the Gmail block when `tripId` existed; non-trip entry points silently omitted the section with no explanation.
 - Added a minimal contextual notice in `src/components/SmartImport.tsx` for the no-trip path: Gmail import is available from trip-scoped modal launches and account management lives in Settings → Integrations.
