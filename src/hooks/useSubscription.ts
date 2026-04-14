@@ -45,7 +45,7 @@ export function useSubscription() {
           .in('purchase_type', ['subscription', 'pass'])
           .order('updated_at', { ascending: false });
 
-        const entitlement = pickPrimaryEntitlement(entitlementRows);
+        const entitlement = pickPrimaryEntitlement(entitlementRows as EntitlementSelectorRow[]);
 
         if (!entError && entitlement && entitlement.plan !== 'free') {
           const plan = entitlement.plan as Subscription['plan'];

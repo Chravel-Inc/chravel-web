@@ -4,7 +4,7 @@ import { supabase } from '../integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useConsumerSubscription } from './useConsumerSubscription';
 import { isSuperAdminEmail } from '@/utils/isSuperAdmin';
-import { pickPrimaryEntitlement } from '@/lib/entitlements/selectors';
+import { pickPrimaryEntitlement, type EntitlementSelectorRow } from '@/lib/entitlements/selectors';
 
 const FREE_TIER_LIMIT = 10;
 const EXPLORER_TIER_LIMIT = 25;
@@ -185,7 +185,7 @@ export const useConciergeUsage = (tripId: string, userId?: string) => {
         return null;
       }
 
-      return pickPrimaryEntitlement(rows);
+      return pickPrimaryEntitlement(rows as EntitlementSelectorRow[]);
     },
     enabled: !!targetUserId,
     staleTime: 30 * 1000,
