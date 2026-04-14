@@ -17,7 +17,7 @@ vi.mock('@/services/readReceiptService', () => ({
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    removeChannel: (...args: unknown[]) => removeChannelMock(...(args as [unknown])),
+    removeChannel: () => removeChannelMock(),
   },
 }));
 
