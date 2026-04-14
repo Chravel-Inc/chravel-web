@@ -1,34 +1,76 @@
 
 
-# Fix & Redeploy Concierge Edge Function
+# Universal Concierge → UI Sync Fix
 
-You've done your part rotating the key — I can fix the code issues and redeploy from here.
+## Problem
 
-## Two Code Fixes + Deploy
+When the concierge writes data (tasks, places, basecamp, calendar, polls, expenses), the changes don't appear in the corresponding tabs. Two root causes:
 
-### 1. Fix invalid flash model name
-**File:** `supabase/functions/_shared/gemini.ts` line 63
+1. **Query key mismatches** — the invalidation map targets keys that don't match the actual query keys used by hooks
+2. **Pending actions require manual confirm** — for tasks/polls/calendar/expenses, data sits in a buffer table until the user clicks "Confirm", but the confirm button may not render or the user doesn't realize they need to click it
 
-`gemini-3.1-flash` → `gemini-3-flash-preview`
+## Current Architecture (two write paths)
 
-This is the primary reason both the direct Gemini path AND the Lovable fallback path fail. The Lovable gateway also rejects `gemini-3.1-flash` as an unknown model.
+```text
+DIRECT writes (no confirmation needed):
+  savePlace, setBasecamp, settleExpense, addToAgenda, makeReservation
+  → functionExecutor.ts writes to DB directly
+  → Client invalidates via getConciergeInvalidationQueryKey()
+  → BUT query keys are WRONG so invalidation is a no-op
 
-### 2. Fix `assignee_id` column reference
-**File:** `supabase/functions/_shared/contextBuilder.ts` line 677
+PENDING writes (confirmation required):
+  createTask, createPoll, addToCalendar, addExpense, duplicateCalendarEvent, etc.
+  → functionExecutor.ts writes to trip_pending_actions
+  → PendingActionCard renders in chat → user clicks Confirm
+  → usePendingActions executes real insert → invalidates correct keys
+  → BUT user must manually find and click Confirm
+```
 
-The `trip_tasks` table has no `assignee_id` column — assignments live in a separate `task_assignments` table. The query needs to either:
-- Remove `assignee_id` from the select and join `task_assignments` for assignee info, OR
-- Simply drop the column from the select and skip assignee resolution (simpler, non-breaking)
+## Fix Plan
 
-I'll take the simpler approach: remove `assignee_id` from the task query and assignee resolution logic since tasks use the `task_assignments` join table. This prevents the context builder from crashing.
+### 1. Fix query key mismatches in conciergeInvalidation.ts
 
-### 3. Deploy
-Redeploy `lovable-concierge` edge function with both fixes applied.
+| Tool | Current key (wrong) | Correct key(s) |
+|------|---------------------|-----------------|
+| `savePlace` | `['tripPlaces', tripId]` | `['tripPlaces', tripId]` + `['tripLinks', tripId]` (prefix match) |
+| `setBasecamp` (trip) | `['tripBasecamp', tripId]` | `['tripBasecamp', tripId]` + `['trip', tripId]` (basecamp lives on trip row) |
+| `setBasecamp` (personal) | not handled | `['personalBasecamp']` (prefix invalidate) |
+| `addToAgenda` | `['eventAgenda', tripId]` | Correct ✓ |
+
+**Change:** Update `getConciergeInvalidationQueryKey` to return an array of keys (or call multiple invalidations). For `savePlace`, also invalidate `tripLinks`. For `setBasecamp`, also invalidate `personalBasecamp` and trip detail.
+
+### 2. Broaden invalidation call in useConciergeStreaming.ts
+
+Currently line 582-587 does a single `invalidateQueries` call. Change to:
+- Support multiple query keys per tool (from step 1)
+- Use `{ queryKey, exact: false }` for prefix-based matching so `['tripLinks', tripId]` catches `['tripLinks', tripId, isDemoMode]`
+
+### 3. Add auto-confirm for self-initiated pending actions
+
+In `usePendingActions.ts`, add an effect: when a new pending action appears where `action.user_id === currentUser.id`, auto-confirm it immediately. This eliminates the manual click for the user who asked the concierge to do something.
+
+Safeguards:
+- Only auto-confirm actions created by the current user
+- RLS still enforces trip membership on the actual insert
+- Other trip members still see the confirm/reject card for actions affecting them
+
+### 4. Fix the prompt to stop overclaiming (backend)
+
+In `supabase/functions/_shared/promptBuilder.ts`, add instruction: when a tool returns `pending: true`, say "I've prepared [thing] for your confirmation" not "Created ✅". This prevents the trust gap while auto-confirm is rolling out.
+
+### 5. Redeploy lovable-concierge
+
+After prompt changes.
 
 ## Files Changed
-1. `supabase/functions/_shared/gemini.ts` — fix default model name
-2. `supabase/functions/_shared/contextBuilder.ts` — fix task query to not reference nonexistent column
+
+1. `src/lib/conciergeInvalidation.ts` — return multiple query keys per tool; fix savePlace/setBasecamp mappings
+2. `src/features/concierge/hooks/useConciergeStreaming.ts` — support multi-key invalidation with prefix matching
+3. `src/hooks/usePendingActions.ts` — add auto-confirm effect for self-initiated actions
+4. `supabase/functions/_shared/promptBuilder.ts` — fix overclaiming language
+5. Redeploy `lovable-concierge` edge function
 
 ## Risk
-Low — config/query fix only. No logic changes. The model name fix immediately restores the fallback path, and the rotated API key restores the primary path.
+- **Low** — invalidation key fixes are pure config. Auto-confirm is scoped to requesting user only; RLS still enforces access on actual DB writes. Prompt fix is text-only.
+- Rollback: revert the auto-confirm effect if any issues; manual confirm still works as fallback.
 
