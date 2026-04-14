@@ -512,3 +512,11 @@
 - **Evidence:** Consolidating `useUnifiedEntitlements` to `syncRevenueCatEntitlementsForUser(...)` and removing startup `initRevenueCat()` from web shell eliminated contradictory Purchases-js and adapter paths in April 2026.
 - **Provenance:** April 2026 RevenueCat architecture consolidation.
 - **Confidence:** high
+
+### Keep plan quotas in one canonical module consumed by both client and server
+- **Tip:** Usage ceilings that affect both UI counters and backend enforcement must come from one shared policy map. Duplicated constants drift silently and create trust-breaking mismatches (UI says asks remain while server rejects).
+- **Applies when:** Per-plan limits (trip query caps, export caps, seat caps) are shown in frontend and enforced in edge functions/RPC paths.
+- **Avoid when:** A limit is intentionally runtime-only (e.g., server cost circuit-breaker not exposed in UI).
+- **Evidence:** Concierge trip query policy diverged (`useConciergeUsage` 10/25 vs server `usagePolicy` 5/10); canonicalizing to shared `getConciergeTripQueryLimit(...)` removed mismatch and synchronized trip-limit response copy.
+- **Provenance:** April 2026 concierge usage policy consolidation.
+- **Confidence:** high

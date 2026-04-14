@@ -9,9 +9,7 @@ import {
   type EntitlementSelectorRow,
 } from '@/lib/entitlements/selectors';
 import { getTierFromProductId } from '@/constants/stripe';
-
-const FREE_TIER_LIMIT = 10;
-const EXPLORER_TIER_LIMIT = 25;
+import { getConciergeTripQueryLimit } from '@/lib/conciergeTripQueryLimits';
 
 export type ConciergePlan = 'free' | 'explorer' | 'frequent_chraveler';
 
@@ -57,11 +55,7 @@ const invokeRpc = async <T>(
   return rpcClient.rpc(functionName, params);
 };
 
-const getLimitForPlan = (plan: ConciergePlan): number | null => {
-  if (plan === 'free') return FREE_TIER_LIMIT;
-  if (plan === 'explorer') return EXPLORER_TIER_LIMIT;
-  return null;
-};
+const getLimitForPlan = (plan: ConciergePlan): number | null => getConciergeTripQueryLimit(plan);
 
 const mapPlanFromTier = (
   tier:
