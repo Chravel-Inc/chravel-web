@@ -202,17 +202,37 @@ export const AIConciergeChat = ({
   );
 
   // Auto-scroll to bottom when new messages, typing indicator, or streaming voice
-  // Uses RAF batching to prevent iOS vibration bug caused by rapid scroll updates during streaming
+  // Uses RAF batching + bottom-proximity stickiness to prevent iOS vibration bug
   useEffect(() => {
     let rafId: number | null = null;
+    let lastScrollTime = 0;
+    const SCROLL_THROTTLE_MS = 80; // Cadence guard to reduce scroll churn on iOS
 
     const scrollToBottom = () => {
       if (rafId !== null) return; // Already scheduled
+
+      const now = Date.now();
+      if (now - lastScrollTime < SCROLL_THROTTLE_MS) return; // Throttle rapid updates
+
       rafId = requestAnimationFrame(() => {
         rafId = null;
-        if (chatScrollRef.current) {
-          chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
-        }
+        const container = chatScrollRef.current;
+        if (!container) return;
+
+        // Bottom-proximity stickiness: only scroll if user is near bottom
+        // This prevents jarring scroll yanks when user intentionally scrolled up
+        const distanceFromBottom =
+          container.scrollHeight - container.scrollTop - container.clientHeight;
+        const isNearBottom = distanceFromBottom < 96;
+
+        if (!isNearBottom) return; // User scrolled up intentionally, don't force scroll
+
+        // Redundant scroll-write suppression: skip if already at target
+        const targetScrollTop = container.scrollHeight - container.clientHeight;
+        if (Math.abs(container.scrollTop - targetScrollTop) <= 2) return;
+
+        container.scrollTop = container.scrollHeight;
+        lastScrollTime = Date.now();
       });
     };
 
