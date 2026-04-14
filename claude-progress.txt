@@ -687,6 +687,23 @@
 - Added focused regression test `src/lib/runtime/launchContext.test.ts` covering browser default, native query-param launch, and standalone PWA launch classification.
 - Verification: `npm run test:run -- src/lib/runtime/launchContext.test.ts`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`.
 
+2026-04-13 — Entitlements composite key hardening (subscription + pass coexistence)
+- Added DB migration `20260413090000_user_entitlements_composite_purchase_key.sql` to move `user_entitlements` PK from `user_id` to `(user_id, purchase_type)` with legacy purchase_type normalization + duplicate-safety precheck.
+- Updated Stripe, RevenueCat webhook, and RevenueCat sync upserts to conflict on `user_id,purchase_type` via shared constant `USER_ENTITLEMENT_CONFLICT_TARGET`.
+- Updated client entitlement selectors (`useSubscription`, `useConciergeUsage`, `entitlementsStore`) to fetch purchase-scoped rows and apply deterministic prioritization (active subscription first, then status/recency fallback) instead of `maybeSingle()` by user.
+- Added regression tests covering composite upsert semantics and selector prioritization for users holding both subscription and pass.
+- Verification: `npm run test:run -- supabase/functions/_shared/__tests__/entitlementUpsert.test.ts src/lib/entitlements/__tests__/selectors.test.ts`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`.
+
+2026-04-14 — PR #253 follow-up audit fixes (Cursor bot findings)
+- Fixed edge-function single-row entitlement assumptions that would break after composite `(user_id, purchase_type)` key rollout:
+  - `supabase/functions/_shared/concierge/usagePolicy.ts`
+  - `supabase/functions/concierge-tts/index.ts`
+  - `supabase/functions/dispatch-notification-deliveries/index.ts`
+  now query purchase-scoped rows and resolve one canonical row via shared `_shared/entitlementSelection.ts` prioritization.
+- Fixed Stripe refund entitlement update path in `stripe-webhook` to update pass entitlements by `(user_id, purchase_type)` instead of non-existent `id` column.
+- Hardened migration backfill to default ambiguous legacy rows to `subscription` (removed fragile Stripe+period_end => pass heuristic).
+- Added regression tests for shared edge entitlement selection behavior (`_shared/__tests__/entitlementSelection.test.ts`).
+- Validation: focused vitest suite, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`.
 2026-04-13 — Subscription architecture hardening (cross-provider dedupe + service-tier unification)
 - Added `src/services/entitlementService.ts` as a centralized resolver for effective paid tier from `user_entitlements` with legacy `profiles` fallback for compatibility.
 - Rewired trip/archive/upload freemium gating paths to use centralized entitlement resolver instead of direct `profiles.subscription_*` checks.

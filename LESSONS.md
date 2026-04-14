@@ -485,6 +485,11 @@
 - **Avoid when:** Marketing and app are fully separate codebases/domains.
 - **Evidence:** Chravel native users were seeing marketing homepage because `/` entry treated native WebView the same as browser; a centralized launch context utility plus early Index gate removed flash and preserved browser SEO routes.
 - **Provenance:** April 2026 installed app entry routing hardening (`launchContext` + Index gate).
+### Entitlement upserts should conflict on purchase domain, not user identity alone
+- **Tip:** For mixed purchase models (recurring subscription + one-time pass), key `user_entitlements` writes by `(user_id, purchase_type)` so webhook retries/updates stay idempotent without cross-overwriting another entitlement track.
+- **Applies when:** Any Stripe/RevenueCat/admin write path updates `user_entitlements`.
+- **Evidence:** User-only conflict targets overwrite pass/subscription state for dual-entitled users; switching upserts and selectors to purchase-scoped rows preserves both and enables deterministic client prioritization.
+- **Provenance:** April 2026 composite entitlement key hardening.
 ### Checkout creation should enforce cross-provider overlap guards before payment session creation
 - **Tip:** Before creating a Stripe Checkout session, read `user_entitlements` and explicitly block overlapping active paid access (active/trialing/past_due/canceled-with-future-end) from any provider. This prevents accidental dual billing when users can arrive from multiple billing channels (web Stripe + native RevenueCat).
 - **Applies when:** Mixed-provider billing stacks where at least one client can initiate purchases without central provider reconciliation.
