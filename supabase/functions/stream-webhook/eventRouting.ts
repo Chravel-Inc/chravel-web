@@ -1,15 +1,15 @@
-export const HANDLED_STREAM_EVENT_TYPES = new Set([
+export const HANDLED_STREAM_EVENT_TYPES = new Set<string>([
   'message.new',
   'message.updated',
   'message.deleted',
-] as const);
+]);
 
-export const HANDLED_STREAM_CHANNEL_TYPES = new Set([
+export const HANDLED_STREAM_CHANNEL_TYPES = new Set<string>([
   'chravel-trip',
   'chravel-broadcast',
   'chravel-channel',
   'chravel-concierge',
-] as const);
+]);
 
 export type ResolvedStreamChannel = {
   channelType: string | null;
