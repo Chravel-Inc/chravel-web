@@ -127,8 +127,8 @@ export function useStreamProChannel(channelId: string | null) {
           text: content,
           attachments: options?.attachments || undefined,
           parent_id: options?.parentId,
-          isBroadcast: options?.isBroadcast || undefined,
-        });
+          ...(options?.isBroadcast ? ({ isBroadcast: true } as Record<string, unknown>) : {}),
+        } as Parameters<typeof channel.sendMessage>[0]);
         return true;
       } catch {
         return false;

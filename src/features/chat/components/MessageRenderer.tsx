@@ -193,7 +193,10 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({
       >
         <div
           className={cn(
-            'px-3.5 py-2.5 rounded-2xl backdrop-blur-sm border transition-all relative',
+            'px-3.5 py-2.5 rounded-2xl backdrop-blur-sm border relative',
+            // Use transition-colors instead of transition-all to prevent layout animation jitter on iOS during streaming
+            // Disable transitions entirely for streaming bubbles to eliminate iOS vibration
+            message.isStreamingVoice ? 'transition-none' : 'transition-colors duration-150',
             isOwnMessage
               ? 'bg-blue-600 text-white border-blue-600/20 shadow-[0_1px_3px_rgba(0,0,0,0.25)] rounded-br-sm'
               : 'bg-muted/80 text-white border-border shadow-sm rounded-bl-sm',

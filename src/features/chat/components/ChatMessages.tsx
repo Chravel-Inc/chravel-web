@@ -56,6 +56,8 @@ interface RichChatMessage extends ChatMessage {
     toolName: string;
     actionType: string;
     message: string;
+    title?: string;
+    detail?: string | null;
   }>;
 }
 
@@ -278,6 +280,8 @@ export const ChatMessages = ({
                         resolved_at: null,
                         resolved_by: null,
                       }}
+                      title={action.title}
+                      detail={action.detail}
                       onConfirm={onConfirmPendingAction || (() => undefined)}
                       onReject={onRejectPendingAction || (() => undefined)}
                       isConfirming={isConfirmingPendingAction}

@@ -8,7 +8,7 @@
 import {
   supabase,
   SUPABASE_PROJECT_URL,
-  SUPABASE_PUBLIC_ANON_KEY,
+  SUPABASE_PUBLIC_API_KEY,
 } from '@/integrations/supabase/client';
 
 interface StreamTokenResponse {
@@ -50,7 +50,7 @@ export async function getStreamToken(): Promise<StreamTokenResponse> {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,
-      apikey: SUPABASE_PUBLIC_ANON_KEY,
+      apikey: SUPABASE_PUBLIC_API_KEY,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({}),

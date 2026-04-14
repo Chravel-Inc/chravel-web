@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { USER_ENTITLEMENT_CONFLICT_TARGET } from '../_shared/entitlementUpsert.ts';
 
 // Entitlement ID to plan mapping (must match RevenueCat dashboard)
 const ENTITLEMENT_TO_PLAN: Record<string, string> = {
@@ -135,6 +136,7 @@ serve(async req => {
       .select('plan, status, current_period_end')
       .eq('user_id', user.id)
       .eq('source', 'revenuecat')
+      .eq('purchase_type', 'subscription')
       .maybeSingle();
 
     const normalizedPeriodEnd = currentPeriodEnd ? new Date(currentPeriodEnd).toISOString() : null;
@@ -176,7 +178,7 @@ serve(async req => {
         updated_at: new Date().toISOString(),
       },
       {
-        onConflict: 'user_id',
+        onConflict: USER_ENTITLEMENT_CONFLICT_TARGET,
       },
     );
 

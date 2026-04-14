@@ -8,7 +8,7 @@ import type { HotelResult } from '@/features/chat/components/HotelResultCards';
 
 export interface AIConciergeChatProps {
   tripId: string;
-  basecamp?: { name: string; address: string };
+  basecamp?: { name?: string; address: string };
   preferences?: TripPreferences;
   isDemoMode?: boolean;
   onTabChange?: (tab: string) => void;

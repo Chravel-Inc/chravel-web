@@ -7,7 +7,7 @@ import { supabase } from '../integrations/supabase/client';
 import { toast } from 'sonner';
 import { CoverPhotoCropModal } from './CoverPhotoCropModal';
 import { CoverPhotoFullscreenModal } from './CoverPhotoFullscreenModal';
-import { buildTripCoverStoragePath, TRIP_COVER_BUCKET } from '@/utils/tripCoverStorage';
+import { TRIP_COVER_BUCKET, uploadTripCoverBlob } from '@/utils/tripCoverStorage';
 import { isBlobOrDataUrl } from '@/utils/mediaUtils';
 
 interface TripCoverPhotoUploadProps {
@@ -60,13 +60,8 @@ export const TripCoverPhotoUpload = ({
 
   const handleCropComplete = useCallback(
     async (croppedBlob: Blob) => {
-      setShowCropModal(false);
       setIsUploading(true);
-
-      // Clean up the original preview URL if it was a blob
-      if (selectedImageSrc && isBlobOrDataUrl(selectedImageSrc)) {
-        URL.revokeObjectURL(selectedImageSrc);
-      }
+      let uploadedFilePath: string | null = null;
 
       try {
         // Demo mode: use blob URL
@@ -74,66 +69,56 @@ export const TripCoverPhotoUpload = ({
           const croppedUrl = URL.createObjectURL(croppedBlob);
           const success = await onPhotoUploaded(croppedUrl);
           if (success) {
+            setShowCropModal(false);
             setUploadSuccess(true);
             setTimeout(() => setUploadSuccess(false), 2000);
+            if (selectedImageSrc && isBlobOrDataUrl(selectedImageSrc)) {
+              URL.revokeObjectURL(selectedImageSrc);
+            }
+            setSelectedImageSrc('');
           }
           setIsUploading(false);
-          return;
+          return success;
         }
 
-        // Authenticated mode: Upload to canonical trip-media/trip-covers path
-        const fileName = `cover-${Date.now()}-${crypto.randomUUID()}.jpg`;
-        const filePath = buildTripCoverStoragePath(tripId, fileName);
-
-        const MAX_RETRIES = 3;
-        let lastError: Error | null = null;
-        let publicUrl: string | null = null;
-
-        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-          try {
-            const { error } = await supabase.storage
-              .from(TRIP_COVER_BUCKET)
-              .upload(filePath, croppedBlob, {
-                cacheControl: '3600',
-                upsert: true,
-                contentType: 'image/jpeg',
-              });
-
-            if (error) {
-              lastError = new Error(error.message);
-              if (attempt < MAX_RETRIES) {
-                await new Promise(r => setTimeout(r, 1000 * attempt)); // Exponential backoff
-                continue;
-              }
-            } else {
-              const { data } = supabase.storage.from(TRIP_COVER_BUCKET).getPublicUrl(filePath);
-              publicUrl = data.publicUrl ?? null;
-              break;
-            }
-          } catch (e) {
-            lastError = e instanceof Error ? e : new Error(String(e));
-            if (attempt < MAX_RETRIES) {
-              await new Promise(r => setTimeout(r, 1000 * attempt));
-              continue;
-            }
-          }
-        }
-
-        if (!publicUrl) {
-          throw lastError || new Error('No URL returned from upload');
-        }
+        const { publicUrl, filePath } = await uploadTripCoverBlob({
+          client: supabase,
+          tripId,
+          blob: croppedBlob,
+        });
+        uploadedFilePath = filePath;
 
         // Add cache-busting param for re-crops
         const finalUrl = `${publicUrl}?v=${Date.now()}`;
         const success = await onPhotoUploaded(finalUrl);
         if (success) {
+          setShowCropModal(false);
           setHasImageError(false);
           setUploadSuccess(true);
           setTimeout(() => setUploadSuccess(false), 2000);
+          if (selectedImageSrc && isBlobOrDataUrl(selectedImageSrc)) {
+            URL.revokeObjectURL(selectedImageSrc);
+          }
+          setSelectedImageSrc('');
+          return true;
         }
+        if (uploadedFilePath) {
+          await supabase.storage
+            .from(TRIP_COVER_BUCKET)
+            .remove([uploadedFilePath])
+            .catch(() => null);
+        }
+        toast.error('Cover photo was uploaded but could not be saved to trip details.');
+        return false;
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error';
         console.error('Photo upload error:', error);
+        if (uploadedFilePath) {
+          await supabase.storage
+            .from(TRIP_COVER_BUCKET)
+            .remove([uploadedFilePath])
+            .catch(() => null);
+        }
         if (message.includes('policy') || message.includes('permission')) {
           toast.error(
             'Upload blocked by trip permissions. Ask a trip admin to change media upload settings.',
@@ -141,9 +126,9 @@ export const TripCoverPhotoUpload = ({
         } else {
           toast.error(`Failed to upload photo: ${message}`);
         }
+        return false;
       } finally {
         setIsUploading(false);
-        setSelectedImageSrc('');
       }
     },
     [user, isDemoMode, tripId, onPhotoUploaded, selectedImageSrc],

@@ -13,7 +13,7 @@ import type { HotelResult } from '@/features/chat/components/HotelResultCards';
 import type { TripPreferences } from '@/types/consumer';
 import { supabase } from '@/integrations/supabase/client';
 import {
-  getConciergeInvalidationQueryKey,
+  getConciergeInvalidationKeys,
   isConciergeWriteAction,
 } from '@/lib/conciergeInvalidation';
 import { sanitizeConciergeContent } from '@/lib/sanitizeConciergeContent';
@@ -53,8 +53,8 @@ interface Params {
   setAiStatus: React.Dispatch<React.SetStateAction<string>>;
   incrementUsageOnSuccess: () => Promise<{ incremented: boolean }>;
   buildLimitReachedMessage: () => ChatMessage;
-  basecamp?: { name: string; address: string };
-  globalBasecamp?: { name: string; address: string };
+  basecamp?: { name?: string; address: string };
+  globalBasecamp?: { name?: string; address: string };
   effectivePreferences?: TripPreferences;
   attachedImages: File[];
   attachedDocuments: File[];
@@ -289,6 +289,20 @@ export function useConciergeStreaming(params: Params) {
           });
         };
 
+        const hasRenderableAssistantPayload = (msg?: ChatMessage): boolean =>
+          !!(
+            msg &&
+            (msg.functionCallHotels?.length ||
+              msg.functionCallFlights?.length ||
+              msg.functionCallPlaces?.length ||
+              msg.pendingActions?.length ||
+              msg.reservationDrafts?.length ||
+              msg.smartImportPreview ||
+              msg.bulkDeletePreview ||
+              msg.smartImportStatus ||
+              (msg.conciergeActions && msg.conciergeActions.length > 0))
+          );
+
         const streamHandle = invokeConciergeStream(
           requestBody,
           {
@@ -466,7 +480,7 @@ export function useConciergeStreaming(params: Params) {
 
               // Handle concierge write actions (createPoll, createTask, savePlace, etc.)
               if (isConciergeWriteAction(name) && result.actionType) {
-                if (result.pending && result.pendingActionId) {
+              if (result.pending && result.pendingActionId) {
                   const pendingAction = {
                     id: result.pendingActionId as string,
                     toolName: name,
@@ -496,6 +510,13 @@ export function useConciergeStreaming(params: Params) {
                         pendingActions: [pendingAction],
                       },
                     ];
+                  });
+
+                  // CRITICAL: Invalidate pending actions query so auto-confirm fires.
+                  // Without this, usePendingActions never sees the new row and the
+                  // task/poll/calendar event stays parked in trip_pending_actions forever.
+                  conciergeQueryClient.invalidateQueries({
+                    queryKey: ['pendingActions', tripId],
                   });
                   return;
                 }
@@ -566,10 +587,12 @@ export function useConciergeStreaming(params: Params) {
 
                 // Invalidate relevant queries so tab data refreshes after AI write actions
                 if (result.success) {
-                  const queryKey = getConciergeInvalidationQueryKey(name, tripId);
-                  if (queryKey) {
-                    conciergeQueryClient.invalidateQueries({ queryKey });
+                  const keys = getConciergeInvalidationKeys(name, tripId);
+                  for (const queryKey of keys) {
+                    conciergeQueryClient.invalidateQueries({ queryKey, exact: false });
                   }
+                  // Also invalidate pending actions so auto-confirm picks them up
+                  conciergeQueryClient.invalidateQueries({ queryKey: ['pendingActions', tripId] });
                 }
               }
             },
@@ -809,10 +832,7 @@ export function useConciergeStreaming(params: Params) {
                 setMessages(prev => {
                   // Check if cards/actions were already attached by tool calls
                   const existing = prev.find(m => m.id === streamingMessageId);
-                  const hasCards =
-                    existing?.functionCallHotels?.length ||
-                    existing?.functionCallPlaces?.length ||
-                    (existing?.conciergeActions && existing.conciergeActions.length > 0);
+                  const hasCards = hasRenderableAssistantPayload(existing);
                   return [
                     ...prev.filter(m => m.id !== streamingMessageId),
                     {
@@ -825,8 +845,26 @@ export function useConciergeStreaming(params: Params) {
                       ...(existing?.functionCallHotels
                         ? { functionCallHotels: existing.functionCallHotels }
                         : {}),
+                      ...(existing?.functionCallFlights
+                        ? { functionCallFlights: existing.functionCallFlights }
+                        : {}),
                       ...(existing?.functionCallPlaces
                         ? { functionCallPlaces: existing.functionCallPlaces }
+                        : {}),
+                      ...(existing?.pendingActions
+                        ? { pendingActions: existing.pendingActions }
+                        : {}),
+                      ...(existing?.reservationDrafts
+                        ? { reservationDrafts: existing.reservationDrafts }
+                        : {}),
+                      ...(existing?.smartImportPreview
+                        ? { smartImportPreview: existing.smartImportPreview }
+                        : {}),
+                      ...(existing?.bulkDeletePreview
+                        ? { bulkDeletePreview: existing.bulkDeletePreview }
+                        : {}),
+                      ...(existing?.smartImportStatus
+                        ? { smartImportStatus: existing.smartImportStatus }
                         : {}),
                       ...(existing?.conciergeActions
                         ? { conciergeActions: existing.conciergeActions }
@@ -836,10 +874,7 @@ export function useConciergeStreaming(params: Params) {
                 });
               } else {
                 updateStreamMsg(msg => {
-                  const hasCards =
-                    msg.functionCallHotels?.length ||
-                    msg.functionCallPlaces?.length ||
-                    (msg.conciergeActions && msg.conciergeActions.length > 0);
+                  const hasCards = hasRenderableAssistantPayload(msg);
                   return msg.content.length > 0 || hasCards
                     ? {}
                     : { content: 'Sorry, I encountered an error processing your request.' };

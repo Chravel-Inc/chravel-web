@@ -104,7 +104,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
       {/* Full-Page Scrolling Container with PWA safe-area support */}
       <div
         ref={scrollContainerRef}
-        className="overflow-y-auto overflow-x-hidden h-screen scroll-smooth"
+        className="dark-section overflow-y-auto overflow-x-hidden h-screen scroll-smooth"
         style={{
           paddingLeft: 'env(safe-area-inset-left)',
           paddingRight: 'env(safe-area-inset-right)',

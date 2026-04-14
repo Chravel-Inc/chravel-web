@@ -1,3 +1,9 @@
+2026-04-14 — Smart Import Gmail discoverability hardening (no-trip context)
+- Root-caused Gmail visibility confusion in Smart Import modal to conditional rendering that only showed the Gmail block when `tripId` existed; non-trip entry points silently omitted the section with no explanation.
+- Added a minimal contextual notice in `src/components/SmartImport.tsx` for the no-trip path: Gmail import is available from trip-scoped modal launches and account management lives in Settings → Integrations.
+- Added focused regression tests in `src/components/__tests__/SmartImport.gmailVisibility.test.tsx` covering both states: guidance appears without `tripId`; Gmail widget renders when `tripId` exists.
+- Verification: `npm run test:run -- src/components/__tests__/SmartImport.gmailVisibility.test.tsx`, `npm run typecheck`, `npm run merge:preflight` (blocked in this environment: cannot fetch `origin/main`).
+
 2026-04-13 — Chat search dead-code verification + overlay test expansion
 - Verified legacy `MessageSearch` component and `messageSearchService` have no runtime references in `src/` (files are already removed from the repo).
 - Confirmed trip chat search wiring remains `TripChat -> ChatSearchOverlay -> chatSearchService` with no alternate legacy search component path.
@@ -21,6 +27,10 @@
 - Replaced edit handler path to use Stream client API via `getStreamClient()` guard + user-visible missing-client toast, then `client.updateMessage({ id, text })` with typed payload (no `any` cast in edit path).
 - Added focused regression tests in `src/features/chat/utils/__tests__/updateStreamMessage.test.ts` to verify: expected update payload, missing-client toast handling, and update failure toast handling.
 - Verification: `npm run test:run -- src/features/chat/utils/__tests__/updateStreamMessage.test.ts`, `npm run typecheck`, `npm run lint:check`, `npm run build`.
+
+2026-04-13 — Stream trip chat reaction toggle regression tests (PR follow-up)
+- `useStreamTripChat.toggleReaction` already uses Stream-native `own_reactions` on `main`; this pass adds focused double-tap coverage in `src/hooks/stream/__tests__/useStreamTripChat.reactions.test.tsx` (send then delete after simulated reaction event).
+- Verification: `npm run test:run -- src/hooks/stream/__tests__/useStreamTripChat.reactions.test.tsx src/hooks/stream/__tests__/useStreamTripChat.send.test.tsx`, `npm run typecheck`.
 
 2026-04-11 — Broadcast scheduling kill-switch hardening (admin flow + service guard)
 - Added server-driven feature flag gate `broadcast-scheduling-enabled` with safe default `false` on Admin Dashboard scheduling UX (`src/pages/AdminDashboard.tsx`).
@@ -571,7 +581,7 @@
 - Replaced unread-count hook read source from Supabase receipt joins to Stream-native channel unread state + local message classification (`broadcast` vs standard).
 - Removed dead Supabase fallback reaction transport from `useChatReactions`; Stream is now the single authenticated reaction path.
 - Added Stream-ready reconnect guard to `useStreamBroadcasts` via `onStreamClientConnected`, plus updated hook test mocks.
-- Added `ai-concierge-bot` provisioning in `stream-setup-permissions` via Stream `upsertUser`.
+- Hardened `stream-setup-permissions` concierge principal: refactored setup into `setup.ts` (`configureStreamPermissionsAndPrincipal`), deterministic `ai-concierge-bot` / `AI Concierge` / `admin` upsert before channel-type grants, structured `service_user_upsert_failed` logging with non-blocking continuation, README + fixture-backed tests.
 - Added new `supabase/functions/stream-webhook` edge function with signature verification, idempotency insert, and `message.new` -> notifications write path.
 - Switched chat search services to Stream-backed message search:
   - `chatSearchService` now uses channel search/query for trip messages.

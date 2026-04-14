@@ -1,10 +1,67 @@
 import { isBlobOrDataUrl } from './mediaUtils';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/integrations/supabase/types';
 
-export const TRIP_COVER_BUCKET = 'trip-media';
-export const TRIP_COVER_FOLDER = 'trip-covers';
+export const TRIP_COVER_BUCKET = 'trip-covers';
+
+const DEFAULT_UPLOAD_RETRIES = 3;
 
 export function buildTripCoverStoragePath(tripId: string, fileName: string): string {
-  return `${TRIP_COVER_FOLDER}/${tripId}/${fileName}`;
+  return `${tripId}/${fileName}`;
+}
+
+interface UploadTripCoverBlobParams {
+  client: SupabaseClient<Database>;
+  tripId: string;
+  blob: Blob;
+  maxRetries?: number;
+  retryDelayMs?: number;
+}
+
+interface UploadTripCoverBlobResult {
+  publicUrl: string;
+  filePath: string;
+}
+
+export async function uploadTripCoverBlob({
+  client,
+  tripId,
+  blob,
+  maxRetries = DEFAULT_UPLOAD_RETRIES,
+  retryDelayMs,
+}: UploadTripCoverBlobParams): Promise<UploadTripCoverBlobResult> {
+  const fileName = `cover-${Date.now()}-${crypto.randomUUID()}.jpg`;
+  const filePath = buildTripCoverStoragePath(tripId, fileName);
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const { error } = await client.storage.from(TRIP_COVER_BUCKET).upload(filePath, blob, {
+        cacheControl: '3600',
+        upsert: true,
+        contentType: 'image/jpeg',
+      });
+
+      if (error) {
+        lastError = new Error(error.message);
+      } else {
+        const { data } = client.storage.from(TRIP_COVER_BUCKET).getPublicUrl(filePath);
+        if (data.publicUrl) {
+          return { publicUrl: data.publicUrl, filePath };
+        }
+        lastError = new Error('No URL returned from upload');
+      }
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error('Cover upload failed');
+    }
+
+    if (attempt < maxRetries) {
+      const delayMs = retryDelayMs ?? 1000 * attempt;
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+
+  throw lastError ?? new Error('Cover upload failed');
 }
 
 /**
@@ -29,7 +86,7 @@ export function normalizeTripCoverUrl(url?: string | null): string | undefined {
     }
 
     const uploadPath = decodeURIComponent(parsed.pathname.split(signedPrefix)[1] ?? '');
-    if (!uploadPath.startsWith(`${TRIP_COVER_FOLDER}/`)) {
+    if (!uploadPath) {
       return url;
     }
 

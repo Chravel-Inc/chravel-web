@@ -6,7 +6,7 @@ import { useDemoMode } from './useDemoMode';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 import { useDemoTripMembersStore } from '@/store/demoTripMembersStore';
-import { removeMemberFromTripChannels } from '@/services/stream/streamMembershipSync';
+import { syncRemoveMemberFromTripChannels } from '@/services/stream/streamMembershipCoordinator';
 import {
   resolveDisplayName,
   UNRESOLVED_NAME_SENTINEL,
@@ -256,7 +256,7 @@ export const useTripMembers = (tripId?: string) => {
 
         // Sync membership removal to Stream channels (fire-and-forget, non-fatal)
         if (tripId) {
-          removeMemberFromTripChannels(tripId, userId).catch(() => {});
+          syncRemoveMemberFromTripChannels(tripId, userId).catch(() => {});
         }
 
         // Update local state
@@ -337,7 +337,7 @@ export const useTripMembers = (tripId?: string) => {
 
         // Sync membership removal to Stream channels (fire-and-forget, non-fatal)
         if (tripId && user.id) {
-          removeMemberFromTripChannels(tripId, user.id).catch(() => {});
+          syncRemoveMemberFromTripChannels(tripId, user.id).catch(() => {});
         }
 
         setTripMembers(prev => prev.filter(m => m.id !== user.id));

@@ -59,10 +59,15 @@ export function isConciergeWriteAction(name: string): boolean {
   return CONCIERGE_WRITE_ACTIONS.has(name);
 }
 
-export function getConciergeInvalidationQueryKey(
+/**
+ * Returns an array of query keys to invalidate for a given concierge tool.
+ * Multiple keys are returned when a single tool affects more than one cache domain.
+ * Returns an empty array for tools with no invalidation mapping.
+ */
+export function getConciergeInvalidationKeys(
   name: string,
   tripId: string,
-): ConciergeInvalidationQueryKey | null {
+): ConciergeInvalidationQueryKey[] {
   switch (name) {
     // Calendar
     case 'addToCalendar':
@@ -74,7 +79,7 @@ export function getConciergeInvalidationQueryKey(
     case 'duplicateCalendarEvent':
     case 'moveCalendarEvent':
     case 'cloneActivity':
-      return ['calendarEvents', tripId];
+      return [['calendarEvents', tripId]];
 
     // Tasks
     case 'createTask':
@@ -82,49 +87,62 @@ export function getConciergeInvalidationQueryKey(
     case 'deleteTask':
     case 'splitTaskAssignments':
     case 'bulkMarkTasksDone':
-      return ['tripTasks', tripId];
+      return [['tripTasks', tripId]];
 
     // Polls
     case 'createPoll':
     case 'closePoll':
-      return ['tripPolls', tripId];
+      return [['tripPolls', tripId]];
 
-    // Places / Reservations
+    // Places / Reservations — also invalidate tripLinks (shared explore tab)
     case 'savePlace':
     case 'emitReservationDraft':
     case 'makeReservation':
-      return ['tripPlaces', tripId];
+      return [['tripPlaces', tripId], ['tripLinks', tripId]];
 
     // Payments / Expenses
     case 'settleExpense':
     case 'addExpense':
     case 'setTripBudget':
-      return ['tripPayments', tripId];
+      return [['tripPayments', tripId]];
 
     // Broadcasts
     case 'createBroadcast':
-      return ['tripBroadcasts', tripId];
+      return [['tripBroadcasts', tripId]];
 
     // Notifications — no dedicated query key; realtime handles updates.
-    // Listed in write set so isConciergeWriteAction() returns true.
     case 'createNotification':
-      return null;
+      return [];
 
-    // Reminders — no dedicated query key; calendar is closest.
+    // Reminders — calendar is closest.
     case 'addReminder':
-      return ['calendarEvents', tripId];
+      return [['calendarEvents', tripId]];
 
-    // Trip-level
+    // Trip-level basecamp — invalidate tripBasecamp query + trip detail + personal basecamp prefix
     case 'setBasecamp':
-      return ['tripBasecamp', tripId];
+      return [['tripBasecamp', tripId], ['trip', tripId], ['personalBasecamp']];
+
     case 'addToAgenda':
-      return ['eventAgenda', tripId];
+      return [['eventAgenda', tripId]];
+
     case 'setTripHeaderImage':
     case 'generateTripImage':
     case 'updateTripDetails':
-      return ['trips'];
+      return [['trips'], ['trip', tripId]];
 
     default:
-      return null;
+      return [];
   }
+}
+
+/**
+ * @deprecated Use getConciergeInvalidationKeys (returns array) instead.
+ * Kept for backward compatibility with tests.
+ */
+export function getConciergeInvalidationQueryKey(
+  name: string,
+  tripId: string,
+): ConciergeInvalidationQueryKey | null {
+  const keys = getConciergeInvalidationKeys(name, tripId);
+  return keys.length > 0 ? keys[0] : null;
 }

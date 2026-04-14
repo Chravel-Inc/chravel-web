@@ -24,6 +24,7 @@ import {
 import { CHANNEL_TYPE_TRIP, tripChannelId } from '@/services/stream/streamChannelFactory';
 import { messageEvents } from '@/telemetry/events';
 import type { Channel, Event, MessageResponse } from 'stream-chat';
+import { buildTripStreamMessagePayload } from '@/services/stream/streamMessagePayload';
 
 const PAGE_SIZE = 30;
 
@@ -243,8 +244,18 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       const channel = channelRef.current;
       if (!channel || !tripId) return;
       const normalizedContent = content.trim();
-      if (!normalizedContent) return;
-      if (normalizedContent.length > 4000) {
+      const payloadResult = buildTripStreamMessagePayload({
+        content,
+        mediaType,
+        mediaUrl,
+        privacyMode,
+        messageType,
+        replyToId,
+        mentionedUserIds,
+      });
+
+      if (!payloadResult.ok) {
+        if ('error' in payloadResult && payloadResult.error === 'empty_content') return;
         toast({
           title: 'Message too long',
           description: 'Please keep messages under 4000 characters.',
@@ -253,35 +264,15 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         return;
       }
 
-      const payload: Record<string, unknown> = {
-        text: normalizedContent,
-      };
-
-      if (privacyMode && privacyMode !== 'standard') {
-        payload.privacy_mode = privacyMode;
-      }
-      if (messageType && messageType !== 'text') {
-        payload.message_type = messageType;
-      }
-      if (replyToId && !replyToId.startsWith('legacy-')) {
-        payload.parent_id = replyToId;
-      }
-      if (mentionedUserIds && mentionedUserIds.length > 0) {
-        payload.mentioned_users = mentionedUserIds;
-      }
-      if (mediaUrl) {
-        payload.attachments = [{ type: mediaType || 'file', asset_url: mediaUrl }];
-      }
-
       void channel
-        .sendMessage(payload as Parameters<Channel['sendMessage']>[0])
+        .sendMessage(payloadResult.payload)
         .then(() => {
           messageEvents.sent({
             trip_id: tripId,
             message_type:
               (messageType as 'text' | 'media' | 'broadcast' | 'payment' | 'system') || 'text',
             has_media: Boolean(mediaUrl),
-            character_count: normalizedContent.length,
+            character_count: payloadResult.normalizedContent.length,
             is_offline_queued: false,
           });
         })

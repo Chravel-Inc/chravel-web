@@ -13,6 +13,7 @@
  * sourced from the pending action row (server-verified), never from user input.
  */
 
+import { useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -89,7 +90,7 @@ export function usePendingActions(tripId: string) {
       switch (action.tool_name) {
         case 'createTask': {
           // intentional: source_type column may not be in generated types yet
-          const { error } = await (supabase as any)
+          const { data: taskRow, error } = await (supabase as any)
             .from('trip_tasks')
             .insert({
               trip_id: action.trip_id,
@@ -102,6 +103,28 @@ export function usePendingActions(tripId: string) {
             .select()
             .single();
           if (error) throw error;
+
+          // Write parity: also create task_status + task_assignments rows so the
+          // task shows correct completion state and assignees in the UI, matching
+          // what the manual task creation path does.
+          if (taskRow?.id) {
+            const assignees = (payload.assignedTo as string[]) || [user.id];
+            // task_assignments
+            await (supabase as any).from('task_assignments').insert(
+              assignees.map((uid: string) => ({
+                task_id: taskRow.id,
+                user_id: uid,
+              })),
+            );
+            // task_status — mark as incomplete for each assignee
+            await (supabase as any).from('task_status').insert(
+              assignees.map((uid: string) => ({
+                task_id: taskRow.id,
+                user_id: uid,
+                completed: false,
+              })),
+            );
+          }
           break;
         }
 
@@ -295,28 +318,30 @@ export function usePendingActions(tripId: string) {
       ].includes(label);
       toast.success(isVerb ? label : `${label} created`);
 
-      // Invalidate relevant queries
+      // Invalidate relevant queries — use exact: false for prefix matching
+      // so ['tripTasks', tripId, isDemoMode] variants are also invalidated.
       queryClient.invalidateQueries({ queryKey });
       switch (action.tool_name) {
         case 'createTask':
-          queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId] });
+          queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId], exact: false });
           break;
         case 'createPoll':
-          queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId] });
+          queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId], exact: false });
           break;
         case 'addToCalendar':
         case 'duplicateCalendarEvent':
         case 'cloneActivity':
-          queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
+          queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId), exact: false });
           break;
         case 'bulkMarkTasksDone':
-          queryClient.invalidateQueries({ queryKey: tripKeys.tasks(tripId) });
+          queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId], exact: false });
           break;
         case 'addExpense':
-          queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) });
+          queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId), exact: false });
           break;
         case 'updateTripDetails':
-          queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
+          queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId), exact: false });
+          queryClient.invalidateQueries({ queryKey: tripKeys.all, exact: false });
           break;
         default:
           break;
@@ -354,6 +379,24 @@ export function usePendingActions(tripId: string) {
       toast.error(error.message || 'Failed to reject action');
     },
   });
+
+  // Auto-confirm pending actions created by the current user.
+  // This eliminates the manual "Confirm" click for self-initiated concierge actions,
+  // so the data appears in the relevant tab immediately after the AI says it created it.
+  const autoConfirmedIds = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!user?.id || pendingActions.length === 0 || confirmMutation.isPending) return;
+
+    const selfPending = pendingActions.filter(
+      a => a.user_id === user.id && a.status === 'pending' && !autoConfirmedIds.current.has(a.id),
+    );
+
+    if (selfPending.length > 0) {
+      const action = selfPending[0];
+      autoConfirmedIds.current.add(action.id);
+      confirmMutation.mutate(action.id);
+    }
+  }, [pendingActions, user?.id, confirmMutation.isPending]);
 
   return {
     pendingActions,

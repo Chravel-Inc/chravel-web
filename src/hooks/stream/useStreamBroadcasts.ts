@@ -31,16 +31,15 @@ function normalizeBroadcastPriority(priority: unknown): BroadcastPriority {
 }
 
 function normalizeMessagePriority(message: MessageResponse): MessageResponse {
-  const normalized = normalizeBroadcastPriority(
-    (message as Record<string, unknown>).priority ??
-      ((message.extra_data as Record<string, unknown> | undefined)?.priority as string | undefined),
-  );
+  const msg = message as unknown as Record<string, unknown>;
+  const extraData = msg.extra_data as Record<string, unknown> | undefined;
+  const normalized = normalizeBroadcastPriority(msg.priority ?? extraData?.priority);
 
   return {
     ...message,
     priority: normalized,
     extra_data: {
-      ...(message.extra_data as Record<string, unknown> | undefined),
+      ...extraData,
       priority: normalized,
     },
   } as MessageResponse;

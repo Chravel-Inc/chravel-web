@@ -20,6 +20,7 @@ import {
   createOptionsResponse,
 } from '../_shared/securityHeaders.ts';
 import { sanitizeErrorForClient, logError } from '../_shared/errorHandling.ts';
+import { USER_ENTITLEMENT_CONFLICT_TARGET } from '../_shared/entitlementUpsert.ts';
 
 const sanitizeDetails = (obj: unknown): unknown => {
   if (!obj || typeof obj !== 'object') return obj;
@@ -323,7 +324,7 @@ async function handleCheckoutCompleted(
         current_period_end: expiresAt.toISOString(),
         updated_at: now.toISOString(),
       },
-      { onConflict: 'user_id' },
+      { onConflict: USER_ENTITLEMENT_CONFLICT_TARGET },
     );
 
     // FIX 10: Audit log
@@ -439,7 +440,7 @@ async function handleSubscriptionUpdated(
       current_period_end: periodEnd,
       updated_at: new Date().toISOString(),
     },
-    { onConflict: 'user_id' },
+    { onConflict: USER_ENTITLEMENT_CONFLICT_TARGET },
   );
 
   if (entitlementsError) {
@@ -583,7 +584,7 @@ async function handleSubscriptionDeleted(
         current_period_end: subscriptionEnd,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: 'user_id' },
+      { onConflict: USER_ENTITLEMENT_CONFLICT_TARGET },
     );
     logStep('Subscription canceled — access retained until period end', {
       userId,
@@ -601,7 +602,7 @@ async function handleSubscriptionDeleted(
         current_period_end: null,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: 'user_id' },
+      { onConflict: USER_ENTITLEMENT_CONFLICT_TARGET },
     );
     logStep('Subscription deleted — period expired, downgraded to free', { userId });
   }
@@ -729,7 +730,7 @@ async function handleChargeRefunded(charge: Stripe.Charge, supabase: any, eventI
   // Check if this user has a Trip Pass — expire it on refund
   const { data: passEntitlement } = await supabase
     .from('user_entitlements')
-    .select('id, purchase_type, plan, status')
+    .select('purchase_type, plan, status')
     .eq('user_id', userId)
     .eq('purchase_type', 'pass')
     .eq('status', 'active')
@@ -743,7 +744,8 @@ async function handleChargeRefunded(charge: Stripe.Charge, supabase: any, eventI
         current_period_end: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
-      .eq('id', passEntitlement.id);
+      .eq('user_id', userId)
+      .eq('purchase_type', 'pass');
 
     // FIX 10: Audit log
     await logEntitlementChange(supabase, {
