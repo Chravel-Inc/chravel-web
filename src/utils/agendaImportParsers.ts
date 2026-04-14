@@ -12,6 +12,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { getSmartImportErrorMessage } from '@/utils/smartImportPaywall';
 import { formatLocalDate } from './dateHelpers';
 import type { EventAgendaItem } from '@/types/events';
 import { parseICSContent, ICSParsedEvent } from './calendarImport';
@@ -296,7 +297,12 @@ async function parseAgendaFileAI(file: File): Promise<AgendaParseResult> {
     if (error) {
       return {
         sessions: [],
-        errors: [`AI parsing failed: ${error.message}`],
+        errors: [
+          getSmartImportErrorMessage(
+            (data ?? null) as Record<string, unknown> | null,
+            `AI parsing failed: ${error.message}`,
+          ),
+        ],
         isValid: false,
         sourceFormat,
       };
@@ -378,7 +384,12 @@ export async function parseAgendaURL(url: string): Promise<AgendaParseResult> {
     if (error) {
       return {
         sessions: [],
-        errors: [`Failed to scan website: ${error.message}`],
+        errors: [
+          getSmartImportErrorMessage(
+            (data ?? null) as Record<string, unknown> | null,
+            `Failed to scan website: ${error.message}`,
+          ),
+        ],
         isValid: false,
         sourceFormat: 'url',
       };
@@ -387,7 +398,12 @@ export async function parseAgendaURL(url: string): Promise<AgendaParseResult> {
     if (!data?.success) {
       return {
         sessions: [],
-        errors: [data?.error || 'No agenda data found on this page'],
+        errors: [
+          getSmartImportErrorMessage(
+            (data ?? null) as Record<string, unknown> | null,
+            data?.error || 'No agenda data found on this page',
+          ),
+        ],
         isValid: false,
         sourceFormat: 'url',
         sessionsFound: data?.sessions_found,
@@ -427,7 +443,12 @@ export async function parseAgendaText(text: string): Promise<AgendaParseResult> 
     if (error) {
       return {
         sessions: [],
-        errors: [`AI parsing failed: ${error.message}`],
+        errors: [
+          getSmartImportErrorMessage(
+            (data ?? null) as Record<string, unknown> | null,
+            `AI parsing failed: ${error.message}`,
+          ),
+        ],
         isValid: false,
         sourceFormat: 'text',
       };
