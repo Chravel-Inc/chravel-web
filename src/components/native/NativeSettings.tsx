@@ -74,10 +74,16 @@ export const NativeSettings = ({
     setBuildNumber(buildId.slice(0, 7));
   }, []);
 
+  const platform = getPlatform();
+
   const handleUpgrade = useCallback(async () => {
     await hapticService.light();
+    if (platform === 'web') {
+      onNavigate?.('subscription');
+      return;
+    }
     setShowPaywall(true);
-  }, []);
+  }, [onNavigate, platform]);
 
   const handleLogout = useCallback(async () => {
     await hapticService.warning();

@@ -22,6 +22,7 @@ import type {
 } from './types';
 import type { SubscriptionTier } from '@/billing/types';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 // Native IAP handled by chravel-mobile.
 // This variable is kept as a null placeholder for the loadPurchasesPlugin() interface.
@@ -347,6 +348,46 @@ export async function logoutRevenueCat(): Promise<RevenueCatResult> {
 /**
  * Derive plan from RevenueCat customer info
  */
+
+/**
+ * Unified native RevenueCat sync adapter.
+ * Single entrypoint for configure -> customerInfo -> backend sync.
+ */
+export async function syncRevenueCatEntitlementsForUser(
+  userId: string,
+  isDemoMode: boolean = false,
+): Promise<RevenueCatResult<RevenueCatCustomerInfo>> {
+  const configured = await configureRevenueCat(userId, isDemoMode);
+  if (!configured.success || !configured.supported) {
+    return {
+      success: configured.success,
+      supported: configured.supported,
+      errorCode: configured.errorCode,
+      error: configured.error,
+    };
+  }
+
+  const customerInfoResult = await getCustomerInfo(isDemoMode);
+  if (!customerInfoResult.success || !customerInfoResult.data) {
+    return customerInfoResult;
+  }
+
+  const syncResult = await supabase.functions.invoke('sync-revenuecat-entitlement', {
+    body: { customerInfo: customerInfoResult.data, user_id: userId },
+  });
+
+  if (syncResult.error) {
+    return {
+      success: false,
+      supported: true,
+      errorCode: 'UNKNOWN',
+      error: syncResult.error.message || 'Failed to sync RevenueCat entitlement',
+    };
+  }
+
+  return customerInfoResult;
+}
+
 export function derivePlanFromCustomerInfo(customerInfo: RevenueCatCustomerInfo): DerivedPlan {
   const activeEntitlements = customerInfo.entitlements?.active || {};
   const entitlementIds = Object.keys(activeEntitlements);
