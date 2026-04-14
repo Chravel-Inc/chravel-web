@@ -31,6 +31,11 @@
 - Added focused regression tests for shared entitlement policy behavior covering plan resolution, creation limits, explorer override gating, and restore eligibility.
 - Verification: `npm run test:run -- supabase/functions/_shared/__tests__/tripEntitlementPolicy.test.ts`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`, `npm run merge:preflight` (blocked in environment: cannot fetch `origin/main`).
 
+2026-04-14 — Voice vs text Gemini model naming clarification (env examples)
+- Clarified `.env.example` and `.env.production.example` comments so `GEMINI_FLASH_MODEL=gemini-3.1-flash` is explicitly labeled as text/chat, while `GEMINI_LIVE_MODEL` is explicitly labeled as realtime voice.
+- This addresses operator confusion between non-live Gemini Flash naming and live-preview/live-native audio model naming.
+- Verification: `npm run qa:voice-model-guard`, `npm run typecheck`.
+
 2026-04-14 — LiveKit/Gemini realtime voice model contract + guardrails hardening
 - Audited LiveKit/Gemini references across frontend hook, edge token function, agent runtime, env examples, CI guardrails, and voice ops runbook.
 - Standardized canonical production realtime voice model to `gemini-live-2.5-flash-native-audio` via new source-of-truth module `agent/src/voiceModel.ts` consumed by the worker entrypoint.
