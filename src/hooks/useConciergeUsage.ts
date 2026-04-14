@@ -9,7 +9,7 @@ import { pickPrimaryEntitlement } from '@/lib/entitlements/selectors';
 const FREE_TIER_LIMIT = 10;
 const EXPLORER_TIER_LIMIT = 25;
 
-export type ConciergePlan = 'free' | 'explorer' | 'frequent_traveler';
+export type ConciergePlan = 'free' | 'explorer' | 'frequent_chraveler';
 
 export interface ConciergeUsage {
   used: number;
