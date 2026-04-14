@@ -662,6 +662,14 @@
 - Unified direct edge-function metadata fetchers (`ogMetadataService`, `linkService`) to use centralized Supabase project URL + public API key export instead of raw `import.meta.env` anon-key assumptions.
 - Updated health/env messaging (`Healthz`, `DevEnvBanner`) to reflect publishable-key-first model.
 - Added `docs/audits/chat-stream-responsibility-matrix-2026-04-13.md` to lock Stream-vs-Supabase ownership boundaries and document intentional hybrid seams.
+2026-04-13 — Phase II coherence implementation (canonical Stream payload + retriable membership sync)
+- Added shared Stream payload builder `src/services/stream/streamMessagePayload.ts` and reused it in both `useStreamTripChat` and `tripMessageTransport` to eliminate duplicate send payload shaping logic.
+- Added retrying/deduplicating membership coordinator `src/services/stream/streamMembershipCoordinator.ts` that attempts Stream client connect before membership sync operations and retries with exponential backoff.
+- Switched trip join/leave/member-removal callsites to coordinator path (`JoinTrip`, `useTripMembers`) to reduce non-fatal membership drift during transient client availability issues.
+- Added tests for new Phase II surfaces:
+  - `src/services/stream/__tests__/streamMessagePayload.test.ts`
+  - `src/services/stream/__tests__/streamMembershipCoordinator.test.ts`
+  - Updated `src/services/stream/__tests__/tripMessageTransport.test.ts` for canonical payload behavior.
 2026-04-13 — Installed app entry gating for native WebView + PWA standalone
 - Added centralized launch-context utility `src/lib/runtime/launchContext.ts` to classify browser vs installed app context via `?app_context=native` and standalone PWA signals (`display-mode: standalone` + `navigator.standalone`).
 - Updated `src/pages/Index.tsx` root-entry behavior to prevent installed-context marketing flash: show neutral hydration shell while auth loads, then redirect logged-out installed users to `/auth`; browser users keep marketing homepage behavior unchanged.
