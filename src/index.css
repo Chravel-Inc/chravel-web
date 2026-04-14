@@ -948,7 +948,7 @@
   .native-scroll {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    scroll-behavior: smooth;
+    /* scroll-behavior: smooth removed - conflicts with programmatic scroll on iOS, causing message vibration */
   }
 
   /* Instagram-like media grid */
@@ -1043,11 +1043,11 @@
     }
   }
 
-  /* Chat scroll container with smooth scrolling */
+  /* Chat scroll container - no CSS smooth scroll to prevent iOS vibration during streaming */
   .chat-scroll-container {
     overflow-y: auto;
     overscroll-behavior-y: contain;
-    scroll-behavior: smooth;
+    /* scroll-behavior: smooth removed - causes message vibration on iOS when combined with programmatic scrollTop */
     -webkit-overflow-scrolling: touch;
   }
 
