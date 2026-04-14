@@ -7,6 +7,15 @@ export type EntitlementRow = {
   updated_at: string;
 };
 
+export type EffectiveEntitlement = {
+  user_id: string;
+  plan: string;
+  status: string;
+  current_period_end: string | null;
+  purchase_type: 'subscription' | 'pass';
+  has_access: boolean;
+};
+
 const statusPriority = (status: string): number => {
   if (status === 'active') return 5;
   if (status === 'trialing') return 4;
@@ -55,4 +64,16 @@ export const mapPrimaryEntitlementsByUser = (
     if (picked) result.set(userId, picked);
   }
   return result;
+};
+
+export const resolveEffectiveEntitlement = (
+  rows: EntitlementRow[],
+): EffectiveEntitlement | null => {
+  const primary = pickPrimaryEntitlement(rows);
+  if (!primary) return null;
+
+  return {
+    ...primary,
+    has_access: hasEffectiveAccess(primary.status, primary.current_period_end),
+  };
 };

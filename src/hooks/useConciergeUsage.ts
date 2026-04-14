@@ -4,7 +4,11 @@ import { supabase } from '../integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useConsumerSubscription } from './useConsumerSubscription';
 import { isSuperAdminEmail } from '@/utils/isSuperAdmin';
-import { pickPrimaryEntitlement, type EntitlementSelectorRow } from '@/lib/entitlements/selectors';
+import {
+  resolveEffectiveEntitlement,
+  type EntitlementSelectorRow,
+} from '@/lib/entitlements/selectors';
+import { getTierFromProductId } from '@/constants/stripe';
 
 const FREE_TIER_LIMIT = 10;
 const EXPLORER_TIER_LIMIT = 25;
@@ -32,12 +36,6 @@ interface IncrementRpcRow {
   incremented: boolean | null;
 }
 
-interface EntitlementRow {
-  plan: string | null;
-  status: string | null;
-  current_period_end: string | null;
-}
-
 interface ProfileSubscriptionRow {
   app_role: string | null;
   subscription_status: string | null;
@@ -48,8 +46,6 @@ interface RpcResult<T> {
   data: T | null;
   error: { message?: string } | null;
 }
-
-const EXPLORER_PRODUCT_IDS = new Set(['prod_Tc0SWNhLkoCDIi', 'prod_Tx0AZIWAubAWD3']);
 
 const invokeRpc = async <T>(
   functionName: string,
@@ -83,21 +79,14 @@ const mapPlanFromTier = (
   return 'frequent_chraveler';
 };
 
-const isActiveStatus = (status?: string | null): boolean =>
-  status === 'active' || status === 'trialing';
-
-const hasActivePeriod = (periodEnd?: string | null): boolean => {
-  if (!periodEnd) return true;
-  const parsed = Date.parse(periodEnd);
-  if (Number.isNaN(parsed)) return true;
-  return parsed > Date.now();
-};
-
 const mapRawPlanToUsagePlan = (plan?: string | null): ConciergePlan => {
   if (plan === 'free' || !plan) return 'free';
   if (plan === 'explorer' || plan === 'plus') return 'explorer';
   return 'frequent_chraveler';
 };
+
+const isLegacySubscriptionActive = (status?: string | null): boolean =>
+  status === 'active' || status === 'trialing' || status === 'past_due';
 
 const resolvePlanFromProfile = (
   profile: ProfileSubscriptionRow | null | undefined,
@@ -109,14 +98,9 @@ const resolvePlanFromProfile = (
     | 'pro-growth'
     | 'pro-enterprise',
 ): ConciergePlan => {
-  if (profile && isActiveStatus(profile.subscription_status)) {
-    const productId = profile.subscription_product_id || '';
-    if (productId && EXPLORER_PRODUCT_IDS.has(productId)) {
-      return 'explorer';
-    }
-    if (productId) {
-      return 'frequent_chraveler';
-    }
+  if (profile && isLegacySubscriptionActive(profile.subscription_status)) {
+    const tier = getTierFromProductId(profile.subscription_product_id || '');
+    return mapPlanFromTier(tier as typeof fallbackTier, false);
   }
 
   if (profile?.app_role === 'plus' || profile?.app_role === 'explorer') return 'explorer';
@@ -171,7 +155,7 @@ export const useConciergeUsage = (tripId: string, userId?: string) => {
 
   const { data: entitlementData } = useQuery({
     queryKey: ['concierge-entitlement-plan', targetUserId],
-    queryFn: async (): Promise<EntitlementRow | null> => {
+    queryFn: async () => {
       if (!targetUserId) return null;
       const { data: rows, error } = await supabase
         .from('user_entitlements')
@@ -185,7 +169,7 @@ export const useConciergeUsage = (tripId: string, userId?: string) => {
         return null;
       }
 
-      return pickPrimaryEntitlement(rows as EntitlementSelectorRow[]);
+      return resolveEffectiveEntitlement(rows as EntitlementSelectorRow[]);
     },
     enabled: !!targetUserId,
     staleTime: 30 * 1000,
@@ -215,11 +199,7 @@ export const useConciergeUsage = (tripId: string, userId?: string) => {
   const userPlan = useMemo(() => {
     if (isSuperAdmin) return 'frequent_chraveler';
 
-    if (
-      entitlementData &&
-      isActiveStatus(entitlementData.status) &&
-      hasActivePeriod(entitlementData.current_period_end)
-    ) {
+    if (entitlementData && entitlementData.hasAccess) {
       return mapRawPlanToUsagePlan(entitlementData.plan);
     }
 
