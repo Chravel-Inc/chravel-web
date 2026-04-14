@@ -1,7 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { resolveSupabaseConfig } from './config';
+import { getMissingSupabaseEnvVars, resolveSupabaseConfig } from './config';
 
 describe('resolveSupabaseConfig', () => {
+  it('reports missing env vars for runtime guardrails', () => {
+    expect(getMissingSupabaseEnvVars({})).toEqual([
+      'VITE_SUPABASE_URL',
+      'VITE_SUPABASE_PUBLISHABLE_KEY (or legacy VITE_SUPABASE_ANON_KEY)',
+    ]);
+
+    expect(
+      getMissingSupabaseEnvVars({
+        VITE_SUPABASE_URL: 'https://example.supabase.co',
+        VITE_SUPABASE_ANON_KEY: 'legacy-anon',
+      }),
+    ).toEqual([]);
+  });
+
   it('prefers publishable key when both keys are present', () => {
     const result = resolveSupabaseConfig({
       VITE_SUPABASE_URL: 'https://example.supabase.co',

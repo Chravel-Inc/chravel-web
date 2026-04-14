@@ -1,28 +1,24 @@
-import { StrictMode } from 'react';
+import { StrictMode, lazy, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import { TripVariantProvider } from '@/contexts/TripVariantContext';
 import { BasecampProvider } from '@/contexts/BasecampContext';
+import { RuntimeConfigError } from '@/components/RuntimeConfigError';
 import { registerServiceWorker } from './utils/serviceWorkerRegistration';
 import { setupGlobalPurchaseListener } from '@/integrations/revenuecat/revenuecatClient';
+import { getMissingSupabaseEnvVars } from '@/integrations/supabase/config';
 import { telemetry } from '@/telemetry/service';
 import { isLovablePreview } from './utils/env';
-import App from './App.tsx';
 import './index.css';
 
 // ── Startup env validation ──────────────────────────────────────────────────
 // Supabase config is required at runtime. Accept either the modern
 // publishable key or legacy anon key.
-const hasSupabaseUrl = Boolean(import.meta.env.VITE_SUPABASE_URL);
-const hasSupabasePublicKey = Boolean(
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY,
-);
-const missingEnvVars = [
-  !hasSupabaseUrl ? 'VITE_SUPABASE_URL' : null,
-  !hasSupabasePublicKey ? 'VITE_SUPABASE_PUBLISHABLE_KEY (or VITE_SUPABASE_ANON_KEY)' : null,
-].filter(Boolean);
+const missingEnvVars = getMissingSupabaseEnvVars(import.meta.env);
 if (missingEnvVars.length > 0) {
   console.warn(`[Chravel] Missing env vars: ${missingEnvVars.join(', ')}.`);
 }
+const hasRequiredSupabaseEnv = missingEnvVars.length === 0;
+const App = hasRequiredSupabaseEnv ? lazy(() => import('./App.tsx')) : null;
 
 // ── Imperative init (runs after all imports are resolved) ──────────────────
 
@@ -113,10 +109,22 @@ if ('requestIdleCallback' in window) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <TripVariantProvider variant="consumer">
-      <BasecampProvider>
-        <App />
-      </BasecampProvider>
-    </TripVariantProvider>
+    {hasRequiredSupabaseEnv && App ? (
+      <TripVariantProvider variant="consumer">
+        <BasecampProvider>
+          <Suspense
+            fallback={
+              <div className="min-h-screen flex items-center justify-center bg-background">
+                <div className="w-12 h-12 border-4 border-muted border-t-primary rounded-full animate-spin" />
+              </div>
+            }
+          >
+            <App />
+          </Suspense>
+        </BasecampProvider>
+      </TripVariantProvider>
+    ) : (
+      <RuntimeConfigError vars={missingEnvVars} />
+    )}
   </StrictMode>,
 );

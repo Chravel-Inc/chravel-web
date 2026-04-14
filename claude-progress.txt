@@ -732,3 +732,15 @@
 - Added frontend parser helper `src/utils/smartImportPaywall.ts` and wired calendar/agenda/lineup import parsers to preserve and surface contextual upgrade errors instead of generic failures.
 - Added focused regression test: `src/utils/__tests__/smartImportPaywall.test.ts`.
 - Verification: `npm run test:run -- src/utils/__tests__/smartImportPaywall.test.ts src/utils/__tests__/calendarImportParsers.url.test.ts src/utils/__tests__/lineupImportParsers.test.ts`, `npm run typecheck`, `npm run build`, `npm run lint:check` (baseline warnings only), `npm run merge:preflight` (blocked: cannot fetch `origin/main` in this environment).
+
+2026-04-14 — Desktop boot hardening for missing Supabase runtime config
+- Root-caused desktop blank-screen risk to eager `App` module import path combined with strict `resolveSupabaseConfig(...)` throws when `VITE_SUPABASE_URL` and key vars are absent at runtime.
+- Added shared env guard helper `getMissingSupabaseEnvVars(...)` in `src/integrations/supabase/config.ts` and test coverage in `src/integrations/supabase/config.test.ts`.
+- Updated `src/main.tsx` to gate `App` lazy import behind env readiness and render a user-visible runtime configuration error state instead of failing during module evaluation.
+- Verification: `npm run test:run -- src/integrations/supabase/config.test.ts`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`, `npm run merge:preflight` (blocked here: cannot fetch origin/main).
+
+2026-04-14 — Desktop marketing gate false-positive hardening (chravel.app)
+- Follow-up root cause analysis focused on device-based rendering gate (`isInstalledApp`) used by unauthenticated Index marketing path.
+- Hardened `isInstalledApp()` in `src/utils/platformDetection.ts` to always honor explicit native webview signals, but require mobile-class user-agent for standalone PWA classification to avoid desktop false positives.
+- Added targeted regression tests in `src/utils/__tests__/platformDetection.test.ts` for desktop standalone, mobile standalone, and explicit `?app_context=native` behavior.
+- Verification: `npm run test:run -- src/utils/__tests__/platformDetection.test.ts`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`, `npm run merge:preflight` (blocked here: cannot fetch origin/main).
