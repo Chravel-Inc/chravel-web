@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { pickPrimaryEntitlement, hasEffectiveAccess } from '@/lib/entitlements/selectors';
+import { pickPrimaryEntitlement, hasEffectiveAccess, type EntitlementSelectorRow } from '@/lib/entitlements/selectors';
 
 export interface Subscription {
   plan:
