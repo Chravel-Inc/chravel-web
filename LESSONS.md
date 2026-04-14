@@ -522,6 +522,11 @@
 - **Provenance:** April 2026 RevenueCat architecture consolidation.
 - **Confidence:** high
 
+### Keep founder/super-admin bypass identity in one shared module across edge functions
+- **Tip:** Centralize bypass email parsing/normalization in a shared edge-function helper and import it everywhere (`check-subscription`, creation flows, entitlement-gated functions, admin-read helpers) instead of duplicating hardcoded arrays.
+- **Applies when:** Role/entitlement bypass checks use founder/admin email allowlists and env-driven extensions.
+- **Evidence:** `demo@chravelapp.com` and founder lists drifted across multiple functions; consolidation in `_shared/superAdmins.ts` removed drift and documented demo bypass as explicit opt-in only.
+- **Provenance:** April 2026 super-admin source-of-truth hardening.
 ### Entitlement-read APIs should prefer normalized `user_entitlements` and treat provider APIs as stale-data reconciliation only
 - **Tip:** For user-facing entitlement checks, read `user_entitlements` first and apply shared primary-selection + effective-access logic before calling Stripe/RevenueCat. Invoke provider APIs only when rows are missing or stale, then upsert normalized state once.
 - **Applies when:** Building “check status” endpoints/hooks that can be called frequently from clients.

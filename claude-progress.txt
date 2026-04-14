@@ -18,6 +18,12 @@
   - `npm run build`
   - `npm run merge:preflight` (blocked in this environment: cannot fetch `origin/main`)
 
+2026-04-14 — Canonical super-admin bypass source consolidation (client + edge functions)
+- Added shared server helper `supabase/functions/_shared/superAdmins.ts` as the single edge-function source for founder/admin bypass emails, with normalized env extension support.
+- Refactored `check-subscription`, `create-trip`, `push-notifications`, and `get-trip-detail` to consume `isSuperAdminEmail(...)` instead of per-function hardcoded founder/admin arrays.
+- Documented intentional `demo@chravelapp.com` handling as opt-in only via env (`*_ENABLE_DEMO_EMAIL` or explicit admin CSV) in both client constants and server helper.
+- Added regression tests in `supabase/functions/_shared/__tests__/superAdmins.test.ts` for default founders, demo opt-in behavior, and case-insensitive matching.
+- Verification: `npm run test:run -- supabase/functions/_shared/__tests__/superAdmins.test.ts`, `npm run typecheck`, `npm run lint:check`, `npm run build`, `npm run merge:preflight` (expected env limitation here: cannot fetch `origin/main`).
 2026-04-14 — Trip entitlement guard hardening (create + restore server paths)
 - Reworked `create-trip` entitlement resolution to use `user_entitlements` as primary source (subscription purchase type), with legacy profile fallback only when entitlement data is absent/inactive.
 - Enforced server-side creation limits via shared policy module: free users limited to 3 active consumer trips, 1 free pro trip, and 1 free event; explorer users blocked from Pro trip creation unless an explicit override flag is supplied.

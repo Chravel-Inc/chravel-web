@@ -17,6 +17,10 @@ import { sanitizeErrorForClient, logError } from '../_shared/errorHandling.ts';
 import { USER_ENTITLEMENT_CONFLICT_TARGET } from '../_shared/entitlementUpsert.ts';
 import { type EntitlementRow } from '../_shared/entitlementSelection.ts';
 import {
+  resolveEffectiveEntitlement,
+  type EntitlementRow,
+} from '../_shared/entitlementSelection.ts';
+import { isSuperAdminEmail } from '../_shared/superAdmins.ts';
   normalizeFromEntitlement,
   normalizeStripeStatus,
   shouldReconcileFromStripe,
@@ -218,7 +222,8 @@ serve(async req => {
     const user = userData.user;
     logStep('User authenticated', { userId: user.id, email: user.email });
 
-    if (user.email && SUPER_ADMIN_EMAILS.has(user.email.toLowerCase())) {
+    // Super admin bypass - return max tier without Stripe check
+    if (isSuperAdminEmail(user.email)) {
       logStep('Super admin detected - bypassing Stripe check', { email: user.email });
       return createSecureResponse({
         subscribed: true,

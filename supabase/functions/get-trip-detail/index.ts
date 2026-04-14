@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { logError } from '../_shared/errorHandling.ts';
+import { isSuperAdminEmail } from '../_shared/superAdmins.ts';
 
 type TripDetailErrorCode = 'AUTH_REQUIRED' | 'TRIP_NOT_FOUND' | 'ACCESS_DENIED' | 'BAD_REQUEST';
 
@@ -21,14 +22,6 @@ type TripDetailResponse =
       error: string;
       error_code: TripDetailErrorCode;
     };
-
-const SUPER_ADMIN_EMAILS = [
-  'ccamechi@gmail.com',
-  'christian@chravelapp.com',
-  'demo@chravelapp.com',
-  'phil@philquist.com',
-  'darren.hartgee@gmail.com',
-];
 
 const buildResponse = (
   payload: TripDetailResponse,
@@ -100,8 +93,7 @@ serve(async (req): Promise<Response> => {
       );
     }
 
-    const userEmail = authData.user.email?.toLowerCase().trim() ?? '';
-    const isSuperAdmin = SUPER_ADMIN_EMAILS.includes(userEmail);
+    const isSuperAdmin = isSuperAdminEmail(authData.user.email);
     const tripRow = trip as TripRow;
     const isCreator = tripRow.created_by === authData.user.id;
 
