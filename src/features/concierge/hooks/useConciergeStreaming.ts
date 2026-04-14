@@ -13,7 +13,7 @@ import type { HotelResult } from '@/features/chat/components/HotelResultCards';
 import type { TripPreferences } from '@/types/consumer';
 import { supabase } from '@/integrations/supabase/client';
 import {
-  getConciergeInvalidationQueryKey,
+  getConciergeInvalidationKeys,
   isConciergeWriteAction,
 } from '@/lib/conciergeInvalidation';
 import { sanitizeConciergeContent } from '@/lib/sanitizeConciergeContent';
@@ -480,7 +480,7 @@ export function useConciergeStreaming(params: Params) {
 
               // Handle concierge write actions (createPoll, createTask, savePlace, etc.)
               if (isConciergeWriteAction(name) && result.actionType) {
-                if (result.pending && result.pendingActionId) {
+              if (result.pending && result.pendingActionId) {
                   const pendingAction = {
                     id: result.pendingActionId as string,
                     toolName: name,
@@ -510,6 +510,13 @@ export function useConciergeStreaming(params: Params) {
                         pendingActions: [pendingAction],
                       },
                     ];
+                  });
+
+                  // CRITICAL: Invalidate pending actions query so auto-confirm fires.
+                  // Without this, usePendingActions never sees the new row and the
+                  // task/poll/calendar event stays parked in trip_pending_actions forever.
+                  conciergeQueryClient.invalidateQueries({
+                    queryKey: ['pendingActions', tripId],
                   });
                   return;
                 }
@@ -580,10 +587,12 @@ export function useConciergeStreaming(params: Params) {
 
                 // Invalidate relevant queries so tab data refreshes after AI write actions
                 if (result.success) {
-                  const queryKey = getConciergeInvalidationQueryKey(name, tripId);
-                  if (queryKey) {
-                    conciergeQueryClient.invalidateQueries({ queryKey });
+                  const keys = getConciergeInvalidationKeys(name, tripId);
+                  for (const queryKey of keys) {
+                    conciergeQueryClient.invalidateQueries({ queryKey, exact: false });
                   }
+                  // Also invalidate pending actions so auto-confirm picks them up
+                  conciergeQueryClient.invalidateQueries({ queryKey: ['pendingActions', tripId] });
                 }
               }
             },

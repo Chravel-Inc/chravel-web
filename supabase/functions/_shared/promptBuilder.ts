@@ -62,6 +62,12 @@ Output a JSON block enclosed in \`\`\`json \`\`\` at the very start of your resp
 - You are fully capable of calling MULTIPLE tools in sequence for a single user message (e.g., calling \`createTask\` AND \`addToCalendar\`).
 - DO NOT stop after the first tool call if the plan contains more. Continue executing tools until the plan is complete.
 
+**PENDING ACTION LANGUAGE (NON-NEGOTIABLE):**
+- When a tool call returns \`"pending": true\` in its result, it means the action was QUEUED for confirmation — NOT completed yet.
+- In your response, say "I've prepared a [task/event/poll/expense] for you" or "I've queued a [task/event/poll]" — NEVER say "Created ✅", "Done", or "Added" for pending actions.
+- Only claim something is "created" or "done" when the tool result contains \`"pending": false\` or does not contain a \`pending\` field at all (direct writes like savePlace, setBasecamp).
+- This is critical for user trust — users check the relevant tab immediately after your response.
+
 **FORMATTING RULES:**
 - Use markdown for all responses (headers, bullet points, bold).
 - Format ALL links as clickable markdown: [Title](https://url.com).
@@ -116,12 +122,97 @@ Output a JSON block enclosed in \`\`\`json \`\`\` at the very start of your resp
       if (prefs.travelStyle) parts.push(`TRAVEL STYLE: ${sanitizeForPrompt(prefs.travelStyle)}`);
     }
 
-    // Quick dump of calendar
+    // Members
+    const members = tripContext.members;
+    if (members?.length) {
+      parts.push(`\nMEMBERS:`);
+      members.forEach((m: any) => {
+        parts.push(`- ${sanitizeForPrompt(m.displayName || m.name || 'Unknown')} (${m.role || 'member'}, id: ${m.userId || m.id || '?'})`);
+      });
+    }
+
+    // Full calendar (no truncation)
     const calendarEvents = tripContext.calendar || tripContext.upcomingEvents;
     if (calendarEvents?.length) {
-      parts.push(`\nCALENDAR:`);
-      calendarEvents.slice(0, 5).forEach((event: any) => {
-        parts.push(`- ${sanitizeForPrompt(event.title)} on ${event.startTime || event.date || ''}`);
+      parts.push(`\nCALENDAR (${calendarEvents.length} events):`);
+      calendarEvents.slice(0, 50).forEach((event: any) => {
+        let line = `- ${sanitizeForPrompt(event.title)}`;
+        if (event.startTime || event.date) line += ` | Start: ${event.startTime || event.date}`;
+        if (event.endTime) line += ` | End: ${event.endTime}`;
+        if (event.location) line += ` | Location: ${sanitizeForPrompt(event.location)}`;
+        if (event.description) line += ` | ${sanitizeForPrompt(event.description).slice(0, 100)}`;
+        parts.push(line);
+      });
+    }
+
+    // Tasks
+    const tasks = tripContext.tasks;
+    if (tasks?.length) {
+      parts.push(`\nTASKS (${tasks.length}):`);
+      tasks.forEach((t: any) => {
+        let line = `- ${sanitizeForPrompt(t.title)}`;
+        if (t.dueAt || t.due_at) line += ` | Due: ${t.dueAt || t.due_at}`;
+        if (t.completed !== undefined) line += ` | ${t.completed ? '✅ Done' : '⬜ Open'}`;
+        if (t.assignee || t.creatorName) line += ` | By: ${sanitizeForPrompt(t.assignee || t.creatorName || '')}`;
+        parts.push(line);
+      });
+    }
+
+    // Polls
+    const polls = tripContext.polls;
+    if (polls?.length) {
+      parts.push(`\nPOLLS (${polls.length}):`);
+      polls.forEach((p: any) => {
+        parts.push(`- Q: ${sanitizeForPrompt(p.question)} (${p.status || 'active'})`);
+        if (p.options?.length) {
+          p.options.forEach((opt: any) => {
+            parts.push(`  • ${sanitizeForPrompt(opt.text || opt.option_text || '')} — ${opt.votes ?? opt.vote_count ?? 0} votes`);
+          });
+        }
+      });
+    }
+
+    // Payments
+    const payments = tripContext.payments;
+    if (payments?.length) {
+      parts.push(`\nPAYMENTS (${payments.length}):`);
+      payments.slice(0, 20).forEach((pay: any) => {
+        let line = `- ${sanitizeForPrompt(pay.description || 'Payment')} | $${pay.amount || 0} ${pay.currency || 'USD'}`;
+        if (pay.createdByName || pay.created_by_name) line += ` | By: ${sanitizeForPrompt(pay.createdByName || pay.created_by_name || '')}`;
+        if (pay.isSettled !== undefined || pay.is_settled !== undefined) line += ` | ${(pay.isSettled || pay.is_settled) ? 'Settled' : 'Unsettled'}`;
+        parts.push(line);
+      });
+    }
+
+    // Places / Links
+    const places = tripContext.places;
+    if (places?.savedPlaces?.length) {
+      parts.push(`\nSAVED PLACES (${places.savedPlaces.length}):`);
+      places.savedPlaces.slice(0, 20).forEach((pl: any) => {
+        let line = `- ${sanitizeForPrompt(pl.title || pl.name || 'Place')}`;
+        if (pl.address) line += ` | ${sanitizeForPrompt(pl.address)}`;
+        if (pl.category) line += ` | ${sanitizeForPrompt(pl.category)}`;
+        parts.push(line);
+      });
+    }
+
+    const links = tripContext.links;
+    if (links?.length) {
+      parts.push(`\nLINKS (${links.length}):`);
+      links.slice(0, 15).forEach((l: any) => {
+        parts.push(`- ${sanitizeForPrompt(l.title || l.url || 'Link')} | ${sanitizeForPrompt(l.url || '')}`);
+      });
+    }
+
+    // Broadcasts (recent)
+    const broadcasts = tripContext.broadcasts;
+    if (broadcasts?.length) {
+      parts.push(`\nRECENT BROADCASTS (${Math.min(broadcasts.length, 10)}):`);
+      broadcasts.slice(0, 10).forEach((b: any) => {
+        let line = `- ${sanitizeForPrompt(b.message || '')}`;
+        if (b.priority) line += ` [${b.priority}]`;
+        if (b.createdByName) line += ` — ${sanitizeForPrompt(b.createdByName)}`;
+        parts.push(line);
       });
     }
 

@@ -26,6 +26,7 @@ import { PrivacyMode, getDefaultPrivacyMode } from '../types/privacy';
 import { ProCategoryEnum, PRO_CATEGORIES_ORDERED } from '../types/proCategories';
 import { getAllProTripColors } from '../utils/proTripColors';
 import { buildTripCoverStoragePath, TRIP_COVER_BUCKET } from '../utils/tripCoverStorage';
+import { getFeaturePaywallConfig } from './subscription/featurePaywall';
 
 interface CreateTripModalProps {
   isOpen: boolean;
@@ -290,30 +291,42 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
       if (error instanceof Error && error.message === 'AUTHENTICATION_REQUIRED') {
         toast.error('Please sign in to create a trip');
       } else if (error instanceof Error && error.message === 'TRIP_LIMIT_REACHED') {
-        toast.error(
-          "You've reached the free tier limit of 3 active trips. Archive a trip or upgrade to Explorer for unlimited trips.",
-          {
-            duration: 6000,
-            action: {
-              label: 'View Plans',
-              onClick: () => navigate('/settings'),
-            },
-          },
-        );
-      } else if (error instanceof Error && error.message === 'UPGRADE_REQUIRED_PRO_TRIP') {
-        toast.error('Upgrade to create more Pro trips!', {
+        const paywall = getFeaturePaywallConfig('trip_cap_consumer');
+        toast.error(`${paywall.featureBenefitCopy} Recommended plan: ${paywall.recommendedPlan}.`, {
           duration: 6000,
           action: {
             label: 'View Plans',
-            onClick: () => navigate('/settings'),
+            onClick: () =>
+              navigate(
+                `${paywall.destination.pathname}${paywall.destination.search}`,
+                paywall.destination.state ? { state: paywall.destination.state } : undefined,
+              ),
+          },
+        });
+      } else if (error instanceof Error && error.message === 'UPGRADE_REQUIRED_PRO_TRIP') {
+        const paywall = getFeaturePaywallConfig('trip_cap_pro');
+        toast.error(`${paywall.featureBenefitCopy} Recommended plan: ${paywall.recommendedPlan}.`, {
+          duration: 6000,
+          action: {
+            label: 'View Plans',
+            onClick: () =>
+              navigate(
+                `${paywall.destination.pathname}${paywall.destination.search}`,
+                paywall.destination.state ? { state: paywall.destination.state } : undefined,
+              ),
           },
         });
       } else if (error instanceof Error && error.message === 'UPGRADE_REQUIRED_EVENT') {
-        toast.error('Upgrade to create unlimited Events!', {
+        const paywall = getFeaturePaywallConfig('trip_cap_event');
+        toast.error(`${paywall.featureBenefitCopy} Recommended plan: ${paywall.recommendedPlan}.`, {
           duration: 6000,
           action: {
             label: 'View Plans',
-            onClick: () => navigate('/settings'),
+            onClick: () =>
+              navigate(
+                `${paywall.destination.pathname}${paywall.destination.search}`,
+                paywall.destination.state ? { state: paywall.destination.state } : undefined,
+              ),
           },
         });
       } else {

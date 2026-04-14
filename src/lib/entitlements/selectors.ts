@@ -9,6 +9,15 @@ export type EntitlementSelectorRow = {
   updated_at: string;
 };
 
+export type EffectiveEntitlement = {
+  plan: string;
+  status: string;
+  purchaseType: PurchaseType;
+  currentPeriodEnd: string | null;
+  hasAccess: boolean;
+  source: string;
+};
+
 const statusPriority = (status: string): number => {
   if (status === 'active') return 5;
   if (status === 'trialing') return 4;
@@ -45,4 +54,20 @@ export const pickPrimaryEntitlement = (
     if (byStatus !== 0) return byStatus;
     return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
   })[0];
+};
+
+export const resolveEffectiveEntitlement = (
+  rows: EntitlementSelectorRow[] | null | undefined,
+): EffectiveEntitlement | null => {
+  const primary = pickPrimaryEntitlement(rows);
+  if (!primary) return null;
+
+  return {
+    plan: primary.plan,
+    status: primary.status,
+    purchaseType: primary.purchase_type,
+    currentPeriodEnd: primary.current_period_end,
+    hasAccess: hasEffectiveAccess(primary.status, primary.current_period_end),
+    source: primary.source,
+  };
 };

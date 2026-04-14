@@ -48,9 +48,9 @@ describe('useStreamBroadcasts priority normalization', () => {
     });
 
     expect((result.current.broadcasts[0] as any)?.priority).toBe('reminder');
-    expect(((result.current.broadcasts[0] as any)?.extra_data as Record<string, unknown>)?.priority).toBe(
-      'reminder',
-    );
+    expect(
+      ((result.current.broadcasts[0] as any)?.extra_data as Record<string, unknown>)?.priority,
+    ).toBe('reminder');
   });
 
   it('sends canonical priority values even when caller passes legacy alias', async () => {

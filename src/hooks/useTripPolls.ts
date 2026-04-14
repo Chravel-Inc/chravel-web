@@ -9,7 +9,7 @@ import { pollStorageService } from '@/services/pollStorageService';
 import { getStorageItem, setStorageItem } from '@/platform/storage';
 import { offlineSyncService } from '@/services/offlineSyncService';
 import { cacheEntity, getCachedEntities } from '@/offline/cache';
-import { generateMutationId } from '@/utils/concurrencyUtils';
+
 import { useMutationPermissions } from '@/hooks/useMutationPermissions';
 import { hapticService as haptics } from '@/services/hapticService';
 
@@ -306,7 +306,7 @@ export const useTripPolls = (tripId: string) => {
           is_anonymous: poll.settings?.is_anonymous || false,
           allow_vote_change: poll.settings?.allow_vote_change !== false,
           deadline_at: poll.settings?.deadline_at || null,
-          idempotency_key: generateMutationId(),
+          
         })
         .select()
         .single();

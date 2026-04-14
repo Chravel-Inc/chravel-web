@@ -7,8 +7,7 @@ const scenarios = [
   {
     title: 'Family Hubs, Schedules & Carpools',
     subtitle: 'Practices · pickups · errands · roomies · year-round planning',
-    before:
-      "Last-minute texts. Missed pickups. Nobody knows who's doing what.",
+    before: "Last-minute texts. Missed pickups. Nobody knows who's doing what.",
     expandCTA: 'See how families stay organized',
     after:
       'One shared space for family logistics. Calendars, tasks, and chat in sync — everyone knows where to be.',
@@ -18,8 +17,7 @@ const scenarios = [
   {
     title: 'Touring Artists & Crews',
     subtitle: 'Musicians · comedians · podcasts · managers · production',
-    before:
-      'Spreadsheets, endless texts, missed details. Overwhelmed managers, annoyed artists.',
+    before: 'Spreadsheets, endless texts, missed details. Overwhelmed managers, annoyed artists.',
     expandCTA: 'See how tours stay in sync',
     after:
       'Show days, off days, crew channels, logistics, and payments—all in one place. Everyone aligned, every city.',
@@ -28,11 +26,9 @@ const scenarios = [
   {
     title: 'Bach Parties → Wedding Weekends',
     subtitle: 'Bachelor & bachelorette trips · guests · families · vendors',
-    before:
-      'Dozens of chats. Guests constantly asking where to be and when.',
+    before: 'Dozens of chats. Guests constantly asking where to be and when.',
     expandCTA: 'See how celebrations run smoothly',
-    after:
-      'Shared itinerary, pinned locations, live photos — no confusion, just celebration.',
+    after: 'Shared itinerary, pinned locations, live photos — no confusion, just celebration.',
     badge: 'Fewer questions · more memories',
   },
   {
@@ -59,8 +55,7 @@ const scenarios = [
     subtitle: 'Run clubs · dog park crews · faith groups · recurring meetups',
     before: 'Plans scattered across DMs, texts, and random calendar invites.',
     expandCTA: 'See how groups stay connected',
-    after:
-      'One shared home for meetups, locations, and photos. Your group stays connected.',
+    after: 'One shared home for meetups, locations, and photos. Your group stays connected.',
     badge: 'Consistency · better turnout',
   },
 ];

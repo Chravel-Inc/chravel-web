@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { tripKeys } from '@/lib/queryKeys';
 import {
@@ -40,6 +41,7 @@ import { useRolePermissions } from '@/hooks/useRolePermissions';
 import type { TripEvent } from '@/services/calendarService';
 import { useCalendarExport } from '@/features/calendar/hooks/useCalendarExport';
 import { CalendarErrorState } from '@/features/calendar/components/CalendarErrorState';
+import { getFeaturePaywallConfig } from '@/components/subscription/featurePaywall';
 
 interface CalendarEvent {
   id: string;
@@ -80,6 +82,7 @@ export const MobileGroupCalendar = ({
   onToggleView,
   viewMode: externalViewMode,
 }: MobileGroupCalendarProps) => {
+  const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -128,9 +131,17 @@ export const MobileGroupCalendar = ({
     await hapticService.medium();
 
     if (!canUseSmartImport) {
-      toast.error(
-        'Smart Import is available on paid plans (Explorer+ / Trip Pass / Pro / Enterprise).',
-      );
+      const paywall = getFeaturePaywallConfig('smart_import_calendar');
+      toast.error(`${paywall.featureBenefitCopy} Recommended plan: ${paywall.recommendedPlan}.`, {
+        action: {
+          label: 'View Plans',
+          onClick: () =>
+            navigate(
+              `${paywall.destination.pathname}${paywall.destination.search}`,
+              paywall.destination.state ? { state: paywall.destination.state } : undefined,
+            ),
+        },
+      });
       return;
     }
 

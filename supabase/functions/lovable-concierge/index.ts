@@ -24,7 +24,6 @@ import {
   type UsagePlan,
 } from '../_shared/concierge/usagePolicy.ts';
 import {
-  buildMonthlyLimitReachedResponse,
   buildTokenBudgetReachedResponse,
   buildTripLimitReachedResponse,
   buildUsageVerificationUnavailableResponse,
@@ -1400,17 +1399,12 @@ serve(async req => {
                 supabase,
                 resolvedTripId,
                 tripQueryLimit,
-                user.id,
-                usagePlan,
               );
               if (incrementResult.status === 'verification_unavailable') {
                 console.error(
                   '[Usage/Stream] Failed to increment trip usage:',
                   incrementResult.error,
                 );
-              }
-              if (incrementResult.status === 'monthly_limit_reached') {
-                console.error('[Usage/Stream] Monthly AI quota reached for user:', user.id);
               }
             }
 
@@ -1686,8 +1680,6 @@ serve(async req => {
           supabase,
           tripId,
           tripQueryLimit,
-          user.id,
-          usagePlan,
         );
         if (incrementUsageResult.status === 'verification_unavailable') {
           console.error(
@@ -1698,9 +1690,6 @@ serve(async req => {
         }
         if (incrementUsageResult.status === 'limit_reached') {
           return buildTripLimitReachedResponse(corsHeaders, usagePlan);
-        }
-        if (incrementUsageResult.status === 'monthly_limit_reached') {
-          return buildMonthlyLimitReachedResponse(corsHeaders, usagePlan);
         }
       }
 
@@ -1923,8 +1912,6 @@ serve(async req => {
           supabase,
           resolvedTripId,
           tripQueryLimit,
-          user.id,
-          usagePlan,
         );
         if (incrementUsageResult.status === 'verification_unavailable') {
           console.error(
@@ -1935,9 +1922,6 @@ serve(async req => {
         }
         if (incrementUsageResult.status === 'limit_reached') {
           return buildTripLimitReachedResponse(corsHeaders, usagePlan);
-        }
-        if (incrementUsageResult.status === 'monthly_limit_reached') {
-          return buildMonthlyLimitReachedResponse(corsHeaders, usagePlan);
         }
       }
 

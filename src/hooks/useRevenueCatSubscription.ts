@@ -1,5 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Purchases, type CustomerInfo, type EntitlementInfo } from '@revenuecat/purchases-js';
+import type { EntitlementInfo } from '@revenuecat/purchases-js';
+import { getCustomerInfo } from '@/integrations/revenuecat/revenuecatClient';
+
+interface CustomerInfoShape {
+  entitlements: {
+    active: Record<string, EntitlementInfo>;
+  };
+}
 
 interface UseRevenueCatSubscriptionReturn {
   /** Whether the user has an active subscription */
@@ -9,7 +16,7 @@ interface UseRevenueCatSubscriptionReturn {
   /** Active entitlements */
   entitlements: Record<string, EntitlementInfo>;
   /** Full customer info from RevenueCat */
-  customerInfo: CustomerInfo | null;
+  customerInfo: CustomerInfoShape | null;
   /** Check if user has a specific entitlement */
   hasEntitlement: (entitlementId: string) => boolean;
   /** Refresh subscription status */
@@ -19,13 +26,13 @@ interface UseRevenueCatSubscriptionReturn {
 }
 
 /**
- * Hook to check and manage subscription status using RevenueCat.
- * @param entitlementId - Optional specific entitlement to check (defaults to 'pro')
+ * Adapter-backed subscription hook.
+ * Native IAP runtime is owned by chravel-mobile, web returns unsupported.
  */
 export const useRevenueCatSubscription = (
   entitlementId = 'pro',
 ): UseRevenueCatSubscriptionReturn => {
-  const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
+  const [customerInfo, setCustomerInfo] = useState<CustomerInfoShape | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,9 +41,16 @@ export const useRevenueCatSubscription = (
       setLoading(true);
       setError(null);
 
-      const purchases = Purchases.getSharedInstance();
-      const info = await purchases.getCustomerInfo();
-      setCustomerInfo(info);
+      const result = await getCustomerInfo();
+      if (result.success && result.data) {
+        setCustomerInfo(result.data as unknown as CustomerInfoShape);
+        return;
+      }
+
+      setCustomerInfo(null);
+      if (result.errorCode && result.errorCode !== 'NOT_SUPPORTED') {
+        setError(result.error || 'Failed to check subscription status');
+      }
     } catch (err) {
       if (import.meta.env.DEV)
         console.error('[useRevenueCatSubscription] Error fetching customer info:', err);
@@ -59,7 +73,6 @@ export const useRevenueCatSubscription = (
   );
 
   const isSubscribed = customerInfo ? !!customerInfo.entitlements.active[entitlementId] : false;
-
   const entitlements = customerInfo?.entitlements.active || {};
 
   return {

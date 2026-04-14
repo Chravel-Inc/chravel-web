@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Calendar } from './ui/calendar';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
@@ -13,6 +14,7 @@ import { EventList } from '@/features/calendar/components/EventList';
 import { CalendarImportModal } from '@/features/calendar/components/CalendarImportModal';
 import { useCalendarExport } from '@/features/calendar/hooks/useCalendarExport';
 import { useToast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
 import { useRolePermissions } from '@/hooks/useRolePermissions';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useBackgroundImport } from '@/features/calendar/hooks/useBackgroundImport';
@@ -21,12 +23,14 @@ import { hasPaidAccess } from '@/utils/paidAccess';
 import type { CalendarEvent } from '@/types/calendar';
 import { CalendarErrorState } from '@/features/calendar/components/CalendarErrorState';
 import { ExportDialog } from '@/features/calendar/components/ExportDialog';
+import { getFeaturePaywallConfig } from '@/components/subscription/featurePaywall';
 
 interface GroupCalendarProps {
   tripId: string;
 }
 
 export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const {
     selectedDate,
@@ -101,16 +105,28 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
     }
 
     if (!canUseSmartImport) {
+      const paywall = getFeaturePaywallConfig('smart_import_calendar');
       toast({
         title: 'Upgrade required',
-        description:
-          'Smart Import is available on paid plans (Explorer+ / Trip Pass / Pro / Enterprise).',
-        variant: 'destructive',
+        description: `${paywall.featureBenefitCopy} Recommended plan: ${paywall.recommendedPlan}.`,
+        action: (
+          <ToastAction
+            altText="View Plans"
+            onClick={() =>
+              navigate(
+                `${paywall.destination.pathname}${paywall.destination.search}`,
+                paywall.destination.state ? { state: paywall.destination.state } : undefined,
+              )
+            }
+          >
+            View Plans
+          </ToastAction>
+        ),
       });
       return;
     }
     setShowImportModal(true);
-  }, [canPerformAction, canUseSmartImport, permissionsLoading, toast]);
+  }, [canPerformAction, canUseSmartImport, navigate, permissionsLoading, toast]);
 
   const handleImportComplete = useCallback(async () => {
     // Wait for queries to settle before attempting a refetch

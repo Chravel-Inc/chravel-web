@@ -396,6 +396,8 @@ export const CreateTripSchema = z.object({
   organizer_display_name: z.string().max(200).optional(),
   privacy_mode: z.enum(['standard', 'high']).optional(),
   ai_access_enabled: z.boolean().optional(),
+  // Explicit server-side intent flag for rare Explorer -> Pro creation paths.
+  allow_explorer_pro_trip: z.boolean().optional(),
   // Pro trip category (internal enum value)
   category: z
     .enum(['touring', 'sports', 'work', 'school', 'productions', 'celebrations', 'other'])

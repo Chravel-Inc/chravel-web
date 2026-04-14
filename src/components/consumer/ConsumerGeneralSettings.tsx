@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { Sun, Moon } from 'lucide-react';
 import { ChatActivitySettings } from '@/components/settings/ChatActivitySettings';
 import { useGlobalSystemMessagePreferences } from '@/hooks/useSystemMessagePreferences';
 import { SystemMessageCategoryPrefs } from '@/utils/systemMessageCategory';
@@ -7,6 +8,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { logAuthEvent } from '@/utils/authTelemetry';
+import { useTheme } from '@/hooks/useTheme';
+import { Switch } from '@/components/ui/switch';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,6 +51,7 @@ export const ConsumerGeneralSettings = () => {
   const { preferences, updatePreferences, isUpdating } = useGlobalSystemMessagePreferences();
   const { user, signOut } = useAuth();
   const { showDemoContent } = useDemoMode();
+  const { isDarkMode, toggleTheme } = useTheme();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmText, setConfirmText] = useState('');
@@ -236,6 +240,22 @@ export const ConsumerGeneralSettings = () => {
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
         <h4 className="text-base font-semibold text-white mb-3">App Preferences</h4>
         <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {isDarkMode ? (
+                <Moon size={18} className="text-gray-400" />
+              ) : (
+                <Sun size={18} className="text-gold-primary" />
+              )}
+              <div>
+                <div className="text-white font-medium">Light Mode</div>
+                <div className="text-sm text-gray-400">
+                  {isDarkMode ? 'Dark theme active' : 'Light theme active'}
+                </div>
+              </div>
+            </div>
+            <Switch checked={!isDarkMode} onCheckedChange={checked => toggleTheme(!checked)} />
+          </div>
           <div>
             <label className="block text-sm text-gray-300 mb-2">Language</label>
             <select

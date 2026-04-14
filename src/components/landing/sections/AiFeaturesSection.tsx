@@ -31,8 +31,7 @@ export const AiFeaturesSection = () => {
     {
       icon: <Compass className="text-primary" size={28} />,
       title: 'BaseCamps',
-      description:
-        'Store your Airbnb or hotel address once. Everyone has it.',
+      description: 'Store your Airbnb or hotel address once. Everyone has it.',
     },
     {
       icon: <Upload className="text-accent" size={28} />,
@@ -43,8 +42,7 @@ export const AiFeaturesSection = () => {
     {
       icon: <ScrollText className="text-primary" size={28} />,
       title: 'ChravelApp Recap PDFs',
-      description:
-        'One-tap trip summary PDF.',
+      description: 'One-tap trip summary PDF.',
     },
   ];
 

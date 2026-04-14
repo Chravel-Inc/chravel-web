@@ -1,34 +1,28 @@
 
 
-# Fix & Redeploy Concierge Edge Function
+# Fix Task Creation Error + Default to Group Task
 
-You've done your part rotating the key — I can fix the code issues and redeploy from here.
+## Problem 1: "Could not find the 'idempotency_key' column of 'trip_tasks' in the schema cache"
 
-## Two Code Fixes + Deploy
+The `trip_tasks` table has no `idempotency_key` column, but `useTripTasks.ts` line 636 inserts one. Same issue exists for `trip_polls` in `useTripPolls.ts` line 309.
 
-### 1. Fix invalid flash model name
-**File:** `supabase/functions/_shared/gemini.ts` line 63
+**Fix:** Remove `idempotency_key` from the insert objects in both files. Idempotency can be handled at a different layer if needed later — right now it's blocking all task and poll creation.
 
-`gemini-3.1-flash` → `gemini-3-flash-preview`
+## Problem 2: Default task type should be "Group Task"
 
-This is the primary reason both the direct Gemini path AND the Lovable fallback path fail. The Lovable gateway also rejects `gemini-3.1-flash` as an unknown model.
+In `TaskCreateForm.tsx` line 38, the default `taskMode` is `'solo'`. Change it to `'poll'` (which maps to "Group Task - Everyone needs to complete this").
 
-### 2. Fix `assignee_id` column reference
-**File:** `supabase/functions/_shared/contextBuilder.ts` line 677
+## Problem 3: Hide member selector for group tasks
 
-The `trip_tasks` table has no `assignee_id` column — assignments live in a separate `task_assignments` table. The query needs to either:
-- Remove `assignee_id` from the select and join `task_assignments` for assignee info, OR
-- Simply drop the column from the select and skip assignee resolution (simpler, non-breaking)
+In `TaskCreateForm.tsx` lines 211-217, the `CollaboratorSelector` is always rendered. For group tasks (`taskMode === 'poll'`), it should be hidden entirely since it auto-assigns to everyone anyway. The `CollaboratorSelector` already auto-selects all members for group tasks (line 44-48), but the dropdown is still shown and confusable.
 
-I'll take the simpler approach: remove `assignee_id` from the task query and assignee resolution logic since tasks use the `task_assignments` join table. This prevents the context builder from crashing.
-
-### 3. Deploy
-Redeploy `lovable-concierge` edge function with both fixes applied.
+**Fix:** Wrap the `CollaboratorSelector` in a conditional: only render when `taskMode === 'solo'`. For group tasks, show a simple "Assigned to everyone" label instead.
 
 ## Files Changed
-1. `supabase/functions/_shared/gemini.ts` — fix default model name
-2. `supabase/functions/_shared/contextBuilder.ts` — fix task query to not reference nonexistent column
+
+1. **`src/hooks/useTripTasks.ts`** — Remove `idempotency_key` from the task insert object (line 636)
+2. **`src/hooks/useTripPolls.ts`** — Remove `idempotency_key` from the poll insert object (line 309)
+3. **`src/components/todo/TaskCreateForm.tsx`** — Default `taskMode` to `'poll'`; conditionally hide `CollaboratorSelector` for group tasks, show "Assigned to everyone" text instead
 
 ## Risk
-Low — config/query fix only. No logic changes. The model name fix immediately restores the fallback path, and the rotated API key restores the primary path.
-
+Low — removing a column reference that doesn't exist fixes a hard blocker. UI defaults are cosmetic. No schema or RLS changes.

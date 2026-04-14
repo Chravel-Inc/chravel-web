@@ -19,6 +19,28 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[EXPORT-TRIP] ${step}${detailsStr}`);
 };
 
+interface PdfUsageGateRow {
+  export_count: number | null;
+  limit_count: number | null;
+  remaining: number | null;
+  can_export: boolean | null;
+  is_unlimited: boolean | null;
+}
+
+interface PdfUsageIncrementRow {
+  used_count: number | null;
+  remaining: number | null;
+  incremented: boolean | null;
+  limit_count: number | null;
+  can_export: boolean | null;
+}
+
+const normalizeRpcRow = <T extends Record<string, unknown>>(value: unknown): T | null => {
+  const row = Array.isArray(value) ? value[0] : value;
+  if (!row || typeof row !== 'object') return null;
+  return row as T;
+};
+
 function getBrandHeaderTemplate(): string {
   // Puppeteer header/footer templates are isolated from the page CSS, so we inline styles.
   // Keep it lightweight and deterministic (no external images required).
@@ -109,6 +131,36 @@ serve(async req => {
     }
 
     logStep('Authorization verified', { tripId });
+
+    // Server-side quota guard (free users: 1 export/trip)
+    const { data: usageGateData, error: usageGateError } = await supabaseClient.rpc(
+      'get_trip_pdf_export_usage',
+      { p_trip_id: tripId },
+    );
+
+    if (usageGateError) {
+      logStep('Failed to check PDF export usage', { tripId, error: usageGateError.message });
+      return new Response(JSON.stringify({ error: 'Failed to validate export limit' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const usageGateRow = normalizeRpcRow<PdfUsageGateRow>(usageGateData);
+    if (!usageGateRow?.can_export) {
+      logStep('Export blocked by plan limit', {
+        tripId,
+        export_count: usageGateRow?.export_count,
+        limit_count: usageGateRow?.limit_count,
+      });
+      return new Response(
+        JSON.stringify({
+          error: 'Free export limit reached for this trip. Upgrade for unlimited exports.',
+          code: 'PDF_EXPORT_LIMIT_REACHED',
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
 
     // Auto-detect layout from trip_type if not explicitly provided
     if (!layout || layout === 'onepager') {
@@ -222,6 +274,33 @@ serve(async req => {
 
     await browser.close();
     logStep('PDF generated successfully', { size: pdfBytes.length });
+
+    // Consume export usage after successful PDF generation.
+    // This prevents failed renders from burning a free export while still enforcing server-side limits.
+    const { data: incrementData, error: incrementError } = await supabaseClient.rpc(
+      'increment_trip_pdf_export_usage',
+      { p_trip_id: tripId },
+    );
+
+    if (incrementError) {
+      logStep('Failed to record PDF export usage', { tripId, error: incrementError.message });
+      return new Response(JSON.stringify({ error: 'Failed to record export usage' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const incrementRow = normalizeRpcRow<PdfUsageIncrementRow>(incrementData);
+    if (incrementRow?.incremented === false) {
+      logStep('Export blocked at increment step (concurrent limit hit)', { tripId });
+      return new Response(
+        JSON.stringify({
+          error: 'Free export limit reached for this trip. Upgrade for unlimited exports.',
+          code: 'PDF_EXPORT_LIMIT_REACHED',
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
 
     // Generate filename with timestamp
     const filename = `Trip_${slug(exportData.tripTitle)}_${layout}_${formatTimestamp()}.pdf`;

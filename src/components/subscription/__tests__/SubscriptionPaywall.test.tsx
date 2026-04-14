@@ -1,176 +1,37 @@
 import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { describe, it, expect, vi } from 'vitest';
+import { SubscriptionPaywall, SubscriptionStatusBadge } from '../SubscriptionPaywall';
 
-// Mock safeReload
-vi.mock('@/utils/safeReload', () => ({
-  safeReload: vi.fn().mockResolvedValue(undefined),
+vi.mock('@/integrations/revenuecat/revenuecatClient', () => ({
+  isNativePlatform: () => false,
 }));
-
-// Mock RevenueCat
-const mockGetCustomerInfo = vi.fn();
-const mockGetOfferings = vi.fn();
-const mockPurchase = vi.fn();
-
-vi.mock('@revenuecat/purchases-js', () => ({
-  Purchases: {
-    getSharedInstance: () => ({
-      getCustomerInfo: mockGetCustomerInfo,
-      getOfferings: mockGetOfferings,
-      purchase: mockPurchase,
-    }),
-  },
-  ErrorCode: {
-    UserCancelledError: 1,
-  },
-  PurchasesError: class PurchasesError extends Error {
-    errorCode: number;
-    constructor(message: string, errorCode: number) {
-      super(message);
-      this.errorCode = errorCode;
-    }
-  },
-}));
-
-import { SubscriptionPaywall } from '../SubscriptionPaywall';
 
 describe('SubscriptionPaywall', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-
-    // Default: not entitled, offerings available
-    mockGetCustomerInfo.mockResolvedValue({
-      entitlements: { active: {} },
-    });
-    mockGetOfferings.mockResolvedValue({
-      current: null,
-      all: {},
-    });
-  });
-
-  it('should render loading state initially', () => {
-    render(<SubscriptionPaywall />);
-    expect(screen.getByLabelText('Loading subscription options')).toBeInTheDocument();
-  });
-
-  it('should render error state when no offerings are available', async () => {
-    mockGetCustomerInfo.mockResolvedValue({
-      entitlements: { active: {} },
-    });
-    mockGetOfferings.mockResolvedValue({
-      current: null,
-      all: {},
-    });
-
+  it('renders adapter-only copy on web', () => {
     render(<SubscriptionPaywall />);
 
-    // Wait for loading to finish
-    const errorText = await screen.findByText('No subscription packages available');
-    expect(errorText).toBeInTheDocument();
+    expect(screen.getByText('In-app purchases are mobile-only')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Open Chravel mobile app to manage subscriptions/i),
+    ).toBeInTheDocument();
   });
 
-  it('should render subscribed view when user is entitled', async () => {
-    mockGetCustomerInfo.mockResolvedValue({
-      entitlements: {
-        active: {
-          pro: { isActive: true },
-        },
-      },
-    });
-    mockGetOfferings.mockResolvedValue({
-      current: { availablePackages: [] },
-      all: {},
-    });
-
-    render(<SubscriptionPaywall entitlementId="pro" />);
-
-    const subscribedText = await screen.findByText("You're Subscribed!");
-    expect(subscribedText).toBeInTheDocument();
-  });
-
-  it('should call onClose when Continue button clicked in subscribed view', async () => {
-    const user = userEvent.setup();
+  it('calls onClose when close button is pressed', async () => {
     const onClose = vi.fn();
-
-    mockGetCustomerInfo.mockResolvedValue({
-      entitlements: {
-        active: {
-          pro: { isActive: true },
-        },
-      },
-    });
-    mockGetOfferings.mockResolvedValue({
-      current: { availablePackages: [] },
-      all: {},
-    });
-
-    render(<SubscriptionPaywall entitlementId="pro" onClose={onClose} />);
-
-    const continueButton = await screen.findByText('Continue');
-    await user.click(continueButton);
-    expect(onClose).toHaveBeenCalled();
-  });
-
-  it('should show Unlock Premium header', () => {
-    render(<SubscriptionPaywall />);
-    expect(screen.getByText('Unlock Premium')).toBeInTheDocument();
-  });
-
-  it('should show feature list after loading', async () => {
-    // Mock successful offerings with a package
-    mockGetCustomerInfo.mockResolvedValue({
-      entitlements: { active: {} },
-    });
-    mockGetOfferings.mockResolvedValue({
-      current: {
-        availablePackages: [
-          {
-            identifier: 'monthly',
-            packageType: '$rc_monthly',
-            webBillingProduct: {
-              title: 'Monthly',
-              price: { formattedPrice: '$9.99', amountMicros: 9990000 },
-              description: 'Monthly subscription',
-              period: { unit: 'month' },
-            },
-          },
-        ],
-        monthly: null,
-        annual: null,
-      },
-      all: {},
-    });
-
-    render(<SubscriptionPaywall />);
-
-    // Wait for features to appear after loading finishes
-    const feature = await screen.findByText('Unlimited trips');
-    expect(feature).toBeInTheDocument();
-    expect(screen.getByText('AI travel concierge')).toBeInTheDocument();
-    expect(screen.getByText('Advanced budget tracking')).toBeInTheDocument();
-    expect(screen.getByText('Priority support')).toBeInTheDocument();
-    expect(screen.getByText('No ads')).toBeInTheDocument();
-  });
-
-  it('should render close button when onClose is provided', () => {
-    render(<SubscriptionPaywall onClose={vi.fn()} />);
-    expect(screen.getByLabelText('Close subscription dialog')).toBeInTheDocument();
-  });
-
-  it('should show Try Again button when error occurs and retry on click', async () => {
     const user = userEvent.setup();
 
-    mockGetCustomerInfo.mockRejectedValue(new Error('Network error'));
+    render(<SubscriptionPaywall onClose={onClose} />);
+    await user.click(screen.getByRole('button', { name: 'Close paywall' }));
 
-    render(<SubscriptionPaywall />);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});
 
-    const tryAgainButton = await screen.findByText('Try Again');
-    expect(tryAgainButton).toBeInTheDocument();
-
-    // Click retries by calling fetchOfferings again (getCustomerInfo + getOfferings)
-    mockGetCustomerInfo.mockClear();
-    await user.click(tryAgainButton);
-    expect(mockGetCustomerInfo).toHaveBeenCalled();
+describe('SubscriptionStatusBadge', () => {
+  it('renders known status label', () => {
+    render(<SubscriptionStatusBadge status="active" />);
+    expect(screen.getByText('Active')).toBeInTheDocument();
   });
 });
