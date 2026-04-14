@@ -318,28 +318,30 @@ export function usePendingActions(tripId: string) {
       ].includes(label);
       toast.success(isVerb ? label : `${label} created`);
 
-      // Invalidate relevant queries
+      // Invalidate relevant queries — use exact: false for prefix matching
+      // so ['tripTasks', tripId, isDemoMode] variants are also invalidated.
       queryClient.invalidateQueries({ queryKey });
       switch (action.tool_name) {
         case 'createTask':
-          queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId] });
+          queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId], exact: false });
           break;
         case 'createPoll':
-          queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId] });
+          queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId], exact: false });
           break;
         case 'addToCalendar':
         case 'duplicateCalendarEvent':
         case 'cloneActivity':
-          queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
+          queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId), exact: false });
           break;
         case 'bulkMarkTasksDone':
-          queryClient.invalidateQueries({ queryKey: tripKeys.tasks(tripId) });
+          queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId], exact: false });
           break;
         case 'addExpense':
-          queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) });
+          queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId), exact: false });
           break;
         case 'updateTripDetails':
-          queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
+          queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId), exact: false });
+          queryClient.invalidateQueries({ queryKey: tripKeys.all, exact: false });
           break;
         default:
           break;
