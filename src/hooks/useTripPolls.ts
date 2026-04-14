@@ -9,7 +9,7 @@ import { pollStorageService } from '@/services/pollStorageService';
 import { getStorageItem, setStorageItem } from '@/platform/storage';
 import { offlineSyncService } from '@/services/offlineSyncService';
 import { cacheEntity, getCachedEntities } from '@/offline/cache';
-import { generateMutationId } from '@/utils/concurrencyUtils';
+
 import { useMutationPermissions } from '@/hooks/useMutationPermissions';
 import { hapticService as haptics } from '@/services/hapticService';
 
