@@ -6,6 +6,7 @@ import {
   extractTextFromChatResponse,
   DEFAULT_GEMINI_FLASH_MODEL,
 } from '../_shared/gemini.ts';
+import { checkAndIncrementSmartImportUsage } from '../_shared/smartImportUsage.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
@@ -161,7 +162,7 @@ async function fetchFileAsBase64(
 // ─── Main Handler ────────────────────────────────────────────────────────────
 
 serve(async req => {
-  const { createOptionsResponse, createErrorResponse, createSecureResponse } =
+  const { createErrorResponse, createSecureResponse } =
     await import('../_shared/securityHeaders.ts');
 
   if (req.method === 'OPTIONS') {
@@ -188,6 +189,31 @@ serve(async req => {
     }
 
     const { messageText, fileUrl, fileType, extractionType, tripId } = await req.json();
+
+    if (
+      (extractionType === 'calendar' || extractionType === 'agenda') &&
+      (messageText || fileUrl)
+    ) {
+      const usage = await checkAndIncrementSmartImportUsage(
+        supabase,
+        user.id,
+        typeof tripId === 'string' && tripId.trim() ? tripId : null,
+      );
+
+      if (!usage.allowed) {
+        return createSecureResponse(
+          {
+            error: 'Smart Import limit reached for this month. Upgrade to continue importing.',
+            error_code: usage.errorCode,
+            upgrade_required: usage.upgradeRequired,
+            remaining: usage.remaining,
+          },
+          402,
+          {},
+          req,
+        );
+      }
+    }
 
     if (fileUrl) {
       const urlValidation = validateImageUrl(fileUrl);

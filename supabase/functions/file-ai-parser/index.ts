@@ -9,6 +9,7 @@ import {
 import { validateExternalHttpsUrl } from '../_shared/validation.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { requireAuth } from '../_shared/requireAuth.ts';
+import { checkAndIncrementSmartImportUsage } from '../_shared/smartImportUsage.ts';
 
 // Security model:
 // 1. requireAuth validates the caller's JWT — no unauthenticated access
@@ -261,6 +262,22 @@ serve(async req => {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    const usage = await checkAndIncrementSmartImportUsage(supabase, user.id, fileRow.trip_id);
+    if (!usage.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: 'Smart Import limit reached for this month. Upgrade to continue importing.',
+          error_code: usage.errorCode,
+          upgrade_required: usage.upgradeRequired,
+          remaining: usage.remaining,
+        }),
+        {
+          status: 402,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      );
     }
 
     // ── Step 3: AI extraction ────────────────────────────────────────────────

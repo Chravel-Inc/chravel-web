@@ -1,6 +1,10 @@
 import { pickPrimaryEntitlement } from '../entitlementSelection.ts';
+import {
+  getConciergeTripQueryLimit,
+  type ConciergeTripQueryPlan,
+} from '../../../../src/lib/conciergeTripQueryLimits.ts';
 
-export type UsagePlan = 'free' | 'explorer' | 'frequent_chraveler';
+export type UsagePlan = ConciergeTripQueryPlan;
 
 export interface UsagePlanResolution {
   usagePlan: UsagePlan;
@@ -39,11 +43,8 @@ const MONTHLY_TOKEN_BUDGETS: Record<UsagePlan, number | null> = {
       : null,
 };
 
-export const getTripQueryLimitForUsagePlan = (plan: UsagePlan): number | null => {
-  if (plan === 'free') return 5;
-  if (plan === 'explorer') return 10;
-  return null;
-};
+export const getTripQueryLimitForUsagePlan = (plan: UsagePlan): number | null =>
+  getConciergeTripQueryLimit(plan);
 
 export const getMonthlyTokenBudgetForUsagePlan = (plan: UsagePlan): number | null =>
   MONTHLY_TOKEN_BUDGETS[plan] ?? null;

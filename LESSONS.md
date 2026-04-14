@@ -71,6 +71,15 @@
 - **Provenance:** March 2026 Event cover photo homepage refresh regression fix
 - **Confidence:** high
 
+
+### Archive/restore limits must be enforced server-side, not only in client services
+- **Tip:** Any plan/quota guard that prevents a state transition (`is_archived=true -> false`, creation caps, paid-tier gates) must execute in an edge function or RPC; client-side checks are UX hints and can be bypassed.
+- **Applies when:** Trip restore flows, archive/unarchive actions, entitlement/plan-gated writes.
+- **Avoid when:** Pure UI affordance decisions with no mutation side-effects.
+- **Evidence:** `archiveService.restoreTrip` previously enforced free-tier active-trip limits only in frontend code before writing directly to `trips`; adding a dedicated `restore-trip` edge function made entitlement resolution and quota checks authoritative.
+- **Provenance:** April 2026 trip entitlement + restore guard hardening.
+- **Confidence:** high
+
 ## Recovery Tips
 
 ### Edge Function "Failed to fetch" in browser is usually a CORS-origin drift, not a DB insert bug
@@ -518,4 +527,16 @@
 - **Applies when:** Building “check status” endpoints/hooks that can be called frequently from clients.
 - **Evidence:** `check-subscription` previously called Stripe first and only consulted pass entitlements as a secondary branch; this caused unnecessary external calls and inconsistent response shapes. Entitlement-first flow reduced blast radius and kept trip-pass handling native to entitlements.
 - **Provenance:** April 2026 `check-subscription` hardening.
+### Keep plan quotas in one canonical module consumed by both client and server
+- **Tip:** Usage ceilings that affect both UI counters and backend enforcement must come from one shared policy map. Duplicated constants drift silently and create trust-breaking mismatches (UI says asks remain while server rejects).
+- **Applies when:** Per-plan limits (trip query caps, export caps, seat caps) are shown in frontend and enforced in edge functions/RPC paths.
+- **Avoid when:** A limit is intentionally runtime-only (e.g., server cost circuit-breaker not exposed in UI).
+- **Evidence:** Concierge trip query policy diverged (`useConciergeUsage` 10/25 vs server `usagePolicy` 5/10); canonicalizing to shared `getConciergeTripQueryLimit(...)` removed mismatch and synchronized trip-limit response copy.
+- **Provenance:** April 2026 concierge usage policy consolidation.
+### Smart-import limits should return machine-readable paywall metadata, not generic parser errors
+- **Tip:** For quota-gated ingestion surfaces, always return a structured payload (`error_code`, `upgrade_required`, `remaining`) from edge functions and let frontend parser adapters map that to contextual CTA copy.
+- **Applies when:** URL/file/text import flows that can hit monthly/plan-based limits.
+- **Avoid when:** Purely transient failures (network timeout, malformed input) where retry guidance is more appropriate than upgrade CTA.
+- **Evidence:** Smart Import scrape/parser functions now gate via shared usage RPC and return a consistent 402 payload; parser utilities use a shared helper to preserve paywall context instead of collapsing into generic “AI parsing failed”.
+- **Provenance:** April 2026 Smart Import usage quota hardening.
 - **Confidence:** high
