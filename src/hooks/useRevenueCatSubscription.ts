@@ -43,7 +43,7 @@ export const useRevenueCatSubscription = (
 
       const result = await getCustomerInfo();
       if (result.success && result.data) {
-        setCustomerInfo(result.data as CustomerInfoShape);
+        setCustomerInfo(result.data as unknown as CustomerInfoShape);
         return;
       }
 

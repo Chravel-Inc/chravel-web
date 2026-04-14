@@ -188,7 +188,7 @@ export const QUERY_CLASS_SLICES: Record<QueryClass, ContextSlice[]> = {
   booking_reservation: ['metadata', 'places', 'calendar', 'preferences', 'members'],
   broadcast_notification: ['metadata', 'members', 'teams'],
   trip_summary: ALL_SLICES,
-  poll_action: ['metadata', 'members'],
+  poll_action: ['metadata', 'members', 'polls'],
   media_search: ['metadata', 'files', 'links'],
   flight_search: ['metadata', 'places', 'calendar'],
   trip_image: ['metadata'],
