@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import imageCompression from 'browser-image-compression';
 import { getUploadContentType } from '@/utils/mime';
 import { FREEMIUM_LIMITS, type FreemiumTier } from '@/utils/featureTiers';
+import { resolveEffectiveTier } from './entitlementService';
 
 // Generate UUID using crypto API
 const uuid = () => crypto.randomUUID();
@@ -28,17 +29,8 @@ export class MediaCountExceededError extends Error {
  * Returns 'free' if lookup fails (safe default — most restrictive).
  */
 async function resolveUserTier(userId: string): Promise<FreemiumTier> {
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('subscription_status, subscription_product_id')
-    .eq('user_id', userId)
-    .maybeSingle();
-
-  if (profile?.subscription_status === 'active') {
-    if (profile.subscription_product_id?.includes('explorer')) return 'explorer';
-    return 'frequent-chraveler';
-  }
-  return 'free';
+  const tier = await resolveEffectiveTier(userId);
+  return tier === 'free' ? 'free' : tier === 'explorer' ? 'explorer' : 'frequent-chraveler';
 }
 
 /**

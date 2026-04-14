@@ -485,4 +485,9 @@
 - **Avoid when:** Marketing and app are fully separate codebases/domains.
 - **Evidence:** Chravel native users were seeing marketing homepage because `/` entry treated native WebView the same as browser; a centralized launch context utility plus early Index gate removed flash and preserved browser SEO routes.
 - **Provenance:** April 2026 installed app entry routing hardening (`launchContext` + Index gate).
+### Checkout creation should enforce cross-provider overlap guards before payment session creation
+- **Tip:** Before creating a Stripe Checkout session, read `user_entitlements` and explicitly block overlapping active paid access (active/trialing/past_due/canceled-with-future-end) from any provider. This prevents accidental dual billing when users can arrive from multiple billing channels (web Stripe + native RevenueCat).
+- **Applies when:** Mixed-provider billing stacks where at least one client can initiate purchases without central provider reconciliation.
+- **Evidence:** Added guardrails in `supabase/functions/create-checkout/index.ts` that stop overlapping subscription/pass purchases based on existing entitlement state.
+- **Provenance:** April 2026 subscription architecture hardening.
 - **Confidence:** high

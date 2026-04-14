@@ -686,3 +686,10 @@
 - Updated `src/pages/Index.tsx` root-entry behavior to prevent installed-context marketing flash: show neutral hydration shell while auth loads, then redirect logged-out installed users to `/auth`; browser users keep marketing homepage behavior unchanged.
 - Added focused regression test `src/lib/runtime/launchContext.test.ts` covering browser default, native query-param launch, and standalone PWA launch classification.
 - Verification: `npm run test:run -- src/lib/runtime/launchContext.test.ts`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`.
+
+2026-04-13 — Subscription architecture hardening (cross-provider dedupe + service-tier unification)
+- Added `src/services/entitlementService.ts` as a centralized resolver for effective paid tier from `user_entitlements` with legacy `profiles` fallback for compatibility.
+- Rewired trip/archive/upload freemium gating paths to use centralized entitlement resolver instead of direct `profiles.subscription_*` checks.
+- Hardened Stripe checkout creation (`supabase/functions/create-checkout/index.ts`) with pre-checks against existing entitlements to block overlapping active subscription/pass purchases and reduce cross-provider double-billing risk.
+- Added focused regression coverage: `src/services/__tests__/entitlementService.test.ts`.
+- Verification: `npm run test:run -- src/services/__tests__/entitlementService.test.ts`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`.
