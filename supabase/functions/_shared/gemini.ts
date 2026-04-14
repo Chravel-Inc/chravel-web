@@ -60,7 +60,7 @@ const AI_PROVIDER = (Deno.env.get('AI_PROVIDER') || 'gemini').toLowerCase();
 const ENABLE_LOVABLE_FALLBACK =
   (Deno.env.get('GEMINI_ENABLE_LOVABLE_FALLBACK') || 'true').toLowerCase() !== 'false';
 
-const DEFAULT_FLASH_MODEL = (Deno.env.get('GEMINI_FLASH_MODEL') || 'gemini-3.1-flash').trim();
+const DEFAULT_FLASH_MODEL = (Deno.env.get('GEMINI_FLASH_MODEL') || 'gemini-3-flash-preview').trim();
 const DEFAULT_PRO_MODEL = 'gemini-3.1-pro-preview';
 const DEFAULT_EMBEDDING_MODEL = 'text-embedding-004';
 const DEFAULT_CHAT_TIMEOUT_MS = 45_000;

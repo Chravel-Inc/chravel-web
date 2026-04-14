@@ -674,7 +674,7 @@ export class TripContextBuilder {
     try {
       const { data, error } = await supabase
         .from('trip_tasks')
-        .select('id, title, description, assignee_id, due_at, completed')
+        .select('id, title, description, due_at, completed')
         .eq('trip_id', tripId);
 
       if (error) throw error;
