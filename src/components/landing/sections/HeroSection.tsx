@@ -54,7 +54,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
             textShadow: '0 2px 4px rgba(0,0,0,0.4)',
           }}
         >
-          For Friends, Families, Sports, Tours, Work Trips & More.
+          Friends, Families, Sports, Tours, Work & More.
           <br className="hidden sm:inline" />
           Planning is Frustrating.{' '}
           <span className="text-gold-primary font-semibold">Get UnFrustrated.</span>
@@ -140,7 +140,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
             textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
           }}
         >
-          Plans, Photos, Places, PDFs, & Payments — in one Shared space.
+          Plans, Photos, Places & Payments — one shared space.
         </p>
       </div>
     </div>

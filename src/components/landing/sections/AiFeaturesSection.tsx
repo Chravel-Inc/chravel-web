@@ -11,18 +11,18 @@ export const AiFeaturesSection = () => {
       icon: <Wand2 className="text-accent" size={28} />,
       title: 'Context-Aware Concierge',
       description:
-        'Loads your full trip — itinerary, tasks, payments, places, and group — before every answer. Responses are grounded in your actual trip data, not generic travel advice. Live web search included for real-time hours, prices, and availability.',
+        'Your full trip context — itinerary, tasks, payments, places — loaded before every answer. Live web search for real-time hours and prices.',
     },
     {
       icon: <DollarSign className="text-primary" size={28} />,
       title: 'Payment Tracking',
-      description: 'Keep track of who owes what, without the spreadsheets',
+      description: 'Who owes what — no spreadsheets.',
     },
     {
       icon: <Bot className="text-accent" size={28} />,
       title: 'Chravel Agent',
       description:
-        'Your AI assistant takes action — add places to BaseCamps, save links, create polls, update calendars, assign tasks, plus pull flights, hotels, and activity suggestions.',
+        'Takes action: adds places, creates polls, updates calendars, assigns tasks, and pulls travel suggestions.',
     },
   ];
 
@@ -32,19 +32,19 @@ export const AiFeaturesSection = () => {
       icon: <Compass className="text-primary" size={28} />,
       title: 'BaseCamps',
       description:
-        'No more fumbling to find the Airbnb or hotel address. Store it once for all trip members.',
+        'Store your Airbnb or hotel address once. Everyone has it.',
     },
     {
       icon: <Upload className="text-accent" size={28} />,
       title: 'Smart Import',
       description:
-        'Paid feature: Import calendar, agenda & lineup from URLs or paste—AI extracts schedules and names automatically (Explorer+ / Trip Pass / Pro)',
+        'Import calendars, agendas & lineups from URLs — AI extracts schedules automatically. (Explorer+)',
     },
     {
       icon: <ScrollText className="text-primary" size={28} />,
       title: 'ChravelApp Recap PDFs',
       description:
-        'Sharing recommendations or just want a quick overview of the trip? Get a simple summary PDF.',
+        'One-tap trip summary PDF.',
     },
   ];
 
@@ -81,14 +81,13 @@ export const AiFeaturesSection = () => {
           className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white"
           style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)' }}
         >
-          Travel Intelligence: AI that understands your trip.
+          AI That Knows Your Trip
         </h2>
         <p
           className="text-lg sm:text-xl md:text-2xl text-white/90 font-medium max-w-3xl mx-auto"
           style={{ textShadow: '0 2px 6px rgba(0,0,0,0.5)' }}
         >
-          Full trip context. Live web search. Payment awareness. Group decisions. Every answer is
-          grounded in your actual trip — not just your question.
+          Every answer grounded in your itinerary, budget, and group — not generic advice.
         </p>
       </motion.div>
 
