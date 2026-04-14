@@ -673,3 +673,12 @@
 - Added focused regression test `src/components/native/__tests__/NativeSettings.test.tsx` to lock free-tier upgrade navigation behavior.
 - Removed redundant `user_id` field from `sync-revenuecat-entitlement` invoke body in `syncRevenueCatEntitlementsForUser(...)`.
 - Verification: `npm run test:run -- src/components/native/__tests__/NativeSettings.test.tsx src/components/subscription/__tests__/SubscriptionPaywall.test.tsx`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`.
+2026-04-14 — Shared feature paywall/CTA helper for gate messaging parity
+- Added centralized `getFeaturePaywallConfig(...)` mapping in `src/components/subscription/featurePaywall.ts` for feature gates with: trigger context, benefit copy, recommended plan, and settings destination (`/settings` query params + modal state).
+- Wired concierge limit assistant copy to helper in `useConciergeMessages` so chat limit messaging now shares one source-of-truth CTA recommendation.
+- Wired Smart Import gate UX to helper:
+  - Toast-based gates in `GroupCalendar` and `mobile/MobileGroupCalendar` now use helper copy + "View Plans" CTA route from helper destination.
+  - Tooltip-based gates in `EnhancedAgendaTab` and `LineupTab` now read helper copy + plan recommendation.
+- Wired archive restore / trip-cap upgrade prompts to helper in `ArchivedTripsSection` and `CreateTripModal`.
+- Added unit tests for helper mapping in `src/components/subscription/__tests__/featurePaywall.test.ts`.
+- Verification: `npm run test:run -- src/components/subscription/__tests__/featurePaywall.test.ts src/components/events/__tests__/EnhancedAgendaTab.smartImport.test.tsx src/components/events/__tests__/LineupTab.test.tsx`, `npm run typecheck`, `npm run merge:preflight` (fails here due fetch restriction on `origin/main`).
