@@ -32,8 +32,13 @@ jobs:
       - name: Build TypeScript
         run: npm run build
 
-      - name: Setup LiveKit CLI
-        uses: livekit/setup-livekit@main
+      - name: Install LiveKit CLI
+        run: |
+          LK_VERSION=$(curl -s https://api.github.com/repos/livekit/livekit-cli/releases/latest | python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'].lstrip('v'))")
+          curl -sSL -o /tmp/lk.tar.gz "https://github.com/livekit/livekit-cli/releases/download/v${LK_VERSION}/lk_${LK_VERSION}_linux_amd64.tar.gz"
+          tar -xzf /tmp/lk.tar.gz -C /tmp/
+          sudo mv /tmp/lk /usr/local/bin/lk
+          lk --version
 
       - name: Deploy to LiveKit Cloud
         env:
@@ -41,8 +46,7 @@ jobs:
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
           LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
         run: |
-          cd ..
-          lk cloud deploy --dir agent
+          lk agent deploy ../ --yes
 
       - name: Deployment summary
         run: |
