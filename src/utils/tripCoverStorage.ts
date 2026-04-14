@@ -1,10 +1,9 @@
 import { isBlobOrDataUrl } from './mediaUtils';
 
-export const TRIP_COVER_BUCKET = 'trip-media';
-export const TRIP_COVER_FOLDER = 'trip-covers';
+export const TRIP_COVER_BUCKET = 'trip-covers';
 
 export function buildTripCoverStoragePath(tripId: string, fileName: string): string {
-  return `${TRIP_COVER_FOLDER}/${tripId}/${fileName}`;
+  return `${tripId}/${fileName}`;
 }
 
 /**
@@ -29,7 +28,7 @@ export function normalizeTripCoverUrl(url?: string | null): string | undefined {
     }
 
     const uploadPath = decodeURIComponent(parsed.pathname.split(signedPrefix)[1] ?? '');
-    if (!uploadPath.startsWith(`${TRIP_COVER_FOLDER}/`)) {
+    if (!uploadPath) {
       return url;
     }
 

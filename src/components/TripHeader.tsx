@@ -397,7 +397,10 @@ export const TripHeader = ({
       const finalUrl = `${urlData.publicUrl}?v=${Date.now()}`;
       const success = await updateCoverPhoto(finalUrl);
 
-      // If database update failed, clean up the orphaned storage file
+      // If database update failed, notify user and clean up the orphaned storage file
+      if (!success) {
+        toast.error('Photo uploaded but could not be saved to the trip.');
+      }
       if (!success && uploadedFilePath) {
         console.warn(
           '[TripHeader] Database update failed, cleaning up storage file:',
