@@ -1,8 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@/utils/platformDetection', () => ({
-  isNativeWebView: vi.fn(),
-}));
+vi.mock('@/utils/platformDetection', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/utils/platformDetection')>();
+  return {
+    ...actual,
+    isNativeWebView: vi.fn(),
+  };
+});
 
 import { isNativeWebView } from '@/utils/platformDetection';
 
@@ -108,6 +112,26 @@ describe('billing platform detection', () => {
     );
 
     expect(platform).toBe('web');
+  });
+
+  it('treats webview marker as android when Android token is absent from UA', () => {
+    const platform = detectBillingPlatform('MyApp/1.0 (Linux; Custom; wv)', true);
+
+    expect(platform).toBe('android');
+  });
+
+  it('does not route native shell with stripped OS UA to web (Play billing guard)', () => {
+    const platform = detectBillingPlatform('ChravelNative/42 EmbeddedWebKit', true);
+
+    expect(platform).toBe('android');
+  });
+
+  it('detects ios for WKWebView-style ua without iPhone|iPad|iPod token', () => {
+    const ua =
+      'Mozilla/5.0 AppleWebKit/605.1.15 (KHTML, like Gecko) Chravel/1.0 Mobile/15E148';
+    const platform = detectBillingPlatform(ua, true);
+
+    expect(platform).toBe('ios');
   });
 
   it('reports native platform only when runtime resolves ios/android', () => {

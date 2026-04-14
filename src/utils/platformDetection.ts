@@ -23,6 +23,18 @@ export function isLikelyMobileDevice(): boolean {
   return /Android|iPhone|iPad|iPod|Mobile|IEMobile|Opera Mini/i.test(ua);
 }
 
+/**
+ * Heuristic for iOS WKWebView user agents: AppleWebKit present without Safari/Chrome/Firefox.
+ * Kept in sync with `isNativeWebView()` so billing and shell detection agree on OS class.
+ */
+export function isLikelyIosWkWebViewUserAgent(userAgent: string): boolean {
+  return (
+    /AppleWebKit/.test(userAgent) &&
+    !/Safari/.test(userAgent) &&
+    !/Chrome|CriOS|Firefox|FxiOS/.test(userAgent)
+  );
+}
+
 /** True when running inside a native app's webview (Expo WebView, Android WebView, etc). */
 export function isNativeWebView(): boolean {
   if (typeof window === 'undefined') return false;
@@ -33,8 +45,7 @@ export function isNativeWebView(): boolean {
   // Android WebView
   if (/; wv\)/.test(ua)) return true;
   // iOS WKWebView: has AppleWebKit but no Safari token (and not Chrome/Firefox)
-  if (/AppleWebKit/.test(ua) && !/Safari/.test(ua) && !/Chrome|CriOS|Firefox|FxiOS/.test(ua))
-    return true;
+  if (isLikelyIosWkWebViewUserAgent(ua)) return true;
   return false;
 }
 

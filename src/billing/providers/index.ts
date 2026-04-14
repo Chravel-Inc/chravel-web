@@ -10,7 +10,7 @@ import { StripeProvider } from './stripe';
 import { AppleIAPProvider } from './iap';
 import { BILLING_FLAGS, BILLING_PRODUCTS } from '../config';
 import type { SubscriptionTier, BillingPlatform, PurchaseRequest } from '../types';
-import { isNativeWebView } from '@/utils/platformDetection';
+import { isLikelyIosWkWebViewUserAgent, isNativeWebView } from '@/utils/platformDetection';
 
 // Singleton instances
 let stripeProvider: StripeProvider | null = null;
@@ -41,8 +41,11 @@ export function detectBillingPlatform(userAgent: string, nativeWebView: boolean)
 
   if (/Android/i.test(userAgent)) return 'android';
   if (/iPhone|iPad|iPod/i.test(userAgent)) return 'ios';
-
-  return 'web';
+  // Android System WebView often includes "; wv)" even when the UA is customized.
+  if (/; wv\)/i.test(userAgent)) return 'android';
+  if (isLikelyIosWkWebViewUserAgent(userAgent)) return 'ios';
+  // Native shell but OS not inferable: fail closed for Play (do not return `web`).
+  return 'android';
 }
 
 /**
