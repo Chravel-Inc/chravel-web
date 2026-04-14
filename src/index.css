@@ -351,48 +351,58 @@
     /* iMessage-style chat colors - isolated from landing page theme */
     --chat-bubble-own: 210 100% 52%; /* iMessage blue #007AFF */
     --chat-bubble-own-foreground: 0 0% 100%; /* White text */
+
+    /* Glass-slate design tokens (theme-aware) */
+    --glass-slate-bg: 0 0% 4%;
+    --glass-slate-card: 0 0% 8%;
+    --glass-slate-border: 42 20% 15%;
   }
 
   .light {
-    /* Flipping black/dark backgrounds to white/light */
-    --background: 0 0% 100%; /* Pure white */
+    /* Soft light gray palette — not harsh white, pleasant to view */
+    --background: 0 0% 96%; /* Soft off-white */
     --foreground: 0 0% 0%; /* Pure black text */
 
-    --card: 0 0% 98%; /* Near-white cards */
+    --card: 0 0% 100%; /* White cards float above gray bg */
     --card-foreground: 0 0% 0%; /* Black text on cards */
 
-    --popover: 0 0% 100%; /* White popovers */
+    --popover: 0 0% 100%; /* White popovers for contrast */
     --popover-foreground: 0 0% 0%; /* Black text on popovers */
 
-    --secondary: 0 0% 95%;
+    --secondary: 0 0% 92%;
     --secondary-foreground: 0 0% 10%;
 
-    --muted: 0 0% 90%;
+    --muted: 0 0% 88%;
     --muted-foreground: 0 0% 40%;
 
-    --border: 0 0% 85%;
-    --input: 0 0% 95%; /* Light gray inputs */
+    --border: 0 0% 83%;
+    --input: 0 0% 100%; /* White inputs on gray bg for clarity */
 
     /* Sidebar - Inverted */
-    --sidebar-background: 0 0% 98%;
+    --sidebar-background: 0 0% 97%;
     --sidebar-foreground: 0 0% 10%;
     --sidebar-primary: 37 55% 52%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 0 0% 90%;
     --sidebar-accent-foreground: 0 0% 10%;
-    --sidebar-border: 0 0% 85%;
+    --sidebar-border: 0 0% 83%;
     --sidebar-ring: 37 55% 52%;
 
     /* Payment Colors - Inverted for Light Mode */
     --payment-primary: 37 55% 52%;
     --payment-primary-foreground: 0 0% 0%;
-    --payment-background: 0 0% 100%;
-    --payment-background-light: 0 0% 98%;
-    --payment-border: 0 0% 90%;
+    --payment-background: 0 0% 96%;
+    --payment-background-light: 0 0% 97%;
+    --payment-border: 0 0% 88%;
     --payment-text: 0 0% 10%;
 
-    /* Slightly darker gold for focus ring visibility on white backgrounds */
+    /* Slightly darker gold for focus ring visibility on light backgrounds */
     --ring: 37 55% 42%;
+
+    /* Glass-slate tokens — light mode */
+    --glass-slate-bg: 0 0% 96%;
+    --glass-slate-card: 0 0% 100%;
+    --glass-slate-border: 0 0% 85%;
   }
 }
 
@@ -420,7 +430,7 @@
 
 /* --- Backgrounds --- */
 .light .bg-black {
-  background-color: hsl(0 0% 100%);
+  background-color: hsl(0 0% 96%);
 }
 .light .bg-gray-900 {
   background-color: hsl(0 0% 96%);
@@ -497,8 +507,88 @@
 /* --- PWA standalone background --- */
 @media (display-mode: standalone) {
   .light body {
-    background-color: hsl(0 0% 100%);
+    background-color: hsl(0 0% 96%);
   }
+}
+
+/* --- Additional text color overrides for light mode --- */
+.light .text-gray-200 {
+  color: hsl(0 0% 20%);
+}
+
+/* --- Semi-transparent black overlays (chat, content areas) --- */
+.light [class*='bg-black\\/40'] {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+.light [class*='bg-black\\/30'] {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+.light [class*='bg-black\\/60'] {
+  background-color: rgba(0, 0, 0, 0.06);
+}
+.light [class*='bg-black\\/70'] {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+.light [class*='bg-black\\/25'] {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+.light [class*='bg-black\\/20'] {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+.light [class*='bg-black\\/90'] {
+  background-color: hsl(0 0% 97%);
+}
+.light [class*='bg-black\\/95'] {
+  background-color: hsl(0 0% 97%);
+}
+
+/* --- Enterprise shadows (too heavy for light backgrounds) --- */
+.light .shadow-enterprise-lg {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+}
+.light .shadow-enterprise-md {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+.light .shadow-enterprise {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+/* --- Hardcoded hex dark backgrounds (modals, forms) --- */
+.light .bg-\[\#1a1a1a\] {
+  background-color: hsl(0 0% 100%);
+}
+.light .bg-\[\#1e1e1e\] {
+  background-color: hsl(0 0% 97%);
+}
+.light .bg-\[\#2a2a2a\] {
+  background-color: hsl(0 0% 95%);
+}
+.light .hover\:bg-\[\#2a2a2a\]:hover {
+  background-color: hsl(0 0% 93%);
+}
+.light .hover\:bg-\[\#333\]:hover {
+  background-color: hsl(0 0% 90%);
+}
+.light .bg-\[\#222\]\/60 {
+  background-color: rgba(245, 245, 245, 0.8);
+}
+.light .bg-\[\#222\]\/50 {
+  background-color: rgba(245, 245, 245, 0.6);
+}
+.light .bg-\[\#222\]\/40 {
+  background-color: rgba(245, 245, 245, 0.5);
+}
+.light .border-\[\#333\] {
+  border-color: hsl(0 0% 83%);
+}
+.light .border-\[\#444\] {
+  border-color: hsl(0 0% 80%);
+}
+.light .border-2.border-\[\#444\] {
+  border-color: hsl(0 0% 80%);
+}
+.light .focus\:border-\[\#c49746\]:focus {
+  border-color: hsl(37 55% 45%);
 }
 
 /* --- Landing page protection ---
@@ -918,6 +1008,16 @@
   .accent-ring-idle:hover {
     background: rgba(255, 255, 255, 0.1);
     border-color: rgba(196, 151, 70, 0.25);
+  }
+
+  /* Light mode: invert idle ring to dark-on-light */
+  .light .accent-ring-idle {
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+  }
+  .light .accent-ring-idle:hover {
+    background: rgba(0, 0, 0, 0.08);
+    border-color: rgba(196, 151, 70, 0.35);
   }
 
   /* ── Marketing Gold Fill (public-facing UI) ── */
