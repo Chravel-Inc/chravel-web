@@ -53,7 +53,10 @@ export default function Healthz() {
       }
 
       setRuntimeChecks({
-        envPresent: !!(env.VITE_SUPABASE_URL && env.VITE_SUPABASE_ANON_KEY),
+        envPresent: !!(
+          env.VITE_SUPABASE_URL &&
+          (env.VITE_SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_ANON_KEY)
+        ),
         isPreview,
         localStorageAvailable: checkLocalStorage(),
         supabaseSession: sessionStatus,

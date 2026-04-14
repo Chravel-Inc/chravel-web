@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { isSuperAdminEmail } from '@/utils/isSuperAdmin';
+import { resolveEffectiveTier } from './entitlementService';
 
 type TripType = 'consumer' | 'pro' | 'event';
 
@@ -151,18 +152,7 @@ export const restoreTrip = async (
     const userEmail = userData?.user?.email;
 
     if (!isSuperAdminEmail(userEmail)) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('subscription_status, subscription_product_id')
-        .eq('user_id', userId)
-        .single();
-
-      const tier =
-        profile?.subscription_status === 'active'
-          ? profile.subscription_product_id?.includes('explorer')
-            ? 'explorer'
-            : 'frequent-chraveler'
-          : 'free';
+      const tier = await resolveEffectiveTier(userId);
 
       // Count current active trips
       const { count, error: countError } = await supabase

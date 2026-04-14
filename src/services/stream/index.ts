@@ -45,6 +45,14 @@ export {
   removeMemberFromProChannel,
 } from './streamMembershipSync';
 
+// Membership sync (retrying coordinator path)
+export {
+  syncAddMemberToTripChannels,
+  syncRemoveMemberFromTripChannels,
+  syncAddMemberToProChannel,
+  syncRemoveMemberFromProChannel,
+} from './streamMembershipCoordinator';
+
 // Mappers
 export { chravelUserToStream } from './adapters/mappers/userMapper';
 export type { ChrravelUserProfile, StreamUserData } from './adapters/mappers/userMapper';

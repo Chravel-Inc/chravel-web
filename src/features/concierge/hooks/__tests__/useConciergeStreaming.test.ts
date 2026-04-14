@@ -181,4 +181,38 @@ describe('useConciergeStreaming', () => {
     expect(setIsTyping).toHaveBeenCalledWith(false);
     expect(abort).toHaveBeenCalled();
   });
+
+  it('does not replace flight-card-only responses with an error fallback on stream done', async () => {
+    let callbacks: ConciergeStreamCallbacks | null = null;
+    invokeConciergeStreamMock.mockImplementation((_, cb: ConciergeStreamCallbacks) => {
+      callbacks = cb;
+      return { abort: vi.fn() };
+    });
+
+    const { params, getMessages } = createBaseParams({
+      inputMessage: 'show me flights from LAX to JFK',
+    });
+
+    const { result } = renderHook(() => useConciergeStreaming(params));
+
+    await act(async () => {
+      await result.current.handleSendMessage();
+    });
+
+    await act(async () => {
+      callbacks?.onFunctionCall?.('searchFlights', {
+        success: true,
+        origin: 'LAX',
+        destination: 'JFK',
+        departureDate: '2026-06-01',
+        passengers: 1,
+        deeplink: 'https://example.com/flights',
+      });
+      callbacks?.onDone();
+    });
+
+    const assistant = getMessages().find(msg => msg.type === 'assistant');
+    expect(assistant?.functionCallFlights?.length).toBe(1);
+    expect(assistant?.content).not.toContain('encountered an error processing your request');
+  });
 });

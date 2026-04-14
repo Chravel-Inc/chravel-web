@@ -123,12 +123,12 @@ export function useStreamProChannel(channelId: string | null) {
       if (!channel) return false;
 
       try {
-        await channel.sendMessage({
+      await channel.sendMessage({
           text: content,
           attachments: options?.attachments || undefined,
           parent_id: options?.parentId,
-          isBroadcast: options?.isBroadcast || undefined,
-        });
+          ...(options?.isBroadcast ? { isBroadcast: true } as Record<string, unknown> : {}),
+        } as Parameters<typeof channel.sendMessage>[0]);
         return true;
       } catch {
         return false;

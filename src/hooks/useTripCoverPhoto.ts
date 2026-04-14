@@ -145,9 +145,9 @@ export const useTripCoverPhoto = (
       }
 
       // Verify the cover_image_url was actually updated
-      if (data.cover_image_url !== photoUrl) {
+      if (data.cover_image_url !== normalizedPhotoUrl) {
         console.error('[useTripCoverPhoto] cover_image_url mismatch after update', {
-          expected: photoUrl,
+          expected: normalizedPhotoUrl,
           actual: data.cover_image_url,
         });
         toast.error('Cover photo update failed - please try again');
@@ -155,10 +155,10 @@ export const useTripCoverPhoto = (
       }
 
       // Update local state immediately
-      setCoverPhoto(photoUrl);
+      setCoverPhoto(normalizedPhotoUrl);
 
       // Update query cache using predicate matching for all trip detail queries
-      updateTripCacheWithCoverPhoto(photoUrl);
+      updateTripCacheWithCoverPhoto(normalizedPhotoUrl);
 
       // Invalidate and refetch to ensure consistency
       // Using refetchQueries ensures immediate fresh data rather than background refetch
@@ -218,13 +218,23 @@ export const useTripCoverPhoto = (
         return false;
       }
 
-      // Optional: Delete file from storage if needed
-      if (coverPhoto && coverPhoto.includes('/storage/v1/object/public/trip-media/')) {
-        const storagePath = coverPhoto
-          .split('/storage/v1/object/public/trip-media/')[1]
-          ?.split('?')[0];
-        if (storagePath) {
-          await supabase.storage.from('trip-media').remove([storagePath]);
+      // Delete file from storage if needed
+      if (coverPhoto) {
+        if (coverPhoto.includes('/storage/v1/object/public/trip-covers/')) {
+          const storagePath = coverPhoto
+            .split('/storage/v1/object/public/trip-covers/')[1]
+            ?.split('?')[0];
+          if (storagePath) {
+            await supabase.storage.from('trip-covers').remove([storagePath]);
+          }
+        } else if (coverPhoto.includes('/storage/v1/object/public/trip-media/')) {
+          // Legacy path: old uploads went to trip-media/trip-covers/
+          const storagePath = coverPhoto
+            .split('/storage/v1/object/public/trip-media/')[1]
+            ?.split('?')[0];
+          if (storagePath) {
+            await supabase.storage.from('trip-media').remove([storagePath]);
+          }
         }
       }
 

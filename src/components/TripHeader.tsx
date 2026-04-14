@@ -33,7 +33,7 @@ import { useJoinRequests } from '../hooks/useJoinRequests';
 import { useDemoTripMembersStore } from '../store/demoTripMembersStore';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { buildTripCoverStoragePath, TRIP_COVER_BUCKET } from '../utils/tripCoverStorage';
+import { TRIP_COVER_BUCKET, uploadTripCoverBlob } from '../utils/tripCoverStorage';
 import { getDemoTripCoverFallback } from '@/data/demoTripCoverFallbacks';
 import { isBlobOrDataUrl } from '@/utils/mediaUtils';
 
@@ -343,61 +343,52 @@ export const TripHeader = ({
     }
   };
 
-  const handleCropComplete = async (croppedBlob: Blob) => {
-    setShowCropModal(false);
-
+  const handleCropComplete = async (croppedBlob: Blob): Promise<boolean> => {
     // Demo mode: use blob URL
     if (isDemoMode) {
       const objectUrl = URL.createObjectURL(croppedBlob);
-      await updateCoverPhoto(objectUrl);
+      const success = await updateCoverPhoto(objectUrl);
       // Clean up crop source if it was a blob
       if (cropImageSrc && isBlobOrDataUrl(cropImageSrc)) {
         URL.revokeObjectURL(cropImageSrc);
       }
-      setCropImageSrc(null);
-      return;
+      if (success) {
+        setCropImageSrc(null);
+      }
+      return success;
     }
 
     // Authenticated mode: upload to Supabase Storage
     if (!user) {
       toast.error('Please sign in to upload cover photos');
-      return;
+      return false;
     }
 
     setIsUploading(true);
     let uploadedFilePath: string | null = null;
     try {
-      const fileName = `${trip.id}-${Date.now()}.jpg`;
-      const filePath = buildTripCoverStoragePath(trip.id.toString(), fileName);
+      const { publicUrl, filePath } = await uploadTripCoverBlob({
+        client: supabase,
+        tripId: trip.id.toString(),
+        blob: croppedBlob,
+      });
       uploadedFilePath = filePath;
 
-      const { error: uploadError } = await supabase.storage
-        .from(TRIP_COVER_BUCKET)
-        .upload(filePath, croppedBlob, {
-          cacheControl: '3600',
-          upsert: true,
-          contentType: 'image/jpeg',
-        });
-
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        toast.error(`Failed to upload: ${uploadError.message}`);
-        uploadedFilePath = null;
-        return;
-      }
-
-      const { data: urlData } = supabase.storage.from(TRIP_COVER_BUCKET).getPublicUrl(filePath);
-
-      if (!urlData?.publicUrl) {
-        toast.error('Failed to get image URL');
-        return;
-      }
-
       // Add cache-busting param for re-crops
-      const finalUrl = `${urlData.publicUrl}?v=${Date.now()}`;
+      const finalUrl = `${publicUrl}?v=${Date.now()}`;
       const success = await updateCoverPhoto(finalUrl);
+      if (success) {
+        setShowCropModal(false);
+        if (cropImageSrc && isBlobOrDataUrl(cropImageSrc)) {
+          URL.revokeObjectURL(cropImageSrc);
+        }
+        setCropImageSrc(null);
+      }
 
-      // If database update failed, clean up the orphaned storage file
+      // If database update failed, notify user and clean up the orphaned storage file
+      if (!success) {
+        toast.error('Photo uploaded but could not be saved to the trip.');
+      }
       if (!success && uploadedFilePath) {
         console.warn(
           '[TripHeader] Database update failed, cleaning up storage file:',
@@ -410,6 +401,10 @@ export const TripHeader = ({
             console.error('Failed to clean up orphaned storage file:', err);
           });
       }
+      if (!success) {
+        toast.error('Cover photo was uploaded but could not be saved to trip details.');
+      }
+      return success;
     } catch (error) {
       console.error('Cover photo upload error:', error);
       toast.error('Failed to upload cover photo');
@@ -422,13 +417,9 @@ export const TripHeader = ({
             console.error('Failed to clean up orphaned storage file:', err);
           });
       }
+      return false;
     } finally {
       setIsUploading(false);
-      // Clean up crop source if it was a blob
-      if (cropImageSrc && isBlobOrDataUrl(cropImageSrc)) {
-        URL.revokeObjectURL(cropImageSrc);
-      }
-      setCropImageSrc(null);
     }
   };
 

@@ -15,6 +15,10 @@
  * This prevents any authenticated user from mutating app-wide channel types.
  *
  * Run once after Stream app creation. Safe to re-run (idempotent).
+ *
+ * Concierge requirement: this setup upserts deterministic Stream principal
+ * `ai-concierge-bot` (AI Concierge). Concierge channel flows rely on this
+ * principal being present in Stream.
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -22,6 +26,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { StreamChat } from 'npm:stream-chat';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { requireSecrets, createMissingSecretResponse } from '../_shared/validateSecrets.ts';
+import { configureStreamPermissionsAndPrincipal } from './setup.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -86,137 +91,7 @@ serve(async req => {
     // ── Setup Stream permissions ──────────────────────────────────────────
     const serverClient = StreamChat.getInstance(STREAM_API_KEY, STREAM_API_SECRET);
 
-    const results: Array<{ channelType: string; status: string }> = [];
-
-    // chravel-trip: members can read/write, non-members cannot
-    try {
-      await serverClient.updateChannelType('chravel-trip', {
-        grants: {
-          channel_member: [
-            'read-channel',
-            'create-message',
-            'update-message-owner',
-            'delete-message-owner',
-            'upload-attachment',
-            'search-messages',
-            'flag-message',
-            'pin-message',
-            'create-reaction',
-            'delete-reaction-owner',
-            'read-events',
-            'typing-events',
-            'create-thread',
-          ],
-          channel_moderator: [
-            'read-channel',
-            'create-message',
-            'update-message',
-            'delete-message',
-            'upload-attachment',
-            'search-messages',
-            'flag-message',
-            'pin-message',
-            'create-reaction',
-            'delete-reaction',
-            'read-events',
-            'typing-events',
-            'create-thread',
-          ],
-        },
-      });
-      results.push({ channelType: 'chravel-trip', status: 'ok' });
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      results.push({ channelType: 'chravel-trip', status: `error: ${msg}` });
-    }
-
-    // chravel-broadcast: admin-only send, all members can read
-    try {
-      await serverClient.updateChannelType('chravel-broadcast', {
-        grants: {
-          channel_member: [
-            'read-channel',
-            'read-events',
-            'create-reaction',
-            'delete-reaction-owner',
-          ],
-          channel_moderator: [
-            'read-channel',
-            'create-message',
-            'update-message',
-            'delete-message',
-            'read-events',
-            'create-reaction',
-            'delete-reaction',
-            'pin-message',
-          ],
-        },
-      });
-      results.push({ channelType: 'chravel-broadcast', status: 'ok' });
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      results.push({ channelType: 'chravel-broadcast', status: `error: ${msg}` });
-    }
-
-    // chravel-channel: role-gated, similar to trip but configured per channel
-    try {
-      await serverClient.updateChannelType('chravel-channel', {
-        grants: {
-          channel_member: [
-            'read-channel',
-            'create-message',
-            'update-message-owner',
-            'delete-message-owner',
-            'read-events',
-            'typing-events',
-            'create-reaction',
-            'delete-reaction-owner',
-            'search-messages',
-          ],
-          channel_moderator: [
-            'read-channel',
-            'create-message',
-            'update-message',
-            'delete-message',
-            'read-events',
-            'typing-events',
-            'create-reaction',
-            'delete-reaction',
-            'pin-message',
-            'search-messages',
-          ],
-        },
-      });
-      results.push({ channelType: 'chravel-channel', status: 'ok' });
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      results.push({ channelType: 'chravel-channel', status: `error: ${msg}` });
-    }
-
-    // chravel-concierge: 2-member private channel, both can read/write
-    try {
-      await serverClient.updateChannelType('chravel-concierge', {
-        grants: {
-          channel_member: ['read-channel', 'create-message', 'read-events', 'typing-events'],
-        },
-      });
-      results.push({ channelType: 'chravel-concierge', status: 'ok' });
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      results.push({ channelType: 'chravel-concierge', status: `error: ${msg}` });
-    }
-
-    try {
-      await serverClient.upsertUser({
-        id: 'ai-concierge-bot',
-        name: 'AI Concierge',
-        role: 'admin',
-      });
-      results.push({ channelType: 'ai-concierge-bot', status: 'ok' });
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      results.push({ channelType: 'ai-concierge-bot', status: `error: ${msg}` });
-    }
+    const results = await configureStreamPermissionsAndPrincipal(serverClient);
 
     return new Response(JSON.stringify({ success: true, results }), {
       status: 200,

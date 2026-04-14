@@ -11,6 +11,7 @@ import type { SubscriptionTier, EntitlementId, PurchaseType } from '@/billing/ty
 import { supabase } from '@/integrations/supabase/client';
 import { TIER_ENTITLEMENTS } from '@/billing/config';
 import { isSuperAdminEmail } from '@/utils/isSuperAdmin';
+import { pickPrimaryEntitlement, type EntitlementSelectorRow } from '@/lib/entitlements/selectors';
 
 export type EntitlementSource = 'revenuecat' | 'stripe' | 'admin' | 'demo' | 'none';
 export type EntitlementStatus = 'active' | 'trialing' | 'past_due' | 'expired' | 'canceled';
@@ -144,17 +145,20 @@ export const useEntitlementsStore = create<EntitlementsState>((set, _get) => ({
       }
 
       // Fetch from user_entitlements table for regular users
-      const { data, error } = await supabase
+      const { data: rows, error } = await supabase
         .from('user_entitlements')
         .select('*')
         .eq('user_id', userId)
-        .maybeSingle();
+        .in('purchase_type', ['subscription', 'pass'])
+        .order('updated_at', { ascending: false });
 
       if (error) {
         if (import.meta.env.DEV) console.error('[EntitlementsStore] Fetch error:', error);
         set({ isLoading: false, error: error.message });
         return;
       }
+
+      const data = pickPrimaryEntitlement(rows as EntitlementSelectorRow[] | null);
 
       if (data) {
         const plan = data.plan as SubscriptionTier;

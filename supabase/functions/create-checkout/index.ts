@@ -89,6 +89,64 @@ serve(async req => {
 
     const isPass = purchase_type === 'pass';
 
+    // Cross-provider dedupe guard: block overlapping active paid access before creating checkout.
+    // This prevents double-billing paths (e.g., active Apple/RevenueCat user starting Stripe checkout).
+    const nowIso = new Date().toISOString();
+    const { data: existingEntitlements, error: entitlementReadError } = await supabaseClient
+      .from('user_entitlements')
+      .select('plan, status, source, purchase_type, current_period_end')
+      .eq('user_id', user.id);
+
+    if (entitlementReadError) {
+      logStep('Failed to read existing entitlements', { message: entitlementReadError.message });
+      return createErrorResponse(
+        'Unable to verify existing subscription state. Please try again.',
+        500,
+      );
+    }
+
+    const hasActivePaidSubscription = (existingEntitlements || []).some(ent => {
+      const plan = ent.plan || 'free';
+      if (plan === 'free') return false;
+      if (ent.purchase_type !== 'subscription') return false;
+      if (ent.status === 'active' || ent.status === 'trialing' || ent.status === 'past_due') {
+        return true;
+      }
+      return (
+        ent.status === 'canceled' &&
+        !!ent.current_period_end &&
+        new Date(ent.current_period_end).toISOString() > nowIso
+      );
+    });
+
+    const hasActivePass = (existingEntitlements || []).some(ent => {
+      if (ent.purchase_type !== 'pass') return false;
+      if (ent.status !== 'active') return false;
+      if (!ent.current_period_end) return false;
+      return new Date(ent.current_period_end).toISOString() > nowIso;
+    });
+
+    if (!isPass && hasActivePaidSubscription) {
+      return createErrorResponse(
+        'You already have active premium access. Manage your current plan from Settings.',
+        400,
+      );
+    }
+
+    if (isPass && hasActivePaidSubscription) {
+      return createErrorResponse(
+        'Trip Pass cannot be purchased while an active subscription is in place.',
+        400,
+      );
+    }
+
+    if (!isPass && hasActivePass) {
+      return createErrorResponse(
+        'Please wait until your active Trip Pass expires before starting a recurring subscription.',
+        400,
+      );
+    }
+
     // Build price ID key
     let priceIdKey: string;
     if (isPass) {

@@ -4,11 +4,12 @@ import { supabase } from '../integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useConsumerSubscription } from './useConsumerSubscription';
 import { isSuperAdminEmail } from '@/utils/isSuperAdmin';
+import { pickPrimaryEntitlement, type EntitlementSelectorRow } from '@/lib/entitlements/selectors';
 
 const FREE_TIER_LIMIT = 10;
 const EXPLORER_TIER_LIMIT = 25;
 
-export type ConciergePlan = 'free' | 'explorer' | 'frequent_traveler';
+export type ConciergePlan = 'free' | 'explorer' | 'frequent_chraveler';
 
 export interface ConciergeUsage {
   used: number;
@@ -76,10 +77,10 @@ const mapPlanFromTier = (
     | 'pro-enterprise',
   isSuperAdmin: boolean,
 ): ConciergePlan => {
-  if (isSuperAdmin) return 'frequent_traveler';
+  if (isSuperAdmin) return 'frequent_chraveler';
   if (tier === 'explorer') return 'explorer';
   if (tier === 'free') return 'free';
-  return 'frequent_traveler';
+  return 'frequent_chraveler';
 };
 
 const isActiveStatus = (status?: string | null): boolean =>
@@ -95,7 +96,7 @@ const hasActivePeriod = (periodEnd?: string | null): boolean => {
 const mapRawPlanToUsagePlan = (plan?: string | null): ConciergePlan => {
   if (plan === 'free' || !plan) return 'free';
   if (plan === 'explorer' || plan === 'plus') return 'explorer';
-  return 'frequent_traveler';
+  return 'frequent_chraveler';
 };
 
 const resolvePlanFromProfile = (
@@ -114,13 +115,13 @@ const resolvePlanFromProfile = (
       return 'explorer';
     }
     if (productId) {
-      return 'frequent_traveler';
+      return 'frequent_chraveler';
     }
   }
 
   if (profile?.app_role === 'plus' || profile?.app_role === 'explorer') return 'explorer';
   if (profile?.app_role === 'consumer' || profile?.app_role === 'free') return 'free';
-  if (profile?.app_role) return 'frequent_traveler';
+  if (profile?.app_role) return 'frequent_chraveler';
 
   return mapPlanFromTier(fallbackTier, false);
 };
@@ -172,18 +173,19 @@ export const useConciergeUsage = (tripId: string, userId?: string) => {
     queryKey: ['concierge-entitlement-plan', targetUserId],
     queryFn: async (): Promise<EntitlementRow | null> => {
       if (!targetUserId) return null;
-      const { data, error } = await supabase
+      const { data: rows, error } = await supabase
         .from('user_entitlements')
-        .select('plan, status, current_period_end')
+        .select('plan, status, current_period_end, purchase_type, source, updated_at')
         .eq('user_id', targetUserId)
-        .maybeSingle();
+        .in('purchase_type', ['subscription', 'pass'])
+        .order('updated_at', { ascending: false });
 
       if (error) {
         console.error('Failed to fetch entitlement plan:', error);
         return null;
       }
 
-      return data;
+      return pickPrimaryEntitlement(rows as EntitlementSelectorRow[]);
     },
     enabled: !!targetUserId,
     staleTime: 30 * 1000,
@@ -211,7 +213,7 @@ export const useConciergeUsage = (tripId: string, userId?: string) => {
   });
 
   const userPlan = useMemo(() => {
-    if (isSuperAdmin) return 'frequent_traveler';
+    if (isSuperAdmin) return 'frequent_chraveler';
 
     if (
       entitlementData &&

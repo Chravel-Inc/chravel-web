@@ -6,12 +6,12 @@ const faqItems = [
   {
     question: 'Who is ChravelApp for?',
     answer:
-      'Anybody organizing a group that wants to simplify sharing information: Work, Personal, Sports, Tours, Conferences, Vacations, Travel, or even local events.',
+      'Anyone organizing a group — work, sports, tours, conferences, vacations, or local events.',
   },
   {
     question: 'Why not just use the apps I already have?',
     answer:
-      "Unlike your current stack where texts don't know what's in your emails, and your spreadsheet doesn't know what's in your group chat—ChravelApp's 8 tabs are fully interconnected. Your AI concierge can search your calendar, polls, and outstanding tasks, and more. One context-aware trip brain instead of 8 disconnected apps.",
+      "Your texts don't know what's in your calendar. Your spreadsheet doesn't know what's in your group chat. ChravelApp's 8 tabs are fully interconnected — one trip brain instead of 8 disconnected apps.",
   },
   {
     question: 'What happens when I hit my 3-trip limit?',
@@ -21,7 +21,7 @@ const faqItems = [
   {
     question: 'How do AI queries work on each plan?',
     answer:
-      'Free users get 10 AI queries per user per trip. Explorer gets 25 AI queries per user per trip. Frequent Chraveler gets unlimited AI queries. Live voice sessions count as a single query regardless of duration. A counter shows how many you have left. Each new trip starts fresh with your full query limit.',
+      'Free: 10 AI queries per user per trip. Explorer: 25. Frequent Chraveler: unlimited. Voice sessions count as one query. Each new trip resets your limit.',
   },
   {
     question: 'Can I change plans anytime?',
@@ -29,22 +29,22 @@ const faqItems = [
   },
   {
     question: 'Is my data safe?',
-    answer: 'Bank-level encryption. Your trips are private unless you choose to share them.',
+    answer: 'All data is encrypted in transit and at rest. Row-level security ensures you only see trips you belong to. High Privacy mode adds end-to-end encryption for messages. Your trips are private unless you choose to share them.',
   },
   {
     question: 'Do all trip members need to pay?',
     answer:
-      'Trips are free with limited features. Or upgrade to Explorer or Pro to keep unlimited trips and more features. For ChravelApp Pro, only the admin pays and can assign a set number of seats to team members — ideal for organizations, sports teams, and tour management.',
+      'Trips are free with limited features. Upgrade for unlimited trips and more. For Pro, only the admin pays and assigns seats — ideal for teams.',
   },
   {
     question: "What's included with the free Pro Trip and Event?",
     answer:
-      "Every account gets 1 free ChravelApp Pro trip and 1 free Event to experience all premium features. It's our way of letting you try before you buy — no commitment required!",
+      'Every account gets 1 free Pro trip and 1 free Event — try all premium features, no commitment.',
   },
   {
     question: 'Are Events included in my subscription?',
     answer:
-      'Yes! Events are bundled into all paid plans. Explorer includes unlimited Events with up to 50 guests each. Frequent Chraveler includes Events with up to 100 guests. All Pro tiers include unlimited Events for your entire team.',
+      'Yes — bundled into all paid plans. Explorer: up to 50 guests per event. Frequent Chraveler: up to 100 guests per event. Pro tiers: unlimited events (up to 100 guests each).',
   },
 ];
 export const FAQSection = () => {
@@ -64,7 +64,7 @@ export const FAQSection = () => {
           className="text-xl sm:text-2xl md:text-3xl text-white font-bold"
           style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)' }}
         >
-          Everything you need to know about ChravelApp
+          Got questions? We've got answers.
         </p>
       </div>
 

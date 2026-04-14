@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { pickPrimaryEntitlement, hasEffectiveAccess, type EntitlementSelectorRow } from '@/lib/entitlements/selectors';
 
 export interface Subscription {
   plan:
@@ -37,23 +38,20 @@ export function useSubscription() {
     const checkSubscription = async () => {
       try {
         // Primary: check user_entitlements table (populated by Stripe webhook / RevenueCat sync)
-        const { data: entitlement, error: entError } = await supabase
+        const { data: entitlementRows, error: entError } = await supabase
           .from('user_entitlements')
-          .select('plan, status, current_period_end, purchase_type, source')
+          .select('plan, status, current_period_end, purchase_type, source, updated_at')
           .eq('user_id', user.id)
-          .maybeSingle();
+          .in('purchase_type', ['subscription', 'pass'])
+          .order('updated_at', { ascending: false });
+
+        const entitlement = pickPrimaryEntitlement(entitlementRows as EntitlementSelectorRow[]);
 
         if (!entError && entitlement && entitlement.plan !== 'free') {
           const plan = entitlement.plan as Subscription['plan'];
           const status = entitlement.status as Subscription['status'];
           const periodEnd = entitlement.current_period_end || null;
-
-          // For canceled subscriptions, check if period end is in the future
-          const isStillAccessible =
-            status === 'active' ||
-            status === 'trialing' ||
-            status === 'past_due' ||
-            (status === 'canceled' && periodEnd && new Date(periodEnd) > new Date());
+          const isStillAccessible = hasEffectiveAccess(status, periodEnd);
 
           setSubscription({
             plan: isStillAccessible ? plan : 'free',

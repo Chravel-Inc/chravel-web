@@ -20,6 +20,10 @@ import {
 } from '../_shared/smsTemplates.ts';
 import { sendWebPushNotification, type WebPushSubscription } from '../_shared/webPushUtils.ts';
 import {
+  mapPrimaryEntitlementsByUser,
+  type EntitlementRow,
+} from '../_shared/entitlementSelection.ts';
+import {
   buildNotificationContent,
   type EmailContent,
   type NotificationContentType,
@@ -65,13 +69,6 @@ interface ProfileRow {
 interface TripRow {
   id: string;
   name: string;
-}
-
-interface EntitlementRow {
-  user_id: string;
-  plan: string;
-  status: string;
-  current_period_end: string | null;
 }
 
 interface SmsOptInRow {
@@ -510,8 +507,10 @@ serve(async req => {
       supabase.from('notification_preferences').select('*').in('user_id', recipientIds),
       supabase
         .from('user_entitlements')
-        .select('user_id, plan, status, current_period_end')
-        .in('user_id', recipientIds),
+        .select('user_id, plan, status, current_period_end, purchase_type, updated_at')
+        .in('user_id', recipientIds)
+        .in('purchase_type', ['subscription', 'pass'])
+        .order('updated_at', { ascending: false }),
       supabase
         .from('sms_opt_in')
         .select('user_id, phone_e164, verified, opted_in')
@@ -547,8 +546,8 @@ serve(async req => {
       preferencesByUser.set(userId, mergePreferences(userId, raw || undefined));
     }
 
-    const entitlementsByUser = new Map<string, EntitlementRow>(
-      ((entitlementRows || []) as EntitlementRow[]).map(row => [row.user_id, row]),
+    const entitlementsByUser = mapPrimaryEntitlementsByUser(
+      entitlementRows as EntitlementRow[] | null,
     );
     const smsOptInByUser = new Map<string, SmsOptInRow>(
       ((smsOptInRows || []) as SmsOptInRow[]).map(row => [row.user_id, row]),

@@ -6,12 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { ZoomIn, ZoomOut, Check, X } from 'lucide-react';
 import { smartCropService } from '@/services/smartCropService';
+import { toast } from 'sonner';
 
 interface CoverPhotoCropModalProps {
   isOpen: boolean;
   onClose: () => void;
   imageSrc: string;
-  onCropComplete: (croppedBlob: Blob) => void;
+  onCropComplete: (croppedBlob: Blob) => Promise<boolean> | boolean;
   aspectRatio?: number; // 3 for desktop (3:1), 4/3 for mobile drawer
   displayMode?: 'cover' | 'contain';
 }
@@ -222,17 +223,28 @@ export const CoverPhotoCropModal = ({
       }
 
       canvas.toBlob(
-        blob => {
-          if (blob) {
-            onCropComplete(blob);
+        async blob => {
+          if (!blob) {
+            toast.error('Failed to process image. Try a different photo or smaller file size.');
+            setIsProcessing(false);
+            return;
           }
-          setIsProcessing(false);
+
+          try {
+            const success = await Promise.resolve(onCropComplete(blob));
+            if (success) {
+              onClose();
+            }
+          } catch {
+            toast.error('Failed to save cover photo. Please try again.');
+          } finally {
+            setIsProcessing(false);
+          }
         },
         'image/jpeg',
         0.9,
       );
-    } catch (error) {
-      console.error('Error cropping image:', error);
+    } catch {
       setIsProcessing(false);
     }
   };
@@ -254,7 +266,7 @@ export const CoverPhotoCropModal = ({
   const modalTitle = isContainMode ? 'Preview Cover Photo' : 'Adjust Cover Photo';
 
   return (
-    <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={open => !open && !isProcessing && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] bg-background border-border flex flex-col overflow-hidden">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-foreground">{modalTitle}</DialogTitle>
