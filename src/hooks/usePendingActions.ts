@@ -90,7 +90,7 @@ export function usePendingActions(tripId: string) {
       switch (action.tool_name) {
         case 'createTask': {
           // intentional: source_type column may not be in generated types yet
-          const { error } = await (supabase as any)
+          const { data: taskRow, error } = await (supabase as any)
             .from('trip_tasks')
             .insert({
               trip_id: action.trip_id,
@@ -103,6 +103,28 @@ export function usePendingActions(tripId: string) {
             .select()
             .single();
           if (error) throw error;
+
+          // Write parity: also create task_status + task_assignments rows so the
+          // task shows correct completion state and assignees in the UI, matching
+          // what the manual task creation path does.
+          if (taskRow?.id) {
+            const assignees = (payload.assignedTo as string[]) || [user.id];
+            // task_assignments
+            await (supabase as any).from('task_assignments').insert(
+              assignees.map((uid: string) => ({
+                task_id: taskRow.id,
+                user_id: uid,
+              })),
+            );
+            // task_status — mark as incomplete for each assignee
+            await (supabase as any).from('task_status').insert(
+              assignees.map((uid: string) => ({
+                task_id: taskRow.id,
+                user_id: uid,
+                completed: false,
+              })),
+            );
+          }
           break;
         }
 
