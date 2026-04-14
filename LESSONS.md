@@ -512,3 +512,11 @@
 - **Evidence:** Consolidating `useUnifiedEntitlements` to `syncRevenueCatEntitlementsForUser(...)` and removing startup `initRevenueCat()` from web shell eliminated contradictory Purchases-js and adapter paths in April 2026.
 - **Provenance:** April 2026 RevenueCat architecture consolidation.
 - **Confidence:** high
+
+### Smart-import limits should return machine-readable paywall metadata, not generic parser errors
+- **Tip:** For quota-gated ingestion surfaces, always return a structured payload (`error_code`, `upgrade_required`, `remaining`) from edge functions and let frontend parser adapters map that to contextual CTA copy.
+- **Applies when:** URL/file/text import flows that can hit monthly/plan-based limits.
+- **Avoid when:** Purely transient failures (network timeout, malformed input) where retry guidance is more appropriate than upgrade CTA.
+- **Evidence:** Smart Import scrape/parser functions now gate via shared usage RPC and return a consistent 402 payload; parser utilities use a shared helper to preserve paywall context instead of collapsing into generic “AI parsing failed”.
+- **Provenance:** April 2026 Smart Import usage quota hardening.
+- **Confidence:** high
