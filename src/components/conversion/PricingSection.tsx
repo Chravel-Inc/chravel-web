@@ -254,7 +254,7 @@ const _faqItems = [
   {
     question: 'Are Events included in my subscription?',
     answer:
-      'Yes! Events are bundled into all paid plans. Explorer includes unlimited Events with up to 50 guests each. Frequent Chraveler includes Events with up to 100 guests. All Pro tiers include unlimited Events for your entire team.',
+      'Yes — bundled into all paid plans. Explorer: up to 50 guests per event. Frequent Chraveler: up to 100 guests per event. Pro tiers: unlimited events (up to 100 guests each).',
   },
   {
     question: 'Why not just use the apps I already have?',

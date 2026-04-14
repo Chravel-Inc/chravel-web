@@ -44,7 +44,7 @@ const faqItems = [
   {
     question: 'Are Events included in my subscription?',
     answer:
-      'Yes — bundled into all paid plans. Explorer: up to 50 guests. Frequent Chraveler: up to 100. All Pro tiers: unlimited.',
+      'Yes — bundled into all paid plans. Explorer: up to 50 guests per event. Frequent Chraveler: up to 100 guests per event. Pro tiers: unlimited events (up to 100 guests each).',
   },
 ];
 export const FAQSection = () => {
