@@ -9,24 +9,59 @@ import type { BillingProvider } from './base';
 import { StripeProvider } from './stripe';
 import { AppleIAPProvider } from './iap';
 import { BILLING_FLAGS, BILLING_PRODUCTS } from '../config';
-import type { SubscriptionTier, BillingPlatform } from '../types';
+import type { SubscriptionTier, BillingPlatform, PurchaseRequest } from '../types';
+import { isLikelyIosWkWebViewUserAgent, isNativeWebView } from '@/utils/platformDetection';
 
 // Singleton instances
 let stripeProvider: StripeProvider | null = null;
 let appleProvider: AppleIAPProvider | null = null;
 
+const androidBillingUnavailableProvider: BillingProvider = {
+  platform: 'android',
+  name: 'AndroidBillingUnavailable',
+  isAvailable: () => false,
+  getProducts: async () => [],
+  purchase: async (_request: PurchaseRequest) => ({
+    success: false,
+    error: 'Google Play Billing is not available yet. Please update the app and try again.',
+    errorCode: 'IAP_NOT_AVAILABLE',
+  }),
+  restorePurchases: async () => null,
+  openManagement: async () => Promise.resolve(),
+  verifyEntitlements: async () => {
+    throw new Error('Google Play Billing is not available yet.');
+  },
+};
+
 /**
- * Get the current platform (always 'web' — native handled by chravel-mobile)
+ * Resolve billing platform from runtime context.
  */
-export function getPlatform(): BillingPlatform {
-  return 'web';
+export function detectBillingPlatform(userAgent: string, nativeWebView: boolean): BillingPlatform {
+  if (!nativeWebView) return 'web';
+
+  if (/Android/i.test(userAgent)) return 'android';
+  if (/iPhone|iPad|iPod/i.test(userAgent)) return 'ios';
+  // Android System WebView often includes "; wv)" even when the UA is customized.
+  if (/; wv\)/i.test(userAgent)) return 'android';
+  if (isLikelyIosWkWebViewUserAgent(userAgent)) return 'ios';
+  // Native shell but OS not inferable: fail closed for Play (do not return `web`).
+  return 'android';
 }
 
 /**
- * Check if running on native platform (always false — native handled by chravel-mobile)
+ * Get the current billing platform from runtime context.
+ */
+export function getPlatform(): BillingPlatform {
+  if (typeof navigator === 'undefined') return 'web';
+  const ua = navigator.userAgent || '';
+  return detectBillingPlatform(ua, isNativeWebView());
+}
+
+/**
+ * Check if running on native platform
  */
 export function isNativePlatform(): boolean {
-  return false;
+  return getPlatform() !== 'web';
 }
 
 /**
@@ -56,7 +91,8 @@ export function getAppleProvider(): AppleIAPProvider {
  * - iOS + Consumer plan + IAP enabled → Apple IAP
  * - iOS + Consumer plan + IAP disabled → Show "subscribe on web"
  * - iOS + Pro plan → Stripe (B2B exception)
- * - Android + Google Billing enabled → Google Play
+ * - Android + Google Billing enabled → Google Play (TODO provider)
+ * - Android + Consumer + Google Billing disabled → unavailable provider (block web fallback)
  * - Web → Stripe
  */
 export function getBillingProvider(tier?: SubscriptionTier): BillingProvider {
@@ -89,13 +125,18 @@ export function getBillingProvider(tier?: SubscriptionTier): BillingProvider {
 
   // Android handling
   if (platform === 'android') {
-    // TODO: Implement Google Play Billing
-    // For now, fall back to Stripe
-    // if (BILLING_FLAGS.GOOGLE_BILLING_ENABLED) {
-    //   return getGoogleProvider();
-    // }
+    // Pro/Enterprise plans can use Stripe (B2B exception)
+    if (tier && tier.startsWith('pro-')) {
+      return getStripeProvider();
+    }
 
-    return getStripeProvider();
+    if (BILLING_FLAGS.GOOGLE_BILLING_ENABLED) {
+      // TODO: Implement Google Play provider and return it here.
+      return androidBillingUnavailableProvider;
+    }
+
+    // Consumer plans must not silently fall back to web checkout on Android.
+    return androidBillingUnavailableProvider;
   }
 
   // Fallback to Stripe
@@ -122,7 +163,7 @@ export function requiresIAPForTier(tier: SubscriptionTier): boolean {
  * Returns true if:
  * - Running on web
  * - Running on iOS with a Pro plan (B2B exception)
- * - Fallback is enabled and IAP is not available
+ * - Running on Android with a Pro plan (B2B exception)
  */
 export function canUseWebCheckout(tier?: SubscriptionTier): boolean {
   const platform = getPlatform();
@@ -142,10 +183,14 @@ export function canUseWebCheckout(tier?: SubscriptionTier): boolean {
     return false;
   }
 
-  // Android with no Google Billing can use web
-  if (platform === 'android' && !BILLING_FLAGS.GOOGLE_BILLING_ENABLED) {
-    // Note: Similar to iOS, might have issues with Play Store
-    return BILLING_FLAGS.FALLBACK_TO_WEB;
+  // Android with Pro plan can use web checkout (B2B exception)
+  if (platform === 'android' && tier && tier.startsWith('pro-')) {
+    return true;
+  }
+
+  // Android consumer subscriptions must not use web checkout under Play policy
+  if (platform === 'android') {
+    return false;
   }
 
   return false;
