@@ -717,9 +717,11 @@
 - Added regression test ensuring a `searchFlights` tool-only turn does not get overwritten by the generic error fallback.
 - Verification: `VITE_SUPABASE_URL=https://example.supabase.co VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_dummy npm run test:run -- src/features/concierge/hooks/__tests__/useConciergeStreaming.test.ts`, `npm run typecheck`, `npm run lint:check -- src/features/concierge/hooks/useConciergeStreaming.ts src/features/concierge/hooks/__tests__/useConciergeStreaming.test.ts`.
 
-2026-04-14 — Trip cover upload flow hardening follow-up (post-PR #259)
+2026-04-14 — Trip cover upload flow hardening follow-up (post-PR #259) + v2 review follow-up
 - Centralized storage upload retry/public URL logic into `uploadTripCoverBlob` (`src/utils/tripCoverStorage.ts`) and reused it from both `TripCoverPhotoUpload` and `TripHeader` to remove drift in duplicate upload paths.
-- Changed crop modal save contract to await async upload/persist success (`onCropComplete => Promise<boolean>`), so the modal no longer closes on failed upload/update and users can retry without restarting image selection.
+- Hardened `uploadTripCoverBlob` to retry thrown exceptions (network/offline) as well as storage error responses, with optional `maxRetries` / `retryDelayMs` for deterministic tests.
+- Changed crop modal save contract to await async upload/persist success (`onCropComplete => Promise<boolean>`), with try/catch/finally on the callback and outside-click close blocked while processing so the modal does not dismiss during save.
+- Added orphan cleanup in `TripCoverPhotoUpload` when storage upload succeeds but trip metadata persistence fails (remove object from `trip-covers` bucket).
 - Fixed false-negative cover persistence verification in `useTripCoverPhoto` by comparing DB return against normalized URL and updating local/query cache with the normalized persisted value.
-- Added utility regression tests for `uploadTripCoverBlob` success and retry-failure behavior in `src/utils/__tests__/tripCoverStorage.test.ts`.
+- Added utility regression tests for `uploadTripCoverBlob` success, retry-on-error, thrown-error retry success, and fast zero-delay retries in `src/utils/__tests__/tripCoverStorage.test.ts`.
 - Verification: `npm run test:run -- src/utils/__tests__/tripCoverStorage.test.ts`, `npm run test:run -- src/hooks/__tests__/useTripCoverPhoto.test.tsx`, `npm run typecheck`, `npm run lint:check`, `npm run build`.

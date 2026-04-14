@@ -230,18 +230,21 @@ export const CoverPhotoCropModal = ({
             return;
           }
 
-          const result = onCropComplete(blob);
-          const success = await Promise.resolve(result);
-          if (success) {
-            onClose();
+          try {
+            const success = await Promise.resolve(onCropComplete(blob));
+            if (success) {
+              onClose();
+            }
+          } catch {
+            toast.error('Failed to save cover photo. Please try again.');
+          } finally {
+            setIsProcessing(false);
           }
-          setIsProcessing(false);
         },
         'image/jpeg',
         0.9,
       );
-    } catch (error) {
-      console.error('Error cropping image:', error);
+    } catch {
       setIsProcessing(false);
     }
   };
@@ -263,7 +266,7 @@ export const CoverPhotoCropModal = ({
   const modalTitle = isContainMode ? 'Preview Cover Photo' : 'Adjust Cover Photo';
 
   return (
-    <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={open => !open && !isProcessing && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] bg-background border-border flex flex-col overflow-hidden">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-foreground">{modalTitle}</DialogTitle>

@@ -7,7 +7,7 @@ import { supabase } from '../integrations/supabase/client';
 import { toast } from 'sonner';
 import { CoverPhotoCropModal } from './CoverPhotoCropModal';
 import { CoverPhotoFullscreenModal } from './CoverPhotoFullscreenModal';
-import { uploadTripCoverBlob } from '@/utils/tripCoverStorage';
+import { TRIP_COVER_BUCKET, uploadTripCoverBlob } from '@/utils/tripCoverStorage';
 import { isBlobOrDataUrl } from '@/utils/mediaUtils';
 
 interface TripCoverPhotoUploadProps {
@@ -61,6 +61,7 @@ export const TripCoverPhotoUpload = ({
   const handleCropComplete = useCallback(
     async (croppedBlob: Blob) => {
       setIsUploading(true);
+      let uploadedFilePath: string | null = null;
 
       try {
         // Demo mode: use blob URL
@@ -80,11 +81,12 @@ export const TripCoverPhotoUpload = ({
           return success;
         }
 
-        const { publicUrl } = await uploadTripCoverBlob({
+        const { publicUrl, filePath } = await uploadTripCoverBlob({
           client: supabase,
           tripId,
           blob: croppedBlob,
         });
+        uploadedFilePath = filePath;
 
         // Add cache-busting param for re-crops
         const finalUrl = `${publicUrl}?v=${Date.now()}`;
@@ -100,11 +102,23 @@ export const TripCoverPhotoUpload = ({
           setSelectedImageSrc('');
           return true;
         }
-        toast.error('Failed to save cover photo to trip. Please try again.');
+        if (uploadedFilePath) {
+          await supabase.storage
+            .from(TRIP_COVER_BUCKET)
+            .remove([uploadedFilePath])
+            .catch(() => null);
+        }
+        toast.error('Cover photo was uploaded but could not be saved to trip details.');
         return false;
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error';
         console.error('Photo upload error:', error);
+        if (uploadedFilePath) {
+          await supabase.storage
+            .from(TRIP_COVER_BUCKET)
+            .remove([uploadedFilePath])
+            .catch(() => null);
+        }
         if (message.includes('policy') || message.includes('permission')) {
           toast.error(
             'Upload blocked by trip permissions. Ask a trip admin to change media upload settings.',
