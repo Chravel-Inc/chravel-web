@@ -645,6 +645,10 @@
 - Added focused regression tests `src/features/chat/hooks/__tests__/useChatReadReceipts.test.tsx` covering Stream-mode display derivation + legacy-path gating behavior.
 - Verification: `npm run test:run -- src/features/chat/hooks/__tests__/useChatReadReceipts.test.tsx`, `npm run typecheck`, `npm run lint:check -- src/features/chat/hooks/useChatReadReceipts.ts src/features/chat/hooks/__tests__/useChatReadReceipts.test.tsx`.
 
+2026-04-13 — TripChat delete-path regression test (rebase onto main)
+- `main` already uses shared `getStreamClient()` for trip chat edit/delete; rebased PR keeps that pattern and aligns delete unavailable-client toast with edit (`Chat connection unavailable. Please try again.`).
+- Added focused regression test `src/features/chat/components/__tests__/TripChat.deleteMessage.test.tsx`: asserts `deleteMessage` invoked with message id and toast when client is null; `useCallback` deps include `streamClient` for edit/delete handlers.
+- Verification: `npm run test:run -- src/features/chat/components/__tests__/TripChat.deleteMessage.test.tsx`, `npm run typecheck`, `npm run lint:check`, `npm run build`.
 2026-04-13 — Remove dead trip realtime multiplexer module
 - Searched for `tripRealtimeMultiplexer` usage and confirmed no runtime imports remained in `src/`; only a legacy unit test import referenced the module.
 - Deleted unused `src/services/tripRealtimeMultiplexer.ts` to remove dead legacy Supabase realtime multiplexer surface.
