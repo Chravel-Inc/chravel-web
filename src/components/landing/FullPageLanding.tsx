@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useRef } from 'react';
+import React, { Suspense, lazy, useCallback, useState } from 'react';
 import { FullPageLandingSection } from './FullPageLandingSection';
 import { StickyLandingNav } from './StickyLandingNav';
 import { HeroSection } from './sections/HeroSection';
@@ -93,17 +93,21 @@ const SectionLoader = () => (
 );
 
 export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) => {
-  // Ref for scroll container - used for scroll-to-hide header detection on mobile
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  // Landing scrolls this element, not `window`. StickyLandingNav must listen here
+  // or `window.scrollY` stays 0 and the desktop nav stays permanently hidden.
+  const [landingScrollEl, setLandingScrollEl] = useState<HTMLDivElement | null>(null);
+  const landingScrollRef = useCallback((node: HTMLDivElement | null) => {
+    setLandingScrollEl(node);
+  }, []);
 
   return (
     <>
       {/* Sticky Navigation - desktop only */}
-      <StickyLandingNav onSignUp={onSignUp} />
+      <StickyLandingNav onSignUp={onSignUp} scrollRoot={landingScrollEl} />
 
       {/* Full-Page Scrolling Container with PWA safe-area support */}
       <div
-        ref={scrollContainerRef}
+        ref={landingScrollRef}
         className="overflow-y-auto overflow-x-hidden h-screen scroll-smooth"
         style={{
           paddingLeft: 'env(safe-area-inset-left)',

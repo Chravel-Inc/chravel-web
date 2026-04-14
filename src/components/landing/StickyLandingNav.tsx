@@ -26,9 +26,18 @@ const sections: NavSection[] = [
 
 interface StickyLandingNavProps {
   onSignUp: () => void;
+  /**
+   * Scroll container for landing: pass the `overflow-y-auto` element so nav/progress work.
+   * - `undefined`: listen on `window` (legacy / document scroll).
+   * - `null`: container not mounted yet — skip until parent sets a node.
+   */
+  scrollRoot?: HTMLElement | null;
 }
 
-export const StickyLandingNav: React.FC<StickyLandingNavProps> = ({ onSignUp: _onSignUp }) => {
+export const StickyLandingNav: React.FC<StickyLandingNavProps> = ({
+  onSignUp: _onSignUp,
+  scrollRoot,
+}) => {
   const [activeSection, setActiveSection] = useState('hero');
   const [isVisible, setIsVisible] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -36,24 +45,33 @@ export const StickyLandingNav: React.FC<StickyLandingNavProps> = ({ onSignUp: _o
   const isSuperAdmin = user?.email && SUPER_ADMIN_EMAILS.includes(user.email);
 
   useEffect(() => {
-    const handleScroll = () => {
-      // Show nav after scrolling past hero
-      setIsVisible(window.scrollY > window.innerHeight * 0.3);
+    if (scrollRoot === null) return;
 
-      // Calculate scroll progress
-      const windowHeight = window.innerHeight;
-      const documentHeight = document.documentElement.scrollHeight;
-      const scrollTop = window.scrollY;
-      const progress = (scrollTop / (documentHeight - windowHeight)) * 100;
-      setScrollProgress(Math.min(progress, 100));
+    const root = scrollRoot;
+    const useWindow = root === undefined;
+
+    const handleScroll = () => {
+      const viewportH = useWindow ? window.innerHeight : root.clientHeight;
+      const scrollTop = useWindow ? window.scrollY : root.scrollTop;
+      const scrollableH = useWindow
+        ? Math.max(0, document.documentElement.scrollHeight - viewportH)
+        : Math.max(0, root.scrollHeight - root.clientHeight);
+
+      // Show nav after scrolling past hero
+      setIsVisible(scrollTop > viewportH * 0.3);
+
+      // Calculate scroll progress (0–100) within the scrollable region
+      const progress = scrollableH > 0 ? (scrollTop / scrollableH) * 100 : 0;
+      setScrollProgress(Math.min(Math.max(progress, 0), 100));
 
       // Update active section based on scroll position
-      const sections = document.querySelectorAll('[id^="section-"]');
+      const scope: ParentNode = useWindow ? document : root;
+      const sections = scope.querySelectorAll('[id^="section-"]');
       let current = 'hero';
 
       sections.forEach(section => {
         const rect = section.getBoundingClientRect();
-        if (rect.top <= window.innerHeight / 3 && rect.bottom >= window.innerHeight / 3) {
+        if (rect.top <= viewportH / 3 && rect.bottom >= viewportH / 3) {
           current = section.id.replace('section-', '');
         }
       });
@@ -61,9 +79,11 @@ export const StickyLandingNav: React.FC<StickyLandingNavProps> = ({ onSignUp: _o
       setActiveSection(current);
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+    const target: HTMLElement | Window = useWindow ? window : root;
+    target.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => target.removeEventListener('scroll', handleScroll);
+  }, [scrollRoot]);
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(`section-${id}`);
