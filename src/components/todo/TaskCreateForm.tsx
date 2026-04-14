@@ -35,7 +35,9 @@ export const TaskCreateForm = ({
   const [dueDate, setDueDate] = useState<Date | undefined>(
     initialTask?.due_at ? new Date(initialTask.due_at) : undefined,
   );
-  const [taskMode, setTaskMode] = useState<'solo' | 'poll'>(initialTask ? (initialTask.is_poll ? 'poll' : 'solo') : 'poll');
+  const [taskMode, setTaskMode] = useState<'solo' | 'poll'>(
+    initialTask ? (initialTask.is_poll ? 'poll' : 'solo') : 'poll',
+  );
   const [showCalendar, setShowCalendar] = useState(false);
   const [assignedMembers, setAssignedMembers] = useState<string[]>(
     initialTask?.task_status?.map(status => status.user_id) ?? [],

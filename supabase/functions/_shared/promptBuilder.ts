@@ -127,7 +127,9 @@ Output a JSON block enclosed in \`\`\`json \`\`\` at the very start of your resp
     if (members?.length) {
       parts.push(`\nMEMBERS:`);
       members.forEach((m: any) => {
-        parts.push(`- ${sanitizeForPrompt(m.displayName || m.name || 'Unknown')} (${m.role || 'member'}, id: ${m.userId || m.id || '?'})`);
+        parts.push(
+          `- ${sanitizeForPrompt(m.displayName || m.name || 'Unknown')} (${m.role || 'member'}, id: ${m.userId || m.id || '?'})`,
+        );
       });
     }
 
@@ -153,7 +155,8 @@ Output a JSON block enclosed in \`\`\`json \`\`\` at the very start of your resp
         let line = `- ${sanitizeForPrompt(t.title)}`;
         if (t.dueAt || t.due_at) line += ` | Due: ${t.dueAt || t.due_at}`;
         if (t.completed !== undefined) line += ` | ${t.completed ? '✅ Done' : '⬜ Open'}`;
-        if (t.assignee || t.creatorName) line += ` | By: ${sanitizeForPrompt(t.assignee || t.creatorName || '')}`;
+        if (t.assignee || t.creatorName)
+          line += ` | By: ${sanitizeForPrompt(t.assignee || t.creatorName || '')}`;
         parts.push(line);
       });
     }
@@ -166,7 +169,9 @@ Output a JSON block enclosed in \`\`\`json \`\`\` at the very start of your resp
         parts.push(`- Q: ${sanitizeForPrompt(p.question)} (${p.status || 'active'})`);
         if (p.options?.length) {
           p.options.forEach((opt: any) => {
-            parts.push(`  • ${sanitizeForPrompt(opt.text || opt.option_text || '')} — ${opt.votes ?? opt.vote_count ?? 0} votes`);
+            parts.push(
+              `  • ${sanitizeForPrompt(opt.text || opt.option_text || '')} — ${opt.votes ?? opt.vote_count ?? 0} votes`,
+            );
           });
         }
       });
@@ -178,8 +183,10 @@ Output a JSON block enclosed in \`\`\`json \`\`\` at the very start of your resp
       parts.push(`\nPAYMENTS (${payments.length}):`);
       payments.slice(0, 20).forEach((pay: any) => {
         let line = `- ${sanitizeForPrompt(pay.description || 'Payment')} | $${pay.amount || 0} ${pay.currency || 'USD'}`;
-        if (pay.createdByName || pay.created_by_name) line += ` | By: ${sanitizeForPrompt(pay.createdByName || pay.created_by_name || '')}`;
-        if (pay.isSettled !== undefined || pay.is_settled !== undefined) line += ` | ${(pay.isSettled || pay.is_settled) ? 'Settled' : 'Unsettled'}`;
+        if (pay.createdByName || pay.created_by_name)
+          line += ` | By: ${sanitizeForPrompt(pay.createdByName || pay.created_by_name || '')}`;
+        if (pay.isSettled !== undefined || pay.is_settled !== undefined)
+          line += ` | ${pay.isSettled || pay.is_settled ? 'Settled' : 'Unsettled'}`;
         parts.push(line);
       });
     }
@@ -200,7 +207,9 @@ Output a JSON block enclosed in \`\`\`json \`\`\` at the very start of your resp
     if (links?.length) {
       parts.push(`\nLINKS (${links.length}):`);
       links.slice(0, 15).forEach((l: any) => {
-        parts.push(`- ${sanitizeForPrompt(l.title || l.url || 'Link')} | ${sanitizeForPrompt(l.url || '')}`);
+        parts.push(
+          `- ${sanitizeForPrompt(l.title || l.url || 'Link')} | ${sanitizeForPrompt(l.url || '')}`,
+        );
       });
     }
 

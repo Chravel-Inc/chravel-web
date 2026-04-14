@@ -16,7 +16,19 @@ const SCAN_DIRS = [
   'docs/ops/LIVEKIT_VOICE_READINESS_RUNBOOK.md',
 ];
 
-const TEXT_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.cjs', '.mjs', '.json', '.md', '.yml', '.yaml', '.toml', '.example']);
+const TEXT_EXTENSIONS = new Set([
+  '.ts',
+  '.tsx',
+  '.js',
+  '.cjs',
+  '.mjs',
+  '.json',
+  '.md',
+  '.yml',
+  '.yaml',
+  '.toml',
+  '.example',
+]);
 
 const CANONICAL_MODEL = 'gemini-live-2.5-flash-native-audio';
 const LEGACY_MODELS = [
@@ -95,12 +107,16 @@ const conflictingModels = modelKeys.filter(model => model !== CANONICAL_MODEL);
 if (conflictingModels.length > 0) {
   for (const model of conflictingModels) {
     const filesForModel = modelUsage.get(model) || [];
-    errors.push(`conflicting realtime voice model literal found: ${model} in ${[...new Set(filesForModel)].join(', ')}`);
+    errors.push(
+      `conflicting realtime voice model literal found: ${model} in ${[...new Set(filesForModel)].join(', ')}`,
+    );
   }
 }
 
 const canonicalSource = path.join('agent', 'src', 'voiceModel.ts');
-if (!files.some(file => path.relative(repoRoot, file).replaceAll('\\\\', '/') === canonicalSource)) {
+if (
+  !files.some(file => path.relative(repoRoot, file).replaceAll('\\\\', '/') === canonicalSource)
+) {
   errors.push('canonical voice model source file missing: agent/src/voiceModel.ts');
 }
 
