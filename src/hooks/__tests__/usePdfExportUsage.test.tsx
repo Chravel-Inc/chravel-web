@@ -51,7 +51,7 @@ describe('usePdfExportUsage', () => {
     expect(result.current.getUsageStatus().status).toBe('unlimited');
   });
 
-  it('uses rpc increment and invalidates usage after successful free export', async () => {
+  it('refetches get_trip_pdf_export_usage so UI reflects server-side increment after export', async () => {
     rpcMock
       .mockResolvedValueOnce({
         data: [
@@ -61,18 +61,6 @@ describe('usePdfExportUsage', () => {
             remaining: 1,
             can_export: true,
             is_unlimited: false,
-          },
-        ],
-        error: null,
-      })
-      .mockResolvedValueOnce({
-        data: [
-          {
-            used_count: 1,
-            remaining: 0,
-            incremented: true,
-            limit_count: 1,
-            can_export: false,
           },
         ],
         error: null,
@@ -94,16 +82,15 @@ describe('usePdfExportUsage', () => {
 
     await waitFor(() => expect(result.current.usage?.exportCount).toBe(0));
 
-    act(() => {
-      result.current.recordExport();
+    await act(async () => {
+      await result.current.refetch();
     });
 
     await waitFor(() => expect(result.current.usage?.exportCount).toBe(1));
 
-    expect(rpcMock).toHaveBeenCalledWith('get_trip_pdf_export_usage', { p_trip_id: 'trip-2' });
-    expect(rpcMock).toHaveBeenCalledWith('increment_trip_pdf_export_usage', {
-      p_trip_id: 'trip-2',
-    });
+    expect(rpcMock).toHaveBeenCalledTimes(2);
+    expect(rpcMock).toHaveBeenNthCalledWith(1, 'get_trip_pdf_export_usage', { p_trip_id: 'trip-2' });
+    expect(rpcMock).toHaveBeenNthCalledWith(2, 'get_trip_pdf_export_usage', { p_trip_id: 'trip-2' });
     expect(result.current.canExport).toBe(false);
     expect(result.current.getUsageStatus().status).toBe('used');
   });

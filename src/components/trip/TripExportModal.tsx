@@ -45,7 +45,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
 }) => {
   const _isConsumer = isConsumerTrip(tripId);
   const { upgradeToTier, isLoading: isUpgrading } = useConsumerSubscription();
-  const { recordExport, getUsageStatus, isPaidUser, canExport } = usePdfExportUsage(tripId);
+  const { refetch: refetchPdfUsage, getUsageStatus, isPaidUser, canExport } = usePdfExportUsage(tripId);
 
   const isEvent = tripType === 'event';
   const sections = isEvent ? EVENT_SECTIONS : TRIP_SECTIONS;
@@ -88,9 +88,9 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
 
     try {
       await onExport(selectedSections, controller.signal);
-      // Record the export for free users
+      // Usage is consumed server-side in export-trip after a successful PDF render; refresh client cache only.
       if (!isPaidUser) {
-        recordExport();
+        void refetchPdfUsage();
       }
       onClose();
     } catch (err) {

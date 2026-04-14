@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../integrations/supabase/client';
 import { useAuth } from './useAuth';
 
@@ -12,14 +12,6 @@ interface PdfUsageRpcRow {
   remaining: number | null;
   can_export: boolean | null;
   is_unlimited: boolean | null;
-}
-
-interface IncrementPdfUsageRpcRow {
-  used_count: number | null;
-  remaining: number | null;
-  incremented: boolean | null;
-  limit_count: number | null;
-  can_export: boolean | null;
 }
 
 export interface PdfExportUsage {
@@ -46,7 +38,6 @@ const getUsageFallback = (): PdfExportUsage => ({
 
 export const usePdfExportUsage = (tripId: string) => {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
 
   const {
     data: usage,
@@ -90,28 +81,6 @@ export const usePdfExportUsage = (tripId: string) => {
     staleTime: 10 * 1000,
   });
 
-  const recordExport = useMutation({
-    mutationFn: async () => {
-      if (!user?.id || !tripId) return;
-
-      const { data, error } = await supabase.rpc('increment_trip_pdf_export_usage', {
-        p_trip_id: tripId,
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      const incrementRow = normalizeRow<IncrementPdfUsageRpcRow>(data);
-      if (incrementRow?.incremented === false) {
-        throw new Error('Free export limit reached for this trip');
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pdf-export-usage', tripId, user?.id] });
-    },
-  });
-
   const getUsageStatus = (): {
     status: 'available' | 'used' | 'unlimited';
     message: string;
@@ -144,8 +113,6 @@ export const usePdfExportUsage = (tripId: string) => {
     usage,
     isLoading,
     refetch,
-    recordExport: recordExport.mutate,
-    isRecording: recordExport.isPending,
     getUsageStatus,
     tier,
     isPaidUser,

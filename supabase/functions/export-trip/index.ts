@@ -114,16 +114,50 @@ serve(async req => {
 
     logStep('Request parsed', { tripId, sections, layout, privacyRedaction, paper });
 
-    // Verify user is a member of the trip before proceeding
+    // Verify user can access this trip (align with get_trip_pdf_export_usage / increment RPCs:
+    // trip member OR trip creator — covers legacy rows missing trip_members.)
+    const {
+      data: { user: authUser },
+      error: authUserError,
+    } = await supabaseClient.auth.getUser();
+
+    if (authUserError || !authUser?.id) {
+      logStep('Unauthorized - missing user', { tripId, error: authUserError?.message });
+      return new Response(JSON.stringify({ error: 'Unauthorized - authentication required' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const { data: membershipCheck, error: membershipError } = await supabaseClient
       .from('trip_members')
       .select('user_id')
       .eq('trip_id', tripId)
-      .eq('user_id', (await supabaseClient.auth.getUser()).data.user?.id)
+      .eq('user_id', authUser.id)
       .maybeSingle();
 
-    if (membershipError || !membershipCheck) {
-      logStep('Forbidden - not a trip member', { tripId, error: membershipError?.message });
+    let authorized = Boolean(membershipCheck);
+
+    if (!authorized && !membershipError) {
+      const { data: tripRow, error: tripAccessError } = await supabaseClient
+        .from('trips')
+        .select('creator_id')
+        .eq('id', tripId)
+        .maybeSingle();
+
+      if (tripAccessError) {
+        logStep('Trip lookup failed during authorization', { tripId, error: tripAccessError.message });
+        return new Response(JSON.stringify({ error: 'Forbidden - unable to verify trip access' }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      authorized = tripRow?.creator_id === authUser.id;
+    }
+
+    if (membershipError || !authorized) {
+      logStep('Forbidden - not authorized for this trip', { tripId, error: membershipError?.message });
       return new Response(
         JSON.stringify({ error: 'Forbidden - you must be a member of this trip to export it' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },

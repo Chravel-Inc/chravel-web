@@ -1,3 +1,10 @@
+2026-04-14 — PR pdf-export: rebase onto origin/main + review follow-up
+- Resolved `claude-progress.txt` rebase conflict by preserving both newest `main` breadcrumb (feature paywall helper) and PDF export DB/RPC entry.
+- Fixed double-consumption bug: removed client `increment_trip_pdf_export_usage` after successful export; `TripExportModal` now refetches usage only (server records in `export-trip`).
+- Aligned `export-trip` membership gate with RPCs: allow `trip_members` match OR `trips.creator_id` (legacy creator without member row).
+- Updated `usePdfExportUsage` tests to assert refetch-only contract.
+- Verification: `npm run test:run -- src/hooks/__tests__/usePdfExportUsage.test.tsx`, `npm run typecheck`, `npm run lint:check`, `npm run build`.
+
 2026-04-14 — Shared entitlement resolution contract + call-site convergence
 - Added shared effective-entitlement contracts in both runtime layers:
   - `src/lib/entitlements/selectors.ts` now exports `resolveEffectiveEntitlement(...)` with canonical effective-access evaluation (`active`, `trialing`, `past_due`, `canceled` with future `current_period_end`).
