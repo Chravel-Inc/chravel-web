@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useTheme } from '@/hooks/useTheme';
 import {
   User,
@@ -21,7 +21,6 @@ import {
 import { hapticService } from '@/services/hapticService';
 import { NativeList, NativeListSection, NativeListItem, NativeToggleItem } from './NativeList';
 import { NativeLargeTitle } from './NativeLargeTitle';
-import { NativeSubscriptionPaywall } from './NativeSubscriptionPaywall';
 import { getPlatform } from '@/integrations/revenuecat/revenuecatClient';
 
 interface NativeSettingsProps {
@@ -49,7 +48,6 @@ export const NativeSettings = ({
   onNavigate,
   className,
 }: NativeSettingsProps) => {
-  const [showPaywall, setShowPaywall] = useState(false);
   const [appVersion, setAppVersion] = useState<string>('1.0.0');
   const [buildNumber, setBuildNumber] = useState<string>('1');
 
@@ -74,10 +72,12 @@ export const NativeSettings = ({
     setBuildNumber(buildId.slice(0, 7));
   }, []);
 
+  const platform = getPlatform();
+
   const handleUpgrade = useCallback(async () => {
     await hapticService.light();
-    setShowPaywall(true);
-  }, []);
+    onNavigate?.('subscription');
+  }, [onNavigate]);
 
   const handleLogout = useCallback(async () => {
     await hapticService.warning();
@@ -93,7 +93,6 @@ export const NativeSettings = ({
   );
 
   const isPro = subscriptionTier !== 'free';
-  const platform = getPlatform();
 
   return (
     <>
@@ -286,15 +285,6 @@ export const NativeSettings = ({
           <div className="h-8" />
         </NativeList>
       </NativeLargeTitle>
-
-      {/* Subscription Paywall (Fallback for Web/Dev) */}
-      <NativeSubscriptionPaywall
-        isOpen={showPaywall}
-        onClose={() => setShowPaywall(false)}
-        onSuccess={() => {
-          setShowPaywall(false);
-        }}
-      />
     </>
   );
 };

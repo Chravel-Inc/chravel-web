@@ -636,98 +636,20 @@
 - Added focused regression tests in `src/hooks/__tests__/useUnreadCounts.test.ts` for high-confidence split, missing marker fallback, and mismatch fallback.
 - Verification: `npm run test:run -- src/hooks/__tests__/useUnreadCounts.test.ts`, `npm run typecheck`, `npm run lint:check -- src/hooks/useUnreadCounts.ts src/hooks/__tests__/useUnreadCounts.test.ts`.
 
-2026-04-13 — Stream webhook channel/event routing expansion + recipient dedupe hardening
-- Extended `supabase/functions/stream-webhook/index.ts` to explicitly handle `message.new`, `message.updated`, and `message.deleted`, and to ignore unsupported event/channel types with structured `{ ignored: true, reason }` responses.
-- Merged PR #229 CID fallbacks: effective CID from `message.cid`, `channel.cid`, root `cid`, or `channel_type:channel_id` before `parseStreamCid`.
-- Added centralized routing helpers in `supabase/functions/stream-webhook/eventRouting.ts` for Stream CID parsing, trip/concierge ID extraction, handled type constants, and sender-safe recipient deduplication.
-- Implemented channel-type-specific recipient resolution:
-  - `chravel-trip` + `chravel-broadcast` → `trip_members` (active/null status) excluding sender
-  - `chravel-channel` → `channel_members` excluding sender
-  - `chravel-concierge` → payload members + CID fallback, excluding sender and `ai-concierge-bot`
-- Notification fanout only for `message.new`; `message.updated` / `message.deleted` return early without membership queries. Notifications use `type: chat_message` (including broadcast Stream channels) so delivery follows `chat_messages` prefs.
-- Metadata includes `stream_webhook_id` plus `stream_channel_type` / `stream_channel_id`.
-- Added focused regression tests `supabase/functions/stream-webhook/__tests__/eventRouting.test.ts` covering required event/channel support, CID parsing, trip/concierge resolution, and recipient dedupe.
-- Verification: `npm run test:run -- supabase/functions/stream-webhook/__tests__/eventRouting.test.ts`, `npm run typecheck`, `npm run lint:check -- ...` (repo baseline warnings only), `npm run build`.
-2026-04-13 — Stream migration phase: chat read-receipt display source-of-truth guard
-- Root cause: `useChatReadReceipts` still subscribed to/fetched Supabase `message_read_receipts` in Stream-backed trip chat, creating dual read-status sources and unnecessary legacy realtime/query work.
-- Updated `src/features/chat/hooks/useChatReadReceipts.ts` to derive display read statuses directly from `activeChannel.state.read` in Stream mode and hard-gate legacy Supabase subscription/fetch paths to non-Stream mode only.
-- Preserved mark-read behavior with explicit transport split: Stream mode uses `activeChannel.markRead()`, legacy mode retains `markMessagesAsRead(...)`.
-- Added focused regression tests `src/features/chat/hooks/__tests__/useChatReadReceipts.test.tsx` covering Stream-mode display derivation + legacy-path gating behavior.
-- Verification: `npm run test:run -- src/features/chat/hooks/__tests__/useChatReadReceipts.test.tsx`, `npm run typecheck`, `npm run lint:check -- src/features/chat/hooks/useChatReadReceipts.ts src/features/chat/hooks/__tests__/useChatReadReceipts.test.tsx`.
-
-2026-04-13 — TripChat read-receipt guard + focused markRead regression tests (rebase)
-- Kept `main` dual-path contract: Stream-backed channels use `activeChannel.markRead()` and `state.read` for display; legacy Supabase `markMessagesAsRead` + receipt subscription remain when the channel is not Stream-backed.
-- Extended `src/features/chat/hooks/__tests__/useChatReadReceipts.test.tsx` with debounced `markRead` coverage (Stream-shaped channel) and null-channel legacy subscription assertion (avoids duplicate `*.test.ts` / `*.test.tsx` Vitest glob overlap).
-2026-04-13 — TripChat delete-path regression test (rebase onto main)
-- `main` already uses shared `getStreamClient()` for trip chat edit/delete; rebased PR keeps that pattern and aligns delete unavailable-client toast with edit (`Chat connection unavailable. Please try again.`).
-- Added focused regression test `src/features/chat/components/__tests__/TripChat.deleteMessage.test.tsx`: asserts `deleteMessage` invoked with message id and toast when client is null; `useCallback` deps include `streamClient` for edit/delete handlers.
-- Verification: `npm run test:run -- src/features/chat/components/__tests__/TripChat.deleteMessage.test.tsx`, `npm run typecheck`, `npm run lint:check`, `npm run build`.
-2026-04-13 — Remove dead trip realtime multiplexer module
-- Searched for `tripRealtimeMultiplexer` usage and confirmed no runtime imports remained in `src/`; only a legacy unit test import referenced the module.
-- Deleted unused `src/services/tripRealtimeMultiplexer.ts` to remove dead legacy Supabase realtime multiplexer surface.
-- Updated `src/services/__tests__/tripChatLegacyRealtimeGuards.test.ts` to keep Stream guard coverage via `chatService` subscriptions only.
-- Verification: `npm run test:run -- src/services/__tests__/tripChatLegacyRealtimeGuards.test.ts`, `npm run typecheck`, `npm run build`.
-
-2026-04-13 — Chat/Stream coherence architecture audit (full-stack config + integration)
-- Completed holistic chat/messaging audit covering Stream transport, Supabase dependencies, env/secret wiring, webhook notification flow, and migration seams.
-- Produced a full findings report at `docs/audits/chat-stream-coherence-audit-2026-04-13.md` with system graph, flow-by-flow grades, debt ledger, remediation phases, and external-console runbooks.
-- Key finding: frontend Supabase hardcoded fallback credentials create config fake-green risk and conflict with strict env model; additional publishable-vs-anon key drift identified in helper services.
-- Also flagged hybrid membership-sync fragility (Supabase roster + client-side Stream sync) and residual legacy chat pathway debt despite guards.
-2026-04-13 — Chat config coherence hardening (Supabase public key + env contract)
-- Removed frontend hardcoded Supabase fallback credentials and switched bootstrap to strict env resolution (`VITE_SUPABASE_URL` + publishable/anon key).
-- Added deterministic resolver + tests in `src/integrations/supabase/config.ts` / `config.test.ts` to enforce publishable-key precedence and fail fast on missing config.
-- Unified direct edge-function metadata fetchers (`ogMetadataService`, `linkService`) to use centralized Supabase project URL + public API key export instead of raw `import.meta.env` anon-key assumptions.
-- Updated health/env messaging (`Healthz`, `DevEnvBanner`) to reflect publishable-key-first model.
-- Added `docs/audits/chat-stream-responsibility-matrix-2026-04-13.md` to lock Stream-vs-Supabase ownership boundaries and document intentional hybrid seams.
-2026-04-13 — Phase II coherence implementation (canonical Stream payload + retriable membership sync)
-- Added shared Stream payload builder `src/services/stream/streamMessagePayload.ts` and reused it in both `useStreamTripChat` and `tripMessageTransport` to eliminate duplicate send payload shaping logic.
-- Added retrying/deduplicating membership coordinator `src/services/stream/streamMembershipCoordinator.ts` that attempts Stream client connect before membership sync operations and retries with exponential backoff.
-- Switched trip join/leave/member-removal callsites to coordinator path (`JoinTrip`, `useTripMembers`) to reduce non-fatal membership drift during transient client availability issues.
-- Added tests for new Phase II surfaces:
-  - `src/services/stream/__tests__/streamMessagePayload.test.ts`
-  - `src/services/stream/__tests__/streamMembershipCoordinator.test.ts`
-  - Updated `src/services/stream/__tests__/tripMessageTransport.test.ts` for canonical payload behavior.
-2026-04-13 — Installed app entry gating for native WebView + PWA standalone
-- Added centralized launch-context utility `src/lib/runtime/launchContext.ts` to classify browser vs installed app context via `?app_context=native` and standalone PWA signals (`display-mode: standalone` + `navigator.standalone`).
-- Updated `src/pages/Index.tsx` root-entry behavior to prevent installed-context marketing flash: show neutral hydration shell while auth loads, then redirect logged-out installed users to `/auth`; browser users keep marketing homepage behavior unchanged.
-- Added focused regression test `src/lib/runtime/launchContext.test.ts` covering browser default, native query-param launch, and standalone PWA launch classification.
-- Verification: `npm run test:run -- src/lib/runtime/launchContext.test.ts`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`.
-
-2026-04-13 — Entitlements composite key hardening (subscription + pass coexistence)
-- Added DB migration `20260413090000_user_entitlements_composite_purchase_key.sql` to move `user_entitlements` PK from `user_id` to `(user_id, purchase_type)` with legacy purchase_type normalization + duplicate-safety precheck.
-- Updated Stripe, RevenueCat webhook, and RevenueCat sync upserts to conflict on `user_id,purchase_type` via shared constant `USER_ENTITLEMENT_CONFLICT_TARGET`.
-- Updated client entitlement selectors (`useSubscription`, `useConciergeUsage`, `entitlementsStore`) to fetch purchase-scoped rows and apply deterministic prioritization (active subscription first, then status/recency fallback) instead of `maybeSingle()` by user.
-- Added regression tests covering composite upsert semantics and selector prioritization for users holding both subscription and pass.
-- Verification: `npm run test:run -- supabase/functions/_shared/__tests__/entitlementUpsert.test.ts src/lib/entitlements/__tests__/selectors.test.ts`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`.
-
-2026-04-14 — PR #253 follow-up audit fixes (Cursor bot findings)
-- Fixed edge-function single-row entitlement assumptions that would break after composite `(user_id, purchase_type)` key rollout:
-  - `supabase/functions/_shared/concierge/usagePolicy.ts`
-  - `supabase/functions/concierge-tts/index.ts`
-  - `supabase/functions/dispatch-notification-deliveries/index.ts`
-  now query purchase-scoped rows and resolve one canonical row via shared `_shared/entitlementSelection.ts` prioritization.
-- Fixed Stripe refund entitlement update path in `stripe-webhook` to update pass entitlements by `(user_id, purchase_type)` instead of non-existent `id` column.
-- Hardened migration backfill to default ambiguous legacy rows to `subscription` (removed fragile Stripe+period_end => pass heuristic).
-- Added regression tests for shared edge entitlement selection behavior (`_shared/__tests__/entitlementSelection.test.ts`).
-- Validation: focused vitest suite, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`.
-2026-04-13 — Subscription architecture hardening (cross-provider dedupe + service-tier unification)
-- Added `src/services/entitlementService.ts` as a centralized resolver for effective paid tier from `user_entitlements` with legacy `profiles` fallback for compatibility.
-- Rewired trip/archive/upload freemium gating paths to use centralized entitlement resolver instead of direct `profiles.subscription_*` checks.
-- Hardened Stripe checkout creation (`supabase/functions/create-checkout/index.ts`) with pre-checks against existing entitlements to block overlapping active subscription/pass purchases and reduce cross-provider double-billing risk.
-- Added focused regression coverage: `src/services/__tests__/entitlementService.test.ts`.
-- Verification: `npm run test:run -- src/services/__tests__/entitlementService.test.ts`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`.
-2026-04-14 — Concierge streaming fallback preserves non-text rich-card/tool payloads
-- Root-caused post-refactor concierge "answer failed" symptom to stream-finalization fallback logic in `useConciergeStreaming`: `onDone` only treated hotels/places/actions as renderable payloads. Flight-only tool results (and other non-text payloads) were misclassified as empty and replaced with generic error text.
-- Added a single renderability helper (`hasRenderableAssistantPayload`) to cover flights, pending actions, reservation drafts, smart-import preview/status, bulk-delete preview, hotels, places, and concierge action cards.
-- Updated both `onDone` branches to preserve all supported payload fields when synthesizing fallback messages.
-- Added regression test ensuring a `searchFlights` tool-only turn does not get overwritten by the generic error fallback.
-- Verification: `VITE_SUPABASE_URL=https://example.supabase.co VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_dummy npm run test:run -- src/features/concierge/hooks/__tests__/useConciergeStreaming.test.ts`, `npm run typecheck`, `npm run lint:check -- src/features/concierge/hooks/useConciergeStreaming.ts src/features/concierge/hooks/__tests__/useConciergeStreaming.test.ts`.
-
-2026-04-14 — Trip cover upload flow hardening follow-up (post-PR #259) + v2 review follow-up
-- Centralized storage upload retry/public URL logic into `uploadTripCoverBlob` (`src/utils/tripCoverStorage.ts`) and reused it from both `TripCoverPhotoUpload` and `TripHeader` to remove drift in duplicate upload paths.
-- Hardened `uploadTripCoverBlob` to retry thrown exceptions (network/offline) as well as storage error responses, with optional `maxRetries` / `retryDelayMs` for deterministic tests.
-- Changed crop modal save contract to await async upload/persist success (`onCropComplete => Promise<boolean>`), with try/catch/finally on the callback and outside-click close blocked while processing so the modal does not dismiss during save.
-- Added orphan cleanup in `TripCoverPhotoUpload` when storage upload succeeds but trip metadata persistence fails (remove object from `trip-covers` bucket).
-- Fixed false-negative cover persistence verification in `useTripCoverPhoto` by comparing DB return against normalized URL and updating local/query cache with the normalized persisted value.
-- Added utility regression tests for `uploadTripCoverBlob` success, retry-on-error, thrown-error retry success, and fast zero-delay retries in `src/utils/__tests__/tripCoverStorage.test.ts`.
-- Verification: `npm run test:run -- src/utils/__tests__/tripCoverStorage.test.ts`, `npm run test:run -- src/hooks/__tests__/useTripCoverPhoto.test.tsx`, `npm run typecheck`, `npm run lint:check`, `npm run build`.
+2026-04-13 — RevenueCat architecture consolidation (native adapter canonical)
+- Chose native adapter path as canonical in web repo; removed runtime web Purchases bootstrap from `main.tsx` to eliminate contradictory purchases-js initialization path.
+- Added `syncRevenueCatEntitlementsForUser(...)` adapter in `src/integrations/revenuecat/revenuecatClient.ts` as single configure -> customerInfo -> backend sync entrypoint.
+- Updated `useUnifiedEntitlements` to call the single adapter entrypoint (instead of direct configure/getCustomerInfo/supabase invoke sequence).
+- Replaced legacy web `SubscriptionPaywall` with adapter-only compatibility placeholder (no direct Purchases singleton calls) and rewired `useRevenueCatSubscription` to use adapter-based `getCustomerInfo`.
+- Updated paywall tests to assert adapter-only behavior.
+- Verification: `npm run test:run -- src/components/subscription/__tests__/SubscriptionPaywall.test.tsx`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`.
+2026-04-14 — PR #252 audit follow-up (merge-blocking TDZ crash fix)
+- Reviewed PR conversation and bot feedback on #252; triaged Cursor merge-blocker in `NativeSettings` as valid/high-severity.
+- Fixed temporal dead zone crash by moving `const platform = getPlatform()` above `handleUpgrade` callback closure in `src/components/native/NativeSettings.tsx`.
+- Re-verified critical checks: `npm run typecheck`, `npm run test:run -- src/components/subscription/__tests__/SubscriptionPaywall.test.tsx`, `npm run lint:check` (warnings-only baseline).
+2026-04-14 — PR #265 audit remediation (dead native-upgrade path + sync payload hardening)
+- Triaged Cursor review on PR #265: merge-blocking dead `NativeSettings` paywall path marked valid; non-blocking `user_id` sync payload foot-gun marked valid.
+- Resolved dead-path architecture by removing `NativeSubscriptionPaywall` wiring from `NativeSettings`; upgrade now uses one explicit `onNavigate('subscription')` path in this web repo.
+- Added focused regression test `src/components/native/__tests__/NativeSettings.test.tsx` to lock free-tier upgrade navigation behavior.
+- Removed redundant `user_id` field from `sync-revenuecat-entitlement` invoke body in `syncRevenueCatEntitlementsForUser(...)`.
+- Verification: `npm run test:run -- src/components/native/__tests__/NativeSettings.test.tsx src/components/subscription/__tests__/SubscriptionPaywall.test.tsx`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`.
