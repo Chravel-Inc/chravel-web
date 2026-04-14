@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client';
 import { TripVariantProvider } from '@/contexts/TripVariantContext';
 import { BasecampProvider } from '@/contexts/BasecampContext';
 import { registerServiceWorker } from './utils/serviceWorkerRegistration';
-import { initRevenueCat } from '@/config/revenuecat';
 import { setupGlobalPurchaseListener } from '@/integrations/revenuecat/revenuecatClient';
 import { telemetry } from '@/telemetry/service';
 import { isLovablePreview } from './utils/env';
@@ -104,9 +103,6 @@ window.addEventListener('unhandledrejection', (e: PromiseRejectionEvent) => {
 window.addEventListener('error', (e: ErrorEvent) => {
   telemetry.captureError(e.error ?? new Error(e.message), { context: 'window.onerror' });
 });
-
-// Initialize RevenueCat for subscription management
-initRevenueCat().catch(err => console.warn('[RevenueCat] Init failed:', err));
 
 // Initialize global listener for native purchases (deferred — not needed before first paint)
 if ('requestIdleCallback' in window) {

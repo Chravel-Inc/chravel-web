@@ -11,13 +11,11 @@ import { useDemoMode } from './useDemoMode';
 import { useAuth } from './useAuth';
 import { getEntitlementsForTier, FEATURE_LIMITS } from '@/billing/entitlements';
 import {
-  configureRevenueCat,
-  getCustomerInfo,
+  syncRevenueCatEntitlementsForUser,
   logoutRevenueCat,
   isNativePlatform,
 } from '@/integrations/revenuecat/revenuecatClient';
 import { REVENUECAT_CONFIG } from '@/constants/revenuecat';
-import { supabase } from '@/integrations/supabase/client';
 import { isSuperAdminEmail } from '@/utils/isSuperAdmin';
 import type { FeatureName, FeatureContext, SubscriptionTier, EntitlementId } from '@/billing/types';
 import type { EntitlementStatus } from '@/stores/entitlementsStore';
@@ -65,15 +63,7 @@ export function useUnifiedEntitlements(): UseUnifiedEntitlementsReturn {
       }
 
       if (isNativePlatform() && REVENUECAT_CONFIG.enabled) {
-        const rcResult = await configureRevenueCat(user.id);
-        if (rcResult.success && rcResult.supported) {
-          const customerInfo = await getCustomerInfo();
-          if (customerInfo.success && customerInfo.data) {
-            await supabase.functions.invoke('sync-revenuecat-entitlement', {
-              body: { customerInfo: customerInfo.data, user_id: user.id },
-            });
-          }
-        }
+        await syncRevenueCatEntitlementsForUser(user.id, isDemoMode);
       }
       // Pass email for super admin check inside refreshEntitlements
       await store.refreshEntitlements(user.id, user.email);

@@ -473,3 +473,11 @@
 - **Evidence:** `useUnreadCounts` switched from tail approximation to marker-based split plus low-confidence fallback-to-total path when marker data is unavailable or mismatched.
 - **Provenance:** April 2026 unread-count hardening.
 - **Confidence:** high
+
+
+### Pick one billing runtime adapter per app surface and route all entitlement sync through it
+- **Tip:** In mixed web/native repositories, choose a canonical billing runtime per surface (e.g., native bridge for mobile shell, Stripe for web) and expose one adapter function for configure → customerInfo → backend sync. Avoid parallel direct SDK calls from hooks/components because they drift and silently disagree on support/runtime.
+- **Applies when:** RevenueCat/Purchases integrations exist in both app shell code and feature hooks/components.
+- **Evidence:** Consolidating `useUnifiedEntitlements` to `syncRevenueCatEntitlementsForUser(...)` and removing startup `initRevenueCat()` from web shell eliminated contradictory Purchases-js and adapter paths in April 2026.
+- **Provenance:** April 2026 RevenueCat architecture consolidation.
+- **Confidence:** high
