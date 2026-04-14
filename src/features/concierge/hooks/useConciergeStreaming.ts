@@ -53,8 +53,8 @@ interface Params {
   setAiStatus: React.Dispatch<React.SetStateAction<string>>;
   incrementUsageOnSuccess: () => Promise<{ incremented: boolean }>;
   buildLimitReachedMessage: () => ChatMessage;
-  basecamp?: { name: string; address: string };
-  globalBasecamp?: { name: string; address: string };
+  basecamp?: { name?: string; address: string };
+  globalBasecamp?: { name?: string; address: string };
   effectivePreferences?: TripPreferences;
   attachedImages: File[];
   attachedDocuments: File[];
