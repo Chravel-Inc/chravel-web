@@ -1,64 +1,70 @@
 
-Confirmed disconnect:
 
-1. Pending concierge writes are still not executing immediately.
-   - In `src/features/concierge/hooks/useConciergeStreaming.ts`, the code hits an early `return` as soon as it receives `{ pending: true, pendingActionId }`.
-   - Because of that early return, it never invalidates `['pendingActions', tripId]`.
-   - `usePendingActions` has no realtime subscription for `trip_pending_actions`; it only auto-confirms after its query refetches.
-   - Net effect: the task/poll/calendar action gets parked in `trip_pending_actions`, the assistant claims success, and the destination tab stays empty.
+# Fix: Inject All Trip Context Into Concierge System Prompt
 
-2. Direct-write cache invalidation is still wrong for Base Camp.
-   - `setBasecamp` currently invalidates `['trip', tripId]`, but the actual trip basecamp UI uses `tripBasecampKeys.trip(tripId)` = `['tripBasecamp', tripId]`.
-   - Personal basecamp uses the `['personalBasecamp', tripId, userId]` family, so prefix invalidation is fine there.
-   - Result: Base Camp can save successfully but Places still looks stale.
+## Root Cause
 
-3. The fallback confirmation UI is not reliable.
-   - `ChatMessages.tsx` rebuilds pending cards with empty `payload` and does not pass the stored `title/detail`.
-   - So when auto-confirm fails, the confirmation card is easy to miss or looks incomplete.
+The `contextBuilder.ts` (903 lines) fetches comprehensive trip data — tasks, polls, calendar, payments, places, links, members, broadcasts — but `promptBuilder.ts` (138 lines) only injects 4 out of 14 context slices into the Gemini system prompt:
 
-4. AI-created task writes are not parity writes.
-   - In `src/hooks/usePendingActions.ts`, `createTask` inserts into `trip_tasks` only.
-   - The normal manual task path also creates `task_status` and `task_assignments`.
-   - This is not the main reason the tab stays empty, but it leaves AI-created tasks inconsistent and risks follow-on UI bugs.
+| Data | Fetched from DB? | Injected into prompt? |
+|------|-------------------|----------------------|
+| Trip metadata | Yes | Yes |
+| Basecamps | Yes | Yes |
+| User preferences | Yes | Yes |
+| Calendar | Yes | Only first 5 events |
+| **Tasks** | Yes | **No** |
+| **Polls** | Yes | **No** |
+| **Payments** | Yes | **No** |
+| **Members** | Yes | **No** |
+| **Places/Links** | Yes | **No** |
+| **Broadcasts** | Yes | **No** |
 
-Why the empty states are especially bad:
-- Tasks and polls decide “first-use” state from `length === 0`.
-- If the pending action never confirms/refetches, the app keeps showing “Create your first task/poll” even though concierge just said it made one.
+So when a user asks "summarize my tasks" or "what time is dinner Friday?" (event #6+), Gemini has zero context to answer.
 
-Implementation plan:
+Second bug: `QUERY_CLASS_SLICES` for `poll_action` maps to `['metadata', 'members']` — it never fetches `polls`.
 
-1. Fix the actual pending-action trigger
-   - In `src/features/concierge/hooks/useConciergeStreaming.ts`, invalidate/refetch `['pendingActions', tripId]` before returning from the pending branch.
-   - This makes the existing auto-confirm effect actually see new pending rows.
-   - Hardening option: call `confirmActionAsync(pendingActionId)` directly for self-initiated actions so the flow does not depend on cache freshness.
+## Fix Plan
 
-2. Make pending confirmations write the same shape as manual creation
-   - In `src/hooks/usePendingActions.ts`, after `createTask` inserts the task row, also insert `task_status` and `task_assignments`.
-   - Review `createPoll` and `addToCalendar` for the same parity check against their normal hooks.
-   - Keep immediate query invalidation after confirm so the first item clears the empty state right away.
+### 1. Expand `promptBuilder.ts` to inject all context slices
 
-3. Fix Base Camp / Places invalidation keys
-   - In `src/lib/conciergeInvalidation.ts`, change `setBasecamp` to invalidate `['tripBasecamp', tripId]` and `['personalBasecamp']`.
-   - Keep trip detail invalidation too if other surfaces depend on trip row data.
-   - Re-verify Explorer/Places mappings against actual query keys so direct writes always refresh the correct tab.
+Add sections for each data type, with sensible limits to avoid token bloat:
 
-4. Fix the backup confirmation card
-   - In `src/features/chat/components/ChatMessages.tsx`, pass the real `title` and `detail` through to `PendingActionCard`.
-   - That way, if a write still needs confirmation, the user sees a clear card instead of a vague or blank state.
+- **Members** (all, compact): `MEMBERS: Alice (admin), Bob (member), ...`
+- **Calendar** (all events, not just 5): full title + start/end + location
+- **Tasks** (all): title, assignee, due date, completion status
+- **Polls** (all): question, options with vote counts, status (active/closed)
+- **Payments** (all): description, amount, paid by, settled status
+- **Places/Links** (all saved places + links): name, address, category
+- **Broadcasts** (recent 10): message, priority, author
 
-5. Verify the trust-critical flows end to end
-   - First task on an empty Tasks tab
-   - First poll on an empty Polls tab
-   - First calendar event on an empty Calendar tab
-   - Trip Base Camp update in Places
-   - Personal Base Camp update in Places
-   - Save place / Explorer update
-   - Success condition: no manual refresh, no stale empty CTA, and the created item is visible immediately in the destination tab.
+Each section is only injected when the data exists (no empty headers).
 
-Files to change:
-- `src/features/concierge/hooks/useConciergeStreaming.ts`
-- `src/hooks/usePendingActions.ts`
-- `src/lib/conciergeInvalidation.ts`
-- `src/features/chat/components/ChatMessages.tsx`
+### 2. Fix `poll_action` query class slices
 
-This is the real root cause chain: pending actions are being created, but the client never tells the pending-actions query to refetch, so auto-confirm never fires. Base Camp has a separate invalidation-key bug. If you want, send a new request and I’ll implement this exact fix set end-to-end.
+In `contextBuilder.ts`, change:
+```
+poll_action: ['metadata', 'members']
+```
+to:
+```
+poll_action: ['metadata', 'members', 'polls']
+```
+
+### 3. Fix `task_action` to also include `polls` cross-reference (optional, skip)
+
+Already correct — `task_action: ['metadata', 'tasks', 'members']`.
+
+### 4. Remove calendar truncation to 5 events
+
+Currently `calendarEvents.slice(0, 5)` — change to inject all events (up to ~50) so "what time is dinner Friday?" works even when there are many events.
+
+## Files Changed
+
+1. `supabase/functions/_shared/promptBuilder.ts` — expand `buildSystemPrompt` to inject tasks, polls, payments, members, places, links, broadcasts
+2. `supabase/functions/_shared/contextBuilder.ts` — fix `poll_action` slice to include `'polls'`
+3. Redeploy `lovable-concierge` edge function
+
+## Risk
+
+Low — additive prompt text only. Token usage will increase slightly but stays well within Gemini's 1M context window. The context slices are already fetched; we're just making them visible to the model.
+
