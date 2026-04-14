@@ -682,3 +682,9 @@
 - Wired archive restore / trip-cap upgrade prompts to helper in `ArchivedTripsSection` and `CreateTripModal`.
 - Added unit tests for helper mapping in `src/components/subscription/__tests__/featurePaywall.test.ts`.
 - Verification: `npm run test:run -- src/components/subscription/__tests__/featurePaywall.test.ts src/components/events/__tests__/EnhancedAgendaTab.smartImport.test.tsx src/components/events/__tests__/LineupTab.test.tsx`, `npm run typecheck`, `npm run merge:preflight` (fails here due fetch restriction on `origin/main`).
+2026-04-14 — check-subscription entitlement-first reconciliation hardening
+- Reworked `supabase/functions/check-subscription/index.ts` to read `user_entitlements` first, apply shared primary selection + stale-window gating from `entitlementState.ts`, and return normalized fields (`purchase_type`, `status`, `current_period_end`) consistently across paid/free/super-admin responses.
+- Added Stripe reconciliation fallback only when entitlement rows are missing or stale (non-effective subscription rows older than stale window), then writes normalized subscription state back once via purchase-scoped entitlement upsert (`USER_ENTITLEMENT_CONFLICT_TARGET`).
+- Preserved trip-pass behavior: active `purchase_type='pass'` still honored after reconcile when no effective Stripe subscription; kept `private_profiles` Stripe customer upsert + `profiles` subscription columns sync on reconcile path.
+- Added focused regression tests in `supabase/functions/check-subscription/__tests__/entitlementState.test.ts` for pass support, stale-reconcile gating, and Stripe status normalization.
+- Verification: `npm run test:run -- supabase/functions/check-subscription/__tests__/entitlementState.test.ts`, `npm run typecheck`, `npm run build`, `npm run merge:preflight` (blocked: cannot fetch `origin/main` in this environment).

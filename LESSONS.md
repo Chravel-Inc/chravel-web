@@ -512,3 +512,10 @@
 - **Evidence:** Consolidating `useUnifiedEntitlements` to `syncRevenueCatEntitlementsForUser(...)` and removing startup `initRevenueCat()` from web shell eliminated contradictory Purchases-js and adapter paths in April 2026.
 - **Provenance:** April 2026 RevenueCat architecture consolidation.
 - **Confidence:** high
+
+### Entitlement-read APIs should prefer normalized `user_entitlements` and treat provider APIs as stale-data reconciliation only
+- **Tip:** For user-facing entitlement checks, read `user_entitlements` first and apply shared primary-selection + effective-access logic before calling Stripe/RevenueCat. Invoke provider APIs only when rows are missing or stale, then upsert normalized state once.
+- **Applies when:** Building “check status” endpoints/hooks that can be called frequently from clients.
+- **Evidence:** `check-subscription` previously called Stripe first and only consulted pass entitlements as a secondary branch; this caused unnecessary external calls and inconsistent response shapes. Entitlement-first flow reduced blast radius and kept trip-pass handling native to entitlements.
+- **Provenance:** April 2026 `check-subscription` hardening.
+- **Confidence:** high
