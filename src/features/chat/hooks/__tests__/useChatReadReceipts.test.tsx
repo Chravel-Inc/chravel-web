@@ -112,9 +112,7 @@ describe('useChatReadReceipts', () => {
     const activeChannel = { markRead, state: { read: {} } };
     const liveMessages = [{ id: 'msg-1', user_id: 'user-2' }];
 
-    renderHook(() =>
-      useChatReadReceipts(false, 'user-1', 'trip-1', liveMessages, activeChannel),
-    );
+    renderHook(() => useChatReadReceipts(false, 'user-1', 'trip-1', liveMessages, activeChannel));
 
     await waitFor(
       () => {

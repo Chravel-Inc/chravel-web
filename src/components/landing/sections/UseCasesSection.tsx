@@ -8,10 +8,10 @@ const scenarios = [
     title: 'Family Hubs, Schedules & Carpools',
     subtitle: 'Practices · pickups · errands · roomies · year-round planning',
     before:
-      "Last-minute texts. Missed pickups. Nobody knows who's doing what.",
+      "Last-minute texts. Missed pickups. Fridge notes ignored. Confusion over who's doing what — and when.",
     expandCTA: 'See how families stay organized',
     after:
-      'One shared space for family logistics. Calendars, tasks, and chat in sync — everyone knows where to be.',
+      'One shared space for year-round family logistics and recurring routines. Keep calendars, chat updates, tasks, and photos in sync — so everyone knows where to be, and when.',
     badge: 'Fewer drop-offs missed · more time together',
     isHero: true,
   },
@@ -19,7 +19,7 @@ const scenarios = [
     title: 'Touring Artists & Crews',
     subtitle: 'Musicians · comedians · podcasts · managers · production',
     before:
-      'Spreadsheets, endless texts, missed details. Overwhelmed managers, annoyed artists.',
+      'Spreadsheets, countless texts, last-minute changes, and missed details. Overwhelmed Tour Managers & Annoyed Artists.',
     expandCTA: 'See how tours stay in sync',
     after:
       'Show days, off days, crew channels, logistics, and payments—all in one place. Everyone aligned, every city.',
@@ -29,26 +29,26 @@ const scenarios = [
     title: 'Bach Parties → Wedding Weekends',
     subtitle: 'Bachelor & bachelorette trips · guests · families · vendors',
     before:
-      'Dozens of chats. Guests constantly asking where to be and when.',
+      'Dozens of chats between families, guests, planners, and vendors. Guests constantly asking where to be and when.',
     expandCTA: 'See how celebrations run smoothly',
     after:
-      'Shared itinerary, pinned locations, live photos — no confusion, just celebration.',
+      'One shared itinerary with pinned locations, real-time updates, and live photo sharing—no confusion, just celebration.',
     badge: 'Fewer questions · more memories',
   },
   {
     title: 'Fraternities/Sororities & Similar Organizations',
     subtitle: 'Rush · formals · retreats · philanthropy · chapter ops',
     before:
-      'One giant group chat — endless scrollback, mixed events, sensitive moments living forever in one thread.',
+      'One giant group chat becomes a permanent archive — endless scrollback, mixed events, and sensitive moments living forever in one thread.',
     expandCTA: 'See how chapters stay private',
     after:
-      'Separate vaults per event — Rush, Formal, Retreat. Chat and media stay compartmentalized. Access controlled, moments stay private.',
+      "Create separate Trip vaults per event (Rush Week, Formal, Retreat) so chat + media stay compartmentalized. Membership is explicit, access is controlled, and your private moments don't end up as one searchable liability.",
     badge: 'Private trip vaults with access controls',
   },
   {
     title: 'Youth, Amateur, & Pro sports programs.',
     subtitle: 'Players · coaches · coordinators · operations staff',
-    before: 'Staff juggling travel, practices, and logistics across too many tools.',
+    before: 'Staff juggling travel, practices, academics, and logistics across multiple tools.',
     expandCTA: 'See how programs stay aligned',
     after:
       'Role-based access, team schedules, and instant updates—built to scale from college to the pros.',
@@ -60,7 +60,7 @@ const scenarios = [
     before: 'Plans scattered across DMs, texts, and random calendar invites.',
     expandCTA: 'See how groups stay connected',
     after:
-      'One shared home for meetups, locations, and photos. Your group stays connected.',
+      'One shared home for meetups, locations, notes, and photos—your group finally stays connected.',
     badge: 'Consistency · better turnout',
   },
 ];
@@ -96,7 +96,7 @@ export const UseCasesSection = () => {
             }}
           >
             <p className="text-xl sm:text-2xl md:text-3xl text-foreground">
-              Work trips, vacations, sports, tours, local events — ChravelApp handles it all.
+              Work trips, vacations, sports teams, tours, local events — ChravelApp handles it all.
             </p>
           </div>
         </div>
