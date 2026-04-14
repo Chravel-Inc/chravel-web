@@ -15,6 +15,7 @@
     "render:tab-nav": "remotion render src/index.ts TabNavigationHero out/broll-tab-nav.mp4",
     "render:before-after": "remotion render src/index.ts BeforeAfterChaos out/broll-before-after.mp4",
     "render:broll-overlay": "remotion render src/index.ts BRollOverlay out/broll-overlay.mp4",
+    "render:voice-demo": "remotion render src/index.ts GooglePlayVoiceDemo out/google-play-voice-demo.mp4",
     "render:all-broll": "npm run render:trip-creation && npm run render:calendar && npm run render:concierge && npm run render:payments && npm run render:media && npm run render:polls-tasks && npm run render:tab-nav && npm run render:before-after && npm run render:broll-overlay"
   },
   "dependencies": {

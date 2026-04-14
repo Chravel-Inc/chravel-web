@@ -10,6 +10,10 @@ import { TabNavigationHero, TAB_NAV_DURATION } from './compositions/TabNavigatio
 import { BeforeAfterChaos, BEFORE_AFTER_DURATION } from './compositions/BeforeAfterChaos';
 import { BRollOverlay, BROLL_OVERLAY_DURATION } from './compositions/BRollOverlay';
 import { ProductLaunchV2, PRODUCT_LAUNCH_V2_DURATION } from './compositions/ProductLaunchV2';
+import {
+  GooglePlayVoiceDemo,
+  GOOGLE_PLAY_VOICE_DEMO_DURATION,
+} from './compositions/GooglePlayVoiceDemo';
 
 const FPS = 30;
 const WIDTH = 1920;
@@ -33,6 +37,16 @@ export const RemotionRoot = () => {
         id="ProductLaunchV2"
         component={ProductLaunchV2}
         durationInFrames={PRODUCT_LAUNCH_V2_DURATION}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+      />
+
+      {/* Google Play Console — foreground service demo */}
+      <Composition
+        id="GooglePlayVoiceDemo"
+        component={GooglePlayVoiceDemo}
+        durationInFrames={GOOGLE_PLAY_VOICE_DEMO_DURATION}
         fps={FPS}
         width={WIDTH}
         height={HEIGHT}
