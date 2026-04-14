@@ -7,7 +7,6 @@ BEGIN;
 UPDATE public.user_entitlements
 SET purchase_type = CASE
   WHEN purchase_type IN ('subscription', 'pass') THEN purchase_type
-  WHEN source = 'stripe' AND current_period_end IS NOT NULL THEN 'pass'
   ELSE 'subscription'
 END
 WHERE purchase_type IS NULL OR purchase_type NOT IN ('subscription', 'pass');

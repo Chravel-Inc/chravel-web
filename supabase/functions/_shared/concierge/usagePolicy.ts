@@ -1,3 +1,5 @@
+import { pickPrimaryEntitlement } from '../entitlementSelection.ts';
+
 export type UsagePlan = 'free' | 'explorer' | 'frequent_chraveler';
 
 export interface UsagePlanResolution {
@@ -71,11 +73,14 @@ export async function resolveUsagePlanForUser(
     tripQueryLimit: getTripQueryLimitForUsagePlan('free'),
   };
 
-  const { data: entitlementData, error: entitlementError } = await supabase
+  const { data: entitlementRows, error: entitlementError } = await supabase
     .from('user_entitlements')
-    .select('plan, status, current_period_end')
+    .select('user_id, plan, status, current_period_end, purchase_type, updated_at')
     .eq('user_id', userId)
-    .maybeSingle();
+    .in('purchase_type', ['subscription', 'pass'])
+    .order('updated_at', { ascending: false });
+
+  const entitlementData = pickPrimaryEntitlement(entitlementRows || []);
 
   if (entitlementError) {
     console.error('[UsagePolicy] Failed to read user_entitlements:', entitlementError);

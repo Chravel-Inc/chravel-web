@@ -682,3 +682,14 @@
 - Updated client entitlement selectors (`useSubscription`, `useConciergeUsage`, `entitlementsStore`) to fetch purchase-scoped rows and apply deterministic prioritization (active subscription first, then status/recency fallback) instead of `maybeSingle()` by user.
 - Added regression tests covering composite upsert semantics and selector prioritization for users holding both subscription and pass.
 - Verification: `npm run test:run -- supabase/functions/_shared/__tests__/entitlementUpsert.test.ts src/lib/entitlements/__tests__/selectors.test.ts`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`.
+
+2026-04-14 — PR #253 follow-up audit fixes (Cursor bot findings)
+- Fixed edge-function single-row entitlement assumptions that would break after composite `(user_id, purchase_type)` key rollout:
+  - `supabase/functions/_shared/concierge/usagePolicy.ts`
+  - `supabase/functions/concierge-tts/index.ts`
+  - `supabase/functions/dispatch-notification-deliveries/index.ts`
+  now query purchase-scoped rows and resolve one canonical row via shared `_shared/entitlementSelection.ts` prioritization.
+- Fixed Stripe refund entitlement update path in `stripe-webhook` to update pass entitlements by `(user_id, purchase_type)` instead of non-existent `id` column.
+- Hardened migration backfill to default ambiguous legacy rows to `subscription` (removed fragile Stripe+period_end => pass heuristic).
+- Added regression tests for shared edge entitlement selection behavior (`_shared/__tests__/entitlementSelection.test.ts`).
+- Validation: focused vitest suite, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`.

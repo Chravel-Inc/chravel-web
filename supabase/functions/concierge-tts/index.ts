@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { pickPrimaryEntitlement } from '../_shared/entitlementSelection.ts';
 import { parseServiceAccountKey, createVertexAccessToken } from '../_shared/vertexAuth.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -218,11 +219,14 @@ serve(async (req: Request) => {
 
   if (!VOICE_TTS_FREE_FOR_ALL) {
     let dailyLimit: number | null = FREE_TIER_DAILY_LIMIT;
-    const { data: entitlementData, error: entitlementError } = await supabase
+    const { data: entitlementRows, error: entitlementError } = await supabase
       .from('user_entitlements')
-      .select('plan, status, current_period_end')
+      .select('user_id, plan, status, current_period_end, purchase_type, updated_at')
       .eq('user_id', user.id)
-      .maybeSingle();
+      .in('purchase_type', ['subscription', 'pass'])
+      .order('updated_at', { ascending: false });
+
+    const entitlementData = pickPrimaryEntitlement(entitlementRows || []);
 
     if (entitlementError) {
       console.error('[concierge-tts] Entitlement lookup failed:', entitlementError.message);

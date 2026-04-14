@@ -730,7 +730,7 @@ async function handleChargeRefunded(charge: Stripe.Charge, supabase: any, eventI
   // Check if this user has a Trip Pass — expire it on refund
   const { data: passEntitlement } = await supabase
     .from('user_entitlements')
-    .select('id, purchase_type, plan, status')
+    .select('purchase_type, plan, status')
     .eq('user_id', userId)
     .eq('purchase_type', 'pass')
     .eq('status', 'active')
@@ -744,7 +744,8 @@ async function handleChargeRefunded(charge: Stripe.Charge, supabase: any, eventI
         current_period_end: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
-      .eq('id', passEntitlement.id);
+      .eq('user_id', userId)
+      .eq('purchase_type', 'pass');
 
     // FIX 10: Audit log
     await logEntitlementChange(supabase, {
