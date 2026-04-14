@@ -74,6 +74,8 @@ export const NativeSettings = ({
     setBuildNumber(buildId.slice(0, 7));
   }, []);
 
+  const platform = getPlatform();
+
   const handleUpgrade = useCallback(async () => {
     await hapticService.light();
     if (platform === 'web') {
