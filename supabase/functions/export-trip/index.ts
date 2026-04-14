@@ -20,6 +20,7 @@ const logStep = (step: string, details?: unknown) => {
 };
 
 interface PdfUsageGateRow {
+  [key: string]: unknown;
   export_count: number | null;
   limit_count: number | null;
   remaining: number | null;
@@ -28,6 +29,7 @@ interface PdfUsageGateRow {
 }
 
 interface PdfUsageIncrementRow {
+  [key: string]: unknown;
   used_count: number | null;
   remaining: number | null;
   incremented: boolean | null;

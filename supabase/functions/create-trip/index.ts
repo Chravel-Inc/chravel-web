@@ -79,6 +79,15 @@ serve(async req => {
 
     const isSuperAdmin = isSuperAdminEmail(user.email);
 
+    // Fetch entitlement for plan resolution
+    const { data: entitlement } = await supabase
+      .from('user_entitlements')
+      .select('user_id, plan, status, current_period_end, purchase_type, updated_at')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
     // Resolve the effective trip type
     const effectiveTripType = trip_type || 'consumer';
     const effectivePlan = resolveEffectiveTripPlan({

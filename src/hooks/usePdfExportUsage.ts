@@ -7,6 +7,7 @@ const FREE_TIER_LIMIT = 1;
 type UserTier = 'free' | 'explorer' | 'frequent-chraveler' | 'pro';
 
 interface PdfUsageRpcRow {
+  [key: string]: unknown;
   export_count: number | null;
   limit_count: number | null;
   remaining: number | null;
@@ -15,6 +16,7 @@ interface PdfUsageRpcRow {
 }
 
 interface IncrementPdfUsageRpcRow {
+  [key: string]: unknown;
   used_count: number | null;
   remaining: number | null;
   incremented: boolean | null;
@@ -57,7 +59,7 @@ export const usePdfExportUsage = (tripId: string) => {
     queryFn: async (): Promise<PdfExportUsage> => {
       if (!user?.id || !tripId) return getUsageFallback();
 
-      const { data, error } = await supabase.rpc('get_trip_pdf_export_usage', {
+      const { data, error } = await (supabase.rpc as any)('get_trip_pdf_export_usage', {
         p_trip_id: tripId,
       });
 
@@ -94,7 +96,7 @@ export const usePdfExportUsage = (tripId: string) => {
     mutationFn: async () => {
       if (!user?.id || !tripId) return;
 
-      const { data, error } = await supabase.rpc('increment_trip_pdf_export_usage', {
+      const { data, error } = await (supabase.rpc as any)('increment_trip_pdf_export_usage', {
         p_trip_id: tripId,
       });
 

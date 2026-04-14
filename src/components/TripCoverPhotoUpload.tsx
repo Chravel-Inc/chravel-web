@@ -119,13 +119,7 @@ export const TripCoverPhotoUpload = ({
             .remove([uploadedFilePath])
             .catch(() => null);
         }
-        if (message.includes('policy') || message.includes('permission')) {
-          toast.error(
-            'Upload blocked by trip permissions. Ask a trip admin to change media upload settings.',
-          );
-        } else {
-          toast.error(`Failed to upload photo: ${message}`);
-        }
+        toast.error(`Failed to upload cover photo. Please try again.`);
         return false;
       } finally {
         setIsUploading(false);

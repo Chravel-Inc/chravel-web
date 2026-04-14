@@ -15,12 +15,12 @@ import {
 } from '../_shared/securityHeaders.ts';
 import { sanitizeErrorForClient, logError } from '../_shared/errorHandling.ts';
 import { USER_ENTITLEMENT_CONFLICT_TARGET } from '../_shared/entitlementUpsert.ts';
-import { type EntitlementRow } from '../_shared/entitlementSelection.ts';
 import {
   resolveEffectiveEntitlement,
   type EntitlementRow,
 } from '../_shared/entitlementSelection.ts';
 import { isSuperAdminEmail } from '../_shared/superAdmins.ts';
+import {
   normalizeFromEntitlement,
   normalizeStripeStatus,
   shouldReconcileFromStripe,
