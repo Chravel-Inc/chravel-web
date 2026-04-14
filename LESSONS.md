@@ -71,6 +71,15 @@
 - **Provenance:** March 2026 Event cover photo homepage refresh regression fix
 - **Confidence:** high
 
+
+### Archive/restore limits must be enforced server-side, not only in client services
+- **Tip:** Any plan/quota guard that prevents a state transition (`is_archived=true -> false`, creation caps, paid-tier gates) must execute in an edge function or RPC; client-side checks are UX hints and can be bypassed.
+- **Applies when:** Trip restore flows, archive/unarchive actions, entitlement/plan-gated writes.
+- **Avoid when:** Pure UI affordance decisions with no mutation side-effects.
+- **Evidence:** `archiveService.restoreTrip` previously enforced free-tier active-trip limits only in frontend code before writing directly to `trips`; adding a dedicated `restore-trip` edge function made entitlement resolution and quota checks authoritative.
+- **Provenance:** April 2026 trip entitlement + restore guard hardening.
+- **Confidence:** high
+
 ## Recovery Tips
 
 ### Edge Function "Failed to fetch" in browser is usually a CORS-origin drift, not a DB insert bug

@@ -3,6 +3,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { CreateTripSchema, validateInput } from '../_shared/validation.ts';
 import { sanitizeErrorForClient, logError } from '../_shared/errorHandling.ts';
+import {
+  evaluateTripCreationPermission,
+  resolveEffectiveTripPlan,
+} from '../_shared/tripEntitlementPolicy.ts';
 
 serve(async req => {
   const corsHeaders = getCorsHeaders(req);
@@ -59,10 +63,11 @@ serve(async req => {
       organizer_display_name,
       privacy_mode,
       ai_access_enabled,
+      allow_explorer_pro_trip,
       category,
     } = validation.data;
 
-    // Get user's subscription tier, taste test usage, and email
+    // Get legacy counters + fallback profile subscription fields.
     const { data: profile } = await supabase
       .from('profiles')
       .select(
@@ -70,6 +75,13 @@ serve(async req => {
       )
       .eq('user_id', user.id)
       .single();
+
+    const { data: entitlement } = await supabase
+      .from('user_entitlements')
+      .select('plan, status, current_period_end')
+      .eq('user_id', user.id)
+      .eq('purchase_type', 'subscription')
+      .maybeSingle();
 
     // Super admin bypass - hardcoded founders + env var extension
     const FOUNDER_EMAILS = [
@@ -87,41 +99,54 @@ serve(async req => {
     const authEmail = user.email?.toLowerCase();
     const isSuperAdmin = authEmail ? allSuperAdmins.includes(authEmail) : false;
 
+    // Resolve the effective trip type
+    const effectiveTripType = trip_type || 'consumer';
+    const effectivePlan = resolveEffectiveTripPlan({
+      entitlement: entitlement ?? null,
+      legacyProfile: profile ?? null,
+    });
+
     if (!isSuperAdmin) {
-      const subscriptionStatus = profile?.subscription_status;
-      const productId = profile?.subscription_product_id;
-      const freeProTripsUsed = profile?.free_pro_trips_used || 0;
-      const freeEventsUsed = profile?.free_events_used || 0;
-      const freeProTripLimit = profile?.free_pro_trip_limit || 1;
-      const freeEventLimit = profile?.free_event_limit || 1;
+      const { count: consumerActiveCount, error: countError } = await supabase
+        .from('trips')
+        .select('id', { count: 'exact', head: true })
+        .eq('created_by', user.id)
+        .eq('is_archived', false)
+        .eq('trip_type', 'consumer');
+      if (countError) throw countError;
 
-      const isFreeTier = !subscriptionStatus || subscriptionStatus !== 'active' || !productId;
+      const creationPolicy = evaluateTripCreationPermission({
+        plan: effectivePlan,
+        tripType: effectiveTripType,
+        explorerProTripOverride: allow_explorer_pro_trip ?? false,
+        counts: {
+          consumerActiveCount: consumerActiveCount || 0,
+          freeProTripsUsed: profile?.free_pro_trips_used || 0,
+          freeEventsUsed: profile?.free_events_used || 0,
+          freeProTripLimit: profile?.free_pro_trip_limit || 1,
+          freeEventLimit: profile?.free_event_limit || 1,
+        },
+      });
 
-      // Taste test validation for free users creating Pro trips
-      if (trip_type === 'pro' && isFreeTier && freeProTripsUsed >= freeProTripLimit) {
+      if (!creationPolicy.allowed && creationPolicy.errorCode) {
+        const errorCode = creationPolicy.errorCode;
+        const messageByCode: Record<string, string> = {
+          TRIP_LIMIT_REACHED: 'Free plan supports up to 3 active consumer trips.',
+          UPGRADE_REQUIRED_PRO_TRIP: 'Upgrade to create more Pro trips!',
+          UPGRADE_REQUIRED_EVENT: 'Upgrade to create unlimited Events!',
+          EXPLORER_PRO_TRIP_REQUIRES_EXPLICIT_OVERRIDE:
+            'Explorer plan cannot create Pro trips without explicit override.',
+        };
+
         return new Response(
           JSON.stringify({
-            error: 'UPGRADE_REQUIRED_PRO_TRIP',
-            message: 'Upgrade to create more Pro trips!',
-          }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-        );
-      }
-
-      // Taste test validation for free users creating Events
-      if (trip_type === 'event' && isFreeTier && freeEventsUsed >= freeEventLimit) {
-        return new Response(
-          JSON.stringify({
-            error: 'UPGRADE_REQUIRED_EVENT',
-            message: 'Upgrade to create unlimited Events!',
+            error: errorCode,
+            message: messageByCode[errorCode] || 'Trip creation is not allowed for your plan.',
           }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         );
       }
     }
-
-    // Resolve the effective trip type
-    const effectiveTripType = trip_type || 'consumer';
 
     // Default features per trip type (all features enabled for MVP)
     const DEFAULT_FEATURES_BY_TYPE: Record<string, string[]> = {
@@ -179,11 +204,9 @@ serve(async req => {
 
     // Increment taste test usage for free users (skip for super admins)
     if (!isSuperAdmin) {
-      const subscriptionStatus = profile?.subscription_status;
-      const productId = profile?.subscription_product_id;
       const freeProTripsUsed = profile?.free_pro_trips_used || 0;
       const freeEventsUsed = profile?.free_events_used || 0;
-      const isFreeTier = !subscriptionStatus || subscriptionStatus !== 'active' || !productId;
+      const isFreeTier = effectivePlan === 'free';
 
       if (isFreeTier && trip_type === 'pro') {
         await supabase
