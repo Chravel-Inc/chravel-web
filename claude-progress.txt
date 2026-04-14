@@ -22,6 +22,10 @@
 - Added focused regression tests in `src/features/chat/utils/__tests__/updateStreamMessage.test.ts` to verify: expected update payload, missing-client toast handling, and update failure toast handling.
 - Verification: `npm run test:run -- src/features/chat/utils/__tests__/updateStreamMessage.test.ts`, `npm run typecheck`, `npm run lint:check`, `npm run build`.
 
+2026-04-13 — Stream trip chat reaction toggle regression tests (PR follow-up)
+- `useStreamTripChat.toggleReaction` already uses Stream-native `own_reactions` on `main`; this pass adds focused double-tap coverage in `src/hooks/stream/__tests__/useStreamTripChat.reactions.test.tsx` (send then delete after simulated reaction event).
+- Verification: `npm run test:run -- src/hooks/stream/__tests__/useStreamTripChat.reactions.test.tsx src/hooks/stream/__tests__/useStreamTripChat.send.test.tsx`, `npm run typecheck`.
+
 2026-04-11 — Broadcast scheduling kill-switch hardening (admin flow + service guard)
 - Added server-driven feature flag gate `broadcast-scheduling-enabled` with safe default `false` on Admin Dashboard scheduling UX (`src/pages/AdminDashboard.tsx`).
   - "Schedule Pro Trip Message" action is disabled while flag is off.
