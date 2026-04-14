@@ -13,6 +13,7 @@
  * sourced from the pending action row (server-verified), never from user input.
  */
 
+import { useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -354,6 +355,24 @@ export function usePendingActions(tripId: string) {
       toast.error(error.message || 'Failed to reject action');
     },
   });
+
+  // Auto-confirm pending actions created by the current user.
+  // This eliminates the manual "Confirm" click for self-initiated concierge actions,
+  // so the data appears in the relevant tab immediately after the AI says it created it.
+  const autoConfirmedIds = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!user?.id || pendingActions.length === 0 || confirmMutation.isPending) return;
+
+    const selfPending = pendingActions.filter(
+      a => a.user_id === user.id && a.status === 'pending' && !autoConfirmedIds.current.has(a.id),
+    );
+
+    if (selfPending.length > 0) {
+      const action = selfPending[0];
+      autoConfirmedIds.current.add(action.id);
+      confirmMutation.mutate(action.id);
+    }
+  }, [pendingActions, user?.id, confirmMutation.isPending]);
 
   return {
     pendingActions,
