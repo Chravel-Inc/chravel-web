@@ -255,7 +255,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       });
 
       if (!payloadResult.ok) {
-        if (payloadResult.error === 'empty_content') return;
+        if ('error' in payloadResult && payloadResult.error === 'empty_content') return;
         toast({
           title: 'Message too long',
           description: 'Please keep messages under 4000 characters.',
