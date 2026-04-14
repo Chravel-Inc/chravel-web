@@ -31,6 +31,14 @@
 - Added focused regression tests for shared entitlement policy behavior covering plan resolution, creation limits, explorer override gating, and restore eligibility.
 - Verification: `npm run test:run -- supabase/functions/_shared/__tests__/tripEntitlementPolicy.test.ts`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`, `npm run merge:preflight` (blocked in environment: cannot fetch `origin/main`).
 
+2026-04-14 — LiveKit/Gemini realtime voice model contract + guardrails hardening
+- Audited LiveKit/Gemini references across frontend hook, edge token function, agent runtime, env examples, CI guardrails, and voice ops runbook.
+- Standardized canonical production realtime voice model to `gemini-live-2.5-flash-native-audio` via new source-of-truth module `agent/src/voiceModel.ts` consumed by the worker entrypoint.
+- Removed stale forward-looking Gemini 3.1 comments from active env/agent surfaces to avoid ambiguous mixed-model behavior.
+- Upgraded LiveKit voice dependencies to latest compatible patch/minor releases used by this stack (`@livekit/agents`/google plugin `1.2.6`, `@livekit/rtc-node` `0.13.25`, frontend `livekit-client` `2.18.1`, edge `livekit-server-sdk` `~2.15.1`).
+- Added CI guardrail script `scripts/qa/voice-model-guard.cjs` and wired it into `qa:guardrails` to fail on deprecated realtime patterns (`media_chunks`, `generateReply`/`generate_reply`) and conflicting/non-canonical live model literals.
+- Verification: `npm run qa:voice-model-guard`, `npm run qa:guardrails`, `npm run typecheck`, `npm run test:run -- src/hooks/__tests__/useLiveKitVoice.test.tsx`, `cd agent && npm run build`, `npm run merge:preflight` (blocked: cannot fetch `origin/main` in this environment).
+
 2026-04-14 — Smart Import Gmail discoverability hardening (no-trip context)
 - Root-caused Gmail visibility confusion in Smart Import modal to conditional rendering that only showed the Gmail block when `tripId` existed; non-trip entry points silently omitted the section with no explanation.
 - Added a minimal contextual notice in `src/components/SmartImport.tsx` for the no-trip path: Gmail import is available from trip-scoped modal launches and account management lives in Settings → Integrations.

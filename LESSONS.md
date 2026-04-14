@@ -544,4 +544,10 @@
 - **Avoid when:** Purely transient failures (network timeout, malformed input) where retry guidance is more appropriate than upgrade CTA.
 - **Evidence:** Smart Import scrape/parser functions now gate via shared usage RPC and return a consistent 402 payload; parser utilities use a shared helper to preserve paywall context instead of collapsing into generic “AI parsing failed”.
 - **Provenance:** April 2026 Smart Import usage quota hardening.
+### Realtime model drift needs a literal-level CI guard, not just env convention
+- **Tip:** For voice stacks spanning frontend, edge functions, and external workers, enforce a single canonical model literal in code and fail CI if alternate model literals/deprecated transport tokens appear in production paths.
+- **Applies when:** Realtime model identifiers are configurable via env and can silently drift across repos/services.
+- **Avoid when:** The system intentionally runs multiple production realtime models by design.
+- **Evidence:** Chravel had mixed comments/env references around Gemini 3.1 vs 2.5 while production flows remained on 2.5. Adding `voice-model-guard.cjs` plus one canonical constant (`agent/src/voiceModel.ts`) prevented accidental reintroduction of unsupported `media_chunks`/`generateReply` assumptions and model-string drift.
+- **Provenance:** April 2026 LiveKit/Gemini voice contract hardening.
 - **Confidence:** high
