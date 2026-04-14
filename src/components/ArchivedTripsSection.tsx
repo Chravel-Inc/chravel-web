@@ -31,6 +31,7 @@ import { useDemoMode } from '../hooks/useDemoMode';
 import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
 import { demoModeService } from '../services/demoModeService';
 import { tripsData } from '../data/tripsData';
+import { getFeaturePaywallConfig } from './subscription/featurePaywall';
 
 type TabType = 'archived' | 'hidden';
 
@@ -168,12 +169,20 @@ export const ArchivedTripsSection = ({ onTripStateChange }: ArchivedTripsSection
 
     // Free users cannot restore - show upgrade prompt
     if (isFreeUser) {
+      const paywall = getFeaturePaywallConfig('archived_restore');
       toast({
         title: 'Upgrade to Restore',
-        description:
-          'Upgrade to Explorer or Frequent Chraveler to restore archived trips and unlock unlimited trips.',
+        description: `${paywall.featureBenefitCopy} Recommended plan: ${paywall.recommendedPlan}.`,
         action: (
-          <ToastAction altText="View Plans" onClick={() => navigate('/settings')}>
+          <ToastAction
+            altText="View Plans"
+            onClick={() =>
+              navigate(
+                `${paywall.destination.pathname}${paywall.destination.search}`,
+                paywall.destination.state ? { state: paywall.destination.state } : undefined,
+              )
+            }
+          >
             View Plans
           </ToastAction>
         ),
@@ -200,12 +209,25 @@ export const ArchivedTripsSection = ({ onTripStateChange }: ArchivedTripsSection
       loadTrips();
     } catch (error) {
       if (error instanceof Error && error.message === 'TRIP_LIMIT_REACHED') {
+        const paywall = getFeaturePaywallConfig('trip_cap_consumer');
         toast({
           title: 'Trip Limit Reached',
-          description:
-            'You have 3 active trips (free tier limit). Archive a trip or upgrade to Explorer for unlimited trips.',
+          description: `${paywall.featureBenefitCopy} Recommended plan: ${paywall.recommendedPlan}.`,
           variant: 'destructive',
           duration: 6000,
+          action: (
+            <ToastAction
+              altText="View Plans"
+              onClick={() =>
+                navigate(
+                  `${paywall.destination.pathname}${paywall.destination.search}`,
+                  paywall.destination.state ? { state: paywall.destination.state } : undefined,
+                )
+              }
+            >
+              View Plans
+            </ToastAction>
+          ),
         });
       } else {
         toast({

@@ -49,6 +49,7 @@ import {
   AlertDialogTitle,
 } from '../ui/alert-dialog';
 import { toast } from 'sonner';
+import { getFeaturePaywallConfig } from '@/components/subscription/featurePaywall';
 
 interface EnhancedAgendaTabProps {
   eventId: string;
@@ -234,6 +235,7 @@ export const EnhancedAgendaTab = ({
   const isOrganizer = userRole === 'organizer';
   const { tier, subscription, isSuperAdmin } = useConsumerSubscription();
   const hasPaidSmartImport = hasPaidAccess({ tier, status: subscription?.status, isSuperAdmin });
+  const smartImportPaywall = getFeaturePaywallConfig('smart_import_event_agenda');
 
   return (
     <div className="relative p-4 md:p-6 space-y-4 md:space-y-6">
@@ -310,8 +312,8 @@ export const EnhancedAgendaTab = ({
                     </span>
                   </TooltipTrigger>
                   <TooltipContent>
-                    Smart Import is available on paid plans (Explorer+ / Trip Pass / Pro /
-                    Enterprise).
+                    {smartImportPaywall.featureBenefitCopy} Recommended plan:{' '}
+                    {smartImportPaywall.recommendedPlan}.
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>

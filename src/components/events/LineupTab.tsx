@@ -49,6 +49,7 @@ import { formatSessionDateTime } from '@/lib/formatSessionDateTime';
 import { toast } from 'sonner';
 import { EVENT_PARITY_COL_START, EVENT_PARITY_ROW_CLASS } from '@/lib/tabParity';
 import { ActionPill } from '../ui/ActionPill';
+import { getFeaturePaywallConfig } from '@/components/subscription/featurePaywall';
 
 interface LineupPermissions {
   canView: boolean;
@@ -108,6 +109,7 @@ export const LineupTab = ({
   const canDelete = isDemoMode || permissions.canDelete;
   const { tier, subscription, isSuperAdmin } = useConsumerSubscription();
   const hasPaidSmartImport = hasPaidAccess({ tier, status: subscription?.status, isSuperAdmin });
+  const smartImportPaywall = getFeaturePaywallConfig('smart_import_event_lineup');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMember, setSelectedMember] = useState<Speaker | null>(null);
@@ -264,7 +266,8 @@ export const LineupTab = ({
                     </span>
                   </TooltipTrigger>
                   <TooltipContent>
-                    Import is available on paid plans (Explorer+ / Trip Pass / Pro / Enterprise).
+                    {smartImportPaywall.featureBenefitCopy} Recommended plan:{' '}
+                    {smartImportPaywall.recommendedPlan}.
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
