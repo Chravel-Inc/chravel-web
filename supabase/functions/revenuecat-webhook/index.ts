@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { requireSecrets } from '../_shared/validateSecrets.ts';
+import { USER_ENTITLEMENT_CONFLICT_TARGET } from '../_shared/entitlementUpsert.ts';
 
 // RevenueCat event types that affect subscription state
 const SUBSCRIPTION_EVENTS = new Set([
@@ -166,6 +167,7 @@ serve(async req => {
     .select('plan, status, current_period_end')
     .eq('user_id', userId)
     .eq('source', 'revenuecat')
+    .eq('purchase_type', 'subscription')
     .maybeSingle();
 
   const normalizedPeriodEnd = currentPeriodEnd ? new Date(currentPeriodEnd).toISOString() : null;
@@ -197,7 +199,7 @@ serve(async req => {
       revenuecat_customer_id: event.app_user_id,
       updated_at: new Date().toISOString(),
     },
-    { onConflict: 'user_id' },
+    { onConflict: USER_ENTITLEMENT_CONFLICT_TARGET },
   );
 
   if (upsertError) {

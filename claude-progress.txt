@@ -675,3 +675,10 @@
 - Updated `src/pages/Index.tsx` root-entry behavior to prevent installed-context marketing flash: show neutral hydration shell while auth loads, then redirect logged-out installed users to `/auth`; browser users keep marketing homepage behavior unchanged.
 - Added focused regression test `src/lib/runtime/launchContext.test.ts` covering browser default, native query-param launch, and standalone PWA launch classification.
 - Verification: `npm run test:run -- src/lib/runtime/launchContext.test.ts`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`.
+
+2026-04-13 — Entitlements composite key hardening (subscription + pass coexistence)
+- Added DB migration `20260413090000_user_entitlements_composite_purchase_key.sql` to move `user_entitlements` PK from `user_id` to `(user_id, purchase_type)` with legacy purchase_type normalization + duplicate-safety precheck.
+- Updated Stripe, RevenueCat webhook, and RevenueCat sync upserts to conflict on `user_id,purchase_type` via shared constant `USER_ENTITLEMENT_CONFLICT_TARGET`.
+- Updated client entitlement selectors (`useSubscription`, `useConciergeUsage`, `entitlementsStore`) to fetch purchase-scoped rows and apply deterministic prioritization (active subscription first, then status/recency fallback) instead of `maybeSingle()` by user.
+- Added regression tests covering composite upsert semantics and selector prioritization for users holding both subscription and pass.
+- Verification: `npm run test:run -- supabase/functions/_shared/__tests__/entitlementUpsert.test.ts src/lib/entitlements/__tests__/selectors.test.ts`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`.

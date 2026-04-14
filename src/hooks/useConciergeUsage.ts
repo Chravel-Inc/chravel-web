@@ -4,6 +4,7 @@ import { supabase } from '../integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useConsumerSubscription } from './useConsumerSubscription';
 import { isSuperAdminEmail } from '@/utils/isSuperAdmin';
+import { pickPrimaryEntitlement } from '@/lib/entitlements/selectors';
 
 const FREE_TIER_LIMIT = 10;
 const EXPLORER_TIER_LIMIT = 25;
@@ -172,18 +173,19 @@ export const useConciergeUsage = (tripId: string, userId?: string) => {
     queryKey: ['concierge-entitlement-plan', targetUserId],
     queryFn: async (): Promise<EntitlementRow | null> => {
       if (!targetUserId) return null;
-      const { data, error } = await supabase
+      const { data: rows, error } = await supabase
         .from('user_entitlements')
-        .select('plan, status, current_period_end')
+        .select('plan, status, current_period_end, purchase_type, source, updated_at')
         .eq('user_id', targetUserId)
-        .maybeSingle();
+        .in('purchase_type', ['subscription', 'pass'])
+        .order('updated_at', { ascending: false });
 
       if (error) {
         console.error('Failed to fetch entitlement plan:', error);
         return null;
       }
 
-      return data;
+      return pickPrimaryEntitlement(rows);
     },
     enabled: !!targetUserId,
     staleTime: 30 * 1000,
