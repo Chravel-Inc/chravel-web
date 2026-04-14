@@ -12,6 +12,17 @@ export function isStandalonePWA(): boolean {
   );
 }
 
+/**
+ * True when user-agent indicates a handheld/mobile device class.
+ * Desktop browsers can report standalone display mode in certain launch contexts,
+ * but we still want desktop marketing behavior on chravel.app.
+ */
+export function isLikelyMobileDevice(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || '';
+  return /Android|iPhone|iPad|iPod|Mobile|IEMobile|Opera Mini/i.test(ua);
+}
+
 /** True when running inside a native app's webview (Expo WebView, Android WebView, etc). */
 export function isNativeWebView(): boolean {
   if (typeof window === 'undefined') return false;
@@ -32,5 +43,8 @@ export function isNativeWebView(): boolean {
  * PWA standalone or native webview. Marketing page should NOT be shown.
  */
 export function isInstalledApp(): boolean {
-  return isStandalonePWA() || isNativeWebView();
+  // Native webview should always be treated as installed app context.
+  if (isNativeWebView()) return true;
+  // Standalone PWA gate is limited to mobile-class devices to avoid desktop false positives.
+  return isStandalonePWA() && isLikelyMobileDevice();
 }
