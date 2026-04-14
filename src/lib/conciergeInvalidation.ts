@@ -98,7 +98,10 @@ export function getConciergeInvalidationKeys(
     case 'savePlace':
     case 'emitReservationDraft':
     case 'makeReservation':
-      return [['tripPlaces', tripId], ['tripLinks', tripId]];
+      return [
+        ['tripPlaces', tripId],
+        ['tripLinks', tripId],
+      ];
 
     // Payments / Expenses
     case 'settleExpense':

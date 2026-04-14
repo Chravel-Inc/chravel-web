@@ -98,7 +98,9 @@ serve(async req => {
       console.error(`[fetch-og-metadata] HTTP ${response.status}: ${response.statusText}`);
       return new Response(
         JSON.stringify({
-          error: isFallbackable ? 'SERVICE_UNAVAILABLE' : `HTTP ${response.status}: ${response.statusText}`,
+          error: isFallbackable
+            ? 'SERVICE_UNAVAILABLE'
+            : `HTTP ${response.status}: ${response.statusText}`,
           fallback: isFallbackable,
           url,
         }),
