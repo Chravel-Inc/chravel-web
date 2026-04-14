@@ -653,3 +653,13 @@
 - Added focused regression test `src/components/native/__tests__/NativeSettings.test.tsx` to lock free-tier upgrade navigation behavior.
 - Removed redundant `user_id` field from `sync-revenuecat-entitlement` invoke body in `syncRevenueCatEntitlementsForUser(...)`.
 - Verification: `npm run test:run -- src/components/native/__tests__/NativeSettings.test.tsx src/components/subscription/__tests__/SubscriptionPaywall.test.tsx`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`.
+
+2026-04-14 — Trip PDF export usage moved to DB-backed RPC + server-side enforcement
+- Added new `trip_pdf_export_usage` table keyed by `(user_id, trip_id)` and RLS-safe RPCs:
+  - `get_trip_pdf_export_usage(p_trip_id)` for status checks
+  - `increment_trip_pdf_export_usage(p_trip_id, p_limit)` for atomic increment+limit check
+  - `resolve_trip_pdf_export_limit()` for centralized plan resolution (free=1, explorer/frequent/pro unlimited, super-admin bypass)
+- Hardened `supabase/functions/export-trip/index.ts` with server-side guard before render and post-render RPC increment write to block free-tier bypass attempts via direct function calls.
+- Replaced localStorage usage in `usePdfExportUsage` with Supabase RPC read/write while preserving existing modal messaging semantics.
+- Added focused hook regression tests to lock unlimited-tier mapping and free-tier increment behavior.
+- Verification: `npm run test:run -- src/hooks/__tests__/usePdfExportUsage.test.tsx`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`, `npm run merge:preflight` (blocked in environment: cannot fetch origin/main).
