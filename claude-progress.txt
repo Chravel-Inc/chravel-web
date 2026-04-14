@@ -625,3 +625,11 @@
 - Added low-confidence fallback: when marker is missing/invalid or marker-derived unread set mismatches Stream total unread, UI now shows total unread only (`broadcastCount=0`, `messageUnreadCount=total`) to prevent misclassified badges.
 - Added focused regression tests in `src/hooks/__tests__/useUnreadCounts.test.ts` for high-confidence split, missing marker fallback, and mismatch fallback.
 - Verification: `npm run test:run -- src/hooks/__tests__/useUnreadCounts.test.ts`, `npm run typecheck`, `npm run lint:check -- src/hooks/useUnreadCounts.ts src/hooks/__tests__/useUnreadCounts.test.ts`.
+
+2026-04-13 — RevenueCat architecture consolidation (native adapter canonical)
+- Chose native adapter path as canonical in web repo; removed runtime web Purchases bootstrap from `main.tsx` to eliminate contradictory purchases-js initialization path.
+- Added `syncRevenueCatEntitlementsForUser(...)` adapter in `src/integrations/revenuecat/revenuecatClient.ts` as single configure -> customerInfo -> backend sync entrypoint.
+- Updated `useUnifiedEntitlements` to call the single adapter entrypoint (instead of direct configure/getCustomerInfo/supabase invoke sequence).
+- Replaced legacy web `SubscriptionPaywall` with adapter-only compatibility placeholder (no direct Purchases singleton calls) and rewired `useRevenueCatSubscription` to use adapter-based `getCustomerInfo`.
+- Updated paywall tests to assert adapter-only behavior.
+- Verification: `npm run test:run -- src/components/subscription/__tests__/SubscriptionPaywall.test.tsx`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`.
