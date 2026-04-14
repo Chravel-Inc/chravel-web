@@ -289,6 +289,20 @@ export function useConciergeStreaming(params: Params) {
           });
         };
 
+        const hasRenderableAssistantPayload = (msg?: ChatMessage): boolean =>
+          !!(
+            msg &&
+            (msg.functionCallHotels?.length ||
+              msg.functionCallFlights?.length ||
+              msg.functionCallPlaces?.length ||
+              msg.pendingActions?.length ||
+              msg.reservationDrafts?.length ||
+              msg.smartImportPreview ||
+              msg.bulkDeletePreview ||
+              msg.smartImportStatus ||
+              (msg.conciergeActions && msg.conciergeActions.length > 0))
+          );
+
         const streamHandle = invokeConciergeStream(
           requestBody,
           {
@@ -809,10 +823,7 @@ export function useConciergeStreaming(params: Params) {
                 setMessages(prev => {
                   // Check if cards/actions were already attached by tool calls
                   const existing = prev.find(m => m.id === streamingMessageId);
-                  const hasCards =
-                    existing?.functionCallHotels?.length ||
-                    existing?.functionCallPlaces?.length ||
-                    (existing?.conciergeActions && existing.conciergeActions.length > 0);
+                  const hasCards = hasRenderableAssistantPayload(existing);
                   return [
                     ...prev.filter(m => m.id !== streamingMessageId),
                     {
@@ -825,8 +836,26 @@ export function useConciergeStreaming(params: Params) {
                       ...(existing?.functionCallHotels
                         ? { functionCallHotels: existing.functionCallHotels }
                         : {}),
+                      ...(existing?.functionCallFlights
+                        ? { functionCallFlights: existing.functionCallFlights }
+                        : {}),
                       ...(existing?.functionCallPlaces
                         ? { functionCallPlaces: existing.functionCallPlaces }
+                        : {}),
+                      ...(existing?.pendingActions
+                        ? { pendingActions: existing.pendingActions }
+                        : {}),
+                      ...(existing?.reservationDrafts
+                        ? { reservationDrafts: existing.reservationDrafts }
+                        : {}),
+                      ...(existing?.smartImportPreview
+                        ? { smartImportPreview: existing.smartImportPreview }
+                        : {}),
+                      ...(existing?.bulkDeletePreview
+                        ? { bulkDeletePreview: existing.bulkDeletePreview }
+                        : {}),
+                      ...(existing?.smartImportStatus
+                        ? { smartImportStatus: existing.smartImportStatus }
                         : {}),
                       ...(existing?.conciergeActions
                         ? { conciergeActions: existing.conciergeActions }
@@ -836,10 +865,7 @@ export function useConciergeStreaming(params: Params) {
                 });
               } else {
                 updateStreamMsg(msg => {
-                  const hasCards =
-                    msg.functionCallHotels?.length ||
-                    msg.functionCallPlaces?.length ||
-                    (msg.conciergeActions && msg.conciergeActions.length > 0);
+                  const hasCards = hasRenderableAssistantPayload(msg);
                   return msg.content.length > 0 || hasCards
                     ? {}
                     : { content: 'Sorry, I encountered an error processing your request.' };

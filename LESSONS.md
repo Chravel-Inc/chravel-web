@@ -496,3 +496,11 @@
 - **Evidence:** Added guardrails in `supabase/functions/create-checkout/index.ts` that stop overlapping subscription/pass purchases based on existing entitlement state.
 - **Provenance:** April 2026 subscription architecture hardening.
 - **Confidence:** high
+
+### Stream finalization should treat rich-card-only tool results as successful output
+- **Tip:** In streamed concierge/chat flows, `onDone` fallback logic must check for all non-text renderable payloads (flight cards, hotel cards, place cards, pending action cards, import previews/status, reservation drafts), not just assistant text.
+- **Applies when:** Tool calls can complete before any natural-language chunk is emitted.
+- **Avoid when:** Responses are guaranteed to include assistant text.
+- **Evidence:** Concierge stream finalizer was only checking hotels/places/actions, so flight-only turns were marked as failures and overwritten with a generic error message despite valid cards.
+- **Provenance:** April 2026 concierge refactor follow-up (`useConciergeStreaming` onDone guard hardening).
+- **Confidence:** high
