@@ -1,70 +1,28 @@
 
 
-# Fix: Inject All Trip Context Into Concierge System Prompt
+# Fix Task Creation Error + Default to Group Task
 
-## Root Cause
+## Problem 1: "Could not find the 'idempotency_key' column of 'trip_tasks' in the schema cache"
 
-The `contextBuilder.ts` (903 lines) fetches comprehensive trip data — tasks, polls, calendar, payments, places, links, members, broadcasts — but `promptBuilder.ts` (138 lines) only injects 4 out of 14 context slices into the Gemini system prompt:
+The `trip_tasks` table has no `idempotency_key` column, but `useTripTasks.ts` line 636 inserts one. Same issue exists for `trip_polls` in `useTripPolls.ts` line 309.
 
-| Data | Fetched from DB? | Injected into prompt? |
-|------|-------------------|----------------------|
-| Trip metadata | Yes | Yes |
-| Basecamps | Yes | Yes |
-| User preferences | Yes | Yes |
-| Calendar | Yes | Only first 5 events |
-| **Tasks** | Yes | **No** |
-| **Polls** | Yes | **No** |
-| **Payments** | Yes | **No** |
-| **Members** | Yes | **No** |
-| **Places/Links** | Yes | **No** |
-| **Broadcasts** | Yes | **No** |
+**Fix:** Remove `idempotency_key` from the insert objects in both files. Idempotency can be handled at a different layer if needed later — right now it's blocking all task and poll creation.
 
-So when a user asks "summarize my tasks" or "what time is dinner Friday?" (event #6+), Gemini has zero context to answer.
+## Problem 2: Default task type should be "Group Task"
 
-Second bug: `QUERY_CLASS_SLICES` for `poll_action` maps to `['metadata', 'members']` — it never fetches `polls`.
+In `TaskCreateForm.tsx` line 38, the default `taskMode` is `'solo'`. Change it to `'poll'` (which maps to "Group Task - Everyone needs to complete this").
 
-## Fix Plan
+## Problem 3: Hide member selector for group tasks
 
-### 1. Expand `promptBuilder.ts` to inject all context slices
+In `TaskCreateForm.tsx` lines 211-217, the `CollaboratorSelector` is always rendered. For group tasks (`taskMode === 'poll'`), it should be hidden entirely since it auto-assigns to everyone anyway. The `CollaboratorSelector` already auto-selects all members for group tasks (line 44-48), but the dropdown is still shown and confusable.
 
-Add sections for each data type, with sensible limits to avoid token bloat:
-
-- **Members** (all, compact): `MEMBERS: Alice (admin), Bob (member), ...`
-- **Calendar** (all events, not just 5): full title + start/end + location
-- **Tasks** (all): title, assignee, due date, completion status
-- **Polls** (all): question, options with vote counts, status (active/closed)
-- **Payments** (all): description, amount, paid by, settled status
-- **Places/Links** (all saved places + links): name, address, category
-- **Broadcasts** (recent 10): message, priority, author
-
-Each section is only injected when the data exists (no empty headers).
-
-### 2. Fix `poll_action` query class slices
-
-In `contextBuilder.ts`, change:
-```
-poll_action: ['metadata', 'members']
-```
-to:
-```
-poll_action: ['metadata', 'members', 'polls']
-```
-
-### 3. Fix `task_action` to also include `polls` cross-reference (optional, skip)
-
-Already correct — `task_action: ['metadata', 'tasks', 'members']`.
-
-### 4. Remove calendar truncation to 5 events
-
-Currently `calendarEvents.slice(0, 5)` — change to inject all events (up to ~50) so "what time is dinner Friday?" works even when there are many events.
+**Fix:** Wrap the `CollaboratorSelector` in a conditional: only render when `taskMode === 'solo'`. For group tasks, show a simple "Assigned to everyone" label instead.
 
 ## Files Changed
 
-1. `supabase/functions/_shared/promptBuilder.ts` — expand `buildSystemPrompt` to inject tasks, polls, payments, members, places, links, broadcasts
-2. `supabase/functions/_shared/contextBuilder.ts` — fix `poll_action` slice to include `'polls'`
-3. Redeploy `lovable-concierge` edge function
+1. **`src/hooks/useTripTasks.ts`** — Remove `idempotency_key` from the task insert object (line 636)
+2. **`src/hooks/useTripPolls.ts`** — Remove `idempotency_key` from the poll insert object (line 309)
+3. **`src/components/todo/TaskCreateForm.tsx`** — Default `taskMode` to `'poll'`; conditionally hide `CollaboratorSelector` for group tasks, show "Assigned to everyone" text instead
 
 ## Risk
-
-Low — additive prompt text only. Token usage will increase slightly but stays well within Gemini's 1M context window. The context slices are already fetched; we're just making them visible to the model.
-
+Low — removing a column reference that doesn't exist fixes a hard blocker. UI defaults are cosmetic. No schema or RLS changes.
