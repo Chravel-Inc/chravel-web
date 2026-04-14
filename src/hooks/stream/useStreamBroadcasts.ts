@@ -33,9 +33,7 @@ function normalizeBroadcastPriority(priority: unknown): BroadcastPriority {
 function normalizeMessagePriority(message: MessageResponse): MessageResponse {
   const msg = message as unknown as Record<string, unknown>;
   const extraData = msg.extra_data as Record<string, unknown> | undefined;
-  const normalized = normalizeBroadcastPriority(
-    msg.priority ?? extraData?.priority,
-  );
+  const normalized = normalizeBroadcastPriority(msg.priority ?? extraData?.priority);
 
   return {
     ...message,

@@ -391,9 +391,136 @@
     --payment-border: 0 0% 90%;
     --payment-text: 0 0% 10%;
 
-    /* The rest of the tokens remain unchanged from the dark theme
-       so that gold accents, gray buttons, and destructive colors stay the same. */
+    /* Slightly darker gold for focus ring visibility on white backgrounds */
+    --ring: 37 55% 42%;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LIGHT MODE UTILITY OVERRIDES
+   Remap hardcoded dark-only Tailwind utilities so the entire app
+   responds to the .light class without touching 200+ component files.
+   Gold accents, status colors, and chat bubbles are intentionally
+   left unchanged.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* --- Text --- */
+.light .text-white {
+  color: hsl(0 0% 10%);
+}
+.light .text-gray-300 {
+  color: hsl(0 0% 30%);
+}
+.light .text-gray-400 {
+  color: hsl(0 0% 35%);
+}
+.light .text-gray-500 {
+  color: hsl(0 0% 45%);
+}
+
+/* --- Backgrounds --- */
+.light .bg-black {
+  background-color: hsl(0 0% 100%);
+}
+.light .bg-gray-900 {
+  background-color: hsl(0 0% 96%);
+}
+.light .bg-gray-800 {
+  background-color: hsl(0 0% 95%);
+}
+.light .bg-gray-700 {
+  background-color: hsl(0 0% 90%);
+}
+
+/* Semi-transparent white overlays → semi-transparent black */
+.light [class*='bg-white\\/5'] {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+.light [class*='bg-white\\/10'] {
+  background-color: rgba(0, 0, 0, 0.06);
+}
+.light [class*='bg-white\\/20'] {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+/* bg-gray-800/50 — common for inputs/selects */
+.light [class*='bg-gray-800\\/'] {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+/* --- Borders --- */
+.light .border-gray-600 {
+  border-color: hsl(0 0% 80%);
+}
+.light .border-gray-700 {
+  border-color: hsl(0 0% 85%);
+}
+.light [class*='border-white\\/10'] {
+  border-color: rgba(0, 0, 0, 0.1);
+}
+.light [class*='border-white\\/20'] {
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+/* --- Hover states --- */
+.light .hover\:bg-white\/10:hover {
+  background-color: rgba(0, 0, 0, 0.06);
+}
+.light .hover\:bg-white\/20:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+.light .hover\:bg-gray-600:hover {
+  background-color: hsl(0 0% 85%);
+}
+.light .hover\:bg-gray-700:hover {
+  background-color: hsl(0 0% 88%);
+}
+.light .hover\:text-white:hover {
+  color: hsl(0 0% 10%);
+}
+
+/* --- Placeholder text --- */
+.light .placeholder\:text-gray-500::placeholder {
+  color: hsl(0 0% 55%);
+}
+.light .placeholder\:text-gray-400::placeholder {
+  color: hsl(0 0% 50%);
+}
+
+/* --- Dividers & ring offsets --- */
+.light .divide-white\/10 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(0, 0, 0, 0.1);
+}
+.light .ring-offset-black {
+  --tw-ring-offset-color: hsl(0 0% 100%);
+}
+
+/* --- PWA standalone background --- */
+@media (display-mode: standalone) {
+  .light body {
+    background-color: hsl(0 0% 100%);
+  }
+}
+
+/* --- Landing page protection ---
+   Sections with dark gradient backgrounds need to preserve white text. */
+.light .dark-section,
+.light .dark-section .text-white {
+  color: white;
+}
+.light .dark-section .text-gray-300 {
+  color: hsl(0 0% 75%);
+}
+.light .dark-section .text-gray-400 {
+  color: hsl(0 0% 65%);
+}
+.light .dark-section .bg-black {
+  background-color: black;
+}
+.light .dark-section [class*='bg-white\\/'] {
+  background-color: rgba(255, 255, 255, var(--tw-bg-opacity, 0.1));
+}
+.light .dark-section [class*='border-white\\/'] {
+  border-color: rgba(255, 255, 255, var(--tw-border-opacity, 0.1));
 }
 
 @layer base {
