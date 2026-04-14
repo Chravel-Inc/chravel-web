@@ -47,8 +47,8 @@ describe('useStreamBroadcasts priority normalization', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.broadcasts[0]?.priority).toBe('reminder');
-    expect((result.current.broadcasts[0]?.extra_data as Record<string, unknown>)?.priority).toBe(
+    expect((result.current.broadcasts[0] as any)?.priority).toBe('reminder');
+    expect(((result.current.broadcasts[0] as any)?.extra_data as Record<string, unknown>)?.priority).toBe(
       'reminder',
     );
   });

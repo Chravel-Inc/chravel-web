@@ -17,7 +17,7 @@ vi.mock('@/services/readReceiptService', () => ({
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    removeChannel: (...args: unknown[]) => removeChannelMock(...args),
+    removeChannel: (...args: unknown[]) => removeChannelMock(...(args as [unknown])),
   },
 }));
 
@@ -48,7 +48,7 @@ describe('useChatReadReceipts', () => {
     ];
 
     const { result } = renderHook(() =>
-      useChatReadReceipts(false, 'me-1', 'trip-1', liveMessages, activeChannel),
+      useChatReadReceipts(false, 'me-1', 'trip-1', liveMessages, activeChannel as any),
     );
 
     await waitFor(() => {
@@ -79,6 +79,8 @@ describe('useChatReadReceipts', () => {
           user_id: 'reader-2',
           read_at: '2026-04-13T09:05:00.000Z',
           created_at: '2026-04-13T09:05:00.000Z',
+          trip_id: 'trip-1',
+          message_type: 'chat',
         },
       ],
     });
@@ -113,7 +115,7 @@ describe('useChatReadReceipts', () => {
     const liveMessages = [{ id: 'msg-1', user_id: 'user-2' }];
 
     renderHook(() =>
-      useChatReadReceipts(false, 'user-1', 'trip-1', liveMessages, activeChannel),
+      useChatReadReceipts(false, 'user-1', 'trip-1', liveMessages, activeChannel as any),
     );
 
     await waitFor(
