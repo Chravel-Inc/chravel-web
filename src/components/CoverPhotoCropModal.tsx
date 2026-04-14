@@ -12,7 +12,7 @@ interface CoverPhotoCropModalProps {
   isOpen: boolean;
   onClose: () => void;
   imageSrc: string;
-  onCropComplete: (croppedBlob: Blob) => void;
+  onCropComplete: (croppedBlob: Blob) => Promise<boolean> | boolean;
   aspectRatio?: number; // 3 for desktop (3:1), 4/3 for mobile drawer
   displayMode?: 'cover' | 'contain';
 }
@@ -223,13 +223,18 @@ export const CoverPhotoCropModal = ({
       }
 
       canvas.toBlob(
-        blob => {
+        async blob => {
           if (!blob) {
             toast.error('Failed to process image. Try a different photo or smaller file size.');
             setIsProcessing(false);
             return;
           }
-          onCropComplete(blob);
+
+          const result = onCropComplete(blob);
+          const success = await Promise.resolve(result);
+          if (success) {
+            onClose();
+          }
           setIsProcessing(false);
         },
         'image/jpeg',

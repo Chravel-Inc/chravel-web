@@ -145,9 +145,9 @@ export const useTripCoverPhoto = (
       }
 
       // Verify the cover_image_url was actually updated
-      if (data.cover_image_url !== photoUrl) {
+      if (data.cover_image_url !== normalizedPhotoUrl) {
         console.error('[useTripCoverPhoto] cover_image_url mismatch after update', {
-          expected: photoUrl,
+          expected: normalizedPhotoUrl,
           actual: data.cover_image_url,
         });
         toast.error('Cover photo update failed - please try again');
@@ -155,10 +155,10 @@ export const useTripCoverPhoto = (
       }
 
       // Update local state immediately
-      setCoverPhoto(photoUrl);
+      setCoverPhoto(normalizedPhotoUrl);
 
       // Update query cache using predicate matching for all trip detail queries
-      updateTripCacheWithCoverPhoto(photoUrl);
+      updateTripCacheWithCoverPhoto(normalizedPhotoUrl);
 
       // Invalidate and refetch to ensure consistency
       // Using refetchQueries ensures immediate fresh data rather than background refetch
