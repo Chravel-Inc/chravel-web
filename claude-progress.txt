@@ -773,3 +773,15 @@
   - `npm run typecheck`
   - `npm run lint:check -- src/hooks/stream/useStreamClient.ts src/hooks/useTripMembers.ts src/pages/JoinTrip.tsx src/services/stream/streamMembershipCoordinator.ts src/services/stream/__tests__/streamMembershipCoordinator.test.ts src/hooks/stream/__tests__/useStreamClient.test.tsx supabase/config.toml` (warnings-only baseline; no new lint errors)
   - `npm run merge:preflight` (blocked in this environment: cannot fetch `origin/main`)
+
+2026-04-14 — Play Store P0 repo-scope hardening (camera policy + privacy/data safety docs + Android web-checkout guard)
+- Fixed Permissions-Policy camera directive in `vercel.json` from `camera=()` to `camera=(self)` so in-origin camera access is not blocked in Android WebView/PWA contexts.
+- Updated legal/privacy artifacts to remove Firebase/Crashlytics drift and document actual processors/providers (PostHog, Stream, LiveKit, RevenueCat, Sentry) in:
+  - `appstore/legal/privacy_policy.md`
+  - `appstore/legal/PRIVACY_MAPPING.md`
+- Added Play Store submission-prep docs under `playstore/`:
+  - `DATA_SAFETY.md`
+  - `short_description.txt`
+  - `full_description.txt`
+  - `review_notes.md`
+- Verification: `npm run typecheck`, `npm run lint:check` (warnings baseline), `npm run build`, `npm run merge:preflight` (expected failure in this env: cannot fetch `origin/main`).
