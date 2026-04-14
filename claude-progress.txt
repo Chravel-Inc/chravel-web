@@ -682,3 +682,17 @@
 - Wired archive restore / trip-cap upgrade prompts to helper in `ArchivedTripsSection` and `CreateTripModal`.
 - Added unit tests for helper mapping in `src/components/subscription/__tests__/featurePaywall.test.ts`.
 - Verification: `npm run test:run -- src/components/subscription/__tests__/featurePaywall.test.ts src/components/events/__tests__/EnhancedAgendaTab.smartImport.test.tsx src/components/events/__tests__/LineupTab.test.tsx`, `npm run typecheck`, `npm run merge:preflight` (fails here due fetch restriction on `origin/main`).
+
+2026-04-14 — Smart Import monthly usage quota + structured paywall responses
+- Added DB quota source-of-truth for Smart Import via migration `20260414110000_smart_import_usage_quota.sql`:
+  - New `smart_import_usage` table scoped by `(user_id, trip_id, usage_month)` (trip nullable for non-trip flows).
+  - New atomic RPC `check_and_increment_smart_import_usage(p_user_id, p_trip_id, p_limit)` returning `{allowed, remaining, used}` and auto-rollback when over limit.
+- Added shared edge helper `supabase/functions/_shared/smartImportUsage.ts` to resolve user plan, apply per-plan import limits (`SMART_IMPORT_FREE_LIMIT`, `SMART_IMPORT_EXPLORER_LIMIT`), and call the new RPC.
+- Enforced Smart Import quota in edge functions:
+  - `scrape-schedule`, `scrape-agenda`, `scrape-lineup` (URL/text import paths)
+  - `enhanced-ai-parser` for `calendar|agenda` extraction requests with paste/file input
+  - `file-ai-parser` for trip file extraction flow
+- Standardized paywall payload shape on limit hit across these functions: `{ error, error_code, upgrade_required, remaining }` with HTTP 402.
+- Added frontend parser helper `src/utils/smartImportPaywall.ts` and wired calendar/agenda/lineup import parsers to preserve and surface contextual upgrade errors instead of generic failures.
+- Added focused regression test: `src/utils/__tests__/smartImportPaywall.test.ts`.
+- Verification: `npm run test:run -- src/utils/__tests__/smartImportPaywall.test.ts src/utils/__tests__/calendarImportParsers.url.test.ts src/utils/__tests__/lineupImportParsers.test.ts`, `npm run typecheck`, `npm run build`, `npm run lint:check` (baseline warnings only), `npm run merge:preflight` (blocked: cannot fetch `origin/main` in this environment).

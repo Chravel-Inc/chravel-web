@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { parseICSContent } from './calendarImport';
 import ExcelJS from 'exceljs';
+import { getSmartImportErrorMessage } from '@/utils/smartImportPaywall';
 
 export type LineupSourceFormat = 'url' | 'text' | 'ics' | 'csv' | 'excel' | 'pdf' | 'image';
 
@@ -39,7 +40,12 @@ async function parseLineup(source: { url?: string; text?: string }): Promise<Lin
     if (error) {
       return {
         names: [],
-        errors: [`Failed to extract lineup: ${error.message}`],
+        errors: [
+          getSmartImportErrorMessage(
+            (data ?? null) as Record<string, unknown> | null,
+            `Failed to extract lineup: ${error.message}`,
+          ),
+        ],
         isValid: false,
         sourceFormat,
       };
@@ -50,7 +56,12 @@ async function parseLineup(source: { url?: string; text?: string }): Promise<Lin
     if (!data?.success || names.length === 0) {
       return {
         names: [],
-        errors: [data?.error || 'No lineup names found in the provided source'],
+        errors: [
+          getSmartImportErrorMessage(
+            (data ?? null) as Record<string, unknown> | null,
+            data?.error || 'No lineup names found in the provided source',
+          ),
+        ],
         isValid: false,
         sourceFormat,
         namesFound: data?.names_found,
@@ -245,7 +256,12 @@ async function parseLineupFileAI(file: File): Promise<LineupParseResult> {
     if (error) {
       return {
         names: [],
-        errors: [`AI parsing failed: ${error.message}`],
+        errors: [
+          getSmartImportErrorMessage(
+            (data ?? null) as Record<string, unknown> | null,
+            `AI parsing failed: ${error.message}`,
+          ),
+        ],
         isValid: false,
         sourceFormat,
       };
