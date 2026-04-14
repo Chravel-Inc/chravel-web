@@ -257,7 +257,7 @@ export const SmartImport = ({
         </div>
 
         {/* Gmail Import Option */}
-        {tripId && (
+        {tripId ? (
           <div className="py-2">
             {reviewingGmail ? (
               <SmartImportReview
@@ -284,6 +284,13 @@ export const SmartImport = ({
                 onImportError={() => setIsProcessing(false)}
               />
             )}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-white/15 bg-white/[0.03] p-3">
+            <p className="text-xs text-gray-300 leading-relaxed">
+              Gmail import is available when this modal is opened from a specific trip. To connect
+              or manage Gmail accounts, go to Settings → Integrations.
+            </p>
           </div>
         )}
 
