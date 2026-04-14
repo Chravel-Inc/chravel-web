@@ -752,3 +752,38 @@
 - Hardened `isInstalledApp()` in `src/utils/platformDetection.ts` to always honor explicit native webview signals, but require mobile-class user-agent for standalone PWA classification to avoid desktop false positives.
 - Added targeted regression tests in `src/utils/__tests__/platformDetection.test.ts` for desktop standalone, mobile standalone, and explicit `?app_context=native` behavior.
 - Verification: `npm run test:run -- src/utils/__tests__/platformDetection.test.ts`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`, `npm run merge:preflight` (blocked here: cannot fetch origin/main).
+2026-04-14 — Stream chat hardening follow-up (webhook JWT + membership failure observability)
+- Added explicit Supabase edge function auth config for Stream webhook in `supabase/config.toml`:
+  - `[functions.stream-webhook] verify_jwt = false` so Stream dashboard webhooks can reach the function without Supabase JWT while preserving HMAC signature verification in-function.
+- Improved Stream connection failure surfacing in `useStreamClient`:
+  - when `connectStreamClient()` resolves without a connected user, hook now sets explicit degraded-state error (`"Stream connection unavailable. Chat may be degraded."`) instead of remaining silently disconnected.
+- Improved membership sync observability:
+  - added `reportStreamMembershipSyncFailure(...)` in `src/services/stream/streamMembershipCoordinator.ts` for structured error logging.
+  - wired non-blocking join/leave/remove membership sync call-sites (`JoinTrip`, `useTripMembers`) to report failures instead of swallowing with empty catches.
+- Added focused regression tests:
+  - `src/hooks/stream/__tests__/useStreamClient.test.tsx` (null Stream client result surfaces degraded error)
+  - `src/services/stream/__tests__/streamMembershipCoordinator.test.ts` (structured membership failure logging)
+- Verification:
+  - `npm run test:run -- src/services/stream/__tests__/streamMembershipCoordinator.test.ts src/hooks/stream/__tests__/useStreamClient.test.tsx src/services/stream/__tests__/streamClient.auth.test.ts src/hooks/stream/__tests__/useStreamTripChat.send.test.tsx supabase/functions/stream-webhook/__tests__/eventRouting.test.ts`
+  - `npm run typecheck`
+  - `npm run lint:check -- src/hooks/stream/useStreamClient.ts src/hooks/useTripMembers.ts src/pages/JoinTrip.tsx src/services/stream/streamMembershipCoordinator.ts src/services/stream/__tests__/streamMembershipCoordinator.test.ts src/hooks/stream/__tests__/useStreamClient.test.tsx supabase/config.toml` (warnings-only baseline; no new lint errors)
+  - `npm run merge:preflight` (blocked in this environment: cannot fetch `origin/main`)
+
+2026-04-14 — Stream membership reliability hardening (server fallback reconciler)
+- Added new authenticated edge function `supabase/functions/stream-sync-membership/index.ts` to perform authoritative Stream channel membership projection (`chravel-trip`, `chravel-broadcast`) using server credentials when client-side sync fails.
+- Added action-level authorization helper `supabase/functions/stream-sync-membership/authorization.ts`:
+  - self add/remove allowed
+  - admin/owner/organizer can sync other users
+  - non-admin users cannot sync other members.
+- Added frontend fallback invoker `src/services/stream/streamMembershipFallback.ts` and wired existing client-sync failure paths to call server fallback after structured failure logging:
+  - `src/pages/JoinTrip.tsx` (add member fallback)
+  - `src/hooks/useTripMembers.ts` (remove member / leave fallback)
+- Added Supabase function config entry `[functions.stream-sync-membership] verify_jwt = true` in `supabase/config.toml`.
+- Added focused regression tests:
+  - `src/services/stream/__tests__/streamMembershipFallback.test.ts`
+  - `supabase/functions/stream-sync-membership/__tests__/authorization.test.ts`
+- Verification:
+  - `npm run test:run -- src/services/stream/__tests__/streamMembershipCoordinator.test.ts src/services/stream/__tests__/streamMembershipFallback.test.ts src/hooks/stream/__tests__/useStreamClient.test.tsx supabase/functions/stream-sync-membership/__tests__/authorization.test.ts supabase/functions/stream-webhook/__tests__/eventRouting.test.ts`
+  - `npm run typecheck`
+  - `npm run lint:check -- src/pages/JoinTrip.tsx src/hooks/useTripMembers.ts src/services/stream/streamMembershipFallback.ts src/services/stream/streamMembershipCoordinator.ts src/services/stream/__tests__/streamMembershipFallback.test.ts supabase/functions/stream-sync-membership/index.ts supabase/functions/stream-sync-membership/authorization.ts supabase/functions/stream-sync-membership/__tests__/authorization.test.ts supabase/config.toml` (warnings-only baseline, with additional ignored-file warnings for `supabase/functions/**`)
+  - `npm run merge:preflight` (blocked in this environment: cannot fetch `origin/main`)

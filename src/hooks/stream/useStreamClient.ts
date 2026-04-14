@@ -43,7 +43,11 @@ export function useStreamClient(): UseStreamClientResult {
       try {
         const client = await connectStreamClient();
         if (!cancelled) {
-          setIsConnected(!!client?.userID);
+          const connected = !!client?.userID;
+          setIsConnected(connected);
+          if (!connected) {
+            setError('Stream connection unavailable. Chat may be degraded.');
+          }
         }
       } catch (err) {
         if (!cancelled) {

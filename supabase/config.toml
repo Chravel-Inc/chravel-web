@@ -136,6 +136,12 @@ verify_jwt = false
 [functions.stream-token]
 verify_jwt = true
 
+[functions.stream-webhook]
+verify_jwt = false
+
+[functions.stream-sync-membership]
+verify_jwt = true
+
 [functions.stream-setup-permissions]
 verify_jwt = true
 

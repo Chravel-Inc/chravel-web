@@ -3,7 +3,11 @@ import { useLocation, useNavigate, useParams, useSearchParams } from 'react-rout
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../hooks/useAuth';
-import { syncAddMemberToTripChannels } from '@/services/stream/streamMembershipCoordinator';
+import {
+  reportStreamMembershipSyncFailure,
+  syncAddMemberToTripChannels,
+} from '@/services/stream/streamMembershipCoordinator';
+import { syncMembershipViaServerFallback } from '@/services/stream/streamMembershipFallback';
 import { toast } from 'sonner';
 import {
   Loader2,
@@ -423,7 +427,20 @@ const JoinTrip = () => {
 
       // Sync membership to Stream channels (fire-and-forget, non-fatal)
       if (tripId && user?.id) {
-        syncAddMemberToTripChannels(tripId, user.id).catch(() => {});
+        syncAddMemberToTripChannels(tripId, user.id).catch(error => {
+          reportStreamMembershipSyncFailure('add-trip-member', { tripId, userId: user.id }, error);
+          syncMembershipViaServerFallback({
+            action: 'add',
+            tripId,
+            userId: user.id,
+          }).catch(fallbackError => {
+            reportStreamMembershipSyncFailure(
+              'add-trip-member:fallback',
+              { tripId, userId: user.id },
+              fallbackError,
+            );
+          });
+        });
       }
 
       clearInviteCode();
