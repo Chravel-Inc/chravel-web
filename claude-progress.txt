@@ -575,7 +575,7 @@
 - Replaced unread-count hook read source from Supabase receipt joins to Stream-native channel unread state + local message classification (`broadcast` vs standard).
 - Removed dead Supabase fallback reaction transport from `useChatReactions`; Stream is now the single authenticated reaction path.
 - Added Stream-ready reconnect guard to `useStreamBroadcasts` via `onStreamClientConnected`, plus updated hook test mocks.
-- Added `ai-concierge-bot` provisioning in `stream-setup-permissions` via Stream `upsertUser`.
+- Hardened `stream-setup-permissions` concierge principal: refactored setup into `setup.ts` (`configureStreamPermissionsAndPrincipal`), deterministic `ai-concierge-bot` / `AI Concierge` / `admin` upsert before channel-type grants, structured `service_user_upsert_failed` logging with non-blocking continuation, README + fixture-backed tests.
 - Added new `supabase/functions/stream-webhook` edge function with signature verification, idempotency insert, and `message.new` -> notifications write path.
 - Switched chat search services to Stream-backed message search:
   - `chatSearchService` now uses channel search/query for trip messages.
