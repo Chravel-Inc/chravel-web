@@ -1,5 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './types';
+import { resolveSupabaseConfig } from './config';
 
 /**
  * Safe storage implementation for environments where localStorage is unavailable
@@ -24,60 +25,16 @@ function createSafeStorage(): Storage {
   }
 }
 
-/**
- * Known project constants — publishable/anon credentials for this Supabase project.
- * These are NOT secrets (anon key is designed to be public) and act as a resilient
- * fallback when Vite env injection is unavailable (e.g. preview iframe, flaky build).
- */
-const KNOWN_PROJECT_URL = 'https://jmjiyekmxwsxkfnqwyaa.supabase.co';
-const KNOWN_PROJECT_ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINhI';
-
-/**
- * Deterministic fallback chain for Supabase credentials:
- *   1. VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY  (standard Vite env)
- *   2. VITE_SUPABASE_PUBLISHABLE_KEY               (Lovable auto-injected alias)
- *   3. Known project constants                      (hardcoded publishable fallback)
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Vite injects import.meta.env at build time
-const env = (import.meta as any)?.env ?? {};
-
-const envUrl = env.VITE_SUPABASE_URL as string | undefined;
-const envKey =
-  (env.VITE_SUPABASE_ANON_KEY as string | undefined) ||
-  (env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined);
-
-// Track env source for diagnostics (DevEnvBanner, Healthz)
-const urlFromEnv = Boolean(envUrl);
-const keyFromEnv = Boolean(envKey);
-export const isUsingEnvVars = urlFromEnv && keyFromEnv;
-
-// Atomic resolution: use env pair only when BOTH URL and key are present.
-// Prevents mixing an env URL with the hardcoded key (or vice-versa),
-// which would point a JWT at the wrong Supabase host.
-const bothFromEnv = urlFromEnv && keyFromEnv;
-const SUPABASE_URL: string = bothFromEnv ? envUrl! : KNOWN_PROJECT_URL;
-const SUPABASE_ANON_KEY: string = bothFromEnv ? envKey! : KNOWN_PROJECT_ANON_KEY;
-
-if (!bothFromEnv) {
-  if (urlFromEnv !== keyFromEnv) {
-    console.warn(
-      '[Supabase] Only one of VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY is set — ' +
-        'ignoring partial env to prevent URL/key mismatch. Using built-in project credentials.',
-    );
-  } else {
-    console.warn(
-      '[Supabase] Environment variables not detected — using built-in project credentials. ' +
-        'Set VITE_SUPABASE_URL & VITE_SUPABASE_ANON_KEY in .env for explicit configuration.',
-    );
-  }
-}
+const resolvedConfig = resolveSupabaseConfig(import.meta.env);
+const SUPABASE_URL: string = resolvedConfig.url;
+const SUPABASE_API_KEY: string = resolvedConfig.key;
+export const isUsingEnvVars = true;
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 export const supabase: SupabaseClient<Database> = createClient<Database>(
   SUPABASE_URL,
-  SUPABASE_ANON_KEY,
+  SUPABASE_API_KEY,
   {
     auth: {
       storage: createSafeStorage(),
@@ -97,5 +54,7 @@ export const supabase: SupabaseClient<Database> = createClient<Database>(
 // Export URL for edge function calls
 export const SUPABASE_PROJECT_URL = SUPABASE_URL;
 
-// Export anon key for raw fetch calls to edge functions (apikey header)
-export const SUPABASE_PUBLIC_ANON_KEY = SUPABASE_ANON_KEY;
+// Export public API key (publishable preferred, legacy anon supported) for edge fetch headers.
+export const SUPABASE_PUBLIC_API_KEY = SUPABASE_API_KEY;
+// Backward compatibility alias for older imports.
+export const SUPABASE_PUBLIC_ANON_KEY = SUPABASE_PUBLIC_API_KEY;
