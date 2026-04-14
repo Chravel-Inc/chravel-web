@@ -633,7 +633,7 @@ export const useTripTasks = (
           description: task.description,
           due_at: task.due_at,
           is_poll: task.is_poll,
-          idempotency_key: generateMutationId(),
+          
         })
         .select()
         .single();

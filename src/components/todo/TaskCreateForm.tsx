@@ -35,7 +35,7 @@ export const TaskCreateForm = ({
   const [dueDate, setDueDate] = useState<Date | undefined>(
     initialTask?.due_at ? new Date(initialTask.due_at) : undefined,
   );
-  const [taskMode, setTaskMode] = useState<'solo' | 'poll'>(initialTask?.is_poll ? 'poll' : 'solo');
+  const [taskMode, setTaskMode] = useState<'solo' | 'poll'>(initialTask ? (initialTask.is_poll ? 'poll' : 'solo') : 'poll');
   const [showCalendar, setShowCalendar] = useState(false);
   const [assignedMembers, setAssignedMembers] = useState<string[]>(
     initialTask?.task_status?.map(status => status.user_id) ?? [],
@@ -209,12 +209,19 @@ export const TaskCreateForm = ({
         </div>
 
         {/* Assignment Section */}
-        <CollaboratorSelector
-          tripId={tripId}
-          selectedMembers={assignedMembers}
-          onMembersChange={setAssignedMembers}
-          isSingleTask={taskMode === 'solo'}
-        />
+        {taskMode === 'solo' ? (
+          <CollaboratorSelector
+            tripId={tripId}
+            selectedMembers={assignedMembers}
+            onMembersChange={setAssignedMembers}
+            isSingleTask
+          />
+        ) : (
+          <div className="flex items-center gap-2 text-sm text-gray-400">
+            <Users size={16} />
+            <span>Assigned to everyone in the trip</span>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex gap-3 pt-4">

@@ -306,7 +306,7 @@ export const useTripPolls = (tripId: string) => {
           is_anonymous: poll.settings?.is_anonymous || false,
           allow_vote_change: poll.settings?.allow_vote_change !== false,
           deadline_at: poll.settings?.deadline_at || null,
-          idempotency_key: generateMutationId(),
+          
         })
         .select()
         .single();
