@@ -239,7 +239,7 @@ const _faqItems = [
   },
   {
     question: 'Is my data safe?',
-    answer: 'Bank-level encryption. Your trips are private unless you choose to share them.',
+    answer: 'All data is encrypted in transit and at rest. Row-level security ensures you only see trips you belong to. High Privacy mode adds end-to-end encryption for messages. Your trips are private unless you choose to share them.',
   },
   {
     question: 'Do all trip members need to pay?',
