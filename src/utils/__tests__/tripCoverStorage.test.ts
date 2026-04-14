@@ -45,6 +45,7 @@ describe('tripCoverStorage', () => {
       client,
       tripId: 'trip-123',
       blob: new Blob(['x'], { type: 'image/jpeg' }),
+      retryDelayMs: 0,
     });
 
     expect(from).toHaveBeenCalledWith(TRIP_COVER_BUCKET);
@@ -64,9 +65,36 @@ describe('tripCoverStorage', () => {
         client,
         tripId: 'trip-123',
         blob: new Blob(['x'], { type: 'image/jpeg' }),
+        retryDelayMs: 0,
       }),
     ).rejects.toThrow('policy violation');
 
     expect(upload).toHaveBeenCalledTimes(3);
+  });
+
+  it('retries thrown upload errors and eventually succeeds', async () => {
+    const upload = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('network down'))
+      .mockResolvedValueOnce({ error: null });
+    const getPublicUrl = vi.fn().mockReturnValue({
+      data: {
+        publicUrl:
+          'https://abc.supabase.co/storage/v1/object/public/trip-covers/trip-123/cover.jpg',
+      },
+    });
+    const from = vi.fn().mockReturnValue({ upload, getPublicUrl });
+    const client = { storage: { from } } as unknown as SupabaseClient<Database>;
+
+    const result = await uploadTripCoverBlob({
+      client,
+      tripId: 'trip-123',
+      blob: new Blob(['x'], { type: 'image/jpeg' }),
+      maxRetries: 2,
+      retryDelayMs: 0,
+    });
+
+    expect(upload).toHaveBeenCalledTimes(2);
+    expect(result.publicUrl).toContain('/object/public/trip-covers/trip-123/');
   });
 });
