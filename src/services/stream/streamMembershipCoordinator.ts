@@ -17,6 +17,19 @@ function opKey(kind: string, idA: string, idB: string): string {
   return `${kind}:${idA}:${idB}`;
 }
 
+export function reportStreamMembershipSyncFailure(
+  operation: string,
+  ids: { tripId?: string; channelId?: string; userId: string },
+  error: unknown,
+): void {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error('[StreamMembershipCoordinator] sync failed', {
+    operation,
+    ...ids,
+    error: message,
+  });
+}
+
 async function withRetries(
   key: string,
   operation: () => Promise<void>,

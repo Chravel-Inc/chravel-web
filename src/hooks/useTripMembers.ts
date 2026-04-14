@@ -6,7 +6,10 @@ import { useDemoMode } from './useDemoMode';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 import { useDemoTripMembersStore } from '@/store/demoTripMembersStore';
-import { syncRemoveMemberFromTripChannels } from '@/services/stream/streamMembershipCoordinator';
+import {
+  reportStreamMembershipSyncFailure,
+  syncRemoveMemberFromTripChannels,
+} from '@/services/stream/streamMembershipCoordinator';
 import {
   resolveDisplayName,
   UNRESOLVED_NAME_SENTINEL,
@@ -256,7 +259,9 @@ export const useTripMembers = (tripId?: string) => {
 
         // Sync membership removal to Stream channels (fire-and-forget, non-fatal)
         if (tripId) {
-          syncRemoveMemberFromTripChannels(tripId, userId).catch(() => {});
+          syncRemoveMemberFromTripChannels(tripId, userId).catch(error => {
+            reportStreamMembershipSyncFailure('remove-trip-member', { tripId, userId }, error);
+          });
         }
 
         // Update local state
@@ -337,7 +342,13 @@ export const useTripMembers = (tripId?: string) => {
 
         // Sync membership removal to Stream channels (fire-and-forget, non-fatal)
         if (tripId && user.id) {
-          syncRemoveMemberFromTripChannels(tripId, user.id).catch(() => {});
+          syncRemoveMemberFromTripChannels(tripId, user.id).catch(error => {
+            reportStreamMembershipSyncFailure(
+              'remove-trip-member',
+              { tripId, userId: user.id },
+              error,
+            );
+          });
         }
 
         setTripMembers(prev => prev.filter(m => m.id !== user.id));
