@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { configureStreamPermissionsAndPrincipal } from '../setup';
+import { configureStreamPermissionsAndPrincipal } from '../setup.ts';
 import {
   expectedAiConciergeServiceUser,
   expectedConfiguredChannelTypes,
-} from './fixtures/setupPath.fixture';
+} from './fixtures/setupPath.fixture.ts';
 
 describe('configureStreamPermissionsAndPrincipal', () => {
   it('upserts deterministic concierge bot principal before channel setup path', async () => {
