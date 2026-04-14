@@ -56,6 +56,8 @@ interface RichChatMessage extends ChatMessage {
     toolName: string;
     actionType: string;
     message: string;
+    title?: string;
+    detail?: string | null;
   }>;
 }
 

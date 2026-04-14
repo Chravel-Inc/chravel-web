@@ -480,7 +480,7 @@ export function useConciergeStreaming(params: Params) {
 
               // Handle concierge write actions (createPoll, createTask, savePlace, etc.)
               if (isConciergeWriteAction(name) && result.actionType) {
-                if (result.pending && result.pendingActionId) {
+              if (result.pending && result.pendingActionId) {
                   const pendingAction = {
                     id: result.pendingActionId as string,
                     toolName: name,
@@ -510,6 +510,13 @@ export function useConciergeStreaming(params: Params) {
                         pendingActions: [pendingAction],
                       },
                     ];
+                  });
+
+                  // CRITICAL: Invalidate pending actions query so auto-confirm fires.
+                  // Without this, usePendingActions never sees the new row and the
+                  // task/poll/calendar event stays parked in trip_pending_actions forever.
+                  conciergeQueryClient.invalidateQueries({
+                    queryKey: ['pendingActions', tripId],
                   });
                   return;
                 }

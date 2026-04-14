@@ -118,9 +118,9 @@ export function getConciergeInvalidationKeys(
     case 'addReminder':
       return [['calendarEvents', tripId]];
 
-    // Trip-level basecamp — invalidate trip detail + personal basecamp prefix
+    // Trip-level basecamp — invalidate tripBasecamp query + trip detail + personal basecamp prefix
     case 'setBasecamp':
-      return [['trip', tripId], ['personalBasecamp']];
+      return [['tripBasecamp', tripId], ['trip', tripId], ['personalBasecamp']];
 
     case 'addToAgenda':
       return [['eventAgenda', tripId]];
