@@ -10,7 +10,7 @@ import { offlineSyncService } from '@/services/offlineSyncService';
 import { cacheEntity, getCachedEntities } from '@/offline/cache';
 import { taskEvents } from '@/telemetry/events';
 import { useMutationPermissions } from '@/hooks/useMutationPermissions';
-import { generateMutationId } from '@/utils/concurrencyUtils';
+
 
 // Task form management types
 export interface TaskFormData {
@@ -633,7 +633,7 @@ export const useTripTasks = (
           description: task.description,
           due_at: task.due_at,
           is_poll: task.is_poll,
-          idempotency_key: generateMutationId(),
+          
         })
         .select()
         .single();
