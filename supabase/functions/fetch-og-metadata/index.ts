@@ -94,15 +94,24 @@ serve(async req => {
     }
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      const isFallbackable = response.status >= 500;
+      console.error(`[fetch-og-metadata] HTTP ${response.status}: ${response.statusText}`);
+      return new Response(
+        JSON.stringify({
+          error: isFallbackable ? 'SERVICE_UNAVAILABLE' : `HTTP ${response.status}: ${response.statusText}`,
+          fallback: isFallbackable,
+          url,
+        }),
+        {
+          status: isFallbackable ? 200 : response.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      );
     }
 
     const html = await response.text();
     const metadata: OGMetadata = {};
 
-    // Extract OG tags using regex.
-    // Many sites emit attributes in either order (property then content, or content then property),
-    // so we check both orderings for each tag.
     const matchOgTag = (tag: string): RegExpMatchArray | null =>
       html.match(new RegExp(`<meta\\s+property=["']${tag}["']\\s+content=["']([^"']+)["']`, 'i')) ||
       html.match(new RegExp(`<meta\\s+content=["']([^"']+)["']\\s+property=["']${tag}["']`, 'i'));
@@ -126,7 +135,6 @@ serve(async req => {
     const ogImageMatch = matchOgTag('og:image') || matchNameTag('twitter:image');
     if (ogImageMatch) {
       const imageUrl = ogImageMatch[1].trim();
-      // Resolve relative URLs
       metadata.image = imageUrl.startsWith('http') ? imageUrl : new URL(imageUrl, url).toString();
     }
 
@@ -145,10 +153,11 @@ serve(async req => {
     console.error('[fetch-og-metadata] Error:', error);
     return new Response(
       JSON.stringify({
-        error: 'Failed to fetch metadata from the provided URL.',
+        error: 'SERVICE_FAILED',
+        fallback: true,
       }),
       {
-        status: 500,
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
     );

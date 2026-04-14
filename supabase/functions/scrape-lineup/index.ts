@@ -16,6 +16,7 @@ import {
   DEFAULT_GEMINI_FLASH_MODEL,
 } from '../_shared/gemini.ts';
 import { scrapeUrlContentForAi, getScrapeContentTypeLabel } from '../_shared/urlScraper.ts';
+import { checkAndIncrementSmartImportUsage } from '../_shared/smartImportUsage.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -91,12 +92,26 @@ serve(async req => {
     const body = await req.json();
     let url = typeof body?.url === 'string' ? body.url.trim() : '';
     const text = typeof body?.text === 'string' ? body.text.trim() : '';
+    const tripId = typeof body?.tripId === 'string' && body.tripId.trim() ? body.tripId : null;
 
     if (!url && !text) {
       return new Response(JSON.stringify({ error: 'URL or text is required' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    const usage = await checkAndIncrementSmartImportUsage(supabase, user.id, tripId);
+    if (!usage.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: 'Smart Import limit reached for this month. Upgrade to continue importing.',
+          error_code: usage.errorCode,
+          upgrade_required: usage.upgradeRequired,
+          remaining: usage.remaining,
+        }),
+        { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
     }
 
     let contentForAI = '';

@@ -1,13 +1,15 @@
 import type { UsagePlan, TokenBudgetCheckResult } from './usagePolicy.ts';
+import { getTripQueryLimitForUsagePlan } from './usagePolicy.ts';
 
 export const buildTripLimitReachedResponse = (
   corsHeaders: Record<string, string>,
   usagePlan: UsagePlan,
 ): Response => {
+  const limit = getTripQueryLimitForUsagePlan(usagePlan);
   const limitMessage =
-    usagePlan === 'free'
-      ? "You've used all 5 Concierge queries for this trip."
-      : "You've used all 10 Concierge queries for this trip.";
+    limit === null
+      ? "You've reached the Concierge query limit for this trip."
+      : `You've used all ${limit} Concierge queries for this trip.`;
   return new Response(
     JSON.stringify({
       response: `🚫 **Trip query limit reached**\n\n${limitMessage}`,
@@ -15,30 +17,6 @@ export const buildTripLimitReachedResponse = (
       sources: [],
       success: false,
       error: 'usage_limit_exceeded',
-      upgradeRequired: true,
-    }),
-    {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    },
-  );
-};
-
-export const buildMonthlyLimitReachedResponse = (
-  corsHeaders: Record<string, string>,
-  usagePlan: UsagePlan,
-): Response => {
-  const limitMessage =
-    usagePlan === 'free'
-      ? "You've reached your monthly Concierge limit of 20 queries. Upgrade to Explorer for 100/month or Frequent Chraveler for unlimited."
-      : "You've reached your monthly Concierge limit. Upgrade your plan for more queries.";
-  return new Response(
-    JSON.stringify({
-      response: `🚫 **Monthly limit reached**\n\n${limitMessage}`,
-      usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
-      sources: [],
-      success: false,
-      error: 'monthly_limit_exceeded',
       upgradeRequired: true,
     }),
     {

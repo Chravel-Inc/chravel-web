@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { mapPrimaryEntitlementsByUser, pickPrimaryEntitlement } from '../entitlementSelection.ts';
+import {
+  mapPrimaryEntitlementsByUser,
+  pickPrimaryEntitlement,
+  resolveEffectiveEntitlement,
+} from '../entitlementSelection.ts';
 
 describe('entitlementSelection', () => {
   it('prefers active subscription over pass for same user', () => {
@@ -56,5 +60,21 @@ describe('entitlementSelection', () => {
 
     expect(map.get('u1')?.purchase_type).toBe('subscription');
     expect(map.get('u2')?.purchase_type).toBe('pass');
+  });
+
+  it('treats canceled subscription with future period as effective access', () => {
+    const effective = resolveEffectiveEntitlement([
+      {
+        user_id: 'u1',
+        plan: 'explorer',
+        status: 'canceled',
+        current_period_end: new Date(Date.now() + 86400000).toISOString(),
+        purchase_type: 'subscription',
+        updated_at: new Date().toISOString(),
+      },
+    ]);
+
+    expect(effective?.has_access).toBe(true);
+    expect(effective?.status).toBe('canceled');
   });
 });

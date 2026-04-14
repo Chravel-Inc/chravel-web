@@ -14,6 +14,10 @@ import {
   createOptionsResponse,
 } from '../_shared/securityHeaders.ts';
 import { sanitizeErrorForClient, logError } from '../_shared/errorHandling.ts';
+import {
+  resolveEffectiveEntitlement,
+  type EntitlementRow,
+} from '../_shared/entitlementSelection.ts';
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -86,10 +90,53 @@ serve(async req => {
       logStep('Super admin detected - bypassing Stripe check', { email: user.email });
       return createSecureResponse({
         subscribed: true,
+        status: 'active',
         tier: 'pro-enterprise',
         product_id: 'super_admin_bypass',
         subscription_end: null, // Never expires
         is_super_admin: true,
+      });
+    }
+
+    // Source-of-truth: use user_entitlements first. Stripe fallback is only for missing rows.
+    const { data: entitlementRows, error: entitlementError } = await supabaseClient
+      .from('user_entitlements')
+      .select('user_id, plan, status, current_period_end, purchase_type, updated_at')
+      .eq('user_id', user.id)
+      .in('purchase_type', ['subscription', 'pass'])
+      .order('updated_at', { ascending: false });
+
+    if (entitlementError) {
+      logStep('Failed reading user_entitlements, continuing to legacy Stripe fallback', {
+        message: entitlementError.message,
+      });
+    } else if (entitlementRows && entitlementRows.length > 0) {
+      const effective = resolveEffectiveEntitlement(entitlementRows as EntitlementRow[]);
+
+      if (effective && effective.has_access && effective.plan !== 'free') {
+        logStep('Resolved subscription from user_entitlements', {
+          tier: effective.plan,
+          status: effective.status,
+          purchase_type: effective.purchase_type,
+        });
+        return createSecureResponse({
+          subscribed: true,
+          status: effective.status,
+          tier: effective.plan,
+          product_id: null,
+          subscription_end: effective.current_period_end,
+          purchase_type: effective.purchase_type,
+        });
+      }
+
+      logStep('Entitlements row found but no effective access');
+      return createSecureResponse({
+        subscribed: false,
+        status: effective?.status ?? 'expired',
+        tier: 'free',
+        product_id: null,
+        subscription_end: effective?.current_period_end ?? null,
+        purchase_type: effective?.purchase_type ?? null,
       });
     }
 
@@ -103,6 +150,7 @@ serve(async req => {
       logStep('No Stripe customer found');
       return createSecureResponse({
         subscribed: false,
+        status: 'inactive',
         tier: 'free',
         product_id: null,
         subscription_end: null,
@@ -147,6 +195,7 @@ serve(async req => {
 
         return createSecureResponse({
           subscribed: true,
+          status: passData.status,
           tier: passTier,
           product_id: null,
           subscription_end: passData.current_period_end,
@@ -167,6 +216,7 @@ serve(async req => {
 
       return createSecureResponse({
         subscribed: false,
+        status: 'inactive',
         tier: 'free',
         product_id: null,
         subscription_end: null,
@@ -200,6 +250,7 @@ serve(async req => {
 
     return createSecureResponse({
       subscribed: true,
+      status: subscription.status,
       tier: tier,
       product_id: productId,
       subscription_end: subscriptionEnd,

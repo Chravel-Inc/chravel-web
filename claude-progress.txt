@@ -1,3 +1,30 @@
+2026-04-14 — Shared entitlement resolution contract + call-site convergence
+- Added shared effective-entitlement contracts in both runtime layers:
+  - `src/lib/entitlements/selectors.ts` now exports `resolveEffectiveEntitlement(...)` with canonical effective-access evaluation (`active`, `trialing`, `past_due`, `canceled` with future `current_period_end`).
+  - `supabase/functions/_shared/entitlementSelection.ts` now exports equivalent `resolveEffectiveEntitlement(...)` for edge functions.
+- Updated entitlement consumers to use the same resolver semantics and reduced ad-hoc product-id parsing:
+  - `useSubscription` now resolves from `user_entitlements` via shared resolver and uses `hasEffectiveAccess(...)` for booleans (including canceled+future access), with legacy profile fallback mapped via `getTierFromProductId(...)`.
+  - `resolveEffectiveTier` in `src/services/entitlementService.ts` now reads `user_entitlements` first through the shared resolver and uses standardized legacy tier mapping.
+  - `useConciergeUsage` now resolves plan from shared entitlement resolver (including `past_due` + canceled/future behavior) and uses centralized tier mapping for legacy fallback.
+  - `useConsumerSubscription` now trusts backend `tier/status` and removes frontend product-id parsing fallback.
+- Updated `supabase/functions/check-subscription/index.ts` to read `user_entitlements` first and only execute legacy Stripe lookup when entitlement rows are missing; response now includes consistent `status` payload.
+- Added regression coverage for canceled+future effective access in both selector test suites:
+  - `src/lib/entitlements/__tests__/selectors.test.ts`
+  - `supabase/functions/_shared/__tests__/entitlementSelection.test.ts`
+- Verification:
+  - `npm run test:run -- src/lib/entitlements/__tests__/selectors.test.ts src/services/__tests__/entitlementService.test.ts supabase/functions/_shared/__tests__/entitlementSelection.test.ts`
+  - `npm run typecheck`
+  - `npm run lint:check` (baseline warnings only)
+  - `npm run build`
+  - `npm run merge:preflight` (blocked in this environment: cannot fetch `origin/main`)
+
+2026-04-14 — Trip entitlement guard hardening (create + restore server paths)
+- Reworked `create-trip` entitlement resolution to use `user_entitlements` as primary source (subscription purchase type), with legacy profile fallback only when entitlement data is absent/inactive.
+- Enforced server-side creation limits via shared policy module: free users limited to 3 active consumer trips, 1 free pro trip, and 1 free event; explorer users blocked from Pro trip creation unless an explicit override flag is supplied.
+- Added new `restore-trip` edge function to enforce restore limits server-side and moved client restore flow to invoke it, removing reliance on client-only plan checks.
+- Added focused regression tests for shared entitlement policy behavior covering plan resolution, creation limits, explorer override gating, and restore eligibility.
+- Verification: `npm run test:run -- supabase/functions/_shared/__tests__/tripEntitlementPolicy.test.ts`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`, `npm run merge:preflight` (blocked in environment: cannot fetch `origin/main`).
+
 2026-04-14 — Smart Import Gmail discoverability hardening (no-trip context)
 - Root-caused Gmail visibility confusion in Smart Import modal to conditional rendering that only showed the Gmail block when `tripId` existed; non-trip entry points silently omitted the section with no explanation.
 - Added a minimal contextual notice in `src/components/SmartImport.tsx` for the no-trip path: Gmail import is available from trip-scoped modal launches and account management lives in Settings → Integrations.
@@ -663,3 +690,33 @@
 - Replaced localStorage usage in `usePdfExportUsage` with Supabase RPC read/write while preserving existing modal messaging semantics.
 - Added focused hook regression tests to lock unlimited-tier mapping and free-tier increment behavior.
 - Verification: `npm run test:run -- src/hooks/__tests__/usePdfExportUsage.test.tsx`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`, `npm run merge:preflight` (blocked in environment: cannot fetch origin/main).
+2026-04-14 — Shared feature paywall/CTA helper for gate messaging parity
+- Added centralized `getFeaturePaywallConfig(...)` mapping in `src/components/subscription/featurePaywall.ts` for feature gates with: trigger context, benefit copy, recommended plan, and settings destination (`/settings` query params + modal state).
+- Wired concierge limit assistant copy to helper in `useConciergeMessages` so chat limit messaging now shares one source-of-truth CTA recommendation.
+- Wired Smart Import gate UX to helper:
+  - Toast-based gates in `GroupCalendar` and `mobile/MobileGroupCalendar` now use helper copy + "View Plans" CTA route from helper destination.
+  - Tooltip-based gates in `EnhancedAgendaTab` and `LineupTab` now read helper copy + plan recommendation.
+- Wired archive restore / trip-cap upgrade prompts to helper in `ArchivedTripsSection` and `CreateTripModal`.
+- Added unit tests for helper mapping in `src/components/subscription/__tests__/featurePaywall.test.ts`.
+- Verification: `npm run test:run -- src/components/subscription/__tests__/featurePaywall.test.ts src/components/events/__tests__/EnhancedAgendaTab.smartImport.test.tsx src/components/events/__tests__/LineupTab.test.tsx`, `npm run typecheck`, `npm run merge:preflight` (fails here due fetch restriction on `origin/main`).
+
+2026-04-14 — Concierge plan-limit canonicalization + monthly query-cap retirement
+- Root-caused concierge quota drift to split policy constants: client hook showed free/explorer 10/25 asks per trip while server enforcement still rejected at 5/10 in `_shared/concierge/usagePolicy.ts` + hardcoded response copy.
+- Added canonical shared plan-limit module `src/lib/conciergeTripQueryLimits.ts` and wired both client `useConciergeUsage` and server `getTripQueryLimitForUsagePlan` to the same map (free=10, explorer=25, frequent_chraveler=unlimited).
+- Removed legacy monthly query-cap rejection path from `_shared/conciergeUsage.ts` and lovable-concierge response branching; monthly governance now remains token-budget-based only.
+- Updated concierge trip-limit response text to read from the canonical map and added migration `20260414123000_update_concierge_trip_usage_policy_comments.sql` to align DB comments/default docs with current product policy.
+- Added targeted regression test `src/lib/__tests__/conciergeTripQueryLimits.test.ts`.
+- Verification: `npm run test:run -- src/lib/__tests__/conciergeTripQueryLimits.test.ts`, `npm run typecheck`, `npm run lint:check`, `npm run build`, `npm run merge:preflight` (blocked: fetch `origin/main` failed in this environment).
+2026-04-14 — Smart Import monthly usage quota + structured paywall responses
+- Added DB quota source-of-truth for Smart Import via migration `20260414110000_smart_import_usage_quota.sql`:
+  - New `smart_import_usage` table scoped by `(user_id, trip_id, usage_month)` (trip nullable for non-trip flows).
+  - New atomic RPC `check_and_increment_smart_import_usage(p_user_id, p_trip_id, p_limit)` returning `{allowed, remaining, used}` and auto-rollback when over limit.
+- Added shared edge helper `supabase/functions/_shared/smartImportUsage.ts` to resolve user plan, apply per-plan import limits (`SMART_IMPORT_FREE_LIMIT`, `SMART_IMPORT_EXPLORER_LIMIT`), and call the new RPC.
+- Enforced Smart Import quota in edge functions:
+  - `scrape-schedule`, `scrape-agenda`, `scrape-lineup` (URL/text import paths)
+  - `enhanced-ai-parser` for `calendar|agenda` extraction requests with paste/file input
+  - `file-ai-parser` for trip file extraction flow
+- Standardized paywall payload shape on limit hit across these functions: `{ error, error_code, upgrade_required, remaining }` with HTTP 402.
+- Added frontend parser helper `src/utils/smartImportPaywall.ts` and wired calendar/agenda/lineup import parsers to preserve and surface contextual upgrade errors instead of generic failures.
+- Added focused regression test: `src/utils/__tests__/smartImportPaywall.test.ts`.
+- Verification: `npm run test:run -- src/utils/__tests__/smartImportPaywall.test.ts src/utils/__tests__/calendarImportParsers.url.test.ts src/utils/__tests__/lineupImportParsers.test.ts`, `npm run typecheck`, `npm run build`, `npm run lint:check` (baseline warnings only), `npm run merge:preflight` (blocked: cannot fetch `origin/main` in this environment).

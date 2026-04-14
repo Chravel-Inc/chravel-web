@@ -6,6 +6,7 @@ import { useConciergeSessionStore } from '@/store/conciergeSessionStore';
 import { conciergeCacheService } from '@/services/conciergeCacheService';
 import { supabase } from '@/integrations/supabase/client';
 import { FAST_RESPONSE_TIMEOUT_MS, EMPTY_SESSION } from '@/features/concierge/utils/chatHelpers';
+import { getFeaturePaywallConfig } from '@/components/subscription/featurePaywall';
 import type { AiStatus, ChatMessage } from '@/features/concierge/types';
 
 interface Params {
@@ -39,16 +40,15 @@ export function useConciergeMessages({ tripId, isDemoMode, userId, userPlan }: P
   const hasHydratedRef = useRef(false);
 
   const buildLimitReachedMessage = useCallback((): ChatMessage => {
-    const plan = userPlan === 'explorer' ? 'Explorer' : 'free';
-    const ctaTarget =
-      userPlan === 'explorer' ? 'Frequent Chraveler' : 'Explorer or Frequent Chraveler';
+    const paywall = getFeaturePaywallConfig('concierge_limit');
+    const currentPlan = userPlan === 'explorer' ? 'Explorer' : 'free';
     return {
       id: `limit-reached-${Date.now()}`,
       type: 'assistant',
       content:
         `Thanks so much for your question! Unfortunately you've reached your Concierge limit ` +
-        `for this trip on the ${plan} plan. Upgrade to the ${ctaTarget} plan to keep chatting ` +
-        `with your AI Concierge and get even more personalised trip recommendations.`,
+        `for this trip on the ${currentPlan} plan. ${paywall.featureBenefitCopy} ` +
+        `Recommended plan: ${paywall.recommendedPlan}.`,
       timestamp: new Date().toISOString(),
     };
   }, [userPlan]);

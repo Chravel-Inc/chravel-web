@@ -2,10 +2,10 @@ import { useState, useEffect, createContext, useContext, useCallback } from 'rea
 import { ConsumerSubscription } from '../types/consumer';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { getTierFromProductId } from '@/constants/stripe';
 import { openExternalUrl } from '@/platform/navigation';
 import { toast } from 'sonner';
 import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
+import type { ConsumerSubscription as ConsumerSubscriptionShape } from '../types/consumer';
 
 interface ConsumerSubscriptionContextType {
   subscription: ConsumerSubscription | null;
@@ -40,6 +40,16 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
   const [subscription, setSubscription] = useState<ConsumerSubscription | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const mapSubscriptionStatus = (
+    rawStatus: string | null | undefined,
+    subscribed: boolean,
+  ): ConsumerSubscriptionShape['status'] => {
+    if (!subscribed) return 'expired';
+    if (rawStatus === 'trialing') return 'trial';
+    if (rawStatus === 'canceled') return 'cancelled';
+    return 'active';
+  };
+
   const checkSubscription = useCallback(async () => {
     if (!user) return;
 
@@ -49,7 +59,7 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
 
       if (error) throw error;
 
-      const { subscribed, product_id, tier, subscription_end } = data;
+      const { subscribed, status, tier, subscription_end } = data;
 
       // Map tier from backend or detect from product_id
       let userTier:
@@ -67,20 +77,11 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
           | 'pro-starter'
           | 'pro-growth'
           | 'pro-enterprise';
-      } else if (product_id) {
-        // Fallback detection for legacy/unmapped products
-        userTier = getTierFromProductId(product_id) as
-          | 'free'
-          | 'explorer'
-          | 'frequent-chraveler'
-          | 'pro-starter'
-          | 'pro-growth'
-          | 'pro-enterprise';
       }
 
       setSubscription({
         tier: userTier,
-        status: subscribed ? 'active' : 'expired',
+        status: mapSubscriptionStatus(status, subscribed),
         subscriptionEndsAt: subscription_end,
         stripeCustomerId: data.stripe_customer_id,
       });
