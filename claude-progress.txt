@@ -693,3 +693,9 @@
 - Hardened Stripe checkout creation (`supabase/functions/create-checkout/index.ts`) with pre-checks against existing entitlements to block overlapping active subscription/pass purchases and reduce cross-provider double-billing risk.
 - Added focused regression coverage: `src/services/__tests__/entitlementService.test.ts`.
 - Verification: `npm run test:run -- src/services/__tests__/entitlementService.test.ts`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`.
+2026-04-14 — Concierge streaming fallback preserves non-text rich-card/tool payloads
+- Root-caused post-refactor concierge "answer failed" symptom to stream-finalization fallback logic in `useConciergeStreaming`: `onDone` only treated hotels/places/actions as renderable payloads. Flight-only tool results (and other non-text payloads) were misclassified as empty and replaced with generic error text.
+- Added a single renderability helper (`hasRenderableAssistantPayload`) to cover flights, pending actions, reservation drafts, smart-import preview/status, bulk-delete preview, hotels, places, and concierge action cards.
+- Updated both `onDone` branches to preserve all supported payload fields when synthesizing fallback messages.
+- Added regression test ensuring a `searchFlights` tool-only turn does not get overwritten by the generic error fallback.
+- Verification: `VITE_SUPABASE_URL=https://example.supabase.co VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_dummy npm run test:run -- src/features/concierge/hooks/__tests__/useConciergeStreaming.test.ts`, `npm run typecheck`, `npm run lint:check -- src/features/concierge/hooks/useConciergeStreaming.ts src/features/concierge/hooks/__tests__/useConciergeStreaming.test.ts`.
