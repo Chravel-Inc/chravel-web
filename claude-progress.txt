@@ -649,3 +649,33 @@
 - `main` already uses shared `getStreamClient()` for trip chat edit/delete; rebased PR keeps that pattern and aligns delete unavailable-client toast with edit (`Chat connection unavailable. Please try again.`).
 - Added focused regression test `src/features/chat/components/__tests__/TripChat.deleteMessage.test.tsx`: asserts `deleteMessage` invoked with message id and toast when client is null; `useCallback` deps include `streamClient` for edit/delete handlers.
 - Verification: `npm run test:run -- src/features/chat/components/__tests__/TripChat.deleteMessage.test.tsx`, `npm run typecheck`, `npm run lint:check`, `npm run build`.
+2026-04-13 — Remove dead trip realtime multiplexer module
+- Searched for `tripRealtimeMultiplexer` usage and confirmed no runtime imports remained in `src/`; only a legacy unit test import referenced the module.
+- Deleted unused `src/services/tripRealtimeMultiplexer.ts` to remove dead legacy Supabase realtime multiplexer surface.
+- Updated `src/services/__tests__/tripChatLegacyRealtimeGuards.test.ts` to keep Stream guard coverage via `chatService` subscriptions only.
+- Verification: `npm run test:run -- src/services/__tests__/tripChatLegacyRealtimeGuards.test.ts`, `npm run typecheck`, `npm run build`.
+
+2026-04-13 — Chat/Stream coherence architecture audit (full-stack config + integration)
+- Completed holistic chat/messaging audit covering Stream transport, Supabase dependencies, env/secret wiring, webhook notification flow, and migration seams.
+- Produced a full findings report at `docs/audits/chat-stream-coherence-audit-2026-04-13.md` with system graph, flow-by-flow grades, debt ledger, remediation phases, and external-console runbooks.
+- Key finding: frontend Supabase hardcoded fallback credentials create config fake-green risk and conflict with strict env model; additional publishable-vs-anon key drift identified in helper services.
+- Also flagged hybrid membership-sync fragility (Supabase roster + client-side Stream sync) and residual legacy chat pathway debt despite guards.
+2026-04-13 — Chat config coherence hardening (Supabase public key + env contract)
+- Removed frontend hardcoded Supabase fallback credentials and switched bootstrap to strict env resolution (`VITE_SUPABASE_URL` + publishable/anon key).
+- Added deterministic resolver + tests in `src/integrations/supabase/config.ts` / `config.test.ts` to enforce publishable-key precedence and fail fast on missing config.
+- Unified direct edge-function metadata fetchers (`ogMetadataService`, `linkService`) to use centralized Supabase project URL + public API key export instead of raw `import.meta.env` anon-key assumptions.
+- Updated health/env messaging (`Healthz`, `DevEnvBanner`) to reflect publishable-key-first model.
+- Added `docs/audits/chat-stream-responsibility-matrix-2026-04-13.md` to lock Stream-vs-Supabase ownership boundaries and document intentional hybrid seams.
+2026-04-13 — Phase II coherence implementation (canonical Stream payload + retriable membership sync)
+- Added shared Stream payload builder `src/services/stream/streamMessagePayload.ts` and reused it in both `useStreamTripChat` and `tripMessageTransport` to eliminate duplicate send payload shaping logic.
+- Added retrying/deduplicating membership coordinator `src/services/stream/streamMembershipCoordinator.ts` that attempts Stream client connect before membership sync operations and retries with exponential backoff.
+- Switched trip join/leave/member-removal callsites to coordinator path (`JoinTrip`, `useTripMembers`) to reduce non-fatal membership drift during transient client availability issues.
+- Added tests for new Phase II surfaces:
+  - `src/services/stream/__tests__/streamMessagePayload.test.ts`
+  - `src/services/stream/__tests__/streamMembershipCoordinator.test.ts`
+  - Updated `src/services/stream/__tests__/tripMessageTransport.test.ts` for canonical payload behavior.
+2026-04-13 — Installed app entry gating for native WebView + PWA standalone
+- Added centralized launch-context utility `src/lib/runtime/launchContext.ts` to classify browser vs installed app context via `?app_context=native` and standalone PWA signals (`display-mode: standalone` + `navigator.standalone`).
+- Updated `src/pages/Index.tsx` root-entry behavior to prevent installed-context marketing flash: show neutral hydration shell while auth loads, then redirect logged-out installed users to `/auth`; browser users keep marketing homepage behavior unchanged.
+- Added focused regression test `src/lib/runtime/launchContext.test.ts` covering browser default, native query-param launch, and standalone PWA launch classification.
+- Verification: `npm run test:run -- src/lib/runtime/launchContext.test.ts`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`.
