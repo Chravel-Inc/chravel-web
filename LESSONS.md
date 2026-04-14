@@ -472,6 +472,11 @@
 - **Avoid when:** The product intentionally renders only a total unread badge with no subclass split.
 - **Evidence:** `useUnreadCounts` switched from tail approximation to marker-based split plus low-confidence fallback-to-total path when marker data is unavailable or mismatched.
 - **Provenance:** April 2026 unread-count hardening.
+### Stream read-receipt hooks should no-op when channel is unavailable
+- **Tip:** In Stream-backed chat, schedule read receipts only when an `activeChannel` instance exists and exposes `markRead`. If no channel is mounted yet (or demo mode is active), skip entirely instead of falling back to legacy DB receipt writes.
+- **Applies when:** Migrated chat surfaces where Stream channel lifecycle can lag behind initial message hydration.
+- **Evidence:** `useChatReadReceipts` previously ran fallback `markMessagesAsRead` when `activeChannel` was missing, causing split-path behavior and regression risk. Wiring `activeChannel` from `TripChat` and guarding on channel availability removed this mismatch.
+- **Provenance:** April 2026 TripChat/useChatReadReceipts regression fix.
 - **Confidence:** high
 
 ### Separate installed-app entry policy from browser marketing entry at the root route
@@ -485,4 +490,9 @@
 - **Applies when:** Any Stripe/RevenueCat/admin write path updates `user_entitlements`.
 - **Evidence:** User-only conflict targets overwrite pass/subscription state for dual-entitled users; switching upserts and selectors to purchase-scoped rows preserves both and enables deterministic client prioritization.
 - **Provenance:** April 2026 composite entitlement key hardening.
+### Checkout creation should enforce cross-provider overlap guards before payment session creation
+- **Tip:** Before creating a Stripe Checkout session, read `user_entitlements` and explicitly block overlapping active paid access (active/trialing/past_due/canceled-with-future-end) from any provider. This prevents accidental dual billing when users can arrive from multiple billing channels (web Stripe + native RevenueCat).
+- **Applies when:** Mixed-provider billing stacks where at least one client can initiate purchases without central provider reconciliation.
+- **Evidence:** Added guardrails in `supabase/functions/create-checkout/index.ts` that stop overlapping subscription/pass purchases based on existing entitlement state.
+- **Provenance:** April 2026 subscription architecture hardening.
 - **Confidence:** high

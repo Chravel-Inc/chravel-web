@@ -5,6 +5,7 @@ import { tripsData } from '@/data/tripsData';
 import { adaptTripsDataToTripSchema } from '@/utils/schemaAdapters';
 import { FORMER_MEMBER_LABEL } from '@/lib/resolveDisplayName';
 import { formatLocalDate } from '@/utils/dateHelpers';
+import { resolveEffectiveTier } from './entitlementService';
 
 /**
  * Normalizes date input to YYYY-MM-DD format for database date columns
@@ -162,25 +163,13 @@ export const tripService = {
         throw new Error('Invalid user state - missing ID');
       }
 
-      // Check active trip limit for free users
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('subscription_status, subscription_product_id')
-        .eq('user_id', user.id)
-        .single();
-
       // Super admin bypass for trip creation limits (server-side is_super_admin() enforces RLS)
       const { SUPER_ADMIN_EMAILS } = await import('@/constants/admins');
       const authEmail = user.email?.toLowerCase().trim();
       const isSuperAdmin = authEmail ? SUPER_ADMIN_EMAILS.includes(authEmail) : false;
 
       if (!isSuperAdmin) {
-        const tier =
-          profile?.subscription_status === 'active'
-            ? profile.subscription_product_id?.includes('explorer')
-              ? 'explorer'
-              : 'frequent-chraveler'
-            : 'free';
+        const tier = await resolveEffectiveTier(user.id);
 
         // Count active (non-archived) trips OF THE SAME TYPE being created
         const tripTypeToCheck = tripData.trip_type || 'consumer';

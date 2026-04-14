@@ -22,6 +22,10 @@
 - Added focused regression tests in `src/features/chat/utils/__tests__/updateStreamMessage.test.ts` to verify: expected update payload, missing-client toast handling, and update failure toast handling.
 - Verification: `npm run test:run -- src/features/chat/utils/__tests__/updateStreamMessage.test.ts`, `npm run typecheck`, `npm run lint:check`, `npm run build`.
 
+2026-04-13 — Stream trip chat reaction toggle regression tests (PR follow-up)
+- `useStreamTripChat.toggleReaction` already uses Stream-native `own_reactions` on `main`; this pass adds focused double-tap coverage in `src/hooks/stream/__tests__/useStreamTripChat.reactions.test.tsx` (send then delete after simulated reaction event).
+- Verification: `npm run test:run -- src/hooks/stream/__tests__/useStreamTripChat.reactions.test.tsx src/hooks/stream/__tests__/useStreamTripChat.send.test.tsx`, `npm run typecheck`.
+
 2026-04-11 — Broadcast scheduling kill-switch hardening (admin flow + service guard)
 - Added server-driven feature flag gate `broadcast-scheduling-enabled` with safe default `false` on Admin Dashboard scheduling UX (`src/pages/AdminDashboard.tsx`).
   - "Schedule Pro Trip Message" action is disabled while flag is off.
@@ -571,7 +575,7 @@
 - Replaced unread-count hook read source from Supabase receipt joins to Stream-native channel unread state + local message classification (`broadcast` vs standard).
 - Removed dead Supabase fallback reaction transport from `useChatReactions`; Stream is now the single authenticated reaction path.
 - Added Stream-ready reconnect guard to `useStreamBroadcasts` via `onStreamClientConnected`, plus updated hook test mocks.
-- Added `ai-concierge-bot` provisioning in `stream-setup-permissions` via Stream `upsertUser`.
+- Hardened `stream-setup-permissions` concierge principal: refactored setup into `setup.ts` (`configureStreamPermissionsAndPrincipal`), deterministic `ai-concierge-bot` / `AI Concierge` / `admin` upsert before channel-type grants, structured `service_user_upsert_failed` logging with non-blocking continuation, README + fixture-backed tests.
 - Added new `supabase/functions/stream-webhook` edge function with signature verification, idempotency insert, and `message.new` -> notifications write path.
 - Switched chat search services to Stream-backed message search:
   - `chatSearchService` now uses channel search/query for trip messages.
@@ -645,6 +649,13 @@
 - Added focused regression tests `src/features/chat/hooks/__tests__/useChatReadReceipts.test.tsx` covering Stream-mode display derivation + legacy-path gating behavior.
 - Verification: `npm run test:run -- src/features/chat/hooks/__tests__/useChatReadReceipts.test.tsx`, `npm run typecheck`, `npm run lint:check -- src/features/chat/hooks/useChatReadReceipts.ts src/features/chat/hooks/__tests__/useChatReadReceipts.test.tsx`.
 
+2026-04-13 — TripChat read-receipt guard + focused markRead regression tests (rebase)
+- Kept `main` dual-path contract: Stream-backed channels use `activeChannel.markRead()` and `state.read` for display; legacy Supabase `markMessagesAsRead` + receipt subscription remain when the channel is not Stream-backed.
+- Extended `src/features/chat/hooks/__tests__/useChatReadReceipts.test.tsx` with debounced `markRead` coverage (Stream-shaped channel) and null-channel legacy subscription assertion (avoids duplicate `*.test.ts` / `*.test.tsx` Vitest glob overlap).
+2026-04-13 — TripChat delete-path regression test (rebase onto main)
+- `main` already uses shared `getStreamClient()` for trip chat edit/delete; rebased PR keeps that pattern and aligns delete unavailable-client toast with edit (`Chat connection unavailable. Please try again.`).
+- Added focused regression test `src/features/chat/components/__tests__/TripChat.deleteMessage.test.tsx`: asserts `deleteMessage` invoked with message id and toast when client is null; `useCallback` deps include `streamClient` for edit/delete handlers.
+- Verification: `npm run test:run -- src/features/chat/components/__tests__/TripChat.deleteMessage.test.tsx`, `npm run typecheck`, `npm run lint:check`, `npm run build`.
 2026-04-13 — Remove dead trip realtime multiplexer module
 - Searched for `tripRealtimeMultiplexer` usage and confirmed no runtime imports remained in `src/`; only a legacy unit test import referenced the module.
 - Deleted unused `src/services/tripRealtimeMultiplexer.ts` to remove dead legacy Supabase realtime multiplexer surface.
@@ -693,3 +704,9 @@
 - Hardened migration backfill to default ambiguous legacy rows to `subscription` (removed fragile Stripe+period_end => pass heuristic).
 - Added regression tests for shared edge entitlement selection behavior (`_shared/__tests__/entitlementSelection.test.ts`).
 - Validation: focused vitest suite, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`.
+2026-04-13 — Subscription architecture hardening (cross-provider dedupe + service-tier unification)
+- Added `src/services/entitlementService.ts` as a centralized resolver for effective paid tier from `user_entitlements` with legacy `profiles` fallback for compatibility.
+- Rewired trip/archive/upload freemium gating paths to use centralized entitlement resolver instead of direct `profiles.subscription_*` checks.
+- Hardened Stripe checkout creation (`supabase/functions/create-checkout/index.ts`) with pre-checks against existing entitlements to block overlapping active subscription/pass purchases and reduce cross-provider double-billing risk.
+- Added focused regression coverage: `src/services/__tests__/entitlementService.test.ts`.
+- Verification: `npm run test:run -- src/services/__tests__/entitlementService.test.ts`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`.

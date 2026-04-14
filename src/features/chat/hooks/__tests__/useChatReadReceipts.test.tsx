@@ -106,4 +106,31 @@ describe('useChatReadReceipts', () => {
       expect(getMessagesReadStatus).toHaveBeenCalledWith(['msg-own']);
     });
   });
+
+  it('calls activeChannel.markRead after debounce when a Stream-backed channel is present', async () => {
+    const markRead = vi.fn(async () => undefined);
+    const activeChannel = { markRead, state: { read: {} } };
+    const liveMessages = [{ id: 'msg-1', user_id: 'user-2' }];
+
+    renderHook(() =>
+      useChatReadReceipts(false, 'user-1', 'trip-1', liveMessages, activeChannel),
+    );
+
+    await waitFor(
+      () => {
+        expect(markRead).toHaveBeenCalledTimes(1);
+      },
+      { timeout: 3000 },
+    );
+  });
+
+  it('does not use Stream markRead when activeChannel is null; legacy subscription still applies', async () => {
+    const liveMessages = [{ id: 'msg-1', user_id: 'user-2' }];
+
+    renderHook(() => useChatReadReceipts(false, 'user-1', 'trip-1', liveMessages, null));
+
+    await waitFor(() => {
+      expect(subscribeToReadReceipts).toHaveBeenCalledWith('trip-1', expect.any(Function));
+    });
+  });
 });
