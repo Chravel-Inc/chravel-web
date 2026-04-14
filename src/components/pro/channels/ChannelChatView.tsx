@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { getMockAvatar } from '@/utils/mockAvatars';
 import { useRoleAssignments } from '@/hooks/useRoleAssignments';
 import { useStreamProChannel } from '@/hooks/stream/useStreamProChannel';
+import { getStreamClient } from '@/services/stream/streamClient';
 import { Button } from '@/components/ui/button';
 import {
   mapChannelSendError,
@@ -119,6 +120,59 @@ export const ChannelChatView = ({
   const clearReply = useCallback(() => {
     setReplyingTo(null);
   }, []);
+
+  // ── Stream edit/delete handlers (matches TripChat pattern from PRs #231/#246) ──
+  const handleMessageEdit = useCallback(
+    async (messageId: string, newContent: string) => {
+      if (isDemoChannel) return;
+
+      const streamClient = getStreamClient();
+      if (!streamClient) {
+        toast({
+          title: 'Chat connection unavailable',
+          description: 'Please try again.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      try {
+        await streamClient.updateMessage({ id: messageId, text: newContent });
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.error('[ChannelChatView] Failed to edit message:', error);
+        }
+        toast({ title: 'Failed to edit message', variant: 'destructive' });
+      }
+    },
+    [isDemoChannel, toast],
+  );
+
+  const handleMessageDelete = useCallback(
+    async (messageId: string) => {
+      if (isDemoChannel) return;
+
+      const streamClient = getStreamClient();
+      if (!streamClient) {
+        toast({
+          title: 'Chat connection unavailable',
+          description: 'Please try again.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      try {
+        await streamClient.deleteMessage(messageId);
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.error('[ChannelChatView] Failed to delete message:', error);
+        }
+        toast({ title: 'Failed to delete message', variant: 'destructive' });
+      }
+    },
+    [isDemoChannel, toast],
+  );
 
   // Transform ChannelMessage to ChatMessage format for MessageItem
   const transportMessages = useMemo<ChannelMessage[]>(() => {
@@ -589,6 +643,8 @@ export const ChannelChatView = ({
                 }
                 onReaction={handleReaction}
                 onReply={handleOpenReply}
+                onEdit={isDemoChannel ? undefined : handleMessageEdit}
+                onDelete={isDemoChannel ? undefined : handleMessageDelete}
               />
             )}
             onLoadMore={() => {}} // Add pagination later

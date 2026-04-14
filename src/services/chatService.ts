@@ -168,6 +168,8 @@ export async function editChatMessage(messageId: string, newContent: string): Pr
 }
 
 export async function editChannelMessage(messageId: string, newContent: string): Promise<boolean> {
+  assertLegacyTripChatDbMutationAllowed('editChannelMessage');
+
   const { error } = await supabase
     .from('channel_messages')
     .update({ content: newContent, edited_at: new Date().toISOString() })
@@ -196,6 +198,8 @@ export async function deleteChatMessage(messageId: string): Promise<boolean> {
 }
 
 export async function deleteChannelMessage(messageId: string): Promise<boolean> {
+  assertLegacyTripChatDbMutationAllowed('deleteChannelMessage');
+
   const { error } = await supabase
     .from('channel_messages')
     .update({ deleted_at: new Date().toISOString() })
