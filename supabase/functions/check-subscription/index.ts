@@ -163,7 +163,7 @@ const normalizeFromStripeSubscription = (
 };
 
 const syncProfileFromResponse = async (
-  supabaseClient: ReturnType<typeof createClient>,
+  supabaseClient: any, // intentional: untyped client in Deno edge function
   userId: string,
   response: NormalizedSubscriptionResponse,
 ): Promise<void> => {
