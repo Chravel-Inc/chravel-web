@@ -82,6 +82,14 @@
 
 ## Recovery Tips
 
+### Fire-and-forget sync paths must emit structured failure signals
+- **Tip:** If a non-critical sync step intentionally runs fire-and-forget (for example membership projection into Stream after a successful Supabase mutation), never leave `.catch(() => {})` empty. Emit structured logs with operation + identifiers so support can trace drift and replay safely.
+- **Applies when:** Client-side best-effort projections to external systems (Stream membership sync, analytics mirrors, webhook side effects).
+- **Avoid when:** The operation is fully deterministic/idempotent and already has server-side retry + alerting with equivalent context.
+- **Evidence:** Join/leave/member-removal flows were swallowing Stream membership sync failures, creating silent drift and low operator visibility. Adding centralized `reportStreamMembershipSyncFailure(...)` at call-sites restored debuggability without changing user-facing success flow.
+- **Provenance:** April 2026 Stream chat hardening follow-up.
+- **Confidence:** high
+
 ### Edge Function "Failed to fetch" in browser is usually a CORS-origin drift, not a DB insert bug
 - **Tip:** When a core mutation fails with a raw browser `TypeError: Failed to fetch` (especially via `supabase.functions.invoke`), verify the frontend origin against Edge Function CORS allowlist first. If the origin is missing, the network call is blocked before your handler/DB code runs.
 - **Applies when:** A user-facing mutation to an Edge Function fails with generic fetch error and no structured JSON error body.

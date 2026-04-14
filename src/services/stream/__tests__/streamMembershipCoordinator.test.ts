@@ -14,7 +14,10 @@ vi.mock('../streamMembershipSync', () => ({
   removeMemberFromProChannel: vi.fn(),
 }));
 
-import { syncAddMemberToTripChannels } from '../streamMembershipCoordinator';
+import {
+  reportStreamMembershipSyncFailure,
+  syncAddMemberToTripChannels,
+} from '../streamMembershipCoordinator';
 
 describe('streamMembershipCoordinator', () => {
   beforeEach(() => {
@@ -41,5 +44,24 @@ describe('streamMembershipCoordinator', () => {
     ]);
 
     expect(addTripMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('logs structured error metadata for failed sync operations', () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    reportStreamMembershipSyncFailure(
+      'add-trip-member',
+      { tripId: 'trip-1', userId: 'user-2' },
+      new Error('boom'),
+    );
+
+    expect(consoleSpy).toHaveBeenCalledWith('[StreamMembershipCoordinator] sync failed', {
+      operation: 'add-trip-member',
+      tripId: 'trip-1',
+      userId: 'user-2',
+      error: 'boom',
+    });
+
+    consoleSpy.mockRestore();
   });
 });
