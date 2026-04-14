@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { SUPABASE_PROJECT_URL, SUPABASE_PUBLIC_API_KEY } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 
 type _Tables = Database['public']['Tables'];
@@ -37,24 +38,12 @@ export async function fetchOpenGraphData(url: string): Promise<{
   domain: string;
 }> {
   try {
-    // Use the fetch-og-metadata edge function to get rich previews
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-      // Fallback to basic URL parsing
-      const urlObj = new URL(url);
-      return {
-        domain: urlObj.hostname,
-        title: urlObj.hostname,
-      };
-    }
-
-    const response = await fetch(`${supabaseUrl}/functions/v1/fetch-og-metadata`, {
+    const response = await fetch(`${SUPABASE_PROJECT_URL}/functions/v1/fetch-og-metadata`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${supabaseAnonKey}`,
+        Authorization: `Bearer ${SUPABASE_PUBLIC_API_KEY}`,
+        apikey: SUPABASE_PUBLIC_API_KEY,
       },
       body: JSON.stringify({ url }),
     });

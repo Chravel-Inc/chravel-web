@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams, useSearchParams } from 'react-rout
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../hooks/useAuth';
-import { addMemberToTripChannels } from '@/services/stream/streamMembershipSync';
+import { syncAddMemberToTripChannels } from '@/services/stream/streamMembershipCoordinator';
 import { toast } from 'sonner';
 import {
   Loader2,
@@ -423,7 +423,7 @@ const JoinTrip = () => {
 
       // Sync membership to Stream channels (fire-and-forget, non-fatal)
       if (tripId && user?.id) {
-        addMemberToTripChannels(tripId, user.id).catch(() => {});
+        syncAddMemberToTripChannels(tripId, user.id).catch(() => {});
       }
 
       clearInviteCode();

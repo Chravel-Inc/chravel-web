@@ -478,3 +478,11 @@
 - **Evidence:** `useChatReadReceipts` previously ran fallback `markMessagesAsRead` when `activeChannel` was missing, causing split-path behavior and regression risk. Wiring `activeChannel` from `TripChat` and guarding on channel availability removed this mismatch.
 - **Provenance:** April 2026 TripChat/useChatReadReceipts regression fix.
 - **Confidence:** high
+
+### Separate installed-app entry policy from browser marketing entry at the root route
+- **Tip:** For web apps embedded in native WebViews or installed as PWAs, decide launch context (`browser` vs `installed_app`) before rendering the marketing shell. In installed contexts, gate on auth hydration first, then route to auth/app; in browsers, keep marketing UX unchanged.
+- **Applies when:** One codebase serves desktop/mobile web marketing and installed app experiences simultaneously.
+- **Avoid when:** Marketing and app are fully separate codebases/domains.
+- **Evidence:** Chravel native users were seeing marketing homepage because `/` entry treated native WebView the same as browser; a centralized launch context utility plus early Index gate removed flash and preserved browser SEO routes.
+- **Provenance:** April 2026 installed app entry routing hardening (`launchContext` + Index gate).
+- **Confidence:** high

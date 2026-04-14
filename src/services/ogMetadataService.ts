@@ -7,6 +7,8 @@
  * @module services/ogMetadataService
  */
 
+import { SUPABASE_PROJECT_URL, SUPABASE_PUBLIC_API_KEY } from '@/integrations/supabase/client';
+
 export interface OGMetadata {
   title?: string;
   description?: string;
@@ -26,19 +28,12 @@ export interface OGMetadata {
  */
 export async function fetchOGMetadata(url: string): Promise<OGMetadata> {
   try {
-    // Use Supabase edge function to fetch metadata (avoids CORS)
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error('Supabase configuration missing');
-    }
-
-    const response = await fetch(`${supabaseUrl}/functions/v1/fetch-og-metadata`, {
+    const response = await fetch(`${SUPABASE_PROJECT_URL}/functions/v1/fetch-og-metadata`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${supabaseAnonKey}`,
+        Authorization: `Bearer ${SUPABASE_PUBLIC_API_KEY}`,
+        apikey: SUPABASE_PUBLIC_API_KEY,
       },
       body: JSON.stringify({ url }),
     });

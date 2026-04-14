@@ -42,7 +42,7 @@ describe('sendTripMessageViaStream', () => {
 
     const result = await sendTripMessageViaStream({
       tripId: 'trip-1',
-      content: '',
+      content: '  hello  ',
       mediaType: 'image',
       mediaUrl: 'https://cdn.example.com/photo.jpg',
       attachments: [{ type: 'file', url: 'https://cdn.example.com/file.pdf' }],
@@ -56,7 +56,7 @@ describe('sendTripMessageViaStream', () => {
 
     expect(getOrCreateTripChannelMock).toHaveBeenCalledWith('trip-1');
     expect(sendMessageMock).toHaveBeenCalledWith({
-      text: '',
+      text: 'hello',
       message_type: 'broadcast',
       privacy_mode: 'private',
       attachments: [
