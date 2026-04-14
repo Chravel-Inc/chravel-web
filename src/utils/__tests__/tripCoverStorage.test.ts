@@ -1,8 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/integrations/supabase/types';
 import {
   buildTripCoverStoragePath,
   normalizeTripCoverUrl,
   TRIP_COVER_BUCKET,
+  uploadTripCoverBlob,
 } from '../tripCoverStorage';
 
 describe('tripCoverStorage', () => {
@@ -25,5 +28,45 @@ describe('tripCoverStorage', () => {
   it('does not rewrite non-cover storage URLs', () => {
     const url = 'https://abc.supabase.co/storage/v1/object/public/trip-media/trip-123/photo.jpg';
     expect(normalizeTripCoverUrl(url)).toBe(url);
+  });
+
+  it('uploads a cover blob and returns storage path + public URL', async () => {
+    const upload = vi.fn().mockResolvedValue({ error: null });
+    const getPublicUrl = vi.fn().mockReturnValue({
+      data: {
+        publicUrl:
+          'https://abc.supabase.co/storage/v1/object/public/trip-covers/trip-123/cover.jpg',
+      },
+    });
+    const from = vi.fn().mockReturnValue({ upload, getPublicUrl });
+    const client = { storage: { from } } as unknown as SupabaseClient<Database>;
+
+    const result = await uploadTripCoverBlob({
+      client,
+      tripId: 'trip-123',
+      blob: new Blob(['x'], { type: 'image/jpeg' }),
+    });
+
+    expect(from).toHaveBeenCalledWith(TRIP_COVER_BUCKET);
+    expect(upload).toHaveBeenCalledTimes(1);
+    expect(result.publicUrl).toContain('/object/public/trip-covers/trip-123/');
+    expect(result.filePath).toMatch(/^trip-123\/cover-/);
+  });
+
+  it('retries upload failures and throws after max attempts', async () => {
+    const upload = vi.fn().mockResolvedValue({ error: { message: 'policy violation' } });
+    const getPublicUrl = vi.fn();
+    const from = vi.fn().mockReturnValue({ upload, getPublicUrl });
+    const client = { storage: { from } } as unknown as SupabaseClient<Database>;
+
+    await expect(
+      uploadTripCoverBlob({
+        client,
+        tripId: 'trip-123',
+        blob: new Blob(['x'], { type: 'image/jpeg' }),
+      }),
+    ).rejects.toThrow('policy violation');
+
+    expect(upload).toHaveBeenCalledTimes(3);
   });
 });
