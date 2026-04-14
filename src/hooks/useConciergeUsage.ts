@@ -77,10 +77,10 @@ const mapPlanFromTier = (
     | 'pro-enterprise',
   isSuperAdmin: boolean,
 ): ConciergePlan => {
-  if (isSuperAdmin) return 'frequent_traveler';
+  if (isSuperAdmin) return 'frequent_chraveler';
   if (tier === 'explorer') return 'explorer';
   if (tier === 'free') return 'free';
-  return 'frequent_traveler';
+  return 'frequent_chraveler';
 };
 
 const isActiveStatus = (status?: string | null): boolean =>
@@ -96,7 +96,7 @@ const hasActivePeriod = (periodEnd?: string | null): boolean => {
 const mapRawPlanToUsagePlan = (plan?: string | null): ConciergePlan => {
   if (plan === 'free' || !plan) return 'free';
   if (plan === 'explorer' || plan === 'plus') return 'explorer';
-  return 'frequent_traveler';
+  return 'frequent_chraveler';
 };
 
 const resolvePlanFromProfile = (
@@ -115,13 +115,13 @@ const resolvePlanFromProfile = (
       return 'explorer';
     }
     if (productId) {
-      return 'frequent_traveler';
+      return 'frequent_chraveler';
     }
   }
 
   if (profile?.app_role === 'plus' || profile?.app_role === 'explorer') return 'explorer';
   if (profile?.app_role === 'consumer' || profile?.app_role === 'free') return 'free';
-  if (profile?.app_role) return 'frequent_traveler';
+  if (profile?.app_role) return 'frequent_chraveler';
 
   return mapPlanFromTier(fallbackTier, false);
 };
@@ -213,7 +213,7 @@ export const useConciergeUsage = (tripId: string, userId?: string) => {
   });
 
   const userPlan = useMemo(() => {
-    if (isSuperAdmin) return 'frequent_traveler';
+    if (isSuperAdmin) return 'frequent_chraveler';
 
     if (
       entitlementData &&
