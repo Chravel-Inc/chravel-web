@@ -1,52 +1,39 @@
 
 
-# Fix: Cover Photo Permissions + Build Errors
+# Fix: Edge Function Build Errors + Production Blank Screen
 
-## Cover Photo Permission Issue
+## Why chravel.app Shows a Black Screen
 
-**Root cause:** The error toast "Upload blocked by trip permissions" comes from `TripCoverPhotoUpload.tsx` line 122-125, triggered when the storage upload throws an error containing "policy" or "permission". 
+The app's background is pure black (`--background: 0 0% 0%`). If edge functions like `check-subscription` fail to deploy or return 500s, the auth/subscription flow can stall, leaving the user stuck on the loading spinner against the black background — appearing as a "blank screen."
 
-The storage upload goes to the `trip-covers` bucket. Migration `20260413000000` created this bucket with correct member-only RLS policies (any trip member can insert/update/delete). However, there are **two potential causes** for the permission error:
+The Lovable preview works because it connects to already-deployed edge functions. But if the latest edge function code can't deploy due to type errors, production stays broken.
 
-1. **Migration not applied:** If the `trip-covers` bucket was never created in production, `uploadTripCoverBlob` uploads to a non-existent bucket, which Supabase returns as a policy error.
-2. **Conflicting old policies:** Earlier migrations (`20260403121000`, `20260407120000`, `20260315000004`) created policies on `trip-media` bucket that used `can_upload_media_to_trip()` — which checks `media_upload_mode`. The `20260413000000` migration drops `"Trip members can upload trip covers"` but the `20260315000004` enforced policy on `trip-media` with the `can_upload_media_to_trip` check might still be active for old paths.
+## Build Errors to Fix (2 edge functions)
 
-**Fix:** The client code in `TripCoverPhotoUpload.tsx` line 122-125 incorrectly attributes ALL policy/permission errors to "media upload settings." Since cover photos use the `trip-covers` bucket (not subject to `media_upload_mode`), this toast is misleading. Change the error message to be accurate, and ensure a new migration guarantees the `trip-covers` bucket exists with correct policies (idempotent).
+### 1. `check-subscription/index.ts` — 4 TS errors
 
-Additionally, the `updateCoverPhoto` in `useTripCoverPhoto.ts` checks `data` after the `.update()` — if RLS on `trips` table blocks the update, it returns "You don't have permission." We need to verify the `trips` UPDATE RLS policy allows any member to update `cover_image_url`.
+**Lines 173, 184:** `syncProfileFromResponse` uses `ReturnType<typeof createClient>` which resolves to a generic type that doesn't match the `supabaseClient` created with `createClient<any>(...)`. The `.update()` call infers `never` for the argument because the untyped client can't resolve the table schema.
 
-## Build Errors (4 separate issues)
+**Fix:** Change `syncProfileFromResponse` parameter type from `ReturnType<typeof createClient>` to `any` (or the actual `SupabaseClient` type). Since this is a Deno edge function with no generated types, casting is the pragmatic fix.
 
-### 1. `check-subscription/index.ts` — broken imports (line 18-28)
-Lines 18-22 have a duplicate import from `entitlementSelection.ts` and lines 24-28 are bare statements outside any import block. Fix: merge into one correct import block.
+**Lines 278, 304:** Same `supabaseClient` type mismatch when passing to `syncProfileFromResponse`.
 
-### 2. `create-trip/index.ts` — undefined `entitlement` variable (line 85)
-`entitlement` is referenced but never fetched. Need to add the entitlement query before line 82.
+**Fix:** Same — relaxing the function signature fixes all 4 errors.
 
-### 3. `export-trip/index.ts` — `PdfUsageGateRow` type constraint error (lines 149, 293)
-`interface` types don't satisfy `Record<string, unknown>` because they lack an index signature. Fix: add `[key: string]: unknown` to both interfaces, or change the generic constraint.
+### 2. `stream-webhook/index.ts` — 2 TS errors
 
-### 4. `usePdfExportUsage.ts` — same `Record<string, unknown>` constraint + unknown RPC names
-Same interface constraint issue. The RPC names `get_trip_pdf_export_usage` and `increment_trip_pdf_export_usage` aren't in the generated types. Fix: use `.rpc()` with type assertion, and fix the interface constraint.
+**Line 149:** `HANDLED_STREAM_EVENT_TYPES.has(eventType)` — `eventType` is `string` but the Set was created with `as const`, making it `Set<"message.new" | "message.updated" | "message.deleted">`. `.has()` on a const Set only accepts the literal union.
 
-## Plan
+**Line 173:** Same pattern with `HANDLED_STREAM_CHANNEL_TYPES.has(channelType)`.
 
-### Files to change:
+**Fix:** Cast the argument: `.has(eventType as any)` — or widen the Set type by removing `as const` from the initializer array in `eventRouting.ts`.
 
-1. **`src/components/TripCoverPhotoUpload.tsx`** — Remove misleading "media upload settings" toast. Replace with generic "Upload failed — please try again" since cover photos are not governed by `media_upload_mode`.
+## Files to Change
 
-2. **`supabase/functions/check-subscription/index.ts`** — Fix broken import block: merge duplicate `entitlementSelection.ts` imports, wrap `entitlementState.ts` imports in proper `import { ... } from` syntax.
-
-3. **`supabase/functions/create-trip/index.ts`** — Add entitlement fetch query (from `user_entitlements` table) before line 82 so `entitlement` is defined.
-
-4. **`supabase/functions/export-trip/index.ts`** — Add index signature `[key: string]: unknown` to `PdfUsageGateRow` and `PdfUsageIncrementRow`, or change `normalizeRpcRow` constraint to `Record<string, unknown>` cast internally.
-
-5. **`src/hooks/usePdfExportUsage.ts`** — Same fix: add index signatures to `PdfUsageRpcRow` and `IncrementPdfUsageRpcRow`. For unknown RPC names, cast through `supabase.rpc(... as any, ...)`.
-
-6. **New migration** — Idempotent migration ensuring `trip-covers` bucket exists with correct policies (safety net if previous migration wasn't applied).
-
-7. **Redeploy** affected edge functions: `check-subscription`, `create-trip`, `export-trip`.
+1. **`supabase/functions/check-subscription/index.ts`** — Change `syncProfileFromResponse` first parameter type to `any` (line 166)
+2. **`supabase/functions/stream-webhook/eventRouting.ts`** — Remove `as const` from both Set initializers so they become `Set<string>`
+3. **Redeploy** both edge functions: `check-subscription`, `stream-webhook`
 
 ## Risk
-Low-medium. Import fixes are syntax-only. Cover photo toast change is cosmetic. The idempotent migration uses `ON CONFLICT DO NOTHING` and `IF NOT EXISTS`. The `create-trip` entitlement fetch is additive.
+Low — type-only changes. No runtime behavior change. Fixes blocking deployment errors.
 
