@@ -1,6 +1,4 @@
 import { supabase } from '@/integrations/supabase/client';
-import { isSuperAdminEmail } from '@/utils/isSuperAdmin';
-import { resolveEffectiveTier } from './entitlementService';
 
 type TripType = 'consumer' | 'pro' | 'event';
 
@@ -142,38 +140,20 @@ export const archiveTrip = async (
 // Restore (unarchive) a trip
 export const restoreTrip = async (
   tripId: string,
-  tripType: TripType,
-  userId?: string,
+  _tripType: TripType,
+  _userId?: string,
 ): Promise<void> => {
-  // Check if user has reached their active trip limit (super admins bypass)
-  if (userId) {
-    // Get user email for super admin check
-    const { data: userData } = await supabase.auth.getUser();
-    const userEmail = userData?.user?.email;
-
-    if (!isSuperAdminEmail(userEmail)) {
-      const tier = await resolveEffectiveTier(userId);
-
-      // Count current active trips
-      const { count, error: countError } = await supabase
-        .from('trips')
-        .select('*', { count: 'exact', head: true })
-        .eq('created_by', userId)
-        .eq('is_archived', false);
-
-      if (countError) throw countError;
-
-      const activeTripsLimit = tier === 'free' ? 3 : -1;
-      if (activeTripsLimit !== -1 && (count || 0) >= activeTripsLimit) {
-        throw new Error('TRIP_LIMIT_REACHED');
-      }
-    }
-  }
-
-  const { error } = await supabase.from('trips').update({ is_archived: false }).eq('id', tripId);
-
+  const { error } = await supabase.functions.invoke('restore-trip', {
+    body: { trip_id: tripId },
+  });
   if (error) {
     if (import.meta.env.DEV) console.error('Failed to restore trip:', error);
+    const response =
+      error.context instanceof Response ? await error.context.json().catch(() => null) : null;
+    const errorCode = response?.error || error.message;
+    if (errorCode === 'TRIP_LIMIT_REACHED') {
+      throw new Error('TRIP_LIMIT_REACHED');
+    }
     throw error;
   }
 };

@@ -12,6 +12,7 @@
 import { parseICSFile, ICSParsedEvent, ICSParseResult } from './calendarImport';
 import { formatLocalDate } from './dateHelpers';
 import { supabase } from '@/integrations/supabase/client';
+import { getSmartImportErrorMessage } from '@/utils/smartImportPaywall';
 import ExcelJS from 'exceljs';
 
 export type ImportSourceFormat = 'ics' | 'csv' | 'excel' | 'pdf' | 'image' | 'text' | 'url';
@@ -462,7 +463,12 @@ export async function parseWithAI(file: File): Promise<SmartParseResult> {
     if (error) {
       return {
         events: [],
-        errors: [`AI parsing failed: ${error.message}`],
+        errors: [
+          getSmartImportErrorMessage(
+            (data ?? null) as Record<string, unknown> | null,
+            `AI parsing failed: ${error.message}`,
+          ),
+        ],
         isValid: false,
         sourceFormat,
       };
@@ -517,7 +523,12 @@ export async function parseTextWithAI(text: string): Promise<SmartParseResult> {
     if (error) {
       return {
         events: [],
-        errors: [`AI parsing failed: ${error.message}`],
+        errors: [
+          getSmartImportErrorMessage(
+            (data ?? null) as Record<string, unknown> | null,
+            `AI parsing failed: ${error.message}`,
+          ),
+        ],
         isValid: false,
         sourceFormat: 'text',
       };
@@ -648,7 +659,12 @@ export async function parseURLSchedule(url: string): Promise<SmartParseResult> {
     if (error) {
       return {
         events: [],
-        errors: [`Failed to scan website: ${error.message}`],
+        errors: [
+          getSmartImportErrorMessage(
+            (data ?? null) as Record<string, unknown> | null,
+            `Failed to scan website: ${error.message}`,
+          ),
+        ],
         isValid: false,
         sourceFormat: 'url',
       };
@@ -659,7 +675,12 @@ export async function parseURLSchedule(url: string): Promise<SmartParseResult> {
       return {
         events: [],
         errors: [
-          response.error ? `${response.error}${methodHint}` : 'No schedule data found on this page',
+          getSmartImportErrorMessage(
+            { ...response, error: response.error ? `${response.error}${methodHint}` : undefined },
+            response.error
+              ? `${response.error}${methodHint}`
+              : 'No schedule data found on this page',
+          ),
         ],
         isValid: false,
         sourceFormat: 'url',
