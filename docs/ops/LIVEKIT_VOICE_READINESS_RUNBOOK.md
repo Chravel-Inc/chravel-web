@@ -63,7 +63,7 @@ In LiveKit Cloud dashboard, confirm these env vars are set for the `chravel-voic
 - `GOOGLE_API_KEY` — Gemini API key from Google AI Studio
 - `SUPABASE_URL` — Chravel Supabase project URL
 - `SUPABASE_SERVICE_ROLE_KEY` — Supabase service role key
-- `GEMINI_LIVE_MODEL` — e.g. `gemini-live-2.5-flash-native-audio`
+- `GEMINI_LIVE_MODEL` — `gemini-live-2.5-flash-native-audio` (production canonical model; Gemini 3.1 live remains experimental)
 
 ### E) Live session smoke test (required before calling ready)
 

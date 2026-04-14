@@ -43,6 +43,7 @@ type ErrorEvent = {
 
 const { AgentSession, Agent, AgentSessionEventTypes } = voice;
 import { beta } from '@livekit/agents-plugin-google';
+import { resolveRealtimeVoiceModel, GEMINI_LIVE_MODEL_ENV_KEY } from './voiceModel.js';
 import { fetchTripContext } from './context.js';
 import { buildVoicePrompt } from './prompt.js';
 import { ALL_TOOLS, createToolContext, getSupabase } from './tools.js';
@@ -59,9 +60,7 @@ const { RealtimeModel } = beta.realtime;
 // ── Agent Configuration ────────────────────────────────────────────────────────
 
 // Model name for Gemini Live API (must be in LiveKit SDK LiveAPIModels type union)
-// Current GA: gemini-live-2.5-flash-native-audio
-// Future (pending LiveKit plugin fix for Issue #1179): gemini-3.1-flash-live-preview
-const GEMINI_MODEL = process.env.GEMINI_LIVE_MODEL || 'gemini-live-2.5-flash-native-audio';
+const GEMINI_MODEL = resolveRealtimeVoiceModel(process.env[GEMINI_LIVE_MODEL_ENV_KEY]);
 const DEFAULT_VOICE = 'Charon';
 
 function log(event: string, data?: Record<string, unknown>): void {
