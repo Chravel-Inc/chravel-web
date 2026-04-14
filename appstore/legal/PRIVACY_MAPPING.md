@@ -2,7 +2,7 @@
 
 **App Name:** Chravel
 **Bundle ID:** com.chravel.app
-**Last Updated:** December 2025
+**Last Updated:** April 14, 2026
 
 This document maps Chravel's data collection practices to Apple's App Privacy requirements for the App Store "nutrition label."
 
@@ -74,7 +74,7 @@ This document maps Chravel's data collection practices to Apple's App Privacy re
 - Understand user journeys for optimization
 
 **Data Handling:**
-- Collected via Firebase Analytics
+- Collected via PostHog
 - Anonymized after 2 years
 - Used only for product improvement
 
@@ -92,7 +92,7 @@ This document maps Chravel's data collection practices to Apple's App Privacy re
 - Performance data helps optimize app speed
 
 **Data Handling:**
-- Collected via Sentry/Crashlytics
+- Collected via Sentry
 - Crash data linked to user for debugging
 - Performance data is anonymized
 
@@ -164,10 +164,25 @@ The following data types are **NOT** collected by Chravel:
 - **Purpose:** Core app functionality, database, authentication
 - **Privacy Policy:** https://supabase.com/privacy
 
-### Firebase/Google
-- **Data Shared:** Device tokens, analytics events, crash reports
-- **Purpose:** Push notifications, analytics, crash reporting
-- **Privacy Policy:** https://firebase.google.com/support/privacy
+### PostHog
+- **Data Shared:** Usage events, session telemetry, device metadata
+- **Purpose:** Product analytics
+- **Privacy Policy:** https://posthog.com/privacy
+
+### Stream
+- **Data Shared:** Chat messages, channel metadata, user identifiers
+- **Purpose:** Real-time messaging infrastructure
+- **Privacy Policy:** https://getstream.io/legal/privacy/
+
+### LiveKit
+- **Data Shared:** Voice session metadata and audio transport metadata
+- **Purpose:** Real-time voice infrastructure
+- **Privacy Policy:** https://livekit.io/privacy
+
+### RevenueCat
+- **Data Shared:** Subscription status and entitlement events
+- **Purpose:** Subscription entitlement management
+- **Privacy Policy:** https://www.revenuecat.com/privacy
 
 ### Google Maps Platform
 - **Data Shared:** Location queries (not user-identifiable)
@@ -289,7 +304,7 @@ To ensure privacy label accuracy, verify these code locations:
 3. **Location:** `src/hooks/useMapSearch.ts` - Location access
 4. **Analytics:** `src/services/analytics.ts` - Event tracking
 5. **Push Tokens:** `src/services/notificationService.ts` - Token registration
-6. **Crash Reporting:** App initialization - Sentry/Crashlytics setup
+6. **Crash Reporting:** App initialization - Sentry setup
 
 ---
 

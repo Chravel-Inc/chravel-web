@@ -1,0 +1,28 @@
+Chravel keeps your group trip planning in one place.
+
+Plan faster with shared itineraries, group chat, polls, to-dos, map-based discovery, and trip expense tracking built for real coordination.
+
+Key features:
+- Shared trip timelines and collaborative scheduling
+- Real-time group chat for every trip
+- Polls and tasks to align group decisions
+- Places, maps, and saved travel links
+- Group expense tracking and payment coordination
+- AI Concierge to help plan, organize, and summarize
+- Photo and media sharing for trip memories
+
+Built for every type of travel group:
+- Friends and families planning vacations
+- Destination events and group celebrations
+- Organizers running logistics across larger teams
+
+Privacy and account controls:
+- Account deletion available in-app and on the web
+- Authenticated access to collaborative trip content
+- Support and policy pages available at chravel.app
+
+Subscription notes:
+- Some features require a paid plan
+- Subscription management depends on platform billing capabilities
+
+Chravel is a travel coordination app. It is not a booking marketplace or online travel agency.

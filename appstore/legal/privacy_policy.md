@@ -1,7 +1,7 @@
 # Chravel Privacy Policy
 
-**Last Updated:** December 2025
-**Effective Date:** December 2025
+**Last Updated:** April 14, 2026
+**Effective Date:** April 14, 2026
 
 ## Introduction
 
@@ -102,7 +102,10 @@ We share information with trusted service providers who assist in operating our 
 |----------|---------|-------------|
 | Supabase | Database and authentication | Account data, trip data |
 | Google Cloud | Maps and AI services | Location queries, AI prompts |
-| Firebase | Push notifications, analytics | Device tokens, usage events |
+| PostHog | Product analytics | Usage events, session data, device metadata |
+| Stream | Real-time chat and messaging | Messages, channel metadata, user IDs |
+| LiveKit | Real-time voice sessions | Audio stream metadata and session events |
+| RevenueCat | Subscription entitlement management | Subscription status, entitlement events |
 | Stripe | Subscription payments | Email, subscription status |
 | Sentry | Error tracking | Crash reports, device info |
 
@@ -195,7 +198,7 @@ We may update this Privacy Policy from time to time. We will notify you of mater
 If you have questions about this Privacy Policy or our data practices:
 
 **Email:** privacy@chravel.app
-**Address:** Chravel, Inc., [Address to be added]
+**Address:** Chravel, Inc., 2261 Market Street #4820, San Francisco, CA 94114, USA
 **Data Protection Officer:** dpo@chravel.app
 
 ## App Store Privacy Details
@@ -205,4 +208,4 @@ For Apple's App Privacy requirements, see our detailed Privacy Nutrition Label m
 ---
 
 **Chravel, Inc.**
-Copyright 2025. All rights reserved.
+Copyright 2026. All rights reserved.
