@@ -373,7 +373,7 @@ export async function syncRevenueCatEntitlementsForUser(
   }
 
   const syncResult = await supabase.functions.invoke('sync-revenuecat-entitlement', {
-    body: { customerInfo: customerInfoResult.data, user_id: userId },
+    body: { customerInfo: customerInfoResult.data },
   });
 
   if (syncResult.error) {

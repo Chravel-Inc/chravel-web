@@ -637,3 +637,9 @@
 - Reviewed PR conversation and bot feedback on #252; triaged Cursor merge-blocker in `NativeSettings` as valid/high-severity.
 - Fixed temporal dead zone crash by moving `const platform = getPlatform()` above `handleUpgrade` callback closure in `src/components/native/NativeSettings.tsx`.
 - Re-verified critical checks: `npm run typecheck`, `npm run test:run -- src/components/subscription/__tests__/SubscriptionPaywall.test.tsx`, `npm run lint:check` (warnings-only baseline).
+2026-04-14 — PR #265 audit remediation (dead native-upgrade path + sync payload hardening)
+- Triaged Cursor review on PR #265: merge-blocking dead `NativeSettings` paywall path marked valid; non-blocking `user_id` sync payload foot-gun marked valid.
+- Resolved dead-path architecture by removing `NativeSubscriptionPaywall` wiring from `NativeSettings`; upgrade now uses one explicit `onNavigate('subscription')` path in this web repo.
+- Added focused regression test `src/components/native/__tests__/NativeSettings.test.tsx` to lock free-tier upgrade navigation behavior.
+- Removed redundant `user_id` field from `sync-revenuecat-entitlement` invoke body in `syncRevenueCatEntitlementsForUser(...)`.
+- Verification: `npm run test:run -- src/components/native/__tests__/NativeSettings.test.tsx src/components/subscription/__tests__/SubscriptionPaywall.test.tsx`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`.
