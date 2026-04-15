@@ -452,11 +452,23 @@
 }
 
 /* Minimal compatibility shims for common legacy utilities */
+.light .bg-white\/5 {
+  background-color: hsl(0 0% 88%);
+}
 .light .bg-white\/10 {
   background-color: rgba(0, 0, 0, 0.06);
 }
 .light .bg-white\/20 {
   background-color: rgba(0, 0, 0, 0.08);
+}
+.light .bg-gray-800\/50 {
+  background-color: hsl(0 0% 84%);
+}
+.light .text-white\/60 {
+  color: rgba(0, 0, 0, 0.6);
+}
+.light .text-white\/80 {
+  color: rgba(0, 0, 0, 0.8);
 }
 
 /* --- Borders --- */
