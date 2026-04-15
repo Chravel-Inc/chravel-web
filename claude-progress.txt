@@ -809,6 +809,15 @@
   - preserve B2B exception for Android `pro-*` tiers in `canUseWebCheckout` and provider selection.
 - Added focused regression tests in `src/billing/providers/__tests__/index.test.ts` covering platform detection, native flag behavior, Android consumer web-checkout block, Android pro-tier exemption, and unavailable-provider purchase response contract.
 - Verification: `npm run test:run -- src/billing/providers/__tests__/index.test.ts`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`, `npm run merge:preflight` (blocked in this environment: cannot fetch `origin/main`).
+
+2026-04-15 — Trip detail light-mode class-state regression coverage + visual QA checklist
+- Added focused component tests for class-state expectations:
+  - `src/components/home/__tests__/TripViewToggle.test.tsx` verifies on/off state attributes and hover/on/off class tokens for tab controls.
+  - `src/components/share/__tests__/ShareTripModal.lightModeButtons.test.tsx` verifies Copy/Share buttons retain expected light-mode-safe utility classes.
+  - Extended `src/components/invite/__tests__/InviteLinkSection.test.tsx` with Copy/Share class-state assertions under light mode context.
+- Added light-theme hover utility remap for `hover:bg-[#3a3a3a]` in `src/index.css` to prevent low-contrast hover combinations in light mode.
+- Added visual QA runbook `docs/qa/trip-detail-tabs-visual-qa-checklist.md` covering Chat/Calendar/Payments/Places/Polls/Tasks/Create Trip/Share modal plus explicit contrast and no-pure-white-glare pass criteria.
+- Verification: targeted vitest for new/updated test files, typecheck, merge preflight (fetch origin/main blocked in this environment).
 2026-04-15 — Light-mode semantic text token alignment (payments/tasks/polls/calendar/basecamps)
 - Replaced hardcoded `text-white` / `text-gray-300` / `text-gray-200` foreground classes with semantic text tokens (`text-foreground`, `text-muted-foreground`) in:
   - `src/components/payments/PaymentInput.tsx`
