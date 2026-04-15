@@ -177,7 +177,7 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
       <CardContent className="p-6">
         <div className="flex items-center gap-2 mb-6">
           <DollarSign size={20} className="text-emerald-400" />
-          <span className="text-base font-semibold text-white">Payment Details</span>
+          <span className="text-base font-semibold text-foreground">Payment Details</span>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -185,7 +185,7 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* 1. Amount (first - most important) */}
             <div className="flex flex-col space-y-1">
-              <Label htmlFor="amount" className="text-sm font-medium text-gray-300">
+              <Label htmlFor="amount" className="text-sm font-medium text-muted-foreground">
                 Amount
               </Label>
               <Input
@@ -195,14 +195,14 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
                 value={amount || ''}
                 onChange={e => setAmount(Number(e.target.value))}
                 placeholder="0.00"
-                className="w-full h-12 rounded-xl bg-glass-slate-bg border border-glass-slate-border text-white px-4 focus:ring-2 focus:ring-primary/40 focus:outline-none placeholder-gray-500 transition-all"
+                className="w-full h-12 rounded-xl bg-glass-slate-bg border border-glass-slate-border text-foreground px-4 focus:ring-2 focus:ring-primary/40 focus:outline-none placeholder-gray-500 transition-all"
                 required
               />
             </div>
 
             {/* 2. Description (second - what was it for?) */}
             <div className="flex flex-col space-y-1">
-              <Label htmlFor="description" className="text-sm font-medium text-gray-300">
+              <Label htmlFor="description" className="text-sm font-medium text-muted-foreground">
                 What's this for?
               </Label>
               <textarea
@@ -210,14 +210,14 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
                 value={description}
                 onChange={e => setDescription(e.target.value)}
                 placeholder="Dinner, taxi, tickets, etc."
-                className="w-full h-12 resize-none rounded-xl bg-glass-slate-bg border border-glass-slate-border text-white px-4 py-2 focus:ring-2 focus:ring-primary/40 focus:outline-none placeholder-gray-500 transition-all"
+                className="w-full h-12 resize-none rounded-xl bg-glass-slate-bg border border-glass-slate-border text-foreground px-4 py-2 focus:ring-2 focus:ring-primary/40 focus:outline-none placeholder-gray-500 transition-all"
                 required
               />
             </div>
 
             {/* 3. Currency (third - typically less frequently changed) */}
             <div className="flex flex-col space-y-1">
-              <Label htmlFor="currency" className="text-sm font-medium text-gray-300">
+              <Label htmlFor="currency" className="text-sm font-medium text-muted-foreground">
                 Currency
               </Label>
               <CurrencySelector value={currency} onChange={setCurrency} />
@@ -229,7 +229,7 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Users size={16} className="text-emerald-400" />
-                <h4 className="text-sm font-semibold text-gray-200">
+                <h4 className="text-sm font-semibold text-muted-foreground">
                   Split between {selectedParticipants.length} people
                   {amountPerPerson > 0 && (
                     <span className="text-emerald-400 font-semibold ml-1.5">
@@ -285,7 +285,7 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
                       ${
                         isSelected
                           ? 'bg-emerald-500/20 border-2 border-emerald-500 ring-1 ring-emerald-500/30'
-                          : 'bg-glass-slate-bg/50 hover:bg-white/10 border-2 border-transparent'
+                          : 'bg-glass-slate-bg/50 hover:bg-muted/60 border-2 border-transparent'
                       }
                     `}
                   >
@@ -295,8 +295,8 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
                       w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all
                       ${
                         isSelected
-                          ? 'bg-emerald-500 text-white'
-                          : 'bg-gray-700 border border-gray-600'
+                          ? 'bg-emerald-500 text-foreground'
+                          : 'bg-muted border border-border'
                       }
                     `}
                     >
@@ -310,7 +310,7 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
                       />
                     )}
                     <span
-                      className={`text-sm whitespace-nowrap ${isSelected ? 'text-white font-medium' : 'text-gray-300'}`}
+                      className={`text-sm whitespace-nowrap ${isSelected ? 'text-foreground font-medium' : 'text-muted-foreground'}`}
                     >
                       {member.name}
                     </span>
@@ -325,7 +325,9 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <CheckSquare size={16} className="text-emerald-400" />
-                <h4 className="text-sm font-semibold text-gray-200">Preferred payment methods</h4>
+                <h4 className="text-sm font-semibold text-muted-foreground">
+                  Preferred payment methods
+                </h4>
               </div>
               <button
                 type="button"
@@ -351,7 +353,7 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
                       ${
                         isSelected
                           ? 'bg-emerald-500/20 border-2 border-emerald-500 ring-1 ring-emerald-500/30'
-                          : 'bg-glass-slate-bg border-2 border-glass-slate-border hover:bg-white/10'
+                          : 'bg-glass-slate-bg border-2 border-glass-slate-border hover:bg-muted/60'
                       }
                     `}
                   >
@@ -361,15 +363,15 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
                       w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all
                       ${
                         isSelected
-                          ? 'bg-emerald-500 text-white'
-                          : 'bg-gray-700 border border-gray-600'
+                          ? 'bg-emerald-500 text-foreground'
+                          : 'bg-muted border border-border'
                       }
                     `}
                     >
                       {isSelected && <Check size={12} strokeWidth={3} />}
                     </div>
                     <span
-                      className={`text-sm ${isSelected ? 'text-white font-medium' : 'text-gray-200'}`}
+                      className={`text-sm ${isSelected ? 'text-foreground font-medium' : 'text-muted-foreground'}`}
                     >
                       {method.label}
                     </span>

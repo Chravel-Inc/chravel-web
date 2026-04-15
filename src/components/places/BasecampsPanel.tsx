@@ -342,14 +342,14 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <MapPin size={16} className="text-gold-primary flex-shrink-0" />
-                    <h3 className="text-white font-semibold text-sm md:text-base">
+                    <h3 className="text-foreground font-semibold text-sm md:text-base">
                       Trip Base Camp
                     </h3>
                   </div>
                   <button
                     onClick={() => setShowTripSelector(true)}
                     aria-label="Edit trip base camp"
-                    className="bg-white/10 hover:bg-white/15 text-gray-200 px-3 py-2 rounded-lg transition-colors text-sm border border-white/10 min-h-[44px] flex items-center"
+                    className="bg-muted/60 hover:bg-muted text-muted-foreground px-3 py-2 rounded-lg transition-colors text-sm border border-border min-h-[44px] flex items-center"
                   >
                     Edit
                   </button>
@@ -360,11 +360,11 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                     <MapPin size={18} className="text-sky-400 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       {tripBasecamp.name && (
-                        <p className="text-white font-semibold text-base md:text-lg truncate">
+                        <p className="text-foreground font-semibold text-base md:text-lg truncate">
                           {tripBasecamp.name}
                         </p>
                       )}
-                      <p className="text-gray-300 text-base md:text-lg break-words">
+                      <p className="text-muted-foreground text-base md:text-lg break-words">
                         {tripBasecamp.address}
                       </p>
                     </div>
@@ -375,7 +375,9 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
               <>
                 <div className="flex items-center gap-2 mb-2">
                   <MapPin size={16} className="text-gold-primary flex-shrink-0" />
-                  <h3 className="text-white font-semibold text-sm md:text-base">Trip Base Camp</h3>
+                  <h3 className="text-foreground font-semibold text-sm md:text-base">
+                    Trip Base Camp
+                  </h3>
                 </div>
                 <p className="text-gray-400 text-xs mb-2">
                   No basecamp set. Set one so the group can align meetups & recs.
@@ -398,15 +400,15 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
           <div className="p-2.5">
             {loading ? (
               <div className="animate-pulse">
-                <div className="h-5 bg-gray-800 rounded mb-2 w-1/2"></div>
-                <div className="h-12 bg-gray-800 rounded"></div>
+                <div className="h-5 bg-muted/60 rounded mb-2 w-1/2"></div>
+                <div className="h-12 bg-muted/60 rounded"></div>
               </div>
             ) : personalBasecamp ? (
               <>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <User size={16} className="text-emerald-400 flex-shrink-0" />
-                    <h3 className="text-white font-semibold text-sm md:text-base">
+                    <h3 className="text-foreground font-semibold text-sm md:text-base">
                       Personal Base Camp
                     </h3>
                     <span className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-xs bg-emerald-900/40 text-emerald-200 border border-emerald-500/30">
@@ -417,7 +419,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                   <button
                     onClick={() => setShowPersonalSelector(true)}
                     aria-label="Edit personal base camp"
-                    className="bg-white/10 hover:bg-white/15 text-gray-200 px-3 py-2 rounded-lg transition-colors text-sm border border-white/10 min-h-[44px] flex items-center"
+                    className="bg-muted/60 hover:bg-muted text-muted-foreground px-3 py-2 rounded-lg transition-colors text-sm border border-border min-h-[44px] flex items-center"
                   >
                     Edit
                   </button>
@@ -428,11 +430,11 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                     <MapPin size={18} className="text-emerald-400 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       {personalBasecamp.name && (
-                        <p className="text-white font-semibold text-base md:text-lg truncate">
+                        <p className="text-foreground font-semibold text-base md:text-lg truncate">
                           {personalBasecamp.name}
                         </p>
                       )}
-                      <p className="text-gray-300 text-base md:text-lg break-words">
+                      <p className="text-muted-foreground text-base md:text-lg break-words">
                         {personalBasecamp.address}
                       </p>
                       <span className="inline-flex items-center gap-1 mt-1 text-xs text-gray-400">
@@ -458,7 +460,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
               <>
                 <div className="flex items-center gap-2 mb-2">
                   <User size={16} className="text-emerald-400 flex-shrink-0" />
-                  <h3 className="text-white font-semibold text-sm md:text-base">
+                  <h3 className="text-foreground font-semibold text-sm md:text-base">
                     Personal Base Camp
                   </h3>
                   <span className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-xs bg-emerald-900/40 text-emerald-200 border border-emerald-500/30">
