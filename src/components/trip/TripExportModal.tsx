@@ -120,7 +120,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-2">
-      <div className="bg-gray-900 rounded-t-2xl sm:rounded-xl shadow-2xl max-w-md w-full max-h-[80vh] sm:max-h-[85vh] border border-gray-700 flex flex-col">
+      <div className="bg-gray-900 rounded-t-2xl sm:rounded-xl shadow-2xl max-w-md w-full max-h-[min(80vh,100dvh)] sm:max-h-[min(85vh,100dvh)] border border-gray-700 flex min-h-0 flex-col">
         {/* Header */}
         <div
           className="flex items-center justify-between p-3 border-b border-gray-700 flex-shrink-0"
@@ -143,7 +143,8 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
 
         {/* Content */}
         <div
-          className="p-3 overflow-y-auto flex-1"
+          data-testid="trip-export-modal-scroll"
+          className="min-h-0 min-w-0 flex-1 overflow-y-auto p-3"
           style={
             !hasAccess
               ? { paddingBottom: 'max(12px, calc(env(safe-area-inset-bottom, 0px) + 12px))' }
