@@ -414,7 +414,7 @@ export const ChatInput = ({
         <div
           ref={dropZoneRef}
           className={cn(
-            'chat-composer flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 bg-neutral-950/90 backdrop-blur-md relative transition-all duration-200 w-full rounded-xl border border-white/10',
+            'chat-composer flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 bg-card/90 backdrop-blur-md relative transition-all duration-200 w-full rounded-xl border border-border/60',
             isDragActive && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
           )}
           style={safeAreaBottom ? { paddingBottom: 'env(safe-area-inset-bottom, 0px)' } : undefined}
@@ -489,8 +489,8 @@ export const ChatInput = ({
             className={cn(
               'flex-1 min-h-[38px] sm:min-h-[44px] px-3 sm:px-4 py-2 rounded-full resize-none focus:outline-none focus-visible:ring-2 transition-all',
               isBroadcastMode
-                ? 'bg-white/5 border border-[#B91C1C]/50 focus-visible:ring-[#B91C1C]/40 backdrop-blur-sm text-white placeholder-red-800/80'
-                : 'bg-white/5 border border-white/10 focus-visible:ring-primary/40 backdrop-blur-sm text-white placeholder-neutral-400',
+                ? 'bg-destructive/10 border border-destructive/50 focus-visible:ring-destructive/40 backdrop-blur-sm text-foreground placeholder:text-destructive/70'
+                : 'bg-muted/70 border border-border/70 focus-visible:ring-primary/40 backdrop-blur-sm text-foreground placeholder:text-muted-foreground',
             )}
           />
 

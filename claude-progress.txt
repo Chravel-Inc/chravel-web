@@ -1,3 +1,10 @@
+2026-04-15 — Chat theme-token translucency + light-mode contrast hardening
+- Replaced hardcoded dark translucent chat shells in `TripChat` with semantic tokenized surfaces (`bg-card/70`, `bg-muted/60`, `border-border/60`) for the message container, inline reply bar, and chat-mode restriction banner.
+- Updated `ChatInput` composer from `bg-neutral-950/90` to semantic `bg-card/90` and switched input variants to tokenized semantic surfaces:
+  - Standard mode now uses `bg-muted/70` + `text-foreground` + `placeholder:text-muted-foreground`.
+  - Broadcast mode keeps a distinct red treatment via destructive tokens (`bg-destructive/10`, `border-destructive/50`, `focus-visible:ring-destructive/40`) while preserving readable foreground text in both themes.
+- Improved typing indicator readability in light mode by replacing fixed `text-gray-400` with `text-muted-foreground`.
+- Verification: `npm run test:run -- src/features/chat/components/__tests__/ChatInput.test.tsx src/features/chat/components/__tests__/TripChat.deleteMessage.test.tsx`, `npm run typecheck`, `npm run merge:preflight` (blocked in this environment: cannot fetch `origin/main`).
 2026-04-15 — Light theme token tightening + brittle selector reduction
 - Tightened light-mode core tokens in `src/index.css` to a softer gray band: background 80%, card 91%, input 94%, with matching glass-slate tokens (`--glass-slate-bg/card/border`) and standalone PWA shell update.
 - Reduced brittle light-mode compatibility selectors by removing broad `[class*='...']` wildcard overrides and retaining minimal explicit class shims (`.bg-white/10`, `.bg-white/20`, `.border-white/10`, `.border-white/20`, plus dark-section explicit variants).
