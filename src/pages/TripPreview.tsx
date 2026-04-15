@@ -26,6 +26,13 @@ interface TripPreviewData {
 const isUuid = (value: string): boolean =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 
+/** Main app route for a trip (not the public `/preview` landing page). */
+function getMainTripPath(tripId: string, tripType: string | null | undefined): string {
+  if (tripType === 'pro') return `/tour/pro/${tripId}`;
+  if (tripType === 'event') return `/event/${tripId}`;
+  return `/trip/${tripId}`;
+}
+
 /**
  * Generate a contextual urgency line from trip start date.
  * Returns null if no start date or trip is in the past.
@@ -158,6 +165,13 @@ const TripPreview = () => {
     };
   }, [user, tripId]);
 
+  // Members who open a shared preview URL expect the full trip (including chat).
+  // `/trip/:id/preview` is marketing-only — redirect so Stream chat + composer are available.
+  useEffect(() => {
+    if (!user || !tripId || !isUuid(tripId) || !tripData || isMember !== true) return;
+    navigate(getMainTripPath(tripId, tripData.trip_type), { replace: true });
+  }, [user, tripId, tripData, isMember, navigate]);
+
   const fetchTripPreview = async () => {
     if (!tripId) return;
 
@@ -239,17 +253,7 @@ const TripPreview = () => {
   const handleViewTrip = async () => {
     if (!tripId) return;
 
-    const resolvedTripType =
-      tripData?.trip_type === 'pro' || tripData?.trip_type === 'event'
-        ? tripData.trip_type
-        : 'consumer';
-
-    const tripRoute =
-      resolvedTripType === 'pro'
-        ? `/tour/pro/${tripId}`
-        : resolvedTripType === 'event'
-          ? `/event/${tripId}`
-          : `/trip/${tripId}`;
+    const tripRoute = tripData ? getMainTripPath(tripId, tripData.trip_type) : `/trip/${tripId}`;
 
     const isDemoTrip = !isUuid(tripId);
 

@@ -87,4 +87,22 @@ describe('TripPreview invite flow', () => {
       expect(screen.getByText('Join Route')).toBeInTheDocument();
     });
   });
+
+  it('redirects authenticated members from /preview to the main trip shell (chat lives there, not on preview)', async () => {
+    mockMaybeSingle.mockResolvedValue({ data: { id: 'tm-1' }, error: null });
+
+    render(
+      <MemoryRouter initialEntries={['/trip/11111111-1111-4111-8111-111111111111/preview']}>
+        <Routes>
+          <Route path="/trip/:tripId/preview" element={<TripPreview />} />
+          <Route path="/trip/:tripId" element={<div>Trip shell</div>} />
+          <Route path="/join/:token" element={<div>Join Route</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Trip shell')).toBeInTheDocument();
+    });
+  });
 });
