@@ -795,3 +795,9 @@
   - preserve B2B exception for Android `pro-*` tiers in `canUseWebCheckout` and provider selection.
 - Added focused regression tests in `src/billing/providers/__tests__/index.test.ts` covering platform detection, native flag behavior, Android consumer web-checkout block, Android pro-tier exemption, and unavailable-provider purchase response contract.
 - Verification: `npm run test:run -- src/billing/providers/__tests__/index.test.ts`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`, `npm run merge:preflight` (blocked in this environment: cannot fetch `origin/main`).
+
+2026-04-15 — Toggle contrast hardening for trip view/tab controls (light/dark safe)
+- Removed forced `data-[state=on]:text-accent-foreground` from shared `toggleVariants` base in `src/components/ui/toggle.tsx` to prevent unreadable on-state text in light mode.
+- Updated `src/components/home/TripViewToggle.tsx` with explicit token-safe on/off/hover state classes and focus-visible ring classes for keyboard accessibility.
+- Updated `src/components/mobile/MobileTripTabs.tsx` tab button state classes for parity: active uses `bg-background text-foreground`, inactive uses `text-muted-foreground` with `hover:text-foreground`, avoiding hardcoded white in light mode.
+- Verification: `npm run typecheck`, `npx eslint src/components/ui/toggle.tsx src/components/home/TripViewToggle.tsx src/components/mobile/MobileTripTabs.tsx`, `npm run merge:preflight` (pre/post edit; blocked by origin fetch in this environment).
