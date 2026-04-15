@@ -1605,3 +1605,9 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Fix WebKit pointy shadow corners on rounded containers with backdrop-blur in light mode */
+.light .rounded-2xl.backdrop-blur-xl {
+  -webkit-transform: translateZ(0);
+  isolation: isolate;
+}
