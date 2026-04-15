@@ -105,7 +105,7 @@ export const CreatePollForm = ({
     <div className="bg-glass-slate-card border border-glass-slate-border rounded-2xl p-6 shadow-enterprise-lg">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-white">
+          <h3 className="text-lg font-semibold text-foreground">
             {isInlineEmptyState ? 'Create your first poll' : 'Create New Poll'}
           </h3>
           {isInlineEmptyState && (
@@ -125,19 +125,19 @@ export const CreatePollForm = ({
       <div className="space-y-4">
         {/* Question */}
         <div>
-          <label className="block text-sm font-semibold text-white mb-2">Poll Question</label>
+          <label className="block text-sm font-semibold text-foreground mb-2">Poll Question</label>
           <Input
             type="text"
             value={question}
             onChange={e => setQuestion(e.target.value)}
             placeholder="What would you like to ask the group?"
-            className="w-full bg-glass-slate-bg border-glass-slate-border text-white placeholder-gray-500"
+            className="w-full bg-glass-slate-bg border-glass-slate-border text-foreground placeholder-gray-500"
           />
         </div>
 
         {/* Options */}
         <div>
-          <label className="block text-sm font-semibold text-white mb-2">Options</label>
+          <label className="block text-sm font-semibold text-foreground mb-2">Options</label>
           <div className="space-y-2">
             {options.map((option, index) => (
               <div key={index} className="flex gap-2">
@@ -146,7 +146,7 @@ export const CreatePollForm = ({
                   value={option}
                   onChange={e => handleOptionChange(index, e.target.value)}
                   placeholder={`Option ${index + 1}`}
-                  className="flex-1 bg-glass-slate-bg border-glass-slate-border text-white placeholder-gray-500"
+                  className="flex-1 bg-glass-slate-bg border-glass-slate-border text-foreground placeholder-gray-500"
                 />
                 {options.length > 2 && (
                   <button
@@ -179,7 +179,10 @@ export const CreatePollForm = ({
           {/* Multiple Choice */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Label htmlFor="multiple-choice" className="text-sm text-gray-300 cursor-pointer">
+              <Label
+                htmlFor="multiple-choice"
+                className="text-sm text-muted-foreground cursor-pointer"
+              >
                 Allow multiple selections
               </Label>
               <TooltipProvider>
@@ -203,7 +206,7 @@ export const CreatePollForm = ({
           {/* Anonymous Voting */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Label htmlFor="anonymous" className="text-sm text-gray-300 cursor-pointer">
+              <Label htmlFor="anonymous" className="text-sm text-muted-foreground cursor-pointer">
                 Anonymous voting
               </Label>
               <TooltipProvider>
@@ -227,7 +230,10 @@ export const CreatePollForm = ({
           {/* Allow Vote Changes */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Label htmlFor="allow-changes" className="text-sm text-gray-300 cursor-pointer">
+              <Label
+                htmlFor="allow-changes"
+                className="text-sm text-muted-foreground cursor-pointer"
+              >
                 Allow vote changes
               </Label>
               <TooltipProvider>
@@ -250,7 +256,7 @@ export const CreatePollForm = ({
 
           {/* Deadline */}
           <div className="pt-3 border-t border-glass-slate-border/50">
-            <Label className="text-sm text-gray-300 mb-2 flex items-center gap-2">
+            <Label className="text-sm text-muted-foreground mb-2 flex items-center gap-2">
               <Clock size={14} />
               Optional Deadline
             </Label>
@@ -260,14 +266,14 @@ export const CreatePollForm = ({
                 value={deadlineDate}
                 onChange={e => setDeadlineDate(e.target.value)}
                 min={new Date().toISOString().split('T')[0]}
-                className="flex-1 bg-glass-slate-bg border-glass-slate-border text-white text-sm h-11"
+                className="flex-1 bg-glass-slate-bg border-glass-slate-border text-foreground text-sm h-11"
               />
               <Input
                 type="time"
                 value={deadlineTime}
                 onChange={e => setDeadlineTime(e.target.value)}
                 disabled={!deadlineDate}
-                className="w-32 bg-glass-slate-bg border-glass-slate-border text-white text-sm h-11"
+                className="w-32 bg-glass-slate-bg border-glass-slate-border text-foreground text-sm h-11"
               />
             </div>
             {deadlineDate && (
@@ -289,7 +295,7 @@ export const CreatePollForm = ({
           <Button
             onClick={handleCancel}
             variant="outline"
-            className="flex-1 h-10 rounded-lg border-glass-slate-border text-gray-300 hover:text-white hover:bg-glass-slate-bg"
+            className="flex-1 h-10 rounded-lg border-glass-slate-border text-muted-foreground hover:text-foreground hover:bg-glass-slate-bg"
           >
             Cancel
           </Button>

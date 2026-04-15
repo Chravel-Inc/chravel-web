@@ -262,9 +262,9 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
                 aria-label={copied ? 'Link copied to clipboard' : 'Copy share link to clipboard'}
                 className={`${
                   copied
-                    ? 'bg-green-700 hover:bg-green-600 border-green-500/40'
-                    : 'bg-[#2a2a2a] hover:bg-[#3a3a3a] border-gold-primary/40'
-                } text-white border shadow-none px-3 h-8 min-w-[44px] min-h-[44px] transition-colors`}
+                    ? 'bg-primary text-primary-foreground border-primary/40 hover:bg-primary/90'
+                    : 'bg-muted text-foreground border-border hover:bg-muted/80'
+                } border shadow-none px-3 h-8 min-w-[44px] min-h-[44px] transition-colors disabled:bg-muted disabled:text-muted-foreground disabled:border-border/70`}
               >
                 {copied ? <Check size={14} /> : <Copy size={14} />}
                 <span className="ml-1.5">{copied ? 'Copied!' : 'Copy'}</span>
@@ -283,7 +283,7 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
                   disabled={isSharing}
                   size="sm"
                   aria-label="Share via device share sheet"
-                  className="bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white border border-gold-primary/40 shadow-none px-3 h-8 min-w-[44px] min-h-[44px]"
+                  className="bg-muted text-foreground border border-border hover:bg-muted/80 shadow-none px-3 h-8 min-w-[44px] min-h-[44px] disabled:bg-muted disabled:text-muted-foreground disabled:border-border/70"
                 >
                   {isSharing ? (
                     <Loader2 size={14} className="animate-spin" />

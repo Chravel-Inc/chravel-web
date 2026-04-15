@@ -160,7 +160,7 @@
     /* Light theme: match app shell so safe-area “gutters” are not near-black */
     html.light,
     html.light body {
-      background-color: hsl(0 0% 96%);
+      background-color: hsl(0 0% 80%);
     }
 
     #root {
@@ -365,31 +365,31 @@
   }
 
   .light {
-    /* Soft light gray palette — not harsh white, pleasant to view */
-    --background: 0 0% 96%; /* Soft off-white */
+    /* Soft gray light palette (intentionally tighter, lower-contrast than white UIs) */
+    --background: 0 0% 80%;
     --foreground: 0 0% 0%; /* Pure black text */
 
-    --card: 0 0% 100%; /* White cards float above gray bg */
+    --card: 0 0% 91%;
     --card-foreground: 0 0% 0%; /* Black text on cards */
 
-    --popover: 0 0% 100%; /* White popovers for contrast */
+    --popover: 0 0% 93%;
     --popover-foreground: 0 0% 0%; /* Black text on popovers */
 
-    --secondary: 0 0% 92%;
+    --secondary: 0 0% 88%;
     --secondary-foreground: 0 0% 10%;
 
-    --muted: 0 0% 88%;
+    --muted: 0 0% 86%;
     --muted-foreground: 0 0% 40%;
 
-    --border: 0 0% 83%;
-    --input: 0 0% 100%; /* White inputs on gray bg for clarity */
+    --border: 0 0% 84%;
+    --input: 0 0% 94%; /* Inputs sit above card for separation */
 
     /* Sidebar - Inverted */
-    --sidebar-background: 0 0% 97%;
+    --sidebar-background: 0 0% 82%;
     --sidebar-foreground: 0 0% 10%;
     --sidebar-primary: 37 55% 52%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 90%;
+    --sidebar-accent: 0 0% 88%;
     --sidebar-accent-foreground: 0 0% 10%;
     --sidebar-border: 0 0% 83%;
     --sidebar-ring: 37 55% 52%;
@@ -397,18 +397,18 @@
     /* Payment Colors - Inverted for Light Mode */
     --payment-primary: 37 55% 52%;
     --payment-primary-foreground: 0 0% 0%;
-    --payment-background: 0 0% 96%;
-    --payment-background-light: 0 0% 97%;
-    --payment-border: 0 0% 88%;
+    --payment-background: 0 0% 82%;
+    --payment-background-light: 0 0% 90%;
+    --payment-border: 0 0% 84%;
     --payment-text: 0 0% 10%;
 
     /* Slightly darker gold for focus ring visibility on light backgrounds */
     --ring: 37 55% 42%;
 
     /* Glass-slate tokens — light mode */
-    --glass-slate-bg: 0 0% 96%;
-    --glass-slate-card: 0 0% 100%;
-    --glass-slate-border: 0 0% 85%;
+    --glass-slate-bg: 0 0% 80%;
+    --glass-slate-card: 0 0% 91%;
+    --glass-slate-border: 0 0% 84%;
   }
 }
 
@@ -418,6 +418,9 @@
    responds to the .light class without touching 200+ component files.
    Gold accents, status colors, and chat bubbles are intentionally
    left unchanged.
+
+   Theme rule: no hardcoded hex dark colors in theme-aware components.
+   Use semantic tokens (e.g. bg-background, bg-card, glass-slate tokens).
    ═══════════════════════════════════════════════════════════════ */
 
 /* --- Text --- */
@@ -448,19 +451,12 @@
   background-color: hsl(0 0% 90%);
 }
 
-/* Semi-transparent white overlays → semi-transparent black */
-.light [class*='bg-white\\/5'] {
-  background-color: rgba(0, 0, 0, 0.04);
-}
-.light [class*='bg-white\\/10'] {
+/* Minimal compatibility shims for common legacy utilities */
+.light .bg-white\/10 {
   background-color: rgba(0, 0, 0, 0.06);
 }
-.light [class*='bg-white\\/20'] {
+.light .bg-white\/20 {
   background-color: rgba(0, 0, 0, 0.08);
-}
-/* bg-gray-800/50 — common for inputs/selects */
-.light [class*='bg-gray-800\\/'] {
-  background-color: rgba(0, 0, 0, 0.04);
 }
 
 /* --- Borders --- */
@@ -470,10 +466,10 @@
 .light .border-gray-700 {
   border-color: hsl(0 0% 85%);
 }
-.light [class*='border-white\\/10'] {
+.light .border-white\/10 {
   border-color: rgba(0, 0, 0, 0.1);
 }
-.light [class*='border-white\\/20'] {
+.light .border-white\/20 {
   border-color: rgba(0, 0, 0, 0.15);
 }
 
@@ -513,7 +509,7 @@
 /* --- PWA standalone background --- */
 @media (display-mode: standalone) {
   .light body {
-    background-color: hsl(0 0% 96%);
+    background-color: hsl(0 0% 80%);
   }
 }
 
@@ -522,88 +518,26 @@
   color: hsl(0 0% 20%);
 }
 
-/* --- Semi-transparent black overlays (chat, content areas) --- */
-.light [class*='bg-black\\/40'] {
-  background-color: rgba(0, 0, 0, 0.03);
-}
-.light [class*='bg-black\\/30'] {
-  background-color: rgba(0, 0, 0, 0.03);
-}
-.light [class*='bg-black\\/60'] {
-  background-color: rgba(0, 0, 0, 0.06);
-}
-.light [class*='bg-black\\/70'] {
-  background-color: rgba(0, 0, 0, 0.08);
-}
-.light [class*='bg-black\\/25'] {
-  background-color: rgba(0, 0, 0, 0.04);
-}
-.light [class*='bg-black\\/20'] {
-  background-color: rgba(0, 0, 0, 0.02);
-}
-.light [class*='bg-black\\/90'] {
-  background-color: hsl(0 0% 97%);
-}
-.light [class*='bg-black\\/95'] {
-  background-color: hsl(0 0% 97%);
-}
-
 /* --- Slate / zinc / neutral (chat, modals, inputs — not covered by gray-* remap) --- */
 .light .bg-slate-950,
 .light .bg-slate-900,
 .light .bg-slate-800,
 .light .bg-slate-700 {
-  background-color: hsl(0 0% 96%);
-}
-.light [class*='bg-slate-950\\/'] {
-  background-color: rgba(250, 250, 250, var(--tw-bg-opacity, 0.95));
-}
-.light [class*='bg-slate-900\\/'] {
-  background-color: rgba(250, 250, 250, var(--tw-bg-opacity, 0.92));
-}
-.light [class*='bg-slate-800\\/'] {
-  background-color: rgba(248, 248, 248, var(--tw-bg-opacity, 0.88));
-}
-.light [class*='bg-slate-700\\/'] {
-  background-color: rgba(245, 245, 245, var(--tw-bg-opacity, 0.85));
+  background-color: hsl(0 0% 90%);
 }
 
 .light .bg-neutral-950,
 .light .bg-neutral-900,
 .light .bg-neutral-800,
 .light .bg-neutral-700 {
-  background-color: hsl(0 0% 96%);
-}
-.light [class*='bg-neutral-950\\/'] {
-  background-color: rgba(250, 250, 250, var(--tw-bg-opacity, 0.95));
-}
-.light [class*='bg-neutral-900\\/'] {
-  background-color: rgba(250, 250, 250, var(--tw-bg-opacity, 0.92));
-}
-.light [class*='bg-neutral-800\\/'] {
-  background-color: rgba(248, 248, 248, var(--tw-bg-opacity, 0.88));
-}
-.light [class*='bg-neutral-700\\/'] {
-  background-color: rgba(245, 245, 245, var(--tw-bg-opacity, 0.85));
+  background-color: hsl(0 0% 90%);
 }
 
 .light .bg-zinc-950,
 .light .bg-zinc-900,
 .light .bg-zinc-800,
 .light .bg-zinc-700 {
-  background-color: hsl(0 0% 96%);
-}
-.light [class*='bg-zinc-950\\/'] {
-  background-color: rgba(250, 250, 250, var(--tw-bg-opacity, 0.95));
-}
-.light [class*='bg-zinc-900\\/'] {
-  background-color: rgba(250, 250, 250, var(--tw-bg-opacity, 0.92));
-}
-.light [class*='bg-zinc-800\\/'] {
-  background-color: rgba(248, 248, 248, var(--tw-bg-opacity, 0.88));
-}
-.light [class*='bg-zinc-700\\/'] {
-  background-color: rgba(245, 245, 245, var(--tw-bg-opacity, 0.85));
+  background-color: hsl(0 0% 90%);
 }
 
 .light .text-slate-50,
@@ -654,17 +588,10 @@
 .light .border-slate-800 {
   border-color: hsl(0 0% 82%);
 }
-.light [class*='border-slate-600\\/'],
-.light [class*='border-slate-700\\/'] {
-  border-color: rgba(0, 0, 0, 0.12);
-}
 
 .light .border-neutral-700,
 .light .border-neutral-800 {
   border-color: hsl(0 0% 82%);
-}
-.light [class*='border-neutral-800\\/'] {
-  border-color: rgba(0, 0, 0, 0.1);
 }
 
 .light .placeholder\:text-slate-400::placeholder,
@@ -755,11 +682,11 @@
 .light .dark-section .bg-black {
   background-color: black;
 }
-.light .dark-section [class*='bg-white\\/'] {
-  background-color: rgba(255, 255, 255, var(--tw-bg-opacity, 0.1));
+.light .dark-section .bg-white\/10 {
+  background-color: rgba(255, 255, 255, 0.1);
 }
-.light .dark-section [class*='border-white\\/'] {
-  border-color: rgba(255, 255, 255, var(--tw-border-opacity, 0.1));
+.light .dark-section .border-white\/10 {
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 @layer base {

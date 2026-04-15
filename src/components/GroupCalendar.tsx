@@ -384,27 +384,27 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
           {/* Calendar skeleton */}
           <div className="bg-glass-slate-card border border-glass-slate-border rounded-2xl p-4 flex flex-col gap-3 h-full shadow-enterprise-lg">
             <div className="flex items-center justify-between mb-2">
-              <div className="h-5 w-5 rounded bg-white/10 animate-pulse" />
-              <div className="h-5 w-28 rounded bg-white/10 animate-pulse" />
-              <div className="h-5 w-5 rounded bg-white/10 animate-pulse" />
+              <div className="h-5 w-5 rounded bg-muted/60 animate-pulse" />
+              <div className="h-5 w-28 rounded bg-muted/60 animate-pulse" />
+              <div className="h-5 w-5 rounded bg-muted/60 animate-pulse" />
             </div>
             <div className="grid grid-cols-7 gap-1">
               {Array.from({ length: 7 }).map((_, i) => (
-                <div key={i} className="h-4 rounded bg-white/5 animate-pulse" />
+                <div key={i} className="h-4 rounded bg-muted/40 animate-pulse" />
               ))}
             </div>
             <div className="grid grid-cols-7 gap-1 flex-1">
               {Array.from({ length: 35 }).map((_, i) => (
-                <div key={i} className="h-8 rounded bg-white/5 animate-pulse" />
+                <div key={i} className="h-8 rounded bg-muted/40 animate-pulse" />
               ))}
             </div>
           </div>
           {/* Event list skeleton */}
           <div className="bg-glass-slate-card border border-glass-slate-border rounded-2xl p-4 flex flex-col h-full shadow-enterprise-lg">
-            <div className="h-5 w-48 rounded bg-white/10 animate-pulse mb-4" />
+            <div className="h-5 w-48 rounded bg-muted/60 animate-pulse mb-4" />
             <div className="space-y-3 flex-1">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-16 rounded-lg bg-white/5 animate-pulse" />
+                <div key={i} className="h-16 rounded-lg bg-muted/40 animate-pulse" />
               ))}
             </div>
           </div>
@@ -431,7 +431,7 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
           </div>
 
           <div className="bg-glass-slate-card border border-glass-slate-border rounded-2xl p-4 flex flex-col h-full shadow-enterprise-lg">
-            <h3 className="text-white font-medium mb-3">
+            <h3 className="text-foreground font-medium mb-3">
               {selectedDate
                 ? `Events for ${format(selectedDate, 'EEEE, MMM d')}`
                 : 'Select a date to view events'}
