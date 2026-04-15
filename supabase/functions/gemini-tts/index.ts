@@ -145,7 +145,6 @@ serve(async req => {
 
   const today = new Date().toISOString().slice(0, 10);
   if (!VOICE_TTS_FREE_FOR_ALL) {
-    let dailyLimit: number | null = FREE_TIER_DAILY_LIMIT;
     const { data: entitlementRows } = await supabase
       .from('user_entitlements')
       .select('user_id, plan, status, current_period_end, purchase_type, updated_at')
@@ -154,19 +153,19 @@ serve(async req => {
       .order('updated_at', { ascending: false });
 
     const entitlementData = pickPrimaryEntitlement(entitlementRows || []);
-    if (
+    const dailyLimit: number | null =
       entitlementData &&
       isActiveEntitlement(entitlementData.status, entitlementData.current_period_end)
-    ) {
-      dailyLimit = mapPlanToDailyLimit(entitlementData.plan);
-    } else {
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('app_role')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      dailyLimit = mapPlanToDailyLimit(profileData?.app_role);
-    }
+        ? mapPlanToDailyLimit(entitlementData.plan)
+        : mapPlanToDailyLimit(
+            (
+              await supabase
+                .from('profiles')
+                .select('app_role')
+                .eq('user_id', user.id)
+                .maybeSingle()
+            ).data?.app_role,
+          );
 
     const { data: usageRow } = await supabase
       .from('tts_usage')
