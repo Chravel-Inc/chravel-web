@@ -128,7 +128,11 @@ export const InviteLinkSection = ({
           disabled={loading || !inviteLink}
           size="sm"
           aria-label={copied ? 'Link copied to clipboard' : 'Copy invite link to clipboard'}
-          className="bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white border border-gold-primary/40 shadow-none px-3 min-h-[44px]"
+          className={`${
+            copied
+              ? 'bg-primary text-primary-foreground border-primary/40 hover:bg-primary/90'
+              : 'bg-muted text-foreground border-border hover:bg-muted/80'
+          } border shadow-none px-3 min-h-[44px] disabled:bg-muted disabled:text-muted-foreground disabled:border-border/70`}
         >
           {copied ? <Check size={14} /> : <Copy size={14} />}
           <span className="hidden sm:inline">{copied ? 'Copied!' : 'Copy'}</span>
@@ -158,7 +162,7 @@ export const InviteLinkSection = ({
             disabled={loading || !inviteLink || isSharing}
             size="sm"
             aria-label="Share invite link via Messages, Email, and more"
-            className="bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white border border-gold-primary/40 shadow-none px-3 min-h-[44px]"
+            className="bg-muted text-foreground border border-border hover:bg-muted/80 shadow-none px-3 min-h-[44px] disabled:bg-muted disabled:text-muted-foreground disabled:border-border/70"
           >
             {isSharing ? <Loader2 size={14} className="animate-spin" /> : <Share2 size={14} />}
             <span className="hidden sm:inline">{isSharing ? 'Sharing...' : 'Share'}</span>

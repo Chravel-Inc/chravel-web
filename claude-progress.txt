@@ -795,3 +795,16 @@
   - preserve B2B exception for Android `pro-*` tiers in `canUseWebCheckout` and provider selection.
 - Added focused regression tests in `src/billing/providers/__tests__/index.test.ts` covering platform detection, native flag behavior, Android consumer web-checkout block, Android pro-tier exemption, and unavailable-provider purchase response contract.
 - Verification: `npm run test:run -- src/billing/providers/__tests__/index.test.ts`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`, `npm run merge:preflight` (blocked in this environment: cannot fetch `origin/main`).
+2026-04-15 — Share/Invite link action buttons tokenized for theme-safe contrast
+- Replaced hardcoded dark Copy/Share button classes in `src/components/share/ShareTripModal.tsx` with semantic token-based styles:
+  - Default/hover: `bg-muted`, `border-border`, `text-foreground`
+  - Copied state: `bg-primary`, `text-primary-foreground`, `border-primary/40`
+  - Disabled state: `disabled:bg-muted`, `disabled:text-muted-foreground`, `disabled:border-border/70`
+- Applied the same semantic button treatment in `src/components/invite/InviteLinkSection.tsx` for Copy/Share buttons and kept copied-state visual feedback aligned.
+- Preserved mobile tap-target constraints (`min-h-[44px]`) and kept URL field styling language (`bg-muted` + `border-border`) visually cohesive with button controls.
+- Verification:
+  - `npm run test:run -- src/components/invite/__tests__/InviteLinkSection.test.tsx`
+  - `npm run typecheck`
+  - `npm run lint:check` (warnings-only baseline)
+  - `npm run build`
+  - `npm run merge:preflight` (blocked in this environment: cannot fetch `origin/main`)
