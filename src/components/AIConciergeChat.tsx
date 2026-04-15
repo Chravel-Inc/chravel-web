@@ -446,7 +446,7 @@ export const AIConciergeChat = ({
             {historyLoadedFromServer && messages.length > 0 && (
               <div className="flex items-center gap-2 mb-4">
                 <div className="flex-1 h-px bg-white/10" />
-                <span className="text-xs text-gray-500 whitespace-nowrap">
+                <span className="text-xs text-gray-700 whitespace-nowrap">
                   ↩ Picked up where you left off
                 </span>
                 <div className="flex-1 h-px bg-white/10" />

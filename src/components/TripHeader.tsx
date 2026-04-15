@@ -781,7 +781,7 @@ export const TripHeader = ({
               {/* Right-aligned: Leave Trip */}
               <button
                 onClick={() => setShowExitConfirm(true)}
-                className="flex items-center justify-center gap-1 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 text-xs font-medium py-1.5 px-2.5 rounded-lg transition-all duration-200 shrink-0"
+                className="flex items-center justify-center gap-1 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700 hover:border-gray-600 text-[#EF4444] text-xs font-medium py-1.5 px-2.5 rounded-lg transition-all duration-200 shrink-0"
                 title="Leave this trip"
               >
                 <LogOut size={14} />

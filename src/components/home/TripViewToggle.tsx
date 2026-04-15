@@ -45,7 +45,7 @@ export const TripViewToggle = ({
               onViewModeChange(value);
             }
           }}
-          className={`bg-card/50 backdrop-blur-xl rounded-2xl p-1 grid ${showRecsTab ? 'grid-cols-4' : 'grid-cols-3'} h-12 sm:h-16 gap-0.5 sm:gap-1`}
+          className={`bg-card/50 backdrop-blur-xl rounded-2xl p-1 shadow-lg grid ${showRecsTab ? 'grid-cols-4' : 'grid-cols-3'} h-12 sm:h-16 gap-0.5 sm:gap-1`}
         >
           <ToggleGroupItem
             value="myTrips"
