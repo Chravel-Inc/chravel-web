@@ -1,40 +1,47 @@
 
-
-# Fix: Places Buttons — Match Tab Bar Style (Gray + Gold Ring)
+# Fix: NativeTabBar Black Background in Light Mode
 
 ## Problem
-The "Set Your Location" and "Get Directions" buttons in the Places tab use solid amber/gold fills (`bg-amber-500`), creating a jarring visual mismatch with the rest of the UI. The tab bar buttons (Chat, Calendar, Places, etc.) use a subtle gray background with a signature gold ring border — these CTA buttons should follow the same pattern.
+The bottom tab bar (`NativeTabBar.tsx`, line 123) uses a hardcoded dark color `bg-[#1c1c1e]/95` — iOS system dark gray. This stays black regardless of light/dark mode.
 
 ## Changes
 
-### 1. "Set Your Location" button — `src/components/places/BasecampsPanel.tsx` (line 477)
+### 1. `src/index.css` — Add light mode override
 
-**Current:** `bg-amber-500 hover:bg-amber-600 text-black`
-**New:** Gray background + gold ring using existing `cta-gold-ring` class:
-```
-bg-gray-800/80 text-white cta-gold-ring hover:opacity-90 hover:scale-[1.01] active:scale-[0.99] transition-all
-```
-This gives it a dark button with gold ring in dark mode. The existing `.light .bg-gray-800\/80` override (from prior fixes) maps it to `hsl(0 0% 84%)` in light mode — matching the tab bar button shade. The `cta-gold-ring` class provides the signature gold gradient border in both modes.
+Add a CSS override for the hardcoded NativeTabBar background:
 
-### 2. "Get Directions" button — `src/components/places/DirectionsEmbed.tsx` (line 274-282)
-
-**Current:** Uses default `<Button>` (which renders as the shadcn primary variant — likely amber/gold fill).
-**New:** Override className to use the same gray + gold ring treatment:
-```
-className="w-full bg-gray-800/80 text-white cta-gold-ring hover:opacity-90 hover:scale-[1.01] active:scale-[0.99] transition-all border-0"
+```css
+.light .bg-\[\#1c1c1e\]\/95 {
+  background-color: hsl(0 0% 88% / 0.95);
+}
 ```
 
-### 3. Light mode text protection — `src/index.css`
+This maps to the same light gray family used by other light-mode overrides (consistent with the tab bar, trip cards, etc.).
 
-The `cta-gold-ring` buttons use `text-white`. The existing `.light .text-white` override turns this dark, which is correct for light mode (dark text on gray button). No additional CSS needed.
+Also override the border color (currently `border-white/10` which is invisible in light mode):
+
+```css
+.light .border-white\/10 {
+  border-color: rgba(0, 0, 0, 0.08);
+}
+```
+
+And the inactive tab text (`text-white/60`) needs to be dark in light mode:
+
+```css
+.light .text-white\/60 {
+  color: rgba(0, 0, 0, 0.5);
+}
+```
+
+### 2. Verify gold-gradient-icon in light mode
+The active tab icons use `gold-gradient-icon` — this should remain gold in both modes (no change needed).
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/places/BasecampsPanel.tsx` | "Set Your Location" button: amber fill → gray + gold ring |
-| `src/components/places/DirectionsEmbed.tsx` | "Get Directions" button: default primary → gray + gold ring |
+| `src/index.css` | Add `.light` overrides for `bg-[#1c1c1e]/95`, `border-white/10`, `text-white/60` |
 
 ## Risk
-Low. Two className changes. No runtime behavior change. Both dark and light modes benefit from existing overrides.
-
+Low. CSS-only, scoped to `.light`. Dark mode untouched. No runtime behavior change.
