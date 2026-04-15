@@ -116,7 +116,9 @@ export const TaskCreateForm = ({
     >
       {isInlineEmptyState && !hideHeader && (
         <div className="mb-4">
-          <h3 className="text-lg font-semibold text-white">Add the first task for this trip</h3>
+          <h3 className="text-lg font-semibold text-foreground">
+            Add the first task for this trip
+          </h3>
           <p className="text-sm text-gray-400 mt-1">
             Keep everyone on track with shared tasks and deadlines
           </p>
@@ -126,7 +128,7 @@ export const TaskCreateForm = ({
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Title */}
         <div className="space-y-2">
-          <Label htmlFor="task-title" className="text-gray-300">
+          <Label htmlFor="task-title" className="text-muted-foreground">
             Task Title
           </Label>
           <Input
@@ -136,7 +138,7 @@ export const TaskCreateForm = ({
             onChange={e => setTitle(e.target.value)}
             placeholder="What needs to be done?"
             maxLength={140}
-            className="bg-glass-slate-bg border-glass-slate-border text-white placeholder-gray-500 min-h-[44px]"
+            className="bg-glass-slate-bg border-glass-slate-border text-foreground placeholder-gray-500 min-h-[44px]"
             autoFocus={!isInlineEmptyState}
           />
           <div className="text-xs text-gray-500 text-right">{title.length}/140</div>
@@ -144,7 +146,7 @@ export const TaskCreateForm = ({
 
         {/* Description */}
         <div className="space-y-2">
-          <Label htmlFor="task-description" className="text-gray-300">
+          <Label htmlFor="task-description" className="text-muted-foreground">
             Description (Optional)
           </Label>
           <Textarea
@@ -153,19 +155,19 @@ export const TaskCreateForm = ({
             value={description}
             onChange={e => setDescription(e.target.value)}
             placeholder="Add more details..."
-            className="bg-glass-slate-bg border-glass-slate-border text-white placeholder-gray-500 min-h-[80px]"
+            className="bg-glass-slate-bg border-glass-slate-border text-foreground placeholder-gray-500 min-h-[80px]"
           />
         </div>
 
         {/* Due Date */}
         <div className="space-y-2">
-          <Label className="text-gray-300">Due Date (Optional)</Label>
+          <Label className="text-muted-foreground">Due Date (Optional)</Label>
           <Popover open={showCalendar} onOpenChange={setShowCalendar}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 aria-label="Set due date"
-                className="w-full justify-start text-left bg-glass-slate-bg border-glass-slate-border text-white hover:bg-glass-slate-card min-h-[44px]"
+                className="w-full justify-start text-left bg-glass-slate-bg border-glass-slate-border text-foreground hover:bg-glass-slate-card min-h-[44px]"
               >
                 <Calendar size={16} className="mr-2" />
                 {dueDate ? format(dueDate, 'PPP') : 'Set due date'}
@@ -180,7 +182,7 @@ export const TaskCreateForm = ({
                   setShowCalendar(false);
                 }}
                 disabled={date => date < new Date()}
-                className="text-white"
+                className="text-foreground"
               />
             </PopoverContent>
           </Popover>
@@ -188,21 +190,21 @@ export const TaskCreateForm = ({
 
         {/* Task Mode */}
         <div className="space-y-3">
-          <Label className="text-gray-300">Task Type</Label>
+          <Label className="text-muted-foreground">Task Type</Label>
           <RadioGroup
             value={taskMode}
             onValueChange={(value: 'solo' | 'poll') => setTaskMode(value)}
           >
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="solo" id="task-solo" />
-              <Label htmlFor="task-solo" className="flex items-center gap-2 text-gray-300">
+              <Label htmlFor="task-solo" className="flex items-center gap-2 text-muted-foreground">
                 <User size={16} />
                 Single Task - Assign to specific people
               </Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="poll" id="task-poll" />
-              <Label htmlFor="task-poll" className="flex items-center gap-2 text-gray-300">
+              <Label htmlFor="task-poll" className="flex items-center gap-2 text-muted-foreground">
                 <Users size={16} />
                 Group Task - Everyone needs to complete this
               </Label>
@@ -232,7 +234,7 @@ export const TaskCreateForm = ({
               type="button"
               variant="outline"
               onClick={onClose}
-              className="flex-1 border-glass-slate-border text-gray-300 hover:bg-glass-slate-bg hover:text-white min-h-[44px]"
+              className="flex-1 border-glass-slate-border text-muted-foreground hover:bg-glass-slate-bg hover:text-foreground min-h-[44px]"
             >
               Cancel
             </Button>

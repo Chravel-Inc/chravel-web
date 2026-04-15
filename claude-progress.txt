@@ -809,6 +809,16 @@
   - preserve B2B exception for Android `pro-*` tiers in `canUseWebCheckout` and provider selection.
 - Added focused regression tests in `src/billing/providers/__tests__/index.test.ts` covering platform detection, native flag behavior, Android consumer web-checkout block, Android pro-tier exemption, and unavailable-provider purchase response contract.
 - Verification: `npm run test:run -- src/billing/providers/__tests__/index.test.ts`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`, `npm run merge:preflight` (blocked in this environment: cannot fetch `origin/main`).
+2026-04-15 — Light-mode semantic text token alignment (payments/tasks/polls/calendar/basecamps)
+- Replaced hardcoded `text-white` / `text-gray-300` / `text-gray-200` foreground classes with semantic text tokens (`text-foreground`, `text-muted-foreground`) in:
+  - `src/components/payments/PaymentInput.tsx`
+  - `src/components/todo/TaskCreateForm.tsx`
+  - `src/components/poll/CreatePollForm.tsx`
+  - `src/components/GroupCalendar.tsx`
+  - `src/components/places/BasecampsPanel.tsx`
+- Swapped non-semantic control background tokens (`bg-white/10`, `hover:bg-white/10`, `border-white/10`, `bg-gray-700`, `bg-gray-800`) to tokenized semantic surfaces (`bg-muted/*`, `hover:bg-muted*`, `border-border`) in the same components.
+- Preserved existing gold accent classes (e.g., `text-gold-primary`, amber action buttons) and left all behavior/business logic untouched.
+- Verification: `npm run typecheck`, `npm run lint:check` (baseline warnings only), `npm run merge:preflight` (environment limitation: cannot fetch `origin/main`).
 2026-04-15 — Share/Invite link action buttons tokenized for theme-safe contrast
 - Replaced hardcoded dark Copy/Share button classes in `src/components/share/ShareTripModal.tsx` with semantic token-based styles:
   - Default/hover: `bg-muted`, `border-border`, `text-foreground`
