@@ -474,7 +474,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                 <button
                   onClick={() => setShowPersonalSelector(true)}
                   aria-label="Set your personal base camp location"
-                  className="w-full bg-amber-500 hover:bg-amber-600 text-black py-1.5 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-xs font-medium min-h-[44px]"
+                  className="w-full bg-gray-800/80 text-white cta-gold-ring py-1.5 px-3 rounded-lg transition-all flex items-center justify-center gap-2 text-xs font-medium min-h-[44px] hover:opacity-90 hover:scale-[1.01] active:scale-[0.99]"
                 >
                   <Plus size={12} />
                   Set Your Location

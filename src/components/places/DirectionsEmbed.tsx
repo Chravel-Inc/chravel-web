@@ -274,7 +274,7 @@ export const DirectionsEmbed: React.FC<DirectionsEmbedProps> = ({
       <Button
         onClick={handleGetDirections}
         disabled={!canGetDirections}
-        className="w-full"
+        className="w-full bg-gray-800/80 text-white cta-gold-ring hover:opacity-90 hover:scale-[1.01] active:scale-[0.99] transition-all border-0"
         size="sm"
       >
         <Navigation size={16} />
