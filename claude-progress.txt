@@ -5,6 +5,12 @@
   - Broadcast mode keeps a distinct red treatment via destructive tokens (`bg-destructive/10`, `border-destructive/50`, `focus-visible:ring-destructive/40`) while preserving readable foreground text in both themes.
 - Improved typing indicator readability in light mode by replacing fixed `text-gray-400` with `text-muted-foreground`.
 - Verification: `npm run test:run -- src/features/chat/components/__tests__/ChatInput.test.tsx src/features/chat/components/__tests__/TripChat.deleteMessage.test.tsx`, `npm run typecheck`, `npm run merge:preflight` (blocked in this environment: cannot fetch `origin/main`).
+2026-04-15 — Light theme token tightening + brittle selector reduction
+- Tightened light-mode core tokens in `src/index.css` to a softer gray band: background 80%, card 91%, input 94%, with matching glass-slate tokens (`--glass-slate-bg/card/border`) and standalone PWA shell update.
+- Reduced brittle light-mode compatibility selectors by removing broad `[class*='...']` wildcard overrides and retaining minimal explicit class shims (`.bg-white/10`, `.bg-white/20`, `.border-white/10`, `.border-white/20`, plus dark-section explicit variants).
+- Added explicit theme guidance comment in `src/index.css`: no hardcoded hex dark colors in theme-aware components; use semantic tokens.
+- Preserved token-driven Tailwind glass-slate mapping and documented that in `tailwind.config.ts`.
+- Verification: `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`, `npm run merge:preflight` (blocked in this environment: cannot fetch `origin/main`).
 
 2026-04-14 — Shared entitlement resolution contract + call-site convergence
 - Added shared effective-entitlement contracts in both runtime layers:
@@ -803,3 +809,27 @@
   - preserve B2B exception for Android `pro-*` tiers in `canUseWebCheckout` and provider selection.
 - Added focused regression tests in `src/billing/providers/__tests__/index.test.ts` covering platform detection, native flag behavior, Android consumer web-checkout block, Android pro-tier exemption, and unavailable-provider purchase response contract.
 - Verification: `npm run test:run -- src/billing/providers/__tests__/index.test.ts`, `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`, `npm run merge:preflight` (blocked in this environment: cannot fetch `origin/main`).
+2026-04-15 — Share/Invite link action buttons tokenized for theme-safe contrast
+- Replaced hardcoded dark Copy/Share button classes in `src/components/share/ShareTripModal.tsx` with semantic token-based styles:
+  - Default/hover: `bg-muted`, `border-border`, `text-foreground`
+  - Copied state: `bg-primary`, `text-primary-foreground`, `border-primary/40`
+  - Disabled state: `disabled:bg-muted`, `disabled:text-muted-foreground`, `disabled:border-border/70`
+- Applied the same semantic button treatment in `src/components/invite/InviteLinkSection.tsx` for Copy/Share buttons and kept copied-state visual feedback aligned.
+- Preserved mobile tap-target constraints (`min-h-[44px]`) and kept URL field styling language (`bg-muted` + `border-border`) visually cohesive with button controls.
+- Verification:
+  - `npm run test:run -- src/components/invite/__tests__/InviteLinkSection.test.tsx`
+  - `npm run typecheck`
+  - `npm run lint:check` (warnings-only baseline)
+  - `npm run build`
+  - `npm run merge:preflight` (blocked in this environment: cannot fetch `origin/main`)
+
+2026-04-15 — CreateTripModal theme tokenization + focus/contrast hardening (styling-only)
+- Replaced hardcoded dark-surface classes in `src/components/CreateTripModal.tsx` with semantic theme tokens (`bg-card`, `bg-muted`, `border-border`, `text-foreground`, `text-muted-foreground`) to improve light/dark parity without touching modal logic/state.
+- Preserved intentional gold gradient CTAs/toggle active styles while improving light-mode text contrast via `text-foreground` with dark-mode override to white where appropriate.
+- Standardized focus visibility across form controls and action buttons using tokenized ring/border styles (`focus:ring-ring/30`, `focus:border-ring`).
+- Verification: `npm run typecheck`, `npm run lint:check -- src/components/CreateTripModal.tsx` (warnings-only baseline), `npm run merge:preflight` (blocked: cannot fetch `origin/main`).
+2026-04-15 — Toggle contrast hardening for trip view/tab controls (light/dark safe)
+- Removed forced `data-[state=on]:text-accent-foreground` from shared `toggleVariants` base in `src/components/ui/toggle.tsx` to prevent unreadable on-state text in light mode.
+- Updated `src/components/home/TripViewToggle.tsx` with explicit token-safe on/off/hover state classes and focus-visible ring classes for keyboard accessibility.
+- Updated `src/components/mobile/MobileTripTabs.tsx` tab button state classes for parity: active uses `bg-background text-foreground`, inactive uses `text-muted-foreground` with `hover:text-foreground`, avoiding hardcoded white in light mode.
+- Verification: `npm run typecheck`, `npx eslint src/components/ui/toggle.tsx src/components/home/TripViewToggle.tsx src/components/mobile/MobileTripTabs.tsx`, `npm run merge:preflight` (pre/post edit; blocked by origin fetch in this environment).
