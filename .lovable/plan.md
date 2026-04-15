@@ -1,47 +1,47 @@
 
-# Fix: NativeTabBar Black Background in Light Mode
 
-## Problem
-The bottom tab bar (`NativeTabBar.tsx`, line 123) uses a hardcoded dark color `bg-[#1c1c1e]/95` — iOS system dark gray. This stays black regardless of light/dark mode.
+# Fix: Pointy Shadow Corners on TripViewToggle (My Trips / Pro / Events)
 
-## Changes
+## Why This Happens
 
-### 1. `src/index.css` — Add light mode override
+Both the left bar (`TripViewToggle`) and right bar (`TripActionBar`) use the same classes: `bg-card/50 backdrop-blur-xl rounded-2xl shadow-lg`. The difference is that `TripViewToggle` renders through a **Radix ToggleGroup primitive**, which creates an additional compositing layer. In light mode, the semi-transparent `bg-card/50` combined with `backdrop-blur-xl` creates a WebKit rendering bug where the blur layer doesn't clip properly to `rounded-2xl` — the blur bleeds past the border-radius, making the shadow corners appear square/pointy.
 
-Add a CSS override for the hardcoded NativeTabBar background:
+The `TripActionBar` (right side) uses a plain `<div>`, which doesn't trigger the same compositing issue, so its corners render smoothly.
 
-```css
-.light .bg-\[\#1c1c1e\]\/95 {
-  background-color: hsl(0 0% 88% / 0.95);
-}
+## Fix
+
+### `src/components/home/TripViewToggle.tsx` (line 48)
+
+Add `overflow-hidden isolate` to the ToggleGroup className. This forces WebKit to create a proper stacking context that respects the border-radius clip on the backdrop-blur layer.
+
+**Before:**
+```
+bg-card/50 backdrop-blur-xl rounded-2xl p-1 shadow-lg grid ...
 ```
 
-This maps to the same light gray family used by other light-mode overrides (consistent with the tab bar, trip cards, etc.).
-
-Also override the border color (currently `border-white/10` which is invisible in light mode):
-
-```css
-.light .border-white\/10 {
-  border-color: rgba(0, 0, 0, 0.08);
-}
+**After:**
+```
+bg-card/50 backdrop-blur-xl rounded-2xl p-1 shadow-lg overflow-hidden isolate grid ...
 ```
 
-And the inactive tab text (`text-white/60`) needs to be dark in light mode:
+### `src/index.css` — Safety net for all light-mode rounded containers with backdrop-blur
+
+Add a general light-mode fix so any other `rounded-2xl` + `backdrop-blur-xl` combos don't exhibit the same bug:
 
 ```css
-.light .text-white\/60 {
-  color: rgba(0, 0, 0, 0.5);
+.light .rounded-2xl.backdrop-blur-xl {
+  -webkit-transform: translateZ(0);
+  isolation: isolate;
 }
 ```
-
-### 2. Verify gold-gradient-icon in light mode
-The active tab icons use `gold-gradient-icon` — this should remain gold in both modes (no change needed).
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `src/index.css` | Add `.light` overrides for `bg-[#1c1c1e]/95`, `border-white/10`, `text-white/60` |
+| `src/components/home/TripViewToggle.tsx` | Add `overflow-hidden isolate` to ToggleGroup |
+| `src/index.css` | Add light-mode GPU compositing fix for rounded+blur combos |
 
 ## Risk
-Low. CSS-only, scoped to `.light`. Dark mode untouched. No runtime behavior change.
+Low. `overflow-hidden` is appropriate here (content is fully contained). `isolate` is a CSS containment hint with no visual side effects. Dark mode unaffected.
+
