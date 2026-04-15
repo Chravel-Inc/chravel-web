@@ -60,6 +60,31 @@ describe('InviteLinkSection', () => {
     expect(onRegenerate).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps Copy/Share button utility classes compatible with light mode overrides', () => {
+    Object.defineProperty(navigator, 'share', {
+      configurable: true,
+      value: vi.fn(),
+    });
+
+    render(
+      <div className="light">
+        <InviteLinkSection {...defaultProps} inviteLink="https://p.chravel.app/j/chravel7x9k2m" />
+      </div>,
+    );
+
+    const copyButton = screen.getByRole('button', { name: 'Copy invite link to clipboard' });
+    const shareButton = screen.getByRole('button', {
+      name: 'Share invite link via Messages, Email, and more',
+    });
+
+    for (const button of [copyButton, shareButton]) {
+      expect(button).toHaveClass('bg-[#2a2a2a]');
+      expect(button).toHaveClass('hover:bg-[#3a3a3a]');
+      expect(button).toHaveClass('text-white');
+      expect(button).toHaveClass('border-gold-primary/40');
+    }
+  });
+
   it('calls onCopyLink when Copy is clicked', () => {
     const onCopyLink = vi.fn();
     render(

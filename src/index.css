@@ -712,6 +712,9 @@
 .light .hover\:bg-\[\#2a2a2a\]:hover {
   background-color: hsl(0 0% 93%);
 }
+.light .hover\:bg-\[\#3a3a3a\]:hover {
+  background-color: hsl(0 0% 90%);
+}
 .light .hover\:bg-\[\#333\]:hover {
   background-color: hsl(0 0% 90%);
 }
