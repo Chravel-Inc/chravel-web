@@ -383,7 +383,7 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
 
           <Button
             type="submit"
-            className="w-full mt-2 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl shadow-lg transition-all duration-200 hover:shadow-primary-glow disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full mt-2 py-3 bg-gray-800/80 text-white cta-gold-ring font-semibold rounded-xl shadow-lg transition-all duration-200 hover:opacity-90 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={
               isSubmitting ||
               !amount ||

@@ -181,7 +181,7 @@ export const ChatSearchOverlay = ({
       <div className="w-full max-w-2xl bg-neutral-900 rounded-2xl shadow-2xl border border-white/10 overflow-hidden animate-scale-in">
         {/* Search Input */}
         <div className="flex items-center gap-3 p-4 border-b border-white/10">
-          <Search className="w-5 h-5 text-white/50" />
+          <Search className="w-5 h-5 text-white/50 light:text-black/50" />
           <div className="relative flex-1">
             <input
               ref={inputRef}
@@ -189,14 +189,14 @@ export const ChatSearchOverlay = ({
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Search messages and broadcasts..."
-              className="w-full bg-transparent text-white placeholder:text-white/50 outline-none text-base pr-8"
+              className="w-full bg-transparent text-white light:text-black placeholder:text-white/50 light:placeholder:text-black/40 outline-none text-base pr-8"
             />
             {query && (
               <button
                 onClick={() => setQuery('')}
                 className="absolute right-0 top-1/2 -translate-y-1/2 p-1 hover:bg-white/10 rounded-full transition-colors"
               >
-                <X className="w-4 h-4 text-white/70" />
+                <X className="w-4 h-4 text-white/70 light:text-black/60" />
               </button>
             )}
           </div>
@@ -204,22 +204,22 @@ export const ChatSearchOverlay = ({
             onClick={onClose}
             className="p-1.5 hover:bg-white/10 rounded-lg transition-colors ml-2"
           >
-            <X className="w-5 h-5 text-white/70" />
+            <X className="w-5 h-5 text-white/70 light:text-black/60" />
           </button>
         </div>
 
         {/* Results */}
         <div ref={resultsRef} className="max-h-[60vh] overflow-y-auto scrollbar-hide">
-          {isSearching && <div className="p-8 text-center text-white/50">Searching...</div>}
+          {isSearching && <div className="p-8 text-center text-white/50 light:text-black/50">Searching...</div>}
 
           {!isSearching && totalResults === 0 && query && (
-            <div className="p-8 text-center text-white/50">No results found for "{query}"</div>
+            <div className="p-8 text-center text-white/50 light:text-black/50">No results found for "{query}"</div>
           )}
 
           {!isSearching && totalResults === 0 && !query && (
-            <div className="p-8 text-center text-white/50 space-y-2">
+            <div className="p-8 text-center text-white/50 light:text-black/50 space-y-2">
               <p>Type to search messages and broadcasts</p>
-              <p className="text-xs text-white/40">Filters: from:Name · broadcast</p>
+              <p className="text-xs text-white/40 light:text-black/40">Filters: from:Name · broadcast</p>
             </div>
           )}
 
