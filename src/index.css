@@ -464,6 +464,29 @@
 .light .bg-gray-800\/50 {
   background-color: hsl(0 0% 84%);
 }
+.light .bg-gray-800\/80 {
+  background-color: hsl(0 0% 84%);
+}
+.light .bg-black\/30 {
+  background-color: hsl(0 0% 90%);
+}
+.light .bg-black\/40 {
+  background-color: hsl(0 0% 88%);
+}
+.light .bg-black\/60 {
+  background-color: hsl(0 0% 84%);
+}
+.light .bg-neutral-900\/70 {
+  background-color: hsl(0 0% 84%);
+}
+.light .hover\:bg-gray-700\/50:hover {
+  background-color: hsl(0 0% 80%);
+}
+/* Protect white text on colored backgrounds in light mode */
+.light .bg-blue-600 .text-white,
+.light .bg-blue-600.text-white {
+  color: white;
+}
 .light .text-white\/60 {
   color: rgba(0, 0, 0, 0.6);
 }
