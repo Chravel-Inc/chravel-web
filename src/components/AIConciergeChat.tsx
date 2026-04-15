@@ -77,7 +77,7 @@ export const AIConciergeChat = ({
     errorMessage: ttsError,
     play: ttsPlayRaw,
     stop: ttsStop,
-  } = useConciergeReadAloud();
+  } = useConciergeReadAloud({ tripId });
 
   const {
     messages,

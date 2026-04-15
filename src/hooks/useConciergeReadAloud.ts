@@ -16,7 +16,10 @@ export type TTSPlaybackState = 'idle' | 'loading' | 'playing' | 'error';
 
 const DEFAULT_VOICE = 'en-US-Neural2-J';
 const RETRYABLE_FETCH_ERROR = 'Failed to fetch';
-const TTS_URL = `${SUPABASE_PROJECT_URL}/functions/v1/concierge-tts`;
+const GEMINI_DEFAULT_VOICE = 'Kore';
+const CONCIERGE_VOICE_STYLE = 'warm, calm, concise premium travel concierge voice';
+const USE_GEMINI_TTS = (import.meta.env.VITE_CONCIERGE_TTS_ENABLED ?? 'false') === 'true';
+const TTS_URL = `${SUPABASE_PROJECT_URL}/functions/v1/${USE_GEMINI_TTS ? 'gemini-tts' : 'concierge-tts'}`;
 
 const toReadablePlaybackError = (err: unknown): string => {
   if (!(err instanceof Error)) return 'TTS playback failed';
@@ -75,6 +78,7 @@ function splitIntoSentences(text: string): string[] {
 
 interface UseConciergeReadAloudOptions {
   voiceId?: string;
+  tripId?: string;
 }
 
 interface UseConciergeReadAloudReturn {
@@ -92,7 +96,23 @@ async function fetchSentenceAudio(
   voiceId: string,
   accessToken: string,
   signal: AbortSignal,
+  tripId?: string,
+  messageId?: string,
 ): Promise<{ blobUrl: string; usedFallback: boolean }> {
+  const body = USE_GEMINI_TTS
+    ? {
+        text: sentence,
+        voiceName: voiceId,
+        style: CONCIERGE_VOICE_STYLE,
+        tripId,
+        messageId,
+      }
+    : {
+        speech_text: sentence,
+        voice_id: voiceId,
+        output_format: 'mp3',
+      };
+
   const response = await fetch(TTS_URL, {
     method: 'POST',
     headers: {
@@ -100,11 +120,7 @@ async function fetchSentenceAudio(
       Authorization: `Bearer ${accessToken}`,
       apikey: SUPABASE_PUBLIC_ANON_KEY,
     },
-    body: JSON.stringify({
-      speech_text: sentence,
-      voice_id: voiceId,
-      output_format: 'mp3',
-    }),
+    body: JSON.stringify(body),
     signal,
   });
 
@@ -132,7 +148,7 @@ async function fetchSentenceAudio(
 export function useConciergeReadAloud(
   options: UseConciergeReadAloudOptions = {},
 ): UseConciergeReadAloudReturn {
-  const { voiceId: voiceIdProp } = options;
+  const { voiceId: voiceIdProp, tripId } = options;
 
   const [playbackState, setPlaybackState] = useState<TTSPlaybackState>('idle');
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
@@ -225,7 +241,8 @@ export function useConciergeReadAloud(
           throw new Error('Not authenticated. Please sign in to use voice.');
         }
 
-        const resolvedVoiceId = voiceIdProp || DEFAULT_VOICE;
+        const resolvedVoiceId =
+          voiceIdProp || (USE_GEMINI_TTS ? GEMINI_DEFAULT_VOICE : DEFAULT_VOICE);
         const sentences = splitIntoSentences(speechText);
 
         // Fire first AND second sentence fetches in parallel for overlap
@@ -234,6 +251,8 @@ export function useConciergeReadAloud(
           resolvedVoiceId,
           accessToken,
           abortController.signal,
+          tripId,
+          messageId,
         );
 
         // Start pre-fetching sentence 2 immediately (overlaps with sentence 1 fetch)
@@ -244,6 +263,8 @@ export function useConciergeReadAloud(
                 resolvedVoiceId,
                 accessToken,
                 abortController.signal,
+                tripId,
+                messageId,
               ).catch(() => null)
             : null;
 
@@ -256,6 +277,8 @@ export function useConciergeReadAloud(
               resolvedVoiceId,
               accessToken,
               abortController.signal,
+              tripId,
+              messageId,
             ).catch(() => null),
           );
         }
@@ -319,7 +342,7 @@ export function useConciergeReadAloud(
         cleanup();
       }
     },
-    [voiceIdProp, stop, cleanup],
+    [voiceIdProp, tripId, stop, cleanup],
   );
 
   useEffect(() => {

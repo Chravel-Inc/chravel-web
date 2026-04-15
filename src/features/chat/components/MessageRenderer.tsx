@@ -192,136 +192,138 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({
         className={cn('flex flex-col', isOwnMessage ? 'items-end' : 'items-start', 'max-w-[78%]')}
       >
         <div
-          className={cn(
-            'px-3.5 py-2.5 rounded-2xl backdrop-blur-sm border relative',
-            // Use transition-colors instead of transition-all to prevent layout animation jitter on iOS during streaming
-            // Disable transitions entirely for streaming bubbles to eliminate iOS vibration
-            message.isStreamingVoice ? 'transition-none' : 'transition-colors duration-150',
-            isOwnMessage
-              ? 'bg-blue-600 text-white border-blue-600/20 shadow-[0_1px_3px_rgba(0,0,0,0.25)] rounded-br-sm'
-              : 'bg-muted/80 text-white border-border shadow-sm rounded-bl-sm',
-            // Streaming voice: pulsing ring signals this bubble is actively receiving live audio.
-            // Assistant bubbles get a blue glow; user bubbles get a white/emerald glow.
-            message.isStreamingVoice &&
-              !isOwnMessage &&
-              'border-blue-500/50 shadow-[0_0_0_2px_rgba(59,130,246,0.25)]',
-            message.isStreamingVoice &&
-              isOwnMessage &&
-              'border-emerald-400/40 shadow-[0_0_0_2px_rgba(52,211,153,0.2)]',
-            // Extra bottom padding for TTS button inside bubble
-            showTTS && 'pb-10',
-          )}
+          className={cn('flex items-end gap-1.5', isOwnMessage ? 'flex-row-reverse' : 'flex-row')}
         >
-          {/* Message content — sanitize assistant text to strip leaked tool-plan JSON */}
-          {message.content && isAssistant ? (
-            sanitizedContent ? (
-              <div className="text-sm leading-relaxed ai-markdown-content">
-                <ReactMarkdown
-                  components={{
-                    a: ({ href, children }) => (
-                      <a
-                        href={href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-colors"
-                      >
-                        {children}
-                      </a>
-                    ),
-                    strong: ({ children }) => (
-                      <strong className="font-semibold text-white">{children}</strong>
-                    ),
-                    em: ({ children }) => <em className="italic text-gray-300">{children}</em>,
-                    p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                    ul: ({ children }) => (
-                      <ul className="list-disc list-inside mb-2 space-y-1 last:mb-0">{children}</ul>
-                    ),
-                    ol: ({ children }) => (
-                      <ol className="list-decimal list-inside mb-2 space-y-1 last:mb-0">
-                        {children}
-                      </ol>
-                    ),
-                    li: ({ children }) => <li className="text-gray-200">{children}</li>,
-                    h1: ({ children }) => (
-                      <h3 className="text-base font-bold text-white mb-1">{children}</h3>
-                    ),
-                    h2: ({ children }) => (
-                      <h4 className="text-sm font-bold text-white mb-1">{children}</h4>
-                    ),
-                    h3: ({ children }) => (
-                      <h5 className="text-sm font-semibold text-white mb-1">{children}</h5>
-                    ),
-                    blockquote: ({ children }) => (
-                      <blockquote className="border-l-2 border-blue-400/50 pl-3 my-2 text-gray-300 italic">
-                        {children}
-                      </blockquote>
-                    ),
-                    code: ({ children }) => (
-                      <code className="bg-black/30 text-blue-300 px-1.5 py-0.5 rounded text-xs font-mono">
-                        {children}
-                      </code>
-                    ),
-                    img: ({ src, alt }) => (
-                      <a
-                        href={src}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="my-2 block rounded-xl overflow-hidden border border-white/10 bg-black/20 hover:border-white/20 transition-colors"
-                      >
-                        <img
-                          src={src}
-                          alt={alt || 'Preview'}
-                          className="rounded-xl w-full h-auto object-cover"
-                          style={{ maxHeight: '280px' }}
-                          loading="lazy"
-                          onError={e => {
-                            const el = e.target as HTMLImageElement;
-                            el.style.display = 'none';
-                            const parent = el.closest('a');
-                            if (parent) parent.style.display = 'none';
-                          }}
-                        />
-                      </a>
-                    ),
-                    hr: () => <hr className="border-white/10 my-2" />,
-                  }}
-                >
-                  {sanitizedContent}
-                </ReactMarkdown>
-              </div>
-            ) : null
-          ) : message.content ? (
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
-          ) : null}
+          <div
+            className={cn(
+              'px-3.5 py-2.5 rounded-2xl backdrop-blur-sm border',
+              // Use transition-colors instead of transition-all to prevent layout animation jitter on iOS during streaming
+              // Disable transitions entirely for streaming bubbles to eliminate iOS vibration
+              message.isStreamingVoice ? 'transition-none' : 'transition-colors duration-150',
+              isOwnMessage
+                ? 'bg-blue-600 text-white border-blue-600/20 shadow-[0_1px_3px_rgba(0,0,0,0.25)] rounded-br-sm'
+                : 'bg-muted/80 text-white border-border shadow-sm rounded-bl-sm',
+              // Streaming voice: pulsing ring signals this bubble is actively receiving live audio.
+              // Assistant bubbles get a blue glow; user bubbles get a white/emerald glow.
+              message.isStreamingVoice &&
+                !isOwnMessage &&
+                'border-blue-500/50 shadow-[0_0_0_2px_rgba(59,130,246,0.25)]',
+              message.isStreamingVoice &&
+                isOwnMessage &&
+                'border-emerald-400/40 shadow-[0_0_0_2px_rgba(52,211,153,0.2)]',
+            )}
+          >
+            {/* Message content — sanitize assistant text to strip leaked tool-plan JSON */}
+            {message.content && isAssistant ? (
+              sanitizedContent ? (
+                <div className="text-sm leading-relaxed ai-markdown-content">
+                  <ReactMarkdown
+                    components={{
+                      a: ({ href, children }) => (
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-colors"
+                        >
+                          {children}
+                        </a>
+                      ),
+                      strong: ({ children }) => (
+                        <strong className="font-semibold text-white">{children}</strong>
+                      ),
+                      em: ({ children }) => <em className="italic text-gray-300">{children}</em>,
+                      p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                      ul: ({ children }) => (
+                        <ul className="list-disc list-inside mb-2 space-y-1 last:mb-0">
+                          {children}
+                        </ul>
+                      ),
+                      ol: ({ children }) => (
+                        <ol className="list-decimal list-inside mb-2 space-y-1 last:mb-0">
+                          {children}
+                        </ol>
+                      ),
+                      li: ({ children }) => <li className="text-gray-200">{children}</li>,
+                      h1: ({ children }) => (
+                        <h3 className="text-base font-bold text-white mb-1">{children}</h3>
+                      ),
+                      h2: ({ children }) => (
+                        <h4 className="text-sm font-bold text-white mb-1">{children}</h4>
+                      ),
+                      h3: ({ children }) => (
+                        <h5 className="text-sm font-semibold text-white mb-1">{children}</h5>
+                      ),
+                      blockquote: ({ children }) => (
+                        <blockquote className="border-l-2 border-blue-400/50 pl-3 my-2 text-gray-300 italic">
+                          {children}
+                        </blockquote>
+                      ),
+                      code: ({ children }) => (
+                        <code className="bg-black/30 text-blue-300 px-1.5 py-0.5 rounded text-xs font-mono">
+                          {children}
+                        </code>
+                      ),
+                      img: ({ src, alt }) => (
+                        <a
+                          href={src}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="my-2 block rounded-xl overflow-hidden border border-white/10 bg-black/20 hover:border-white/20 transition-colors"
+                        >
+                          <img
+                            src={src}
+                            alt={alt || 'Preview'}
+                            className="rounded-xl w-full h-auto object-cover"
+                            style={{ maxHeight: '280px' }}
+                            loading="lazy"
+                            onError={e => {
+                              const el = e.target as HTMLImageElement;
+                              el.style.display = 'none';
+                              const parent = el.closest('a');
+                              if (parent) parent.style.display = 'none';
+                            }}
+                          />
+                        </a>
+                      ),
+                      hr: () => <hr className="border-white/10 my-2" />,
+                    }}
+                  >
+                    {sanitizedContent}
+                  </ReactMarkdown>
+                </div>
+              ) : null
+            ) : message.content ? (
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+            ) : null}
 
-          {/* Render media content inline */}
-          {renderMediaContent()}
+            {/* Render media content inline */}
+            {renderMediaContent()}
 
-          {/* Render file attachments */}
-          {renderFileAttachments()}
+            {/* Render file attachments */}
+            {renderFileAttachments()}
 
-          {/* Render link preview */}
-          {renderLinkPreview()}
+            {/* Render link preview */}
+            {renderLinkPreview()}
 
-          {/* Streaming voice indicator — shown while Gemini Live is speaking this response */}
-          {message.isStreamingVoice && (
-            <span className="flex items-center gap-1.5 mt-2 text-xs text-blue-400/80">
-              <AudioLines size={12} className="animate-pulse shrink-0" />
-              <span className="animate-pulse">Speaking...</span>
-            </span>
-          )}
+            {/* Streaming voice indicator — shown while Gemini Live is speaking this response */}
+            {message.isStreamingVoice && (
+              <span className="flex items-center gap-1.5 mt-2 text-xs text-blue-400/80">
+                <AudioLines size={12} className="animate-pulse shrink-0" />
+                <span className="animate-pulse">Speaking...</span>
+              </span>
+            )}
+          </div>
 
-          {/* TTS speaker button — inside bubble at bottom-right for assistant messages */}
+          {/* TTS speaker button — outside bubble tail for assistant messages */}
           {showTTS && (
-            <div className="absolute right-2 bottom-2">
-              <TTSSpeakerButton
-                messageId={message.id}
-                playbackState={ttsPlaybackState ?? 'idle'}
-                playingMessageId={ttsPlayingMessageId ?? null}
-                onPlay={onTTSPlay!}
-                onStop={onTTSStop!}
-              />
-            </div>
+            <TTSSpeakerButton
+              messageId={message.id}
+              playbackState={ttsPlaybackState ?? 'idle'}
+              playingMessageId={ttsPlayingMessageId ?? null}
+              onPlay={onTTSPlay!}
+              onStop={onTTSStop!}
+            />
           )}
         </div>
 

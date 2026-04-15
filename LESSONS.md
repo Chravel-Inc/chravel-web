@@ -7,6 +7,14 @@
 
 ## Strategy Tips
 
+### Ship new AI renderer paths behind endpoint-level feature flags
+- **Tip:** When introducing a new model-specific renderer (for example Gemini TTS) in a production flow, switch endpoints behind a frontend feature flag while preserving the previous endpoint contract as a fallback. This isolates model preview risk from core UX and enables instant rollback without touching UI state logic.
+- **Applies when:** Replacing third-party model/provider calls for non-critical enhancements (voice playback, summarization, enrichment) in existing user journeys.
+- **Evidence:** Concierge speak-back rollout added `VITE_CONCIERGE_TTS_ENABLED` to toggle `gemini-tts` vs `concierge-tts` while keeping the same `useConciergeReadAloud` playback orchestration and auth token handling.
+- **Provenance:** April 2026 Gemini 3.1 Flash TTS integration pass.
+- **Confidence:** high
+
+
 ### Never ship baked Supabase credentials as runtime fallback in production clients
 - **Tip:** Treat Supabase public key + project URL as required runtime configuration and fail fast when missing. Hardcoded fallback credentials can silently go stale after key rotation and create partial outages that are hard to diagnose.
 - **Applies when:** Bootstrapping Supabase client in frontend apps, rotating JWT/API keys, migrating from anon JWT keys to publishable keys.
