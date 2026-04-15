@@ -692,7 +692,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
       <div className="sticky bottom-0 px-4 py-2 pb-[env(safe-area-inset-bottom)] bg-gradient-to-t from-black via-black to-transparent border-t border-border">
         <button
           onClick={handleAddPayment}
-          className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium py-4 rounded-xl transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-2 min-h-[44px]"
+          className="w-full bg-gray-800/80 text-white cta-gold-ring font-medium py-4 rounded-xl transition-all hover:opacity-90 hover:scale-[1.01] active:scale-[0.99] shadow-lg flex items-center justify-center gap-2 min-h-[44px]"
         >
           <Plus size={20} />
           Add Payment Request

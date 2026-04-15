@@ -8,7 +8,7 @@ import { TripChannel } from '@/types/roleChannels';
 const SEGMENT_COLORS = {
   all: {
     active: 'bg-[#007AFF] text-white shadow-md',
-    inactive: 'text-white/70 hover:text-white hover:bg-white/5',
+    inactive: 'text-white/70 hover:text-white hover:bg-white/5 chat-segment-inactive',
     badge: 'bg-gold-primary text-black',
   },
   broadcasts: {
@@ -21,7 +21,7 @@ const SEGMENT_COLORS = {
     inactive: 'text-[#34D399] hover:text-white hover:bg-[#059669]',
   },
   search: {
-    inactive: 'text-white/70 hover:text-white hover:bg-white/5',
+    inactive: 'text-white/70 hover:text-white hover:bg-white/5 chat-segment-inactive',
   },
 } as const;
 

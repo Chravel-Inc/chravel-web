@@ -189,7 +189,7 @@ export const ChatSearchOverlay = ({
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Search messages and broadcasts..."
-              className="w-full bg-transparent text-white placeholder:text-white/50 outline-none text-base pr-8"
+              className="w-full bg-transparent text-white placeholder:text-white/50 outline-none text-base pr-8 chat-search-input"
             />
             {query && (
               <button

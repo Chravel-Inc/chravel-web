@@ -302,7 +302,7 @@ export const CreatePollForm = ({
           <Button
             onClick={handleCreate}
             disabled={!isValid || isSubmitting}
-            className="flex-1 h-10 rounded-lg font-semibold"
+            className="flex-1 h-10 rounded-lg font-semibold bg-gray-800/80 text-white cta-gold-ring hover:opacity-90 hover:scale-[1.01] active:scale-[0.99] transition-all border-0"
           >
             {isSubmitting ? 'Creating...' : 'Create Poll'}
           </Button>
