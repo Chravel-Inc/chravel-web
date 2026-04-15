@@ -766,7 +766,7 @@ export const TripChat = React.memo(
         <div className="flex-1 flex flex-col min-h-0" data-chat-container>
           <div
             ref={messagesContainerRef}
-            className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col relative min-h-0"
+            className="rounded-2xl border border-border/60 bg-card/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col relative min-h-0"
           >
             {/* Filter Tabs */}
             <MessageTypeBar
@@ -852,7 +852,7 @@ export const TripChat = React.memo(
 
                 {/* Reply Bar */}
                 {replyingTo && (
-                  <div className="border-t border-white/10 bg-black/30 px-4 py-2">
+                  <div className="border-t border-border/60 bg-muted/60 px-4 py-2">
                     <InlineReplyComponent
                       replyTo={{
                         id: replyingTo.id,
@@ -908,8 +908,8 @@ export const TripChat = React.memo(
 
         {/* Chat mode restriction banner */}
         {messageFilter !== 'channels' && !canPostToChat && !chatModeLoading && (
-          <div className="w-full border-t border-white/10 bg-black/40 px-4 py-3 text-center">
-            <p className="text-sm text-white/60">
+          <div className="w-full border-t border-border/60 bg-card/70 px-4 py-3 text-center">
+            <p className="text-sm text-muted-foreground">
               {effectiveChatMode === 'broadcasts'
                 ? 'This chat is in announcements-only mode. Only admins can post.'
                 : effectiveChatMode === 'admin_only'
