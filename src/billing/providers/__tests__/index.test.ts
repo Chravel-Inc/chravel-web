@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@/utils/platformDetection', async (importOriginal) => {
+vi.mock('@/utils/platformDetection', async importOriginal => {
   const actual = await importOriginal<typeof import('@/utils/platformDetection')>();
   return {
     ...actual,
@@ -127,8 +127,7 @@ describe('billing platform detection', () => {
   });
 
   it('detects ios for WKWebView-style ua without iPhone|iPad|iPod token', () => {
-    const ua =
-      'Mozilla/5.0 AppleWebKit/605.1.15 (KHTML, like Gecko) Chravel/1.0 Mobile/15E148';
+    const ua = 'Mozilla/5.0 AppleWebKit/605.1.15 (KHTML, like Gecko) Chravel/1.0 Mobile/15E148';
     const platform = detectBillingPlatform(ua, true);
 
     expect(platform).toBe('ios');

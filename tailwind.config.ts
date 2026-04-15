@@ -74,9 +74,9 @@ export default {
           'enterprise-gold-light': '#e8af48', // warm glow gold
           'accent-gold': '#c49746', // warm metallic gold
           'accent-gold-dark': '#533517', // dark bronze
-          'slate-bg': 'hsl(0, 0%, 4%)', // Pure black bg
-          'slate-card': 'hsl(0, 0%, 8%)', // Dark card
-          'slate-border': 'hsl(42, 20%, 15%)', // Gold-tinted border
+          'slate-bg': 'hsl(var(--glass-slate-bg))', // Theme-aware bg
+          'slate-card': 'hsl(var(--glass-slate-card))', // Theme-aware card
+          'slate-border': 'hsl(var(--glass-slate-border))', // Theme-aware border
           'light-bg': 'hsl(42, 25%, 97%)', // Light gold-tinted bg
           'light-border': 'hsl(42, 15%, 90%)', // Light gold border
           'text-primary': 'hsl(0, 0%, 100%)', // White text

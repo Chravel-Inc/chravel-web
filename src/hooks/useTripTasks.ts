@@ -11,7 +11,6 @@ import { cacheEntity, getCachedEntities } from '@/offline/cache';
 import { taskEvents } from '@/telemetry/events';
 import { useMutationPermissions } from '@/hooks/useMutationPermissions';
 
-
 // Task form management types
 export interface TaskFormData {
   title: string;
@@ -633,7 +632,6 @@ export const useTripTasks = (
           description: task.description,
           due_at: task.due_at,
           is_poll: task.is_poll,
-          
         })
         .select()
         .single();

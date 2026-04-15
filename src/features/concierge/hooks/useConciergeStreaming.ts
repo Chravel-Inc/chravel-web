@@ -12,10 +12,7 @@ import {
 import type { HotelResult } from '@/features/chat/components/HotelResultCards';
 import type { TripPreferences } from '@/types/consumer';
 import { supabase } from '@/integrations/supabase/client';
-import {
-  getConciergeInvalidationKeys,
-  isConciergeWriteAction,
-} from '@/lib/conciergeInvalidation';
+import { getConciergeInvalidationKeys, isConciergeWriteAction } from '@/lib/conciergeInvalidation';
 import { sanitizeConciergeContent } from '@/lib/sanitizeConciergeContent';
 import { conciergeCacheService } from '@/services/conciergeCacheService';
 import type {
@@ -480,7 +477,7 @@ export function useConciergeStreaming(params: Params) {
 
               // Handle concierge write actions (createPoll, createTask, savePlace, etc.)
               if (isConciergeWriteAction(name) && result.actionType) {
-              if (result.pending && result.pendingActionId) {
+                if (result.pending && result.pendingActionId) {
                   const pendingAction = {
                     id: result.pendingActionId as string,
                     toolName: name,
