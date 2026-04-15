@@ -1,3 +1,10 @@
+2026-04-15 — Light theme token tightening + brittle selector reduction
+- Tightened light-mode core tokens in `src/index.css` to a softer gray band: background 80%, card 91%, input 94%, with matching glass-slate tokens (`--glass-slate-bg/card/border`) and standalone PWA shell update.
+- Reduced brittle light-mode compatibility selectors by removing broad `[class*='...']` wildcard overrides and retaining minimal explicit class shims (`.bg-white/10`, `.bg-white/20`, `.border-white/10`, `.border-white/20`, plus dark-section explicit variants).
+- Added explicit theme guidance comment in `src/index.css`: no hardcoded hex dark colors in theme-aware components; use semantic tokens.
+- Preserved token-driven Tailwind glass-slate mapping and documented that in `tailwind.config.ts`.
+- Verification: `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`, `npm run merge:preflight` (blocked in this environment: cannot fetch `origin/main`).
+
 2026-04-14 — Shared entitlement resolution contract + call-site convergence
 - Added shared effective-entitlement contracts in both runtime layers:
   - `src/lib/entitlements/selectors.ts` now exports `resolveEffectiveEntitlement(...)` with canonical effective-access evaluation (`active`, `trialing`, `past_due`, `canceled` with future `current_period_end`).
