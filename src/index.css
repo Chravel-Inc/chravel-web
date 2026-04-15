@@ -702,6 +702,17 @@
 .light .bg-\[\#222\]\/40 {
   background-color: rgba(245, 245, 245, 0.5);
 }
+
+/* NativeTabBar light mode overrides */
+.light .bg-\[\#1c1c1e\]\/95 {
+  background-color: hsl(0 0% 88% / 0.95);
+}
+.light .border-white\/10 {
+  border-color: rgba(0, 0, 0, 0.08);
+}
+.light .text-white\/60 {
+  color: rgba(0, 0, 0, 0.5);
+}
 .light .border-\[\#333\] {
   border-color: hsl(0 0% 83%);
 }
