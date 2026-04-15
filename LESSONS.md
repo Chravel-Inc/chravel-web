@@ -559,3 +559,11 @@
 - **Evidence:** Chravel had mixed comments/env references around Gemini 3.1 vs 2.5 while production flows remained on 2.5. Adding `voice-model-guard.cjs` plus one canonical constant (`agent/src/voiceModel.ts`) prevented accidental reintroduction of unsupported `media_chunks`/`generateReply` assumptions and model-string drift.
 - **Provenance:** April 2026 LiveKit/Gemini voice contract hardening.
 - **Confidence:** high
+
+### Prefer semantic foreground tokens over fixed light text for selected controls
+- **Tip:** In shared toggle/tab primitives, avoid hardcoding selected-state text colors like `text-white` or forcing `data-[state=on]:text-accent-foreground` globally. Set state text explicitly at the consuming component using semantic tokens (`text-foreground`, `text-muted-foreground`) so both light and dark themes remain readable.
+- **Applies when:** Building `Toggle` / `ToggleGroup` based segmented controls and tab rails used across multiple themed surfaces.
+- **Avoid when:** A control has a strictly fixed brand background with a guaranteed contrast contract and dedicated visual tests.
+- **Evidence:** Light mode trip toggles/tabs became unreadable due to shared toggle on-state text override; removing the primitive-level override and explicitly setting per-surface token-safe state classes fixed contrast while preserving dark mode parity.
+- **Provenance:** April 2026 trip view toggle and mobile tab parity fix.
+- **Confidence:** high
