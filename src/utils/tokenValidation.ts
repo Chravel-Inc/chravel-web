@@ -129,7 +129,6 @@ export function logTokenDebug(context: string, token: string | undefined): void 
   if (!import.meta.env.DEV) return;
 
   if (!token) {
-    console.log(`[TokenDebug - ${context}] No token present`);
     return;
   }
 
@@ -139,12 +138,4 @@ export function logTokenDebug(context: string, token: string | undefined): void 
     console.error(`[TokenDebug - ${context}] Failed to parse token`);
     return;
   }
-
-  console.log(`[TokenDebug - ${context}]`, {
-    hasSub: !!payload.sub,
-    sub: payload.sub?.slice(0, 8) + '...',
-    exp: payload.exp ? new Date(payload.exp * 1000).toISOString() : 'none',
-    isExpired: payload.exp ? Date.now() > payload.exp * 1000 : 'unknown',
-    iss: payload.iss,
-  });
 }

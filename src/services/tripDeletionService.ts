@@ -32,14 +32,6 @@ export interface DeletionContext {
 export async function executeDeleteTrip(ctx: DeletionContext): Promise<DeletionResult> {
   const { tripId, userId, isCreator } = ctx;
 
-  if (import.meta.env.DEV) {
-    console.log('[tripDeletionService] executeDeleteTrip', {
-      tripId,
-      userId,
-      isCreator,
-    });
-  }
-
   if (isCreator) {
     // Creator path: archive (sets is_archived=true on the trips row).
     // This removes it from getUserTrips (which filters is_archived=false).

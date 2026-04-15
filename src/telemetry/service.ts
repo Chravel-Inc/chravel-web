@@ -100,14 +100,6 @@ class TelemetryService {
 
     // Process any queued events
     this.flushQueue();
-
-    if (this.config.debug) {
-      console.log('[Telemetry] Initialized', {
-        providers: this.providers.map(p => p.name),
-        environment: this.config.environment,
-        demoMode: this.demoMode,
-      });
-    }
   }
 
   /**

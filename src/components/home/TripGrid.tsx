@@ -290,9 +290,6 @@ export const TripGrid = React.memo(
           try {
             // Unified deletion: useDeleteTrip handles creator vs member logic
             const result = await deleteTrip(tripId, trip.created_by);
-            if (import.meta.env.DEV) {
-              console.log('[TripGrid] Delete result:', result);
-            }
             onTripStateChange?.();
           } catch {
             // Revert on error

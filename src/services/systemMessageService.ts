@@ -25,7 +25,6 @@ class SystemMessageService {
 
     // GUARD: Only create system messages for consumer trips
     if (!isConsumerTrip(tripId)) {
-      console.log('[SystemMessage] Skipping for non-consumer trip:', tripId);
       return false;
     }
 
@@ -51,9 +50,6 @@ class SystemMessageService {
         return false;
       }
 
-      if (import.meta.env.DEV) {
-        console.log('[SystemMessage] Created:', eventType);
-      }
       return true;
     } catch (error) {
       console.error('[SystemMessage] Error:', error);

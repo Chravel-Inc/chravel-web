@@ -120,7 +120,6 @@ export const PlacesSection = ({
             now - lastLocalUpdateRef.current.timestamp < UPDATE_DEBOUNCE_MS;
 
           if (!isLocalUpdate) {
-            console.log('[PlacesSection] Remote basecamp update detected, invalidating cache');
             queryClient.invalidateQueries({ queryKey: tripBasecampKeys.trip(tripId) });
 
             const updatedBasecamp = await basecampService.getTripBasecamp(tripId);
@@ -129,8 +128,6 @@ export const PlacesSection = ({
                 description: updatedBasecamp.name || updatedBasecamp.address,
               });
             }
-          } else {
-            console.log('[PlacesSection] Local basecamp update detected, skipping notification');
           }
         },
       )
@@ -152,10 +149,6 @@ export const PlacesSection = ({
       timestamp: Date.now(),
       address: newBasecamp.address,
     };
-
-    if (import.meta.env.DEV) {
-      console.log('[PlacesSection] Trip basecamp set notification received:', newBasecamp.address);
-    }
   };
 
   /**

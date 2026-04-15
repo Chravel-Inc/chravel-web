@@ -78,13 +78,11 @@ export async function configureRevenueCat(
 ): Promise<RevenueCatResult> {
   // Demo mode: no-op
   if (isDemoMode) {
-    console.log('[RevenueCat] Demo mode active, skipping configuration');
     return { success: true, supported: false, error: 'Demo mode active' };
   }
 
   // Check if enabled
   if (!REVENUECAT_ENABLED) {
-    console.log('[RevenueCat] Feature flag disabled');
     return { success: false, supported: false, errorCode: 'NOT_CONFIGURED' };
   }
 
@@ -92,7 +90,6 @@ export async function configureRevenueCat(
 
   // Web: not supported
   if (platform === 'web') {
-    console.log('[RevenueCat] Web platform detected, IAP not supported');
     return { success: false, supported: false, errorCode: 'NOT_SUPPORTED' };
   }
 
@@ -126,7 +123,6 @@ export async function configureRevenueCat(
       appUserID: userId,
     });
 
-    console.log('[RevenueCat] Configured successfully for user:', userId);
     return { success: true, supported: true };
   } catch (error) {
     console.error('[RevenueCat] Configuration failed:', error);
@@ -251,7 +247,6 @@ export async function purchasePackage(
 
     const { customerInfo } = await (purchases as any).purchasePackage({ aPackage: pkg });
 
-    console.log('[RevenueCat] Purchase successful');
     return {
       success: true,
       supported: true,
@@ -301,7 +296,6 @@ export async function restorePurchases(
 
   try {
     const { customerInfo } = await (purchases as any).restorePurchases();
-    console.log('[RevenueCat] Restore successful');
     return {
       success: true,
       supported: true,
@@ -333,7 +327,6 @@ export async function logoutRevenueCat(): Promise<RevenueCatResult> {
 
   try {
     await (purchases as any).logOut();
-    console.log('[RevenueCat] Logged out');
     return { success: true, supported: true };
   } catch (error) {
     console.error('[RevenueCat] Logout failed:', error);
@@ -445,7 +438,6 @@ export function derivePlanFromCustomerInfo(customerInfo: RevenueCatCustomerInfo)
 export function setupGlobalPurchaseListener() {
   if (typeof window !== 'undefined') {
     window.onRevenueCatPurchase = () => {
-      console.log('[Native] Purchase completed successfully');
       toast.success('Subscription Updated', {
         description: 'Your purchase was successful! Features are unlocking...',
       });

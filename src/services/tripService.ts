@@ -134,32 +134,20 @@ export const tripService = {
 
       // Fallback: if getUser() returns null, try refreshing the session
       if (!user) {
-        if (import.meta.env.DEV) {
-          console.warn('[tripService] getUser() returned null, attempting session refresh...');
-        }
         const { data: sessionData } = await supabase.auth.getSession();
         if (sessionData?.session) {
           // Session exists but getUser failed — force refresh
           const { data: refreshData } = await supabase.auth.refreshSession();
           user = refreshData?.user ?? null;
-          if (user && import.meta.env.DEV) {
-            console.log('[tripService] Session refresh recovered user:', user.id);
-          }
         }
       }
 
       // Enhanced validation with detailed error logging
       if (!user) {
-        if (import.meta.env.DEV) {
-          console.error('[tripService] No authenticated user found after refresh attempt');
-        }
         throw new Error('No authenticated user');
       }
 
       if (!user.id) {
-        if (import.meta.env.DEV) {
-          console.error('[tripService] Authenticated user missing ID', { user });
-        }
         throw new Error('Invalid user state - missing ID');
       }
 
@@ -211,10 +199,6 @@ export const tripService = {
       });
 
       if (error) {
-        if (import.meta.env.DEV) {
-          console.error('[tripService] Edge function error:', error);
-        }
-
         // SAFETY: This block only handles trip *creation* errors (not trip loading).
         // No Trip Not Found risk — getTripById is a separate method.
         // No auth desync — auth flow (lines 124-157) is untouched.
@@ -275,17 +259,11 @@ export const tripService = {
       }
 
       if (!data?.success) {
-        if (import.meta.env.DEV) {
-          console.error('[tripService] Edge function returned failure:', data);
-        }
         throw new Error(data?.error || 'Failed to create trip');
       }
 
       return data.trip;
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('[tripService] Error creating trip:', error);
-      }
       // Handle network-level errors (FunctionsFetchError) with a user-friendly message.
       // When supabase.functions.invoke cannot reach the function, it throws with
       // message "Failed to fetch" rather than returning { error: FunctionsHttpError }.
@@ -493,9 +471,6 @@ export const tripService = {
         };
       });
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error fetching trips:', error);
-      }
       return [];
     }
   },
@@ -556,9 +531,6 @@ export const tripService = {
 
       return true;
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error updating trip:', error);
-      }
       return false;
     }
   },
@@ -569,9 +541,6 @@ export const tripService = {
 
       return !error;
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error archiving trip:', error);
-      }
       return false;
     }
   },
@@ -625,9 +594,6 @@ export const tripService = {
         profiles: profilesMap.get(m.user_id) || null,
       }));
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error fetching trip members:', error);
-      }
       return [];
     }
   },
@@ -642,10 +608,6 @@ export const tripService = {
   }> {
     // NOTE: Auth is now handled by useTripDetailData hook (gates query on authUserId)
     // This service method only runs when user is authenticated
-
-    if (import.meta.env.DEV) {
-      console.log('[tripService.getTripMembersWithCreator] Fetching for tripId:', tripId);
-    }
 
     // Parallel fetch: trip creator + members
     const tripResult = await supabase
@@ -701,18 +663,8 @@ export const tripService = {
 
     const creatorId = tripResult.data?.created_by || null;
 
-    if (import.meta.env.DEV) {
-      console.log('[tripService.getTripMembersWithCreator] Results:', {
-        creatorId,
-        membersCount: membersResult.data?.length ?? 0,
-      });
-    }
-
     // If no members in table but we have creator, fetch creator as minimum member
     if (!membersResult.data || membersResult.data.length === 0) {
-      if (import.meta.env.DEV) {
-        console.warn('[tripService] No members found in trip_members table for trip:', tripId);
-      }
       if (creatorId) {
         const { data: creatorProfile } = await supabase
           .from('profiles_public')
@@ -789,9 +741,6 @@ export const tripService = {
       }
     }
 
-    if (import.meta.env.DEV) {
-      console.log('[tripService.getTripMembersWithCreator] Returning', members.length, 'members');
-    }
     return { members, creatorId };
   },
 
@@ -805,9 +754,6 @@ export const tripService = {
 
       return !error;
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error adding trip member:', error);
-      }
       return false;
     }
   },

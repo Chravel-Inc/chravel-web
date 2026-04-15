@@ -81,11 +81,10 @@ export const useChatComposer = ({
 
       if (isPayment && paymentData) {
         const perPersonAmount = (paymentData.amount / paymentData.splitCount).toFixed(2);
-        const preferredPaymentMethod = 'Venmo: @yourvenmo'; // TODO: Fetch from user's payment methods
 
         return {
           id: messageId,
-          text: `${paymentData.description} - ${paymentData.currency} ${paymentData.amount.toFixed(2)} (split ${paymentData.splitCount} ways) • Pay me $${perPersonAmount} via ${preferredPaymentMethod}`,
+          text: `${paymentData.description} - ${paymentData.currency} ${paymentData.amount.toFixed(2)} (split ${paymentData.splitCount} ways) • $${perPersonAmount} per person`,
           sender: { id: user?.id || 'demo-user', name: 'You', avatar },
           createdAt: new Date().toISOString(),
           isBroadcast: false,

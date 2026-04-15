@@ -1,9 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { toast } from 'sonner';
 import { useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import type { Channel } from 'stream-chat';
+import type { Channel, MessageResponse } from 'stream-chat';
+import { streamMessageToChravel } from '@/services/stream/adapters/mappers/messageMapper';
 import { demoModeService } from '@/services/demoModeService';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useChatComposer } from '../hooks/useChatComposer';
@@ -317,88 +317,36 @@ export const TripChat = React.memo(
       const messageMap = new Map(liveMessages.map(msg => [msg.id, msg]));
 
       return liveMessages.map(message => {
-        // Stream uses message.user, Supabase used message.user_id / message.author_name
-        const streamUser = (message as any).user;
-        const msgUserId = streamUser?.id || (message as any).user_id;
-        const msgAuthorName = streamUser?.name || (message as any).author_name;
-        const msgContent = (message as any).text || (message as any).content || '';
-        const msgCreatedAt = (message as any).created_at || new Date().toISOString();
-        const msgUpdatedAt = (message as any).updated_at || msgCreatedAt;
-        const msgParentId = (message as any).parent_id || (message as any).reply_to_id;
-        const customType = (message as any).message_type;
-
-        // Media attachment parsing from Stream
-        let mediaType: string | undefined;
-        let mediaUrl: string | undefined;
-        let linkPreview: any = (message as any).link_preview;
-
-        if ((message as any).attachments && (message as any).attachments.length > 0) {
-          const firstAttachment = (message as any).attachments[0];
-          if (firstAttachment.type === 'image') {
-            mediaType = 'image';
-            mediaUrl = firstAttachment.image_url || firstAttachment.asset_url;
-          } else if (firstAttachment.type === 'video') {
-            mediaType = 'video';
-            mediaUrl = firstAttachment.asset_url;
-          } else if (firstAttachment.type === 'file') {
-            mediaType = 'file';
-            mediaUrl = firstAttachment.asset_url;
-          }
-
-          // URL enrichment attachment = link preview
-          const urlAttachment = (message as any).attachments.find(
-            (a: any) => a.og_scrape_url || a.title_link,
-          );
-          if (urlAttachment && !linkPreview) {
-            linkPreview = {
-              url: urlAttachment.og_scrape_url || urlAttachment.title_link,
-              title: urlAttachment.title,
-              description: urlAttachment.text,
-              image: urlAttachment.image_url || urlAttachment.thumb_url,
-            };
-          }
-        } else {
-          mediaType = (message as any).media_type;
-          mediaUrl = (message as any).media_url;
-        }
-
-        // Reactions formatting from Stream native payload to expected shape
-        const formattedReactions: Record<string, any> = {};
-        if ((message as any).reaction_counts) {
-          for (const [type, count] of Object.entries((message as any).reaction_counts)) {
-            formattedReactions[type] = {
-              count: count as number,
-              userReacted: !!(message as any).own_reactions?.some((r: any) => r.type === type),
-              users:
-                (message as any).latest_reactions
-                  ?.filter((r: any) => r.type === type)
-                  .map((r: any) => r.user?.id) || [],
-            };
-          }
-        }
+        // Use the shared mapper for base Stream->Chravel conversion
+        // (media, reactions, timestamps, attachments, link previews)
+        const msg = message as MessageResponse;
+        const mapped = streamMessageToChravel(msg, resolvedTripId);
 
         // Resolve replyTo context if parent_id exists
         let replyTo;
-        if (msgParentId) {
-          const parentMsg = messageMap.get(msgParentId);
+        if (mapped.reply_to_id) {
+          const parentMsg = messageMap.get(mapped.reply_to_id) as MessageResponse | undefined;
           if (parentMsg) {
-            const pStreamUser = (parentMsg as any).user;
+            const parentMapped = streamMessageToChravel(parentMsg, resolvedTripId);
             replyTo = {
               id: parentMsg.id,
-              text: (parentMsg as any).text || (parentMsg as any).content,
-              sender: pStreamUser?.name || (parentMsg as any).author_name,
+              text: parentMapped.content,
+              sender: parentMapped.author_name,
             };
           }
         }
 
         // Map Stream's built-in read state
-        const readStatuses: any[] = [];
+        const readStatuses: Array<{
+          user_id: string;
+          read_at: string;
+          user: { id: string; display_name: string; avatar_url: string };
+        }> = [];
         if (activeChannel?.state?.read) {
           for (const [readerId, readState] of Object.entries(activeChannel.state.read)) {
-            // Check if the user read up to or past this message's timestamp
             const readAt = new Date(readState.last_read);
-            const msgDate = new Date(msgCreatedAt);
-            if (readAt >= msgDate && readerId !== user?.id && readerId !== msgUserId) {
+            const msgDate = new Date(mapped.created_at);
+            if (readAt >= msgDate && readerId !== user?.id && readerId !== mapped.user_id) {
               const member = tripMembers.find(m => m.id === readerId);
               if (member) {
                 readStatuses.push({
@@ -415,37 +363,40 @@ export const TripChat = React.memo(
           }
         }
 
+        // Resolve sender display name and avatar from trip members
+        const senderMember = tripMembers.find(m => m.id === (mapped.user_id || ''));
+
         return {
           id: message.id,
-          text: msgContent,
+          text: mapped.content,
           sender: {
-            id: msgUserId || msgAuthorName || 'system',
-            name: (() => {
-              const member = tripMembers.find(m => m.id === (msgUserId || ''));
-              if (member) return member.name;
-              return msgAuthorName || 'System';
-            })(),
-            avatar: tripMembers.find(m => m.id === (msgUserId || ''))?.avatar || defaultAvatar,
-            userId: msgUserId,
+            id: mapped.user_id || mapped.author_name || 'system',
+            name: senderMember?.name || mapped.author_name || 'System',
+            avatar: senderMember?.avatar || defaultAvatar,
+            userId: mapped.user_id,
           },
-          createdAt: msgCreatedAt,
-          isBroadcast: customType === 'broadcast',
-          isPayment: customType === 'payment',
-          isEdited: msgCreatedAt !== msgUpdatedAt,
-          editedAt: msgCreatedAt !== msgUpdatedAt ? msgUpdatedAt : undefined,
-          tags: customType === 'system' ? (['system'] as string[]) : ([] as string[]),
-          linkPreview,
+          createdAt: mapped.created_at,
+          isBroadcast: mapped.message_type === 'broadcast',
+          isPayment: mapped.message_type === 'payment',
+          isEdited: mapped.is_edited || false,
+          editedAt: mapped.edited_at,
+          tags: mapped.message_type === 'system' ? (['system'] as string[]) : ([] as string[]),
+          linkPreview: mapped.link_preview,
           replyTo,
-          mediaType,
-          mediaUrl,
-          reactions:
-            Object.keys(formattedReactions).length > 0
-              ? formattedReactions
-              : (message as any).reactions,
+          mediaType: mapped.media_type,
+          mediaUrl: mapped.media_url,
+          reactions: mapped.reactions,
           readStatuses,
         };
       });
-    }, [liveMessages, demoMode.isDemoMode, tripMembers, activeChannel?.state?.read, user?.id]);
+    }, [
+      liveMessages,
+      demoMode.isDemoMode,
+      tripMembers,
+      activeChannel?.state?.read,
+      user?.id,
+      resolvedTripId,
+    ]);
 
     const handleSendMessage = async (
       isBroadcast = false,
@@ -578,13 +529,9 @@ export const TripChat = React.memo(
         demoMessages.find(m => m.id === messageId);
       if (!message) return;
 
-      // For inline reply:
-      const content = (message as any).text || (message as any).content || '';
-      const authorName =
-        (message as any).sender?.name ||
-        (message as any).user?.name ||
-        (message as any).author_name ||
-        'User';
+      // For inline reply — use the formatted message fields
+      const content = message.text || '';
+      const authorName = message.sender?.name || 'User';
 
       setReply(messageId, content, authorName);
     };

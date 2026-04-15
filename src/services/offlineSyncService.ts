@@ -96,9 +96,6 @@ class OfflineSyncService {
 
     // Stream handles its own queueing only when configured + enabled + connected.
     if (entityType === 'chat_message' && isStreamChatActive(getStreamClient()?.userID)) {
-      if (import.meta.env.DEV) {
-        console.log('[OfflineSync] Bypassing custom queue for chat message (Stream active)');
-      }
       return `stream_handled_${Date.now()}`;
     }
 

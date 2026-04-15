@@ -244,15 +244,6 @@ export const TripCard = ({
       const tripIdStr = trip.id.toString();
       const isNumericId = !tripIdStr.includes('-'); // UUIDs have dashes, demo IDs don't
 
-      if (import.meta.env.DEV) {
-        console.log('[TripCard Export] Starting export', {
-          tripId: tripIdStr,
-          isNumericId,
-          isDemoMode,
-          sections,
-        });
-      }
-
       toast({
         title: 'Creating Recap',
         description: `Building your trip memories for "${trip.title}"...`,
@@ -265,7 +256,6 @@ export const TripCard = ({
           const mockCalendar = demoModeService.getMockCalendarEvents(tripIdStr);
           const mockAttachments = demoModeService.getMockAttachments(tripIdStr);
           // Demo mode - use mock data from services
-          if (import.meta.env.DEV) console.log('[TripCard Export] Using demo mode data');
 
           const mockPayments = demoModeService.getMockPayments(tripIdStr);
           const mockPolls = demoModeService.getMockPolls(tripIdStr);
@@ -304,8 +294,6 @@ export const TripCard = ({
           );
         } else {
           // Authenticated mode - fetch real data from Supabase
-          if (import.meta.env.DEV)
-            console.log('[TripCard Export] Fetching real data from Supabase');
 
           const { getExportData } = await import('../services/tripExportDataService');
           const realData = await getExportData(tripIdStr, orderedSections);
@@ -334,9 +322,6 @@ export const TripCard = ({
             { customization: { compress: true, maxItemsPerSection: 100 } },
           );
         }
-
-        if (import.meta.env.DEV)
-          console.log('[TripCard Export] PDF generated, blob size:', blob.size);
 
         signal.throwIfAborted();
 

@@ -1,18 +1,10 @@
 import React, { useState } from 'react';
 import { Settings, Users, Trash2, X, ScrollText, Activity } from 'lucide-react';
-import { TripUserManagement } from './TripUserManagement';
+import { TripUserManagement, type TripUser } from './TripUserManagement';
 import { getConsistentAvatar } from '../utils/avatarUtils';
 import { EventLogDrawer } from './trip/EventLogDrawer';
 import { isConsumerTrip } from '@/utils/tripTierDetector';
 import { TripActivitySettings } from './settings/TripActivitySettings';
-
-interface TripUser {
-  id: string;
-  name: string;
-  avatar: string;
-  role?: 'owner' | 'admin' | 'member';
-  joinedAt: string;
-}
 
 interface TripSettingsProps {
   isOpen: boolean;

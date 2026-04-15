@@ -49,18 +49,6 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
   const authUserId = user?.id ?? session?.user?.id ?? null;
 
   // 🔍 DEBUG: Log auth state (dev only) to diagnose issues
-  if (import.meta.env.DEV) {
-    console.log('[useTripDetailData] Auth state:', {
-      tripId,
-      isAuthLoading,
-      hasUser: !!user,
-      userId: user?.id?.slice(0, 8),
-      hasSession: !!session,
-      sessionUserId: session?.user?.id?.slice(0, 8),
-      authUserId: authUserId?.slice(0, 8),
-      isDemoMode,
-    });
-  }
 
   // Demo mode: Fast path - synchronous, no network
   const isNumericId = tripId ? /^\d+$/.test(tripId) : false;

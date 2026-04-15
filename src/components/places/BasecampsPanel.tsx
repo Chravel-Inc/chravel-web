@@ -26,21 +26,9 @@ import { useQueryClient } from '@tanstack/react-query';
 const LOG_PREFIX = '[BasecampsPanel]';
 
 /** Dev-only logger — stripped from production builds by the bundler's dead-code elimination. */
-const devLog = (...args: unknown[]): void => {
-  if (import.meta.env.DEV) {
-    console.log(...args);
-  }
-};
-const devWarn = (...args: unknown[]): void => {
-  if (import.meta.env.DEV) {
-    console.warn(...args);
-  }
-};
-const devError = (...args: unknown[]): void => {
-  if (import.meta.env.DEV) {
-    console.error(...args);
-  }
-};
+const devLog = (...args: unknown[]): void => {};
+const devWarn = (...args: unknown[]): void => {};
+const devError = (...args: unknown[]): void => {};
 
 export interface BasecampsPanelProps {
   tripId: string;

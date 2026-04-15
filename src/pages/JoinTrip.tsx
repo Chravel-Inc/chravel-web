@@ -153,20 +153,6 @@ const JoinTrip = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only
   }, []);
 
-  // Debug logging on mount
-  useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.log('[JoinTrip] Component mounted', {
-        token,
-        authLoading,
-        loading,
-        hasUser: !!user,
-        pathname: location.pathname,
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only debug log
-  }, []);
-
   // Safety timeout - prevent infinite loading states
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -257,23 +243,13 @@ const JoinTrip = () => {
   };
 
   const fetchInvitePreview = async () => {
-    if (import.meta.env.DEV) {
-      console.log('[JoinTrip] fetchInvitePreview called', { token });
-    }
-
     if (!token) {
-      if (import.meta.env.DEV) {
-        console.warn('[JoinTrip] No token provided');
-      }
       setLoading(false);
       return;
     }
 
     // Handle demo invite codes - redirect to auth instead of showing error
     if (token.startsWith('demo-')) {
-      if (import.meta.env.DEV) {
-        console.log('[JoinTrip] Demo invite code detected, redirecting to auth');
-      }
       // Demo invites should redirect to sign up - they're not real invites
       navigate(`/auth?mode=signup&returnTo=${encodeURIComponent('/')}`, { replace: true });
       return;
@@ -294,31 +270,18 @@ const JoinTrip = () => {
 
     try {
       setLoading(true);
-      if (import.meta.env.DEV) {
-        console.log('[JoinTrip] Invoking get-invite-preview edge function');
-      }
 
       // Use edge function to get invite preview (works without auth)
       const { data, error: funcError } = await supabase.functions.invoke('get-invite-preview', {
         body: { code: token },
       });
 
-      if (import.meta.env.DEV) {
-        console.log('[JoinTrip] Edge function response:', { data, error: funcError });
-      }
-
       if (funcError) {
-        if (import.meta.env.DEV) {
-          console.error('[JoinTrip] Edge function error:', funcError);
-        }
         setError(createInviteError('NETWORK_ERROR'));
         return;
       }
 
       if (!data?.success) {
-        if (import.meta.env.DEV) {
-          console.error('[JoinTrip] Invite preview error:', data?.error);
-        }
         // Normalize legacy error codes to new taxonomy
         const errorCode = normalizeErrorCode(data?.error_code);
         setError(
@@ -334,21 +297,12 @@ const JoinTrip = () => {
         return;
       }
 
-      if (import.meta.env.DEV) {
-        console.log('[JoinTrip] Successfully loaded invite data');
-      }
       setInviteData(data);
     } catch (err) {
-      if (import.meta.env.DEV) {
-        console.error('[JoinTrip] Critical error fetching invite preview:', err);
-      }
       setError(createInviteError('UNKNOWN_ERROR'));
     } finally {
       // ALWAYS stop loading regardless of success/failure
       setLoading(false);
-      if (import.meta.env.DEV) {
-        console.log('[JoinTrip] fetchInvitePreview completed, loading set to false');
-      }
     }
   };
 
@@ -683,9 +637,6 @@ const JoinTrip = () => {
   // Show loading ONLY while fetching invite data
   // DO NOT block on authLoading - unauthenticated users should see preview immediately
   if (loading) {
-    if (import.meta.env.DEV) {
-      console.log('[JoinTrip] Rendering loading state');
-    }
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">

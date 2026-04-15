@@ -192,11 +192,8 @@ export const CoverPhotoFullscreenModal = ({
           });
           toast.success('Photo shared successfully');
           return;
-        } catch (shareError) {
-          // If share fails (user cancelled or not supported), fall back to download
-          if ((shareError as Error).name !== 'AbortError') {
-            console.log('Share failed, falling back to download');
-          }
+        } catch (_shareError) {
+          // Share failed (user cancelled or not supported) — fall through to download
         }
       }
 

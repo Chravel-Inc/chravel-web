@@ -124,12 +124,6 @@ export async function uploadToStorage(
         fileType: file.type,
       };
       fileToUpload = await imageCompression(file, options);
-      if (import.meta.env.DEV) {
-        console.log('Image compressed:', {
-          original: (file.size / 1024 / 1024).toFixed(2) + 'MB',
-          compressed: (fileToUpload.size / 1024 / 1024).toFixed(2) + 'MB',
-        });
-      }
     } catch (error) {
       if (import.meta.env.DEV) console.warn('Failed to compress image, uploading original:', error);
       fileToUpload = file;

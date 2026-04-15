@@ -70,7 +70,8 @@ class ChannelService {
         .eq('user_id', uid)
         .single();
       return !!data;
-    } catch {
+    } catch (e) {
+      console.error('[channelService] isAdmin check failed:', e);
       return false;
     }
   }
@@ -92,7 +93,8 @@ class ChannelService {
       if (!data) return false;
       const permissions = data.permissions as unknown as AdminPermissions;
       return permissions?.[permission] === true;
-    } catch {
+    } catch (e) {
+      console.error('[channelService] hasAdminPermission check failed:', e);
       return false;
     }
   }
@@ -122,7 +124,8 @@ class ChannelService {
         createdAt: r.created_at,
         updatedAt: r.updated_at,
       };
-    } catch {
+    } catch (e) {
+      console.error('[channelService] getUserPrimaryRole failed:', e);
       return null;
     }
   }
@@ -153,7 +156,8 @@ class ChannelService {
         createdAt: data.created_at,
         updatedAt: data.updated_at,
       };
-    } catch {
+    } catch (e) {
+      console.error('[channelService] createRole failed:', e);
       return null;
     }
   }
@@ -175,7 +179,8 @@ class ChannelService {
         createdAt: d.created_at,
         updatedAt: d.updated_at,
       }));
-    } catch {
+    } catch (e) {
+      console.error('[channelService] getRoles failed:', e);
       return [];
     }
   }
@@ -184,7 +189,8 @@ class ChannelService {
     try {
       const { error } = await supabase.from('trip_roles').delete().eq('id', roleId);
       return !error;
-    } catch {
+    } catch (e) {
+      console.error('[channelService] deleteRole failed:', e);
       return false;
     }
   }
@@ -222,7 +228,8 @@ class ChannelService {
         is_primary: request.isPrimary !== false,
       });
       return !error;
-    } catch {
+    } catch (e) {
+      console.error('[channelService] assignUserToRole failed:', e);
       return false;
     }
   }
@@ -236,7 +243,8 @@ class ChannelService {
         .eq('user_id', userId)
         .eq('role_id', roleId);
       return !error;
-    } catch {
+    } catch (e) {
+      console.error('[channelService] revokeUserFromRole failed:', e);
       return false;
     }
   }
@@ -263,7 +271,8 @@ class ChannelService {
             updatedAt: r.updated_at,
           };
         });
-    } catch {
+    } catch (e) {
+      console.error('[channelService] getUserRoles failed:', e);
       return [];
     }
   }
@@ -284,7 +293,8 @@ class ChannelService {
         assignedBy: d.assigned_by,
         assignedAt: d.assigned_at,
       }));
-    } catch {
+    } catch (e) {
+      console.error('[channelService] getRoleAssignments failed:', e);
       return [];
     }
   }
@@ -341,7 +351,8 @@ class ChannelService {
         createdAt: data.created_at,
         updatedAt: data.updated_at,
       };
-    } catch {
+    } catch (e) {
+      console.error('[channelService] createChannel failed:', e);
       return null;
     }
   }
@@ -608,7 +619,8 @@ class ChannelService {
       }
 
       return Array.from(uniqueChannels.values());
-    } catch {
+    } catch (e) {
+      console.error('[channelService] getAccessibleChannels failed:', e);
       return [];
     }
   }
@@ -671,7 +683,8 @@ class ChannelService {
 
       if (error || !data) return null;
       return this.mapChannelData(data as unknown as ChannelRowWithRole);
-    } catch {
+    } catch (e) {
+      console.error('[channelService] updateChannel failed:', e);
       return null;
     }
   }
@@ -684,7 +697,8 @@ class ChannelService {
         .update({ is_archived: true, updated_at: new Date().toISOString() })
         .eq('id', channelId);
       return !error;
-    } catch {
+    } catch (e) {
+      console.error('[channelService] archiveChannel failed:', e);
       return false;
     }
   }
@@ -697,7 +711,8 @@ class ChannelService {
         .update({ is_archived: false, updated_at: new Date().toISOString() })
         .eq('id', channelId);
       return !error;
-    } catch {
+    } catch (e) {
+      console.error('[channelService] unarchiveChannel failed:', e);
       return false;
     }
   }
@@ -862,7 +877,8 @@ class ChannelService {
         createdAt: d.created_at,
         updatedAt: d.updated_at,
       }));
-    } catch {
+    } catch (e) {
+      console.error('[channelService] getAllChannelsForAdmin failed:', e);
       return [];
     }
   }
@@ -1050,7 +1066,8 @@ class ChannelService {
         grantedBy: d.granted_by,
         grantedAt: d.granted_at,
       }));
-    } catch {
+    } catch (e) {
+      console.error('[channelService] getAdmins failed:', e);
       return [];
     }
   }

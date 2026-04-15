@@ -98,8 +98,6 @@ export const useEntitlementsStore = create<EntitlementsState>((set, _get) => ({
     try {
       // SUPER ADMIN CHECK FIRST - email allowlist is the failsafe
       if (userEmail && isSuperAdminEmail(userEmail)) {
-        if (import.meta.env.DEV)
-          console.log('[EntitlementsStore] Super admin detected by email:', userEmail);
         set({
           plan: SUPER_ADMIN_TIER,
           status: 'active',
@@ -127,7 +125,6 @@ export const useEntitlementsStore = create<EntitlementsState>((set, _get) => ({
       const hasAdminRole = roles.includes('enterprise_admin');
 
       if (hasAdminRole) {
-        if (import.meta.env.DEV) console.log('[EntitlementsStore] Super admin detected by role');
         set({
           plan: SUPER_ADMIN_TIER,
           status: 'active',

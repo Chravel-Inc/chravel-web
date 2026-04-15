@@ -31,12 +31,6 @@ export type AudioContract = typeof AUDIO_CONTRACT;
 /** Log actual AudioContext params when diagnostics enabled. */
 export function logAudioContextParams(ctx: AudioContext, diagnosticsEnabled: boolean): void {
   if (!diagnosticsEnabled || !import.meta.env.DEV) return;
-
-  console.log('[voice/audioContract] AudioContext', {
-    sampleRate: ctx.sampleRate,
-    state: ctx.state,
-    baseLatency: ctx.baseLatency,
-  });
 }
 
 /** Assert chunk framing: no giant frames, no empty frames. */
@@ -58,18 +52,11 @@ export function assertChunkFraming(samples: number, diagnosticsEnabled: boolean)
 /** Check if capture sample rate matches expected; return true if resampling needed. */
 export function checkCaptureSampleRate(
   actualHz: number,
-  diagnosticsEnabled: boolean,
+  _diagnosticsEnabled: boolean,
 ): { needsResample: boolean; targetHz: number } {
   const target = AUDIO_CONTRACT.expectedSampleRateHz;
   if (target === actualHz) {
     return { needsResample: false, targetHz: target };
-  }
-  if (diagnosticsEnabled && import.meta.env.DEV) {
-    console.log('[voice/audioContract] Capture sample rate mismatch', {
-      actual: actualHz,
-      expected: target,
-      willResample: actualHz > target,
-    });
   }
   return { needsResample: actualHz !== target, targetHz: target };
 }
@@ -77,10 +64,7 @@ export function checkCaptureSampleRate(
 /** iOS Safari: AudioContext must be resumed on user gesture. */
 export function ensureAudioContextResumed(ctx: AudioContext): Promise<void> {
   if (ctx.state === 'running') return Promise.resolve();
-  return ctx.resume().catch(err => {
-    if (import.meta.env.DEV) {
-      console.warn('[voice/audioContract] AudioContext.resume failed:', err);
-    }
+  return ctx.resume().catch(_err => {
     throw new Error(
       'Audio could not start. Please tap the microphone button again (required on iOS).',
     );

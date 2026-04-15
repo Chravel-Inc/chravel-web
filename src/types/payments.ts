@@ -160,23 +160,3 @@ export interface UnsettledPayment {
   date: string;
   settled: boolean;
 }
-
-// Personal Balance with currency support
-export interface PersonalBalance {
-  userId: string;
-  userName: string;
-  avatar: string;
-  amountOwed: number;
-  amountOwedCurrency: string; // Currency code (e.g., 'USD')
-  preferredPaymentMethod: PaymentMethod | null;
-  unsettledPayments: UnsettledPayment[];
-}
-
-// Balance Summary with base currency
-export interface BalanceSummary {
-  totalOwed: number;
-  totalOwedToYou: number;
-  netBalance: number;
-  baseCurrency: string; // Base currency for calculations
-  balances: PersonalBalance[];
-}

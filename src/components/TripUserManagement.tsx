@@ -3,7 +3,7 @@ import { UserMinus, LogOut, MoreVertical, AlertTriangle, X, Ban, Flag } from 'lu
 import { useAuth } from '../hooks/useAuth';
 import { ReportDialog, ReportReason } from '@/features/chat/components/ReportDialog';
 
-interface TripUser {
+export interface TripUser {
   id: string;
   name: string;
   avatar: string;

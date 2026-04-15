@@ -115,9 +115,13 @@ export const userPreferencesService = {
         .select('preferences')
         .eq('user_id', userId)
         .maybeSingle();
-      if (error) return DEFAULT_PREFERENCES;
+      if (error) {
+        console.error('[userPreferences] Failed to fetch preferences:', error.message);
+        return DEFAULT_PREFERENCES;
+      }
       return { ...DEFAULT_PREFERENCES, ...(data?.preferences || {}) } as AppPreferences;
-    } catch (_e) {
+    } catch (e) {
+      console.error('[userPreferences] Unexpected error fetching preferences:', e);
       return DEFAULT_PREFERENCES;
     }
   },
@@ -130,8 +134,13 @@ export const userPreferencesService = {
       const { error } = await (supabase as any)
         .from('user_preferences')
         .upsert({ user_id: userId, preferences: merged }, { onConflict: 'user_id' });
-      return !error;
-    } catch (_e) {
+      if (error) {
+        console.error('[userPreferences] Failed to save preferences:', error.message);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error('[userPreferences] Unexpected error saving preferences:', e);
       return false;
     }
   },

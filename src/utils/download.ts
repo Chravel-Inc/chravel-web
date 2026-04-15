@@ -63,10 +63,9 @@ export async function openOrDownloadBlob(
       await Promise.race([sharePromise, timeoutPromise]);
       return;
     }
-  } catch (error) {
+  } catch (_error) {
     // User cancelled share, or share timed out, or not supported
     // Fall through to blob download strategies
-    console.log('Web Share API unavailable or failed, using fallback:', error);
   }
 
   const url = URL.createObjectURL(blob);

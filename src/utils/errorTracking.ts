@@ -51,10 +51,6 @@ class ErrorTrackingService {
     if (this.breadcrumbs.length > this.maxBreadcrumbs) {
       this.breadcrumbs.shift();
     }
-
-    if (import.meta.env.DEV) {
-      console.log(`[Breadcrumb] ${breadcrumb.category}: ${breadcrumb.message}`, breadcrumb.data);
-    }
   }
 
   getBreadcrumbs(): Breadcrumb[] {
@@ -71,10 +67,6 @@ class ErrorTrackingService {
       ...context,
       breadcrumbs: this.breadcrumbs.slice(-10),
     });
-
-    if (import.meta.env.DEV) {
-      console.error('[ErrorTracking] Exception:', error.message, context);
-    }
   }
 
   captureMessage(
@@ -103,6 +95,3 @@ class ErrorTrackingService {
 export const errorTracking = new ErrorTrackingService();
 
 // Auto-initialize in development
-if (import.meta.env.DEV) {
-  errorTracking.init({ environment: 'development' });
-}

@@ -200,9 +200,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         );
     } catch (error) {
       // Never block auth on profile creation failures.
-      if (import.meta.env.DEV) {
-        console.warn('[Auth] Failed to ensure profile exists:', error);
-      }
     }
   }, []);
 
@@ -223,9 +220,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (error && error.code !== 'PGRST116') {
         // Schema drift fallback: retry with minimal columns to keep auth working
-        if (import.meta.env.DEV) {
-          console.warn('[Auth] Full profile select failed, retrying minimal:', error.message);
-        }
         const { data: minData, error: minError } = await supabase
           .from('profiles')
           .select(
@@ -252,9 +246,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       return data as unknown as UserProfile;
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error fetching profile:', error);
-      }
       return null;
     }
   };
@@ -264,9 +255,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     async (supabaseUser: SupabaseUser, profile?: UserProfile | null): Promise<User | null> => {
       // CRITICAL: Validate that we have a valid user ID before proceeding
       if (!supabaseUser || !supabaseUser.id) {
-        if (import.meta.env.DEV) {
-          console.error('[transformUser] Invalid Supabase user - missing ID', { supabaseUser });
-        }
         return null;
       }
 
@@ -525,9 +513,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             name: error.name,
             status: (error as unknown as { status?: number }).status,
           });
-          if (import.meta.env.DEV) {
-            console.error('[Auth] Error getting session:', error);
-          }
           // Retry once after 1s for transient network issues
           await new Promise(r => setTimeout(r, 1000));
           const retry = await supabase.auth.getSession();
@@ -601,9 +586,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           const fiveMinutesFromNow = Date.now() + 5 * 60 * 1000;
 
           if (expiresAt < fiveMinutesFromNow) {
-            if (import.meta.env.DEV) {
-              console.log('[Auth] Session near expiry, proactively refreshing...');
-            }
             const { data: refreshed } = await supabase.auth.refreshSession();
             if (refreshed.session && isSessionTokenValid(refreshed.session.access_token)) {
               setSession(refreshed.session);
@@ -634,17 +616,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             demoStore.setDemoView('off');
           }
 
-          // Log session info in dev for debugging
-          if (import.meta.env.DEV) {
-            console.log('[Auth] Session state:', {
-              hasSession: true,
-              expiresAt: session.expires_at
-                ? new Date(session.expires_at * 1000).toISOString()
-                : null,
-              refreshToken: session.refresh_token ? '(present)' : '(missing)',
-              userId: session.user.id?.slice(0, 8) + '...',
-            });
-          }
           try {
             setUser(buildSessionDerivedUser(session.user));
             prefetchUserTrips(session.user.id);
@@ -653,9 +624,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             });
           } catch (err) {
             authDebug('init:transformUser:error', { error: String(err) });
-            if (import.meta.env.DEV) {
-              console.error('[Auth] Error transforming user on init:', err);
-            }
             setUser(null);
           }
         } else {
@@ -666,9 +634,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setIsLoading(false);
       } catch (error) {
         authDebug('init:getSession:exception', { error: String(error) });
-        if (import.meta.env.DEV) {
-          console.error('[Auth] Unexpected error in getSessionAndUser:', error);
-        }
         setIsLoading(false);
       }
     };
@@ -756,9 +721,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             })
             .catch(err => {
               authDebug('onAuthStateChange:transformUser:error', { error: String(err) });
-              if (import.meta.env.DEV) {
-                console.error('[Auth] Error transforming user:', err);
-              }
               setUser(buildSessionDerivedUser(session.user));
             });
         }, 0);
@@ -796,15 +758,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (session) {
           supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
             if (!currentSession && session) {
-              if (import.meta.env.DEV) {
-                console.log('[Auth] Session lost while away, attempting refresh...');
-              }
               // Session was lost - try to refresh
               supabase.auth.refreshSession().catch(() => {
                 // Refresh failed - user needs to log in again
-                if (import.meta.env.DEV) {
-                  console.warn('[Auth] Session refresh failed, user must re-authenticate');
-                }
                 setSession(null);
                 setUser(shouldUseDemoUserRef.current ? demoUser : null);
               });
@@ -813,9 +769,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               const expiresAt = currentSession.expires_at * 1000;
               const fiveMinutesFromNow = Date.now() + 5 * 60 * 1000;
               if (expiresAt < fiveMinutesFromNow) {
-                if (import.meta.env.DEV) {
-                  console.log('[Auth] Session near expiry on tab focus, refreshing...');
-                }
                 supabase.auth.refreshSession();
               }
             }
@@ -844,9 +797,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (error) {
-        if (import.meta.env.DEV) {
-          console.error('[Auth] Sign in error:', error);
-        }
         logAuthEvent('login_failure', { method: 'email', errorReason: error.message });
         setIsLoading(false);
 
@@ -872,9 +822,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       void data;
       return {};
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('[Auth] Unexpected sign in error:', error);
-      }
       setIsLoading(false);
       return { error: 'An unexpected error occurred. Please try again.' };
     }
@@ -901,9 +848,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (error) {
-        if (import.meta.env.DEV) {
-          console.error('[Auth] Google OAuth error:', error);
-        }
         if (error.message.includes('provider is not enabled')) {
           return { error: 'Google sign-in is not configured. Please contact support.' };
         }
@@ -912,9 +856,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       return {};
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('[Auth] Unexpected Google OAuth error:', error);
-      }
       return { error: 'An unexpected error occurred. Please try again.' };
     }
   };
@@ -935,9 +876,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (error) {
-        if (import.meta.env.DEV) {
-          console.error('[Auth] Apple OAuth error:', error);
-        }
         if (error.message.includes('provider is not enabled')) {
           return { error: 'Apple sign-in is not configured. Please contact support.' };
         }
@@ -946,9 +884,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       return {};
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('[Auth] Unexpected Apple OAuth error:', error);
-      }
       return { error: 'An unexpected error occurred. Please try again.' };
     }
   };
@@ -962,9 +897,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (error) {
-        if (import.meta.env.DEV) {
-          console.error('[Auth] Phone OTP error:', error);
-        }
         logAuthEvent('phone_otp_failure', { method: 'phone', errorReason: error.message });
         setIsLoading(false);
 
@@ -985,9 +917,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsLoading(false);
       return {};
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('[Auth] Unexpected phone OTP error:', error);
-      }
       setIsLoading(false);
       return { error: 'An unexpected error occurred. Please try again.' };
     }
@@ -1022,9 +951,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (error) {
-        if (import.meta.env.DEV) {
-          console.error('[Auth] Sign up error:', error);
-        }
         logAuthEvent('signup_failure', { method: 'email', errorReason: error.message });
         setIsLoading(false);
 
@@ -1053,9 +979,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsLoading(false);
       return {};
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('[Auth] Unexpected sign up error:', error);
-      }
       setIsLoading(false);
       return { error: 'An unexpected error occurred. Please try again.' };
     }
@@ -1118,18 +1041,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (error) {
-        if (import.meta.env.DEV) {
-          console.error('[Auth] Reset password error:', error);
-        }
         return { error: error.message };
       }
 
       logAuthEvent('password_reset_requested', { method: 'email' });
       return {};
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('[Auth] Unexpected reset password error:', error);
-      }
       return { error: 'An unexpected error occurred. Please try again.' };
     }
   };
@@ -1157,9 +1074,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .single();
 
       if (error) {
-        if (import.meta.env.DEV) {
-          console.error('Error updating profile:', error);
-        }
         return { error };
       }
 
@@ -1239,9 +1153,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(updatedUser);
       return {};
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error updating profile:', error);
-      }
       return { error };
     }
   };
@@ -1276,9 +1187,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       setUser(updatedUser);
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error updating notification settings:', error);
-      }
+      console.error('[Auth] Failed to update notification preferences:', error);
     }
   };
 

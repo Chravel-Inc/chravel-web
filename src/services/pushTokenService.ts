@@ -67,7 +67,6 @@ export async function saveDeviceToken(userId: string, token: string): Promise<bo
       return false;
     }
 
-    console.log('[PushTokenService] Token saved successfully');
     return true;
   } catch (err) {
     console.error('[PushTokenService] Unexpected error saving token:', err);
@@ -92,7 +91,6 @@ export async function removeDeviceToken(userId: string, token: string): Promise<
       return false;
     }
 
-    console.log('[PushTokenService] Token removed successfully');
     return true;
   } catch (err) {
     console.error('[PushTokenService] Unexpected error removing token:', err);

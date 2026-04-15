@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Link as LinkIcon, AlertTriangle, MapPin, ExternalLink, Star } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from './ui/button';
 import { usePlaceResolution } from '../hooks/usePlaceResolution';
 
@@ -190,7 +191,8 @@ export const AddLinkModal = ({ isOpen, onClose, prefill }: AddLinkModalProps) =>
       const linkTitle =
         inputMode === 'place' && selectedLinkOption ? title || resolvedPlace?.name || '' : title;
 
-      // TODO: Send linkUrl and linkTitle to API when backend is ready
+      // TODO(backend): Persist link via tripLinksService when API is ready
+      toast.info('Link saving is coming soon!');
       void linkUrl;
       void linkTitle;
 
