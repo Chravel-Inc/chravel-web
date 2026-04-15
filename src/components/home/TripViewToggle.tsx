@@ -24,6 +24,10 @@ export const TripViewToggle = ({
   onAuthRequired,
 }: TripViewToggleProps) => {
   const _isMobile = useIsMobile();
+  const baseTabClasses =
+    'justify-self-center h-full transition-all duration-300 px-2 sm:px-3 lg:px-4 py-0 rounded-xl font-bold text-sm md:text-base tracking-wide whitespace-nowrap flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2';
+  const statefulTabClasses =
+    'data-[state=on]:bg-background data-[state=on]:border data-[state=on]:border-gold-primary/60 data-[state=on]:text-foreground data-[state=on]:shadow-ring-glow data-[state=off]:text-muted-foreground hover:text-foreground hover:bg-muted/70';
 
   return (
     <div className={cn('w-full', className)}>
@@ -46,7 +50,11 @@ export const TripViewToggle = ({
           <ToggleGroupItem
             value="myTrips"
             aria-label="My Trips"
-            className="justify-self-center h-full data-[state=on]:bg-background data-[state=on]:border data-[state=on]:border-gold-primary/60 data-[state=on]:text-foreground data-[state=on]:shadow-ring-glow data-[state=off]:text-foreground hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-0 rounded-xl font-bold text-sm md:text-base tracking-wide whitespace-nowrap flex items-center justify-center overflow-hidden text-ellipsis min-w-0"
+            className={cn(
+              baseTabClasses,
+              statefulTabClasses,
+              'overflow-hidden text-ellipsis min-w-0',
+            )}
           >
             <span className="inline lg:hidden truncate">Trips</span>
             <span className="hidden lg:inline truncate">My Trips</span>
@@ -54,14 +62,14 @@ export const TripViewToggle = ({
           <ToggleGroupItem
             value="tripsPro"
             aria-label="Pro"
-            className="justify-self-center h-full data-[state=on]:bg-background data-[state=on]:border data-[state=on]:border-gold-primary/60 data-[state=on]:text-foreground data-[state=on]:shadow-ring-glow data-[state=off]:text-foreground hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-0 rounded-xl font-bold text-sm md:text-base tracking-wide whitespace-nowrap flex items-center justify-center"
+            className={cn(baseTabClasses, statefulTabClasses)}
           >
             Pro
           </ToggleGroupItem>
           <ToggleGroupItem
             value="events"
             aria-label="Events"
-            className="justify-self-center h-full data-[state=on]:bg-background data-[state=on]:border data-[state=on]:border-gold-primary/60 data-[state=on]:text-foreground data-[state=on]:shadow-ring-glow data-[state=off]:text-foreground hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-0 rounded-xl font-bold text-sm md:text-base tracking-wide whitespace-nowrap flex items-center justify-center"
+            className={cn(baseTabClasses, statefulTabClasses)}
           >
             Events
           </ToggleGroupItem>
@@ -73,7 +81,12 @@ export const TripViewToggle = ({
               title={
                 recsTabDisabled ? 'Enable Demo Mode to access Travel Recommendations' : undefined
               }
-              className={`justify-self-center h-full data-[state=on]:bg-background data-[state=on]:border data-[state=on]:border-gold-primary/60 data-[state=on]:text-foreground data-[state=on]:shadow-ring-glow data-[state=off]:text-foreground hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-0 rounded-xl font-bold text-sm md:text-base tracking-wide whitespace-nowrap flex items-center justify-center ${recsTabDisabled ? 'opacity-40 cursor-not-allowed hover:bg-transparent' : ''}`}
+              className={cn(
+                baseTabClasses,
+                statefulTabClasses,
+                recsTabDisabled &&
+                  'opacity-40 cursor-not-allowed hover:bg-transparent hover:text-muted-foreground',
+              )}
               onClick={e => {
                 if (recsTabDisabled) {
                   e.preventDefault();

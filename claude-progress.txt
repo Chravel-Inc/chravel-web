@@ -1,3 +1,10 @@
+2026-04-15 — Light theme token tightening + brittle selector reduction
+- Tightened light-mode core tokens in `src/index.css` to a softer gray band: background 80%, card 91%, input 94%, with matching glass-slate tokens (`--glass-slate-bg/card/border`) and standalone PWA shell update.
+- Reduced brittle light-mode compatibility selectors by removing broad `[class*='...']` wildcard overrides and retaining minimal explicit class shims (`.bg-white/10`, `.bg-white/20`, `.border-white/10`, `.border-white/20`, plus dark-section explicit variants).
+- Added explicit theme guidance comment in `src/index.css`: no hardcoded hex dark colors in theme-aware components; use semantic tokens.
+- Preserved token-driven Tailwind glass-slate mapping and documented that in `tailwind.config.ts`.
+- Verification: `npm run typecheck`, `npm run lint:check` (warnings-only baseline), `npm run build`, `npm run merge:preflight` (blocked in this environment: cannot fetch `origin/main`).
+
 2026-04-14 — Shared entitlement resolution contract + call-site convergence
 - Added shared effective-entitlement contracts in both runtime layers:
   - `src/lib/entitlements/selectors.ts` now exports `resolveEffectiveEntitlement(...)` with canonical effective-access evaluation (`active`, `trialing`, `past_due`, `canceled` with future `current_period_end`).
@@ -808,3 +815,14 @@
   - `npm run lint:check` (warnings-only baseline)
   - `npm run build`
   - `npm run merge:preflight` (blocked in this environment: cannot fetch `origin/main`)
+
+2026-04-15 — CreateTripModal theme tokenization + focus/contrast hardening (styling-only)
+- Replaced hardcoded dark-surface classes in `src/components/CreateTripModal.tsx` with semantic theme tokens (`bg-card`, `bg-muted`, `border-border`, `text-foreground`, `text-muted-foreground`) to improve light/dark parity without touching modal logic/state.
+- Preserved intentional gold gradient CTAs/toggle active styles while improving light-mode text contrast via `text-foreground` with dark-mode override to white where appropriate.
+- Standardized focus visibility across form controls and action buttons using tokenized ring/border styles (`focus:ring-ring/30`, `focus:border-ring`).
+- Verification: `npm run typecheck`, `npm run lint:check -- src/components/CreateTripModal.tsx` (warnings-only baseline), `npm run merge:preflight` (blocked: cannot fetch `origin/main`).
+2026-04-15 — Toggle contrast hardening for trip view/tab controls (light/dark safe)
+- Removed forced `data-[state=on]:text-accent-foreground` from shared `toggleVariants` base in `src/components/ui/toggle.tsx` to prevent unreadable on-state text in light mode.
+- Updated `src/components/home/TripViewToggle.tsx` with explicit token-safe on/off/hover state classes and focus-visible ring classes for keyboard accessibility.
+- Updated `src/components/mobile/MobileTripTabs.tsx` tab button state classes for parity: active uses `bg-background text-foreground`, inactive uses `text-muted-foreground` with `hover:text-foreground`, avoiding hardcoded white in light mode.
+- Verification: `npm run typecheck`, `npx eslint src/components/ui/toggle.tsx src/components/home/TripViewToggle.tsx src/components/mobile/MobileTripTabs.tsx`, `npm run merge:preflight` (pre/post edit; blocked by origin fetch in this environment).
