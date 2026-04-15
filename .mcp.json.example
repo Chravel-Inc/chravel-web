@@ -13,6 +13,35 @@
       "headers": {
         "Authorization": "Bearer <YOUR_STRIPE_SECRET_KEY>"
       }
+    },
+    "stitch": {
+      "command": "npx",
+      "args": ["@_davideast/stitch-mcp", "proxy"],
+      "env": {
+        "STITCH_API_KEY": "<YOUR_STITCH_API_KEY>"
+      }
+    },
+    "nano-banana": {
+      "command": "npx",
+      "args": ["-y", "@aeven/nanobanana-mcp@latest"],
+      "env": {
+        "GEMINI_API_KEY": "<YOUR_GEMINI_API_KEY>"
+      }
+    },
+    "higgsfield": {
+      "command": "npx",
+      "args": ["-y", "higgsfield-mcp"],
+      "env": {
+        "HF_API_KEY": "<YOUR_HIGGSFIELD_API_KEY>",
+        "HF_SECRET": "<YOUR_HIGGSFIELD_SECRET>"
+      }
+    },
+    "evolink-media": {
+      "command": "npx",
+      "args": ["-y", "@evolinkai/evolink-media@latest"],
+      "env": {
+        "EVOLINK_API_KEY": "<YOUR_EVOLINK_API_KEY>"
+      }
     }
   }
 }
