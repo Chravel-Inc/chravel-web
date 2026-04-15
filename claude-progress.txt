@@ -1,3 +1,10 @@
+2026-04-15 — Gemini 3.1 Flash TTS speak-back path + outside-bubble speaker affordance
+- Added dedicated Edge Function `supabase/functions/gemini-tts/index.ts` for text-to-speech rendering via `gemini-3.1-flash-tts-preview` with auth enforcement, text sanitization, per-tier daily usage checks (`tts_usage`), and request telemetry logs (`user/trip/message/chars/latency/model/voice`).
+- Updated `useConciergeReadAloud` to support feature-flagged TTS routing: `VITE_CONCIERGE_TTS_ENABLED=true` sends sentence chunks to `gemini-tts`; `false` preserves existing `concierge-tts` path.
+- Updated AI Concierge message rendering to place the speaker control outside the assistant bubble tail (end-of-bubble affordance) and increased tap target to 44x44 for mobile ergonomics.
+- Added focused regression test `MessageRenderer.tts.test.tsx` to verify speaker button visibility contract (assistant-only).
+- Verification: `npm run test:run -- src/features/chat/components/__tests__/MessageRenderer.tts.test.tsx`, `npm run typecheck`, `npm run lint:check`, `npm run build`, `npm run merge:preflight`.
+
 2026-04-15 — Chat theme-token translucency + light-mode contrast hardening
 - Replaced hardcoded dark translucent chat shells in `TripChat` with semantic tokenized surfaces (`bg-card/70`, `bg-muted/60`, `border-border/60`) for the message container, inline reply bar, and chat-mode restriction banner.
 - Updated `ChatInput` composer from `bg-neutral-950/90` to semantic `bg-card/90` and switched input variants to tokenized semantic surfaces:
