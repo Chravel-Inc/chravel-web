@@ -498,6 +498,9 @@
 .light .hover\:bg-gray-700:hover {
   background-color: hsl(0 0% 88%);
 }
+.light .hover\:bg-gray-700\/50:hover {
+  background-color: hsl(0 0% 80%);
+}
 .light .hover\:text-white:hover {
   color: hsl(0 0% 10%);
 }
