@@ -494,6 +494,19 @@
   color: rgba(0, 0, 0, 0.8);
 }
 
+/* Chat search overlay — black text in light mode */
+.light .chat-search-input {
+  color: black;
+}
+.light .chat-search-input::placeholder {
+  color: rgba(0, 0, 0, 0.4);
+}
+
+/* Chat segment inactive text — black in light mode */
+.light .chat-segment-inactive {
+  color: rgba(0, 0, 0, 0.7);
+}
+
 /* --- Borders --- */
 .light .border-gray-600 {
   border-color: hsl(0 0% 80%);
