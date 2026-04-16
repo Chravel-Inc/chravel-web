@@ -63,6 +63,7 @@ async function migrate() {
     await channel.create();
 
     // Process messages in batches to avoid rate limits
+    let totalSuccess = 0;
     const batchSize = 50;
     for (let i = 0; i < messages.length; i += batchSize) {
       const batch = messages.slice(i, i + batchSize);
@@ -71,12 +72,13 @@ async function migrate() {
         id: msg.id,
         text: msg.content || '',
         user_id: msg.user_id || 'system',
-        created_at: new Date(msg.created_at).toISOString(),
-        updated_at: new Date(msg.updated_at || msg.created_at).toISOString(),
-        // Map custom fields
+        // created_at / updated_at are reserved by Stream — store originals as custom data
+        original_created_at: new Date(msg.created_at).toISOString(),
+        original_updated_at: new Date(msg.updated_at || msg.created_at).toISOString(),
+        // Custom fields
         message_type: msg.message_type || 'text',
         privacy_mode: msg.privacy_mode || 'standard',
-        // Map attachments if needed
+        // Attachments
         ...(msg.media_url
           ? {
               attachments: [
@@ -89,19 +91,24 @@ async function migrate() {
           : {}),
       }));
 
+      let successCount = 0;
       for (const streamMsg of streamMessages) {
         try {
           await channel.sendMessage(streamMsg as any);
+          successCount++;
         } catch (e: any) {
-          // If message already exists (idempotency by ID), ignore
-          if (e.message && !e.message.includes('already exists')) {
+          // Skip if already exists (idempotent re-run)
+          if (e.message?.includes('already exists')) {
+            successCount++;
+          } else {
             console.error(`Failed to insert message ${streamMsg.id}: ${e.message}`);
           }
         }
       }
+      totalSuccess += successCount;
     }
 
-    console.log(`Migrated ${messages.length} messages for trip ${tripId}.`);
+    console.log(`Migrated ${totalSuccess} / ${messages.length} messages for trip ${tripId}.`);
   }
 
   console.log('Migration complete.');
