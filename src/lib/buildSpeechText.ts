@@ -2,7 +2,7 @@
  * buildSpeechText — Deterministic spoken-transcript builder for AI Concierge TTS.
  *
  * Converts rich assistant messages (with hotel/place/flight cards, URLs, markdown)
- * into clean, speakable text that sounds natural through Google Cloud TTS.
+ * into clean, speakable text that sounds natural through Gemini TTS.
  *
  * Rules:
  * - Never read raw URLs, tracking links, or markdown syntax aloud.
