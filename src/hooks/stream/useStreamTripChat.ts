@@ -121,11 +121,16 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
 
     const init = async () => {
       const watchChannel = async () => {
+        const channel = client.channel(CHANNEL_TYPE_TRIP, tripChannelId(tripId));
+        const state = await channel.watch({ state: true, messages: { limit: PAGE_SIZE } });
+        return { channel, state };
+      };
+
       try {
         // Ensure the user is a Stream channel member before watching.
         // Stream error code 17 means the user has role 'user' (not 'channel_member')
         // and cannot ReadChannel. We call the server-side join function to add them,
-        // then retry. This also runs proactively on every init to handle users who
+        // then watch. This also runs proactively on every init to handle users who
         // joined the trip before Stream membership sync was in place.
         const supabaseSession = (await import('@/integrations/supabase/client')).supabase.auth;
         const { data: sessionData } = await supabaseSession.getSession();
@@ -149,12 +154,6 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
 
         if (cancelled) return;
 
-        const channel = client.channel(CHANNEL_TYPE_TRIP, tripChannelId(tripId));
-        const state = await channel.watch({ state: true, messages: { limit: PAGE_SIZE } });
-        return { channel, state };
-      };
-
-      try {
         let watched = await watchChannel();
 
         if (
@@ -194,9 +193,8 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
             await supabase.functions.invoke('stream-ensure-membership', {
               body: { tripId, userId: client.userID },
             });
-            const channel = client.channel(CHANNEL_TYPE_TRIP, tripChannelId(tripId));
-            const state = await channel.watch({ state: true, messages: { limit: PAGE_SIZE } });
-            const streamMessages = (state.messages || []) as MessageResponse[];
+            const retried = await watchChannel();
+            const streamMessages = (retried.state.messages || []) as MessageResponse[];
             const sortedMessages = [...streamMessages].sort((a, b) => {
               const aDate = new Date(a.created_at || 0).getTime();
               const bDate = new Date(b.created_at || 0).getTime();
@@ -204,8 +202,8 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
             });
 
             if (!cancelled) {
-              channelRef.current = channel;
-              setActiveChannel(channel);
+              channelRef.current = retried.channel;
+              setActiveChannel(retried.channel);
               setMessages(sortedMessages);
               setHasMore(streamMessages.length === PAGE_SIZE);
               setError(null);
