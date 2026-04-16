@@ -160,7 +160,7 @@ export const MessageTypeBar = ({
                 <PopoverContent
                   side="bottom"
                   align="center"
-                  className="channel-dropdown rounded-xl backdrop-blur-md bg-neutral-900 border border-white/10 shadow-lg p-2 mt-1 z-50 w-auto"
+                  className="channel-dropdown rounded-xl backdrop-blur-md bg-white dark:bg-neutral-900 border border-gray-200 dark:border-white/10 shadow-lg p-2 mt-1 z-50 w-auto"
                   sideOffset={4}
                 >
                   <div className="flex flex-col gap-1 min-w-[200px]">
@@ -175,14 +175,14 @@ export const MessageTypeBar = ({
                         'flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200',
                         !activeChannel
                           ? SEGMENT_COLORS.channels.active
-                          : 'text-white/70 hover:text-white hover:bg-white/10',
+                          : 'text-black dark:text-white/70 hover:bg-gray-100 dark:hover:bg-white/10',
                       )}
                     >
                       <MessageCircle className="w-3.5 h-3.5 flex-shrink-0" />
                       <span className="whitespace-nowrap">All Messages</span>
                     </button>
 
-                    <div className="h-px bg-white/10 my-1" />
+                    <div className="h-px bg-gray-200 dark:bg-white/10 my-1" />
 
                     {availableChannels
                       .sort((a, b) => a.channelName.localeCompare(b.channelName))
@@ -194,14 +194,14 @@ export const MessageTypeBar = ({
                             'flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200',
                             activeChannel?.id === channel.id
                               ? SEGMENT_COLORS.channels.active
-                              : 'text-white/70 hover:text-white hover:bg-white/10',
+                              : 'text-black dark:text-white/70 hover:bg-gray-100 dark:hover:bg-white/10',
                           )}
                         >
                           <Hash className="w-3.5 h-3.5 flex-shrink-0" />
                           <span className="whitespace-nowrap">
                             {channel.channelName.toLowerCase().replace(/\s+/g, '-')}
                           </span>
-                          <span className="text-xs text-white/50 flex-shrink-0">
+                          <span className="text-xs text-black/40 dark:text-white/50 flex-shrink-0">
                             {channel.memberCount || 0}
                           </span>
                         </button>
