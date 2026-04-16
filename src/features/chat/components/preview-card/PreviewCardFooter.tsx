@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { CalendarPlus, Trash2, Loader2 } from 'lucide-react';
+import { CalendarPlus, Trash2 } from 'lucide-react';
 import type { PreviewMode } from './previewCardUtils';
 import { MODE_CONFIG } from './previewCardUtils';
 
@@ -101,7 +101,7 @@ export const PreviewCardFooter: React.FC<PreviewCardFooterProps> = ({
         >
           {isProcessing ? (
             <>
-              <Loader2 size={12} className="animate-spin" />
+              <div className="h-3 w-3 animate-spin gold-gradient-spinner" />
               {config.confirmingLabel}
             </>
           ) : (

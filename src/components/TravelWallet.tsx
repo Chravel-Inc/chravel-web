@@ -9,7 +9,6 @@ import {
   Building,
   CreditCard,
   Wallet,
-  Loader2,
   AlertCircle,
 } from 'lucide-react';
 import { AirlineProgram, HotelProgram, RentalCarProgram } from '../types/pro';
@@ -589,7 +588,7 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
         <div id={`tabpanel-${activeTab}`} role="tabpanel" aria-label={`${activeTab} programs`}>
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+              <div className="h-6 w-6 animate-spin gold-gradient-spinner" />
               <span className="ml-2 text-gray-400">Loading programs...</span>
             </div>
           ) : getCurrentPrograms().length === 0 ? (

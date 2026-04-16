@@ -7,7 +7,6 @@ import {
   Camera,
   Video,
   FileText,
-  Loader2,
   Upload,
   Image,
   Film,
@@ -574,7 +573,7 @@ export const ChatInput = ({
             }
           >
             {isTyping ? (
-              <Loader2 className={`${CTA_ICON_CHAT} text-white animate-spin`} />
+              <div className={`${CTA_ICON_CHAT} animate-spin gold-gradient-spinner`} />
             ) : (
               <Send className={`${CTA_ICON_CHAT} text-white`} />
             )}

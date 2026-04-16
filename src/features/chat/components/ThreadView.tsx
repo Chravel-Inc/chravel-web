@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Send, Loader2, MessageSquare, AlertCircle } from 'lucide-react';
+import { X, Send, MessageSquare, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -221,7 +221,7 @@ export const ThreadView: React.FC<ThreadViewProps> = ({
       <div className="flex-1 overflow-y-auto px-4 py-2 space-y-3">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            <div className="h-5 w-5 animate-spin gold-gradient-spinner" />
           </div>
         ) : loadError ? (
           <div className="text-center py-8">
@@ -289,7 +289,7 @@ export const ThreadView: React.FC<ThreadViewProps> = ({
             className="h-[44px] px-4"
           >
             {isSending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <div className="h-4 w-4 animate-spin gold-gradient-spinner" />
             ) : (
               <Send className="h-4 w-4" />
             )}

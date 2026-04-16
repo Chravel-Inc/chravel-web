@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, ArrowUpDown, X, Navigation, Loader2, AlertCircle } from 'lucide-react';
+import { MapPin, ArrowUpDown, X, Navigation, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BasecampLocation } from '@/types/basecamp';
 import { PersonalBasecamp } from '@/services/basecampService';
@@ -116,7 +116,7 @@ export const DirectionsEmbed: React.FC<DirectionsEmbedProps> = ({
           {iframeLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/30 z-10">
               <div className="flex flex-col items-center gap-2">
-                <Loader2 size={24} className="text-primary animate-spin" />
+                <div className="h-6 w-6 animate-spin gold-gradient-spinner" />
                 <p className="text-sm text-gray-300">Loading directions...</p>
               </div>
             </div>

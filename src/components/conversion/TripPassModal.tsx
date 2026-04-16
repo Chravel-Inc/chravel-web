@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Check, Globe, Sparkles, Clock, Loader2 } from 'lucide-react';
+import { Check, Globe, Sparkles, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -135,7 +135,9 @@ export const TripPassModal: React.FC<TripPassModalProps> = ({ open, onOpenChange
                   disabled={loading !== null}
                   className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                 >
-                  {loading === pass.id ? <Loader2 size={16} className="animate-spin mr-2" /> : null}
+                  {loading === pass.id ? (
+                    <div className="h-4 w-4 mr-2 animate-spin gold-gradient-spinner" />
+                  ) : null}
                   Get Trip Pass
                 </Button>
                 <p className="text-xs text-muted-foreground text-center">{pass.nudge}</p>

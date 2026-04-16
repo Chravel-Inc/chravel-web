@@ -4,15 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import {
-  Download,
-  Loader2,
-  CheckCircle,
-  AlertCircle,
-  Clock,
-  FileJson,
-  HelpCircle,
-} from 'lucide-react';
+import { Download, CheckCircle, AlertCircle, Clock, FileJson, HelpCircle } from 'lucide-react';
 import { useDataExport } from '@/hooks/useDataExport';
 import { Button } from '@/components/ui/button';
 import {
@@ -184,7 +176,7 @@ export const DataExportSection: React.FC<DataExportSectionProps> = ({ className 
 
         {status === 'loading' && (
           <div className="flex items-center gap-3 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-            <Loader2 className="h-5 w-5 text-blue-400 animate-spin" />
+            <div className="h-5 w-5 animate-spin gold-gradient-spinner" />
             <div>
               <p className="text-white font-medium">Preparing your export...</p>
               <p className="text-sm text-gray-400">This may take a few moments</p>

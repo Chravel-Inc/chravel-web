@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback } from 'react';
-import { RotateCcw, Mic, AlertTriangle, Loader2, WifiOff } from 'lucide-react';
+import { RotateCcw, Mic, AlertTriangle, WifiOff } from 'lucide-react';
 import type { GeminiLiveState, VoiceDiagnostics } from '@/types/voice';
 
 interface VoiceLiveInlineProps {
@@ -198,7 +198,7 @@ export function VoiceLiveInline({
           </div>
         ) : barMode === 'connecting' ? (
           <div className="flex items-center justify-center gap-2">
-            <Loader2 size={14} className="animate-spin text-white/30" aria-hidden="true" />
+            <div className="h-3.5 w-3.5 animate-spin gold-gradient-spinner" aria-hidden="true" />
             <p className="text-white/25 text-sm text-center italic">
               {diagnostics.substep || 'Setting up voice\u2026'}
             </p>

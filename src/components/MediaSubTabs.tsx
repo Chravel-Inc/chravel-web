@@ -10,7 +10,6 @@ import {
   ExternalLink,
   DollarSign,
   Users,
-  Loader2,
   X,
   Trash2,
 } from 'lucide-react';
@@ -111,7 +110,11 @@ const MediaGridTile: React.FC<{
         disabled={isDeleting}
         className="absolute top-2 right-2 z-10 rounded-full bg-black/70 p-2 text-white hover:bg-destructive transition-colors"
       >
-        {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+        {isDeleting ? (
+          <div className="w-4 h-4 animate-spin gold-gradient-spinner" />
+        ) : (
+          <Trash2 className="w-4 h-4" />
+        )}
       </button>
 
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors pointer-events-none">
@@ -471,7 +474,7 @@ export const MediaSubTabs = ({
             className="text-xs"
           >
             {isUploading ? (
-              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+              <div className="w-4 h-4 mr-1 animate-spin gold-gradient-spinner" />
             ) : type === 'photos' ? (
               <Camera className="w-4 h-4 mr-1" />
             ) : (
@@ -580,7 +583,7 @@ export const MediaSubTabs = ({
             className="text-xs"
           >
             {isUploading ? (
-              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+              <div className="w-4 h-4 mr-1 animate-spin gold-gradient-spinner" />
             ) : (
               <FileText className="w-4 h-4 mr-1" />
             )}
@@ -721,7 +724,7 @@ export const MediaSubTabs = ({
                       className="text-muted-foreground hover:text-destructive"
                     >
                       {deletingIds.has(item.id) ? (
-                        <Loader2 size={16} className="animate-spin" />
+                        <div className="h-4 w-4 animate-spin gold-gradient-spinner" />
                       ) : (
                         <Trash2 size={16} />
                       )}

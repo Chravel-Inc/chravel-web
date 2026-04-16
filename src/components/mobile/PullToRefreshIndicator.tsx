@@ -25,13 +25,17 @@ export const PullToRefreshIndicator = ({
       }}
     >
       <div className="bg-black/80 backdrop-blur-sm rounded-full p-3 shadow-lg border border-white/10">
-        <RefreshCw
-          size={20}
-          className={`text-white ${isRefreshing ? 'animate-spin' : ''}`}
-          style={{
-            transform: `rotate(${progress * 3.6}deg)`,
-          }}
-        />
+        {isRefreshing ? (
+          <div className="w-5 h-5 animate-spin gold-gradient-spinner" />
+        ) : (
+          <RefreshCw
+            size={20}
+            className="text-gold-primary"
+            style={{
+              transform: `rotate(${progress * 3.6}deg)`,
+            }}
+          />
+        )}
       </div>
     </div>
   );

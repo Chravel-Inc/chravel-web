@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDemoModeStore } from '@/store/demoModeStore';
-import { Loader2 } from 'lucide-react';
 
 /**
  * DemoEntry - Deep link entry point for demo mode
@@ -55,7 +54,7 @@ const DemoEntry = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="text-center">
-        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3 text-primary" />
+        <div className="h-8 w-8 mx-auto mb-3 animate-spin gold-gradient-spinner" />
         <p className="text-muted-foreground text-sm">Loading demo...</p>
       </div>
     </div>

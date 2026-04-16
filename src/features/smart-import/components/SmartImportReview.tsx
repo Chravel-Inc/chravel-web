@@ -11,7 +11,6 @@ import {
   Train,
   CalendarCheck,
   Map as MapIcon,
-  Loader2,
   AlertTriangle,
   RefreshCw,
   CheckCircle2,
@@ -729,7 +728,7 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
           aria-label={`Add ${selectedIds.size} selected items to trip`}
         >
           {isSubmitting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <div className="h-4 w-4 animate-spin gold-gradient-spinner" />
           ) : (
             `Add to Trip (${selectedIds.size})`
           )}

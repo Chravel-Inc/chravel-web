@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/select';
 import { useOrganization } from '@/hooks/useOrganization';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Mail } from 'lucide-react';
+import { Mail } from 'lucide-react';
 
 interface InviteMemberModalProps {
   open: boolean;
@@ -137,7 +137,7 @@ export const InviteMemberModal = ({ open, onClose, organizationId }: InviteMembe
             >
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <div className="mr-2 h-4 w-4 animate-spin gold-gradient-spinner" />
                   Sending...
                 </>
               ) : (

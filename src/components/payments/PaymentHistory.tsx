@@ -10,7 +10,7 @@ import { useDemoMode } from '../../hooks/useDemoMode';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/use-toast';
 import { PaymentMessage } from '../../types/payments';
-import { Loader2, Pencil, Trash2, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
+import { Pencil, Trash2, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 import { isDemoTrip } from '@/utils/demoUtils';
 import { formatCurrency } from '@/services/currencyService';
 import { formatCompactDate } from '@/utils/dateFormatters';
@@ -171,7 +171,7 @@ export const PaymentHistory = ({
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          <div className="w-6 h-6 animate-spin gold-gradient-spinner" />
         </CardContent>
       </Card>
     );

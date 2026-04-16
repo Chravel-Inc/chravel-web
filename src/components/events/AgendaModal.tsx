@@ -13,7 +13,6 @@ import {
   User,
   Save,
   Eye,
-  Loader2,
   AlertCircle,
   Lock,
 } from 'lucide-react';
@@ -348,7 +347,13 @@ export const AgendaModal = ({
                     />
                     <ActionPill
                       variant="manualOutline"
-                      leftIcon={isUploading ? <Loader2 className="animate-spin" /> : <Upload />}
+                      leftIcon={
+                        isUploading ? (
+                          <div className="h-4 w-4 animate-spin gold-gradient-spinner" />
+                        ) : (
+                          <Upload />
+                        )
+                      }
                       onClick={() => fileInputRef.current?.click()}
                       className={`${EVENT_PARITY_COL_START.tasks} w-full`}
                       disabled={isUploading}
@@ -775,14 +780,14 @@ export const AgendaModal = ({
           {/* Loading state */}
           {isLoadingFiles && !isDemoMode && (
             <div className="flex items-center justify-center py-8">
-              <Loader2 size={24} className="text-gray-400 animate-spin" />
+              <div className="h-6 w-6 animate-spin gold-gradient-spinner" />
             </div>
           )}
 
           {/* Uploading indicator */}
           {isUploading && (
             <div className="mb-3 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-center gap-2">
-              <Loader2 size={16} className="text-yellow-400 animate-spin" />
+              <div className="h-4 w-4 animate-spin gold-gradient-spinner" />
               <p className="text-yellow-300 text-sm">Uploading files...</p>
             </div>
           )}

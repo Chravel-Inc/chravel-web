@@ -8,7 +8,6 @@ import {
   Edit,
   FileDown,
   Camera,
-  Loader2,
   LogOut,
   AlertTriangle,
   ChevronUp,
@@ -595,7 +594,7 @@ export const TripHeader = ({
                   >
                     {isUploading ? (
                       <>
-                        <Loader2 size={16} className="animate-spin" />
+                        <div className="h-4 w-4 animate-spin gold-gradient-spinner" />
                         <span className="text-sm font-medium">Uploading...</span>
                       </>
                     ) : (
@@ -887,7 +886,11 @@ export const TripHeader = ({
                 disabled={isExiting}
                 className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                {isExiting ? <Loader2 className="animate-spin" size={18} /> : <LogOut size={18} />}
+                {isExiting ? (
+                  <div className="h-[18px] w-[18px] animate-spin gold-gradient-spinner" />
+                ) : (
+                  <LogOut size={18} />
+                )}
                 Leave Trip
               </button>
             </div>

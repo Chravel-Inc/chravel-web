@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, X, Crown, Sparkles, Loader2 } from 'lucide-react';
+import { Check, X, Crown, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hapticService } from '@/services/hapticService';
 import {
@@ -371,7 +371,7 @@ export const NativeSubscriptionPaywall = ({
             )}
           >
             {isPurchasing ? (
-              <Loader2 className="w-6 h-6 animate-spin mx-auto" />
+              <div className="w-6 h-6 mx-auto animate-spin gold-gradient-spinner" />
             ) : (
               `Subscribe for ${price}${billingPeriod === 'yearly' ? '/year' : '/month'}`
             )}

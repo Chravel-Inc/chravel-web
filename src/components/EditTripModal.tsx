@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   X,
-  Loader2,
   MapPin,
   Calendar as CalendarIcon,
   Type,
@@ -484,7 +483,7 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
           >
             {loading ? (
               <>
-                <Loader2 size={18} className="animate-spin" />
+                <div className="h-[18px] w-[18px] animate-spin gold-gradient-spinner" />
                 Saving...
               </>
             ) : (

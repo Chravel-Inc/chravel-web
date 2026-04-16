@@ -13,7 +13,7 @@ import { tripKeys } from '@/lib/queryKeys';
 import { PersonalBalance } from '../../services/paymentBalanceService';
 import { supabase } from '../../integrations/supabase/client';
 import { toast } from '../ui/use-toast';
-import { Loader2, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import { hapticService as haptics } from '@/services/hapticService';
 import { formatCurrency } from '../../services/currencyService';
 import { useAuth } from '@/hooks/useAuth';
@@ -177,7 +177,7 @@ export const ConfirmPaymentDialog = ({
           >
             {isConfirming ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <div className="w-4 h-4 mr-2 animate-spin gold-gradient-spinner" />
                 Confirming...
               </>
             ) : (

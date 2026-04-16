@@ -5,7 +5,6 @@ import {
   BarChart3,
   Check,
   X,
-  Loader2,
   Bell,
   DollarSign,
   Copy,
@@ -223,7 +222,7 @@ export function PendingActionCard({
           className="flex-1 flex items-center justify-center gap-1.5 rounded-md bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-medium py-1.5 px-3 transition-colors disabled:opacity-50"
         >
           {isConfirming ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
+            <div className="h-3 w-3 animate-spin gold-gradient-spinner" />
           ) : (
             <Check className="h-3 w-3" />
           )}
@@ -239,7 +238,11 @@ export function PendingActionCard({
               : 'bg-gray-700/50 hover:bg-gray-700 text-gray-400'
           }`}
         >
-          {isRejecting ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
+          {isRejecting ? (
+            <div className="h-3 w-3 animate-spin gold-gradient-spinner" />
+          ) : (
+            <X className="h-3 w-3" />
+          )}
           {confirmingDismiss ? 'Confirm dismiss?' : 'Dismiss'}
         </button>
       </div>

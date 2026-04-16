@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { AudioLines, Lock, Loader2 } from 'lucide-react';
+import { AudioLines, Lock } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { CTA_GRADIENT, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
@@ -92,10 +92,11 @@ export const VoiceButton = ({
             )}
             <span className="relative z-10">
               {isConnecting ? (
-                <Loader2
-                  size={small ? undefined : CTA_ICON_SIZE}
+                <div
                   className={
-                    small ? 'w-3.5 h-3.5 sm:w-[18px] sm:h-[18px] animate-spin' : 'animate-spin'
+                    small
+                      ? 'w-3.5 h-3.5 sm:w-[18px] sm:h-[18px] animate-spin gold-gradient-spinner'
+                      : 'h-[18px] w-[18px] animate-spin gold-gradient-spinner'
                   }
                 />
               ) : (

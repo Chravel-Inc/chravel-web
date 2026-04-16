@@ -11,7 +11,7 @@ import { demoModeService } from '../../services/demoModeService';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/use-toast';
-import { Loader2, Clock, Users, Pencil, Trash2, AlertTriangle } from 'lucide-react';
+import { Clock, Users, Pencil, Trash2, AlertTriangle } from 'lucide-react';
 import { EditPaymentDialog } from './EditPaymentDialog';
 import { PaymentMessage } from '../../types/payments';
 import { hapticService as haptics } from '@/services/hapticService';
@@ -362,7 +362,7 @@ export const OutstandingPayments = ({
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            <div className="w-6 h-6 animate-spin gold-gradient-spinner" />
           </div>
         </CardContent>
       </Card>
@@ -578,7 +578,7 @@ export const OutstandingPayments = ({
             >
               {deleting ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <div className="w-4 h-4 mr-2 animate-spin gold-gradient-spinner" />
                   Deleting...
                 </>
               ) : (

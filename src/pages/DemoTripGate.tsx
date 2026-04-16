@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2 } from 'lucide-react';
 
 type TripPreviewData = {
   id: string;
@@ -153,7 +152,7 @@ const DemoTripGate = () => {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-6">
         <div className="text-center">
-          <Loader2 className="h-10 w-10 animate-spin text-yellow-400 mx-auto mb-3" />
+          <div className="h-10 w-10 mx-auto mb-3 animate-spin gold-gradient-spinner" />
           <p className="text-white/60">Loading demo…</p>
         </div>
       </div>

@@ -1,15 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Plus,
-  Edit,
-  Trash2,
-  CreditCard,
-  Smartphone,
-  DollarSign,
-  Mail,
-  Phone,
-  Loader2,
-} from 'lucide-react';
+import { Plus, Edit, Trash2, CreditCard, Smartphone, DollarSign, Mail, Phone } from 'lucide-react';
 import { PaymentMethod } from '../../types/payments';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -205,7 +195,7 @@ export const PaymentMethodsSettings = ({ userId }: PaymentMethodsSettingsProps) 
         {/* Loading State */}
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <div className="h-6 w-6 animate-spin gold-gradient-spinner" />
             <span className="ml-2 text-muted-foreground">Loading payment methods...</span>
           </div>
         ) : loadError ? (
@@ -311,7 +301,7 @@ export const PaymentMethodsSettings = ({ userId }: PaymentMethodsSettingsProps) 
                       <Button type="submit" className="bg-primary" disabled={isSaving}>
                         {isSaving ? (
                           <>
-                            <Loader2 size={16} className="mr-2 animate-spin" />
+                            <div className="h-4 w-4 mr-2 animate-spin gold-gradient-spinner" />
                             Saving...
                           </>
                         ) : editingMethod ? (

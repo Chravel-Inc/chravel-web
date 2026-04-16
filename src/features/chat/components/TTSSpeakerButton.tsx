@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Volume2, Loader2, Square } from 'lucide-react';
+import { Volume2, Square } from 'lucide-react';
 import type { TTSPlaybackState } from '@/hooks/useConciergeReadAloud';
 import { cn } from '@/lib/utils';
 
@@ -68,7 +68,7 @@ export const TTSSpeakerButton: React.FC<TTSSpeakerButtonProps> = ({
       title={isActive ? 'Stop' : showError ? 'Error — tap to retry' : 'Listen'}
     >
       {isThisLoading ? (
-        <Loader2 size={14} className="animate-spin" />
+        <div className="h-3.5 w-3.5 animate-spin gold-gradient-spinner" />
       ) : isThisPlaying ? (
         <Square size={12} className="fill-current" />
       ) : (

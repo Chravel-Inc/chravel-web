@@ -11,7 +11,6 @@ import {
   Settings,
   Upload,
   Globe,
-  Loader2,
 } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
@@ -793,7 +792,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
             >
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">
-                  <Loader2 size={16} className="animate-spin" />
+                  <div className="h-4 w-4 animate-spin gold-gradient-spinner" />
                   Creating...
                 </span>
               ) : (

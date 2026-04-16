@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { X, Download, Loader2, FileText, Crown, Gift, Sparkles } from 'lucide-react';
+import { X, Download, FileText, Crown, Gift, Sparkles } from 'lucide-react';
 import { ExportSection } from '@/types/tripExport';
 import { isConsumerTrip } from '@/utils/tripTierDetector';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
@@ -286,7 +286,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
             >
               {isExporting ? (
                 <>
-                  <Loader2 size={16} className="animate-spin" />
+                  <div className="h-4 w-4 animate-spin gold-gradient-spinner" />
                   Generating...
                 </>
               ) : (

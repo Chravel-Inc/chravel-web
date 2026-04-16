@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Compass, Bookmark, TrendingUp, MapPin, Search, X, Loader2 } from 'lucide-react';
+import { Compass, Bookmark, TrendingUp, MapPin, Search, X } from 'lucide-react';
 import { SavedRecommendations } from '@/components/SavedRecommendations';
 import { RecommendationCard } from '@/components/RecommendationCard';
 import { useRecommendations } from '@/hooks/useRecommendations';
@@ -145,7 +145,7 @@ export const ChravelRecsPage = () => {
             <TabsContent value={activeFilter} className="mt-0">
               {isLoading ? (
                 <div className="flex justify-center items-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <div className="h-8 w-8 animate-spin gold-gradient-spinner" />
                 </div>
               ) : error ? (
                 <div className="flex justify-center items-center py-12 text-destructive">

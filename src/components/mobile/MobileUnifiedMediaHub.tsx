@@ -1,14 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Camera,
-  FileText,
-  Image as ImageIcon,
-  Link2,
-  Loader2,
-  Trash2,
-  Upload,
-  Video,
-} from 'lucide-react';
+import { Camera, FileText, Image as ImageIcon, Link2, Trash2, Upload, Video } from 'lucide-react';
 import { usePullToRefresh } from '../../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { hapticService } from '../../services/hapticService';
@@ -602,7 +593,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
             }`}
           >
             {isUploading ? (
-              <Loader2 size={20} className="animate-spin" />
+              <div className="h-5 w-5 animate-spin gold-gradient-spinner" />
             ) : (
               <actionLeft.Icon size={20} />
             )}
@@ -615,7 +606,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
               className="native-button flex items-center justify-center gap-2 bg-secondary text-secondary-foreground px-4 py-3 rounded-xl font-medium shadow-md disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {isUploading ? (
-                <Loader2 size={20} className="animate-spin" />
+                <div className="h-5 w-5 animate-spin gold-gradient-spinner" />
               ) : (
                 <actionRight.Icon size={20} />
               )}
@@ -740,7 +731,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
             )}
             {isFetchingNextMedia && (
               <div className="flex justify-center py-4">
-                <Loader2 size={24} className="animate-spin text-gray-500" />
+                <div className="h-6 w-6 animate-spin gold-gradient-spinner" />
               </div>
             )}
 
@@ -862,7 +853,11 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
                 className="native-button bg-red-600 text-white py-3 rounded-xl font-medium flex items-center justify-center gap-2"
                 disabled={isDeleting}
               >
-                {isDeleting ? <Loader2 size={18} className="animate-spin" /> : 'Delete'}
+                {isDeleting ? (
+                  <div className="h-[18px] w-[18px] animate-spin gold-gradient-spinner" />
+                ) : (
+                  'Delete'
+                )}
               </button>
             </div>
           </div>
@@ -895,7 +890,11 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
                 className="native-button bg-red-600 text-white py-3 rounded-xl font-medium flex items-center justify-center gap-2"
                 disabled={isDeleting}
               >
-                {isDeleting ? <Loader2 size={18} className="animate-spin" /> : 'Delete'}
+                {isDeleting ? (
+                  <div className="h-[18px] w-[18px] animate-spin gold-gradient-spinner" />
+                ) : (
+                  'Delete'
+                )}
               </button>
             </div>
           </div>

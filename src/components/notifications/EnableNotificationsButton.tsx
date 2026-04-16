@@ -7,7 +7,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { Button, ButtonProps } from '@/components/ui/button';
-import { Bell, BellOff, CheckCircle2, Loader2 } from 'lucide-react';
+import { Bell, BellOff, CheckCircle2 } from 'lucide-react';
 import { useWebPush } from '@/hooks/useWebPush';
 import { IOSPushInstructions } from './IOSPushInstructions';
 import { toast } from 'sonner';
@@ -106,7 +106,11 @@ export const EnableNotificationsButton: React.FC<EnableNotificationsButtonProps>
           aria-label="Retry enabling notifications"
           {...props}
         >
-          {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
+          {isLoading ? (
+            <div className="w-4 h-4 animate-spin gold-gradient-spinner" />
+          ) : (
+            <Bell className="w-4 h-4" />
+          )}
           {!compact && <span className="ml-2">Retry Notifications</span>}
         </Button>
         <p className="text-xs text-destructive" role="alert">
@@ -125,7 +129,11 @@ export const EnableNotificationsButton: React.FC<EnableNotificationsButtonProps>
         aria-label="Enable push notifications"
         {...props}
       >
-        {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
+        {isLoading ? (
+          <div className="w-4 h-4 animate-spin gold-gradient-spinner" />
+        ) : (
+          <Bell className="w-4 h-4" />
+        )}
         {!compact && <span className="ml-2">Enable Notifications</span>}
       </Button>
 

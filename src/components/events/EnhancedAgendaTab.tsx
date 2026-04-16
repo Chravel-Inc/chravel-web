@@ -15,7 +15,6 @@ import {
   Sparkles,
   Eye,
   Image,
-  Loader2,
   AlertCircle,
   Lock,
 } from 'lucide-react';
@@ -277,7 +276,7 @@ export const EnhancedAgendaTab = ({
                   onClick={() => fileInputRef.current?.click()}
                 >
                   {isUploading ? (
-                    <Loader2 size={16} className="mr-2 animate-spin" />
+                    <div className="h-4 w-4 mr-2 animate-spin gold-gradient-spinner" />
                   ) : (
                     <Upload size={16} className="mr-2" />
                   )}
@@ -357,13 +356,13 @@ export const EnhancedAgendaTab = ({
 
           {isLoadingFiles && (
             <div className="flex items-center justify-center py-4">
-              <Loader2 size={20} className="text-muted-foreground animate-spin" />
+              <div className="h-5 w-5 animate-spin gold-gradient-spinner" />
             </div>
           )}
 
           {isUploading && (
             <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 flex items-center gap-2">
-              <Loader2 size={16} className="text-primary animate-spin" />
+              <div className="h-4 w-4 animate-spin gold-gradient-spinner" />
               <p className="text-primary text-sm">Uploading files...</p>
             </div>
           )}

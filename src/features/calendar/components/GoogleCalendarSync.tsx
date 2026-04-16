@@ -9,14 +9,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import {
-  RefreshCw,
-  CheckCircle2,
-  XCircle,
-  ExternalLink,
-  Loader2,
-  AlertTriangle,
-} from 'lucide-react';
+import { RefreshCw, CheckCircle2, XCircle, ExternalLink, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
 export type GoogleCalendarSyncStatus = 'disconnected' | 'connected' | 'syncing' | 'error';
@@ -78,7 +71,7 @@ export const GoogleCalendarSync = ({
       case 'connected':
         return <CheckCircle2 className="h-5 w-5 text-green-400" />;
       case 'syncing':
-        return <Loader2 className="h-5 w-5 text-blue-400 animate-spin" />;
+        return <div className="h-5 w-5 animate-spin gold-gradient-spinner" />;
       case 'error':
         return <AlertTriangle className="h-5 w-5 text-yellow-400" />;
       default:
@@ -151,7 +144,7 @@ export const GoogleCalendarSync = ({
                   className="gap-1.5"
                 >
                   {isSyncing ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <div className="h-3.5 w-3.5 animate-spin gold-gradient-spinner" />
                   ) : (
                     <RefreshCw className="h-3.5 w-3.5" />
                   )}
@@ -170,7 +163,7 @@ export const GoogleCalendarSync = ({
               </>
             ) : status === 'syncing' ? (
               <Button variant="outline" size="sm" disabled className="gap-1.5">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <div className="h-3.5 w-3.5 animate-spin gold-gradient-spinner" />
                 Syncing
               </Button>
             ) : (

@@ -16,7 +16,6 @@ import {
   ExternalLink,
   AlertCircle,
   RotateCcw,
-  Loader2,
   MessageSquareReply,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -590,7 +589,7 @@ export const MessageBubble = memo(
               {/* Message status indicator */}
               {status === 'sending' && (
                 <div className="flex items-center gap-1 mt-1 text-xs opacity-70">
-                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <div className="h-3 w-3 animate-spin gold-gradient-spinner" />
                   <span>Sending...</span>
                 </div>
               )}

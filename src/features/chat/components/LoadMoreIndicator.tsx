@@ -1,5 +1,4 @@
 import React from 'react';
-import { Loader2 } from 'lucide-react';
 
 interface LoadMoreIndicatorProps {
   isLoading: boolean;
@@ -19,7 +18,7 @@ export const LoadMoreIndicator: React.FC<LoadMoreIndicatorProps> = ({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-4">
-        <Loader2 className="animate-spin h-5 w-5 text-primary mr-2" />
+        <div className="h-5 w-5 mr-2 animate-spin gold-gradient-spinner" />
         <span className="text-sm text-muted-foreground">Loading messages...</span>
       </div>
     );

@@ -6,7 +6,6 @@ import {
   Upload,
   FileText,
   Image,
-  Loader2,
   CheckCircle2,
   AlertTriangle,
   Sparkles,
@@ -345,7 +344,7 @@ export const ArtifactImportDropzone: React.FC<ArtifactImportDropzoneProps> = ({
     return (
       <Card>
         <CardContent className="p-8 flex flex-col items-center justify-center space-y-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="h-8 w-8 animate-spin gold-gradient-spinner" />
           <div className="text-center">
             <p className="text-sm font-medium">Analyzing artifact...</p>
             <p className="text-xs text-muted-foreground">

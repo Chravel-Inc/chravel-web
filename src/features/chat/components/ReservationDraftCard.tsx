@@ -1,14 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import {
-  CalendarCheck,
-  Phone,
-  ExternalLink,
-  Pencil,
-  Users,
-  Clock,
-  MapPin,
-  Loader2,
-} from 'lucide-react';
+import { CalendarCheck, Phone, ExternalLink, Pencil, Users, Clock, MapPin } from 'lucide-react';
 import type { ReservationDraft } from '@/services/conciergeGateway';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -144,7 +135,11 @@ export const ReservationDraftCard: React.FC<ReservationDraftCardProps> = ({ draf
           disabled={confirming || confirmed}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-emerald-600 hover:bg-emerald-500 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {confirming ? <Loader2 size={14} className="animate-spin" /> : <ExternalLink size={14} />}
+          {confirming ? (
+            <div className="h-3.5 w-3.5 animate-spin gold-gradient-spinner" />
+          ) : (
+            <ExternalLink size={14} />
+          )}
           {confirmed ? 'Confirmed' : confirming ? 'Confirming...' : 'Confirm & Book'}
         </button>
 
