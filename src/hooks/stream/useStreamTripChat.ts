@@ -205,7 +205,17 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
 
       void channel
         .sendMessage(payload as Parameters<Channel['sendMessage']>[0])
-        .then(() => {
+        .then((response: { message: MessageResponse }) => {
+          // Immediately add to local state from HTTP response.
+          // This is the reliable delivery path — WebSocket `message.new` is the
+          // secondary path for other clients. The dedup in handleNewMessage prevents
+          // duplicates if both paths fire for the same message.
+          if (response?.message) {
+            setMessages(prev => {
+              if (prev.some(m => m.id === response.message.id)) return prev;
+              return [...prev, response.message];
+            });
+          }
           messageEvents.sent({
             trip_id: tripId,
             message_type:
