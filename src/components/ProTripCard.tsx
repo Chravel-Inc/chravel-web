@@ -328,7 +328,7 @@ export const ProTripCard = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-white/60 hover:text-white hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-all duration-200 h-8 w-8"
+                className="text-black/40 hover:text-black dark:text-white/60 dark:hover:text-white hover:bg-black/10 dark:hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-all duration-200 h-8 w-8"
               >
                 <MoreHorizontal size={16} />
               </Button>
