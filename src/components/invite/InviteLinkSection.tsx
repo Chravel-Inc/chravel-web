@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   AlertCircle,
   Clock,
-  Loader2,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { isDemoInviteLink } from '@/lib/inviteLinkUtils';
@@ -147,7 +146,7 @@ export const InviteLinkSection = ({
         >
           {loading ? (
             <span className="flex items-center gap-2 text-gray-400">
-              <Loader2 size={14} className="animate-spin" />
+              <div className="h-3.5 w-3.5 animate-spin gold-gradient-spinner" />
               Generating invite link...
             </span>
           ) : (
@@ -164,7 +163,11 @@ export const InviteLinkSection = ({
             aria-label="Share invite link via Messages, Email, and more"
             className="bg-muted text-foreground border border-border hover:bg-muted/80 shadow-none px-3 min-h-[44px] disabled:bg-muted disabled:text-muted-foreground disabled:border-border/70"
           >
-            {isSharing ? <Loader2 size={14} className="animate-spin" /> : <Share2 size={14} />}
+            {isSharing ? (
+              <div className="h-3.5 w-3.5 animate-spin gold-gradient-spinner" />
+            ) : (
+              <Share2 size={14} />
+            )}
             <span className="hidden sm:inline">{isSharing ? 'Sharing...' : 'Share'}</span>
           </Button>
         )}

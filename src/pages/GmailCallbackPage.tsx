@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { handleGmailCallback } from '../features/smart-import/api/gmailAuth';
-import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const GmailCallbackPage = () => {
@@ -55,7 +54,7 @@ export const GmailCallbackPage = () => {
           </>
         ) : (
           <>
-            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+            <div className="h-8 w-8 mx-auto animate-spin gold-gradient-spinner" />
             <h2 className="text-xl font-medium">Connecting your Gmail account...</h2>
             <p className="text-muted-foreground">
               Please wait while we securely complete the setup.

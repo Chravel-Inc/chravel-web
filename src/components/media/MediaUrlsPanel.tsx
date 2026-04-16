@@ -21,7 +21,6 @@ import {
   Youtube,
   Instagram,
   Trash2,
-  Loader2,
   MessageCircle,
   Upload,
 } from 'lucide-react';
@@ -424,7 +423,11 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
               disabled={isAdding || !addUrl.trim()}
               className="text-xs"
             >
-              {isAdding ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : 'Save'}
+              {isAdding ? (
+                <div className="w-4 h-4 animate-spin gold-gradient-spinner" aria-hidden="true" />
+              ) : (
+                'Save'
+              )}
             </Button>
             <Button
               variant="ghost"
@@ -550,7 +553,7 @@ function LinkCard({
         aria-label="Delete link"
       >
         {isDeleting ? (
-          <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
+          <div className="w-3 h-3 animate-spin gold-gradient-spinner" aria-hidden="true" />
         ) : (
           <Trash2 className="w-3 h-3" aria-hidden="true" />
         )}

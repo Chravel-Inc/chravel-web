@@ -221,7 +221,7 @@ export const TripCoverPhotoUpload = ({
               >
                 {isDeleting ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <div className="w-4 h-4 animate-spin gold-gradient-spinner" />
                     <span className="text-sm font-medium">Removing...</span>
                   </>
                 ) : (
@@ -236,7 +236,7 @@ export const TripCoverPhotoUpload = ({
           {isUploading && (
             <div className="absolute inset-0 bg-black/60 rounded-2xl flex items-center justify-center">
               <div className="text-white text-center">
-                <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-2"></div>
+                <div className="w-8 h-8 animate-spin gold-gradient-spinner mx-auto mb-2"></div>
                 <span className="text-sm">Uploading...</span>
               </div>
             </div>
@@ -273,7 +273,7 @@ export const TripCoverPhotoUpload = ({
           </div>
           {isUploading && (
             <div className="mt-4">
-              <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-2"></div>
+              <div className="w-8 h-8 animate-spin gold-gradient-spinner mx-auto mb-2"></div>
               <span className="text-sm text-white">Uploading...</span>
             </div>
           )}

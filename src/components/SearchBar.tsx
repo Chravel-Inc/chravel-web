@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Loader } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { Input } from './ui/input';
 
 interface SearchBarProps {
@@ -39,10 +39,7 @@ export const SearchBar = ({
           className="pl-10 pr-10 bg-gray-900/80 border-gray-700 text-white placeholder-gray-400 focus:border-primary focus:ring-primary/20 w-full min-w-0"
         />
         {isLoading && (
-          <Loader
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary animate-spin"
-            size={18}
-          />
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 w-[18px] h-[18px] animate-spin gold-gradient-spinner" />
         )}
       </div>
     </div>

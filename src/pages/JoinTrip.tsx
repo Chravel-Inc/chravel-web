@@ -9,7 +9,6 @@ import {
 } from '@/services/stream/streamMembershipCoordinator';
 import { toast } from 'sonner';
 import {
-  Loader2,
   Users,
   MapPin,
   Calendar,
@@ -689,7 +688,7 @@ const JoinTrip = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-4" />
+          <div className="h-8 w-8 mx-auto mb-4 animate-spin gold-gradient-spinner" />
           <p className="text-muted-foreground">Loading invite details...</p>
         </div>
       </div>
@@ -818,7 +817,7 @@ const JoinTrip = () => {
           <CheckCircle2 className="h-12 w-12 text-green-400 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-foreground mb-4">{successContent.title}</h1>
           <p className="text-muted-foreground mb-6">{successContent.message}</p>
-          <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" />
+          <div className="h-6 w-6 mx-auto animate-spin gold-gradient-spinner" />
           <p className="text-sm text-muted-foreground mt-2">Redirecting...</p>
         </div>
       </div>
@@ -939,7 +938,7 @@ const JoinTrip = () => {
               >
                 {joining ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <div className="h-4 w-4 animate-spin gold-gradient-spinner" />
                     Requesting...
                   </>
                 ) : (

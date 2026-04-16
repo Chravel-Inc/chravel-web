@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Loader2 } from 'lucide-react';
 import { useToast } from '../../hooks/use-toast';
 
 interface PaymentSplit {
@@ -167,7 +166,7 @@ export const EditPaymentDialog = ({
           <Button onClick={handleSave} disabled={saving}>
             {saving ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <div className="w-4 h-4 mr-2 animate-spin gold-gradient-spinner" />
                 Saving...
               </>
             ) : (

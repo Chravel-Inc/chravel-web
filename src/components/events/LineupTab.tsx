@@ -16,7 +16,6 @@ import {
   Download,
   Eye,
   Image,
-  Loader2,
 } from 'lucide-react';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../mobile/PullToRefreshIndicator';
@@ -276,7 +275,13 @@ export const LineupTab = ({
             {canUploadMore && (
               <ActionPill
                 variant="manualOutline"
-                leftIcon={isUploading ? <Loader2 className="animate-spin" /> : <Upload />}
+                leftIcon={
+                  isUploading ? (
+                    <div className="h-4 w-4 animate-spin gold-gradient-spinner" />
+                  ) : (
+                    <Upload />
+                  )
+                }
                 onClick={() => fileInputRef.current?.click()}
                 className={`${EVENT_PARITY_COL_START.polls} w-full`}
                 disabled={isUploading}

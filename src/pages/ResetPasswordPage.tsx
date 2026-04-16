@@ -87,7 +87,7 @@ const ResetPasswordPage = () => {
 
         {!isReady ? (
           <div className="text-center space-y-4">
-            <div className="w-8 h-8 border-2 border-glass-orange border-t-transparent rounded-full animate-spin mx-auto" />
+            <div className="w-8 h-8 animate-spin gold-gradient-spinner mx-auto" />
             <p className="text-gray-400 text-sm">Verifying your reset link...</p>
             <p className="text-gray-500 text-xs">
               If this takes too long, your reset link may have expired.{' '}

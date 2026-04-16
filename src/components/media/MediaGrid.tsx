@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { MediaTile } from './MediaTile';
 import { MediaViewerModal, type MediaViewerItem } from './MediaViewerModal';
-import { Loader2, Camera, RotateCcw } from 'lucide-react';
+import { Camera, RotateCcw } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 export interface UploadProgress {
   fileId: string;
@@ -118,8 +118,8 @@ export const MediaGrid = ({
               <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
                 {upload.status === 'uploading' || upload.status === 'processing' ? (
                   <>
-                    <Loader2
-                      className="w-8 h-8 text-primary animate-spin mb-2"
+                    <div
+                      className="w-8 h-8 mb-2 animate-spin gold-gradient-spinner"
                       aria-hidden="true"
                     />
                     <p className="text-xs text-foreground/80 mb-2 truncate w-full">
@@ -206,7 +206,7 @@ export const MediaGrid = ({
       {hasMore && <div ref={sentinelRef} className="h-4" aria-hidden />}
       {isLoadingMore && (
         <div className="flex justify-center py-4">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" aria-hidden="true" />
+          <div className="w-6 h-6 animate-spin gold-gradient-spinner" aria-hidden="true" />
         </div>
       )}
 

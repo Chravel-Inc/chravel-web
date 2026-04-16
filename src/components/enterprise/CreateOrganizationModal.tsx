@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useOrganization } from '@/hooks/useOrganization';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
 
 interface CreateOrganizationModalProps {
   open: boolean;
@@ -130,7 +129,7 @@ export const CreateOrganizationModal = ({
             >
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <div className="mr-2 h-4 w-4 animate-spin gold-gradient-spinner" />
                   Creating...
                 </>
               ) : (

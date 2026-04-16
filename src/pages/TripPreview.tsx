@@ -4,7 +4,7 @@ import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../hooks/useAuth';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { tripsData } from '../data/tripsData';
-import { Users, MapPin, Calendar, Share2, ExternalLink, Sparkles, Loader2 } from 'lucide-react';
+import { Users, MapPin, Calendar, Share2, ExternalLink, Sparkles } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { toast } from 'sonner';
@@ -448,7 +448,9 @@ const TripPreview = () => {
                     disabled={accessLoading}
                     className="w-full accent-fill-gold font-semibold py-3 text-base"
                   >
-                    {accessLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    {accessLoading ? (
+                      <div className="h-4 w-4 mr-2 animate-spin gold-gradient-spinner" />
+                    ) : null}
                     {ctaLabel}
                   </Button>
                   {helperText && <p className="text-white/40 text-xs text-center">{helperText}</p>}

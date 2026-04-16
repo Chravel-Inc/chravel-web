@@ -1,14 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import {
-  Upload,
-  Link,
-  FileText,
-  Users,
-  Calendar,
-  Loader2,
-  CheckCircle,
-  AlertCircle,
-} from 'lucide-react';
+import { Upload, Link, FileText, Users, Calendar, CheckCircle, AlertCircle } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -239,7 +230,7 @@ export const SmartImport = ({
           <input {...getInputProps()} />
           <div className="flex flex-col items-center gap-2">
             {isProcessing ? (
-              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+              <div className="w-8 h-8 animate-spin gold-gradient-spinner" />
             ) : (
               <Upload className="w-8 h-8 text-gray-400" />
             )}
@@ -314,7 +305,11 @@ export const SmartImport = ({
               variant="outline"
               className="border-gray-600 text-white hover:bg-white/10"
             >
-              {isProcessing ? <Loader2 size={16} className="animate-spin" /> : 'Import'}
+              {isProcessing ? (
+                <div className="h-4 w-4 animate-spin gold-gradient-spinner" />
+              ) : (
+                'Import'
+              )}
             </Button>
           </div>
         </div>

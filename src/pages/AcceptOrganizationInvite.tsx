@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Building, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { Building, CheckCircle, XCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -170,7 +170,7 @@ export const AcceptOrganizationInvite = () => {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-glass-orange animate-spin mx-auto mb-4" />
+          <div className="w-12 h-12 mx-auto mb-4 animate-spin gold-gradient-spinner" />
           <p className="text-gray-400">Loading invitation...</p>
         </div>
       </div>
@@ -257,7 +257,7 @@ export const AcceptOrganizationInvite = () => {
             >
               {accepting ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <div className="w-4 h-4 mr-2 animate-spin gold-gradient-spinner" />
                   Accepting...
                 </>
               ) : (

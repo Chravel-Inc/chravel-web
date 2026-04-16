@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Phone, MessageCircle, X, Loader2, PhoneOff } from 'lucide-react';
+import { Phone, MessageCircle, X, PhoneOff } from 'lucide-react';
 import { getInitials, isValidAvatarUrl } from '@/utils/avatarUtils';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -147,7 +147,7 @@ export const MemberContactCard: React.FC<MemberContactCardProps> = ({
           {/* Phone Section */}
           {loading ? (
             <div className="flex items-center justify-center py-3 bg-white/5 rounded-lg">
-              <Loader2 size={18} className="animate-spin text-gray-400" />
+              <div className="h-[18px] w-[18px] animate-spin gold-gradient-spinner" />
               <span className="ml-2 text-sm text-gray-400">Loading contact info...</span>
             </div>
           ) : hasPhone ? (

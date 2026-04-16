@@ -212,7 +212,7 @@ export const EventItem = ({
               >
                 {isDeleting ? (
                   <span className="h-4 w-4 inline-flex items-center justify-center">
-                    <span className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+                    <span className="animate-spin h-4 w-4 gold-gradient-spinner" />
                   </span>
                 ) : (
                   <Trash2 className="h-4 w-4" />

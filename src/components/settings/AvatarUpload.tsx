@@ -12,7 +12,7 @@
  */
 
 import React, { useState, useRef, useCallback } from 'react';
-import { Camera, X, Loader2, User } from 'lucide-react';
+import { Camera, X, User } from 'lucide-react';
 import ReactCrop, { Crop, PixelCrop, centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import imageCompression from 'browser-image-compression';
@@ -376,7 +376,7 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
           >
             {isUploading ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <div className="w-4 h-4 mr-2 animate-spin gold-gradient-spinner" />
                 Uploading...
               </>
             ) : (
@@ -441,7 +441,7 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
             <Button type="button" onClick={handleSaveCrop} disabled={isUploading || !completedCrop}>
               {isUploading ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <div className="w-4 h-4 mr-2 animate-spin gold-gradient-spinner" />
                   Saving...
                 </>
               ) : (

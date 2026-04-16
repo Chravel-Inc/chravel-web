@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building, Upload, Plus, Check, Loader2 } from 'lucide-react';
+import { Building, Upload, Plus, Check } from 'lucide-react';
 
 interface OrganizationData {
   id: string;
@@ -417,7 +417,7 @@ const OrganizationCard = ({ organization, badge, onSave }: OrganizationCardProps
         >
           {isSaving ? (
             <>
-              <Loader2 size={16} className="animate-spin" />
+              <div className="h-4 w-4 animate-spin gold-gradient-spinner" />
               Saving...
             </>
           ) : saveSuccess ? (

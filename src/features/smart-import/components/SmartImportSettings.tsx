@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { AlertTriangle, CheckCircle2, Info, Loader2, Mail, Trash2, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Info, Mail, Trash2, X } from 'lucide-react';
 import {
   fetchGmailAccounts,
   connectGmailAccount,
@@ -142,7 +142,7 @@ export const SmartImportSettings = () => {
 
         {loading ? (
           <div className="flex justify-center p-4">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <div className="h-6 w-6 animate-spin gold-gradient-spinner" />
           </div>
         ) : accounts.length === 0 ? (
           <div className="rounded-lg border border-dashed p-8 text-center bg-card">
@@ -166,7 +166,7 @@ export const SmartImportSettings = () => {
                 aria-label="Connect Gmail account"
               >
                 {connecting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <div className="h-4 w-4 animate-spin gold-gradient-spinner" />
                 ) : (
                   <GoogleLogo className="h-4 w-4" />
                 )}
@@ -234,7 +234,7 @@ export const SmartImportSettings = () => {
                     aria-label={`Disconnect ${account.email}`}
                   >
                     {disconnectingId === account.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <div className="h-4 w-4 animate-spin gold-gradient-spinner" />
                     ) : (
                       <Trash2 className="h-4 w-4" />
                     )}
@@ -253,7 +253,7 @@ export const SmartImportSettings = () => {
                 aria-label="Connect another Gmail account"
               >
                 {connecting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <div className="h-4 w-4 animate-spin gold-gradient-spinner" />
                 ) : (
                   <Mail className="h-4 w-4" />
                 )}

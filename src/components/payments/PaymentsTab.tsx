@@ -13,7 +13,7 @@ import { PaymentErrorHandler } from '../../services/paymentErrors';
 import { formatCurrency } from '@/services/currencyService';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { AuthModal } from '../AuthModal';
-import { Loader2, LogIn, CheckCircle } from 'lucide-react';
+import { LogIn, CheckCircle } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 
@@ -159,7 +159,7 @@ export const PaymentsTab = React.memo(({ tripId }: PaymentsTabProps) => {
       {/* Payment Creation */}
       {demoLoading ? (
         <div className="flex items-center justify-center py-6 opacity-80">
-          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          <div className="w-5 h-5 animate-spin gold-gradient-spinner" />
         </div>
       ) : !user && !demoActive ? (
         <div className="bg-card rounded-lg border border-border p-4 text-center">
@@ -174,7 +174,7 @@ export const PaymentsTab = React.memo(({ tripId }: PaymentsTabProps) => {
         </div>
       ) : membersLoading ? (
         <div className="flex items-center justify-center py-6 opacity-80">
-          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          <div className="w-5 h-5 animate-spin gold-gradient-spinner" />
           <span className="ml-2 text-sm text-muted-foreground">Loading trip members...</span>
         </div>
       ) : hadMembersError ? (

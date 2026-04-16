@@ -14,7 +14,6 @@ import { PersonalBalance } from '../../services/paymentBalanceService';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '../../integrations/supabase/client';
 import { useToast } from '../ui/use-toast';
-import { Loader2 } from 'lucide-react';
 import { formatCurrency } from '../../services/currencyService';
 
 interface SettlePaymentDialogProps {
@@ -176,7 +175,7 @@ export const SettlePaymentDialog = ({
             Cancel
           </Button>
           <Button onClick={handleSettle} disabled={settling}>
-            {settling && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            {settling && <div className="w-4 h-4 mr-2 animate-spin gold-gradient-spinner" />}
             {settling ? 'Settling...' : 'Confirm Settlement'}
           </Button>
         </DialogFooter>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Copy, Check, MapPin, Calendar, Users, Share2, Image, Loader2 } from 'lucide-react';
+import { X, Copy, Check, MapPin, Calendar, Users, Share2, Image } from 'lucide-react';
 import { Button } from '../ui/button';
 import { toast } from 'sonner';
 import { buildTripPreviewLink } from '@/lib/unfurlConfig';
@@ -155,7 +155,7 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
             <div className="relative h-24">
               {hasCoverPhoto && !coverImageLoaded && (
                 <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-800 dark:to-gray-900 flex items-center justify-center">
-                  <Loader2 size={20} className="text-gray-400 animate-spin" />
+                  <div className="h-5 w-5 animate-spin gold-gradient-spinner" />
                 </div>
               )}
               {hasCoverPhoto ? (
@@ -286,7 +286,7 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
                   className="bg-muted text-foreground border border-border hover:bg-muted/80 shadow-none px-3 h-8 min-w-[44px] min-h-[44px] disabled:bg-muted disabled:text-muted-foreground disabled:border-border/70"
                 >
                   {isSharing ? (
-                    <Loader2 size={14} className="animate-spin" />
+                    <div className="h-3.5 w-3.5 animate-spin gold-gradient-spinner" />
                   ) : (
                     <Share2 size={14} />
                   )}

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { User, Upload, Loader2, Phone, LogOut } from 'lucide-react';
+import { User, Upload, Phone, LogOut } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { supabase } from '../../integrations/supabase/client';
@@ -247,7 +247,7 @@ export const ConsumerProfileSection = () => {
           >
             {isUploading ? (
               <>
-                <Loader2 size={16} className="animate-spin" />
+                <div className="h-4 w-4 animate-spin gold-gradient-spinner" />
                 Uploading...
               </>
             ) : (
@@ -332,7 +332,7 @@ export const ConsumerProfileSection = () => {
           >
             {isSaving ? (
               <>
-                <Loader2 size={18} className="animate-spin" />
+                <div className="h-[18px] w-[18px] animate-spin gold-gradient-spinner" />
                 Saving...
               </>
             ) : (

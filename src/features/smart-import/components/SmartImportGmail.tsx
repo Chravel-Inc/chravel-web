@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Loader2, Sparkles, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
+import { Sparkles, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -181,7 +181,7 @@ export const SmartImportGmail: React.FC<SmartImportGmailProps> = ({
   if (loading) {
     return (
       <div className="p-4 flex justify-center" role="status" aria-label="Loading Gmail accounts">
-        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        <div className="h-4 w-4 animate-spin gold-gradient-spinner" />
       </div>
     );
   }
@@ -286,7 +286,7 @@ export const SmartImportGmail: React.FC<SmartImportGmailProps> = ({
         >
           {importing ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Scanning...
+              <div className="mr-2 h-4 w-4 animate-spin gold-gradient-spinner" /> Scanning...
             </>
           ) : (
             'Scan Inbox'

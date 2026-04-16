@@ -412,7 +412,7 @@ export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
               className="w-full flex items-center justify-center gap-3 bg-white/10 hover:bg-white/15 border border-white/20 text-white font-medium py-3 rounded-xl transition-all disabled:opacity-50 min-h-[48px] mb-4"
             >
               {googleLoading ? (
-                <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 animate-spin gold-gradient-spinner" />
               ) : (
                 <svg viewBox="0 0 24 24" width="20" height="20" className="flex-shrink-0">
                   <path
@@ -463,7 +463,7 @@ export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
               className="w-full flex items-center justify-center gap-3 bg-white/10 hover:bg-white/15 border border-white/20 text-white font-medium py-3 rounded-xl transition-all disabled:opacity-50 min-h-[48px] mb-4"
             >
               {appleLoading ? (
-                <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 animate-spin gold-gradient-spinner" />
               ) : (
                 <svg
                   viewBox="0 0 24 24"
