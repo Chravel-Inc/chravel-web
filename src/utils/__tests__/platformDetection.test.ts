@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  isCapacitorNativeShell,
   isInstalledApp,
   isLikelyMobileDevice,
   isNativeWebView,
@@ -32,6 +33,7 @@ const setLocationSearch = (search: string) => {
 describe('platformDetection', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    delete (window as unknown as { Capacitor?: unknown }).Capacitor;
     Object.defineProperty(window, 'location', {
       value: originalLocation,
       configurable: true,
@@ -70,5 +72,36 @@ describe('platformDetection', () => {
 
     expect(isNativeWebView()).toBe(true);
     expect(isInstalledApp()).toBe(true);
+  });
+
+  it('detects Capacitor TestFlight shell even when UA looks like mobile Safari', () => {
+    setUserAgent(
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+    );
+    setMatchMedia(false);
+    setLocationSearch('');
+    Object.defineProperty(window, 'Capacitor', {
+      value: { isNativePlatform: () => true },
+      configurable: true,
+    });
+
+    expect(isCapacitorNativeShell()).toBe(true);
+    expect(isNativeWebView()).toBe(true);
+    expect(isInstalledApp()).toBe(true);
+  });
+
+  it('does not treat Capacitor web preview as native shell', () => {
+    setUserAgent(
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+    );
+    setMatchMedia(false);
+    setLocationSearch('');
+    Object.defineProperty(window, 'Capacitor', {
+      value: { isNativePlatform: () => false },
+      configurable: true,
+    });
+
+    expect(isCapacitorNativeShell()).toBe(false);
+    expect(isNativeWebView()).toBe(false);
   });
 });

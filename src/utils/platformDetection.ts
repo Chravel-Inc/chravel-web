@@ -3,6 +3,18 @@
  * These are synchronous checks — context does not change during a session.
  */
 
+/**
+ * True when running inside the Capacitor native shell (TestFlight / Play Store builds).
+ * Capacitor sets `window.Capacitor` and `isNativePlatform()` distinguishes real native
+ * from `cap serve` / web. Relying only on WKWebView UA heuristics misses many iOS shell
+ * configurations (Safari token present), which broke installed-app routing on `/`.
+ */
+export function isCapacitorNativeShell(): boolean {
+  if (typeof window === 'undefined') return false;
+  const cap = (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;
+  return typeof cap?.isNativePlatform === 'function' && cap.isNativePlatform() === true;
+}
+
 /** True when running as an installed PWA in standalone display mode. */
 export function isStandalonePWA(): boolean {
   if (typeof window === 'undefined') return false;
@@ -38,6 +50,7 @@ export function isLikelyIosWkWebViewUserAgent(userAgent: string): boolean {
 /** True when running inside a native app's webview (Expo WebView, Android WebView, etc). */
 export function isNativeWebView(): boolean {
   if (typeof window === 'undefined') return false;
+  if (isCapacitorNativeShell()) return true;
   // Explicit query param from chravel-mobile Expo WebView
   const params = new URLSearchParams(window.location.search);
   if (params.get('app_context') === 'native') return true;
@@ -54,6 +67,7 @@ export function isNativeWebView(): boolean {
  * PWA standalone or native webview. Marketing page should NOT be shown.
  */
 export function isInstalledApp(): boolean {
+  if (isCapacitorNativeShell()) return true;
   // Native webview should always be treated as installed app context.
   if (isNativeWebView()) return true;
   // Standalone PWA gate is limited to mobile-class devices to avoid desktop false positives.
