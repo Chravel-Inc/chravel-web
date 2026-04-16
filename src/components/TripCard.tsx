@@ -130,9 +130,18 @@ export const TripCard = ({
   }, [prefetch, tripIdStr]);
 
   const handleViewTrip = () => {
-    if (pendingApproval) return;
+    if (pendingApproval) {
+      toast({
+        title: 'Your request is still pending approval.',
+        description: 'Contact the person who invited you to help expedite approval.',
+      });
+      return;
+    }
     navigate(`/trip/${trip.id}`);
   };
+
+  const actionButtonClass =
+    'bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gold-primary/30 hover:border-gold-primary/50 text-xs md:text-sm min-h-[44px]';
 
   const handleArchiveTrip = async () => {
     // Demo mode: session-scoped, non-persistent archive
@@ -541,7 +550,7 @@ export const TripCard = ({
               setShowExportModal(true);
             }}
             disabled={pendingApproval}
-            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gold-primary/30 hover:border-gold-primary/50 text-xs md:text-sm flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`${actionButtonClass} flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             <FileDown size={14} className="md:hidden" />
             <FileDown size={16} className="hidden md:block" />
@@ -554,7 +563,7 @@ export const TripCard = ({
               setShowInviteModal(true);
             }}
             disabled={pendingApproval}
-            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gold-primary/30 hover:border-gold-primary/50 text-xs md:text-sm flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`${actionButtonClass} flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             <User size={14} className="md:hidden" />
             <User size={16} className="hidden md:block" />
@@ -566,8 +575,7 @@ export const TripCard = ({
             onClick={handleViewTrip}
             onMouseEnter={handlePrefetch}
             onFocus={handlePrefetch}
-            disabled={pendingApproval}
-            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gold-primary/30 hover:border-gold-primary/50 text-xs md:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            className={actionButtonClass}
           >
             View
           </button>
@@ -578,7 +586,7 @@ export const TripCard = ({
               setShowShareModal(true);
             }}
             disabled={pendingApproval}
-            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gold-primary/30 hover:border-gold-primary/50 text-xs md:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`${actionButtonClass} disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             Share
           </button>

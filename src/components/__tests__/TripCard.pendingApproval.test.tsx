@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TripCard } from '../TripCard';
 
 const mockNavigate = vi.fn();
+const mockToast = vi.fn();
 
 vi.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
@@ -17,7 +18,7 @@ vi.mock('@/hooks/useAuth', () => ({
 }));
 
 vi.mock('@/hooks/use-toast', () => ({
-  useToast: () => ({ toast: vi.fn() }),
+  useToast: () => ({ toast: mockToast }),
 }));
 
 vi.mock('@/hooks/useDemoMode', () => ({
@@ -59,9 +60,10 @@ vi.mock('../trip/TripExportModal', () => ({
 describe('TripCard pending approval mode', () => {
   beforeEach(() => {
     mockNavigate.mockReset();
+    mockToast.mockReset();
   });
 
-  it('renders normal card actions as disabled and blocks navigation', () => {
+  it('keeps non-view actions disabled and shows pending toast when View is clicked', () => {
     render(
       <TripCard
         trip={{
@@ -79,10 +81,16 @@ describe('TripCard pending approval mode', () => {
 
     expect(screen.getByRole('button', { name: 'Recap' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Invite' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'View' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'View' })).not.toBeDisabled();
     expect(screen.getByRole('button', { name: 'Share' })).toBeDisabled();
 
     fireEvent.click(screen.getByRole('button', { name: 'View' }));
     expect(mockNavigate).not.toHaveBeenCalled();
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Your request is still pending approval.',
+        description: 'Contact the person who invited you to help expedite approval.',
+      }),
+    );
   });
 });
