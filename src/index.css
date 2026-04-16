@@ -746,6 +746,9 @@
 .light .dark-section .text-white {
   color: white;
 }
+.light .dark-section .text-white\/80 {
+  color: rgba(255, 255, 255, 0.8);
+}
 .light .dark-section .text-gray-300 {
   color: hsl(0 0% 75%);
 }
