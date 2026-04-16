@@ -41,8 +41,7 @@ export async function resolveSenderNameToIds(
   const { data: members } = await supabase
     .from('trip_members')
     .select('user_id')
-    .eq('trip_id', tripId)
-    .or('status.is.null,status.eq.active');
+    .eq('trip_id', tripId);
 
   const userIds = [...new Set((members || []).map(m => m.user_id).filter(Boolean))] as string[];
   if (userIds.length === 0) return [];

@@ -197,8 +197,7 @@ serve(async req => {
       const { data: members } = await supabase
         .from('trip_members')
         .select('user_id')
-        .eq('trip_id', tripId)
-        .or('status.is.null,status.eq.active');
+        .eq('trip_id', tripId);
 
       recipients = dedupeRecipients(
         (members || []).map(member => member.user_id),

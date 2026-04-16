@@ -568,7 +568,6 @@ export const tripService = {
         .from('trip_members')
         .select('id, user_id, role, created_at')
         .eq('trip_id', tripId)
-        .or('status.is.null,status.eq.active')
         .limit(500);
 
       let data = initialData;
@@ -643,24 +642,11 @@ export const tripService = {
     // Fetch members: try with status filter first (if column exists), fallback without.
     // Safety limit(500): scoped by single trip_id — no trip will have 500+ members.
     // RLS enforces access server-side before the limit is applied.
-    let membersResult = await supabase
+    const membersResult = await supabase
       .from('trip_members')
       .select('id, user_id, role, created_at')
       .eq('trip_id', tripId)
-      .or('status.is.null,status.eq.active')
       .limit(500);
-
-    const statusColumnError =
-      membersResult.error?.message?.toLowerCase().includes('status') ||
-      membersResult.error?.message?.toLowerCase().includes('does not exist');
-    if (statusColumnError) {
-      // status column may not exist (pre-migration schema) — fetch all rows
-      membersResult = await supabase
-        .from('trip_members')
-        .select('id, user_id, role, created_at')
-        .eq('trip_id', tripId)
-        .limit(500);
-    }
 
     // CRITICAL: Check for auth/RLS/network errors and THROW (don't silently return empty)
     if (tripResult.error) {

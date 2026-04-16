@@ -209,7 +209,6 @@ serve(async req => {
       .select('id')
       .eq('trip_id', invite.trip_id)
       .eq('user_id', user.id)
-      .or('status.is.null,status.eq.active')
       .maybeSingle();
 
     if (existingMember) {
