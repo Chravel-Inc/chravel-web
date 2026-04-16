@@ -1,17 +1,20 @@
 import type { ReactNode } from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { TripGrid } from '../TripGrid';
 
 vi.mock('../../TripCard', () => ({
   TripCard: ({
+    trip,
     pendingApproval,
     pendingSecondaryActionLabel,
   }: {
+    trip: { title: string };
     pendingApproval?: boolean;
     pendingSecondaryActionLabel?: string;
   }) => (
     <div data-testid="trip-card">
+      <span>{trip.title}</span>
       <span>{pendingApproval ? 'pending-enabled' : 'standard'}</span>
       {pendingSecondaryActionLabel ? <span>{pendingSecondaryActionLabel}</span> : null}
     </div>
@@ -147,5 +150,92 @@ describe('TripGrid requests tab', () => {
     );
 
     expect(screen.getByRole('button', { name: 'Review request' })).toBeInTheDocument();
+  });
+
+  it('does not render outbound pending request cards in standard My Trips mode', () => {
+    render(
+      <TripGrid
+        viewMode="myTrips"
+        trips={[]}
+        pendingTrips={[]}
+        proTrips={{}}
+        events={{}}
+        activeFilter="all"
+        dashboardJoinRequests={[
+          {
+            id: 'req-3',
+            trip_id: 'trip-3',
+            user_id: 'user-1',
+            requested_at: '2026-04-10T00:00:00Z',
+            direction: 'outbound',
+            trip: {
+              id: 'trip-3',
+              name: 'Requests Only Trip',
+              destination: 'Chicago',
+              start_date: '2026-07-01',
+              cover_image_url: undefined,
+            },
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.queryByText('Requests Only Trip')).not.toBeInTheDocument();
+    expect(screen.queryByText('Cancel request')).not.toBeInTheDocument();
+  });
+
+  it('shows outbound-only cards by default while preserving inbound+outbound counts and tab filters', () => {
+    render(
+      <TripGrid
+        viewMode="myTrips"
+        trips={[]}
+        pendingTrips={[]}
+        proTrips={{}}
+        events={{}}
+        activeFilter="requests"
+        dashboardJoinRequests={[
+          {
+            id: 'req-4',
+            trip_id: 'trip-4',
+            user_id: 'user-1',
+            requested_at: '2026-04-10T00:00:00Z',
+            direction: 'outbound',
+            trip: {
+              id: 'trip-4',
+              name: 'Outbound Trip',
+              destination: 'Austin',
+              start_date: '2026-07-01',
+              cover_image_url: undefined,
+            },
+          },
+          {
+            id: 'req-5',
+            trip_id: 'trip-5',
+            user_id: 'other-user',
+            requested_at: '2026-04-10T00:00:00Z',
+            direction: 'inbound',
+            requesterLabel: 'Sam',
+            trip: {
+              id: 'trip-5',
+              name: 'Inbound Trip',
+              destination: 'Seattle',
+              start_date: '2026-08-01',
+              cover_image_url: undefined,
+              trip_type: 'consumer',
+            },
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Outgoing (1)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Incoming (1)' })).toBeInTheDocument();
+
+    expect(screen.getByText('Outbound Trip')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Review request' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Incoming (1)' }));
+    expect(screen.getByRole('button', { name: 'Review request' })).toBeInTheDocument();
+    expect(screen.queryByText('Outbound Trip')).not.toBeInTheDocument();
   });
 });

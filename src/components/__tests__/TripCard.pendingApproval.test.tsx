@@ -93,4 +93,28 @@ describe('TripCard pending approval mode', () => {
       }),
     );
   });
+
+  it('shows pending feedback badge while keeping View CTA non-interactive', () => {
+    render(
+      <TripCard
+        trip={{
+          id: 'trip-2',
+          title: 'Pending Approval Feedback',
+          location: 'San Diego',
+          dateRange: 'Apr 10, 2026',
+          participants: [],
+          placesCount: 0,
+          peopleCount: 0,
+        }}
+        pendingApproval
+        pendingBadgeLabel="Awaiting host approval"
+      />,
+    );
+
+    expect(screen.getByText('Awaiting host approval')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'View' })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'View' }));
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
 });
