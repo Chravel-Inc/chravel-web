@@ -7,12 +7,13 @@
  *
  * POST /stream-setup-permissions
  * Headers:
- *   Authorization: Bearer <supabase-jwt>
+ *   Authorization: Bearer <any-supabase-token>
  *   X-Admin-Secret: <STREAM_ADMIN_SECRET>
  * Returns: { success: true, results: [...] }
  *
- * Security: Requires BOTH a valid JWT AND the STREAM_ADMIN_SECRET header.
- * This prevents any authenticated user from mutating app-wide channel types.
+ * Security: Requires the STREAM_ADMIN_SECRET header + an Authorization
+ * header (sanity check). No user-level verification — the admin secret
+ * is the sole auth gate.
  *
  * Run once after Stream app creation. Safe to re-run (idempotent).
  *
@@ -26,8 +27,6 @@ import { StreamChat } from 'npm:stream-chat';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { requireSecrets, createMissingSecretResponse } from '../_shared/validateSecrets.ts';
 import { configureStreamPermissionsAndPrincipal } from './setup.ts';
-
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 
 serve(async req => {
   const corsHeaders = getCorsHeaders(req);
@@ -49,7 +48,7 @@ serve(async req => {
     const STREAM_API_SECRET = secrets['STREAM_API_SECRET'];
     const STREAM_ADMIN_SECRET = secrets['STREAM_ADMIN_SECRET'];
 
-    // ── Admin secret gate — prevents any authenticated user from calling ──
+    // ── Admin secret gate — primary auth ──────────────────────────────────
     const adminSecret = req.headers.get('X-Admin-Secret');
     if (!adminSecret || adminSecret !== STREAM_ADMIN_SECRET) {
       return new Response(
@@ -61,26 +60,10 @@ serve(async req => {
       );
     }
 
-    // ── Auth (require authenticated user) ─────────────────────────────────
+    // ── Authorization header sanity check ─────────────────────────────────
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid authentication' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
