@@ -94,7 +94,7 @@ describe('TripCard pending approval mode', () => {
     );
   });
 
-  it('shows pending feedback badge while keeping View CTA non-interactive', () => {
+  it('shows pending feedback badge while keeping View CTA blocked by pending toast feedback', () => {
     render(
       <TripCard
         trip={{
@@ -112,9 +112,14 @@ describe('TripCard pending approval mode', () => {
     );
 
     expect(screen.getByText('Awaiting host approval')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'View' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'View' })).not.toBeDisabled();
 
     fireEvent.click(screen.getByRole('button', { name: 'View' }));
     expect(mockNavigate).not.toHaveBeenCalled();
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Your request is still pending approval.',
+      }),
+    );
   });
 });
