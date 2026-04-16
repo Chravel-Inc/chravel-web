@@ -680,6 +680,17 @@
   box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.08);
 }
 
+/* --- Trip card shadows — soften for light backgrounds --- */
+.light .shadow-lg {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+.light .shadow-black\/20 {
+  box-shadow: none;
+}
+.light .hover\:shadow-2xl:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
 /* --- Hardcoded hex dark backgrounds (modals, forms) --- */
 .light .bg-\[\#1a1a1a\] {
   background-color: hsl(0 0% 100%);
