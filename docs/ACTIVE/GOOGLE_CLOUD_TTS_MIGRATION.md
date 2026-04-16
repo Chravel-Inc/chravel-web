@@ -1,37 +1,48 @@
-# Voice Provider Migration Note (Previous TTS Provider → Google Cloud TTS)
+# Voice Provider Migration Note (Google Cloud TTS → Gemini 3.1 Flash TTS)
 
 ## Status
-Previous TTS provider is no longer the upstream provider for `supabase/functions/concierge-tts`.
-The edge function now proxies to **Google Cloud Text-to-Speech** while preserving the same client endpoint and auth/rate-limit behavior.
+The `concierge-tts` edge function (Google Cloud TTS) has been superseded by the
+`gemini-tts` edge function, which calls the **Gemini 3.1 Flash TTS Preview** model.
+
+The client-side feature flag `VITE_CONCIERGE_TTS_ENABLED=true` routes TTS requests
+to `gemini-tts`. When `false` (default), the old `concierge-tts` path is used as a
+rollback.
 
 ## What changed
-- Secret source is now `GOOGLE_CLOUD_TTS_API_KEY`.
-- Upstream endpoint changed to Google Cloud `text:synthesize`.
-- Primary/fallback voices now default to:
-  - primary: `en-US-Chirp3-HD-Charon`
-  - fallback: `en-US-Neural2-J`
-- Existing `tts_primary_voice_id` / `tts_fallback_voice_id` app settings are still used, but legacy non-Google IDs automatically fall back to the default Google voice.
+- **Provider**: Gemini API (`generativelanguage.googleapis.com`) via `generateContent`
+  with `responseModalities: ["AUDIO"]` and `speechConfig`.
+- **Auth**: `GEMINI_API_KEY` (shared with text concierge). Optional dedicated
+  `GEMINI_TTS_API_KEY` takes precedence if set.
+- **Model**: `gemini-3.1-flash-tts-preview` (configurable via `GEMINI_TTS_MODEL` env var).
+- **Voices**: Gemini TTS short names — `Charon` (primary), `Puck` (fallback).
+  Configurable via `app_settings` table (`tts_primary_voice_id`, `tts_fallback_voice_id`).
+- **Style**: Concierge persona tone tag prepended to text (e.g. `[warm, calm, concise ...]`).
+- **Fallback**: Retries with fallback voice on 400/403/404/429 errors.
+- **Timeout**: 30s per Gemini API call.
 
-## Verification checklist (copy/paste)
+## Verification checklist
 
 ```bash
-# 1) Ensure runtime project alignment
-rg -n "FALLBACK_PROJECT_ID|VITE_SUPABASE_URL|VITE_SUPABASE_ANON_KEY" src/integrations/supabase/client.ts
+# 1) Enable the Gemini TTS path (client-side)
+#    Set VITE_CONCIERGE_TTS_ENABLED=true in .env or Vercel env vars
 
-# 2) Confirm secret is present in the exact runtime project
-supabase secrets list --project-ref <project-ref> | rg GOOGLE_CLOUD_TTS_API_KEY
+# 2) Confirm GEMINI_API_KEY is set in Supabase secrets
+supabase secrets list --project-ref <project-ref> | rg GEMINI_API_KEY
 
-# 3) Set/rotate key and redeploy function
-supabase secrets set GOOGLE_CLOUD_TTS_API_KEY="<your-key>" --project-ref <project-ref>
-supabase functions deploy concierge-tts --project-ref <project-ref>
+# 3) Deploy the gemini-tts edge function
+supabase functions deploy gemini-tts --project-ref <project-ref>
 
-# 4) Invoke function and confirm audio response
-curl -i -X POST "https://<project-ref>.supabase.co/functions/v1/concierge-tts" \
+# 4) Apply the migration to update app_settings voice defaults
+supabase db push --project-ref <project-ref>
+
+# 5) Invoke function and confirm audio response
+curl -i -X POST "https://<project-ref>.supabase.co/functions/v1/gemini-tts" \
   -H "Authorization: Bearer <user-jwt>" \
   -H "apikey: <anon-key>" \
   -H "Content-Type: application/json" \
-  --data '{"speech_text":"test","output_format":"mp3_22050_32"}'
+  --data '{"text":"Hello, welcome to your trip!","voiceName":"Charon"}'
 ```
 
 ## Rollback path
-If needed, revert the edge function commit to restore the previous provider integration, then redeploy `concierge-tts`.
+Set `VITE_CONCIERGE_TTS_ENABLED=false` (or remove it) and redeploy the frontend.
+The old `concierge-tts` edge function remains deployed as the fallback path.
