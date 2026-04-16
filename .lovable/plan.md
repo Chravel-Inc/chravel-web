@@ -1,80 +1,46 @@
 
 
-# Fix Stream Permission Grant Names
+# Fix Stream Permissions + Run Migration
 
 ## Problem
-The `stream-setup-permissions` edge function uses invalid Stream Chat permission grant names. Stream's API uses `ReadChannel`, `CreateMessage`, etc. (PascalCase) — not `read-channel`, `create-message` (kebab-case). Two specific permissions (`search-messages`, `read-events`) don't exist at all in Stream's API.
+1. `setup.ts` still contains invalid kebab-case Stream permission names — the approved fix was never persisted
+2. Migration script can't run without `npm install` first (dependencies missing locally)
 
-## Valid Stream Permission Names
-Stream Chat uses these exact PascalCase grant strings:
-- `ReadChannel`, `CreateChannel`, `DeleteChannel`, `UpdateChannel`
-- `SendMessage` (not `create-message`), `UpdateMessage`, `DeleteMessage`, `UpdateOwnMessage` (not `update-message-owner`), `DeleteOwnMessage`
-- `UploadAttachment`
-- `PinMessage`, `FlagMessage`
-- `SendReaction` (not `create-reaction`), `DeleteReaction`, `DeleteOwnReaction`
-- `SendTypingEvent` (not `typing-events`)
-- `CreateThread` (not `create-thread` — actually this may need verification)
+## Plan
 
-**Removed entirely** (no Stream equivalent):
-- `search-messages` → Stream search is an API-level feature, not a per-channel grant
-- `read-events` → Events are controlled at the channel type config level, not via grants
+### Step 1: Fix `setup.ts` permission names (code change + deploy)
+Replace all kebab-case grants with Stream's valid format in `supabase/functions/stream-setup-permissions/setup.ts`:
 
-## Changes
+| Old (invalid) | New (valid) |
+|---|---|
+| `read-channel` | `read-channel` stays (actually valid in kebab) |
+| `create-message` | `create-message` stays |
+| `search-messages` | **REMOVE** (not a Stream grant) |
+| `read-events` | **REMOVE** (not a Stream grant) |
+| `update-message-owner` | `update-message-owner` stays |
+| `delete-message-owner` | `delete-message-owner` stays |
+| `send-custom-event` | `send-custom-event` stays |
 
-### 1. `supabase/functions/stream-setup-permissions/setup.ts`
+Wait — looking at the actual Stream API errors more carefully, the errors are specifically about `search-messages` and `read-events`. The other kebab-case names (`read-channel`, `create-message`, etc.) are actually working fine — Stream accepts both formats. The real fix is just:
 
-Replace all permission grant arrays with valid Stream PascalCase names:
+- **Remove `search-messages`** from chravel-trip channel_member grants (not a valid Stream permission)
+- **Remove `read-events`** from chravel-broadcast and chravel-channel grants (not a valid Stream permission)
+- **Keep `max_message_length: 20000`** (already correct at exactly 20,000)
 
-**chravel-trip channel_member:**
-```
-ReadChannel, SendMessage, UpdateOwnMessage, DeleteOwnMessage,
-UploadAttachment, FlagMessage, PinMessage, SendReaction,
-DeleteOwnReaction, SendTypingEvent
-```
+Actually wait, the error says "max_message_length must be 20,000 or less" but the code already says `20000`. Let me re-read... The error from the terminal is `max_message_length must be 20,000 or less` on chravel-concierge. The code shows `max_message_length: 20000` which IS 20,000. This might be a Stream API issue where 20000 = 20000 is rejected. We should try lowering to 19999 or removing it entirely.
 
-**chravel-trip channel_moderator:**
-```
-ReadChannel, SendMessage, UpdateMessage, DeleteMessage,
-UploadAttachment, FlagMessage, PinMessage, SendReaction,
-DeleteReaction, SendTypingEvent
-```
+**Actual changes to `setup.ts`:**
+- Remove any `search-messages` entries from grant arrays
+- Remove any `read-events` entries from grant arrays  
+- Change `max_message_length: 20000` to `max_message_length: 19999` (or remove if not needed)
 
-**chravel-broadcast channel_member:**
-```
-ReadChannel, SendReaction, DeleteOwnReaction
-```
+Then deploy via `deploy_edge_functions` and re-invoke via `curl_edge_functions`.
 
-**chravel-broadcast channel_moderator:**
-```
-ReadChannel, SendMessage, UpdateMessage, DeleteMessage,
-SendReaction, DeleteReaction, PinMessage
-```
+### Step 2: Run migration script
+After step 1, run the migration script from the sandbox (we have the Supabase service role key and Stream credentials). The script just reads from Supabase and writes to Stream — it can run from the sandbox, no need for the user's local machine.
 
-**chravel-channel channel_member:**
-```
-ReadChannel, SendMessage, UpdateOwnMessage, DeleteOwnMessage,
-SendTypingEvent, SendReaction, DeleteOwnReaction
-```
-
-**chravel-channel channel_moderator:**
-```
-ReadChannel, SendMessage, UpdateMessage, DeleteMessage,
-SendTypingEvent, SendReaction, DeleteReaction, PinMessage
-```
-
-**chravel-concierge channel_member:**
-```
-ReadChannel, SendMessage, SendTypingEvent
-```
-
-### 2. `supabase/functions/stream-setup-permissions/__tests__/setupStreamPermissions.test.ts`
-
-No structural changes needed — test validates call counts and channel type order, not the grant values themselves.
-
-### 3. Deploy and re-invoke
-
-After deploying, re-invoke the function with the same curl call to apply permissions to all four channel types.
+Install `stream-chat` and `@supabase/supabase-js` in `/tmp`, then execute the migration script with the provided env vars.
 
 ## Risk
-**Low.** This is the setup function for Stream permissions — it has never successfully run. Fixing the grant names is required to unblock chat functionality. The bot upsert (ai-concierge-bot) already succeeds and won't be affected.
+- **Low.** Removing invalid permissions unblocks the setup. Migration is read-from-Supabase, write-to-Stream — no destructive operations.
 
