@@ -385,27 +385,13 @@ export const tripService = {
         ...pendingTrips,
       ];
 
-      // Also fetch trips where user is an active member (not creator).
-      // Compatibility fallback: older environments may not have trip_members.status yet.
-      // Generous limit — scoped by single user_id, won't realistically exceed 1000
-      let memberTripsQueryResult = await supabase
+      // Fetch trips where user is an active member (not creator).
+      // trip_members table does not have a status column — query without it.
+      const memberTripsQueryResult = await supabase
         .from('trip_members')
         .select('trip_id')
         .eq('user_id', activeUserId)
-        .or('status.is.null,status.eq.active')
         .limit(1000);
-
-      const memberStatusColumnMissing =
-        memberTripsQueryResult.error?.message?.toLowerCase().includes('status') ||
-        memberTripsQueryResult.error?.message?.toLowerCase().includes('does not exist');
-
-      if (memberStatusColumnMissing) {
-        memberTripsQueryResult = await supabase
-          .from('trip_members')
-          .select('trip_id')
-          .eq('user_id', activeUserId)
-          .limit(1000);
-      }
 
       const { data: memberTrips, error: memberError } = memberTripsQueryResult;
 
