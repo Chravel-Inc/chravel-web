@@ -133,7 +133,7 @@ export async function configureStreamPermissionsAndPrincipal(
   // chravel-concierge: 2-member private channel, both can read/write
   try {
     await serverClient.updateChannelType('chravel-concierge', {
-      max_message_length: 20000,
+      max_message_length: 19999,
       grants: {
         channel_member: ['read-channel', 'create-message', 'send-custom-event'],
       },
