@@ -14,9 +14,8 @@ import {
 
 export type TTSPlaybackState = 'idle' | 'loading' | 'playing' | 'error';
 
-const DEFAULT_VOICE = 'en-US-Neural2-J';
+const DEFAULT_VOICE = 'Charon';
 const RETRYABLE_FETCH_ERROR = 'Failed to fetch';
-const GEMINI_DEFAULT_VOICE = 'Kore';
 const CONCIERGE_VOICE_STYLE = 'warm, calm, concise premium travel concierge voice';
 const USE_GEMINI_TTS = (import.meta.env.VITE_CONCIERGE_TTS_ENABLED ?? 'false') === 'true';
 const TTS_URL = `${SUPABASE_PROJECT_URL}/functions/v1/${USE_GEMINI_TTS ? 'gemini-tts' : 'concierge-tts'}`;
@@ -241,8 +240,7 @@ export function useConciergeReadAloud(
           throw new Error('Not authenticated. Please sign in to use voice.');
         }
 
-        const resolvedVoiceId =
-          voiceIdProp || (USE_GEMINI_TTS ? GEMINI_DEFAULT_VOICE : DEFAULT_VOICE);
+        const resolvedVoiceId = voiceIdProp || DEFAULT_VOICE;
         const sentences = splitIntoSentences(speechText);
 
         // Fire first AND second sentence fetches in parallel for overlap
