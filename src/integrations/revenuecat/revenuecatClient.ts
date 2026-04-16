@@ -5,6 +5,7 @@
  * Handles demo mode, web fallbacks, and graceful degradation.
  */
 
+import { Capacitor } from '@capacitor/core';
 import {
   REVENUECAT_ENABLED,
   getRevenueCatApiKey,
@@ -24,22 +25,22 @@ import type { SubscriptionTier } from '@/billing/types';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
-// Native IAP handled by chravel-mobile.
-// This variable is kept as a null placeholder for the loadPurchasesPlugin() interface.
-const Purchases: unknown | null = null;
-
 /**
- * Get current platform (always 'web' — native handled by chravel-mobile)
+ * Get current platform via Capacitor runtime detection.
+ * Returns 'ios', 'android', or 'web'.
  */
 export function getPlatform(): RevenueCatPlatform {
+  const platform = Capacitor.getPlatform();
+  if (platform === 'ios') return 'ios';
+  if (platform === 'android') return 'android';
   return 'web';
 }
 
 /**
- * Check if we're on a native platform (always false — native handled by chravel-mobile)
+ * Check if we're running inside a native Capacitor shell.
  */
 export function isNativePlatform(): boolean {
-  return false;
+  return Capacitor.isNativePlatform();
 }
 
 /**
@@ -50,16 +51,21 @@ export function isRevenueCatAvailable(): boolean {
   return platform !== 'web' && REVENUECAT_ENABLED && isRevenueCatConfigured(platform);
 }
 
+let _purchases: unknown | null = null;
+
 /**
- * Load the RevenueCat plugin dynamically.
- * Always returns null on web — native IAP handled by chravel-mobile.
+ * Load the RevenueCat Capacitor plugin dynamically.
+ * Returns null on web (graceful no-op).
  */
 async function loadPurchasesPlugin(): Promise<unknown | null> {
-  if (Purchases) return Purchases;
+  if (_purchases) return _purchases;
+
+  if (!isNativePlatform()) return null;
 
   try {
-    // Plugin removed — native IAP handled by chravel-mobile
-    return null;
+    const { Purchases } = await import('@revenuecat/purchases-capacitor');
+    _purchases = Purchases;
+    return _purchases;
   } catch (error) {
     console.warn('[RevenueCat] Failed to load plugin:', error);
     return null;
@@ -344,10 +350,6 @@ export async function logoutRevenueCat(): Promise<RevenueCatResult> {
     };
   }
 }
-
-/**
- * Derive plan from RevenueCat customer info
- */
 
 /**
  * Unified native RevenueCat sync adapter.
