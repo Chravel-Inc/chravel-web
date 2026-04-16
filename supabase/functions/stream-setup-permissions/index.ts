@@ -22,7 +22,6 @@
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { StreamChat } from 'npm:stream-chat';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { requireSecrets, createMissingSecretResponse } from '../_shared/validateSecrets.ts';
