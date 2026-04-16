@@ -1,0 +1,1 @@
+- 2026-04-16: Fixed Stream chat ReadChannel error surfacing in Messages tab by adding membership self-heal path. Added `stream-ensure-membership` edge function (auth + trip member verification + Stream addMembers) and retry-once flow in `useStreamTripChat` with sanitized fallback messaging.
