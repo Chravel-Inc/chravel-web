@@ -3,9 +3,7 @@ export type StreamSetupResult = { channelType: string; status: string };
 type StreamSetupClient = {
   updateChannelType: (
     channelType: string,
-    config: {
-      grants: Record<string, string[]>;
-    },
+    config: Record<string, unknown>,
   ) => Promise<unknown>;
   upsertUser: (user: {
     id: string;
