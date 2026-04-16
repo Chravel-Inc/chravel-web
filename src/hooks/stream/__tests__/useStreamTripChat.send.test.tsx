@@ -53,19 +53,14 @@ describe('useStreamTripChat send path', () => {
     vi.clearAllMocks();
     watchMock.mockResolvedValue({ messages: [] });
     queryMock.mockResolvedValue({ messages: [] });
-    sendMessageMock.mockImplementation(
-      () =>
-        new Promise(() => {
-          /* intentionally never resolves — stalled SDK */
-        }),
-    );
+    sendMessageMock.mockResolvedValue({ message: { id: 'msg-1', text: 'hello', created_at: new Date().toISOString() } });
   });
 
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  it('sendMessageAsync resolves immediately so composer is not blocked on stalled sendMessage', async () => {
+  it('sendMessageAsync awaits real sendMessage and uses HTTP response for immediate UI update', async () => {
     const { result } = renderHook(() => useStreamTripChat('trip-abc', { enabled: true }));
 
     await waitFor(() => {
@@ -82,6 +77,31 @@ describe('useStreamTripChat send path', () => {
     expect(settled).toBe(true);
     expect(result.current.isCreating).toBe(false);
     expect(sendMessageMock).toHaveBeenCalledTimes(1);
+    // Message should appear in local state from HTTP response
+    expect(result.current.messages).toHaveLength(1);
+  });
+
+  it('sendMessageAsync throws on rejected sendMessage so caller can restore draft', async () => {
+    sendMessageMock.mockRejectedValue(new Error('Not a member'));
+
+    const { result } = renderHook(() => useStreamTripChat('trip-abc', { enabled: true }));
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    let caughtError: Error | null = null;
+    await act(async () => {
+      try {
+        await result.current.sendMessageAsync('hello', 'You');
+      } catch (err) {
+        caughtError = err as Error;
+      }
+    });
+
+    expect(caughtError).toBeTruthy();
+    expect(caughtError!.message).toBe('Not a member');
+    expect(result.current.isCreating).toBe(false);
   });
 
   it('strips legacy reply ids before sending to Stream parent_id', async () => {

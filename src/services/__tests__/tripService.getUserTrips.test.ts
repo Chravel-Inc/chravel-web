@@ -64,7 +64,7 @@ describe('tripService.getUserTrips', () => {
     vi.clearAllMocks();
   });
 
-  it('falls back when trip_members.status filter is unavailable and still returns member trips', async () => {
+  it('returns member trips without status filter (status column does not exist)', async () => {
     const tripRecord = {
       id: 'trip-member-1',
       name: 'MLB All Star Weekend',
@@ -83,8 +83,6 @@ describe('tripService.getUserTrips', () => {
     };
 
     let tripsQueryCount = 0;
-    let tripMembersQueryCount = 0;
-    let firstMemberQueryChain: ChainableResponse<unknown[]> | null = null;
 
     // intentional: mock implementation doesn't match full Supabase generics
     (vi.mocked(supabase.from) as any).mockImplementation(((table: string) => {
@@ -101,26 +99,8 @@ describe('tripService.getUserTrips', () => {
       }
 
       if (table === 'trip_members') {
-        tripMembersQueryCount += 1;
-
-        if (tripMembersQueryCount === 1) {
-          const chain = createChainableMock<unknown[]>({
-            data: [],
-            error: { message: 'column trip_members.status does not exist' },
-          });
-          firstMemberQueryChain = chain;
-          return chain;
-        }
-
-        if (tripMembersQueryCount === 2) {
-          return createChainableMock({
-            data: [{ trip_id: 'trip-member-1' }],
-            error: null,
-          });
-        }
-
         return createChainableMock({
-          data: [{ trip_id: 'trip-member-1', user_id: 'member-user' }],
+          data: [{ trip_id: 'trip-member-1' }],
           error: null,
         });
       }
@@ -134,7 +114,6 @@ describe('tripService.getUserTrips', () => {
 
     const trips = await tripService.getUserTrips(false, undefined, 'member-user');
 
-    expect(firstMemberQueryChain?.or).toHaveBeenCalledWith('status.is.null,status.eq.active');
     expect(trips).toHaveLength(1);
     expect(trips[0].id).toBe('trip-member-1');
     expect(trips[0].membership_status).toBe('member');
