@@ -25,8 +25,14 @@ import { CHANNEL_TYPE_TRIP, tripChannelId } from '@/services/stream/streamChanne
 import { messageEvents } from '@/telemetry/events';
 import type { Channel, Event, MessageResponse } from 'stream-chat';
 import { buildTripStreamMessagePayload } from '@/services/stream/streamMessagePayload';
+import { supabase } from '@/integrations/supabase/client';
 
 const PAGE_SIZE = 30;
+
+export function isStreamReadChannelPermissionError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /ReadChannel|read-channel|GetOrCreateChannel failed|error code 17/i.test(message);
+}
 
 /**
  * Stream-backed trip chat hook.
@@ -49,6 +55,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
   // State mirror of channelRef for triggering the event subscription effect
   const [activeChannel, setActiveChannel] = useState<Channel | null>(null);
   const isMountedRef = useRef(true);
+  const membershipRecoveryAttemptedRef = useRef(false);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -94,6 +101,10 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     return () => window.clearTimeout(timer);
   }, [isEnabled, tripId, streamClientReady]);
 
+  useEffect(() => {
+    membershipRecoveryAttemptedRef.current = false;
+  }, [tripId]);
+
   // Initialize channel and load messages
   useEffect(() => {
     if (!tripId || !isEnabled) {
@@ -109,10 +120,28 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     let cancelled = false;
 
     const init = async () => {
-      try {
+      const watchChannel = async () => {
         const channel = client.channel(CHANNEL_TYPE_TRIP, tripChannelId(tripId));
         const state = await channel.watch({ state: true, messages: { limit: PAGE_SIZE } });
-        const streamMessages = (state.messages || []) as MessageResponse[];
+        return { channel, state };
+      };
+
+      try {
+        let watched = await watchChannel();
+
+        if (
+          membershipRecoveryAttemptedRef.current === false &&
+          !watched.state.membership &&
+          client.userID
+        ) {
+          membershipRecoveryAttemptedRef.current = true;
+          await supabase.functions.invoke('stream-ensure-membership', {
+            body: { tripId, userId: client.userID },
+          });
+          watched = await watchChannel();
+        }
+
+        const streamMessages = (watched.state.messages || []) as MessageResponse[];
         const sortedMessages = [...streamMessages].sort((a, b) => {
           const aDate = new Date(a.created_at || 0).getTime();
           const bDate = new Date(b.created_at || 0).getTime();
@@ -121,8 +150,8 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
 
         if (cancelled) return;
 
-        channelRef.current = channel;
-        setActiveChannel(channel);
+        channelRef.current = watched.channel;
+        setActiveChannel(watched.channel);
 
         setMessages(sortedMessages);
         setHasMore(streamMessages.length === PAGE_SIZE);
@@ -130,8 +159,42 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         setIsLoading(false);
       } catch (err) {
         if (cancelled) return;
-        const msg = err instanceof Error ? err.message : 'Failed to connect to chat';
-        setError(new Error(msg));
+
+        if (isStreamReadChannelPermissionError(err) && !membershipRecoveryAttemptedRef.current) {
+          membershipRecoveryAttemptedRef.current = true;
+          try {
+            await supabase.functions.invoke('stream-ensure-membership', {
+              body: { tripId, userId: client.userID },
+            });
+            const channel = client.channel(CHANNEL_TYPE_TRIP, tripChannelId(tripId));
+            const state = await channel.watch({ state: true, messages: { limit: PAGE_SIZE } });
+            const streamMessages = (state.messages || []) as MessageResponse[];
+            const sortedMessages = [...streamMessages].sort((a, b) => {
+              const aDate = new Date(a.created_at || 0).getTime();
+              const bDate = new Date(b.created_at || 0).getTime();
+              return aDate - bDate;
+            });
+
+            if (!cancelled) {
+              channelRef.current = channel;
+              setActiveChannel(channel);
+              setMessages(sortedMessages);
+              setHasMore(streamMessages.length === PAGE_SIZE);
+              setError(null);
+              setIsLoading(false);
+            }
+            return;
+          } catch {
+            // handled by generic permission-safe message below
+          }
+        }
+
+        const genericMessage = isStreamReadChannelPermissionError(err)
+          ? 'Chat is temporarily unavailable. Please try again.'
+          : err instanceof Error
+            ? err.message
+            : 'Failed to connect to chat';
+        setError(new Error(genericMessage));
         setIsLoading(false);
       }
     };

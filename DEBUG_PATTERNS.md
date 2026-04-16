@@ -327,3 +327,14 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Related files:** `src/pages/TripPreview.tsx`, `supabase/functions/get-trip-preview/index.ts`
 - **Fixed in:** April 2026 invite flow deep-dive pass
 - **Confidence:** medium-high
+
+## 5. Stream ReadChannel Permission Denial for Existing Trip Members
+
+**Symptom:** Messages tab shows raw Stream error `GetOrCreateChannel failed ... ReadChannel` with retry loop.
+**Risk:** HIGH — chat appears broken even when user is a valid `trip_members` row in Supabase.
+**Root Cause:** Stream channel membership drift (historical members missing in Stream) causes `channel.watch()` authorization failure.
+**How to Confirm:** Affected user exists in `trip_members` for trip but Stream channel membership lacks that user. Browser receives Stream error code 17 / ReadChannel.
+**Smallest Safe Fix:** Add authenticated edge repair endpoint to verify Supabase trip membership and re-add user to `chravel-trip` + `chravel-broadcast`, then retry watch once in `useStreamTripChat`.
+**Required Tests:** Unit test for Stream ReadChannel error classification helper; manual verification of self-heal on affected trip.
+**Regression Surfaces:** Older trips created before Stream sync hardening and users added through non-standard flows.
+**Fixed in:** `src/hooks/stream/useStreamTripChat.ts`, `supabase/functions/stream-ensure-membership/index.ts` (April 2026)
