@@ -121,6 +121,34 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
 
     const init = async () => {
       const watchChannel = async () => {
+      try {
+        // Ensure the user is a Stream channel member before watching.
+        // Stream error code 17 means the user has role 'user' (not 'channel_member')
+        // and cannot ReadChannel. We call the server-side join function to add them,
+        // then retry. This also runs proactively on every init to handle users who
+        // joined the trip before Stream membership sync was in place.
+        const supabaseSession = (await import('@/integrations/supabase/client')).supabase.auth;
+        const { data: sessionData } = await supabaseSession.getSession();
+        const jwt = sessionData?.session?.access_token;
+
+        if (jwt) {
+          try {
+            await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stream-join-channel`, {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${jwt}`,
+                'Content-Type': 'application/json',
+                apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+              },
+              body: JSON.stringify({ tripId }),
+            });
+          } catch {
+            // Non-fatal — if join fails, watch() will surface the real error
+          }
+        }
+
+        if (cancelled) return;
+
         const channel = client.channel(CHANNEL_TYPE_TRIP, tripChannelId(tripId));
         const state = await channel.watch({ state: true, messages: { limit: PAGE_SIZE } });
         return { channel, state };
