@@ -1,4 +1,15 @@
-import { PendingTripRequest } from '@/hooks/useMyPendingTrips';
+type PendingTripRequest = {
+  id: string;
+  trip_id: string;
+  requested_at: string;
+  trip?: {
+    id: string;
+    name: string;
+    destination: string;
+    start_date: string;
+    cover_image_url?: string;
+  };
+};
 
 // Dynamically calculate relative timestamps
 const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();

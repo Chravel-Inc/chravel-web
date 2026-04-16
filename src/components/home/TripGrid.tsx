@@ -70,7 +70,6 @@ export const TripGrid = React.memo(
   ({
     viewMode,
     trips,
-    pendingTrips = [],
     proTrips,
     events,
     loading = false,
@@ -148,7 +147,6 @@ export const TripGrid = React.memo(
       () => trips.filter(trip => !pendingDeleteIds.has(trip.id.toString())),
       [trips, pendingDeleteIds],
     );
-    const activePendingTrips = useMemo(() => pendingTrips, [pendingTrips]);
     const activeProTrips = useMemo(() => proTrips, [proTrips]);
     const activeEvents = useMemo(() => events, [events]);
     const visibleJoinRequests = useMemo(
@@ -370,14 +368,21 @@ export const TripGrid = React.memo(
         setCancelingRequestIds(prev => new Set(prev).add(requestId));
 
         try {
-          const { error } = await supabase
-            .from('trip_join_requests')
-            .delete()
-            .eq('id', requestId)
-            .eq('user_id', user.id)
-            .eq('status', 'pending');
+          if (onCancelDashboardRequest) {
+            const result = await onCancelDashboardRequest(requestId);
+            if (!result?.success) {
+              throw new Error(result?.message || 'Unable to cancel request');
+            }
+          } else {
+            const { error } = await supabase
+              .from('trip_join_requests')
+              .delete()
+              .eq('id', requestId)
+              .eq('user_id', user.id)
+              .eq('status', 'pending');
 
-          if (error) throw error;
+            if (error) throw error;
+          }
 
           setDismissedRequestIds(prev => new Set(prev).add(requestId));
           toast({
@@ -398,7 +403,7 @@ export const TripGrid = React.memo(
           });
         }
       },
-      [isDemoMode, toast, user?.id],
+      [isDemoMode, onCancelDashboardRequest, toast, user?.id],
     );
 
     // Get location-filtered recommendations for travel recs view
@@ -410,30 +415,6 @@ export const TripGrid = React.memo(
       viewMode === 'travelRecs' ? activeFilter : 'all',
       viewMode === 'travelRecs' ? manualLocation : undefined,
     );
-
-    const splitRequests = useMemo(
-      () => splitJoinRequestsByDirection(dashboardJoinRequests),
-      [dashboardJoinRequests],
-    );
-
-    const requestCounts = useMemo(
-      () => ({
-        incoming: splitRequests.inbound.length,
-        outgoing: splitRequests.outbound.length,
-      }),
-      [splitRequests.inbound.length, splitRequests.outbound.length],
-    );
-
-    const filteredRequests = useMemo(() => {
-      if (activeFilter !== 'requests') return dashboardJoinRequests;
-      return requestsTab === 'incoming' ? splitRequests.inbound : splitRequests.outbound;
-    }, [
-      activeFilter,
-      dashboardJoinRequests,
-      requestsTab,
-      splitRequests.inbound,
-      splitRequests.outbound,
-    ]);
 
     // Show loading skeleton
     if (loading) {
@@ -450,7 +431,7 @@ export const TripGrid = React.memo(
         : activeFilter === 'archived'
           ? archivedTrips.length > 0
           : viewMode === 'myTrips'
-            ? activeTrips.length > 0 || activePendingTrips.length > 0
+            ? activeTrips.length > 0
             : viewMode === 'tripsPro'
               ? Object.keys(activeProTrips).length > 0
               : viewMode === 'events'
@@ -724,18 +705,6 @@ export const TripGrid = React.memo(
                   isMobile={isMobile}
                   onLongPressEnterReorder={() => setReorderMode('my_trips')}
                 />
-                {/* Pending trips after (not draggable) */}
-                {activePendingTrips.map(request => (
-                  <TripCard
-                    key={request.id}
-                    trip={{
-                      ...request,
-                      participants: request.participants ?? [],
-                    }}
-                    pendingApproval
-                    pendingBadgeLabel="Pending Approval"
-                  />
-                ))}
                 {/* Reorder mode Done button */}
                 {reorderMode === 'my_trips' && (
                   <div className="col-span-full flex justify-center py-2">
