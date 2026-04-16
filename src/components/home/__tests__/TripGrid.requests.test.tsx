@@ -65,24 +65,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 
 describe('TripGrid requests tab', () => {
   it('does not render pending trip cards in my trips view outside requests filter', () => {
-    render(
-      <TripGrid
-        viewMode="myTrips"
-        trips={[]}
-        pendingTrips={[
-          {
-            id: 'pending-trip-1',
-            title: 'Legacy Pending Card',
-            location: 'LA',
-            dateRange: 'May 1 - May 5',
-            participants: [],
-          },
-        ]}
-        proTrips={{}}
-        events={{}}
-        activeFilter="all"
-      />,
-    );
+    render(<TripGrid viewMode="myTrips" trips={[]} proTrips={{}} events={{}} activeFilter="all" />);
 
     expect(screen.queryByText('pending-enabled')).not.toBeInTheDocument();
   });
@@ -92,7 +75,6 @@ describe('TripGrid requests tab', () => {
       <TripGrid
         viewMode="myTrips"
         trips={[]}
-        pendingTrips={[]}
         proTrips={{}}
         events={{}}
         activeFilter="requests"
@@ -124,7 +106,6 @@ describe('TripGrid requests tab', () => {
       <TripGrid
         viewMode="myTrips"
         trips={[]}
-        pendingTrips={[]}
         proTrips={{}}
         events={{}}
         activeFilter="requests"
@@ -157,7 +138,6 @@ describe('TripGrid requests tab', () => {
       <TripGrid
         viewMode="myTrips"
         trips={[]}
-        pendingTrips={[]}
         proTrips={{}}
         events={{}}
         activeFilter="all"
@@ -189,7 +169,6 @@ describe('TripGrid requests tab', () => {
       <TripGrid
         viewMode="myTrips"
         trips={[]}
-        pendingTrips={[]}
         proTrips={{}}
         events={{}}
         activeFilter="requests"

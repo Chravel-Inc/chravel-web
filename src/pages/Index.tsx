@@ -229,8 +229,7 @@ const Index = () => {
   // ✅ FILTER: Only consumer trips in allTrips (Pro/Event filtered separately below)
   // ✅ FILTER: Exclude archived trips from main list (they have their own section)
   // ✅ FILTER: In demo mode, also exclude session-archived/hidden trips
-  // ✅ SEPARATE: Pending trips from active trips
-  const { activeTrips: allTrips, pendingTrips } = useMemo(() => {
+  const allTrips = useMemo(() => {
     if (isDemoMode) {
       // Get session-scoped archived/hidden trip IDs
       const archivedIds = demoModeService.getSessionArchivedTripIds();
@@ -244,21 +243,13 @@ const Index = () => {
           !hiddenIds.includes(t.id.toString()),
       );
 
-      return {
-        activeTrips: filteredTrips,
-        pendingTrips: [],
-      };
+      return filteredTrips;
     }
     const converted = convertSupabaseTripsToMock(
       userTripsRaw.filter(t => (t.trip_type === 'consumer' || !t.trip_type) && !t.is_archived),
     );
-    // Separate pending trips from active trips
-    const active = converted.filter(t => (t as Trip).membership_status !== 'pending');
-    const pending = converted.filter(t => (t as Trip).membership_status === 'pending');
-    return {
-      activeTrips: active,
-      pendingTrips: pending,
-    };
+    // Pending requests render only in the Requests section from dashboardJoinRequests.
+    return converted.filter(t => (t as Trip).membership_status !== 'pending');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDemoMode, userTripsRaw, demoRefreshCounter]);
 
@@ -481,7 +472,6 @@ const Index = () => {
   const filteredData = useMemo(() => {
     // Always ensure safe values
     const safeTrips = Array.isArray(trips) ? trips : [];
-    const safePendingTrips = Array.isArray(pendingTrips) ? pendingTrips : [];
 
     // Initialize with demo data or empty objects
     let safeProTrips = isDemoMode ? proTripMockData || {} : {};
@@ -522,20 +512,12 @@ const Index = () => {
       activeFilter as DateFacet | '',
     );
     const filteredEvents = filterEvents(safeEvents, searchQuery, activeFilter as DateFacet | '');
-    // Filter pending trips by search query
-    const filteredPendingTrips = filterTrips(
-      safePendingTrips,
-      searchQuery,
-      activeFilter as DateFacet | '',
-    );
-
     return {
       trips: safeTrips,
-      pendingTrips: filteredPendingTrips,
       proTrips: filteredProTrips,
       events: filteredEvents,
     };
-  }, [trips, pendingTrips, isDemoMode, userTripsRaw, searchQuery, activeFilter]);
+  }, [trips, isDemoMode, userTripsRaw, searchQuery, activeFilter]);
 
   // Unified search results: combine consumer trips, pro trips, and events into Trip[]
   const allSearchableTrips = useMemo(() => {
@@ -1036,7 +1018,6 @@ const Index = () => {
               <TripGrid
                 viewMode={viewMode}
                 trips={filteredData.trips}
-                pendingTrips={filteredData.pendingTrips}
                 proTrips={filteredData.proTrips}
                 events={filteredData.events}
                 loading={isLoading}
@@ -1274,7 +1255,6 @@ const Index = () => {
           <TripGrid
             viewMode={viewMode}
             trips={filteredData.trips}
-            pendingTrips={filteredData.pendingTrips}
             proTrips={filteredData.proTrips}
             events={filteredData.events}
             loading={tripsLoading}
