@@ -49,28 +49,28 @@ export async function configureStreamPermissionsAndPrincipal(
     await serverClient.updateChannelType('chravel-trip', {
       grants: {
         channel_member: [
-          'ReadChannel',
-          'SendMessage',
-          'UpdateOwnMessage',
-          'DeleteOwnMessage',
-          'UploadAttachment',
-          'FlagMessage',
-          'PinMessage',
-          'SendReaction',
-          'DeleteOwnReaction',
-          'SendTypingEvent',
+          'read-channel',
+          'create-message',
+          'update-message-owner',
+          'delete-message-owner',
+          'upload-attachment',
+          'flag-message',
+          'pin-message',
+          'create-reaction',
+          'delete-reaction-owner',
+          'send-custom-event',
         ],
         channel_moderator: [
-          'ReadChannel',
-          'SendMessage',
-          'UpdateMessage',
-          'DeleteMessage',
-          'UploadAttachment',
-          'FlagMessage',
-          'PinMessage',
-          'SendReaction',
-          'DeleteReaction',
-          'SendTypingEvent',
+          'read-channel',
+          'create-message',
+          'update-message',
+          'delete-message',
+          'upload-attachment',
+          'flag-message',
+          'pin-message',
+          'create-reaction',
+          'delete-reaction',
+          'send-custom-event',
         ],
       },
     });
@@ -84,15 +84,15 @@ export async function configureStreamPermissionsAndPrincipal(
   try {
     await serverClient.updateChannelType('chravel-broadcast', {
       grants: {
-        channel_member: ['ReadChannel', 'SendReaction', 'DeleteOwnReaction'],
+        channel_member: ['read-channel', 'create-reaction', 'delete-reaction-owner'],
         channel_moderator: [
-          'ReadChannel',
-          'SendMessage',
-          'UpdateMessage',
-          'DeleteMessage',
-          'SendReaction',
-          'DeleteReaction',
-          'PinMessage',
+          'read-channel',
+          'create-message',
+          'update-message',
+          'delete-message',
+          'create-reaction',
+          'delete-reaction',
+          'pin-message',
         ],
       },
     });
@@ -107,23 +107,23 @@ export async function configureStreamPermissionsAndPrincipal(
     await serverClient.updateChannelType('chravel-channel', {
       grants: {
         channel_member: [
-          'ReadChannel',
-          'SendMessage',
-          'UpdateOwnMessage',
-          'DeleteOwnMessage',
-          'SendTypingEvent',
-          'SendReaction',
-          'DeleteOwnReaction',
+          'read-channel',
+          'create-message',
+          'update-message-owner',
+          'delete-message-owner',
+          'send-custom-event',
+          'create-reaction',
+          'delete-reaction-owner',
         ],
         channel_moderator: [
-          'ReadChannel',
-          'SendMessage',
-          'UpdateMessage',
-          'DeleteMessage',
-          'SendTypingEvent',
-          'SendReaction',
-          'DeleteReaction',
-          'PinMessage',
+          'read-channel',
+          'create-message',
+          'update-message',
+          'delete-message',
+          'send-custom-event',
+          'create-reaction',
+          'delete-reaction',
+          'pin-message',
         ],
       },
     });
@@ -137,7 +137,7 @@ export async function configureStreamPermissionsAndPrincipal(
   try {
     await serverClient.updateChannelType('chravel-concierge', {
       grants: {
-        channel_member: ['ReadChannel', 'SendMessage', 'SendTypingEvent'],
+        channel_member: ['read-channel', 'create-message', 'send-custom-event'],
       },
     });
     results.push({ channelType: 'chravel-concierge', status: 'ok' });
