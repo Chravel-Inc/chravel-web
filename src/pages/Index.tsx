@@ -92,6 +92,11 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<TabId>('trips');
   const [showTripTypeSwitcher, setShowTripTypeSwitcher] = useState(false);
 
+  // Auth loading timeout for installed apps - show auth modal after 3s even if auth still loading
+  // This prevents native app users from being stuck on loading spinner if auth hangs
+  const [authLoadingTimedOut, setAuthLoadingTimedOut] = useState(false);
+  const isInstalled = useMemo(() => isInstalledApp(), []);
+
   const { user, isLoading: authLoading } = useAuth();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -184,6 +189,21 @@ const Index = () => {
       useDemoModeStore.getState().setDemoView('off');
     }
   }, [user, authLoading, demoView, searchParams, setSearchParams]);
+
+  // Timeout to show auth modal on installed apps if auth loading is slow
+  // Prevents infinite loading spinner on iOS/Android native shells
+  useEffect(() => {
+    if (!isInstalled || user || !authLoading) {
+      setAuthLoadingTimedOut(false);
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      setAuthLoadingTimedOut(true);
+    }, 3000);
+
+    return () => clearTimeout(timeout);
+  }, [isInstalled, user, authLoading]);
 
   // Counter to force re-renders when demo session state changes (archive/hide)
   const [demoRefreshCounter, setDemoRefreshCounter] = useState(0);
@@ -729,20 +749,30 @@ const Index = () => {
   // MRKTING toggle: Show marketing page only for unauthenticated BROWSER users.
   // Gate on authLoading to prevent marketing page flash during session hydration.
   if (demoView === 'off' && !user) {
-    // Auth is still hydrating — show neutral loading state on all platforms
-    if (authLoading) {
+    // Installed app (PWA standalone or native webview) — show auth gate, not marketing
+    // Show AuthModal if auth loading times out (3s) to prevent infinite spinner on iOS
+    if (isInstalled) {
+      // Show spinner only briefly (until timeout or auth completes)
+      if (authLoading && !authLoadingTimedOut) {
+        return (
+          <div className="min-h-screen flex items-center justify-center bg-background">
+            <LoadingSpinner size="lg" />
+          </div>
+        );
+      }
+      // After timeout or when auth is done loading, show auth modal
       return (
-        <div className="min-h-screen flex items-center justify-center bg-background">
-          <LoadingSpinner size="lg" />
+        <div className="min-h-screen bg-background">
+          <AuthModal isOpen={true} onClose={() => {}} />
         </div>
       );
     }
 
-    // Installed app (PWA standalone or native webview) — show auth gate, not marketing
-    if (isInstalledApp()) {
+    // Browser: show spinner while auth hydrates (prevents marketing flash)
+    if (authLoading) {
       return (
-        <div className="min-h-screen bg-background">
-          <AuthModal isOpen={true} onClose={() => {}} />
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <LoadingSpinner size="lg" />
         </div>
       );
     }
