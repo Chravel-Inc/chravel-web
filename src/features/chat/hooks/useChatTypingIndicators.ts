@@ -17,7 +17,7 @@ export function useChatTypingIndicators(
     !isDemoMode &&
     !!user?.id &&
     !!resolvedTripId &&
-    effectiveChatMode === 'everyone' &&
+    effectiveChatMode !== 'disabled' &&
     tripMembersLength <= 50;
 
   useEffect(() => {

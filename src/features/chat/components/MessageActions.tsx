@@ -48,6 +48,7 @@ export interface MessageActionsProps {
   onEdit?: (messageId: string, newContent: string) => void;
   onDelete?: (messageId: string) => void;
   onReply?: (messageId: string) => void;
+  onOpenThread?: (messageId: string) => void;
   onBlockUser?: (userId: string) => Promise<void> | void;
   onReportContent?: (params: {
     reportedUserId: string;
@@ -70,6 +71,7 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
   onEdit,
   onDelete,
   onReply,
+  onOpenThread,
   onBlockUser,
   onReportContent,
   isBlockingUser = false,
@@ -164,6 +166,10 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
           <DropdownMenuItem onClick={() => onReply?.(messageId)}>
             <MessageSquareReply className="mr-2 h-4 w-4" />
             Reply
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onOpenThread?.(messageId)}>
+            <MessageSquareReply className="mr-2 h-4 w-4" />
+            Open thread
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => {

@@ -15,6 +15,7 @@ interface MessageItemProps {
   reactions?: Record<string, { count: number; userReacted: boolean; users?: string[] }>;
   onReaction: (messageId: string, reactionType: string) => void;
   onReply?: (messageId: string) => void;
+  onOpenThread?: (messageId: string) => void;
   showSenderInfo?: boolean;
   onRetry?: (messageId: string) => void;
   onEdit?: (messageId: string, newContent: string) => void;
@@ -46,6 +47,7 @@ export const MessageItem = memo(
     reactions,
     onReaction,
     onReply,
+    onOpenThread,
     showSenderInfo,
     onRetry,
     onEdit,
@@ -125,6 +127,7 @@ export const MessageItem = memo(
           onReaction={onReaction}
           replyCount={message.replyCount || 0}
           onReply={onReply}
+          onOpenThread={onOpenThread}
           showSenderInfo={showSenderInfo}
           messageType="trip"
           onEdit={handleEdit}
