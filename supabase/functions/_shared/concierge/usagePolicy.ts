@@ -1,10 +1,15 @@
 import { pickPrimaryEntitlement } from '../entitlementSelection.ts';
-import {
-  getConciergeTripQueryLimit,
-  type ConciergeTripQueryPlan,
-} from '../../../../src/lib/conciergeTripQueryLimits.ts';
 
-export type UsagePlan = ConciergeTripQueryPlan;
+export type UsagePlan = 'free' | 'explorer' | 'frequent_chraveler';
+
+const CONCIERGE_TRIP_QUERY_LIMITS: Record<UsagePlan, number | null> = {
+  free: 10,
+  explorer: 25,
+  frequent_chraveler: null,
+};
+
+const getConciergeTripQueryLimit = (plan: UsagePlan): number | null =>
+  CONCIERGE_TRIP_QUERY_LIMITS[plan] ?? null;
 
 export interface UsagePlanResolution {
   usagePlan: UsagePlan;
