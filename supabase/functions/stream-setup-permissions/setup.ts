@@ -23,8 +23,6 @@ export async function configureStreamPermissionsAndPrincipal(
   const results: StreamSetupResult[] = [];
 
   try {
-    // Deterministic service principal required for concierge channel flows.
-    // Upsert is idempotent and safe to call on repeated setup runs.
     await serverClient.upsertUser({
       id: AI_CONCIERGE_BOT_ID,
       name: 'AI Concierge',
@@ -51,34 +49,28 @@ export async function configureStreamPermissionsAndPrincipal(
     await serverClient.updateChannelType('chravel-trip', {
       grants: {
         channel_member: [
-          'read-channel',
-          'create-message',
-          'update-message-owner',
-          'delete-message-owner',
-          'upload-attachment',
-          'search-messages',
-          'flag-message',
-          'pin-message',
-          'create-reaction',
-          'delete-reaction-owner',
-          'read-events',
-          'typing-events',
-          'create-thread',
+          'ReadChannel',
+          'SendMessage',
+          'UpdateOwnMessage',
+          'DeleteOwnMessage',
+          'UploadAttachment',
+          'FlagMessage',
+          'PinMessage',
+          'SendReaction',
+          'DeleteOwnReaction',
+          'SendTypingEvent',
         ],
         channel_moderator: [
-          'read-channel',
-          'create-message',
-          'update-message',
-          'delete-message',
-          'upload-attachment',
-          'search-messages',
-          'flag-message',
-          'pin-message',
-          'create-reaction',
-          'delete-reaction',
-          'read-events',
-          'typing-events',
-          'create-thread',
+          'ReadChannel',
+          'SendMessage',
+          'UpdateMessage',
+          'DeleteMessage',
+          'UploadAttachment',
+          'FlagMessage',
+          'PinMessage',
+          'SendReaction',
+          'DeleteReaction',
+          'SendTypingEvent',
         ],
       },
     });
@@ -92,16 +84,15 @@ export async function configureStreamPermissionsAndPrincipal(
   try {
     await serverClient.updateChannelType('chravel-broadcast', {
       grants: {
-        channel_member: ['read-channel', 'read-events', 'create-reaction', 'delete-reaction-owner'],
+        channel_member: ['ReadChannel', 'SendReaction', 'DeleteOwnReaction'],
         channel_moderator: [
-          'read-channel',
-          'create-message',
-          'update-message',
-          'delete-message',
-          'read-events',
-          'create-reaction',
-          'delete-reaction',
-          'pin-message',
+          'ReadChannel',
+          'SendMessage',
+          'UpdateMessage',
+          'DeleteMessage',
+          'SendReaction',
+          'DeleteReaction',
+          'PinMessage',
         ],
       },
     });
@@ -116,27 +107,23 @@ export async function configureStreamPermissionsAndPrincipal(
     await serverClient.updateChannelType('chravel-channel', {
       grants: {
         channel_member: [
-          'read-channel',
-          'create-message',
-          'update-message-owner',
-          'delete-message-owner',
-          'read-events',
-          'typing-events',
-          'create-reaction',
-          'delete-reaction-owner',
-          'search-messages',
+          'ReadChannel',
+          'SendMessage',
+          'UpdateOwnMessage',
+          'DeleteOwnMessage',
+          'SendTypingEvent',
+          'SendReaction',
+          'DeleteOwnReaction',
         ],
         channel_moderator: [
-          'read-channel',
-          'create-message',
-          'update-message',
-          'delete-message',
-          'read-events',
-          'typing-events',
-          'create-reaction',
-          'delete-reaction',
-          'pin-message',
-          'search-messages',
+          'ReadChannel',
+          'SendMessage',
+          'UpdateMessage',
+          'DeleteMessage',
+          'SendTypingEvent',
+          'SendReaction',
+          'DeleteReaction',
+          'PinMessage',
         ],
       },
     });
@@ -150,7 +137,7 @@ export async function configureStreamPermissionsAndPrincipal(
   try {
     await serverClient.updateChannelType('chravel-concierge', {
       grants: {
-        channel_member: ['read-channel', 'create-message', 'read-events', 'typing-events'],
+        channel_member: ['ReadChannel', 'SendMessage', 'SendTypingEvent'],
       },
     });
     results.push({ channelType: 'chravel-concierge', status: 'ok' });
