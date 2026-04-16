@@ -206,7 +206,7 @@ serve(async req => {
     });
   }
 
-  const text = (body.text || '').trim().slice(0, MAX_TEXT_CHARS);
+  const text = sanitizeForTts((body.text || '').trim()).slice(0, MAX_TEXT_CHARS);
   if (!text) {
     return new Response(JSON.stringify({ error: 'text is required' }), {
       status: 400,
@@ -310,16 +310,13 @@ serve(async req => {
     const errBody = await geminiRes.text().catch(() => '');
     console.error(`[gemini-tts] Gemini TTS error ${geminiRes.status}: ${errBody}`);
 
-    let detail = `Gemini TTS returned ${geminiRes.status}`;
-    try {
-      const parsed = JSON.parse(errBody);
-      if (parsed?.error?.message) detail = parsed.error.message;
-      else if (typeof parsed?.detail === 'string') detail = parsed.detail;
-    } catch {
-      // use default detail
-    }
+    // Return generic message to client; full provider error is logged above
+    const userMessage =
+      geminiRes.status === 429
+        ? 'Voice service is temporarily busy. Please try again in a moment.'
+        : 'Voice synthesis failed. Please try again.';
 
-    return new Response(JSON.stringify({ error: detail }), {
+    return new Response(JSON.stringify({ error: userMessage }), {
       status: 502,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
