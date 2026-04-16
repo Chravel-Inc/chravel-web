@@ -225,7 +225,7 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Share trip via WhatsApp"
-              className="flex-1 flex items-center justify-center gap-1.5 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#25D366] border border-[#25D366]/30 rounded-lg py-2 text-xs font-medium transition-colors min-h-[44px]"
+              className="flex-1 flex items-center justify-center gap-1.5 bg-[#128C7E]/15 hover:bg-[#128C7E]/25 text-[#128C7E] border border-[#128C7E]/30 rounded-lg py-2 text-xs font-medium transition-colors min-h-[44px]"
             >
               WhatsApp
             </a>
@@ -234,7 +234,7 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Share trip on Instagram"
-              className="flex-1 flex items-center justify-center gap-1.5 bg-[#E1306C]/10 hover:bg-[#E1306C]/20 text-[#E1306C] border border-[#E1306C]/30 rounded-lg py-2 text-xs font-medium transition-colors min-h-[44px]"
+              className="flex-1 flex items-center justify-center gap-1.5 bg-[#C13584]/15 hover:bg-[#C13584]/25 text-[#C13584] border border-[#C13584]/30 rounded-lg py-2 text-xs font-medium transition-colors min-h-[44px]"
             >
               Instagram
             </a>
