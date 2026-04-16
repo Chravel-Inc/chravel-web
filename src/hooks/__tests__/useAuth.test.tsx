@@ -4,6 +4,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import React from 'react';
 import { AuthProvider, useAuth } from '../useAuth';
+import { isInstalledApp } from '@/utils/platformDetection';
+
+vi.mock('@/utils/platformDetection', () => ({
+  isInstalledApp: vi.fn(() => false),
+}));
+
+const mockIsInstalledApp = vi.mocked(isInstalledApp);
 
 // Mock user and session data
 const mockUser = {
@@ -121,6 +128,7 @@ const createWrapper = () => {
 describe('AuthProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockIsInstalledApp.mockReturnValue(false);
     // Reset auth mocks to default state
     mockSupabaseClient.auth.getSession.mockResolvedValue({
       data: { session: null },
@@ -200,5 +208,59 @@ describe('AuthProvider', () => {
 
     expect(signUpResult.error).toBeUndefined();
     expect(mockSupabaseClient.auth.signUp).toHaveBeenCalled();
+  });
+
+  it('uses default OAuth redirect in browser (no skipBrowserRedirect)', async () => {
+    mockIsInstalledApp.mockReturnValue(false);
+    mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({
+      data: { url: 'https://oauth.example/authorize' },
+      error: null,
+    });
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { timeout: 3000 });
+
+    await act(async () => {
+      await result.current.signInWithGoogle();
+    });
+
+    expect(mockSupabaseClient.auth.signInWithOAuth).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider: 'google',
+        options: expect.objectContaining({
+          skipBrowserRedirect: false,
+        }),
+      }),
+    );
+  });
+
+  it('skips external browser for OAuth on installed app (skipBrowserRedirect)', async () => {
+    mockIsInstalledApp.mockReturnValue(true);
+    mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({
+      data: { url: 'https://oauth.example/authorize' },
+      error: null,
+    });
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { timeout: 3000 });
+
+    await act(async () => {
+      await result.current.signInWithGoogle();
+    });
+
+    expect(mockSupabaseClient.auth.signInWithOAuth).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider: 'google',
+        options: expect.objectContaining({
+          skipBrowserRedirect: true,
+        }),
+      }),
+    );
   });
 });
