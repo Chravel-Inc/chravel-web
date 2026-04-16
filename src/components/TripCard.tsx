@@ -419,7 +419,7 @@ export const TripCard = ({
           <div className="flex-1 min-h-0 overflow-hidden">
             <div className="flex items-start gap-3 mb-2">
               <div className="flex-1">
-                <h3 className="text-lg md:text-xl font-bold <h3 className="text-lg md:text-xl font-bold text-white transition-all duration-300 line-clamp-2"> line-clamp-2">
+                <h3 className="text-lg md:text-xl font-bold text-white transition-all duration-300 line-clamp-2">
                   {trip.title}
                 </h3>
                 {/* Trip Status Badges - Hidden on mobile to save space */}
@@ -465,12 +465,12 @@ export const TripCard = ({
                 )}
               </div>
             </div>
-            <div className="<div className="flex items-center gap-2 text-white mb-1 md:mb-3 text-sm md:text-base">">
+            <div className="flex items-center gap-2 text-white mb-1 md:mb-3 text-sm md:text-base">
               <MapPin size={14} className="md:hidden gold-gradient-icon" />
               <MapPin size={18} className="hidden md:block gold-gradient-icon" />
               <span className="font-medium truncate">{trip.location}</span>
             </div>
-            <div className="<div className="flex items-center gap-2 text-white text-sm md:text-base">">
+            <div className="flex items-center gap-2 text-white text-sm md:text-base">
               <CalendarDays size={14} className="md:hidden gold-gradient-icon" />
               <CalendarDays size={18} className="hidden md:block gold-gradient-icon" />
               <span className="font-medium truncate">{trip.dateRange}</span>
