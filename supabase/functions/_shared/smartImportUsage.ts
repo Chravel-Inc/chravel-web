@@ -46,7 +46,7 @@ export async function checkAndIncrementSmartImportUsage(
     p_user_id: userId,
     p_trip_id: tripId ?? null,
     p_limit: limit,
-  });
+  } as Record<string, unknown>);
 
   if (error) {
     throw new Error(`Smart import usage check failed: ${error.message}`);
