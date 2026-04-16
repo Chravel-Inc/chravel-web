@@ -22,6 +22,9 @@ const ALLOWED_ORIGINS = [
   // '.lovable.app',
   // Lovable project preview (exact origin — do NOT use wildcard .lovableproject.com)
   'https://20feaa04-0946-4c68-a68d-0eb88cc1b9c4.lovableproject.com',
+  // Lovable preview and published domains
+  'https://id-preview--20feaa04-0946-4c68-a68d-0eb88cc1b9c4.lovable.app',
+  'https://chravel.lovable.app',
   // Preview/staging domains: use ADDITIONAL_ALLOWED_ORIGINS env var
   // Do NOT add wildcard subdomain matchers like '.vercel.app' here.
 ];
