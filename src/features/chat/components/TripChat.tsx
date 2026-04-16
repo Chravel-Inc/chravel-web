@@ -130,6 +130,7 @@ export const TripChat = React.memo(
     const {
       messages: liveMessages,
       isLoading: liveLoading,
+      error: chatError,
       sendMessageAsync: sendTripMessage,
       isCreating: isSendingMessage,
       loadMore: loadMoreMessages,
@@ -514,6 +515,10 @@ export const TripChat = React.memo(
         }
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Failed to send message';
+
+        // Restore the draft so the user doesn't lose their message
+        setInputMessage(message.text);
+
         setFailedMessages(prev => [
           ...prev,
           {

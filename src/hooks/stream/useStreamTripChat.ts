@@ -315,7 +315,10 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     [dispatchStreamSend],
   );
 
-  // sendMessageAsync — resolves immediately; delivery/errors handled like sendMessage
+  /**
+   * sendMessageAsync — awaits real channel.sendMessage() and returns the confirmed message.
+   * Throws on rejection so callers (TripChat) can restore the draft and show errors.
+   */
   const sendMessageAsync = useCallback(
     async (
       content: string,
@@ -331,7 +334,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       const channel = channelRef.current;
       if (!channel || !tripId) return undefined;
 
-      dispatchStreamSend(
+      const payloadResult = buildTripStreamMessagePayload({
         content,
         mediaType,
         mediaUrl,
@@ -339,22 +342,39 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         messageType,
         replyToId,
         mentionedUserIds,
-      );
+      });
 
-      // Optimistic shape for callers that still await; list state updates from `message.new`
-      const now = new Date().toISOString();
-      return {
-        id: `pending-${now}`,
-        text: content,
-        created_at: now,
-        updated_at: now,
-        type: 'regular',
-        user: { id: _userId || 'unknown' },
-        message_type: messageType || 'text',
-        privacy_mode: privacyMode || 'standard',
-      } as unknown as MessageResponse;
+      if (!payloadResult.ok) {
+        if ('error' in payloadResult && payloadResult.error === 'empty_content') return undefined;
+        throw new Error('Message too long. Please keep messages under 4000 characters.');
+      }
+
+      const response = await channel.sendMessage(payloadResult.payload);
+      const sentMessage = response.message as MessageResponse;
+
+      // Immediately insert or update the sent message in local state
+      // so it appears without waiting for the `message.new` WebSocket event.
+      if (sentMessage) {
+        setMessages(prev => {
+          if (prev.some(m => m.id === sentMessage.id)) {
+            return prev.map(m => (m.id === sentMessage.id ? sentMessage : m));
+          }
+          return [...prev, sentMessage];
+        });
+
+        messageEvents.sent({
+          trip_id: tripId,
+          message_type:
+            (messageType as 'text' | 'media' | 'broadcast' | 'payment' | 'system') || 'text',
+          has_media: Boolean(mediaUrl),
+          character_count: payloadResult.normalizedContent.length,
+          is_offline_queued: false,
+        });
+      }
+
+      return sentMessage;
     },
-    [tripId, dispatchStreamSend],
+    [tripId, toast],
   );
 
   // Load more (older messages)
