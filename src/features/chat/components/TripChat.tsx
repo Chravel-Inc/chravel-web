@@ -799,7 +799,21 @@ export const TripChat = React.memo(
               />
             ) : (
               <>
-                {isLoading ? (
+                {chatError && !isLoading ? (
+                  <div className="flex-1 flex items-center justify-center p-6">
+                    <div className="text-center space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        {chatError.message || 'Failed to load chat'}
+                      </p>
+                      <button
+                        onClick={() => reload?.()}
+                        className="text-sm text-primary underline hover:no-underline"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  </div>
+                ) : isLoading ? (
                   <div className="flex-1 overflow-y-auto p-4">
                     <MessageSkeleton />
                   </div>
