@@ -350,30 +350,35 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         throw new Error('Message too long. Please keep messages under 4000 characters.');
       }
 
-      const response = await channel.sendMessage(payloadResult.payload);
-      const sentMessage = response.message as MessageResponse;
+      setIsCreating(true);
+      try {
+        const response = await channel.sendMessage(payloadResult.payload);
+        const sentMessage = response.message as MessageResponse;
 
-      // Immediately insert or update the sent message in local state
-      // so it appears without waiting for the `message.new` WebSocket event.
-      if (sentMessage) {
-        setMessages(prev => {
-          if (prev.some(m => m.id === sentMessage.id)) {
-            return prev.map(m => (m.id === sentMessage.id ? sentMessage : m));
-          }
-          return [...prev, sentMessage];
-        });
+        // Immediately insert or update the sent message in local state
+        // so it appears without waiting for the `message.new` WebSocket event.
+        if (sentMessage) {
+          setMessages(prev => {
+            if (prev.some(m => m.id === sentMessage.id)) {
+              return prev.map(m => (m.id === sentMessage.id ? sentMessage : m));
+            }
+            return [...prev, sentMessage];
+          });
 
-        messageEvents.sent({
-          trip_id: tripId,
-          message_type:
-            (messageType as 'text' | 'media' | 'broadcast' | 'payment' | 'system') || 'text',
-          has_media: Boolean(mediaUrl),
-          character_count: payloadResult.normalizedContent.length,
-          is_offline_queued: false,
-        });
+          messageEvents.sent({
+            trip_id: tripId,
+            message_type:
+              (messageType as 'text' | 'media' | 'broadcast' | 'payment' | 'system') || 'text',
+            has_media: Boolean(mediaUrl),
+            character_count: payloadResult.normalizedContent.length,
+            is_offline_queued: false,
+          });
+        }
+
+        return sentMessage;
+      } finally {
+        setIsCreating(false);
       }
-
-      return sentMessage;
     },
     [tripId, toast],
   );
