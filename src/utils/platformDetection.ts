@@ -73,3 +73,33 @@ export function isInstalledApp(): boolean {
   // Standalone PWA gate is limited to mobile-class devices to avoid desktop false positives.
   return isStandalonePWA() && isLikelyMobileDevice();
 }
+
+/**
+ * Production web app URL for OAuth callbacks.
+ * Uses VITE_APP_URL env var if set, otherwise defaults to chravel.app.
+ */
+const PRODUCTION_WEB_URL =
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_APP_URL) || 'https://chravel.app';
+
+/**
+ * Returns the base URL to use for OAuth redirect callbacks.
+ *
+ * In installed app contexts (Capacitor/PWA/WebView), window.location.origin
+ * may be a custom scheme (capacitor://localhost) or file:// URL that OAuth
+ * providers can't redirect to. In these cases, we redirect through the
+ * production web URL which can then deep-link back to the app.
+ *
+ * In browser contexts, we use window.location.origin for local dev support.
+ */
+export function getOAuthRedirectOrigin(): string {
+  if (typeof window === 'undefined') return PRODUCTION_WEB_URL;
+
+  // In installed apps, OAuth must redirect through the web URL
+  // The web app will then handle deep linking back to the installed app
+  if (isInstalledApp()) {
+    return PRODUCTION_WEB_URL;
+  }
+
+  // For standard browser contexts, use the current origin (supports localhost dev)
+  return window.location.origin;
+}

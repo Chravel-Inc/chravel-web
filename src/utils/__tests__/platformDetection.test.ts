@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  getOAuthRedirectOrigin,
   isCapacitorNativeShell,
   isInstalledApp,
   isLikelyMobileDevice,
@@ -103,5 +104,60 @@ describe('platformDetection', () => {
 
     expect(isCapacitorNativeShell()).toBe(false);
     expect(isNativeWebView()).toBe(false);
+  });
+
+  describe('getOAuthRedirectOrigin', () => {
+    it('returns production URL for Capacitor native shell', () => {
+      setUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15');
+      setMatchMedia(false);
+      setLocationSearch('');
+      Object.defineProperty(window, 'Capacitor', {
+        value: { isNativePlatform: () => true },
+        configurable: true,
+      });
+
+      const result = getOAuthRedirectOrigin();
+      expect(result).toBe('https://chravel.app');
+    });
+
+    it('returns production URL for native webview (app_context=native)', () => {
+      setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36');
+      setMatchMedia(false);
+      setLocationSearch('?app_context=native');
+
+      const result = getOAuthRedirectOrigin();
+      expect(result).toBe('https://chravel.app');
+    });
+
+    it('returns production URL for mobile standalone PWA', () => {
+      setUserAgent(
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+      );
+      setMatchMedia(true);
+      setLocationSearch('');
+
+      const result = getOAuthRedirectOrigin();
+      expect(result).toBe('https://chravel.app');
+    });
+
+    it('returns window.location.origin for desktop browser', () => {
+      setUserAgent(
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+      );
+      setMatchMedia(false);
+      setLocationSearch('');
+      // Mock window.location.origin for test
+      Object.defineProperty(window, 'location', {
+        value: {
+          ...originalLocation,
+          origin: 'http://localhost:5173',
+          search: '',
+        },
+        configurable: true,
+      });
+
+      const result = getOAuthRedirectOrigin();
+      expect(result).toBe('http://localhost:5173');
+    });
   });
 });

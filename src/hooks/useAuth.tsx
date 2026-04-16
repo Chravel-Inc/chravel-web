@@ -22,6 +22,7 @@ import { telemetry } from '@/telemetry/service';
 import { toast } from '@/hooks/use-toast';
 import { logAuthEvent } from '@/utils/authTelemetry';
 import { buildSessionDerivedUser } from '@/lib/sessionDerivedUser';
+import { getOAuthRedirectOrigin } from '@/utils/platformDetection';
 
 const TRIPS_QUERY_KEY = 'trips';
 
@@ -885,8 +886,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Preserve returnTo so OAuth callback lands on AuthPage which redirects to the intended route
       const returnTo = new URLSearchParams(window.location.search).get('returnTo');
       const redirectUrl = returnTo
-        ? `${window.location.origin}/auth?returnTo=${encodeURIComponent(returnTo)}`
-        : `${window.location.origin}/auth`;
+        ? `${getOAuthRedirectOrigin()}/auth?returnTo=${encodeURIComponent(returnTo)}`
+        : `${getOAuthRedirectOrigin()}/auth`;
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -924,8 +925,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Preserve returnTo so OAuth callback lands on AuthPage which redirects to the intended route
       const returnTo = new URLSearchParams(window.location.search).get('returnTo');
       const redirectUrl = returnTo
-        ? `${window.location.origin}/auth?returnTo=${encodeURIComponent(returnTo)}`
-        : `${window.location.origin}/auth`;
+        ? `${getOAuthRedirectOrigin()}/auth?returnTo=${encodeURIComponent(returnTo)}`
+        : `${getOAuthRedirectOrigin()}/auth`;
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
@@ -1005,8 +1006,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Preserve returnTo so email confirmation lands back in the right place
       const signUpReturnTo = new URLSearchParams(window.location.search).get('returnTo');
       const emailRedirectUrl = signUpReturnTo
-        ? `${window.location.origin}/auth?returnTo=${encodeURIComponent(signUpReturnTo)}`
-        : `${window.location.origin}/`;
+        ? `${getOAuthRedirectOrigin()}/auth?returnTo=${encodeURIComponent(signUpReturnTo)}`
+        : `${getOAuthRedirectOrigin()}/`;
 
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -1114,7 +1115,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const resetPassword = async (email: string): Promise<{ error?: string }> => {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${getOAuthRedirectOrigin()}/reset-password`,
       });
 
       if (error) {
