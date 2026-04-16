@@ -103,7 +103,6 @@ serve(async (req): Promise<Response> => {
       .select('id')
       .eq('trip_id', tripId)
       .eq('user_id', authData.user.id)
-      .or('status.is.null,status.eq.active')
       .maybeSingle();
 
     let hasAccess = !!membership;
