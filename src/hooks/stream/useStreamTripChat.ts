@@ -452,8 +452,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     error,
     sendMessage,
     sendMessageAsync,
-    /** Stream path: always false — send is fire-and-forget; UI unlocks immediately */
-    isCreating: false,
+    isCreating,
     loadMore,
     hasMore,
     isLoadingMore,
