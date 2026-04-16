@@ -22,6 +22,7 @@ import { telemetry } from '@/telemetry/service';
 import { toast } from '@/hooks/use-toast';
 import { logAuthEvent } from '@/utils/authTelemetry';
 import { buildSessionDerivedUser } from '@/lib/sessionDerivedUser';
+import { generateSafeUuid } from '@/utils/uuid';
 
 const TRIPS_QUERY_KEY = 'trips';
 
@@ -132,7 +133,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
    * We provide a stable, UUID-shaped demo user so code paths expecting UUIDs don't throw.
    */
   // Generate a stable but non-predictable demo UUID per session
-  const demoUserId = useMemo(() => crypto.randomUUID(), []);
+  const demoUserId = useMemo(() => generateSafeUuid(), []);
 
   const demoUser: User = useMemo(
     () => ({

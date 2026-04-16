@@ -590,3 +590,4 @@
 - **Evidence:** `TripChat` passed Stream `Channel` into `MessageTypeBar` (expects `TripChannel`), causing `Cannot read properties of undefined (reading 'toLowerCase')` on `channelName`.
 - **Provenance:** April 2026 Messages-tab stability fix after Stream membership self-heal rollout.
 - **Confidence:** high
+
