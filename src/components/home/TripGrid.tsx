@@ -27,7 +27,6 @@ import {
   splitJoinRequestsByDirection,
   type DashboardJoinRequest,
 } from '@/hooks/useDashboardJoinRequests';
-import { useNavigate } from 'react-router-dom';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { SortableTripGrid } from '../dashboard/SortableTripGrid';
@@ -52,7 +51,6 @@ interface Trip {
 interface TripGridProps {
   viewMode: string;
   trips: Trip[];
-  pendingTrips?: Trip[];
   proTrips: Record<string, ProTripData>;
   events: Record<string, EventData>;
   loading?: boolean;
@@ -91,14 +89,12 @@ export const TripGrid = React.memo(
     }, []);
 
     const isMobile = useIsMobile();
-    const navigate = useNavigate();
     const [manualLocation, setManualLocation] = useState<string>('');
     const { toggleSave } = useSavedRecommendations();
     const { user } = useAuth();
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-    const [requestsTab, setRequestsTab] = useState<'outgoing' | 'incoming'>('outgoing');
     const [dismissedRequestIds, setDismissedRequestIds] = useState<Set<string>>(new Set());
     const [cancelingRequestIds, setCancelingRequestIds] = useState<Set<string>>(new Set());
     const [archivedTrips, setArchivedTrips] = useState<
@@ -117,21 +113,6 @@ export const TripGrid = React.memo(
     const { tier: _tier } = useConsumerSubscription();
     const { deleteTrip } = useDeleteTrip();
     const [reorderMode, setReorderMode] = useState<'my_trips' | 'pro' | 'events' | null>(null);
-
-    useEffect(() => {
-      if (activeFilter !== 'requests') {
-        return;
-      }
-
-      const hasOutgoing = dashboardJoinRequests.some(request => request.direction === 'outbound');
-      const hasIncoming = dashboardJoinRequests.some(request => request.direction === 'inbound');
-
-      if (!hasOutgoing && hasIncoming) {
-        setRequestsTab('incoming');
-      } else if (hasOutgoing && !hasIncoming) {
-        setRequestsTab('outgoing');
-      }
-    }, [activeFilter, dashboardJoinRequests]);
 
     // Stable identity fns for dnd-kit — inline lambdas change every render and retrigger order sync.
     const getMyTripId = useCallback((trip: Trip) => trip.id.toString(), []);
@@ -153,7 +134,7 @@ export const TripGrid = React.memo(
       () => dashboardJoinRequests.filter(request => !dismissedRequestIds.has(request.id)),
       [dashboardJoinRequests, dismissedRequestIds],
     );
-    const { outbound: outgoingRequests, inbound: incomingRequests } = useMemo(
+    const { outbound: outgoingRequests } = useMemo(
       () => splitJoinRequestsByDirection(visibleJoinRequests),
       [visibleJoinRequests],
     );
@@ -427,7 +408,7 @@ export const TripGrid = React.memo(
 
     const hasContent =
       activeFilter === 'requests'
-        ? visibleJoinRequests.length > 0
+        ? outgoingRequests.length > 0
         : activeFilter === 'archived'
           ? archivedTrips.length > 0
           : viewMode === 'myTrips'
@@ -448,9 +429,7 @@ export const TripGrid = React.memo(
             icon: Clock,
             title: 'No pending requests',
             description:
-              requestsTab === 'outgoing'
-                ? "No outgoing requests right now. When you request to join a trip, it'll appear here while approval is pending."
-                : 'No incoming requests right now. Incoming approvals are listed here so you can review quickly without opening each trip first.',
+              "No outgoing requests right now. When you request to join a trip, it'll appear here while approval is pending.",
             actionLabel: undefined,
             onAction: undefined,
           };
@@ -559,116 +538,38 @@ export const TripGrid = React.memo(
             </Alert>
           )}
 
-          {activeFilter === 'requests' && (
-            <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-card/40 p-1 w-full sm:w-fit">
-              <Button
-                size="sm"
-                variant={requestsTab === 'outgoing' ? 'default' : 'ghost'}
-                onClick={() => setRequestsTab('outgoing')}
-                className="min-h-[44px]"
-              >
-                Outgoing ({outgoingRequests.length})
-              </Button>
-              <Button
-                size="sm"
-                variant={requestsTab === 'incoming' ? 'default' : 'ghost'}
-                onClick={() => setRequestsTab('incoming')}
-                className="min-h-[44px]"
-              >
-                Incoming ({incomingRequests.length})
-              </Button>
-            </div>
-          )}
-
           <div
             className={`grid gap-6 w-full ${
-              activeFilter === 'requests' && requestsTab === 'incoming'
-                ? 'grid-cols-1'
-                : isMobile
-                  ? 'grid-cols-1'
-                  : 'md:grid-cols-2 lg:grid-cols-3'
+              isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3'
             }`}
           >
             {activeFilter === 'requests' ? (
-              requestsTab === 'outgoing' ? (
-                outgoingRequests.length > 0 ? (
-                  outgoingRequests.map(request => (
-                    <TripCard
-                      key={request.id}
-                      trip={{
-                        id: request.trip_id,
-                        title: request.trip?.name || 'Trip',
-                        location: request.trip?.destination || 'Destination TBD',
-                        dateRange: formatRequestStartDate(request.trip?.start_date),
-                        participants: [],
-                        coverPhoto: request.trip?.cover_image_url,
-                        peopleCount: 0,
-                        placesCount: 0,
-                      }}
-                      pendingApproval
-                      pendingBadgeLabel="Pending Approval"
-                      pendingSecondaryActionLabel="Cancel request"
-                      onPendingSecondaryAction={() => handleCancelJoinRequest(request.id)}
-                      isPendingSecondaryActionLoading={cancelingRequestIds.has(request.id)}
-                    />
-                  ))
-                ) : (
-                  <div className="col-span-full rounded-xl border border-border/50 bg-card/30 p-6 text-center">
-                    <p className="text-lg font-semibold">No outgoing requests</p>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Trip requests you send will appear here while awaiting approval.
-                    </p>
-                  </div>
-                )
-              ) : incomingRequests.length > 0 ? (
-                incomingRequests.map(request => {
-                  const tripType = request.trip?.trip_type;
-                  const path =
-                    tripType === 'pro'
-                      ? `/pro-trip/${request.trip_id}`
-                      : tripType === 'event'
-                        ? `/event/${request.trip_id}`
-                        : `/trip/${request.trip_id}`;
-                  const openTripPeople = () => navigate(`${path}?showCollaborators=requests`);
-
-                  return (
-                    <div
-                      key={request.id}
-                      className="rounded-xl border border-border/60 bg-card/40 p-4 flex flex-col gap-3"
-                    >
-                      <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">Pending approval</p>
-                        <p className="text-base font-medium">
-                          {request.requesterLabel ?? 'Someone'} requests to join{' '}
-                          <span className="text-gold-primary">{request.trip?.name || 'Trip'}</span>
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {request.trip?.start_date
-                            ? new Date(request.trip.start_date).toLocaleDateString(undefined, {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric',
-                              })
-                            : 'Date TBD'}
-                          {request.trip?.destination ? ` • ${request.trip.destination}` : ''}
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        className="min-h-[44px] w-full sm:w-fit"
-                        onClick={openTripPeople}
-                      >
-                        Review request
-                      </Button>
-                    </div>
-                  );
-                })
+              outgoingRequests.length > 0 ? (
+                outgoingRequests.map(request => (
+                  <TripCard
+                    key={request.id}
+                    trip={{
+                      id: request.trip_id,
+                      title: request.trip?.name || 'Trip',
+                      location: request.trip?.destination || 'Destination TBD',
+                      dateRange: formatRequestStartDate(request.trip?.start_date),
+                      participants: [],
+                      coverPhoto: request.trip?.cover_image_url,
+                      peopleCount: 0,
+                      placesCount: 0,
+                    }}
+                    pendingApproval
+                    pendingBadgeLabel="Pending Approval"
+                    pendingSecondaryActionLabel="Cancel request"
+                    onPendingSecondaryAction={() => handleCancelJoinRequest(request.id)}
+                    isPendingSecondaryActionLoading={cancelingRequestIds.has(request.id)}
+                  />
+                ))
               ) : (
                 <div className="col-span-full rounded-xl border border-border/50 bg-card/30 p-6 text-center">
-                  <p className="text-lg font-semibold">No incoming requests</p>
+                  <p className="text-lg font-semibold">No outgoing requests</p>
                   <p className="text-sm text-muted-foreground mt-2">
-                    People waiting for your approval will show here.
+                    Trip requests you send will appear here while awaiting approval.
                   </p>
                 </div>
               )
