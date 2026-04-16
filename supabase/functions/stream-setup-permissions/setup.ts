@@ -138,7 +138,7 @@ export async function configureStreamPermissionsAndPrincipal(
       grants: {
         channel_member: ['read-channel', 'create-message', 'send-custom-event'],
       },
-    } as Record<string, unknown>);
+    });
     results.push({ channelType: 'chravel-concierge', status: 'ok' });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
