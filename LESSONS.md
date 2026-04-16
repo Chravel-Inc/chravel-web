@@ -39,6 +39,14 @@
 - **Provenance:** AGENTS.md § 5.2 Field Name Mismatches
 - **Confidence:** high
 
+### Dashboard "Requests" UI should use outbound `dashboardJoinRequests` as single source
+- **Tip:** If the product intent is “my pending join requests,” derive both request cards and request counters from `useDashboardJoinRequests` outbound rows only, and avoid rendering legacy `pendingTrips` cards in default trip views.
+- **Applies when:** Home dashboard requests tab and stats (`TripGrid`, `TripStatsOverview`, `Index` request counts).
+- **Avoid when:** Product explicitly wants inbound approval workload mixed into the same metric.
+- **Evidence:** `TripGrid` was rendering `pendingTrips` in non-requests my-trips view while requests tab rendered `dashboardJoinRequests`; this duplicated pending cards and drifted from request counts. Switching to outbound-only requests source removed duplicate cards and aligned stats.
+- **Provenance:** April 2026 dashboard pending-card consolidation fix.
+- **Confidence:** high
+
 ### When adding feature parity to a secondary surface, use the existing data layer before adding schema
 - **Tip:** When a feature exists in surface A (e.g., TripChat) and needs to be added to surface B (e.g., Channels), first check what shared components and data services already exist. Often the components are reusable but the data layer wiring is missing. Use JSON metadata fields for lightweight data (reply context, link previews) before resorting to schema migrations.
 - **Applies when:** Adding threading, link previews, or other chat features to Channels or Broadcasts

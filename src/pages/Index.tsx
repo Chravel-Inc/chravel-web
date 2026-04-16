@@ -358,21 +358,24 @@ const Index = () => {
   // Development diagnostics available via console when needed
 
   // Calculate requests count per view mode (scoped by trip_type)
+  // Product intent on dashboard stats: "Requests" = my outbound pending join requests.
   const requestsCounts = useMemo(() => {
     let consumer = 0;
     let pro = 0;
     let event = 0;
 
-    dashboardJoinRequests.forEach(req => {
-      let tripType: string | null | undefined = req.trip?.trip_type;
-      if (tripType === undefined || tripType === null) {
-        const tripData = userTripsRaw.find(t => t.id === req.trip_id);
-        tripType = tripData?.trip_type ?? 'consumer';
-      }
-      if (tripType === 'pro') pro++;
-      else if (tripType === 'event') event++;
-      else consumer++;
-    });
+    dashboardJoinRequests
+      .filter(req => req.direction === 'outbound')
+      .forEach(req => {
+        let tripType: string | null | undefined = req.trip?.trip_type;
+        if (tripType === undefined || tripType === null) {
+          const tripData = userTripsRaw.find(t => t.id === req.trip_id);
+          tripType = tripData?.trip_type ?? 'consumer';
+        }
+        if (tripType === 'pro') pro++;
+        else if (tripType === 'event') event++;
+        else consumer++;
+      });
 
     return { consumer, pro, event };
   }, [dashboardJoinRequests, userTripsRaw]);
