@@ -294,7 +294,7 @@ export const ProTripCard = ({
       className={`group bg-gradient-to-br ${tripColor.cardGradient} backdrop-blur-xl border border-white/20 hover:border-white/40 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl shadow-lg relative`}
     >
       {/* Hero Section - Dark overlay for text readability */}
-      <div className="relative h-32 md:h-48 bg-black/40">
+      <div className="relative h-32 md:h-48 bg-white/30 dark:bg-black/40">
         {/* Cover photo overlay if available */}
         {coverPhoto && (
           <div
@@ -302,21 +302,21 @@ export const ProTripCard = ({
             style={buildCoverBackgroundImage(coverPhoto, demoCoverFallback)}
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-white/50 via-transparent to-transparent dark:from-black/70 dark:via-black/30 dark:to-transparent" />
 
         <div className="relative z-10 flex justify-between items-start h-full p-4 md:p-6">
           {/* Trip Info - Inside Hero */}
           <div className="flex-1 min-h-0 overflow-hidden flex flex-col justify-end">
-            <h3 className="text-lg md:text-xl font-bold text-white group-hover:text-white/90 transition-colors line-clamp-2 mb-2">
+            <h3 className="text-lg md:text-xl font-bold text-black dark:text-white transition-colors line-clamp-2 mb-2">
               {trip.title}
             </h3>
 
-            <div className="flex items-center gap-2 text-white/80 mb-1 md:mb-2 text-sm md:text-base">
+            <div className="flex items-center gap-2 text-black/70 dark:text-white/80 mb-1 md:mb-2 text-sm md:text-base">
               <MapPin size={14} className="gold-gradient-icon shrink-0" />
               <span className="font-medium truncate">{trip.location}</span>
             </div>
 
-            <div className="flex items-center gap-2 text-white/80 text-sm md:text-base">
+            <div className="flex items-center gap-2 text-black/70 dark:text-white/80 text-sm md:text-base">
               <CalendarDays size={14} className="gold-gradient-icon shrink-0" />
               <span className="font-medium truncate">{trip.dateRange}</span>
             </div>
@@ -328,7 +328,7 @@ export const ProTripCard = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-white/60 hover:text-white hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-all duration-200 h-8 w-8"
+                className="text-black/40 hover:text-black dark:text-white/60 dark:hover:text-white hover:bg-black/10 dark:hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-all duration-200 h-8 w-8"
               >
                 <MoreHorizontal size={16} />
               </Button>
