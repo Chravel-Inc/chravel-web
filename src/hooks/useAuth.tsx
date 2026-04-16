@@ -17,6 +17,7 @@ import { useDemoModeStore } from '@/store/demoModeStore';
 import { useNotificationRealtimeStore } from '@/store/notificationRealtimeStore';
 import { conciergeCacheService } from '@/services/conciergeCacheService';
 import { isSessionTokenValid } from '@/utils/tokenValidation';
+import { isInstalledApp } from '@/utils/platformDetection';
 import { authDebug } from '@/utils/authDebug';
 import { telemetry } from '@/telemetry/service';
 import { toast } from '@/hooks/use-toast';
@@ -883,6 +884,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signInWithGoogle = async (): Promise<{ error?: string }> => {
     try {
+      // Installed app contexts (Capacitor shell / standalone PWA) must not bounce
+      // users to external browsers for OAuth login.
+      if (isInstalledApp()) {
+        return { error: 'Google sign-in is only available on web. Use email/password in the app.' };
+      }
+
       // Preserve returnTo so OAuth callback lands on AuthPage which redirects to the intended route
       const returnTo = new URLSearchParams(window.location.search).get('returnTo');
       const redirectUrl = returnTo
@@ -922,6 +929,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signInWithApple = async (): Promise<{ error?: string }> => {
     try {
+      // Installed app contexts (Capacitor shell / standalone PWA) must not bounce
+      // users to external browsers for OAuth login.
+      if (isInstalledApp()) {
+        return { error: 'Apple sign-in is only available on web. Use email/password in the app.' };
+      }
+
       // Preserve returnTo so OAuth callback lands on AuthPage which redirects to the intended route
       const returnTo = new URLSearchParams(window.location.search).get('returnTo');
       const redirectUrl = returnTo

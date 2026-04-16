@@ -98,6 +98,14 @@
 
 ## Recovery Tips
 
+### Installed-app auth should hard-block external OAuth at service boundary and UI
+- **Tip:** For Capacitor/PWA contexts, do not rely on UI-only hiding of OAuth buttons. Also enforce a service-level guard in auth hooks so deep links, stale tabs, or legacy UI paths cannot trigger browser-redirect OAuth in installed shells.
+- **Applies when:** Login flows must remain in-app for TestFlight/App Store/Play Store/PWA installs.
+- **Avoid when:** Product explicitly supports native OAuth handoff + deep-link return and it is fully validated.
+- **Evidence:** Installed app users hit spinner + browser redirect regressions when OAuth buttons were reachable; dual guard (`AuthModal` + `useAuth` blocking on `isInstalledApp()`) preserved web OAuth and removed installed-app external redirects.
+- **Provenance:** April 2026 installed-app auth regression fix.
+- **Confidence:** high
+
 ### Fire-and-forget sync paths must emit structured failure signals
 - **Tip:** If a non-critical sync step intentionally runs fire-and-forget (for example membership projection into Stream after a successful Supabase mutation), never leave `.catch(() => {})` empty. Emit structured logs with operation + identifiers so support can trace drift and replay safely.
 - **Applies when:** Client-side best-effort projections to external systems (Stream membership sync, analytics mirrors, webhook side effects).
