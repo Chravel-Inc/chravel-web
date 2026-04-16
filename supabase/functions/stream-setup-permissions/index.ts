@@ -28,7 +28,6 @@ import { requireSecrets, createMissingSecretResponse } from '../_shared/validate
 import { configureStreamPermissionsAndPrincipal } from './setup.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
 serve(async req => {
   const corsHeaders = getCorsHeaders(req);
