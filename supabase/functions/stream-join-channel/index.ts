@@ -109,22 +109,34 @@ serve(async req => {
     // ── Add user to Stream channels server-side ───────────────────────────
     const serverClient = StreamChat.getInstance(STREAM_API_KEY, STREAM_API_SECRET);
 
-    // Upsert the user in Stream (ensures profile is current)
+    // Upsert the user in Stream (ensures profile is current, must come before channel ops)
     await serverClient.upsertUser({ id: user.id });
 
     const tripChannelId = `trip-${tripId}`;
     const broadcastChannelId = `broadcast-${tripId}`;
 
-    // Add to trip chat channel
-    const tripChannel = serverClient.channel('chravel-trip', tripChannelId);
+    // Add to trip chat channel.
+    // channel.create() is idempotent — creates the channel if it doesn't exist yet,
+    // returns existing state if it does. This prevents the error-code-16 failure
+    // ("Can't find channel") that occurs when addMembers is called before the channel
+    // has been initialised in Stream. The server client always has CreateChannel permission.
+    const tripChannel = serverClient.channel('chravel-trip', tripChannelId, {
+      trip_id: tripId,
+      created_by_id: user.id,
+    });
+    await tripChannel.create();
     await tripChannel.addMembers([user.id]);
 
     // Add to broadcast channel (best-effort — channel may not exist yet)
     try {
-      const broadcastChannel = serverClient.channel('chravel-broadcast', broadcastChannelId);
+      const broadcastChannel = serverClient.channel('chravel-broadcast', broadcastChannelId, {
+        trip_id: tripId,
+        created_by_id: user.id,
+      });
+      await broadcastChannel.create();
       await broadcastChannel.addMembers([user.id]);
     } catch {
-      // Non-fatal: broadcast channel might not exist for this trip yet
+      // Non-fatal: broadcast channel creation/join failure should not block trip chat
     }
 
     return new Response(JSON.stringify({ ok: true }), {
