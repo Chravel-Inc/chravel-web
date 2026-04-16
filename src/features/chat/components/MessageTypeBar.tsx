@@ -174,7 +174,7 @@ export const MessageTypeBar = ({
                       className={cn(
                         'flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200',
                         !activeChannel
-                          ? 'bg-gold-primary text-black shadow-md'
+                          ? SEGMENT_COLORS.channels.active
                           : 'text-white/70 hover:text-white hover:bg-white/10',
                       )}
                     >
