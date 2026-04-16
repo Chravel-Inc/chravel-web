@@ -257,6 +257,17 @@ const PAYMENT_VARS: EnvVarSpec[] = [
   },
 ];
 
+const STREAM_VARS: EnvVarSpec[] = [
+  {
+    name: 'VITE_STREAM_API_KEY',
+    required: false,
+    description: 'GetStream Chat public API key (enables Stream transport for chat)',
+    provider: 'GetStream Dashboard → App → Access Keys',
+    canStubForTestFlight: true,
+    stubValue: '',
+  },
+];
+
 const ADDITIONAL_VARS: EnvVarSpec[] = [
   {
     name: 'VITE_UNFURL_BASE_URL',
@@ -348,6 +359,7 @@ function validate(): void {
     ...FEATURE_FLAG_VARS,
     ...ANALYTICS_VARS,
     ...PAYMENT_VARS,
+    ...STREAM_VARS,
     ...ADDITIONAL_VARS,
   ];
   if (isIos) {
