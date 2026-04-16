@@ -154,7 +154,7 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
             {/* Cover Image with loading/fallback */}
             <div className="relative h-24">
               {hasCoverPhoto && !coverImageLoaded && (
-                <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-800 dark:to-gray-900 flex items-center justify-center">
                   <Loader2 size={20} className="text-gray-400 animate-spin" />
                 </div>
               )}
@@ -169,11 +169,11 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
                   />
                 </>
               ) : (
-                <div className="h-24 bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center">
-                  <Image size={24} className="text-gray-500" />
+                <div className="h-24 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-900 flex items-center justify-center">
+                  <Image size={24} className="text-gray-400 dark:text-gray-500" />
                 </div>
               )}
-              <div className="absolute inset-0 h-24 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+              <div className="absolute inset-0 h-24 bg-gradient-to-t from-black/40 dark:from-black/80 via-transparent to-transparent" />
             </div>
 
             {/* Chravel Badge */}
@@ -182,12 +182,12 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
             </div>
 
             {/* Trip Details with fallback display */}
-            <div className="p-3 bg-gradient-to-br from-gray-900/95 to-gray-800/95">
-              <h3 className="text-base font-bold text-white mb-2">
+            <div className="p-3 bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-900/95 dark:to-gray-800/95">
+              <h3 className="text-base font-bold text-foreground mb-2">
                 {hasTitle ? trip.title : 'Untitled Trip'}
               </h3>
 
-              <div className="flex flex-wrap gap-x-3 gap-y-1 text-white/80 text-xs">
+              <div className="flex flex-wrap gap-x-3 gap-y-1 text-muted-foreground text-xs">
                 {hasLocation ? (
                   <div className="flex items-center gap-1">
                     <MapPin size={12} className="text-gold-primary" />
@@ -195,8 +195,8 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
                   </div>
                 ) : (
                   <div className="flex items-center gap-1">
-                    <MapPin size={12} className="text-gray-500" />
-                    <span className="text-white/40 italic">No destination set</span>
+                    <MapPin size={12} className="text-gray-400" />
+                    <span className="text-muted-foreground/50 italic">No destination set</span>
                   </div>
                 )}
                 {hasDateRange ? (
@@ -206,8 +206,8 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
                   </div>
                 ) : (
                   <div className="flex items-center gap-1">
-                    <Calendar size={12} className="text-gray-500" />
-                    <span className="text-white/40 italic">Dates TBD</span>
+                    <Calendar size={12} className="text-gray-400" />
+                    <span className="text-muted-foreground/50 italic">Dates TBD</span>
                   </div>
                 )}
                 <div className="flex items-center gap-1">
@@ -230,13 +230,13 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
               WhatsApp
             </a>
             <a
-              href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(previewLink)}`}
+              href={`https://www.instagram.com/`}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="Share trip on Twitter"
-              className="flex-1 flex items-center justify-center gap-1.5 bg-[#1DA1F2]/10 hover:bg-[#1DA1F2]/20 text-[#1DA1F2] border border-[#1DA1F2]/30 rounded-lg py-2 text-xs font-medium transition-colors min-h-[44px]"
+              aria-label="Share trip on Instagram"
+              className="flex-1 flex items-center justify-center gap-1.5 bg-[#E1306C]/10 hover:bg-[#E1306C]/20 text-[#E1306C] border border-[#E1306C]/30 rounded-lg py-2 text-xs font-medium transition-colors min-h-[44px]"
             >
-              Twitter
+              Instagram
             </a>
             <a
               href={`mailto:?subject=${encodeURIComponent(trip.title)}&body=${encodeURIComponent(shareText + '\n\n' + previewLink)}`}
