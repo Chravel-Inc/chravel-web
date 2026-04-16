@@ -1,72 +1,52 @@
 
 
-# Fix Stream Chat — Complete Integration Plan
+# Make Stream Chat Work — Final Fix
 
-## Root Cause Analysis
+## Root Cause
+The `stream-token` edge function call fails with "Failed to fetch" because the **Lovable preview origin** (`https://id-preview--20feaa04-0946-4c68-a68d-0eb88cc1b9c4.lovable.app`) is **not in the CORS allowlist** in `supabase/functions/_shared/cors.ts`. Only the old `.lovableproject.com` origin is listed.
 
-There are **two blocking issues** preventing Stream chat from working:
+Without a valid Stream token, the entire Stream pipeline is dead: no client connection → no channel → no send → no receive.
 
-### Issue 1: `VITE_STREAM_API_KEY` not in `.env`
-The `streamClient.ts` has a hardcoded fallback (`k2dbmuesv2a9`), but `streamTransportGuards.ts` reads `import.meta.env.VITE_STREAM_API_KEY` directly — which is **empty**. This means:
-- `isStreamConfigured()` → `false`
-- `isStreamChatActive()` → `false`  
-- `shouldUseLegacyChatSync()` → `true`
+## What's Actually Working
+- All secrets are set (STREAM_API_KEY, STREAM_API_SECRET, STREAM_WEBHOOK_SECRET, STREAM_ADMIN_SECRET) ✅
+- Edge functions deployed (stream-token, stream-webhook, stream-setup-permissions) ✅
+- Transport guards aligned (fallback key added) ✅
+- `webhook_events` table exists ✅
+- Frontend hook code (`useStreamTripChat`) is complete and correct ✅
+- `stream-token` edge function logic is correct ✅
 
-Result: The entire Stream transport path is bypassed. Messages go to the legacy Supabase path (which throws errors because Stream guards block DB writes), or silently fail.
+## The One Fix Needed
 
-### Issue 2: Edge function deploy error (stale)
-The `conciergeTripQueryLimits.ts` import fix is already applied in the codebase, but edge functions may not have been redeployed since the fix. This blocks **all** edge function deployments (the bundler fails on any function that shares the `_shared` directory).
+### File: `supabase/functions/_shared/cors.ts`
 
-## Fix Plan
-
-### Step 1: Add `VITE_STREAM_API_KEY` to `.env`
-Add `VITE_STREAM_API_KEY="k2dbmuesv2a9"` to the `.env` file. This unblocks all guard checks.
-
-### Step 2: Align `streamTransportGuards.ts` with `streamClient.ts`
-Update `isStreamConfigured()` to use the same fallback constant, ensuring the guard and the client agree:
-
-```typescript
-const STREAM_API_KEY = import.meta.env.VITE_STREAM_API_KEY || 'k2dbmuesv2a9';
-
-export function isStreamConfigured(): boolean {
-  return typeof STREAM_API_KEY === 'string' && STREAM_API_KEY.trim().length > 0;
-}
-```
-
-### Step 3: Redeploy all edge functions
-Deploy `stream-token`, `stream-webhook`, and `stream-setup-permissions` to pick up the inlined `usagePolicy.ts` fix and clear the stale bundle error.
-
-### Step 4: Verify end-to-end
-- Confirm `stream-token` returns a valid token
-- Confirm `useStreamClient` connects successfully
-- Confirm `useStreamTripChat` initializes a channel and receives `message.new` events
-
-## What This Fixes
+Add the Lovable preview origin to the allowlist:
 
 ```
-User types message → ChatInput clears → dispatchStreamSend fires
-  → isStreamConfigured() now returns TRUE ✓
-  → channel.sendMessage(payload) → Stream API
-  → Stream WebSocket pushes message.new event back
-  → useStreamTripChat handler appends to messages[]
-  → Message renders in chat window
+'https://id-preview--20feaa04-0946-4c68-a68d-0eb88cc1b9c4.lovable.app',
 ```
 
-## Files Changed
-1. `.env` — add `VITE_STREAM_API_KEY`
-2. `src/services/stream/streamTransportGuards.ts` — add hardcoded fallback to match `streamClient.ts`
-3. Edge functions redeployed (no code changes, just deploy)
+Also add the published domain:
+```
+'https://chravel.lovable.app',
+```
+
+### Then: Redeploy `stream-token` and `stream-webhook`
+
+Since CORS is in `_shared/`, all edge functions using it need redeployment. The two critical ones are `stream-token` (client calls it to connect) and `stream-webhook` (Stream calls it on new messages).
+
+## What Happens After This Fix
+
+```
+1. User opens trip chat
+2. useStreamClient connects → calls stream-token edge function
+3. stream-token returns { token, userId, apiKey } ← CORS now allows this
+4. StreamChat.connectUser(userId, token) → WebSocket connected
+5. useStreamTripChat watches channel → loads history
+6. User sends message → channel.sendMessage() → Stream API
+7. Stream pushes message.new event back via WebSocket
+8. handleNewMessage appends to messages[] → renders in chat
+```
 
 ## Risk
-**Low.** The API key is already hardcoded in `streamClient.ts`. Adding it to the guards aligns the two paths. No behavior change for any non-chat feature.
-
-## Instructions for You (Manual Steps)
-
-After I make these changes, you need to verify:
-
-1. **STREAM_WEBHOOK_SECRET** — confirm it's set in [Supabase Edge Function secrets](https://supabase.com/dashboard/project/jmjiyekmxwsxkfnqwyaa/settings/functions). Without it, the webhook rejects all Stream callbacks (signature verification fails).
-
-2. **Stream Dashboard webhook config** — confirm the webhook URL `https://jmjiyekmxwsxkfnqwyaa.supabase.co/functions/v1/stream-webhook` is active with `message.new`, `message.updated`, `message.deleted` events enabled.
-
-3. **Test by sending a message** in any trip chat. It should appear in the chat window within ~1 second.
+**None.** Adding the preview origin is required for the app to work from the Lovable preview. No other code changes needed.
 
