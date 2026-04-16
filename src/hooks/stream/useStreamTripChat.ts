@@ -40,6 +40,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
   const [messages, setMessages] = useState<MessageResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [streamClientReady, setStreamClientReady] = useState(Boolean(getStreamClient()?.userID));
