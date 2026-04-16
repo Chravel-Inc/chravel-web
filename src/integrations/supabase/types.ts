@@ -2524,6 +2524,41 @@ export type Database = {
           },
         ]
       }
+      smart_import_usage: {
+        Row: {
+          created_at: string
+          trip_id: string | null
+          updated_at: string
+          usage_count: number
+          usage_month: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          trip_id?: string | null
+          updated_at?: string
+          usage_count?: number
+          usage_month?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          trip_id?: string | null
+          updated_at?: string
+          usage_count?: number
+          usage_month?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_import_usage_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_assignments: {
         Row: {
           assigned_at: string
@@ -4203,6 +4238,14 @@ export type Database = {
       can_access_channel: {
         Args: { _channel_id: string; _user_id: string }
         Returns: boolean
+      }
+      check_and_increment_smart_import_usage: {
+        Args: { p_limit: number; p_trip_id: string; p_user_id: string }
+        Returns: {
+          allowed: boolean
+          remaining: number
+          used: number
+        }[]
       }
       check_invite_code_exists: {
         Args: { code_param: string }
