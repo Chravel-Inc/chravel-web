@@ -56,7 +56,6 @@ export async function configureStreamPermissionsAndPrincipal(
           'pin-message',
           'create-reaction',
           'delete-reaction-owner',
-          'send-custom-event',
         ],
         channel_moderator: [
           'read-channel',
