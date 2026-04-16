@@ -30,6 +30,12 @@ vi.mock('@/services/stream/streamClient', () => ({
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
+    auth: {
+      getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
+    },
+    functions: {
+      invoke: vi.fn().mockResolvedValue({ data: null, error: null }),
+    },
     from: vi.fn(() => ({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({

@@ -583,3 +583,10 @@
 - **Evidence:** Light mode trip toggles/tabs became unreadable due to shared toggle on-state text override; removing the primitive-level override and explicitly setting per-surface token-safe state classes fixed contrast while preserving dark mode parity.
 - **Provenance:** April 2026 trip view toggle and mobile tab parity fix.
 - **Confidence:** high
+
+### Keep Stream channel state and role-channel state as separate identifiers in mixed chat UIs
+- **Tip:** When a screen combines Stream trip chat and role-channel chat, never reuse the same `activeChannel` variable name for both. Alias them (`streamActiveChannel`, `roleActiveChannel`) at destructuring time and pass each only to its owning hooks/components.
+- **Applies when:** A component consumes both `useTripChat` (Stream `Channel`) and `useRoleChannels` (`TripChannel`) in one render path.
+- **Evidence:** `TripChat` passed Stream `Channel` into `MessageTypeBar` (expects `TripChannel`), causing `Cannot read properties of undefined (reading 'toLowerCase')` on `channelName`.
+- **Provenance:** April 2026 Messages-tab stability fix after Stream membership self-heal rollout.
+- **Confidence:** high

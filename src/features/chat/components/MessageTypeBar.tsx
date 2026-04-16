@@ -54,6 +54,7 @@ export const MessageTypeBar = ({
 }: MessageTypeBarProps) => {
   const pillBarRef = useRef<HTMLDivElement>(null);
   const [channelPopoverOpen, setChannelPopoverOpen] = useState(false);
+  const formatChannelLabel = (name?: string) => (name || 'channel').toLowerCase().replace(/\s+/g, '-');
 
   // Auto-open channels popover when switching to channels filter
   useEffect(() => {
@@ -147,9 +148,7 @@ export const MessageTypeBar = ({
                 >
                   <Hash className="w-4 h-4" />
                   <span>
-                    {activeChannel
-                      ? activeChannel.channelName.toLowerCase().replace(/\s+/g, '-')
-                      : 'Channels'}
+                    {activeChannel ? formatChannelLabel(activeChannel.channelName) : 'Channels'}
                   </span>
                   {activeChannel && hasChannels && <ChevronDown className="w-3 h-3 opacity-70" />}
                 </button>
@@ -185,7 +184,7 @@ export const MessageTypeBar = ({
                     <div className="h-px bg-gray-200 dark:bg-white/10 my-1" />
 
                     {availableChannels
-                      .sort((a, b) => a.channelName.localeCompare(b.channelName))
+                      .sort((a, b) => (a.channelName || '').localeCompare(b.channelName || ''))
                       .map(channel => (
                         <button
                           key={channel.id}
@@ -199,7 +198,7 @@ export const MessageTypeBar = ({
                         >
                           <Hash className="w-3.5 h-3.5 flex-shrink-0" />
                           <span className="whitespace-nowrap">
-                            {channel.channelName.toLowerCase().replace(/\s+/g, '-')}
+                            {formatChannelLabel(channel.channelName)}
                           </span>
                           <span className="text-xs text-black/40 dark:text-white/50 flex-shrink-0">
                             {channel.memberCount || 0}

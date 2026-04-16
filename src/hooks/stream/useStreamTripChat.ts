@@ -121,7 +121,6 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
 
     const init = async () => {
       const watchChannel = async () => {
-      try {
         // Ensure the user is a Stream channel member before watching.
         // Stream error code 17 means the user has role 'user' (not 'channel_member')
         // and cannot ReadChannel. We call the server-side join function to add them,
@@ -147,7 +146,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
           }
         }
 
-        if (cancelled) return;
+        if (cancelled) return null;
 
         const channel = client.channel(CHANNEL_TYPE_TRIP, tripChannelId(tripId));
         const state = await channel.watch({ state: true, messages: { limit: PAGE_SIZE } });
@@ -156,6 +155,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
 
       try {
         let watched = await watchChannel();
+        if (!watched || cancelled) return;
 
         if (
           membershipRecoveryAttemptedRef.current === false &&
@@ -167,6 +167,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
             body: { tripId, userId: client.userID },
           });
           watched = await watchChannel();
+          if (!watched || cancelled) return;
         }
 
         const streamMessages = (watched.state.messages || []) as MessageResponse[];
