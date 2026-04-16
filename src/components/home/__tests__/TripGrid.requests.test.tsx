@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { TripGrid } from '../TripGrid';
 
@@ -46,7 +46,6 @@ vi.mock('../../../hooks/useLocationFilteredRecommendations', () => ({
 vi.mock('@/hooks/useSavedRecommendations', () => ({ useSavedRecommendations: () => ({}) }));
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { id: 'user-1' } }) }));
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }));
-vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn() }));
 vi.mock('@/hooks/useDemoMode', () => ({ useDemoMode: () => ({ isDemoMode: false }) }));
 vi.mock('@/hooks/useConsumerSubscription', () => ({
   useConsumerSubscription: () => ({ tier: 'pro' }),
@@ -101,7 +100,7 @@ describe('TripGrid requests tab', () => {
     expect(screen.getByText('Cancel request')).toBeInTheDocument();
   });
 
-  it('keeps inbound requests in review-request UI', () => {
+  it('hides inbound approval requests from the Requests section', () => {
     render(
       <TripGrid
         viewMode="myTrips"
@@ -130,7 +129,8 @@ describe('TripGrid requests tab', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: 'Review request' })).toBeInTheDocument();
+    expect(screen.getByText('No pending requests')).toBeInTheDocument();
+    expect(screen.queryByText('Inbound Trip')).not.toBeInTheDocument();
   });
 
   it('does not render outbound pending request cards in standard My Trips mode', () => {
@@ -164,7 +164,7 @@ describe('TripGrid requests tab', () => {
     expect(screen.queryByText('Cancel request')).not.toBeInTheDocument();
   });
 
-  it('shows outbound-only cards by default while preserving inbound+outbound counts and tab filters', () => {
+  it('renders only outbound cards when inbound and outbound requests coexist', () => {
     render(
       <TripGrid
         viewMode="myTrips"
@@ -207,14 +207,7 @@ describe('TripGrid requests tab', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: 'Outgoing (1)' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Incoming (1)' })).toBeInTheDocument();
-
     expect(screen.getByText('Outbound Trip')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Review request' })).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Incoming (1)' }));
-    expect(screen.getByRole('button', { name: 'Review request' })).toBeInTheDocument();
-    expect(screen.queryByText('Outbound Trip')).not.toBeInTheDocument();
+    expect(screen.queryByText('Inbound Trip')).not.toBeInTheDocument();
   });
 });
