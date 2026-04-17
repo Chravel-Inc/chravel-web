@@ -6,6 +6,9 @@ const ALLOWED_ORIGINS = [
   // Production domains
   'https://chravel.app',
   'https://www.chravel.app',
+  'https://chravelapp.com',
+  'https://www.chravelapp.com',
+  'https://app.chravelapp.com',
   'https://app.chravel.com',
   // Specific Supabase project
   'https://jmjiyekmxwsxkfnqwyaa.supabase.co',
