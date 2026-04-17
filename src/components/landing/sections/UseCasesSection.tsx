@@ -54,7 +54,7 @@ const scenarios = [
     title: 'Local Community Groups',
     subtitle: 'Run clubs · dog park crews · faith groups · recurring meetups',
     before: 'Plans scattered across DMs, texts, and random calendar invites.',
-    expandCTA: 'See how groups stay connected',
+    expandCTA: 'ChravelApp helps groups stay connected',
     after: 'One shared home for meetups, locations, and photos. Your group stays connected.',
     badge: 'Consistency · better turnout',
   },
