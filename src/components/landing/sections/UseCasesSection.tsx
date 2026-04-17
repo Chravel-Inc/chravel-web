@@ -18,7 +18,7 @@ const scenarios = [
     title: 'Touring Artists & Crews',
     subtitle: 'Musicians · comedians · podcasts · managers · production',
     before: 'Spreadsheets, endless texts, missed details. Overwhelmed managers, annoyed artists.',
-    expandCTA: 'See how tours stay in sync',
+    expandCTA: 'ChravelApp helps tours stay in sync',
     after:
       'Show days, off days, crew channels, logistics, and payments—all in one place. Everyone aligned, every city.',
     badge: 'Fewer mistakes · smoother tours',
