@@ -36,7 +36,7 @@ const scenarios = [
     subtitle: 'Rush · formals · retreats · philanthropy · chapter ops',
     before:
       'One giant group chat — endless scrollback, mixed events, sensitive moments living forever in one thread.',
-    expandCTA: 'See how chapters stay private',
+    expandCTA: 'ChravelApp helps chapters stay private',
     after:
       'Separate vaults per event — Rush, Formal, Retreat. Chat and media stay compartmentalized. Access controlled, moments stay private.',
     badge: 'Private trip vaults with access controls',
