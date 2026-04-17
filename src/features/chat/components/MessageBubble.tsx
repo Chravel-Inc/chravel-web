@@ -715,7 +715,7 @@ export const MessageBubble = memo(
             {/* Thread reply indicator */}
             {replyCount > 0 && (
               <button
-                onClick={() => onReply?.(id)}
+                onClick={() => onOpenThread?.(id)}
                 className="flex items-center gap-1 mt-1.5 text-xs text-primary/80 hover:text-primary transition-colors"
               >
                 <MessageSquareReply className="h-3 w-3" />
