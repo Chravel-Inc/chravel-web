@@ -338,3 +338,25 @@ Known security anti-patterns discovered during audits. Reference this before int
 **Required Tests:** Unit test for Stream ReadChannel error classification helper; manual verification of self-heal on affected trip.
 **Regression Surfaces:** Older trips created before Stream sync hardening and users added through non-standard flows.
 **Fixed in:** `src/hooks/stream/useStreamTripChat.ts`, `supabase/functions/stream-ensure-membership/index.ts` (April 2026)
+
+## 6. Mock-ID Tier Gate Disables Feature for All Real Trips
+
+**Symptom:** A consumer-only feature (system message preferences, EventLogDrawer, activity emission) appears in Settings UI and persists state, but no behavior change is observed in the chat — toggles do nothing for real trips.
+**Risk:** HIGH — the feature is fully cosmetic in production despite having a working UI, persistence, RLS, and render layer. Easy to ship and miss until customer reports.
+**Root Cause:** `isConsumerTrip(tripId)` from `tripTierDetector.ts` returns `true` only for hardcoded mock IDs `'1'..'12'`. Real trips (UUIDs) always return `false`, so any `if (isConsumerTrip(id))` gate disables the feature for every production trip.
+**How to Confirm:** Grep for `isConsumerTrip(` and look at each call site. If it gates production behavior (not demo content), the feature is dead in prod.
+**Smallest Safe Fix:** Use the DB-backed `useTripType(tripId)` hook (returns `isConsumer` from `trips.trip_type`) for production gates; reserve `isConsumerTrip` for demo-content rendering only. For non-React contexts, query `trips.trip_type` directly with a short-lived cache.
+**Required Tests:** Unit test that the gate returns true for real consumer trips and false for pro/event; integration test that the feature is observable on a UUID trip.
+**Regression Surfaces:** Any feature whose product spec says "consumer trips only" — chat activity preferences, event log, basecamp system messages, and similar.
+**Fixed in:** `src/hooks/useTripType.ts`, `src/features/chat/components/TripChat.tsx`, `src/components/trip/EventLogDrawer.tsx`, `src/services/systemMessageService.ts` (April 2026)
+
+## 7. Stream Adapter Drops Custom Message Metadata
+
+**Symptom:** Render-side filter that depends on a custom Stream message field (e.g. `system_event_type`) silently degrades to "show everything" because the field is `undefined` at the render call site.
+**Risk:** HIGH — category-level filtering breaks; UI prefs UX appears to work in tests but no real message ever has the field, so filtering is a no-op in prod.
+**Root Cause:** The Stream → Chravel adapter (`messageMapper.ts`) and the in-component mapping in `TripChat.tsx` only forward a known shortlist of custom fields. Any new custom field added on the writer side must also be forwarded by both readers.
+**How to Confirm:** Send a Stream message with `{ message_type: 'system', system_event_type: 'X' }`. Inspect the message object that reaches `MessageItem` — check whether the field survived the mapper.
+**Smallest Safe Fix:** Forward the field explicitly in both the typed adapter (`streamMessageToChravel`) and the inline mapping in `TripChat.liveFormattedMessages`. Add a round-trip unit test in `messageMapper.systemEvent.test.ts` so future custom fields are forced through the same gate.
+**Required Tests:** Unit test that any custom field round-trips: writer payload includes it → adapter exposes it. Lint rule (future) to flag `as any` on Stream message fields.
+**Regression Surfaces:** Adding any new custom Stream field — system messages, broadcast metadata, payment metadata, etc.
+**Fixed in:** `src/services/stream/adapters/mappers/messageMapper.ts`, `src/features/chat/components/TripChat.tsx` (April 2026)

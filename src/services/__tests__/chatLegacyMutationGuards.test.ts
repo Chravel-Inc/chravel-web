@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { fromMock, onAuthStateChangeMock, getUserMock } = vi.hoisted(() => ({
+const { fromMock, onAuthStateChangeMock, getUserMock, getStreamClientMock } = vi.hoisted(() => ({
   fromMock: vi.fn(),
   onAuthStateChangeMock: vi.fn(),
   getUserMock: vi.fn(),
+  getStreamClientMock: vi.fn(),
 }));
 
 vi.mock('../../integrations/supabase/client', () => ({
@@ -14,6 +15,10 @@ vi.mock('../../integrations/supabase/client', () => ({
       getUser: (...args: unknown[]) => getUserMock(...args),
     },
   },
+}));
+
+vi.mock('../stream/streamClient', () => ({
+  getStreamClient: () => getStreamClientMock(),
 }));
 
 import {
@@ -28,6 +33,7 @@ describe('legacy chat DB mutation guards in stream-configured mode', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubEnv('VITE_STREAM_API_KEY', 'stream-key');
+    systemMessageService._clearTripTypeCache();
   });
 
   it('blocks direct trip chat DB mutations in chatService', async () => {
@@ -49,15 +55,25 @@ describe('legacy chat DB mutation guards in stream-configured mode', () => {
     expect(fromMock).not.toHaveBeenCalled();
   });
 
-  it('blocks systemMessageService trip_chat_messages writes in stream-configured mode', async () => {
+  it('does NOT write trip_chat_messages from systemMessageService — Stream is the canonical sink', async () => {
+    // Mock real-trip lookup as a consumer trip
+    fromMock.mockReturnValue({
+      select: () => ({
+        eq: () => ({ maybeSingle: async () => ({ data: { trip_type: 'consumer' } }) }),
+      }),
+    });
+    // No connected Stream client → the service no-ops (returns false) instead of writing legacy
+    getStreamClientMock.mockReturnValue(null);
+
     const result = await systemMessageService.createSystemMessage(
-      'trip-1',
+      '00000000-0000-0000-0000-000000000001',
       'task_created',
       'Task added',
     );
 
     expect(result).toBe(false);
-    expect(fromMock).not.toHaveBeenCalled();
-    expect(getUserMock).not.toHaveBeenCalled();
+    // Only the trip-type lookup may hit `from('trips')`; never `trip_chat_messages`
+    const calls = fromMock.mock.calls.map(args => args[0]);
+    expect(calls).not.toContain('trip_chat_messages');
   });
 });
