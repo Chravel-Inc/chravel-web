@@ -164,6 +164,9 @@ export default {
         // iMessage-style chat bubble colors (isolated from global theme)
         'chat-own': 'hsl(var(--chat-bubble-own))',
         'chat-own-foreground': 'hsl(var(--chat-bubble-own-foreground))',
+        'chat-other': 'hsl(var(--chat-bubble-other))',
+        'chat-other-foreground': 'hsl(var(--chat-bubble-other-foreground))',
+        'chat-meta': 'hsl(var(--chat-meta))',
       },
       spacing: {
         // Modern spacing scale with generous breathing room

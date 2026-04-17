@@ -1,4 +1,5 @@
 import { DemoView } from '@/store/demoModeStore';
+import { generateSafeUuid } from '@/utils/uuid';
 
 /**
  * Determines if an action should require authentication
@@ -23,7 +24,7 @@ export const shouldRequireAuth = (demoView: DemoView, user: unknown): boolean =>
  */
 export const createMockDemoUser = () => ({
   // Random UUID per call — avoids predictable demo user IDs.
-  id: crypto.randomUUID(),
+  id: generateSafeUuid(),
   email: 'demo@chravel.com',
   displayName: 'Demo User',
   avatar: null,
