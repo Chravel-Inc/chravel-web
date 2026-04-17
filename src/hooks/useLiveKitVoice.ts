@@ -23,7 +23,11 @@ import type {
 import { LIVEKIT_WS_URL } from '@/config/voiceFeatureFlags';
 import * as circuitBreaker from '@/voice/circuitBreaker';
 import type { FailureCategory } from '@/voice/circuitBreaker';
-import { supabase } from '@/integrations/supabase/client';
+import {
+  supabase,
+  SUPABASE_PROJECT_URL,
+  SUPABASE_PUBLIC_API_KEY,
+} from '@/integrations/supabase/client';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -242,18 +246,16 @@ export function useLiveKitVoice(options: UseLiveKitVoiceOptions): UseLiveKitVoic
 
     let tokenRes: Response;
     try {
-      tokenRes = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL || ''}/functions/v1/livekit-token`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${authSession.access_token}`,
-          },
-          body: JSON.stringify({ tripId, voice }),
-          signal: controller.signal,
+      tokenRes = await fetch(`${SUPABASE_PROJECT_URL}/functions/v1/livekit-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authSession.access_token}`,
+          apikey: SUPABASE_PUBLIC_API_KEY,
         },
-      );
+        body: JSON.stringify({ tripId, voice }),
+        signal: controller.signal,
+      });
     } catch (fetchErr) {
       clearTimeout(timeoutId);
       if (fetchErr instanceof DOMException && fetchErr.name === 'AbortError') {
