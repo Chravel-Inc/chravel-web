@@ -45,7 +45,7 @@ const scenarios = [
     title: 'Youth, Amateur, & Pro sports programs.',
     subtitle: 'Players · coaches · coordinators · operations staff',
     before: 'Staff juggling travel, practices, and logistics across too many tools.',
-    expandCTA: 'See how programs stay aligned',
+    expandCTA: 'ChravelApp helps programs stay aligned',
     after:
       'Role-based access, team schedules, and instant updates—built to scale from college to the pros.',
     badge: 'Fewer errors · faster decisions',
