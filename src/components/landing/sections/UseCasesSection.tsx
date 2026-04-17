@@ -27,7 +27,7 @@ const scenarios = [
     title: 'Bach Parties → Wedding Weekends',
     subtitle: 'Bachelor & bachelorette trips · guests · families · vendors',
     before: 'Dozens of chats. Guests constantly asking where to be and when.',
-    expandCTA: 'See how celebrations run smoothly',
+    expandCTA: 'ChravelApp helps celebrations run smoothly',
     after: 'Shared itinerary, pinned locations, live photos — no confusion, just celebration.',
     badge: 'Fewer questions · more memories',
   },
