@@ -64,12 +64,13 @@ export function isNativeWebView(): boolean {
 
 /**
  * True when the app is running as an installed experience —
- * PWA standalone or native webview. Marketing page should NOT be shown.
+ * PWA standalone (any device) or native webview / Capacitor shell.
+ * Marketing splash and browser-first auth gates should not apply here; use in-app auth shell.
  */
 export function isInstalledApp(): boolean {
   if (isCapacitorNativeShell()) return true;
   // Native webview should always be treated as installed app context.
   if (isNativeWebView()) return true;
-  // Standalone PWA gate is limited to mobile-class devices to avoid desktop false positives.
-  return isStandalonePWA() && isLikelyMobileDevice();
+  // Any standalone PWA (mobile or desktop) is a first-class app surface — same auth/OAuth rules.
+  return isStandalonePWA();
 }

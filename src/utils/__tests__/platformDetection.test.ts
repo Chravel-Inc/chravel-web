@@ -40,7 +40,7 @@ describe('platformDetection', () => {
     });
   });
 
-  it('does not classify desktop standalone context as installed app', () => {
+  it('classifies desktop standalone PWA as installed app (auth shell, not marketing)', () => {
     setUserAgent(
       'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
     );
@@ -49,7 +49,7 @@ describe('platformDetection', () => {
 
     expect(isStandalonePWA()).toBe(true);
     expect(isLikelyMobileDevice()).toBe(false);
-    expect(isInstalledApp()).toBe(false);
+    expect(isInstalledApp()).toBe(true);
   });
 
   it('classifies mobile standalone context as installed app', () => {
