@@ -34,6 +34,12 @@ export function isStreamReadChannelPermissionError(error: unknown): boolean {
   return /ReadChannel|read-channel|GetOrCreateChannel failed|error code 17/i.test(message);
 }
 
+function isAbortLikeError(error: unknown): boolean {
+  if (error instanceof DOMException && error.name === 'AbortError') return true;
+  const message = error instanceof Error ? error.message : String(error);
+  return /abort|aborted/i.test(message);
+}
+
 /**
  * Stream-backed trip chat hook.
  * Return type matches useTripChat exactly for seamless routing.
@@ -160,6 +166,18 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
 
             if (!response.ok && import.meta.env.DEV) {
               console.warn('[Stream] stream-join-channel returned non-OK', response.status);
+            }
+          } catch (joinErr) {
+            // Join is a best-effort membership projection. Do not block channel.watch() on
+            // transient fetch failures/timeouts; read permission recovery is handled below.
+            if (import.meta.env.DEV) {
+              const message =
+                joinErr instanceof Error ? joinErr.message : 'stream-join-channel failed';
+              if (isAbortLikeError(joinErr)) {
+                console.warn('[Stream] stream-join-channel timed out before watch; continuing');
+              } else {
+                console.warn('[Stream] stream-join-channel failed; continuing to watch', message);
+              }
             }
           } finally {
             window.clearTimeout(timeout);

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useStreamTripChat } from '../useStreamTripChat';
+import { supabase } from '@/integrations/supabase/client';
 
 const sendMessageMock = vi.fn();
 const watchMock = vi.fn();
@@ -59,7 +60,9 @@ describe('useStreamTripChat send path', () => {
     vi.clearAllMocks();
     watchMock.mockResolvedValue({ messages: [] });
     queryMock.mockResolvedValue({ messages: [] });
-    sendMessageMock.mockResolvedValue({ message: { id: 'msg-1', text: 'hello', created_at: new Date().toISOString() } });
+    sendMessageMock.mockResolvedValue({
+      message: { id: 'msg-1', text: 'hello', created_at: new Date().toISOString() },
+    });
   });
 
   afterEach(() => {
@@ -132,5 +135,26 @@ describe('useStreamTripChat send path', () => {
 
     expect(sendMessageMock).toHaveBeenCalledTimes(1);
     expect(sendMessageMock.mock.calls[0]?.[0]?.parent_id).toBeUndefined();
+  });
+
+  it('continues to channel.watch when stream-join-channel aborts', async () => {
+    vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
+      data: { session: { access_token: 'jwt-token' } },
+      error: null,
+    } as Awaited<ReturnType<typeof supabase.auth.getSession>>);
+
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockRejectedValueOnce(new Error('signal is aborted without reason'));
+
+    const { result } = renderHook(() => useStreamTripChat('trip-abc', { enabled: true }));
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(watchMock).toHaveBeenCalled();
+    expect(result.current.error).toBeNull();
+    fetchSpy.mockRestore();
   });
 });
