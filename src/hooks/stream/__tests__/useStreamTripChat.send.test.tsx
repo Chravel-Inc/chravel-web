@@ -20,6 +20,10 @@ const mockChannel = {
 };
 
 vi.mock('@/services/stream/streamClient', () => ({
+  connectStreamClient: vi.fn().mockResolvedValue({
+    userID: 'user-1',
+    channel: vi.fn(() => mockChannel),
+  }),
   getStreamApiKey: vi.fn(() => 'stream-key'),
   getStreamClient: vi.fn(() => ({
     userID: 'user-1',
@@ -111,6 +115,45 @@ describe('useStreamTripChat send path', () => {
     expect(caughtError).toBeTruthy();
     expect(caughtError!.message).toBe('Not a member');
     expect(result.current.isCreating).toBe(false);
+  });
+
+  it('retries without mentions when Stream denies CreateMention permission', async () => {
+    sendMessageMock
+      .mockRejectedValueOnce(
+        new Error('StreamChat error code 17: ... action CreateMention ... not allowed'),
+      )
+      .mockResolvedValueOnce({
+        message: {
+          id: 'msg-mentions-fallback',
+          text: 'hello',
+          created_at: new Date().toISOString(),
+        },
+      });
+
+    const { result } = renderHook(() => useStreamTripChat('trip-abc', { enabled: true }));
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.sendMessageAsync(
+        'hello',
+        'You',
+        undefined,
+        undefined,
+        'user-1',
+        undefined,
+        'text',
+        undefined,
+        ['user-2'],
+      );
+    });
+
+    expect(sendMessageMock).toHaveBeenCalledTimes(2);
+    expect(sendMessageMock.mock.calls[0]?.[0]?.mentioned_users).toEqual(['user-2']);
+    expect(sendMessageMock.mock.calls[1]?.[0]?.mentioned_users).toBeUndefined();
+    expect(result.current.messages).toHaveLength(1);
   });
 
   it('strips legacy reply ids before sending to Stream parent_id', async () => {
