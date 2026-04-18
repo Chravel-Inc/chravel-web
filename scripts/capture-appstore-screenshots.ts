@@ -153,6 +153,28 @@ const TAB_READY_SELECTORS: Record<string, string[]> = {
 // Readiness helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Wait for the trip hero cover image to finish decoding.
+ * Returns true once every <img> inside [data-trip-section="hero"] is
+ * complete with naturalWidth > 0. Returns true immediately on pages
+ * without a hero (e.g. dashboard). Returns false on timeout (non-fatal).
+ */
+async function waitForHeroImageReady(page: Page, timeout = 8000): Promise<boolean> {
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    const ready = await page.evaluate(() => {
+      const hero = document.querySelector('[data-trip-section="hero"]');
+      if (!hero) return true; // no hero on this page
+      const imgs = Array.from(hero.querySelectorAll('img')) as HTMLImageElement[];
+      if (imgs.length === 0) return false;
+      return imgs.every(img => img.complete && img.naturalWidth > 0);
+    });
+    if (ready) return true;
+    await page.waitForTimeout(200);
+  }
+  return false;
+}
+
 /** Wait until no skeleton/loading indicators are visible */
 async function waitForNoSkeletons(page: Page, timeout = 15000): Promise<void> {
   const start = Date.now();
@@ -403,6 +425,14 @@ async function captureShot(
       if (body?.includes('Please Log In') || body?.includes('You need to be signed in')) {
         lastError = 'Auth gate detected';
         continue;
+      }
+
+      // Wait for the trip hero cover image to finish decoding so the
+      // captured screenshot shows the trip's cover photo (not the
+      // dark fallback while the image is still loading).
+      const heroReady = await waitForHeroImageReady(page);
+      if (!heroReady) {
+        console.warn(`    ⚠ ${shot.name}: hero cover image did not finish loading in time`);
       }
 
       // Capture
