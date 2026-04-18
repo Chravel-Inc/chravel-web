@@ -207,6 +207,14 @@
 - **Provenance:** March 2026 join approval forensic fix (`useNotificationRealtime` mapping hardening).
 - **Confidence:** high
 
+### Notification click routing should be metadata-first and carry chat bootstrap context
+- **Tip:** Resolve notification route from explicit metadata keys (`trip_id`, `trip_type`, `channel_type`) before falling back to inferred fields, and attach a route-state chat context marker when deep-linking to chat tabs. This keeps mention taps deterministic across consumer/pro/event routes and reduces chat boot timing races after auth/trip hydration.
+- **Applies when:** Notification list click handlers, push-notification deep-links, in-app mention routing.
+- **Avoid when:** Notifications intentionally target non-trip destinations.
+- **Evidence:** `NotificationsDialog` previously preferred `notification.tripId` inference and omitted route-state chat context; mention notifications could route inconsistently across trip shells. Metadata-first route resolution plus `chatNavigationContext` state made mention routing uniform and added a post-navigation handshake marker.
+- **Provenance:** April 2026 notification click-path hardening (`src/components/home/NotificationsDialog.tsx`, `src/components/__tests__/NotificationsDialog.test.tsx`).
+- **Confidence:** high
+
 ### Kill-switched write features should be gated in both UI and service layers
 - **Tip:** For operational kill switches (for example feature flags in `feature_flags`), disable the UI entry point and also hard-stop the write service call path. UI-only gates can be bypassed via stale tabs/devtools/manual invocation, while service-only gates create confusing UX.
 - **Applies when:** Temporarily disabling mutation flows like scheduled broadcasts, AI write tools, or admin-only batch actions.
