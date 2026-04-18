@@ -896,7 +896,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         ? `${window.location.origin}/auth?returnTo=${encodeURIComponent(returnTo)}`
         : `${window.location.origin}/auth`;
 
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: redirectUrl,
@@ -919,7 +919,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { error: error.message };
       }
 
-      void data;
       return {};
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -943,7 +942,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         ? `${window.location.origin}/auth?returnTo=${encodeURIComponent(returnTo)}`
         : `${window.location.origin}/auth`;
 
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
         options: {
           redirectTo: redirectUrl,
@@ -961,7 +960,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { error: error.message };
       }
 
-      void data;
       return {};
     } catch (error) {
       if (import.meta.env.DEV) {
