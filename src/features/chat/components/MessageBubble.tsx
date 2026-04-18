@@ -48,6 +48,7 @@ export interface MessageBubbleProps {
   // Thread support
   replyCount?: number;
   onReply?: (messageId: string) => void;
+  onOpenThread?: (messageId: string) => void;
   // 🆕 Grounding support
   grounding?: {
     sources?: GroundingCitation[];
@@ -115,6 +116,7 @@ export const MessageBubble = memo(
     onDelete,
     replyCount = 0,
     onReply,
+    onOpenThread,
     grounding,
     showSenderInfo = true,
     mediaType,
@@ -512,9 +514,9 @@ export const MessageBubble = memo(
           >
             <div className="flex items-center gap-2">
               {showSenderInfo && (
-                <span className="text-[10px] md:text-xs text-white/70 mb-0.5">
+                <span className="text-[10px] md:text-xs text-chat-meta mb-0.5">
                   {isOwnMessage ? 'You' : senderName} — {formatTime(timestamp)}
-                  {isEdited && <span className="ml-1 text-white/50">(edited)</span>}
+                  {isEdited && <span className="ml-1 text-chat-meta/80">(edited)</span>}
                 </span>
               )}
               <MessageActions
@@ -528,6 +530,7 @@ export const MessageBubble = memo(
                 onEdit={onEdit}
                 onDelete={onDelete}
                 onReply={onReply}
+                onOpenThread={onOpenThread}
                 onBlockUser={onBlockUser}
                 onReportContent={onReportContent}
                 isBlockingUser={isBlockingUser}
@@ -541,7 +544,7 @@ export const MessageBubble = memo(
                 isOwnMessage && !isBroadcast
                   ? 'bg-chat-own text-chat-own-foreground'
                   : !isBroadcast
-                    ? 'bg-muted/80 text-white'
+                    ? 'bg-chat-other text-chat-other-foreground'
                     : '',
                 isBroadcast && 'bg-[#B91C1C] text-white',
                 isPayment && 'border-2 border-green-500/50',
@@ -556,7 +559,9 @@ export const MessageBubble = memo(
                 <div
                   className={cn(
                     'mb-2 p-2 rounded-lg text-xs cursor-pointer',
-                    isOwnMessage ? 'bg-black/25 text-white/75' : 'bg-white/10 text-white/80',
+                    isOwnMessage
+                      ? 'bg-black/25 text-white/75'
+                      : 'bg-chat-other/70 text-chat-other-foreground',
                   )}
                   onClick={e => {
                     e.stopPropagation();
@@ -710,7 +715,7 @@ export const MessageBubble = memo(
             {/* Thread reply indicator */}
             {replyCount > 0 && (
               <button
-                onClick={() => onReply?.(id)}
+                onClick={() => onOpenThread?.(id)}
                 className="flex items-center gap-1 mt-1.5 text-xs text-primary/80 hover:text-primary transition-colors"
               >
                 <MessageSquareReply className="h-3 w-3" />

@@ -29,6 +29,8 @@ export interface ChrravelChatMessage {
   privacy_mode?: string;
   privacy_encrypted?: boolean;
   message_type?: string;
+  system_event_type?: string;
+  system_payload?: Record<string, unknown>;
   is_edited?: boolean;
   edited_at?: string;
   client_message_id?: string;
@@ -131,6 +133,8 @@ export function streamMessageToChravel(msg: MessageResponse, tripId: string): Ch
     privacy_mode: custom.privacy_mode as string | undefined,
     privacy_encrypted: false, // No encryption in Stream path
     message_type: custom.message_type as string | undefined,
+    system_event_type: custom.system_event_type as string | undefined,
+    system_payload: custom.system_payload as Record<string, unknown> | undefined,
     is_edited: msg.created_at !== msg.updated_at,
     edited_at: msg.created_at !== msg.updated_at ? msg.updated_at : undefined,
     client_message_id: msg.id, // Stream uses message ID for dedup
@@ -148,6 +152,8 @@ export function chravelMessageToStreamPayload(params: {
   userId: string;
   privacyMode?: string;
   messageType?: string;
+  systemEventType?: string;
+  systemPayload?: Record<string, unknown>;
   replyToId?: string;
   mentionedUserIds?: string[];
   mediaType?: string;
@@ -164,6 +170,12 @@ export function chravelMessageToStreamPayload(params: {
   }
   if (params.messageType && params.messageType !== 'text') {
     payload.message_type = params.messageType;
+  }
+  if (params.systemEventType) {
+    payload.system_event_type = params.systemEventType;
+  }
+  if (params.systemPayload) {
+    payload.system_payload = params.systemPayload;
   }
 
   // Thread reply

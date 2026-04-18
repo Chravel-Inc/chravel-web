@@ -8,7 +8,7 @@ const scenarios = [
     title: 'Family Hubs, Schedules & Carpools',
     subtitle: 'Practices · pickups · errands · roomies · year-round planning',
     before: "Last-minute texts. Missed pickups. Nobody knows who's doing what.",
-    expandCTA: 'See how families stay organized',
+    expandCTA: 'ChravelApp helps families stay organized',
     after:
       'One shared space for family logistics. Calendars, tasks, and chat in sync — everyone knows where to be.',
     badge: 'Fewer drop-offs missed · more time together',
@@ -18,7 +18,7 @@ const scenarios = [
     title: 'Touring Artists & Crews',
     subtitle: 'Musicians · comedians · podcasts · managers · production',
     before: 'Spreadsheets, endless texts, missed details. Overwhelmed managers, annoyed artists.',
-    expandCTA: 'See how tours stay in sync',
+    expandCTA: 'ChravelApp helps tours stay in sync',
     after:
       'Show days, off days, crew channels, logistics, and payments—all in one place. Everyone aligned, every city.',
     badge: 'Fewer mistakes · smoother tours',
@@ -27,7 +27,7 @@ const scenarios = [
     title: 'Bach Parties → Wedding Weekends',
     subtitle: 'Bachelor & bachelorette trips · guests · families · vendors',
     before: 'Dozens of chats. Guests constantly asking where to be and when.',
-    expandCTA: 'See how celebrations run smoothly',
+    expandCTA: 'ChravelApp helps celebrations run smoothly',
     after: 'Shared itinerary, pinned locations, live photos — no confusion, just celebration.',
     badge: 'Fewer questions · more memories',
   },
@@ -36,7 +36,7 @@ const scenarios = [
     subtitle: 'Rush · formals · retreats · philanthropy · chapter ops',
     before:
       'One giant group chat — endless scrollback, mixed events, sensitive moments living forever in one thread.',
-    expandCTA: 'See how chapters stay private',
+    expandCTA: 'ChravelApp helps chapters stay private',
     after:
       'Separate vaults per event — Rush, Formal, Retreat. Chat and media stay compartmentalized. Access controlled, moments stay private.',
     badge: 'Private trip vaults with access controls',
@@ -45,7 +45,7 @@ const scenarios = [
     title: 'Youth, Amateur, & Pro sports programs.',
     subtitle: 'Players · coaches · coordinators · operations staff',
     before: 'Staff juggling travel, practices, and logistics across too many tools.',
-    expandCTA: 'See how programs stay aligned',
+    expandCTA: 'ChravelApp helps programs stay aligned',
     after:
       'Role-based access, team schedules, and instant updates—built to scale from college to the pros.',
     badge: 'Fewer errors · faster decisions',
@@ -54,7 +54,7 @@ const scenarios = [
     title: 'Local Community Groups',
     subtitle: 'Run clubs · dog park crews · faith groups · recurring meetups',
     before: 'Plans scattered across DMs, texts, and random calendar invites.',
-    expandCTA: 'See how groups stay connected',
+    expandCTA: 'ChravelApp helps groups stay connected',
     after: 'One shared home for meetups, locations, and photos. Your group stays connected.',
     badge: 'Consistency · better turnout',
   },

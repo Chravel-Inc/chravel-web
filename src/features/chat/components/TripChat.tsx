@@ -36,7 +36,7 @@ import { useChatReactions } from '../hooks/useChatReactions';
 import { MessageTypeBar } from './MessageTypeBar';
 import { ChatSearchOverlay } from './ChatSearchOverlay';
 import { useEffectiveSystemMessagePreferences } from '@/hooks/useSystemMessagePreferences';
-import { isConsumerTrip } from '@/utils/tripTierDetector';
+import { useTripType } from '@/hooks/useTripType';
 import { ThreadView } from './ThreadView';
 import { useTripPrivacyConfig, getEffectivePrivacyMode } from '@/hooks/useTripPrivacyConfig';
 import { useTripChatMode } from '@/hooks/useTripChatMode';
@@ -102,6 +102,7 @@ export const TripChat = React.memo(
         text: string;
         authorName: string;
         messageType?: 'text' | 'broadcast' | 'payment' | 'system';
+        createdAtMs: number;
       }>
     >([]);
 
@@ -172,10 +173,7 @@ export const TripChat = React.memo(
       availableChannels,
       activeChannel: roleActiveChannel,
       setActiveChannel: setRoleActiveChannel,
-    } = useRoleChannels(
-      isPro ? resolvedTripId : undefined,
-      user?.id || '',
-    );
+    } = useRoleChannels(isPro ? resolvedTripId : undefined, user?.id || '');
 
     // Typing indicators + read receipts — must be after all deps are declared
     const { typingUsers, typingServiceRef } = useChatTypingIndicators(
@@ -242,8 +240,10 @@ export const TripChat = React.memo(
       [demoMode.isDemoMode, streamClient],
     );
 
-    // System message preferences - only for consumer trips
-    const isConsumer = isConsumerTrip(resolvedTripId);
+    // System message preferences — only meaningful for consumer trips. Use the
+    // DB-backed tier detector so this works for real (UUID) trips, not just
+    // seeded mock IDs.
+    const { isConsumer } = useTripType(resolvedTripId);
     const { data: systemMessagePrefs } = useEffectiveSystemMessagePreferences(
       isConsumer ? resolvedTripId : '',
     );
@@ -321,7 +321,12 @@ export const TripChat = React.memo(
       // Create a map for quick message lookup for reply resolution
       const messageMap = new Map(liveMessages.map(msg => [msg.id, msg]));
 
-      return liveMessages.map(message => {
+      const topLevelMessages = liveMessages.filter(message => {
+        const parentId = (message as any).parent_id || (message as any).reply_to_id;
+        return !parentId;
+      });
+
+      return topLevelMessages.map(message => {
         // Stream uses message.user, Supabase used message.user_id / message.author_name
         const streamUser = (message as any).user;
         const msgUserId = streamUser?.id || (message as any).user_id;
@@ -439,6 +444,9 @@ export const TripChat = React.memo(
           isEdited: msgCreatedAt !== msgUpdatedAt,
           editedAt: msgCreatedAt !== msgUpdatedAt ? msgUpdatedAt : undefined,
           tags: customType === 'system' ? (['system'] as string[]) : ([] as string[]),
+          message_type: customType,
+          system_event_type: (message as any).system_event_type,
+          system_payload: (message as any).system_payload,
           linkPreview,
           replyTo,
           mediaType,
@@ -536,6 +544,7 @@ export const TripChat = React.memo(
             text: message.text,
             authorName,
             messageType: messageType as 'text' | 'broadcast' | 'payment' | 'system',
+            createdAtMs: Date.now(),
           },
         ]);
         toast.error(isBroadcast ? 'Broadcast failed to send' : 'Message failed to send', {
@@ -603,6 +612,63 @@ export const TripChat = React.memo(
 
       setReply(messageId, content, authorName);
     };
+
+    const handleActivateThread = useCallback(
+      (messageId: string) => {
+        const streamMessage = liveMessages.find(m => m.id === messageId);
+        if (streamMessage) {
+          const streamUser = (streamMessage as any).user;
+          setActiveThreadMessage({
+            id: streamMessage.id,
+            content: (streamMessage as any).text || '',
+            authorName: streamUser?.name || (streamMessage as any).author_name || 'User',
+            authorAvatar: streamUser?.image,
+            createdAt: (streamMessage as any).created_at || new Date().toISOString(),
+            tripId: resolvedTripId,
+          });
+          return;
+        }
+
+        const demoMessage = demoMessages.find(m => m.id === messageId);
+        if (!demoMessage) return;
+        setActiveThreadMessage({
+          id: demoMessage.id,
+          content: demoMessage.text || '',
+          authorName: demoMessage.sender?.name || 'User',
+          authorAvatar: demoMessage.sender?.avatar,
+          createdAt: demoMessage.createdAt,
+          tripId: resolvedTripId,
+        });
+      },
+      [liveMessages, demoMessages, resolvedTripId],
+    );
+
+    useEffect(() => {
+      if (!user?.id || failedMessages.length === 0 || liveMessages.length === 0) return;
+
+      const matchingLiveMessages = liveMessages
+        .map(msg => {
+          const streamUser = (msg as any).user;
+          return {
+            text: ((msg as any).text || '').trim(),
+            userId: streamUser?.id || (msg as any).user_id,
+            createdAtMs: new Date((msg as any).created_at || 0).getTime(),
+          };
+        })
+        .filter(msg => msg.userId === user.id && msg.text.length > 0);
+
+      if (matchingLiveMessages.length === 0) return;
+
+      setFailedMessages(prev =>
+        prev.filter(failed => {
+          const failedText = failed.text.trim();
+          return !matchingLiveMessages.some(
+            live =>
+              live.text === failedText && Math.abs(live.createdAtMs - failed.createdAtMs) <= 5000,
+          );
+        }),
+      );
+    }, [failedMessages.length, liveMessages, user?.id]);
 
     // ⚡ PERFORMANCE: Synchronous demo message loading (no unnecessary async wrapper)
     useEffect(() => {
@@ -837,6 +903,7 @@ export const TripChat = React.memo(
                           reactions={message.reactions || reactions[message.id] || {}}
                           onReaction={handleReaction}
                           onReply={handleOpenThread}
+                          onOpenThread={handleActivateThread}
                           onEdit={demoMode.isDemoMode ? undefined : handleMessageEdit}
                           onDelete={demoMode.isDemoMode ? undefined : handleMessageDelete}
                           onRetry={handleRetryFailedMessage}
@@ -918,12 +985,7 @@ export const TripChat = React.memo(
                 disableFileUpload={!canUploadMedia}
                 safeAreaBottom={false}
                 onTypingChange={isTyping => {
-                  if (
-                    !demoMode.isDemoMode &&
-                    resolvedTripId &&
-                    user?.id &&
-                    streamActiveChannel
-                  ) {
+                  if (!demoMode.isDemoMode && resolvedTripId && user?.id && streamActiveChannel) {
                     if (isTyping) {
                       streamActiveChannel.keystroke().catch(err => {
                         if (import.meta.env.DEV) console.error('[Stream] keystroke failed', err);

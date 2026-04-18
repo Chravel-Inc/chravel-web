@@ -16,6 +16,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import {
+  connectStreamClient,
   getStreamApiKey,
   getStreamClient,
   onStreamClientConnected,
@@ -28,10 +29,57 @@ import { buildTripStreamMessagePayload } from '@/services/stream/streamMessagePa
 import { supabase } from '@/integrations/supabase/client';
 
 const PAGE_SIZE = 30;
+type StreamSendPayload = Parameters<Channel['sendMessage']>[0];
 
 export function isStreamReadChannelPermissionError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
   return /ReadChannel|read-channel|GetOrCreateChannel failed|error code 17/i.test(message);
+}
+
+function isAbortLikeError(error: unknown): boolean {
+  if (error instanceof DOMException && error.name === 'AbortError') return true;
+  const message = error instanceof Error ? error.message : String(error);
+  return /abort|aborted/i.test(message);
+}
+
+function isStreamCreateMentionPermissionError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /CreateMention|action CreateMention/i.test(message);
+}
+
+function hasMentionedUsers(payload: StreamSendPayload): payload is StreamSendPayload & {
+  mentioned_users: string[];
+} {
+  return (
+    typeof payload === 'object' &&
+    payload !== null &&
+    'mentioned_users' in payload &&
+    Array.isArray((payload as { mentioned_users?: unknown }).mentioned_users) &&
+    ((payload as { mentioned_users?: unknown[] }).mentioned_users?.length || 0) > 0
+  );
+}
+
+function withoutMentionedUsers(payload: StreamSendPayload): StreamSendPayload {
+  const { mentioned_users: _mentionedUsers, ...rest } = payload as StreamSendPayload & {
+    mentioned_users?: unknown;
+  };
+  return rest as StreamSendPayload;
+}
+
+async function sendMessageWithMentionFallback(channel: Channel, payload: StreamSendPayload) {
+  try {
+    return await channel.sendMessage(payload);
+  } catch (err) {
+    if (isStreamCreateMentionPermissionError(err) && hasMentionedUsers(payload)) {
+      if (import.meta.env.DEV) {
+        console.warn(
+          '[Stream] CreateMention denied; retrying send without mentioned_users payload',
+        );
+      }
+      return channel.sendMessage(withoutMentionedUsers(payload));
+    }
+    throw err;
+  }
 }
 
 /**
@@ -52,6 +100,8 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
   const [streamClientReady, setStreamClientReady] = useState(Boolean(getStreamClient()?.userID));
 
   const channelRef = useRef<Channel | null>(null);
+  const messagesRef = useRef<MessageResponse[]>([]);
+  const hasHydratedMessagesRef = useRef(false);
   // State mirror of channelRef for triggering the event subscription effect
   const [activeChannel, setActiveChannel] = useState<Channel | null>(null);
   const isMountedRef = useRef(true);
@@ -81,6 +131,22 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
   }, []);
 
   useEffect(() => {
+    if (!isEnabled || !tripId || streamClientReady || getStreamClient()?.userID) return;
+
+    let cancelled = false;
+    void connectStreamClient().then(client => {
+      if (cancelled) return;
+      if (client?.userID) {
+        setStreamClientReady(true);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isEnabled, tripId, streamClientReady]);
+
+  useEffect(() => {
     if (!isEnabled || !tripId) return;
 
     if (streamClientReady && getStreamClient()?.userID) return;
@@ -103,7 +169,15 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
 
   useEffect(() => {
     membershipRecoveryAttemptedRef.current = false;
+    hasHydratedMessagesRef.current = false;
   }, [tripId]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+    if (messages.length > 0) {
+      hasHydratedMessagesRef.current = true;
+    }
+  }, [messages]);
 
   // Initialize channel and load messages
   useEffect(() => {
@@ -131,18 +205,40 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         const jwt = sessionData?.session?.access_token;
 
         if (jwt) {
+          const controller = new AbortController();
+          const timeout = window.setTimeout(() => controller.abort(), 3000);
           try {
-            await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stream-join-channel`, {
-              method: 'POST',
-              headers: {
-                Authorization: `Bearer ${jwt}`,
-                'Content-Type': 'application/json',
-                apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+            const response = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stream-join-channel`,
+              {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${jwt}`,
+                  'Content-Type': 'application/json',
+                  apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+                },
+                body: JSON.stringify({ tripId }),
+                signal: controller.signal,
               },
-              body: JSON.stringify({ tripId }),
-            });
-          } catch {
-            // Non-fatal — if join fails, watch() will surface the real error
+            );
+
+            if (!response.ok && import.meta.env.DEV) {
+              console.warn('[Stream] stream-join-channel returned non-OK', response.status);
+            }
+          } catch (joinErr) {
+            // Join is a best-effort membership projection. Do not block channel.watch() on
+            // transient fetch failures/timeouts; read permission recovery is handled below.
+            if (import.meta.env.DEV) {
+              const message =
+                joinErr instanceof Error ? joinErr.message : 'stream-join-channel failed';
+              if (isAbortLikeError(joinErr)) {
+                console.warn('[Stream] stream-join-channel timed out before watch; continuing');
+              } else {
+                console.warn('[Stream] stream-join-channel failed; continuing to watch', message);
+              }
+            }
+          } finally {
+            window.clearTimeout(timeout);
           }
         }
 
@@ -182,7 +278,12 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         channelRef.current = watched.channel;
         setActiveChannel(watched.channel);
 
-        setMessages(sortedMessages);
+        if (streamMessages.length > 0) {
+          setMessages(sortedMessages);
+        } else if (!hasHydratedMessagesRef.current) {
+          // First load can legitimately be empty; preserve hydrated state on re-watch.
+          setMessages([]);
+        }
         setHasMore(streamMessages.length === PAGE_SIZE);
         setError(null);
         setIsLoading(false);
@@ -207,7 +308,11 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
             if (!cancelled) {
               channelRef.current = channel;
               setActiveChannel(channel);
-              setMessages(sortedMessages);
+              if (streamMessages.length > 0) {
+                setMessages(sortedMessages);
+              } else if (!hasHydratedMessagesRef.current) {
+                setMessages([]);
+              }
               setHasMore(streamMessages.length === PAGE_SIZE);
               setError(null);
               setIsLoading(false);
@@ -255,7 +360,11 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         (a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime(),
       );
 
-      setMessages(sortedMessages);
+      if (streamMessages.length > 0) {
+        setMessages(sortedMessages);
+      } else if (!hasHydratedMessagesRef.current) {
+        setMessages([]);
+      }
       setHasMore(streamMessages.length === PAGE_SIZE);
     } catch (err) {
       if (import.meta.env.DEV) {
@@ -297,7 +406,10 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     const handleReaction = () => {
       // Stream mutates channel.state.messages in place on reaction events.
       // Re-cloning the array forces React to re-render.
-      setMessages([...channel.state.messages] as unknown as MessageResponse[]);
+      const freshMessages = channelRef.current?.state.messages || channel.state.messages;
+      if (freshMessages.length > 0 || messagesRef.current.length === 0) {
+        setMessages([...freshMessages] as unknown as MessageResponse[]);
+      }
     };
 
     channel.on('message.new', handleNewMessage);
@@ -357,8 +469,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         return;
       }
 
-      void channel
-        .sendMessage(payloadResult.payload)
+      void sendMessageWithMentionFallback(channel, payloadResult.payload)
         .then(() => {
           messageEvents.sent({
             trip_id: tripId,
@@ -444,7 +555,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
 
       setIsCreating(true);
       try {
-        const response = await channel.sendMessage(payloadResult.payload);
+        const response = await sendMessageWithMentionFallback(channel, payloadResult.payload);
         const sentMessage = response.message as MessageResponse;
 
         // Immediately insert or update the sent message in local state
@@ -476,41 +587,38 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
   );
 
   // Load more (older messages)
-  const toggleReaction = useCallback(
-    async (messageId: string, reactionType: string) => {
-      if (!channelRef.current) return;
-      const channel = channelRef.current;
+  const toggleReaction = useCallback(async (messageId: string, reactionType: string) => {
+    if (!channelRef.current) return;
+    const channel = channelRef.current;
+
+    try {
+      // Capture prior state in case of revert
+      const originalMessages = [...messagesRef.current];
+
+      // Optimistically check if we already reacted
+      const message = messagesRef.current.find(m => m.id === messageId);
+      const hasReacted =
+        message?.own_reactions?.some(reaction => reaction.type === reactionType) ?? false;
 
       try {
-        // Capture prior state in case of revert
-        const originalMessages = messages;
-
-        // Optimistically check if we already reacted
-        const message = messages.find(m => m.id === messageId);
-        const hasReacted =
-          message?.own_reactions?.some(reaction => reaction.type === reactionType) ?? false;
-
-        try {
-          if (hasReacted) {
-            await channel.deleteReaction(messageId, reactionType);
-          } else {
-            await channel.sendReaction(messageId, { type: reactionType });
-          }
-        } catch (err) {
-          if (import.meta.env.DEV) {
-            console.error('[Stream] toggleReaction failed:', err);
-          }
-          // Revert optimistic update
-          setMessages(originalMessages);
+        if (hasReacted) {
+          await channel.deleteReaction(messageId, reactionType);
+        } else {
+          await channel.sendReaction(messageId, { type: reactionType });
         }
       } catch (err) {
         if (import.meta.env.DEV) {
-          console.error('[Stream] toggleReaction prep failed:', err);
+          console.error('[Stream] toggleReaction failed:', err);
         }
+        // Revert optimistic update
+        setMessages(originalMessages);
       }
-    },
-    [messages],
-  );
+    } catch (err) {
+      if (import.meta.env.DEV) {
+        console.error('[Stream] toggleReaction prep failed:', err);
+      }
+    }
+  }, []);
 
   const loadMore = useCallback(async () => {
     const channel = channelRef.current;

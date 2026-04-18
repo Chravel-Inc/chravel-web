@@ -23,6 +23,8 @@ import { telemetry } from '@/telemetry/service';
 import { toast } from '@/hooks/use-toast';
 import { logAuthEvent } from '@/utils/authTelemetry';
 import { buildSessionDerivedUser } from '@/lib/sessionDerivedUser';
+import { isInstalledApp } from '@/utils/platformDetection';
+import { generateSafeUuid } from '@/utils/uuid';
 
 const TRIPS_QUERY_KEY = 'trips';
 
@@ -133,7 +135,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
    * We provide a stable, UUID-shaped demo user so code paths expecting UUIDs don't throw.
    */
   // Generate a stable but non-predictable demo UUID per session
-  const demoUserId = useMemo(() => crypto.randomUUID(), []);
+  const demoUserId = useMemo(() => generateSafeUuid(), []);
 
   const demoUser: User = useMemo(
     () => ({
@@ -895,10 +897,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         ? `${window.location.origin}/auth?returnTo=${encodeURIComponent(returnTo)}`
         : `${window.location.origin}/auth`;
 
-      const { error } = await supabase.auth.signInWithOAuth({
+      const installed = isInstalledApp();
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: redirectUrl,
+          // In Capacitor / PWA / webview, default redirect opens the system browser and strands the shell.
+          skipBrowserRedirect: installed,
           // Force account picker so users don't accidentally sign in with the wrong Google account,
           // which could create a duplicate profile if the email differs from their email/password account.
           // NOTE: Enable "Automatic Linking" in Supabase Dashboard (Auth > Providers) to prevent
@@ -915,6 +920,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return { error: 'Google sign-in is not configured. Please contact support.' };
         }
         return { error: error.message };
+      }
+
+      if (installed && data?.url) {
+        window.location.assign(data.url);
       }
 
       return {};
@@ -940,10 +949,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         ? `${window.location.origin}/auth?returnTo=${encodeURIComponent(returnTo)}`
         : `${window.location.origin}/auth`;
 
-      const { error } = await supabase.auth.signInWithOAuth({
+      const installed = isInstalledApp();
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
         options: {
           redirectTo: redirectUrl,
+          skipBrowserRedirect: installed,
         },
       });
 
@@ -955,6 +966,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return { error: 'Apple sign-in is not configured. Please contact support.' };
         }
         return { error: error.message };
+      }
+
+      if (installed && data?.url) {
+        window.location.assign(data.url);
       }
 
       return {};

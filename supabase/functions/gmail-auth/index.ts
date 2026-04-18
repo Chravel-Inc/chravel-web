@@ -10,8 +10,21 @@ const GMAIL_TOKEN_ENCRYPTION_KEY = Deno.env.get('GMAIL_TOKEN_ENCRYPTION_KEY') ??
 const OAUTH_STATE_SIGNING_SECRET = Deno.env.get('OAUTH_STATE_SIGNING_SECRET') ?? '';
 const MAX_GMAIL_ACCOUNTS = 5;
 
-const REDIRECT_URI =
+const DEFAULT_REDIRECT_URI =
   Deno.env.get('GOOGLE_REDIRECT_URI') || 'https://chravel.app/api/gmail/oauth/callback';
+const ADDITIONAL_REDIRECT_URIS = (Deno.env.get('GOOGLE_ADDITIONAL_REDIRECT_URIS') ?? '')
+  .split(',')
+  .map(uri => uri.trim())
+  .filter(Boolean);
+
+function getAllowedRedirectUris(): string[] {
+  return [DEFAULT_REDIRECT_URI, ...ADDITIONAL_REDIRECT_URIS];
+}
+
+function getValidatedRedirectUri(candidate?: string): string {
+  if (!candidate) return DEFAULT_REDIRECT_URI;
+  return getAllowedRedirectUris().includes(candidate) ? candidate : DEFAULT_REDIRECT_URI;
+}
 
 // SECURITY: corsHeaders is computed per-request from the validated origin.
 // A module-level ref is kept so errorResponse can use it before the request handler sets it.
@@ -122,6 +135,13 @@ serve(async req => {
         );
       }
 
+      const body = await req.json().catch(() => ({}));
+      const requestedRedirectUri =
+        body && typeof body === 'object' && typeof body.redirectUri === 'string'
+          ? body.redirectUri
+          : undefined;
+      const redirectUri = getValidatedRedirectUri(requestedRedirectUri);
+
       // Generate PKCE code_verifier (32 random bytes, base64url)
       const verifierBytes = new Uint8Array(32);
       crypto.getRandomValues(verifierBytes);
@@ -141,13 +161,14 @@ serve(async req => {
         nonce,
         exp: Date.now() + 10 * 60 * 1000, // 10 min expiry
         code_verifier: codeVerifier,
+        redirect_uri: redirectUri,
       };
       const payload = bytesToBase64Url(new TextEncoder().encode(JSON.stringify(payloadObj)));
       const signature = await signState(payload);
 
       const oauthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
       oauthUrl.searchParams.set('client_id', GOOGLE_CLIENT_ID);
-      oauthUrl.searchParams.set('redirect_uri', REDIRECT_URI);
+      oauthUrl.searchParams.set('redirect_uri', redirectUri);
       oauthUrl.searchParams.set('response_type', 'code');
       oauthUrl.searchParams.set(
         'scope',
@@ -160,7 +181,7 @@ serve(async req => {
       oauthUrl.searchParams.set('code_challenge_method', 'S256');
 
       console.log(
-        `[gmail-auth] Connect initiated for user ${user.id}, redirect_uri=${REDIRECT_URI}`,
+        `[gmail-auth] Connect initiated for user ${user.id}, redirect_uri=${redirectUri}`,
       );
 
       return new Response(JSON.stringify({ url: oauthUrl.toString() }), {
@@ -183,7 +204,7 @@ serve(async req => {
       const signatureValid = await verifyState(payloadB64, signature);
       if (!signatureValid) return errorResponse('Invalid state signature', 403);
 
-      let decodedState: { uid: string; exp: number; code_verifier?: string };
+      let decodedState: { uid: string; exp: number; code_verifier?: string; redirect_uri?: string };
       try {
         decodedState = JSON.parse(new TextDecoder().decode(base64UrlToBytes(payloadB64)));
       } catch {
@@ -193,12 +214,14 @@ serve(async req => {
       if (decodedState.uid !== user.id) return errorResponse('State UID mismatch', 403);
       if (Date.now() > decodedState.exp) return errorResponse('OAuth state expired', 403);
 
+      const redirectUri = getValidatedRedirectUri(decodedState.redirect_uri);
+
       // Exchange code for tokens — include PKCE verifier if present
       const tokenParams: Record<string, string> = {
         code,
         client_id: GOOGLE_CLIENT_ID,
         client_secret: GOOGLE_CLIENT_SECRET,
-        redirect_uri: REDIRECT_URI,
+        redirect_uri: redirectUri,
         grant_type: 'authorization_code',
       };
       if (decodedState.code_verifier) tokenParams.code_verifier = decodedState.code_verifier;

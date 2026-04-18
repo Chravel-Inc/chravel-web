@@ -10,6 +10,14 @@ import { offlineSyncService } from '@/services/offlineSyncService';
 import { cacheEntity, getCachedEntities } from '@/offline/cache';
 import { taskEvents } from '@/telemetry/events';
 import { useMutationPermissions } from '@/hooks/useMutationPermissions';
+import { systemMessageService } from '@/services/systemMessageService';
+
+const resolveActorName = (
+  user: { displayName?: string | null; email?: string | null } | null | undefined,
+): string => {
+  if (!user) return 'Someone';
+  return user.displayName || user.email?.split('@')[0] || 'Someone';
+};
 
 // Task form management types
 export interface TaskFormData {
@@ -711,6 +719,14 @@ export const useTripTasks = (
         is_poll: variables.is_poll || false,
         assigned_count: variables.assignedTo?.length || 0,
       });
+      if (!isDemoMode && _data?.id && _data?.title) {
+        void systemMessageService.taskCreated(
+          tripId,
+          resolveActorName(user),
+          _data.id,
+          _data.title,
+        );
+      }
       // Removed noisy success toast, optimistic UI provides instant feedback
     },
     onError: (error: Error, _variables, context) => {
@@ -1098,6 +1114,19 @@ export const useTripTasks = (
         taskEvents.completed(tripId, variables.taskId);
       } else {
         taskEvents.uncompleted(tripId, variables.taskId);
+      }
+      // Inline activity update — only on completion (uncompleting is noise)
+      if (!isDemoMode && variables.completed) {
+        const cached = queryClient.getQueryData<TripTask[]>(['tripTasks', tripId, isDemoMode]);
+        const task = cached?.find(t => t.id === variables.taskId);
+        if (task?.title) {
+          void systemMessageService.taskCompleted(
+            tripId,
+            resolveActorName(user),
+            variables.taskId,
+            task.title,
+          );
+        }
       }
       // Success toast removed; optimistic check mark is enough feedback
     },
