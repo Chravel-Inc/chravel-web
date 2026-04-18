@@ -83,3 +83,39 @@ export function dedupeRecipients(
 
   return Array.from(unique);
 }
+
+type StreamMentionedUser =
+  | string
+  | {
+      id?: string;
+      user_id?: string;
+      user?: { id?: string };
+    };
+
+/**
+ * Stream webhook payloads can provide mentions as either raw user-id strings
+ * or user objects (shape varies by SDK/webhook version). Normalize to IDs.
+ */
+export function normalizeMentionedUserIds(
+  mentionedUsers?: Array<StreamMentionedUser | null | undefined> | null,
+): string[] {
+  if (!mentionedUsers || mentionedUsers.length === 0) return [];
+
+  const normalized = new Set<string>();
+
+  for (const mentionedUser of mentionedUsers) {
+    if (!mentionedUser) continue;
+
+    if (typeof mentionedUser === 'string') {
+      normalized.add(mentionedUser);
+      continue;
+    }
+
+    const candidateId = mentionedUser.id || mentionedUser.user_id || mentionedUser.user?.id;
+    if (candidateId) {
+      normalized.add(candidateId);
+    }
+  }
+
+  return Array.from(normalized);
+}
