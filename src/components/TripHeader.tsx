@@ -427,6 +427,13 @@ export const TripHeader = ({
     setCoverFallbackSrc(undefined);
   }, [coverPhoto]);
 
+  // In demo mode, prefer the bundled cover asset up front so the hero renders
+  // immediately without racing a remote fetch (matches TripCard/ProTripCard/EventCard).
+  const demoFallbackCover = isDemoMode ? getDemoTripCoverFallback(trip.id) : undefined;
+  const displayCover =
+    coverFallbackSrc ?? (isDemoMode && demoFallbackCover ? demoFallbackCover : coverPhoto);
+  const hasCover = Boolean(coverPhoto || demoFallbackCover);
+
   const handleCropCancel = () => {
     setShowCropModal(false);
     if (cropImageSrc && isBlobOrDataUrl(cropImageSrc)) {
@@ -453,17 +460,21 @@ export const TripHeader = ({
             backgroundColor: '#1a1a2e',
           }}
         >
-          {coverPhoto && !hasCoverLoadError && (
+          {hasCover && !hasCoverLoadError && (
             <div className="absolute inset-0">
               <img
-                src={coverFallbackSrc ?? coverPhoto}
+                src={displayCover}
                 alt=""
                 aria-hidden="true"
+                loading="eager"
+                decoding="async"
                 className="absolute inset-0 w-full h-full object-cover blur-md scale-110 opacity-45"
               />
               <img
-                src={coverFallbackSrc ?? coverPhoto}
+                src={displayCover}
                 alt={`${trip.title} cover`}
+                loading="eager"
+                decoding="async"
                 onError={() => {
                   // In demo mode, try bundled fallback before giving up
                   if (isDemoMode && !coverFallbackSrc) {
@@ -487,7 +498,7 @@ export const TripHeader = ({
           <div
             className={cn(
               'absolute inset-0',
-              coverPhoto
+              hasCover
                 ? 'bg-gradient-to-b from-black/50 via-transparent to-black/60'
                 : 'bg-gradient-to-b from-black/70 via-gray-900/60 to-black/70',
             )}
@@ -584,7 +595,7 @@ export const TripHeader = ({
               </div>
 
               {/* Add Cover Photo Button - Show when no cover photo */}
-              {!coverPhoto && (
+              {!hasCover && (
                 <div className="absolute top-4 right-4 z-10 lg:right-16">
                   <button
                     onClick={handleAddCoverPhotoClick}
