@@ -77,6 +77,10 @@ async function migrate() {
         original_updated_at: new Date(msg.updated_at || msg.created_at).toISOString(),
         // Custom fields
         message_type: msg.message_type || 'text',
+        // Preserve system message metadata so category-level filter + EventLog
+        // continue to work after migration.
+        ...(msg.system_event_type ? { system_event_type: msg.system_event_type } : {}),
+        ...(msg.payload ? { system_payload: msg.payload } : {}),
         privacy_mode: msg.privacy_mode || 'standard',
         // Attachments
         ...(msg.media_url

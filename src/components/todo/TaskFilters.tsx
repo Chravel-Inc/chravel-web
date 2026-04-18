@@ -41,10 +41,10 @@ export const TaskFilters = ({
             onClick={() => onStatusChange(s)}
             aria-label={`Filter tasks by ${s}`}
             aria-pressed={status === s}
-            className={`px-3 py-2 min-h-[44px] rounded-full text-xs font-medium transition-colors capitalize ${
+            className={`px-4 py-2 min-h-[44px] min-w-[88px] rounded-full text-xs font-medium transition-all capitalize flex items-center justify-center ${
               status === s
-                ? 'bg-blue-600 text-white'
-                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-black'
+                : 'bg-gray-800/80 text-white border border-gray-700 hover:bg-gray-700'
             }`}
           >
             {s}

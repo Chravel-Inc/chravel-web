@@ -599,3 +599,10 @@
 - **Provenance:** April 2026 Messages-tab stability fix after Stream membership self-heal rollout.
 - **Confidence:** high
 
+### Keep edge-function CORS allowlist aligned with active production domains
+- **Tip:** When production web domains change/expand (e.g., `chravel.app` → `chravelapp.com`), update `_shared/cors.ts` allowlist immediately and add explicit unit coverage for each domain.
+- **Applies when:** Any feature depends on browser → Supabase Edge Function calls (OAuth init, billing, concierge, imports).
+- **Avoid when:** Server-to-server calls where browser CORS is irrelevant.
+- **Evidence:** Gmail connect failed from `https://chravelapp.com` with “Failed to send a request to the Edge Function” because CORS echoed fallback origin (`https://chravel.app`) instead of request origin.
+- **Provenance:** April 2026 Gmail connector deep-dive and fix.
+- **Confidence:** high

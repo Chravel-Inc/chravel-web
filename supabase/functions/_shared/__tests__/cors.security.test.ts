@@ -33,6 +33,16 @@ describe('CORS Security Tests', () => {
       expect(isOriginAllowed('https://www.chravel.app')).toBe(true);
     });
 
+    it('should allow chravelapp.com', async () => {
+      const isOriginAllowed = await getIsOriginAllowed();
+      expect(isOriginAllowed('https://chravelapp.com')).toBe(true);
+    });
+
+    it('should allow app.chravelapp.com', async () => {
+      const isOriginAllowed = await getIsOriginAllowed();
+      expect(isOriginAllowed('https://app.chravelapp.com')).toBe(true);
+    });
+
     it('should allow the specific Supabase project origin', async () => {
       const isOriginAllowed = await getIsOriginAllowed();
       expect(isOriginAllowed('https://jmjiyekmxwsxkfnqwyaa.supabase.co')).toBe(true);
@@ -139,6 +149,16 @@ describe('CORS Security Tests', () => {
         }),
       );
       expect(headers['Access-Control-Allow-Origin']).toBe('https://chravel.app');
+    });
+
+    it('should echo back allowed chravelapp.com origin', async () => {
+      const getCorsHeaders = await getGetCorsHeaders();
+      const headers = getCorsHeaders(
+        new Request('https://example.com', {
+          headers: { origin: 'https://chravelapp.com' },
+        }),
+      );
+      expect(headers['Access-Control-Allow-Origin']).toBe('https://chravelapp.com');
     });
   });
 });

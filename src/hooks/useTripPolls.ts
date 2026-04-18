@@ -12,6 +12,14 @@ import { cacheEntity, getCachedEntities } from '@/offline/cache';
 
 import { useMutationPermissions } from '@/hooks/useMutationPermissions';
 import { hapticService as haptics } from '@/services/hapticService';
+import { systemMessageService } from '@/services/systemMessageService';
+
+const resolveActorName = (
+  user: { displayName?: string | null; email?: string | null } | null | undefined,
+): string => {
+  if (!user) return 'Someone';
+  return user.displayName || user.email?.split('@')[0] || 'Someone';
+};
 
 interface TripPoll {
   id: string;
@@ -313,11 +321,19 @@ export const useTripPolls = (tripId: string) => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: data => {
       toast({
         title: 'Poll created',
         description: 'Your poll has been added to the trip.',
       });
+      if (!isDemoMode && data?.id && data?.question) {
+        void systemMessageService.pollCreated(
+          tripId,
+          resolveActorName(user),
+          data.id,
+          data.question,
+        );
+      }
     },
     onError: (error: Error, _variables, context) => {
       if (context?.previousPolls) {
@@ -682,13 +698,25 @@ export const useTripPolls = (tripId: string) => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: data => {
       queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId, isDemoMode] });
       void haptics.success();
       toast({
         title: 'Poll closed',
         description: 'No more votes will be accepted.',
       });
+      if (!isDemoMode && data?.id) {
+        const options = parsePollOptions(data.options);
+        const winning = options.length
+          ? options.reduce((max, o) => (o.votes > (max?.votes ?? -1) ? o : max), options[0])
+          : undefined;
+        void systemMessageService.pollClosed(
+          tripId,
+          resolveActorName(user),
+          data.id,
+          winning && winning.votes > 0 ? winning.text : undefined,
+        );
+      }
     },
     onError: () => {
       toast({

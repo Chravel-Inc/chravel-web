@@ -1,17 +1,66 @@
-// System message service for consumer trips only
+// System message service — emits inline activity updates into the trip chat.
+//
+// Architecture: Stream is the canonical chat transport. System messages are
+// sent as `message_type: 'system'` with a structured `system_event_type`
+// custom field, on the trip channel, with `silent: true` so Stream does not
+// generate a push notification for them. Push notifications continue to flow
+// through `send_notification()` independently — the UI promise is upheld.
+//
+// Trip-type gating: this service only emits for consumer trips (per
+// `trips.trip_type`). Pro/Event trips intentionally skip — large rosters
+// would generate spam. The membership DB trigger has the same gate; this
+// keeps client-side emission consistent.
 
 import { supabase } from '@/integrations/supabase/client';
-import { isConsumerTrip } from '@/utils/tripTierDetector';
+import { isConsumerTrip as isMockConsumerTrip } from '@/utils/tripTierDetector';
 import { SystemEventType, SystemMessagePayload } from '@/types/systemMessages';
-import { isStreamConfigured } from './stream/streamTransportGuards';
+import { getStreamClient } from './stream/streamClient';
+import { CHANNEL_TYPE_TRIP, tripChannelId } from './stream/streamChannelFactory';
+
+interface CachedTripType {
+  value: string | null;
+  expiresAt: number;
+}
 
 class SystemMessageService {
-  private uploadBatchQueue: Map<string, { count: number; timer: NodeJS.Timeout }> = new Map();
+  private uploadBatchQueue: Map<string, { count: number; timer: ReturnType<typeof setTimeout> }> =
+    new Map();
   private BATCH_DELAY_MS = 30000; // 30 second batching window for uploads
+  private TRIP_TYPE_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+  private tripTypeCache: Map<string, CachedTripType> = new Map();
 
   /**
-   * Create a system message in the trip chat
-   * Only works for consumer trips (IDs 1-12)
+   * Resolve a trip's tier with a short-lived cache. Returns 'consumer' for
+   * seeded mock IDs without a fetch. Falls back to a single supabase query
+   * for real (UUID) trips.
+   */
+  private async getTripType(tripId: string): Promise<string | null> {
+    if (isMockConsumerTrip(tripId)) return 'consumer';
+
+    const cached = this.tripTypeCache.get(tripId);
+    if (cached && cached.expiresAt > Date.now()) return cached.value;
+
+    const { data } = await supabase
+      .from('trips')
+      .select('trip_type')
+      .eq('id', tripId)
+      .maybeSingle();
+
+    const value = (data?.trip_type as string | null | undefined) ?? null;
+    this.tripTypeCache.set(tripId, {
+      value,
+      expiresAt: Date.now() + this.TRIP_TYPE_CACHE_TTL_MS,
+    });
+    return value;
+  }
+
+  /**
+   * Create a system message in the trip chat (Stream).
+   * Only emits for consumer trips; silently no-ops for pro/event/unknown.
+   *
+   * The message is sent with `silent: true` so Stream skips push delivery —
+   * push notifications for activity continue to be driven by the
+   * `send_notification` Supabase pipeline.
    */
   async createSystemMessage(
     tripId: string,
@@ -19,44 +68,36 @@ class SystemMessageService {
     body: string,
     payload?: SystemMessagePayload,
   ): Promise<boolean> {
-    if (isStreamConfigured()) {
+    const tripType = await this.getTripType(tripId);
+    if (tripType !== 'consumer') {
       return false;
     }
 
-    // GUARD: Only create system messages for consumer trips
-    if (!isConsumerTrip(tripId)) {
-      console.log('[SystemMessage] Skipping for non-consumer trip:', tripId);
+    const client = getStreamClient();
+    if (!client?.userID) {
+      // Offline / not yet connected — drop quietly. The action that triggered
+      // this still succeeded; we just lose the inline activity message.
       return false;
     }
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      const authorName = payload?.actorName || user?.email?.split('@')[0] || 'System';
-
-      // intentional: trip_chat_messages insert shape includes fields not in generated types
-      const { error } = await (supabase as any).from('trip_chat_messages').insert({
-        trip_id: tripId,
-        content: body,
-        author_name: authorName,
-        user_id: user?.id || null,
-        message_type: 'system',
-        system_event_type: eventType,
-        payload: payload as unknown,
-      });
-
-      if (error) {
-        console.error('[SystemMessage] Failed to create:', error);
-        return false;
-      }
-
+      const channel = client.channel(CHANNEL_TYPE_TRIP, tripChannelId(tripId));
+      await channel.sendMessage(
+        {
+          text: body,
+          message_type: 'system',
+          system_event_type: eventType,
+          system_payload: (payload ?? {}) as unknown as Record<string, unknown>,
+          silent: true,
+        } as Parameters<typeof channel.sendMessage>[0],
+        { skip_push: true },
+      );
       if (import.meta.env.DEV) {
-        console.log('[SystemMessage] Created:', eventType);
+        console.log('[SystemMessage] Emitted to Stream:', eventType, tripId);
       }
       return true;
     } catch (error) {
-      console.error('[SystemMessage] Error:', error);
+      console.warn('[SystemMessage] Stream emit failed (non-critical):', error);
       return false;
     }
   }
@@ -71,8 +112,8 @@ class SystemMessageService {
     uploaderName: string,
     mediaType: 'photo' | 'file',
   ): Promise<void> {
-    // GUARD: Only for consumer trips
-    if (!isConsumerTrip(tripId)) {
+    const tripType = await this.getTripType(tripId);
+    if (tripType !== 'consumer') {
       return;
     }
 
@@ -305,6 +346,11 @@ class SystemMessageService {
         description,
       },
     );
+  }
+
+  /** Test/debug only — clears the trip-type cache. */
+  _clearTripTypeCache(): void {
+    this.tripTypeCache.clear();
   }
 }
 

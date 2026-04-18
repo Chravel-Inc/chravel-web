@@ -31,6 +31,10 @@ const mockChannel = {
 };
 
 vi.mock('@/services/stream/streamClient', () => ({
+  connectStreamClient: vi.fn().mockResolvedValue({
+    userID: 'user-1',
+    channel: vi.fn(() => mockChannel),
+  }),
   getStreamApiKey: vi.fn(() => 'stream-key'),
   getStreamClient: vi.fn(() => ({
     userID: 'user-1',

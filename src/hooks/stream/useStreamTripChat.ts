@@ -16,6 +16,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import {
+  connectStreamClient,
   getStreamApiKey,
   getStreamClient,
   onStreamClientConnected,
@@ -28,10 +29,57 @@ import { buildTripStreamMessagePayload } from '@/services/stream/streamMessagePa
 import { supabase } from '@/integrations/supabase/client';
 
 const PAGE_SIZE = 30;
+type StreamSendPayload = Parameters<Channel['sendMessage']>[0];
 
 export function isStreamReadChannelPermissionError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
   return /ReadChannel|read-channel|GetOrCreateChannel failed|error code 17/i.test(message);
+}
+
+function isAbortLikeError(error: unknown): boolean {
+  if (error instanceof DOMException && error.name === 'AbortError') return true;
+  const message = error instanceof Error ? error.message : String(error);
+  return /abort|aborted/i.test(message);
+}
+
+function isStreamCreateMentionPermissionError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /CreateMention|action CreateMention/i.test(message);
+}
+
+function hasMentionedUsers(payload: StreamSendPayload): payload is StreamSendPayload & {
+  mentioned_users: string[];
+} {
+  return (
+    typeof payload === 'object' &&
+    payload !== null &&
+    'mentioned_users' in payload &&
+    Array.isArray((payload as { mentioned_users?: unknown }).mentioned_users) &&
+    ((payload as { mentioned_users?: unknown[] }).mentioned_users?.length || 0) > 0
+  );
+}
+
+function withoutMentionedUsers(payload: StreamSendPayload): StreamSendPayload {
+  const { mentioned_users: _mentionedUsers, ...rest } = payload as StreamSendPayload & {
+    mentioned_users?: unknown;
+  };
+  return rest as StreamSendPayload;
+}
+
+async function sendMessageWithMentionFallback(channel: Channel, payload: StreamSendPayload) {
+  try {
+    return await channel.sendMessage(payload);
+  } catch (err) {
+    if (isStreamCreateMentionPermissionError(err) && hasMentionedUsers(payload)) {
+      if (import.meta.env.DEV) {
+        console.warn(
+          '[Stream] CreateMention denied; retrying send without mentioned_users payload',
+        );
+      }
+      return channel.sendMessage(withoutMentionedUsers(payload));
+    }
+    throw err;
+  }
 }
 
 /**
@@ -81,6 +129,22 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     });
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    if (!isEnabled || !tripId || streamClientReady || getStreamClient()?.userID) return;
+
+    let cancelled = false;
+    void connectStreamClient().then(client => {
+      if (cancelled) return;
+      if (client?.userID) {
+        setStreamClientReady(true);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isEnabled, tripId, streamClientReady]);
 
   useEffect(() => {
     if (!isEnabled || !tripId) return;
@@ -160,6 +224,18 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
 
             if (!response.ok && import.meta.env.DEV) {
               console.warn('[Stream] stream-join-channel returned non-OK', response.status);
+            }
+          } catch (joinErr) {
+            // Join is a best-effort membership projection. Do not block channel.watch() on
+            // transient fetch failures/timeouts; read permission recovery is handled below.
+            if (import.meta.env.DEV) {
+              const message =
+                joinErr instanceof Error ? joinErr.message : 'stream-join-channel failed';
+              if (isAbortLikeError(joinErr)) {
+                console.warn('[Stream] stream-join-channel timed out before watch; continuing');
+              } else {
+                console.warn('[Stream] stream-join-channel failed; continuing to watch', message);
+              }
             }
           } finally {
             window.clearTimeout(timeout);
@@ -393,8 +469,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         return;
       }
 
-      void channel
-        .sendMessage(payloadResult.payload)
+      void sendMessageWithMentionFallback(channel, payloadResult.payload)
         .then(() => {
           messageEvents.sent({
             trip_id: tripId,
@@ -480,7 +555,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
 
       setIsCreating(true);
       try {
-        const response = await channel.sendMessage(payloadResult.payload);
+        const response = await sendMessageWithMentionFallback(channel, payloadResult.payload);
         const sentMessage = response.message as MessageResponse;
 
         // Immediately insert or update the sent message in local state
