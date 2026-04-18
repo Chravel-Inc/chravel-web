@@ -192,12 +192,8 @@ describe('AuthModal', () => {
         expect(screen.getByText('Welcome Back')).toBeInTheDocument();
       });
 
-      expect(
-        screen.queryByRole('button', { name: /continue with google/i }),
-      ).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', { name: /continue with apple/i }),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^google$/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^apple$/i })).not.toBeInTheDocument();
       expect(
         screen.getByText(
           /in-app sign-in uses email\/password to keep authentication inside the app/i,
