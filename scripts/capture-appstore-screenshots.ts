@@ -278,6 +278,54 @@ async function waitForTabContent(page: Page, tabId: string, timeout = 20000): Pr
 }
 
 /**
+ * Wait for a visible trip-cover context (hero cover on trip detail, or trip card cover on dashboard)
+ * and ensure matched image(s) have finished loading/decoding before capture.
+ */
+async function waitForCoverPhotoContext(page: Page, timeout = 15000): Promise<boolean> {
+  const started = Date.now();
+
+  while (Date.now() - started < timeout) {
+    const status = await page.evaluate(() => {
+      const inViewport = (el: Element): boolean => {
+        const rect = el.getBoundingClientRect();
+        return (
+          rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < window.innerHeight
+        );
+      };
+
+      const loaded = (img: HTMLImageElement): boolean =>
+        Boolean(img.src) && img.complete && img.naturalWidth > 0 && img.naturalHeight > 0;
+
+      // Trip detail: hero cover image in TripHeader
+      const heroImgs = Array.from(
+        document.querySelectorAll<HTMLImageElement>('[data-trip-section="hero"] img'),
+      );
+      const heroVisibleLoaded = heroImgs.some(img => inViewport(img) && loaded(img));
+      if (heroVisibleLoaded) return { ok: true, kind: 'hero' };
+
+      // Dashboard: trip card thumbnails/covers
+      const dashboardCovers = Array.from(
+        document.querySelectorAll<HTMLImageElement>(
+          'img[alt*="trip" i], img[alt*="cover" i], [data-testid*="trip"] img, [class*="TripCard"] img, [class*="trip-card"] img',
+        ),
+      );
+      const dashboardVisibleLoaded = dashboardCovers.some(img => inViewport(img) && loaded(img));
+      if (dashboardVisibleLoaded) return { ok: true, kind: 'dashboard' };
+
+      return { ok: false, kind: 'none' };
+    });
+
+    if (status.ok) {
+      return true;
+    }
+
+    await page.waitForTimeout(250);
+  }
+
+  return false;
+}
+
+/**
  * Full readiness pipeline for a tab screenshot:
  * 1. Click the tab
  * 2. Verify tab is active
@@ -358,6 +406,9 @@ async function navigateToTrip(page: Page, tripPath: string): Promise<void> {
   if (body?.includes('Trip Not Found') || body?.includes('not found')) {
     throw new Error(`Trip at ${tripPath} returned "Not Found"`);
   }
+
+  // Deterministic baseline for captures: ensure we always shoot from top-of-page.
+  await page.evaluate(() => window.scrollTo(0, 0));
 }
 
 // ---------------------------------------------------------------------------
@@ -396,6 +447,16 @@ async function captureShot(
         // Dashboard — just wait for skeletons to clear
         await waitForNoSkeletons(page);
         await page.waitForTimeout(1000);
+      }
+
+      // Always capture from the top so trip cover context is visible in final image.
+      await page.evaluate(() => window.scrollTo(0, 0));
+
+      const hasCoverContext = await waitForCoverPhotoContext(page);
+      if (!hasCoverContext) {
+        lastError = `Cover photo context did not render for ${tripPath}`;
+        console.warn(`    ⚠ ${shot.name}: ${lastError}, trying next trip...`);
+        continue;
       }
 
       // Verify no auth gate

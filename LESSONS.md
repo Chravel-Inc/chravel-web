@@ -614,3 +614,10 @@
 - **Evidence:** Gmail connect failed from `https://chravelapp.com` with “Failed to send a request to the Edge Function” because CORS echoed fallback origin (`https://chravel.app`) instead of request origin.
 - **Provenance:** April 2026 Gmail connector deep-dive and fix.
 - **Confidence:** high
+
+### Screenshot pipelines should assert visual readiness for key brand context (not only route/tab readiness)
+- **Tip:** For marketing screenshot automation, validate the specific visual contract (e.g., visible loaded trip cover image) before capture. Route-loaded + tab-active checks alone can still produce visually incorrect assets when scroll state or async image decode lags.
+- **Applies when:** Playwright (or similar) scripts generate App Store / marketing composites from live UI.
+- **Evidence:** App Store captures showed correct tabs/headlines but missed trip cover context; adding explicit cover-context checks and top-of-page reset in `capture-appstore-screenshots.ts` made capture deterministic for this requirement.
+- **Provenance:** April 2026 App Store screenshot refresh hardening.
+- **Confidence:** high
