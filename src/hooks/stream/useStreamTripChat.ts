@@ -30,6 +30,28 @@ import { supabase } from '@/integrations/supabase/client';
 
 const PAGE_SIZE = 30;
 type StreamSendPayload = Parameters<Channel['sendMessage']>[0];
+const MEMBERSHIP_ERROR_MESSAGE =
+  'We could not verify your trip chat access. Please refresh and try again.';
+
+type MembershipFailureCode =
+  | 'join_failed'
+  | 'join_timeout'
+  | 'membership_denied'
+  | 'stream_api_failure'
+  | 'invalid_response'
+  | 'unknown';
+
+type MembershipFailure = {
+  code: MembershipFailureCode;
+  reason: string;
+};
+
+type MembershipRecoveryResult =
+  | { ok: true }
+  | {
+      ok: false;
+      failure: MembershipFailure;
+    };
 
 export function isStreamReadChannelPermissionError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
@@ -40,6 +62,30 @@ function isAbortLikeError(error: unknown): boolean {
   if (error instanceof DOMException && error.name === 'AbortError') return true;
   const message = error instanceof Error ? error.message : String(error);
   return /abort|aborted/i.test(message);
+}
+
+function toNonEmptyString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
+function extractMembershipFailure(value: unknown): MembershipFailure | null {
+  if (!value || typeof value !== 'object') return null;
+  const code = toNonEmptyString((value as { code?: unknown }).code);
+  const reason = toNonEmptyString((value as { reason?: unknown }).reason);
+  if (!code && !reason) return null;
+  return {
+    code: (code as MembershipFailureCode | null) ?? 'unknown',
+    reason: reason ?? 'Membership recovery failed',
+  };
+}
+
+function mapMembershipFailureToUiError(failure: MembershipFailure): Error {
+  if (failure.code === 'membership_denied') {
+    return new Error(
+      'You no longer have access to this trip chat. Ask the trip organizer to re-add you.',
+    );
+  }
+  return new Error(MEMBERSHIP_ERROR_MESSAGE);
 }
 
 function isStreamCreateMentionPermissionError(error: unknown): boolean {
@@ -106,6 +152,15 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
   const [activeChannel, setActiveChannel] = useState<Channel | null>(null);
   const isMountedRef = useRef(true);
   const membershipRecoveryAttemptedRef = useRef(false);
+  const guardedReloadAttemptedRef = useRef(false);
+  const membershipFailureRef = useRef<MembershipFailure | null>(null);
+  const [reloadSeed, setReloadSeed] = useState(0);
+
+  const triggerGuardedReload = useCallback(() => {
+    if (guardedReloadAttemptedRef.current) return;
+    guardedReloadAttemptedRef.current = true;
+    setReloadSeed(prev => prev + 1);
+  }, []);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -169,6 +224,8 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
 
   useEffect(() => {
     membershipRecoveryAttemptedRef.current = false;
+    guardedReloadAttemptedRef.current = false;
+    membershipFailureRef.current = null;
     hasHydratedMessagesRef.current = false;
   }, [tripId]);
 
@@ -222,20 +279,35 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
               },
             );
 
-            if (!response.ok && import.meta.env.DEV) {
-              console.warn('[Stream] stream-join-channel returned non-OK', response.status);
+            if (!response.ok) {
+              const payload = (await response.json().catch(() => null)) as unknown;
+              const failure =
+                extractMembershipFailure(payload) ??
+                ({
+                  code: 'join_failed',
+                  reason: `stream-join-channel returned ${response.status}`,
+                } satisfies MembershipFailure);
+              membershipFailureRef.current = failure;
+              if (import.meta.env.DEV) {
+                console.warn('[Stream] stream-join-channel returned non-OK', failure);
+              }
+            } else {
+              membershipFailureRef.current = null;
             }
           } catch (joinErr) {
-            // Join is a best-effort membership projection. Do not block channel.watch() on
-            // transient fetch failures/timeouts; read permission recovery is handled below.
+            const failure: MembershipFailure = isAbortLikeError(joinErr)
+              ? { code: 'join_timeout', reason: 'stream-join-channel timed out' }
+              : {
+                  code: 'join_failed',
+                  reason:
+                    joinErr instanceof Error
+                      ? joinErr.message
+                      : 'stream-join-channel request failed',
+                };
+            membershipFailureRef.current = failure;
+            // Join is best-effort before watch; deterministic recovery is handled on ReadChannel errors.
             if (import.meta.env.DEV) {
-              const message =
-                joinErr instanceof Error ? joinErr.message : 'stream-join-channel failed';
-              if (isAbortLikeError(joinErr)) {
-                console.warn('[Stream] stream-join-channel timed out before watch; continuing');
-              } else {
-                console.warn('[Stream] stream-join-channel failed; continuing to watch', message);
-              }
+              console.warn('[Stream] stream-join-channel failed before watch; continuing', failure);
             }
           } finally {
             window.clearTimeout(timeout);
@@ -249,6 +321,51 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         return { channel, state };
       };
 
+      const ensureMembership = async (): Promise<MembershipRecoveryResult> => {
+        const response = await supabase.functions.invoke('stream-ensure-membership', {
+          body: { tripId, userId: client.userID },
+        });
+
+        if (response.error) {
+          return {
+            ok: false,
+            failure: {
+              code: 'stream_api_failure',
+              reason: response.error.message || 'stream-ensure-membership invocation failed',
+            },
+          };
+        }
+
+        if (!response.data || typeof response.data !== 'object') {
+          return {
+            ok: false,
+            failure: {
+              code: 'invalid_response',
+              reason: 'stream-ensure-membership returned an invalid response body',
+            },
+          };
+        }
+
+        const parsed = response.data as {
+          success?: unknown;
+          code?: unknown;
+          reason?: unknown;
+        };
+
+        if (parsed.success === true) {
+          membershipFailureRef.current = null;
+          return { ok: true };
+        }
+
+        return {
+          ok: false,
+          failure: extractMembershipFailure(parsed) ?? {
+            code: 'invalid_response',
+            reason: 'stream-ensure-membership did not return success=true',
+          },
+        };
+      };
+
       try {
         let watched = await watchChannel();
         if (!watched || cancelled) return;
@@ -259,9 +376,10 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
           client.userID
         ) {
           membershipRecoveryAttemptedRef.current = true;
-          await supabase.functions.invoke('stream-ensure-membership', {
-            body: { tripId, userId: client.userID },
-          });
+          const ensured = await ensureMembership();
+          if (!ensured.ok) {
+            throw mapMembershipFailureToUiError(ensured.failure);
+          }
           watched = await watchChannel();
           if (!watched || cancelled) return;
         }
@@ -289,13 +407,18 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         setIsLoading(false);
       } catch (err) {
         if (cancelled) return;
+        let resolvedError: unknown = err;
 
-        if (isStreamReadChannelPermissionError(err) && !membershipRecoveryAttemptedRef.current) {
+        if (
+          isStreamReadChannelPermissionError(resolvedError) &&
+          !membershipRecoveryAttemptedRef.current
+        ) {
           membershipRecoveryAttemptedRef.current = true;
           try {
-            await supabase.functions.invoke('stream-ensure-membership', {
-              body: { tripId, userId: client.userID },
-            });
+            const ensured = await ensureMembership();
+            if (!ensured.ok) {
+              throw mapMembershipFailureToUiError(ensured.failure);
+            }
             const channel = client.channel(CHANNEL_TYPE_TRIP, tripChannelId(tripId));
             const state = await channel.watch({ state: true, messages: { limit: PAGE_SIZE } });
             const streamMessages = (state.messages || []) as MessageResponse[];
@@ -318,16 +441,28 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
               setIsLoading(false);
             }
             return;
-          } catch {
-            // handled by generic permission-safe message below
+          } catch (membershipErr) {
+            const failure = membershipFailureRef.current;
+            if (import.meta.env.DEV && failure) {
+              console.warn('[Stream] membership recovery failed', failure);
+            }
+            resolvedError = membershipErr;
           }
         }
 
-        const genericMessage = isStreamReadChannelPermissionError(err)
-          ? 'Chat is temporarily unavailable. Please try again.'
-          : err instanceof Error
-            ? err.message
-            : 'Failed to connect to chat';
+        if (isStreamReadChannelPermissionError(resolvedError)) {
+          setError(
+            mapMembershipFailureToUiError(
+              membershipFailureRef.current ?? { code: 'unknown', reason: 'ReadChannel denied' },
+            ),
+          );
+          triggerGuardedReload();
+          setIsLoading(false);
+          return;
+        }
+
+        const genericMessage =
+          resolvedError instanceof Error ? resolvedError.message : 'Failed to connect to chat';
         setError(new Error(genericMessage));
         setIsLoading(false);
       }
@@ -343,7 +478,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         setActiveChannel(null);
       }
     };
-  }, [tripId, isEnabled, streamClientReady]);
+  }, [tripId, isEnabled, streamClientReady, reloadSeed, triggerGuardedReload]);
 
   const reload = useCallback(async () => {
     if (!tripId || !isEnabled || !channelRef.current) return;

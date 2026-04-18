@@ -62,7 +62,7 @@ vi.mock('@/hooks/use-toast', () => ({
 describe('useStreamTripChat send path', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    watchMock.mockResolvedValue({ messages: [] });
+    watchMock.mockResolvedValue({ messages: [], membership: { user_id: 'user-1' } });
     queryMock.mockResolvedValue({ messages: [] });
     sendMessageMock.mockResolvedValue({
       message: { id: 'msg-1', text: 'hello', created_at: new Date().toISOString() },
@@ -199,5 +199,62 @@ describe('useStreamTripChat send path', () => {
     expect(watchMock).toHaveBeenCalled();
     expect(result.current.error).toBeNull();
     fetchSpy.mockRestore();
+  });
+
+  it('recovers deterministically when initial ReadChannel fails then ensure-membership succeeds', async () => {
+    watchMock
+      .mockRejectedValueOnce(
+        new Error(
+          "StreamChat error code 17: GetOrCreateChannel failed with error: User 'abc' is not allowed to perform action ReadChannel",
+        ),
+      )
+      .mockResolvedValueOnce({
+        membership: { user_id: 'user-1' },
+        messages: [
+          { id: 'msg-recovered', text: 'Recovered', created_at: new Date().toISOString() },
+        ],
+      });
+
+    vi.mocked(supabase.functions.invoke).mockResolvedValueOnce({
+      data: { success: true, code: 'ok' },
+      error: null,
+    } as Awaited<ReturnType<typeof supabase.functions.invoke>>);
+
+    const { result } = renderHook(() => useStreamTripChat('trip-abc', { enabled: true }));
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(supabase.functions.invoke).toHaveBeenCalledWith('stream-ensure-membership', {
+      body: { tripId: 'trip-abc', userId: 'user-1' },
+    });
+    expect(watchMock).toHaveBeenCalledTimes(2);
+    expect(result.current.error).toBeNull();
+    expect(result.current.messages[0]?.id).toBe('msg-recovered');
+  });
+
+  it('surfaces stable user-facing error when ensure-membership fails', async () => {
+    watchMock.mockRejectedValue(
+      new Error(
+        "StreamChat error code 17: GetOrCreateChannel failed with error: User 'abc' is not allowed to perform action ReadChannel",
+      ),
+    );
+
+    vi.mocked(supabase.functions.invoke).mockResolvedValueOnce({
+      data: { success: false, code: 'membership_required', reason: 'User is not a trip member' },
+      error: null,
+    } as Awaited<ReturnType<typeof supabase.functions.invoke>>);
+
+    const { result } = renderHook(() => useStreamTripChat('trip-abc', { enabled: true }));
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.error?.message).toBe(
+      'We could not verify your trip chat access. Please refresh and try again.',
+    );
+    expect(supabase.functions.invoke).toHaveBeenCalledTimes(1);
   });
 });
