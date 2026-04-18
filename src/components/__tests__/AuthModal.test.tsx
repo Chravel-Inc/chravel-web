@@ -169,6 +169,18 @@ describe('AuthModal', () => {
       expect(mockOnClose).toHaveBeenCalled();
     });
 
+    it('shows Google and Apple OAuth options in browser context', async () => {
+      render(<AuthModal isOpen={true} onClose={mockOnClose} />, {
+        wrapper: createTestWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /^google$/i })).toBeInTheDocument();
+      });
+
+      expect(screen.getByRole('button', { name: /^apple$/i })).toBeInTheDocument();
+    });
+
     it('hides external OAuth buttons in installed app context', async () => {
       vi.spyOn(platformDetection, 'isInstalledApp').mockReturnValue(true);
 
