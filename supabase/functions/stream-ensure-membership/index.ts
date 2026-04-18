@@ -11,6 +11,36 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const tripChannelId = (tripId: string) => `trip-${tripId}`;
 const broadcastChannelId = (tripId: string) => `broadcast-${tripId}`;
 
+type ErrorCode =
+  | 'invalid_method'
+  | 'auth_required'
+  | 'auth_invalid'
+  | 'invalid_trip_id'
+  | 'membership_verification_failed'
+  | 'membership_required'
+  | 'stream_api_failure'
+  | 'broadcast_membership_projection_failed';
+
+function jsonResponse(
+  payload: Record<string, unknown>,
+  status: number,
+  corsHeaders: Record<string, string>,
+) {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+function errorResponse(
+  corsHeaders: Record<string, string>,
+  status: number,
+  code: ErrorCode,
+  reason: string,
+) {
+  return jsonResponse({ success: false, code, reason }, status, corsHeaders);
+}
+
 serve(async req => {
   const corsHeaders = getCorsHeaders(req);
 
@@ -19,10 +49,7 @@ serve(async req => {
   }
 
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return errorResponse(corsHeaders, 405, 'invalid_method', 'Method not allowed');
   }
 
   try {
@@ -32,10 +59,7 @@ serve(async req => {
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return errorResponse(corsHeaders, 401, 'auth_required', 'Authentication required');
     }
 
     const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -49,20 +73,14 @@ serve(async req => {
     } = await userClient.auth.getUser(authHeader.replace('Bearer ', ''));
 
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid authentication' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return errorResponse(corsHeaders, 401, 'auth_invalid', 'Invalid authentication');
     }
 
     const body = await req.json().catch(() => ({}));
     const tripId = typeof body?.tripId === 'string' ? body.tripId.trim() : '';
 
     if (!tripId) {
-      return new Response(JSON.stringify({ error: 'tripId is required' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return errorResponse(corsHeaders, 400, 'invalid_trip_id', 'tripId is required');
     }
 
     const { data: membership, error: membershipError } = await adminClient
@@ -73,14 +91,16 @@ serve(async req => {
       .maybeSingle();
 
     if (membershipError) {
-      throw membershipError;
+      return errorResponse(
+        corsHeaders,
+        500,
+        'membership_verification_failed',
+        'Failed to verify trip membership',
+      );
     }
 
     if (!membership) {
-      return new Response(JSON.stringify({ error: 'User is not a trip member' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return errorResponse(corsHeaders, 403, 'membership_required', 'User is not a trip member');
     }
 
     const { data: profile } = await adminClient
@@ -105,12 +125,27 @@ serve(async req => {
     });
 
     await stream.channel('chravel-trip', tripChannelId(tripId)).addMembers([user.id]);
-    await stream.channel('chravel-broadcast', broadcastChannelId(tripId)).addMembers([user.id]);
 
-    return new Response(JSON.stringify({ success: true }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    try {
+      await stream.channel('chravel-broadcast', broadcastChannelId(tripId)).addMembers([user.id]);
+    } catch (broadcastErr) {
+      console.warn('[stream-ensure-membership] Broadcast addMembers failed', {
+        tripId,
+        userId: user.id,
+        reason: broadcastErr instanceof Error ? broadcastErr.message : 'Unknown error',
+      });
+      return jsonResponse(
+        {
+          success: true,
+          code: 'broadcast_membership_projection_failed',
+          reason: 'Trip chat membership ensured; broadcast sync skipped',
+        },
+        200,
+        corsHeaders,
+      );
+    }
+
+    return jsonResponse({ success: true, code: 'ok' }, 200, corsHeaders);
   } catch (error) {
     if (error instanceof Error && error.message.includes('Missing required secret')) {
       return createMissingSecretResponse(error, corsHeaders);
@@ -119,9 +154,11 @@ serve(async req => {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[stream-ensure-membership] Error:', message);
 
-    return new Response(JSON.stringify({ error: 'Failed to ensure Stream membership' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return errorResponse(
+      corsHeaders,
+      500,
+      'stream_api_failure',
+      'Failed to ensure Stream membership',
+    );
   }
 });
