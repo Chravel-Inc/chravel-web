@@ -122,6 +122,14 @@
 - **Provenance:** March 2026 trip creation forensic fix.
 - **Confidence:** high
 
+### OAuth callbacks should preserve same-origin session context by carrying redirect URI in signed state
+- **Tip:** For web OAuth flows triggered from multiple approved origins (production, localhost, preview), generate redirect URI from the initiating origin and include it in the signed state payload. Reuse that URI during code exchange so users return to the same origin where their auth session exists.
+- **Applies when:** Edge function handles OAuth `connect` + `callback` for browser clients across multiple environments.
+- **Avoid when:** Native mobile deep-link flows that use custom URL schemes instead of same-origin web callbacks.
+- **Evidence:** Gmail connector intermittently failed because connect flow could fall back to a hardcoded production callback URL; preview/local users were redirected to a different origin and arrived unauthenticated at callback. Whitelisting additional redirect URIs and validating/echoing the URI via signed state removed cross-origin session drift.
+- **Provenance:** April 2026 Gmail OAuth reliability hardening.
+- **Confidence:** high
+
 ### Secured Supabase storage buckets require signed URLs for client previews
 - **Tip:** When a storage bucket transitions from public read to RLS-protected read, any UI code still using `getPublicUrl()` will silently regress into broken images/files. Resolve previews via `createSignedUrl()` (or a shared resolver) at read time.
 - **Applies when:** Rendering files from `trip-media` (or any bucket with authenticated `SELECT` policies) in event tabs, galleries, chat attachments, or media cards.
