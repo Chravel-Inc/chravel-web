@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router-dom';
 import React from 'react';
 import { AuthModal } from '../AuthModal';
 import { AuthProvider } from '@/hooks/useAuth';
+import * as platformDetection from '@/utils/platformDetection';
 
 // Mock the supabase client
 vi.mock('@/integrations/supabase/client', () => ({
@@ -49,6 +50,7 @@ describe('AuthModal', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(platformDetection, 'isInstalledApp').mockReturnValue(false);
   });
 
   describe('email form functionality', () => {
@@ -165,6 +167,30 @@ describe('AuthModal', () => {
       }
 
       expect(mockOnClose).toHaveBeenCalled();
+    });
+
+    it('hides external OAuth buttons in installed app context', async () => {
+      vi.spyOn(platformDetection, 'isInstalledApp').mockReturnValue(true);
+
+      render(<AuthModal isOpen={true} onClose={mockOnClose} />, {
+        wrapper: createTestWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Welcome Back')).toBeInTheDocument();
+      });
+
+      expect(
+        screen.queryByRole('button', { name: /continue with google/i }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /continue with apple/i }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByText(
+          /in-app sign-in uses email\/password to keep authentication inside the app/i,
+        ),
+      ).toBeInTheDocument();
     });
   });
 });
