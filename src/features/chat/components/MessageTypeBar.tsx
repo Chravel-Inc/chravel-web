@@ -54,7 +54,8 @@ export const MessageTypeBar = ({
 }: MessageTypeBarProps) => {
   const pillBarRef = useRef<HTMLDivElement>(null);
   const [channelPopoverOpen, setChannelPopoverOpen] = useState(false);
-  const formatChannelLabel = (name?: string) => (name || 'channel').toLowerCase().replace(/\s+/g, '-');
+  const formatChannelLabel = (name?: string) =>
+    (name || 'channel').toLowerCase().replace(/\s+/g, '-');
 
   // Auto-open channels popover when switching to channels filter
   useEffect(() => {

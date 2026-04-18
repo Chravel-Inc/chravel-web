@@ -14,14 +14,14 @@ describe('eventChatPermissions', () => {
     );
   });
 
-  it('forces admin_only behavior for events above 50 attendees', () => {
+  it('keeps event chat open even above 50 attendees', () => {
     expect(canEnableEveryoneChat('event', EVENT_OPEN_CHAT_MAX_ATTENDEES + 1)).toBe(false);
     expect(
       resolveEffectiveMainChatMode('everyone', 'event', EVENT_OPEN_CHAT_MAX_ATTENDEES + 1),
-    ).toBe('admin_only');
+    ).toBe('everyone');
   });
 
-  it('blocks attendee posting in large event even with legacy everyone value', () => {
+  it('allows attendee posting in large events', () => {
     const attendeeCanPost = canPostInMainChat({
       chatMode: 'everyone',
       tripType: 'event',
@@ -38,7 +38,7 @@ describe('eventChatPermissions', () => {
       isLoading: false,
     });
 
-    expect(attendeeCanPost).toBe(false);
+    expect(attendeeCanPost).toBe(true);
     expect(adminCanPost).toBe(true);
   });
 
@@ -64,8 +64,8 @@ describe('eventChatPermissions', () => {
     expect(resolveEffectiveMainChatMode('broadcasts', null, 4)).toBe('everyone');
   });
 
-  it('preserves broadcasts mode for event trips', () => {
-    expect(resolveEffectiveMainChatMode('broadcasts', 'event', 30)).toBe('broadcasts');
+  it('normalizes broadcasts mode to everyone for event trips', () => {
+    expect(resolveEffectiveMainChatMode('broadcasts', 'event', 30)).toBe('everyone');
   });
 
   it('treats broadcasts as everyone when DB says event but UI shell is consumer/pro', () => {
@@ -83,8 +83,8 @@ describe('eventChatPermissions', () => {
     expect(memberCanPost).toBe(true);
   });
 
-  it('still enforces broadcasts on true event shell even if trip_type row is wrong', () => {
-    expect(resolveEffectiveMainChatMode('broadcasts', 'consumer', 4, true)).toBe('broadcasts');
+  it('forces everyone mode on event shell even if trip_type row is wrong', () => {
+    expect(resolveEffectiveMainChatMode('broadcasts', 'consumer', 4, true)).toBe('everyone');
   });
 
   it('allows consumer trip member to post even if chat_mode is broadcasts', () => {
@@ -99,7 +99,7 @@ describe('eventChatPermissions', () => {
     expect(memberCanPost).toBe(true);
   });
 
-  it('blocks non-admin posting in event with broadcasts mode', () => {
+  it('allows non-admin posting in event with broadcasts mode value', () => {
     const memberCanPost = canPostInMainChat({
       chatMode: 'broadcasts',
       tripType: 'event',
@@ -116,7 +116,7 @@ describe('eventChatPermissions', () => {
       isLoading: false,
     });
 
-    expect(memberCanPost).toBe(false);
+    expect(memberCanPost).toBe(true);
     expect(adminCanPost).toBe(true);
   });
 
@@ -155,7 +155,7 @@ describe('eventChatPermissions', () => {
     ).toBe(true);
   });
 
-  it('does not optimistically allow posting while loading for restricted modes', () => {
+  it('does not optimistically allow posting while loading for restricted non-event modes', () => {
     expect(
       canPostInMainChat({
         chatMode: 'broadcasts',
@@ -164,7 +164,7 @@ describe('eventChatPermissions', () => {
         userRole: null,
         isLoading: true,
       }),
-    ).toBe(false);
+    ).toBe(true);
 
     expect(
       canPostInMainChat({

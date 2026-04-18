@@ -38,10 +38,9 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { useEventAdmin, ChatMode, MediaUploadMode } from '@/hooks/useEventAdmin';
+import { useEventAdmin, MediaUploadMode } from '@/hooks/useEventAdmin';
 import { EVENT_TABS_CONFIG } from '@/lib/eventTabs';
 import { NativeSegmentedControl } from '@/components/native/NativeSegmentedControl';
-import { EVENT_OPEN_CHAT_MAX_ATTENDEES } from '@/lib/eventChatPermissions';
 
 interface EventAdminTabProps {
   eventId: string;
@@ -57,7 +56,7 @@ const TAB_ICON_MAP: Record<string, React.ElementType> = {
   tasks: ClipboardList,
 };
 
-const TABS_WITH_GEAR = new Set(['chat', 'media']);
+const TABS_WITH_GEAR = new Set(['media']);
 
 const TAB_META = EVENT_TABS_CONFIG.filter(tab => tab.key !== 'admin').map(tab => ({
   id: tab.key,
@@ -80,23 +79,17 @@ export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
     isLoading,
     isSaving,
     isProcessing,
-    chatMode,
-    canUseEveryoneChat,
-    attendeeCount,
     mediaUploadMode,
     toggleVisibility,
     toggleFeature,
     isFeatureEnabled,
-    setChatMode,
     setMediaUploadMode,
     approveRequest,
     rejectRequest,
   } = useEventAdmin({ eventId });
   const { toast } = useToast();
 
-  const [chatModalOpen, setChatModalOpen] = useState(false);
   const [mediaModalOpen, setMediaModalOpen] = useState(false);
-  const [pendingChatMode, setPendingChatMode] = useState<ChatMode>(chatMode);
   const [pendingMediaMode, setPendingMediaMode] = useState<MediaUploadMode>(mediaUploadMode);
 
   if (isLoading) {
@@ -121,25 +114,9 @@ export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
     if (wantPrivate !== isPrivate) toggleVisibility();
   };
 
-  const openChatModal = () => {
-    setPendingChatMode(chatMode);
-    setChatModalOpen(true);
-  };
-
   const openMediaModal = () => {
     setPendingMediaMode(mediaUploadMode);
     setMediaModalOpen(true);
-  };
-
-  const saveChatMode = async () => {
-    if (pendingChatMode === 'everyone' && !canUseEveryoneChat) return;
-    try {
-      await setChatMode(pendingChatMode);
-      setChatModalOpen(false);
-      toast({ title: 'Chat permissions updated' });
-    } catch {
-      toast({ title: 'Failed to update chat permissions', variant: 'destructive' });
-    }
   };
 
   const saveMediaMode = async () => {
@@ -215,7 +192,7 @@ export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
                   <div className="flex items-center gap-2">
                     {hasGear && (
                       <button
-                        onClick={tab.id === 'chat' ? openChatModal : openMediaModal}
+                        onClick={openMediaModal}
                         className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                         aria-label={`${tab.label} permissions`}
                         title={`${tab.label} permissions`}
@@ -378,75 +355,6 @@ export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
           </div>
         </div>
       </div>
-
-      {/* Chat permissions modal */}
-      <Dialog open={chatModalOpen} onOpenChange={setChatModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Chat permissions</DialogTitle>
-            <DialogDescription>
-              Control who can send messages in this event's chat.
-            </DialogDescription>
-            <p className="text-xs text-muted-foreground">
-              Everyone can chat is available for events with {EVENT_OPEN_CHAT_MAX_ATTENDEES}{' '}
-              attendees or fewer. Current attendee count: {attendeeCount}.
-            </p>
-          </DialogHeader>
-          <RadioGroup
-            value={pendingChatMode}
-            onValueChange={v => setPendingChatMode(v as ChatMode)}
-            className="space-y-4 py-2"
-          >
-            <div className="flex items-start space-x-3">
-              <RadioGroupItem value="broadcasts" id="chat-broadcasts" className="mt-1" />
-              <Label htmlFor="chat-broadcasts" className="cursor-pointer space-y-1">
-                <span className="font-medium text-foreground">Broadcasts only</span>
-                <p className="text-xs text-muted-foreground">
-                  Only admins can post broadcasts. Attendees can't send messages.
-                </p>
-              </Label>
-            </div>
-            <div className="flex items-start space-x-3">
-              <RadioGroupItem value="admin_only" id="chat-admin" className="mt-1" />
-              <Label htmlFor="chat-admin" className="cursor-pointer space-y-1">
-                <span className="font-medium text-foreground">Admin-only chat</span>
-                <p className="text-xs text-muted-foreground">
-                  Only admins can send messages. Attendees read-only.
-                </p>
-              </Label>
-            </div>
-            <div className="flex items-start space-x-3">
-              <RadioGroupItem
-                value="everyone"
-                id="chat-everyone"
-                className="mt-1"
-                disabled={!canUseEveryoneChat}
-              />
-              <Label htmlFor="chat-everyone" className="cursor-pointer space-y-1">
-                <span className="font-medium text-foreground">
-                  Everyone can chat ({EVENT_OPEN_CHAT_MAX_ATTENDEES} people or fewer)
-                </span>
-                <p className="text-xs text-muted-foreground">
-                  {!canUseEveryoneChat
-                    ? 'Unavailable for larger events. Use admin-only chat or broadcasts to keep communication scalable.'
-                    : 'All attendees can send messages.'}
-                </p>
-              </Label>
-            </div>
-          </RadioGroup>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setChatModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={saveChatMode}
-              disabled={isSaving || (pendingChatMode === 'everyone' && !canUseEveryoneChat)}
-            >
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Media permissions modal */}
       <Dialog open={mediaModalOpen} onOpenChange={setMediaModalOpen}>

@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { X, Copy, Check, ScrollText } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { isConsumerTrip } from '@/utils/tripTierDetector';
+import { useTripType } from '@/hooks/useTripType';
+import { getStreamClient } from '@/services/stream/streamClient';
+import { CHANNEL_TYPE_TRIP, tripChannelId } from '@/services/stream/streamChannelFactory';
 import { format } from 'date-fns';
 
 interface SystemEvent {
   id: string;
   content: string;
   system_event_type: string;
-  payload: any;
+  payload: unknown;
   created_at: string;
 }
 
@@ -24,47 +25,69 @@ export const EventLogDrawer: React.FC<EventLogDrawerProps> = ({ isOpen, onClose,
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const isConsumer = isConsumerTrip(tripId);
+  const { isConsumer } = useTripType(tripId);
 
   useEffect(() => {
-    if (isConsumer && isOpen) {
-      fetchEvents();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchEvents depends on tripId already in deps
+    if (!isConsumer || !isOpen) return;
+
+    let cancelled = false;
+    const fetchEvents = async (): Promise<void> => {
+      setLoading(true);
+      try {
+        const client = getStreamClient();
+        if (!client?.userID) {
+          if (!cancelled) setEvents([]);
+          return;
+        }
+
+        const channel = client.channel(CHANNEL_TYPE_TRIP, tripChannelId(tripId));
+        // Fetch the most recent system messages on this channel. Stream's
+        // query-messages takes filter-by-message_type via custom field.
+        const result = await channel.query({
+          messages: { limit: 100 },
+          watch: false,
+          state: false,
+        });
+
+        if (cancelled) return;
+
+        const systemMessages: SystemEvent[] = (result.messages || [])
+          .filter(m => (m as { message_type?: string }).message_type === 'system')
+          .map(m => {
+            const custom = m as unknown as Record<string, unknown>;
+            return {
+              id: m.id,
+              content: m.text || '',
+              system_event_type: (custom.system_event_type as string) || 'unknown',
+              payload: custom.system_payload ?? null,
+              created_at: m.created_at?.toString() || new Date().toISOString(),
+            };
+          })
+          .reverse(); // newest first
+
+        setEvents(systemMessages);
+      } catch (error) {
+        console.error('[EventLog] Stream query failed:', error);
+        if (!cancelled) setEvents([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    void fetchEvents();
+    return () => {
+      cancelled = true;
+    };
   }, [isConsumer, isOpen, tripId]);
 
-  const fetchEvents = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('trip_chat_messages')
-        .select('id, content, system_event_type, payload, created_at')
-        .eq('trip_id', tripId)
-        .eq('message_type', 'system')
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (error) {
-        console.error('[EventLog] Failed to fetch:', error);
-        return;
-      }
-
-      setEvents((data || []) as SystemEvent[]);
-    } catch (error) {
-      console.error('[EventLog] Error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const copyAllToClipboard = async () => {
+  const copyAllToClipboard = async (): Promise<void> => {
     const json = JSON.stringify(events, null, 2);
     await navigator.clipboard.writeText(json);
     setCopiedId('all');
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const copyEventToClipboard = async (event: SystemEvent) => {
+  const copyEventToClipboard = async (event: SystemEvent): Promise<void> => {
     const json = JSON.stringify(event, null, 2);
     await navigator.clipboard.writeText(json);
     setCopiedId(event.id);
@@ -146,11 +169,11 @@ export const EventLogDrawer: React.FC<EventLogDrawerProps> = ({ isOpen, onClose,
                     </button>
                   </div>
                 </div>
-                {expandedId === event.id && event.payload && (
+                {expandedId === event.id && event.payload != null ? (
                   <pre className="mt-2 p-2 bg-muted rounded-lg text-xs overflow-x-auto text-muted-foreground">
                     {JSON.stringify(event.payload, null, 2)}
                   </pre>
-                )}
+                ) : null}
               </div>
             ))
           )}

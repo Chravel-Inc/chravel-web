@@ -19,6 +19,11 @@ export function resolveEffectiveMainChatMode(
   attendeeCount: number,
   surfaceIsEvent?: boolean,
 ): Exclude<ChatMode, null> {
+  // Product decision (April 2026): Event main chat is fully open for all attendees.
+  if (tripType === 'event' || surfaceIsEvent === true) {
+    return 'everyone';
+  }
+
   // Keep null mode permissive to match existing server policy (`chat_mode IS NULL` allows posting).
   const normalizedMode = chatMode ?? 'everyone';
 
@@ -60,6 +65,8 @@ export function canPostInMainChat(params: {
     attendeeCount,
     surfaceIsEvent,
   );
+
+  if (tripType === 'event' || surfaceIsEvent === true) return true;
 
   // While chat mode + membership are still fetching, show the composer for trips that
   // resolve to open chat. RLS remains authoritative; this fixes a multi-second blank

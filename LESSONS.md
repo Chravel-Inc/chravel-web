@@ -98,6 +98,14 @@
 
 ## Recovery Tips
 
+### Installed-app auth should hard-block external OAuth at service boundary and UI
+- **Tip:** For Capacitor/PWA contexts, do not rely on UI-only hiding of OAuth buttons. Also enforce a service-level guard in auth hooks so deep links, stale tabs, or legacy UI paths cannot trigger browser-redirect OAuth in installed shells.
+- **Applies when:** Login flows must remain in-app for TestFlight/App Store/Play Store/PWA installs.
+- **Avoid when:** Product explicitly supports native OAuth handoff + deep-link return and it is fully validated.
+- **Evidence:** Installed app users hit spinner + browser redirect regressions when OAuth buttons were reachable; dual guard (`AuthModal` + `useAuth` blocking on `isInstalledApp()`) preserved web OAuth and removed installed-app external redirects.
+- **Provenance:** April 2026 installed-app auth regression fix.
+- **Confidence:** high
+
 ### Fire-and-forget sync paths must emit structured failure signals
 - **Tip:** If a non-critical sync step intentionally runs fire-and-forget (for example membership projection into Stream after a successful Supabase mutation), never leave `.catch(() => {})` empty. Emit structured logs with operation + identifiers so support can trace drift and replay safely.
 - **Applies when:** Client-side best-effort projections to external systems (Stream membership sync, analytics mirrors, webhook side effects).
@@ -112,6 +120,14 @@
 - **Avoid when:** The function responds with a normal 4xx/5xx payload (that indicates handler executed and CORS likely passed).
 - **Evidence:** Trip creation path (`CreateTripModal -> useTrips -> tripService -> create-trip`) surfaced only `Failed to fetch` until `.lovable.dev` was re-added to shared CORS origins and error mapping was made actionable.
 - **Provenance:** March 2026 trip creation forensic fix.
+- **Confidence:** high
+
+### OAuth callbacks should preserve same-origin session context by carrying redirect URI in signed state
+- **Tip:** For web OAuth flows triggered from multiple approved origins (production, localhost, preview), generate redirect URI from the initiating origin and include it in the signed state payload. Reuse that URI during code exchange so users return to the same origin where their auth session exists.
+- **Applies when:** Edge function handles OAuth `connect` + `callback` for browser clients across multiple environments.
+- **Avoid when:** Native mobile deep-link flows that use custom URL schemes instead of same-origin web callbacks.
+- **Evidence:** Gmail connector intermittently failed because connect flow could fall back to a hardcoded production callback URL; preview/local users were redirected to a different origin and arrived unauthenticated at callback. Whitelisting additional redirect URIs and validating/echoing the URI via signed state removed cross-origin session drift.
+- **Provenance:** April 2026 Gmail OAuth reliability hardening.
 - **Confidence:** high
 
 ### Secured Supabase storage buckets require signed URLs for client previews

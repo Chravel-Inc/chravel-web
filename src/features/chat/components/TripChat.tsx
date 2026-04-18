@@ -36,7 +36,7 @@ import { useChatReactions } from '../hooks/useChatReactions';
 import { MessageTypeBar } from './MessageTypeBar';
 import { ChatSearchOverlay } from './ChatSearchOverlay';
 import { useEffectiveSystemMessagePreferences } from '@/hooks/useSystemMessagePreferences';
-import { isConsumerTrip } from '@/utils/tripTierDetector';
+import { useTripType } from '@/hooks/useTripType';
 import { ThreadView } from './ThreadView';
 import { useTripPrivacyConfig, getEffectivePrivacyMode } from '@/hooks/useTripPrivacyConfig';
 import { useTripChatMode } from '@/hooks/useTripChatMode';
@@ -240,8 +240,10 @@ export const TripChat = React.memo(
       [demoMode.isDemoMode, streamClient],
     );
 
-    // System message preferences - only for consumer trips
-    const isConsumer = isConsumerTrip(resolvedTripId);
+    // System message preferences — only meaningful for consumer trips. Use the
+    // DB-backed tier detector so this works for real (UUID) trips, not just
+    // seeded mock IDs.
+    const { isConsumer } = useTripType(resolvedTripId);
     const { data: systemMessagePrefs } = useEffectiveSystemMessagePreferences(
       isConsumer ? resolvedTripId : '',
     );
@@ -442,6 +444,9 @@ export const TripChat = React.memo(
           isEdited: msgCreatedAt !== msgUpdatedAt,
           editedAt: msgCreatedAt !== msgUpdatedAt ? msgUpdatedAt : undefined,
           tags: customType === 'system' ? (['system'] as string[]) : ([] as string[]),
+          message_type: customType,
+          system_event_type: (message as any).system_event_type,
+          system_payload: (message as any).system_payload,
           linkPreview,
           replyTo,
           mediaType,

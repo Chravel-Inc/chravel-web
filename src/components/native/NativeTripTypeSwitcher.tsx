@@ -247,7 +247,9 @@ export const NativeTripTypeSwitcher = ({
                     'w-full flex items-center gap-4 p-4 rounded-xl',
                     'transition-all duration-150',
                     isRecsDisabled && 'opacity-50 cursor-not-allowed',
-                    isSelected ? 'accent-ring-active' : 'bg-black/5 dark:bg-white/5 active:bg-black/10 dark:active:bg-white/10',
+                    isSelected
+                      ? 'accent-ring-active'
+                      : 'bg-black/5 dark:bg-white/5 active:bg-black/10 dark:active:bg-white/10',
                   )}
                 >
                   {/* Icon */}
@@ -268,7 +270,9 @@ export const NativeTripTypeSwitcher = ({
                       <span
                         className={cn(
                           'text-[17px] font-medium',
-                          isSelected ? 'text-black dark:text-white' : 'text-black/90 dark:text-white/90',
+                          isSelected
+                            ? 'text-black dark:text-white'
+                            : 'text-black/90 dark:text-white/90',
                         )}
                       >
                         {type.label}
@@ -284,7 +288,9 @@ export const NativeTripTypeSwitcher = ({
                         </span>
                       )}
                     </div>
-                    <span className="text-[14px] text-black/50 dark:text-white/50">{type.sublabel}</span>
+                    <span className="text-[14px] text-black/50 dark:text-white/50">
+                      {type.sublabel}
+                    </span>
                   </div>
 
                   {/* Checkmark */}

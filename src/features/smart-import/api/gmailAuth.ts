@@ -11,6 +11,13 @@ export type GmailAccount = {
   last_synced_at: string | null;
 };
 
+export function resolveGmailOAuthRedirectUri(): string | null {
+  if (typeof window === 'undefined' || !window.location?.origin) {
+    return null;
+  }
+  return `${window.location.origin}/api/gmail/oauth/callback`;
+}
+
 export const fetchGmailAccounts = async (): Promise<GmailAccount[]> => {
   try {
     // Query the safe view — token columns are not exposed to the frontend
@@ -55,8 +62,10 @@ export const fetchGmailAccounts = async (): Promise<GmailAccount[]> => {
 };
 
 export const connectGmailAccount = async (): Promise<string> => {
+  const redirectUri = resolveGmailOAuthRedirectUri();
   const { data, error } = await supabase.functions.invoke('gmail-auth/connect', {
     method: 'POST',
+    body: redirectUri ? { redirectUri } : undefined,
   });
 
   if (error) {
