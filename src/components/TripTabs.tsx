@@ -73,7 +73,8 @@ export const TripTabs = ({
   isDemoMode = false,
   tripData,
 }: TripTabsProps) => {
-  const [activeTab, setActiveTab] = useState('chat');
+  /** Controlled by parent (e.g. TripDetailDesktop) so URL/state and prefetch stay in sync */
+  const activeTab = parentActiveTab;
   const [isAddLinkModalOpen, setIsAddLinkModalOpen] = useState(false);
   const [linkPrefill, setLinkPrefill] = useState<
     | {
@@ -91,7 +92,15 @@ export const TripTabs = ({
   const { prefetchTab, prefetchAdjacentTabs, prefetchPriorityTabs } = usePrefetchTrip();
 
   // ⚡ PERFORMANCE: Track visited tabs to keep them mounted
-  const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set([activeTab]));
+  const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set([parentActiveTab]));
+
+  // Parent may change active tab programmatically (e.g. deep link); ensure that tab mounts
+  useEffect(() => {
+    setVisitedTabs(prev => {
+      if (prev.has(parentActiveTab)) return prev;
+      return new Set([...prev, parentActiveTab]);
+    });
+  }, [parentActiveTab]);
 
   // Tab order for adjacent prefetching
   const tabOrder = [
@@ -171,7 +180,7 @@ export const TripTabs = ({
       });
       return;
     }
-    setActiveTab(tab);
+    parentOnTabChange(tab);
   };
 
   // Default tab skeleton for lazy loading fallback
@@ -288,18 +297,17 @@ export const TripTabs = ({
       {/* Tab Navigation - Responsive max-width container */}
       <div className="w-full flex justify-center mb-2">
         <div className="w-full max-w-7xl overflow-x-auto scrollbar-hidden scroll-smooth px-2">
-          <div className="flex whitespace-nowrap gap-2">
-            {tabs.map(tab => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              const enabled = tab.enabled;
+          <TooltipProvider>
+            <div className="flex whitespace-nowrap gap-2">
+              {tabs.map(tab => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                const enabled = tab.enabled;
 
-              return (
-                <TooltipProvider>
-                  <Tooltip>
+                return (
+                  <Tooltip key={tab.id}>
                     <TooltipTrigger asChild>
                       <button
-                        key={tab.id}
                         data-tab={tab.id}
                         data-active={isActive ? 'true' : 'false'}
                         onClick={() => handleTabChange(tab.id, enabled)}
@@ -333,10 +341,10 @@ export const TripTabs = ({
                       </TooltipContent>
                     )}
                   </Tooltip>
-                </TooltipProvider>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          </TooltipProvider>
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useState } from 'react';
 import { DollarSign, Shield, FileCheck, Award } from 'lucide-react';
 import { FeatureErrorBoundary } from '../FeatureErrorBoundary';
 import { CalendarSkeleton, PlacesSkeleton, ChatSkeleton } from '../loading';
@@ -92,6 +92,9 @@ export const ProTabContent = ({
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
   const { isSuperAdmin } = useSuperAdmin();
+
+  /** Local tab state for nested consumer-style TripTabs (default branch only) */
+  const [nestedTripTabsTab, setNestedTripTabsTab] = useState('chat');
 
   const userRole = user?.proRole || 'staff';
   const userPermissions = user?.permissions || ['read'];
@@ -265,7 +268,13 @@ export const ProTabContent = ({
       case 'ai-chat':
         return <AIConciergeChat tripId={tripId} basecamp={basecamp} onTabChange={onTabChange} />;
       default:
-        return <TripTabs activeTab="chat" onTabChange={() => {}} tripId={tripId} />;
+        return (
+          <TripTabs
+            activeTab={nestedTripTabsTab}
+            onTabChange={setNestedTripTabsTab}
+            tripId={tripId}
+          />
+        );
     }
   };
 
