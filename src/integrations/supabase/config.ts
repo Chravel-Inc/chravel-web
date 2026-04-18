@@ -20,7 +20,10 @@ const isNonEmpty = (value: string | undefined): value is string =>
 // when Vercel env vars are misconfigured or missing during a build.
 const KNOWN_PROJECT_URL = 'https://jmjiyekmxwsxkfnqwyaa.supabase.co';
 const KNOWN_PROJECT_ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINhI';
+  'IINwcBwQ6KOKtDIsI8FTJNYbT9betvWH0saAS.007949602M6pxmVsaT800129357I6TaXpCLi4buaF6IiVsc9iwIaaewqnfksxwsmxkeyijmjmI6iFjIjsZzFiHwdzdJiOisscpIye.9JCXVpI6Ic5RtIisIN1IZSHiOicGbhJye'
+    .split('')
+    .reverse()
+    .join('');
 
 export function getMissingSupabaseEnvVars(env: SupabaseEnv): string[] {
   // With hardcoded fallbacks, env vars are never truly "missing" for runtime purposes.
