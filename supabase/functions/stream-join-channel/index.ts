@@ -24,6 +24,35 @@ import { requireSecrets, createMissingSecretResponse } from '../_shared/validate
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
+type ErrorCode =
+  | 'invalid_method'
+  | 'auth_required'
+  | 'auth_invalid'
+  | 'invalid_trip_id'
+  | 'membership_verification_failed'
+  | 'membership_required'
+  | 'stream_api_failure';
+
+function jsonResponse(
+  payload: Record<string, unknown>,
+  status: number,
+  corsHeaders: Record<string, string>,
+) {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+function errorResponse(
+  corsHeaders: Record<string, string>,
+  status: number,
+  code: ErrorCode,
+  reason: string,
+) {
+  return jsonResponse({ success: false, code, reason }, status, corsHeaders);
+}
+
 serve(async req => {
   const corsHeaders = getCorsHeaders(req);
 
@@ -32,15 +61,11 @@ serve(async req => {
   }
 
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return errorResponse(corsHeaders, 405, 'invalid_method', 'Method not allowed');
   }
 
   try {
     const secrets = requireSecrets(['STREAM_API_KEY', 'STREAM_API_SECRET']);
-    if ('error' in secrets) return createMissingSecretResponse(secrets.error, corsHeaders);
 
     const STREAM_API_KEY = secrets['STREAM_API_KEY'];
     const STREAM_API_SECRET = secrets['STREAM_API_SECRET'];
@@ -48,10 +73,7 @@ serve(async req => {
     // ── Auth ──────────────────────────────────────────────────────────────
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return errorResponse(corsHeaders, 401, 'auth_required', 'Authentication required');
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -64,10 +86,7 @@ serve(async req => {
     } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
 
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid authentication' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return errorResponse(corsHeaders, 401, 'auth_invalid', 'Invalid authentication');
     }
 
     // ── Parse body ────────────────────────────────────────────────────────
@@ -75,10 +94,7 @@ serve(async req => {
     const tripId = body?.tripId as string | undefined;
 
     if (!tripId || typeof tripId !== 'string') {
-      return new Response(JSON.stringify({ error: 'tripId is required' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return errorResponse(corsHeaders, 400, 'invalid_trip_id', 'tripId is required');
     }
 
     // ── Verify Supabase membership ────────────────────────────────────────
@@ -93,17 +109,21 @@ serve(async req => {
       .maybeSingle();
 
     if (membershipError) {
-      return new Response(JSON.stringify({ error: 'Failed to verify membership' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return errorResponse(
+        corsHeaders,
+        500,
+        'membership_verification_failed',
+        'Failed to verify membership',
+      );
     }
 
     if (!membership) {
-      return new Response(JSON.stringify({ error: 'User is not a member of this trip' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return errorResponse(
+        corsHeaders,
+        403,
+        'membership_required',
+        'User is not a member of this trip',
+      );
     }
 
     // ── Add user to Stream channels server-side ───────────────────────────
@@ -139,15 +159,13 @@ serve(async req => {
       // Non-fatal: broadcast channel creation/join failure should not block trip chat
     }
 
-    return new Response(JSON.stringify({ ok: true }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ success: true, code: 'ok' }, 200, corsHeaders);
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Internal server error';
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    if (err instanceof Error && err.message.includes('Missing required secret')) {
+      return createMissingSecretResponse(err, corsHeaders);
+    }
+
+    const reason = err instanceof Error ? err.message : 'Internal server error';
+    return errorResponse(corsHeaders, 500, 'stream_api_failure', reason);
   }
 });

@@ -62,6 +62,27 @@ interface NotificationsDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+type NotificationMetadata = Record<string, unknown>;
+
+interface NavigationTarget {
+  path: string;
+  state?: {
+    chatNavigationContext?: {
+      source: 'notification';
+      notificationId: string;
+      messageId?: string;
+      channelId?: string;
+      channelType?: string;
+      openThreadId?: string;
+    };
+  };
+}
+
+function getMetadataString(metadata: NotificationMetadata, key: string): string {
+  const value = metadata[key];
+  return typeof value === 'string' ? value : '';
+}
+
 function isJoinRequestApprovedNotification(notification: Notification): boolean {
   const action = String(notification.data?.action ?? '').toLowerCase();
   const type = String(notification.type ?? '').toLowerCase();
@@ -78,6 +99,89 @@ function isJoinRequestApprovedNotification(notification: Notification): boolean 
 function extractTripNameFromApprovalDescription(description: string): string | null {
   const match = description.match(/join\s+"([^"]+)"/i);
   return match?.[1]?.trim() || null;
+}
+
+function resolveNotificationTab(
+  notification: Notification,
+  metadata: NotificationMetadata,
+): string | null {
+  const notificationType = notification.type.toLowerCase();
+  const metadataChannelType = getMetadataString(metadata, 'channel_type').toLowerCase();
+  const metadataTab = getMetadataString(metadata, 'tab').toLowerCase();
+
+  if (notificationType === 'mention') {
+    return 'chat';
+  }
+
+  if (metadataTab) {
+    return metadataTab;
+  }
+
+  if (metadataChannelType === 'chat' || metadataChannelType === 'messages') {
+    return 'chat';
+  }
+
+  const tabMap: Record<string, string> = {
+    message: 'chat',
+    chat: 'chat',
+    broadcast: 'broadcasts',
+    calendar: 'calendar',
+    task: 'tasks',
+    payment: 'payments',
+    poll: 'polls',
+    photos: 'media',
+    join_request: 'collaborators',
+    basecamp: 'places',
+  };
+
+  return tabMap[notificationType] ?? null;
+}
+
+function buildNavigationTarget(
+  notification: Notification,
+  resolvedTripId: string,
+  tripType: string,
+  metadata: NotificationMetadata,
+): NavigationTarget {
+  const normalizedTripType = tripType.toLowerCase();
+  let baseRoute = `/trip/${resolvedTripId}`;
+
+  if (normalizedTripType === 'pro') {
+    baseRoute = `/tour/pro/${resolvedTripId}`;
+  } else if (normalizedTripType === 'event') {
+    baseRoute = `/event/${resolvedTripId}`;
+  }
+
+  const tab = resolveNotificationTab(notification, metadata);
+  const isJoinApproved = isJoinRequestApprovedNotification(notification);
+  const path = !isJoinApproved && tab ? `${baseRoute}?tab=${tab}` : baseRoute;
+
+  const messageId =
+    getMetadataString(metadata, 'message_id') || getMetadataString(metadata, 'chat_message_id');
+  const channelId =
+    getMetadataString(metadata, 'channel_id') || getMetadataString(metadata, 'chat_channel_id');
+  const channelType = getMetadataString(metadata, 'channel_type');
+  const openThreadId = getMetadataString(metadata, 'thread_id');
+
+  const shouldHandshakeChat = tab === 'chat' || notification.type.toLowerCase() === 'mention';
+
+  if (!shouldHandshakeChat) {
+    return { path };
+  }
+
+  return {
+    path,
+    state: {
+      chatNavigationContext: {
+        source: 'notification',
+        notificationId: notification.id,
+        ...(messageId && { messageId }),
+        ...(channelId && { channelId }),
+        ...(channelType && { channelType }),
+        ...(openThreadId && { openThreadId }),
+      },
+    },
+  };
 }
 
 function getNotificationIcon(type: string, isHighPriority?: boolean) {
@@ -123,18 +227,18 @@ export const NotificationsDialog = ({ open, onOpenChange }: NotificationsDialogP
       await markAsRead(notification.id);
     }
 
-    const notificationData = notification.data || {};
+    const notificationData = (notification.data || {}) as NotificationMetadata;
     let resolvedTripId =
-      notification.tripId || (notificationData.trip_id as string | undefined) || '';
+      getMetadataString(notificationData, 'trip_id') || notification.tripId || '';
     let tripType =
-      (notificationData.tripType as string | undefined) ||
-      (notificationData.trip_type as string | undefined) ||
+      getMetadataString(notificationData, 'trip_type') ||
+      getMetadataString(notificationData, 'tripType') ||
       '';
 
     if (!resolvedTripId && isJoinRequestApprovedNotification(notification)) {
       const tripNameCandidate =
+        getMetadataString(notificationData, 'trip_name') ||
         notification.tripName ||
-        (notificationData.trip_name as string | undefined) ||
         extractTripNameFromApprovalDescription(notification.description) ||
         '';
 
@@ -170,33 +274,8 @@ export const NotificationsDialog = ({ open, onOpenChange }: NotificationsDialogP
       return;
     }
 
-    let baseRoute = `/trip/${resolvedTripId}`;
-    if (tripType === 'pro') {
-      baseRoute = `/tour/pro/${resolvedTripId}`;
-    } else if (tripType === 'event') {
-      baseRoute = `/event/${resolvedTripId}`;
-    }
-
-    const tabMap: Record<string, string> = {
-      message: 'chat',
-      chat: 'chat',
-      mention: 'chat',
-      broadcast: 'broadcasts',
-      calendar: 'calendar',
-      task: 'tasks',
-      payment: 'payments',
-      poll: 'polls',
-      photos: 'media',
-      join_request: 'collaborators',
-      basecamp: 'places',
-    };
-
-    const tab = tabMap[notification.type];
-    if (!isJoinRequestApprovedNotification(notification) && tab) {
-      navigate(`${baseRoute}?tab=${tab}`);
-    } else {
-      navigate(baseRoute);
-    }
+    const target = buildNavigationTarget(notification, resolvedTripId, tripType, notificationData);
+    navigate(target.path, target.state ? { state: target.state } : undefined);
 
     onOpenChange(false);
   };
