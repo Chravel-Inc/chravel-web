@@ -3,6 +3,7 @@ import {
   HANDLED_STREAM_CHANNEL_TYPES,
   HANDLED_STREAM_EVENT_TYPES,
   dedupeRecipients,
+  normalizeMentionedUserIds,
   parseStreamCid,
   resolveConciergeUserId,
   resolveTripIdFromChannel,
@@ -49,5 +50,19 @@ describe('stream-webhook event routing', () => {
 
   it('dedupes recipients and excludes sender', () => {
     expect(dedupeRecipients(['u1', 'u1', 'u2', null, undefined], 'u2')).toEqual(['u1']);
+  });
+
+  it('normalizes mention payload user ids from mixed webhook shapes', () => {
+    expect(
+      normalizeMentionedUserIds([
+        'u1',
+        { id: 'u2' },
+        { user_id: 'u3' },
+        { user: { id: 'u4' } },
+        { id: 'u2' },
+        null,
+        undefined,
+      ]),
+    ).toEqual(['u1', 'u2', 'u3', 'u4']);
   });
 });

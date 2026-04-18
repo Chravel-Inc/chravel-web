@@ -6,6 +6,7 @@ import {
   HANDLED_STREAM_CHANNEL_TYPES,
   HANDLED_STREAM_EVENT_TYPES,
   dedupeRecipients,
+  normalizeMentionedUserIds,
   parseStreamCid,
   resolveConciergeUserId,
   resolveTripIdFromChannel,
@@ -33,6 +34,7 @@ type StreamWebhookEvent = {
     text?: string;
     user?: { id?: string; name?: string };
     cid?: string;
+    mentioned_users?: Array<string | { id?: string; user_id?: string; user?: { id?: string } }>;
   };
 };
 
@@ -191,34 +193,15 @@ serve(async req => {
 
   let recipients: string[] = [];
   const tripId = resolveTripIdFromChannel(channelType, channelId);
+  const mentionedUserIds = dedupeRecipients(
+    normalizeMentionedUserIds(event.message?.mentioned_users),
+    senderId,
+  );
 
   if (channelType === 'chravel-trip' || channelType === 'chravel-broadcast') {
-    if (tripId) {
-      const { data: members } = await supabase
-        .from('trip_members')
-        .select('user_id')
-        .eq('trip_id', tripId);
-
-      recipients = dedupeRecipients(
-        (members || []).map(member => member.user_id),
-        senderId,
-      );
-    }
+    recipients = mentionedUserIds;
   } else if (channelType === 'chravel-channel') {
-    const channelUuid = channelId?.startsWith('channel-')
-      ? channelId.replace('channel-', '')
-      : null;
-    if (channelUuid) {
-      const { data: members } = await supabase
-        .from('channel_members')
-        .select('user_id')
-        .eq('channel_id', channelUuid);
-
-      recipients = dedupeRecipients(
-        (members || []).map(member => member.user_id),
-        senderId,
-      );
-    }
+    recipients = mentionedUserIds;
   } else if (channelType === 'chravel-concierge') {
     const memberUserIds = [...(event.members || []), ...(event.channel?.members || [])].map(
       member => member.user_id || member.user?.id,
@@ -230,11 +213,31 @@ serve(async req => {
   }
 
   if (recipients.length > 0) {
-    // Use chat_message for all Stream-sourced trip/broadcast/channel posts so delivery follows
-    // `chat_messages` prefs (broadcast channels are still trip chat surfaces in product terms).
-    const notificationRows = recipients.map(userId => ({
+    const notificationType =
+      channelType === 'chravel-trip' ||
+      channelType === 'chravel-broadcast' ||
+      channelType === 'chravel-channel'
+        ? ('mention' as const)
+        : ('chat_message' as const);
+    const dedupeWindowStartIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data: existingRows, error: dedupeCheckError } = await supabase
+      .from('notifications')
+      .select('user_id')
+      .in('user_id', recipients)
+      .eq('type', notificationType)
+      .contains('metadata', { stream_message_id: event.message.id })
+      .gte('created_at', dedupeWindowStartIso);
+
+    if (dedupeCheckError) {
+      console.error('[stream-webhook] notification dedupe check failed:', dedupeCheckError.message);
+    }
+
+    const existingRecipientIds = new Set((existingRows || []).map(row => row.user_id));
+    const recipientsToInsert = recipients.filter(userId => !existingRecipientIds.has(userId));
+
+    const notificationRows = recipientsToInsert.map(userId => ({
       user_id: userId,
-      type: 'chat_message' as const,
+      type: notificationType,
       title: event.message?.user?.name || 'New message',
       message: event.message?.text || 'sent a message',
       trip_id: tripId,
@@ -247,6 +250,13 @@ serve(async req => {
         stream_channel_id: channelId,
       },
     }));
+
+    if (notificationRows.length === 0) {
+      return new Response(JSON.stringify({ ok: true, deduped: true }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     const { error: notificationError } = await supabase
       .from('notifications')
