@@ -68,8 +68,9 @@ secondary_category("Productivity")
 # Age rating
 # Configured in App Store Connect manually
 
-# Price tier (0 = Free)
-price_tier(0)
+# Price tier — managed in App Store Connect directly
+# (cannot set via API for apps with subscriptions)
+# price_tier(0)
 
 # Privacy policy URL (locale hash format required by deliver 2.220+)
 privacy_url({ "default" => "https://chravel.app/privacy" })
