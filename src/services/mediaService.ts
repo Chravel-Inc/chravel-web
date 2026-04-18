@@ -12,6 +12,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { getUploadContentType, inferMimeTypeFromFilename } from '@/utils/mime';
+import { systemMessageService } from '@/services/systemMessageService';
 
 // Default page size for media list queries. Realtime subscriptions handle
 // new inserts so capping the initial fetch is safe and reduces egress.
@@ -156,6 +157,31 @@ export async function uploadTripMedia(
     .single();
 
   if (dbError) throw dbError;
+
+  // Inline activity update (consumer trips only; batched server-side in the
+  // service). Best-effort — never block the upload return.
+  if (mediaType === 'image' || mediaType === 'document') {
+    try {
+      const profile = await supabase
+        .from('profiles')
+        .select('display_name, first_name, email')
+        .eq('user_id', userId)
+        .maybeSingle();
+      const displayName =
+        profile.data?.display_name ||
+        profile.data?.first_name ||
+        profile.data?.email?.split('@')[0] ||
+        'Someone';
+      void systemMessageService.createBatchedUploadMessage(
+        tripId,
+        userId,
+        displayName,
+        mediaType === 'image' ? 'photo' : 'file',
+      );
+    } catch {
+      // non-critical
+    }
+  }
 
   return {
     id: media.id,

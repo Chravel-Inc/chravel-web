@@ -5,9 +5,11 @@ import { calendarService } from '@/services/calendarService';
 import { demoModeService } from '@/services/demoModeService';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
 import { createCalendarQueryFn } from './calendarQueryFn';
 import { useCalendarRealtime } from './useCalendarRealtime';
+import { systemMessageService } from '@/services/systemMessageService';
 
 export type ViewMode = 'calendar' | 'itinerary' | 'grid';
 
@@ -39,6 +41,8 @@ export const useCalendarManagement = (tripId: string) => {
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   const { isDemoMode } = useDemoMode();
+  const { user } = useAuth();
+  const actorName = user?.displayName || user?.email?.split('@')[0] || 'Someone';
 
   // ⚡ PERFORMANCE: Use TanStack Query for caching (shared queryFn with useCalendarEvents)
   const {
@@ -152,6 +156,13 @@ export const useCalendarManagement = (tripId: string) => {
       }
 
       return { previousEvents };
+    },
+    onSuccess: result => {
+      if (isDemoMode) return;
+      const event = (result as { event?: TripEvent } | null | undefined)?.event;
+      if (event?.id && event.title) {
+        void systemMessageService.calendarItemAdded(tripId, actorName, event.id, event.title);
+      }
     },
     onError: (_err, _newEvent, context) => {
       if (context?.previousEvents) {
