@@ -47,15 +47,11 @@ const clearAllCaches = (): void => {
   }
 };
 
-// Unregister stale service workers from old hosts on first load.
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker
-    .getRegistrations()
-    .then(registrations => {
-      registrations.forEach(reg => reg.unregister());
-    })
-    .catch(() => {});
-}
+// Do NOT unregister all service workers here. This runs on every load and
+// races with registerServiceWorker() below: the unregister promise can resolve
+// after registration, leaving no controlling worker and a stale precache — a
+// common blank-screen failure after deploys. Targeted cleanup lives in
+// serviceWorkerRegistration.ts (preview skip, prod migration, registration failure).
 
 // Initialize theme
 const theme = safeLocalStorageGet('theme');
