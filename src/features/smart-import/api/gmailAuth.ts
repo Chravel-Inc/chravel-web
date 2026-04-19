@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { FunctionsHttpError } from '@supabase/supabase-js';
+import { FunctionsHttpError } from '@supabase/supabase-js';
 
 export type GmailAccount = {
   id: string;
@@ -16,9 +16,19 @@ export async function extractFunctionErrorMessage(
   error: unknown,
   fallback: string,
 ): Promise<string> {
-  const context = (error as Partial<FunctionsHttpError> | null | undefined)?.context;
-  if (context && typeof context.json === 'function') {
+  const isFunctionsHttpError =
+    error instanceof FunctionsHttpError ||
+    (typeof error === 'object' &&
+      error !== null &&
+      'context' in error &&
+      typeof (error as { context?: unknown }).context === 'object');
+
+  if (isFunctionsHttpError) {
     try {
+      const context = (error as { context?: { json?: () => Promise<unknown> } }).context;
+      if (!context || typeof context.json !== 'function') {
+        throw new Error('Missing error context body');
+      }
       const body = await context.json();
       if (body && typeof body === 'object') {
         const errValue = (body as Record<string, unknown>).error;

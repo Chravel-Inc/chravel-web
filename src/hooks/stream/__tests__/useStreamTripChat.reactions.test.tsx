@@ -7,6 +7,7 @@ const deleteReactionMock = vi.fn();
 const watchMock = vi.fn();
 const onMock = vi.fn();
 const offMock = vi.fn();
+const toastMock = vi.fn();
 
 const baseMessage = {
   id: 'message-1',
@@ -45,7 +46,7 @@ vi.mock('@/services/stream/streamClient', () => ({
 }));
 
 vi.mock('@/hooks/use-toast', () => ({
-  useToast: () => ({ toast: vi.fn() }),
+  useToast: () => ({ toast: toastMock }),
 }));
 
 describe('useStreamTripChat reactions', () => {
@@ -107,5 +108,28 @@ describe('useStreamTripChat reactions', () => {
     expect(sendReactionMock).toHaveBeenCalledTimes(1);
     expect(deleteReactionMock).toHaveBeenCalledTimes(1);
     expect(deleteReactionMock).toHaveBeenCalledWith('message-1', 'love');
+  });
+
+  it('shows actionable toast when Stream reaction policy blocks the emoji', async () => {
+    sendReactionMock.mockRejectedValueOnce(
+      new Error('StreamChat error code 17: User is not allowed to AddReaction'),
+    );
+
+    const { result } = renderHook(() => useStreamTripChat('trip-abc', { enabled: true }));
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.toggleReaction('message-1', '🎯');
+    });
+
+    expect(toastMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Reaction unavailable',
+        variant: 'destructive',
+      }),
+    );
   });
 });

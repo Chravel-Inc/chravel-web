@@ -93,6 +93,13 @@ function isStreamCreateMentionPermissionError(error: unknown): boolean {
   return /CreateMention|action CreateMention/i.test(message);
 }
 
+function isStreamReactionPolicyError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /reaction|AddReaction|DeleteReaction|CreateReaction|reactions? disabled|not allowed/i.test(
+    message,
+  );
+}
+
 function hasMentionedUsers(payload: StreamSendPayload): payload is StreamSendPayload & {
   mentioned_users: string[];
 } {
@@ -755,13 +762,21 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         if (import.meta.env.DEV) {
           console.error('[Stream] toggleReaction failed:', err);
         }
+        if (isStreamReactionPolicyError(err)) {
+          toast({
+            title: 'Reaction unavailable',
+            description:
+              'This reaction is blocked by Stream channel settings or reaction policy. Ask an admin to enable reactions for this channel type.',
+            variant: 'destructive',
+          });
+        }
       }
     } catch (err) {
       if (import.meta.env.DEV) {
         console.error('[Stream] toggleReaction prep failed:', err);
       }
     }
-  }, []);
+  }, [toast]);
 
   const loadMore = useCallback(async () => {
     const channel = channelRef.current;

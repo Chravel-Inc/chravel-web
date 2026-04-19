@@ -181,7 +181,7 @@ describe('AuthModal', () => {
       expect(screen.getByRole('button', { name: /^apple$/i })).toBeInTheDocument();
     });
 
-    it('hides external OAuth buttons in installed app context', async () => {
+    it('shows Google and Apple OAuth options in installed app context', async () => {
       vi.spyOn(platformDetection, 'isInstalledApp').mockReturnValue(true);
 
       render(<AuthModal isOpen={true} onClose={mockOnClose} />, {
@@ -189,20 +189,15 @@ describe('AuthModal', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByText('Welcome Back')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^google$/i })).toBeInTheDocument();
       });
 
+      expect(screen.getByRole('button', { name: /^apple$/i })).toBeInTheDocument();
       expect(
-        screen.queryByRole('button', { name: /continue with google/i }),
-      ).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', { name: /continue with apple/i }),
-      ).not.toBeInTheDocument();
-      expect(
-        screen.getByText(
+        screen.queryByText(
           /in-app sign-in uses email\/password to keep authentication inside the app/i,
         ),
-      ).toBeInTheDocument();
+      ).not.toBeInTheDocument();
     });
   });
 });
