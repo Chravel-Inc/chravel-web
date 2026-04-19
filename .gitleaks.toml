@@ -71,6 +71,11 @@ useDefault = true
     ]
 
 [[rules]]
+  id = "allow-public-cert-fingerprints"
+  description = "SHA-256 cert fingerprints in assetlinks.json are public by design"
+  path = '''public/\.well-known/assetlinks\.json'''
+
+[[rules]]
   description = "RevenueCat API key hardcoded"
   id = "revenuecat-key"
   regex = '''(appl_|test_)[A-Za-z0-9]{20,}'''
