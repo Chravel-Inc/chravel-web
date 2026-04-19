@@ -17,7 +17,7 @@
           { "/": "/auth-callback", "comment": "Auth callback" },
           { "/": "/auth-callback/*", "comment": "Auth callback paths" },
           { "/": "/settings/*", "comment": "Deep link to settings" },
-          { "/": "NOT /api/*", "comment": "Exclude API routes" }
+          { "/": "/api/*", "exclude": true, "comment": "Exclude API routes" }
         ]
       }
     ]
