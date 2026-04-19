@@ -26,7 +26,11 @@ import { CHANNEL_TYPE_TRIP, tripChannelId } from '@/services/stream/streamChanne
 import { messageEvents } from '@/telemetry/events';
 import type { Channel, Event, MessageResponse } from 'stream-chat';
 import { buildTripStreamMessagePayload } from '@/services/stream/streamMessagePayload';
-import { supabase } from '@/integrations/supabase/client';
+import {
+  supabase,
+  SUPABASE_PROJECT_URL,
+  SUPABASE_PUBLIC_API_KEY,
+} from '@/integrations/supabase/client';
 
 const PAGE_SIZE = 30;
 type StreamSendPayload = Parameters<Channel['sendMessage']>[0];
@@ -275,13 +279,13 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
           const timeout = window.setTimeout(() => controller.abort(), 3000);
           try {
             const response = await fetch(
-              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stream-join-channel`,
+              `${SUPABASE_PROJECT_URL}/functions/v1/stream-join-channel`,
               {
                 method: 'POST',
                 headers: {
                   Authorization: `Bearer ${jwt}`,
                   'Content-Type': 'application/json',
-                  apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+                  apikey: SUPABASE_PUBLIC_API_KEY,
                 },
                 body: JSON.stringify({ tripId }),
                 signal: controller.signal,

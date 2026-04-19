@@ -53,6 +53,8 @@ vi.mock('@/integrations/supabase/client', () => ({
       })),
     })),
   },
+  SUPABASE_PROJECT_URL: 'https://test.supabase.co',
+  SUPABASE_PUBLIC_API_KEY: 'test-publishable-key',
 }));
 
 vi.mock('@/hooks/use-toast', () => ({

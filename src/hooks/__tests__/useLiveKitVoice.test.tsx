@@ -60,6 +60,8 @@ vi.mock('@/integrations/supabase/client', () => ({
       getSession: mocks.getSession,
     },
   },
+  SUPABASE_PROJECT_URL: 'https://test.supabase.co',
+  SUPABASE_PUBLIC_API_KEY: 'test-publishable-key',
 }));
 
 import { LIVEKIT_WS_URL } from '@/config/voiceFeatureFlags';
