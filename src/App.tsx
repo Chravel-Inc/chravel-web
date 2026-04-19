@@ -380,6 +380,14 @@ const App = () => {
                         }
                       />
                       <Route
+                        path="/auth-callback"
+                        element={
+                          <LazyRoute>
+                            <AuthPage />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
                         path="/reset-password"
                         element={
                           <LazyRoute>

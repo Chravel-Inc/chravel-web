@@ -23,8 +23,8 @@ import { telemetry } from '@/telemetry/service';
 import { toast } from '@/hooks/use-toast';
 import { logAuthEvent } from '@/utils/authTelemetry';
 import { buildSessionDerivedUser } from '@/lib/sessionDerivedUser';
-import { isInstalledApp } from '@/utils/platformDetection';
 import { generateSafeUuid } from '@/utils/uuid';
+import { openInstalledAuthBrowser } from '@/utils/installedAuthBrowser';
 
 const TRIPS_QUERY_KEY = 'trips';
 
@@ -885,19 +885,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signInWithGoogle = async (): Promise<{ error?: string }> => {
     try {
-      // Installed app contexts (Capacitor shell / standalone PWA) must not bounce
-      // users to external browsers for OAuth login.
-      if (isInstalledApp()) {
-        return { error: 'Google sign-in is only available on web. Use email/password in the app.' };
-      }
-
-      // Preserve returnTo so OAuth callback lands on AuthPage which redirects to the intended route
-      const returnTo = new URLSearchParams(window.location.search).get('returnTo');
-      const redirectUrl = returnTo
-        ? `${window.location.origin}/auth?returnTo=${encodeURIComponent(returnTo)}`
-        : `${window.location.origin}/auth`;
-
       const installed = isInstalledApp();
+      // Installed shells (Capacitor / PWA) return to a Universal Link that the
+      // native wrapper intercepts and re-opens inside the WebView so Supabase
+      // detectSessionInUrl can complete the exchange. Web stays on same-origin.
+      const returnTo = new URLSearchParams(window.location.search).get('returnTo');
+      const returnToQuery = returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : '';
+      const redirectUrl = installed
+        ? `https://chravel.app/auth-callback${returnToQuery}`
+        : `${window.location.origin}/auth${returnToQuery}`;
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -923,7 +920,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       if (installed && data?.url) {
-        window.location.assign(data.url);
+        // Prefers @capacitor/browser (SFSafariViewController / Chrome Custom Tabs)
+        // when the native shell registers it; falls back to same-tab navigation.
+        // Google rejects embedded WebView OAuth with disallowed_useragent — the
+        // native shell must open this URL outside the embedded WebView.
+        await openInstalledAuthBrowser(data.url);
       }
 
       return {};
@@ -937,19 +938,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signInWithApple = async (): Promise<{ error?: string }> => {
     try {
-      // Installed app contexts (Capacitor shell / standalone PWA) must not bounce
-      // users to external browsers for OAuth login.
-      if (isInstalledApp()) {
-        return { error: 'Apple sign-in is only available on web. Use email/password in the app.' };
-      }
-
-      // Preserve returnTo so OAuth callback lands on AuthPage which redirects to the intended route
-      const returnTo = new URLSearchParams(window.location.search).get('returnTo');
-      const redirectUrl = returnTo
-        ? `${window.location.origin}/auth?returnTo=${encodeURIComponent(returnTo)}`
-        : `${window.location.origin}/auth`;
-
       const installed = isInstalledApp();
+      const returnTo = new URLSearchParams(window.location.search).get('returnTo');
+      const returnToQuery = returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : '';
+      const redirectUrl = installed
+        ? `https://chravel.app/auth-callback${returnToQuery}`
+        : `${window.location.origin}/auth${returnToQuery}`;
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
         options: {
@@ -969,7 +964,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       if (installed && data?.url) {
-        window.location.assign(data.url);
+        await openInstalledAuthBrowser(data.url);
       }
 
       return {};

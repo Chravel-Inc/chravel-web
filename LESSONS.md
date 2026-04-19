@@ -98,13 +98,14 @@
 
 ## Recovery Tips
 
-### Installed-app auth should hard-block external OAuth at service boundary and UI
-- **Tip:** For Capacitor/PWA contexts, do not rely on UI-only hiding of OAuth buttons. Also enforce a service-level guard in auth hooks so deep links, stale tabs, or legacy UI paths cannot trigger browser-redirect OAuth in installed shells.
-- **Applies when:** Login flows must remain in-app for TestFlight/App Store/Play Store/PWA installs.
-- **Avoid when:** Product explicitly supports native OAuth handoff + deep-link return and it is fully validated.
-- **Evidence:** Installed app users hit spinner + browser redirect regressions when OAuth buttons were reachable; dual guard (`AuthModal` + `useAuth` blocking on `isInstalledApp()`) preserved web OAuth and removed installed-app external redirects.
-- **Provenance:** April 2026 installed-app auth regression fix.
+### Installed-app OAuth requires in-app browser tab + Universal Link deep-link callback
+- **Tip:** For Capacitor/PWA shells, do not embed Google/Apple OAuth in the app WebView (Google rejects with `disallowed_useragent`) and do not bounce to the system browser (it strands the shell and often freezes on provider redirects). The correct pattern is: (1) set `skipBrowserRedirect: true` and point `redirectTo` at an HTTPS Universal Link owned by the app (e.g., `https://chravel.app/auth-callback`), (2) launch the provider URL via an in-app browser tab — `@capacitor/browser` gives SFSafariViewController on iOS and Chrome Custom Tabs on Android — and (3) let the native shell intercept the deep link and reload the WebView at the callback URL so Supabase `detectSessionInUrl` completes the exchange. An earlier revision of this repo hard-blocked OAuth in installed contexts instead; that eliminated the freeze but removed Google/Apple sign-in entirely from the native apps, which is the wrong long-term posture.
+- **Applies when:** Wrapping a web auth flow in a native shell (Capacitor/Expo/WebView) and offering third-party OAuth providers.
+- **Avoid when:** Native SDK sign-in (e.g., `@capacitor-community/apple-sign-in`) is wired and preferred — use the SDK directly rather than going through `signInWithOAuth`.
+- **Evidence:** Google blocks embedded WebView OAuth. The web-only "hard-block" fix passed Apple review but left the TestFlight build without Google/Apple sign-in; the current helper `src/utils/installedAuthBrowser.ts` prefers Capacitor Browser with a same-tab fallback so web/PWA keep working regardless of shell capabilities.
+- **Provenance:** April 2026 TestFlight OAuth re-enable.
 - **Confidence:** high
+- **Cross-repo dependency:** The web-side changes here require matching work in `chravel-mobile` (register URL scheme, AASA/assetlinks, `@capacitor/browser`, `appUrlOpen` deep-link listener). Without that, Google still errors out in an embedded webview redirect — strictly worse than the "hidden buttons" state. Land both or neither.
 
 ### Fire-and-forget sync paths must emit structured failure signals
 - **Tip:** If a non-critical sync step intentionally runs fire-and-forget (for example membership projection into Stream after a successful Supabase mutation), never leave `.catch(() => {})` empty. Emit structured logs with operation + identifiers so support can trace drift and replay safely.
