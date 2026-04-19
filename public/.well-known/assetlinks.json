@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.chravel.app",
+      "sha256_cert_fingerprints": [
+        "2E:31:49:50:9A:B4:D8:B7:9E:A0:6C:3B:9B:1C:7D:7F:87:BE:9A:A8:83:57:80:F3:47:27:5E:6A:74:C3:83:F5"
+      ]
+    }
+  }
+]
