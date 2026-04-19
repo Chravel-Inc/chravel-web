@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import type { FunctionsHttpError } from '@supabase/supabase-js';
 
 export type GmailAccount = {
   id: string;
@@ -10,6 +11,32 @@ export type GmailAccount = {
   token_expires_at: string | null;
   last_synced_at: string | null;
 };
+
+export async function extractFunctionErrorMessage(
+  error: unknown,
+  fallback: string,
+): Promise<string> {
+  const context = (error as Partial<FunctionsHttpError> | null | undefined)?.context;
+  if (context && typeof context.json === 'function') {
+    try {
+      const body = await context.json();
+      if (body && typeof body === 'object') {
+        const errValue = (body as Record<string, unknown>).error;
+        if (typeof errValue === 'string' && errValue.trim().length > 0) {
+          return errValue;
+        }
+      }
+    } catch {
+      // Ignore body parse failures and use fallback below.
+    }
+  }
+
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
+  }
+
+  return fallback;
+}
 
 export function resolveGmailOAuthRedirectUri(): string | null {
   if (typeof window === 'undefined' || !window.location?.origin) {
@@ -63,32 +90,45 @@ export const fetchGmailAccounts = async (): Promise<GmailAccount[]> => {
 
 export const connectGmailAccount = async (): Promise<string> => {
   const redirectUri = resolveGmailOAuthRedirectUri();
-  const { data, error } = await supabase.functions.invoke('gmail-auth/connect', {
-    method: 'POST',
-    body: redirectUri ? { redirectUri } : undefined,
-  });
+  try {
+    const { data, error } = await supabase.functions.invoke('gmail-auth/connect', {
+      method: 'POST',
+      body: redirectUri ? { redirectUri } : undefined,
+    });
 
-  if (error) {
+    if (error) {
+      throw error;
+    }
+
+    return data.url;
+  } catch (error: unknown) {
     if (import.meta.env.DEV) {
       console.error('Error initiating Gmail connect:', error);
     }
-    throw new Error(error.message);
+    const message = await extractFunctionErrorMessage(
+      error,
+      'Failed to initiate Gmail connection. Check OAuth setup and secrets.',
+    );
+    throw new Error(message);
   }
-
-  return data.url;
 };
 
 export const disconnectGmailAccount = async (accountId: string): Promise<void> => {
-  const { error } = await supabase.functions.invoke('gmail-auth/disconnect', {
-    method: 'POST',
-    body: { accountId },
-  });
+  try {
+    const { error } = await supabase.functions.invoke('gmail-auth/disconnect', {
+      method: 'POST',
+      body: { accountId },
+    });
 
-  if (error) {
+    if (error) {
+      throw error;
+    }
+  } catch (error: unknown) {
     if (import.meta.env.DEV) {
       console.error('Error disconnecting Gmail account:', error);
     }
-    throw new Error(error.message);
+    const message = await extractFunctionErrorMessage(error, 'Failed to disconnect Gmail account');
+    throw new Error(message);
   }
 };
 
@@ -96,17 +136,22 @@ export const handleGmailCallback = async (
   code: string,
   state: string,
 ): Promise<{ success: boolean; email?: string }> => {
-  const { data, error } = await supabase.functions.invoke('gmail-auth/callback', {
-    method: 'POST',
-    body: { code, state },
-  });
+  try {
+    const { data, error } = await supabase.functions.invoke('gmail-auth/callback', {
+      method: 'POST',
+      body: { code, state },
+    });
 
-  if (error) {
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  } catch (error: unknown) {
     if (import.meta.env.DEV) {
       console.error('Error completing Gmail connection:', error);
     }
-    throw new Error(error.message);
+    const message = await extractFunctionErrorMessage(error, 'Failed to complete Gmail connection');
+    throw new Error(message);
   }
-
-  return data;
 };
