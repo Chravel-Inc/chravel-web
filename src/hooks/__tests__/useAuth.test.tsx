@@ -5,12 +5,18 @@ import { BrowserRouter } from 'react-router-dom';
 import React from 'react';
 import { AuthProvider, useAuth } from '../useAuth';
 import { isInstalledApp } from '@/utils/platformDetection';
+import { openInstalledAuthBrowser } from '@/utils/installedAuthBrowser';
 
 vi.mock('@/utils/platformDetection', () => ({
   isInstalledApp: vi.fn(() => false),
 }));
 
+vi.mock('@/utils/installedAuthBrowser', () => ({
+  openInstalledAuthBrowser: vi.fn().mockResolvedValue(undefined),
+}));
+
 const mockIsInstalledApp = vi.mocked(isInstalledApp);
+const mockOpenInstalledAuthBrowser = vi.mocked(openInstalledAuthBrowser);
 
 // Mock user and session data
 const mockUser = {
@@ -227,17 +233,19 @@ describe('AuthProvider', () => {
       await result.current.signInWithGoogle();
     });
 
-    expect(mockSupabaseClient.auth.signInWithOAuth).toHaveBeenCalledWith(
-      expect.objectContaining({
-        provider: 'google',
-        options: expect.objectContaining({
-          skipBrowserRedirect: false,
-        }),
+    const call = mockSupabaseClient.auth.signInWithOAuth.mock.calls[0][0];
+    expect(call).toMatchObject({
+      provider: 'google',
+      options: expect.objectContaining({
+        skipBrowserRedirect: false,
       }),
-    );
+    });
+    expect(call.options.redirectTo).toMatch(/\/auth(\?|$)/);
+    expect(call.options.redirectTo).not.toContain('chravel.app/auth-callback');
+    expect(mockOpenInstalledAuthBrowser).not.toHaveBeenCalled();
   });
 
-  it('skips external browser for OAuth on installed app (skipBrowserRedirect)', async () => {
+  it('routes installed-app OAuth to Universal Link and launches external auth browser', async () => {
     mockIsInstalledApp.mockReturnValue(true);
     mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({
       data: { url: 'https://oauth.example/authorize' },
@@ -254,13 +262,44 @@ describe('AuthProvider', () => {
       await result.current.signInWithGoogle();
     });
 
-    expect(mockSupabaseClient.auth.signInWithOAuth).toHaveBeenCalledWith(
-      expect.objectContaining({
-        provider: 'google',
-        options: expect.objectContaining({
-          skipBrowserRedirect: true,
-        }),
+    const call = mockSupabaseClient.auth.signInWithOAuth.mock.calls[0][0];
+    expect(call).toMatchObject({
+      provider: 'google',
+      options: expect.objectContaining({
+        skipBrowserRedirect: true,
+        redirectTo: expect.stringContaining('https://chravel.app/auth-callback'),
       }),
+    });
+    expect(mockOpenInstalledAuthBrowser).toHaveBeenCalledWith('https://oauth.example/authorize');
+  });
+
+  it('routes installed-app Apple OAuth to Universal Link and launches external auth browser', async () => {
+    mockIsInstalledApp.mockReturnValue(true);
+    mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({
+      data: { url: 'https://appleid.apple.com/auth/authorize' },
+      error: null,
+    });
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { timeout: 3000 });
+
+    await act(async () => {
+      await result.current.signInWithApple();
+    });
+
+    const call = mockSupabaseClient.auth.signInWithOAuth.mock.calls[0][0];
+    expect(call).toMatchObject({
+      provider: 'apple',
+      options: expect.objectContaining({
+        skipBrowserRedirect: true,
+        redirectTo: expect.stringContaining('https://chravel.app/auth-callback'),
+      }),
+    });
+    expect(mockOpenInstalledAuthBrowser).toHaveBeenCalledWith(
+      'https://appleid.apple.com/auth/authorize',
     );
   });
 });
