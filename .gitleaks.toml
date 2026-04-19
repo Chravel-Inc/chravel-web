@@ -42,9 +42,6 @@ useDefault = true
     "ios/App/App/RevenueCat/README\\.md$",
     # Edge function READMEs with example curl commands
     "supabase/functions/.*/README\\.md$",
-    # .well-known files contain public-by-design identifiers (Team ID, SHA-256 fingerprints)
-    '''public/\.well-known/assetlinks\.json''',
-    '''public/\.well-known/apple-app-site-association''',
   ]
   regexes = [
     # Placeholder patterns that are not real keys
