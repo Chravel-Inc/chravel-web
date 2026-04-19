@@ -4,6 +4,8 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MessageReactionBar, getReactionTooltipText } from '../MessageReactionBar';
 
+let mockedPickerEmoji = '🎯';
+
 vi.mock('@/components/ui/tooltip', () => ({
   Tooltip: ({ children }: { children: ReactNode }) => <>{children}</>,
   TooltipContent: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -19,7 +21,7 @@ vi.mock('@/components/ui/popover', () => ({
 
 vi.mock('../EmojiMartPicker', () => ({
   EmojiMartPicker: ({ onEmojiSelect }: { onEmojiSelect: (emoji: { native?: string }) => void }) => (
-    <button onClick={() => onEmojiSelect({ native: '🎯' })}>pick custom emoji</button>
+    <button onClick={() => onEmojiSelect({ native: mockedPickerEmoji })}>pick custom emoji</button>
   ),
 }));
 
@@ -56,11 +58,24 @@ describe('MessageReactionBar', () => {
   it('routes full picker emoji selections to message reactions', async () => {
     const user = userEvent.setup();
     const onReaction = vi.fn();
+    mockedPickerEmoji = '🎯';
 
     render(<MessageReactionBar messageId="m1" onReaction={onReaction} />);
 
     await user.click(screen.getByText('pick custom emoji'));
 
     expect(onReaction).toHaveBeenCalledWith('m1', '🎯');
+  });
+
+  it('maps picker selections to canonical reaction ids when emoji is in quick reactions', async () => {
+    const user = userEvent.setup();
+    const onReaction = vi.fn();
+    mockedPickerEmoji = '👍';
+
+    render(<MessageReactionBar messageId="m1" onReaction={onReaction} />);
+
+    await user.click(screen.getByText('pick custom emoji'));
+
+    expect(onReaction).toHaveBeenCalledWith('m1', 'like');
   });
 });

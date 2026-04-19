@@ -154,6 +154,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
   const membershipRecoveryAttemptedRef = useRef(false);
   const guardedReloadAttemptedRef = useRef(false);
   const membershipFailureRef = useRef<MembershipFailure | null>(null);
+  const ownReactionTypesByMessageRef = useRef<Map<string, Set<string>>>(new Map());
   const [reloadSeed, setReloadSeed] = useState(0);
 
   const triggerGuardedReload = useCallback(() => {
@@ -227,6 +228,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     guardedReloadAttemptedRef.current = false;
     membershipFailureRef.current = null;
     hasHydratedMessagesRef.current = false;
+    ownReactionTypesByMessageRef.current.clear();
   }, [tripId]);
 
   useEffect(() => {
@@ -727,26 +729,32 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     const channel = channelRef.current;
 
     try {
-      // Capture prior state in case of revert
-      const originalMessages = [...messagesRef.current];
-
-      // Optimistically check if we already reacted
       const message = messagesRef.current.find(m => m.id === messageId);
-      const hasReacted =
-        message?.own_reactions?.some(reaction => reaction.type === reactionType) ?? false;
+      const trackedReactionTypes = ownReactionTypesByMessageRef.current.get(messageId) ?? new Set();
+
+      if (!ownReactionTypesByMessageRef.current.has(messageId)) {
+        for (const reaction of message?.own_reactions ?? []) {
+          if (reaction?.type) {
+            trackedReactionTypes.add(reaction.type);
+          }
+        }
+        ownReactionTypesByMessageRef.current.set(messageId, trackedReactionTypes);
+      }
+
+      const hasReacted = trackedReactionTypes.has(reactionType);
 
       try {
         if (hasReacted) {
           await channel.deleteReaction(messageId, reactionType);
+          trackedReactionTypes.delete(reactionType);
         } else {
           await channel.sendReaction(messageId, { type: reactionType });
+          trackedReactionTypes.add(reactionType);
         }
       } catch (err) {
         if (import.meta.env.DEV) {
           console.error('[Stream] toggleReaction failed:', err);
         }
-        // Revert optimistic update
-        setMessages(originalMessages);
       }
     } catch (err) {
       if (import.meta.env.DEV) {
