@@ -52,7 +52,10 @@ describe('useStreamTripChat reactions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockChannel.state.messages = [{ ...baseMessage }];
-    watchMock.mockResolvedValue({ messages: [{ ...baseMessage }] });
+    watchMock.mockResolvedValue({
+      membership: { user_id: 'user-1' },
+      messages: [{ ...baseMessage }],
+    });
   });
 
   it('double-tap toggles same reaction: first add, second remove', async () => {
@@ -82,6 +85,26 @@ describe('useStreamTripChat reactions', () => {
       await result.current.toggleReaction('message-1', 'love');
     });
 
+    expect(deleteReactionMock).toHaveBeenCalledTimes(1);
+    expect(deleteReactionMock).toHaveBeenCalledWith('message-1', 'love');
+  });
+
+  it('double-tap toggles deterministically without waiting for reaction event hydration', async () => {
+    const { result } = renderHook(() => useStreamTripChat('trip-abc', { enabled: true }));
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.toggleReaction('message-1', 'love');
+    });
+
+    await act(async () => {
+      await result.current.toggleReaction('message-1', 'love');
+    });
+
+    expect(sendReactionMock).toHaveBeenCalledTimes(1);
     expect(deleteReactionMock).toHaveBeenCalledTimes(1);
     expect(deleteReactionMock).toHaveBeenCalledWith('message-1', 'love');
   });
