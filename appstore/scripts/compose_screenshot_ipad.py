@@ -45,12 +45,19 @@ VERB_SIZE_MAX = 220
 VERB_SIZE_MIN = 140
 DESC_SIZE = 110
 
-# Font search paths (Linux-friendly)
+# Font search paths (macOS + Linux)
 FONT_PATHS = [
-    "/Library/Fonts/SF-Pro-Display-Black.otf",          # macOS
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",  # Linux
-    "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",  # Linux alt
-    "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",   # Linux fallback
+    # macOS — SF Pro Display Black (preferred; requires Apple SF Pro dev fonts)
+    "/Library/Fonts/SF-Pro-Display-Black.otf",
+    "/System/Library/Fonts/SF-Pro-Display-Black.otf",
+    # macOS — guaranteed system fonts (heavy weights for headlines)
+    "/System/Library/Fonts/Supplemental/Arial Black.ttf",
+    "/System/Library/Fonts/Supplemental/Impact.ttf",
+    "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+    # Linux (CI / sandbox)
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+    "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
 ]
 
 
