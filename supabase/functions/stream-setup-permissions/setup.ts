@@ -5,6 +5,7 @@ type StreamSetupClient = {
     channelType: string,
     config: {
       grants: Record<string, string[]>;
+      max_message_length?: number;
     },
   ) => Promise<unknown>;
   upsertUser: (user: {
@@ -56,12 +57,10 @@ export async function configureStreamPermissionsAndPrincipal(
           'update-message-owner',
           'delete-message-owner',
           'upload-attachment',
-          'search-messages',
           'flag-message',
           'pin-message',
           'create-reaction',
           'delete-reaction-owner',
-          'read-events',
           'typing-events',
           'create-thread',
         ],
@@ -71,12 +70,10 @@ export async function configureStreamPermissionsAndPrincipal(
           'update-message',
           'delete-message',
           'upload-attachment',
-          'search-messages',
           'flag-message',
           'pin-message',
           'create-reaction',
           'delete-reaction',
-          'read-events',
           'typing-events',
           'create-thread',
         ],
@@ -92,13 +89,12 @@ export async function configureStreamPermissionsAndPrincipal(
   try {
     await serverClient.updateChannelType('chravel-broadcast', {
       grants: {
-        channel_member: ['read-channel', 'read-events', 'create-reaction', 'delete-reaction-owner'],
+        channel_member: ['read-channel', 'create-reaction', 'delete-reaction-owner'],
         channel_moderator: [
           'read-channel',
           'create-message',
           'update-message',
           'delete-message',
-          'read-events',
           'create-reaction',
           'delete-reaction',
           'pin-message',
@@ -120,23 +116,19 @@ export async function configureStreamPermissionsAndPrincipal(
           'create-message',
           'update-message-owner',
           'delete-message-owner',
-          'read-events',
           'typing-events',
           'create-reaction',
           'delete-reaction-owner',
-          'search-messages',
         ],
         channel_moderator: [
           'read-channel',
           'create-message',
           'update-message',
           'delete-message',
-          'read-events',
           'typing-events',
           'create-reaction',
           'delete-reaction',
           'pin-message',
-          'search-messages',
         ],
       },
     });
@@ -149,8 +141,9 @@ export async function configureStreamPermissionsAndPrincipal(
   // chravel-concierge: 2-member private channel, both can read/write
   try {
     await serverClient.updateChannelType('chravel-concierge', {
+      max_message_length: 20000,
       grants: {
-        channel_member: ['read-channel', 'create-message', 'read-events', 'typing-events'],
+        channel_member: ['read-channel', 'create-message', 'typing-events'],
       },
     });
     results.push({ channelType: 'chravel-concierge', status: 'ok' });
