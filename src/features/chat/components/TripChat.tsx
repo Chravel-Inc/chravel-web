@@ -210,6 +210,48 @@ export const TripChat = React.memo(
 
     const streamClient = getStreamClient();
 
+    // Extract Stream-canonical error fields for triage (always logged, even in prod).
+    const extractStreamError = (
+      error: unknown,
+    ): { code?: number | string; status?: number; message: string; data?: unknown } => {
+      const err = error as {
+        code?: number | string;
+        StatusCode?: number;
+        status?: number;
+        message?: string;
+        response?: { data?: { code?: number | string; message?: string } };
+      };
+      return {
+        code: err?.code ?? err?.response?.data?.code,
+        status: err?.StatusCode ?? err?.status,
+        message: err?.message ?? err?.response?.data?.message ?? 'Unknown Stream error',
+        data: err?.response?.data,
+      };
+    };
+
+    // Find the message-author id so we can pre-check ownership before calling Stream.
+    const findMessageAuthorId = useCallback(
+      (messageId: string): string | undefined => {
+        const msg = liveMessages.find(m => String(m.id) === String(messageId));
+        if (!msg) return undefined;
+        const candidate = msg as unknown as {
+          user?: { id?: string };
+          user_id?: string;
+          userId?: string;
+          sender?: { id?: string };
+          author_id?: string;
+        };
+        return (
+          candidate.user?.id ??
+          candidate.user_id ??
+          candidate.userId ??
+          candidate.sender?.id ??
+          candidate.author_id
+        );
+      },
+      [liveMessages],
+    );
+
     const handleMessageEdit = useCallback(
       async (messageId: string, newContent: string) => {
         if (demoMode.isDemoMode) return;
@@ -219,19 +261,32 @@ export const TripChat = React.memo(
           return;
         }
 
+        // Defensive owner check — Stream rejects owner-scoped ops as 403 if mismatch.
+        const authorId = findMessageAuthorId(messageId);
+        if (authorId && streamClient.userID && authorId !== streamClient.userID) {
+          toast.error('You can only edit your own messages');
+          return;
+        }
+
         try {
           await streamClient.updateMessage({
             id: messageId,
             text: newContent,
           });
         } catch (error) {
-          if (import.meta.env.DEV) {
-            console.error('[TripChat] Failed to edit message:', error);
-          }
-          toast.error('Failed to edit message');
+          const details = extractStreamError(error);
+          console.error('[TripChat] Stream updateMessage failed:', {
+            code: details.code,
+            status: details.status,
+            message: details.message,
+            data: details.data,
+            messageId,
+          });
+          const codeSuffix = details.code !== undefined ? ` (code ${details.code})` : '';
+          toast.error(`Failed to edit message${codeSuffix}`);
         }
       },
-      [demoMode.isDemoMode, streamClient],
+      [demoMode.isDemoMode, streamClient, findMessageAuthorId],
     );
 
     const handleMessageDelete = useCallback(
@@ -243,16 +298,28 @@ export const TripChat = React.memo(
           return;
         }
 
+        const authorId = findMessageAuthorId(messageId);
+        if (authorId && streamClient.userID && authorId !== streamClient.userID) {
+          toast.error('You can only delete your own messages');
+          return;
+        }
+
         try {
           await streamClient.deleteMessage(messageId);
         } catch (error) {
-          if (import.meta.env.DEV) {
-            console.error('[TripChat] Failed to delete message:', error);
-          }
-          toast.error('Failed to delete message');
+          const details = extractStreamError(error);
+          console.error('[TripChat] Stream deleteMessage failed:', {
+            code: details.code,
+            status: details.status,
+            message: details.message,
+            data: details.data,
+            messageId,
+          });
+          const codeSuffix = details.code !== undefined ? ` (code ${details.code})` : '';
+          toast.error(`Failed to delete message${codeSuffix}`);
         }
       },
-      [demoMode.isDemoMode, streamClient],
+      [demoMode.isDemoMode, streamClient, findMessageAuthorId],
     );
 
     // System message preferences — only meaningful for consumer trips. Use the

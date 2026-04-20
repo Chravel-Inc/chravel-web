@@ -122,6 +122,32 @@ export const ChannelChatView = ({
   }, []);
 
   // ── Stream edit/delete handlers (matches TripChat pattern from PRs #231/#246) ──
+  const extractStreamError = (
+    error: unknown,
+  ): { code?: number | string; status?: number; message: string; data?: unknown } => {
+    const err = error as {
+      code?: number | string;
+      StatusCode?: number;
+      status?: number;
+      message?: string;
+      response?: { data?: { code?: number | string; message?: string } };
+    };
+    return {
+      code: err?.code ?? err?.response?.data?.code,
+      status: err?.StatusCode ?? err?.status,
+      message: err?.message ?? err?.response?.data?.message ?? 'Unknown Stream error',
+      data: err?.response?.data,
+    };
+  };
+
+  const findStreamMessageAuthorId = useCallback(
+    (messageId: string): string | undefined => {
+      const msg = streamProChannel.messages.find(m => String(m.id) === String(messageId));
+      return msg?.user?.id;
+    },
+    [streamProChannel.messages],
+  );
+
   const handleMessageEdit = useCallback(
     async (messageId: string, newContent: string) => {
       if (isDemoChannel) return;
@@ -136,16 +162,34 @@ export const ChannelChatView = ({
         return;
       }
 
+      const authorId = findStreamMessageAuthorId(messageId);
+      if (authorId && streamClient.userID && authorId !== streamClient.userID) {
+        toast({
+          title: 'You can only edit your own messages',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       try {
         await streamClient.updateMessage({ id: messageId, text: newContent });
       } catch (error) {
-        if (import.meta.env.DEV) {
-          console.error('[ChannelChatView] Failed to edit message:', error);
-        }
-        toast({ title: 'Failed to edit message', variant: 'destructive' });
+        const details = extractStreamError(error);
+        console.error('[ChannelChatView] Stream updateMessage failed:', {
+          code: details.code,
+          status: details.status,
+          message: details.message,
+          data: details.data,
+          messageId,
+        });
+        const codeSuffix = details.code !== undefined ? ` (code ${details.code})` : '';
+        toast({
+          title: `Failed to edit message${codeSuffix}`,
+          variant: 'destructive',
+        });
       }
     },
-    [isDemoChannel, toast],
+    [isDemoChannel, toast, findStreamMessageAuthorId],
   );
 
   const handleMessageDelete = useCallback(
@@ -162,16 +206,34 @@ export const ChannelChatView = ({
         return;
       }
 
+      const authorId = findStreamMessageAuthorId(messageId);
+      if (authorId && streamClient.userID && authorId !== streamClient.userID) {
+        toast({
+          title: 'You can only delete your own messages',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       try {
         await streamClient.deleteMessage(messageId);
       } catch (error) {
-        if (import.meta.env.DEV) {
-          console.error('[ChannelChatView] Failed to delete message:', error);
-        }
-        toast({ title: 'Failed to delete message', variant: 'destructive' });
+        const details = extractStreamError(error);
+        console.error('[ChannelChatView] Stream deleteMessage failed:', {
+          code: details.code,
+          status: details.status,
+          message: details.message,
+          data: details.data,
+          messageId,
+        });
+        const codeSuffix = details.code !== undefined ? ` (code ${details.code})` : '';
+        toast({
+          title: `Failed to delete message${codeSuffix}`,
+          variant: 'destructive',
+        });
       }
     },
-    [isDemoChannel, toast],
+    [isDemoChannel, toast, findStreamMessageAuthorId],
   );
 
   // Transform ChannelMessage to ChatMessage format for MessageItem

@@ -10,3 +10,10 @@ export const expectedConfiguredChannelTypes = [
   'chravel-channel',
   'chravel-concierge',
 ] as const;
+
+export const expectedAppLevelUserGrants = [
+  'update-own-message',
+  'delete-own-message',
+  'update-message-owner',
+  'delete-message-owner',
+] as const;
