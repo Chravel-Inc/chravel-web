@@ -5,6 +5,14 @@ export interface PendingActionEnvelope {
   message: string;
 }
 
+export interface PromotedActionEnvelope {
+  pending: false;
+  promoted: true;
+  pendingActionId: string;
+  actionType: string;
+  message: string;
+}
+
 const PENDING_ACTION_TYPES = new Set([
   'add_to_calendar',
   'create_task',
@@ -26,6 +34,24 @@ export function isPendingActionEnvelope(value: unknown): value is PendingActionE
   if (!isRecord(value)) return false;
   return (
     value.pending === true &&
+    typeof value.pendingActionId === 'string' &&
+    value.pendingActionId.length > 0 &&
+    typeof value.actionType === 'string' &&
+    PENDING_ACTION_TYPES.has(value.actionType) &&
+    typeof value.message === 'string'
+  );
+}
+
+/**
+ * Promoted envelope: the server-side fast-path already wrote the row to the real
+ * table (trip_events / trip_tasks / trip_polls) AND marked the pending row confirmed.
+ * The UI no longer needs to round-trip through the client auto-confirm path.
+ */
+export function isPromotedActionEnvelope(value: unknown): value is PromotedActionEnvelope {
+  if (!isRecord(value)) return false;
+  return (
+    value.pending === false &&
+    value.promoted === true &&
     typeof value.pendingActionId === 'string' &&
     value.pendingActionId.length > 0 &&
     typeof value.actionType === 'string' &&
@@ -58,10 +84,21 @@ export function normalizeToolResult(toolName: string, result: unknown): Record<s
     };
   }
 
+  if (isPromotedActionEnvelope(result)) {
+    return {
+      success: true,
+      pending: false,
+      promoted: true,
+      pendingActionId: result.pendingActionId,
+      actionType: result.actionType,
+      message: result.message,
+    };
+  }
+
   if (toolName === 'createTask' || toolName === 'createPoll' || toolName === 'addToCalendar') {
     return {
       success: false,
-      error: `Tool "${toolName}" must return a pending action envelope before execution`,
+      error: `Tool "${toolName}" must return a pending or promoted action envelope before execution`,
     };
   }
 
@@ -72,3 +109,4 @@ export function normalizeToolResult(toolName: string, result: unknown): Record<s
   // Read tools often return rich payloads with no explicit success boolean.
   return { success: true, ...result };
 }
+
