@@ -12,6 +12,7 @@ export default defineConfig({
       'src/**/*.test.{ts,tsx}',
       'supabase/functions/**/__tests__/*.test.{ts,tsx}',
       'optimizer/__tests__/*.test.ts',
+      'unfurl/**/__tests__/*.test.ts',
     ],
     coverage: {
       provider: 'v8',
