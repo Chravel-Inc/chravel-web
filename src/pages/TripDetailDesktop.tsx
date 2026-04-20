@@ -34,6 +34,7 @@ import { demoModeService } from '../services/demoModeService';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { useQueryClient } from '@tanstack/react-query';
 import { tripKeys } from '@/lib/queryKeys';
+import { usePendingActions } from '../hooks/usePendingActions';
 
 /**
  * TripDetailDesktop Component

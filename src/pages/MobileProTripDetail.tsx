@@ -28,6 +28,7 @@ import { openOrDownloadBlob } from '../utils/download';
 import { orderExportSections } from '../utils/exportSectionOrder';
 import { demoModeService } from '../services/demoModeService';
 import { toast } from 'sonner';
+import { usePendingActions } from '../hooks/usePendingActions';
 
 export const MobileProTripDetail = () => {
   const { proTripId } = useParams();

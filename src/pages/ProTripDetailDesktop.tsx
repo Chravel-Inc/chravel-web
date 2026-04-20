@@ -24,6 +24,7 @@ import { MockRolesService } from '../services/mockRolesService';
 import { useTripMembers } from '../hooks/useTripMembers';
 import { demoModeService } from '../services/demoModeService';
 import { ProTripData, ProParticipant } from '../types/pro';
+import { usePendingActions } from '../hooks/usePendingActions';
 
 // 🚀 OPTIMIZATION: Lazy load heavy components for faster initial render
 const TripHeader = lazy(() =>

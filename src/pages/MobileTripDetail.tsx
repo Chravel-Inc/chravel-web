@@ -22,6 +22,7 @@ import { demoModeService } from '../services/demoModeService';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { tripKeys } from '@/lib/queryKeys';
+import { usePendingActions } from '../hooks/usePendingActions';
 
 export const MobileTripDetail = () => {
   const { tripId } = useParams();
