@@ -43,6 +43,10 @@ import { useTripChatMode } from '@/hooks/useTripChatMode';
 import { useLinkPreviews } from '../hooks/useLinkPreviews';
 import { useBlockedUsers, useReportContent } from '@/hooks/useUserSafety';
 import { getStreamClient } from '@/services/stream/streamClient';
+import {
+  clearPendingChatNavigation,
+  peekPendingChatNavigation,
+} from '@/lib/chatNavigationFromNotification';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -776,7 +780,7 @@ export const TripChat = React.memo(
     const isLoading = demoMode.isDemoMode ? false : liveLoading;
 
     // Scroll to specific message with highlight animation
-    const scrollToMessage = (messageId: string, type: 'message' | 'broadcast') => {
+    const scrollToMessage = useCallback((messageId: string, type: 'message' | 'broadcast') => {
       setShowSearchOverlay(false);
 
       // Switch to appropriate filter
@@ -799,7 +803,46 @@ export const TripChat = React.memo(
           }, 1000);
         }
       }, 100);
-    };
+    }, [messageFilter, setMessageFilter]);
+
+    const pendingNotificationNavDoneRef = useRef(false);
+
+    useEffect(() => {
+      pendingNotificationNavDoneRef.current = false;
+    }, [resolvedTripId]);
+
+    // Deep-link from in-app notification (sessionStorage) once Stream messages are hydrated
+    useEffect(() => {
+      if (demoMode.isDemoMode || shouldSkipLiveChat || !resolvedTripId) return;
+      if (pendingNotificationNavDoneRef.current) return;
+
+      const pending = peekPendingChatNavigation(resolvedTripId);
+      const targetId = pending?.messageId;
+      if (!targetId) return;
+
+      if (liveLoading) return;
+
+      const messageInList = liveFormattedMessages.some(m => m.id === targetId);
+      if (!messageInList) {
+        if (!hasMore) {
+          pendingNotificationNavDoneRef.current = true;
+          clearPendingChatNavigation(resolvedTripId);
+        }
+        return;
+      }
+
+      pendingNotificationNavDoneRef.current = true;
+      scrollToMessage(targetId, 'message');
+      clearPendingChatNavigation(resolvedTripId);
+    }, [
+      demoMode.isDemoMode,
+      shouldSkipLiveChat,
+      resolvedTripId,
+      liveLoading,
+      liveFormattedMessages,
+      hasMore,
+      scrollToMessage,
+    ]);
 
     // Global keyboard shortcut for search (Ctrl+F or Cmd+F)
     useEffect(() => {

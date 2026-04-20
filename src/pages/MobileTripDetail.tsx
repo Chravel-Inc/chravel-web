@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { tripKeys } from '@/lib/queryKeys';
 import { usePendingActions } from '../hooks/usePendingActions';
+import { useTripNotificationUrlTabSync } from '../hooks/useTripNotificationUrlTabSync';
 
 export const MobileTripDetail = () => {
   const { tripId } = useParams();
@@ -53,6 +54,7 @@ export const MobileTripDetail = () => {
     return storedTab || 'chat';
   };
   const [activeTab, setActiveTab] = useState(getInitialTab);
+  useTripNotificationUrlTabSync(tripId, setActiveTab, { variant: 'consumer' });
   const [tripDescription, setTripDescription] = useState<string>('');
   const [showTripInfo, setShowTripInfo] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);

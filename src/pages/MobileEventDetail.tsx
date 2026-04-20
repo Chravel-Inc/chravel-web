@@ -23,6 +23,7 @@ import { openOrDownloadBlob } from '../utils/download';
 import { orderExportSections } from '../utils/exportSectionOrder';
 import { demoModeService } from '../services/demoModeService';
 import { toast } from 'sonner';
+import { useTripNotificationUrlTabSync } from '../hooks/useTripNotificationUrlTabSync';
 
 export const MobileEventDetail = () => {
   const { eventId } = useParams();
@@ -43,6 +44,7 @@ export const MobileEventDetail = () => {
     return storedTab || 'agenda';
   };
   const [activeTab, setActiveTab] = useState(getInitialTab);
+  useTripNotificationUrlTabSync(eventId, setActiveTab, { variant: 'event' });
   const [tripDescription, setTripDescription] = useState<string>('');
   const [showTripInfo, setShowTripInfo] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);

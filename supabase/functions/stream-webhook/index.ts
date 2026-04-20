@@ -223,6 +223,8 @@ serve(async req => {
         metadata: {
           source: 'stream-webhook',
           stream_message_id: event.message?.id,
+          // Duplicate for clients that only read `message_id` (in-app notification → chat deep link)
+          message_id: event.message?.id,
           stream_event_type: eventType,
           stream_webhook_id: webhookId || null,
           stream_channel_type: channelType,
