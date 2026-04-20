@@ -28,6 +28,7 @@ import { openOrDownloadBlob } from '../utils/download';
 import { orderExportSections } from '../utils/exportSectionOrder';
 import { demoModeService } from '../services/demoModeService';
 import { toast } from 'sonner';
+import { usePendingActions } from '../hooks/usePendingActions';
 
 export const MobileProTripDetail = () => {
   const { proTripId } = useParams();
@@ -40,6 +41,11 @@ export const MobileProTripDetail = () => {
 
   // 🔄 CRITICAL FIX: Fetch real trip members from database for authenticated trips
   const { tripMembers, loading: membersLoading } = useTripMembers(proTripId);
+
+  // 🛰️ Keep concierge pending-action auto-confirm mounted at the trip shell so AI-created
+  // calendar events / tasks / polls promote into their real tables even when the user
+  // navigates away from the Concierge tab before the round-trip completes.
+  usePendingActions(proTripId || '');
 
   // Persist activeTab in sessionStorage to survive orientation changes
   const getInitialTab = () => {

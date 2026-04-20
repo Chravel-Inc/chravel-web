@@ -22,6 +22,7 @@ import { demoModeService } from '../services/demoModeService';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { tripKeys } from '@/lib/queryKeys';
+import { usePendingActions } from '../hooks/usePendingActions';
 
 export const MobileTripDetail = () => {
   const { tripId } = useParams();
@@ -39,6 +40,11 @@ export const MobileTripDetail = () => {
     isAuthLoading,
     tripError,
   } = useTripDetailData(tripId);
+
+  // 🛰️ Keep concierge pending-action auto-confirm mounted at the trip shell so AI-created
+  // calendar events / tasks / polls promote into their real tables even when the user
+  // navigates away from the Concierge tab before the round-trip completes.
+  usePendingActions(tripId || '');
 
   // Persist activeTab in sessionStorage to survive orientation changes
   const getInitialTab = () => {

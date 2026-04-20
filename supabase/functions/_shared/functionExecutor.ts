@@ -67,7 +67,7 @@ async function _executeImpl(
       const startTime = new Date(datetime).toISOString();
       const endTime = new Date(new Date(datetime).getTime() + 60 * 60 * 1000).toISOString();
 
-      // B4: Route to pending buffer for user confirmation
+      // B4: Pending buffer (preserves UI contract + audit trail)
       const { data: pending, error: pendingError } = await supabase
         .from('trip_pending_actions')
         .insert({
@@ -88,12 +88,47 @@ async function _executeImpl(
         .single();
 
       if (pendingError) throw pendingError;
+
+      // ⚡ Fast-path: when the caller is the authenticated trip member, write to the real
+      // table immediately so Calendar shows the event without waiting for the client
+      // auto-confirm round-trip. RLS still applies — the user's JWT is on `supabase`.
+      let promoted = false;
+      if (userId) {
+        const { error: realInsertError } = await supabase.from('trip_events').insert({
+          trip_id: tripId,
+          created_by: userId,
+          title,
+          start_time: startTime,
+          end_time: endTime,
+          location: location || null,
+          description: notes || null,
+          source_type: 'ai_concierge',
+        });
+        if (!realInsertError) {
+          promoted = true;
+          await supabase
+            .from('trip_pending_actions')
+            .update({
+              status: 'confirmed',
+              resolved_at: new Date().toISOString(),
+              resolved_by: userId,
+            })
+            .eq('id', pending.id)
+            .eq('status', 'pending');
+        } else {
+          console.warn('[Tool] addToCalendar fast-path failed, falling back to client confirm:', realInsertError.message);
+        }
+      }
+
       return {
         success: true,
-        pending: true,
+        pending: !promoted,
+        promoted,
         pendingActionId: pending.id,
         actionType: 'add_to_calendar',
-        message: `I'd like to add "${title}" to the calendar. Please confirm in the trip chat.`,
+        message: promoted
+          ? `Added "${title}" to the calendar.`
+          : `I'd like to add "${title}" to the calendar. Please confirm in the trip chat.`,
       };
     }
 
@@ -106,7 +141,7 @@ async function _executeImpl(
       // Maps to UNIQUE index on (trip_id, tool_call_id) in trip_pending_actions.
       const dedupeId = tool_call_id || idempotency_key || null;
 
-      // B4: Route to pending buffer for user confirmation
+      // B4: Pending buffer (preserves UI contract + audit trail)
       const { data: pending, error: pendingError } = await supabase
         .from('trip_pending_actions')
         .insert({
@@ -126,12 +161,54 @@ async function _executeImpl(
         .single();
 
       if (pendingError) throw pendingError;
+
+      // ⚡ Fast-path: write to trip_tasks immediately + mirror task_status/task_assignments
+      // so the new task appears in the Tasks tab without the client auto-confirm round-trip.
+      let promoted = false;
+      if (userId) {
+        const { data: taskRow, error: realInsertError } = await supabase
+          .from('trip_tasks')
+          .insert({
+            trip_id: tripId,
+            creator_id: userId,
+            title: taskTitle,
+            description: notes || null,
+            due_at: dueDate || null,
+            source_type: 'ai_concierge',
+          })
+          .select('id')
+          .single();
+
+        if (!realInsertError && taskRow?.id) {
+          // Mirror manual task creation: assign creator and seed incomplete status
+          await supabase.from('task_assignments').insert([{ task_id: taskRow.id, user_id: userId }]);
+          await supabase
+            .from('task_status')
+            .insert([{ task_id: taskRow.id, user_id: userId, completed: false }]);
+          promoted = true;
+          await supabase
+            .from('trip_pending_actions')
+            .update({
+              status: 'confirmed',
+              resolved_at: new Date().toISOString(),
+              resolved_by: userId,
+            })
+            .eq('id', pending.id)
+            .eq('status', 'pending');
+        } else if (realInsertError) {
+          console.warn('[Tool] createTask fast-path failed, falling back to client confirm:', realInsertError.message);
+        }
+      }
+
       return {
         success: true,
-        pending: true,
+        pending: !promoted,
+        promoted,
         pendingActionId: pending.id,
         actionType: 'create_task',
-        message: `I'd like to create a task: "${taskTitle}"${assignee ? ` for ${assignee}` : ''}. Please confirm in the trip chat.`,
+        message: promoted
+          ? `Created task: "${taskTitle}"${assignee ? ` for ${assignee}` : ''}.`
+          : `I'd like to create a task: "${taskTitle}"${assignee ? ` for ${assignee}` : ''}. Please confirm in the trip chat.`,
       };
     }
 
@@ -144,7 +221,7 @@ async function _executeImpl(
         voters: [],
       }));
 
-      // B4: Route to pending buffer for user confirmation
+      // B4: Pending buffer (preserves UI contract + audit trail)
       const { data: pending, error: pendingError } = await supabase
         .from('trip_pending_actions')
         .insert({
@@ -162,12 +239,43 @@ async function _executeImpl(
         .single();
 
       if (pendingError) throw pendingError;
+
+      // ⚡ Fast-path: write to trip_polls immediately so the poll appears in the Polls tab.
+      let promoted = false;
+      if (userId) {
+        const { error: realInsertError } = await supabase.from('trip_polls').insert({
+          trip_id: tripId,
+          created_by: userId,
+          question,
+          options: pollOptions,
+          status: 'active',
+          source_type: 'ai_concierge',
+        });
+        if (!realInsertError) {
+          promoted = true;
+          await supabase
+            .from('trip_pending_actions')
+            .update({
+              status: 'confirmed',
+              resolved_at: new Date().toISOString(),
+              resolved_by: userId,
+            })
+            .eq('id', pending.id)
+            .eq('status', 'pending');
+        } else {
+          console.warn('[Tool] createPoll fast-path failed, falling back to client confirm:', realInsertError.message);
+        }
+      }
+
       return {
         success: true,
-        pending: true,
+        pending: !promoted,
+        promoted,
         pendingActionId: pending.id,
         actionType: 'create_poll',
-        message: `I'd like to create a poll: "${question}" with ${options.length} options. Please confirm in the trip chat.`,
+        message: promoted
+          ? `Created poll: "${question}" with ${options.length} options.`
+          : `I'd like to create a poll: "${question}" with ${options.length} options. Please confirm in the trip chat.`,
       };
     }
 

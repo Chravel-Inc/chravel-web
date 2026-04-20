@@ -381,22 +381,31 @@ export function usePendingActions(tripId: string) {
   });
 
   // Auto-confirm pending actions created by the current user.
-  // This eliminates the manual "Confirm" click for self-initiated concierge actions,
-  // so the data appears in the relevant tab immediately after the AI says it created it.
+  // Batch-process ALL self-owned pending actions in one tick (e.g. multi-tool messages
+  // that create both a calendar event AND a task). Each id is guarded by autoConfirmedIds
+  // so a single id is never confirmed twice across renders.
   const autoConfirmedIds = useRef<Set<string>>(new Set());
   useEffect(() => {
-    if (!user?.id || pendingActions.length === 0 || confirmMutation.isPending) return;
+    if (!user?.id || pendingActions.length === 0) return;
 
     const selfPending = pendingActions.filter(
       a => a.user_id === user.id && a.status === 'pending' && !autoConfirmedIds.current.has(a.id),
     );
 
-    if (selfPending.length > 0) {
-      const action = selfPending[0];
-      autoConfirmedIds.current.add(action.id);
-      confirmMutation.mutate(action.id);
-    }
-  }, [pendingActions, user?.id, confirmMutation.isPending]);
+    if (selfPending.length === 0) return;
+
+    selfPending.forEach(a => autoConfirmedIds.current.add(a.id));
+    void Promise.all(
+      selfPending.map(a =>
+        confirmMutation.mutateAsync(a.id).catch(err => {
+          // Allow re-attempt on next tick if the confirm failed (e.g. transient RLS race)
+          autoConfirmedIds.current.delete(a.id);
+          if (import.meta.env.DEV) console.warn('[usePendingActions] auto-confirm failed', err);
+        }),
+      ),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingActions, user?.id]);
 
   return {
     pendingActions,

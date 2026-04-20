@@ -34,6 +34,7 @@ import { demoModeService } from '../services/demoModeService';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { useQueryClient } from '@tanstack/react-query';
 import { tripKeys } from '@/lib/queryKeys';
+import { usePendingActions } from '../hooks/usePendingActions';
 
 /**
  * TripDetailDesktop Component
@@ -67,6 +68,11 @@ export const TripDetailDesktop = () => {
 
   // 🔄 Keep useTripMembers for member management actions (canRemoveMembers, removeMember, leaveTrip)
   const { canRemoveMembers, removeMember, leaveTrip } = useTripMembers(tripId);
+
+  // 🛰️ Keep concierge pending-action auto-confirm mounted at the trip shell so AI-created
+  // calendar events / tasks / polls promote into their real tables even when the user
+  // navigates away from the Concierge tab before the round-trip completes.
+  usePendingActions(tripId || '');
 
   // State hooks - all called unconditionally
   const [activeTab, setActiveTab] = useState('chat');
