@@ -3402,6 +3402,8 @@ async function _executeImpl(
         Array.isArray(splitParticipants) && splitParticipants.length > 0
           ? splitParticipants.length
           : 1;
+      const safeCurrency = currency ? String(currency).toUpperCase() : 'USD';
+      const participants = Array.isArray(splitParticipants) ? splitParticipants : [];
 
       const { data: pending, error: pendingError } = await supabase
         .from('trip_pending_actions')
@@ -3413,9 +3415,9 @@ async function _executeImpl(
           payload: {
             description: String(description),
             amount: Number(amount),
-            currency: currency ? String(currency).toUpperCase() : 'USD',
+            currency: safeCurrency,
             split_count: splitCount,
-            split_participants: Array.isArray(splitParticipants) ? splitParticipants : [],
+            split_participants: participants,
             created_by: userId || null,
             trip_id: tripId,
           },
@@ -3424,12 +3426,51 @@ async function _executeImpl(
         .select('id')
         .single();
       if (pendingError) throw pendingError;
+
+      // ⚡ Fast-path: write to trip_payment_messages + payment_splits immediately
+      let promoted = false;
+      if (userId) {
+        const { data: paymentRow, error: payErr } = await supabase
+          .from('trip_payment_messages')
+          .insert({
+            trip_id: tripId,
+            created_by: userId,
+            amount: Number(amount),
+            currency: safeCurrency,
+            description: String(description),
+            split_count: splitCount,
+            split_participants: participants,
+            payment_methods: [],
+          })
+          .select('id')
+          .single();
+        if (!payErr && paymentRow?.id) {
+          if (participants.length > 0) {
+            const splitAmount = Number(amount) / splitCount;
+            await supabase.from('payment_splits').insert(
+              participants.map((uid: any) => ({
+                payment_message_id: paymentRow.id,
+                debtor_user_id: String(uid),
+                amount_owed: splitAmount,
+              })),
+            );
+          }
+          promoted = true;
+          await markPendingConfirmed(supabase, pending.id, userId);
+        } else if (payErr) {
+          console.warn('[Tool] addExpense fast-path failed, falling back:', payErr.message);
+        }
+      }
+
       return {
         success: true,
-        pending: true,
+        pending: !promoted,
+        promoted,
         pendingActionId: pending.id,
         actionType: 'add_expense',
-        message: `I'd like to log a ${currency || 'USD'} ${amount} expense for "${description}". Please confirm in the trip chat.`,
+        message: promoted
+          ? `Logged ${safeCurrency} ${amount} expense for "${description}".`
+          : `I'd like to log a ${safeCurrency} ${amount} expense for "${description}". Please confirm in the trip chat.`,
       };
     }
 
