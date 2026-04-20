@@ -386,7 +386,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         ) {
           membershipRecoveryAttemptedRef.current = true;
           const ensured = await ensureMembership();
-          if (!ensured.ok) {
+          if (ensured.ok === false) {
             throw mapMembershipFailureToUiError(ensured.failure);
           }
           watched = await watchChannel();
@@ -425,7 +425,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
           membershipRecoveryAttemptedRef.current = true;
           try {
             const ensured = await ensureMembership();
-            if (!ensured.ok) {
+            if (ensured.ok === false) {
               throw mapMembershipFailureToUiError(ensured.failure);
             }
             const channel = client.channel(CHANNEL_TYPE_TRIP, tripChannelId(tripId));
