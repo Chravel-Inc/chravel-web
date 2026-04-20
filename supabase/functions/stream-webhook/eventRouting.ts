@@ -8,7 +8,6 @@ export const HANDLED_STREAM_CHANNEL_TYPES = new Set<string>([
   'chravel-trip',
   'chravel-broadcast',
   'chravel-channel',
-  'chravel-concierge',
 ]);
 
 export type ResolvedStreamChannel = {
@@ -16,8 +15,13 @@ export type ResolvedStreamChannel = {
   channelId: string | null;
 };
 
-const UUID_SUFFIX_REGEX =
-  /-([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i;
+// UUID v1-5 canonical form. Matches auth.users.id shape.
+export const UUID_V1_TO_V5 =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function isUuid(value: unknown): value is string {
+  return typeof value === 'string' && UUID_V1_TO_V5.test(value);
+}
 
 export function parseStreamCid(cid?: string): ResolvedStreamChannel {
   if (!cid || !cid.includes(':')) {
@@ -48,26 +52,6 @@ export function resolveTripIdFromChannel(
   }
 
   return null;
-}
-
-export function resolveConciergeUserId(
-  channelType: string | null,
-  channelId: string | null,
-): string | null {
-  if (channelType !== 'chravel-concierge' || !channelId || !channelId.startsWith('concierge-')) {
-    return null;
-  }
-
-  const trimmed = channelId.replace('concierge-', '');
-  const uuidMatch = trimmed.match(UUID_SUFFIX_REGEX);
-  if (uuidMatch?.[1]) {
-    return uuidMatch[1];
-  }
-
-  const parts = trimmed.split('-').filter(Boolean);
-  if (parts.length < 2) return null;
-
-  return parts[parts.length - 1] || null;
 }
 
 export function dedupeRecipients(
