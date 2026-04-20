@@ -7,8 +7,8 @@ import {
   HANDLED_STREAM_EVENT_TYPES,
   dedupeRecipients,
   normalizeMentionedUserIds,
+  isUuid,
   parseStreamCid,
-  resolveConciergeUserId,
   resolveTripIdFromChannel,
 } from './eventRouting.ts';
 
@@ -202,68 +202,52 @@ serve(async req => {
     recipients = mentionedUserIds;
   } else if (channelType === 'chravel-channel') {
     recipients = mentionedUserIds;
-  } else if (channelType === 'chravel-concierge') {
-    const memberUserIds = [...(event.members || []), ...(event.channel?.members || [])].map(
-      member => member.user_id || member.user?.id,
-    );
-    const fallbackUserId = resolveConciergeUserId(channelType, channelId);
-    recipients = dedupeRecipients([...memberUserIds, fallbackUserId], senderId).filter(
-      userId => userId !== 'ai-concierge-bot',
-    );
   }
 
   if (recipients.length > 0) {
-    const notificationType =
-      channelType === 'chravel-trip' ||
-      channelType === 'chravel-broadcast' ||
-      channelType === 'chravel-channel'
-        ? ('mention' as const)
-        : ('chat_message' as const);
-    const dedupeWindowStartIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { data: existingRows, error: dedupeCheckError } = await supabase
-      .from('notifications')
-      .select('user_id')
-      .in('user_id', recipients)
-      .eq('type', notificationType)
-      .contains('metadata', { stream_message_id: event.message.id })
-      .gte('created_at', dedupeWindowStartIso);
+    const safeTripId = isUuid(tripId) ? tripId : null;
+    const skipped: Array<{ userId: unknown; reason: string }> = [];
+    const notificationRows: Array<Record<string, unknown>> = [];
 
-    if (dedupeCheckError) {
-      console.error('[stream-webhook] notification dedupe check failed:', dedupeCheckError.message);
-    }
-
-    const existingRecipientIds = new Set((existingRows || []).map(row => row.user_id));
-    const recipientsToInsert = recipients.filter(userId => !existingRecipientIds.has(userId));
-
-    const notificationRows = recipientsToInsert.map(userId => ({
-      user_id: userId,
-      type: notificationType,
-      title: event.message?.user?.name || 'New message',
-      message: event.message?.text || 'sent a message',
-      trip_id: tripId,
-      metadata: {
-        source: 'stream-webhook',
-        stream_message_id: event.message?.id,
-        stream_event_type: eventType,
-        stream_webhook_id: webhookId || null,
-        stream_channel_type: channelType,
-        stream_channel_id: channelId,
-      },
-    }));
-
-    if (notificationRows.length === 0) {
-      return new Response(JSON.stringify({ ok: true, deduped: true }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    for (const userId of recipients) {
+      if (!isUuid(userId)) {
+        skipped.push({ userId, reason: 'non_uuid_user_id' });
+        continue;
+      }
+      notificationRows.push({
+        user_id: userId,
+        type: 'mention' as const,
+        title: event.message?.user?.name || 'New message',
+        message: event.message?.text || '',
+        trip_id: safeTripId,
+        metadata: {
+          source: 'stream-webhook',
+          stream_message_id: event.message?.id,
+          stream_event_type: eventType,
+          stream_webhook_id: webhookId || null,
+          stream_channel_type: channelType,
+          stream_channel_id: channelId,
+        },
       });
     }
 
-    const { error: notificationError } = await supabase
-      .from('notifications')
-      .insert(notificationRows);
+    if (skipped.length > 0) {
+      console.warn('[stream-webhook] skipped non-uuid recipients', {
+        count: skipped.length,
+        sample: skipped.slice(0, 3),
+      });
+    }
 
-    if (notificationError) {
-      console.error('[stream-webhook] notification insert failed:', notificationError.message);
+    if (notificationRows.length > 0) {
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .upsert(notificationRows, {
+          onConflict: 'user_id,type,stream_message_id_mv',
+          ignoreDuplicates: true,
+        });
+      if (notificationError) {
+        console.error('[stream-webhook] notification insert failed:', notificationError.message);
+      }
     }
   }
 

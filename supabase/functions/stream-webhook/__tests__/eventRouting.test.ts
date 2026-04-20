@@ -3,9 +3,9 @@ import {
   HANDLED_STREAM_CHANNEL_TYPES,
   HANDLED_STREAM_EVENT_TYPES,
   dedupeRecipients,
+  isUuid,
   normalizeMentionedUserIds,
   parseStreamCid,
-  resolveConciergeUserId,
   resolveTripIdFromChannel,
 } from '../eventRouting.ts';
 
@@ -20,7 +20,7 @@ describe('stream-webhook event routing', () => {
     expect(HANDLED_STREAM_CHANNEL_TYPES.has('chravel-trip')).toBe(true);
     expect(HANDLED_STREAM_CHANNEL_TYPES.has('chravel-broadcast')).toBe(true);
     expect(HANDLED_STREAM_CHANNEL_TYPES.has('chravel-channel')).toBe(true);
-    expect(HANDLED_STREAM_CHANNEL_TYPES.has('chravel-concierge')).toBe(true);
+    expect(HANDLED_STREAM_CHANNEL_TYPES.has('chravel-concierge')).toBe(false);
   });
 
   it('parses stream cid into channel type + channel id', () => {
@@ -35,17 +35,15 @@ describe('stream-webhook event routing', () => {
     expect(resolveTripIdFromChannel('chravel-broadcast', 'broadcast-trip_123')).toBe('trip_123');
   });
 
-  it('resolves concierge user ids with UUID suffix and fallback format', () => {
-    expect(
-      resolveConciergeUserId(
-        'chravel-concierge',
-        'concierge-trip_123-11111111-2222-4333-8444-555555555555',
-      ),
-    ).toBe('11111111-2222-4333-8444-555555555555');
-
-    expect(resolveConciergeUserId('chravel-concierge', 'concierge-trip_123-user_456')).toBe(
-      'user_456',
-    );
+  it('isUuid accepts canonical UUIDs and rejects synthetic ids', () => {
+    expect(isUuid('ec5fb8d1-fd98-4323-a471-e19959532aa6')).toBe(true);
+    expect(isUuid('5F87A85C-3AF6-4978-819A-6F4CEB76F553')).toBe(true);
+    expect(isUuid('b2-recipA-a327a389')).toBe(false);
+    expect(isUuid('concierge')).toBe(false);
+    expect(isUuid('')).toBe(false);
+    expect(isUuid(null)).toBe(false);
+    expect(isUuid(undefined)).toBe(false);
+    expect(isUuid(42)).toBe(false);
   });
 
   it('dedupes recipients and excludes sender', () => {
