@@ -155,6 +155,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
   const channelRef = useRef<Channel | null>(null);
   const messagesRef = useRef<MessageResponse[]>([]);
   const hasHydratedMessagesRef = useRef(false);
+  const lastMessageTimestampRef = useRef<string | null>(null);
   // State mirror of channelRef for triggering the event subscription effect
   const [activeChannel, setActiveChannel] = useState<Channel | null>(null);
   const isMountedRef = useRef(true);
@@ -168,6 +169,39 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     if (guardedReloadAttemptedRef.current) return;
     guardedReloadAttemptedRef.current = true;
     setReloadSeed(prev => prev + 1);
+  }, []);
+
+  // Backfill messages missed during WebSocket disconnection (agent memory #13)
+  const backfillMissedMessages = useCallback(async () => {
+    const channel = channelRef.current;
+    if (!channel || !lastMessageTimestampRef.current || !isMountedRef.current) return;
+
+    try {
+      const response = await channel.query({
+        messages: {
+          created_at_after: lastMessageTimestampRef.current,
+          limit: 100,
+        },
+      });
+
+      const fetchedMessages = (response.messages || []) as MessageResponse[];
+      if (fetchedMessages.length === 0) return;
+
+      setMessages(prev => {
+        const existingIds = new Set(prev.map(m => m.id));
+        const newMessages = fetchedMessages.filter(m => !existingIds.has(m.id));
+        if (newMessages.length === 0) return prev;
+
+        const merged = [...prev, ...newMessages].sort(
+          (a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime(),
+        );
+        return merged;
+      });
+    } catch (err) {
+      if (import.meta.env.DEV) {
+        console.warn('[Stream] backfill failed:', err);
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -185,13 +219,29 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     return unsubscribe;
   }, []);
 
+  // On reconnect, backfill messages that may have been missed during disconnection
   useEffect(() => {
     const unsubscribe = onStreamClientConnectionStatusChange(isConnected => {
       if (!isMountedRef.current) return;
       setStreamClientReady(isConnected);
+
+      if (isConnected && hasHydratedMessagesRef.current) {
+        void backfillMissedMessages();
+      }
     });
     return unsubscribe;
-  }, []);
+  }, [backfillMissedMessages]);
+
+  // Backfill on visibility change (mobile background/foreground transitions)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && hasHydratedMessagesRef.current) {
+        void backfillMissedMessages();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [backfillMissedMessages]);
 
   useEffect(() => {
     if (!isEnabled || !tripId || streamClientReady || getStreamClient()?.userID) return;
@@ -242,6 +292,11 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     messagesRef.current = messages;
     if (messages.length > 0) {
       hasHydratedMessagesRef.current = true;
+      // Track latest message timestamp for reconnect backfill
+      const latestMsg = messages[messages.length - 1];
+      if (latestMsg?.created_at) {
+        lastMessageTimestampRef.current = latestMsg.created_at;
+      }
     }
   }, [messages]);
 
@@ -731,52 +786,56 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
   );
 
   // Load more (older messages)
-  const toggleReaction = useCallback(async (messageId: string, reactionType: string) => {
-    if (!channelRef.current) return;
-    const channel = channelRef.current;
-
-    try {
-      const message = messagesRef.current.find(m => m.id === messageId);
-      const trackedReactionTypes = ownReactionTypesByMessageRef.current.get(messageId) ?? new Set();
-
-      if (!ownReactionTypesByMessageRef.current.has(messageId)) {
-        for (const reaction of message?.own_reactions ?? []) {
-          if (reaction?.type) {
-            trackedReactionTypes.add(reaction.type);
-          }
-        }
-        ownReactionTypesByMessageRef.current.set(messageId, trackedReactionTypes);
-      }
-
-      const hasReacted = trackedReactionTypes.has(reactionType);
+  const toggleReaction = useCallback(
+    async (messageId: string, reactionType: string) => {
+      if (!channelRef.current) return;
+      const channel = channelRef.current;
 
       try {
-        if (hasReacted) {
-          await channel.deleteReaction(messageId, reactionType);
-          trackedReactionTypes.delete(reactionType);
-        } else {
-          await channel.sendReaction(messageId, { type: reactionType });
-          trackedReactionTypes.add(reactionType);
+        const message = messagesRef.current.find(m => m.id === messageId);
+        const trackedReactionTypes =
+          ownReactionTypesByMessageRef.current.get(messageId) ?? new Set();
+
+        if (!ownReactionTypesByMessageRef.current.has(messageId)) {
+          for (const reaction of message?.own_reactions ?? []) {
+            if (reaction?.type) {
+              trackedReactionTypes.add(reaction.type);
+            }
+          }
+          ownReactionTypesByMessageRef.current.set(messageId, trackedReactionTypes);
+        }
+
+        const hasReacted = trackedReactionTypes.has(reactionType);
+
+        try {
+          if (hasReacted) {
+            await channel.deleteReaction(messageId, reactionType);
+            trackedReactionTypes.delete(reactionType);
+          } else {
+            await channel.sendReaction(messageId, { type: reactionType });
+            trackedReactionTypes.add(reactionType);
+          }
+        } catch (err) {
+          if (import.meta.env.DEV) {
+            console.error('[Stream] toggleReaction failed:', err);
+          }
+          if (isStreamReactionPolicyError(err)) {
+            toast({
+              title: 'Reaction unavailable',
+              description:
+                'This reaction is blocked by Stream channel settings or reaction policy. Ask an admin to enable reactions for this channel type.',
+              variant: 'destructive',
+            });
+          }
         }
       } catch (err) {
         if (import.meta.env.DEV) {
-          console.error('[Stream] toggleReaction failed:', err);
-        }
-        if (isStreamReactionPolicyError(err)) {
-          toast({
-            title: 'Reaction unavailable',
-            description:
-              'This reaction is blocked by Stream channel settings or reaction policy. Ask an admin to enable reactions for this channel type.',
-            variant: 'destructive',
-          });
+          console.error('[Stream] toggleReaction prep failed:', err);
         }
       }
-    } catch (err) {
-      if (import.meta.env.DEV) {
-        console.error('[Stream] toggleReaction prep failed:', err);
-      }
-    }
-  }, [toast]);
+    },
+    [toast],
+  );
 
   const loadMore = useCallback(async () => {
     const channel = channelRef.current;

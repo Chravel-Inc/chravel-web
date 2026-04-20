@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { toast } from 'sonner';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Channel } from 'stream-chat';
 import { demoModeService } from '@/services/demoModeService';
@@ -108,9 +108,24 @@ export const TripChat = React.memo(
 
     const { isOffline } = useOfflineStatus();
     const params = useParams<{ tripId?: string; proTripId?: string; eventId?: string }>();
+    const location = useLocation();
     const resolvedTripId = useMemo(() => {
       return tripIdProp || params.tripId || params.proTripId || params.eventId || '';
     }, [tripIdProp, params.tripId, params.proTripId, params.eventId]);
+
+    // Extract navigation context from notification click (if present)
+    const chatNavigationContext = (
+      location.state as {
+        chatNavigationContext?: {
+          source?: string;
+          notificationId?: string;
+          messageId?: string;
+          channelId?: string;
+          channelType?: string;
+        };
+      } | null
+    )?.chatNavigationContext;
+    const targetMessageId = chatNavigationContext?.messageId;
 
     const demoMode = useDemoMode();
     const { user } = useAuth();
@@ -800,6 +815,20 @@ export const TripChat = React.memo(
         }
       }, 100);
     };
+
+    // Scroll to target message from notification click (when messages finish loading)
+    const scrollAttemptedRef = useRef(false);
+    useEffect(() => {
+      if (!targetMessageId || isLoading || scrollAttemptedRef.current) return;
+      scrollAttemptedRef.current = true;
+
+      // Give messages time to render, then scroll
+      const timer = setTimeout(() => {
+        scrollToMessage(targetMessageId, 'message');
+      }, 300);
+
+      return () => clearTimeout(timer);
+    }, [targetMessageId, isLoading]);
 
     // Global keyboard shortcut for search (Ctrl+F or Cmd+F)
     useEffect(() => {

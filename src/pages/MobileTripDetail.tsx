@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, MoreVertical, Info, LogIn, Users } from 'lucide-react';
 import { MobileTripTabs } from '../components/mobile/MobileTripTabs';
 import { MobileErrorBoundary } from '../components/mobile/MobileErrorBoundary';
@@ -27,6 +27,7 @@ import { usePendingActions } from '../hooks/usePendingActions';
 export const MobileTripDetail = () => {
   const { tripId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
 
@@ -46,9 +47,11 @@ export const MobileTripDetail = () => {
   // navigates away from the Concierge tab before the round-trip completes.
   usePendingActions(tripId || '');
 
-  // Persist activeTab in sessionStorage to survive orientation changes
+  // URL ?tab= param takes precedence (from notification clicks), then sessionStorage
   const getInitialTab = () => {
     if (typeof window === 'undefined') return 'chat';
+    const urlTab = searchParams.get('tab');
+    if (urlTab) return urlTab;
     const storedTab = sessionStorage.getItem(`trip_${tripId}_activeTab`);
     return storedTab || 'chat';
   };

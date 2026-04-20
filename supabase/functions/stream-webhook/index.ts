@@ -206,14 +206,54 @@ serve(async req => {
 
   if (recipients.length > 0) {
     const safeTripId = isUuid(tripId) ? tripId : null;
-    const skipped: Array<{ userId: unknown; reason: string }> = [];
-    const notificationRows: Array<Record<string, unknown>> = [];
 
-    for (const userId of recipients) {
-      if (!isUuid(userId)) {
-        skipped.push({ userId, reason: 'non_uuid_user_id' });
-        continue;
+    // Filter recipients by notification preferences — only notify users who want mentions
+    const validRecipients = recipients.filter(userId => isUuid(userId));
+    const invalidRecipients = recipients.filter(userId => !isUuid(userId));
+
+    if (invalidRecipients.length > 0) {
+      console.warn('[stream-webhook] skipped non-uuid recipients', {
+        count: invalidRecipients.length,
+        sample: invalidRecipients.slice(0, 3),
+      });
+    }
+
+    // Fetch notification preferences for all valid recipients
+    let eligibleRecipients = validRecipients;
+    if (validRecipients.length > 0) {
+      const { data: prefData, error: prefError } = await supabase
+        .from('notification_preferences')
+        .select('user_id, mentions_only, chat_messages')
+        .in('user_id', validRecipients);
+
+      if (prefError) {
+        console.warn(
+          '[stream-webhook] failed to fetch notification_preferences:',
+          prefError.message,
+        );
+        // Continue with all recipients on preference fetch failure (fail-open for mentions)
+      } else if (prefData) {
+        // Build preference map - users without a row get default (mentions_only=true)
+        const prefsMap = new Map(prefData.map(p => [p.user_id, p]));
+        eligibleRecipients = validRecipients.filter(userId => {
+          const pref = prefsMap.get(userId);
+          // Default: mentions_only=true, so users without prefs still get mention notifications
+          // Skip only if user explicitly disabled mentions (mentions_only=false AND chat_messages=false)
+          if (!pref) return true; // No prefs row = default behavior = want mentions
+          return pref.mentions_only !== false || pref.chat_messages === true;
+        });
+
+        const filteredCount = validRecipients.length - eligibleRecipients.length;
+        if (filteredCount > 0) {
+          console.log(
+            `[stream-webhook] filtered ${filteredCount} recipients by notification preferences`,
+          );
+        }
       }
+    }
+
+    const notificationRows: Array<Record<string, unknown>> = [];
+    for (const userId of eligibleRecipients) {
       notificationRows.push({
         user_id: userId,
         type: 'mention' as const,
@@ -228,13 +268,6 @@ serve(async req => {
           stream_channel_type: channelType,
           stream_channel_id: channelId,
         },
-      });
-    }
-
-    if (skipped.length > 0) {
-      console.warn('[stream-webhook] skipped non-uuid recipients', {
-        count: skipped.length,
-        sample: skipped.slice(0, 3),
       });
     }
 

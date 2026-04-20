@@ -156,11 +156,18 @@ function buildNavigationTarget(
   const isJoinApproved = isJoinRequestApprovedNotification(notification);
   const path = !isJoinApproved && tab ? `${baseRoute}?tab=${tab}` : baseRoute;
 
+  // stream_message_id is the canonical key set by stream-webhook
   const messageId =
-    getMetadataString(metadata, 'message_id') || getMetadataString(metadata, 'chat_message_id');
+    getMetadataString(metadata, 'stream_message_id') ||
+    getMetadataString(metadata, 'message_id') ||
+    getMetadataString(metadata, 'chat_message_id');
   const channelId =
-    getMetadataString(metadata, 'channel_id') || getMetadataString(metadata, 'chat_channel_id');
-  const channelType = getMetadataString(metadata, 'channel_type');
+    getMetadataString(metadata, 'stream_channel_id') ||
+    getMetadataString(metadata, 'channel_id') ||
+    getMetadataString(metadata, 'chat_channel_id');
+  const channelType =
+    getMetadataString(metadata, 'stream_channel_type') ||
+    getMetadataString(metadata, 'channel_type');
   const openThreadId = getMetadataString(metadata, 'thread_id');
 
   const shouldHandshakeChat = tab === 'chat' || notification.type.toLowerCase() === 'mention';
