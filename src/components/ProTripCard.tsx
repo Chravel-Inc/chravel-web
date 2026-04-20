@@ -1,7 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  CalendarDays,
   MapPin,
   Users,
   MoreHorizontal,
@@ -317,7 +316,9 @@ export const ProTripCard = ({
             </div>
 
             <div className="flex items-center gap-2 text-black/70 dark:text-white/80 text-sm md:text-base">
-              <CalendarDays size={14} className="gold-gradient-icon shrink-0" />
+              <span className="gold-gradient-icon inline-flex shrink-0">
+                <CalendarGlyph size={14} />
+              </span>
               <span className="font-medium truncate">{trip.dateRange}</span>
             </div>
           </div>
