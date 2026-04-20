@@ -125,20 +125,30 @@ export class ErrorBoundary extends Component<Props, State> {
               </p>
             </div>
             <div className="flex gap-2">
-              <button
-                onClick={this.handleReset}
-                className="flex items-center gap-1 px-3 py-2 text-sm bg-muted hover:bg-muted/80 rounded-lg transition-colors"
-              >
-                <RefreshCw className="h-3 w-3" />
-                Retry
-              </button>
-              {isChunk && (
+              {isChunk ? (
+                <>
+                  <button
+                    onClick={this.handleReset}
+                    className="flex items-center gap-1 px-3 py-2 text-sm bg-muted hover:bg-muted/80 rounded-lg transition-colors"
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                    Retry
+                  </button>
+                  <button
+                    onClick={this.handleClearAndReload}
+                    className="flex items-center gap-1 px-3 py-2 text-sm bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    Reload
+                  </button>
+                </>
+              ) : (
                 <button
-                  onClick={this.handleClearAndReload}
+                  onClick={() => safeReload()}
                   className="flex items-center gap-1 px-3 py-2 text-sm bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors"
                 >
-                  <Trash2 className="h-3 w-3" />
-                  Reload
+                  <RefreshCw className="h-3 w-3" />
+                  Refresh
                 </button>
               )}
             </div>
@@ -166,42 +176,43 @@ export class ErrorBoundary extends Component<Props, State> {
             </div>
 
             <div className="space-y-3">
-              {isChunk && (
-                <button
-                  onClick={this.handleClearAndReload}
-                  className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-xl transition-colors font-medium"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Clear Cache & Reload
-                </button>
-              )}
-
-              <button
-                onClick={this.handleReset}
-                className={`w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl transition-colors ${
-                  isChunk
-                    ? 'bg-muted text-muted-foreground hover:bg-muted/80'
-                    : 'bg-primary text-primary-foreground hover:bg-primary/90 font-medium'
-                }`}
-              >
-                <RefreshCw className="h-4 w-4" />
-                Try Again
-              </button>
-
-              {!isChunk && (
+              {isChunk ? (
+                <>
+                  <button
+                    onClick={this.handleClearAndReload}
+                    className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-xl transition-colors font-medium"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Clear Cache & Reload
+                  </button>
+                  <button
+                    onClick={this.handleReset}
+                    className="w-full flex items-center justify-center gap-2 bg-muted text-muted-foreground hover:bg-muted/80 px-6 py-3 rounded-xl transition-colors"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Try Again
+                  </button>
+                </>
+              ) : (
                 <button
                   onClick={() => safeReload()}
-                  className="w-full bg-muted text-muted-foreground hover:bg-muted/80 px-6 py-3 rounded-xl transition-colors"
+                  className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-xl transition-colors font-medium"
                 >
+                  <RefreshCw className="h-4 w-4" />
                   Refresh Page
                 </button>
               )}
             </div>
 
-            {import.meta.env.DEV && this.state.error && (
+            {this.state.error && (
               <details className="text-left text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg mt-4">
                 <summary className="cursor-pointer font-medium">Error Details</summary>
-                <pre className="mt-2 whitespace-pre-wrap break-words">{this.state.error.stack}</pre>
+                <p className="mt-2 break-words">{this.state.error.message}</p>
+                {import.meta.env.DEV && (
+                  <pre className="mt-2 whitespace-pre-wrap break-words text-xs opacity-70">
+                    {this.state.error.stack}
+                  </pre>
+                )}
               </details>
             )}
           </div>
