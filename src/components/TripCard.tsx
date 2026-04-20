@@ -1,7 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  CalendarDays,
   MapPin,
   User,
   Users,
@@ -480,8 +479,12 @@ export const TripCard = ({
               <span className="font-medium truncate">{trip.location}</span>
             </div>
             <div className="flex items-center gap-2 text-white text-sm md:text-base">
-              <CalendarDays size={14} className="md:hidden gold-gradient-icon" />
-              <CalendarDays size={18} className="hidden md:block gold-gradient-icon" />
+              <span className="md:hidden inline-flex gold-gradient-icon">
+                <CalendarGlyph size={14} />
+              </span>
+              <span className="hidden md:inline-flex gold-gradient-icon">
+                <CalendarGlyph size={18} />
+              </span>
               <span className="font-medium truncate">{trip.dateRange}</span>
             </div>
           </div>

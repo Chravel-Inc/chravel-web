@@ -1,7 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  CalendarDays,
   MapPin,
   Users,
   MoreHorizontal,
@@ -250,7 +249,9 @@ export const EventCard = ({
               <span className="font-medium">{event.location}</span>
             </div>
             <div className="flex items-center gap-2 text-white/80">
-              <CalendarDays size={16} className="gold-gradient-icon" />
+              <span className="gold-gradient-icon inline-flex">
+                <CalendarGlyph size={16} />
+              </span>
               <span className="font-medium">{event.dateRange}</span>
             </div>
           </div>
