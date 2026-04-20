@@ -7,6 +7,8 @@
  * - GET /healthz    -> 200 ok
  */
 
+import { isLikelyHtmlCrawler } from './crawlerDetection';
+
 type Env = {
   SUPABASE_PROJECT_REF: string;
   APP_BASE_URL: string; // e.g. https://chravel.app
@@ -97,6 +99,16 @@ export default {
     upstreamUrl.searchParams.set('code', parsed.code);
     upstreamUrl.searchParams.set('canonicalUrl', canonicalUrl);
     upstreamUrl.searchParams.set('appBaseUrl', appBaseUrl);
+
+    // Real browsers / in-app WebViews should hit the SPA join route, not static OG HTML
+    // (meta refresh is unreliable in WKWebView). Crawlers still get HTML for previews.
+    if (!isLikelyHtmlCrawler(userAgent)) {
+      const joinUrl = new URL(`/join/${encodeURIComponent(parsed.code)}`, appBaseUrl);
+      joinUrl.search = url.search;
+      joinUrl.hash = url.hash;
+      return Response.redirect(joinUrl.toString(), 302);
+    }
+
     return proxyUpstream(upstreamUrl, userAgent);
   },
 };
