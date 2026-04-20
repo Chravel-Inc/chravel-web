@@ -25,6 +25,7 @@ import { useTripMembers } from '../hooks/useTripMembers';
 import { demoModeService } from '../services/demoModeService';
 import { ProTripData, ProParticipant } from '../types/pro';
 import { usePendingActions } from '../hooks/usePendingActions';
+import { useTripNotificationUrlTabSync } from '../hooks/useTripNotificationUrlTabSync';
 
 // 🚀 OPTIMIZATION: Lazy load heavy components for faster initial render
 const TripHeader = lazy(() =>
@@ -53,6 +54,7 @@ export const ProTripDetailDesktop = () => {
   // ✅ FIXED: Always call useTrips hook for authenticated mode data
   const { trips: userTrips, loading: tripsLoading } = useTrips();
   const [activeTab, setActiveTab] = useState('chat');
+  useTripNotificationUrlTabSync(proTripId, setActiveTab, { variant: 'pro' });
   const [showInbox, setShowInbox] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showInvite, setShowInvite] = useState(false);

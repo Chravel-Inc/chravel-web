@@ -29,6 +29,7 @@ import { orderExportSections } from '../utils/exportSectionOrder';
 import { demoModeService } from '../services/demoModeService';
 import { toast } from 'sonner';
 import { usePendingActions } from '../hooks/usePendingActions';
+import { useTripNotificationUrlTabSync } from '../hooks/useTripNotificationUrlTabSync';
 
 export const MobileProTripDetail = () => {
   const { proTripId } = useParams();
@@ -54,6 +55,7 @@ export const MobileProTripDetail = () => {
     return storedTab || 'chat';
   };
   const [activeTab, setActiveTab] = useState(getInitialTab);
+  useTripNotificationUrlTabSync(proTripId, setActiveTab, { variant: 'pro' });
   const [tripDescription, setTripDescription] = useState<string>('');
   const [showTripInfo, setShowTripInfo] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);

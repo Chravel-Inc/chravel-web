@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
+import { stashPendingChatNavigation } from '@/lib/chatNavigationFromNotification';
 import {
   Dialog,
   DialogContent,
@@ -157,7 +158,9 @@ function buildNavigationTarget(
   const path = !isJoinApproved && tab ? `${baseRoute}?tab=${tab}` : baseRoute;
 
   const messageId =
-    getMetadataString(metadata, 'message_id') || getMetadataString(metadata, 'chat_message_id');
+    getMetadataString(metadata, 'message_id') ||
+    getMetadataString(metadata, 'chat_message_id') ||
+    getMetadataString(metadata, 'stream_message_id');
   const channelId =
     getMetadataString(metadata, 'channel_id') || getMetadataString(metadata, 'chat_channel_id');
   const channelType = getMetadataString(metadata, 'channel_type');
@@ -275,6 +278,16 @@ export const NotificationsDialog = ({ open, onOpenChange }: NotificationsDialogP
     }
 
     const target = buildNavigationTarget(notification, resolvedTripId, tripType, notificationData);
+    const chatCtx = target.state?.chatNavigationContext;
+    if (chatCtx) {
+      stashPendingChatNavigation(resolvedTripId, {
+        notificationId: chatCtx.notificationId,
+        messageId: chatCtx.messageId,
+        channelId: chatCtx.channelId,
+        channelType: chatCtx.channelType,
+        openThreadId: chatCtx.openThreadId,
+      });
+    }
     navigate(target.path, target.state ? { state: target.state } : undefined);
 
     onOpenChange(false);

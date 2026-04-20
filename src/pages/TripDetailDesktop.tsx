@@ -35,6 +35,7 @@ import { useDemoMode } from '../hooks/useDemoMode';
 import { useQueryClient } from '@tanstack/react-query';
 import { tripKeys } from '@/lib/queryKeys';
 import { usePendingActions } from '../hooks/usePendingActions';
+import { useTripNotificationUrlTabSync } from '../hooks/useTripNotificationUrlTabSync';
 
 /**
  * TripDetailDesktop Component
@@ -76,6 +77,7 @@ export const TripDetailDesktop = () => {
 
   // State hooks - all called unconditionally
   const [activeTab, setActiveTab] = useState('chat');
+  useTripNotificationUrlTabSync(tripId, setActiveTab, { variant: 'consumer' });
   const [showInbox, setShowInbox] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showInvite, setShowInvite] = useState(false);

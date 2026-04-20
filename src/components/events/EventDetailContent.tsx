@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { FeatureErrorBoundary } from '../FeatureErrorBoundary';
 import { EventTabKey, resolveEventTabsForRole } from '@/lib/eventTabs';
 import { useEventTabSettings } from '@/hooks/useEventTabSettings';
+import { useTripNotificationUrlTabSync } from '@/hooks/useTripNotificationUrlTabSync';
 
 // ⚡ PERFORMANCE: Lazy load all tab components for code splitting
 const EventAdminTab = lazy(() =>
@@ -81,6 +82,7 @@ export const EventDetailContent = ({
   eventData,
   tripContext: _tripContext,
 }: EventDetailContentProps) => {
+  useTripNotificationUrlTabSync(tripId, onTabChange, { variant: 'event' });
   const { accentColors: _accentColors } = useTripVariant();
   const {
     eventPermissions,

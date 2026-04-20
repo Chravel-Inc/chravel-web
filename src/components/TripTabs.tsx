@@ -73,7 +73,7 @@ export const TripTabs = ({
   isDemoMode = false,
   tripData,
 }: TripTabsProps) => {
-  const [activeTab, setActiveTab] = useState('chat');
+  const [activeTab, setActiveTab] = useState(parentActiveTab || 'chat');
   const [isAddLinkModalOpen, setIsAddLinkModalOpen] = useState(false);
   const [linkPrefill, setLinkPrefill] = useState<
     | {
@@ -89,6 +89,10 @@ export const TripTabs = ({
   const features = useFeatureToggle(tripData || {});
   const { isSuperAdmin } = useSuperAdmin();
   const { prefetchTab, prefetchAdjacentTabs, prefetchPriorityTabs } = usePrefetchTrip();
+
+  useEffect(() => {
+    setActiveTab(parentActiveTab || 'chat');
+  }, [parentActiveTab]);
 
   // ⚡ PERFORMANCE: Track visited tabs to keep them mounted
   const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set([activeTab]));
@@ -172,6 +176,7 @@ export const TripTabs = ({
       return;
     }
     setActiveTab(tab);
+    parentOnTabChange(tab);
   };
 
   // Default tab skeleton for lazy loading fallback
