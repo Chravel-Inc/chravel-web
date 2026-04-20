@@ -107,6 +107,11 @@ if ('requestIdleCallback' in window) {
   setTimeout(() => setupGlobalPurchaseListener(), 0);
 }
 
+/** Remove static HTML splash after first paint so the branded shell is not stuck over React. */
+function removeBootSplash(): void {
+  document.getElementById('chravel-boot-splash')?.remove();
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     {hasRequiredSupabaseEnv && App ? (
@@ -128,3 +133,10 @@ createRoot(document.getElementById('root')!).render(
     )}
   </StrictMode>,
 );
+
+// After React commits, drop the static splash on the next frame so first paint can include the app shell.
+queueMicrotask(() => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(removeBootSplash);
+  });
+});
