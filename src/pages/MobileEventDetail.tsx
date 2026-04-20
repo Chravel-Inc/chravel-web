@@ -220,7 +220,8 @@ export const MobileEventDetail = () => {
     if (!eventData) return;
 
     const previewLink = `https://p.chravel.app/t/${encodeURIComponent(String(eventId))}`;
-    const shareText = `Check out ${eventData.title} - an event in ${eventData.location}! ${eventData.participants.length} attendees are going.`;
+    const attendeeCount = eventData.participants?.length ?? 0;
+    const shareText = `Check out ${eventData.title} - an event in ${eventData.location}! ${attendeeCount} attendees are going.`;
 
     if (navigator.share) {
       try {
@@ -357,7 +358,7 @@ export const MobileEventDetail = () => {
     coverPhoto: eventData.coverPhoto,
     // Merge real trip members for authenticated trips instead of empty array
     participants: isDemoMode
-      ? eventData.participants.map(p => ({
+      ? (eventData.participants ?? []).map(p => ({
           id: p.id,
           name: p.name,
           avatar: p.avatar,
@@ -411,7 +412,7 @@ export const MobileEventDetail = () => {
                 </h1>
                 <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400">
                   <span className="truncate">
-                    {eventData.location} • {eventData.participants.length} attendees
+                    {eventData.location} • {eventData.participants?.length ?? 0} attendees
                   </span>
                   <button
                     onClick={() => {

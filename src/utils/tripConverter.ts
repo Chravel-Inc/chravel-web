@@ -150,6 +150,8 @@ export function convertSupabaseTripToEvent(supabaseTrip: SupabaseTrip): EventDat
       spent: 0,
       categories: [],
     },
+    // Empty array keeps EventDetail/EventDetailContent safe to `.map`; never omit the field so
+    // stale client caches or partial row shapes cannot produce `undefined.itinerary` crashes.
     itinerary: [],
     coverPhoto: supabaseTrip.cover_image_url ?? undefined,
     coverDisplayMode: supabaseTrip.cover_display_mode ?? undefined,

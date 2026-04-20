@@ -29,6 +29,7 @@ import { TripContext } from '../types/tripContext';
 import { MobileEventDetail } from './MobileEventDetail';
 import { useEmbeddingGeneration } from '../hooks/useEmbeddingGeneration';
 import { convertSupabaseTripToEvent } from '../utils/tripConverter';
+import { normalizeEventItinerary } from '@/lib/eventItinerary';
 import { useTripMembers } from '../hooks/useTripMembers';
 import { ExportSection } from '../types/tripExport';
 import { openOrDownloadBlob } from '../utils/download';
@@ -170,13 +171,13 @@ const EventDetail = () => {
     description:
       tripDescription ||
       eventData.description ||
-      `Professional ${eventData.category.toLowerCase()} event in ${eventData.location}`,
+      `Professional ${(eventData.category ?? 'Event').toLowerCase()} event in ${eventData.location}`,
     created_by: actualCreatorId,
     trip_type: 'event' as const,
     card_color: (eventData as any).card_color,
     coverPhoto: eventData.coverPhoto,
     participants: isDemoMode
-      ? eventData.participants.map((p: any) => ({
+      ? (eventData.participants ?? []).map((p: any) => ({
           id: p.id,
           name: p.name,
           avatar: p.avatar,
@@ -293,11 +294,14 @@ const EventDetail = () => {
   };
 
   // Mock data for Event context - same structure as standard trips
+  // Guests + itinerary must tolerate partial Supabase/EventData shapes (never assume `.map`).
+  const itineraryDays = normalizeEventItinerary(eventData.itinerary);
+
   const mockBroadcasts = [
     {
       id: 1,
       senderName: 'Event Coordinator',
-      content: `${eventData.category} schedule confirmed for all attendees`,
+      content: `${eventData.category ?? 'Event'} schedule confirmed for all attendees`,
       timestamp: '2025-01-15T15:30:00Z',
     },
     {
@@ -353,7 +357,7 @@ const EventDetail = () => {
       name: p.name,
       role: 'attendee',
     })),
-    itinerary: eventData.itinerary.map((day, index) => ({
+    itinerary: itineraryDays.map((day, index) => ({
       id: index.toString(),
       title: `Day ${index + 1}`,
       date: day.date,
@@ -361,9 +365,9 @@ const EventDetail = () => {
     })),
     accommodation: basecamp.name,
     currentDate: new Date().toISOString().split('T')[0],
-    upcomingEvents: eventData.itinerary
+    upcomingEvents: itineraryDays
       .flatMap(day =>
-        day.events.map(event => ({
+        (Array.isArray(day.events) ? day.events : []).map(event => ({
           id: `${day.date}-${event.title}`,
           title: event.title,
           date: day.date,
