@@ -20,6 +20,15 @@ const PENDING_ACTION_TYPES = new Set([
   'save_place',
   'create_broadcast',
   'create_notification',
+  'add_expense',
+  'duplicate_calendar_event',
+  'clone_activity',
+  'bulk_mark_tasks_done',
+  'update_trip_details',
+  'add_reminder',
+  'set_trip_budget',
+  'add_to_agenda',
+  'set_basecamp',
 ]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {

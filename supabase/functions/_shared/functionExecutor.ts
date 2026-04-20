@@ -26,6 +26,31 @@ export interface LocationContext {
   lng?: number;
 }
 
+/**
+ * Server-side fast-path helper: marks a pending action `confirmed` after a
+ * successful real-table write. Safe no-op if the update fails — the row stays
+ * pending and the client safety net (usePendingActions) will retry.
+ */
+async function markPendingConfirmed(
+  supabase: any,
+  pendingId: string,
+  userId: string,
+): Promise<void> {
+  try {
+    await supabase
+      .from('trip_pending_actions')
+      .update({
+        status: 'confirmed',
+        resolved_at: new Date().toISOString(),
+        resolved_by: userId,
+      })
+      .eq('id', pendingId)
+      .eq('status', 'pending');
+  } catch (err) {
+    console.warn('[Tool] markPendingConfirmed failed (non-fatal):', err);
+  }
+}
+
 export async function executeFunctionCall(
   supabase: any,
   functionName: string,
@@ -3064,8 +3089,11 @@ async function _executeImpl(
         return { error: 'tasks array is required and must not be empty' };
       }
 
-      // Insert one pending action per task so each gets individual confirm/deny
+      // Insert one pending action per task so each gets individual confirm/deny.
+      // Fast-path: if user is authenticated, also write each task to trip_tasks
+      // immediately so they appear in the Tasks tab without round-trip.
       const results: any[] = [];
+      let promotedCount = 0;
       for (let i = 0; i < tasks.length; i++) {
         const task = tasks[i] as {
           title: string;
@@ -3074,6 +3102,8 @@ async function _executeImpl(
           notes?: string;
         };
         const taskKey = idempotency_key ? `${idempotency_key}_${i}` : undefined;
+        const taskTitle = String(task.title || '').trim();
+        if (!taskTitle) continue;
 
         const { data: pending, error: pendingError } = await supabase
           .from('trip_pending_actions')
@@ -3083,7 +3113,7 @@ async function _executeImpl(
             tool_name: 'createTask',
             ...(taskKey ? { tool_call_id: taskKey } : {}),
             payload: {
-              title: String(task.title || '').trim(),
+              title: taskTitle,
               description: task.notes || null,
               creator_id: userId || '',
               due_at: task.dueDate || null,
@@ -3096,15 +3126,51 @@ async function _executeImpl(
           .single();
 
         if (pendingError) throw pendingError;
-        results.push({ title: task.title, assignee: task.assignee, pendingActionId: pending.id });
+
+        let promoted = false;
+        if (userId) {
+          const { data: taskRow, error: realErr } = await supabase
+            .from('trip_tasks')
+            .insert({
+              trip_id: tripId,
+              creator_id: userId,
+              title: taskTitle,
+              description: task.notes || null,
+              due_at: task.dueDate || null,
+              source_type: 'ai_concierge',
+            })
+            .select('id')
+            .single();
+          if (!realErr && taskRow?.id) {
+            await supabase
+              .from('task_assignments')
+              .insert([{ task_id: taskRow.id, user_id: userId }]);
+            await supabase
+              .from('task_status')
+              .insert([{ task_id: taskRow.id, user_id: userId, completed: false }]);
+            promoted = true;
+            promotedCount += 1;
+            await markPendingConfirmed(supabase, pending.id, userId);
+          }
+        }
+        results.push({
+          title: task.title,
+          assignee: task.assignee,
+          pendingActionId: pending.id,
+          promoted,
+        });
       }
 
       return {
         success: true,
-        pending: true,
+        pending: promotedCount < results.length,
+        promoted: promotedCount === results.length && results.length > 0,
         tasks: results,
         count: results.length,
-        message: `${results.length} task${results.length === 1 ? '' : 's'} queued for confirmation`,
+        message:
+          promotedCount === results.length
+            ? `Created ${results.length} task${results.length === 1 ? '' : 's'}.`
+            : `${results.length} task${results.length === 1 ? '' : 's'} queued for confirmation`,
       };
     }
 
@@ -3212,7 +3278,6 @@ async function _executeImpl(
       if (!eventId) return { error: 'eventId is required' };
       if (!newDate) return { error: 'newDate is required' };
 
-      // Fetch source event and verify it belongs to this trip
       const { data: src, error: fetchErr } = await supabase
         .from('trip_events')
         .select('title, start_time, end_time, location, description, event_category')
@@ -3221,7 +3286,6 @@ async function _executeImpl(
         .single();
       if (fetchErr || !src) return { error: 'Event not found in this trip' };
 
-      // Compute duration and apply to newDate
       const srcStart = new Date(src.start_time);
       const srcEnd = src.end_time ? new Date(src.end_time) : null;
       const durationMs = srcEnd ? srcEnd.getTime() - srcStart.getTime() : 3600000;
@@ -3253,14 +3317,41 @@ async function _executeImpl(
         .select('id')
         .single();
       if (pendingError) throw pendingError;
+
+      // ⚡ Fast-path: insert duplicate immediately
+      let promoted = false;
+      if (userId) {
+        const { error: realErr } = await supabase.from('trip_events').insert({
+          trip_id: tripId,
+          created_by: userId,
+          title: src.title,
+          start_time: newStart.toISOString(),
+          end_time: newEnd.toISOString(),
+          location: src.location || null,
+          description: src.description || null,
+          event_category: src.event_category || null,
+          source_type: 'ai_concierge',
+        });
+        if (!realErr) {
+          promoted = true;
+          await markPendingConfirmed(supabase, pending.id, userId);
+        } else {
+          console.warn('[Tool] duplicateCalendarEvent fast-path failed:', realErr.message);
+        }
+      }
+
       return {
         success: true,
-        pending: true,
+        pending: !promoted,
+        promoted,
         pendingActionId: pending.id,
         actionType: 'duplicate_calendar_event',
-        message: `I'd like to duplicate "${src.title}" to ${newDate}. Please confirm in the trip chat.`,
+        message: promoted
+          ? `Duplicated "${src.title}" to ${newDate}.`
+          : `I'd like to duplicate "${src.title}" to ${newDate}. Please confirm in the trip chat.`,
       };
     }
+
 
     case 'bulkMarkTasksDone': {
       const { taskIds, filter, idempotency_key } = args;
@@ -3299,13 +3390,33 @@ async function _executeImpl(
         .select('id')
         .single();
       if (pendingError) throw pendingError;
+
+      // ⚡ Fast-path: mark tasks complete immediately
+      let promoted = false;
+      if (userId) {
+        const { error: realErr } = await supabase
+          .from('trip_tasks')
+          .update({ completed: true, completed_at: new Date().toISOString() })
+          .in('id', resolvedIds)
+          .eq('trip_id', tripId);
+        if (!realErr) {
+          promoted = true;
+          await markPendingConfirmed(supabase, pending.id, userId);
+        } else {
+          console.warn('[Tool] bulkMarkTasksDone fast-path failed:', realErr.message);
+        }
+      }
+
       return {
         success: true,
-        pending: true,
+        pending: !promoted,
+        promoted,
         pendingActionId: pending.id,
         actionType: 'bulk_mark_tasks_done',
         taskCount: resolvedIds.length,
-        message: `I'd like to mark ${resolvedIds.length} task(s) as complete. Please confirm in the trip chat.`,
+        message: promoted
+          ? `Marked ${resolvedIds.length} task(s) complete.`
+          : `I'd like to mark ${resolvedIds.length} task(s) as complete. Please confirm in the trip chat.`,
       };
     }
 
@@ -3356,13 +3467,41 @@ async function _executeImpl(
         .select('id')
         .single();
       if (pendingError) throw pendingError;
+
+      // ⚡ Fast-path: bulk insert clones immediately
+      let promoted = false;
+      if (userId) {
+        const { error: realErr } = await supabase.from('trip_events').insert(
+          clones.map(c => ({
+            trip_id: tripId,
+            created_by: userId,
+            title: c.title,
+            start_time: c.start_time,
+            end_time: c.end_time,
+            location: c.location,
+            description: c.description,
+            event_category: c.event_category,
+            source_type: 'ai_concierge',
+          })),
+        );
+        if (!realErr) {
+          promoted = true;
+          await markPendingConfirmed(supabase, pending.id, userId);
+        } else {
+          console.warn('[Tool] cloneActivity fast-path failed:', realErr.message);
+        }
+      }
+
       return {
         success: true,
-        pending: true,
+        pending: !promoted,
+        promoted,
         pendingActionId: pending.id,
         actionType: 'clone_activity',
         cloneCount: clones.length,
-        message: `I'd like to clone "${src.title}" to ${clones.length} date(s). Please confirm in the trip chat.`,
+        message: promoted
+          ? `Cloned "${src.title}" to ${clones.length} date(s).`
+          : `I'd like to clone "${src.title}" to ${clones.length} date(s). Please confirm in the trip chat.`,
       };
     }
 
@@ -3377,6 +3516,8 @@ async function _executeImpl(
         Array.isArray(splitParticipants) && splitParticipants.length > 0
           ? splitParticipants.length
           : 1;
+      const safeCurrency = currency ? String(currency).toUpperCase() : 'USD';
+      const participants = Array.isArray(splitParticipants) ? splitParticipants : [];
 
       const { data: pending, error: pendingError } = await supabase
         .from('trip_pending_actions')
@@ -3388,9 +3529,9 @@ async function _executeImpl(
           payload: {
             description: String(description),
             amount: Number(amount),
-            currency: currency ? String(currency).toUpperCase() : 'USD',
+            currency: safeCurrency,
             split_count: splitCount,
-            split_participants: Array.isArray(splitParticipants) ? splitParticipants : [],
+            split_participants: participants,
             created_by: userId || null,
             trip_id: tripId,
           },
@@ -3399,12 +3540,51 @@ async function _executeImpl(
         .select('id')
         .single();
       if (pendingError) throw pendingError;
+
+      // ⚡ Fast-path: write to trip_payment_messages + payment_splits immediately
+      let promoted = false;
+      if (userId) {
+        const { data: paymentRow, error: payErr } = await supabase
+          .from('trip_payment_messages')
+          .insert({
+            trip_id: tripId,
+            created_by: userId,
+            amount: Number(amount),
+            currency: safeCurrency,
+            description: String(description),
+            split_count: splitCount,
+            split_participants: participants,
+            payment_methods: [],
+          })
+          .select('id')
+          .single();
+        if (!payErr && paymentRow?.id) {
+          if (participants.length > 0) {
+            const splitAmount = Number(amount) / splitCount;
+            await supabase.from('payment_splits').insert(
+              participants.map((uid: any) => ({
+                payment_message_id: paymentRow.id,
+                debtor_user_id: String(uid),
+                amount_owed: splitAmount,
+              })),
+            );
+          }
+          promoted = true;
+          await markPendingConfirmed(supabase, pending.id, userId);
+        } else if (payErr) {
+          console.warn('[Tool] addExpense fast-path failed, falling back:', payErr.message);
+        }
+      }
+
       return {
         success: true,
-        pending: true,
+        pending: !promoted,
+        promoted,
         pendingActionId: pending.id,
         actionType: 'add_expense',
-        message: `I'd like to log a ${currency || 'USD'} ${amount} expense for "${description}". Please confirm in the trip chat.`,
+        message: promoted
+          ? `Logged ${safeCurrency} ${amount} expense for "${description}".`
+          : `I'd like to log a ${safeCurrency} ${amount} expense for "${description}". Please confirm in the trip chat.`,
       };
     }
 
@@ -3855,15 +4035,33 @@ async function _executeImpl(
         .single();
       if (pendingError) throw pendingError;
 
+      // ⚡ Fast-path: apply update immediately (RLS still enforces edit access)
+      let promoted = false;
+      if (userId) {
+        const { error: realErr } = await supabase
+          .from('trips')
+          .update(updates)
+          .eq('id', tripId);
+        if (!realErr) {
+          promoted = true;
+          await markPendingConfirmed(supabase, pending.id, userId);
+        } else {
+          console.warn('[Tool] updateTripDetails fast-path failed:', realErr.message);
+        }
+      }
+
       const summary = Object.entries(updates)
         .map(([k, v]) => `${k}: "${v}"`)
         .join(', ');
       return {
         success: true,
-        pending: true,
+        pending: !promoted,
+        promoted,
         pendingActionId: pending.id,
         actionType: 'update_trip_details',
-        message: `I'd like to update the trip: ${summary}. Please confirm in the trip chat.`,
+        message: promoted
+          ? `Updated trip: ${summary}.`
+          : `I'd like to update the trip: ${summary}. Please confirm in the trip chat.`,
       };
     }
 
