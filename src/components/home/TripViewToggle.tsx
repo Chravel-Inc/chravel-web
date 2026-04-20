@@ -27,7 +27,7 @@ export const TripViewToggle = ({
   const baseTabClasses =
     'justify-self-center h-full transition-all duration-300 px-2 sm:px-3 lg:px-4 py-0 rounded-xl font-bold text-sm md:text-base tracking-wide whitespace-nowrap flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2';
   const statefulTabClasses =
-    'data-[state=on]:bg-background data-[state=on]:border data-[state=on]:border-gold-primary/60 data-[state=on]:text-foreground data-[state=on]:shadow-ring-glow data-[state=off]:text-muted-foreground hover:text-foreground hover:bg-muted/70';
+    'data-[state=on]:bg-background data-[state=on]:border data-[state=on]:border-gold-primary/60 data-[state=on]:text-foreground data-[state=on]:shadow-ring-glow data-[state=off]:text-white hover:text-foreground hover:bg-muted/70';
 
   return (
     <div className={cn('w-full', className)}>
