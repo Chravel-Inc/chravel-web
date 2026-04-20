@@ -598,26 +598,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return;
         }
 
-        // Check if session exists but is near expiry (within 5 min)
+        // Session near expiry: refresh in background. Do NOT await - this was blocking
+        // ProtectedRoute for multi-seconds on mobile while waiting for network.
+        // The existing session is still VALID (just close to expiring) so RLS works fine.
         if (session && session.expires_at) {
           const expiresAt = session.expires_at * 1000;
           const fiveMinutesFromNow = Date.now() + 5 * 60 * 1000;
 
           if (expiresAt < fiveMinutesFromNow) {
             if (import.meta.env.DEV) {
-              console.log('[Auth] Session near expiry, proactively refreshing...');
+              console.log('[Auth] Session near expiry, refreshing in background...');
             }
-            const { data: refreshed } = await supabase.auth.refreshSession();
-            if (refreshed.session && isSessionTokenValid(refreshed.session.access_token)) {
-              setSession(refreshed.session);
-              setUser(buildSessionDerivedUser(refreshed.session.user));
-              prefetchUserTrips(refreshed.session.user.id);
-              void transformUser(refreshed.session.user).then(u => {
-                if (u) setUser(u);
-              });
-              setIsLoading(false);
-              return;
-            }
+            // Fire-and-forget: use existing session immediately, refresh updates state when done
+            void supabase.auth.refreshSession().then(({ data: refreshed }) => {
+              if (refreshed.session && isSessionTokenValid(refreshed.session.access_token)) {
+                setSession(refreshed.session);
+                setUser(buildSessionDerivedUser(refreshed.session.user));
+                prefetchUserTrips(refreshed.session.user.id);
+                void transformUser(refreshed.session.user).then(u => {
+                  if (u) setUser(u);
+                });
+              }
+            });
           }
         }
 
