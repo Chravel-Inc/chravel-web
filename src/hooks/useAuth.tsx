@@ -491,12 +491,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Initialize auth state
   useEffect(() => {
-    // Safety timeout: force loading to false after 10 seconds to prevent infinite loading
+    // Safety timeout: force loading to false after 4 seconds to prevent infinite loading
     const loadingTimeout = setTimeout(() => {
       if (isLoadingRef.current) {
         setIsLoading(false);
       }
-    }, 10000);
+    }, 4000);
 
     const getSessionAndUser = async () => {
       try {
@@ -531,8 +531,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           if (import.meta.env.DEV) {
             console.error('[Auth] Error getting session:', error);
           }
-          // Retry once after 1s for transient network issues
-          await new Promise(r => setTimeout(r, 1000));
+          // Retry once after 300ms for transient network issues
+          await new Promise(r => setTimeout(r, 300));
           const retry = await supabase.auth.getSession();
           if (retry.data.session) {
             authDebug('init:getSession:retrySessionPresent', {

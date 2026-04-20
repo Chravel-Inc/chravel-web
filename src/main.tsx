@@ -86,8 +86,8 @@ if (import.meta.env.PROD) {
   registerServiceWorker();
 }
 
-// Initialize PostHog analytics
-telemetry.init().catch(err => console.warn('[Telemetry] Init failed:', err));
+// Initialize PostHog analytics (non-blocking — don't delay first paint)
+void telemetry.init().catch(err => console.warn('[Telemetry] Init failed:', err));
 
 // Global error listeners — catch unhandled errors outside React boundaries
 window.addEventListener('unhandledrejection', (e: PromiseRejectionEvent) => {
