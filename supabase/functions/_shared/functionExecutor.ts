@@ -3237,7 +3237,6 @@ async function _executeImpl(
       if (!eventId) return { error: 'eventId is required' };
       if (!newDate) return { error: 'newDate is required' };
 
-      // Fetch source event and verify it belongs to this trip
       const { data: src, error: fetchErr } = await supabase
         .from('trip_events')
         .select('title, start_time, end_time, location, description, event_category')
@@ -3246,7 +3245,6 @@ async function _executeImpl(
         .single();
       if (fetchErr || !src) return { error: 'Event not found in this trip' };
 
-      // Compute duration and apply to newDate
       const srcStart = new Date(src.start_time);
       const srcEnd = src.end_time ? new Date(src.end_time) : null;
       const durationMs = srcEnd ? srcEnd.getTime() - srcStart.getTime() : 3600000;
@@ -3278,14 +3276,41 @@ async function _executeImpl(
         .select('id')
         .single();
       if (pendingError) throw pendingError;
+
+      // ⚡ Fast-path: insert duplicate immediately
+      let promoted = false;
+      if (userId) {
+        const { error: realErr } = await supabase.from('trip_events').insert({
+          trip_id: tripId,
+          created_by: userId,
+          title: src.title,
+          start_time: newStart.toISOString(),
+          end_time: newEnd.toISOString(),
+          location: src.location || null,
+          description: src.description || null,
+          event_category: src.event_category || null,
+          source_type: 'ai_concierge',
+        });
+        if (!realErr) {
+          promoted = true;
+          await markPendingConfirmed(supabase, pending.id, userId);
+        } else {
+          console.warn('[Tool] duplicateCalendarEvent fast-path failed:', realErr.message);
+        }
+      }
+
       return {
         success: true,
-        pending: true,
+        pending: !promoted,
+        promoted,
         pendingActionId: pending.id,
         actionType: 'duplicate_calendar_event',
-        message: `I'd like to duplicate "${src.title}" to ${newDate}. Please confirm in the trip chat.`,
+        message: promoted
+          ? `Duplicated "${src.title}" to ${newDate}.`
+          : `I'd like to duplicate "${src.title}" to ${newDate}. Please confirm in the trip chat.`,
       };
     }
+
 
     case 'bulkMarkTasksDone': {
       const { taskIds, filter, idempotency_key } = args;
