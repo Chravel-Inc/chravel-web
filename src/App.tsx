@@ -44,6 +44,7 @@ const ProTripDetail = lazy(() => retryImport(() => import('./pages/ProTripDetail
 const EventDetail = lazy(() => retryImport(() => import('./pages/EventDetail')));
 const NotFound = lazy(() => retryImport(() => import('./pages/NotFound')));
 const JoinTrip = lazy(() => retryImport(() => import('./pages/JoinTrip')));
+const InviteSlugRedirect = lazy(() => retryImport(() => import('./pages/InviteSlugRedirect')));
 const ProfilePage = lazy(() => retryImport(() => import('./pages/ProfilePage')));
 const SettingsPage = lazy(() => retryImport(() => import('./pages/SettingsPage')));
 const ArchivePage = lazy(() => retryImport(() => import('./pages/ArchivePage')));
@@ -145,6 +146,7 @@ const OfflineIndicatorGate = () => {
     pathname.startsWith('/auth') ||
     pathname.startsWith('/reset-password') ||
     pathname.startsWith('/join') ||
+    pathname.startsWith('/j/') ||
     pathname.startsWith('/accept-invite') ||
     pathname.startsWith('/teams') ||
     pathname.startsWith('/recs') ||
@@ -400,6 +402,14 @@ const App = () => {
                         element={
                           <LazyRoute>
                             <JoinTrip />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/j/:token"
+                        element={
+                          <LazyRoute>
+                            <InviteSlugRedirect />
                           </LazyRoute>
                         }
                       />

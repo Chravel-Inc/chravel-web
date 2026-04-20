@@ -48,6 +48,8 @@ export default function handler(_req: VercelRequest, res: VercelResponse) {
 
             // Invite routes (high priority for user acquisition)
             { '/': '/join/*', comment: 'Trip invite links' },
+            // Branded unfurl domain uses /j/{code}; same handler as /join/ in the SPA
+            { '/': '/j/*', comment: 'Branded invite short path (p.chravel.app/j/...)' },
             { '/': '/invite/*', comment: 'Organization invites' },
 
             // Organization routes
