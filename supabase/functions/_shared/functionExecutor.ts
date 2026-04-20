@@ -3467,13 +3467,41 @@ async function _executeImpl(
         .select('id')
         .single();
       if (pendingError) throw pendingError;
+
+      // ⚡ Fast-path: bulk insert clones immediately
+      let promoted = false;
+      if (userId) {
+        const { error: realErr } = await supabase.from('trip_events').insert(
+          clones.map(c => ({
+            trip_id: tripId,
+            created_by: userId,
+            title: c.title,
+            start_time: c.start_time,
+            end_time: c.end_time,
+            location: c.location,
+            description: c.description,
+            event_category: c.event_category,
+            source_type: 'ai_concierge',
+          })),
+        );
+        if (!realErr) {
+          promoted = true;
+          await markPendingConfirmed(supabase, pending.id, userId);
+        } else {
+          console.warn('[Tool] cloneActivity fast-path failed:', realErr.message);
+        }
+      }
+
       return {
         success: true,
-        pending: true,
+        pending: !promoted,
+        promoted,
         pendingActionId: pending.id,
         actionType: 'clone_activity',
         cloneCount: clones.length,
-        message: `I'd like to clone "${src.title}" to ${clones.length} date(s). Please confirm in the trip chat.`,
+        message: promoted
+          ? `Cloned "${src.title}" to ${clones.length} date(s).`
+          : `I'd like to clone "${src.title}" to ${clones.length} date(s). Please confirm in the trip chat.`,
       };
     }
 
