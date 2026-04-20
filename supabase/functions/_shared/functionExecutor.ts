@@ -3390,13 +3390,33 @@ async function _executeImpl(
         .select('id')
         .single();
       if (pendingError) throw pendingError;
+
+      // ⚡ Fast-path: mark tasks complete immediately
+      let promoted = false;
+      if (userId) {
+        const { error: realErr } = await supabase
+          .from('trip_tasks')
+          .update({ completed: true, completed_at: new Date().toISOString() })
+          .in('id', resolvedIds)
+          .eq('trip_id', tripId);
+        if (!realErr) {
+          promoted = true;
+          await markPendingConfirmed(supabase, pending.id, userId);
+        } else {
+          console.warn('[Tool] bulkMarkTasksDone fast-path failed:', realErr.message);
+        }
+      }
+
       return {
         success: true,
-        pending: true,
+        pending: !promoted,
+        promoted,
         pendingActionId: pending.id,
         actionType: 'bulk_mark_tasks_done',
         taskCount: resolvedIds.length,
-        message: `I'd like to mark ${resolvedIds.length} task(s) as complete. Please confirm in the trip chat.`,
+        message: promoted
+          ? `Marked ${resolvedIds.length} task(s) complete.`
+          : `I'd like to mark ${resolvedIds.length} task(s) as complete. Please confirm in the trip chat.`,
       };
     }
 
