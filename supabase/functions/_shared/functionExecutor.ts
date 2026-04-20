@@ -3089,8 +3089,11 @@ async function _executeImpl(
         return { error: 'tasks array is required and must not be empty' };
       }
 
-      // Insert one pending action per task so each gets individual confirm/deny
+      // Insert one pending action per task so each gets individual confirm/deny.
+      // Fast-path: if user is authenticated, also write each task to trip_tasks
+      // immediately so they appear in the Tasks tab without round-trip.
       const results: any[] = [];
+      let promotedCount = 0;
       for (let i = 0; i < tasks.length; i++) {
         const task = tasks[i] as {
           title: string;
@@ -3099,6 +3102,8 @@ async function _executeImpl(
           notes?: string;
         };
         const taskKey = idempotency_key ? `${idempotency_key}_${i}` : undefined;
+        const taskTitle = String(task.title || '').trim();
+        if (!taskTitle) continue;
 
         const { data: pending, error: pendingError } = await supabase
           .from('trip_pending_actions')
@@ -3108,7 +3113,7 @@ async function _executeImpl(
             tool_name: 'createTask',
             ...(taskKey ? { tool_call_id: taskKey } : {}),
             payload: {
-              title: String(task.title || '').trim(),
+              title: taskTitle,
               description: task.notes || null,
               creator_id: userId || '',
               due_at: task.dueDate || null,
@@ -3121,15 +3126,51 @@ async function _executeImpl(
           .single();
 
         if (pendingError) throw pendingError;
-        results.push({ title: task.title, assignee: task.assignee, pendingActionId: pending.id });
+
+        let promoted = false;
+        if (userId) {
+          const { data: taskRow, error: realErr } = await supabase
+            .from('trip_tasks')
+            .insert({
+              trip_id: tripId,
+              creator_id: userId,
+              title: taskTitle,
+              description: task.notes || null,
+              due_at: task.dueDate || null,
+              source_type: 'ai_concierge',
+            })
+            .select('id')
+            .single();
+          if (!realErr && taskRow?.id) {
+            await supabase
+              .from('task_assignments')
+              .insert([{ task_id: taskRow.id, user_id: userId }]);
+            await supabase
+              .from('task_status')
+              .insert([{ task_id: taskRow.id, user_id: userId, completed: false }]);
+            promoted = true;
+            promotedCount += 1;
+            await markPendingConfirmed(supabase, pending.id, userId);
+          }
+        }
+        results.push({
+          title: task.title,
+          assignee: task.assignee,
+          pendingActionId: pending.id,
+          promoted,
+        });
       }
 
       return {
         success: true,
-        pending: true,
+        pending: promotedCount < results.length,
+        promoted: promotedCount === results.length && results.length > 0,
         tasks: results,
         count: results.length,
-        message: `${results.length} task${results.length === 1 ? '' : 's'} queued for confirmation`,
+        message:
+          promotedCount === results.length
+            ? `Created ${results.length} task${results.length === 1 ? '' : 's'}.`
+            : `${results.length} task${results.length === 1 ? '' : 's'} queued for confirmation`,
       };
     }
 
