@@ -24,7 +24,7 @@ describe('updateStreamMessage', () => {
 
     const result = await updateStreamMessage({ id: 'msg-1', text: 'updated content' });
 
-    expect(result).toBe(true);
+    expect(result.ok).toBe(true);
     expect(updateMessage).toHaveBeenCalledWith({ id: 'msg-1', text: 'updated content' });
     expect(toast.error).not.toHaveBeenCalled();
   });
@@ -34,18 +34,20 @@ describe('updateStreamMessage', () => {
 
     const result = await updateStreamMessage({ id: 'msg-2', text: 'fallback' });
 
-    expect(result).toBe(false);
+    expect(result.ok).toBe(false);
     expect(toast.error).toHaveBeenCalledWith('Chat connection unavailable. Please try again.');
   });
 
-  it('shows an error toast when updateMessage fails', async () => {
-    const updateMessage = vi.fn().mockRejectedValue(new Error('network failure'));
+  it('shows an error toast with the Stream error code when updateMessage fails', async () => {
+    const streamError = Object.assign(new Error('not allowed'), { code: 17, StatusCode: 403 });
+    const updateMessage = vi.fn().mockRejectedValue(streamError);
     vi.mocked(getStreamClient).mockReturnValue({ updateMessage } as never);
 
     const result = await updateStreamMessage({ id: 'msg-3', text: 'broken' });
 
-    expect(result).toBe(false);
+    expect(result.ok).toBe(false);
+    expect(result.errorCode).toBe(17);
     expect(updateMessage).toHaveBeenCalledWith({ id: 'msg-3', text: 'broken' });
-    expect(toast.error).toHaveBeenCalledWith('Failed to edit message');
+    expect(toast.error).toHaveBeenCalledWith('Failed to edit message (code 17)');
   });
 });
