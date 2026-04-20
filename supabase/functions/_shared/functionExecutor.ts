@@ -4035,15 +4035,33 @@ async function _executeImpl(
         .single();
       if (pendingError) throw pendingError;
 
+      // ⚡ Fast-path: apply update immediately (RLS still enforces edit access)
+      let promoted = false;
+      if (userId) {
+        const { error: realErr } = await supabase
+          .from('trips')
+          .update(updates)
+          .eq('id', tripId);
+        if (!realErr) {
+          promoted = true;
+          await markPendingConfirmed(supabase, pending.id, userId);
+        } else {
+          console.warn('[Tool] updateTripDetails fast-path failed:', realErr.message);
+        }
+      }
+
       const summary = Object.entries(updates)
         .map(([k, v]) => `${k}: "${v}"`)
         .join(', ');
       return {
         success: true,
-        pending: true,
+        pending: !promoted,
+        promoted,
         pendingActionId: pending.id,
         actionType: 'update_trip_details',
-        message: `I'd like to update the trip: ${summary}. Please confirm in the trip chat.`,
+        message: promoted
+          ? `Updated trip: ${summary}.`
+          : `I'd like to update the trip: ${summary}. Please confirm in the trip chat.`,
       };
     }
 
