@@ -26,6 +26,31 @@ export interface LocationContext {
   lng?: number;
 }
 
+/**
+ * Server-side fast-path helper: marks a pending action `confirmed` after a
+ * successful real-table write. Safe no-op if the update fails — the row stays
+ * pending and the client safety net (usePendingActions) will retry.
+ */
+async function markPendingConfirmed(
+  supabase: any,
+  pendingId: string,
+  userId: string,
+): Promise<void> {
+  try {
+    await supabase
+      .from('trip_pending_actions')
+      .update({
+        status: 'confirmed',
+        resolved_at: new Date().toISOString(),
+        resolved_by: userId,
+      })
+      .eq('id', pendingId)
+      .eq('status', 'pending');
+  } catch (err) {
+    console.warn('[Tool] markPendingConfirmed failed (non-fatal):', err);
+  }
+}
+
 export async function executeFunctionCall(
   supabase: any,
   functionName: string,
