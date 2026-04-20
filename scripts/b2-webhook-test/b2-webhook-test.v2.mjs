@@ -11,15 +11,12 @@ import { StreamChat } from 'stream-chat';
 import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'node:crypto';
 
-const {
-  STREAM_API_KEY,
-  STREAM_API_SECRET,
-  SUPABASE_URL,
-  SUPABASE_SERVICE_ROLE_KEY,
-} = process.env;
+const { STREAM_API_KEY, STREAM_API_SECRET, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = process.env;
 
 if (!STREAM_API_KEY || !STREAM_API_SECRET || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.error('Missing env: STREAM_API_KEY, STREAM_API_SECRET, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY');
+  console.error(
+    'Missing env: STREAM_API_KEY, STREAM_API_SECRET, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY',
+  );
   process.exit(1);
 }
 
@@ -46,11 +43,15 @@ async function createAuthUser(role) {
 
 async function teardown() {
   for (const u of createdUsers.reverse()) {
-    await admin.auth.admin.deleteUser(u.authId).catch(err =>
-      console.warn(`deleteUser(${u.role}=${u.authId}) failed: ${err.message}`),
-    );
+    await admin.auth.admin
+      .deleteUser(u.authId)
+      .catch(err => console.warn(`deleteUser(${u.role}=${u.authId}) failed: ${err.message}`));
   }
-  await admin.from('trips').delete().eq('id', tripId).catch(() => {});
+  await admin
+    .from('trips')
+    .delete()
+    .eq('id', tripId)
+    .catch(() => {});
 }
 
 process.on('unhandledRejection', async err => {
@@ -115,16 +116,22 @@ try {
   await new Promise(r => setTimeout(r, 5000));
 
   console.log('\nB2 RESULTS');
-  console.log(JSON.stringify({
-    runId,
-    tripId,
-    channelType,
-    channelId,
-    senderId,
-    recipientIds: [recipAId, recipBId],
-    bystanderId,
-    mentionMessageId,
-  }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        runId,
+        tripId,
+        channelType,
+        channelId,
+        senderId,
+        recipientIds: [recipAId, recipBId],
+        bystanderId,
+        mentionMessageId,
+      },
+      null,
+      2,
+    ),
+  );
 } finally {
   await teardown();
 }

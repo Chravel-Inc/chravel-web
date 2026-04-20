@@ -141,7 +141,10 @@ async function _executeImpl(
             .eq('id', pending.id)
             .eq('status', 'pending');
         } else {
-          console.warn('[Tool] addToCalendar fast-path failed, falling back to client confirm:', realInsertError.message);
+          console.warn(
+            '[Tool] addToCalendar fast-path failed, falling back to client confirm:',
+            realInsertError.message,
+          );
         }
       }
 
@@ -206,7 +209,9 @@ async function _executeImpl(
 
         if (!realInsertError && taskRow?.id) {
           // Mirror manual task creation: assign creator and seed incomplete status
-          await supabase.from('task_assignments').insert([{ task_id: taskRow.id, user_id: userId }]);
+          await supabase
+            .from('task_assignments')
+            .insert([{ task_id: taskRow.id, user_id: userId }]);
           await supabase
             .from('task_status')
             .insert([{ task_id: taskRow.id, user_id: userId, completed: false }]);
@@ -221,7 +226,10 @@ async function _executeImpl(
             .eq('id', pending.id)
             .eq('status', 'pending');
         } else if (realInsertError) {
-          console.warn('[Tool] createTask fast-path failed, falling back to client confirm:', realInsertError.message);
+          console.warn(
+            '[Tool] createTask fast-path failed, falling back to client confirm:',
+            realInsertError.message,
+          );
         }
       }
 
@@ -288,7 +296,10 @@ async function _executeImpl(
             .eq('id', pending.id)
             .eq('status', 'pending');
         } else {
-          console.warn('[Tool] createPoll fast-path failed, falling back to client confirm:', realInsertError.message);
+          console.warn(
+            '[Tool] createPoll fast-path failed, falling back to client confirm:',
+            realInsertError.message,
+          );
         }
       }
 
@@ -3352,7 +3363,6 @@ async function _executeImpl(
       };
     }
 
-
     case 'bulkMarkTasksDone': {
       const { taskIds, filter, idempotency_key } = args;
       let resolvedIds: string[] = Array.isArray(taskIds) ? taskIds.map(String) : [];
@@ -4038,10 +4048,7 @@ async function _executeImpl(
       // ⚡ Fast-path: apply update immediately (RLS still enforces edit access)
       let promoted = false;
       if (userId) {
-        const { error: realErr } = await supabase
-          .from('trips')
-          .update(updates)
-          .eq('id', tripId);
+        const { error: realErr } = await supabase.from('trips').update(updates).eq('id', tripId);
         if (!realErr) {
           promoted = true;
           await markPendingConfirmed(supabase, pending.id, userId);

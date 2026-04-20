@@ -118,4 +118,3 @@ export function normalizeToolResult(toolName: string, result: unknown): Record<s
   // Read tools often return rich payloads with no explicit success boolean.
   return { success: true, ...result };
 }
-
