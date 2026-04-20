@@ -108,13 +108,13 @@ describe('ErrorBoundary', () => {
     expect(screen.getByText('Reload')).toBeInTheDocument();
   });
 
-  it('should call onRetry when retry button is clicked', async () => {
+  it('should call onRetry when Try Again is clicked (chunk / deploy errors)', async () => {
     const user = userEvent.setup();
     const onRetry = vi.fn();
 
     render(
       <ErrorBoundary onRetry={onRetry}>
-        <ThrowingComponent error={new Error('Test error')} />
+        <ThrowingComponent error={new Error('Loading chunk 123 failed')} />
       </ErrorBoundary>,
     );
 
@@ -138,7 +138,7 @@ describe('ErrorBoundary', () => {
     expect(safeReload).toHaveBeenCalled();
   });
 
-  it('should call safeReload when Refresh Page button is clicked', async () => {
+  it('should call safeReload when Reload page is clicked (non-chunk errors)', async () => {
     const { safeReload } = await import('@/utils/safeReload');
     const user = userEvent.setup();
 
@@ -148,7 +148,7 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>,
     );
 
-    const refreshButton = screen.getByText('Refresh Page');
+    const refreshButton = screen.getByText('Reload page');
     await user.click(refreshButton);
     expect(safeReload).toHaveBeenCalled();
   });
