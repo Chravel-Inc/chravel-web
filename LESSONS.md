@@ -623,3 +623,11 @@
 - **Evidence:** Gmail connect failed from `https://chravelapp.com` with “Failed to send a request to the Edge Function” because CORS echoed fallback origin (`https://chravel.app`) instead of request origin.
 - **Provenance:** April 2026 Gmail connector deep-dive and fix.
 - **Confidence:** high
+
+### Stream membership recovery should consume canonical reason codes from edge functions
+- **Tip:** For chat membership self-heal flows, include a stable `reasonCode` field in edge-function responses and map UI errors from those codes first; only use SDK message regexes as a fallback for transport-level permission denials.
+- **Applies when:** Stream `ReadChannel` recovery paths using `stream-join-channel`/`stream-ensure-membership`.
+- **Avoid when:** Error source is not under your API contract (browser aborts/network offline).
+- **Evidence:** `useStreamTripChat` deterministic retry path now maps `trip_membership_required` from `stream-ensure-membership` response to actionable UX without brittle regex parsing of response text.
+- **Provenance:** April 2026 Stream membership reconciliation hardening.
+- **Confidence:** high
