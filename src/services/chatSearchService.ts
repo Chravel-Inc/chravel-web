@@ -14,6 +14,7 @@ export interface MessageSearchResult {
   author_name: string;
   user_id: string | null;
   created_at: string;
+  parent_message_id?: string;
   type: 'message';
 }
 
@@ -115,6 +116,7 @@ export async function searchTripMessages(
         author_name: message.user?.name || message.user?.id || 'Unknown',
         user_id: message.user?.id || null,
         created_at: message.created_at || new Date().toISOString(),
+        parent_message_id: message.parent_id || undefined,
         type: 'message' as const,
       };
     });
@@ -217,6 +219,7 @@ async function searchTripMessagesWithFilters(
         author_name: message.user?.name || message.user?.id || 'Unknown',
         user_id: message.user?.id || null,
         created_at: message.created_at || new Date().toISOString(),
+        parent_message_id: (message as { parent_id?: string }).parent_id || undefined,
         type: 'message' as const,
       }));
     } catch {

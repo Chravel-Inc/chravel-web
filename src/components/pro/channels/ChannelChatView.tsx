@@ -263,6 +263,9 @@ export const ChannelChatView = ({
       if (streamExtra.isBroadcast === true) {
         metadata.isBroadcast = true;
       }
+      if (typeof streamMsg.reply_count === 'number') {
+        metadata.reply_count = streamMsg.reply_count;
+      }
 
       return {
         id: String(streamMsg.id),
@@ -296,6 +299,10 @@ export const ChannelChatView = ({
         isPayment: false,
         tags: [] as string[],
         replyTo: replyTo || undefined,
+        replyCount:
+          typeof (metadata?.reply_count as number | undefined) === 'number'
+            ? (metadata?.reply_count as number)
+            : 0,
       };
     });
   }, [transportMessages]);

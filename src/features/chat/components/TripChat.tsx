@@ -43,6 +43,7 @@ import { useTripChatMode } from '@/hooks/useTripChatMode';
 import { useLinkPreviews } from '../hooks/useLinkPreviews';
 import { useBlockedUsers, useReportContent } from '@/hooks/useUserSafety';
 import { getStreamClient } from '@/services/stream/streamClient';
+import { messageEvents } from '@/telemetry/events';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -122,10 +123,11 @@ export const TripChat = React.memo(
           messageId?: string;
           channelId?: string;
           channelType?: string;
+          openThreadId?: string;
         };
       } | null
     )?.chatNavigationContext;
-    const targetMessageId = chatNavigationContext?.messageId;
+    const targetMessageId = chatNavigationContext?.openThreadId || chatNavigationContext?.messageId;
 
     const demoMode = useDemoMode();
     const { user } = useAuth();
@@ -408,6 +410,10 @@ export const TripChat = React.memo(
         return !parentId;
       });
 
+      const currentUserLastReadAt = user?.id
+        ? streamActiveChannel?.state?.read?.[user.id]?.last_read
+        : undefined;
+
       return topLevelMessages.map(message => {
         // Stream uses message.user, Supabase used message.user_id / message.author_name
         const streamUser = (message as any).user;
@@ -418,6 +424,16 @@ export const TripChat = React.memo(
         const msgUpdatedAt = (message as any).updated_at || msgCreatedAt;
         const msgParentId = (message as any).parent_id || (message as any).reply_to_id;
         const customType = (message as any).message_type;
+        const replyCount = Number((message as any).reply_count || 0);
+        const latestReplyAt = (message as any).latest_reply_at as string | undefined;
+        const latestReplies = ((message as any).latest_replies || []) as Array<{ text?: string }>;
+        const latestReplyText =
+          latestReplies.length > 0 ? latestReplies[latestReplies.length - 1]?.text || '' : '';
+        const hasUnreadThreadReplies =
+          replyCount > 0 &&
+          Boolean(currentUserLastReadAt) &&
+          Boolean(latestReplyAt) &&
+          new Date(latestReplyAt as string) > new Date(currentUserLastReadAt as string);
 
         // Media attachment parsing from Stream
         let mediaType: string | undefined;
@@ -531,6 +547,9 @@ export const TripChat = React.memo(
           system_payload: (message as any).system_payload,
           linkPreview,
           replyTo,
+          replyCount,
+          threadPreviewSnippet: latestReplyText.trim() || undefined,
+          hasUnreadThreadReplies,
           mediaType,
           mediaUrl,
           reactions:
@@ -696,7 +715,10 @@ export const TripChat = React.memo(
     };
 
     const handleActivateThread = useCallback(
-      (messageId: string) => {
+      (
+        messageId: string,
+        source: 'reply_badge' | 'search_result' | 'notification' = 'reply_badge',
+      ) => {
         const streamMessage = liveMessages.find(m => m.id === messageId);
         if (streamMessage) {
           const streamUser = (streamMessage as any).user;
@@ -708,6 +730,13 @@ export const TripChat = React.memo(
             createdAt: (streamMessage as any).created_at || new Date().toISOString(),
             tripId: resolvedTripId,
           });
+          if (!demoMode.isDemoMode) {
+            messageEvents.threadOpened({
+              trip_id: resolvedTripId,
+              parent_message_id: messageId,
+              source,
+            });
+          }
           return;
         }
 
@@ -722,7 +751,7 @@ export const TripChat = React.memo(
           tripId: resolvedTripId,
         });
       },
-      [liveMessages, demoMessages, resolvedTripId],
+      [demoMode.isDemoMode, liveMessages, demoMessages, resolvedTripId],
     );
 
     useEffect(() => {
@@ -858,7 +887,15 @@ export const TripChat = React.memo(
     const isLoading = demoMode.isDemoMode ? false : liveLoading;
 
     // Scroll to specific message with highlight animation
-    const scrollToMessage = (messageId: string, type: 'message' | 'broadcast') => {
+    const scrollToMessage = ({
+      id: targetId,
+      type,
+      openThread = false,
+    }: {
+      id: string;
+      type: 'message' | 'broadcast';
+      openThread?: boolean;
+    }) => {
       setShowSearchOverlay(false);
 
       // Switch to appropriate filter
@@ -868,9 +905,13 @@ export const TripChat = React.memo(
         setMessageFilter('all');
       }
 
+      if (openThread) {
+        handleActivateThread(targetId, 'search_result');
+      }
+
       // Wait for filter to apply, then scroll
       setTimeout(() => {
-        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+        const messageElement = document.querySelector(`[data-message-id="${targetId}"]`);
         if (messageElement) {
           messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
@@ -891,11 +932,15 @@ export const TripChat = React.memo(
 
       // Give messages time to render, then scroll
       const timer = setTimeout(() => {
-        scrollToMessage(targetMessageId, 'message');
+        scrollToMessage({
+          id: targetMessageId,
+          type: 'message',
+          openThread: Boolean(chatNavigationContext?.openThreadId),
+        });
       }, 300);
 
       return () => clearTimeout(timer);
-    }, [targetMessageId, isLoading]);
+    }, [targetMessageId, isLoading, chatNavigationContext?.openThreadId]);
 
     // Global keyboard shortcut for search (Ctrl+F or Cmd+F)
     useEffect(() => {

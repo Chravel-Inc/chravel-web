@@ -17,6 +17,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { getStreamClient } from '@/services/stream/streamClient';
 import { CHANNEL_TYPE_TRIP, tripChannelId } from '@/services/stream/streamChannelFactory';
 import type { MessageResponse, UserResponse } from 'stream-chat';
+import { messageEvents } from '@/telemetry/events';
 
 export interface ThreadViewProps {
   parentMessage: {
@@ -151,6 +152,12 @@ export const ThreadView: React.FC<ThreadViewProps> = ({
       await channel.sendMessage({
         text: replyContent.trim(),
         parent_id: parentMessage.id,
+      });
+
+      messageEvents.threadReplySent({
+        trip_id: parentMessage.tripId,
+        parent_message_id: parentMessage.id,
+        reply_length: replyContent.trim().length,
       });
 
       setReplyContent('');

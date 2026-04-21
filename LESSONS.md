@@ -623,3 +623,11 @@
 - **Evidence:** Gmail connect failed from `https://chravelapp.com` with “Failed to send a request to the Edge Function” because CORS echoed fallback origin (`https://chravel.app`) instead of request origin.
 - **Provenance:** April 2026 Gmail connector deep-dive and fix.
 - **Confidence:** high
+
+### Stream search results for thread replies should deep-link to parent message IDs
+- **Tip:** When using Stream `channel.search`, reply hits often return the reply message ID (`parent_id` populated). For a thread-first UX, route users to the parent message and auto-open the thread instead of scrolling to the reply row in the main timeline.
+- **Applies when:** Chat search overlays, notification deep-links, and any jump-to-message feature in threaded timelines.
+- **Avoid when:** The destination surface is a dedicated thread-only list where reply IDs are directly rendered.
+- **Evidence:** Chravel TripChat search could find replies but only attempted main-list scroll by reply ID; since replies are filtered out of top-level timeline, navigation looked broken. Mapping `parent_message_id` + `openThread` restored deterministic navigation.
+- **Provenance:** April 2026 thread UX adoption instrumentation pass.
+- **Confidence:** high

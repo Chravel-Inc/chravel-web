@@ -54,6 +54,16 @@ export interface MessageEvents {
     is_offline_queued: boolean;
   };
   message_send_failed: { trip_id: string; error: string };
+  thread_opened: {
+    trip_id: string;
+    parent_message_id: string;
+    source: 'reply_badge' | 'search_result' | 'notification';
+  };
+  thread_reply_sent: {
+    trip_id: string;
+    parent_message_id: string;
+    reply_length: number;
+  };
 }
 
 /**
