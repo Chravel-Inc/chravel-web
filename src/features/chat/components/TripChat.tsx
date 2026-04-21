@@ -31,6 +31,7 @@ import { PullToRefreshIndicator } from '@/components/mobile/PullToRefreshIndicat
 import { useUnreadCounts } from '@/hooks/useUnreadCounts';
 import { parseMessage } from '@/services/chatContentParser';
 import { useChatReadReceipts } from '../hooks/useChatReadReceipts';
+import { selectReadStatusesByMessage } from '../selectors/readStateSelectors';
 import { useChatTypingIndicators } from '../hooks/useChatTypingIndicators';
 import { useChatReactions } from '../hooks/useChatReactions';
 import { MessageTypeBar } from './MessageTypeBar';
@@ -200,12 +201,22 @@ export const TripChat = React.memo(
       streamActiveChannel,
     );
 
-    const { readStatusesByMessage } = useChatReadReceipts(
+    useChatReadReceipts(
       demoMode.isDemoMode,
       user?.id,
       resolvedTripId,
       liveMessages,
       streamActiveChannel,
+    );
+
+    const readStatusesByMessage = useMemo(
+      () =>
+        selectReadStatusesByMessage({
+          messages: liveMessages as any[],
+          currentUserId: user?.id,
+          activeChannel: streamActiveChannel,
+        }),
+      [liveMessages, streamActiveChannel, user?.id],
     );
 
     const streamClient = getStreamClient();
