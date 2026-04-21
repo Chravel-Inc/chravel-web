@@ -6,7 +6,7 @@
  */
 
 import React, { useState } from 'react';
-import { Edit, Trash2, MoreVertical, MessageSquareReply, Copy, Ban, Flag } from 'lucide-react';
+import { Edit, Trash2, MoreVertical, MessageSquareReply, Copy, Ban, Flag, Pin } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,12 +43,16 @@ export interface MessageActionsProps {
   isDeleted?: boolean;
   /** Admins can delete any message (server-side RLS enforced via migration 20260315000002) */
   isAdmin?: boolean;
+  /** Moderators/admins can pin or unpin message (server-side Stream policy enforced) */
+  canManagePins?: boolean;
+  isPinned?: boolean;
   /** Sender user ID — needed for block/report actions */
   senderUserId?: string;
   onEdit?: (messageId: string, newContent: string) => void;
   onDelete?: (messageId: string) => void;
   onReply?: (messageId: string) => void;
   onOpenThread?: (messageId: string) => void;
+  onTogglePin?: (messageId: string, shouldPin: boolean) => Promise<void> | void;
   onBlockUser?: (userId: string) => Promise<void> | void;
   onReportContent?: (params: {
     reportedUserId: string;
@@ -67,11 +71,14 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
   isOwnMessage,
   isDeleted = false,
   isAdmin = false,
+  canManagePins = false,
+  isPinned = false,
   senderUserId,
   onEdit,
   onDelete,
   onReply,
   onOpenThread,
+  onTogglePin,
   onBlockUser,
   onReportContent,
   isBlockingUser = false,
@@ -149,6 +156,22 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
     }
   };
 
+  const handleTogglePin = async () => {
+    if (!onTogglePin) return;
+    setIsSubmitting(true);
+    try {
+      await onTogglePin(messageId, !isPinned);
+      toast.success(isPinned ? 'Message unpinned' : 'Message pinned');
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error updating pin state:', error);
+      }
+      toast.error('Failed to update pin status');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <>
       <DropdownMenu>
@@ -171,6 +194,12 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
             <MessageSquareReply className="mr-2 h-4 w-4" />
             Open thread
           </DropdownMenuItem>
+          {canManagePins && (
+            <DropdownMenuItem onClick={handleTogglePin} disabled={isSubmitting}>
+              <Pin className="mr-2 h-4 w-4" />
+              {isPinned ? 'Unpin' : 'Pin'}
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem
             onClick={() => {
               if (navigator.clipboard?.writeText) {

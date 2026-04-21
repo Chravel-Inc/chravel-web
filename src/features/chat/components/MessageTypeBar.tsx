@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { MessageCircle, Megaphone, Hash, Search, ChevronDown } from 'lucide-react';
+import { MessageCircle, Megaphone, Hash, Search, ChevronDown, Pin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { TripChannel } from '@/types/roleChannels';
@@ -20,18 +20,24 @@ const SEGMENT_COLORS = {
     active: 'bg-[#059669] text-white shadow-md',
     inactive: 'text-[#34D399] hover:text-white hover:bg-[#059669]',
   },
+  pinned: {
+    active: 'bg-amber-500 text-black shadow-md',
+    inactive: 'text-amber-300 hover:text-black hover:bg-amber-400',
+    badge: 'bg-amber-500 text-black',
+  },
   search: {
     inactive: 'text-white/70 hover:text-white hover:bg-white/5 chat-segment-inactive',
   },
 } as const;
 
 interface MessageTypeBarProps {
-  activeFilter: 'all' | 'broadcasts' | 'channels';
-  onFilterChange: (filter: 'all' | 'broadcasts' | 'channels') => void;
+  activeFilter: 'all' | 'broadcasts' | 'pinned' | 'channels';
+  onFilterChange: (filter: 'all' | 'broadcasts' | 'pinned' | 'channels') => void;
   hasChannels?: boolean;
   isPro?: boolean;
   broadcastCount?: number;
   unreadCount?: number;
+  pinnedCount?: number;
   // Channel-specific props
   availableChannels?: TripChannel[];
   activeChannel?: TripChannel | null;
@@ -47,6 +53,7 @@ export const MessageTypeBar = ({
   isPro = false,
   broadcastCount = 0,
   unreadCount = 0,
+  pinnedCount = 0,
   availableChannels = [],
   activeChannel,
   onChannelSelect,
@@ -120,6 +127,32 @@ export const MessageTypeBar = ({
                 )}
               >
                 {broadcastCount}
+              </span>
+            )}
+          </button>
+
+          {/* Pinned Segment */}
+          <button
+            onClick={() => onFilterChange('pinned')}
+            className={cn(
+              'relative flex items-center gap-1.5 px-3 py-2 rounded-xl',
+              'text-sm font-medium transition-all duration-200',
+              activeFilter === 'pinned'
+                ? SEGMENT_COLORS.pinned.active
+                : SEGMENT_COLORS.pinned.inactive,
+            )}
+            aria-pressed={activeFilter === 'pinned'}
+          >
+            <Pin className="w-4 h-4" />
+            <span>Pinned</span>
+            {pinnedCount > 0 && activeFilter !== 'pinned' && (
+              <span
+                className={cn(
+                  'ml-1 px-1.5 py-0.5 text-xs rounded-full font-semibold',
+                  SEGMENT_COLORS.pinned.badge,
+                )}
+              >
+                {pinnedCount}
               </span>
             )}
           </button>

@@ -30,6 +30,8 @@ interface MessageItemProps {
   reactionUserNamesById?: Record<string, string>;
   /** Pass-through for admin message deletion */
   isAdmin?: boolean;
+  canManagePins?: boolean;
+  onTogglePin?: (messageId: string, shouldPin: boolean) => Promise<void> | void;
   onBlockUser?: (userId: string) => void;
   onReportContent?: (params: {
     reportedUserId: string;
@@ -57,6 +59,8 @@ export const MessageItem = memo(
     readStatuses,
     reactionUserNamesById,
     isAdmin = false,
+    canManagePins = false,
+    onTogglePin,
     onBlockUser,
     onReportContent,
     isBlockingUser = false,
@@ -156,8 +160,11 @@ export const MessageItem = memo(
           replyTo={message.replyTo}
           reactionUserNamesById={reactionUserNamesById}
           isAdmin={isAdmin}
+          canManagePins={canManagePins}
+          isPinned={(message as { isPinned?: boolean }).isPinned ?? false}
           senderUserId={senderUserId}
           onBlockUser={onBlockUser}
+          onTogglePin={onTogglePin}
           onReportContent={onReportContent}
           isBlockingUser={isBlockingUser}
           isReportingContent={isReportingContent}
