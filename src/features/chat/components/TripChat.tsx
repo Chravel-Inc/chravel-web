@@ -44,6 +44,7 @@ import { useLinkPreviews } from '../hooks/useLinkPreviews';
 import { useBlockedUsers, useReportContent } from '@/hooks/useUserSafety';
 import { getStreamClient } from '@/services/stream/streamClient';
 import { buildStreamMessageViewModels } from '../adapters/streamMessageViewModel';
+import { executeModerationAction, ModerationAction } from '@/services/moderationService';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -321,6 +322,41 @@ export const TripChat = React.memo(
         }
       },
       [demoMode.isDemoMode, streamClient, findMessageAuthorId],
+    );
+
+    const handleModerationAction = useCallback(
+      async ({
+        messageId,
+        targetUserId,
+        action,
+      }: {
+        messageId: string;
+        targetUserId: string;
+        action: ModerationAction;
+      }) => {
+        if (demoMode.isDemoMode) return;
+        if (!resolvedTripId) return;
+
+        try {
+          await executeModerationAction({
+            tripId: resolvedTripId,
+            messageId,
+            targetUserId,
+            action,
+          });
+          const actionLabel: Record<ModerationAction, string> = {
+            hide_message: 'Message hidden',
+            shadow_ban_user: 'User shadow banned',
+            mute_user: 'User muted',
+            ban_user: 'User banned',
+          };
+          toast.success(actionLabel[action]);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Moderation action failed';
+          toast.error(message);
+        }
+      },
+      [demoMode.isDemoMode, resolvedTripId],
     );
 
     // System message preferences — only meaningful for consumer trips. Use the
@@ -889,6 +925,10 @@ export const TripChat = React.memo(
                           }
                           isBlockingUser={isBlocking}
                           isReportingContent={isReporting}
+                          canModerate={isUserAdmin}
+                          onModerationAction={
+                            demoMode.isDemoMode ? undefined : handleModerationAction
+                          }
                         />
                       </div>
                     )}

@@ -6,7 +6,18 @@
  */
 
 import React, { useState } from 'react';
-import { Edit, Trash2, MoreVertical, MessageSquareReply, Copy, Ban, Flag } from 'lucide-react';
+import {
+  Edit,
+  Trash2,
+  MoreVertical,
+  MessageSquareReply,
+  Copy,
+  Ban,
+  Flag,
+  EyeOff,
+  UserX,
+  UserMinus,
+} from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,6 +46,7 @@ import {
   deleteChannelMessage,
 } from '@/services/chatService';
 import { ReportDialog, ReportReason } from './ReportDialog';
+import { ModerationAction } from '@/services/moderationService';
 export interface MessageActionsProps {
   messageId: string;
   messageContent: string;
@@ -59,6 +71,12 @@ export interface MessageActionsProps {
   }) => Promise<void> | void;
   isBlockingUser?: boolean;
   isReportingContent?: boolean;
+  canModerate?: boolean;
+  onModerationAction?: (params: {
+    messageId: string;
+    targetUserId: string;
+    action: ModerationAction;
+  }) => Promise<void> | void;
 }
 
 type StreamMessageActionsProps = Omit<
@@ -93,6 +111,8 @@ export const MessageActions: React.FC<MessageActionsComponentProps> = ({
   onReportContent,
   isBlockingUser = false,
   isReportingContent = false,
+  canModerate = false,
+  onModerationAction,
 }) => {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -165,6 +185,20 @@ export const MessageActions: React.FC<MessageActionsComponentProps> = ({
         console.error('Error deleting message:', error);
       }
       toast.error('Failed to delete message');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleModerationAction = async (action: ModerationAction) => {
+    if (!senderUserId) return;
+    setIsSubmitting(true);
+    try {
+      await onModerationAction?.({
+        messageId,
+        targetUserId: senderUserId,
+        action,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -244,6 +278,40 @@ export const MessageActions: React.FC<MessageActionsComponentProps> = ({
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete
+              </DropdownMenuItem>
+            </>
+          )}
+          {!isOwnMessage && canModerate && senderUserId && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => handleModerationAction('hide_message')}
+                disabled={isSubmitting}
+              >
+                <EyeOff className="mr-2 h-4 w-4" />
+                Hide message
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleModerationAction('shadow_ban_user')}
+                disabled={isSubmitting}
+              >
+                <UserX className="mr-2 h-4 w-4" />
+                Shadow ban user
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleModerationAction('mute_user')}
+                disabled={isSubmitting}
+              >
+                <UserMinus className="mr-2 h-4 w-4" />
+                Mute user
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleModerationAction('ban_user')}
+                disabled={isSubmitting}
+                className="text-red-600 focus:text-red-600"
+              >
+                <Ban className="mr-2 h-4 w-4" />
+                Ban user
               </DropdownMenuItem>
             </>
           )}
