@@ -13,10 +13,7 @@ type StreamSetupClient = {
   // grants AND app-level role grants, so both layers must allow the action.
   updateAppSettings?: (settings: Record<string, unknown>) => Promise<unknown>;
   upsertPermission?: (permission: Record<string, unknown>) => Promise<unknown>;
-  updateRole?: (
-    role: string,
-    config: Record<string, unknown>,
-  ) => Promise<unknown>;
+  updateRole?: (role: string, config: Record<string, unknown>) => Promise<unknown>;
 };
 
 export const AI_CONCIERGE_BOT_ID = 'ai-concierge-bot';
@@ -29,6 +26,8 @@ const APP_LEVEL_USER_GRANTS = [
   'update-message-owner',
   'delete-message-owner',
 ] as const;
+
+const MENTION_GRANTS = ['create-mention'] as const;
 
 export async function configureStreamPermissionsAndPrincipal(
   serverClient: StreamSetupClient,
@@ -65,6 +64,7 @@ export async function configureStreamPermissionsAndPrincipal(
         channel_member: [
           'read-channel',
           'create-message',
+          ...MENTION_GRANTS,
           'update-message-owner',
           'delete-message-owner',
           'update-own-message',
@@ -78,6 +78,7 @@ export async function configureStreamPermissionsAndPrincipal(
         channel_moderator: [
           'read-channel',
           'create-message',
+          ...MENTION_GRANTS,
           'update-message',
           'delete-message',
           'upload-attachment',
@@ -103,6 +104,7 @@ export async function configureStreamPermissionsAndPrincipal(
         channel_moderator: [
           'read-channel',
           'create-message',
+          ...MENTION_GRANTS,
           'update-message',
           'delete-message',
           'create-reaction',
@@ -124,6 +126,7 @@ export async function configureStreamPermissionsAndPrincipal(
         channel_member: [
           'read-channel',
           'create-message',
+          ...MENTION_GRANTS,
           'update-message-owner',
           'delete-message-owner',
           'update-own-message',
@@ -135,6 +138,7 @@ export async function configureStreamPermissionsAndPrincipal(
         channel_moderator: [
           'read-channel',
           'create-message',
+          ...MENTION_GRANTS,
           'update-message',
           'delete-message',
           'send-custom-event',

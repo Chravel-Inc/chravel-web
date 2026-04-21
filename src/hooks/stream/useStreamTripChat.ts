@@ -93,6 +93,54 @@ function isStreamCreateMentionPermissionError(error: unknown): boolean {
   return /CreateMention|action CreateMention/i.test(message);
 }
 
+type StreamGrantConfig = {
+  grants?: Record<string, string[] | undefined>;
+};
+
+function channelMentionCapability(channel: Channel): boolean | null {
+  const ownCapabilities =
+    (
+      channel as unknown as {
+        data?: { own_capabilities?: string[] };
+        state?: { own_capabilities?: string[]; ownCapabilities?: string[] };
+      }
+    ).data?.own_capabilities ??
+    (
+      channel as unknown as {
+        state?: { own_capabilities?: string[]; ownCapabilities?: string[] };
+      }
+    ).state?.own_capabilities ??
+    (
+      channel as unknown as {
+        state?: { own_capabilities?: string[]; ownCapabilities?: string[] };
+      }
+    ).state?.ownCapabilities;
+
+  if (Array.isArray(ownCapabilities) && ownCapabilities.length > 0) {
+    const normalized = new Set(ownCapabilities.map(cap => cap.toLowerCase()));
+    return normalized.has('create-mention') || normalized.has('createmention');
+  }
+
+  const getConfig = (
+    channel as unknown as {
+      getConfig?: () => StreamGrantConfig | undefined;
+    }
+  ).getConfig;
+  const config = typeof getConfig === 'function' ? getConfig() : undefined;
+  const grants = config?.grants ?? {};
+  const grantLists = Object.values(grants).filter((roleGrants): roleGrants is string[] =>
+    Array.isArray(roleGrants),
+  );
+  if (grantLists.length === 0) return null;
+
+  return grantLists.some(roleGrants =>
+    roleGrants.some(grant => {
+      const normalized = grant.toLowerCase();
+      return normalized === 'create-mention' || normalized === 'createmention';
+    }),
+  );
+}
+
 function isStreamReactionPolicyError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
   return /reaction|AddReaction|DeleteReaction|CreateReaction|reactions? disabled|not allowed/i.test(
@@ -120,6 +168,18 @@ function withoutMentionedUsers(payload: StreamSendPayload): StreamSendPayload {
 }
 
 async function sendMessageWithMentionFallback(channel: Channel, payload: StreamSendPayload) {
+  if (hasMentionedUsers(payload)) {
+    const mentionCapability = channelMentionCapability(channel);
+    if (mentionCapability === false) {
+      if (import.meta.env.DEV) {
+        console.warn(
+          '[Stream] Mention capability unavailable for this channel; sending without mentioned_users',
+        );
+      }
+      return channel.sendMessage(withoutMentionedUsers(payload));
+    }
+  }
+
   try {
     return await channel.sendMessage(payload);
   } catch (err) {
