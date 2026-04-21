@@ -15,6 +15,7 @@ import {
   onStreamClientConnectionStatusChange,
 } from '@/services/stream/streamClient';
 import { CHANNEL_TYPE_CHANNEL, proChannelId } from '@/services/stream/streamChannelFactory';
+import type { StreamQuotedReferenceInput } from '@/services/stream/streamMessagePayload';
 import type { Channel, Event, MessageResponse, UserResponse } from 'stream-chat';
 
 const PAGE_SIZE = 30;
@@ -117,7 +118,12 @@ export function useStreamProChannel(channelId: string | null) {
   const sendMessage = useCallback(
     async (
       content: string,
-      options?: { attachments?: any[]; parentId?: string; isBroadcast?: boolean },
+      options?: {
+        attachments?: any[];
+        parentId?: string;
+        isBroadcast?: boolean;
+        quotedReference?: StreamQuotedReferenceInput;
+      },
     ): Promise<boolean> => {
       const channel = channelRef.current;
       if (!channel) return false;
@@ -127,6 +133,7 @@ export function useStreamProChannel(channelId: string | null) {
           text: content,
           attachments: options?.attachments || undefined,
           parent_id: options?.parentId,
+          quoted_reference: options?.quotedReference,
           ...(options?.isBroadcast ? ({ isBroadcast: true } as Record<string, unknown>) : {}),
         } as Parameters<typeof channel.sendMessage>[0]);
         return true;

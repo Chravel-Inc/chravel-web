@@ -80,7 +80,7 @@ export interface MessageBubbleProps {
   readStatuses?: ReadStatus[];
   currentUserId: string;
   // 🆕 Inline Reply Support
-  replyTo?: { id: string; text: string; sender: string };
+  replyTo?: { id: string; text: string; sender: string; createdAt?: string };
   reactionUserNamesById?: Record<string, string>;
   /** Admins can delete any message (server-side RLS enforced) */
   isAdmin?: boolean;
@@ -558,10 +558,10 @@ export const MessageBubble = memo(
               {replyTo && (
                 <div
                   className={cn(
-                    'mb-2 p-2 rounded-lg text-xs cursor-pointer',
+                    'mb-2 px-2.5 py-1.5 rounded-md text-[11px] cursor-pointer border-l-2',
                     isOwnMessage
-                      ? 'bg-black/25 text-white/75'
-                      : 'bg-chat-other/70 text-chat-other-foreground',
+                      ? 'bg-black/20 border-white/40 text-white/85'
+                      : 'bg-chat-other/65 border-chat-other-foreground/35 text-chat-other-foreground',
                   )}
                   onClick={e => {
                     e.stopPropagation();
@@ -574,7 +574,17 @@ export const MessageBubble = memo(
                     }
                   }}
                 >
-                  <p className="font-semibold mb-0.5">{replyTo.sender}</p>
+                  <div className="flex items-center justify-between gap-2 mb-0.5">
+                    <p className="font-semibold truncate">{replyTo.sender}</p>
+                    {replyTo.createdAt && (
+                      <p className="opacity-75 shrink-0">
+                        {new Date(replyTo.createdAt).toLocaleTimeString([], {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    )}
+                  </div>
                   <p className="truncate opacity-90">{replyTo.text}</p>
                 </div>
               )}

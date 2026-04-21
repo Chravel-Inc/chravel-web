@@ -43,6 +43,7 @@ import { useTripChatMode } from '@/hooks/useTripChatMode';
 import { useLinkPreviews } from '../hooks/useLinkPreviews';
 import { useBlockedUsers, useReportContent } from '@/hooks/useUserSafety';
 import { getStreamClient } from '@/services/stream/streamClient';
+import { extractQuotedReferenceFromStreamMessage } from '@/services/stream/streamMessagePayload';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -479,6 +480,18 @@ export const TripChat = React.memo(
               id: parentMsg.id,
               text: (parentMsg as any).text || (parentMsg as any).content,
               sender: pStreamUser?.name || (parentMsg as any).author_name,
+              createdAt: (parentMsg as any).created_at || undefined,
+            };
+          }
+        }
+        if (!replyTo) {
+          const quotedReference = extractQuotedReferenceFromStreamMessage(message as any);
+          if (quotedReference) {
+            replyTo = {
+              id: quotedReference.id,
+              text: quotedReference.text,
+              sender: quotedReference.authorName,
+              createdAt: quotedReference.createdAt,
             };
           }
         }
@@ -602,6 +615,13 @@ export const TripChat = React.memo(
           effectivePrivacyMode,
           messageType as 'text' | 'broadcast' | 'payment' | 'system',
           replyingTo?.id,
+          replyingTo
+            ? {
+                id: replyingTo.id,
+                text: replyingTo.text,
+                authorName: replyingTo.senderName,
+              }
+            : undefined,
           mentionedUserIds,
         );
 

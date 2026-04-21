@@ -12,7 +12,7 @@ export interface ChatMessage {
   isBroadcast?: boolean;
   isPayment?: boolean;
   reactions?: { [key: string]: string[] };
-  replyTo?: { id: string; text: string; sender: string };
+  replyTo?: { id: string; text: string; sender: string; createdAt?: string };
   tags?: string[];
   // Rich media support
   mediaType?: 'image' | 'video' | 'document' | null;

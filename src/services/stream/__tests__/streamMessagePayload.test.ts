@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { buildTripStreamMessagePayload } from '../streamMessagePayload';
+import {
+  buildTripStreamMessagePayload,
+  extractQuotedReferenceFromStreamMessage,
+} from '../streamMessagePayload';
 
 describe('buildTripStreamMessagePayload', () => {
   it('builds normalized payload with metadata fields', () => {
@@ -8,6 +11,12 @@ describe('buildTripStreamMessagePayload', () => {
       messageType: 'broadcast',
       privacyMode: 'friends',
       replyToId: 'msg-1',
+      quotedReference: {
+        id: 'msg-1',
+        text: 'Original message',
+        authorName: 'Alex',
+        createdAt: '2026-04-21T09:10:00.000Z',
+      },
       mentionedUserIds: ['u1', 'u2'],
       mediaType: 'image',
       mediaUrl: 'https://cdn.example/image.png',
@@ -22,6 +31,12 @@ describe('buildTripStreamMessagePayload', () => {
       message_type: 'broadcast',
       privacy_mode: 'friends',
       parent_id: 'msg-1',
+      quoted_reference: {
+        id: 'msg-1',
+        text: 'Original message',
+        authorName: 'Alex',
+        createdAt: '2026-04-21T09:10:00.000Z',
+      },
       mentioned_users: ['u1', 'u2'],
     });
     expect(result.payload.attachments).toEqual([
@@ -37,5 +52,49 @@ describe('buildTripStreamMessagePayload', () => {
   it('rejects content over 4000 chars', () => {
     const result = buildTripStreamMessagePayload({ content: 'x'.repeat(4001) });
     expect(result).toEqual({ ok: false, error: 'content_too_long' });
+  });
+
+  it('extracts quoted reference from stream extra_data for top-level quoted replies', () => {
+    const parsed = extractQuotedReferenceFromStreamMessage({
+      extra_data: {
+        quoted_reference: {
+          id: 'msg-top-level',
+          text: 'Where should we stay?',
+          authorName: 'Morgan',
+          createdAt: '2026-04-20T18:32:00.000Z',
+        },
+      },
+    });
+
+    expect(parsed).toEqual({
+      id: 'msg-top-level',
+      text: 'Where should we stay?',
+      authorName: 'Morgan',
+      createdAt: '2026-04-20T18:32:00.000Z',
+    });
+  });
+
+  it('round-trips quoted reference through payload and parser', () => {
+    const result = buildTripStreamMessagePayload({
+      content: 'Quoted reply payload',
+      quotedReference: {
+        id: 'msg-parent',
+        text: 'Original thread starter',
+        authorName: 'Taylor',
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    const parsed = extractQuotedReferenceFromStreamMessage({
+      quoted_reference: result.payload.quoted_reference,
+    });
+    expect(parsed).toEqual({
+      id: 'msg-parent',
+      text: 'Original thread starter',
+      authorName: 'Taylor',
+      createdAt: undefined,
+    });
   });
 });
