@@ -11,6 +11,7 @@ const mockGetStreamClient = vi.mocked(getStreamClient);
 
 vi.mock('react-router-dom', () => ({
   useParams: () => ({ tripId: 'trip-123' }),
+  useLocation: () => ({ state: null }),
 }));
 
 vi.mock('sonner', () => ({
@@ -94,7 +95,7 @@ vi.mock('../../hooks/useChatReadReceipts', () => ({
   useChatReadReceipts: () => ({ readStatusesByMessage: {} }),
 }));
 vi.mock('../../hooks/useChatTypingIndicators', () => ({
-  useChatTypingIndicators: () => ({ typingUsers: [], typingServiceRef: { current: null } }),
+  useChatTypingIndicators: () => ({ typingUsers: [], handleTypingChange: vi.fn() }),
 }));
 vi.mock('../../hooks/useChatReactions', () => ({
   useChatReactions: () => ({ reactions: {}, handleReaction: vi.fn() }),

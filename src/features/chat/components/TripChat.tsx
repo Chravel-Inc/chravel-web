@@ -25,7 +25,6 @@ import { WifiOff } from 'lucide-react';
 import { useRoleChannels } from '@/hooks/useRoleChannels';
 import { ChannelChatView } from '@/components/pro/channels/ChannelChatView';
 import { TypingIndicator } from './TypingIndicator';
-import { TypingIndicatorService } from '@/services/typingIndicatorService';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '@/components/mobile/PullToRefreshIndicator';
 import { useUnreadCounts } from '@/hooks/useUnreadCounts';
@@ -43,6 +42,7 @@ import { useTripChatMode } from '@/hooks/useTripChatMode';
 import { useLinkPreviews } from '../hooks/useLinkPreviews';
 import { useBlockedUsers, useReportContent } from '@/hooks/useUserSafety';
 import { getStreamClient } from '@/services/stream/streamClient';
+import { shouldUseLegacyChatSync } from '@/services/stream/streamTransportGuards';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -191,13 +191,14 @@ export const TripChat = React.memo(
     } = useRoleChannels(isPro ? resolvedTripId : undefined, user?.id || '');
 
     // Typing indicators + read receipts — must be after all deps are declared
-    const { typingUsers, typingServiceRef } = useChatTypingIndicators(
+    const { typingUsers, handleTypingChange } = useChatTypingIndicators(
       demoMode.isDemoMode,
       resolvedTripId,
       user,
       effectiveChatMode,
       tripMembers.length,
       streamActiveChannel,
+      shouldUseLegacyChatSync() ? 'legacy' : 'stream',
     );
 
     const { readStatusesByMessage } = useChatReadReceipts(
@@ -1080,19 +1081,7 @@ export const TripChat = React.memo(
                 tripId={resolvedTripId}
                 disableFileUpload={!canUploadMedia}
                 safeAreaBottom={false}
-                onTypingChange={isTyping => {
-                  if (!demoMode.isDemoMode && resolvedTripId && user?.id && streamActiveChannel) {
-                    if (isTyping) {
-                      streamActiveChannel.keystroke().catch(err => {
-                        if (import.meta.env.DEV) console.error('[Stream] keystroke failed', err);
-                      });
-                    } else {
-                      streamActiveChannel.stopTyping().catch(err => {
-                        if (import.meta.env.DEV) console.error('[Stream] stopTyping failed', err);
-                      });
-                    }
-                  }
-                }}
+                onTypingChange={handleTypingChange}
               />
             </div>
           </div>
