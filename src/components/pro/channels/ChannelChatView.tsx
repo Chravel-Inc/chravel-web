@@ -12,6 +12,11 @@ import { getMockAvatar } from '@/utils/mockAvatars';
 import { useRoleAssignments } from '@/hooks/useRoleAssignments';
 import { useStreamProChannel } from '@/hooks/stream/useStreamProChannel';
 import { getStreamClient } from '@/services/stream/streamClient';
+import {
+  applyPendingReactionOverlay,
+  mapStreamMessagesToChannelMessages,
+  mapStreamReactionMap,
+} from '@/services/stream/adapters/mappers/proChannelMessageAdapter';
 import { Button } from '@/components/ui/button';
 import {
   mapChannelSendError,
@@ -31,7 +36,6 @@ import {
 
 import { useRolePermissions } from '@/hooks/useRolePermissions';
 import { Lock, LogOut, MoreVertical } from 'lucide-react';
-import type { MessageResponse } from 'stream-chat';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,6 +62,9 @@ export const ChannelChatView = ({
   const [loading, setLoading] = useState(true);
   const [reactions, setReactions] = useState<
     Record<string, Record<string, { count: number; userReacted: boolean; users: string[] }>>
+  >({});
+  const [pendingReactionIntents, setPendingReactionIntents] = useState<
+    Record<string, Record<string, boolean>>
   >({});
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
@@ -237,46 +244,13 @@ export const ChannelChatView = ({
   );
 
   // Transform ChannelMessage to ChatMessage format for MessageItem
-  const transportMessages = useMemo<ChannelMessage[]>(() => {
-    if (!useStreamTransport) return messages;
-
-    const streamMessages = streamProChannel.messages;
-    const streamById = new Map<string, MessageResponse>(
-      streamMessages.map(msg => [String(msg.id), msg as MessageResponse]),
-    );
-
-    return streamMessages.map(streamMsg => {
-      const parentId = streamMsg.parent_id ?? undefined;
-      const parent = parentId ? streamById.get(parentId) : undefined;
-      const streamExtra = streamMsg as MessageResponse & {
-        isBroadcast?: boolean;
-        metadata?: Record<string, unknown>;
-      };
-      const metadata: Record<string, unknown> = {};
-      if (parent) {
-        metadata.replyTo = {
-          id: String(parent.id),
-          text: parent.text || '',
-          sender: parent.user?.name || 'Unknown',
-        };
-      }
-      if (streamExtra.isBroadcast === true) {
-        metadata.isBroadcast = true;
-      }
-
-      return {
-        id: String(streamMsg.id),
-        channelId: channel.id,
-        senderId: streamMsg.user?.id || '',
-        senderName: streamMsg.user?.name || 'Unknown',
-        senderAvatar: streamMsg.user?.image,
-        content: streamMsg.text || '',
-        messageType: streamExtra.isBroadcast ? 'system' : 'text',
-        metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
-        createdAt: streamMsg.created_at || new Date().toISOString(),
-      };
-    });
-  }, [channel.id, messages, streamProChannel.messages, useStreamTransport]);
+  const transportMessages = useMemo<ChannelMessage[]>(
+    () =>
+      useStreamTransport
+        ? mapStreamMessagesToChannelMessages(streamProChannel.messages, channel.id)
+        : messages,
+    [channel.id, messages, streamProChannel.messages, useStreamTransport],
+  );
 
   const formattedMessages = useMemo(() => {
     return transportMessages.map(msg => {
@@ -311,37 +285,47 @@ export const ChannelChatView = ({
     }));
   }, [formattedMessages, linkPreviews]);
 
-  const streamReactionMap = useMemo(() => {
-    if (!useStreamTransport || !user?.id) {
-      return {};
-    }
+  const baseStreamReactionMap = useMemo(
+    () => (useStreamTransport ? mapStreamReactionMap(streamProChannel.messages) : {}),
+    [streamProChannel.messages, useStreamTransport],
+  );
 
-    return streamProChannel.messages.reduce<
-      Record<string, Record<string, { count: number; userReacted: boolean; users: string[] }>>
-    >((acc, streamMessage) => {
-      const counts = (streamMessage.reaction_counts || {}) as Record<string, number>;
-      const own = new Set((streamMessage.own_reactions || []).map(reaction => reaction.type));
-      const latest = (streamMessage.latest_reactions || []) as Array<{
-        type: string;
-        user?: { id?: string };
-      }>;
+  const streamReactionMap = useMemo(
+    () => applyPendingReactionOverlay(baseStreamReactionMap, pendingReactionIntents, user?.id),
+    [baseStreamReactionMap, pendingReactionIntents, user?.id],
+  );
 
-      const byType: Record<string, { count: number; userReacted: boolean; users: string[] }> = {};
-      Object.entries(counts).forEach(([type, count]) => {
-        const users = latest
-          .filter(reaction => reaction.type === type && reaction.user?.id)
-          .map(reaction => reaction.user!.id as string);
-        byType[type] = {
-          count,
-          userReacted: own.has(type),
-          users: Array.from(new Set(users)),
-        };
+  useEffect(() => {
+    if (!useStreamTransport) return;
+
+    setPendingReactionIntents(prev => {
+      let changed = false;
+      const next: Record<string, Record<string, boolean>> = {};
+
+      Object.entries(prev).forEach(([messageId, byType]) => {
+        const baseByType = baseStreamReactionMap[messageId] || {};
+        const unresolved = Object.entries(byType).reduce<Record<string, boolean>>(
+          (acc, [reactionType, expected]) => {
+            if ((baseByType[reactionType]?.userReacted ?? false) !== expected) {
+              acc[reactionType] = expected;
+            } else {
+              changed = true;
+            }
+            return acc;
+          },
+          {},
+        );
+
+        if (Object.keys(unresolved).length > 0) {
+          next[messageId] = unresolved;
+        } else {
+          changed = true;
+        }
       });
 
-      acc[String(streamMessage.id)] = byType;
-      return acc;
-    }, {});
-  }, [streamProChannel.messages, useStreamTransport, user?.id]);
+      return changed ? next : prev;
+    });
+  }, [baseStreamReactionMap, useStreamTransport]);
 
   // Handle opening a reply
   const handleOpenReply = useCallback(
@@ -490,24 +474,17 @@ export const ChannelChatView = ({
         return;
       }
 
-      // Optimistic update (UI only — Stream is canonical for persistence)
-      setReactions(prev => {
-        const updated = { ...prev };
-        if (!updated[messageId]) updated[messageId] = {};
-        const current = updated[messageId][reactionType] || {
-          count: 0,
-          userReacted: false,
-          users: [],
-        };
-        const wasReacted = current.userReacted;
-        updated[messageId][reactionType] = {
-          count: wasReacted ? Math.max(0, current.count - 1) : current.count + 1,
-          userReacted: !wasReacted,
-          users: wasReacted
-            ? current.users.filter(id => id !== user.id)
-            : Array.from(new Set([...current.users, user.id])),
-        };
-        return updated;
+      setPendingReactionIntents(prev => {
+        const expectedCurrent = prev[messageId]?.[reactionType];
+        const baseUserReacted =
+          baseStreamReactionMap[messageId]?.[reactionType]?.userReacted ?? false;
+        const currentUserReacted = expectedCurrent ?? baseUserReacted;
+        const nextExpected = !currentUserReacted;
+
+        const next = { ...prev };
+        if (!next[messageId]) next[messageId] = {};
+        next[messageId] = { ...next[messageId], [reactionType]: nextExpected };
+        return next;
       });
 
       if (!streamProChannel.activeChannel) {
@@ -524,7 +501,7 @@ export const ChannelChatView = ({
         await streamProChannel.activeChannel.sendReaction(messageId, { type: reactionType });
       }
     },
-    [user?.id, isDemoChannel, streamProChannel.activeChannel],
+    [user?.id, isDemoChannel, streamProChannel.activeChannel, baseStreamReactionMap],
   );
 
   // Calculate member count from available channels, with direct DB fallback
@@ -710,9 +687,9 @@ export const ChannelChatView = ({
                 onDelete={useStreamTransport ? handleMessageDelete : undefined}
               />
             )}
-            onLoadMore={() => {}} // Add pagination later
-            hasMore={false}
-            isLoading={false}
+            onLoadMore={useStreamTransport ? streamProChannel.loadMore : () => {}}
+            hasMore={useStreamTransport ? streamProChannel.hasMore : false}
+            isLoading={useStreamTransport ? streamProChannel.isLoadingMore : false}
             className="chat-scroll-container native-scroll px-3"
             autoScroll={true}
           />
