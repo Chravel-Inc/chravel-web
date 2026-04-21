@@ -1000,6 +1000,7 @@ export const TripChat = React.memo(
                           onReaction={handleReaction}
                           onReply={handleOpenThread}
                           onOpenThread={handleActivateThread}
+                          transportMode={demoMode.isDemoMode ? 'legacy' : 'stream'}
                           onEdit={demoMode.isDemoMode ? undefined : handleMessageEdit}
                           onDelete={demoMode.isDemoMode ? undefined : handleMessageDelete}
                           onRetry={handleRetryFailedMessage}

@@ -20,6 +20,7 @@ interface MessageItemProps {
   onRetry?: (messageId: string) => void;
   onEdit?: (messageId: string, newContent: string) => void;
   onDelete?: (messageId: string) => void;
+  transportMode?: 'legacy' | 'stream';
   // System message visibility preferences
   systemMessagePrefs?: {
     showSystemMessages: boolean;
@@ -52,6 +53,7 @@ export const MessageItem = memo(
     onRetry,
     onEdit,
     onDelete,
+    transportMode = 'legacy',
     systemMessagePrefs,
     tripMembers,
     readStatuses,
@@ -130,6 +132,7 @@ export const MessageItem = memo(
           onOpenThread={onOpenThread}
           showSenderInfo={showSenderInfo}
           messageType="trip"
+          transportMode={transportMode}
           onEdit={handleEdit}
           onDelete={handleDelete}
           grounding={

@@ -705,8 +705,9 @@ export const ChannelChatView = ({
                 }
                 onReaction={handleReaction}
                 onReply={handleOpenReply}
-                onEdit={isDemoChannel ? undefined : handleMessageEdit}
-                onDelete={isDemoChannel ? undefined : handleMessageDelete}
+                transportMode={useStreamTransport ? 'stream' : 'legacy'}
+                onEdit={useStreamTransport ? handleMessageEdit : undefined}
+                onDelete={useStreamTransport ? handleMessageDelete : undefined}
               />
             )}
             onLoadMore={() => {}} // Add pagination later
