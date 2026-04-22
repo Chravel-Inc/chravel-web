@@ -210,16 +210,6 @@ export const TripChat = React.memo(
       streamActiveChannel,
     );
 
-    const readStatusesByMessage = useMemo(
-      () =>
-        selectReadStatusesByMessage({
-          messages: liveMessages as any[],
-          currentUserId: user?.id,
-          activeChannel: streamActiveChannel,
-        }),
-      [liveMessages, streamActiveChannel, user?.id],
-    );
-
     const streamClient = getStreamClient();
 
     // Extract Stream-canonical error fields for triage (always logged, even in prod).
