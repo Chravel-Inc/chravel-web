@@ -12,6 +12,8 @@ interface MessageItemProps {
   message: ChatMessage & {
     status?: 'sending' | 'sent' | 'failed';
     replyCount?: number;
+    threadPreviewSnippet?: string;
+    hasUnreadThreadReplies?: boolean;
   };
   reactions?: Record<string, { count: number; userReacted: boolean; users?: string[] }>;
   onReaction: (messageId: string, reactionType: string) => void;
@@ -137,6 +139,8 @@ export const MessageItem = memo(
           reactions={reactions}
           onReaction={onReaction}
           replyCount={message.replyCount || 0}
+          threadPreviewSnippet={message.threadPreviewSnippet}
+          hasUnreadThreadReplies={message.hasUnreadThreadReplies}
           onReply={onReply}
           onOpenThread={onOpenThread}
           showSenderInfo={showSenderInfo}

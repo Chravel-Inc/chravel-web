@@ -49,6 +49,8 @@ export interface MessageBubbleProps {
   onDelete?: (messageId: string) => void;
   // Thread support
   replyCount?: number;
+  threadPreviewSnippet?: string;
+  hasUnreadThreadReplies?: boolean;
   onReply?: (messageId: string) => void;
   onOpenThread?: (messageId: string) => void;
   // 🆕 Grounding support
@@ -124,6 +126,8 @@ export const MessageBubble = memo(
     onEdit,
     onDelete,
     replyCount = 0,
+    threadPreviewSnippet,
+    hasUnreadThreadReplies = false,
     onReply,
     onOpenThread,
     grounding,
@@ -751,15 +755,41 @@ export const MessageBubble = memo(
 
             {/* Thread reply indicator */}
             {replyCount > 0 && (
-              <button
-                onClick={() => onOpenThread?.(id)}
-                className="flex items-center gap-1 mt-1.5 text-xs text-primary/80 hover:text-primary transition-colors"
-              >
-                <MessageSquareReply className="h-3 w-3" />
-                <span>
-                  {replyCount} {replyCount === 1 ? 'reply' : 'replies'}
-                </span>
-              </button>
+              <div className="mt-1.5">
+                {onOpenThread ? (
+                  <button
+                    onClick={() => onOpenThread(id)}
+                    className="flex items-center gap-1 text-xs text-primary/80 hover:text-primary transition-colors"
+                  >
+                    <MessageSquareReply className="h-3 w-3" />
+                    <span>
+                      {replyCount} {replyCount === 1 ? 'reply' : 'replies'}
+                    </span>
+                    {hasUnreadThreadReplies && (
+                      <span className="rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[10px] font-medium text-blue-300">
+                        New
+                      </span>
+                    )}
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-1 text-xs text-primary/80">
+                    <MessageSquareReply className="h-3 w-3" />
+                    <span>
+                      {replyCount} {replyCount === 1 ? 'reply' : 'replies'}
+                    </span>
+                    {hasUnreadThreadReplies && (
+                      <span className="rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[10px] font-medium text-blue-300">
+                        New
+                      </span>
+                    )}
+                  </div>
+                )}
+                {threadPreviewSnippet && (
+                  <p className="mt-1 text-[11px] text-muted-foreground line-clamp-1">
+                    {threadPreviewSnippet}
+                  </p>
+                )}
+              </div>
             )}
 
             {/* Read Receipts */}

@@ -244,13 +244,49 @@ export const ChannelChatView = ({
   );
 
   // Transform ChannelMessage to ChatMessage format for MessageItem
-  const transportMessages = useMemo<ChannelMessage[]>(
-    () =>
-      useStreamTransport
-        ? mapStreamMessagesToChannelMessages(streamProChannel.messages, channel.id)
-        : messages,
-    [channel.id, messages, streamProChannel.messages, useStreamTransport],
-  );
+  const transportMessages = useMemo<ChannelMessage[]>(() => {
+    if (!useStreamTransport) return messages;
+
+    const streamMessages = streamProChannel.messages;
+    const streamById = new Map<string, MessageResponse>(
+      streamMessages.map(msg => [String(msg.id), msg as MessageResponse]),
+    );
+
+    return streamMessages.map(streamMsg => {
+      const parentId = streamMsg.parent_id ?? undefined;
+      const parent = parentId ? streamById.get(parentId) : undefined;
+      const streamExtra = streamMsg as MessageResponse & {
+        isBroadcast?: boolean;
+        metadata?: Record<string, unknown>;
+      };
+      const metadata: Record<string, unknown> = {};
+      if (parent) {
+        metadata.replyTo = {
+          id: String(parent.id),
+          text: parent.text || '',
+          sender: parent.user?.name || 'Unknown',
+        };
+      }
+      if (streamExtra.isBroadcast === true) {
+        metadata.isBroadcast = true;
+      }
+      if (typeof streamMsg.reply_count === 'number') {
+        metadata.reply_count = streamMsg.reply_count;
+      }
+
+      return {
+        id: String(streamMsg.id),
+        channelId: channel.id,
+        senderId: streamMsg.user?.id || '',
+        senderName: streamMsg.user?.name || 'Unknown',
+        senderAvatar: streamMsg.user?.image,
+        content: streamMsg.text || '',
+        messageType: streamExtra.isBroadcast ? 'system' : 'text',
+        metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+        createdAt: streamMsg.created_at || new Date().toISOString(),
+      };
+    });
+  }, [channel.id, messages, streamProChannel.messages, useStreamTransport]);
 
   const formattedMessages = useMemo(() => {
     return transportMessages.map(msg => {
@@ -270,6 +306,10 @@ export const ChannelChatView = ({
         isPayment: false,
         tags: [] as string[],
         replyTo: replyTo || undefined,
+        replyCount:
+          typeof (metadata?.reply_count as number | undefined) === 'number'
+            ? (metadata?.reply_count as number)
+            : 0,
       };
     });
   }, [transportMessages]);
