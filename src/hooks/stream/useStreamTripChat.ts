@@ -24,6 +24,7 @@ import {
 } from '@/services/stream/streamClient';
 import { CHANNEL_TYPE_TRIP, tripChannelId } from '@/services/stream/streamChannelFactory';
 import { messageEvents } from '@/telemetry/events';
+import { telemetry } from '@/telemetry/service';
 import type { Channel, Event, MessageResponse } from 'stream-chat';
 import { buildTripStreamMessagePayload } from '@/services/stream/streamMessagePayload';
 import { supabase } from '@/integrations/supabase/client';
@@ -43,6 +44,7 @@ type MembershipFailureCode =
 
 type MembershipFailure = {
   code: MembershipFailureCode;
+  reasonCode?: string;
   reason: string;
 };
 
@@ -71,16 +73,22 @@ function toNonEmptyString(value: unknown): string | null {
 function extractMembershipFailure(value: unknown): MembershipFailure | null {
   if (!value || typeof value !== 'object') return null;
   const code = toNonEmptyString((value as { code?: unknown }).code);
+  const reasonCode = toNonEmptyString((value as { reasonCode?: unknown }).reasonCode);
   const reason = toNonEmptyString((value as { reason?: unknown }).reason);
-  if (!code && !reason) return null;
+  if (!code && !reasonCode && !reason) return null;
   return {
     code: (code as MembershipFailureCode | null) ?? 'unknown',
+    reasonCode: reasonCode ?? undefined,
     reason: reason ?? 'Membership recovery failed',
   };
 }
 
 function mapMembershipFailureToUiError(failure: MembershipFailure): Error {
-  if (failure.code === 'membership_denied') {
+  if (
+    failure.code === 'membership_denied' ||
+    failure.code === 'membership_required' ||
+    failure.reasonCode === 'trip_membership_required'
+  ) {
     return new Error(
       'You no longer have access to this trip chat. Ask the trip organizer to re-add you.',
     );
@@ -164,6 +172,23 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
   const membershipFailureRef = useRef<MembershipFailure | null>(null);
   const ownReactionTypesByMessageRef = useRef<Map<string, Set<string>>>(new Map());
   const [reloadSeed, setReloadSeed] = useState(0);
+
+  const trackMembershipTelemetry = useCallback(
+    (
+      stage: 'join_preflight' | 'ensure_membership',
+      outcome: 'attempt' | 'success' | 'failure',
+      details?: Record<string, string>,
+    ) => {
+      if (!tripId) return;
+      telemetry.track('stream_membership_recovery', {
+        trip_id: tripId,
+        stage,
+        outcome,
+        ...details,
+      });
+    },
+    [tripId],
+  );
 
   const triggerGuardedReload = useCallback(() => {
     if (guardedReloadAttemptedRef.current) return;
@@ -352,11 +377,16 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
                   reason: `stream-join-channel returned ${response.status}`,
                 } satisfies MembershipFailure);
               membershipFailureRef.current = failure;
+              trackMembershipTelemetry('join_preflight', 'failure', {
+                code: failure.code,
+                reason_code: failure.reasonCode ?? 'unknown',
+              });
               if (import.meta.env.DEV) {
                 console.warn('[Stream] stream-join-channel returned non-OK', failure);
               }
             } else {
               membershipFailureRef.current = null;
+              trackMembershipTelemetry('join_preflight', 'success');
             }
           } catch (joinErr) {
             const failure: MembershipFailure = isAbortLikeError(joinErr)
@@ -369,6 +399,10 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
                       : 'stream-join-channel request failed',
                 };
             membershipFailureRef.current = failure;
+            trackMembershipTelemetry('join_preflight', 'failure', {
+              code: failure.code,
+              reason_code: failure.reasonCode ?? 'unknown',
+            });
             // Join is best-effort before watch; deterministic recovery is handled on ReadChannel errors.
             if (import.meta.env.DEV) {
               console.warn('[Stream] stream-join-channel failed before watch; continuing', failure);
@@ -386,11 +420,16 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       };
 
       const ensureMembership = async (): Promise<MembershipRecoveryResult> => {
+        trackMembershipTelemetry('ensure_membership', 'attempt');
         const response = await supabase.functions.invoke('stream-ensure-membership', {
           body: { tripId, userId: client.userID },
         });
 
         if (response.error) {
+          trackMembershipTelemetry('ensure_membership', 'failure', {
+            code: 'stream_api_failure',
+            reason_code: 'stream_membership_sync_failed',
+          });
           return {
             ok: false,
             failure: {
@@ -401,6 +440,10 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         }
 
         if (!response.data || typeof response.data !== 'object') {
+          trackMembershipTelemetry('ensure_membership', 'failure', {
+            code: 'invalid_response',
+            reason_code: 'invalid_response',
+          });
           return {
             ok: false,
             failure: {
@@ -413,40 +456,36 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         const parsed = response.data as {
           success?: unknown;
           code?: unknown;
+          reasonCode?: unknown;
           reason?: unknown;
         };
 
         if (parsed.success === true) {
           membershipFailureRef.current = null;
+          trackMembershipTelemetry('ensure_membership', 'success', {
+            code: toNonEmptyString(parsed.code) ?? 'ok',
+            reason_code: toNonEmptyString(parsed.reasonCode) ?? 'stream_membership_synced',
+          });
           return { ok: true };
         }
 
+        const failure = extractMembershipFailure(parsed) ?? {
+          code: 'invalid_response',
+          reason: 'stream-ensure-membership did not return success=true',
+        };
+        trackMembershipTelemetry('ensure_membership', 'failure', {
+          code: failure.code,
+          reason_code: failure.reasonCode ?? 'unknown',
+        });
         return {
           ok: false,
-          failure: extractMembershipFailure(parsed) ?? {
-            code: 'invalid_response',
-            reason: 'stream-ensure-membership did not return success=true',
-          },
+          failure,
         };
       };
 
       try {
-        let watched = await watchChannel();
+        const watched = await watchChannel();
         if (!watched || cancelled) return;
-
-        if (
-          membershipRecoveryAttemptedRef.current === false &&
-          !watched.state.membership &&
-          client.userID
-        ) {
-          membershipRecoveryAttemptedRef.current = true;
-          const ensured = await ensureMembership();
-          if (ensured.ok === false) {
-            throw mapMembershipFailureToUiError(ensured.failure);
-          }
-          watched = await watchChannel();
-          if (!watched || cancelled) return;
-        }
 
         const streamMessages = (watched.state.messages || []) as MessageResponse[];
         const sortedMessages = [...streamMessages].sort((a, b) => {
@@ -542,7 +581,14 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         setActiveChannel(null);
       }
     };
-  }, [tripId, isEnabled, streamClientReady, reloadSeed, triggerGuardedReload]);
+  }, [
+    tripId,
+    isEnabled,
+    streamClientReady,
+    reloadSeed,
+    triggerGuardedReload,
+    trackMembershipTelemetry,
+  ]);
 
   const reload = useCallback(async () => {
     if (!tripId || !isEnabled || !channelRef.current) return;

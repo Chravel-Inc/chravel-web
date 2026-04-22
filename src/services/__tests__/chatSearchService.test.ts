@@ -9,6 +9,8 @@ import {
 } from '../chatSearchService';
 import { supabase } from '@/integrations/supabase/client';
 
+const searchTripChannelMessagesMock = vi.hoisted(() => vi.fn());
+
 const createChainMock = (resolvedValue: { data: unknown; error: unknown }) => {
   const promise = Promise.resolve(resolvedValue);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -45,11 +47,16 @@ vi.mock('@/integrations/supabase/client', () => ({
   },
 }));
 
+vi.mock('@/services/stream/streamMessageSearch', () => ({
+  searchTripChannelMessages: (...args: unknown[]) => searchTripChannelMessagesMock(...args),
+}));
+
 describe('chatSearchService', () => {
   const tripId = 'trip-123';
 
   beforeEach(() => {
     vi.clearAllMocks();
+    searchTripChannelMessagesMock.mockResolvedValue([]);
   });
 
   describe('resolveSenderNameToIds', () => {
@@ -98,21 +105,20 @@ describe('chatSearchService', () => {
 
   describe('searchChatContentWithFilters', () => {
     it('delegates to searchChatContent for plain text (backward compat)', async () => {
+      searchTripChannelMessagesMock.mockResolvedValue([
+        {
+          messageId: 'm1',
+          text: 'hello',
+          authorName: 'A',
+          authorId: 'u1',
+          tripId,
+          channelType: 'chravel-trip',
+          channelId: `trip-${tripId}`,
+          createdAt: '2026-01-01',
+        },
+      ]);
+
       (supabase.from as ReturnType<typeof vi.fn>)
-        .mockReturnValueOnce(
-          createChainMock({
-            data: [
-              {
-                id: 'm1',
-                content: 'hello',
-                author_name: 'A',
-                user_id: 'u1',
-                created_at: '2026-01-01',
-              },
-            ],
-            error: null,
-          }),
-        )
         .mockReturnValueOnce(
           createChainMock({
             data: [],
@@ -121,15 +127,7 @@ describe('chatSearchService', () => {
         )
         .mockReturnValueOnce(
           createChainMock({
-            data: [
-              {
-                user_id: 'u1',
-                resolved_display_name: 'A',
-                display_name: null,
-                first_name: null,
-                last_name: null,
-              },
-            ],
+            data: [],
             error: null,
           }),
         );
@@ -184,21 +182,20 @@ describe('chatSearchService', () => {
 
   describe('searchChatContent (legacy)', () => {
     it('searches messages and broadcasts by text', async () => {
+      searchTripChannelMessagesMock.mockResolvedValue([
+        {
+          messageId: 'm1',
+          text: 'test',
+          authorName: 'A',
+          authorId: 'u1',
+          tripId,
+          channelType: 'chravel-trip',
+          channelId: `trip-${tripId}`,
+          createdAt: '2026-01-01',
+        },
+      ]);
+
       (supabase.from as ReturnType<typeof vi.fn>)
-        .mockReturnValueOnce(
-          createChainMock({
-            data: [
-              {
-                id: 'm1',
-                content: 'test',
-                author_name: 'A',
-                user_id: 'u1',
-                created_at: '2026-01-01',
-              },
-            ],
-            error: null,
-          }),
-        )
         .mockReturnValueOnce(
           createChainMock({
             data: [
