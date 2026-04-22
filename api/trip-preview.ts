@@ -34,7 +34,7 @@ export default async function handler(request: Request): Promise<Response> {
       method: 'GET',
       headers: {
         'User-Agent': request.headers.get('user-agent') ?? 'chravel-preview-proxy',
-        Accept: 'text/html,application/xhtml+xml',
+        Accept: 'text/html,application/xhtml+xml,text/plain;q=0.8',
       },
     });
 
@@ -42,9 +42,19 @@ export default async function handler(request: Request): Promise<Response> {
 
     console.log('[trip-preview] Upstream status:', upstream.status, 'Body length:', body.length);
 
+    const upstreamContentType = upstream.headers.get('content-type') ?? '';
+    const bodyLooksHtml = /^\s*<(?:!doctype\s+html|html|head|meta|body)/i.test(body);
+
+    // Always serve HTML as text/html so desktop browsers render preview pages correctly.
+    // Some upstream/proxy hops can strip or rewrite content-type to text/plain, which causes
+    // raw OG HTML source (and mojibake bullets) to display instead of rendering.
+    const contentType = bodyLooksHtml
+      ? 'text/html; charset=utf-8'
+      : upstreamContentType || 'text/plain; charset=utf-8';
+
     // Build response with proper headers
     const responseHeaders: Record<string, string> = {
-      'Content-Type': upstream.headers.get('content-type') ?? 'text/html; charset=utf-8',
+      'Content-Type': contentType,
     };
 
     const cacheControl = upstream.headers.get('cache-control');

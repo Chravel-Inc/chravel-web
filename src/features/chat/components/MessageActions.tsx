@@ -6,7 +6,18 @@
  */
 
 import React, { useState } from 'react';
-import { Edit, Trash2, MoreVertical, MessageSquareReply, Copy, Ban, Flag } from 'lucide-react';
+import {
+  Edit,
+  Trash2,
+  MoreVertical,
+  MessageSquareReply,
+  Copy,
+  Ban,
+  Flag,
+  EyeOff,
+  UserX,
+  UserMinus,
+} from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,10 +46,12 @@ import {
   deleteChannelMessage,
 } from '@/services/chatService';
 import { ReportDialog, ReportReason } from './ReportDialog';
+import { ModerationAction } from '@/services/moderationService';
 export interface MessageActionsProps {
   messageId: string;
   messageContent: string;
   messageType: 'channel' | 'trip';
+  transportMode?: 'legacy' | 'stream';
   isOwnMessage: boolean;
   isDeleted?: boolean;
   /** Admins can delete any message (server-side RLS enforced via migration 20260315000002) */
@@ -58,12 +71,34 @@ export interface MessageActionsProps {
   }) => Promise<void> | void;
   isBlockingUser?: boolean;
   isReportingContent?: boolean;
+  canModerate?: boolean;
+  onModerationAction?: (params: {
+    messageId: string;
+    targetUserId: string;
+    action: ModerationAction;
+  }) => Promise<void> | void;
 }
 
-export const MessageActions: React.FC<MessageActionsProps> = ({
+type StreamMessageActionsProps = Omit<
+  MessageActionsProps,
+  'transportMode' | 'onEdit' | 'onDelete'
+> & {
+  transportMode: 'stream';
+  onEdit: (messageId: string, newContent: string) => void | Promise<void>;
+  onDelete: (messageId: string) => void | Promise<void>;
+};
+
+type LegacyMessageActionsProps = Omit<MessageActionsProps, 'transportMode'> & {
+  transportMode?: 'legacy';
+};
+
+type MessageActionsComponentProps = StreamMessageActionsProps | LegacyMessageActionsProps;
+
+export const MessageActions: React.FC<MessageActionsComponentProps> = ({
   messageId,
   messageContent,
   messageType,
+  transportMode = 'legacy',
   isOwnMessage,
   isDeleted = false,
   isAdmin = false,
@@ -76,6 +111,8 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
   onReportContent,
   isBlockingUser = false,
   isReportingContent = false,
+  canModerate = false,
+  onModerationAction,
 }) => {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -103,9 +140,11 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
     setIsSubmitting(true);
     try {
       const success =
-        messageType === 'channel'
-          ? await editChannelMessage(messageId, editedContent)
-          : await editChatMessage(messageId, editedContent);
+        transportMode === 'stream'
+          ? (await onEdit(messageId, editedContent), true)
+          : messageType === 'channel'
+            ? await editChannelMessage(messageId, editedContent)
+            : await editChatMessage(messageId, editedContent);
 
       if (success) {
         toast.success('Message edited');
@@ -128,9 +167,11 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
     setIsSubmitting(true);
     try {
       const success =
-        messageType === 'channel'
-          ? await deleteChannelMessage(messageId)
-          : await deleteChatMessage(messageId);
+        transportMode === 'stream'
+          ? (await onDelete(messageId), true)
+          : messageType === 'channel'
+            ? await deleteChannelMessage(messageId)
+            : await deleteChatMessage(messageId);
 
       if (success) {
         toast.success('Message deleted');
@@ -144,6 +185,20 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
         console.error('Error deleting message:', error);
       }
       toast.error('Failed to delete message');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleModerationAction = async (action: ModerationAction) => {
+    if (!senderUserId) return;
+    setIsSubmitting(true);
+    try {
+      await onModerationAction?.({
+        messageId,
+        targetUserId: senderUserId,
+        action,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -223,6 +278,40 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete
+              </DropdownMenuItem>
+            </>
+          )}
+          {!isOwnMessage && canModerate && senderUserId && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => handleModerationAction('hide_message')}
+                disabled={isSubmitting}
+              >
+                <EyeOff className="mr-2 h-4 w-4" />
+                Hide message
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleModerationAction('shadow_ban_user')}
+                disabled={isSubmitting}
+              >
+                <UserX className="mr-2 h-4 w-4" />
+                Shadow ban user
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleModerationAction('mute_user')}
+                disabled={isSubmitting}
+              >
+                <UserMinus className="mr-2 h-4 w-4" />
+                Mute user
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleModerationAction('ban_user')}
+                disabled={isSubmitting}
+                className="text-red-600 focus:text-red-600"
+              >
+                <Ban className="mr-2 h-4 w-4" />
+                Ban user
               </DropdownMenuItem>
             </>
           )}
