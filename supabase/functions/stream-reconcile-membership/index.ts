@@ -9,6 +9,8 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const CHANNEL_TYPES = ['chravel-trip', 'chravel-broadcast'] as const;
+const DEFAULT_BATCH_SIZE = 20;
+const MAX_BATCH_SIZE = 100;
 
 type ChannelType = (typeof CHANNEL_TYPES)[number];
 
@@ -19,6 +21,7 @@ type ReasonCode =
   | 'trip_id_missing'
   | 'trip_membership_required'
   | 'trip_membership_check_failed'
+  | 'invalid_batch_size'
   | 'reconcile_completed'
   | 'reconcile_failed';
 
@@ -109,12 +112,33 @@ serve(async req => {
     const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     let scopedTripId: string | null = null;
+    let cursor: string | null = null;
+    let batchSize = DEFAULT_BATCH_SIZE;
 
     if (req.method === 'GET') {
       const guard = verifyCronAuth(req, corsHeaders);
       if (!guard.authorized) return guard.response!;
       const url = new URL(req.url);
       scopedTripId = url.searchParams.get('tripId');
+      cursor = url.searchParams.get('cursor');
+      const batchSizeRaw = url.searchParams.get('batchSize');
+      if (batchSizeRaw) {
+        const parsedBatchSize = Number.parseInt(batchSizeRaw, 10);
+        if (
+          Number.isNaN(parsedBatchSize) ||
+          parsedBatchSize < 1 ||
+          parsedBatchSize > MAX_BATCH_SIZE
+        ) {
+          return errorResponse(
+            corsHeaders,
+            400,
+            'invalid_batch_size',
+            'invalid_batch_size',
+            `batchSize must be between 1 and ${MAX_BATCH_SIZE}`,
+          );
+        }
+        batchSize = parsedBatchSize;
+      }
     } else {
       const authHeader = req.headers.get('Authorization');
       if (!authHeader) {
@@ -184,17 +208,36 @@ serve(async req => {
       }
     }
 
-    const tripIds =
-      scopedTripId && scopedTripId.length > 0
-        ? [scopedTripId]
-        : ((await adminClient.from('trip_members').select('trip_id').limit(5000)).data?.reduce<
-            string[]
-          >((acc, row) => {
-            if (typeof row.trip_id === 'string' && !acc.includes(row.trip_id)) {
-              acc.push(row.trip_id);
-            }
-            return acc;
-          }, []) ?? []);
+    const tripIds: string[] = [];
+    let nextCursor: string | null = null;
+
+    if (scopedTripId && scopedTripId.length > 0) {
+      tripIds.push(scopedTripId);
+    } else {
+      let query = adminClient
+        .from('trips')
+        .select('id')
+        .order('id', { ascending: true })
+        .limit(batchSize);
+      if (cursor && cursor.length > 0) {
+        query = query.gt('id', cursor);
+      }
+
+      const { data: tripRows, error: tripsError } = await query;
+      if (tripsError) {
+        throw new Error('Failed to load trip batch for reconciliation');
+      }
+
+      for (const row of tripRows || []) {
+        if (typeof row.id === 'string' && row.id.length > 0) {
+          tripIds.push(row.id);
+        }
+      }
+
+      if (tripIds.length === batchSize) {
+        nextCursor = tripIds[tripIds.length - 1] ?? null;
+      }
+    }
 
     const results: Array<Record<string, unknown>> = [];
     let repairedTotal = 0;
@@ -237,6 +280,9 @@ serve(async req => {
         success: true,
         code: 'ok',
         reasonCode: 'reconcile_completed',
+        batchSize,
+        cursor,
+        nextCursor,
         reconciledTrips: tripIds.length,
         repairedMembersTotal: repairedTotal,
         results,
@@ -250,6 +296,13 @@ serve(async req => {
     }
 
     const message = error instanceof Error ? error.message : 'Unknown error';
-    return errorResponse(corsHeaders, 500, 'stream_reconcile_failed', 'reconcile_failed', message);
+    console.error('[stream-reconcile-membership] Error:', message);
+    return errorResponse(
+      corsHeaders,
+      500,
+      'stream_reconcile_failed',
+      'reconcile_failed',
+      'Failed to reconcile Stream memberships',
+    );
   }
 });
