@@ -23,6 +23,7 @@ import { openOrDownloadBlob } from '../utils/download';
 import { orderExportSections } from '../utils/exportSectionOrder';
 import { demoModeService } from '../services/demoModeService';
 import { toast } from 'sonner';
+import { buildTripPreviewLink } from '@/lib/unfurlConfig';
 
 export const MobileEventDetail = () => {
   const { eventId } = useParams();
@@ -219,7 +220,7 @@ export const MobileEventDetail = () => {
   const handleShare = useCallback(async () => {
     if (!eventData) return;
 
-    const previewLink = `https://p.chravel.app/t/${encodeURIComponent(String(eventId))}`;
+    const previewLink = buildTripPreviewLink(eventId);
     const shareText = `Check out ${eventData.title} - an event in ${eventData.location}! ${eventData.participants.length} attendees are going.`;
 
     if (navigator.share) {
