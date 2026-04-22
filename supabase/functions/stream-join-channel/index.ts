@@ -33,6 +33,16 @@ type ErrorCode =
   | 'membership_required'
   | 'stream_api_failure';
 
+type ReasonCode =
+  | 'invalid_http_method'
+  | 'authentication_required'
+  | 'authentication_invalid'
+  | 'trip_id_missing'
+  | 'trip_membership_check_failed'
+  | 'trip_membership_required'
+  | 'stream_membership_sync_failed'
+  | 'stream_membership_synced';
+
 function jsonResponse(
   payload: Record<string, unknown>,
   status: number,
@@ -48,9 +58,10 @@ function errorResponse(
   corsHeaders: Record<string, string>,
   status: number,
   code: ErrorCode,
+  reasonCode: ReasonCode,
   reason: string,
 ) {
-  return jsonResponse({ success: false, code, reason }, status, corsHeaders);
+  return jsonResponse({ success: false, code, reasonCode, reason }, status, corsHeaders);
 }
 
 serve(async req => {
@@ -61,7 +72,13 @@ serve(async req => {
   }
 
   if (req.method !== 'POST') {
-    return errorResponse(corsHeaders, 405, 'invalid_method', 'Method not allowed');
+    return errorResponse(
+      corsHeaders,
+      405,
+      'invalid_method',
+      'invalid_http_method',
+      'Method not allowed',
+    );
   }
 
   try {
@@ -73,7 +90,13 @@ serve(async req => {
     // ── Auth ──────────────────────────────────────────────────────────────
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return errorResponse(corsHeaders, 401, 'auth_required', 'Authentication required');
+      return errorResponse(
+        corsHeaders,
+        401,
+        'auth_required',
+        'authentication_required',
+        'Authentication required',
+      );
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -86,7 +109,13 @@ serve(async req => {
     } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
 
     if (authError || !user) {
-      return errorResponse(corsHeaders, 401, 'auth_invalid', 'Invalid authentication');
+      return errorResponse(
+        corsHeaders,
+        401,
+        'auth_invalid',
+        'authentication_invalid',
+        'Invalid authentication',
+      );
     }
 
     // ── Parse body ────────────────────────────────────────────────────────
@@ -94,7 +123,13 @@ serve(async req => {
     const tripId = body?.tripId as string | undefined;
 
     if (!tripId || typeof tripId !== 'string') {
-      return errorResponse(corsHeaders, 400, 'invalid_trip_id', 'tripId is required');
+      return errorResponse(
+        corsHeaders,
+        400,
+        'invalid_trip_id',
+        'trip_id_missing',
+        'tripId is required',
+      );
     }
 
     // ── Verify Supabase membership ────────────────────────────────────────
@@ -113,6 +148,7 @@ serve(async req => {
         corsHeaders,
         500,
         'membership_verification_failed',
+        'trip_membership_check_failed',
         'Failed to verify membership',
       );
     }
@@ -122,6 +158,7 @@ serve(async req => {
         corsHeaders,
         403,
         'membership_required',
+        'trip_membership_required',
         'User is not a member of this trip',
       );
     }
@@ -159,13 +196,23 @@ serve(async req => {
       // Non-fatal: broadcast channel creation/join failure should not block trip chat
     }
 
-    return jsonResponse({ success: true, code: 'ok' }, 200, corsHeaders);
+    return jsonResponse(
+      { success: true, code: 'ok', reasonCode: 'stream_membership_synced' },
+      200,
+      corsHeaders,
+    );
   } catch (err) {
     if (err instanceof Error && err.message.includes('Missing required secret')) {
       return createMissingSecretResponse(err, corsHeaders);
     }
 
     const reason = err instanceof Error ? err.message : 'Internal server error';
-    return errorResponse(corsHeaders, 500, 'stream_api_failure', reason);
+    return errorResponse(
+      corsHeaders,
+      500,
+      'stream_api_failure',
+      'stream_membership_sync_failed',
+      reason,
+    );
   }
 });

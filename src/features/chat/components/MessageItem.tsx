@@ -6,6 +6,7 @@ import { SystemMessageBubble } from './SystemMessageBubble';
 import { useAuth } from '@/hooks/useAuth';
 import { shouldShowSystemMessage, SystemMessageCategoryPrefs } from '@/utils/systemMessageCategory';
 import { ReadStatus } from './ReadReceipts';
+import { ModerationAction } from '@/services/moderationService';
 
 interface MessageItemProps {
   message: ChatMessage & {
@@ -22,6 +23,7 @@ interface MessageItemProps {
   onRetry?: (messageId: string) => void;
   onEdit?: (messageId: string, newContent: string) => void;
   onDelete?: (messageId: string) => void;
+  transportMode?: 'legacy' | 'stream';
   // System message visibility preferences
   systemMessagePrefs?: {
     showSystemMessages: boolean;
@@ -41,6 +43,12 @@ interface MessageItemProps {
   }) => void;
   isBlockingUser?: boolean;
   isReportingContent?: boolean;
+  canModerate?: boolean;
+  onModerationAction?: (params: {
+    messageId: string;
+    targetUserId: string;
+    action: ModerationAction;
+  }) => Promise<void> | void;
 }
 
 export const MessageItem = memo(
@@ -54,6 +62,7 @@ export const MessageItem = memo(
     onRetry,
     onEdit,
     onDelete,
+    transportMode = 'legacy',
     systemMessagePrefs,
     tripMembers,
     readStatuses,
@@ -63,6 +72,8 @@ export const MessageItem = memo(
     onReportContent,
     isBlockingUser = false,
     isReportingContent = false,
+    canModerate = false,
+    onModerationAction,
   }: MessageItemProps) => {
     const { user } = useAuth();
     const messageWithGrounding = message as unknown as ChatMessageWithGrounding;
@@ -134,6 +145,7 @@ export const MessageItem = memo(
           onOpenThread={onOpenThread}
           showSenderInfo={showSenderInfo}
           messageType="trip"
+          transportMode={transportMode}
           onEdit={handleEdit}
           onDelete={handleDelete}
           grounding={
@@ -165,6 +177,8 @@ export const MessageItem = memo(
           onReportContent={onReportContent}
           isBlockingUser={isBlockingUser}
           isReportingContent={isReportingContent}
+          canModerate={canModerate}
+          onModerationAction={onModerationAction}
         />
       </div>
     );

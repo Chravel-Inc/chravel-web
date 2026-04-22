@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  assertConciergeStreamTransportUnsupported,
+  getUnsupportedConciergeTransportMessage,
   isStreamChatActive,
   isStreamConfigured,
   shouldUseLegacyChatSync,
@@ -30,5 +32,15 @@ describe('streamTransportGuards', () => {
 
     expect(isStreamChatActive('user-1')).toBe(true);
     expect(isStreamChatActive('')).toBe(false);
+  });
+
+  it('provides deterministic concierge unsupported transport messaging', () => {
+    expect(getUnsupportedConciergeTransportMessage()).toContain('SSE/DB-backed');
+  });
+
+  it('throws when concierge Stream transport is invoked', () => {
+    expect(() => assertConciergeStreamTransportUnsupported()).toThrow(
+      getUnsupportedConciergeTransportMessage(),
+    );
   });
 });

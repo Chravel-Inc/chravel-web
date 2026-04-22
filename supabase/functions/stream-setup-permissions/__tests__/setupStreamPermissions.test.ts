@@ -25,6 +25,20 @@ describe('configureStreamPermissionsAndPrincipal', () => {
     expect(updateChannelType.mock.calls.map(call => call[0])).toEqual(
       expectedConfiguredChannelTypes,
     );
+    const mentionEnabledChannelTypes = new Set([
+      'chravel-trip',
+      'chravel-broadcast',
+      'chravel-channel',
+    ]);
+    for (const [channelType, config] of updateChannelType.mock.calls) {
+      if (!mentionEnabledChannelTypes.has(channelType)) continue;
+      const grants = (config as { grants?: Record<string, string[]> }).grants ?? {};
+      for (const roleGrants of Object.values(grants)) {
+        if (roleGrants.includes('create-message')) {
+          expect(roleGrants).toContain('create-mention');
+        }
+      }
+    }
 
     expect(results[0]).toEqual({ channelType: 'service-principal:ai-concierge-bot', status: 'ok' });
 

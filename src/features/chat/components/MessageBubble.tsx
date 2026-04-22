@@ -27,6 +27,7 @@ import { defaultAvatar } from '@/utils/mockAvatars';
 import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
 import { hapticService } from '@/services/hapticService';
 import { getMentionClassName, MENTION_REGEX } from './messageMentions';
+import { ModerationAction } from '@/services/moderationService';
 
 export interface MessageBubbleProps {
   id: string;
@@ -42,6 +43,7 @@ export interface MessageBubbleProps {
   onReaction: (messageId: string, reactionType: string) => void;
   showSenderInfo?: boolean;
   messageType?: 'channel' | 'trip';
+  transportMode?: 'legacy' | 'stream';
   isDeleted?: boolean;
   onEdit?: (messageId: string, newContent: string) => void;
   onDelete?: (messageId: string) => void;
@@ -97,6 +99,12 @@ export interface MessageBubbleProps {
   }) => void;
   isBlockingUser?: boolean;
   isReportingContent?: boolean;
+  canModerate?: boolean;
+  onModerationAction?: (params: {
+    messageId: string;
+    targetUserId: string;
+    action: ModerationAction;
+  }) => Promise<void> | void;
 }
 
 export const MessageBubble = memo(
@@ -113,6 +121,7 @@ export const MessageBubble = memo(
     reactions,
     onReaction,
     messageType = 'trip',
+    transportMode = 'legacy',
     isDeleted = false,
     onEdit,
     onDelete,
@@ -141,6 +150,8 @@ export const MessageBubble = memo(
     onReportContent,
     isBlockingUser = false,
     isReportingContent = false,
+    canModerate = false,
+    onModerationAction,
   }: MessageBubbleProps) => {
     const [showReactions, setShowReactions] = useState(false);
     const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -523,23 +534,49 @@ export const MessageBubble = memo(
                   {isEdited && <span className="ml-1 text-chat-meta/80">(edited)</span>}
                 </span>
               )}
-              <MessageActions
-                messageId={id}
-                messageContent={text}
-                messageType={messageType}
-                isOwnMessage={isOwnMessage}
-                isDeleted={isDeleted}
-                isAdmin={isAdmin}
-                senderUserId={senderUserId}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onReply={onReply}
-                onOpenThread={onOpenThread}
-                onBlockUser={onBlockUser}
-                onReportContent={onReportContent}
-                isBlockingUser={isBlockingUser}
-                isReportingContent={isReportingContent}
-              />
+              {transportMode === 'stream' && onEdit && onDelete ? (
+                <MessageActions
+                  messageId={id}
+                  messageContent={text}
+                  messageType={messageType}
+                  transportMode="stream"
+                  isOwnMessage={isOwnMessage}
+                  isDeleted={isDeleted}
+                  isAdmin={isAdmin}
+                  senderUserId={senderUserId}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  onReply={onReply}
+                  onOpenThread={onOpenThread}
+                  onBlockUser={onBlockUser}
+                  onReportContent={onReportContent}
+                  isBlockingUser={isBlockingUser}
+                  isReportingContent={isReportingContent}
+                  canModerate={canModerate}
+                  onModerationAction={onModerationAction}
+                />
+              ) : (
+                <MessageActions
+                  messageId={id}
+                  messageContent={text}
+                  messageType={messageType}
+                  transportMode="legacy"
+                  isOwnMessage={isOwnMessage}
+                  isDeleted={isDeleted}
+                  isAdmin={isAdmin}
+                  senderUserId={senderUserId}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  onReply={onReply}
+                  onOpenThread={onOpenThread}
+                  onBlockUser={onBlockUser}
+                  onReportContent={onReportContent}
+                  isBlockingUser={isBlockingUser}
+                  isReportingContent={isReportingContent}
+                  canModerate={canModerate}
+                  onModerationAction={onModerationAction}
+                />
+              )}
             </div>
             <div
               className={cn(
