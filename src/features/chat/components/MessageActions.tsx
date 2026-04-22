@@ -39,6 +39,7 @@ export interface MessageActionsProps {
   messageId: string;
   messageContent: string;
   messageType: 'channel' | 'trip';
+  transportMode?: 'legacy' | 'stream';
   isOwnMessage: boolean;
   isDeleted?: boolean;
   /** Admins can delete any message (server-side RLS enforced via migration 20260315000002) */
@@ -60,10 +61,26 @@ export interface MessageActionsProps {
   isReportingContent?: boolean;
 }
 
-export const MessageActions: React.FC<MessageActionsProps> = ({
+type StreamMessageActionsProps = Omit<
+  MessageActionsProps,
+  'transportMode' | 'onEdit' | 'onDelete'
+> & {
+  transportMode: 'stream';
+  onEdit: (messageId: string, newContent: string) => void | Promise<void>;
+  onDelete: (messageId: string) => void | Promise<void>;
+};
+
+type LegacyMessageActionsProps = Omit<MessageActionsProps, 'transportMode'> & {
+  transportMode?: 'legacy';
+};
+
+type MessageActionsComponentProps = StreamMessageActionsProps | LegacyMessageActionsProps;
+
+export const MessageActions: React.FC<MessageActionsComponentProps> = ({
   messageId,
   messageContent,
   messageType,
+  transportMode = 'legacy',
   isOwnMessage,
   isDeleted = false,
   isAdmin = false,
@@ -103,9 +120,11 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
     setIsSubmitting(true);
     try {
       const success =
-        messageType === 'channel'
-          ? await editChannelMessage(messageId, editedContent)
-          : await editChatMessage(messageId, editedContent);
+        transportMode === 'stream'
+          ? (await onEdit(messageId, editedContent), true)
+          : messageType === 'channel'
+            ? await editChannelMessage(messageId, editedContent)
+            : await editChatMessage(messageId, editedContent);
 
       if (success) {
         toast.success('Message edited');
@@ -128,9 +147,11 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
     setIsSubmitting(true);
     try {
       const success =
-        messageType === 'channel'
-          ? await deleteChannelMessage(messageId)
-          : await deleteChatMessage(messageId);
+        transportMode === 'stream'
+          ? (await onDelete(messageId), true)
+          : messageType === 'channel'
+            ? await deleteChannelMessage(messageId)
+            : await deleteChatMessage(messageId);
 
       if (success) {
         toast.success('Message deleted');

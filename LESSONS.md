@@ -149,6 +149,14 @@
 
 ## Optimization Tips
 
+### Avoid default `[]` prop literals when callbacks/effects depend on that prop
+- **Tip:** If a component prop defaults to `[]` inline (`prop = []`) and that prop is in hook dependency arrays, React creates a fresh array every render and can retrigger callbacks/effects indefinitely. Use a module-level `const EMPTY_LIST = []` (typed) for stable identity.
+- **Applies when:** Data-driven components with memoized loaders (`useCallback`) and `useEffect` that depends on props like `members`, `filters`, or `options`.
+- **Evidence:** `ThreadView` pagination test surfaced a max-update-depth loop until `tripMembers` default moved to a stable module-level `EMPTY_TRIP_MEMBERS` constant.
+- **Provenance:** April 2026 ThreadView pagination/backfill hardening.
+- **Confidence:** high
+
+
 ### Bounded chunk concurrency is the safest first optimization for sequential external API loops
 - **Tip:** For loops that call external APIs per item (Gmail message fetch + downstream parsing), replace fully sequential `for await` flow with chunked `Promise.all` using a conservative concurrency cap. This reduces wall time dramatically without opening unlimited parallelism that can trigger rate limits or memory spikes.
 - **Applies when:** Worker pipelines that process up to N items with independent I/O-bound requests and tolerate out-of-order completion.
