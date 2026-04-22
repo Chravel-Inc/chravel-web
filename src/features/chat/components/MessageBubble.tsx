@@ -27,6 +27,7 @@ import { defaultAvatar } from '@/utils/mockAvatars';
 import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
 import { hapticService } from '@/services/hapticService';
 import { getMentionClassName, MENTION_REGEX } from './messageMentions';
+import { ModerationAction } from '@/services/moderationService';
 
 export interface MessageBubbleProps {
   id: string;
@@ -96,6 +97,12 @@ export interface MessageBubbleProps {
   }) => void;
   isBlockingUser?: boolean;
   isReportingContent?: boolean;
+  canModerate?: boolean;
+  onModerationAction?: (params: {
+    messageId: string;
+    targetUserId: string;
+    action: ModerationAction;
+  }) => Promise<void> | void;
 }
 
 export const MessageBubble = memo(
@@ -139,6 +146,8 @@ export const MessageBubble = memo(
     onReportContent,
     isBlockingUser = false,
     isReportingContent = false,
+    canModerate = false,
+    onModerationAction,
   }: MessageBubbleProps) => {
     const [showReactions, setShowReactions] = useState(false);
     const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -539,6 +548,8 @@ export const MessageBubble = memo(
                   onReportContent={onReportContent}
                   isBlockingUser={isBlockingUser}
                   isReportingContent={isReportingContent}
+                  canModerate={canModerate}
+                  onModerationAction={onModerationAction}
                 />
               ) : (
                 <MessageActions
@@ -558,6 +569,8 @@ export const MessageBubble = memo(
                   onReportContent={onReportContent}
                   isBlockingUser={isBlockingUser}
                   isReportingContent={isReportingContent}
+                  canModerate={canModerate}
+                  onModerationAction={onModerationAction}
                 />
               )}
             </div>

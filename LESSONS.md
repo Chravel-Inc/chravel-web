@@ -98,6 +98,14 @@
 
 ## Recovery Tips
 
+### Stream moderation controls should execute through an authenticated edge function, not directly from client SDK
+- **Tip:** Expose moderation UI affordances (hide message, shadow ban, mute, ban) only for authorized roles client-side, but route execution through a server-side edge function that re-checks trip authorization before calling Stream moderation APIs and writes admin audit logs.
+- **Applies when:** Adding role-gated moderation to chat/message surfaces in trip/event/pro contexts.
+- **Avoid when:** Action is purely local UX (for example personal block/hide) and does not require org-wide enforcement.
+- **Evidence:** `stream-moderation-action` now verifies trip creator/admin/organizer role from Supabase before applying Stream moderation mutations and inserting `admin_audit_logs`; frontend emits structured telemetry success/failure events and shows role-gated controls only when `isUserAdmin`.
+- **Provenance:** April 2026 chat moderation controls rollout.
+- **Confidence:** high
+
 ### Installed-app OAuth requires in-app browser tab + Universal Link deep-link callback
 - **Tip:** For Capacitor/PWA shells, do not embed Google/Apple OAuth in the app WebView (Google rejects with `disallowed_useragent`) and do not bounce to the system browser (it strands the shell and often freezes on provider redirects). The correct pattern is: (1) set `skipBrowserRedirect: true` and point `redirectTo` at an HTTPS Universal Link owned by the app (e.g., `https://chravel.app/auth-callback`), (2) launch the provider URL via an in-app browser tab — `@capacitor/browser` gives SFSafariViewController on iOS and Chrome Custom Tabs on Android — and (3) let the native shell intercept the deep link and reload the WebView at the callback URL so Supabase `detectSessionInUrl` completes the exchange. An earlier revision of this repo hard-blocked OAuth in installed contexts instead; that eliminated the freeze but removed Google/Apple sign-in entirely from the native apps, which is the wrong long-term posture.
 - **Applies when:** Wrapping a web auth flow in a native shell (Capacitor/Expo/WebView) and offering third-party OAuth providers.
