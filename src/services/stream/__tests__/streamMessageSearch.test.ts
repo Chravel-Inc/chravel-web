@@ -74,13 +74,13 @@ describe('streamMessageSearch', () => {
         {
           id: 'trip-trip-1',
           type: 'chravel-trip',
-          data: { trip_id: 'trip-1' },
+          data: { trip_id: 'trip-1', name: 'Alpha Trip' },
           search: channelOneSearch,
         },
         {
           id: 'trip-trip-2',
           type: 'chravel-trip',
-          data: { trip_id: 'trip-2' },
+          data: { trip_id: 'trip-2', name: 'Beta Trip' },
           search: channelTwoSearch,
         },
       ]),
@@ -94,7 +94,9 @@ describe('streamMessageSearch', () => {
 
     expect(results).toHaveLength(2);
     expect(results[0].messageId).toBe('m-1');
+    expect(results[0].tripName).toBe('Alpha Trip');
     expect(results[1].messageId).toBe('m-2');
+    expect(results[1].tripName).toBe('Alpha Trip');
     expect(channelOneSearch).toHaveBeenCalledWith({ text: 'trip' }, { limit: 2, offset: 0 });
     expect(channelTwoSearch).toHaveBeenCalledWith({ text: 'trip' }, { limit: 2, offset: 0 });
   });

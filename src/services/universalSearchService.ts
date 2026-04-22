@@ -215,7 +215,7 @@ async function searchMessagesAcrossTrips(
       id: hit.messageId,
       contentType: 'messages' as const,
       tripId: hit.tripId,
-      tripName: 'Trip',
+      tripName: hit.tripName ?? 'Trip',
       title: `Message from ${hit.authorName}`,
       snippet: hit.text.slice(0, 150),
       matchScore: 0.85,

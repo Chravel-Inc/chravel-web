@@ -8,6 +8,8 @@ const DEFAULT_AGGREGATION_LIMIT = 20;
 export interface StreamMessageSearchHit {
   messageId: string;
   tripId: string;
+  /** Stream channel custom `name` (trip chat title); set for multi-channel universal search. */
+  tripName?: string;
   channelType: string;
   channelId: string;
   authorId: string | null;
@@ -45,11 +47,13 @@ function mapChannelSearchHit(
     tripId: string;
     channelType: string;
     channelId: string;
+    tripName?: string;
   },
 ): StreamMessageSearchHit {
   return {
     messageId: message.id,
     tripId: params.tripId,
+    tripName: params.tripName,
     channelType: params.channelType,
     channelId: params.channelId,
     authorId: message.user?.id || null,
@@ -140,12 +144,14 @@ export async function searchMessagesAcrossTripChannels({
 
         const channelType = String(channel.type || CHANNEL_TYPE_TRIP);
         const channelId = String(channel.id || '').trim();
+        const tripName = String(channel.data?.name || 'Trip');
 
         return (result.results || []).map(item =>
           mapChannelSearchHit(item.message, {
             tripId,
             channelType,
             channelId,
+            tripName,
           }),
         );
       }),
