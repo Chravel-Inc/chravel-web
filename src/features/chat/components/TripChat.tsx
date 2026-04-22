@@ -31,6 +31,7 @@ import { PullToRefreshIndicator } from '@/components/mobile/PullToRefreshIndicat
 import { useUnreadCounts } from '@/hooks/useUnreadCounts';
 import { parseMessage } from '@/services/chatContentParser';
 import { useChatReadReceipts } from '../hooks/useChatReadReceipts';
+import { selectReadStatusesByMessage } from '../selectors/readStateSelectors';
 import { useChatTypingIndicators } from '../hooks/useChatTypingIndicators';
 import { useChatReactions } from '../hooks/useChatReactions';
 import { MessageTypeBar } from './MessageTypeBar';
