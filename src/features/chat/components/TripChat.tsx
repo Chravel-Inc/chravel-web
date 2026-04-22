@@ -15,7 +15,7 @@ import { InlineReplyComponent } from './InlineReplyComponent';
 import { VirtualizedMessageContainer } from './VirtualizedMessageContainer';
 import { MessageItem } from './MessageItem';
 import { MessageSkeleton } from '@/components/mobile/SkeletonLoader';
-import { getMockAvatar, defaultAvatar } from '@/utils/mockAvatars';
+import { getMockAvatar } from '@/utils/mockAvatars';
 import { useTripMembers } from '@/hooks/useTripMembers';
 import { useTripChat } from '../hooks/useTripChat';
 import { useAuth } from '@/hooks/useAuth';
@@ -31,6 +31,7 @@ import { PullToRefreshIndicator } from '@/components/mobile/PullToRefreshIndicat
 import { useUnreadCounts } from '@/hooks/useUnreadCounts';
 import { parseMessage } from '@/services/chatContentParser';
 import { useChatReadReceipts } from '../hooks/useChatReadReceipts';
+import { selectReadStatusesByMessage } from '../selectors/readStateSelectors';
 import { useChatTypingIndicators } from '../hooks/useChatTypingIndicators';
 import { useChatReactions } from '../hooks/useChatReactions';
 import { MessageTypeBar } from './MessageTypeBar';
@@ -43,6 +44,8 @@ import { useTripChatMode } from '@/hooks/useTripChatMode';
 import { useLinkPreviews } from '../hooks/useLinkPreviews';
 import { useBlockedUsers, useReportContent } from '@/hooks/useUserSafety';
 import { getStreamClient } from '@/services/stream/streamClient';
+import { buildStreamMessageViewModels } from '../adapters/streamMessageViewModel';
+import { executeModerationAction, ModerationAction } from '@/services/moderationService';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -200,7 +203,7 @@ export const TripChat = React.memo(
       streamActiveChannel,
     );
 
-    const { readStatusesByMessage } = useChatReadReceipts(
+    useChatReadReceipts(
       demoMode.isDemoMode,
       user?.id,
       resolvedTripId,
@@ -322,6 +325,41 @@ export const TripChat = React.memo(
       [demoMode.isDemoMode, streamClient, findMessageAuthorId],
     );
 
+    const handleModerationAction = useCallback(
+      async ({
+        messageId,
+        targetUserId,
+        action,
+      }: {
+        messageId: string;
+        targetUserId: string;
+        action: ModerationAction;
+      }) => {
+        if (demoMode.isDemoMode) return;
+        if (!resolvedTripId) return;
+
+        try {
+          await executeModerationAction({
+            tripId: resolvedTripId,
+            messageId,
+            targetUserId,
+            action,
+          });
+          const actionLabel: Record<ModerationAction, string> = {
+            hide_message: 'Message hidden',
+            shadow_ban_user: 'User shadow banned',
+            mute_user: 'User muted',
+            ban_user: 'User banned',
+          };
+          toast.success(actionLabel[action]);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Moderation action failed';
+          toast.error(message);
+        }
+      },
+      [demoMode.isDemoMode, resolvedTripId],
+    );
+
     // System message preferences — only meaningful for consumer trips. Use the
     // DB-backed tier detector so this works for real (UUID) trips, not just
     // seeded mock IDs.
@@ -400,145 +438,11 @@ export const TripChat = React.memo(
     const liveFormattedMessages = useMemo(() => {
       if (demoMode.isDemoMode) return [];
 
-      // Create a map for quick message lookup for reply resolution
-      const messageMap = new Map(liveMessages.map(msg => [msg.id, msg]));
-
-      const topLevelMessages = liveMessages.filter(message => {
-        const parentId = (message as any).parent_id || (message as any).reply_to_id;
-        return !parentId;
-      });
-
-      return topLevelMessages.map(message => {
-        // Stream uses message.user, Supabase used message.user_id / message.author_name
-        const streamUser = (message as any).user;
-        const msgUserId = streamUser?.id || (message as any).user_id;
-        const msgAuthorName = streamUser?.name || (message as any).author_name;
-        const msgContent = (message as any).text || (message as any).content || '';
-        const msgCreatedAt = (message as any).created_at || new Date().toISOString();
-        const msgUpdatedAt = (message as any).updated_at || msgCreatedAt;
-        const msgParentId = (message as any).parent_id || (message as any).reply_to_id;
-        const customType = (message as any).message_type;
-
-        // Media attachment parsing from Stream
-        let mediaType: string | undefined;
-        let mediaUrl: string | undefined;
-        let linkPreview: any = (message as any).link_preview;
-
-        if ((message as any).attachments && (message as any).attachments.length > 0) {
-          const firstAttachment = (message as any).attachments[0];
-          if (firstAttachment.type === 'image') {
-            mediaType = 'image';
-            mediaUrl = firstAttachment.image_url || firstAttachment.asset_url;
-          } else if (firstAttachment.type === 'video') {
-            mediaType = 'video';
-            mediaUrl = firstAttachment.asset_url;
-          } else if (firstAttachment.type === 'file') {
-            mediaType = 'file';
-            mediaUrl = firstAttachment.asset_url;
-          }
-
-          // URL enrichment attachment = link preview
-          const urlAttachment = (message as any).attachments.find(
-            (a: any) => a.og_scrape_url || a.title_link,
-          );
-          if (urlAttachment && !linkPreview) {
-            linkPreview = {
-              url: urlAttachment.og_scrape_url || urlAttachment.title_link,
-              title: urlAttachment.title,
-              description: urlAttachment.text,
-              image: urlAttachment.image_url || urlAttachment.thumb_url,
-            };
-          }
-        } else {
-          mediaType = (message as any).media_type;
-          mediaUrl = (message as any).media_url;
-        }
-
-        // Reactions formatting from Stream native payload to expected shape
-        const formattedReactions: Record<string, any> = {};
-        if ((message as any).reaction_counts) {
-          for (const [type, count] of Object.entries((message as any).reaction_counts)) {
-            formattedReactions[type] = {
-              count: count as number,
-              userReacted: !!(message as any).own_reactions?.some((r: any) => r.type === type),
-              users:
-                (message as any).latest_reactions
-                  ?.filter((r: any) => r.type === type)
-                  .map((r: any) => r.user?.id) || [],
-            };
-          }
-        }
-
-        // Resolve replyTo context if parent_id exists
-        let replyTo;
-        if (msgParentId) {
-          const parentMsg = messageMap.get(msgParentId);
-          if (parentMsg) {
-            const pStreamUser = (parentMsg as any).user;
-            replyTo = {
-              id: parentMsg.id,
-              text: (parentMsg as any).text || (parentMsg as any).content,
-              sender: pStreamUser?.name || (parentMsg as any).author_name,
-            };
-          }
-        }
-
-        // Map Stream's built-in read state
-        const readStatuses: any[] = [];
-        if (streamActiveChannel?.state?.read) {
-          for (const [readerId, readState] of Object.entries(streamActiveChannel.state.read)) {
-            // Check if the user read up to or past this message's timestamp
-            const readAt = new Date(readState.last_read);
-            const msgDate = new Date(msgCreatedAt);
-            if (readAt >= msgDate && readerId !== user?.id && readerId !== msgUserId) {
-              const member = tripMembers.find(m => m.id === readerId);
-              if (member) {
-                readStatuses.push({
-                  user_id: readerId,
-                  read_at: readState.last_read,
-                  user: {
-                    id: readerId,
-                    display_name: member.name,
-                    avatar_url: member.avatar,
-                  },
-                });
-              }
-            }
-          }
-        }
-
-        return {
-          id: message.id,
-          text: msgContent,
-          sender: {
-            id: msgUserId || msgAuthorName || 'system',
-            name: (() => {
-              const member = tripMembers.find(m => m.id === (msgUserId || ''));
-              if (member) return member.name;
-              return msgAuthorName || 'System';
-            })(),
-            avatar: tripMembers.find(m => m.id === (msgUserId || ''))?.avatar || defaultAvatar,
-            userId: msgUserId,
-          },
-          createdAt: msgCreatedAt,
-          isBroadcast: customType === 'broadcast',
-          isPayment: customType === 'payment',
-          isEdited: msgCreatedAt !== msgUpdatedAt,
-          editedAt: msgCreatedAt !== msgUpdatedAt ? msgUpdatedAt : undefined,
-          tags: customType === 'system' ? (['system'] as string[]) : ([] as string[]),
-          message_type: customType,
-          system_event_type: (message as any).system_event_type,
-          system_payload: (message as any).system_payload,
-          linkPreview,
-          replyTo,
-          mediaType,
-          mediaUrl,
-          reactions:
-            Object.keys(formattedReactions).length > 0
-              ? formattedReactions
-              : (message as any).reactions,
-          readStatuses,
-        };
+      return buildStreamMessageViewModels({
+        messages: liveMessages,
+        tripMembers,
+        currentUserId: user?.id,
+        channelReadState: streamActiveChannel?.state?.read,
       });
     }, [
       liveMessages,
@@ -671,7 +575,7 @@ export const TripChat = React.memo(
       }
     };
 
-    const { reactions, setReactions, handleReaction } = useChatReactions(
+    const { handleReaction } = useChatReactions(
       demoMode.isDemoMode,
       user?.id,
       liveMessages,
@@ -996,18 +900,17 @@ export const TripChat = React.memo(
                       <div data-message-id={message.id}>
                         <MessageItem
                           message={message}
-                          reactions={message.reactions || reactions[message.id] || {}}
+                          reactions={message.reactions || {}}
                           onReaction={handleReaction}
                           onReply={handleOpenThread}
                           onOpenThread={handleActivateThread}
+                          transportMode={demoMode.isDemoMode ? 'legacy' : 'stream'}
                           onEdit={demoMode.isDemoMode ? undefined : handleMessageEdit}
                           onDelete={demoMode.isDemoMode ? undefined : handleMessageDelete}
                           onRetry={handleRetryFailedMessage}
                           systemMessagePrefs={isConsumer ? systemMessagePrefs : undefined}
                           tripMembers={tripMembers}
-                          readStatuses={
-                            message.readStatuses || readStatusesByMessage[message.id] || []
-                          }
+                          readStatuses={message.readStatuses || []}
                           showSenderInfo={showSenderInfo}
                           reactionUserNamesById={reactionUserNamesById}
                           isAdmin={isUserAdmin}
@@ -1023,6 +926,10 @@ export const TripChat = React.memo(
                           }
                           isBlockingUser={isBlocking}
                           isReportingContent={isReporting}
+                          canModerate={isUserAdmin}
+                          onModerationAction={
+                            demoMode.isDemoMode ? undefined : handleModerationAction
+                          }
                         />
                       </div>
                     )}

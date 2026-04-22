@@ -28,6 +28,7 @@ import { openOrDownloadBlob } from '../utils/download';
 import { orderExportSections } from '../utils/exportSectionOrder';
 import { demoModeService } from '../services/demoModeService';
 import { toast } from 'sonner';
+import { buildTripPreviewLink } from '@/lib/unfurlConfig';
 import { usePendingActions } from '../hooks/usePendingActions';
 
 export const MobileProTripDetail = () => {
@@ -282,7 +283,7 @@ export const MobileProTripDetail = () => {
   const handleShare = useCallback(async () => {
     if (!tripData) return;
 
-    const previewLink = `https://p.chravel.app/t/${encodeURIComponent(String(proTripId))}`;
+    const previewLink = buildTripPreviewLink(proTripId);
     const participantCount = tripData.participants?.length || 0;
     const shareText = `Check out ${tripData.title} - a trip to ${tripData.location}! ${participantCount} team members are going.`;
 
