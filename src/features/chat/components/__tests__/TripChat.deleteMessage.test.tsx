@@ -105,7 +105,7 @@ vi.mock('../../hooks/useChatReadReceipts', () => ({
   useChatReadReceipts: () => ({ readStatusesByMessage: {} }),
 }));
 vi.mock('../../hooks/useChatTypingIndicators', () => ({
-  useChatTypingIndicators: () => ({ typingUsers: [], typingServiceRef: { current: null } }),
+  useChatTypingIndicators: () => ({ typingUsers: [], handleTypingChange: vi.fn() }),
 }));
 vi.mock('../../hooks/useChatReactions', () => ({
   useChatReactions: () => ({ reactions: {}, handleReaction: vi.fn() }),
