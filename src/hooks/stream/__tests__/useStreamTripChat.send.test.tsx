@@ -9,6 +9,7 @@ const queryMock = vi.fn();
 const stopWatchingMock = vi.fn();
 const onMock = vi.fn();
 const offMock = vi.fn();
+const getConfigMock = vi.fn();
 
 const mockChannel = {
   watch: watchMock,
@@ -17,6 +18,7 @@ const mockChannel = {
   on: onMock,
   off: offMock,
   sendMessage: sendMessageMock,
+  getConfig: getConfigMock,
 };
 
 vi.mock('@/services/stream/streamClient', () => ({
@@ -70,6 +72,7 @@ describe('useStreamTripChat send path', () => {
     vi.clearAllMocks();
     watchMock.mockResolvedValue({ messages: [], membership: { user_id: 'user-1' } });
     queryMock.mockResolvedValue({ messages: [] });
+    getConfigMock.mockReturnValue({});
     sendMessageMock.mockResolvedValue({
       message: { id: 'msg-1', text: 'hello', created_at: new Date().toISOString() },
     });
@@ -100,6 +103,36 @@ describe('useStreamTripChat send path', () => {
     expect(result.current.messages).toHaveLength(1);
   });
 
+  it('sends mention payload when create-mention capability is present', async () => {
+    getConfigMock.mockReturnValue({
+      grants: {
+        channel_member: ['read-channel', 'create-message', 'create-mention'],
+      },
+    });
+    const { result } = renderHook(() => useStreamTripChat('trip-abc', { enabled: true }));
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.sendMessageAsync(
+        'hello @Sam',
+        'You',
+        undefined,
+        undefined,
+        'user-1',
+        undefined,
+        'text',
+        undefined,
+        ['user-2'],
+      );
+    });
+
+    expect(sendMessageMock).toHaveBeenCalledTimes(1);
+    expect(sendMessageMock.mock.calls[0]?.[0]?.mentioned_users).toEqual(['user-2']);
+  });
+
   it('sendMessageAsync throws on rejected sendMessage so caller can restore draft', async () => {
     sendMessageMock.mockRejectedValue(new Error('Not a member'));
 
@@ -124,6 +157,7 @@ describe('useStreamTripChat send path', () => {
   });
 
   it('retries without mentions when Stream denies CreateMention permission', async () => {
+    getConfigMock.mockReturnValue(undefined);
     sendMessageMock
       .mockRejectedValueOnce(
         new Error('StreamChat error code 17: ... action CreateMention ... not allowed'),
@@ -160,6 +194,37 @@ describe('useStreamTripChat send path', () => {
     expect(sendMessageMock.mock.calls[0]?.[0]?.mentioned_users).toEqual(['user-2']);
     expect(sendMessageMock.mock.calls[1]?.[0]?.mentioned_users).toBeUndefined();
     expect(result.current.messages).toHaveLength(1);
+  });
+
+  it('sends without mention payload when channel config grants do not include create-mention', async () => {
+    getConfigMock.mockReturnValue({
+      grants: {
+        channel_member: ['read-channel', 'create-message'],
+      },
+    });
+
+    const { result } = renderHook(() => useStreamTripChat('trip-abc', { enabled: true }));
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.sendMessageAsync(
+        'hello',
+        'You',
+        undefined,
+        undefined,
+        'user-1',
+        undefined,
+        'text',
+        undefined,
+        ['user-2'],
+      );
+    });
+
+    expect(sendMessageMock).toHaveBeenCalledTimes(1);
+    expect(sendMessageMock.mock.calls[0]?.[0]?.mentioned_users).toBeUndefined();
   });
 
   it('strips legacy reply ids before sending to Stream parent_id', async () => {
