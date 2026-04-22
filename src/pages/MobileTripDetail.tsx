@@ -20,6 +20,7 @@ import { openOrDownloadBlob } from '../utils/download';
 import { orderExportSections } from '../utils/exportSectionOrder';
 import { demoModeService } from '../services/demoModeService';
 import { toast } from 'sonner';
+import { buildTripPreviewLink } from '@/lib/unfurlConfig';
 import { useQueryClient } from '@tanstack/react-query';
 import { tripKeys } from '@/lib/queryKeys';
 import { usePendingActions } from '../hooks/usePendingActions';
@@ -253,7 +254,7 @@ export const MobileTripDetail = () => {
   const handleShare = useCallback(async () => {
     if (!tripWithUpdatedDescription) return;
 
-    const previewLink = `https://p.chravel.app/t/${encodeURIComponent(String(tripId))}`;
+    const previewLink = buildTripPreviewLink(tripId);
     const shareText = `Check out ${tripWithUpdatedDescription.title} - a trip to ${tripWithUpdatedDescription.location}! ${tripWithUpdatedDescription.participants.length} Chravelers are going.`;
 
     if (navigator.share) {

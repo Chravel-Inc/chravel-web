@@ -63,7 +63,7 @@ describe('useTripCoverPhoto', () => {
       data: {
         id: 'trip-abc',
         cover_image_url:
-          'https://abc.supabase.co/storage/v1/object/public/trip-media/cover.jpg?t=1',
+          'https://abc.supabase.co/storage/v1/object/public/trip-covers/trip-abc/cover.jpg?t=1',
       },
       error: null,
     });
@@ -75,7 +75,7 @@ describe('useTripCoverPhoto', () => {
 
     await act(async () => {
       const ok = await result.current.updateCoverPhoto(
-        'https://abc.supabase.co/storage/v1/object/public/trip-media/cover.jpg?t=1',
+        'https://abc.supabase.co/storage/v1/object/public/trip-covers/trip-abc/cover.jpg?t=1',
       );
       expect(ok).toBe(true);
     });
@@ -101,6 +101,18 @@ describe('useTripCoverPhoto', () => {
     });
   });
 
+  it('returns permission failure when trips update affects no rows', async () => {
+    maybeSingleMock.mockResolvedValueOnce({ data: null, error: null });
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useTripCoverPhoto('trip-abc'), { wrapper });
+
+    await act(async () => {
+      const ok = await result.current.updateCoverPhoto(
+        'https://abc.supabase.co/storage/v1/object/public/trip-covers/trip-abc/cover.jpg?t=2',
+      );
+      expect(ok).toBe(false);
+    });
+  });
   it('updates cover display mode and invalidates all trip collections', async () => {
     const wrapper = createWrapper();
     const { result } = renderHook(() => useTripCoverPhoto('trip-abc', undefined, 'cover'), {

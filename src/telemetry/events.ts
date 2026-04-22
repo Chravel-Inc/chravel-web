@@ -110,6 +110,16 @@ export const messageEvents = {
   },
 };
 
+export const moderationEvents = {
+  actionExecuted: (params: MessageEvents['moderation_action_executed']) => {
+    telemetry.track('moderation_action_executed', params);
+  },
+
+  actionFailed: (params: MessageEvents['moderation_action_failed']) => {
+    telemetry.track('moderation_action_failed', params);
+  },
+};
+
 // ============================================================================
 // Place Events
 // ============================================================================
