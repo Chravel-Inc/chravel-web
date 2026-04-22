@@ -78,6 +78,13 @@ export const MessageTypeBar = ({
     setChannelPopoverOpen(false);
   };
 
+  const filterHint =
+    activeFilter === 'broadcasts'
+      ? 'Broadcasts = announcement messages (pinned or unpinned).'
+      : activeFilter === 'pinned'
+        ? 'Pinned = important messages from any type (including broadcasts).'
+        : null;
+
   return (
     <div className="sticky top-0 z-10 backdrop-blur-lg px-2 py-1 rounded-t-2xl overflow-hidden">
       {/* Centered Segmented Control Container */}
@@ -116,6 +123,7 @@ export const MessageTypeBar = ({
                 : SEGMENT_COLORS.broadcasts.inactive,
             )}
             aria-pressed={activeFilter === 'broadcasts'}
+            title="Announcement feed (includes pinned + unpinned broadcasts)"
           >
             <Megaphone className="w-4 h-4" />
             <span>Broadcasts</span>
@@ -142,6 +150,7 @@ export const MessageTypeBar = ({
                 : SEGMENT_COLORS.pinned.inactive,
             )}
             aria-pressed={activeFilter === 'pinned'}
+            title="Pinned essentials from any message type"
           >
             <Pin className="w-4 h-4" />
             <span>Pinned</span>
@@ -264,6 +273,10 @@ export const MessageTypeBar = ({
           </button>
         </div>
       </div>
+
+      {filterHint && (
+        <p className="mt-1 px-2 text-center text-[11px] text-muted-foreground">{filterHint}</p>
+      )}
     </div>
   );
 };
