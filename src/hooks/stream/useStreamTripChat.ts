@@ -27,6 +27,7 @@ import { messageEvents } from '@/telemetry/events';
 import { telemetry } from '@/telemetry/service';
 import type { Channel, Event, MessageResponse } from 'stream-chat';
 import { buildTripStreamMessagePayload } from '@/services/stream/streamMessagePayload';
+import type { StreamQuotedReferenceInput } from '@/services/stream/streamMessagePayload';
 import { supabase } from '@/integrations/supabase/client';
 
 const PAGE_SIZE = 30;
@@ -749,6 +750,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       privacyMode: string | undefined,
       messageType: 'text' | 'broadcast' | 'payment' | 'system' | undefined,
       replyToId: string | undefined,
+      quotedReference: StreamQuotedReferenceInput | undefined,
       mentionedUserIds: string[] | undefined,
     ) => {
       const channel = channelRef.current;
@@ -761,6 +763,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         privacyMode,
         messageType,
         replyToId,
+        quotedReference,
         mentionedUserIds,
       });
 
@@ -809,6 +812,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       privacyMode?: string,
       messageType?: 'text' | 'broadcast' | 'payment' | 'system',
       replyToId?: string,
+      quotedReference?: StreamQuotedReferenceInput,
       mentionedUserIds?: string[],
     ) => {
       dispatchStreamSend(
@@ -818,6 +822,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         privacyMode,
         messageType,
         replyToId,
+        quotedReference,
         mentionedUserIds,
       );
     },
@@ -838,6 +843,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       privacyMode?: string,
       messageType?: 'text' | 'broadcast' | 'payment' | 'system',
       replyToId?: string,
+      quotedReference?: StreamQuotedReferenceInput,
       mentionedUserIds?: string[],
     ): Promise<MessageResponse | undefined> => {
       const channel = channelRef.current;
@@ -850,6 +856,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         privacyMode,
         messageType,
         replyToId,
+        quotedReference,
         mentionedUserIds,
       });
 

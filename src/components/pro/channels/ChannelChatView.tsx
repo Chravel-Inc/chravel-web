@@ -12,6 +12,7 @@ import { getMockAvatar } from '@/utils/mockAvatars';
 import { useRoleAssignments } from '@/hooks/useRoleAssignments';
 import { useStreamProChannel } from '@/hooks/stream/useStreamProChannel';
 import { getStreamClient } from '@/services/stream/streamClient';
+import { extractQuotedReferenceFromStreamMessage } from '@/services/stream/streamMessagePayload';
 import {
   applyPendingReactionOverlay,
   mapStreamMessagesToChannelMessages,
@@ -265,7 +266,19 @@ export const ChannelChatView = ({
           id: String(parent.id),
           text: parent.text || '',
           sender: parent.user?.name || 'Unknown',
+          createdAt: parent.created_at || undefined,
         };
+      }
+      if (!metadata.replyTo) {
+        const quotedReference = extractQuotedReferenceFromStreamMessage(streamMsg as any);
+        if (quotedReference) {
+          metadata.replyTo = {
+            id: quotedReference.id,
+            text: quotedReference.text,
+            sender: quotedReference.authorName,
+            createdAt: quotedReference.createdAt,
+          };
+        }
       }
       if (streamExtra.isBroadcast === true) {
         metadata.isBroadcast = true;
@@ -291,7 +304,9 @@ export const ChannelChatView = ({
   const formattedMessages = useMemo(() => {
     return transportMessages.map(msg => {
       const metadata = msg.metadata as Record<string, unknown> | null;
-      const replyTo = metadata?.replyTo as { id: string; text: string; sender: string } | undefined;
+      const replyTo = metadata?.replyTo as
+        | { id: string; text: string; sender: string; createdAt?: string }
+        | undefined;
 
       return {
         id: msg.id,
@@ -461,6 +476,13 @@ export const ChannelChatView = ({
       const sent = await streamProChannel.sendMessage(inputMessage.trim(), {
         parentId,
         isBroadcast,
+        quotedReference: replyingTo
+          ? {
+              id: replyingTo.id,
+              text: replyingTo.text,
+              authorName: replyingTo.senderName,
+            }
+          : undefined,
       });
       if (!sent) {
         throw new Error('Failed to send via Stream');

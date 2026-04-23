@@ -19,6 +19,21 @@ export interface BuildTripStreamPayloadInput {
   mentionedUserIds?: string[];
   attachments?: unknown[];
   linkPreview?: StreamLinkPreviewInput;
+  quotedReference?: StreamQuotedReferenceInput;
+}
+
+export interface StreamQuotedReferenceInput {
+  id: string;
+  text: string;
+  authorName: string;
+  createdAt?: string;
+}
+
+export interface StreamQuotedReference {
+  id: string;
+  text: string;
+  authorName: string;
+  createdAt?: string;
 }
 
 export interface BuildTripStreamPayloadResult {
@@ -31,6 +46,11 @@ export interface BuildTripStreamPayloadError {
   ok: false;
   error: 'empty_content' | 'content_too_long';
 }
+
+type StreamMessageWithExtraData = {
+  quoted_reference?: unknown;
+  extra_data?: Record<string, unknown> | null;
+};
 
 const normalizeAttachment = (attachment: unknown): UnknownRecord | null => {
   if (!attachment || typeof attachment !== 'object') return null;
@@ -99,6 +119,11 @@ export function buildTripStreamMessagePayload(
     payload.parent_id = input.replyToId;
   }
 
+  const normalizedQuotedReference = normalizeQuotedReference(input.quotedReference);
+  if (normalizedQuotedReference) {
+    payload.quoted_reference = normalizedQuotedReference;
+  }
+
   if (input.mentionedUserIds && input.mentionedUserIds.length > 0) {
     payload.mentioned_users = input.mentionedUserIds;
   }
@@ -113,4 +138,32 @@ export function buildTripStreamMessagePayload(
     normalizedContent,
     payload: payload as Parameters<Channel['sendMessage']>[0],
   };
+}
+
+function normalizeQuotedReference(value: unknown): StreamQuotedReference | null {
+  if (!value || typeof value !== 'object') return null;
+
+  const row = value as Record<string, unknown>;
+  const id = typeof row.id === 'string' ? row.id.trim() : '';
+  const text = typeof row.text === 'string' ? row.text.trim() : '';
+  const authorName = typeof row.authorName === 'string' ? row.authorName.trim() : '';
+  const createdAt =
+    typeof row.createdAt === 'string' && row.createdAt.trim().length > 0
+      ? row.createdAt.trim()
+      : undefined;
+
+  if (!id || !text || !authorName) return null;
+  return { id, text, authorName, createdAt };
+}
+
+export function extractQuotedReferenceFromStreamMessage(
+  message: StreamMessageWithExtraData,
+): StreamQuotedReference | undefined {
+  const fromTopLevel = normalizeQuotedReference(message.quoted_reference);
+  if (fromTopLevel) return fromTopLevel;
+
+  const fromExtraData = normalizeQuotedReference(message.extra_data?.quoted_reference);
+  if (fromExtraData) return fromExtraData;
+
+  return undefined;
 }
