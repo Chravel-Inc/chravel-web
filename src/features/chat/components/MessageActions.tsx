@@ -6,7 +6,19 @@
  */
 
 import React, { useState } from 'react';
-import { Edit, Trash2, MoreVertical, MessageSquareReply, Copy, Ban, Flag, Pin } from 'lucide-react';
+import {
+  Edit,
+  Trash2,
+  MoreVertical,
+  MessageSquareReply,
+  Copy,
+  Ban,
+  Flag,
+  Pin,
+  EyeOff,
+  UserMinus,
+  UserX,
+} from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,12 +40,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import {
-  editChatMessage,
-  editChannelMessage,
-  deleteChatMessage,
-  deleteChannelMessage,
-} from '@/services/chatService';
+import { deleteLegacyMessage, editLegacyMessage } from '../services/legacyMessageMutations';
 import { ReportDialog, ReportReason } from './ReportDialog';
 import { ModerationAction } from '@/services/moderationService';
 export interface MessageActionsProps {
@@ -138,9 +145,7 @@ export const MessageActions: React.FC<MessageActionsComponentProps> = ({
       const success =
         transportMode === 'stream'
           ? (await onEdit(messageId, editedContent), true)
-          : messageType === 'channel'
-            ? await editChannelMessage(messageId, editedContent)
-            : await editChatMessage(messageId, editedContent);
+          : await editLegacyMessage(messageType, messageId, editedContent);
 
       if (success) {
         toast.success('Message edited');
@@ -165,9 +170,7 @@ export const MessageActions: React.FC<MessageActionsComponentProps> = ({
       const success =
         transportMode === 'stream'
           ? (await onDelete(messageId), true)
-          : messageType === 'channel'
-            ? await deleteChannelMessage(messageId)
-            : await deleteChatMessage(messageId);
+          : await deleteLegacyMessage(messageType, messageId);
 
       if (success) {
         toast.success('Message deleted');
@@ -197,6 +200,11 @@ export const MessageActions: React.FC<MessageActionsComponentProps> = ({
         console.error('Error updating pin state:', error);
       }
       toast.error('Failed to update pin status');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleModerationAction = async (action: ModerationAction) => {
     if (!senderUserId) return;
     setIsSubmitting(true);
