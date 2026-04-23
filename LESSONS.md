@@ -661,3 +661,10 @@
 - **Evidence:** `stream-canary-guard` now records rolling incident windows in `app_settings` and disables `stream_changes_canary` once metric thresholds are exceeded.
 - **Provenance:** April 2026 Stream canary hardening.
 - **Confidence:** high
+
+### Treat first 24–72 hours as an hourly reliability gate, not a daily dashboard check
+- **Tip:** For high-risk realtime chat rollouts, explicitly split monitoring into an hourly 24–72h phase (send failures, ReadChannel recovery failures, webhook 401/500s) and a daily day-4–7 phase. Keep a pre-defined rollback toggle and only expand rollout after stability across all chat surfaces (trip, pro, reactions, mentions, threads).
+- **Applies when:** Canary/gradual rollout of Stream transport or webhook-dependent notification flows.
+- **Evidence:** Daily-only triage docs can miss fast-moving regressions during initial rollout windows; explicit hourly gate + rollback criteria reduces mean time to contain.
+- **Provenance:** April 2026 Stream reliability runbook hardening pass.
+- **Confidence:** medium-high
