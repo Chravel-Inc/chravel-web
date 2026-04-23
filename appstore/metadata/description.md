@@ -51,9 +51,9 @@ Access your itineraries, contacts, and essential trip info even without internet
 
 ---
 
-Join thousands of travelers who have eliminated group chat chaos, spreadsheet confusion, and coordination headaches.
+Chravel replaces scattered group chats, shared spreadsheets, and last-minute coordination with one trip workspace your whole group can use together.
 
-Download Chravel and make your next trip unforgettable.
+Download Chravel to plan your next trip.
 
 Privacy Policy: https://chravel.app/privacy
 Terms of Service: https://chravel.app/terms
@@ -68,4 +68,10 @@ Support: support@chravel.app
 • [Bug fix 1: Brief description]
 • Performance improvements and bug fixes
 
+### iOS release notes
+
 Thank you for using Chravel! Rate us on the App Store if you're enjoying the app.
+
+### Android / Google Play release notes
+
+Thank you for using Chravel! We read every piece of feedback at support@chravel.app.
