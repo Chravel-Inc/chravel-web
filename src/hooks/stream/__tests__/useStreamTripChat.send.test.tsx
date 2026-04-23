@@ -62,6 +62,13 @@ vi.mock('@/hooks/use-toast', () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
 
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({
+    user: { id: 'user-1' },
+    session: { access_token: 'mock-access-token' },
+  }),
+}));
+
 vi.mock('@/telemetry/service', () => ({
   telemetry: {
     track: vi.fn(),
