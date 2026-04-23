@@ -178,4 +178,34 @@ describe('buildStreamMessageViewModels', () => {
     expect(results[0].threadPreviewSnippet).toBe('Latest thread reply preview');
     expect(results[0].hasUnreadThreadReplies).toBe(true);
   });
+
+  it('uses read markers when thread unread counters are unavailable', () => {
+    const results = buildStreamMessageViewModels({
+      messages: [
+        baseMessage({
+          id: 'parent-read-marker',
+          text: 'Parent',
+          reply_count: 1,
+          latest_replies: [
+            {
+              id: 'r-latest',
+              text: 'Unread thread reply',
+              created_at: '2026-04-20T10:20:00.000Z',
+            },
+          ],
+          thread_participant_ids: ['user-1'],
+          thread_unread_count: 0,
+        } as unknown as MessageResponse),
+      ],
+      tripMembers: members,
+      currentUserId: 'user-1',
+      channelReadState: {
+        'user-1': { last_read: '2026-04-20T10:15:00.000Z' },
+      },
+    });
+
+    expect(results[0].replyCount).toBe(1);
+    expect(results[0].threadPreviewSnippet).toBe('Unread thread reply');
+    expect(results[0].hasUnreadThreadReplies).toBe(true);
+  });
 });
