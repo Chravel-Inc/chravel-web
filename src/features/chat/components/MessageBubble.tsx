@@ -88,9 +88,12 @@ export interface MessageBubbleProps {
   reactionUserNamesById?: Record<string, string>;
   /** Admins can delete any message (server-side RLS enforced) */
   isAdmin?: boolean;
+  canManagePins?: boolean;
+  isPinned?: boolean;
   /** Sender user ID for block/report actions */
   senderUserId?: string;
   onBlockUser?: (userId: string) => void;
+  onTogglePin?: (messageId: string, shouldPin: boolean) => Promise<void> | void;
   onReportContent?: (params: {
     reportedUserId: string;
     messageId: string;
@@ -145,8 +148,11 @@ export const MessageBubble = memo(
     replyTo,
     reactionUserNamesById,
     isAdmin = false,
+    canManagePins = false,
+    isPinned = false,
     senderUserId,
     onBlockUser,
+    onTogglePin,
     onReportContent,
     isBlockingUser = false,
     isReportingContent = false,
@@ -534,49 +540,26 @@ export const MessageBubble = memo(
                   {isEdited && <span className="ml-1 text-chat-meta/80">(edited)</span>}
                 </span>
               )}
-              {transportMode === 'stream' && onEdit && onDelete ? (
-                <MessageActions
-                  messageId={id}
-                  messageContent={text}
-                  messageType={messageType}
-                  transportMode="stream"
-                  isOwnMessage={isOwnMessage}
-                  isDeleted={isDeleted}
-                  isAdmin={isAdmin}
-                  senderUserId={senderUserId}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                  onReply={onReply}
-                  onOpenThread={onOpenThread}
-                  onBlockUser={onBlockUser}
-                  onReportContent={onReportContent}
-                  isBlockingUser={isBlockingUser}
-                  isReportingContent={isReportingContent}
-                  canModerate={canModerate}
-                  onModerationAction={onModerationAction}
-                />
-              ) : (
-                <MessageActions
-                  messageId={id}
-                  messageContent={text}
-                  messageType={messageType}
-                  transportMode="legacy"
-                  isOwnMessage={isOwnMessage}
-                  isDeleted={isDeleted}
-                  isAdmin={isAdmin}
-                  senderUserId={senderUserId}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                  onReply={onReply}
-                  onOpenThread={onOpenThread}
-                  onBlockUser={onBlockUser}
-                  onReportContent={onReportContent}
-                  isBlockingUser={isBlockingUser}
-                  isReportingContent={isReportingContent}
-                  canModerate={canModerate}
-                  onModerationAction={onModerationAction}
-                />
-              )}
+              <MessageActions
+                messageId={id}
+                messageContent={text}
+                messageType={messageType}
+                isOwnMessage={isOwnMessage}
+                isDeleted={isDeleted}
+                isAdmin={isAdmin}
+                canManagePins={canManagePins}
+                isPinned={isPinned}
+                senderUserId={senderUserId}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onReply={onReply}
+                onOpenThread={onOpenThread}
+                onBlockUser={onBlockUser}
+                onTogglePin={onTogglePin}
+                onReportContent={onReportContent}
+                isBlockingUser={isBlockingUser}
+                isReportingContent={isReportingContent}
+              />
             </div>
             <div
               className={cn(

@@ -21,7 +21,7 @@ import { useTripChat } from '../hooks/useTripChat';
 import { useAuth } from '@/hooks/useAuth';
 import { hapticService } from '@/services/hapticService';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { WifiOff } from 'lucide-react';
+import { Pin, WifiOff } from 'lucide-react';
 import { useRoleChannels } from '@/hooks/useRoleChannels';
 import { ChannelChatView } from '@/components/pro/channels/ChannelChatView';
 import { TypingIndicator } from './TypingIndicator';
@@ -43,6 +43,7 @@ import { useTripChatMode } from '@/hooks/useTripChatMode';
 import { useLinkPreviews } from '../hooks/useLinkPreviews';
 import { useBlockedUsers, useReportContent } from '@/hooks/useUserSafety';
 import { getStreamClient } from '@/services/stream/streamClient';
+import { derivePinnedMessages } from '../utils/pinnedMessages';
 import { extractQuotedReferenceFromStreamMessage } from '@/services/stream/streamMessagePayload';
 import { messageEvents } from '@/telemetry/events';
 import { shouldUseLegacyChatSync } from '@/services/stream/streamTransportGuards';
@@ -188,6 +189,8 @@ export const TripChat = React.memo(
       chatModeUserRole === 'admin' ||
       chatModeUserRole === 'organizer' ||
       chatModeUserRole === 'owner';
+    const canManagePins =
+      isUserAdmin || chatModeUserRole === 'moderator' || chatModeUserRole === 'mod';
 
     // Role channels for pro trips
     const {
@@ -329,39 +332,36 @@ export const TripChat = React.memo(
       [demoMode.isDemoMode, streamClient, findMessageAuthorId],
     );
 
-    const handleModerationAction = useCallback(
-      async ({
-        messageId,
-        targetUserId,
-        action,
-      }: {
-        messageId: string;
-        targetUserId: string;
-        action: ModerationAction;
-      }) => {
+    const handleMessagePinToggle = useCallback(
+      async (messageId: string, shouldPin: boolean) => {
         if (demoMode.isDemoMode) return;
-        if (!resolvedTripId) return;
+
+        if (!streamClient) {
+          toast.error('Chat connection unavailable. Please try again.');
+          return;
+        }
 
         try {
-          await executeModerationAction({
-            tripId: resolvedTripId,
-            messageId,
-            targetUserId,
-            action,
+          await streamClient.updateMessage({
+            id: messageId,
+            pinned: shouldPin,
           });
-          const actionLabel: Record<ModerationAction, string> = {
-            hide_message: 'Message hidden',
-            shadow_ban_user: 'User shadow banned',
-            mute_user: 'User muted',
-            ban_user: 'User banned',
-          };
-          toast.success(actionLabel[action]);
         } catch (error) {
-          const message = error instanceof Error ? error.message : 'Moderation action failed';
-          toast.error(message);
+          const details = extractStreamError(error);
+          console.error('[TripChat] Stream updateMessage pin toggle failed:', {
+            code: details.code,
+            status: details.status,
+            message: details.message,
+            data: details.data,
+            messageId,
+            shouldPin,
+          });
+          const codeSuffix = details.code !== undefined ? ` (code ${details.code})` : '';
+          toast.error(`Failed to ${shouldPin ? 'pin' : 'unpin'} message${codeSuffix}`);
+          throw error;
         }
       },
-      [demoMode.isDemoMode, resolvedTripId],
+      [demoMode.isDemoMode, streamClient],
     );
 
     // System message preferences — only meaningful for consumer trips. Use the
@@ -442,6 +442,147 @@ export const TripChat = React.memo(
     const liveFormattedMessages = useMemo(() => {
       if (demoMode.isDemoMode) return [];
 
+      // Create a map for quick message lookup for reply resolution
+      const messageMap = new Map(liveMessages.map(msg => [msg.id, msg]));
+
+      const topLevelMessages = liveMessages.filter(message => {
+        const parentId = (message as any).parent_id || (message as any).reply_to_id;
+        return !parentId;
+      });
+
+      return topLevelMessages.map(message => {
+        // Stream uses message.user, Supabase used message.user_id / message.author_name
+        const streamUser = (message as any).user;
+        const msgUserId = streamUser?.id || (message as any).user_id;
+        const msgAuthorName = streamUser?.name || (message as any).author_name;
+        const msgContent = (message as any).text || (message as any).content || '';
+        const msgCreatedAt = (message as any).created_at || new Date().toISOString();
+        const msgUpdatedAt = (message as any).updated_at || msgCreatedAt;
+        const msgParentId = (message as any).parent_id || (message as any).reply_to_id;
+        const customType = (message as any).message_type;
+
+        // Media attachment parsing from Stream
+        let mediaType: string | undefined;
+        let mediaUrl: string | undefined;
+        let linkPreview: any = (message as any).link_preview;
+
+        if ((message as any).attachments && (message as any).attachments.length > 0) {
+          const firstAttachment = (message as any).attachments[0];
+          if (firstAttachment.type === 'image') {
+            mediaType = 'image';
+            mediaUrl = firstAttachment.image_url || firstAttachment.asset_url;
+          } else if (firstAttachment.type === 'video') {
+            mediaType = 'video';
+            mediaUrl = firstAttachment.asset_url;
+          } else if (firstAttachment.type === 'file') {
+            mediaType = 'file';
+            mediaUrl = firstAttachment.asset_url;
+          }
+
+          // URL enrichment attachment = link preview
+          const urlAttachment = (message as any).attachments.find(
+            (a: any) => a.og_scrape_url || a.title_link,
+          );
+          if (urlAttachment && !linkPreview) {
+            linkPreview = {
+              url: urlAttachment.og_scrape_url || urlAttachment.title_link,
+              title: urlAttachment.title,
+              description: urlAttachment.text,
+              image: urlAttachment.image_url || urlAttachment.thumb_url,
+            };
+          }
+        } else {
+          mediaType = (message as any).media_type;
+          mediaUrl = (message as any).media_url;
+        }
+
+        // Reactions formatting from Stream native payload to expected shape
+        const formattedReactions: Record<string, any> = {};
+        if ((message as any).reaction_counts) {
+          for (const [type, count] of Object.entries((message as any).reaction_counts)) {
+            formattedReactions[type] = {
+              count: count as number,
+              userReacted: !!(message as any).own_reactions?.some((r: any) => r.type === type),
+              users:
+                (message as any).latest_reactions
+                  ?.filter((r: any) => r.type === type)
+                  .map((r: any) => r.user?.id) || [],
+            };
+          }
+        }
+
+        // Resolve replyTo context if parent_id exists
+        let replyTo;
+        if (msgParentId) {
+          const parentMsg = messageMap.get(msgParentId);
+          if (parentMsg) {
+            const pStreamUser = (parentMsg as any).user;
+            replyTo = {
+              id: parentMsg.id,
+              text: (parentMsg as any).text || (parentMsg as any).content,
+              sender: pStreamUser?.name || (parentMsg as any).author_name,
+            };
+          }
+        }
+
+        // Map Stream's built-in read state
+        const readStatuses: any[] = [];
+        if (streamActiveChannel?.state?.read) {
+          for (const [readerId, readState] of Object.entries(streamActiveChannel.state.read)) {
+            // Check if the user read up to or past this message's timestamp
+            const readAt = new Date(readState.last_read);
+            const msgDate = new Date(msgCreatedAt);
+            if (readAt >= msgDate && readerId !== user?.id && readerId !== msgUserId) {
+              const member = tripMembers.find(m => m.id === readerId);
+              if (member) {
+                readStatuses.push({
+                  user_id: readerId,
+                  read_at: readState.last_read,
+                  user: {
+                    id: readerId,
+                    display_name: member.name,
+                    avatar_url: member.avatar,
+                  },
+                });
+              }
+            }
+          }
+        }
+
+        return {
+          id: message.id,
+          text: msgContent,
+          sender: {
+            id: msgUserId || msgAuthorName || 'system',
+            name: (() => {
+              const member = tripMembers.find(m => m.id === (msgUserId || ''));
+              if (member) return member.name;
+              return msgAuthorName || 'System';
+            })(),
+            avatar: tripMembers.find(m => m.id === (msgUserId || ''))?.avatar || defaultAvatar,
+            userId: msgUserId,
+          },
+          createdAt: msgCreatedAt,
+          isBroadcast: customType === 'broadcast',
+          isPayment: customType === 'payment',
+          isEdited: msgCreatedAt !== msgUpdatedAt,
+          editedAt: msgCreatedAt !== msgUpdatedAt ? msgUpdatedAt : undefined,
+          tags: customType === 'system' ? (['system'] as string[]) : ([] as string[]),
+          message_type: customType,
+          isPinned: Boolean((message as any).pinned),
+          pinnedAt: (message as any).pinned_at,
+          system_event_type: (message as any).system_event_type,
+          system_payload: (message as any).system_payload,
+          linkPreview,
+          replyTo,
+          mediaType,
+          mediaUrl,
+          reactions:
+            Object.keys(formattedReactions).length > 0
+              ? formattedReactions
+              : (message as any).reactions,
+          readStatuses,
+        };
       return buildStreamMessageViewModels({
         messages: liveMessages,
         tripMembers,
@@ -780,6 +921,11 @@ export const TripChat = React.memo(
       [messagesWithFailed, linkPreviewFallbacks],
     );
 
+    const pinnedMessages = useMemo(
+      () => derivePinnedMessages(liveFormattedMessages as any),
+      [liveFormattedMessages],
+    );
+
     const isLoading = demoMode.isDemoMode ? false : liveLoading;
 
     // Scroll to specific message with highlight animation
@@ -895,6 +1041,7 @@ export const TripChat = React.memo(
               isPro={isPro}
               broadcastCount={broadcastCount}
               unreadCount={messageUnreadCount}
+              pinnedCount={pinnedMessages.length}
               availableChannels={availableChannels as any}
               activeChannel={roleActiveChannel}
               onChannelSelect={(channel: any) => {
@@ -931,6 +1078,24 @@ export const TripChat = React.memo(
                     <MessageSkeleton />
                   </div>
                 ) : (
+                  <>
+                    {messageFilter !== 'pinned' && pinnedMessages.length > 0 && (
+                      <div className="mx-3 mt-3 mb-1 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+                        <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-amber-200">
+                          <Pin className="h-3.5 w-3.5" />
+                          <span>Pinned Messages</span>
+                        </div>
+                        <div className="space-y-1.5">
+                          {pinnedMessages.slice(0, 3).map(message => (
+                            <button
+                              key={message.id}
+                              onClick={() => scrollToMessage(message.id, 'message')}
+                              className="block w-full truncate rounded-md bg-black/15 px-2 py-1 text-left text-xs text-amber-100 hover:bg-black/25"
+                            >
+                              {message.sender.name}: {message.text || 'Attachment'}
+                            </button>
+                          ))}
+                        </div>
                   <VirtualizedMessageContainer
                     messages={messagesWithPreviewFallbacks as any}
                     renderMessage={(message: any, _index: number, showSenderInfo: boolean) => (
@@ -970,15 +1135,55 @@ export const TripChat = React.memo(
                         />
                       </div>
                     )}
-                    onLoadMore={demoMode.isDemoMode ? () => {} : loadMoreMessages}
-                    hasMore={demoMode.isDemoMode ? false : hasMore}
-                    isLoading={isLoadingMore}
-                    initialVisibleCount={10}
-                    className="chat-scroll-container native-scroll px-3"
-                    autoScroll={true}
-                    restoreScroll={true}
-                    scrollKey={`chat-scroll-${resolvedTripId}`}
-                  />
+
+                    <VirtualizedMessageContainer
+                      messages={messagesWithPreviewFallbacks as any}
+                      renderMessage={(message: any, _index: number, showSenderInfo: boolean) => (
+                        <div data-message-id={message.id}>
+                          <MessageItem
+                            message={message}
+                            reactions={message.reactions || reactions[message.id] || {}}
+                            onReaction={handleReaction}
+                            onReply={handleOpenThread}
+                            onOpenThread={handleActivateThread}
+                            onEdit={demoMode.isDemoMode ? undefined : handleMessageEdit}
+                            onDelete={demoMode.isDemoMode ? undefined : handleMessageDelete}
+                            onRetry={handleRetryFailedMessage}
+                            systemMessagePrefs={isConsumer ? systemMessagePrefs : undefined}
+                            tripMembers={tripMembers}
+                            readStatuses={
+                              message.readStatuses || readStatusesByMessage[message.id] || []
+                            }
+                            showSenderInfo={showSenderInfo}
+                            reactionUserNamesById={reactionUserNamesById}
+                            isAdmin={isUserAdmin}
+                            canManagePins={canManagePins}
+                            onTogglePin={demoMode.isDemoMode ? undefined : handleMessagePinToggle}
+                            onBlockUser={demoMode.isDemoMode ? undefined : blockUserAction}
+                            onReportContent={
+                              demoMode.isDemoMode
+                                ? undefined
+                                : params =>
+                                    reportContentAction({
+                                      ...params,
+                                      tripId: resolvedTripId,
+                                    })
+                            }
+                            isBlockingUser={isBlocking}
+                            isReportingContent={isReporting}
+                          />
+                        </div>
+                      )}
+                      onLoadMore={demoMode.isDemoMode ? () => {} : loadMoreMessages}
+                      hasMore={demoMode.isDemoMode ? false : hasMore}
+                      isLoading={isLoadingMore}
+                      initialVisibleCount={10}
+                      className="chat-scroll-container native-scroll px-3"
+                      autoScroll={true}
+                      restoreScroll={true}
+                      scrollKey={`chat-scroll-${resolvedTripId}`}
+                    />
+                  </>
                 )}
 
                 {/* Typing Indicator */}

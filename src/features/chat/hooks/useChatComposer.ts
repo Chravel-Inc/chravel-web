@@ -59,7 +59,9 @@ export const useChatComposer = ({
 }: UseChatComposerOptions = {}) => {
   const [inputMessage, setInputMessage] = useState('');
   const [replyingTo, setReplyingTo] = useState<ReplyContext | null>(null);
-  const [messageFilter, setMessageFilter] = useState<'all' | 'broadcasts' | 'channels'>('all');
+  const [messageFilter, setMessageFilter] = useState<'all' | 'broadcasts' | 'pinned' | 'channels'>(
+    'all',
+  );
 
   const { user } = useAuth();
   const { parseMessage } = useChatMessageParser();
@@ -172,6 +174,8 @@ export const useChatComposer = ({
     (messages: ChatMessage[]) => {
       if (messageFilter === 'all') return messages;
       if (messageFilter === 'broadcasts') return messages.filter(m => m.isBroadcast === true);
+      if (messageFilter === 'pinned')
+        return messages.filter(m => (m as { isPinned?: boolean }).isPinned);
       if (messageFilter === 'channels') return []; // Channels handled separately
       return messages;
     },
