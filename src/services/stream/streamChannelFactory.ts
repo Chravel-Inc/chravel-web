@@ -10,7 +10,6 @@
  */
 
 import { getStreamClient } from './streamClient';
-import { assertConciergeStreamTransportUnsupported } from './streamTransportGuards';
 import type { Channel } from 'stream-chat';
 
 // ── Channel Type Constants ────────────────────────────────────────────────
@@ -92,12 +91,4 @@ export async function getOrCreateBroadcastChannel(
 
   await channel.watch();
   return channel;
-}
-
-/** @deprecated Concierge transport is SSE/DB-backed and not supported on Stream. */
-export async function getOrCreateConciergeChannel(
-  _tripId: string,
-  _userId: string,
-): Promise<Channel | null> {
-  assertConciergeStreamTransportUnsupported();
 }

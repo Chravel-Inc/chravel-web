@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useStreamTripChat } from '../useStreamTripChat';
 import { supabase } from '@/integrations/supabase/client';
+import { telemetry } from '@/telemetry/service';
 
 const sendMessageMock = vi.fn();
 const watchMock = vi.fn();
@@ -59,6 +60,13 @@ vi.mock('@/integrations/supabase/client', () => ({
 
 vi.mock('@/hooks/use-toast', () => ({
   useToast: () => ({ toast: vi.fn() }),
+}));
+
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({
+    user: { id: 'user-1' },
+    session: { access_token: 'mock-access-token' },
+  }),
 }));
 
 vi.mock('@/telemetry/service', () => ({
@@ -125,6 +133,7 @@ describe('useStreamTripChat send path', () => {
         undefined,
         'text',
         undefined,
+        undefined,
         ['user-2'],
       );
     });
@@ -154,6 +163,12 @@ describe('useStreamTripChat send path', () => {
     expect(caughtError).toBeTruthy();
     expect(caughtError!.message).toBe('Not a member');
     expect(result.current.isCreating).toBe(false);
+    expect(telemetry.track).toHaveBeenCalledWith('message.send.failed', {
+      trip_id: 'trip-abc',
+      error: 'Not a member',
+      transport: 'stream',
+      mode: 'async',
+    });
   });
 
   it('retries without mentions when Stream denies CreateMention permission', async () => {

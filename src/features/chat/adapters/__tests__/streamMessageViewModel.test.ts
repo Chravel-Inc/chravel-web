@@ -154,4 +154,28 @@ describe('buildStreamMessageViewModels', () => {
     expect(results).toHaveLength(1);
     expect(results[0].id).toBe('p1');
   });
+
+  it('maps thread metadata for parent messages with replies', () => {
+    const results = buildStreamMessageViewModels({
+      messages: [
+        baseMessage({
+          id: 'parent-with-replies',
+          text: 'Parent',
+          reply_count: 2,
+          latest_replies: [
+            { id: 'r1', text: 'First reply' },
+            { id: 'r2', text: 'Latest thread reply preview' },
+          ],
+          thread_participant_ids: ['user-1'],
+          thread_unread_count: 1,
+        } as unknown as MessageResponse),
+      ],
+      tripMembers: members,
+      currentUserId: 'user-1',
+    });
+
+    expect(results[0].replyCount).toBe(2);
+    expect(results[0].threadPreviewSnippet).toBe('Latest thread reply preview');
+    expect(results[0].hasUnreadThreadReplies).toBe(true);
+  });
 });

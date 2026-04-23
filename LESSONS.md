@@ -7,6 +7,22 @@
 
 ## Strategy Tips
 
+### In transport-mixed chat surfaces, propagate transport mode to the mutation trigger component
+- **Tip:** If a parent surface supports both Stream and legacy transports, ensure the final mutation-triggering UI element (for example message action menu) receives explicit `transportMode`. Relying on an intermediate default (`'legacy'`) can silently route Stream edits/deletes into DB mutation APIs.
+- **Applies when:** Chat/message components pass edit/delete callbacks through `MessageItem`/`MessageBubble` style wrappers.
+- **Avoid when:** The entire surface is hard-wired to one transport and has no fallback path.
+- **Evidence:** `MessageBubble` forwarded callbacks but not `transportMode`, so `MessageActions` defaulted to legacy and could call `chatService` despite Stream mode callbacks being present upstream.
+- **Provenance:** April 2026 Stream-canonical mutation-path guardrail fix.
+- **Confidence:** high
+
+### When hook dependencies gain auth context, patch hook tests with explicit useAuth mocks immediately
+- **Tip:** If a shared hook adds a hard `useAuth()` dependency, every direct `renderHook` suite should mock `@/hooks/useAuth` (or render with `AuthProvider`) in the same change; otherwise broad readiness-gate failures can trigger on identical context errors.
+- **Applies when:** Hook-level tests render authenticated chat/data hooks directly via `renderHook`.
+- **Avoid when:** The suite already renders a real provider wrapper intentionally.
+- **Evidence:** `qa:chat-production-readiness` failed 12 tests with `useAuth must be used within an AuthProvider` until `useStreamTripChat.send` and `.reactions` tests mocked `useAuth`.
+- **Provenance:** April 23, 2026 chat production-readiness gate recovery.
+- **Confidence:** high
+
 ### Ship new AI renderer paths behind endpoint-level feature flags
 - **Tip:** When introducing a new model-specific renderer (for example Gemini TTS) in a production flow, switch endpoints behind a frontend feature flag while preserving the previous endpoint contract as a fallback. This isolates model preview risk from core UX and enables instant rollback without touching UI state logic.
 - **Applies when:** Replacing third-party model/provider calls for non-critical enhancements (voice playback, summarization, enrichment) in existing user journeys.
@@ -164,6 +180,14 @@
 - **Confidence:** high
 
 ## Optimization Tips
+
+### Thread badge UX in Stream timelines depends on parent-level metadata projection, not child message inclusion
+- **Tip:** Keep timeline filtering to top-level Stream messages (`!parent_id` / `!reply_to_id`), but explicitly project parent thread fields (`reply_count`, `latest_replies`, and unread/participant markers) into UI view models so thread badges/snippets can render without leaking child replies into the main feed.
+- **Applies when:** Trip/pro chat timelines show thread indicators while thread replies are rendered in a separate thread view/modal.
+- **Avoid when:** The product intentionally mixes child replies into the main timeline.
+- **Evidence:** Parent messages were visible but thread metadata could be empty/zero unless `reply_count` and `latest_replies` were mapped in `streamMessageViewModel`; after projection, `MessageBubble` thread badge/snippet renders from existing props without timeline behavior changes.
+- **Provenance:** April 23, 2026 thread metadata adapter hardening.
+- **Confidence:** high
 
 ### Avoid default `[]` prop literals when callbacks/effects depend on that prop
 - **Tip:** If a component prop defaults to `[]` inline (`prop = []`) and that prop is in hook dependency arrays, React creates a fresh array every render and can retrigger callbacks/effects indefinitely. Use a module-level `const EMPTY_LIST = []` (typed) for stable identity.
@@ -671,3 +695,16 @@
 - **Evidence:** Chravel TripChat search could find replies but only attempted main-list scroll by reply ID; since replies are filtered out of top-level timeline, navigation looked broken. Mapping `parent_message_id` + `openThread` restored deterministic navigation.
 - **Provenance:** April 2026 thread UX adoption instrumentation pass.
 - **Confidence:** high
+### Canary incident auto-disable should live server-side behind service-role updates
+- **Tip:** If a rollout requires automatic kill-switch behavior, push threshold evaluation into an authenticated edge function that can atomically mutate `feature_flags` instead of relying on client-only counters.
+- **Applies when:** Shipping canary rollouts for realtime/chat systems where failures must disable rollout globally.
+- **Evidence:** `stream-canary-guard` now records rolling incident windows in `app_settings` and disables `stream_changes_canary` once metric thresholds are exceeded.
+- **Provenance:** April 2026 Stream canary hardening.
+- **Confidence:** high
+
+### Treat first 24–72 hours as an hourly reliability gate, not a daily dashboard check
+- **Tip:** For high-risk realtime chat rollouts, explicitly split monitoring into an hourly 24–72h phase (send failures, ReadChannel recovery failures, webhook 401/500s) and a daily day-4–7 phase. Keep a pre-defined rollback toggle and only expand rollout after stability across all chat surfaces (trip, pro, reactions, mentions, threads).
+- **Applies when:** Canary/gradual rollout of Stream transport or webhook-dependent notification flows.
+- **Evidence:** Daily-only triage docs can miss fast-moving regressions during initial rollout windows; explicit hourly gate + rollback criteria reduces mean time to contain.
+- **Provenance:** April 2026 Stream reliability runbook hardening pass.
+- **Confidence:** medium-high
