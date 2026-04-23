@@ -379,7 +379,7 @@ const TripChatComponent = ({
   );
 
   // Local mutable state derived from hasMore to avoid assigning to a const binding
-  const [hasMoreState, setHasMoreState] = useState(hasMore);
+  const [, setHasMoreState] = useState(hasMore);
 
   const {
     inputMessage,
