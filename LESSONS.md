@@ -15,6 +15,14 @@
 - **Provenance:** April 2026 Stream-canonical mutation-path guardrail fix.
 - **Confidence:** high
 
+### When hook dependencies gain auth context, patch hook tests with explicit useAuth mocks immediately
+- **Tip:** If a shared hook adds a hard `useAuth()` dependency, every direct `renderHook` suite should mock `@/hooks/useAuth` (or render with `AuthProvider`) in the same change; otherwise broad readiness-gate failures can trigger on identical context errors.
+- **Applies when:** Hook-level tests render authenticated chat/data hooks directly via `renderHook`.
+- **Avoid when:** The suite already renders a real provider wrapper intentionally.
+- **Evidence:** `qa:chat-production-readiness` failed 12 tests with `useAuth must be used within an AuthProvider` until `useStreamTripChat.send` and `.reactions` tests mocked `useAuth`.
+- **Provenance:** April 23, 2026 chat production-readiness gate recovery.
+- **Confidence:** high
+
 ### Ship new AI renderer paths behind endpoint-level feature flags
 - **Tip:** When introducing a new model-specific renderer (for example Gemini TTS) in a production flow, switch endpoints behind a frontend feature flag while preserving the previous endpoint contract as a fallback. This isolates model preview risk from core UX and enables instant rollback without touching UI state logic.
 - **Applies when:** Replacing third-party model/provider calls for non-critical enhancements (voice playback, summarization, enrichment) in existing user journeys.

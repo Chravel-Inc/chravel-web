@@ -49,6 +49,13 @@ vi.mock('@/hooks/use-toast', () => ({
   useToast: () => ({ toast: toastMock }),
 }));
 
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({
+    user: { id: 'user-1' },
+    session: { access_token: 'mock-access-token' },
+  }),
+}));
+
 describe('useStreamTripChat reactions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
