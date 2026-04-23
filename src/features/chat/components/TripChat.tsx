@@ -1096,46 +1096,8 @@ export const TripChat = React.memo(
                             </button>
                           ))}
                         </div>
-                  <VirtualizedMessageContainer
-                    messages={messagesWithPreviewFallbacks as any}
-                    renderMessage={(message: any, _index: number, showSenderInfo: boolean) => (
-                      <div data-message-id={message.id}>
-                        <MessageItem
-                          message={message}
-                          reactions={message.reactions || {}}
-                          onReaction={handleReaction}
-                          onReply={handleOpenThread}
-                          onOpenThread={handleActivateThread}
-                          transportMode={demoMode.isDemoMode ? 'legacy' : 'stream'}
-                          onEdit={demoMode.isDemoMode ? undefined : handleMessageEdit}
-                          onDelete={demoMode.isDemoMode ? undefined : handleMessageDelete}
-                          onRetry={handleRetryFailedMessage}
-                          systemMessagePrefs={isConsumer ? systemMessagePrefs : undefined}
-                          tripMembers={tripMembers}
-                          readStatuses={message.readStatuses || []}
-                          showSenderInfo={showSenderInfo}
-                          reactionUserNamesById={reactionUserNamesById}
-                          isAdmin={isUserAdmin}
-                          onBlockUser={demoMode.isDemoMode ? undefined : blockUserAction}
-                          onReportContent={
-                            demoMode.isDemoMode
-                              ? undefined
-                              : params =>
-                                  reportContentAction({
-                                    ...params,
-                                    tripId: resolvedTripId,
-                                  })
-                          }
-                          isBlockingUser={isBlocking}
-                          isReportingContent={isReporting}
-                          canModerate={isUserAdmin}
-                          onModerationAction={
-                            demoMode.isDemoMode ? undefined : handleModerationAction
-                          }
-                        />
                       </div>
                     )}
-
                     <VirtualizedMessageContainer
                       messages={messagesWithPreviewFallbacks as any}
                       renderMessage={(message: any, _index: number, showSenderInfo: boolean) => (
