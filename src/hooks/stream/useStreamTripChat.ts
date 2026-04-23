@@ -29,6 +29,11 @@ import type { Channel, Event, MessageResponse } from 'stream-chat';
 import { buildTripStreamMessagePayload } from '@/services/stream/streamMessagePayload';
 import type { StreamQuotedReferenceInput } from '@/services/stream/streamMessagePayload';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import {
+  isStreamCanaryEnabledForUser,
+  reportStreamCanaryIncident,
+} from '@/services/stream/streamCanary';
 
 const PAGE_SIZE = 30;
 type StreamSendPayload = Parameters<Channel['sendMessage']>[0];
@@ -176,7 +181,11 @@ function withoutMentionedUsers(payload: StreamSendPayload): StreamSendPayload {
   return rest as StreamSendPayload;
 }
 
-async function sendMessageWithMentionFallback(channel: Channel, payload: StreamSendPayload) {
+async function sendMessageWithMentionFallback(
+  channel: Channel,
+  payload: StreamSendPayload,
+  onMentionFallback?: () => void,
+) {
   if (hasMentionedUsers(payload)) {
     const mentionCapability = channelMentionCapability(channel);
     if (mentionCapability === false) {
@@ -198,6 +207,7 @@ async function sendMessageWithMentionFallback(channel: Channel, payload: StreamS
           '[Stream] CreateMention denied; retrying send without mentioned_users payload',
         );
       }
+      onMentionFallback?.();
       return channel.sendMessage(withoutMentionedUsers(payload));
     }
     throw err;
@@ -211,6 +221,7 @@ async function sendMessageWithMentionFallback(channel: Channel, payload: StreamS
 export const useStreamTripChat = (tripId: string | undefined, options?: { enabled?: boolean }) => {
   const isEnabled = options?.enabled !== false;
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Return native MessageResponse objects directly to take advantage of Stream capabilities
   const [messages, setMessages] = useState<MessageResponse[]>([]);
@@ -220,6 +231,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [streamClientReady, setStreamClientReady] = useState(Boolean(getStreamClient()?.userID));
+  const [streamCanaryEnabled, setStreamCanaryEnabled] = useState(false);
 
   const channelRef = useRef<Channel | null>(null);
   const messagesRef = useRef<MessageResponse[]>([]);
@@ -252,6 +264,41 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       });
     },
     [tripId],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const resolveCanary = async () => {
+      const enabled = await isStreamCanaryEnabledForUser(user);
+      if (!cancelled) {
+        setStreamCanaryEnabled(enabled);
+      }
+    };
+
+    void resolveCanary();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  const reportCanaryIncident = useCallback(
+    (
+      metric:
+        | 'read_channel_denied'
+        | 'send_message_failure'
+        | 'reconnect_backfill_mismatch'
+        | 'mention_notification_failure',
+      context?: Record<string, unknown>,
+    ) => {
+      if (!streamCanaryEnabled) return;
+      void reportStreamCanaryIncident({
+        metric,
+        tripId,
+        context,
+      });
+    },
+    [streamCanaryEnabled, tripId],
   );
 
   const triggerGuardedReload = useCallback(() => {
@@ -298,6 +345,9 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         return merged;
       });
     } catch (err) {
+      reportCanaryIncident('reconnect_backfill_mismatch', {
+        reason: err instanceof Error ? err.message : 'backfill_query_failed',
+      });
       if (import.meta.env.DEV) {
         console.warn('[Stream] backfill failed:', err);
       }
@@ -677,6 +727,9 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         }
 
         if (isStreamReadChannelPermissionError(resolvedError)) {
+          reportCanaryIncident('read_channel_denied', {
+            reason: resolvedError instanceof Error ? resolvedError.message : 'read_channel_denied',
+          });
           setError(
             mapMembershipFailureToUiError(
               membershipFailureRef.current ?? { code: 'unknown', reason: 'ReadChannel denied' },
@@ -841,7 +894,11 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         return;
       }
 
-      void sendMessageWithMentionFallback(channel, payloadResult.payload)
+      void sendMessageWithMentionFallback(channel, payloadResult.payload, () => {
+        reportCanaryIncident('mention_notification_failure', {
+          reason: 'create_mention_denied_fallback',
+        });
+      })
         .then(() => {
           messageEvents.sent({
             trip_id: tripId,
@@ -854,6 +911,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         })
         .catch((err: unknown) => {
           const msg = err instanceof Error ? err.message : 'Failed to send message';
+          reportCanaryIncident('send_message_failure', { reason: msg });
           messageEvents.sendFailed(tripId, msg);
           toast({
             title: 'Send Failed',
@@ -862,7 +920,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
           });
         });
     },
-    [tripId, toast],
+    [tripId, toast, reportCanaryIncident],
   );
 
   // Send message — matches useTripChat signature exactly
@@ -931,7 +989,15 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
 
       setIsCreating(true);
       try {
-        const response = await sendMessageWithMentionFallback(channel, payloadResult.payload);
+        const response = await sendMessageWithMentionFallback(
+          channel,
+          payloadResult.payload,
+          () => {
+            reportCanaryIncident('mention_notification_failure', {
+              reason: 'create_mention_denied_fallback',
+            });
+          },
+        );
         const sentMessage = response.message as MessageResponse;
 
         // Immediately insert or update the sent message in local state
@@ -963,7 +1029,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         setIsCreating(false);
       }
     },
-    [tripId, toast],
+    [tripId, reportCanaryIncident],
   );
 
   // Load more (older messages)

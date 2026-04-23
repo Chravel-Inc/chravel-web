@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "description": "Production-readiness gate for trip chat + pro channels. Feature work remains frozen until this command passes.",
+  "checks": [
+    {
+      "id": "CHAT-TOKEN-CONNECT",
+      "name": "Token issuance and connect path",
+      "testFiles": [
+        "src/services/stream/__tests__/streamClient.auth.test.ts",
+        "src/hooks/stream/__tests__/useStreamClient.test.tsx"
+      ]
+    },
+    {
+      "id": "CHAT-MEMBERSHIP-ROLE",
+      "name": "Membership sync on join/leave and role contract changes",
+      "testFiles": [
+        "src/services/stream/__tests__/streamMembershipCoordinator.test.ts",
+        "src/services/stream/__tests__/roleGrantMembershipContract.test.ts"
+      ]
+    },
+    {
+      "id": "CHAT-MUTATION-RESILIENCE",
+      "name": "Send/edit/delete/reaction/thread/read/typing behavior under reconnect",
+      "testFiles": [
+        "src/hooks/stream/__tests__/useStreamTripChat.send.test.tsx",
+        "src/services/__tests__/chatLegacyMutationGuards.test.ts",
+        "src/hooks/stream/__tests__/useStreamTripChat.reactions.test.tsx",
+        "src/features/chat/components/__tests__/ThreadView.test.tsx",
+        "src/features/chat/hooks/__tests__/useChatReadReceipts.test.tsx",
+        "src/features/chat/hooks/__tests__/useChatTypingIndicators.test.tsx"
+      ]
+    },
+    {
+      "id": "CHAT-FALLBACK-RECOVERY-BOUNDS",
+      "name": "Fallback and recovery paths are deterministic and bounded",
+      "testFiles": [
+        "src/hooks/stream/__tests__/useStreamTripChat.errors.test.ts",
+        "src/services/__tests__/chatLegacyMutationGuards.test.ts"
+      ]
+    }
+  ]
+}
