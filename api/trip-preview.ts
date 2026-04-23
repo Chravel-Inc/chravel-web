@@ -24,9 +24,19 @@ export default async function handler(request: Request): Promise<Response> {
   }
 
   try {
+    const canonicalUrl = url.toString();
+    // Always send users to the primary app host for interactive join flow.
+    // Branded unfurl hosts (e.g. p.chravel.app) are OG surfaces and should not
+    // be used as the in-app destination.
+    const appBaseUrl = 'https://chravel.app';
+
     // Proxy to Supabase generate-trip-preview edge function
     const supabaseProjectRef = 'jmjiyekmxwsxkfnqwyaa';
-    const supabaseUrl = `https://${supabaseProjectRef}.supabase.co/functions/v1/generate-trip-preview?tripId=${encodeURIComponent(tripId)}`;
+    const supabaseUrl =
+      `https://${supabaseProjectRef}.supabase.co/functions/v1/generate-trip-preview` +
+      `?tripId=${encodeURIComponent(tripId)}` +
+      `&canonicalUrl=${encodeURIComponent(canonicalUrl)}` +
+      `&appBaseUrl=${encodeURIComponent(appBaseUrl)}`;
 
     console.log('[trip-preview] Fetching from:', supabaseUrl);
 
