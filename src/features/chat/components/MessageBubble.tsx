@@ -88,6 +88,9 @@ export interface MessageBubbleProps {
   reactionUserNamesById?: Record<string, string>;
   /** Admins can delete any message (server-side RLS enforced) */
   isAdmin?: boolean;
+  canDeleteOwnMessage?: boolean;
+  canDeleteAnyMessage?: boolean;
+  canUpdateOwnMessage?: boolean;
   canManagePins?: boolean;
   isPinned?: boolean;
   /** Sender user ID for block/report actions */
@@ -148,6 +151,9 @@ export const MessageBubble = memo(
     replyTo,
     reactionUserNamesById,
     isAdmin = false,
+    canDeleteOwnMessage = true,
+    canDeleteAnyMessage = false,
+    canUpdateOwnMessage = true,
     canManagePins = false,
     isPinned = false,
     senderUserId,
@@ -548,6 +554,9 @@ export const MessageBubble = memo(
                 isOwnMessage={isOwnMessage}
                 isDeleted={isDeleted}
                 isAdmin={isAdmin}
+                canDeleteOwnMessage={canDeleteOwnMessage}
+                canDeleteAnyMessage={canDeleteAnyMessage}
+                canUpdateOwnMessage={canUpdateOwnMessage}
                 canManagePins={canManagePins}
                 isPinned={isPinned}
                 senderUserId={senderUserId}

@@ -11,6 +11,9 @@ const mockDeleteMessage = vi.fn();
 const mockGetStreamClient = vi.mocked(getStreamClient);
 const mockDeleteChatMessage = vi.mocked(deleteChatMessage);
 const mockEditChatMessage = vi.mocked(editChatMessage);
+let mockOwnCapabilities: string[] = ['delete-own-message', 'update-own-message'];
+let mockChatModeUserRole: string = 'member';
+let mockMessageAuthorId: string = 'user-1';
 
 vi.mock('react-router-dom', () => ({
   useParams: () => ({ tripId: 'trip-123' }),
@@ -57,7 +60,7 @@ vi.mock('../../hooks/useTripChat', () => ({
       {
         id: 'msg-123',
         text: 'hello',
-        user: { id: 'user-1', name: 'User One' },
+        user: { id: mockMessageAuthorId, name: 'User One' },
         created_at: '2026-01-01T00:00:00.000Z',
       },
     ],
@@ -69,7 +72,7 @@ vi.mock('../../hooks/useTripChat', () => ({
     isLoadingMore: false,
     toggleReaction: vi.fn(),
     reload: vi.fn(),
-    activeChannel: { state: { read: {} } },
+    activeChannel: { state: { read: {}, own_capabilities: mockOwnCapabilities } },
   }),
 }));
 
@@ -124,7 +127,7 @@ vi.mock('@/hooks/useTripChatMode', () => ({
     canPost: true,
     canUploadMedia: true,
     isLoading: false,
-    userRole: 'member',
+    userRole: mockChatModeUserRole,
   }),
 }));
 vi.mock('../../hooks/useLinkPreviews', () => ({ useLinkPreviews: () => ({}) }));
@@ -163,10 +166,15 @@ vi.mock('../VirtualizedMessageContainer', () => ({
 }));
 
 vi.mock('../MessageItem', () => ({
-  MessageItem: ({ message, onDelete, onEdit }: any) => (
+  MessageItem: ({ message, onDelete, onEdit, canDeleteOwnMessage, canDeleteAnyMessage }: any) => (
     <>
-      <button onClick={() => onDelete?.(message.id)} data-testid={`delete-${message.id}`}>
-        delete
+      {(canDeleteOwnMessage || canDeleteAnyMessage) && (
+        <button onClick={() => onDelete?.(message.id)} data-testid={`delete-${message.id}`}>
+          delete
+        </button>
+      )}
+      <button onClick={() => onDelete?.(message.id)} data-testid={`force-delete-${message.id}`}>
+        force-delete
       </button>
       <button onClick={() => onEdit?.(message.id, 'edited')} data-testid={`edit-${message.id}`}>
         edit
@@ -178,6 +186,9 @@ vi.mock('../MessageItem', () => ({
 describe('TripChat delete message', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockOwnCapabilities = ['delete-own-message', 'update-own-message'];
+    mockChatModeUserRole = 'member';
+    mockMessageAuthorId = 'user-1';
   });
 
   const renderSubject = () => {
@@ -199,6 +210,37 @@ describe('TripChat delete message', () => {
     expect(mockDeleteMessage).toHaveBeenCalledTimes(1);
     expect(mockDeleteMessage).toHaveBeenCalledWith('msg-123');
     expect(mockDeleteChatMessage).not.toHaveBeenCalled();
+  });
+
+  it('does not call Stream delete API and shows capability denial toast for owner without capability', async () => {
+    mockOwnCapabilities = ['update-own-message'];
+    mockGetStreamClient.mockReturnValue({
+      deleteMessage: mockDeleteMessage,
+      userID: 'user-1',
+    } as any);
+
+    renderSubject();
+
+    expect(screen.queryByTestId('delete-msg-123')).not.toBeInTheDocument();
+
+    // Defense-in-depth still blocks direct calls to onDelete when capability is denied.
+    fireEvent.click(screen.getByTestId('force-delete-msg-123'));
+    expect(mockDeleteMessage).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith('You don’t have permission to delete this message');
+  });
+
+  it('hides Delete for admin role when Stream delete-any grant is missing', async () => {
+    mockChatModeUserRole = 'admin';
+    mockOwnCapabilities = ['update-own-message'];
+    mockMessageAuthorId = 'user-2';
+    mockGetStreamClient.mockReturnValue({
+      deleteMessage: mockDeleteMessage,
+      userID: 'user-1',
+    } as any);
+
+    renderSubject();
+
+    expect(screen.queryByTestId('delete-msg-123')).not.toBeInTheDocument();
   });
 
   it('shows deterministic error toast when Stream client is unavailable', async () => {
