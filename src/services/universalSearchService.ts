@@ -1,7 +1,7 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck — Supabase generated types have SelectQueryError mismatches with runtime columns
 import { supabase } from '@/integrations/supabase/client';
-import { getStreamClient } from '@/services/stream/streamClient';
+import { searchMessagesAcrossTripChannels } from '@/services/stream/streamMessageSearch';
 
 export type ContentType =
   | 'trips'
@@ -20,6 +20,44 @@ export type SearchMode = 'keyword' | 'semantic' | 'hybrid';
 /** Escape SQL LIKE/ILIKE wildcards so user input is treated as literal text. */
 function escapeSqlLike(input: string): string {
   return input.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+}
+
+const MESSAGE_ANCHOR_PREFIX = 'chat-message';
+const THREAD_ANCHOR_PREFIX = 'chat-thread';
+
+function buildChatAnchor(prefix: string, id: string): string {
+  return `${prefix}-${id}`;
+}
+
+function buildMessageNavigationPayload(params: {
+  tripId: string;
+  messageId: string;
+  channelId: string;
+  channelType: string;
+  threadParentId?: string;
+}) {
+  const anchor = params.threadParentId
+    ? buildChatAnchor(THREAD_ANCHOR_PREFIX, params.threadParentId)
+    : buildChatAnchor(MESSAGE_ANCHOR_PREFIX, params.messageId);
+
+  return {
+    deepLink: `/trip/${params.tripId}#${anchor}`,
+    metadata: {
+      tab: 'chat',
+      anchor,
+      messageAnchor: buildChatAnchor(MESSAGE_ANCHOR_PREFIX, params.messageId),
+      threadAnchor: params.threadParentId
+        ? buildChatAnchor(THREAD_ANCHOR_PREFIX, params.threadParentId)
+        : undefined,
+      chatNavigationContext: {
+        source: 'universal-search',
+        messageId: params.messageId,
+        channelId: params.channelId,
+        channelType: params.channelType,
+        openThreadId: params.threadParentId,
+      },
+    },
+  };
 }
 
 export interface UniversalSearchParams {
@@ -132,62 +170,63 @@ async function searchMessagesAcrossTrips(
         const matchesTripFilter = !tripIds || tripIds.includes(msg.tripId);
         return matchesQuery && matchesTripFilter;
       })
-      .map(msg => ({
-        id: msg.id,
-        contentType: 'messages' as const,
-        tripId: msg.tripId,
-        tripName: msg.tripName,
-        title: `Message from ${msg.authorName}`,
-        snippet: msg.content.slice(0, 100),
-        matchScore: 0.85,
-        deepLink: `/trip/${msg.tripId}#chat-message-${msg.id}`,
-        metadata: { authorName: msg.authorName },
-        timestamp: msg.createdAt,
-      }));
-  }
-
-  const client = getStreamClient();
-  if (!client?.userID) {
-    return [];
-  }
-
-  try {
-    const filter: Record<string, unknown> = { type: 'chravel-trip' };
-    if (tripIds && tripIds.length > 0) {
-      filter.id = { $in: tripIds.map(id => `trip-${id}`) };
-    }
-
-    const channels = await client.queryChannels(filter, { last_message_at: -1 }, { limit: 100 });
-
-    const perChannelResults = await Promise.all(
-      channels.map(async channel => {
-        const tripId = String(channel.data?.trip_id || '').trim();
-        if (!tripId) return [] as UniversalSearchResult[];
-
-        const searchResult = await channel.search({ text: query }, { limit: 20, offset: 0 });
-        return (searchResult.results || []).map(item => {
-          const message = item.message;
-          return {
-            id: message.id,
-            contentType: 'messages' as const,
-            tripId,
-            tripName: String(channel.data?.name || 'Trip'),
-            title: `Message from ${message.user?.name || message.user?.id || 'User'}`,
-            snippet: (message.text || '').slice(0, 150),
-            matchScore: 0.85,
-            deepLink: `/trip/${tripId}#chat-message-${message.id}`,
-            metadata: { authorName: message.user?.name || message.user?.id || 'User' },
-            timestamp: message.created_at || undefined,
-          };
+      .map(msg => {
+        const navigation = buildMessageNavigationPayload({
+          tripId: msg.tripId,
+          messageId: msg.id,
+          channelId: `trip-${msg.tripId}`,
+          channelType: 'chravel-trip',
         });
-      }),
-    );
 
-    return perChannelResults.flat().slice(0, 20);
-  } catch (error) {
-    console.error('Message search error:', error);
-    return [];
+        return {
+          id: msg.id,
+          contentType: 'messages' as const,
+          tripId: msg.tripId,
+          tripName: msg.tripName,
+          title: `Message from ${msg.authorName}`,
+          snippet: msg.content.slice(0, 100),
+          matchScore: 0.85,
+          deepLink: navigation.deepLink,
+          metadata: { authorName: msg.authorName, ...navigation.metadata },
+          timestamp: msg.createdAt,
+        };
+      });
   }
+
+  const hits = await searchMessagesAcrossTripChannels({
+    query,
+    tripIds,
+    perChannelLimit: 20,
+    maxChannels: 100,
+    maxAggregatedResults: 20,
+    offset: 0,
+  });
+
+  return hits.map(hit => {
+    const navigation = buildMessageNavigationPayload({
+      tripId: hit.tripId,
+      messageId: hit.messageId,
+      channelId: hit.channelId,
+      channelType: hit.channelType,
+      threadParentId: hit.threadParentId,
+    });
+
+    return {
+      id: hit.messageId,
+      contentType: 'messages' as const,
+      tripId: hit.tripId,
+      tripName: hit.tripName ?? 'Trip',
+      title: `Message from ${hit.authorName}`,
+      snippet: hit.text.slice(0, 150),
+      matchScore: 0.85,
+      deepLink: navigation.deepLink,
+      metadata: {
+        authorName: hit.authorName,
+        ...navigation.metadata,
+      },
+      timestamp: hit.createdAt,
+    };
+  });
 }
 
 /**

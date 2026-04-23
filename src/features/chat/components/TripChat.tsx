@@ -15,7 +15,7 @@ import { InlineReplyComponent } from './InlineReplyComponent';
 import { VirtualizedMessageContainer } from './VirtualizedMessageContainer';
 import { MessageItem } from './MessageItem';
 import { MessageSkeleton } from '@/components/mobile/SkeletonLoader';
-import { getMockAvatar, defaultAvatar } from '@/utils/mockAvatars';
+import { getMockAvatar } from '@/utils/mockAvatars';
 import { useTripMembers } from '@/hooks/useTripMembers';
 import { useTripChat } from '../hooks/useTripChat';
 import { useAuth } from '@/hooks/useAuth';
@@ -25,12 +25,12 @@ import { Pin, WifiOff } from 'lucide-react';
 import { useRoleChannels } from '@/hooks/useRoleChannels';
 import { ChannelChatView } from '@/components/pro/channels/ChannelChatView';
 import { TypingIndicator } from './TypingIndicator';
-import { TypingIndicatorService } from '@/services/typingIndicatorService';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '@/components/mobile/PullToRefreshIndicator';
 import { useUnreadCounts } from '@/hooks/useUnreadCounts';
 import { parseMessage } from '@/services/chatContentParser';
 import { useChatReadReceipts } from '../hooks/useChatReadReceipts';
+import { selectReadStatusesByMessage } from '../selectors/readStateSelectors';
 import { useChatTypingIndicators } from '../hooks/useChatTypingIndicators';
 import { useChatReactions } from '../hooks/useChatReactions';
 import { MessageTypeBar } from './MessageTypeBar';
@@ -44,6 +44,9 @@ import { useLinkPreviews } from '../hooks/useLinkPreviews';
 import { useBlockedUsers, useReportContent } from '@/hooks/useUserSafety';
 import { getStreamClient } from '@/services/stream/streamClient';
 import { derivePinnedMessages } from '../utils/pinnedMessages';
+import { shouldUseLegacyChatSync } from '@/services/stream/streamTransportGuards';
+import { buildStreamMessageViewModels } from '../adapters/streamMessageViewModel';
+import { executeModerationAction, ModerationAction } from '@/services/moderationService';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -194,16 +197,17 @@ export const TripChat = React.memo(
     } = useRoleChannels(isPro ? resolvedTripId : undefined, user?.id || '');
 
     // Typing indicators + read receipts — must be after all deps are declared
-    const { typingUsers, typingServiceRef } = useChatTypingIndicators(
+    const { typingUsers, handleTypingChange } = useChatTypingIndicators(
       demoMode.isDemoMode,
       resolvedTripId,
       user,
       effectiveChatMode,
       tripMembers.length,
       streamActiveChannel,
+      shouldUseLegacyChatSync() ? 'legacy' : 'stream',
     );
 
-    const { readStatusesByMessage } = useChatReadReceipts(
+    useChatReadReceipts(
       demoMode.isDemoMode,
       user?.id,
       resolvedTripId,
@@ -576,6 +580,11 @@ export const TripChat = React.memo(
               : (message as any).reactions,
           readStatuses,
         };
+      return buildStreamMessageViewModels({
+        messages: liveMessages,
+        tripMembers,
+        currentUserId: user?.id,
+        channelReadState: streamActiveChannel?.state?.read,
       });
     }, [
       liveMessages,
@@ -708,7 +717,7 @@ export const TripChat = React.memo(
       }
     };
 
-    const { reactions, setReactions, handleReaction } = useChatReactions(
+    const { handleReaction } = useChatReactions(
       demoMode.isDemoMode,
       user?.id,
       liveMessages,
@@ -1051,6 +1060,43 @@ export const TripChat = React.memo(
                             </button>
                           ))}
                         </div>
+                  <VirtualizedMessageContainer
+                    messages={messagesWithPreviewFallbacks as any}
+                    renderMessage={(message: any, _index: number, showSenderInfo: boolean) => (
+                      <div data-message-id={message.id}>
+                        <MessageItem
+                          message={message}
+                          reactions={message.reactions || {}}
+                          onReaction={handleReaction}
+                          onReply={handleOpenThread}
+                          onOpenThread={handleActivateThread}
+                          transportMode={demoMode.isDemoMode ? 'legacy' : 'stream'}
+                          onEdit={demoMode.isDemoMode ? undefined : handleMessageEdit}
+                          onDelete={demoMode.isDemoMode ? undefined : handleMessageDelete}
+                          onRetry={handleRetryFailedMessage}
+                          systemMessagePrefs={isConsumer ? systemMessagePrefs : undefined}
+                          tripMembers={tripMembers}
+                          readStatuses={message.readStatuses || []}
+                          showSenderInfo={showSenderInfo}
+                          reactionUserNamesById={reactionUserNamesById}
+                          isAdmin={isUserAdmin}
+                          onBlockUser={demoMode.isDemoMode ? undefined : blockUserAction}
+                          onReportContent={
+                            demoMode.isDemoMode
+                              ? undefined
+                              : params =>
+                                  reportContentAction({
+                                    ...params,
+                                    tripId: resolvedTripId,
+                                  })
+                          }
+                          isBlockingUser={isBlocking}
+                          isReportingContent={isReporting}
+                          canModerate={isUserAdmin}
+                          onModerationAction={
+                            demoMode.isDemoMode ? undefined : handleModerationAction
+                          }
+                        />
                       </div>
                     )}
 
@@ -1147,19 +1193,7 @@ export const TripChat = React.memo(
                 tripId={resolvedTripId}
                 disableFileUpload={!canUploadMedia}
                 safeAreaBottom={false}
-                onTypingChange={isTyping => {
-                  if (!demoMode.isDemoMode && resolvedTripId && user?.id && streamActiveChannel) {
-                    if (isTyping) {
-                      streamActiveChannel.keystroke().catch(err => {
-                        if (import.meta.env.DEV) console.error('[Stream] keystroke failed', err);
-                      });
-                    } else {
-                      streamActiveChannel.stopTyping().catch(err => {
-                        if (import.meta.env.DEV) console.error('[Stream] stopTyping failed', err);
-                      });
-                    }
-                  }
-                }}
+                onTypingChange={handleTypingChange}
               />
             </div>
           </div>

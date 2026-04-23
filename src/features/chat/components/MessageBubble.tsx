@@ -27,6 +27,7 @@ import { defaultAvatar } from '@/utils/mockAvatars';
 import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
 import { hapticService } from '@/services/hapticService';
 import { getMentionClassName, MENTION_REGEX } from './messageMentions';
+import { ModerationAction } from '@/services/moderationService';
 
 export interface MessageBubbleProps {
   id: string;
@@ -42,6 +43,7 @@ export interface MessageBubbleProps {
   onReaction: (messageId: string, reactionType: string) => void;
   showSenderInfo?: boolean;
   messageType?: 'channel' | 'trip';
+  transportMode?: 'legacy' | 'stream';
   isDeleted?: boolean;
   onEdit?: (messageId: string, newContent: string) => void;
   onDelete?: (messageId: string) => void;
@@ -98,6 +100,12 @@ export interface MessageBubbleProps {
   }) => void;
   isBlockingUser?: boolean;
   isReportingContent?: boolean;
+  canModerate?: boolean;
+  onModerationAction?: (params: {
+    messageId: string;
+    targetUserId: string;
+    action: ModerationAction;
+  }) => Promise<void> | void;
 }
 
 export const MessageBubble = memo(
@@ -114,6 +122,7 @@ export const MessageBubble = memo(
     reactions,
     onReaction,
     messageType = 'trip',
+    transportMode = 'legacy',
     isDeleted = false,
     onEdit,
     onDelete,
@@ -143,6 +152,8 @@ export const MessageBubble = memo(
     onReportContent,
     isBlockingUser = false,
     isReportingContent = false,
+    canModerate = false,
+    onModerationAction,
   }: MessageBubbleProps) => {
     const [showReactions, setShowReactions] = useState(false);
     const [lightboxOpen, setLightboxOpen] = useState(false);

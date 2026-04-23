@@ -11,6 +11,10 @@ import {
   parseStreamCid,
   resolveTripIdFromChannel,
 } from './eventRouting.ts';
+import {
+  buildMentionNotificationRows,
+  filterMentionRecipientsByPreferences,
+} from './mentionNotifications.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -233,15 +237,7 @@ serve(async req => {
         );
         // Continue with all recipients on preference fetch failure (fail-open for mentions)
       } else if (prefData) {
-        // Build preference map - users without a row get default (mentions_only=true)
-        const prefsMap = new Map(prefData.map(p => [p.user_id, p]));
-        eligibleRecipients = validRecipients.filter(userId => {
-          const pref = prefsMap.get(userId);
-          // Default: mentions_only=true, so users without prefs still get mention notifications
-          // Skip only if user explicitly disabled mentions (mentions_only=false AND chat_messages=false)
-          if (!pref) return true; // No prefs row = default behavior = want mentions
-          return pref.mentions_only !== false || pref.chat_messages === true;
-        });
+        eligibleRecipients = filterMentionRecipientsByPreferences(validRecipients, prefData);
 
         const filteredCount = validRecipients.length - eligibleRecipients.length;
         if (filteredCount > 0) {
@@ -252,24 +248,17 @@ serve(async req => {
       }
     }
 
-    const notificationRows: Array<Record<string, unknown>> = [];
-    for (const userId of eligibleRecipients) {
-      notificationRows.push({
-        user_id: userId,
-        type: 'mention' as const,
-        title: event.message?.user?.name || 'New message',
-        message: event.message?.text || '',
-        trip_id: safeTripId,
-        metadata: {
-          source: 'stream-webhook',
-          stream_message_id: event.message?.id,
-          stream_event_type: eventType,
-          stream_webhook_id: webhookId || null,
-          stream_channel_type: channelType,
-          stream_channel_id: channelId,
-        },
-      });
-    }
+    const notificationRows = buildMentionNotificationRows({
+      recipientIds: eligibleRecipients,
+      senderName: event.message?.user?.name,
+      messageText: event.message?.text,
+      messageId: event.message.id,
+      eventType,
+      webhookId: webhookId || null,
+      channelType,
+      channelId,
+      tripId: safeTripId,
+    });
 
     if (notificationRows.length > 0) {
       const { error: notificationError } = await supabase

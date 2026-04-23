@@ -5,12 +5,16 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TripChat } from '../TripChat';
 import { toast } from 'sonner';
 import { getStreamClient } from '@/services/stream/streamClient';
+import { deleteChatMessage, editChatMessage } from '@/services/chatService';
 
 const mockDeleteMessage = vi.fn();
 const mockGetStreamClient = vi.mocked(getStreamClient);
+const mockDeleteChatMessage = vi.mocked(deleteChatMessage);
+const mockEditChatMessage = vi.mocked(editChatMessage);
 
 vi.mock('react-router-dom', () => ({
   useParams: () => ({ tripId: 'trip-123' }),
+  useLocation: () => ({ state: null }),
 }));
 
 vi.mock('sonner', () => ({
@@ -27,6 +31,13 @@ vi.mock('@/services/stream/streamClient', async importOriginal => {
     onStreamClientConnected: vi.fn(() => () => {}),
   };
 });
+
+vi.mock('@/services/chatService', () => ({
+  deleteChatMessage: vi.fn(),
+  editChatMessage: vi.fn(),
+  deleteChannelMessage: vi.fn(),
+  editChannelMessage: vi.fn(),
+}));
 
 vi.mock('@/hooks/useDemoMode', () => ({
   useDemoMode: () => ({ isDemoMode: false }),
@@ -94,7 +105,7 @@ vi.mock('../../hooks/useChatReadReceipts', () => ({
   useChatReadReceipts: () => ({ readStatusesByMessage: {} }),
 }));
 vi.mock('../../hooks/useChatTypingIndicators', () => ({
-  useChatTypingIndicators: () => ({ typingUsers: [], typingServiceRef: { current: null } }),
+  useChatTypingIndicators: () => ({ typingUsers: [], handleTypingChange: vi.fn() }),
 }));
 vi.mock('../../hooks/useChatReactions', () => ({
   useChatReactions: () => ({ reactions: {}, handleReaction: vi.fn() }),
@@ -152,10 +163,15 @@ vi.mock('../VirtualizedMessageContainer', () => ({
 }));
 
 vi.mock('../MessageItem', () => ({
-  MessageItem: ({ message, onDelete }: any) => (
-    <button onClick={() => onDelete?.(message.id)} data-testid={`delete-${message.id}`}>
-      delete
-    </button>
+  MessageItem: ({ message, onDelete, onEdit }: any) => (
+    <>
+      <button onClick={() => onDelete?.(message.id)} data-testid={`delete-${message.id}`}>
+        delete
+      </button>
+      <button onClick={() => onEdit?.(message.id, 'edited')} data-testid={`edit-${message.id}`}>
+        edit
+      </button>
+    </>
   ),
 }));
 
@@ -182,6 +198,7 @@ describe('TripChat delete message', () => {
 
     expect(mockDeleteMessage).toHaveBeenCalledTimes(1);
     expect(mockDeleteMessage).toHaveBeenCalledWith('msg-123');
+    expect(mockDeleteChatMessage).not.toHaveBeenCalled();
   });
 
   it('shows deterministic error toast when Stream client is unavailable', async () => {
@@ -192,5 +209,21 @@ describe('TripChat delete message', () => {
 
     expect(mockDeleteMessage).not.toHaveBeenCalled();
     expect(toast.error).toHaveBeenCalledWith('Chat connection unavailable. Please try again.');
+    expect(mockDeleteChatMessage).not.toHaveBeenCalled();
+  });
+
+  it('calls Stream edit API and never falls back to chatService edit in stream mode', async () => {
+    const mockUpdateMessage = vi.fn().mockResolvedValue(undefined);
+    mockGetStreamClient.mockReturnValue({
+      deleteMessage: mockDeleteMessage,
+      updateMessage: mockUpdateMessage,
+    } as any);
+
+    renderSubject();
+    fireEvent.click(screen.getByTestId('edit-msg-123'));
+
+    expect(mockUpdateMessage).toHaveBeenCalledTimes(1);
+    expect(mockUpdateMessage).toHaveBeenCalledWith({ id: 'msg-123', text: 'edited' });
+    expect(mockEditChatMessage).not.toHaveBeenCalled();
   });
 });

@@ -9,6 +9,7 @@ const queryMock = vi.fn();
 const stopWatchingMock = vi.fn();
 const onMock = vi.fn();
 const offMock = vi.fn();
+const getConfigMock = vi.fn();
 
 const mockChannel = {
   watch: watchMock,
@@ -17,6 +18,7 @@ const mockChannel = {
   on: onMock,
   off: offMock,
   sendMessage: sendMessageMock,
+  getConfig: getConfigMock,
 };
 
 vi.mock('@/services/stream/streamClient', () => ({
@@ -59,11 +61,18 @@ vi.mock('@/hooks/use-toast', () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
 
+vi.mock('@/telemetry/service', () => ({
+  telemetry: {
+    track: vi.fn(),
+  },
+}));
+
 describe('useStreamTripChat send path', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     watchMock.mockResolvedValue({ messages: [], membership: { user_id: 'user-1' } });
     queryMock.mockResolvedValue({ messages: [] });
+    getConfigMock.mockReturnValue({});
     sendMessageMock.mockResolvedValue({
       message: { id: 'msg-1', text: 'hello', created_at: new Date().toISOString() },
     });
@@ -94,6 +103,36 @@ describe('useStreamTripChat send path', () => {
     expect(result.current.messages).toHaveLength(1);
   });
 
+  it('sends mention payload when create-mention capability is present', async () => {
+    getConfigMock.mockReturnValue({
+      grants: {
+        channel_member: ['read-channel', 'create-message', 'create-mention'],
+      },
+    });
+    const { result } = renderHook(() => useStreamTripChat('trip-abc', { enabled: true }));
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.sendMessageAsync(
+        'hello @Sam',
+        'You',
+        undefined,
+        undefined,
+        'user-1',
+        undefined,
+        'text',
+        undefined,
+        ['user-2'],
+      );
+    });
+
+    expect(sendMessageMock).toHaveBeenCalledTimes(1);
+    expect(sendMessageMock.mock.calls[0]?.[0]?.mentioned_users).toEqual(['user-2']);
+  });
+
   it('sendMessageAsync throws on rejected sendMessage so caller can restore draft', async () => {
     sendMessageMock.mockRejectedValue(new Error('Not a member'));
 
@@ -118,6 +157,7 @@ describe('useStreamTripChat send path', () => {
   });
 
   it('retries without mentions when Stream denies CreateMention permission', async () => {
+    getConfigMock.mockReturnValue(undefined);
     sendMessageMock
       .mockRejectedValueOnce(
         new Error('StreamChat error code 17: ... action CreateMention ... not allowed'),
@@ -156,6 +196,37 @@ describe('useStreamTripChat send path', () => {
     expect(result.current.messages).toHaveLength(1);
   });
 
+  it('sends without mention payload when channel config grants do not include create-mention', async () => {
+    getConfigMock.mockReturnValue({
+      grants: {
+        channel_member: ['read-channel', 'create-message'],
+      },
+    });
+
+    const { result } = renderHook(() => useStreamTripChat('trip-abc', { enabled: true }));
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.sendMessageAsync(
+        'hello',
+        'You',
+        undefined,
+        undefined,
+        'user-1',
+        undefined,
+        'text',
+        undefined,
+        ['user-2'],
+      );
+    });
+
+    expect(sendMessageMock).toHaveBeenCalledTimes(1);
+    expect(sendMessageMock.mock.calls[0]?.[0]?.mentioned_users).toBeUndefined();
+  });
+
   it('strips legacy reply ids before sending to Stream parent_id', async () => {
     const { result } = renderHook(() => useStreamTripChat('trip-abc', { enabled: true }));
 
@@ -180,7 +251,7 @@ describe('useStreamTripChat send path', () => {
     expect(sendMessageMock.mock.calls[0]?.[0]?.parent_id).toBeUndefined();
   });
 
-  it('continues to channel.watch when stream-join-channel aborts', async () => {
+  it('deterministically recovers after join preflight timeout with a single ensure-membership retry', async () => {
     vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
       data: { session: { access_token: 'jwt-token' } },
       error: null,
@@ -190,14 +261,32 @@ describe('useStreamTripChat send path', () => {
       .spyOn(globalThis, 'fetch')
       .mockRejectedValueOnce(new Error('signal is aborted without reason'));
 
+    watchMock
+      .mockRejectedValueOnce(
+        new Error(
+          "StreamChat error code 17: GetOrCreateChannel failed with error: User 'abc' is not allowed to perform action ReadChannel",
+        ),
+      )
+      .mockResolvedValueOnce({
+        membership: { user_id: 'user-1' },
+        messages: [{ id: 'msg-joined', text: 'Joined', created_at: new Date().toISOString() }],
+      });
+
+    vi.mocked(supabase.functions.invoke).mockResolvedValueOnce({
+      data: { success: true, code: 'ok', reasonCode: 'stream_membership_synced' },
+      error: null,
+    } as Awaited<ReturnType<typeof supabase.functions.invoke>>);
+
     const { result } = renderHook(() => useStreamTripChat('trip-abc', { enabled: true }));
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(watchMock).toHaveBeenCalled();
+    expect(watchMock).toHaveBeenCalledTimes(2);
+    expect(supabase.functions.invoke).toHaveBeenCalledTimes(1);
     expect(result.current.error).toBeNull();
+    expect(result.current.messages[0]?.id).toBe('msg-joined');
     fetchSpy.mockRestore();
   });
 
@@ -242,7 +331,12 @@ describe('useStreamTripChat send path', () => {
     );
 
     vi.mocked(supabase.functions.invoke).mockResolvedValueOnce({
-      data: { success: false, code: 'membership_required', reason: 'User is not a trip member' },
+      data: {
+        success: false,
+        code: 'membership_required',
+        reasonCode: 'trip_membership_required',
+        reason: 'User is not a trip member',
+      },
       error: null,
     } as Awaited<ReturnType<typeof supabase.functions.invoke>>);
 
@@ -253,7 +347,7 @@ describe('useStreamTripChat send path', () => {
     });
 
     expect(result.current.error?.message).toBe(
-      'We could not verify your trip chat access. Please refresh and try again.',
+      'You no longer have access to this trip chat. Ask the trip organizer to re-add you.',
     );
     expect(supabase.functions.invoke).toHaveBeenCalledTimes(1);
   });

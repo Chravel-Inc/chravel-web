@@ -8,11 +8,9 @@ import {
   CHANNEL_TYPE_TRIP,
   CHANNEL_TYPE_CHANNEL,
   CHANNEL_TYPE_BROADCAST,
-  CHANNEL_TYPE_CONCIERGE,
   tripChannelId,
   proChannelId,
   broadcastChannelId,
-  conciergeChannelId,
 } from '../../streamChannelFactory';
 
 export interface StreamChannelConfig {
@@ -59,17 +57,5 @@ export function broadcastToStreamChannel(tripId: string, tripName?: string): Str
     id: broadcastChannelId(tripId),
     name: tripName ? `${tripName} Broadcasts` : `Trip ${tripId} Broadcasts`,
     customData: { trip_id: tripId },
-  };
-}
-
-/**
- * Build Stream channel config for an AI concierge channel.
- */
-export function conciergeToStreamChannel(tripId: string, userId: string): StreamChannelConfig {
-  return {
-    type: CHANNEL_TYPE_CONCIERGE,
-    id: conciergeChannelId(tripId, userId),
-    name: 'AI Concierge',
-    customData: { trip_id: tripId, user_id: userId },
   };
 }
