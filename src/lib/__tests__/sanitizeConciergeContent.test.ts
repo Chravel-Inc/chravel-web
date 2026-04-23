@@ -152,3 +152,50 @@ describe('sanitizeConciergeContent', () => {
     });
   });
 });
+
+describe('Additional coverage cases', () => {
+  it('should ignore tool-plan object logic for null', () => {
+    const input = 'Action: null Done.';
+    expect(sanitizeConciergeContent(input)).toBe(input.trim());
+  });
+
+  it('should properly capture the non tool plan block', () => {
+    // This targets the !isToolPlan line coverage (line 136/139)
+    const input = 'Action: {"actions": {"invalid": "array"}} Done.';
+    expect(sanitizeConciergeContent(input)).not.toContain('actions');
+  });
+
+  it('should preserve valid unfenced JSON that is not a tool-plan with balanced braces', () => {
+    // Includes something that looks like an unfenced JSON block but lacks tool keys
+    const input = 'Some text {"valid": "json", "nested": {"inner": true}} and more text.';
+    expect(sanitizeConciergeContent(input)).toBe(input.trim());
+  });
+
+  it('should properly capture unfenced block if parsed to not be a tool block', () => {
+    // This targets the !isToolPlan line coverage (line 136/139) with `actions` that doesn't trigger tool plan
+    const input = 'Action: {"actions": [{"type": "some_other_type"}]} Done.';
+    expect(sanitizeConciergeContent(input)).toContain('{"actions": [{"type": "some_other_type"}]}');
+  });
+});
+
+it('should handle unparseable JSON during fence parsing', () => {
+  const input = '```\n{"plan_version": 1, invalid_json}\n```';
+  expect(sanitizeConciergeContent(input)).toContain('invalid_json');
+});
+
+it('should handle valid JSON array which is not a tool object', () => {
+  const input = '```json\n[1, 2, 3]\n```';
+  expect(sanitizeConciergeContent(input)).toContain('[1, 2, 3]');
+});
+
+it('should ignore tool-plan object logic for scalar types', () => {
+  // Line 24 coverage for typeof obj !== 'object'
+  const input = '```json\n"string_value"\n```';
+  expect(sanitizeConciergeContent(input)).toContain('string_value');
+});
+
+it('should ignore tool-plan object logic for boolean types', () => {
+  // Line 24 coverage for typeof obj !== 'object' true path
+  const input = '```json\ntrue\n```';
+  expect(sanitizeConciergeContent(input)).toContain('true');
+});
