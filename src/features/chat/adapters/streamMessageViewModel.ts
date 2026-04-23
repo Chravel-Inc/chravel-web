@@ -53,10 +53,28 @@ export interface StreamMessageViewModel {
     image?: string;
   };
   replyTo?: { id: string; text: string; sender: string };
+  replyCount?: number;
+  threadPreviewSnippet?: string;
+  hasUnreadThreadReplies?: boolean;
   mediaType?: string;
   mediaUrl?: string;
   reactions?: Record<string, { count: number; userReacted: boolean; users: string[] }>;
   readStatuses: ReadStatus[];
+}
+
+interface StreamThreadReplyPreview {
+  text?: string;
+  content?: string;
+}
+
+interface StreamParentMessageFields {
+  reply_count?: number;
+  latest_replies?: StreamThreadReplyPreview[];
+  thread_participants?: Array<{ id?: string }>;
+  thread_participant_ids?: string[];
+  thread_unread_count?: number;
+  thread_has_unread?: boolean;
+  unread_thread_replies?: boolean;
 }
 
 const getAuthorName = (message: MessageResponse): string | undefined => {
@@ -215,6 +233,19 @@ export function mapStreamMessageToViewModel(params: {
   const { mediaType, mediaUrl, linkPreview } = resolveMedia(message);
   const member = messageUserId ? membersById.get(messageUserId) : undefined;
   const parentMessage = parentId ? messageById.get(parentId) : undefined;
+  const threadParent = message as MessageResponse & StreamParentMessageFields;
+  const replyCount = threadParent.reply_count ?? 0;
+  const latestReply = threadParent.latest_replies?.[threadParent.latest_replies.length - 1];
+  const threadPreviewSnippet = latestReply?.text || latestReply?.content;
+  const isThreadParticipant =
+    (threadParent.thread_participant_ids || []).includes(currentUserId || '') ||
+    (threadParent.thread_participants || []).some(p => p.id === currentUserId);
+  const hasUnreadByCount = (threadParent.thread_unread_count || 0) > 0;
+  const hasUnreadThreadReplies =
+    threadParent.thread_has_unread ||
+    threadParent.unread_thread_replies ||
+    (isThreadParticipant && hasUnreadByCount) ||
+    false;
 
   return {
     id: message.id,
@@ -246,6 +277,9 @@ export function mapStreamMessageToViewModel(params: {
           sender: getAuthorName(parentMessage) || 'System',
         }
       : undefined,
+    replyCount,
+    threadPreviewSnippet,
+    hasUnreadThreadReplies,
     mediaType,
     mediaUrl,
     reactions: buildReactions(message),
