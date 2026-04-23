@@ -87,4 +87,24 @@ describe('TripPreview invite flow', () => {
       expect(screen.getByText('Join Route')).toBeInTheDocument();
     });
   });
+
+  it('supports branded /t/:tripId path and still routes non-members through /join/:code', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter initialEntries={['/t/11111111-1111-4111-8111-111111111111']}>
+        <Routes>
+          <Route path="/t/:tripId" element={<TripPreview />} />
+          <Route path="/join/:token" element={<div>Join Route</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const joinButton = await screen.findByRole('button', { name: 'Join This Trip' });
+    await user.click(joinButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Join Route')).toBeInTheDocument();
+    });
+  });
 });
