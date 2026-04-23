@@ -7,6 +7,14 @@
 
 ## Strategy Tips
 
+### In transport-mixed chat surfaces, propagate transport mode to the mutation trigger component
+- **Tip:** If a parent surface supports both Stream and legacy transports, ensure the final mutation-triggering UI element (for example message action menu) receives explicit `transportMode`. Relying on an intermediate default (`'legacy'`) can silently route Stream edits/deletes into DB mutation APIs.
+- **Applies when:** Chat/message components pass edit/delete callbacks through `MessageItem`/`MessageBubble` style wrappers.
+- **Avoid when:** The entire surface is hard-wired to one transport and has no fallback path.
+- **Evidence:** `MessageBubble` forwarded callbacks but not `transportMode`, so `MessageActions` defaulted to legacy and could call `chatService` despite Stream mode callbacks being present upstream.
+- **Provenance:** April 2026 Stream-canonical mutation-path guardrail fix.
+- **Confidence:** high
+
 ### Ship new AI renderer paths behind endpoint-level feature flags
 - **Tip:** When introducing a new model-specific renderer (for example Gemini TTS) in a production flow, switch endpoints behind a frontend feature flag while preserving the previous endpoint contract as a fallback. This isolates model preview risk from core UX and enables instant rollback without touching UI state logic.
 - **Applies when:** Replacing third-party model/provider calls for non-critical enhancements (voice playback, summarization, enrichment) in existing user journeys.
@@ -662,4 +670,10 @@
 - **Avoid when:** The destination surface is a dedicated thread-only list where reply IDs are directly rendered.
 - **Evidence:** Chravel TripChat search could find replies but only attempted main-list scroll by reply ID; since replies are filtered out of top-level timeline, navigation looked broken. Mapping `parent_message_id` + `openThread` restored deterministic navigation.
 - **Provenance:** April 2026 thread UX adoption instrumentation pass.
+- **Confidence:** high
+### Canary incident auto-disable should live server-side behind service-role updates
+- **Tip:** If a rollout requires automatic kill-switch behavior, push threshold evaluation into an authenticated edge function that can atomically mutate `feature_flags` instead of relying on client-only counters.
+- **Applies when:** Shipping canary rollouts for realtime/chat systems where failures must disable rollout globally.
+- **Evidence:** `stream-canary-guard` now records rolling incident windows in `app_settings` and disables `stream_changes_canary` once metric thresholds are exceeded.
+- **Provenance:** April 2026 Stream canary hardening.
 - **Confidence:** high
