@@ -84,7 +84,7 @@ jobs:
           )
 
           # Union-merge files from .gitattributes (merge-tree doesn't respect merge drivers)
-          UNION_MERGE_FILES=("DEBUG_PATTERNS.md" "LESSONS.md" "TEST_GAPS.md" "agent_memory.jsonl")
+          UNION_MERGE_FILES=("DEBUG_PATTERNS.md" "LESSONS.md" "TEST_GAPS.md" "agent_memory.jsonl" "claude-progress.txt")
 
           HIGH_RISK_LIST=""
           if [ -n "$OVERLAP" ]; then
