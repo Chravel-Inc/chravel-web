@@ -544,6 +544,7 @@ export const MessageBubble = memo(
                 messageId={id}
                 messageContent={text}
                 messageType={messageType}
+                transportMode={transportMode}
                 isOwnMessage={isOwnMessage}
                 isDeleted={isDeleted}
                 isAdmin={isAdmin}

@@ -91,4 +91,36 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    files: [
+      'src/features/chat/components/**/*.{ts,tsx}',
+      'src/components/pro/channels/**/*.{ts,tsx}',
+      'src/hooks/stream/**/*.{ts,tsx}',
+    ],
+    ignores: ['**/__tests__/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@/services/chatService',
+              message:
+                'Stream-enabled chat surfaces must not import legacy chatService mutation APIs. Use Stream mutation callbacks from transport hooks.',
+            },
+            {
+              name: '../services/chatService',
+              message:
+                'Stream-enabled chat surfaces must not import legacy chatService mutation APIs. Use Stream mutation callbacks from transport hooks.',
+            },
+            {
+              name: '../../services/chatService',
+              message:
+                'Stream-enabled chat surfaces must not import legacy chatService mutation APIs. Use Stream mutation callbacks from transport hooks.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 );

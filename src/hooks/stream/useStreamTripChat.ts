@@ -23,12 +23,17 @@ import {
   onStreamClientConnectionStatusChange,
 } from '@/services/stream/streamClient';
 import { CHANNEL_TYPE_TRIP, tripChannelId } from '@/services/stream/streamChannelFactory';
-import { messageEvents } from '@/telemetry/events';
+import { messageEvents, streamReliabilityEvents } from '@/telemetry/events';
 import { telemetry } from '@/telemetry/service';
 import type { Channel, Event, MessageResponse } from 'stream-chat';
 import { buildTripStreamMessagePayload } from '@/services/stream/streamMessagePayload';
 import type { StreamQuotedReferenceInput } from '@/services/stream/streamMessagePayload';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import {
+  isStreamCanaryEnabledForUser,
+  reportStreamCanaryIncident,
+} from '@/services/stream/streamCanary';
 
 const PAGE_SIZE = 30;
 type StreamSendPayload = Parameters<Channel['sendMessage']>[0];
@@ -176,7 +181,11 @@ function withoutMentionedUsers(payload: StreamSendPayload): StreamSendPayload {
   return rest as StreamSendPayload;
 }
 
-async function sendMessageWithMentionFallback(channel: Channel, payload: StreamSendPayload) {
+async function sendMessageWithMentionFallback(
+  channel: Channel,
+  payload: StreamSendPayload,
+  onMentionFallback?: () => void,
+) {
   if (hasMentionedUsers(payload)) {
     const mentionCapability = channelMentionCapability(channel);
     if (mentionCapability === false) {
@@ -198,6 +207,7 @@ async function sendMessageWithMentionFallback(channel: Channel, payload: StreamS
           '[Stream] CreateMention denied; retrying send without mentioned_users payload',
         );
       }
+      onMentionFallback?.();
       return channel.sendMessage(withoutMentionedUsers(payload));
     }
     throw err;
@@ -211,6 +221,7 @@ async function sendMessageWithMentionFallback(channel: Channel, payload: StreamS
 export const useStreamTripChat = (tripId: string | undefined, options?: { enabled?: boolean }) => {
   const isEnabled = options?.enabled !== false;
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Return native MessageResponse objects directly to take advantage of Stream capabilities
   const [messages, setMessages] = useState<MessageResponse[]>([]);
@@ -220,6 +231,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [streamClientReady, setStreamClientReady] = useState(Boolean(getStreamClient()?.userID));
+  const [streamCanaryEnabled, setStreamCanaryEnabled] = useState(false);
 
   const channelRef = useRef<Channel | null>(null);
   const messagesRef = useRef<MessageResponse[]>([]);
@@ -229,10 +241,13 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
   const [activeChannel, setActiveChannel] = useState<Channel | null>(null);
   const isMountedRef = useRef(true);
   const membershipRecoveryAttemptedRef = useRef(false);
+  const membershipRecoveryCountRef = useRef(0);
   const guardedReloadAttemptedRef = useRef(false);
   const membershipFailureRef = useRef<MembershipFailure | null>(null);
   const ownReactionTypesByMessageRef = useRef<Map<string, Set<string>>>(new Map());
   const [reloadSeed, setReloadSeed] = useState(0);
+  const chatOpenAtMsRef = useRef(Date.now());
+  const firstMessageTrackedRef = useRef(false);
 
   const trackMembershipTelemetry = useCallback(
     (
@@ -251,16 +266,61 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     [tripId],
   );
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const resolveCanary = async () => {
+      const enabled = await isStreamCanaryEnabledForUser(user);
+      if (!cancelled) {
+        setStreamCanaryEnabled(enabled);
+      }
+    };
+
+    void resolveCanary();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  const reportCanaryIncident = useCallback(
+    (
+      metric:
+        | 'read_channel_denied'
+        | 'send_message_failure'
+        | 'reconnect_backfill_mismatch'
+        | 'mention_notification_failure',
+      context?: Record<string, unknown>,
+    ) => {
+      if (!streamCanaryEnabled) return;
+      void reportStreamCanaryIncident({
+        metric,
+        tripId,
+        context,
+      });
+    },
+    [streamCanaryEnabled, tripId],
+  );
+
   const triggerGuardedReload = useCallback(() => {
     if (guardedReloadAttemptedRef.current) return;
     guardedReloadAttemptedRef.current = true;
     setReloadSeed(prev => prev + 1);
   }, []);
 
+  const trackTimeToFirstMessage = useCallback(
+    (source: 'initial_history' | 'realtime_new') => {
+      if (!tripId || firstMessageTrackedRef.current) return;
+      firstMessageTrackedRef.current = true;
+      const elapsed = Date.now() - chatOpenAtMsRef.current;
+      streamReliabilityEvents.timeToFirstMessage(tripId, Math.max(elapsed, 0), source);
+    },
+    [tripId],
+  );
+
   // Backfill messages missed during WebSocket disconnection (agent memory #13)
   const backfillMissedMessages = useCallback(async () => {
     const channel = channelRef.current;
-    if (!channel || !lastMessageTimestampRef.current || !isMountedRef.current) return;
+    if (!channel || !lastMessageTimestampRef.current || !isMountedRef.current || !tripId) return;
 
     try {
       const response = await channel.query({
@@ -271,6 +331,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       });
 
       const fetchedMessages = (response.messages || []) as MessageResponse[];
+      streamReliabilityEvents.reconnectBackfill(tripId, 'socket_reconnect', fetchedMessages.length);
       if (fetchedMessages.length === 0) return;
 
       setMessages(prev => {
@@ -284,11 +345,14 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         return merged;
       });
     } catch (err) {
+      reportCanaryIncident('reconnect_backfill_mismatch', {
+        reason: err instanceof Error ? err.message : 'backfill_query_failed',
+      });
       if (import.meta.env.DEV) {
         console.warn('[Stream] backfill failed:', err);
       }
     }
-  }, []);
+  }, [tripId]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -322,12 +386,44 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible' && hasHydratedMessagesRef.current) {
-        void backfillMissedMessages();
+        const channel = channelRef.current;
+        if (!channel || !lastMessageTimestampRef.current || !isMountedRef.current || !tripId)
+          return;
+        void channel
+          .query({
+            messages: {
+              created_at_after: lastMessageTimestampRef.current,
+              limit: 100,
+            },
+          })
+          .then(response => {
+            const fetchedMessages = (response.messages || []) as MessageResponse[];
+            streamReliabilityEvents.reconnectBackfill(
+              tripId,
+              'visibility_resume',
+              fetchedMessages.length,
+            );
+            if (fetchedMessages.length === 0) return;
+            setMessages(prev => {
+              const existingIds = new Set(prev.map(m => m.id));
+              const newMessages = fetchedMessages.filter(m => !existingIds.has(m.id));
+              if (newMessages.length === 0) return prev;
+              return [...prev, ...newMessages].sort(
+                (a, b) =>
+                  new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime(),
+              );
+            });
+          })
+          .catch(err => {
+            if (import.meta.env.DEV) {
+              console.warn('[Stream] visibility backfill failed:', err);
+            }
+          });
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [backfillMissedMessages]);
+  }, [backfillMissedMessages, tripId]);
 
   useEffect(() => {
     if (!isEnabled || !tripId || streamClientReady || getStreamClient()?.userID) return;
@@ -368,10 +464,13 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
 
   useEffect(() => {
     membershipRecoveryAttemptedRef.current = false;
+    membershipRecoveryCountRef.current = 0;
     guardedReloadAttemptedRef.current = false;
     membershipFailureRef.current = null;
     hasHydratedMessagesRef.current = false;
     ownReactionTypesByMessageRef.current.clear();
+    firstMessageTrackedRef.current = false;
+    chatOpenAtMsRef.current = Date.now();
   }, [tripId]);
 
   useEffect(() => {
@@ -412,6 +511,12 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         const jwt = sessionData?.session?.access_token;
 
         if (jwt) {
+          membershipRecoveryCountRef.current += 1;
+          streamReliabilityEvents.membershipRecoveryAttempt(
+            tripId,
+            'join_preflight',
+            membershipRecoveryCountRef.current,
+          );
           const controller = new AbortController();
           const timeout = window.setTimeout(() => controller.abort(), 3000);
           try {
@@ -482,6 +587,12 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
 
       const ensureMembership = async (): Promise<MembershipRecoveryResult> => {
         trackMembershipTelemetry('ensure_membership', 'attempt');
+        membershipRecoveryCountRef.current += 1;
+        streamReliabilityEvents.membershipRecoveryAttempt(
+          tripId,
+          'ensure_membership',
+          membershipRecoveryCountRef.current,
+        );
         const response = await supabase.functions.invoke('stream-ensure-membership', {
           body: { tripId, userId: client.userID },
         });
@@ -561,6 +672,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         setActiveChannel(watched.channel);
 
         if (streamMessages.length > 0) {
+          trackTimeToFirstMessage('initial_history');
           setMessages(sortedMessages);
         } else if (!hasHydratedMessagesRef.current) {
           // First load can legitimately be empty; preserve hydrated state on re-watch.
@@ -615,6 +727,9 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         }
 
         if (isStreamReadChannelPermissionError(resolvedError)) {
+          reportCanaryIncident('read_channel_denied', {
+            reason: resolvedError instanceof Error ? resolvedError.message : 'read_channel_denied',
+          });
           setError(
             mapMembershipFailureToUiError(
               membershipFailureRef.current ?? { code: 'unknown', reason: 'ReadChannel denied' },
@@ -649,6 +764,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     reloadSeed,
     triggerGuardedReload,
     trackMembershipTelemetry,
+    trackTimeToFirstMessage,
   ]);
 
   const reload = useCallback(async () => {
@@ -688,6 +804,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
 
     const handleNewMessage = (event: Event) => {
       if (!event.message) return;
+      trackTimeToFirstMessage('realtime_new');
       const newMsg = event.message as MessageResponse;
 
       setMessages(prev => {
@@ -733,7 +850,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       channel.off('reaction.updated', handleReaction);
       channel.off('reaction.deleted', handleReaction);
     };
-  }, [activeChannel, tripId]);
+  }, [activeChannel, tripId, trackTimeToFirstMessage]);
 
   /**
    * Fire-and-forget send: Stream confirms via WebSocket (`message.new`).
@@ -777,7 +894,11 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         return;
       }
 
-      void sendMessageWithMentionFallback(channel, payloadResult.payload)
+      void sendMessageWithMentionFallback(channel, payloadResult.payload, () => {
+        reportCanaryIncident('mention_notification_failure', {
+          reason: 'create_mention_denied_fallback',
+        });
+      })
         .then(() => {
           messageEvents.sent({
             trip_id: tripId,
@@ -790,6 +911,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         })
         .catch((err: unknown) => {
           const msg = err instanceof Error ? err.message : 'Failed to send message';
+          reportCanaryIncident('send_message_failure', { reason: msg });
           messageEvents.sendFailed(tripId, msg);
           toast({
             title: 'Send Failed',
@@ -798,7 +920,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
           });
         });
     },
-    [tripId, toast],
+    [tripId, toast, reportCanaryIncident],
   );
 
   // Send message — matches useTripChat signature exactly
@@ -867,7 +989,15 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
 
       setIsCreating(true);
       try {
-        const response = await sendMessageWithMentionFallback(channel, payloadResult.payload);
+        const response = await sendMessageWithMentionFallback(
+          channel,
+          payloadResult.payload,
+          () => {
+            reportCanaryIncident('mention_notification_failure', {
+              reason: 'create_mention_denied_fallback',
+            });
+          },
+        );
         const sentMessage = response.message as MessageResponse;
 
         // Immediately insert or update the sent message in local state
@@ -891,11 +1021,15 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         }
 
         return sentMessage;
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
+        messageEvents.sendFailedAsync(tripId, errorMessage);
+        throw err;
       } finally {
         setIsCreating(false);
       }
     },
-    [tripId, toast],
+    [tripId, reportCanaryIncident],
   );
 
   // Load more (older messages)
