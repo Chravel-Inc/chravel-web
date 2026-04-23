@@ -54,6 +54,31 @@ export interface MessageEvents {
     is_offline_queued: boolean;
   };
   message_send_failed: { trip_id: string; error: string };
+  thread_opened: {
+    trip_id: string;
+    parent_message_id: string;
+    source: 'reply_badge' | 'search_result' | 'notification';
+  };
+  thread_reply_sent: {
+    trip_id: string;
+    parent_message_id: string;
+    reply_length: number;
+  };
+  moderation_action_executed: {
+    trip_id: string;
+    message_id: string;
+    target_user_id: string;
+    action: 'hide_message' | 'shadow_ban_user' | 'mute_user' | 'ban_user';
+    latency_ms: number;
+  };
+  moderation_action_failed: {
+    trip_id: string;
+    message_id: string;
+    target_user_id: string;
+    action: 'hide_message' | 'shadow_ban_user' | 'mute_user' | 'ban_user';
+    error: string;
+    latency_ms: number;
+  };
 }
 
 /**

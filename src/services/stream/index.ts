@@ -26,16 +26,18 @@ export {
   CHANNEL_TYPE_TRIP,
   CHANNEL_TYPE_CHANNEL,
   CHANNEL_TYPE_BROADCAST,
-  CHANNEL_TYPE_CONCIERGE,
   tripChannelId,
   proChannelId,
   broadcastChannelId,
-  conciergeChannelId,
   getOrCreateTripChannel,
   getOrCreateProChannel,
   getOrCreateBroadcastChannel,
-  getOrCreateConciergeChannel,
 } from './streamChannelFactory';
+
+export {
+  assertConciergeStreamTransportUnsupported,
+  getUnsupportedConciergeTransportMessage,
+} from './streamTransportGuards';
 
 // Membership sync (synchronous primary path)
 export {
@@ -60,6 +62,5 @@ export {
   tripToStreamChannel,
   proChannelToStreamChannel,
   broadcastToStreamChannel,
-  conciergeToStreamChannel,
 } from './adapters/mappers/channelMapper';
 export type { StreamChannelConfig } from './adapters/mappers/channelMapper';

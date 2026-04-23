@@ -7,17 +7,16 @@
  *   - chravel-trip:       trip-{tripId}           (regular trip chat)
  *   - chravel-channel:    channel-{channelId}     (pro role-based channels)
  *   - chravel-broadcast:  broadcast-{tripId}      (announcements)
- *   - chravel-concierge:  concierge-{tripId}-{userId}  (AI assistant, per-user-per-trip)
  */
 
 import { getStreamClient } from './streamClient';
+import { assertConciergeStreamTransportUnsupported } from './streamTransportGuards';
 import type { Channel } from 'stream-chat';
 
 // ── Channel Type Constants ────────────────────────────────────────────────
 export const CHANNEL_TYPE_TRIP = 'chravel-trip';
 export const CHANNEL_TYPE_CHANNEL = 'chravel-channel';
 export const CHANNEL_TYPE_BROADCAST = 'chravel-broadcast';
-export const CHANNEL_TYPE_CONCIERGE = 'chravel-concierge';
 
 // ── Channel ID Builders ───────────────────────────────────────────────────
 
@@ -31,10 +30,6 @@ export function proChannelId(channelId: string): string {
 
 export function broadcastChannelId(tripId: string): string {
   return `broadcast-${tripId}`;
-}
-
-export function conciergeChannelId(tripId: string, userId: string): string {
-  return `concierge-${tripId}-${userId}`;
 }
 
 // ── Channel Resolution ────────────────────────────────────────────────────
@@ -99,25 +94,10 @@ export async function getOrCreateBroadcastChannel(
   return channel;
 }
 
-/**
- * Get or create a private AI concierge channel.
- * Created lazily on first concierge interaction (not on trip join).
- */
+/** @deprecated Concierge transport is SSE/DB-backed and not supported on Stream. */
 export async function getOrCreateConciergeChannel(
-  tripId: string,
-  userId: string,
+  _tripId: string,
+  _userId: string,
 ): Promise<Channel | null> {
-  const client = getStreamClient();
-  if (!client) return null;
-
-  const AI_BOT_USER_ID = 'ai-concierge-bot';
-
-  const channel = client.channel(CHANNEL_TYPE_CONCIERGE, conciergeChannelId(tripId, userId), {
-    name: 'AI Concierge',
-    trip_id: tripId,
-    members: [userId, AI_BOT_USER_ID],
-  } as Record<string, unknown>);
-
-  await channel.watch();
-  return channel;
+  assertConciergeStreamTransportUnsupported();
 }

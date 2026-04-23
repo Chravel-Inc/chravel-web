@@ -3,6 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useDemoMode } from './useDemoMode';
 import { useAuth } from './useAuth';
+import {
+  reportRoleGrantContractInconsistencies,
+  validateRoleGrantStreamContract,
+} from '@/services/stream/roleGrantMembershipContract';
 
 export interface RoleAssignment {
   id: string;
@@ -34,6 +38,31 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
   const [assignments, setAssignments] = useState<RoleAssignment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const validateContract = useCallback(
+    async (operation: 'assign' | 'revoke', targetUserId: string, targetRoleId: string) => {
+      if (isDemoMode) return;
+
+      try {
+        const validation = await validateRoleGrantStreamContract({
+          tripId,
+          userId: targetUserId,
+          roleId: targetRoleId,
+          operation,
+        });
+        reportRoleGrantContractInconsistencies(validation);
+      } catch (error) {
+        console.error('[useRoleAssignments] Contract validation failed', {
+          operation,
+          tripId,
+          userId: targetUserId,
+          roleId: targetRoleId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    },
+    [isDemoMode, tripId],
+  );
 
   const fetchAssignments = useCallback(async () => {
     if (!enabled || !tripId) {
@@ -196,6 +225,7 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
           throw new Error(result.message);
         }
 
+        await validateContract('assign', userId, roleId);
         toast.success('✅ Role assigned successfully');
         await fetchAssignments();
 
@@ -208,7 +238,7 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
         setIsProcessing(false);
       }
     },
-    [tripId, fetchAssignments, isDemoMode, user?.id],
+    [tripId, fetchAssignments, isDemoMode, user?.id, validateContract],
   );
 
   const removeRole = useCallback(
@@ -246,6 +276,7 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
           throw new Error(result.message);
         }
 
+        await validateContract('revoke', userId, roleId);
         toast.success('Role removed successfully');
         await fetchAssignments();
 
@@ -258,7 +289,7 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
         setIsProcessing(false);
       }
     },
-    [tripId, fetchAssignments, isDemoMode],
+    [tripId, fetchAssignments, isDemoMode, validateContract],
   );
 
   /**

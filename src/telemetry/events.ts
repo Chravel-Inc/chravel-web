@@ -108,6 +108,24 @@ export const messageEvents = {
   sendFailed: (tripId: string, error: string) => {
     telemetry.track('message_send_failed', { trip_id: tripId, error });
   },
+
+  threadOpened: (params: MessageEvents['thread_opened']) => {
+    telemetry.track('thread_opened', params);
+  },
+
+  threadReplySent: (params: MessageEvents['thread_reply_sent']) => {
+    telemetry.track('thread_reply_sent', params);
+  },
+};
+
+export const moderationEvents = {
+  actionExecuted: (params: MessageEvents['moderation_action_executed']) => {
+    telemetry.track('moderation_action_executed', params);
+  },
+
+  actionFailed: (params: MessageEvents['moderation_action_failed']) => {
+    telemetry.track('moderation_action_failed', params);
+  },
 };
 
 // ============================================================================

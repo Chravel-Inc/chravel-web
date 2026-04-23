@@ -16,13 +16,15 @@ import {
 } from '@/services/stream/streamClient';
 import { CHANNEL_TYPE_CHANNEL, proChannelId } from '@/services/stream/streamChannelFactory';
 import type { StreamQuotedReferenceInput } from '@/services/stream/streamMessagePayload';
-import type { Channel, Event, MessageResponse, UserResponse } from 'stream-chat';
+import type { Channel, MessageResponse } from 'stream-chat';
 
 const PAGE_SIZE = 30;
 
 export function useStreamProChannel(channelId: string | null) {
   const [messages, setMessages] = useState<MessageResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [streamReady, setStreamReady] = useState(Boolean(getStreamClient()?.userID));
 
   const channelRef = useRef<Channel | null>(null);
@@ -46,6 +48,8 @@ export function useStreamProChannel(channelId: string | null) {
   useEffect(() => {
     if (!channelId) {
       setMessages([]);
+      setHasMore(true);
+      setIsLoadingMore(false);
       channelRef.current = null;
       setActiveStreamChannel(null);
       return;
@@ -72,6 +76,7 @@ export function useStreamProChannel(channelId: string | null) {
 
         const initial = (state.messages || []) as MessageResponse[];
         setMessages(initial);
+        setHasMore(initial.length === PAGE_SIZE);
       } catch {
         // Non-fatal — will show empty state
       } finally {
@@ -144,9 +149,37 @@ export function useStreamProChannel(channelId: string | null) {
     [],
   );
 
+  const loadMore = useCallback(async () => {
+    const channel = channelRef.current;
+    if (!channel || !hasMore || isLoadingMore || messages.length === 0) return;
+
+    setIsLoadingMore(true);
+    try {
+      const oldestId = messages[0]?.id;
+      const result = await channel.query({
+        messages: { limit: PAGE_SIZE, id_lt: oldestId },
+      });
+      const olderMessages = (result.messages || []) as MessageResponse[];
+
+      if (olderMessages.length > 0) {
+        setMessages(prev => [...olderMessages, ...prev]);
+        setHasMore(olderMessages.length === PAGE_SIZE);
+      } else {
+        setHasMore(false);
+      }
+    } catch {
+      // Non-fatal pagination error
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [hasMore, isLoadingMore, messages]);
+
   return {
     messages,
     isLoading,
+    hasMore,
+    isLoadingMore,
+    loadMore,
     sendMessage,
     activeChannel: activeStreamChannel,
   };

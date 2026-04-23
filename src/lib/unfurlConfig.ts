@@ -8,11 +8,11 @@
 
 const UNFURL_BASE =
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_UNFURL_BASE_URL) ||
-  'https://p.chravel.app';
+  'https://chravel.app';
 
 /**
  * Build a branded invite link for OG unfurl previews.
- * Format: https://p.chravel.app/j/{code}
+ * Format: https://chravel.app/j/{code} (or configured branded domain)
  */
 export function buildInviteLink(code: string): string {
   return `${UNFURL_BASE}/j/${code}`;
@@ -20,7 +20,7 @@ export function buildInviteLink(code: string): string {
 
 /**
  * Build a branded trip preview link for OG unfurl previews.
- * Format: https://p.chravel.app/t/{tripId}
+ * Format: https://chravel.app/t/{tripId} (or configured branded domain)
  */
 export function buildTripPreviewLink(tripId: string | number): string {
   return `${UNFURL_BASE}/t/${encodeURIComponent(String(tripId))}`;

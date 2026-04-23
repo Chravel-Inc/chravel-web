@@ -98,6 +98,14 @@
 
 ## Recovery Tips
 
+### Stream moderation controls should execute through an authenticated edge function, not directly from client SDK
+- **Tip:** Expose moderation UI affordances (hide message, shadow ban, mute, ban) only for authorized roles client-side, but route execution through a server-side edge function that re-checks trip authorization before calling Stream moderation APIs and writes admin audit logs.
+- **Applies when:** Adding role-gated moderation to chat/message surfaces in trip/event/pro contexts.
+- **Avoid when:** Action is purely local UX (for example personal block/hide) and does not require org-wide enforcement.
+- **Evidence:** `stream-moderation-action` now verifies trip creator/admin/organizer role from Supabase before applying Stream moderation mutations and inserting `admin_audit_logs`; frontend emits structured telemetry success/failure events and shows role-gated controls only when `isUserAdmin`.
+- **Provenance:** April 2026 chat moderation controls rollout.
+- **Confidence:** high
+
 ### Installed-app OAuth requires in-app browser tab + Universal Link deep-link callback
 - **Tip:** For Capacitor/PWA shells, do not embed Google/Apple OAuth in the app WebView (Google rejects with `disallowed_useragent`) and do not bounce to the system browser (it strands the shell and often freezes on provider redirects). The correct pattern is: (1) set `skipBrowserRedirect: true` and point `redirectTo` at an HTTPS Universal Link owned by the app (e.g., `https://chravel.app/auth-callback`), (2) launch the provider URL via an in-app browser tab — `@capacitor/browser` gives SFSafariViewController on iOS and Chrome Custom Tabs on Android — and (3) let the native shell intercept the deep link and reload the WebView at the callback URL so Supabase `detectSessionInUrl` completes the exchange. An earlier revision of this repo hard-blocked OAuth in installed contexts instead; that eliminated the freeze but removed Google/Apple sign-in entirely from the native apps, which is the wrong long-term posture.
 - **Applies when:** Wrapping a web auth flow in a native shell (Capacitor/Expo/WebView) and offering third-party OAuth providers.
@@ -148,6 +156,14 @@
 - **Confidence:** high
 
 ## Optimization Tips
+
+### Avoid default `[]` prop literals when callbacks/effects depend on that prop
+- **Tip:** If a component prop defaults to `[]` inline (`prop = []`) and that prop is in hook dependency arrays, React creates a fresh array every render and can retrigger callbacks/effects indefinitely. Use a module-level `const EMPTY_LIST = []` (typed) for stable identity.
+- **Applies when:** Data-driven components with memoized loaders (`useCallback`) and `useEffect` that depends on props like `members`, `filters`, or `options`.
+- **Evidence:** `ThreadView` pagination test surfaced a max-update-depth loop until `tripMembers` default moved to a stable module-level `EMPTY_TRIP_MEMBERS` constant.
+- **Provenance:** April 2026 ThreadView pagination/backfill hardening.
+- **Confidence:** high
+
 
 ### Bounded chunk concurrency is the safest first optimization for sequential external API loops
 - **Tip:** For loops that call external APIs per item (Gmail message fetch + downstream parsing), replace fully sequential `for await` flow with chunked `Promise.all` using a conservative concurrency cap. This reduces wall time dramatically without opening unlimited parallelism that can trigger rate limits or memory spikes.
@@ -622,4 +638,12 @@
 - **Avoid when:** Server-to-server calls where browser CORS is irrelevant.
 - **Evidence:** Gmail connect failed from `https://chravelapp.com` with “Failed to send a request to the Edge Function” because CORS echoed fallback origin (`https://chravel.app`) instead of request origin.
 - **Provenance:** April 2026 Gmail connector deep-dive and fix.
+- **Confidence:** high
+
+### Stream search results for thread replies should deep-link to parent message IDs
+- **Tip:** When using Stream `channel.search`, reply hits often return the reply message ID (`parent_id` populated). For a thread-first UX, route users to the parent message and auto-open the thread instead of scrolling to the reply row in the main timeline.
+- **Applies when:** Chat search overlays, notification deep-links, and any jump-to-message feature in threaded timelines.
+- **Avoid when:** The destination surface is a dedicated thread-only list where reply IDs are directly rendered.
+- **Evidence:** Chravel TripChat search could find replies but only attempted main-list scroll by reply ID; since replies are filtered out of top-level timeline, navigation looked broken. Mapping `parent_message_id` + `openThread` restored deterministic navigation.
+- **Provenance:** April 2026 thread UX adoption instrumentation pass.
 - **Confidence:** high
