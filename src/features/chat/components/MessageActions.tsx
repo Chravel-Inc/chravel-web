@@ -235,7 +235,7 @@ export const MessageActions: React.FC<MessageActionsComponentProps> = ({
           {/* Actions available for all messages */}
           <DropdownMenuItem onClick={() => onReply?.(messageId)}>
             <MessageSquareReply className="mr-2 h-4 w-4" />
-            Reply
+            Reply in thread
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => onOpenThread?.(messageId)}>
             <MessageSquareReply className="mr-2 h-4 w-4" />
