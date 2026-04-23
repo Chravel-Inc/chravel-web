@@ -54,6 +54,32 @@ export interface MessageEvents {
     is_offline_queued: boolean;
   };
   message_send_failed: { trip_id: string; error: string };
+  'message.send.failed': {
+    trip_id: string;
+    error: string;
+    transport: 'stream';
+    mode: 'async' | 'fire_and_forget';
+  };
+  'membership.recovery.attempt': {
+    trip_id: string;
+    stage: 'join_preflight' | 'ensure_membership';
+    attempt_number: number;
+  };
+  'webhook.dedupe.collision': {
+    source: 'stream-webhook';
+    event_type: string;
+    event_id: string;
+  };
+  'chat.reconnect.backfill': {
+    trip_id: string;
+    trigger: 'socket_reconnect' | 'visibility_resume';
+    fetched_count: number;
+  };
+  'chat.time_to_first_message': {
+    trip_id: string;
+    duration_ms: number;
+    source: 'initial_history' | 'realtime_new';
+  };
   thread_opened: {
     trip_id: string;
     parent_message_id: string;
