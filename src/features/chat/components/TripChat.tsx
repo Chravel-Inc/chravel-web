@@ -960,7 +960,7 @@ const TripChatComponent = ({
                         {pinnedMessages.slice(0, 3).map(message => (
                           <button
                             key={message.id}
-                            onClick={() => scrollToMessage(message.id, 'message')}
+                            onClick={() => scrollToMessage(message.id)}
                             className="block w-full truncate rounded-md bg-black/15 px-2 py-1 text-left text-xs text-amber-100 hover:bg-black/25"
                           >
                             {message.sender.name}: {message.text || 'Attachment'}
