@@ -46,6 +46,7 @@ interface Trip {
   placesCount?: number;
   created_by?: string;
   coverPhoto?: string;
+  trip_type?: 'consumer' | 'pro' | 'event';
 }
 
 interface TripGridProps {
@@ -57,6 +58,8 @@ interface TripGridProps {
   onCreateTrip?: () => void;
   activeFilter?: string;
   dashboardJoinRequests?: DashboardJoinRequest[];
+  pendingTrips?: Trip[];
+  outboundRequestIdsByTripId?: Record<string, string>;
   onCancelDashboardRequest?: (
     requestId: string,
   ) => Promise<{ success: boolean; message?: string }> | undefined;
@@ -74,6 +77,8 @@ export const TripGrid = React.memo(
     onCreateTrip,
     activeFilter = 'all',
     dashboardJoinRequests = [],
+    pendingTrips = [],
+    outboundRequestIdsByTripId = {},
     onCancelDashboardRequest,
     onTripStateChange,
   }: TripGridProps) => {
@@ -397,6 +402,23 @@ export const TripGrid = React.memo(
       viewMode === 'travelRecs' ? manualLocation : undefined,
     );
 
+    const requestTrips = useMemo(() => {
+      if (pendingTrips.length > 0) return pendingTrips;
+
+      // Fallback path for legacy environments where pending trips are not projected
+      // into useTrips yet, but outbound request rows are visible.
+      return outgoingRequests.map(request => ({
+        id: request.trip_id,
+        title: request.trip?.name || 'Trip',
+        location: request.trip?.destination || 'Destination TBD',
+        dateRange: formatRequestStartDate(request.trip?.start_date),
+        participants: [],
+        coverPhoto: request.trip?.cover_image_url,
+        peopleCount: 0,
+        placesCount: 0,
+      }));
+    }, [formatRequestStartDate, outgoingRequests, pendingTrips]);
+
     // Show loading skeleton
     if (loading) {
       return (
@@ -408,7 +430,7 @@ export const TripGrid = React.memo(
 
     const hasContent =
       activeFilter === 'requests'
-        ? outgoingRequests.length > 0
+        ? requestTrips.length > 0
         : activeFilter === 'archived'
           ? archivedTrips.length > 0
           : viewMode === 'myTrips'
@@ -544,27 +566,29 @@ export const TripGrid = React.memo(
             }`}
           >
             {activeFilter === 'requests' ? (
-              outgoingRequests.length > 0 ? (
-                outgoingRequests.map(request => (
-                  <TripCard
-                    key={request.id}
-                    trip={{
-                      id: request.trip_id,
-                      title: request.trip?.name || 'Trip',
-                      location: request.trip?.destination || 'Destination TBD',
-                      dateRange: formatRequestStartDate(request.trip?.start_date),
-                      participants: [],
-                      coverPhoto: request.trip?.cover_image_url,
-                      peopleCount: 0,
-                      placesCount: 0,
-                    }}
-                    pendingApproval
-                    pendingBadgeLabel="Pending Approval"
-                    pendingSecondaryActionLabel="Cancel request"
-                    onPendingSecondaryAction={() => handleCancelJoinRequest(request.id)}
-                    isPendingSecondaryActionLoading={cancelingRequestIds.has(request.id)}
-                  />
-                ))
+              requestTrips.length > 0 ? (
+                requestTrips.map(trip => {
+                  const tripId = trip.id.toString();
+                  const requestId =
+                    outboundRequestIdsByTripId[tripId] ||
+                    outgoingRequests.find(request => request.trip_id === tripId)?.id;
+
+                  return (
+                    <TripCard
+                      key={`request-${tripId}`}
+                      trip={trip}
+                      pendingApproval
+                      pendingBadgeLabel="Pending Approval"
+                      pendingSecondaryActionLabel="Cancel request"
+                      onPendingSecondaryAction={
+                        requestId ? () => handleCancelJoinRequest(requestId) : undefined
+                      }
+                      isPendingSecondaryActionLoading={
+                        requestId ? cancelingRequestIds.has(requestId) : false
+                      }
+                    />
+                  );
+                })
               ) : (
                 <div className="col-span-full rounded-xl border border-border/50 bg-card/30 p-6 text-center">
                   <p className="text-lg font-semibold">No outgoing requests</p>

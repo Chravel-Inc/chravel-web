@@ -348,28 +348,32 @@ const Index = () => {
 
   // Development diagnostics available via console when needed
 
+  // Single source for dashboard request cards/counts: pending trips from useTrips data.
+  // This avoids request-tab drift when join-request relation queries partially fail.
+  const pendingTripsAll = useMemo(() => {
+    if (isDemoMode) return [] as Trip[];
+    return convertSupabaseTripsToMock(
+      userTripsRaw.filter(trip => trip.membership_status === 'pending' && !trip.is_archived),
+    );
+  }, [isDemoMode, userTripsRaw]);
+
   // Calculate requests count per view mode (scoped by trip_type)
-  // Product intent on dashboard stats: "Requests" = my outbound pending join requests.
   const requestsCounts = useMemo(() => {
     let consumer = 0;
     let pro = 0;
     let event = 0;
 
-    dashboardJoinRequests
-      .filter(req => req.direction === 'outbound')
-      .forEach(req => {
-        let tripType: string | null | undefined = req.trip?.trip_type;
-        if (tripType === undefined || tripType === null) {
-          const tripData = userTripsRaw.find(t => t.id === req.trip_id);
-          tripType = tripData?.trip_type ?? 'consumer';
-        }
+    userTripsRaw
+      .filter(trip => trip.membership_status === 'pending' && !trip.is_archived)
+      .forEach(trip => {
+        const tripType = trip.trip_type ?? 'consumer';
         if (tripType === 'pro') pro++;
         else if (tripType === 'event') event++;
         else consumer++;
       });
 
     return { consumer, pro, event };
-  }, [dashboardJoinRequests, userTripsRaw]);
+  }, [userTripsRaw]);
 
   const filteredDashboardJoinRequests = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -397,6 +401,40 @@ const Index = () => {
     }
     return list;
   }, [dashboardJoinRequests, userTripsRaw, viewMode, searchQuery]);
+
+  const pendingTrips = useMemo(() => {
+    const scoped = pendingTripsAll.filter(trip => {
+      const source = userTripsRaw.find(row => row.id === trip.id);
+      const tripType = source?.trip_type ?? 'consumer';
+      if (viewMode === 'myTrips') return tripType !== 'pro' && tripType !== 'event';
+      if (viewMode === 'tripsPro') return tripType === 'pro';
+      if (viewMode === 'events') return tripType === 'event';
+      return true;
+    });
+
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return scoped;
+
+    return scoped.filter(trip => {
+      const name = (trip.title || '').toLowerCase();
+      const dest = (trip.location || '').toLowerCase();
+      return name.includes(q) || dest.includes(q);
+    });
+  }, [pendingTripsAll, userTripsRaw, viewMode, searchQuery]);
+
+  const outboundRequestIdsByTripId = useMemo(
+    () =>
+      filteredDashboardJoinRequests
+        .filter(req => req.direction === 'outbound')
+        .reduce(
+          (acc, req) => {
+            if (!acc[req.trip_id]) acc[req.trip_id] = req.id;
+            return acc;
+          },
+          {} as Record<string, string>,
+        ),
+    [filteredDashboardJoinRequests],
+  );
 
   // Calculate stats for each view mode - use UNFILTERED data for accurate counts
   // Stats should reflect total counts, not filtered counts
@@ -848,6 +886,8 @@ const Index = () => {
                   onCreateTrip={handleCreateTrip}
                   activeFilter={recsFilter}
                   dashboardJoinRequests={filteredDashboardJoinRequests}
+                  pendingTrips={pendingTrips}
+                  outboundRequestIdsByTripId={outboundRequestIdsByTripId}
                   onCancelDashboardRequest={cancelOutboundRequest}
                   onTripStateChange={handleTripStateChange}
                 />
@@ -1024,6 +1064,8 @@ const Index = () => {
                 onCreateTrip={handleCreateTrip}
                 activeFilter={recsFilter}
                 dashboardJoinRequests={filteredDashboardJoinRequests}
+                pendingTrips={pendingTrips}
+                outboundRequestIdsByTripId={outboundRequestIdsByTripId}
                 onCancelDashboardRequest={cancelOutboundRequest}
                 onTripStateChange={handleTripStateChange}
               />
@@ -1261,6 +1303,8 @@ const Index = () => {
             onCreateTrip={handleCreateTrip}
             activeFilter={activeFilter}
             dashboardJoinRequests={filteredDashboardJoinRequests}
+            pendingTrips={pendingTrips}
+            outboundRequestIdsByTripId={outboundRequestIdsByTripId}
             onCancelDashboardRequest={cancelOutboundRequest}
             onTripStateChange={handleTripStateChange}
           />

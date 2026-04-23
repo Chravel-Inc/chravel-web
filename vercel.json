@@ -159,10 +159,6 @@
       "destination": "/api/trip-preview?tripId=:tripId"
     },
     {
-      "source": "/trip/:tripId/preview",
-      "destination": "/api/trip-preview?tripId=:tripId"
-    },
-    {
       "source": "/((?!\\.well-known/).*)",
       "destination": "/index.html"
     }

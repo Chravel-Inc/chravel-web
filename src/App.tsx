@@ -358,6 +358,14 @@ const App = () => {
                         }
                       />
                       <Route
+                        path="/t/:tripId"
+                        element={
+                          <LazyRoute>
+                            <TripPreview />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
                         path="/demo/trip/:demoTripId"
                         element={
                           <LazyRoute>
