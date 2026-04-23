@@ -47,6 +47,14 @@
 - **Provenance:** April 2026 dashboard pending-card consolidation fix.
 - **Confidence:** high
 
+### Branded OG hosts should never be used as app CTA destinations
+- **Tip:** For unfurl/preview domains (e.g., `p.chravel.app`), keep `canonicalUrl` aligned to the branded share URL for cache correctness, but always set CTA/app redirect base to the interactive app host (`https://chravel.app`). Otherwise "Open in app" can loop users back to static OG HTML instead of join flows.
+- **Applies when:** Proxying shared preview pages through Edge Functions (`/t/:tripId`, invite cards, social previews) that render OG HTML plus CTA links.
+- **Avoid when:** The host itself serves the full interactive SPA and is intentionally the app origin.
+- **Evidence:** Trip share links on `p.chravel.app/t/:tripId` rendered OG HTML and lacked request-to-join path completion; forcing `appBaseUrl=https://chravel.app` in the proxy restored navigation to `TripPreview`/`JoinTrip`.
+- **Provenance:** April 2026 trip invite regression fix.
+- **Confidence:** high
+
 ### When adding feature parity to a secondary surface, use the existing data layer before adding schema
 - **Tip:** When a feature exists in surface A (e.g., TripChat) and needs to be added to surface B (e.g., Channels), first check what shared components and data services already exist. Often the components are reusable but the data layer wiring is missing. Use JSON metadata fields for lightweight data (reply context, link previews) before resorting to schema migrations.
 - **Applies when:** Adding threading, link previews, or other chat features to Channels or Broadcasts
@@ -218,6 +226,14 @@
 - **Provenance:** April 2026 LiveKit forensic pass + fallback hardening.
 ### Notification deep-link mappers should read both metadata and first-class columns
 - **Tip:** When notification rows store routing identifiers in both dedicated columns (e.g., `notifications.trip_id`) and metadata JSON, mapping code should prefer metadata but fall back to column values. Legacy rows and mixed writer paths (RPC helper vs direct inserts) often populate only one.
+
+### Requests dashboard should render from pending trip projections, not join-request rows alone
+- **Tip:** For “My pending join requests” UX, use pending trip rows already projected by `useTrips` (`membership_status='pending'`) as the primary card source and stat counts. Keep raw `trip_join_requests` rows only for request-id actions (cancel) and fallback rendering.
+- **Applies when:** Home dashboard Requests tab/cards/counts in `Index` + `TripGrid`.
+- **Avoid when:** Building admin moderation queues where requester-centric metadata is the primary object.
+- **Evidence:** `useDashboardJoinRequests` relation-heavy fetch can fail/partially hydrate in schema/RLS drift scenarios, yielding zero visible requests; pending trip projections remained aligned with card rendering requirements and enabled consistent card parity across dashboard sections.
+- **Provenance:** April 2026 requests-tab regression fix.
+- **Confidence:** high
 - **Applies when:** Building in-app notification lists, badge payload mappers, or tap-to-route logic.
 - **Avoid when:** The schema enforces a single canonical field and legacy data is guaranteed migrated.
 - **Evidence:** Join approval notifications were visible but lacked actionable routing in-app because mapper read only `metadata.trip_id` and ignored `trip_id` column from direct inserts.

@@ -100,6 +100,41 @@ describe('TripGrid requests tab', () => {
     expect(screen.getByText('Cancel request')).toBeInTheDocument();
   });
 
+  it('renders pending trips in Requests using standard TripCard pending mode', () => {
+    render(
+      <TripGrid
+        viewMode="myTrips"
+        trips={[]}
+        proTrips={{}}
+        events={{}}
+        activeFilter="requests"
+        pendingTrips={[
+          {
+            id: 'trip-100',
+            title: 'Pending via Trips Query',
+            location: 'Paris',
+            dateRange: 'Apr 1, 2026 - Apr 8, 2026',
+            participants: [],
+          },
+        ]}
+        outboundRequestIdsByTripId={{ 'trip-100': 'req-100' }}
+        dashboardJoinRequests={[
+          {
+            id: 'req-100',
+            trip_id: 'trip-100',
+            user_id: 'user-1',
+            requested_at: '2026-04-10T00:00:00Z',
+            direction: 'outbound',
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('Pending via Trips Query')).toBeInTheDocument();
+    expect(screen.getByText('pending-enabled')).toBeInTheDocument();
+    expect(screen.getByText('Cancel request')).toBeInTheDocument();
+  });
+
   it('hides inbound approval requests from the Requests section', () => {
     render(
       <TripGrid
