@@ -181,6 +181,14 @@
 
 ## Optimization Tips
 
+### Thread badge UX in Stream timelines depends on parent-level metadata projection, not child message inclusion
+- **Tip:** Keep timeline filtering to top-level Stream messages (`!parent_id` / `!reply_to_id`), but explicitly project parent thread fields (`reply_count`, `latest_replies`, and unread/participant markers) into UI view models so thread badges/snippets can render without leaking child replies into the main feed.
+- **Applies when:** Trip/pro chat timelines show thread indicators while thread replies are rendered in a separate thread view/modal.
+- **Avoid when:** The product intentionally mixes child replies into the main timeline.
+- **Evidence:** Parent messages were visible but thread metadata could be empty/zero unless `reply_count` and `latest_replies` were mapped in `streamMessageViewModel`; after projection, `MessageBubble` thread badge/snippet renders from existing props without timeline behavior changes.
+- **Provenance:** April 23, 2026 thread metadata adapter hardening.
+- **Confidence:** high
+
 ### Avoid default `[]` prop literals when callbacks/effects depend on that prop
 - **Tip:** If a component prop defaults to `[]` inline (`prop = []`) and that prop is in hook dependency arrays, React creates a fresh array every render and can retrigger callbacks/effects indefinitely. Use a module-level `const EMPTY_LIST = []` (typed) for stable identity.
 - **Applies when:** Data-driven components with memoized loaders (`useCallback`) and `useEffect` that depends on props like `members`, `filters`, or `options`.
