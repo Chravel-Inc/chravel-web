@@ -520,6 +520,24 @@ export const TripChat = React.memo(
           mentionedUserIds,
         );
 
+        if (replyingTo?.id && !demoMode.isDemoMode) {
+          const parentMessage = liveMessages.find(message => message.id === replyingTo.id);
+          const parentPayload = (parentMessage ?? {}) as {
+            text?: string;
+            created_at?: string;
+            user?: { name?: string; image?: string };
+          };
+          const streamUser = parentPayload.user;
+          setActiveThreadMessage({
+            id: replyingTo.id,
+            content: parentPayload.text || replyingTo.text,
+            authorName: streamUser?.name || replyingTo.senderName || 'User',
+            authorAvatar: streamUser?.image,
+            createdAt: parentPayload.created_at || new Date().toISOString(),
+            tripId: resolvedTripId,
+          });
+        }
+
         // Auto-parse message for entities (dates, times, locations)
         if (message.text && message.text.trim().length > 10) {
           parseMessage(message.text, resolvedTripId).catch(parseError => {
