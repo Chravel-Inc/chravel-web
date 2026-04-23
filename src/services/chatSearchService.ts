@@ -14,6 +14,7 @@ export interface MessageSearchResult {
   author_name: string;
   user_id: string | null;
   created_at: string;
+  parent_message_id?: string;
   type: 'message';
 }
 
@@ -94,21 +95,37 @@ export async function searchTripMessages(
 ): Promise<MessageSearchResult[]> {
   if (!query.trim()) return [];
 
-  const hits = await searchTripChannelMessages({
-    tripId,
-    query,
-    limit,
-    offset: 0,
-  });
+  const client = getStreamClient();
+  if (!client?.userID) return [];
 
-  return hits.map(hit => ({
-    id: hit.messageId,
-    content: hit.text,
-    author_name: hit.authorName,
-    user_id: hit.authorId,
-    created_at: hit.createdAt || new Date().toISOString(),
-    type: 'message' as const,
-  }));
+  try {
+    const channel = client.channel(CHANNEL_TYPE_TRIP, tripChannelId(tripId));
+    const result = await channel.search(
+      { text: query },
+      {
+        limit,
+        offset: 0,
+      },
+    );
+
+    return (result.results || []).map(item => {
+      const message = item.message;
+      return {
+        id: message.id,
+        content: message.text || '',
+        author_name: message.user?.name || message.user?.id || 'Unknown',
+        user_id: message.user?.id || null,
+        created_at: message.created_at || new Date().toISOString(),
+        parent_message_id: message.parent_id || undefined,
+        type: 'message' as const,
+      };
+    });
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.error('Failed to search messages via Stream:', error);
+    }
+    return [];
+  }
 }
 
 /**
@@ -202,6 +219,7 @@ async function searchTripMessagesWithFilters(
         author_name: message.user?.name || message.user?.id || 'Unknown',
         user_id: message.user?.id || null,
         created_at: message.created_at || new Date().toISOString(),
+        parent_message_id: (message as { parent_id?: string }).parent_id || undefined,
         type: 'message' as const,
       }));
     } catch {

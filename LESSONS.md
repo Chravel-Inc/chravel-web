@@ -640,10 +640,10 @@
 - **Provenance:** April 2026 Gmail connector deep-dive and fix.
 - **Confidence:** high
 
-### Stream membership recovery should consume canonical reason codes from edge functions
-- **Tip:** For chat membership self-heal flows, include a stable `reasonCode` field in edge-function responses and map UI errors from those codes first; only use SDK message regexes as a fallback for transport-level permission denials.
-- **Applies when:** Stream `ReadChannel` recovery paths using `stream-join-channel`/`stream-ensure-membership`.
-- **Avoid when:** Error source is not under your API contract (browser aborts/network offline).
-- **Evidence:** `useStreamTripChat` deterministic retry path now maps `trip_membership_required` from `stream-ensure-membership` response to actionable UX without brittle regex parsing of response text.
-- **Provenance:** April 2026 Stream membership reconciliation hardening.
+### Stream search results for thread replies should deep-link to parent message IDs
+- **Tip:** When using Stream `channel.search`, reply hits often return the reply message ID (`parent_id` populated). For a thread-first UX, route users to the parent message and auto-open the thread instead of scrolling to the reply row in the main timeline.
+- **Applies when:** Chat search overlays, notification deep-links, and any jump-to-message feature in threaded timelines.
+- **Avoid when:** The destination surface is a dedicated thread-only list where reply IDs are directly rendered.
+- **Evidence:** Chravel TripChat search could find replies but only attempted main-list scroll by reply ID; since replies are filtered out of top-level timeline, navigation looked broken. Mapping `parent_message_id` + `openThread` restored deterministic navigation.
+- **Provenance:** April 2026 thread UX adoption instrumentation pass.
 - **Confidence:** high

@@ -21,7 +21,11 @@ interface MockMessage {
 interface ChatSearchOverlayProps {
   tripId: string;
   onClose: () => void;
-  onResultSelect: (id: string, type: 'message' | 'broadcast') => void;
+  onResultSelect: (params: {
+    id: string;
+    type: 'message' | 'broadcast';
+    openThread?: boolean;
+  }) => void;
   isDemoMode?: boolean;
   demoMessages?: MockMessage[];
 }
@@ -145,10 +149,19 @@ export const ChatSearchOverlay = ({
   const handleResultClick = (index: number) => {
     if (index < messages.length) {
       const message = messages[index];
-      onResultSelect(message.id, 'message');
+      if (message.parent_message_id) {
+        onResultSelect({
+          id: message.parent_message_id,
+          type: 'message',
+          openThread: true,
+        });
+        return;
+      }
+
+      onResultSelect({ id: message.id, type: 'message' });
     } else {
       const broadcast = broadcasts[index - messages.length];
-      onResultSelect(broadcast.id, 'broadcast');
+      onResultSelect({ id: broadcast.id, type: 'broadcast' });
     }
   };
 
@@ -250,6 +263,9 @@ export const ChatSearchOverlay = ({
                   <p className="text-sm text-white/70 line-clamp-2">
                     {getSnippet(message.content, 120)}
                   </p>
+                  {message.parent_message_id && (
+                    <p className="text-[11px] text-blue-300/80 mt-1">↳ In thread reply</p>
+                  )}
                 </button>
               ))}
             </div>

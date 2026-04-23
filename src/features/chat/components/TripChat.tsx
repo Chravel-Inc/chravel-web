@@ -44,6 +44,8 @@ import { useLinkPreviews } from '../hooks/useLinkPreviews';
 import { useBlockedUsers, useReportContent } from '@/hooks/useUserSafety';
 import { getStreamClient } from '@/services/stream/streamClient';
 import { derivePinnedMessages } from '../utils/pinnedMessages';
+import { extractQuotedReferenceFromStreamMessage } from '@/services/stream/streamMessagePayload';
+import { messageEvents } from '@/telemetry/events';
 import { shouldUseLegacyChatSync } from '@/services/stream/streamTransportGuards';
 import { buildStreamMessageViewModels } from '../adapters/streamMessageViewModel';
 import { executeModerationAction, ModerationAction } from '@/services/moderationService';
@@ -126,10 +128,11 @@ export const TripChat = React.memo(
           messageId?: string;
           channelId?: string;
           channelType?: string;
+          openThreadId?: string;
         };
       } | null
     )?.chatNavigationContext;
-    const targetMessageId = chatNavigationContext?.messageId;
+    const targetMessageId = chatNavigationContext?.openThreadId || chatNavigationContext?.messageId;
 
     const demoMode = useDemoMode();
     const { user } = useAuth();
@@ -648,6 +651,13 @@ export const TripChat = React.memo(
           effectivePrivacyMode,
           messageType as 'text' | 'broadcast' | 'payment' | 'system',
           replyingTo?.id,
+          replyingTo
+            ? {
+                id: replyingTo.id,
+                text: replyingTo.text,
+                authorName: replyingTo.senderName,
+              }
+            : undefined,
           mentionedUserIds,
         );
 
@@ -742,7 +752,10 @@ export const TripChat = React.memo(
     };
 
     const handleActivateThread = useCallback(
-      (messageId: string) => {
+      (
+        messageId: string,
+        source: 'reply_badge' | 'search_result' | 'notification' = 'reply_badge',
+      ) => {
         const streamMessage = liveMessages.find(m => m.id === messageId);
         if (streamMessage) {
           const streamUser = (streamMessage as any).user;
@@ -754,6 +767,13 @@ export const TripChat = React.memo(
             createdAt: (streamMessage as any).created_at || new Date().toISOString(),
             tripId: resolvedTripId,
           });
+          if (!demoMode.isDemoMode) {
+            messageEvents.threadOpened({
+              trip_id: resolvedTripId,
+              parent_message_id: messageId,
+              source,
+            });
+          }
           return;
         }
 
@@ -768,7 +788,7 @@ export const TripChat = React.memo(
           tripId: resolvedTripId,
         });
       },
-      [liveMessages, demoMessages, resolvedTripId],
+      [demoMode.isDemoMode, liveMessages, demoMessages, resolvedTripId],
     );
 
     useEffect(() => {
@@ -909,7 +929,15 @@ export const TripChat = React.memo(
     const isLoading = demoMode.isDemoMode ? false : liveLoading;
 
     // Scroll to specific message with highlight animation
-    const scrollToMessage = (messageId: string, type: 'message' | 'broadcast') => {
+    const scrollToMessage = ({
+      id: targetId,
+      type,
+      openThread = false,
+    }: {
+      id: string;
+      type: 'message' | 'broadcast';
+      openThread?: boolean;
+    }) => {
       setShowSearchOverlay(false);
 
       // Switch to appropriate filter
@@ -919,9 +947,13 @@ export const TripChat = React.memo(
         setMessageFilter('all');
       }
 
+      if (openThread) {
+        handleActivateThread(targetId, 'search_result');
+      }
+
       // Wait for filter to apply, then scroll
       setTimeout(() => {
-        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+        const messageElement = document.querySelector(`[data-message-id="${targetId}"]`);
         if (messageElement) {
           messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
@@ -942,11 +974,15 @@ export const TripChat = React.memo(
 
       // Give messages time to render, then scroll
       const timer = setTimeout(() => {
-        scrollToMessage(targetMessageId, 'message');
+        scrollToMessage({
+          id: targetMessageId,
+          type: 'message',
+          openThread: Boolean(chatNavigationContext?.openThreadId),
+        });
       }, 300);
 
       return () => clearTimeout(timer);
-    }, [targetMessageId, isLoading]);
+    }, [targetMessageId, isLoading, chatNavigationContext?.openThreadId]);
 
     // Global keyboard shortcut for search (Ctrl+F or Cmd+F)
     useEffect(() => {

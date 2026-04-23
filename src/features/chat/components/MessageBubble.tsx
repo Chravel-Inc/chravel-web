@@ -49,6 +49,8 @@ export interface MessageBubbleProps {
   onDelete?: (messageId: string) => void;
   // Thread support
   replyCount?: number;
+  threadPreviewSnippet?: string;
+  hasUnreadThreadReplies?: boolean;
   onReply?: (messageId: string) => void;
   onOpenThread?: (messageId: string) => void;
   // 🆕 Grounding support
@@ -82,7 +84,7 @@ export interface MessageBubbleProps {
   readStatuses?: ReadStatus[];
   currentUserId: string;
   // 🆕 Inline Reply Support
-  replyTo?: { id: string; text: string; sender: string };
+  replyTo?: { id: string; text: string; sender: string; createdAt?: string };
   reactionUserNamesById?: Record<string, string>;
   /** Admins can delete any message (server-side RLS enforced) */
   isAdmin?: boolean;
@@ -127,6 +129,8 @@ export const MessageBubble = memo(
     onEdit,
     onDelete,
     replyCount = 0,
+    threadPreviewSnippet,
+    hasUnreadThreadReplies = false,
     onReply,
     onOpenThread,
     grounding,
@@ -578,10 +582,10 @@ export const MessageBubble = memo(
               {replyTo && (
                 <div
                   className={cn(
-                    'mb-2 p-2 rounded-lg text-xs cursor-pointer',
+                    'mb-2 px-2.5 py-1.5 rounded-md text-[11px] cursor-pointer border-l-2',
                     isOwnMessage
-                      ? 'bg-black/25 text-white/75'
-                      : 'bg-chat-other/70 text-chat-other-foreground',
+                      ? 'bg-black/20 border-white/40 text-white/85'
+                      : 'bg-chat-other/65 border-chat-other-foreground/35 text-chat-other-foreground',
                   )}
                   onClick={e => {
                     e.stopPropagation();
@@ -594,7 +598,17 @@ export const MessageBubble = memo(
                     }
                   }}
                 >
-                  <p className="font-semibold mb-0.5">{replyTo.sender}</p>
+                  <div className="flex items-center justify-between gap-2 mb-0.5">
+                    <p className="font-semibold truncate">{replyTo.sender}</p>
+                    {replyTo.createdAt && (
+                      <p className="opacity-75 shrink-0">
+                        {new Date(replyTo.createdAt).toLocaleTimeString([], {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    )}
+                  </div>
                   <p className="truncate opacity-90">{replyTo.text}</p>
                 </div>
               )}
@@ -734,15 +748,41 @@ export const MessageBubble = memo(
 
             {/* Thread reply indicator */}
             {replyCount > 0 && (
-              <button
-                onClick={() => onOpenThread?.(id)}
-                className="flex items-center gap-1 mt-1.5 text-xs text-primary/80 hover:text-primary transition-colors"
-              >
-                <MessageSquareReply className="h-3 w-3" />
-                <span>
-                  {replyCount} {replyCount === 1 ? 'reply' : 'replies'}
-                </span>
-              </button>
+              <div className="mt-1.5">
+                {onOpenThread ? (
+                  <button
+                    onClick={() => onOpenThread(id)}
+                    className="flex items-center gap-1 text-xs text-primary/80 hover:text-primary transition-colors"
+                  >
+                    <MessageSquareReply className="h-3 w-3" />
+                    <span>
+                      {replyCount} {replyCount === 1 ? 'reply' : 'replies'}
+                    </span>
+                    {hasUnreadThreadReplies && (
+                      <span className="rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[10px] font-medium text-blue-300">
+                        New
+                      </span>
+                    )}
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-1 text-xs text-primary/80">
+                    <MessageSquareReply className="h-3 w-3" />
+                    <span>
+                      {replyCount} {replyCount === 1 ? 'reply' : 'replies'}
+                    </span>
+                    {hasUnreadThreadReplies && (
+                      <span className="rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[10px] font-medium text-blue-300">
+                        New
+                      </span>
+                    )}
+                  </div>
+                )}
+                {threadPreviewSnippet && (
+                  <p className="mt-1 text-[11px] text-muted-foreground line-clamp-1">
+                    {threadPreviewSnippet}
+                  </p>
+                )}
+              </div>
             )}
 
             {/* Read Receipts */}
