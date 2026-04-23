@@ -107,6 +107,22 @@ export const messageEvents = {
 
   sendFailed: (tripId: string, error: string) => {
     telemetry.track('message_send_failed', { trip_id: tripId, error });
+    telemetry.track('message.send.failed', {
+      trip_id: tripId,
+      error,
+      transport: 'stream',
+      mode: 'fire_and_forget',
+    });
+  },
+
+  sendFailedAsync: (tripId: string, error: string) => {
+    telemetry.track('message_send_failed', { trip_id: tripId, error });
+    telemetry.track('message.send.failed', {
+      trip_id: tripId,
+      error,
+      transport: 'stream',
+      mode: 'async',
+    });
   },
 
   threadOpened: (params: MessageEvents['thread_opened']) => {
@@ -115,6 +131,44 @@ export const messageEvents = {
 
   threadReplySent: (params: MessageEvents['thread_reply_sent']) => {
     telemetry.track('thread_reply_sent', params);
+  },
+};
+
+export const streamReliabilityEvents = {
+  membershipRecoveryAttempt: (
+    tripId: string,
+    stage: 'join_preflight' | 'ensure_membership',
+    attemptNumber: number,
+  ) => {
+    telemetry.track('membership.recovery.attempt', {
+      trip_id: tripId,
+      stage,
+      attempt_number: attemptNumber,
+    });
+  },
+
+  reconnectBackfill: (
+    tripId: string,
+    trigger: 'socket_reconnect' | 'visibility_resume',
+    fetchedCount: number,
+  ) => {
+    telemetry.track('chat.reconnect.backfill', {
+      trip_id: tripId,
+      trigger,
+      fetched_count: fetchedCount,
+    });
+  },
+
+  timeToFirstMessage: (
+    tripId: string,
+    durationMs: number,
+    source: 'initial_history' | 'realtime_new',
+  ) => {
+    telemetry.track('chat.time_to_first_message', {
+      trip_id: tripId,
+      duration_ms: durationMs,
+      source,
+    });
   },
 };
 

@@ -655,3 +655,9 @@
 - **Evidence:** Chravel TripChat search could find replies but only attempted main-list scroll by reply ID; since replies are filtered out of top-level timeline, navigation looked broken. Mapping `parent_message_id` + `openThread` restored deterministic navigation.
 - **Provenance:** April 2026 thread UX adoption instrumentation pass.
 - **Confidence:** high
+### Canary incident auto-disable should live server-side behind service-role updates
+- **Tip:** If a rollout requires automatic kill-switch behavior, push threshold evaluation into an authenticated edge function that can atomically mutate `feature_flags` instead of relying on client-only counters.
+- **Applies when:** Shipping canary rollouts for realtime/chat systems where failures must disable rollout globally.
+- **Evidence:** `stream-canary-guard` now records rolling incident windows in `app_settings` and disables `stream_changes_canary` once metric thresholds are exceeded.
+- **Provenance:** April 2026 Stream canary hardening.
+- **Confidence:** high

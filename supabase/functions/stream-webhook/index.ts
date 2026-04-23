@@ -138,6 +138,21 @@ serve(async req => {
   });
 
   if (idempotencyError?.code === '23505') {
+    await supabase.from('webhook_events').insert({
+      event_id: `collision:${eventId}:${Date.now()}`,
+      event_type: 'stream:webhook_dedupe_collision',
+      processed_at: new Date().toISOString(),
+    });
+
+    console.log(
+      JSON.stringify({
+        event: 'webhook.dedupe.collision',
+        source: 'stream-webhook',
+        event_type: eventType,
+        event_id: eventId,
+      }),
+    );
+
     return new Response(JSON.stringify({ ok: true, duplicate: true }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
