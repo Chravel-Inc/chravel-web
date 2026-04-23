@@ -22,14 +22,3 @@ export function shouldUseLegacyChatSync(): boolean {
 export function isStreamChatActive(streamUserId?: string | null): boolean {
   return isStreamConfigured() && Boolean(streamUserId);
 }
-
-const CONCIERGE_STREAM_UNSUPPORTED_MESSAGE =
-  'Unsupported concierge transport: concierge messaging is SSE/DB-backed, not Stream-backed.';
-
-export function getUnsupportedConciergeTransportMessage(): string {
-  return CONCIERGE_STREAM_UNSUPPORTED_MESSAGE;
-}
-
-export function assertConciergeStreamTransportUnsupported(): never {
-  throw new Error(CONCIERGE_STREAM_UNSUPPORTED_MESSAGE);
-}

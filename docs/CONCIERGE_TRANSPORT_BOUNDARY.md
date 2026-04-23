@@ -18,17 +18,14 @@ Chravel concierge remains **SSE + database persisted** (`lovable-concierge` edge
 
 ## Guardrails implemented
 
-- `src/services/stream/streamTransportGuards.ts`
-  - `assertConciergeStreamTransportUnsupported()`
-  - `getUnsupportedConciergeTransportMessage()`
 - `src/services/stream/streamChannelFactory.ts`
-  - `getOrCreateConciergeChannel(...)` is deprecated and hard-fails via the guard.
+  - No concierge channel factory exists in the Stream surface.
 - `src/services/stream/index.ts`
-  - Removed concierge channel type/id and mapper exports to avoid accidental new dependencies.
+  - Stream barrel exposes only trip/channel/broadcast channel APIs.
+- `src/services/stream/streamTransportGuards.ts`
+  - Keeps only active transport-state checks (`isStreamConfigured`, `shouldUseLegacyChatSync`, `isStreamChatActive`).
 
 ## Regression tests
 
 - `src/services/stream/__tests__/streamTransportGuards.test.ts`
-  - validates deterministic unsupported message and throw behavior.
-- `src/services/stream/__tests__/streamChannelFactory.conciergeTransport.test.ts`
-  - validates deprecated concierge factory invocation rejects with unsupported transport error.
+  - validates transport-state checks (configured vs legacy vs active connection).

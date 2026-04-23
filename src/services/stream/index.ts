@@ -34,11 +34,6 @@ export {
   getOrCreateBroadcastChannel,
 } from './streamChannelFactory';
 
-export {
-  assertConciergeStreamTransportUnsupported,
-  getUnsupportedConciergeTransportMessage,
-} from './streamTransportGuards';
-
 // Membership sync (synchronous primary path)
 export {
   addMemberToTripChannels,
