@@ -708,3 +708,11 @@
 - **Evidence:** Daily-only triage docs can miss fast-moving regressions during initial rollout windows; explicit hourly gate + rollback criteria reduces mean time to contain.
 - **Provenance:** April 2026 Stream reliability runbook hardening pass.
 - **Confidence:** medium-high
+
+### Platform audits need to verify docs, generated types, and runtime code against each other
+- **Tip:** For platform-level work, do not trust any single layer as canonical. Read migrations, generated Supabase types, and runtime edge/client code together; the most serious platform bugs often live in the gaps between them.
+- **Applies when:** Auditing permissions, deletion semantics, invite flows, AI mutation paths, or any subsystem with long migration history.
+- **Avoid when:** Narrow component-only UI work with no schema or backend dependency.
+- **Evidence:** The April 2026 platform constitution audit found multiple high-risk drifts only visible by comparing layers: `trip_type` vocabulary split (`consumer` vs `regular`), `trip_pending_actions` missing from generated types, and account-deletion docs promising full deletion while the executor anonymizes or orphans some shared records instead.
+- **Provenance:** April 2026 full-platform constitution audit.
+- **Confidence:** high
