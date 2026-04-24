@@ -78,6 +78,27 @@ interface MockMessage {
   tags?: string[];
 }
 
+type StreamCapabilityName = 'delete-own-message' | 'delete-any-message' | 'update-own-message';
+
+const normalizeCapabilityName = (capability: string): string =>
+  capability.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+const STREAM_CAPABILITY_ALIASES: Record<StreamCapabilityName, string[]> = {
+  'delete-own-message': ['delete-own-message', 'DeleteOwnMessage'],
+  'delete-any-message': ['delete-any-message', 'DeleteAnyMessage'],
+  'update-own-message': ['update-own-message', 'UpdateOwnMessage'],
+};
+
+const hasStreamCapability = (
+  ownCapabilities: string[],
+  capability: StreamCapabilityName,
+): boolean => {
+  const normalizedCapabilities = new Set(ownCapabilities.map(normalizeCapabilityName));
+  return STREAM_CAPABILITY_ALIASES[capability].some(alias =>
+    normalizedCapabilities.has(normalizeCapabilityName(alias)),
+  );
+};
+
 export const TripChat = React.memo(
   ({
     enableGroupChat: _enableGroupChat = true,
@@ -219,6 +240,33 @@ export const TripChat = React.memo(
     );
 
     const streamClient = getStreamClient();
+    const streamOwnCapabilities = useMemo(() => {
+      const channel = streamActiveChannel as
+        | {
+            data?: { own_capabilities?: string[] };
+            state?: { own_capabilities?: string[]; ownCapabilities?: string[] };
+          }
+        | undefined;
+      const resolvedCapabilities =
+        channel?.data?.own_capabilities ??
+        channel?.state?.own_capabilities ??
+        channel?.state?.ownCapabilities ??
+        [];
+      return Array.isArray(resolvedCapabilities) ? resolvedCapabilities : [];
+    }, [streamActiveChannel]);
+
+    const canDeleteOwnMessage = useMemo(
+      () => hasStreamCapability(streamOwnCapabilities, 'delete-own-message'),
+      [streamOwnCapabilities],
+    );
+    const canDeleteAnyMessage = useMemo(
+      () => hasStreamCapability(streamOwnCapabilities, 'delete-any-message'),
+      [streamOwnCapabilities],
+    );
+    const canUpdateOwnMessage = useMemo(
+      () => hasStreamCapability(streamOwnCapabilities, 'update-own-message'),
+      [streamOwnCapabilities],
+    );
 
     // Extract Stream-canonical error fields for triage (always logged, even in prod).
     const extractStreamError = (
@@ -309,8 +357,19 @@ export const TripChat = React.memo(
         }
 
         const authorId = findMessageAuthorId(messageId);
-        if (authorId && streamClient.userID && authorId !== streamClient.userID) {
+        const isOwnMessage = !!(
+          authorId &&
+          streamClient.userID &&
+          authorId === streamClient.userID
+        );
+
+        if (authorId && streamClient.userID && !isOwnMessage) {
           toast.error('You can only delete your own messages');
+          return;
+        }
+
+        if (isOwnMessage && !canDeleteOwnMessage) {
+          toast.error('You don’t have permission to delete this message');
           return;
         }
 
@@ -325,11 +384,15 @@ export const TripChat = React.memo(
             data: details.data,
             messageId,
           });
+          if (details.status === 403 || details.code === 403) {
+            toast.error('You don’t have permission to delete this message');
+            return;
+          }
           const codeSuffix = details.code !== undefined ? ` (code ${details.code})` : '';
           toast.error(`Failed to delete message${codeSuffix}`);
         }
       },
-      [demoMode.isDemoMode, streamClient, findMessageAuthorId],
+      [canDeleteOwnMessage, demoMode.isDemoMode, streamClient, findMessageAuthorId],
     );
 
     const handleMessagePinToggle = useCallback(
@@ -441,7 +504,6 @@ export const TripChat = React.memo(
 
     const liveFormattedMessages = useMemo(() => {
       if (demoMode.isDemoMode) return [];
-
       return buildStreamMessageViewModels({
         messages: liveMessages,
         tripMembers,
@@ -1046,7 +1108,45 @@ export const TripChat = React.memo(
                     )}
                     <VirtualizedMessageContainer
                       messages={messagesWithPreviewFallbacks as any}
-                      renderMessage={renderMessage}
+                      renderMessage={(message: any, _index: number, showSenderInfo: boolean) => (
+                        <div data-message-id={message.id}>
+                          <MessageItem
+                            message={message}
+                            reactions={message.reactions || reactions[message.id] || {}}
+                            onReaction={handleReaction}
+                            onReply={handleOpenThread}
+                            onOpenThread={handleActivateThread}
+                            onEdit={demoMode.isDemoMode ? undefined : handleMessageEdit}
+                            onDelete={demoMode.isDemoMode ? undefined : handleMessageDelete}
+                            onRetry={handleRetryFailedMessage}
+                            systemMessagePrefs={isConsumer ? systemMessagePrefs : undefined}
+                            tripMembers={tripMembers}
+                            readStatuses={
+                              message.readStatuses || readStatusesByMessage[message.id] || []
+                            }
+                            showSenderInfo={showSenderInfo}
+                            reactionUserNamesById={reactionUserNamesById}
+                            isAdmin={isUserAdmin}
+                            canDeleteOwnMessage={canDeleteOwnMessage}
+                            canDeleteAnyMessage={canDeleteAnyMessage}
+                            canUpdateOwnMessage={canUpdateOwnMessage}
+                            canManagePins={canManagePins}
+                            onTogglePin={demoMode.isDemoMode ? undefined : handleMessagePinToggle}
+                            onBlockUser={demoMode.isDemoMode ? undefined : blockUserAction}
+                            onReportContent={
+                              demoMode.isDemoMode
+                                ? undefined
+                                : params =>
+                                    reportContentAction({
+                                      ...params,
+                                      tripId: resolvedTripId,
+                                    })
+                            }
+                            isBlockingUser={isBlocking}
+                            isReportingContent={isReporting}
+                          />
+                        </div>
+                      )}
                       onLoadMore={demoMode.isDemoMode ? () => {} : loadMoreMessages}
                       hasMore={demoMode.isDemoMode ? false : hasMore}
                       isLoading={isLoadingMore}
