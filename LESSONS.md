@@ -7,6 +7,14 @@
 
 ## Strategy Tips
 
+### Edge upload endpoints must verify trip membership before using service-role writes
+- **Tip:** If an edge upload function authenticates a user but then writes to Supabase Storage or tables with the service role, add an explicit active-membership guard first and prefer a user-scoped client for the actual upload/insert so existing RLS/storage policies remain authoritative.
+- **Applies when:** File/image/media upload endpoints accept `tripId` or other tenant-scoping identifiers from the client.
+- **Avoid when:** The endpoint is intentionally admin-only and has a stronger server-side authorization contract than trip membership.
+- **Evidence:** `file-upload` authenticated the caller but uploaded to `trip-files` and inserted into `trip_files` with the service role, so any logged-in user could write into another trip by supplying its `tripId`. Fixing it required an active-membership helper plus user-scoped storage/DB writes.
+- **Provenance:** April 2026 repo-wide bug audit (`supabase/functions/file-upload/index.ts`).
+- **Confidence:** high
+
 ### In transport-mixed chat surfaces, propagate transport mode to the mutation trigger component
 - **Tip:** If a parent surface supports both Stream and legacy transports, ensure the final mutation-triggering UI element (for example message action menu) receives explicit `transportMode`. Relying on an intermediate default (`'legacy'`) can silently route Stream edits/deletes into DB mutation APIs.
 - **Applies when:** Chat/message components pass edit/delete callbacks through `MessageItem`/`MessageBubble` style wrappers.

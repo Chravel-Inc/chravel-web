@@ -78,6 +78,19 @@ Known security anti-patterns discovered during audits. Reference this before int
 
 ---
 
+## 5. Service-Role Upload Endpoint Bypasses Trip Membership Policies
+
+**Symptom:** Any authenticated user can upload files into another trip by providing an arbitrary `tripId` to an edge function.
+**Risk:** CRITICAL — unauthorized cross-trip writes into shared storage paths and metadata tables.
+**Root Cause:** Edge function authenticates the caller, then performs `storage.upload()` and `trip_files.insert()` with the service role client, bypassing the `trip-files` bucket and `trip_files` RLS policies that normally require active trip membership.
+**How to Confirm:** Trace the endpoint end-to-end and verify there is no active-membership check before the service-role storage/DB writes. Existing storage policies should already require `trip_members.status = 'active'`.
+**Smallest Safe Fix:** Verify active trip membership explicitly, then perform the upload and metadata insert with a user-scoped client (or keep service role only for narrowly scoped cleanup that does not widen authorization).
+**Required Tests:** Unit test for the shared active-membership helper, including legacy-schema fallback when `trip_members.status` is unavailable.
+**Regression Surfaces:** Any edge function that writes to storage or trip-scoped tables with the service role after only validating the caller JWT.
+**Fixed in:** `supabase/functions/file-upload/index.ts`, `supabase/functions/_shared/tripMembership.ts` (April 2026 audit)
+
+---
+
 ## General Anti-Patterns to Avoid
 
 - **Never use `|| 'default'` for security-sensitive env vars** — fail loudly instead
