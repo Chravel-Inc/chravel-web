@@ -708,3 +708,10 @@
 - **Evidence:** Daily-only triage docs can miss fast-moving regressions during initial rollout windows; explicit hourly gate + rollback criteria reduces mean time to contain.
 - **Provenance:** April 2026 Stream reliability runbook hardening pass.
 - **Confidence:** medium-high
+
+### Thread-reply success UX should derive from pre-send reply context, not post-send composer state
+- **Tip:** If the composer clears `replyingTo` optimistically on send, capture the parent message id before dispatch and derive the success CTA state from that captured value. Otherwise post-send CTA logic cannot reliably determine whether the sent message was a thread reply.
+- **Applies when:** Chat composers clear input/reply state immediately for optimistic UX.
+- **Evidence:** `useChatComposer.sendMessage` resets `replyingTo` before transport send completes; TripChat now uses `createThreadReplySuccessState(repliedParentMessageId)` to ensure thread-reply success CTA is shown only for replies.
+- **Provenance:** April 23, 2026 thread reply CTA enhancement.
+- **Confidence:** high

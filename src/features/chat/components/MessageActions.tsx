@@ -247,7 +247,7 @@ export const MessageActions: React.FC<MessageActionsComponentProps> = ({
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => onOpenThread?.(messageId)}>
             <MessageSquareReply className="mr-2 h-4 w-4" />
-            Open thread
+            View thread
           </DropdownMenuItem>
           {canManagePins && (
             <DropdownMenuItem onClick={handleTogglePin} disabled={isSubmitting}>
