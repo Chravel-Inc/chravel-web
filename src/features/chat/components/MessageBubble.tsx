@@ -762,7 +762,7 @@ export const MessageBubble = memo(
                 {onOpenThread ? (
                   <button
                     onClick={() => onOpenThread(id)}
-                    className="flex items-center gap-1 text-xs text-primary/80 hover:text-primary transition-colors"
+                    className="inline-flex min-h-11 items-center gap-1 rounded-md px-2 text-xs text-primary/80 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                   >
                     <MessageSquareReply className="h-3 w-3" />
                     <span>

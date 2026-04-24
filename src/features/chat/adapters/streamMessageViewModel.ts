@@ -65,6 +65,7 @@ export interface StreamMessageViewModel {
 interface StreamThreadReplyPreview {
   text?: string;
   content?: string;
+  created_at?: string;
 }
 
 interface StreamParentMessageFields {
@@ -241,10 +242,19 @@ export function mapStreamMessageToViewModel(params: {
     (threadParent.thread_participant_ids || []).includes(currentUserId || '') ||
     (threadParent.thread_participants || []).some(p => p.id === currentUserId);
   const hasUnreadByCount = (threadParent.thread_unread_count || 0) > 0;
+  const latestReplyCreatedAt = latestReply?.created_at;
+  const currentUserLastReadAt = currentUserId
+    ? channelReadState?.[currentUserId]?.last_read
+    : undefined;
+  const hasUnreadByReadMarker =
+    Boolean(latestReplyCreatedAt && currentUserLastReadAt) &&
+    new Date(latestReplyCreatedAt as string).getTime() >
+      new Date(currentUserLastReadAt as string).getTime();
   const hasUnreadThreadReplies =
     threadParent.thread_has_unread ||
     threadParent.unread_thread_replies ||
     (isThreadParticipant && hasUnreadByCount) ||
+    hasUnreadByReadMarker ||
     false;
 
   return {
