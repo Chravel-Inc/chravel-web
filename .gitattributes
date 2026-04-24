@@ -4,3 +4,4 @@ DEBUG_PATTERNS.md merge=union
 LESSONS.md merge=union
 TEST_GAPS.md merge=union
 agent_memory.jsonl merge=union
+claude-progress.txt merge=union

@@ -82,99 +82,295 @@ interface MockMessage {
   timestamp_offset_days?: number;
   tags?: string[];
 }
-const TripChatComponent = ({
-  enableGroupChat: _enableGroupChat = true,
-  showBroadcasts: _showBroadcasts = true,
-  isEvent = false,
-  tripId: tripIdProp,
-  isPro = false,
-  userRole = 'member',
-  participants = [],
-}: TripChatProps) => {
-  const [demoMessages, setDemoMessages] = useState<MockMessage[]>([]);
 
-  const [_activeChannelId, _setActiveChannelId] = useState<string | null>(null);
+type StreamCapabilityName = 'delete-own-message' | 'delete-any-message' | 'update-own-message';
 
-  const [showSearchOverlay, setShowSearchOverlay] = useState(false);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const [activeThreadMessage, setActiveThreadMessage] = useState<{
-    id: string;
-    content: string;
-    authorName: string;
-    authorAvatar?: string;
-    createdAt: string;
-    tripId: string;
-  } | null>(null);
-  const [failedMessages, setFailedMessages] = useState<
-    Array<{
+const normalizeCapabilityName = (capability: string): string =>
+  capability.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+const STREAM_CAPABILITY_ALIASES: Record<StreamCapabilityName, string[]> = {
+  'delete-own-message': ['delete-own-message', 'DeleteOwnMessage'],
+  'delete-any-message': ['delete-any-message', 'DeleteAnyMessage'],
+  'update-own-message': ['update-own-message', 'UpdateOwnMessage'],
+};
+
+const hasStreamCapability = (
+  ownCapabilities: string[],
+  capability: StreamCapabilityName,
+): boolean => {
+  const normalizedCapabilities = new Set(ownCapabilities.map(normalizeCapabilityName));
+  return STREAM_CAPABILITY_ALIASES[capability].some(alias =>
+    normalizedCapabilities.has(normalizeCapabilityName(alias)),
+  );
+};
+
+export const TripChat = React.memo(
+  ({
+    enableGroupChat: _enableGroupChat = true,
+    showBroadcasts: _showBroadcasts = true,
+    isEvent = false,
+    tripId: tripIdProp,
+    isPro = false,
+    userRole = 'member',
+    participants = [],
+  }: TripChatProps) => {
+    const [demoMessages, setDemoMessages] = useState<MockMessage[]>([]);
+
+    const [_activeChannelId, _setActiveChannelId] = useState<string | null>(null);
+
+    const [showSearchOverlay, setShowSearchOverlay] = useState(false);
+    const messagesContainerRef = useRef<HTMLDivElement>(null);
+    const [activeThreadMessage, setActiveThreadMessage] = useState<{
       id: string;
       text: string;
       authorName: string;
-      messageType?: 'text' | 'broadcast' | 'payment' | 'system';
-      createdAtMs: number;
-    }>
-  >([]);
-  const [threadReplySuccess, setThreadReplySuccess] = useState<ThreadReplySuccessState | null>(
-    null,
-  );
+      authorAvatar?: string;
+      createdAt: string;
+      tripId: string;
+    } | null>(null);
+    const [failedMessages, setFailedMessages] = useState<
+      Array<{
+        id: string;
+        text: string;
+        authorName: string;
+        messageType?: 'text' | 'broadcast' | 'payment' | 'system';
+        createdAtMs: number;
+      }>
+    >([]);
 
-  const { isOffline } = useOfflineStatus();
-  const params = useParams<{ tripId?: string; proTripId?: string; eventId?: string }>();
-  const location = useLocation();
-  const resolvedTripId = useMemo(() => {
-    return tripIdProp || params.tripId || params.proTripId || params.eventId || '';
-  }, [tripIdProp, params.tripId, params.proTripId, params.eventId]);
+    const { isOffline } = useOfflineStatus();
+    const params = useParams<{ tripId?: string; proTripId?: string; eventId?: string }>();
+    const location = useLocation();
+    const resolvedTripId = useMemo(() => {
+      return tripIdProp || params.tripId || params.proTripId || params.eventId || '';
+    }, [tripIdProp, params.tripId, params.proTripId, params.eventId]);
 
-  // Extract navigation context from notification click (if present)
-  const chatNavigationContext = (
-    location.state as {
-      chatNavigationContext?: {
-        source?: string;
-        notificationId?: string;
-        messageId?: string;
-        channelId?: string;
-        channelType?: string;
-        openThreadId?: string;
+    // Extract navigation context from notification click (if present)
+    const chatNavigationContext = (
+      location.state as {
+        chatNavigationContext?: {
+          source?: string;
+          notificationId?: string;
+          messageId?: string;
+          channelId?: string;
+          channelType?: string;
+          openThreadId?: string;
+        };
+      } | null
+    )?.chatNavigationContext;
+    const targetMessageId = chatNavigationContext?.openThreadId || chatNavigationContext?.messageId;
+
+    const demoMode = useDemoMode();
+    const { user } = useAuth();
+    const queryClient = useQueryClient();
+    const { blockedUserIds, blockUser: blockUserAction, isBlocking } = useBlockedUsers();
+    const { reportContent: reportContentAction, isReporting } = useReportContent();
+
+    // ⚡ PERFORMANCE: Skip expensive hooks in demo mode for numeric trip IDs
+    const shouldSkipLiveChat = demoMode.isDemoMode && /^\d+$/.test(resolvedTripId);
+
+    // Fetch privacy config for the trip
+    const { data: privacyConfig } = useTripPrivacyConfig(
+      shouldSkipLiveChat ? undefined : resolvedTripId,
+    );
+
+    // Live chat hooks - only initialize for authenticated trips
+    const { tripMembers } = useTripMembers(shouldSkipLiveChat ? undefined : resolvedTripId);
+    const {
+      messages: liveMessages,
+      isLoading: liveLoading,
+      error: chatError,
+      sendMessageAsync: sendTripMessage,
+      isCreating: isSendingMessage,
+      loadMore: loadMoreMessages,
+      hasMore,
+      isLoadingMore,
+      toggleReaction,
+      reload,
+      activeChannel: streamActiveChannel,
+    } = useTripChat(shouldSkipLiveChat ? undefined : resolvedTripId);
+
+    const { isRefreshing, pullDistance } = usePullToRefresh({
+      onRefresh: async () => {
+        if (resolvedTripId) {
+          if (reload) {
+            await reload();
+          }
+          // Invalidate chat query cache to force fresh fetch
+          await queryClient.invalidateQueries({ queryKey: ['tripChat', resolvedTripId] });
+        }
+      },
+    });
+
+    // Chat mode enforcement — UI layer (server-side RLS is authoritative)
+    const {
+      effectiveChatMode,
+      canPost: canPostToChat,
+      canUploadMedia,
+      isLoading: chatModeLoading,
+      userRole: chatModeUserRole,
+    } = useTripChatMode(demoMode.isDemoMode ? undefined : resolvedTripId, user?.id, isEvent);
+
+    const isUserAdmin =
+      chatModeUserRole === 'admin' ||
+      chatModeUserRole === 'organizer' ||
+      chatModeUserRole === 'owner';
+    const canManagePins =
+      isUserAdmin || chatModeUserRole === 'moderator' || chatModeUserRole === 'mod';
+
+    // Role channels for pro trips
+    const {
+      availableChannels,
+      activeChannel: roleActiveChannel,
+      setActiveChannel: setRoleActiveChannel,
+    } = useRoleChannels(isPro ? resolvedTripId : undefined, user?.id || '');
+
+    // Typing indicators + read receipts — must be after all deps are declared
+    const { typingUsers, handleTypingChange } = useChatTypingIndicators(
+      demoMode.isDemoMode,
+      resolvedTripId,
+      user,
+      effectiveChatMode,
+      tripMembers.length,
+      streamActiveChannel,
+      shouldUseLegacyChatSync() ? 'legacy' : 'stream',
+    );
+
+    useChatReadReceipts(
+      demoMode.isDemoMode,
+      user?.id,
+      resolvedTripId,
+      liveMessages,
+      streamActiveChannel,
+    );
+
+    const streamClient = getStreamClient();
+    const streamOwnCapabilities = useMemo(() => {
+      const channel = streamActiveChannel as
+        | {
+            data?: { own_capabilities?: string[] };
+            state?: { own_capabilities?: string[]; ownCapabilities?: string[] };
+          }
+        | undefined;
+      const resolvedCapabilities =
+        channel?.data?.own_capabilities ??
+        channel?.state?.own_capabilities ??
+        channel?.state?.ownCapabilities ??
+        [];
+      return Array.isArray(resolvedCapabilities) ? resolvedCapabilities : [];
+    }, [streamActiveChannel]);
+
+    const canDeleteOwnMessage = useMemo(
+      () => hasStreamCapability(streamOwnCapabilities, 'delete-own-message'),
+      [streamOwnCapabilities],
+    );
+    const canDeleteAnyMessage = useMemo(
+      () => hasStreamCapability(streamOwnCapabilities, 'delete-any-message'),
+      [streamOwnCapabilities],
+    );
+    const canUpdateOwnMessage = useMemo(
+      () => hasStreamCapability(streamOwnCapabilities, 'update-own-message'),
+      [streamOwnCapabilities],
+    );
+
+    // Extract Stream-canonical error fields for triage (always logged, even in prod).
+    const extractStreamError = (
+      error: unknown,
+    ): { code?: number | string; status?: number; message: string; data?: unknown } => {
+      const err = error as {
+        code?: number | string;
+        StatusCode?: number;
+        status?: number;
+        message?: string;
+        response?: { data?: { code?: number | string; message?: string } };
       };
-    } | null
-  )?.chatNavigationContext;
-  const targetMessageId = chatNavigationContext?.openThreadId || chatNavigationContext?.messageId;
+      return {
+        code: err?.code ?? err?.response?.data?.code,
+        status: err?.StatusCode ?? err?.status,
+        message: err?.message ?? err?.response?.data?.message ?? 'Unknown Stream error',
+        data: err?.response?.data,
+      };
+    };
 
-  const demoMode = useDemoMode();
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-  const { blockedUserIds, blockUser: blockUserAction, isBlocking } = useBlockedUsers();
-  const { reportContent: reportContentAction, isReporting } = useReportContent();
+    // Find the message-author id so we can pre-check ownership before calling Stream.
+    const findMessageAuthorId = useCallback(
+      (messageId: string): string | undefined => {
+        const msg = liveMessages.find(m => String(m.id) === String(messageId));
+        if (!msg) return undefined;
+        const candidate = msg as unknown as {
+          user?: { id?: string };
+          user_id?: string;
+          userId?: string;
+          sender?: { id?: string };
+          author_id?: string;
+        };
+        return (
+          candidate.user?.id ??
+          candidate.user_id ??
+          candidate.userId ??
+          candidate.sender?.id ??
+          candidate.author_id
+        );
+      },
+      [liveMessages],
+    );
 
-  // ⚡ PERFORMANCE: Skip expensive hooks in demo mode for numeric trip IDs
-  const shouldSkipLiveChat = demoMode.isDemoMode && /^\d+$/.test(resolvedTripId);
+    const handleMessageEdit = useCallback(
+      async (messageId: string, newContent: string) => {
+        if (demoMode.isDemoMode) return;
 
-  // Fetch privacy config for the trip
-  const { data: privacyConfig } = useTripPrivacyConfig(
-    shouldSkipLiveChat ? undefined : resolvedTripId,
-  );
+        if (!streamClient) {
+          toast.error('Chat connection unavailable. Please try again.');
+          return;
+        }
 
-  // Live chat hooks - only initialize for authenticated trips
-  const { tripMembers } = useTripMembers(shouldSkipLiveChat ? undefined : resolvedTripId);
-  const {
-    messages: liveMessages,
-    isLoading: liveLoading,
-    error: chatError,
-    sendMessageAsync: sendTripMessage,
-    isCreating: isSendingMessage,
-    loadMore: loadMoreMessages,
-    hasMore,
-    isLoadingMore,
-    toggleReaction,
-    reload,
-    activeChannel: streamActiveChannel,
-  } = useTripChat(shouldSkipLiveChat ? undefined : resolvedTripId);
+        // Defensive owner check — Stream rejects owner-scoped ops as 403 if mismatch.
+        const authorId = findMessageAuthorId(messageId);
+        if (authorId && streamClient.userID && authorId !== streamClient.userID) {
+          toast.error('You can only edit your own messages');
+          return;
+        }
 
-  const { isRefreshing, pullDistance } = usePullToRefresh({
-    onRefresh: async () => {
-      if (resolvedTripId) {
-        if (reload) {
-          await reload();
+        try {
+          await streamClient.updateMessage({
+            id: messageId,
+            text: newContent,
+          });
+        } catch (error) {
+          const details = extractStreamError(error);
+          console.error('[TripChat] Stream updateMessage failed:', {
+            code: details.code,
+            status: details.status,
+            message: details.message,
+            data: details.data,
+            messageId,
+          });
+          const codeSuffix = details.code !== undefined ? ` (code ${details.code})` : '';
+          toast.error(`Failed to edit message${codeSuffix}`);
+        }
+      },
+      [demoMode.isDemoMode, streamClient, findMessageAuthorId],
+    );
+
+    const handleMessageDelete = useCallback(
+      async (messageId: string) => {
+        if (demoMode.isDemoMode) return;
+
+        if (!streamClient) {
+          toast.error('Chat connection unavailable. Please try again.');
+          return;
+        }
+
+        const authorId = findMessageAuthorId(messageId);
+        const isOwnMessage = !!(
+          authorId &&
+          streamClient.userID &&
+          authorId === streamClient.userID
+        );
+
+        if (authorId && streamClient.userID && !isOwnMessage) {
+          toast.error('You can only delete your own messages');
+          return;
         }
         // Invalidate chat query cache to force fresh fetch
         await queryClient.invalidateQueries({ queryKey: ['tripChat', resolvedTripId] });
@@ -268,9 +464,32 @@ const TripChatComponent = ({
     [liveMessages],
   );
 
-  const handleMessageEdit = useCallback(
-    async (messageId: string, newContent: string) => {
-      if (demoMode.isDemoMode) return;
+        if (isOwnMessage && !canDeleteOwnMessage) {
+          toast.error('You don’t have permission to delete this message');
+          return;
+        }
+
+        try {
+          await streamClient.deleteMessage(messageId);
+        } catch (error) {
+          const details = extractStreamError(error);
+          console.error('[TripChat] Stream deleteMessage failed:', {
+            code: details.code,
+            status: details.status,
+            message: details.message,
+            data: details.data,
+            messageId,
+          });
+          if (details.status === 403 || details.code === 403) {
+            toast.error('You don’t have permission to delete this message');
+            return;
+          }
+          const codeSuffix = details.code !== undefined ? ` (code ${details.code})` : '';
+          toast.error(`Failed to delete message${codeSuffix}`);
+        }
+      },
+      [canDeleteOwnMessage, demoMode.isDemoMode, streamClient, findMessageAuthorId],
+    );
 
       if (!streamClient) {
         toast.error('Chat connection unavailable. Please try again.');
@@ -662,16 +881,29 @@ const TripChatComponent = ({
   useEffect(() => {
     if (!user?.id || failedMessages.length === 0 || liveMessages.length === 0) return;
 
-    const matchingLiveMessages = liveMessages
-      .map(msg => {
-        const streamUser = (msg as any).user;
-        return {
-          text: ((msg as any).text || '').trim(),
-          userId: streamUser?.id || (msg as any).user_id,
-          createdAtMs: new Date((msg as any).created_at || 0).getTime(),
-        };
-      })
-      .filter(msg => msg.userId === user.id && msg.text.length > 0);
+    const { reactions, handleReaction } = useChatReactions(
+      demoMode.isDemoMode,
+      user?.id,
+      liveMessages,
+      toggleReaction,
+    );
+
+    const handleOpenThread = (messageId: string) => {
+      const message =
+        liveFormattedMessages.find(m => m.id === messageId) ||
+        demoMessages.find(m => m.id === messageId);
+      if (!message) return;
+
+      // For inline reply:
+      const content = (message as any).text || (message as any).content || '';
+      const authorName =
+        (message as any).sender?.name ||
+        (message as any).user?.name ||
+        (message as any).author_name ||
+        'User';
+
+      setReply(messageId, content, authorName);
+    };
 
     if (matchingLiveMessages.length === 0) return;
 
@@ -786,50 +1018,50 @@ const TripChatComponent = ({
         ...message,
         linkPreview: message.linkPreview || linkPreviewFallbacks[message.id],
       })),
-    [messagesWithFailed, linkPreviewFallbacks],
-  );
+    );
 
-  const pinnedMessages = useMemo(
-    () => derivePinnedMessages(liveFormattedMessages as any),
-    [liveFormattedMessages],
-  );
+    const messagesWithPreviewFallbacks = useMemo(
+      () =>
+        messagesWithFailed.map(message => ({
+          ...message,
+          linkPreview: message.linkPreview || linkPreviewFallbacks[message.id],
+        })),
+      [messagesWithFailed, linkPreviewFallbacks],
+    );
 
-  const isLoading = demoMode.isDemoMode ? false : liveLoading;
+    const pinnedMessages = useMemo(
+      () => derivePinnedMessages(liveFormattedMessages as any),
+      [liveFormattedMessages],
+    );
+    const readStatusesByMessage = useMemo(
+      () =>
+        selectReadStatusesByMessage({
+          messages: liveMessages as any[],
+          currentUserId: user?.id,
+          activeChannel: streamActiveChannel as Channel | null,
+        }),
+      [liveMessages, streamActiveChannel, user?.id],
+    );
 
-  // Scroll to specific message with highlight animation
-  const scrollToMessage = ({
-    id: targetId,
-    type,
-    openThread = false,
-  }: {
-    id: string;
-    type: 'message' | 'broadcast';
-    openThread?: boolean;
-  }) => {
-    setShowSearchOverlay(false);
+    const isLoading = demoMode.isDemoMode ? false : liveLoading;
 
-    // Switch to appropriate filter
-    if (type === 'broadcast' && messageFilter !== 'broadcasts') {
-      setMessageFilter('broadcasts');
-    } else if (type === 'message' && messageFilter !== 'all') {
-      setMessageFilter('all');
-    }
+    // Scroll to specific message with highlight animation
+    const scrollToMessage = ({
+      id: targetId,
+      type,
+      openThread = false,
+    }: {
+      id: string;
+      type: 'message' | 'broadcast';
+      openThread?: boolean;
+    }) => {
+      setShowSearchOverlay(false);
 
-    if (openThread) {
-      handleActivateThread(targetId, 'search_result');
-    }
-
-    // Wait for filter to apply, then scroll
-    setTimeout(() => {
-      const messageElement = document.querySelector(`[data-message-id="${targetId}"]`);
-      if (messageElement) {
-        messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-        // Add highlight animation
-        messageElement.classList.add('search-highlight-flash');
-        setTimeout(() => {
-          messageElement.classList.remove('search-highlight-flash');
-        }, 1000);
+      // Switch to appropriate filter
+      if (type === 'broadcast' && messageFilter !== 'broadcasts') {
+        setMessageFilter('broadcasts');
+      } else if (type === 'message' && messageFilter !== 'all') {
+        setMessageFilter('all');
       }
     }, 100);
   };
@@ -861,26 +1093,103 @@ const TripChatComponent = ({
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [messageFilter]);
+    const renderMessage = useCallback(
+      (message: any, _index: number, showSenderInfo: boolean) => (
+        <div data-message-id={message.id}>
+          <MessageItem
+            message={message}
+            reactions={message.reactions ?? reactions[message.id] ?? {}}
+            onReaction={handleReaction}
+            onReply={handleOpenThread}
+            onOpenThread={handleActivateThread}
+            onEdit={demoMode.isDemoMode ? undefined : handleMessageEdit}
+            onDelete={demoMode.isDemoMode ? undefined : handleMessageDelete}
+            onRetry={handleRetryFailedMessage}
+            systemMessagePrefs={isConsumer ? systemMessagePrefs : undefined}
+            tripMembers={tripMembers}
+            readStatuses={message.readStatuses ?? readStatusesByMessage[message.id] ?? []}
+            showSenderInfo={showSenderInfo}
+            reactionUserNamesById={reactionUserNamesById}
+            isAdmin={isUserAdmin}
+            canManagePins={canManagePins}
+            onTogglePin={demoMode.isDemoMode ? undefined : handleMessagePinToggle}
+            onBlockUser={demoMode.isDemoMode ? undefined : blockUserAction}
+            onReportContent={
+              demoMode.isDemoMode
+                ? undefined
+                : params =>
+                    reportContentAction({
+                      ...params,
+                      tripId: resolvedTripId,
+                    })
+            }
+            isBlockingUser={isBlocking}
+            isReportingContent={isReporting}
+          />
+        </div>
+      ),
+      [
+        reactions,
+        handleReaction,
+        handleOpenThread,
+        handleActivateThread,
+        demoMode.isDemoMode,
+        handleMessageEdit,
+        handleMessageDelete,
+        handleRetryFailedMessage,
+        isConsumer,
+        systemMessagePrefs,
+        tripMembers,
+        readStatusesByMessage,
+        reactionUserNamesById,
+        isUserAdmin,
+        canManagePins,
+        handleMessagePinToggle,
+        blockUserAction,
+        reportContentAction,
+        resolvedTripId,
+        isBlocking,
+        isReporting,
+      ],
+    );
 
-  return (
-    <div className="flex flex-col h-full">
-      <PullToRefreshIndicator
-        isRefreshing={isRefreshing}
-        pullDistance={pullDistance}
-        threshold={80}
-      />
+    // Scroll to target message from notification click (when messages finish loading)
+    const scrollAttemptedRef = useRef(false);
+    useEffect(() => {
+      if (!targetMessageId || isLoading || scrollAttemptedRef.current) return;
+      scrollAttemptedRef.current = true;
 
-      {/* Search Overlay Modal */}
-      {showSearchOverlay && (
-        <ChatSearchOverlay
-          tripId={resolvedTripId}
-          onClose={() => setShowSearchOverlay(false)}
-          onResultSelect={scrollToMessage}
-          isDemoMode={demoMode.isDemoMode}
-          demoMessages={demoMessages}
+      // Give messages time to render, then scroll
+      const timer = setTimeout(() => {
+        scrollToMessage({
+          id: targetMessageId,
+          type: 'message',
+          openThread: Boolean(chatNavigationContext?.openThreadId),
+        });
+      }, 300);
+
+      return () => clearTimeout(timer);
+    }, [targetMessageId, isLoading, chatNavigationContext?.openThreadId]);
+
+    // Global keyboard shortcut for search (Ctrl+F or Cmd+F)
+    useEffect(() => {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'f' && messageFilter !== 'channels') {
+          e.preventDefault();
+          setShowSearchOverlay(true);
+        }
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [messageFilter]);
+
+    return (
+      <div className="flex flex-col h-full">
+        <PullToRefreshIndicator
+          isRefreshing={isRefreshing}
+          pullDistance={pullDistance}
+          threshold={80}
         />
       )}
 
@@ -1004,47 +1313,75 @@ const TripChatComponent = ({
                         />
                       </div>
                     )}
-                    onLoadMore={demoMode.isDemoMode ? () => {} : loadMoreMessages}
-                    hasMore={demoMode.isDemoMode ? false : hasMore}
-                    isLoading={isLoadingMore}
-                    initialVisibleCount={10}
-                    className="chat-scroll-container native-scroll px-3"
-                    autoScroll={true}
-                    restoreScroll={true}
-                    scrollKey={`chat-scroll-${resolvedTripId}`}
-                  />
-                </>
-              )}
+                    <VirtualizedMessageContainer
+                      messages={messagesWithPreviewFallbacks as any}
+                      renderMessage={(message: any, _index: number, showSenderInfo: boolean) => (
+                        <div data-message-id={message.id}>
+                          <MessageItem
+                            message={message}
+                            reactions={message.reactions || reactions[message.id] || {}}
+                            onReaction={handleReaction}
+                            onReply={handleOpenThread}
+                            onOpenThread={handleActivateThread}
+                            onEdit={demoMode.isDemoMode ? undefined : handleMessageEdit}
+                            onDelete={demoMode.isDemoMode ? undefined : handleMessageDelete}
+                            onRetry={handleRetryFailedMessage}
+                            systemMessagePrefs={isConsumer ? systemMessagePrefs : undefined}
+                            tripMembers={tripMembers}
+                            readStatuses={
+                              message.readStatuses || readStatusesByMessage[message.id] || []
+                            }
+                            showSenderInfo={showSenderInfo}
+                            reactionUserNamesById={reactionUserNamesById}
+                            isAdmin={isUserAdmin}
+                            canDeleteOwnMessage={canDeleteOwnMessage}
+                            canDeleteAnyMessage={canDeleteAnyMessage}
+                            canUpdateOwnMessage={canUpdateOwnMessage}
+                            canManagePins={canManagePins}
+                            onTogglePin={demoMode.isDemoMode ? undefined : handleMessagePinToggle}
+                            onBlockUser={demoMode.isDemoMode ? undefined : blockUserAction}
+                            onReportContent={
+                              demoMode.isDemoMode
+                                ? undefined
+                                : params =>
+                                    reportContentAction({
+                                      ...params,
+                                      tripId: resolvedTripId,
+                                    })
+                            }
+                            isBlockingUser={isBlocking}
+                            isReportingContent={isReporting}
+                          />
+                        </div>
+                      )}
+                      onLoadMore={demoMode.isDemoMode ? () => {} : loadMoreMessages}
+                      hasMore={demoMode.isDemoMode ? false : hasMore}
+                      isLoading={isLoadingMore}
+                      initialVisibleCount={10}
+                      className="chat-scroll-container native-scroll px-3"
+                      autoScroll={true}
+                      restoreScroll={true}
+                      scrollKey={`chat-scroll-${resolvedTripId}`}
+                    />
+                  </>
+                )}
 
-              {/* Typing Indicator */}
-              {!demoMode.isDemoMode && typingUsers.length > 0 && (
-                <TypingIndicator typingUsers={typingUsers} />
-              )}
+                {/* Typing Indicator */}
+                {!demoMode.isDemoMode && typingUsers.length > 0 && (
+                  <TypingIndicator typingUsers={typingUsers} />
+                )}
 
-              {/* Reply Bar */}
-              {replyingTo && (
-                <div className="border-t border-border/60 bg-muted/60 px-4 py-2">
-                  <InlineReplyComponent
-                    replyTo={{
-                      id: replyingTo.id,
-                      text: replyingTo.text,
-                      senderName: replyingTo.senderName,
-                    }}
-                    onCancel={clearReply}
-                  />
-                </div>
-              )}
-              {threadReplySuccess && (
-                <div className="border-t border-border/60 bg-emerald-500/10 px-4 py-2">
-                  <div className="flex items-center justify-between gap-3 text-sm text-emerald-200">
-                    <span>Reply sent •</span>
-                    <button
-                      type="button"
-                      onClick={handleThreadReplySuccessView}
-                      className="min-h-11 rounded-md px-2 py-1 font-medium text-emerald-100 underline decoration-emerald-300 underline-offset-2"
-                    >
-                      View thread
-                    </button>
+                {/* Reply Bar */}
+                {replyingTo && (
+                  <div className="border-t border-border/60 bg-muted/60 px-4 py-2">
+                    <InlineReplyComponent
+                      replyTo={{
+                        id: replyingTo.id,
+                        text: replyingTo.text,
+                        senderName: replyingTo.senderName,
+                      }}
+                      onCancel={clearReply}
+                    />
                   </div>
                 </div>
               )}

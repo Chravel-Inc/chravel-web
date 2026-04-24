@@ -258,6 +258,14 @@
 - **Evidence:** `useDashboardJoinRequests` relation-heavy fetch can fail/partially hydrate in schema/RLS drift scenarios, yielding zero visible requests; pending trip projections remained aligned with card rendering requirements and enabled consistent card parity across dashboard sections.
 - **Provenance:** April 2026 requests-tab regression fix.
 - **Confidence:** high
+
+### Keep OG proxy rewrites on share entry paths only, never on SPA destination paths
+- **Tip:** If OG HTML uses meta-refresh/CTA to a SPA route, do not also rewrite that SPA route back to the OG proxy. Otherwise you create a deterministic redirect/render loop.
+- **Applies when:** Vercel/edge rewrites for share surfaces like `/t/:tripId` and interactive routes like `/trip/:tripId/preview`.
+- **Avoid when:** The rewritten destination is pure API and never used as a browser navigation target.
+- **Evidence:** `/trip/:tripId/preview` rewrite to `api/trip-preview` caused infinite refresh: proxy served HTML that redirected back to `/trip/:tripId/preview`, which was rewritten again.
+- **Provenance:** April 2026 trip preview loop hotfix.
+- **Confidence:** high
 - **Applies when:** Building in-app notification lists, badge payload mappers, or tap-to-route logic.
 - **Avoid when:** The schema enforces a single canonical field and legacy data is guaranteed migrated.
 - **Evidence:** Join approval notifications were visible but lacked actionable routing in-app because mapper read only `metadata.trip_id` and ignored `trip_id` column from direct inserts.
