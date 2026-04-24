@@ -52,6 +52,9 @@ export interface MessageActionsProps {
   isDeleted?: boolean;
   /** Admins can delete any message (server-side RLS enforced via migration 20260315000002) */
   isAdmin?: boolean;
+  canDeleteOwnMessage?: boolean;
+  canDeleteAnyMessage?: boolean;
+  canUpdateOwnMessage?: boolean;
   /** Moderators/admins can pin or unpin message (server-side Stream policy enforced) */
   canManagePins?: boolean;
   isPinned?: boolean;
@@ -102,6 +105,9 @@ export const MessageActions: React.FC<MessageActionsComponentProps> = ({
   isOwnMessage,
   isDeleted = false,
   isAdmin = false,
+  canDeleteOwnMessage = true,
+  canDeleteAnyMessage = false,
+  canUpdateOwnMessage = true,
   canManagePins = false,
   isPinned = false,
   senderUserId,
@@ -219,6 +225,8 @@ export const MessageActions: React.FC<MessageActionsComponentProps> = ({
     }
   };
 
+  const canDeleteMessage = isOwnMessage ? canDeleteOwnMessage : canDeleteAnyMessage;
+
   return (
     <>
       <DropdownMenu>
@@ -235,7 +243,7 @@ export const MessageActions: React.FC<MessageActionsComponentProps> = ({
           {/* Actions available for all messages */}
           <DropdownMenuItem onClick={() => onReply?.(messageId)}>
             <MessageSquareReply className="mr-2 h-4 w-4" />
-            Reply
+            Reply in thread
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => onOpenThread?.(messageId)}>
             <MessageSquareReply className="mr-2 h-4 w-4" />
@@ -268,29 +276,33 @@ export const MessageActions: React.FC<MessageActionsComponentProps> = ({
             Copy
           </DropdownMenuItem>
           {/* Own-message actions: edit + delete */}
-          {isOwnMessage && (
+          {isOwnMessage && (canUpdateOwnMessage || canDeleteOwnMessage) && (
             <>
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => {
-                  setEditedContent(messageContent);
-                  setShowEditDialog(true);
-                }}
-              >
-                <Edit className="mr-2 h-4 w-4" />
-                Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setShowDeleteDialog(true)}
-                className="text-red-600 focus:text-red-600"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
-              </DropdownMenuItem>
+              {canUpdateOwnMessage && (
+                <DropdownMenuItem
+                  onClick={() => {
+                    setEditedContent(messageContent);
+                    setShowEditDialog(true);
+                  }}
+                >
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
+                </DropdownMenuItem>
+              )}
+              {canDeleteOwnMessage && (
+                <DropdownMenuItem
+                  onClick={() => setShowDeleteDialog(true)}
+                  className="text-red-600 focus:text-red-600"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              )}
             </>
           )}
           {/* Admin-only delete for other users' messages */}
-          {!isOwnMessage && isAdmin && (
+          {!isOwnMessage && canDeleteMessage && (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem

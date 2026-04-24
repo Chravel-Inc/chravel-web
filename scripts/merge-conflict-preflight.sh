@@ -109,6 +109,7 @@ UNION_MERGE_FILES=(
   "LESSONS.md"
   "TEST_GAPS.md"
   "agent_memory.jsonl"
+  "claude-progress.txt"
 )
 
 is_high_risk() {
