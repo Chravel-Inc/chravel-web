@@ -2,6 +2,8 @@ import 'https://deno.land/x/xhr@0.1.0/mod.ts';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { requireAuth } from '../_shared/requireAuth.ts';
+import { hasActiveTripMembership } from '../_shared/tripMembership.ts';
 import {
   FileUploadSchema,
   validateInput,
@@ -19,33 +21,38 @@ serve(async req => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-    );
+    const auth = await requireAuth(req, corsHeaders);
+    if (auth.response) {
+      return auth.response;
+    }
 
-    // Authenticate user from JWT instead of trusting client-supplied userId
-    const authHeader = req.headers.get('Authorization');
+    const authHeader = req.headers.get('Authorization') ?? req.headers.get('authorization');
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    const token = authHeader.replace('Bearer ', '');
-    const { data: userData, error: userError } = await supabase.auth.getUser(token);
-    if (userError || !userData.user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { auth: { persistSession: false } },
+    );
+    const supabaseUser = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        auth: { persistSession: false },
+        global: { headers: { Authorization: authHeader } },
+      },
+    );
 
     const formData = await req.formData();
     const file = formData.get('file') as File;
     const tripId = formData.get('tripId') as string;
     // Use authenticated user ID from JWT, ignore client-supplied userId
-    const userId = userData.user.id;
+    const userId = auth.user.id;
 
     if (!file || !tripId) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
@@ -97,13 +104,21 @@ serve(async req => {
       );
     }
 
+    const isActiveMember = await hasActiveTripMembership(supabaseAdmin, tripId, userId);
+    if (!isActiveMember) {
+      return new Response(JSON.stringify({ error: 'Forbidden - you must be an active trip member' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Generate unique file path
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
     const filePath = `${tripId}/${fileName}`;
 
     // Upload to storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { data: uploadData, error: uploadError } = await supabaseUser.storage
       .from('trip-files')
       .upload(filePath, file, {
         contentType: file.type,
@@ -119,7 +134,7 @@ serve(async req => {
     }
 
     // Save file metadata to database
-    const { data: fileRecord, error: dbError } = await supabase
+    const { data: fileRecord, error: dbError } = await supabaseUser
       .from('trip_files')
       .insert({
         trip_id: tripId,
@@ -138,6 +153,10 @@ serve(async req => {
 
     if (dbError) {
       console.error('Database error:', dbError);
+      const { error: cleanupError } = await supabaseUser.storage.from('trip-files').remove([uploadData.path]);
+      if (cleanupError) {
+        console.error('Cleanup error after metadata failure:', cleanupError);
+      }
       return new Response(JSON.stringify({ error: 'Failed to save file metadata' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
