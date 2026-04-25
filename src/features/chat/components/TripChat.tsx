@@ -372,97 +372,6 @@ export const TripChat = React.memo(
           toast.error('You can only delete your own messages');
           return;
         }
-        // Invalidate chat query cache to force fresh fetch
-        await queryClient.invalidateQueries({ queryKey: ['tripChat', resolvedTripId] });
-      }
-    },
-  });
-
-  // Chat mode enforcement — UI layer (server-side RLS is authoritative)
-  const {
-    effectiveChatMode,
-    canPost: canPostToChat,
-    canUploadMedia,
-    isLoading: chatModeLoading,
-    userRole: chatModeUserRole,
-  } = useTripChatMode(demoMode.isDemoMode ? undefined : resolvedTripId, user?.id, isEvent);
-
-  const isUserAdmin =
-    chatModeUserRole === 'admin' ||
-    chatModeUserRole === 'organizer' ||
-    chatModeUserRole === 'owner';
-  const canManagePins =
-    isUserAdmin || chatModeUserRole === 'moderator' || chatModeUserRole === 'mod';
-
-  // Role channels for pro trips
-  const {
-    availableChannels,
-    activeChannel: roleActiveChannel,
-    setActiveChannel: setRoleActiveChannel,
-  } = useRoleChannels(isPro ? resolvedTripId : undefined, user?.id || '');
-
-  // Typing indicators + read receipts — must be after all deps are declared
-  const { typingUsers, handleTypingChange } = useChatTypingIndicators(
-    demoMode.isDemoMode,
-    resolvedTripId,
-    user,
-    effectiveChatMode,
-    tripMembers.length,
-    streamActiveChannel,
-    shouldUseLegacyChatSync() ? 'legacy' : 'stream',
-  );
-
-  useChatReadReceipts(
-    demoMode.isDemoMode,
-    user?.id,
-    resolvedTripId,
-    liveMessages,
-    streamActiveChannel,
-  );
-
-  const streamClient = getStreamClient();
-
-  // Extract Stream-canonical error fields for triage (always logged, even in prod).
-  const extractStreamError = (
-    error: unknown,
-  ): { code?: number | string; status?: number; message: string; data?: unknown } => {
-    const err = error as {
-      code?: number | string;
-      StatusCode?: number;
-      status?: number;
-      message?: string;
-      response?: { data?: { code?: number | string; message?: string } };
-    };
-    return {
-      code: err?.code ?? err?.response?.data?.code,
-      status: err?.StatusCode ?? err?.status,
-      message: err?.message ?? err?.response?.data?.message ?? 'Unknown Stream error',
-      data: err?.response?.data,
-    };
-  };
-
-  // Find the message-author id so we can pre-check ownership before calling Stream.
-  const findMessageAuthorId = useCallback(
-    (messageId: string): string | undefined => {
-      const msg = liveMessages.find(m => String(m.id) === String(messageId));
-      if (!msg) return undefined;
-      const candidate = msg as unknown as {
-        user?: { id?: string };
-        user_id?: string;
-        userId?: string;
-        sender?: { id?: string };
-        author_id?: string;
-      };
-      return (
-        candidate.user?.id ??
-        candidate.user_id ??
-        candidate.userId ??
-        candidate.sender?.id ??
-        candidate.author_id
-      );
-    },
-    [liveMessages],
-  );
 
         if (isOwnMessage && !canDeleteOwnMessage) {
           toast.error('You don’t have permission to delete this message');
@@ -490,72 +399,6 @@ export const TripChat = React.memo(
       },
       [canDeleteOwnMessage, demoMode.isDemoMode, streamClient, findMessageAuthorId],
     );
-
-      if (!streamClient) {
-        toast.error('Chat connection unavailable. Please try again.');
-        return;
-      }
-
-      // Defensive owner check — Stream rejects owner-scoped ops as 403 if mismatch.
-      const authorId = findMessageAuthorId(messageId);
-      if (authorId && streamClient.userID && authorId !== streamClient.userID) {
-        toast.error('You can only edit your own messages');
-        return;
-      }
-
-      try {
-        await streamClient.updateMessage({
-          id: messageId,
-          text: newContent,
-        });
-      } catch (error) {
-        const details = extractStreamError(error);
-        console.error('[TripChat] Stream updateMessage failed:', {
-          code: details.code,
-          status: details.status,
-          message: details.message,
-          data: details.data,
-          messageId,
-        });
-        const codeSuffix = details.code !== undefined ? ` (code ${details.code})` : '';
-        toast.error(`Failed to edit message${codeSuffix}`);
-      }
-    },
-    [demoMode.isDemoMode, streamClient, findMessageAuthorId],
-  );
-
-  const handleMessageDelete = useCallback(
-    async (messageId: string) => {
-      if (demoMode.isDemoMode) return;
-
-      if (!streamClient) {
-        toast.error('Chat connection unavailable. Please try again.');
-        return;
-      }
-
-      const authorId = findMessageAuthorId(messageId);
-      if (authorId && streamClient.userID && authorId !== streamClient.userID) {
-        toast.error('You can only delete your own messages');
-        return;
-      }
-
-      try {
-        await streamClient.deleteMessage(messageId);
-      } catch (error) {
-        const details = extractStreamError(error);
-        console.error('[TripChat] Stream deleteMessage failed:', {
-          code: details.code,
-          status: details.status,
-          message: details.message,
-          data: details.data,
-          messageId,
-        });
-        const codeSuffix = details.code !== undefined ? ` (code ${details.code})` : '';
-        toast.error(`Failed to delete message${codeSuffix}`);
-      }
-    },
-    [demoMode.isDemoMode, streamClient, findMessageAuthorId],
-  );
 
   const handleMessagePinToggle = useCallback(
     async (messageId: string, shouldPin: boolean) => {
@@ -881,29 +724,16 @@ export const TripChat = React.memo(
   useEffect(() => {
     if (!user?.id || failedMessages.length === 0 || liveMessages.length === 0) return;
 
-    const { reactions, handleReaction } = useChatReactions(
-      demoMode.isDemoMode,
-      user?.id,
-      liveMessages,
-      toggleReaction,
-    );
-
-    const handleOpenThread = (messageId: string) => {
-      const message =
-        liveFormattedMessages.find(m => m.id === messageId) ||
-        demoMessages.find(m => m.id === messageId);
-      if (!message) return;
-
-      // For inline reply:
-      const content = (message as any).text || (message as any).content || '';
-      const authorName =
-        (message as any).sender?.name ||
-        (message as any).user?.name ||
-        (message as any).author_name ||
-        'User';
-
-      setReply(messageId, content, authorName);
-    };
+    const matchingLiveMessages = liveMessages
+      .map(msg => {
+        const streamUser = (msg as any).user;
+        return {
+          text: ((msg as any).text || '').trim(),
+          userId: streamUser?.id || (msg as any).user_id,
+          createdAtMs: new Date((msg as any).created_at || 0).getTime(),
+        };
+      })
+      .filter(msg => msg.userId === user.id && msg.text.length > 0);
 
     if (matchingLiveMessages.length === 0) return;
 
@@ -1018,53 +848,62 @@ export const TripChat = React.memo(
         ...message,
         linkPreview: message.linkPreview || linkPreviewFallbacks[message.id],
       })),
-    );
+    [messagesWithFailed, linkPreviewFallbacks],
+  );
 
-    const messagesWithPreviewFallbacks = useMemo(
-      () =>
-        messagesWithFailed.map(message => ({
-          ...message,
-          linkPreview: message.linkPreview || linkPreviewFallbacks[message.id],
-        })),
-      [messagesWithFailed, linkPreviewFallbacks],
-    );
+  const pinnedMessages = useMemo(
+    () => derivePinnedMessages(liveFormattedMessages as any),
+    [liveFormattedMessages],
+  );
+  const readStatusesByMessage = useMemo(
+    () =>
+      selectReadStatusesByMessage({
+        messages: liveMessages as any[],
+        currentUserId: user?.id,
+        activeChannel: streamActiveChannel as Channel | null,
+      }),
+    [liveMessages, streamActiveChannel, user?.id],
+  );
 
-    const pinnedMessages = useMemo(
-      () => derivePinnedMessages(liveFormattedMessages as any),
-      [liveFormattedMessages],
-    );
-    const readStatusesByMessage = useMemo(
-      () =>
-        selectReadStatusesByMessage({
-          messages: liveMessages as any[],
-          currentUserId: user?.id,
-          activeChannel: streamActiveChannel as Channel | null,
-        }),
-      [liveMessages, streamActiveChannel, user?.id],
-    );
+  const isLoading = demoMode.isDemoMode ? false : liveLoading;
 
-    const isLoading = demoMode.isDemoMode ? false : liveLoading;
+  // Scroll to a specific message after the correct tab/filter is visible.
+  const scrollToMessage = useCallback(
+    (
+      target:
+        | string
+        | {
+            id: string;
+            type: 'message' | 'broadcast';
+            openThread?: boolean;
+          },
+    ) => {
+      const { id: targetId, type, openThread = false } =
+        typeof target === 'string' ? { id: target, type: 'message' as const, openThread: false } : target;
 
-    // Scroll to specific message with highlight animation
-    const scrollToMessage = ({
-      id: targetId,
-      type,
-      openThread = false,
-    }: {
-      id: string;
-      type: 'message' | 'broadcast';
-      openThread?: boolean;
-    }) => {
       setShowSearchOverlay(false);
 
-      // Switch to appropriate filter
       if (type === 'broadcast' && messageFilter !== 'broadcasts') {
         setMessageFilter('broadcasts');
       } else if (type === 'message' && messageFilter !== 'all') {
         setMessageFilter('all');
       }
-    }, 100);
-  };
+
+      window.setTimeout(() => {
+        const targetElement = document.querySelector(`[data-message-id="${targetId}"]`);
+        if (!(targetElement instanceof HTMLElement)) return;
+
+        targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        targetElement.classList.add('search-highlight-flash');
+        window.setTimeout(() => targetElement.classList.remove('search-highlight-flash'), 1000);
+
+        if (openThread) {
+          handleActivateThread(targetId, 'notification_deeplink');
+        }
+      }, 100);
+    },
+    [handleActivateThread, messageFilter],
+  );
 
   // Scroll to target message from notification click (when messages finish loading)
   const scrollAttemptedRef = useRef(false);
@@ -1092,104 +931,92 @@ export const TripChat = React.memo(
         setShowSearchOverlay(true);
       }
     };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [messageFilter]);
 
-    const renderMessage = useCallback(
-      (message: any, _index: number, showSenderInfo: boolean) => (
-        <div data-message-id={message.id}>
-          <MessageItem
-            message={message}
-            reactions={message.reactions ?? reactions[message.id] ?? {}}
-            onReaction={handleReaction}
-            onReply={handleOpenThread}
-            onOpenThread={handleActivateThread}
-            onEdit={demoMode.isDemoMode ? undefined : handleMessageEdit}
-            onDelete={demoMode.isDemoMode ? undefined : handleMessageDelete}
-            onRetry={handleRetryFailedMessage}
-            systemMessagePrefs={isConsumer ? systemMessagePrefs : undefined}
-            tripMembers={tripMembers}
-            readStatuses={message.readStatuses ?? readStatusesByMessage[message.id] ?? []}
-            showSenderInfo={showSenderInfo}
-            reactionUserNamesById={reactionUserNamesById}
-            isAdmin={isUserAdmin}
-            canManagePins={canManagePins}
-            onTogglePin={demoMode.isDemoMode ? undefined : handleMessagePinToggle}
-            onBlockUser={demoMode.isDemoMode ? undefined : blockUserAction}
-            onReportContent={
-              demoMode.isDemoMode
-                ? undefined
-                : params =>
-                    reportContentAction({
-                      ...params,
-                      tripId: resolvedTripId,
-                    })
-            }
-            isBlockingUser={isBlocking}
-            isReportingContent={isReporting}
-          />
-        </div>
-      ),
-      [
-        reactions,
-        handleReaction,
-        handleOpenThread,
-        handleActivateThread,
-        demoMode.isDemoMode,
-        handleMessageEdit,
-        handleMessageDelete,
-        handleRetryFailedMessage,
-        isConsumer,
-        systemMessagePrefs,
-        tripMembers,
-        readStatusesByMessage,
-        reactionUserNamesById,
-        isUserAdmin,
-        canManagePins,
-        handleMessagePinToggle,
-        blockUserAction,
-        reportContentAction,
-        resolvedTripId,
-        isBlocking,
-        isReporting,
-      ],
-    );
+  const renderMessage = useCallback(
+    (message: any, _index: number, showSenderInfo: boolean) => (
+      <div data-message-id={message.id}>
+        <MessageItem
+          message={message}
+          reactions={message.reactions || reactions[message.id] || {}}
+          onReaction={handleReaction}
+          onReply={handleOpenThread}
+          onOpenThread={handleActivateThread}
+          onEdit={demoMode.isDemoMode ? undefined : handleMessageEdit}
+          onDelete={demoMode.isDemoMode ? undefined : handleMessageDelete}
+          onRetry={handleRetryFailedMessage}
+          systemMessagePrefs={isConsumer ? systemMessagePrefs : undefined}
+          tripMembers={tripMembers}
+          readStatuses={message.readStatuses || readStatusesByMessage[message.id] || []}
+          showSenderInfo={showSenderInfo}
+          reactionUserNamesById={reactionUserNamesById}
+          isAdmin={isUserAdmin}
+          canDeleteOwnMessage={canDeleteOwnMessage}
+          canDeleteAnyMessage={canDeleteAnyMessage}
+          canUpdateOwnMessage={canUpdateOwnMessage}
+          canManagePins={canManagePins}
+          onTogglePin={demoMode.isDemoMode ? undefined : handleMessagePinToggle}
+          onBlockUser={demoMode.isDemoMode ? undefined : blockUserAction}
+          onReportContent={
+            demoMode.isDemoMode
+              ? undefined
+              : params =>
+                  reportContentAction({
+                    ...params,
+                    tripId: resolvedTripId,
+                  })
+          }
+          isBlockingUser={isBlocking}
+          isReportingContent={isReporting}
+        />
+      </div>
+    ),
+    [
+      reactions,
+      handleReaction,
+      handleOpenThread,
+      handleActivateThread,
+      demoMode.isDemoMode,
+      handleMessageEdit,
+      handleMessageDelete,
+      handleRetryFailedMessage,
+      isConsumer,
+      systemMessagePrefs,
+      tripMembers,
+      readStatusesByMessage,
+      reactionUserNamesById,
+      isUserAdmin,
+      canDeleteOwnMessage,
+      canDeleteAnyMessage,
+      canUpdateOwnMessage,
+      canManagePins,
+      handleMessagePinToggle,
+      blockUserAction,
+      reportContentAction,
+      resolvedTripId,
+      isBlocking,
+      isReporting,
+    ],
+  );
 
-    // Scroll to target message from notification click (when messages finish loading)
-    const scrollAttemptedRef = useRef(false);
-    useEffect(() => {
-      if (!targetMessageId || isLoading || scrollAttemptedRef.current) return;
-      scrollAttemptedRef.current = true;
+  return (
+    <div className="flex flex-col h-full">
+      <PullToRefreshIndicator
+        isRefreshing={isRefreshing}
+        pullDistance={pullDistance}
+        threshold={80}
+      />
 
-      // Give messages time to render, then scroll
-      const timer = setTimeout(() => {
-        scrollToMessage({
-          id: targetMessageId,
-          type: 'message',
-          openThread: Boolean(chatNavigationContext?.openThreadId),
-        });
-      }, 300);
-
-      return () => clearTimeout(timer);
-    }, [targetMessageId, isLoading, chatNavigationContext?.openThreadId]);
-
-    // Global keyboard shortcut for search (Ctrl+F or Cmd+F)
-    useEffect(() => {
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'f' && messageFilter !== 'channels') {
-          e.preventDefault();
-          setShowSearchOverlay(true);
-        }
-      };
-
-      window.addEventListener('keydown', handleKeyDown);
-      return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [messageFilter]);
-
-    return (
-      <div className="flex flex-col h-full">
-        <PullToRefreshIndicator
-          isRefreshing={isRefreshing}
-          pullDistance={pullDistance}
-          threshold={80}
+      {/* Search Overlay Modal */}
+      {showSearchOverlay && (
+        <ChatSearchOverlay
+          tripId={resolvedTripId}
+          onClose={() => setShowSearchOverlay(false)}
+          onResultSelect={scrollToMessage}
+          isDemoMode={demoMode.isDemoMode}
+          demoMessages={demoMessages}
         />
       )}
 
@@ -1277,112 +1104,35 @@ export const TripChat = React.memo(
                   )}
                   <VirtualizedMessageContainer
                     messages={messagesWithPreviewFallbacks as any}
-                    renderMessage={(message: any, _index: number, showSenderInfo: boolean) => (
-                      <div data-message-id={message.id}>
-                        <MessageItem
-                          message={message}
-                          reactions={message.reactions || reactions[message.id] || {}}
-                          onReaction={handleReaction}
-                          onReply={handleOpenThread}
-                          onOpenThread={handleActivateThread}
-                          onEdit={demoMode.isDemoMode ? undefined : handleMessageEdit}
-                          onDelete={demoMode.isDemoMode ? undefined : handleMessageDelete}
-                          onRetry={handleRetryFailedMessage}
-                          systemMessagePrefs={isConsumer ? systemMessagePrefs : undefined}
-                          tripMembers={tripMembers}
-                          readStatuses={
-                            message.readStatuses || readStatusesByMessage[message.id] || []
-                          }
-                          showSenderInfo={showSenderInfo}
-                          reactionUserNamesById={reactionUserNamesById}
-                          isAdmin={isUserAdmin}
-                          canManagePins={canManagePins}
-                          onTogglePin={demoMode.isDemoMode ? undefined : handleMessagePinToggle}
-                          onBlockUser={demoMode.isDemoMode ? undefined : blockUserAction}
-                          onReportContent={
-                            demoMode.isDemoMode
-                              ? undefined
-                              : params =>
-                                  reportContentAction({
-                                    ...params,
-                                    tripId: resolvedTripId,
-                                  })
-                          }
-                          isBlockingUser={isBlocking}
-                          isReportingContent={isReporting}
-                        />
-                      </div>
-                    )}
-                    <VirtualizedMessageContainer
-                      messages={messagesWithPreviewFallbacks as any}
-                      renderMessage={(message: any, _index: number, showSenderInfo: boolean) => (
-                        <div data-message-id={message.id}>
-                          <MessageItem
-                            message={message}
-                            reactions={message.reactions || reactions[message.id] || {}}
-                            onReaction={handleReaction}
-                            onReply={handleOpenThread}
-                            onOpenThread={handleActivateThread}
-                            onEdit={demoMode.isDemoMode ? undefined : handleMessageEdit}
-                            onDelete={demoMode.isDemoMode ? undefined : handleMessageDelete}
-                            onRetry={handleRetryFailedMessage}
-                            systemMessagePrefs={isConsumer ? systemMessagePrefs : undefined}
-                            tripMembers={tripMembers}
-                            readStatuses={
-                              message.readStatuses || readStatusesByMessage[message.id] || []
-                            }
-                            showSenderInfo={showSenderInfo}
-                            reactionUserNamesById={reactionUserNamesById}
-                            isAdmin={isUserAdmin}
-                            canDeleteOwnMessage={canDeleteOwnMessage}
-                            canDeleteAnyMessage={canDeleteAnyMessage}
-                            canUpdateOwnMessage={canUpdateOwnMessage}
-                            canManagePins={canManagePins}
-                            onTogglePin={demoMode.isDemoMode ? undefined : handleMessagePinToggle}
-                            onBlockUser={demoMode.isDemoMode ? undefined : blockUserAction}
-                            onReportContent={
-                              demoMode.isDemoMode
-                                ? undefined
-                                : params =>
-                                    reportContentAction({
-                                      ...params,
-                                      tripId: resolvedTripId,
-                                    })
-                            }
-                            isBlockingUser={isBlocking}
-                            isReportingContent={isReporting}
-                          />
-                        </div>
-                      )}
-                      onLoadMore={demoMode.isDemoMode ? () => {} : loadMoreMessages}
-                      hasMore={demoMode.isDemoMode ? false : hasMore}
-                      isLoading={isLoadingMore}
-                      initialVisibleCount={10}
-                      className="chat-scroll-container native-scroll px-3"
-                      autoScroll={true}
-                      restoreScroll={true}
-                      scrollKey={`chat-scroll-${resolvedTripId}`}
-                    />
-                  </>
-                )}
+                    renderMessage={renderMessage}
+                    onLoadMore={demoMode.isDemoMode ? () => {} : loadMoreMessages}
+                    hasMore={demoMode.isDemoMode ? false : hasMore}
+                    isLoading={isLoadingMore}
+                    initialVisibleCount={10}
+                    className="chat-scroll-container native-scroll px-3"
+                    autoScroll={true}
+                    restoreScroll={true}
+                    scrollKey={`chat-scroll-${resolvedTripId}`}
+                  />
+                </>
+              )}
 
-                {/* Typing Indicator */}
-                {!demoMode.isDemoMode && typingUsers.length > 0 && (
-                  <TypingIndicator typingUsers={typingUsers} />
-                )}
+              {/* Typing Indicator */}
+              {!demoMode.isDemoMode && typingUsers.length > 0 && (
+                <TypingIndicator typingUsers={typingUsers} />
+              )}
 
-                {/* Reply Bar */}
-                {replyingTo && (
-                  <div className="border-t border-border/60 bg-muted/60 px-4 py-2">
-                    <InlineReplyComponent
-                      replyTo={{
-                        id: replyingTo.id,
-                        text: replyingTo.text,
-                        senderName: replyingTo.senderName,
-                      }}
-                      onCancel={clearReply}
-                    />
-                  </div>
+              {/* Reply Bar */}
+              {replyingTo && (
+                <div className="border-t border-border/60 bg-muted/60 px-4 py-2">
+                  <InlineReplyComponent
+                    replyTo={{
+                      id: replyingTo.id,
+                      text: replyingTo.text,
+                      senderName: replyingTo.senderName,
+                    }}
+                    onCancel={clearReply}
+                  />
                 </div>
               )}
             </>
@@ -1443,6 +1193,5 @@ export const TripChat = React.memo(
       )}
     </div>
   );
-};
-
-export const TripChat = React.memo(TripChatComponent);
+  },
+);

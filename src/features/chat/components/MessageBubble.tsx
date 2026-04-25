@@ -490,7 +490,20 @@ export const MessageBubble = memo(
     // Dismiss reaction bar on click outside
     useEffect(() => {
       if (!showReactions) return;
-      const handleClickOutside = () => setShowReactions(false);
+
+      const handleClickOutside = (event: MouseEvent) => {
+        const target = event.target;
+
+        if (
+          target instanceof Element &&
+          target.closest('[data-reaction-picker-root], [data-reaction-picker-popover]')
+        ) {
+          return;
+        }
+
+        setShowReactions(false);
+      };
+
       document.addEventListener('click', handleClickOutside);
       return () => document.removeEventListener('click', handleClickOutside);
     }, [showReactions]);
@@ -751,6 +764,7 @@ export const MessageBubble = memo(
                   messageId={id}
                   reactions={reactions}
                   onReaction={onReaction}
+                  onReactionApplied={() => setShowReactions(false)}
                   userNamesById={reactionUserNamesById}
                 />
               </div>
