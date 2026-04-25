@@ -1,4 +1,4 @@
-import React, { useState, lazy, Suspense, useCallback, useEffect } from 'react';
+import React, { useState, lazy, Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   MessageCircle,
   Calendar,
@@ -45,6 +45,22 @@ import { CalendarSkeleton, PlacesSkeleton, ChatSkeleton } from './loading';
 import { TripPreferences as TripPreferencesType } from '../types/consumer';
 import type { NormalizedUrl } from '@/services/chatUrlExtractor';
 
+/** Canonical tab order for adjacent prefetch (must match pill order). */
+const TRIP_TAB_NAV_ORDER = [
+  'chat',
+  'calendar',
+  'concierge',
+  'media',
+  'payments',
+  'places',
+  'polls',
+  'tasks',
+] as const;
+
+function resolveConsumerTripTab(tab: string): string {
+  return (TRIP_TAB_NAV_ORDER as readonly string[]).includes(tab) ? tab : 'chat';
+}
+
 interface TripTabsProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
@@ -73,7 +89,7 @@ export const TripTabs = ({
   isDemoMode = false,
   tripData,
 }: TripTabsProps) => {
-  const [activeTab, setActiveTab] = useState('chat');
+  const activeTab = useMemo(() => resolveConsumerTripTab(parentActiveTab), [parentActiveTab]);
   const [isAddLinkModalOpen, setIsAddLinkModalOpen] = useState(false);
   const [linkPrefill, setLinkPrefill] = useState<
     | {
@@ -91,19 +107,18 @@ export const TripTabs = ({
   const { prefetchTab, prefetchAdjacentTabs, prefetchPriorityTabs } = usePrefetchTrip();
 
   // ⚡ PERFORMANCE: Track visited tabs to keep them mounted
-  const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set([activeTab]));
+  const [visitedTabs, setVisitedTabs] = useState<Set<string>>(
+    () => new Set([resolveConsumerTripTab(parentActiveTab)]),
+  );
 
-  // Tab order for adjacent prefetching
-  const tabOrder = [
-    'chat',
-    'calendar',
-    'concierge',
-    'media',
-    'payments',
-    'places',
-    'polls',
-    'tasks',
-  ];
+  const previousTripIdRef = useRef<string | undefined>(tripId);
+  // Reset visited tabs only when switching trips (not on every tab change) so we keep
+  // previously visited panels mounted for instant back-navigation within the same trip.
+  useEffect(() => {
+    if (previousTripIdRef.current === tripId) return;
+    previousTripIdRef.current = tripId;
+    setVisitedTabs(new Set([resolveConsumerTripTab(parentActiveTab)]));
+  }, [tripId, parentActiveTab]);
 
   // ⚡ MOBILE/PWA OPTIMIZATION: Prefetch priority tabs on mount
   // Since mobile users can't hover, we prefetch commonly used tabs immediately
@@ -115,14 +130,12 @@ export const TripTabs = ({
 
   // Mark current tab as visited and prefetch adjacent tabs
   useEffect(() => {
-    if (!visitedTabs.has(activeTab)) {
-      setVisitedTabs(prev => new Set([...prev, activeTab]));
-    }
+    setVisitedTabs(prev => (prev.has(activeTab) ? prev : new Set([...prev, activeTab])));
     // ⚡ MOBILE OPTIMIZATION: Prefetch adjacent tabs when user visits a tab
     if (tripId) {
-      prefetchAdjacentTabs(tripId, activeTab, tabOrder);
+      prefetchAdjacentTabs(tripId, activeTab, [...TRIP_TAB_NAV_ORDER]);
     }
-  }, [activeTab, visitedTabs, tripId, prefetchAdjacentTabs]);
+  }, [activeTab, tripId, prefetchAdjacentTabs]);
 
   // Handler for saving chat links to Explore Links (trip_links table)
   const handlePromoteToTripLink = useCallback((urlData: NormalizedUrl) => {
@@ -171,7 +184,7 @@ export const TripTabs = ({
       });
       return;
     }
-    setActiveTab(tab);
+    parentOnTabChange(tab);
   };
 
   // Default tab skeleton for lazy loading fallback
