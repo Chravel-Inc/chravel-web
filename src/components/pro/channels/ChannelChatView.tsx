@@ -24,6 +24,7 @@ import {
   formatToastDescription,
   validateMessageContent,
 } from '@/utils/channelErrors';
+import { isDemoChannelTripId } from '@/constants/demoTrips';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -79,12 +80,7 @@ export const ChannelChatView = ({
   const { canPerformAction } = useRolePermissions(channel.tripId);
   const { leaveRole } = useRoleAssignments({ tripId: channel.tripId });
 
-  const DEMO_TRIP_IDS = [
-    'lakers-road-trip',
-    'beyonce-cowboy-carter-tour',
-    'eli-lilly-c-suite-retreat-2026',
-  ];
-  const isDemoChannel = DEMO_TRIP_IDS.includes(channel.tripId);
+  const isDemoChannel = isDemoChannelTripId(channel.tripId);
 
   const useStreamTransport = !isDemoChannel;
   const streamProChannel = useStreamProChannel(useStreamTransport ? channel.id : null);
@@ -437,12 +433,7 @@ export const ChannelChatView = ({
     setSending(true);
 
     // Check if this is a demo channel
-    const DEMO_TRIP_IDS = [
-      'lakers-road-trip',
-      'beyonce-cowboy-carter-tour',
-      'eli-lilly-c-suite-retreat-2026',
-    ];
-    if (DEMO_TRIP_IDS.includes(channel.tripId)) {
+    if (isDemoChannelTripId(channel.tripId)) {
       // For demo channels, just add the message locally
       const demoMetadata: Record<string, unknown> = {};
       if (isBroadcast) demoMetadata.isBroadcast = true;

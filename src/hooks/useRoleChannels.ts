@@ -10,32 +10,8 @@ import { TripChannel, ChannelMessage } from '../types/roleChannels';
 import { useDemoMode } from './useDemoMode';
 import { MockRolesService } from '@/services/mockRolesService';
 import { useStreamProChannel } from './stream/useStreamProChannel';
+import { isDemoChannelTripId } from '@/constants/demoTrips';
 import type { MessageResponse } from 'stream-chat';
-
-// All demo trip IDs including Pro and Event trips
-const DEMO_TRIP_IDS = [
-  // Pro trips
-  'lakers-road-trip',
-  'beyonce-cowboy-carter-tour',
-  'eli-lilly-c-suite-retreat-2026',
-  '13',
-  '14',
-  '15',
-  '16',
-  // Consumer demo trips (numeric IDs)
-  '1',
-  '2',
-  '3',
-  '4',
-  '5',
-  '6',
-  '7',
-  '8',
-  '9',
-  '10',
-  '11',
-  '12',
-];
 
 // Convert RoleChannel to TripChannel (used by callers that need TripChannel format)
 const _convertToTripChannel = (channel: RoleChannel): TripChannel => ({
@@ -74,7 +50,7 @@ export const useRoleChannels = (tripId: string, _userRole: string, roles?: strin
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [demoMessages, setDemoMessages] = useState<Map<string, ChannelMessage[]>>(new Map());
-  const isDemoTrip = isDemoMode && DEMO_TRIP_IDS.includes(tripId);
+  const isDemoTrip = isDemoMode && isDemoChannelTripId(tripId);
 
   // Stream is default message transport outside demo mode.
   const useStream = !isDemoTrip;

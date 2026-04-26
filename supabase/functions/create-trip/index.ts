@@ -6,6 +6,7 @@ import { sanitizeErrorForClient, logError } from '../_shared/errorHandling.ts';
 import { isSuperAdminEmail } from '../_shared/superAdmins.ts';
 import {
   evaluateTripCreationPermission,
+  pickPrimaryEntitlementRow,
   resolveEffectiveTripPlan,
 } from '../_shared/tripEntitlementPolicy.ts';
 
@@ -79,14 +80,12 @@ serve(async req => {
 
     const isSuperAdmin = isSuperAdminEmail(user.email);
 
-    // Fetch entitlement for plan resolution
-    const { data: entitlement } = await supabase
+    // Fetch entitlement rows, then select primary row using shared policy.
+    const { data: entitlementRows } = await supabase
       .from('user_entitlements')
       .select('user_id, plan, status, current_period_end, purchase_type, updated_at')
-      .eq('user_id', user.id)
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .eq('user_id', user.id);
+    const entitlement = pickPrimaryEntitlementRow(entitlementRows ?? []);
 
     // Resolve the effective trip type
     const effectiveTripType = trip_type || 'consumer';
