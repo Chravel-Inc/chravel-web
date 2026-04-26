@@ -51,7 +51,6 @@ import { buildStreamMessageViewModels } from '../adapters/streamMessageViewModel
 import { executeModerationAction, ModerationAction } from '@/services/moderationService';
 import {
   createThreadReplySuccessState,
-  handleThreadReplySuccessCta,
   ThreadReplySuccessState,
 } from '../utils/threadReplySuccess';
 
@@ -137,6 +136,9 @@ export const TripChat = React.memo(
         createdAtMs: number;
       }>
     >([]);
+    const [threadReplySuccess, setThreadReplySuccess] = useState<ThreadReplySuccessState | null>(
+      null,
+    );
 
     const { isOffline } = useOfflineStatus();
     const params = useParams<{ tripId?: string; proTripId?: string; eventId?: string }>();
@@ -713,13 +715,13 @@ export const TripChat = React.memo(
     [demoMode.isDemoMode, liveMessages, demoMessages, resolvedTripId],
   );
 
-  const handleThreadReplySuccessView = useCallback(() => {
-    setThreadReplySuccess(
-      handleThreadReplySuccessCta(threadReplySuccess, parentMessageId => {
-        handleActivateThread(parentMessageId, 'reply_badge');
-      }),
-    );
-  }, [handleActivateThread, threadReplySuccess]);
+  // After a successful thread reply send, open the parent thread (Stream + demo).
+  useEffect(() => {
+    const parentId = threadReplySuccess?.parentMessageId;
+    if (!parentId) return;
+    handleActivateThread(parentId, 'reply_badge');
+    setThreadReplySuccess(null);
+  }, [threadReplySuccess, handleActivateThread]);
 
   useEffect(() => {
     if (!user?.id || failedMessages.length === 0 || liveMessages.length === 0) return;
@@ -940,7 +942,7 @@ export const TripChat = React.memo(
       <div data-message-id={message.id}>
         <MessageItem
           message={message}
-          reactions={message.reactions || reactions[message.id] || {}}
+          reactions={message.reactions || {}}
           onReaction={handleReaction}
           onReply={handleOpenThread}
           onOpenThread={handleActivateThread}
@@ -974,7 +976,6 @@ export const TripChat = React.memo(
       </div>
     ),
     [
-      reactions,
       handleReaction,
       handleOpenThread,
       handleActivateThread,
