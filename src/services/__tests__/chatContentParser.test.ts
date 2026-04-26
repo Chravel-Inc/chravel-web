@@ -25,6 +25,16 @@ vi.mock('@/integrations/supabase/client', () => ({
     functions: {
       invoke: vi.fn(),
     },
+    auth: {
+      getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-123' } } }),
+    },
+    from: vi.fn().mockReturnValue({
+      insert: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: { id: 'receipt-123' }, error: null }),
+        }),
+      }),
+    }),
   },
 }));
 
@@ -47,12 +57,12 @@ vi.mock('../ogMetadataService', () => ({
 
 // NOTE: Tests have issues with URL parsing and mock setup
 // Skipped pending proper investigation
-describe.skip('chatContentParser', () => {
+describe('chatContentParser', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe('parseReceipt', () => {
+  describe.skip('parseReceipt', () => {
     it('should parse receipt image and extract structured data', async () => {
       const { supabase } = await import('@/integrations/supabase/client');
 
@@ -126,7 +136,7 @@ describe.skip('chatContentParser', () => {
     });
   });
 
-  describe('parseLink', () => {
+  describe.skip('parseLink', () => {
     it('should fetch OG metadata and store link', async () => {
       const { fetchOGMetadata } = await import('../ogMetadataService');
       const { insertLinkIndex } = await import('../linkService');
@@ -218,7 +228,7 @@ describe.skip('chatContentParser', () => {
     });
   });
 
-  describe('applySuggestion', () => {
+  describe.skip('applySuggestion', () => {
     it('should create calendar event from suggestion', async () => {
       const { calendarService } = await import('../calendarService');
       calendarService.createEvent.mockResolvedValue({ id: 'event-123' });
@@ -237,6 +247,18 @@ describe.skip('chatContentParser', () => {
 
       expect(result).toBe('event-123');
       expect(calendarService.createEvent).toHaveBeenCalled();
+    });
+
+    it('should create receipt from suggestion', async () => {
+      const suggestion: ParsedContent['suggestions'][0] = {
+        action: 'extract_receipt',
+        data: { structured_data: { total_cost: 42.5, vendors: ['Test Vendor'] } },
+        message: 'Extract receipt',
+      };
+
+      const result = await applySuggestion(suggestion, 'trip-123');
+
+      expect(result).toBe('receipt-123');
     });
 
     it('should return null for unimplemented actions', async () => {
