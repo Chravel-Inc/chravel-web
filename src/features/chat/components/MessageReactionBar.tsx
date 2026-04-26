@@ -23,6 +23,7 @@ interface MessageReactionBarProps {
   reactions?: Record<string, ReactionData>;
   onReaction?: (messageId: string, reactionType: string) => void;
   onReactMessage?: (reactionType: string) => void;
+  onReactionApplied?: () => void;
   className?: string;
   userNamesById?: Record<string, string>;
 }
@@ -66,6 +67,7 @@ export const MessageReactionBar: React.FC<MessageReactionBarProps> = ({
   reactions = {},
   onReaction,
   onReactMessage,
+  onReactionApplied,
   className = '',
   userNamesById = {},
 }) => {
@@ -78,13 +80,15 @@ export const MessageReactionBar: React.FC<MessageReactionBarProps> = ({
     } else if (onReactMessage) {
       onReactMessage(reactionId);
     }
+
+    onReactionApplied?.();
   };
 
   const handleFullPickerSelect = (emoji: { native?: string }) => {
     if (!emoji.native) return;
     const mappedReactionId = EMOJI_TO_REACTION_ID[emoji.native] ?? emoji.native;
-    handleReaction(mappedReactionId);
     setShowFullPicker(false);
+    handleReaction(mappedReactionId);
   };
 
   const tooltipsByReaction = useMemo(() => {
@@ -135,6 +139,7 @@ export const MessageReactionBar: React.FC<MessageReactionBarProps> = ({
   return (
     <TooltipProvider>
       <div
+        data-reaction-picker-root
         className={`inline-flex items-center gap-1 rounded-full border border-white/15 bg-black/75 px-1.5 py-1 shadow-lg backdrop-blur-sm ${className}`}
       >
         {QUICK_REACTIONS.map(renderQuickReactionButton)}
@@ -151,6 +156,7 @@ export const MessageReactionBar: React.FC<MessageReactionBarProps> = ({
             </Button>
           </PopoverTrigger>
           <PopoverContent
+            data-reaction-picker-popover
             side="top"
             align="start"
             className="p-0 w-auto border-0 bg-transparent shadow-none"
