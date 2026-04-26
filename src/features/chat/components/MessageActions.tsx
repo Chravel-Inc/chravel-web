@@ -156,7 +156,9 @@ export const MessageActions: React.FC<MessageActionsComponentProps> = ({
       if (success) {
         toast.success('Message edited');
         setShowEditDialog(false);
-        onEdit?.(messageId, editedContent);
+        if (transportMode !== 'stream') {
+          onEdit?.(messageId, editedContent);
+        }
       } else {
         toast.error('Failed to edit message');
       }
@@ -181,7 +183,9 @@ export const MessageActions: React.FC<MessageActionsComponentProps> = ({
       if (success) {
         toast.success('Message deleted');
         setShowDeleteDialog(false);
-        onDelete?.(messageId);
+        if (transportMode !== 'stream') {
+          onDelete?.(messageId);
+        }
       } else {
         toast.error('Failed to delete message');
       }

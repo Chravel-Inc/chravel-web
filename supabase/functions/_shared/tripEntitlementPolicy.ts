@@ -21,6 +21,14 @@ export type PlanResolutionInput = {
   } | null;
 };
 
+export type EntitlementRow = {
+  plan: string | null;
+  status: string | null;
+  current_period_end: string | null;
+  purchase_type: string | null;
+  updated_at: string | null;
+};
+
 export type TripCreationCounts = {
   consumerActiveCount: number;
   freeProTripsUsed: number;
@@ -69,6 +77,43 @@ export const hasEffectiveAccess = (
     return new Date(currentPeriodEnd) > new Date();
   }
   return false;
+};
+
+const statusPriority = (status: string | null | undefined): number => {
+  if (status === 'active') return 5;
+  if (status === 'trialing') return 4;
+  if (status === 'past_due') return 3;
+  if (status === 'canceled') return 2;
+  if (status === 'expired') return 1;
+  return 0;
+};
+
+/**
+ * Keep edge entitlement row selection consistent with client selectors.
+ * 1) Prefer any subscription row with effective access.
+ * 2) Otherwise pick best status, then most recently updated.
+ */
+export const pickPrimaryEntitlementRow = (
+  rows: EntitlementRow[] | null | undefined,
+): EntitlementRow | null => {
+  if (!rows || rows.length === 0) return null;
+
+  const subscriptionRows = rows.filter(row => row.purchase_type === 'subscription');
+  const effectiveSubscription = subscriptionRows.find(row =>
+    hasEffectiveAccess(
+      ((row.status as EntitlementStatus | null) ?? 'expired') as EntitlementStatus,
+      row.current_period_end,
+    ),
+  );
+  if (effectiveSubscription) return effectiveSubscription;
+
+  return [...rows].sort((a, b) => {
+    const byStatus = statusPriority(b.status) - statusPriority(a.status);
+    if (byStatus !== 0) return byStatus;
+    const aUpdatedAt = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+    const bUpdatedAt = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+    return bUpdatedAt - aUpdatedAt;
+  })[0];
 };
 
 const inferLegacyPlan = (

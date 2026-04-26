@@ -3341,6 +3341,56 @@ export type Database = {
         }
         Relationships: []
       }
+      trip_pending_actions: {
+        Row: {
+          created_at: string | null
+          id: string
+          payload: Json
+          resolved_at: string | null
+          resolved_by: string | null
+          source_type: string | null
+          status: string
+          tool_call_id: string | null
+          tool_name: string
+          trip_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          payload: Json
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_type?: string | null
+          status?: string
+          tool_call_id?: string | null
+          tool_name: string
+          trip_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          payload?: Json
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_type?: string | null
+          status?: string
+          tool_call_id?: string | null
+          tool_name?: string
+          trip_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_pending_actions_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trip_polls: {
         Row: {
           allow_multiple: boolean | null

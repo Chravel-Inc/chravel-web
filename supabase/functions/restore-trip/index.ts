@@ -5,6 +5,7 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 import { sanitizeErrorForClient, logError } from '../_shared/errorHandling.ts';
 import {
   canRestoreArchivedTrip,
+  pickPrimaryEntitlementRow,
   resolveEffectiveTripPlan,
 } from '../_shared/tripEntitlementPolicy.ts';
 
@@ -94,16 +95,14 @@ serve(async req => {
 
     if (!isSuperAdmin && trip.trip_type === 'consumer') {
       const [
-        { data: entitlement },
+        { data: entitlementRows },
         { data: profile },
         { count: activeConsumerCount, error: countError },
       ] = await Promise.all([
         supabase
           .from('user_entitlements')
-          .select('plan, status, current_period_end')
-          .eq('user_id', user.id)
-          .eq('purchase_type', 'subscription')
-          .maybeSingle(),
+          .select('plan, status, current_period_end, purchase_type, updated_at')
+          .eq('user_id', user.id),
         supabase
           .from('profiles')
           .select('subscription_status, subscription_product_id')
@@ -119,6 +118,7 @@ serve(async req => {
 
       if (countError) throw countError;
 
+      const entitlement = pickPrimaryEntitlementRow(entitlementRows ?? []);
       const plan = resolveEffectiveTripPlan({
         entitlement: entitlement ?? null,
         legacyProfile: profile ?? null,

@@ -48,8 +48,7 @@ export function usePendingActions(tripId: string) {
     queryFn: async (): Promise<PendingAction[]> => {
       if (isDemoMode || !tripId) return [];
 
-      // intentional: trip_pending_actions not yet in generated Supabase types
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('trip_pending_actions')
         .select('*')
         .eq('trip_id', tripId)
@@ -71,8 +70,7 @@ export function usePendingActions(tripId: string) {
       if (!user?.id) throw new Error('Not authenticated');
 
       // Fetch the pending action
-      // intentional: trip_pending_actions not yet in generated Supabase types
-      const { data: action, error: fetchError } = await (supabase as any)
+      const { data: action, error: fetchError } = await supabase
         .from('trip_pending_actions')
         .select('*')
         .eq('id', actionId)

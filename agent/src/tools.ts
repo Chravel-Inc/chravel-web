@@ -99,15 +99,21 @@ async function callEdgeFunction(
  */
 async function insertPendingAction(
   ctx: ToolContext,
-  actionType: string,
+  toolName: string,
   payload: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {
+  const toolCallId =
+    typeof payload.idempotency_key === 'string' && payload.idempotency_key.trim().length > 0
+      ? payload.idempotency_key.trim()
+      : null;
+
   const { data, error } = await ctx.supabase
     .from('trip_pending_actions')
     .insert({
       trip_id: ctx.tripId,
       user_id: ctx.userId,
-      action_type: actionType,
+      tool_name: toolName,
+      tool_call_id: toolCallId,
       payload,
       status: 'pending',
     })
@@ -115,11 +121,11 @@ async function insertPendingAction(
     .single();
 
   if (error) {
-    console.error(`[agent:tool] Pending action insert failed for ${actionType}:`, error.message);
-    return { error: error.message, actionType };
+    console.error(`[agent:tool] Pending action insert failed for ${toolName}:`, error.message);
+    return { error: error.message, toolName };
   }
 
-  return { success: true, actionId: data.id, actionType };
+  return { success: true, actionId: data.id, toolName, toolCallId };
 }
 
 // ── Tool Definitions ───────────────────────────────────────────────────────────
