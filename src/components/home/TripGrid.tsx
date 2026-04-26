@@ -31,7 +31,6 @@ import { useDemoMode } from '@/hooks/useDemoMode';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { SortableTripGrid } from '../dashboard/SortableTripGrid';
 import { Button } from '../ui/button';
-import { supabase } from '@/integrations/supabase/client';
 
 interface Trip {
   id: number | string;
@@ -354,20 +353,13 @@ export const TripGrid = React.memo(
         setCancelingRequestIds(prev => new Set(prev).add(requestId));
 
         try {
-          if (onCancelDashboardRequest) {
-            const result = await onCancelDashboardRequest(requestId);
-            if (!result?.success) {
-              throw new Error(result?.message || 'Unable to cancel request');
-            }
-          } else {
-            const { error } = await supabase
-              .from('trip_join_requests')
-              .delete()
-              .eq('id', requestId)
-              .eq('user_id', user.id)
-              .eq('status', 'pending');
+          if (!onCancelDashboardRequest) {
+            throw new Error('Cancel request handler is unavailable');
+          }
 
-            if (error) throw error;
+          const result = await onCancelDashboardRequest(requestId);
+          if (!result?.success) {
+            throw new Error(result?.message || 'Unable to cancel request');
           }
 
           setDismissedRequestIds(prev => new Set(prev).add(requestId));

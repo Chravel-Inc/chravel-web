@@ -9,9 +9,7 @@ import { getDemoChannelsForTrip } from '../data/demoChannelData';
 import { TripChannel, ChannelMessage } from '../types/roleChannels';
 import { useDemoMode } from './useDemoMode';
 import { MockRolesService } from '@/services/mockRolesService';
-import { useStreamProChannel } from './stream/useStreamProChannel';
 import { isDemoChannelTripId } from '@/constants/demoTrips';
-import type { MessageResponse } from 'stream-chat';
 
 // Convert RoleChannel to TripChannel (used by callers that need TripChannel format)
 const _convertToTripChannel = (channel: RoleChannel): TripChannel => ({
@@ -51,11 +49,6 @@ export const useRoleChannels = (tripId: string, _userRole: string, roles?: strin
   const [error, setError] = useState<string | null>(null);
   const [demoMessages, setDemoMessages] = useState<Map<string, ChannelMessage[]>>(new Map());
   const isDemoTrip = isDemoMode && isDemoChannelTripId(tripId);
-
-  // Stream is default message transport outside demo mode.
-  const useStream = !isDemoTrip;
-  const streamChannelId = useStream && activeChannel ? activeChannel.id : null;
-  const streamProChannel = useStreamProChannel(streamChannelId);
 
   // Load channels for this trip
   const loadChannels = useCallback(async () => {
@@ -123,12 +116,8 @@ export const useRoleChannels = (tripId: string, _userRole: string, roles?: strin
       return;
     }
 
-    if (useStream) {
-      // Stream owns message transport when enabled; avoid duplicate Supabase listeners.
-      setMessages([]);
-      return;
-    }
-  }, [activeChannel, isDemoTrip, demoMessages, useStream]);
+    setMessages([]);
+  }, [activeChannel, isDemoTrip, demoMessages]);
 
   const createChannel = async (roleName: string): Promise<boolean> => {
     const channel = await roleChannelService.createRoleChannel(tripId, roleName);
@@ -196,35 +185,18 @@ export const useRoleChannels = (tripId: string, _userRole: string, roles?: strin
     return false;
   };
 
-  // When Stream is active, use Stream messages and sendMessage.
-  // Channel list, CRUD, and metadata still come from Supabase.
-  const effectiveMessages: RoleChannelMessage[] =
-    useStream && activeChannel
-      ? streamProChannel.messages.map((m: MessageResponse) => ({
-          id: m.id,
-          channelId: activeChannel.id,
-          senderId: m.user?.id ?? '',
-          senderName: m.user?.name ?? '',
-          senderAvatar: m.user?.image ?? '',
-          content: m.text ?? '',
-          createdAt: m.created_at ?? '',
-        }))
-      : messages;
-
-  const effectiveSendMessage = useStream ? streamProChannel.sendMessage : sendMessage;
-
   return {
     availableChannels,
     activeChannel,
-    messages: effectiveMessages,
-    isLoading: useStream ? streamProChannel.isLoading : isLoading,
+    messages,
+    isLoading,
     error,
     setActiveChannel,
     createChannel,
     deleteChannel,
     archiveChannel,
     updateChannel,
-    sendMessage: effectiveSendMessage,
+    sendMessage,
     refreshChannels: loadChannels,
   };
 };
