@@ -79,6 +79,14 @@
 - **Provenance:** Messaging upgrade March 2026 — ChannelChatView threading + link preview parity
 - **Confidence:** high
 
+### Stream chat feature parity requires both capability gating and message-field projection
+- **Tip:** When a Stream-backed feature exists in shared chat UI (for example message pinning), audit every surface for two independent requirements: the message menu must receive the correct `own_capabilities`-derived permission/handler wiring, and the Stream-to-UI adapter must project the native message fields (`pinned`, `pinned_at`, etc.) that the UI filters or badges depend on.
+- **Applies when:** Rolling out Stream features such as pinning, threading badges, moderation state, or other message-level affordances across `TripChat`, role channels, or other secondary chat surfaces.
+- **Avoid when:** The surface renders directly from Stream SDK components that already own both capability checks and message presentation.
+- **Evidence:** Chravel showed a `Pinned` tab and had a trip-chat pin action path, but `ChannelChatView` never forwarded pin controls and the shared Stream message adapters dropped pinned state, so the tab could not reflect actual Stream pin status consistently.
+- **Provenance:** April 2026 pinned-messages parity fix across trip chat + pro channels.
+- **Confidence:** high
+
 ### Unified permission guard hook for multi-trip-type codebases
 - **Tip:** When permission models differ by trip type (consumer=open, pro=role-based, event=organizer-only), create a single `useMutationPermissions(tripId)` hook that resolves trip type once and returns flat boolean flags. Import this in every mutation hook rather than duplicating trip-type branching logic. The guard must be client-side UX only — RLS remains authoritative.
 - **Applies when:** Adding permission checks to shared hooks that serve consumer, pro, and event trips simultaneously

@@ -97,6 +97,8 @@ export interface ChannelMessage {
   createdAt: string;
   editedAt?: string;
   deletedAt?: string;
+  isPinned?: boolean;
+  pinnedAt?: string;
 }
 
 export interface ChannelMember {

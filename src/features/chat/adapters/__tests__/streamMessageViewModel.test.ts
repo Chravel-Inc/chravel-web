@@ -65,6 +65,21 @@ describe('buildStreamMessageViewModels', () => {
     });
   });
 
+  it('maps pinned state and pinned timestamp from Stream messages', () => {
+    const results = buildStreamMessageViewModels({
+      messages: [
+        baseMessage({
+          pinned: true,
+          pinned_at: '2026-04-20T11:00:00.000Z',
+        } as unknown as MessageResponse),
+      ],
+      tripMembers: members,
+    });
+
+    expect(results[0].isPinned).toBe(true);
+    expect(results[0].pinnedAt).toBe('2026-04-20T11:00:00.000Z');
+  });
+
   it('maps reaction counts, user reacted flag, and users list', () => {
     const results = buildStreamMessageViewModels({
       messages: [

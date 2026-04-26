@@ -40,6 +40,8 @@ export interface StreamMessageViewModel {
   createdAt: string;
   isBroadcast: boolean;
   isPayment: boolean;
+  isPinned: boolean;
+  pinnedAt?: string;
   isEdited: boolean;
   editedAt?: string;
   tags: string[];
@@ -269,6 +271,8 @@ export function mapStreamMessageToViewModel(params: {
     createdAt,
     isBroadcast: messageType === 'broadcast',
     isPayment: messageType === 'payment',
+    isPinned: Boolean(message.pinned),
+    pinnedAt: message.pinned_at || undefined,
     isEdited: createdAt !== updatedAt,
     editedAt: createdAt !== updatedAt ? updatedAt : undefined,
     tags: messageType === 'system' ? ['system'] : [],

@@ -8,6 +8,9 @@ import { deleteChatMessage, editChatMessage } from '@/services/chatService';
 
 const mockDeleteMessage = vi.fn();
 const mockUpdateMessage = vi.fn();
+const mockPinMessage = vi.fn();
+const mockUnpinMessage = vi.fn();
+const mockMessageItem = vi.fn();
 
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({ user: { id: 'u1', displayName: 'Tester' } }),
@@ -37,6 +40,8 @@ vi.mock('@/hooks/stream/useStreamProChannel', () => ({
         text: 'hello stream',
         user: { id: 'u2', name: 'Alex' },
         created_at: new Date().toISOString(),
+        pinned: true,
+        pinned_at: '2026-04-26T15:00:00.000Z',
       },
     ],
     isLoading: false,
@@ -44,7 +49,9 @@ vi.mock('@/hooks/stream/useStreamProChannel', () => ({
     isLoadingMore: false,
     loadMore: vi.fn(),
     sendMessage: vi.fn().mockResolvedValue(true),
-    activeChannel: null,
+    activeChannel: {
+      state: { own_capabilities: ['update-own-message', 'delete-own-message', 'pin-message'] },
+    },
   }),
 }));
 
@@ -70,25 +77,32 @@ vi.mock('@/features/chat/components/VirtualizedMessageContainer', () => ({
 }));
 
 vi.mock('@/features/chat/components/MessageItem', () => ({
-  MessageItem: ({
-    message,
-    onDelete,
-    onEdit,
-  }: {
-    message: { id: string; text: string };
-    onDelete?: (messageId: string) => void;
-    onEdit?: (messageId: string, text: string) => void;
-  }) => (
-    <>
-      <div>{message.text}</div>
-      <button onClick={() => onDelete?.(message.id)} data-testid={`delete-${message.id}`}>
-        delete
-      </button>
-      <button onClick={() => onEdit?.(message.id, 'edited')} data-testid={`edit-${message.id}`}>
-        edit
-      </button>
-    </>
-  ),
+  MessageItem: (props: any) => {
+    mockMessageItem(props);
+    return (
+      <>
+        <div>{props.message.text}</div>
+        <button
+          onClick={() => props.onDelete?.(props.message.id)}
+          data-testid={`delete-${props.message.id}`}
+        >
+          delete
+        </button>
+        <button
+          onClick={() => props.onEdit?.(props.message.id, 'edited')}
+          data-testid={`edit-${props.message.id}`}
+        >
+          edit
+        </button>
+        <button
+          onClick={() => props.onTogglePin?.(props.message.id, !props.message.isPinned)}
+          data-testid={`pin-${props.message.id}`}
+        >
+          pin
+        </button>
+      </>
+    );
+  },
 }));
 
 vi.mock('@/features/chat/components/ChatInput', () => ({
@@ -125,6 +139,8 @@ describe('ChannelChatView (stream)', () => {
       userID: 'u2',
       deleteMessage: mockDeleteMessage,
       updateMessage: mockUpdateMessage,
+      pinMessage: mockPinMessage,
+      unpinMessage: mockUnpinMessage,
     } as any);
   });
 
@@ -145,5 +161,18 @@ describe('ChannelChatView (stream)', () => {
     expect(mockUpdateMessage).toHaveBeenCalledWith({ id: 'm1', text: 'edited' });
     expect(vi.mocked(deleteChatMessage)).not.toHaveBeenCalled();
     expect(vi.mocked(editChatMessage)).not.toHaveBeenCalled();
+  });
+
+  it('wires pin controls from Stream metadata and uses Stream pin APIs', () => {
+    render(<ChannelChatView channel={channel} />);
+
+    const firstMessageProps = mockMessageItem.mock.calls[0][0];
+    expect(firstMessageProps.canManagePins).toBe(true);
+    expect(firstMessageProps.message.isPinned).toBe(true);
+    expect(firstMessageProps.message.pinnedAt).toBe('2026-04-26T15:00:00.000Z');
+
+    fireEvent.click(screen.getByTestId('pin-m1'));
+    expect(mockUnpinMessage).toHaveBeenCalledWith('m1');
+    expect(mockPinMessage).not.toHaveBeenCalled();
   });
 });

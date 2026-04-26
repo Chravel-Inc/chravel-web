@@ -14,6 +14,8 @@ interface MessageItemProps {
     replyCount?: number;
     threadPreviewSnippet?: string;
     hasUnreadThreadReplies?: boolean;
+    isPinned?: boolean;
+    pinnedAt?: string;
   };
   reactions?: Record<string, { count: number; userReacted: boolean; users?: string[] }>;
   onReaction: (messageId: string, reactionType: string) => void;
@@ -186,7 +188,7 @@ export const MessageItem = memo(
           canDeleteAnyMessage={canDeleteAnyMessage}
           canUpdateOwnMessage={canUpdateOwnMessage}
           canManagePins={canManagePins}
-          isPinned={(message as { isPinned?: boolean }).isPinned ?? false}
+          isPinned={message.isPinned ?? false}
           senderUserId={senderUserId}
           onBlockUser={onBlockUser}
           onTogglePin={onTogglePin}
