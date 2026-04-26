@@ -8,6 +8,8 @@ export interface ChatMessage {
   text: string;
   sender: { id: string; name: string; avatar?: string };
   createdAt: string;
+  isPinned?: boolean;
+  pinnedAt?: string;
   isAiMessage?: boolean;
   isBroadcast?: boolean;
   isPayment?: boolean;
@@ -174,8 +176,7 @@ export const useChatComposer = ({
     (messages: ChatMessage[]) => {
       if (messageFilter === 'all') return messages;
       if (messageFilter === 'broadcasts') return messages.filter(m => m.isBroadcast === true);
-      if (messageFilter === 'pinned')
-        return messages.filter(m => (m as { isPinned?: boolean }).isPinned);
+      if (messageFilter === 'pinned') return messages.filter(m => m.isPinned === true);
       if (messageFilter === 'channels') return []; // Channels handled separately
       return messages;
     },

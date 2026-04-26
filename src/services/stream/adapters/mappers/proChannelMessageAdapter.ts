@@ -29,6 +29,15 @@ export function mapStreamMessagesToChannelMessages(
     if (streamExtra.isBroadcast) {
       metadata.isBroadcast = true;
     }
+    if (typeof streamMessage.reply_count === 'number') {
+      metadata.reply_count = streamMessage.reply_count;
+    }
+    if (streamMessage.pinned) {
+      metadata.isPinned = true;
+    }
+    if (streamMessage.pinned_at) {
+      metadata.pinnedAt = streamMessage.pinned_at;
+    }
 
     return {
       id: String(streamMessage.id),
@@ -40,6 +49,8 @@ export function mapStreamMessagesToChannelMessages(
       messageType: streamExtra.isBroadcast ? 'system' : 'text',
       metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
       createdAt: streamMessage.created_at || new Date().toISOString(),
+      isPinned: Boolean(streamMessage.pinned),
+      pinnedAt: streamMessage.pinned_at || undefined,
     };
   });
 }

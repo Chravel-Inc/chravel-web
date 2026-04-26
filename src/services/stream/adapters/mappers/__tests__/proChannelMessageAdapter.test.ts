@@ -34,6 +34,25 @@ describe('proChannelMessageAdapter', () => {
     });
   });
 
+  it('preserves pinned metadata from Stream payloads', () => {
+    const now = new Date().toISOString();
+    const pinnedAt = '2026-04-26T14:30:00.000Z';
+    const streamMessages = [
+      {
+        id: 'pinned-1',
+        text: 'important',
+        user: { id: 'u2', name: 'Alex' },
+        created_at: now,
+        pinned: true,
+        pinned_at: pinnedAt,
+      },
+    ] as unknown as MessageResponse[];
+
+    const mapped = mapStreamMessagesToChannelMessages(streamMessages, 'channel-1');
+    expect(mapped[0]?.isPinned).toBe(true);
+    expect(mapped[0]?.pinnedAt).toBe(pinnedAt);
+  });
+
   it('keeps reaction toggle consistent after server echo', () => {
     const beforeEcho = [
       {

@@ -18,6 +18,7 @@ import {
   mapStreamMessagesToChannelMessages,
   mapStreamReactionMap,
 } from '@/services/stream/adapters/mappers/proChannelMessageAdapter';
+import { hasStreamCapability } from '@/features/chat/utils/streamCapabilities';
 import { Button } from '@/components/ui/button';
 import {
   mapChannelSendError,
@@ -88,6 +89,39 @@ export const ChannelChatView = ({
 
   const useStreamTransport = !isDemoChannel;
   const streamProChannel = useStreamProChannel(useStreamTransport ? channel.id : null);
+  const streamClient = getStreamClient();
+  const streamOwnCapabilities = useMemo(() => {
+    const activeChannel = streamProChannel.activeChannel as
+      | {
+          data?: { own_capabilities?: string[] };
+          state?: { own_capabilities?: string[]; ownCapabilities?: string[] };
+        }
+      | null
+      | undefined;
+    const resolvedCapabilities =
+      activeChannel?.data?.own_capabilities ??
+      activeChannel?.state?.own_capabilities ??
+      activeChannel?.state?.ownCapabilities ??
+      [];
+
+    return Array.isArray(resolvedCapabilities) ? resolvedCapabilities : [];
+  }, [streamProChannel.activeChannel]);
+  const canDeleteOwnMessage = useMemo(
+    () => hasStreamCapability(streamOwnCapabilities, 'delete-own-message'),
+    [streamOwnCapabilities],
+  );
+  const canDeleteAnyMessage = useMemo(
+    () => hasStreamCapability(streamOwnCapabilities, 'delete-any-message'),
+    [streamOwnCapabilities],
+  );
+  const canUpdateOwnMessage = useMemo(
+    () => hasStreamCapability(streamOwnCapabilities, 'update-own-message'),
+    [streamOwnCapabilities],
+  );
+  const canManagePins = useMemo(
+    () => hasStreamCapability(streamOwnCapabilities, 'pin-message'),
+    [streamOwnCapabilities],
+  );
 
   // Handle user leaving the channel/role (self-service)
   const handleLeaveChannel = async () => {
@@ -160,7 +194,6 @@ export const ChannelChatView = ({
     async (messageId: string, newContent: string) => {
       if (isDemoChannel) return;
 
-      const streamClient = getStreamClient();
       if (!streamClient) {
         toast({
           title: 'Chat connection unavailable',
@@ -171,9 +204,19 @@ export const ChannelChatView = ({
       }
 
       const authorId = findStreamMessageAuthorId(messageId);
-      if (authorId && streamClient.userID && authorId !== streamClient.userID) {
+      const isOwnMessage = Boolean(
+        authorId && streamClient.userID && authorId === streamClient.userID,
+      );
+      if (authorId && streamClient.userID && !isOwnMessage) {
         toast({
           title: 'You can only edit your own messages',
+          variant: 'destructive',
+        });
+        return;
+      }
+      if (isOwnMessage && !canUpdateOwnMessage) {
+        toast({
+          title: 'You do not have permission to edit this message',
           variant: 'destructive',
         });
         return;
@@ -197,14 +240,13 @@ export const ChannelChatView = ({
         });
       }
     },
-    [isDemoChannel, toast, findStreamMessageAuthorId],
+    [canUpdateOwnMessage, findStreamMessageAuthorId, isDemoChannel, streamClient, toast],
   );
 
   const handleMessageDelete = useCallback(
     async (messageId: string) => {
       if (isDemoChannel) return;
 
-      const streamClient = getStreamClient();
       if (!streamClient) {
         toast({
           title: 'Chat connection unavailable',
@@ -215,9 +257,19 @@ export const ChannelChatView = ({
       }
 
       const authorId = findStreamMessageAuthorId(messageId);
-      if (authorId && streamClient.userID && authorId !== streamClient.userID) {
+      const isOwnMessage = Boolean(
+        authorId && streamClient.userID && authorId === streamClient.userID,
+      );
+      if (authorId && streamClient.userID && !isOwnMessage) {
         toast({
           title: 'You can only delete your own messages',
+          variant: 'destructive',
+        });
+        return;
+      }
+      if (isOwnMessage && !canDeleteOwnMessage) {
+        toast({
+          title: 'You do not have permission to delete this message',
           variant: 'destructive',
         });
         return;
@@ -241,64 +293,62 @@ export const ChannelChatView = ({
         });
       }
     },
-    [isDemoChannel, toast, findStreamMessageAuthorId],
+    [canDeleteOwnMessage, findStreamMessageAuthorId, isDemoChannel, streamClient, toast],
+  );
+
+  const handleMessagePinToggle = useCallback(
+    async (messageId: string, shouldPin: boolean) => {
+      if (isDemoChannel) return;
+
+      if (!streamClient) {
+        toast({
+          title: 'Chat connection unavailable',
+          description: 'Please try again.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (!canManagePins) {
+        toast({
+          title: 'You do not have permission to pin messages',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      try {
+        if (shouldPin) {
+          await streamClient.pinMessage(messageId);
+          return;
+        }
+        await streamClient.unpinMessage(messageId);
+      } catch (error) {
+        const details = extractStreamError(error);
+        console.error('[ChannelChatView] Stream pin toggle failed:', {
+          code: details.code,
+          status: details.status,
+          message: details.message,
+          data: details.data,
+          messageId,
+          shouldPin,
+        });
+        const codeSuffix = details.code !== undefined ? ` (code ${details.code})` : '';
+        toast({
+          title: `Failed to ${shouldPin ? 'pin' : 'unpin'} message${codeSuffix}`,
+          variant: 'destructive',
+        });
+        throw error;
+      }
+    },
+    [canManagePins, isDemoChannel, streamClient, toast],
   );
 
   // Transform ChannelMessage to ChatMessage format for MessageItem
   const transportMessages = useMemo<ChannelMessage[]>(() => {
     if (!useStreamTransport) return messages;
 
-    const streamMessages = streamProChannel.messages;
-    const streamById = new Map<string, MessageResponse>(
-      streamMessages.map(msg => [String(msg.id), msg as MessageResponse]),
-    );
-
-    return streamMessages.map(streamMsg => {
-      const parentId = streamMsg.parent_id ?? undefined;
-      const parent = parentId ? streamById.get(parentId) : undefined;
-      const streamExtra = streamMsg as MessageResponse & {
-        isBroadcast?: boolean;
-        metadata?: Record<string, unknown>;
-      };
-      const metadata: Record<string, unknown> = {};
-      if (parent) {
-        metadata.replyTo = {
-          id: String(parent.id),
-          text: parent.text || '',
-          sender: parent.user?.name || 'Unknown',
-          createdAt: parent.created_at || undefined,
-        };
-      }
-      if (!metadata.replyTo) {
-        const quotedReference = extractQuotedReferenceFromStreamMessage(streamMsg as any);
-        if (quotedReference) {
-          metadata.replyTo = {
-            id: quotedReference.id,
-            text: quotedReference.text,
-            sender: quotedReference.authorName,
-            createdAt: quotedReference.createdAt,
-          };
-        }
-      }
-      if (streamExtra.isBroadcast === true) {
-        metadata.isBroadcast = true;
-      }
-      if (typeof streamMsg.reply_count === 'number') {
-        metadata.reply_count = streamMsg.reply_count;
-      }
-
-      return {
-        id: String(streamMsg.id),
-        channelId: channel.id,
-        senderId: streamMsg.user?.id || '',
-        senderName: streamMsg.user?.name || 'Unknown',
-        senderAvatar: streamMsg.user?.image,
-        content: streamMsg.text || '',
-        messageType: streamExtra.isBroadcast ? 'system' : 'text',
-        metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
-        createdAt: streamMsg.created_at || new Date().toISOString(),
-      };
-    });
+    return mapStreamMessagesToChannelMessages(streamProChannel.messages, channel.id);
   }, [channel.id, messages, streamProChannel.messages, useStreamTransport]);
 
   const formattedMessages = useMemo(() => {
@@ -314,13 +364,15 @@ export const ChannelChatView = ({
         sender: {
           id: msg.senderId,
           name: msg.senderName,
-          avatar: getMockAvatar(msg.senderName),
+          avatar: msg.senderAvatar || getMockAvatar(msg.senderName),
         },
         createdAt: msg.createdAt,
         isBroadcast: metadata?.isBroadcast || msg.messageType === 'system',
         isPayment: false,
         tags: [] as string[],
         replyTo: replyTo || undefined,
+        isPinned: msg.isPinned,
+        pinnedAt: msg.pinnedAt,
         replyCount:
           typeof (metadata?.reply_count as number | undefined) === 'number'
             ? (metadata?.reply_count as number)
@@ -747,6 +799,11 @@ export const ChannelChatView = ({
                 transportMode={useStreamTransport ? 'stream' : 'legacy'}
                 onEdit={useStreamTransport ? handleMessageEdit : undefined}
                 onDelete={useStreamTransport ? handleMessageDelete : undefined}
+                canDeleteOwnMessage={canDeleteOwnMessage}
+                canDeleteAnyMessage={canDeleteAnyMessage}
+                canUpdateOwnMessage={canUpdateOwnMessage}
+                canManagePins={canManagePins}
+                onTogglePin={useStreamTransport ? handleMessagePinToggle : undefined}
               />
             )}
             onLoadMore={useStreamTransport ? streamProChannel.loadMore : () => {}}
