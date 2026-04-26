@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   canRestoreArchivedTrip,
   evaluateTripCreationPermission,
+  pickPrimaryEntitlementRow,
   resolveEffectiveTripPlan,
 } from '../tripEntitlementPolicy.ts';
 
@@ -103,5 +104,27 @@ describe('tripEntitlementPolicy', () => {
     expect(canRestoreArchivedTrip({ plan: 'frequent-chraveler', activeConsumerCount: 20 })).toBe(
       true,
     );
+  });
+
+  it('prefers effective subscription rows when selecting primary entitlement', () => {
+    const selected = pickPrimaryEntitlementRow([
+      {
+        plan: 'frequent-chraveler',
+        status: 'expired',
+        current_period_end: null,
+        purchase_type: 'subscription',
+        updated_at: '2026-01-01T00:00:00.000Z',
+      },
+      {
+        plan: 'explorer',
+        status: 'active',
+        current_period_end: null,
+        purchase_type: 'subscription',
+        updated_at: '2025-01-01T00:00:00.000Z',
+      },
+    ]);
+
+    expect(selected?.plan).toBe('explorer');
+    expect(selected?.status).toBe('active');
   });
 });

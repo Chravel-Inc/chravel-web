@@ -100,7 +100,8 @@ export function useFeatureAccess(
  * Returns whether user has access to Pro features
  */
 export function useProAccess(): {
-  isPro: boolean;
+  isOrgPro: boolean;
+  isPaid: boolean;
   canCreateProTrip: boolean;
   isLoading: boolean;
 } {
@@ -108,11 +109,17 @@ export function useProAccess(): {
   const store = useEntitlementsStore();
   const { isDemoMode } = useDemoMode();
 
-  const isPro = useMemo(() => {
+  const isOrgPro = useMemo(() => {
     if (isDemoMode) return true;
-    if (store.isPro) return true;
-    return tier.startsWith('pro-') || tier === 'frequent-chraveler';
-  }, [tier, store.isPro, isDemoMode]);
+    if (store.isOrgPro) return true;
+    return tier.startsWith('pro-');
+  }, [tier, store.isOrgPro, isDemoMode]);
+
+  const isPaid = useMemo(() => {
+    if (isDemoMode) return true;
+    if (store.isPaid) return true;
+    return tier !== 'free';
+  }, [tier, store.isPaid, isDemoMode]);
 
   const canCreateProTrip = useMemo(() => {
     if (isDemoMode) return true;
@@ -120,7 +127,8 @@ export function useProAccess(): {
   }, [canUseFeature, isDemoMode]);
 
   return {
-    isPro,
+    isOrgPro,
+    isPaid,
     canCreateProTrip,
     isLoading,
   };

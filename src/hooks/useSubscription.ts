@@ -6,6 +6,7 @@ import {
   hasEffectiveAccess,
   type EntitlementSelectorRow,
 } from '@/lib/entitlements/selectors';
+import { getPlanFlags } from '@/lib/entitlements/planFlags';
 import { getTierFromProductId } from '@/constants/stripe';
 
 export interface Subscription {
@@ -116,15 +117,18 @@ export function useSubscription() {
   const plan = subscription?.plan ?? 'free';
   const status = subscription?.status ?? 'inactive';
   const isActive = hasEffectiveAccess(status, subscription?.currentPeriodEnd ?? null);
-  const isPaidPlan = plan !== 'free';
+  const flags = getPlanFlags(plan, isActive);
 
   return {
     subscription,
     loading,
-    // Convenience booleans
-    isPro: isPaidPlan && isActive,
-    isExplorer: plan === 'explorer' && isActive,
-    isFrequentChraveler: plan === 'frequent-chraveler' && isActive,
+    // Convenience booleans (explicit semantics)
+    isPaid: flags.isPaid,
+    isExplorer: flags.isExplorer,
+    isFrequentChraveler: flags.isFrequentChraveler,
+    isOrgPro: flags.isOrgPro,
+    /** @deprecated Use isPaid or isOrgPro depending on intent. */
+    isPro: flags.isOrgPro,
     isProStarter: plan === 'pro-starter' && isActive,
     isProGrowth: plan === 'pro-growth' && isActive,
     isEnterprise: plan === 'pro-enterprise' && isActive,
@@ -132,6 +136,6 @@ export function useSubscription() {
     isTrialing: status === 'trialing',
     isPastDue: status === 'past_due',
     isCanceled: status === 'canceled',
-    isFree: !isPaidPlan || !isActive,
+    isFree: !flags.isPaid,
   };
 }

@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { TIER_ENTITLEMENTS } from '@/billing/config';
 import { isSuperAdminEmail } from '@/utils/isSuperAdmin';
 import { pickPrimaryEntitlement, type EntitlementSelectorRow } from '@/lib/entitlements/selectors';
+import { getPlanFlags } from '@/lib/entitlements/planFlags';
 
 export type EntitlementSource = 'revenuecat' | 'stripe' | 'admin' | 'demo' | 'none';
 export type EntitlementStatus = 'active' | 'trialing' | 'past_due' | 'expired' | 'canceled';
@@ -45,7 +46,12 @@ interface EntitlementsState {
 
   // Computed helpers
   isSubscribed: boolean;
+  /** @deprecated Use isPaid or isOrgPro depending on intent. */
   isPro: boolean;
+  isPaid: boolean;
+  isExplorer: boolean;
+  isFrequentChraveler: boolean;
+  isOrgPro: boolean;
   isSuperAdmin: boolean;
   daysRemaining: number | null;
 
@@ -73,6 +79,10 @@ const DEFAULT_STATE = {
   error: null,
   isSubscribed: false,
   isPro: false,
+  isPaid: false,
+  isExplorer: false,
+  isFrequentChraveler: false,
+  isOrgPro: false,
   isSuperAdmin: false,
   purchaseType: 'subscription' as PurchaseType,
   daysRemaining: null as number | null,
@@ -101,6 +111,7 @@ export const useEntitlementsStore = create<EntitlementsState>((set, _get) => ({
         if (import.meta.env.DEV)
           console.log('[EntitlementsStore] Super admin detected by email:', userEmail);
         set({
+          ...getPlanFlags(SUPER_ADMIN_TIER, true),
           plan: SUPER_ADMIN_TIER,
           status: 'active',
           source: 'admin',
@@ -129,6 +140,7 @@ export const useEntitlementsStore = create<EntitlementsState>((set, _get) => ({
       if (hasAdminRole) {
         if (import.meta.env.DEV) console.log('[EntitlementsStore] Super admin detected by role');
         set({
+          ...getPlanFlags(SUPER_ADMIN_TIER, true),
           plan: SUPER_ADMIN_TIER,
           status: 'active',
           source: 'admin',
@@ -166,6 +178,8 @@ export const useEntitlementsStore = create<EntitlementsState>((set, _get) => ({
         const tierEntitlements = TIER_ENTITLEMENTS[plan] || [];
         const pType = (data.purchase_type as PurchaseType) || 'subscription';
         const periodEnd = data.current_period_end ? new Date(data.current_period_end) : null;
+        const isSubscribed = isEffectivelyActive(status, periodEnd);
+        const planFlags = getPlanFlags(plan, isSubscribed);
         const daysLeft = periodEnd
           ? Math.max(0, Math.ceil((periodEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
           : null;
@@ -179,8 +193,12 @@ export const useEntitlementsStore = create<EntitlementsState>((set, _get) => ({
           isLoading: false,
           lastSyncedAt: new Date(),
           error: null,
-          isSubscribed: isEffectivelyActive(status, periodEnd),
-          isPro: plan.startsWith('pro-') || plan === 'frequent-chraveler',
+          isSubscribed,
+          isPro: planFlags.isOrgPro,
+          isPaid: planFlags.isPaid,
+          isExplorer: planFlags.isExplorer,
+          isFrequentChraveler: planFlags.isFrequentChraveler,
+          isOrgPro: planFlags.isOrgPro,
           isSuperAdmin: false,
           purchaseType: pType,
           daysRemaining: pType === 'pass' ? daysLeft : null,
@@ -201,6 +219,7 @@ export const useEntitlementsStore = create<EntitlementsState>((set, _get) => ({
 
   setSuperAdminMode: () => {
     set({
+      ...getPlanFlags(SUPER_ADMIN_TIER, true),
       plan: SUPER_ADMIN_TIER,
       status: 'active',
       source: 'admin',
@@ -221,6 +240,7 @@ export const useEntitlementsStore = create<EntitlementsState>((set, _get) => ({
       const tierEntitlements = TIER_ENTITLEMENTS[demoTier] || [];
 
       set({
+        ...getPlanFlags(demoTier, true),
         plan: demoTier,
         status: 'active',
         source: 'demo',
@@ -229,7 +249,7 @@ export const useEntitlementsStore = create<EntitlementsState>((set, _get) => ({
         isLoading: false,
         error: null,
         isSubscribed: true,
-        isPro: true,
+        isPro: false,
       });
     } else {
       // Reset to default when demo mode is disabled
@@ -245,6 +265,8 @@ export const useEntitlementsStore = create<EntitlementsState>((set, _get) => ({
       : 'expired';
     const pType = data.purchaseType || 'subscription';
     const periodEnd = data.periodEnd || null;
+    const isSubscribed = isEffectivelyActive(status, periodEnd);
+    const planFlags = getPlanFlags(data.tier, isSubscribed);
     const daysLeft = periodEnd
       ? Math.max(0, Math.ceil((periodEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
       : null;
@@ -258,8 +280,12 @@ export const useEntitlementsStore = create<EntitlementsState>((set, _get) => ({
       isLoading: false,
       lastSyncedAt: new Date(),
       error: null,
-      isSubscribed: isEffectivelyActive(status, periodEnd),
-      isPro: data.tier.startsWith('pro-') || data.tier === 'frequent-chraveler',
+      isSubscribed,
+      isPro: planFlags.isOrgPro,
+      isPaid: planFlags.isPaid,
+      isExplorer: planFlags.isExplorer,
+      isFrequentChraveler: planFlags.isFrequentChraveler,
+      isOrgPro: planFlags.isOrgPro,
       purchaseType: pType,
       daysRemaining: pType === 'pass' ? daysLeft : null,
     });
