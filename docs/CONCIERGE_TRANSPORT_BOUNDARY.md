@@ -18,10 +18,8 @@ Chravel concierge remains **SSE + database persisted** (`lovable-concierge` edge
 
 ## Guardrails implemented
 
-- `src/services/stream/streamChannelFactory.ts`
-  - No concierge channel factory exists in the Stream surface.
-- `src/services/stream/index.ts`
-  - Stream barrel exposes only trip/channel/broadcast channel APIs.
+- `src/services/stream/streamChannelFactory.ts` (curated barrel: `src/services/stream/index.ts`)
+  - No concierge channel factory exists in the Stream surface; barrel exposes trip/channel/broadcast APIs only (no legacy mapper/user-sync shims).
 - `src/services/stream/streamTransportGuards.ts`
   - Keeps only active transport-state checks (`isStreamConfigured`, `shouldUseLegacyChatSync`, `isStreamChatActive`).
 

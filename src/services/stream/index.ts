@@ -18,9 +18,6 @@ export {
 // Token management
 export { getStreamToken, clearStreamTokenCache } from './streamTokenService';
 
-// User sync
-export { syncUserToStream } from './streamUserSync';
-
 // Channel factory
 export {
   CHANNEL_TYPE_TRIP,
@@ -49,13 +46,3 @@ export {
   syncAddMemberToProChannel,
   syncRemoveMemberFromProChannel,
 } from './streamMembershipCoordinator';
-
-// Mappers
-export { chravelUserToStream } from './adapters/mappers/userMapper';
-export type { ChrravelUserProfile, StreamUserData } from './adapters/mappers/userMapper';
-export {
-  tripToStreamChannel,
-  proChannelToStreamChannel,
-  broadcastToStreamChannel,
-} from './adapters/mappers/channelMapper';
-export type { StreamChannelConfig } from './adapters/mappers/channelMapper';

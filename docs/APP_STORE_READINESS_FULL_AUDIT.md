@@ -60,7 +60,6 @@ The following fixes from this audit have been implemented:
 | `src/components/events/EventSetupWizard.tsx` | 145, 150, 160 | "Template selection coming soon...", "Schedule configuration coming soon...", "Invitation management coming soon..." |
 | `src/components/UpgradeModal.tsx` | 43–44 | "Events tier coming soon!" toast |
 | `src/components/advertiser/AdvertiserSettings.tsx` | 276 | title: "Coming Soon" |
-| `src/components/LinkCard.tsx` | 116 | "Comments coming soon..." |
 | `src/pages/ProfilePage.tsx` | 93, 115 | `alert('Feature coming soon!')` |
 | `src/components/native/NativeTripTypeSwitcher.tsx` | 51, 279 | "Coming Soon" badge on Recommendations |
 | `src/components/todo/TripTasksTab.tsx` | 167, 183 | "Feature coming soon!" in description |
@@ -383,7 +382,6 @@ The following fixes from this audit have been implemented:
 | `EventSetupWizard.tsx` | Same for template/schedule/invitation steps. |
 | `UpgradeModal.tsx` | Remove or change "Events tier coming soon!" toast. |
 | `AdvertiserSettings.tsx` | Replace "Coming Soon" title with feature name. |
-| `LinkCard.tsx` | Replace "Comments coming soon" with "Comments" or hide. |
 | `ProfilePage.tsx` | Replace `alert('Feature coming soon!')` with real behavior or remove. |
 | `NativeTripTypeSwitcher.tsx` | Remove "Coming Soon" badge or gate feature. |
 | `TripTasksTab.tsx` | Replace "Feature coming soon!" with actionable copy. |

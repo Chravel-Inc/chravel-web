@@ -227,7 +227,6 @@
 ### Type-Based State Stores (In `/types`)
 - `tripContext.ts` - Trip context and state
 - `consumer.ts` - Consumer subscription/profile state
-- `enterprise.ts` - Enterprise features state
 - `events.ts` - Events data state
 - `payments.ts` - Payments state
 - `pro.ts` - Pro trip state
@@ -471,7 +470,6 @@
 | `payments.ts` | Payment schemas | ~100+ |
 | `events.ts` | Event types | ~100+ |
 | `consumer.ts` | Consumer subscription | ~100+ |
-| `enterprise.ts` | Enterprise features | ~100+ |
 | `channels.ts` | Channel management | ~100+ |
 | `ai.ts` | AI/knowledge types | ~50+ |
 | `media.ts` | Media handling | ~50+ |
@@ -550,7 +548,6 @@
 
 ### Utilities & Helpers
 - `env.ts` - Environment detection
-- `demoMode.ts` - Demo mode helpers
 - `roleUtils.ts` (2.8 KB) - Role management
 - `tripLabels.ts` - Trip labeling
 - `smartInputDetector.ts` (3.1 KB) - Input type detection

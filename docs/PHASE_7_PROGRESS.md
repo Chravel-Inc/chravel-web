@@ -20,7 +20,7 @@
 - ✅ `secureStorageService.ts` - User preferences abstraction
 - ✅ `taskStorageService.ts` - All methods async (getTasks, saveTasks, createTask, toggleTask, deleteTask, clearTasks)
 - ✅ `tripSpecificMockDataService.ts` - Demo mode check
-- ✅ `demoMode.ts` - Async demo mode utility
+- ~~`demoMode.ts`~~ — removed (unused; demo mode uses `demoModeService` / stores)
 - ✅ `calendarService.ts` - Event CRUD operations
 - ✅ `useTripTasks.ts` - Task query hooks
 - ✅ `EnhancedMediaAggregatedLinks.tsx` - Link fetching

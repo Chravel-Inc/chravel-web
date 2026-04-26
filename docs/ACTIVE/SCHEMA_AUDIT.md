@@ -107,9 +107,9 @@
 | # | Concept | File A | File B | Conflict | Risk | Fix Strategy |
 |---|---|---|---|---|---|---|
 | 31 | Message interface | `messages.ts` (line 6) | `messaging.ts` (line 2) | `sender_id` (snake) vs `senderId` (camel); different fields (isRead, isBroadcast, tourId in messaging.ts) | **High** | Consolidate into one canonical `Message` |
-| 32 | TripCategory type | `enterprise.ts` (line 2) | `consumer.ts` (line 41) | Enterprise: legacy string labels; Consumer: `{id,label,color}` objects | Med | Enterprise uses `normalizeLegacyCategory()` already; deprecate enterprise TripCategory |
-| 33 | SettlementData | `enterprise.ts` (line 48) | `pro.ts` (line 155) | Different fields entirely (finance vs per-diem) | Low | Rename one: `FinancialSettlement` vs `PerDiemSettlement` |
-| 34 | ComplianceRule | `enterprise.ts` (line 66) | `pro.ts` (line 172) | Different `category` and `type` unions; Pro has `type` field, Enterprise has `category` field | Med | Unify to shared type with merged unions |
+| 32 | TripCategory type | ~~`enterprise.ts` (removed)~~ | `consumer.ts` (line 41) | Legacy duplicate file had string-label `TripCategory`; app uses consumer/pro shapes | Med | Resolved by deleting unused `src/types/enterprise.ts` |
+| 33 | SettlementData | ~~`enterprise.ts` (removed)~~ | `pro.ts` (line 155) | Different fields entirely (finance vs per-diem) | Low | Track in `pro.ts` only unless a new shared module is introduced |
+| 34 | ComplianceRule | ~~`enterprise.ts` (removed)~~ | `pro.ts` (line 172) | Different `category` and `type` unions | Med | Unify in `pro.ts` / domain types when revisiting compliance models |
 
 ### 3e. Notification Type Fragmentation
 
@@ -182,7 +182,7 @@
 |---|---|
 | `notificationUtils.ts` TYPE_TO_CATEGORY_MAP | Missing: `trip_reminder` (used in frontend NotificationType) will fall through to `null` category |
 | Frontend `NotificationType` | Has `trip_reminder` type with no backend mapping -- notifications of this type will have `null` category |
-| `WellnessEntry.type` in enterprise.ts | Missing `therapy` and `medication` (present in pro.ts); enterprise wellness entries with these types will fail type validation |
+| ~~`WellnessEntry.type` in enterprise.ts~~ | File removed; validate wellness unions in `pro.ts` if/when enterprise wellness UI ships |
 
 ### 5d. Unsafe Assumptions in Hooks
 
@@ -299,7 +299,7 @@ Each adapter:
 **Step 5.1: Remove dead dual-field patterns**
 - Remove deprecated `ProTripCategory` type alias after all references are gone
 - Remove `messaging.ts` file after all imports redirected
-- Remove legacy `TripCategory` from enterprise.ts if no longer used
+- ~~Remove legacy `TripCategory` from enterprise.ts~~ — `src/types/enterprise.ts` removed as unused
 - Remove redundant calendar categories from the union type (keep only canonical 6)
 
 **Step 5.2: Add missing DB fields to app types**
