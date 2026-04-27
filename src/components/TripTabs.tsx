@@ -90,8 +90,14 @@ export const TripTabs = ({
   const { isSuperAdmin } = useSuperAdmin();
   const { prefetchTab, prefetchAdjacentTabs, prefetchPriorityTabs } = usePrefetchTrip();
 
-  // ⚡ PERFORMANCE: Track visited tabs to keep them mounted
-  const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set([activeTab]));
+  // ⚡ PERFORMANCE: Track visited (mounted) tabs. Seeded with Tier 1 so chat,
+  // calendar, and concierge are warm immediately. Tier 2 is added at idle.
+  // Tier 3 (media) stays lazy until visited — heavy gallery query/markup.
+  const TIER_1: readonly string[] = ['chat', 'calendar', 'concierge'];
+  const TIER_2: readonly string[] = ['tasks', 'polls', 'places', 'payments'];
+  const [visitedTabs, setVisitedTabs] = useState<Set<string>>(
+    () => new Set([activeTab, ...TIER_1]),
+  );
 
   // Tab order for adjacent prefetching
   const tabOrder = [
@@ -112,6 +118,39 @@ export const TripTabs = ({
       prefetchPriorityTabs(tripId);
     }
   }, [tripId, prefetchPriorityTabs]);
+
+  // ⚡ Pre-mount Tier 2 tabs after first paint settles. Uses requestIdleCallback
+  // (or setTimeout fallback) at ~800ms so Tier 1 + active tab finish hydrating
+  // before secondary tabs compete for the main thread. This is what kills the
+  // "click Places, click away, come back" bug — by the time the user reaches
+  // Places/Payments their component tree is already mounted and queries warm.
+  useEffect(() => {
+    let cancelled = false;
+    const mountTier2 = () => {
+      if (cancelled) return;
+      setVisitedTabs(prev => {
+        const next = new Set(prev);
+        TIER_2.forEach(t => next.add(t));
+        return next;
+      });
+    };
+    const w = window as unknown as {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    let idleId: number | undefined;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    if (typeof w.requestIdleCallback === 'function') {
+      idleId = w.requestIdleCallback(mountTier2, { timeout: 1200 });
+    } else {
+      timeoutId = setTimeout(mountTier2, 800);
+    }
+    return () => {
+      cancelled = true;
+      if (idleId !== undefined && w.cancelIdleCallback) w.cancelIdleCallback(idleId);
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+    };
+  }, []);
 
   // Mark current tab as visited and prefetch adjacent tabs
   useEffect(() => {

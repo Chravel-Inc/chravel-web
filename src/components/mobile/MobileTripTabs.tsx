@@ -162,8 +162,16 @@ export const MobileTripTabs = ({
     setLocalParticipants(participants);
   }, [participants]);
 
-  // ⚡ PERFORMANCE: Track visited tabs to keep them mounted
-  const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set([activeTab]));
+  // ⚡ PERFORMANCE: Tiered tab pre-mounting (mirrors TripTabs).
+  // Tier 1 mounts immediately so chat / calendar / concierge are always warm.
+  // Tier 2 mounts after idle (~800ms) so tasks/polls/places/payments are
+  // ready when the user reaches them — fixes the "click away and back" bug.
+  // Tier 3 (media) stays lazy until visited.
+  const TIER_1_TABS: readonly string[] = ['chat', 'calendar', 'concierge'];
+  const TIER_2_TABS: readonly string[] = ['tasks', 'polls', 'places', 'payments'];
+  const [visitedTabs, setVisitedTabs] = useState<Set<string>>(
+    () => new Set([activeTab, ...TIER_1_TABS]),
+  );
 
   // Get event admin status for event variant
   const { isAdmin: isEventAdmin } = useEventPermissions(variant === 'event' ? tripId : '');
@@ -183,6 +191,37 @@ export const MobileTripTabs = ({
       prefetchPriorityTabs(tripId);
     }
   }, [tripId, prefetchPriorityTabs]);
+
+  // ⚡ Pre-mount Tier 2 tabs after idle so secondary tabs are warm by the time
+  // the user taps them. Skipped for event variant (different tab set).
+  useEffect(() => {
+    if (variant === 'event') return;
+    let cancelled = false;
+    const mountTier2 = () => {
+      if (cancelled) return;
+      setVisitedTabs(prev => {
+        const next = new Set(prev);
+        TIER_2_TABS.forEach(t => next.add(t));
+        return next;
+      });
+    };
+    const w = window as unknown as {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    let idleId: number | undefined;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    if (typeof w.requestIdleCallback === 'function') {
+      idleId = w.requestIdleCallback(mountTier2, { timeout: 1200 });
+    } else {
+      timeoutId = setTimeout(mountTier2, 800);
+    }
+    return () => {
+      cancelled = true;
+      if (idleId !== undefined && w.cancelIdleCallback) w.cancelIdleCallback(idleId);
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+    };
+  }, [variant]);
 
   // Mark current tab as visited when it changes
   useEffect(() => {
