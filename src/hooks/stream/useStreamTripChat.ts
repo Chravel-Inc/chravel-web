@@ -1110,6 +1110,20 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     }
   }, [hasMore, isLoadingMore, messages]);
 
+  const togglePin = useCallback(async (messageId: string, shouldPin: boolean) => {
+    const streamClient = getStreamClient();
+    if (!streamClient) {
+      throw new Error('Stream client unavailable');
+    }
+
+    await streamClient.partialUpdateMessage({
+      id: messageId,
+      set: {
+        pinned: shouldPin,
+      },
+    });
+  }, []);
+
   return {
     messages,
     isLoading,
@@ -1121,6 +1135,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     hasMore,
     isLoadingMore,
     toggleReaction,
+    togglePin,
     reload,
     activeChannel,
   };

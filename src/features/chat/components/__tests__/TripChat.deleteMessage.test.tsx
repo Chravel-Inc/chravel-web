@@ -8,6 +8,7 @@ import { getStreamClient } from '@/services/stream/streamClient';
 import { deleteChatMessage, editChatMessage } from '@/services/chatService';
 
 const mockDeleteMessage = vi.fn();
+const mockTogglePin = vi.fn();
 const mockGetStreamClient = vi.mocked(getStreamClient);
 const mockDeleteChatMessage = vi.mocked(deleteChatMessage);
 const mockEditChatMessage = vi.mocked(editChatMessage);
@@ -71,6 +72,7 @@ vi.mock('../../hooks/useTripChat', () => ({
     hasMore: false,
     isLoadingMore: false,
     toggleReaction: vi.fn(),
+    togglePin: mockTogglePin,
     reload: vi.fn(),
     activeChannel: { state: { read: {}, own_capabilities: mockOwnCapabilities } },
   }),
@@ -166,7 +168,14 @@ vi.mock('../VirtualizedMessageContainer', () => ({
 }));
 
 vi.mock('../MessageItem', () => ({
-  MessageItem: ({ message, onDelete, onEdit, canDeleteOwnMessage, canDeleteAnyMessage }: any) => (
+  MessageItem: ({
+    message,
+    onDelete,
+    onEdit,
+    onTogglePin,
+    canDeleteOwnMessage,
+    canDeleteAnyMessage,
+  }: any) => (
     <>
       {(canDeleteOwnMessage || canDeleteAnyMessage) && (
         <button onClick={() => onDelete?.(message.id)} data-testid={`delete-${message.id}`}>
@@ -179,6 +188,9 @@ vi.mock('../MessageItem', () => ({
       <button onClick={() => onEdit?.(message.id, 'edited')} data-testid={`edit-${message.id}`}>
         edit
       </button>
+      <button onClick={() => onTogglePin?.(message.id, true)} data-testid={`pin-${message.id}`}>
+        pin
+      </button>
     </>
   ),
 }));
@@ -186,6 +198,7 @@ vi.mock('../MessageItem', () => ({
 describe('TripChat delete message', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockTogglePin.mockResolvedValue(undefined);
     mockOwnCapabilities = ['delete-own-message', 'update-own-message'];
     mockChatModeUserRole = 'member';
     mockMessageAuthorId = 'user-1';
@@ -267,5 +280,20 @@ describe('TripChat delete message', () => {
     expect(mockUpdateMessage).toHaveBeenCalledTimes(1);
     expect(mockUpdateMessage).toHaveBeenCalledWith({ id: 'msg-123', text: 'edited' });
     expect(mockEditChatMessage).not.toHaveBeenCalled();
+  });
+
+  it('routes pin toggle through hook helper and never calls Stream updateMessage directly', async () => {
+    const mockUpdateMessage = vi.fn().mockResolvedValue(undefined);
+    mockGetStreamClient.mockReturnValue({
+      deleteMessage: mockDeleteMessage,
+      updateMessage: mockUpdateMessage,
+    } as any);
+
+    renderSubject();
+    fireEvent.click(screen.getByTestId('pin-msg-123'));
+
+    expect(mockTogglePin).toHaveBeenCalledTimes(1);
+    expect(mockTogglePin).toHaveBeenCalledWith('msg-123', true);
+    expect(mockUpdateMessage).not.toHaveBeenCalled();
   });
 });
