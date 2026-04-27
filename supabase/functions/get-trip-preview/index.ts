@@ -65,7 +65,7 @@ serve(async (req): Promise<Response> => {
   try {
     const body = req.method === 'POST' ? await req.json() : {};
     const tripId = body.tripId ?? new URL(req.url).searchParams.get('tripId');
-    const ensureInvite = body.ensureInvite === true;
+    const requestedEnsureInvite = body.ensureInvite === true;
 
     if (!tripId || typeof tripId !== 'string') {
       return new Response(JSON.stringify({ success: false, error: 'tripId is required' }), {
@@ -100,6 +100,16 @@ serve(async (req): Promise<Response> => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       { auth: { persistSession: false } },
     );
+    let ensureInvite = false;
+    if (requestedEnsureInvite) {
+      const authHeader = req.headers.get('Authorization') ?? '';
+      const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+
+      if (token) {
+        const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+        ensureInvite = !userError && !!userData.user;
+      }
+    }
 
     const { data: tripRow, error: tripError } = await supabaseClient
       .from('trips')

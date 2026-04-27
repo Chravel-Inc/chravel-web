@@ -26,9 +26,13 @@ interface TripPreviewData {
 const isUuid = (value: string): boolean =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 
-const fetchTripPreviewPayload = async (tripId: string): Promise<TripPreviewData | null> => {
+const fetchTripPreviewPayload = async (
+  tripId: string,
+  options?: { ensureInvite?: boolean },
+): Promise<TripPreviewData | null> => {
+  const ensureInvite = options?.ensureInvite === true;
   const { data, error: funcError } = await supabase.functions.invoke('get-trip-preview', {
-    body: { tripId, ensureInvite: true },
+    body: { tripId, ensureInvite },
   });
 
   if (funcError || !data?.success || !data?.trip) {
@@ -203,7 +207,7 @@ const TripPreview = () => {
 
     // Real trip (UUID) - fetch via public edge function to avoid RLS blank/404 for unauthenticated users
     try {
-      const previewTrip = await fetchTripPreviewPayload(tripId);
+      const previewTrip = await fetchTripPreviewPayload(tripId, { ensureInvite: !!user });
       if (!previewTrip) {
         setError('Trip not found');
         return;
@@ -290,7 +294,7 @@ const TripPreview = () => {
         return;
       }
       // Retry once in case invite was not yet provisioned when preview loaded.
-      const refreshedPreview = await fetchTripPreviewPayload(tripId);
+      const refreshedPreview = await fetchTripPreviewPayload(tripId, { ensureInvite: true });
       const refreshedInviteCode = refreshedPreview?.active_invite_code || null;
       if (refreshedInviteCode) {
         setActiveInviteCode(refreshedInviteCode);
