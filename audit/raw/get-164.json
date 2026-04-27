@@ -1,0 +1,22 @@
+{
+  "number": 164,
+  "title": "Add native macOS SwiftUI app scaffold (Modules 1-5) with Supabase adapters and tests",
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "mergeable_state": "dirty",
+  "user": { "login": "ChravelApp" },
+  "labels": ["codex"],
+  "head": {
+    "ref": "codex/add-macos-build-plugin-0vf5kx",
+    "sha": "f2016f7b5e45057b0fa0f88f2d0a83a3aad9e3a8"
+  },
+  "base": { "ref": "main", "sha": "e0b109b90d95f156b73674adcc14fc48b5ef515a" },
+  "additions": 1634,
+  "deletions": 1,
+  "changed_files": 37,
+  "commits": 4,
+  "comments": 1,
+  "created_at": "2026-04-10T05:38:18Z",
+  "updated_at": "2026-04-10T18:18:53Z"
+}

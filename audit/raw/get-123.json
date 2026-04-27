@@ -1,0 +1,21 @@
+{
+  "number": 123,
+  "title": "fix: limit chunk error auto-reloads and generate audit report",
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "mergeable_state": "clean",
+  "user": { "login": "MeechYourGoals" },
+  "head": {
+    "ref": "fix-chunk-error-reload-loop-5497535703794142240",
+    "sha": "c53b12a763a4307324be7aa7da9f42c94cf36290"
+  },
+  "base": { "ref": "main", "sha": "22f90522cbc3a195c708bcdf00fb9c59cd6f0ee8" },
+  "additions": 73,
+  "deletions": 434,
+  "changed_files": 4,
+  "commits": 1,
+  "comments": 3,
+  "created_at": "2026-04-06T20:32:41Z",
+  "updated_at": "2026-04-06T20:35:00Z"
+}

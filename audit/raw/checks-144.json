@@ -1,0 +1,12 @@
+{
+  "number": 144,
+  "total": 14,
+  "passed": 12,
+  "failed": 0,
+  "cancelled": 0,
+  "skipped": 1,
+  "pending": 0,
+  "neutral": 1,
+  "ciStatus": "passing",
+  "failingChecks": []
+}

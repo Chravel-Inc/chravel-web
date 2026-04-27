@@ -1,0 +1,21 @@
+{
+  "number": 389,
+  "title": "🧹 Remove unused isVerbose function export from logging.ts",
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "mergeable_state": "unknown",
+  "user": { "login": "ChravelApp" },
+  "head": {
+    "ref": "jules-291930718722448599-e29a8bfc",
+    "sha": "bd3ed29ac3bf6f38ad178219d7f47a3b335f7e61"
+  },
+  "base": { "ref": "main", "sha": "d28b135d4943f14b7561fb2582044b2d8c1aefb2" },
+  "additions": 0,
+  "deletions": 3,
+  "changed_files": 1,
+  "commits": 1,
+  "comments": 4,
+  "created_at": "2026-04-26T18:59:13Z",
+  "updated_at": "2026-04-26T19:00:14Z"
+}

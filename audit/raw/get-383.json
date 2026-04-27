@@ -1,0 +1,21 @@
+{
+  "number": 383,
+  "title": "chore: PR triage audit report",
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "mergeable_state": "unknown",
+  "user": { "login": "MeechYourGoals" },
+  "head": {
+    "ref": "jules-pr-triage-audit-25702207752905964",
+    "sha": "86002f44a30814d178c1e83da81f57ae70b95096"
+  },
+  "base": { "ref": "main", "sha": "d7534e4cc01c342307c26cc036c9519383269aeb" },
+  "additions": 0,
+  "deletions": 0,
+  "changed_files": 0,
+  "commits": 1,
+  "comments": 4,
+  "created_at": "2026-04-25T23:23:29Z",
+  "updated_at": "2026-04-25T23:24:42Z"
+}

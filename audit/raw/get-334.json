@@ -1,0 +1,21 @@
+{
+  "number": 334,
+  "title": "fix(theme): enable Tailwind dark: variants by syncing html.dark",
+  "state": "open",
+  "draft": true,
+  "merged": false,
+  "mergeable_state": "unstable",
+  "user": { "login": "cursor[bot]" },
+  "head": {
+    "ref": "cursor/debugging-agent-workflow-1ccb",
+    "sha": "a988ae2756d02e6c25b45db5f90e9546aa7f2086"
+  },
+  "base": { "ref": "main", "sha": "35148125f855b6f7cb98a00039826315b49c553f" },
+  "additions": 15,
+  "deletions": 3,
+  "changed_files": 3,
+  "commits": 1,
+  "comments": 4,
+  "created_at": "2026-04-20T03:01:17Z",
+  "updated_at": "2026-04-20T03:01:38Z"
+}

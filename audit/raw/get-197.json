@@ -1,0 +1,21 @@
+{
+  "number": 197,
+  "title": "fix(messaging): canonicalize ScheduledMessage type and map broadcasts rows",
+  "state": "open",
+  "draft": true,
+  "merged": false,
+  "mergeable_state": "dirty",
+  "user": { "login": "MeechYourGoals" },
+  "head": {
+    "ref": "codex/task-title2026-04-11",
+    "sha": "ba3d60b098b42528ce7de3b08b072dbf519ae4e2"
+  },
+  "base": { "ref": "main", "sha": "2030e0ad61cb5efb77a09f1708296ddf56015b76" },
+  "additions": 42,
+  "deletions": 41,
+  "changed_files": 4,
+  "commits": 1,
+  "comments": 2,
+  "created_at": "2026-04-11T19:12:01Z",
+  "updated_at": "2026-04-11T19:12:17Z"
+}

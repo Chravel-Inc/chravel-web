@@ -1,0 +1,12 @@
+{
+  "number": 181,
+  "total": 15,
+  "passed": 9,
+  "failed": 3,
+  "cancelled": 0,
+  "skipped": 2,
+  "pending": 0,
+  "neutral": 1,
+  "ciStatus": "failing",
+  "failingChecks": ["Unit Tests (Vitest)", "Static Checks", "gitleaks"]
+}

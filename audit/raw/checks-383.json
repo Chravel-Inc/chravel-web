@@ -1,0 +1,12 @@
+{
+  "number": 383,
+  "total": 17,
+  "passed": 12,
+  "failed": 2,
+  "cancelled": 1,
+  "skipped": 2,
+  "pending": 0,
+  "neutral": 1,
+  "ciStatus": "failing",
+  "failingChecks": ["Build Web App", "Static Checks"]
+}

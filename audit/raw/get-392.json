@@ -1,0 +1,21 @@
+{
+  "number": 392,
+  "title": "🧹 [code health] Fetch preferred payment method from user",
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "mergeable_state": "unknown",
+  "user": { "login": "ChravelApp" },
+  "head": {
+    "ref": "jules-17475610444760651982-85f201bb",
+    "sha": "cdbe68a7438d6b3d065c789ee762bc78b400e48f"
+  },
+  "base": { "ref": "main", "sha": "d28b135d4943f14b7561fb2582044b2d8c1aefb2" },
+  "additions": 747,
+  "deletions": 731,
+  "changed_files": 2,
+  "commits": 1,
+  "comments": 2,
+  "created_at": "2026-04-26T19:08:11Z",
+  "updated_at": "2026-04-26T19:10:22Z"
+}

@@ -1,0 +1,21 @@
+{
+  "number": 317,
+  "title": "chore: generate daily engineering digest",
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "mergeable_state": "unstable",
+  "user": { "login": "MeechYourGoals" },
+  "head": {
+    "ref": "jules/daily-engineering-digest-3228530862293030410",
+    "sha": "92bab96439ffa73cc11532ec9e76d5bc1cc294a2"
+  },
+  "base": { "ref": "main", "sha": "196edd3523520706c4b28ca2188de952f62bd754" },
+  "additions": 0,
+  "deletions": 0,
+  "changed_files": 0,
+  "commits": 1,
+  "comments": 4,
+  "created_at": "2026-04-18T04:44:32Z",
+  "updated_at": "2026-04-18T04:46:08Z"
+}

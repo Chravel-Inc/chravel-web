@@ -1,0 +1,21 @@
+{
+  "number": 386,
+  "title": "Fix Stream pinned message support across trip and channel chats",
+  "state": "open",
+  "draft": true,
+  "merged": false,
+  "mergeable_state": "dirty",
+  "user": { "login": "cursor[bot]" },
+  "head": {
+    "ref": "cursor/debugging-agent-workflow-b392",
+    "sha": "cd6a5b80da1e55827f37b8843a2883df7b65184c"
+  },
+  "base": { "ref": "main", "sha": "d169601a23fec7d9adbc194f9ec5fb314bb47cd9" },
+  "additions": 1017,
+  "deletions": 844,
+  "changed_files": 13,
+  "commits": 2,
+  "comments": 4,
+  "created_at": "2026-04-26T15:07:02Z",
+  "updated_at": "2026-04-26T15:09:12Z"
+}

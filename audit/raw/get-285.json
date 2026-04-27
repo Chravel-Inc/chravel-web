@@ -1,0 +1,21 @@
+{
+  "number": 285,
+  "title": "Daily Engineering Digest",
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "mergeable_state": "unstable",
+  "user": { "login": "MeechYourGoals" },
+  "head": {
+    "ref": "jules-digest-slack-437984777843982687-10088959725180743659",
+    "sha": "026e95d7add1fcf9a767c73bb2dad8290182abf5"
+  },
+  "base": { "ref": "main", "sha": "5dfd847e4e06389dcaec66e5bd648139d000c3f6" },
+  "additions": 1,
+  "deletions": 1,
+  "changed_files": 1,
+  "commits": 2,
+  "comments": 4,
+  "created_at": "2026-04-15T04:44:26Z",
+  "updated_at": "2026-04-15T04:53:13Z"
+}

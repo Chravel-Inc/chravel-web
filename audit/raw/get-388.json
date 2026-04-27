@@ -1,0 +1,21 @@
+{
+  "number": 388,
+  "title": "Implement receipt extraction and storage",
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "mergeable_state": "unknown",
+  "user": { "login": "ChravelApp" },
+  "head": {
+    "ref": "jules-16669928946553156495-6913b3e4",
+    "sha": "5fe05e7c6f4a8a76b2282b1b3551efe899ef19b4"
+  },
+  "base": { "ref": "main", "sha": "d28b135d4943f14b7561fb2582044b2d8c1aefb2" },
+  "additions": 793,
+  "deletions": 736,
+  "changed_files": 3,
+  "commits": 2,
+  "comments": 2,
+  "created_at": "2026-04-26T18:52:18Z",
+  "updated_at": "2026-04-26T18:55:08Z"
+}

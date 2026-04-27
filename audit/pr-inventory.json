@@ -1,0 +1,1292 @@
+[
+  {
+    "number": 393,
+    "title": "fix(date): add parseLocalDate to handle YYYY-MM-DD timezone bugs safely",
+    "body": "Created parseLocalDate in dateHelpers.ts to avoid timezone shifting by\nparsing the parts manually. Replaced manual workaround in\nCreateEventModal.tsx and updated CreateTripModal.tsx\u0026#39;s validation checks\nto use the new utility as well.\n\n---\n*PR created automatically by Jules for task [13913734039405448339](https://jules.google.com/task/13913734039405448339) started by @MeechYourGoals*",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/393",
+    "user": {
+      "login": "ChravelApp",
+      "id": 263244170,
+      "profile_url": "https://github.com/ChravelApp",
+      "avatar_url": "https://avatars.githubusercontent.com/u/263244170?v=4"
+    },
+    "requested_reviewers": ["MeechYourGoals"],
+    "head": {
+      "ref": "jules-13913734039405448339-7cafdc36",
+      "sha": "a2556e6a281d0aa34a35560704000a78a0e02642",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "d28b135d4943f14b7561fb2582044b2d8c1aefb2",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-26T19:08:33Z",
+    "updated_at": "2026-04-26T19:09:30Z"
+  },
+  {
+    "number": 392,
+    "title": "🧹 [code health] Fetch preferred payment method from user",
+    "body": "🎯 **What:** Modified `useChatComposer` hook to fetch the user\u0026#39;s preferred payment method instead of using a hardcoded placeholder (`Venmo: @yourvenmo`).\n💡 **Why:** Reduces technical debt and improves maintainability by removing hardcoded strings and fully relying on user payment preferences dynamically fetched via `usePayments` hook.\n✅ **Verification:** Verified compilation and linting tests. Passed formatting checks.\n✨ **Result:** Dynamic payment strings match the current user profile configuration, resulting in a robust, maintainable payment chat composer block.\n\n---\n*PR created automatically by Jules for task [17475610444760651982](https://jules.google.com/task/17475610444760651982) started by @MeechYourGoals*",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/392",
+    "user": {
+      "login": "ChravelApp",
+      "id": 263244170,
+      "profile_url": "https://github.com/ChravelApp",
+      "avatar_url": "https://avatars.githubusercontent.com/u/263244170?v=4"
+    },
+    "requested_reviewers": ["MeechYourGoals"],
+    "head": {
+      "ref": "jules-17475610444760651982-85f201bb",
+      "sha": "cdbe68a7438d6b3d065c789ee762bc78b400e48f",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "d28b135d4943f14b7561fb2582044b2d8c1aefb2",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-26T19:08:11Z",
+    "updated_at": "2026-04-26T19:10:22Z"
+  },
+  {
+    "number": 391,
+    "title": "🧹 Code Health: Implement scaffold for Google Play Billing provider",
+    "body": "🎯 **What:** The `src/billing/providers/index.ts` file previously had a TODO to implement the `GooglePlayProvider`, and temporarily returned a stub implementation for Android devices with `BILLING_FLAGS.GOOGLE_BILLING_ENABLED`. This PR introduces the missing `GooglePlayProvider` class (`src/billing/providers/google.ts`) and updates the factory to return the newly implemented provider rather than the `androidBillingUnavailableProvider`.\n\n💡 **Why:** By implementing a mirrored structure to `AppleIAPProvider` for Android, the code aligns cleanly with the repository\u0026#39;s `BillingProvider` interface strategy, clearing out a tech debt TODO and structuring the app to be fully prepared for Android native execution implementations.\n\n✅ **Verification:** Verified by checking types with `bun run typecheck`, running formatting checks with `npx prettier --check` (which passed successfully on the changed files), running the billing tests via `bun x vitest src/billing` which passed cleanly, and manually verifying the implementation matched the expected interface.\n\n✨ **Result:** A fully formed Android scaffolding solution mirroring iOS that allows proper feature flags to gate Google Play functionality once native API connections are built without needing to rebuild the interface logic inside `src/billing/providers/index.ts`.\n\n---\n*PR created automatically by Jules for task [1604543458986221860](https://jules.google.com/task/1604543458986221860) started by @MeechYourGoals*",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/391",
+    "user": {
+      "login": "ChravelApp",
+      "id": 263244170,
+      "profile_url": "https://github.com/ChravelApp",
+      "avatar_url": "https://avatars.githubusercontent.com/u/263244170?v=4"
+    },
+    "requested_reviewers": ["MeechYourGoals"],
+    "head": {
+      "ref": "jules-1604543458986221860-7a6e1f7b",
+      "sha": "cbecc32ac289ab90b4168a3bd9a1256be40a0aa5",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "d28b135d4943f14b7561fb2582044b2d8c1aefb2",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-26T19:05:12Z",
+    "updated_at": "2026-04-26T20:28:43Z"
+  },
+  {
+    "number": 390,
+    "title": "🧹 Remove unused DemoModeBadge component",
+    "body": "🎯 **What:** Deleted the `DemoModeBadge` component and its export from the `src/components/demo/index.ts` file.\n💡 **Why:** The component was unused, representing dead code. Removing it improves codebase maintainability and reduces clutter.\n✅ **Verification:** Verified via search (`grep -rn \u0026#34;DemoModeBadge\u0026#34; src/`) that there were no remaining usages. Ran `npm run validate` to ensure the project still builds, passes type checks, and maintains correct formatting.\n✨ **Result:** A cleaner codebase with less dead code.\n\n---\n*PR created automatically by Jules for task [427499410779256792](https://jules.google.com/task/427499410779256792) started by @MeechYourGoals*",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/390",
+    "user": {
+      "login": "ChravelApp",
+      "id": 263244170,
+      "profile_url": "https://github.com/ChravelApp",
+      "avatar_url": "https://avatars.githubusercontent.com/u/263244170?v=4"
+    },
+    "requested_reviewers": ["MeechYourGoals"],
+    "head": {
+      "ref": "jules-427499410779256792-98646294",
+      "sha": "509fd2e79ec614c42bb8d640ee02311213686667",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "d28b135d4943f14b7561fb2582044b2d8c1aefb2",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-26T19:00:01Z",
+    "updated_at": "2026-04-26T19:00:50Z"
+  },
+  {
+    "number": 389,
+    "title": "🧹 Remove unused isVerbose function export from logging.ts",
+    "body": "🎯 **What:** Removed the unused `isVerbose` function export from `optimizer/utils/logging.ts`.\n💡 **Why:** `isVerbose` was a dead code path that was never used anywhere in the codebase. Removing it reduces surface area and improves code cleanliness and maintainability.\n✅ **Verification:**\n- Validated via grep and knip that `isVerbose` had no usage.\n- Ran `npm run validate` and confirmed no errors or type check issues.\n- Reviewed and confirmed that only `optimizer/utils/logging.ts` was modified, ensuring functionality is preserved.\n✨ **Result:** A cleaner logging module with fewer unused exports.\n\n---\n*PR created automatically by Jules for task [291930718722448599](https://jules.google.com/task/291930718722448599) started by @MeechYourGoals*",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/389",
+    "user": {
+      "login": "ChravelApp",
+      "id": 263244170,
+      "profile_url": "https://github.com/ChravelApp",
+      "avatar_url": "https://avatars.githubusercontent.com/u/263244170?v=4"
+    },
+    "requested_reviewers": ["MeechYourGoals"],
+    "head": {
+      "ref": "jules-291930718722448599-e29a8bfc",
+      "sha": "bd3ed29ac3bf6f38ad178219d7f47a3b335f7e61",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "d28b135d4943f14b7561fb2582044b2d8c1aefb2",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-26T18:59:13Z",
+    "updated_at": "2026-04-26T19:00:14Z"
+  },
+  {
+    "number": 388,
+    "title": "Implement receipt extraction and storage",
+    "body": "Implemented receipt extraction logic in `applySuggestion` from `src/services/chatContentParser.ts`. When a suggestion of type `\u0026#39;extract_receipt\u0026#39;` is passed, it extracts the total amount and vendor data and inserts a row into the `receipts` table. It returns the database ID of the newly added receipt. Tests were updated accordingly.\n\n---\n*PR created automatically by Jules for task [16669928946553156495](https://jules.google.com/task/16669928946553156495) started by @MeechYourGoals*",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/388",
+    "user": {
+      "login": "ChravelApp",
+      "id": 263244170,
+      "profile_url": "https://github.com/ChravelApp",
+      "avatar_url": "https://avatars.githubusercontent.com/u/263244170?v=4"
+    },
+    "requested_reviewers": ["MeechYourGoals"],
+    "head": {
+      "ref": "jules-16669928946553156495-6913b3e4",
+      "sha": "5fe05e7c6f4a8a76b2282b1b3551efe899ef19b4",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "d28b135d4943f14b7561fb2582044b2d8c1aefb2",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-26T18:52:18Z",
+    "updated_at": "2026-04-26T18:55:08Z"
+  },
+  {
+    "number": 386,
+    "title": "Fix Stream pinned message support across trip and channel chats",
+    "body": "## Summary\n\nFixes pinned-message UX drift in Stream-backed chat so the existing pinned tab and message menu now map to actual Stream pin state and mutations across both trip chat and pro channel chat.\n\n## Changes\n\n- add shared Stream capability helper and gate pin controls from actual `own_capabilities` instead of UI-only assumptions\n- map Stream `pinned` / `pinned_at` into shared trip-chat and pro-channel message view models so pinned tabs, badges, and unpin labels reflect server state\n- switch pin mutations to Stream SDK `pinMessage` / `unpinMessage` APIs and wire the same menu action path into `ChannelChatView`\n- add regression coverage for trip chat view-model pin mapping, pro-channel adapter pin metadata, and channel pin menu wiring\n- restore missing local `TripChat` state surfaced by the new focused regression suite and document the reusable lesson in `LESSONS.md`\n\n## Type of Change\n\n- [x] Bug fix (non-breaking change that fixes an issue)\n- [ ] New feature (non-breaking change that adds functionality)\n- [ ] Breaking change (fix or feature that would cause existing functionality to break)\n- [ ] Refactor (no functional change)\n- [ ] Chore (dependency update, config change, docs, etc.)\n\n## Deploy Impact\n\n- [ ] **Database migration included** — migration is idempotent and backward-compatible\n- [ ] **Edge function changes** — functions tested locally with `supabase functions serve`\n- [ ] **Environment variable added/changed** — `.env.example` updated, Vercel/Supabase secrets configured\n- [ ] **Feature flag change** — flag documented and reversible\n- [x] **None of the above** — code-only change\n\n### Migration Checklist (if applicable)\n\n- [ ] Migration file is timestamped (`YYYYMMDDHHMMSS_description.sql`)\n- [ ] All `CREATE TABLE` statements use `IF NOT EXISTS`\n- [ ] All `DROP` statements use `IF EXISTS`\n- [ ] All functions use `CREATE OR REPLACE`\n- [ ] DDL uses schema qualification (`public.table_name`)\n- [ ] Backward-compatible with current app code (no breaking renames/drops without migration plan)\n- [ ] Forward-fix strategy documented (if this is a breaking change)\n- [ ] `npx tsx scripts/lint-migrations.ts` passes\n\n## Pre-Merge Checklist\n\n- [x] `npm run lint \u0026amp;\u0026amp; npm run typecheck \u0026amp;\u0026amp; npm run build` passes locally\n- [ ] `npm run qa:guardrails` passes\n- [x] No `console.log` left in committed code\n- [x] No hardcoded secrets, API keys, or credentials\n- [x] No weakening of RLS or auth guarantees\n- [x] Existing tests pass; new tests added where appropriate\n- [x] Loading, empty, and error states handled (not conflated)\n- [x] Mobile-safe layout (no overflow regressions)\n\n## Testing\n\n- `npm run test:run -- src/features/chat/adapters/__tests__/streamMessageViewModel.test.ts src/services/stream/adapters/mappers/__tests__/proChannelMessageAdapter.test.ts src/components/pro/channels/__tests__/ChannelChatView.stream.test.tsx src/features/chat/components/__tests__/TripChat.deleteMessage.test.tsx src/features/chat/components/__tests__/TripChat.renderPath.test.tsx src/features/chat/components/__tests__/MessageActions.pinPermissions.test.tsx`\n- `npm run merge:preflight`\n- `npm run lint`\n- `npm run typecheck`\n- `npm run build`\n\n## Risk\n\nPrimary risk is chat action-menu permission visibility across Stream-backed surfaces. This is contained to message action rendering and pinned-message projection; server-side Stream permissions remain authoritative.\n\n## Rollback Plan\n\nRevert commits `cd6a5b80` and `2f83e822` to restore the prior chat pinning behavior.\n\n\u003ca href=\"https://cursor.com/agents/bc-3e129668-4a23-544a-a05a-ababed68b3c0\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"Open in Web\" width=\"114\" height=\"28\" src=\"https://cursor.com/assets/images/open-in-web-dark.png\"\u003e\u003c/a\u003e \u003ca href=\"https://cursor.com/automations/26dff066-b752-4188-ae69-f93ae8e9efc6\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"View Automation\" width=\"141\" height=\"28\" src=\"https://cursor.com/assets/images/view-automation-dark.png\"\u003e\u003c/a\u003e \n\n",
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/386",
+    "user": {
+      "login": "cursor[bot]",
+      "id": 206951365,
+      "profile_url": "https://github.com/apps/cursor",
+      "avatar_url": "https://avatars.githubusercontent.com/in/1210556?v=4"
+    },
+    "head": {
+      "ref": "cursor/debugging-agent-workflow-b392",
+      "sha": "cd6a5b80da1e55827f37b8843a2883df7b65184c",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "d169601a23fec7d9adbc194f9ec5fb314bb47cd9",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-26T15:07:02Z",
+    "updated_at": "2026-04-26T15:09:12Z"
+  },
+  {
+    "number": 384,
+    "title": "Deliver Daily Engineering Digest",
+    "body": "No changes made. Engineering digest delivered successfully.\n\n---\n*PR created automatically by Jules for task [9340835832936105899](https://jules.google.com/task/9340835832936105899) started by @MeechYourGoals*",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/384",
+    "user": {
+      "login": "MeechYourGoals",
+      "id": 206444919,
+      "profile_url": "https://github.com/MeechYourGoals",
+      "avatar_url": "https://avatars.githubusercontent.com/u/206444919?v=4"
+    },
+    "head": {
+      "ref": "main-9340835832936105899",
+      "sha": "cdcb7927c8944debda30e0ec52b40b30e8dbea59",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "d7534e4cc01c342307c26cc036c9519383269aeb",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-26T04:45:51Z",
+    "updated_at": "2026-04-26T05:40:24Z"
+  },
+  {
+    "number": 383,
+    "title": "chore: PR triage audit report",
+    "body": "Completed a systematic triage of the 39 open PRs against the current architecture to reduce clutter. No codebase changes were pushed; the deliverables are contained entirely within the conversation history as requested.\n\n---\n*PR created automatically by Jules for task [25702207752905964](https://jules.google.com/task/25702207752905964) started by @MeechYourGoals*",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/383",
+    "user": {
+      "login": "MeechYourGoals",
+      "id": 206444919,
+      "profile_url": "https://github.com/MeechYourGoals",
+      "avatar_url": "https://avatars.githubusercontent.com/u/206444919?v=4"
+    },
+    "head": {
+      "ref": "jules-pr-triage-audit-25702207752905964",
+      "sha": "86002f44a30814d178c1e83da81f57ae70b95096",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "d7534e4cc01c342307c26cc036c9519383269aeb",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-25T23:23:29Z",
+    "updated_at": "2026-04-25T23:24:42Z"
+  },
+  {
+    "number": 381,
+    "title": "Claude/slack session k gfv a",
+    "body": "## Summary\n\n\n\n## Changes\n\n\n\n-\n\n## Type of Change\n\n- [ ] Bug fix (non-breaking change that fixes an issue)\n- [ ] New feature (non-breaking change that adds functionality)\n- [ ] Breaking change (fix or feature that would cause existing functionality to break)\n- [ ] Refactor (no functional change)\n- [ ] Chore (dependency update, config change, docs, etc.)\n\n## Deploy Impact\n\n- [ ] **Database migration included** — migration is idempotent and backward-compatible\n- [ ] **Edge function changes** — functions tested locally with `supabase functions serve`\n- [ ] **Environment variable added/changed** — `.env.example` updated, Vercel/Supabase secrets configured\n- [ ] **Feature flag change** — flag documented and reversible\n- [ ] **None of the above** — code-only change\n\n### Migration Checklist (if applicable)\n\n- [ ] Migration file is timestamped (`YYYYMMDDHHMMSS_description.sql`)\n- [ ] All `CREATE TABLE` statements use `IF NOT EXISTS`\n- [ ] All `DROP` statements use `IF EXISTS`\n- [ ] All functions use `CREATE OR REPLACE`\n- [ ] DDL uses schema qualification (`public.table_name`)\n- [ ] Backward-compatible with current app code (no breaking renames/drops without migration plan)\n- [ ] Forward-fix strategy documented (if this is a breaking change)\n- [ ] `npx tsx scripts/lint-migrations.ts` passes\n\n## Pre-Merge Checklist\n\n- [ ] `npm run lint \u0026amp;\u0026amp; npm run typecheck \u0026amp;\u0026amp; npm run build` passes locally\n- [ ] `npm run qa:guardrails` passes\n- [ ] No `console.log` left in committed code\n- [ ] No hardcoded secrets, API keys, or credentials\n- [ ] No weakening of RLS or auth guarantees\n- [ ] Existing tests pass; new tests added where appropriate\n- [ ] Loading, empty, and error states handled (not conflated)\n- [ ] Mobile-safe layout (no overflow regressions)\n\n## Testing\n\n\n\n## Risk\n\n\n\n## Rollback Plan\n\n\n\n",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/381",
+    "user": {
+      "login": "ChravelApp",
+      "id": 263244170,
+      "profile_url": "https://github.com/ChravelApp",
+      "avatar_url": "https://avatars.githubusercontent.com/u/263244170?v=4"
+    },
+    "requested_reviewers": ["MeechYourGoals"],
+    "head": {
+      "ref": "claude/slack-session-kGfvA",
+      "sha": "6220f782b8d273078b83ad431843cbda75ce8ea7",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "720c8df71220e0384ea984cea755f292d3ae38f3",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-24T12:44:51Z",
+    "updated_at": "2026-04-24T12:46:07Z"
+  },
+  {
+    "number": 361,
+    "title": "Security Review Complete",
+    "body": "Completed PR security review. No issues found.\n\n---\n*PR created automatically by Jules for task [14220933445946297855](https://jules.google.com/task/14220933445946297855) started by @MeechYourGoals*",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/361",
+    "user": {
+      "login": "MeechYourGoals",
+      "id": 206444919,
+      "profile_url": "https://github.com/MeechYourGoals",
+      "avatar_url": "https://avatars.githubusercontent.com/u/206444919?v=4"
+    },
+    "head": {
+      "ref": "jules-14220933445946297855-19d2e390",
+      "sha": "422600eded19e75fcf85599f180c02f58d53cf2c",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "7c4a37a7e09dc9303996e56c2e11c4a827f27848",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-22T19:34:21Z",
+    "updated_at": "2026-04-22T19:35:56Z"
+  },
+  {
+    "number": 359,
+    "title": "ThreadView: add pagination, dedupe, reconnect backfill, and tests",
+    "body": "### Motivation\n- Make threaded reply UI resilient to out-of-order realtime events, duplicate events, and Stream reconnects by sorting/deduping and backfilling replies.\n- Support paginated thread history loads with retryable pagination boundaries to avoid silent failures when older pages error or exhaust.\n- Capture a common React pitfall in `LESSONS.md` about default `[]` prop literals causing unstable identities when used in hook dependencies.\n\n### Description\n- Refactored `ThreadView` to use a `threadChannel` (`client.channel(...)`) plus `REPLIES_PAGE_SIZE` and a module-level `EMPTY_TRIP_MEMBERS` to stabilize default props and avoid identity churn.\n- Added `sortRepliesByCreatedAt` and `mergeRepliesDeduped` helpers and a `formatReply` function to consistently format, sort, and dedupe replies on initial load, realtime `message.new`/`message.updated`, and pagination `append` flows.\n- Implemented paginated backfill via `loadOlderReplies` using `id_lt` and explicit `pagination` vs `backfill` error types, plus silent `loadInitialReplies({ silent: true })` for reconnect-based backfills triggered by `onStreamClientConnectionStatusChange`.\n- Updated UI to show load-more controls, retry buttons for both initial and pagination/backfill failures, a backfill refresh indicator, and ensured `sendMessage` uses the channel instance; cleaned up subscription attach/detach logic.\n- Added a new test suite `src/features/chat/components/__tests__/ThreadView.test.tsx` exercising sort/order/dedupe, `message.deleted`, pagination + retry, reconnect backfill behavior, and the reconnect-retry-via-initial-fetch edge case.\n- Added a LESSONS entry recommending module-level empty-array constants instead of inline `[]` defaults when hooks depend on the prop identity.\n\n### Testing\n- Ran the component unit tests with `vitest`, including the new `ThreadView` tests; the suite for `ThreadView` passed locally.\n- Verified realtime event handling, pagination retry, and reconnect backfill via automated tests covering ordering/dedupe, delete handling, pagination boundary + retry, and reconnect backfill retry scenarios, all succeeding.\n\n------\n[Codex Task](https://chatgpt.com/codex/cloud/tasks/task_e_69e79a9c13cc832ab74c9eded03949ff)",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/359",
+    "user": {
+      "login": "ChravelApp",
+      "id": 263244170,
+      "profile_url": "https://github.com/ChravelApp",
+      "avatar_url": "https://avatars.githubusercontent.com/u/263244170?v=4"
+    },
+    "labels": ["codex"],
+    "requested_reviewers": ["MeechYourGoals"],
+    "head": {
+      "ref": "codex/refactor-threadview-for-replies-sorting-and-pagination2026-04-22",
+      "sha": "321cdf9603872fbcd606b8e831e6d09ef6190863",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "deaededdb3c6428db5ce6fac115098aa8bd10bbb",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-22T15:51:40Z",
+    "updated_at": "2026-04-22T15:55:10Z"
+  },
+  {
+    "number": 358,
+    "title": "chore: generate daily engineering digest",
+    "body": "Generates a daily engineering digest summarizing landed codebase changes over the past 24 hours. The digest is formatted for Slack, highlights key themes (e.g. Trip Covers \u0026amp; Permissions, Chat Architecture), specifies impacts, and includes a Watchlist of potential risks to monitor.\n\n---\n*PR created automatically by Jules for task [6296635421153863612](https://jules.google.com/task/6296635421153863612) started by @MeechYourGoals*",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/358",
+    "user": {
+      "login": "MeechYourGoals",
+      "id": 206444919,
+      "profile_url": "https://github.com/MeechYourGoals",
+      "avatar_url": "https://avatars.githubusercontent.com/u/206444919?v=4"
+    },
+    "head": {
+      "ref": "chore/engineering-digest-6296635421153863612",
+      "sha": "ca72aef5d1e02a24b84cac509b4ccb83d717d47e",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "deaededdb3c6428db5ce6fac115098aa8bd10bbb",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-22T04:50:18Z",
+    "updated_at": "2026-04-22T04:51:55Z"
+  },
+  {
+    "number": 338,
+    "title": "fix(events): harden EventDetail + consolidate ErrorBoundary reload UX",
+    "body": "## Summary\n\nFixes the Events route crashing into the global Error Boundary when `EventData.itinerary` is missing or malformed (e.g. partial Supabase/cache shapes). Consolidates redundant **Try Again** vs **Refresh Page** actions for non-chunk errors into a single **Reload page** that performs a full reload.\n\n## Changes\n\n- Normalize itinerary via `normalizeEventItinerary()` before `.map()` / `flatMap` in `EventDetail.tsx`; optional chaining for `participants` and `category` fallbacks.\n- Same defensive handling on mobile (`MobileEventDetail.tsx`) for attendee counts and participant mapping.\n- Document invariant in `convertSupabaseTripToEvent` (always returns `itinerary: []`).\n- ErrorBoundary: non-chunk errors show one primary **Reload page**; chunk errors keep **Clear Cache \u0026amp; Reload** + **Try Again** (reset). Compact mode retry now reloads the page for consistency.\n- Tests: `eventItinerary.test.ts`; updated `ErrorBoundary.test.tsx`.\n\n## Type of Change\n\n- [x] Bug fix (non-breaking change that fixes an issue)\n\n## Deploy Impact\n\n- [x] **None of the above** — code-only change\n\n## Pre-Merge Checklist\n\n- [x] `npm run lint \u0026amp;\u0026amp; npm run typecheck \u0026amp;\u0026amp; npm run build` passes locally (after `npm install` in CI-equivalent env)\n- [ ] `npm run qa:guardrails` passes *(not run in this session — recommend CI)*\n- [x] No `console.log` added\n- [x] No secrets\n- [x] No RLS/auth changes\n\n## Testing\n\n- `npm run test:run -- src/lib/__tests__/eventItinerary.test.ts src/components/__tests__/ErrorBoundary.test.tsx`\n- `npm run build`\n\n## Risk\n\n**Low.** Defensive null checks on event itinerary/participants; ErrorBoundary UX change only affects fatal error fallback (non-chunk path now one button).\n\n## Rollback Plan\n\nRevert commit `dea90449` or this PR merge on `main`.\n\n\u003ca href=\"https://cursor.com/agents/bc-a2244044-bf95-5155-904e-a90ac703bca0\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"Open in Web\" width=\"114\" height=\"28\" src=\"https://cursor.com/assets/images/open-in-web-dark.png\"\u003e\u003c/a\u003e \u003ca href=\"https://cursor.com/automations/26dff066-b752-4188-ae69-f93ae8e9efc6\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"View Automation\" width=\"141\" height=\"28\" src=\"https://cursor.com/assets/images/view-automation-dark.png\"\u003e\u003c/a\u003e \n\n",
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/338",
+    "user": {
+      "login": "cursor[bot]",
+      "id": 206951365,
+      "profile_url": "https://github.com/apps/cursor",
+      "avatar_url": "https://avatars.githubusercontent.com/in/1210556?v=4"
+    },
+    "head": {
+      "ref": "cursor/chravelapp-bug-resolution-d309",
+      "sha": "dea90449424cb5106b2c103024152cc171810159",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "f855fb74d6991a77fb3cfa6fea5026cd183dc3a2",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-20T15:21:39Z",
+    "updated_at": "2026-04-20T15:22:04Z"
+  },
+  {
+    "number": 337,
+    "title": "fix(chat): Stream-aligned alerts and notification deep-links to chat",
+    "body": "## Summary\n\nFixes in-app chat alerts that referenced legacy Postgres message IDs while the UI reads GetStream, restores reliable navigation from Notifications into the correct trip tab and message, and stops per-row chat INSERT notifications from the obsolete `trip_chat_messages` trigger path.\n\n## Changes\n\n- **NotificationsDialog**: On chat/mention navigation, stash `messageId` / channel context in `sessionStorage` keyed by trip id; read `stream_message_id` as `messageId` fallback for Stream-sourced rows.\n- **Trip shells** (`TripDetailDesktop`, `MobileTripDetail`, `ProTripDetailDesktop`, `MobileProTripDetail`, `MobileEventDetail`, `EventDetailContent`): `useTripNotificationUrlTabSync` applies `?tab=` from the URL and forces **Chat** when pending notification context exists (beats mobile sessionStorage last-tab).\n- **TripChat**: After Stream messages load, peek pending nav, scroll/highlight when the Stream message id is present, clear storage (or clear if message never appears and history is exhausted).\n- **stream-webhook**: Duplicate `stream_message_id` into `metadata.message_id` for clients expecting `message_id`.\n- **Migration**: `DROP TRIGGER IF EXISTS trigger_notify_chat_message ON public.trip_chat_messages` — removes legacy per-insert notifications (chat is Stream; trigger IDs did not match Stream UI).\n\n## Type of Change\n\n- [x] Bug fix (non-breaking change that fixes an issue)\n- [ ] New feature (non-breaking change that adds functionality)\n- [ ] Breaking change (fix or feature that would cause existing functionality to break)\n- [ ] Refactor (no functional change)\n- [ ] Chore (dependency update, config change, docs, etc.)\n\n## Deploy Impact\n\n- [x] **Database migration included** — migration is idempotent and backward-compatible\n- [x] **Edge function changes** — functions tested locally with `supabase functions serve`\n- [ ] **Environment variable added/changed** — `.env.example` updated, Vercel/Supabase secrets configured\n- [ ] **Feature flag change** — flag documented and reversible\n- [ ] **None of the above** — code-only change\n\n### Migration Checklist (if applicable)\n\n- [x] Migration file is timestamped (`YYYYMMDDHHMMSS_description.sql`)\n- [x] All `CREATE TABLE` statements use `IF NOT EXISTS` (N/A — trigger drop only)\n- [x] All `DROP` statements use `IF EXISTS`\n- [x] All functions use `CREATE OR REPLACE` (N/A)\n- [x] DDL uses schema qualification (`public.table_name`)\n- [x] Backward-compatible with current app code (no breaking renames/drops without migration plan)\n- [x] Forward-fix strategy documented (if this is a breaking change) — N/A; trigger removal only stops spurious notifications\n- [x] `npx tsx scripts/lint-migrations.ts` passes\n\n## Pre-Merge Checklist\n\n- [x] `npm run lint \u0026amp;\u0026amp; npm run typecheck \u0026amp;\u0026amp; npm run build` passes locally\n- [ ] `npm run qa:guardrails` passes\n- [x] No `console.log` left in committed code\n- [x] No hardcoded secrets, API keys, or credentials\n- [x] No weakening of RLS or auth guarantees\n- [x] Existing tests pass; new tests added where appropriate\n- [x] Loading, empty, and error states handled (not conflated)\n- [x] Mobile-safe layout (no overflow regressions)\n\n## Testing\n\n- `npm run lint:check` (0 errors)\n- `npm run typecheck`\n- `npm run build`\n- `npx vitest run src/lib/__tests__/chatNavigationFromNotification.test.ts src/components/__tests__/NotificationsDialog.test.tsx`\n\n## Risk\n\n**Low–medium.** Dropping the legacy trigger removes DB-generated notifications tied to `trip_chat_messages` inserts. If any hidden path still inserts rows expecting notifications, those inserts would no longer fan out (Stream path + mention webhook remain).\n\n## Rollback Plan\n\n- Revert the PR commit.\n- If migration already applied: optionally re-create `trigger_notify_chat_message` only if a product decision requires legacy table notifications again (not recommended; Stream is canonical).\n\n## Ops follow-up (non-code)\n\n1. **Apply migration** to Supabase: `supabase db push` (or Dashboard SQL) for `20260420143000_drop_legacy_trip_chat_notifications_trigger.sql`.\n2. **Redeploy** `stream-webhook` edge function after merge so new notifications include `metadata.message_id`.\n\n\u003ca href=\"https://cursor.com/agents/bc-9e26626e-149b-5b86-b071-8b60015e6201\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"Open in Web\" width=\"114\" height=\"28\" src=\"https://cursor.com/assets/images/open-in-web-dark.png\"\u003e\u003c/a\u003e \u003ca href=\"https://cursor.com/automations/26dff066-b752-4188-ae69-f93ae8e9efc6\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"View Automation\" width=\"141\" height=\"28\" src=\"https://cursor.com/assets/images/view-automation-dark.png\"\u003e\u003c/a\u003e \n\n",
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/337",
+    "user": {
+      "login": "cursor[bot]",
+      "id": 206951365,
+      "profile_url": "https://github.com/apps/cursor",
+      "avatar_url": "https://avatars.githubusercontent.com/in/1210556?v=4"
+    },
+    "head": {
+      "ref": "cursor/-bc-9e26626e-149b-5b86-b071-8b60015e6201-0789",
+      "sha": "7905077f666efbb11c5551337f4f146db1abe182",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "f855fb74d6991a77fb3cfa6fea5026cd183dc3a2",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-20T15:14:28Z",
+    "updated_at": "2026-04-20T15:14:50Z"
+  },
+  {
+    "number": 336,
+    "title": "fix(ios-web): branded boot splash + faster auth cold start",
+    "body": "## Summary\n\nAddresses TestFlight feedback: weak first paint (tiny/wrong branding before JS) and multi-second “logged-in” gate. Adds a static branded boot shell in `index.html`, removes it after React mounts, and stops blocking `ProtectedRoute` on proactive Supabase token refresh during init. Also enables PKCE for the Supabase browser client.\n\n## Changes\n\n- `index.html`: static `#chravel-boot-splash` with `/chravel-logo.png` on `#181a21` (first paint before bundle executes)\n- `src/main.tsx`: remove boot splash after first paint (double `requestAnimationFrame`)\n- `src/hooks/useAuth.tsx`: background `refreshSession()` when session is near expiry; remove 10s `isLoading` timeout\n- `src/integrations/supabase/client.ts`: `auth.flowType: \u0026#39;pkce\u0026#39;`\n\n## Type of Change\n\n- [x] Bug fix (non-breaking change that fixes an issue)\n\n## Deploy Impact\n\n- [x] **None of the above** — code-only change\n\n## Pre-Merge Checklist\n\n- [x] `npm run lint \u0026amp;\u0026amp; npm run typecheck \u0026amp;\u0026amp; npm run build` passes locally\n- [x] `npm run qa:guardrails` passes\n- [x] `src/hooks/__tests__/useAuth.test.tsx` passes\n\n## Testing\n\n- `npm run typecheck`\n- `npm run build`\n- `npx vitest run src/hooks/__tests__/useAuth.test.tsx`\n- `npm run qa:guardrails`\n\n## Risk\n\nLow: splash is removed after mount; auth still validates tokens; near-expiry refresh remains but no longer blocks the loading gate.\n\n## Rollback Plan\n\nRevert this commit; no migrations or secrets.\n\n## Follow-up (not in repo)\n\n**Native iOS launch screen:** If the unwanted asset is the **system** splash before WKWebView loads, update `LaunchScreen.storyboard` / `Assets.xcassets` in the Capacitor iOS project and ship a new TestFlight build.\n\n\u003ca href=\"https://cursor.com/agents/bc-ce385a1c-c0de-5673-991e-d7a911e35633\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"Open in Web\" width=\"114\" height=\"28\" src=\"https://cursor.com/assets/images/open-in-web-dark.png\"\u003e\u003c/a\u003e \u003ca href=\"https://cursor.com/automations/26dff066-b752-4188-ae69-f93ae8e9efc6\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"View Automation\" width=\"141\" height=\"28\" src=\"https://cursor.com/assets/images/view-automation-dark.png\"\u003e\u003c/a\u003e \n\n",
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/336",
+    "user": {
+      "login": "cursor[bot]",
+      "id": 206951365,
+      "profile_url": "https://github.com/apps/cursor",
+      "avatar_url": "https://avatars.githubusercontent.com/in/1210556?v=4"
+    },
+    "head": {
+      "ref": "cursor/debugging-agent-workflow-5cb3",
+      "sha": "e0bf99e958e76aa2df88e0f22c77ab93aafb886e",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "35148125f855b6f7cb98a00039826315b49c553f",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-20T03:09:26Z",
+    "updated_at": "2026-04-20T03:09:49Z"
+  },
+  {
+    "number": 335,
+    "title": "fix(native): Trip type switcher modal uses theme CSS vars (dark mode)",
+    "body": "## Summary\n\nFixes the trip type selector modal (`NativeTripTypeSwitcher`) showing **light** styling while the rest of the app is in **dark** mode on iOS TestFlight and Android Play test builds.\n\n## Changes\n\n- Replaced Tailwind `dark:` utilities with **semantic design tokens** (`bg-card`, `text-foreground`, `border-border`, `text-muted-foreground`, `bg-muted`, etc.) so the modal follows the same **`:root` / `html.light` CSS variable** theme system as the rest of Chravel.\n\n## Type of Change\n\n- [x] Bug fix (non-breaking change that fixes an issue)\n\n## Deploy Impact\n\n- [x] **None of the above** — code-only change\n\n## Pre-Merge Checklist\n\n- [x] `npm run lint \u0026amp;\u0026amp; npm run typecheck \u0026amp;\u0026amp; npm run build` passes locally\n\n## Testing\n\n- `npm run lint:check`, `npm run typecheck`, `npm run build` — pass.\n- **Manual:** Open Trips tab → tap trip type label → modal should use dark card surface when app is in default dark theme; toggle light mode in settings → modal should match light palette.\n\n## Risk\n\n**Low.** Scoped to one component; uses existing shadcn/Tailwind semantic tokens already wired to `index.css` theme variables.\n\n## Rollback Plan\n\nRevert this commit; no migrations or config.\n\n---\n\n**Root cause:** `tailwind.config.ts` uses `darkMode: [\u0026#39;class\u0026#39;]` (expects `.dark` on `html`), while Chravel toggles **`html.light`** and CSS variables in `useTheme` / `index.css` — so `dark:` classes on this modal never activated, leaving the default light gray panel.\n\n\u003ca href=\"https://cursor.com/agents/bc-69bdb041-0513-5a1c-b2c9-0c352944195a\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"Open in Web\" width=\"114\" height=\"28\" src=\"https://cursor.com/assets/images/open-in-web-dark.png\"\u003e\u003c/a\u003e \u003ca href=\"https://cursor.com/automations/26dff066-b752-4188-ae69-f93ae8e9efc6\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"View Automation\" width=\"141\" height=\"28\" src=\"https://cursor.com/assets/images/view-automation-dark.png\"\u003e\u003c/a\u003e \n\n",
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/335",
+    "user": {
+      "login": "cursor[bot]",
+      "id": 206951365,
+      "profile_url": "https://github.com/apps/cursor",
+      "avatar_url": "https://avatars.githubusercontent.com/in/1210556?v=4"
+    },
+    "head": {
+      "ref": "cursor/-bc-69bdb041-0513-5a1c-b2c9-0c352944195a-717c",
+      "sha": "8f37a8c75422d8798d10e1697947c9871efa4900",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "35148125f855b6f7cb98a00039826315b49c553f",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-20T03:03:15Z",
+    "updated_at": "2026-04-20T03:03:32Z"
+  },
+  {
+    "number": 334,
+    "title": "fix(theme): enable Tailwind dark: variants by syncing html.dark",
+    "body": "## Summary\n\nFixes Android (and all platforms) where UI that relies on Tailwind `dark:` utilities stayed in the **light** appearance while the app shell was visually dark. The trip type selector modal (`NativeTripTypeSwitcher`) used `bg-gray-100 dark:bg-[#1c1c1e]` but **`dark:` never applied** because the document never had Tailwind’s required `dark` class.\n\n## Changes\n\n- **`useTheme`**: When `isDarkMode` is true, add `dark` to `document.documentElement` and remove `light`; when light, remove `dark` and add `light`.\n- **`main.tsx`**: On bootstrap, mirror the same rules from `localStorage` so the first paint matches Tailwind before React mounts.\n- **Tests**: Updated `useTheme` tests to assert `html` has `dark` in dark mode.\n\n## Type of Change\n\n- [x] Bug fix (non-breaking change that fixes an issue)\n- [ ] New feature (non-breaking change that adds functionality)\n- [ ] Breaking change (fix or feature that would cause existing functionality to break)\n- [ ] Refactor (no functional change)\n- [ ] Chore (dependency update, config change, docs, etc.)\n\n## Deploy Impact\n\n- [ ] **Database migration included** — migration is idempotent and backward-compatible\n- [ ] **Edge function changes** — functions tested locally with `supabase functions serve`\n- [ ] **Environment variable added/changed** — `.env.example` updated, Vercel/Supabase secrets configured\n- [ ] **Feature flag change** — flag documented and reversible\n- [x] **None of the above** — code-only change\n\n## Pre-Merge Checklist\n\n- [x] `npm run lint \u0026amp;\u0026amp; npm run typecheck \u0026amp;\u0026amp; npm run build` passes locally\n- [ ] `npm run qa:guardrails` passes\n- [x] No `console.log` left in committed code\n- [x] No hardcoded secrets, API keys, or credentials\n- [x] No weakening of RLS or auth guarantees\n- [x] Existing tests pass; new tests added where appropriate\n- [x] Loading, empty, and error states handled (not conflated)\n- [x] Mobile-safe layout (no overflow regressions)\n\n## Testing\n\n- `vitest run src/hooks/__tests__/useTheme.test.tsx`\n- `npm run lint:check`, `npm run typecheck`, `npm run build`\n\n**Root cause:** `tailwind.config.ts` uses `darkMode: [\u0026#39;class\u0026#39;]`, which requires a `dark` class on an ancestor. The app only toggled `html.light` for light mode; dark mode had **no** `dark` class, so `dark:` variants were inactive and components fell back to light base classes.\n\n## Risk\n\nLow. Adds/removes one class on `` in sync with existing theme state. Light mode still uses `html.light` + CSS variables as before.\n\n## Rollback Plan\n\nRevert commit `a988ae27` (or merge revert) — restores prior behavior where `dark:` utilities did not activate in dark mode.\n\n\u003ca href=\"https://cursor.com/agents/bc-3d50bd9a-a956-5a31-9405-ede947f3cbee\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"Open in Web\" width=\"114\" height=\"28\" src=\"https://cursor.com/assets/images/open-in-web-dark.png\"\u003e\u003c/a\u003e \u003ca href=\"https://cursor.com/automations/26dff066-b752-4188-ae69-f93ae8e9efc6\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"View Automation\" width=\"141\" height=\"28\" src=\"https://cursor.com/assets/images/view-automation-dark.png\"\u003e\u003c/a\u003e \n\n",
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/334",
+    "user": {
+      "login": "cursor[bot]",
+      "id": 206951365,
+      "profile_url": "https://github.com/apps/cursor",
+      "avatar_url": "https://avatars.githubusercontent.com/in/1210556?v=4"
+    },
+    "head": {
+      "ref": "cursor/debugging-agent-workflow-1ccb",
+      "sha": "a988ae2756d02e6c25b45db5f90e9546aa7f2086",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "35148125f855b6f7cb98a00039826315b49c553f",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-20T03:01:17Z",
+    "updated_at": "2026-04-20T03:01:38Z"
+  },
+  {
+    "number": 326,
+    "title": "chore: Generate PR Audit Report",
+    "body": "Adds a comprehensive PR Audit Report detailing the status, evaluation, and recommended action for all currently open PRs.\n\n---\n*PR created automatically by Jules for task [7310764001806426426](https://jules.google.com/task/7310764001806426426) started by @MeechYourGoals*",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/326",
+    "user": {
+      "login": "MeechYourGoals",
+      "id": 206444919,
+      "profile_url": "https://github.com/MeechYourGoals",
+      "avatar_url": "https://avatars.githubusercontent.com/u/206444919?v=4"
+    },
+    "head": {
+      "ref": "jules-7310764001806426426-7ac3a6c0",
+      "sha": "0423af60b369f5ba7cc0a9bd64e031eb22adb812",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "07049bf1bcc838804f737cf33a7b82b0a3eac3ec",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-18T23:17:29Z",
+    "updated_at": "2026-04-18T23:35:02Z"
+  },
+  {
+    "number": 317,
+    "title": "chore: generate daily engineering digest",
+    "body": "Generated the requested daily executive engineering digest summarizing the landed code changes from the last 24 hours, specifically focusing on Auth/PWA reliability, Event Chat permission restructuring, and Stream Chat UX/stability improvements, including Watchlist recommendations.\n\n---\n*PR created automatically by Jules for task [3228530862293030410](https://jules.google.com/task/3228530862293030410) started by @MeechYourGoals*",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/317",
+    "user": {
+      "login": "MeechYourGoals",
+      "id": 206444919,
+      "profile_url": "https://github.com/MeechYourGoals",
+      "avatar_url": "https://avatars.githubusercontent.com/u/206444919?v=4"
+    },
+    "head": {
+      "ref": "jules/daily-engineering-digest-3228530862293030410",
+      "sha": "92bab96439ffa73cc11532ec9e76d5bc1cc294a2",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "196edd3523520706c4b28ca2188de952f62bd754",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-18T04:44:32Z",
+    "updated_at": "2026-04-18T04:46:08Z"
+  },
+  {
+    "number": 316,
+    "title": "fix(chat): use resolved Supabase URL/key for stream-join-channel",
+    "body": "## Summary\n\nAligns the `stream-join-channel` pre-watch `fetch()` (and LiveKit token `fetch`) with the same Supabase URL and public API key the app already uses for `createClient` and `stream-token`. This fixes a config drift class of bugs in preview/test environments where `VITE_SUPABASE_PUBLISHABLE_KEY` is set but legacy `VITE_SUPABASE_ANON_KEY` is not, or where raw `import.meta.env.VITE_SUPABASE_URL` differed from `resolveSupabaseConfig()`.\n\n## Changes\n\n- `useStreamTripChat`: `stream-join-channel` uses `SUPABASE_PROJECT_URL` + `SUPABASE_PUBLIC_API_KEY` from `@/integrations/supabase/client` instead of `import.meta.env`.\n- `useLiveKitVoice`: `livekit-token` fetch uses the same exports and adds `apikey` for consistency with other edge invocations.\n- Tests: extend Supabase client mocks with the new exports.\n\n## Type of Change\n\n- [x] Bug fix (non-breaking change that fixes an issue)\n- [ ] New feature (non-breaking change that adds functionality)\n- [ ] Breaking change (fix or feature that would cause existing functionality to break)\n- [ ] Refactor (no functional change)\n- [ ] Chore (dependency update, config change, docs, etc.)\n\n## Deploy Impact\n\n- [ ] **Database migration included** — migration is idempotent and backward-compatible\n- [ ] **Edge function changes** — functions tested locally with `supabase functions serve`\n- [ ] **Environment variable added/changed** — `.env.example` updated, Vercel/Supabase secrets configured\n- [ ] **Feature flag change** — flag documented and reversible\n- [x] **None of the above** — code-only change\n\n### Migration Checklist (if applicable)\n\nN/A\n\n## Pre-Merge Checklist\n\n- [x] `npm run lint \u0026amp;\u0026amp; npm run typecheck \u0026amp;\u0026amp; npm run build` passes locally\n- [ ] `npm run qa:guardrails` passes\n- [x] No `console.log` left in committed code\n- [x] No hardcoded secrets, API keys, or credentials\n- [x] No weakening of RLS or auth guarantees\n- [x] Existing tests pass; new tests added where appropriate\n- [x] Loading, empty, and error states handled (not conflated)\n- [x] Mobile-safe layout (no overflow regressions)\n\n## Testing\n\n- `npm run lint:check` — pass\n- `npm run typecheck` — pass\n- `npm run build` — pass\n- `npx vitest run src/hooks/stream/__tests__/useStreamTripChat.send.test.tsx src/hooks/stream/__tests__/useStreamTripChat.reactions.test.tsx src/hooks/__tests__/useLiveKitVoice.test.tsx` — pass\n\n## Risk\n\nLow. Only changes which host and `apikey` header are used for two `fetch` calls; behavior matches `streamTokenService` and the singleton Supabase client.\n\n## Rollback Plan\n\nRevert commit `e5fdc02b` (or merge revert) if any unexpected edge-gateway behavior appears.\n\n\u003ca href=\"https://cursor.com/agents/bc-c6fcc301-a6b8-51ee-aa5a-76e749519ab3\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"Open in Web\" width=\"114\" height=\"28\" src=\"https://cursor.com/assets/images/open-in-web-dark.png\"\u003e\u003c/a\u003e \u003ca href=\"https://cursor.com/automations/26dff066-b752-4188-ae69-f93ae8e9efc6\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"View Automation\" width=\"141\" height=\"28\" src=\"https://cursor.com/assets/images/view-automation-dark.png\"\u003e\u003c/a\u003e \n\n",
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/316",
+    "user": {
+      "login": "cursor[bot]",
+      "id": 206951365,
+      "profile_url": "https://github.com/apps/cursor",
+      "avatar_url": "https://avatars.githubusercontent.com/in/1210556?v=4"
+    },
+    "head": {
+      "ref": "cursor/chravelapp-bug-resolution-6d12",
+      "sha": "6ace322030ad27f083af30f3849bf99074e4d731",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "37d891f9719be2e2a0e0cecde72935a47f25af9e",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-17T22:29:20Z",
+    "updated_at": "2026-04-18T16:03:05Z"
+  },
+  {
+    "number": 314,
+    "title": "fix(web): remove service worker unregister race on startup",
+    "body": "## Summary\n\nRemoves unconditional `navigator.serviceWorker.getRegistrations()` + `unregister()` on every page load from `src/main.tsx`. That block raced with `registerServiceWorker()` and could leave production clients without a controlling worker while Workbox precache still served stale hashed bundles—consistent with a blank or stuck load after deploys. The Lovable favicon the reporter saw is explained as the browser tab icon when the document failed to hydrate (Chravel uses `chravel-pwa-icon.png`; Lovable appears when opening the app from a Lovable preview host or cached preview shell).\n\n## Changes\n\n- Removed startup SW mass-unregister from `main.tsx`; documented why and pointed to `serviceWorkerRegistration.ts` for targeted cleanup (preview skip, prod migration, registration failure recovery).\n\n## Type of Change\n\n- [x] Bug fix (non-breaking change that fixes an issue)\n- [ ] New feature (non-breaking change that adds functionality)\n- [ ] Breaking change (fix or feature that would cause existing functionality to break)\n- [ ] Refactor (no functional change)\n- [ ] Chore (dependency update, config change, docs, etc.)\n\n## Deploy Impact\n\n- [ ] **Database migration included** — migration is idempotent and backward-compatible\n- [ ] **Edge function changes** — functions tested locally with `supabase functions serve`\n- [ ] **Environment variable added/changed** — `.env.example` updated, Vercel/Supabase secrets configured\n- [ ] **Feature flag change** — flag documented and reversible\n- [x] **None of the above** — code-only change\n\n## Pre-Merge Checklist\n\n- [x] `npm run lint:check \u0026amp;\u0026amp; npm run typecheck \u0026amp;\u0026amp; npm run build` passes locally (build succeeded after ensuring deps; baseline ESLint warnings unchanged)\n- [ ] `npm run qa:guardrails` passes\n- [x] No `console.log` added\n- [x] No hardcoded secrets, API keys, or credentials\n- [x] No weakening of RLS or auth guarantees\n- [x] Existing tests not required for this one-line behavioral fix; no new automated test (SW race is environment-dependent)\n\n## Testing\n\n- `npm run lint:check` (warnings only, 0 errors)\n- `npm run typecheck`\n- `npm run build`\n- `npm run merge:preflight` (clean vs `origin/main`)\n\n## Risk\n\nLow. Removes redundant behavior that duplicated and conflicted with `registerServiceWorker()`. Lovable preview still skips SW registration via `isLovablePreview()`; version-based cache clear and chunk-error recovery in `App.tsx` remain unchanged.\n\n## Rollback Plan\n\nRevert commit `2fd37f5d` or revert the PR; restores previous (buggy) startup unregister if ever needed for diagnosis only.\n\n\u003ca href=\"https://cursor.com/agents/bc-627cabb9-12f3-56b6-b7aa-4ee7d8df8217\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"Open in Web\" width=\"114\" height=\"28\" src=\"https://cursor.com/assets/images/open-in-web-dark.png\"\u003e\u003c/a\u003e \u003ca href=\"https://cursor.com/automations/26dff066-b752-4188-ae69-f93ae8e9efc6\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"View Automation\" width=\"141\" height=\"28\" src=\"https://cursor.com/assets/images/view-automation-dark.png\"\u003e\u003c/a\u003e \n\n",
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/314",
+    "user": {
+      "login": "cursor[bot]",
+      "id": 206951365,
+      "profile_url": "https://github.com/apps/cursor",
+      "avatar_url": "https://avatars.githubusercontent.com/in/1210556?v=4"
+    },
+    "head": {
+      "ref": "cursor/debugging-agent-workflow-0d26",
+      "sha": "2fd37f5dd7a9506bd8edf8c4c952f618ccbfb215",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "cfd614d11ece62f7273c9956c1b9f08ff181df98",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-17T16:50:34Z",
+    "updated_at": "2026-04-17T16:50:54Z"
+  },
+  {
+    "number": 295,
+    "title": "fix(trip): redirect trip members from /preview to main shell for chat",
+    "body": "## Summary\n\nUsers who opened a shared trip link ending in `/preview` (public OG landing page) could not send group chat messages because **chat only exists on the main trip shell** (`TripChat` under `/trip/:id`, pro/event equivalents). This change **auto-redirects authenticated trip members** from `/trip/:id/preview` to the correct main route once membership and preview metadata are known.\n\n## Changes\n\n- Add `getMainTripPath()` helper for consumer/pro/event main routes.\n- `useEffect` redirect: when `user`, UUID `tripId`, `tripData` loaded, and `isMember === true`, `navigate(..., { replace: true })` to main shell.\n- Reuse helper in `handleViewTrip` for consistent routing.\n- Add Vitest: member on preview URL lands on `/trip/:id` shell.\n\n## Type of Change\n\n- [x] Bug fix (non-breaking change that fixes an issue)\n- [ ] New feature (non-breaking change that adds functionality)\n- [ ] Breaking change (fix or feature that would cause existing functionality to break)\n- [ ] Refactor (no functional change)\n- [ ] Chore (dependency update, config change, docs, etc.)\n\n## Deploy Impact\n\n- [ ] **Database migration included** — migration is idempotent and backward-compatible\n- [ ] **Edge function changes** — functions tested locally with `supabase functions serve`\n- [ ] **Environment variable added/changed** — `.env.example` updated, Vercel/Supabase secrets configured\n- [ ] **Feature flag change** — flag documented and reversible\n- [x] **None of the above** — code-only change\n\n## Pre-Merge Checklist\n\n- [x] `npm run lint:check \u0026amp;\u0026amp; npm run typecheck \u0026amp;\u0026amp; npm run build` passes locally (build initially failed on missing `react-intersection-observer` in node_modules; local `npm install` resolved — no repo file changes for that)\n- [ ] `npm run qa:guardrails` passes\n- [x] No new `console.log` in changed code\n- [x] No hardcoded secrets\n- [x] No RLS/auth changes\n- [x] `npx vitest run src/pages/__tests__/TripPreview.inviteFlow.test.tsx` passes\n\n## Testing\n\n- `npx vitest run src/pages/__tests__/TripPreview.inviteFlow.test.tsx`\n- Manual: as a logged-in member, open `/trip//preview` → should replace URL with `/trip/` (or pro/event route) and show chat.\n\n## Risk\n\n**Low.** Non-members and unauthenticated users unchanged (still see preview CTA / join flow). Only members get an automatic navigation they would get by tapping \u0026#34;Open Trip\u0026#34;.\n\n## Rollback Plan\n\nRevert the commit; members can still use \u0026#34;Open Trip\u0026#34; on preview manually.\n\n\u003ca href=\"https://cursor.com/agents/bc-482bed05-d845-59bd-847d-8b25b6553196\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"Open in Web\" width=\"114\" height=\"28\" src=\"https://cursor.com/assets/images/open-in-web-dark.png\"\u003e\u003c/a\u003e \u003ca href=\"https://cursor.com/automations/26dff066-b752-4188-ae69-f93ae8e9efc6\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"View Automation\" width=\"141\" height=\"28\" src=\"https://cursor.com/assets/images/view-automation-dark.png\"\u003e\u003c/a\u003e \n\n",
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/295",
+    "user": {
+      "login": "cursor[bot]",
+      "id": 206951365,
+      "profile_url": "https://github.com/apps/cursor",
+      "avatar_url": "https://avatars.githubusercontent.com/in/1210556?v=4"
+    },
+    "head": {
+      "ref": "cursor/debugging-agent-workflow-5b5d",
+      "sha": "87d37245f560040ff222250a2f63b4ff387c0dab",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "74c167a2e690f6570621a314c6fd9359b48fa607",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-15T22:26:03Z",
+    "updated_at": "2026-04-15T22:26:17Z"
+  },
+  {
+    "number": 288,
+    "title": "test(light-mode): add class-state tests for TripViewToggle \u0026amp; share controls; add trip-detail visual QA checklist",
+    "body": "### Motivation\n- Prevent regressions where light-mode overrides produce low-contrast or dark-on-dark interactive states for trip-detail controls (tabs, Copy/Share buttons). \n- Ensure class-token contracts are enforced by unit tests so future CSS or utility changes don\u0026#39;t silently degrade accessibility. \n\n### Description\n- Added component tests: `src/components/home/__tests__/TripViewToggle.test.tsx` to assert on/off/data-state and hover class tokens and state switching. \n- Added `src/components/share/__tests__/ShareTripModal.lightModeButtons.test.tsx` and extended `src/components/invite/__tests__/InviteLinkSection.test.tsx` to assert Copy/Share button utility classes in light mode. \n- Added a light-theme hover utility override in `src/index.css` for `hover:bg-[#3a3a3a]` to avoid low-contrast hover fills in light mode. \n- Added a visual QA runbook `docs/qa/trip-detail-tabs-visual-qa-checklist.md` with explicit contrast, tap-size, and \u0026#34;no pure-white glare\u0026#34; pass criteria for trip detail tabs and modals. \n- Updated `claude-progress.txt` with a dated delivery note documenting the changes and verification steps. \n\n### Testing\n- Ran targeted unit tests with `npm run test:run -- src/components/home/__tests__/TripViewToggle.test.tsx src/components/share/__tests__/ShareTripModal.lightModeButtons.test.tsx src/components/invite/__tests__/InviteLinkSection.test.tsx` and all tests passed. \n- Ran `npm run test:run -- src/components/invite/__tests__/InviteLinkSection.test.tsx` which passed. \n- Ran `npm run typecheck`, `npm run lint:check` (warnings-only baseline), and `npm run build` and they completed successfully in this environment. \n- `npm run merge:preflight` could not fetch `origin/main` in this environment and reported a fetch-block (documented in the PR notes).\n\n------\n[Codex Task](https://chatgpt.com/codex/cloud/tasks/task_e_69dfa4cd96b8832aab2ee7791f0e5fd0)",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/288",
+    "user": {
+      "login": "ChravelApp",
+      "id": 263244170,
+      "profile_url": "https://github.com/ChravelApp",
+      "avatar_url": "https://avatars.githubusercontent.com/u/263244170?v=4"
+    },
+    "labels": ["codex"],
+    "requested_reviewers": ["MeechYourGoals"],
+    "head": {
+      "ref": "codex/add-component-tests-and-qa-checklist2026-04-15",
+      "sha": "47b40d525d22ce0ba9299ab52404ee3583dcd6fc",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "286669175e35af62af059ea4328430f844df5778",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-15T15:00:17Z",
+    "updated_at": "2026-04-15T15:15:14Z"
+  },
+  {
+    "number": 285,
+    "title": "Daily Engineering Digest",
+    "body": "Return the formatted daily engineering digest in Slack format via text output.\n\n---\n*PR created automatically by Jules for task [10088959725180743659](https://jules.google.com/task/10088959725180743659) started by @MeechYourGoals*",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/285",
+    "user": {
+      "login": "MeechYourGoals",
+      "id": 206444919,
+      "profile_url": "https://github.com/MeechYourGoals",
+      "avatar_url": "https://avatars.githubusercontent.com/u/206444919?v=4"
+    },
+    "head": {
+      "ref": "jules-digest-slack-437984777843982687-10088959725180743659",
+      "sha": "026e95d7add1fcf9a767c73bb2dad8290182abf5",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "5dfd847e4e06389dcaec66e5bd648139d000c3f6",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-15T04:44:26Z",
+    "updated_at": "2026-04-15T04:53:13Z"
+  },
+  {
+    "number": 281,
+    "title": "Stream membership reliability: structured failure logging, server fallback, and edge function",
+    "body": "### Motivation\n- Client-side membership projections to Stream were swallowing failures and causing silent drift and low operator visibility. \n- A fast-path client sync can fail due to connectivity/session timing, so a server-side reconciler is needed as an authoritative fallback. \n- Webhook/auth and runtime visibility needed explicit configuration and surfaced degraded-state errors for better UX and supportability.\n\n### Description\n- Surface a degraded error in `useStreamClient` when `connectStreamClient()` resolves without a connected user and add a unit test `useStreamClient.test.tsx` for that case. \n- Add structured failure reporting `reportStreamMembershipSyncFailure(...)` and replace previous empty `.catch(() =\u0026gt; {})` handlers in `useTripMembers` and `JoinTrip` to emit logs and invoke a server fallback on failure. \n- Add a client-side fallback invoker `syncMembershipViaServerFallback` and wire it to call the new authenticated Supabase Edge Function `stream-sync-membership`, and add the function implementation plus an authorization helper. \n- Update `supabase/config.toml` (CORS/auth flags) and add focused unit tests for coordinator logging, fallback invoker, and function authorization; also update docs/notes in `LESSONS.md` and `claude-progress.txt`.\n\n### Testing\n- Ran targeted unit tests: `src/hooks/stream/__tests__/useStreamClient.test.tsx`, `src/services/stream/__tests__/streamMembershipCoordinator.test.ts`, `src/services/stream/__tests__/streamMembershipFallback.test.ts`, and `supabase/functions/stream-sync-membership/__tests__/authorization.test.ts`, and they passed. \n- Ran `npm run typecheck` and `npm run lint:check` (warnings-only baseline) with no new type or lint failures reported. \n- `npm run merge:preflight` could not be completed in this environment because it could not fetch `origin/main`.\n\n------\n[Codex Task](https://chatgpt.com/codex/cloud/tasks/task_e_69de96666eec832abb85545513bf17b3)",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/281",
+    "user": {
+      "login": "ChravelApp",
+      "id": 263244170,
+      "profile_url": "https://github.com/ChravelApp",
+      "avatar_url": "https://avatars.githubusercontent.com/u/263244170?v=4"
+    },
+    "labels": ["codex"],
+    "requested_reviewers": ["MeechYourGoals"],
+    "head": {
+      "ref": "codex/evaluate-get-stream-integration-readiness2026-04-14-u6qdwk",
+      "sha": "8f2250c42ceeaf6011e607b78ed2c07d2253dc44",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "be692cceb5253292e140a8005e3521154849dd25",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-14T22:21:33Z",
+    "updated_at": "2026-04-14T22:25:31Z"
+  },
+  {
+    "number": 252,
+    "title": "consolidate(revenuecat): canonicalize native adapter and remove web purchases-js init",
+    "body": "### Motivation\n- Remove contradictory RevenueCat paths where web startup attempted `purchases-js` init while the codebase treats native IAP as owned by the mobile app, which created drift and regression risk.\n- Ensure entitlement sync is routed through a single, well-typed adapter so `useUnifiedEntitlements` calls one consistent entrypoint for configure → customerInfo → backend sync.\n- Reduce surface area for accidental direct singleton calls from components/hooks and make the web surface an adapter-only compatibility shell.\n\n### Description\n- Added `syncRevenueCatEntitlementsForUser(userId, isDemoMode)` in `src/integrations/revenuecat/revenuecatClient.ts` to encapsulate configure → getCustomerInfo → `sync-revenuecat-entitlement` backend sync as the single adapter entrypoint.\n- Updated `src/hooks/useUnifiedEntitlements.ts` to call the new adapter for native sync and removed the previous multi-step configure/getCustomerInfo/invoke flow from the hook.\n- Replaced the large web `SubscriptionPaywall` purchase flow with an adapter-only compatibility placeholder in `src/components/subscription/SubscriptionPaywall.tsx`, and rewrote `src/hooks/useRevenueCatSubscription.ts` to use the adapter-backed `getCustomerInfo()` result instead of direct `Purchases` singleton calls.\n- Removed web startup `initRevenueCat()` from `src/main.tsx` and kept only a deferred `setupGlobalPurchaseListener()` for native bridge notifications; updated `src/components/native/NativeSettings.tsx` to route the web upgrade action to the subscription settings instead of opening a native paywall.\n- Updated tests and docs: replaced heavy paywall tests with focused adapter-only assertions and appended a lesson entry describing the one-adapter-per-surface rule in `LESSONS.md` and recorded the rollout in `claude-progress.txt`.\n\n### Testing\n- Ran the updated unit tests `src/components/subscription/__tests__/SubscriptionPaywall.test.tsx` with Vitest and all tests passed (3/3) ✅.\n- Ran type checking with `npm run typecheck` and it completed successfully with no type errors ✅.\n- Ran lint checks with `npm run lint:check`; lint completed as expected with repository-warning baseline (warnings only, no errors) ✅.\n- Built the app with `npm run build` and the production build completed successfully ✅.\n\n------\n[Codex Task](https://chatgpt.com/codex/cloud/tasks/task_e_69dd5c39da68832a93b88878891cc154)",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/252",
+    "user": {
+      "login": "ChravelApp",
+      "id": 263244170,
+      "profile_url": "https://github.com/ChravelApp",
+      "avatar_url": "https://avatars.githubusercontent.com/u/263244170?v=4"
+    },
+    "labels": ["codex"],
+    "requested_reviewers": ["MeechYourGoals"],
+    "head": {
+      "ref": "codex/decide-canonical-layer-for-purchases2026-04-14",
+      "sha": "78adb64b7a1f842cc51b1065ed8888842be00218",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "f26a3636a69e9c1fd95ab491adaa365a97c44549",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-14T01:36:46Z",
+    "updated_at": "2026-04-14T15:07:12Z"
+  },
+  {
+    "number": 239,
+    "title": "fix(concierge): eliminate streaming scroll jitter on iOS (stick-to-bottom)",
+    "body": "## Summary\n\nFixes persistent \u0026#34;vibrating\u0026#34; / glitching message list in AI Concierge on iOS TestFlight by removing **per-React-commit forced scrolling** during token streaming and replacing it with **ResizeObserver-driven stick-to-bottom** plus scroll-position hysteresis. Same pattern applied to live voice assistant transcript.\n\n## Changes\n\n- `AIConciergeChat`: auto-scroll no longer depends on the full `messages` array (which re-ran on every streaming token). Uses `ResizeObserver` on message column + `requestAnimationFrame` scroll-to-bottom only when the user is pinned near the bottom; disables auto-follow when they scroll up to read history. Re-enables pin when `isTyping` becomes true (new user send).\n- `VoiceLiveInline`: assistant transcript scroll uses the same growth-based approach instead of `useEffect([assistantTranscript])`.\n- `package-lock.json`: ensures `react-intersection-observer` is installed so `npm run build` resolves the import used by `RecommendationCard` (build was failing in CI-like env before lock sync).\n\n## Type of Change\n\n- [x] Bug fix (non-breaking change that fixes an issue)\n- [ ] New feature (non-breaking change that adds functionality)\n- [ ] Breaking change (fix or feature that would cause existing functionality to break)\n- [ ] Refactor (no functional change)\n- [ ] Chore (dependency update, config change, docs, etc.)\n\n## Deploy Impact\n\n- [ ] **Database migration included** — migration is idempotent and backward-compatible\n- [ ] **Edge function changes** — functions tested locally with `supabase functions serve`\n- [ ] **Environment variable added/changed** — `.env.example` updated, Vercel/Supabase secrets configured\n- [ ] **Feature flag change** — flag documented and reversible\n- [x] **None of the above** — code-only change (plus lockfile sync)\n\n## Pre-Merge Checklist\n\n- [x] `npm run lint:check \u0026amp;\u0026amp; npm run typecheck \u0026amp;\u0026amp; npm run build` passes locally (after lockfile sync)\n- [ ] `npm run qa:guardrails` passes\n- [x] No `console.log` added\n- [x] No hardcoded secrets\n- [x] No weakening of RLS or auth\n- [x] `npx vitest run src/components/__tests__/AIConciergeChat.test.tsx` passes\n\n## Testing\n\n- Vitest: `AIConciergeChat` suite (13 tests).\n- Manual: On iOS / TestFlight, open Concierge, send a message, confirm assistant stream no longer causes the whole thread to \u0026#34;shake\u0026#34;; scroll up mid-stream and confirm follow stops; send again and confirm it jumps back to latest.\n\n## Risk\n\nLow: scroll behavior change is localized to concierge + live voice transcript; users reading history while new tokens arrive are no longer forcibly scrolled (intended).\n\n## Rollback Plan\n\nRevert commit `fix(concierge): stop scroll thrash during streaming on iOS` on this branch.\n\n## Root cause (technical)\n\n`useEffect` with `messages` in the dependency array ran after **every** streaming `setMessages`, setting `scrollTop = scrollHeight` synchronously. That forces layout on WKWebView at high frequency and reads as visual \u0026#34;vibration\u0026#34; (often misreported as haptics). Fix decouples scroll from React commit frequency and ties it to **content box growth** when the user is already at the bottom.\n\n\u003ca href=\"https://cursor.com/agents/bc-f4521f2e-e0db-5c2b-8327-6e0ae3ed8ee0\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"Open in Web\" width=\"114\" height=\"28\" src=\"https://cursor.com/assets/images/open-in-web-dark.png\"\u003e\u003c/a\u003e \u003ca href=\"https://cursor.com/automations/26dff066-b752-4188-ae69-f93ae8e9efc6\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"View Automation\" width=\"141\" height=\"28\" src=\"https://cursor.com/assets/images/view-automation-dark.png\"\u003e\u003c/a\u003e \n\n",
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/239",
+    "user": {
+      "login": "cursor[bot]",
+      "id": 206951365,
+      "profile_url": "https://github.com/apps/cursor",
+      "avatar_url": "https://avatars.githubusercontent.com/in/1210556?v=4"
+    },
+    "head": {
+      "ref": "cursor/chravelapp-bug-resolution-b460",
+      "sha": "585620cf87ec4916bd06eb63f2dc68140c4be4c2",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "8dc50e35ca11d403415af5a2bd32437516a20c82",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-13T16:57:27Z",
+    "updated_at": "2026-04-13T17:00:08Z"
+  },
+  {
+    "number": 227,
+    "title": "fix(concierge): restore trip tools, RAG timeout, and AIConciergeChat build",
+    "body": "## Summary\n\nFixes regressions from the recent concierge routing/prompt optimization: trip-scoped messages were classified into `trip_lookup_light`, which only exposes read/search tools, so calendar/tasks/polls/payments and other writes could not run. Separately, `RAG_SOFT_TIMEOUT_MS` defaulted to `120` and was interpreted as **120ms**, discarding successful RAG hits after normal DB latency. Also removes a merge artifact in `AIConciergeChat.tsx` that duplicated `useConciergeMessages` state and broke `npm run build`.\n\n## Changes\n\n- `supabase/functions/lovable-concierge/index.ts`: default `RAG_SOFT_TIMEOUT_MS` to **2500** ms (documented); operators can still set `RAG_SOFT_TIMEOUT_MS` in Supabase secrets if they want a stricter cap.\n- `supabase/functions/_shared/concierge/queryClassifier.ts`: route trip-scoped, artifact, ownership, and very-short prompts back to `trip_summary` (full tool registry via `getToolsForQueryClass`).\n- `supabase/functions/_shared/__tests__/queryClassifier.test.ts`: update expectation for trip-scoped short prompt.\n- `src/components/AIConciergeChat.tsx`: delete duplicate history/state block; rely on `useConciergeMessages` only.\n\n## Type of Change\n\n- [x] Bug fix (non-breaking change that fixes an issue)\n\n## Deploy Impact\n\n- [x] **Edge function changes** — deploy `lovable-concierge` after merge (`supabase functions deploy lovable-concierge` or your CI path).\n- [ ] **Environment variable added/changed** — optional: if production already set `RAG_SOFT_TIMEOUT_MS=120` expecting milliseconds, update to a realistic value (e.g. `2500`) or remove the secret to use the new default.\n\n### Migration Checklist (if applicable)\n\nN/A\n\n## Pre-Merge Checklist\n\n- [x] `npm run lint:check \u0026amp;\u0026amp; npm run typecheck \u0026amp;\u0026amp; npm run build` passes locally\n- [ ] `npm run qa:guardrails` passes (not run in agent)\n- [x] No `console.log` added\n- [x] No hardcoded secrets\n- [x] No weakening of RLS or auth guarantees\n- [x] Targeted Vitest: `queryClassifier.test.ts`, `promptAssembler.test.ts`\n\n## Testing\n\n- `npx vitest run supabase/functions/_shared/__tests__/queryClassifier.test.ts supabase/functions/_shared/__tests__/promptAssembler.test.ts`\n- `npm run lint:check \u0026amp;\u0026amp; npm run typecheck \u0026amp;\u0026amp; npm run build`\n\n## Risk\n\n- **Low–medium**: `trip_summary` restores full tool declarations for broad trip phrasing → higher token use vs `trip_lookup_light`, but matches pre-optimization behavior and restores intended functionality.\n- RAG default timeout increase means slow RAG paths are less likely to drop context; still bounded by env.\n\n## Rollback Plan\n\n- Revert this PR; redeploy `lovable-concierge` to previous version if already deployed.\n\n\u003ca href=\"https://cursor.com/agents/bc-7ab712dd-4bc6-558d-8bd5-89f27316c441\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"Open in Web\" width=\"114\" height=\"28\" src=\"https://cursor.com/assets/images/open-in-web-dark.png\"\u003e\u003c/a\u003e \u003ca href=\"https://cursor.com/automations/26dff066-b752-4188-ae69-f93ae8e9efc6\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"View Automation\" width=\"141\" height=\"28\" src=\"https://cursor.com/assets/images/view-automation-dark.png\"\u003e\u003c/a\u003e \n\n",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/227",
+    "user": {
+      "login": "cursor[bot]",
+      "id": 206951365,
+      "profile_url": "https://github.com/apps/cursor",
+      "avatar_url": "https://avatars.githubusercontent.com/in/1210556?v=4"
+    },
+    "requested_reviewers": ["MeechYourGoals"],
+    "head": {
+      "ref": "cursor/-bc-7ab712dd-4bc6-558d-8bd5-89f27316c441-d808",
+      "sha": "0b292cb4ebb5fd42b9ee36de006439e265d58bbd",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "a2917acbefad7ed973eb00b5cfae743444268a03",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-13T04:44:13Z",
+    "updated_at": "2026-04-13T13:09:36Z"
+  },
+  {
+    "number": 210,
+    "title": "Stream-first transport cutover, media utils, feature-flagged broadcast scheduling \u0026amp; assorted hardening",
+    "body": "### Motivation\n- Move canonical realtime chat/broadcast transport to Stream and eliminate split-brain legacy DB replay paths to prevent data-loss and duplicate delivery during cutover.\n- Improve media handling and stability by centralizing MIME/category helpers and blob/data-URL detection to avoid persisting non-persistable URLs and to standardize rendering across components.\n- Add operational kill-switches and feature-flag gating (broadcast scheduling) to allow safe rollback and prevent accidental reintroduction of deprecated services.\n- Remove deprecated services and consolidate concierge/trip-context assembly to a single source-of-truth to reduce architectural drift.\n\n### Description\n- Stream migration: cut over trip/chat/pro-channel/broadcast transports to Stream with a shared guard (`src/services/stream/streamTransportGuards.ts`) and updated client hooks (`useStreamProChannel`, `useStreamTripChat`, `useStreamBroadcasts`, `useStreamConciergeHistory`, `useStreamClient`) to respect connection state and avoid legacy DB writes when Stream is canonical. Rewrote wiring in `globalSyncProcessor`, `offlineMessageQueue`, `offlineSyncService`, `useRoleChannels`, and related components to use Stream-first semantics and drop or classify legacy queued chat ops as `dropped` when appropriate. Added `streamClient` robustness fixes (auth disconnect shape, API-key mismatch check, connection status events).\n- Media utilities and normalization: added `src/utils/mediaUtils.ts` (`getMediaCategory`, `isBlobOrDataUrl`), wired into many components (`TripMediaRenderer`, `MediaTile`, `MediaViewerModal`, `TripCoverPhotoUpload`, `TripHeader`, `MediaSubTabs`, agenda/agenda UI) and storage normalizer `normalizeTripCoverUrl` to convert signed cover URLs to public paths when appropriate.\n- Broadcast scheduling kill-switch: `unifiedMessagingService.scheduleMessage` now checks `broadcast-scheduling-enabled` via feature flags; Admin UI (`AdminDashboard`) disables scheduling UI when the flag is off; added feature-flag helpers (`useFeatureFlag`, `isFeatureFlagEnabled`) and new tests for mapping/priorities and transport selection for broadcasts.\n- Cleanup \u0026amp; guardrails: removed `enhancedTripContextService`, added an ESLint `no-restricted-imports` rule to prevent reimports of the deprecated service, added `CONCIERGE_CONTEXT_ARCHITECTURE.md` and other docs; updated `AGENTS.md` and `LESSONS.md` with subsystem and operational guidance.\n- Onboarding and demo: added two demo screens (`PollsDemoScreen`, `TasksDemoScreen`) and demo primitives to the onboarding carousel and tests updated accordingly.\n- Edge function \u0026amp; security hardening: fixed wildcard CORS and other edge-function issues, deprecated `create-default-channels` as a 410 response, and added protected supabase function entries in `supabase/config.toml`.\n- Tests and small fixes: removed obsolete components (`MessageSearch`, `enhancedTripContextService`), added numerous focused unit tests and test helpers across stream, offline-queue, broadcast, onboarding, admin pages, and service mappings; small build/test hygiene changes (package-lock adjustments, remotion script comment, resolver deletion).\n\n### Testing\n- Ran targeted unit suites and build/type checks: `npm run test:run -- src/services/__tests__/globalSyncProcessor.test.ts src/services/__tests__/offlineMessageQueue.test.ts src/services/__tests__/offlineSyncService.test.ts src/hooks/stream/__tests__/useStreamProChannel.test.tsx src/hooks/stream/__tests__/useStreamBroadcasts.priority.test.tsx src/components/pro/channels/__tests__/ChannelChatView.stream.test.tsx src/features/broadcasts/components/__tests__/Broadcasts.transport.test.ts src/components/onboarding/__tests__/OnboardingCarousel.pillOrder.test.tsx src/pages/__tests__/AdminDashboard.test.tsx` and friends, and ran `npm run typecheck` and `npm run build` as part of verification. All added/updated unit tests passed and `typecheck`/`build` succeeded for the modified areas. \n- Lint baseline: `npm run lint:check` remains failing on known pre-existing repository baseline issues not introduced by this change (noted in verification logs).\n\n------\n[Codex Task](https://chatgpt.com/codex/cloud/tasks/task_e_69da10c4c990832ab183e992692d2f79)",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/210",
+    "user": {
+      "login": "ChravelApp",
+      "id": 263244170,
+      "profile_url": "https://github.com/ChravelApp",
+      "avatar_url": "https://avatars.githubusercontent.com/u/263244170?v=4"
+    },
+    "labels": ["codex"],
+    "requested_reviewers": ["MeechYourGoals"],
+    "head": {
+      "ref": "codex/perform-audit-of-getstream-architecture2026-04-12-rgilsq",
+      "sha": "10c3024db5286d532dec63d9b510dfa3bc0426be",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "5ea5f6960584a92e2fcb96993f8de61c151a15a8",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-12T20:20:38Z",
+    "updated_at": "2026-04-12T20:27:05Z"
+  },
+  {
+    "number": 209,
+    "title": "🧪 Add tests for OfflineQueue",
+    "body": "🎯 **What:** The untested gap in `OfflineQueue` within `src/utils/concurrencyUtils.ts` has been covered with comprehensive tests in `src/utils/__tests__/concurrencyUtils.test.ts`.\n\n📊 **Coverage:** The tests verify the following functionalities of `OfflineQueue`:\n- Immediate processing of queue elements when online.\n- Buffering and defers operations when offline.\n- Triggering the processing logic once the connection comes back online.\n- Ensuring operations will be retried up to 3 times before returning an error to the user if they continually fail.\n\n✨ **Result:** Test coverage for concurrency utils has been substantially improved and `OfflineQueue` logic is resilient and verified against various scenarios.\n\n---\n*PR created automatically by Jules for task [17311728787690519228](https://jules.google.com/task/17311728787690519228) started by @MeechYourGoals*",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/209",
+    "user": {
+      "login": "MeechYourGoals",
+      "id": 206444919,
+      "profile_url": "https://github.com/MeechYourGoals",
+      "avatar_url": "https://avatars.githubusercontent.com/u/206444919?v=4"
+    },
+    "head": {
+      "ref": "jules-17311728787690519228-8972d4a5",
+      "sha": "e6d1925612da67d1920b54e1bcd6666ea6589c84",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "5ea5f6960584a92e2fcb96993f8de61c151a15a8",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-12T17:01:39Z",
+    "updated_at": "2026-04-12T17:11:27Z"
+  },
+  {
+    "number": 204,
+    "title": "Generate daily engineering digest",
+    "body": "Generated the daily engineering digest summarizing recent landed changes over the last 24 hours. Formatted as requested for Slack output. Since the user requested the digest to be output/posted and not committed as a file, no new files or modifications were added to the codebase. The digest was output to the terminal/user.\n\n---\n*PR created automatically by Jules for task [10306154002651292164](https://jules.google.com/task/10306154002651292164) started by @MeechYourGoals*",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/204",
+    "user": {
+      "login": "MeechYourGoals",
+      "id": 206444919,
+      "profile_url": "https://github.com/MeechYourGoals",
+      "avatar_url": "https://avatars.githubusercontent.com/u/206444919?v=4"
+    },
+    "head": {
+      "ref": "claude/generate-daily-engineering-digest-10306154002651292164",
+      "sha": "6ec67b52130de349b4fe3c73096a4975347994b5",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "059b75f14bc660292f1752a8997c1ccb4c926531",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-12T04:45:11Z",
+    "updated_at": "2026-04-12T17:04:32Z"
+  },
+  {
+    "number": 203,
+    "title": "chore: PR Triage Audit Report",
+    "body": "Generated PR Triage Report for PR cleanup.\n\n---\n*PR created automatically by Jules for task [8392208094051617456](https://jules.google.com/task/8392208094051617456) started by @MeechYourGoals*",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/203",
+    "user": {
+      "login": "MeechYourGoals",
+      "id": 206444919,
+      "profile_url": "https://github.com/MeechYourGoals",
+      "avatar_url": "https://avatars.githubusercontent.com/u/206444919?v=4"
+    },
+    "head": {
+      "ref": "chore/pr-triage-audit-8392208094051617456",
+      "sha": "cb09b6a6efae540021e8e71fe446cac6d1281c4c",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "49d949e462e157d95e3fa5e3f3dac327d41d6c7f",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-11T23:02:40Z",
+    "updated_at": "2026-04-12T16:48:58Z"
+  },
+  {
+    "number": 197,
+    "title": "fix(messaging): canonicalize ScheduledMessage type and map broadcasts rows",
+    "body": "\n### Motivation\n- Prevent type drift between DB row shapes and UI/domain types by making a single canonical `ScheduledMessage` in `src/types/messaging.ts` and enforcing a single mapping boundary.\n- Eliminate field-name mismatch risk (e.g., `trip_id` vs `tripId`) in admin scheduled-broadcast surface and make mapping behavior testable.\n\n### Follow-up (review fix)\n- `ScheduledMessage` extends `InboxMessage`, so `senderId` and `senderName` are required: `mapBroadcastRowToScheduledMessage` now maps `created_by` → `senderId` and a stable display label for `senderName` (no profile join on the row).\n- Repaired accidental duplicate/corrupt `transportMessages` `useMemo` in `ChannelChatView.tsx` that broke production build.\n\n### Testing\n- `npm run typecheck`, `npm run build`, `npm run test:run -- src/services/__tests__/unifiedMessagingService.test.ts`\n\n\n\u003ca href=\"https://cursor.com/agents/bc-74d3c354-3900-495b-bccc-e8d28d0fa4db\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"Open in Web\" width=\"114\" height=\"28\" src=\"https://cursor.com/assets/images/open-in-web-dark.png\"\u003e\u003c/a\u003e \u003ca href=\"https://cursor.com/background-agent?bcId=bc-74d3c354-3900-495b-bccc-e8d28d0fa4db\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"Open in Cursor\" width=\"131\" height=\"28\" src=\"https://cursor.com/assets/images/open-in-cursor-dark.png\"\u003e\u003c/a\u003e \n\n",
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/197",
+    "user": {
+      "login": "MeechYourGoals",
+      "id": 206444919,
+      "profile_url": "https://github.com/MeechYourGoals",
+      "avatar_url": "https://avatars.githubusercontent.com/u/206444919?v=4"
+    },
+    "head": {
+      "ref": "codex/task-title2026-04-11",
+      "sha": "ba3d60b098b42528ce7de3b08b072dbf519ae4e2",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "2030e0ad61cb5efb77a09f1708296ddf56015b76",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-11T19:12:01Z",
+    "updated_at": "2026-04-11T19:12:17Z"
+  },
+  {
+    "number": 183,
+    "title": "🧹 Extract duplicated MIME type checkers to shared utility",
+    "body": "🎯 What: Extracted isPdfMime and isImageMime functions from AgendaModal, EnhancedAgendaTab, and LineupTab into the shared src/utils/mime.ts utility.\n💡 Why: Improves maintainability by adhering to DRY principles and reducing duplicated logic.\n✅ Verification: Ran full validate script (eslint, typecheck) and tests suite.\n✨ Result: Codebase is cleaner with centralized MIME checks.\n\n---\n*PR created automatically by Jules for task [35945046654969415](https://jules.google.com/task/35945046654969415) started by @MeechYourGoals*",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/183",
+    "user": {
+      "login": "MeechYourGoals",
+      "id": 206444919,
+      "profile_url": "https://github.com/MeechYourGoals",
+      "avatar_url": "https://avatars.githubusercontent.com/u/206444919?v=4"
+    },
+    "head": {
+      "ref": "jules-35945046654969415-4cd852f1",
+      "sha": "04f1fc5ef96325ee9265495df92f3d98d85ef0a6",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "457367231b2849d08e5fecb9ba866ec090aca469",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-11T10:34:47Z",
+    "updated_at": "2026-04-11T10:36:43Z"
+  },
+  {
+    "number": 181,
+    "title": "🧹 fix(chat): remove hardcoded preferred payment method",
+    "body": "🎯 **What:** Removed hardcoded \u0026#39;Venmo: @yourvenmo\u0026#39; in `useChatComposer`. Now it dynamically fetches the user\u0026#39;s payment methods using `useQuery` and uses their primary configured method, with appropriate fallbacks.\n💡 **Why:** This improves the UX and correctness of the application since the payment messages will now reflect actual user preference rather than a hardcoded string.\n✅ **Verification:** Validated that `useQuery` is used correctly and verified with typescript compilation checks.\n✨ **Result:** Payment messages feature correct user payment method identifiers dynamically.\n\n---\n*PR created automatically by Jules for task [8587960715556372500](https://jules.google.com/task/8587960715556372500) started by @MeechYourGoals*",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/181",
+    "user": {
+      "login": "MeechYourGoals",
+      "id": 206444919,
+      "profile_url": "https://github.com/MeechYourGoals",
+      "avatar_url": "https://avatars.githubusercontent.com/u/206444919?v=4"
+    },
+    "head": {
+      "ref": "jules-8587960715556372500-46f5a965",
+      "sha": "0d0bbe28875fa88944ee4b370d8dbd8d5e96aa8a",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "f6402e7a4dae254a44d90d3600eba0a1b5ddf3f7",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-11T10:26:34Z",
+    "updated_at": "2026-04-11T10:28:56Z"
+  },
+  {
+    "number": 164,
+    "title": "Add native macOS SwiftUI app scaffold (Modules 1-5) with Supabase adapters and tests",
+    "body": "### Motivation\n- Provide a native macOS shell for Chravel to achieve feature-parity with the web app and enable a macOS-first UX and keyboard-driven workflows.\n- Establish core domain models, repository protocols, and Supabase REST adapters to allow the macOS app to run against real backend or fall back to in-memory mocks.\n- Introduce a realtime abstraction and coordinator-level logic so chat can support optimistic sends and stream/ polling hydration strategies.\n\n### Description\n- Add a Swift package at `/macos` with an executable `ChravelMacApp` and library `ChravelMacCore`, plus `.gitignore`, `Package.swift`, and `README.md` documenting build instructions and env vars.\n- Implement app shell and navigation: `ChravelMacApp`, `AppShellView`, `AppState`, `AppDestination`, `SettingsView`, and toolbar/keyboard shortcuts and Settings scene.\n- Introduce coordinators and telemetry: `SessionCoordinator`, `TripWorkspaceCoordinator`, and `AppLogger` with `OSLog` wiring for launch/navigation/chat events.\n- Add core models, protocols, Supabase REST client and adapters (`SupabaseRESTClient`, `SupabaseConfig`, `SupabaseAuthProvider`, `SupabaseTripRepository`, `SupabaseChatRepository`), a polling realtime service (`PollingChatRealtimeService`), mocks (`MockAuthProvider`, `MockTripRepository`, `MockChatRepository`), JSON decoder helper, and factories to select mock vs Supabase at runtime.\n- Add unit tests for core logic and network adapters: `MockTripRepositoryTests`, `MockChatRepositoryTests`, `PollingChatRealtimeServiceTests`, `SupabaseTripRepositoryTests`, and `SupabaseChatRepositoryTests` using URLProtocol stubs for deterministic HTTP responses.\n- Add `.claude/plugins/build-macos-apps/plugin.json` to declare the macOS development workflow skills.\n\n### Testing\n- Attempted to run the package test suite with `cd macos \u0026amp;\u0026amp; swift test` in CI, but the run failed on the Linux CI host due to missing Apple `SwiftUI` modules; the code is intended to be built and tested on macOS hosts.\n- The test suite includes network-decoding tests that use custom `URLProtocol` stubs and a polling realtime snapshot test, which are designed to be deterministic and pass on macOS `swift test` runs.\n\n------\n[Codex Task](https://chatgpt.com/codex/cloud/tasks/task_e_69d7fcaba0c4832aaeac93e34a813c2e)",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/164",
+    "user": {
+      "login": "ChravelApp",
+      "id": 263244170,
+      "profile_url": "https://github.com/ChravelApp",
+      "avatar_url": "https://avatars.githubusercontent.com/u/263244170?v=4"
+    },
+    "labels": ["codex"],
+    "requested_reviewers": ["MeechYourGoals"],
+    "head": {
+      "ref": "codex/add-macos-build-plugin-0vf5kx",
+      "sha": "f2016f7b5e45057b0fa0f88f2d0a83a3aad9e3a8",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "e0b109b90d95f156b73674adcc14fc48b5ef515a",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-10T05:38:18Z",
+    "updated_at": "2026-04-10T18:18:53Z"
+  },
+  {
+    "number": 159,
+    "title": "fix(concierge): stop vibrating/jittery answers during streaming",
+    "body": "## Summary\n\nFixes perceived \u0026#34;vibrating\u0026#34; AI Concierge answers during token streaming by coalescing stick-to-bottom scroll updates, respecting when the user has scrolled up, and reducing unnecessary churn on Gemini Live transient bubbles.\n\n## Changes\n\n- Coalesce `scrollTop = scrollHeight` to at most once per animation frame during transcript growth\n- Track scroll position with `isScrollNearBottom` (~80px threshold); skip auto-scroll when the user is reading history above the fold\n- Reset stick-to-bottom when sending a new user message\n- Use stable `timestamp` on transient voice streaming bubbles (set once per utterance) so React does less subtree churn\n- Add `src/lib/chatStickToBottom.ts` + Vitest coverage\n\n## Type of Change\n\n- [x] Bug fix (non-breaking change that fixes an issue)\n- [ ] New feature (non-breaking change that adds functionality)\n- [ ] Breaking change (fix or feature that would cause existing functionality to break)\n- [ ] Refactor (no functional change)\n- [ ] Chore (dependency update, config change, docs, etc.)\n\n## Deploy Impact\n\n- [ ] **Database migration included** — migration is idempotent and backward-compatible\n- [ ] **Edge function changes** — functions tested locally with `supabase functions serve`\n- [ ] **Environment variable added/changed** — `.env.example` updated, Vercel/Supabase secrets configured\n- [ ] **Feature flag change** — flag documented and reversible\n- [x] **None of the above** — code-only change\n\n## Pre-Merge Checklist\n\n- [x] `npm run typecheck` passes locally\n- [x] `npm run build` passes locally\n- [x] Targeted ESLint on changed files passes (repo-wide `lint:check` has pre-existing errors)\n- [x] `vitest run src/lib/__tests__/chatStickToBottom.test.ts` passes\n- [x] `vitest run src/components/__tests__/AIConciergeChat.test.tsx` passes\n\n## Testing\n\n- Automated: `npm run test:run -- src/lib/__tests__/chatStickToBottom.test.ts`\n- Automated: `npm run test:run -- src/components/__tests__/AIConciergeChat.test.tsx`\n- Manual: Open trip → AI Concierge → send a message that streams a long reply; confirm transcript grows smoothly without scroll jitter; scroll up mid-stream and confirm viewport is not forced to bottom until you scroll back near bottom or send again\n\n## Risk\n\nLow. Changes are localized to `AIConciergeChat` scroll behavior and voice bubble metadata; live voice inline UI path unchanged.\n\n## Rollback Plan\n\nRevert commit `fix(concierge): coalesce stick-to-bottom scroll during streaming` on this branch.\n\n\u003ca href=\"https://cursor.com/agents/bc-5d66867f-383e-5e46-a405-14392b68fc92\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"Open in Web\" width=\"114\" height=\"28\" src=\"https://cursor.com/assets/images/open-in-web-dark.png\"\u003e\u003c/a\u003e \u003ca href=\"https://cursor.com/automations/26dff066-b752-4188-ae69-f93ae8e9efc6\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"View Automation\" width=\"141\" height=\"28\" src=\"https://cursor.com/assets/images/view-automation-dark.png\"\u003e\u003c/a\u003e \n\n",
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/159",
+    "user": {
+      "login": "cursor[bot]",
+      "id": 206951365,
+      "profile_url": "https://github.com/apps/cursor",
+      "avatar_url": "https://avatars.githubusercontent.com/in/1210556?v=4"
+    },
+    "head": {
+      "ref": "cursor/chravelapp-bug-resolution-db68",
+      "sha": "5e39b3a6fe0b0e0cb4a1b487933ec02c16261dbc",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "13ccccec6de7d311ac4318d10bbfdc9edd3e4013",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-09T21:55:57Z",
+    "updated_at": "2026-04-09T21:56:16Z"
+  },
+  {
+    "number": 157,
+    "title": "fix(db): restore trip embed for pending join requests on home dashboard",
+    "body": "## Summary\n\nFixes outbound **Requests** on the home dashboard missing trip metadata after a user submits a join request via invite link. Root cause was **RLS on `trips`**: only active members could `SELECT` trip rows, so PostgREST stripped the nested `trips (...)` relation from `trip_join_requests` queries for pending requesters.\n\n## Changes\n\n- Add `public.can_view_trip_for_pending_join_request(user_id, trip_id)` (SECURITY DEFINER) — true when the user has a **pending** row in `trip_join_requests` for that trip.\n- Extend `trips` SELECT policy **Users can view their trips** with: `OR can_view_trip_for_pending_join_request(auth.uid(), id)`.\n\n## Type of Change\n\n- [x] Bug fix (non-breaking change that fixes an issue)\n- [ ] New feature (non-breaking change that adds functionality)\n- [ ] Breaking change (fix or feature that would cause existing functionality to break)\n- [ ] Refactor (no functional change)\n- [ ] Chore (dependency update, config change, docs, etc.)\n\n## Deploy Impact\n\n- [x] **Database migration included** — migration is idempotent and backward-compatible\n- [ ] **Edge function changes** — functions tested locally with `supabase functions serve`\n- [ ] **Environment variable added/changed** — `.env.example` updated, Vercel/Supabase secrets configured\n- [ ] **Feature flag change** — flag documented and reversible\n- [ ] **None of the above** — code-only change\n\n### Migration Checklist (if applicable)\n\n- [x] Migration file is timestamped (`YYYYMMDDHHMMSS_description.sql`)\n- [x] All `CREATE TABLE` statements use `IF NOT EXISTS` (N/A — no new tables)\n- [x] All `DROP` statements use `IF EXISTS`\n- [x] All functions use `CREATE OR REPLACE`\n- [x] DDL uses schema qualification (`public.table_name`)\n- [x] Backward-compatible with current app code (no breaking renames/drops without migration plan)\n- [x] Forward-fix strategy documented (if this is a breaking change) (N/A)\n- [x] `npx tsx scripts/lint-migrations.ts` passes\n\n## Pre-Merge Checklist\n\n- [x] `npm run typecheck \u0026amp;\u0026amp; npm run build` passes locally (`lint:check` has pre-existing errors in `remotion/scripts`)\n- [ ] `npm run qa:guardrails` passes\n- [x] No `console.log` left in committed code\n- [x] No hardcoded secrets, API keys, or credentials\n- [x] No weakening of RLS or auth guarantees (scoped read: pending join request for that trip only)\n- [x] Existing tests pass; new tests added where appropriate (hook tests unchanged; DB fix)\n- [x] Loading, empty, and error states handled (not conflated)\n- [x] Mobile-safe layout (no overflow regressions)\n\n## Testing\n\n- `npx tsx scripts/lint-migrations.ts` — 0 errors\n- `npm run typecheck` — pass\n- `npm run build` — pass (after `npm install` in CI-like env)\n- `npm run test:run -- src/hooks/__tests__/useDashboardJoinRequests.test.ts` — pass\n\n**Manual (post-migration deploy):** User A creates trip, User B uses invite with approval flow → home **Requests** → **Outgoing** shows trip name/destination/cover (nested `trips` embed populated).\n\n## Risk\n\n**Low.** Requesters only gain `SELECT` on `trips` rows they already reference via an existing **pending** `trip_join_requests` row. Does not grant trip content (other tables) or membership APIs.\n\n## Rollback Plan\n\nForward-fix: if needed, drop the second `OR` branch from the policy and redeploy prior policy version; prefer fixing any unintended exposure by narrowing the helper predicate rather than full revert.\n\n\u003ca href=\"https://cursor.com/agents/bc-ce2cb074-7070-53f3-a1bc-7ef581f29310\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"Open in Web\" width=\"114\" height=\"28\" src=\"https://cursor.com/assets/images/open-in-web-dark.png\"\u003e\u003c/a\u003e \u003ca href=\"https://cursor.com/automations/26dff066-b752-4188-ae69-f93ae8e9efc6\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"View Automation\" width=\"141\" height=\"28\" src=\"https://cursor.com/assets/images/view-automation-dark.png\"\u003e\u003c/a\u003e \n\n",
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/157",
+    "user": {
+      "login": "cursor[bot]",
+      "id": 206951365,
+      "profile_url": "https://github.com/apps/cursor",
+      "avatar_url": "https://avatars.githubusercontent.com/in/1210556?v=4"
+    },
+    "head": {
+      "ref": "cursor/chravelapp-bug-resolution-2c0f",
+      "sha": "b5133298f663159d21a32d353b1d554c9524987e",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "13ccccec6de7d311ac4318d10bbfdc9edd3e4013",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-09T21:40:52Z",
+    "updated_at": "2026-04-09T21:41:28Z"
+  },
+  {
+    "number": 152,
+    "title": "Clean up root markdown sprawl and technical debt",
+    "body": "Resolves clutter and tech debt in root by archiving unneeded markdown files, keeping only the active platform audit documentation, and cleaning out unused/scratch directories and files (`optimizer/`, `tmp/`, `claude-progress.txt`, etc).\n\n---\n*PR created automatically by Jules for task [6333298978776761783](https://jules.google.com/task/6333298978776761783) started by @MeechYourGoals*",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/152",
+    "user": {
+      "login": "MeechYourGoals",
+      "id": 206444919,
+      "profile_url": "https://github.com/MeechYourGoals",
+      "avatar_url": "https://avatars.githubusercontent.com/u/206444919?v=4"
+    },
+    "head": {
+      "ref": "jules-6333298978776761783-bd3b7cd9",
+      "sha": "81e9ed582a9263d653fcbb3c94ce21e075c1a79b",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "c4ae1261cc90beedec705792245d923c27d9d71f",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-09T16:01:48Z",
+    "updated_at": "2026-04-09T16:24:31Z"
+  },
+  {
+    "number": 148,
+    "title": "fix(chat): Disambiguate GetStream channel vs role TripChannel in TripChat",
+    "body": "## Summary\nAfter migrating trip chat to GetStream, `TripChat` declared two different concepts under the same name `activeChannel`:\n- **GetStream** `Channel` from `useStreamTripChat` (trip main chat transport)\n- **Role** `TripChannel` from `useRoleChannels` (pro channels tab metadata)\n\nThe second binding shadowed the first, so `MessageTypeBar` and `ChannelChatView` received a Stream SDK channel object cast as `TripChannel`, which breaks the Channels tab and any UI that expects `channelName`, `tripId`, etc.\n\n## Fix\n- Rename Stream channel → `tripStreamChannel` (edit/delete, typing, read receipts)\n- Rename role selection → `selectedTripChannel` / `setSelectedTripChannel` for the Channels UI\n\n## Validation\n- `npm run typecheck` — pass\n- Full `vite build` — fails in this workspace on pre-existing missing dependency `react-intersection-observer` (unrelated to this change)\n\n## Files\n- `src/features/chat/components/TripChat.tsx`\n\n\u003ca href=\"https://cursor.com/agents/bc-4bfb0e7f-6948-57ca-a019-8d05c06b21e5\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"Open in Web\" width=\"114\" height=\"28\" src=\"https://cursor.com/assets/images/open-in-web-dark.png\"\u003e\u003c/a\u003e \u003ca href=\"https://cursor.com/automations/26dff066-b752-4188-ae69-f93ae8e9efc6\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"View Automation\" width=\"141\" height=\"28\" src=\"https://cursor.com/assets/images/view-automation-dark.png\"\u003e\u003c/a\u003e \n\n",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/148",
+    "user": {
+      "login": "cursor[bot]",
+      "id": 206951365,
+      "profile_url": "https://github.com/apps/cursor",
+      "avatar_url": "https://avatars.githubusercontent.com/in/1210556?v=4"
+    },
+    "requested_reviewers": ["MeechYourGoals"],
+    "head": {
+      "ref": "cursor/chravelapp-bug-resolution-cc5b",
+      "sha": "c188929dc97620f9c91321205e1217dccca2ebcd",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "49d949e462e157d95e3fa5e3f3dac327d41d6c7f",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-09T06:34:17Z",
+    "updated_at": "2026-04-11T23:14:07Z"
+  },
+  {
+    "number": 144,
+    "title": "Enforce tripId validation and scoping in execute-concierge-tool",
+    "body": "This PR addresses a high-priority security issue in the `execute-concierge-tool` Supabase Edge Function. Previously, `tripId` was optional, which could allow a caller to skip authorization checks and potentially issue capability tokens with no trip scope, leading to data integrity risks.\n\nChanges:\n- Added a validation check to ensure `tripId` is a non-empty string, returning a 400 error if missing.\n- Removed the conditional check for `verifyConciergeTripAccess`, making it mandatory for all tool executions.\n- Updated `generateCapabilityToken` to use the validated `tripIdStr`.\n\nVerified the changes with existing unit tests for capability tokens and security routing.\n\n---\n*PR created automatically by Jules for task [6752160382581106541](https://jules.google.com/task/6752160382581106541) started by @MeechYourGoals*",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/144",
+    "user": {
+      "login": "MeechYourGoals",
+      "id": 206444919,
+      "profile_url": "https://github.com/MeechYourGoals",
+      "avatar_url": "https://avatars.githubusercontent.com/u/206444919?v=4"
+    },
+    "head": {
+      "ref": "fix-concierge-tool-security-6752160382581106541",
+      "sha": "478374337b53c820b435be64f43821c9a8c428de",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "9a614f6224d5c7cea37532e4e7493ae67c8a5957",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-09T04:07:45Z",
+    "updated_at": "2026-04-09T04:25:53Z"
+  },
+  {
+    "number": 127,
+    "title": "docs(ci): E2E nightly workflow guide + optional Slack notify",
+    "body": "## Summary\n\nAdds in-repo documentation for the existing scheduled E2E pipeline, a copy-paste **Cursor/Codex** automation prompt, and an **optional** Slack webhook step after nightly / manual full E2E runs.\n\n## Changes\n\n- New `docs/e2e-scheduled-workflow.md` — maps CI jobs, cron, artifacts, Slack setup, and the detailed agent prompt\n- `e2e/README.md` — link to the doc\n- `.github/workflows/ci.yml` — `id: e2e` on the full E2E step; optional Slack post when `SLACK_E2E_WEBHOOK_URL` is set (schedule + `workflow_dispatch` only)\n\n## Type of Change\n\n- [x] Chore (dependency update, config change, docs, etc.)\n\n## Deploy Impact\n\n- [x] **Environment variable added/changed** — `.env.example` updated, Vercel/Supabase secrets configured\n  - **Repo secret (optional):** `SLACK_E2E_WEBHOOK_URL` — Slack Incoming Webhook URL. If omitted, notify step no-ops.\n\n## Pre-Merge Checklist\n\n- [x] `npm run lint \u0026amp;\u0026amp; npm run typecheck \u0026amp;\u0026amp; npm run build` passes locally (after `npm ci`)\n- [x] `npm run qa:guardrails` not re-run in full after doc-only path; CI will enforce on PR\n\n## Testing\n\n- Validated `ci.yml` parses as YAML (`python3 -c yaml.safe_load`)\n- `npm run typecheck` and `npm run build` succeed after `npm ci`\n\n## Risk\n\n**Low.** Slack step is guarded: missing secret exits 0. Message reflects E2E step outcome, not unrelated job failures.\n\n## Rollback Plan\n\nRevert this PR or remove the notify step / secret.\n\n\u003ca href=\"https://cursor.com/agents/bc-5cace676-552b-5371-a3d0-03b315efb73f\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"Open in Web\" width=\"114\" height=\"28\" src=\"https://cursor.com/assets/images/open-in-web-dark.png\"\u003e\u003c/a\u003e \u003ca href=\"https://cursor.com/automations/26dff066-b752-4188-ae69-f93ae8e9efc6\" rel=\"nofollow noreferrer noopener\" target=\"_blank\"\u003e\u003cimg alt=\"View Automation\" width=\"141\" height=\"28\" src=\"https://cursor.com/assets/images/view-automation-dark.png\"\u003e\u003c/a\u003e \n\n",
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/127",
+    "user": {
+      "login": "cursor[bot]",
+      "id": 206951365,
+      "profile_url": "https://github.com/apps/cursor",
+      "avatar_url": "https://avatars.githubusercontent.com/in/1210556?v=4"
+    },
+    "head": {
+      "ref": "cursor/debugging-agent-workflow-c6b8",
+      "sha": "3192efd78c1af2b96c60ac7151ca537efb135ea9",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "57bff73887ed2bbb5a71a6bf89297472a3ab77b7",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-07T01:49:55Z",
+    "updated_at": "2026-04-07T01:50:07Z"
+  },
+  {
+    "number": 123,
+    "title": "fix: limit chunk error auto-reloads and generate audit report",
+    "body": "Fixes the critical infinite reload loop issue affecting all environments (PWA, Vercel, Render, IONOS, Lovable).\n\nThe loop was caused by an aggressive recovery mechanism for \u0026#34;Failed to fetch\u0026#34; errors during dynamic imports, which unconditionally cleared caches and called `window.location.reload()`. This PR limits auto-reloads to 2 attempts via `sessionStorage`, allowing the standard ErrorBoundary UI to safely catch and display the persistent error on the third attempt instead of looping forever.\n\nAlso includes the requested `AUDIT_EXECUTIVE_SUMMARY.txt` outlining missing operational follow-throughs (Supabase migrations, Edge Functions, etc.) derived from recent PRs.\n\n---\n*PR created automatically by Jules for task [5497535703794142240](https://jules.google.com/task/5497535703794142240) started by @MeechYourGoals*",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/123",
+    "user": {
+      "login": "MeechYourGoals",
+      "id": 206444919,
+      "profile_url": "https://github.com/MeechYourGoals",
+      "avatar_url": "https://avatars.githubusercontent.com/u/206444919?v=4"
+    },
+    "head": {
+      "ref": "fix-chunk-error-reload-loop-5497535703794142240",
+      "sha": "c53b12a763a4307324be7aa7da9f42c94cf36290",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "22f90522cbc3a195c708bcdf00fb9c59cd6f0ee8",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-06T20:32:41Z",
+    "updated_at": "2026-04-06T20:35:00Z"
+  },
+  {
+    "number": 113,
+    "title": "chore: Generate Daily Engineering Digest",
+    "body": "Analyzed Git history from the past 24 hours and generated an executive-level engineering digest formatted for Slack, grouping commits by theme and adding a watchlist for risk monitoring.\n\n---\n*PR created automatically by Jules for task [2902874113089967248](https://jules.google.com/task/2902874113089967248) started by @MeechYourGoals*",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/113",
+    "user": {
+      "login": "MeechYourGoals",
+      "id": 206444919,
+      "profile_url": "https://github.com/MeechYourGoals",
+      "avatar_url": "https://avatars.githubusercontent.com/u/206444919?v=4"
+    },
+    "head": {
+      "ref": "claude/generate-daily-engineering-digest-2902874113089967248",
+      "sha": "32d9e9a2e7507c0562d4f60734f1889458842cfe",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "4d3b682a511a24f46f10d832cb59461a2fe0d26d",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-05T19:38:58Z",
+    "updated_at": "2026-04-05T19:48:20Z"
+  },
+  {
+    "number": 109,
+    "title": "🧪 [Testing Improvement] Maximize sanitizeConciergeContent coverage",
+    "body": "🎯 **What:** The testing gap addressed\nI added comprehensive tests to close existing code coverage gaps within `src/lib/sanitizeConciergeContent.ts`.\nAlso resolved an issue where arrays mapped to `actions` keys missing valid tool mappings were misclassified as non tool plans allowing unintended AI payloads to be logged to users. \n\n📊 **Coverage:** What scenarios are now tested\n- Non object types (`typeof obj !== \u0026#39;object\u0026#39;`)\n- Unfenced objects that include valid JSON but are not tools \n- Tool fallback testing for objects that contain an `actions` property and missing internal markers.\n- Handled properly identifying when an `actions` property mapped to an array missing valid action tools triggers correctly as a tool payload. \n\n✨ **Result:** The improvement in test coverage\n`src/lib/sanitizeConciergeContent.ts` has been increased from ~94% line coverage to **100% line, branch, logic and function coverage**.\n\n---\n*PR created automatically by Jules for task [3687811169735113891](https://jules.google.com/task/3687811169735113891) started by @MeechYourGoals*",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/109",
+    "user": {
+      "login": "MeechYourGoals",
+      "id": 206444919,
+      "profile_url": "https://github.com/MeechYourGoals",
+      "avatar_url": "https://avatars.githubusercontent.com/u/206444919?v=4"
+    },
+    "head": {
+      "ref": "testing-improvement-sanitize-concierge-content-3687811169735113891",
+      "sha": "b63b10340716c95b58987ec657ae27cdf7f2e673",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "1396260c86dfbc68d1a5e750fab201379bdea29b",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-05T16:03:43Z",
+    "updated_at": "2026-04-05T16:07:28Z"
+  },
+  {
+    "number": 108,
+    "title": "🧹 Code Health: Clean up unimplemented receipt extraction and implement create_todo",
+    "body": "🎯 **What:** Removed unimplemented `extract_receipt` logic from `chatContentParser.ts` and `ParsedContentSuggestions.tsx` to clean up dead code. Also implemented the previously stubbed out `create_todo` feature by dynamically importing `taskStorageService` and creating the task correctly. \n\n💡 **Why:** The receipt extraction and storage mechanism was stubbed out but represented a huge feature request that was best kept out of the main codebase until explicitly built, eliminating a non-functional behavior from the UI. Meanwhile, the `create_todo` stub was easily implementable via the existing `taskStorageService`, so rather than deleting it, it was hooked up to create actual tasks in the trip, turning a broken stub into a functional feature.\n\n✅ **Verification:**\n1. Ran `npm run test src/services/__tests__/chatContentParser.test.ts` to verify tests pass and no longer expect unimplemented cases for receipt extraction, and updated the \u0026#34;unimplemented\u0026#34; mock tests to check `action: \u0026#39;none\u0026#39;`.\n2. Verified ESLint checks pass for the modified files.\n3. Successfully ran `tsc --noEmit` and `prettier --write` check across modified files.\n4. No other modules refer to `extract_receipt` or depend on its logic.\n\n✨ **Result:** A cleaner `chatContentParser` with no dead code for receipt extraction, and a fully functional `create_todo` suggestion feature that now integrates correctly with the application\u0026#39;s task storage service!\n\n---\n*PR created automatically by Jules for task [2922536584256048037](https://jules.google.com/task/2922536584256048037) started by @MeechYourGoals*",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "html_url": "https://github.com/Chravel-Inc/chravel-web/pull/108",
+    "user": {
+      "login": "MeechYourGoals",
+      "id": 206444919,
+      "profile_url": "https://github.com/MeechYourGoals",
+      "avatar_url": "https://avatars.githubusercontent.com/u/206444919?v=4"
+    },
+    "head": {
+      "ref": "fix/chat-content-parser-code-health-2922536584256048037",
+      "sha": "ca10dade05fccc85957299a8b6519a2ccf020660",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "1396260c86dfbc68d1a5e750fab201379bdea29b",
+      "repo": { "full_name": "Chravel-Inc/chravel-web" }
+    },
+    "created_at": "2026-04-05T15:50:47Z",
+    "updated_at": "2026-04-05T15:55:36Z"
+  }
+]

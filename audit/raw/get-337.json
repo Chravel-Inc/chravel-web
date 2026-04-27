@@ -1,0 +1,21 @@
+{
+  "number": 337,
+  "title": "fix(chat): Stream-aligned alerts and notification deep-links to chat",
+  "state": "open",
+  "draft": true,
+  "merged": false,
+  "mergeable_state": "unknown",
+  "user": { "login": "cursor[bot]" },
+  "head": {
+    "ref": "cursor/-bc-9e26626e-149b-5b86-b071-8b60015e6201-0789",
+    "sha": "7905077f666efbb11c5551337f4f146db1abe182"
+  },
+  "base": { "ref": "main", "sha": "f855fb74d6991a77fb3cfa6fea5026cd183dc3a2" },
+  "additions": 278,
+  "deletions": 4,
+  "changed_files": 14,
+  "commits": 1,
+  "comments": 3,
+  "created_at": "2026-04-20T15:14:28Z",
+  "updated_at": "2026-04-20T15:14:50Z"
+}

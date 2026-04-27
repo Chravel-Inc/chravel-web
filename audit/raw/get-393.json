@@ -1,0 +1,21 @@
+{
+  "number": 393,
+  "title": "fix(date): add parseLocalDate to handle YYYY-MM-DD timezone bugs safely",
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "mergeable_state": "unstable",
+  "user": { "login": "ChravelApp" },
+  "head": {
+    "ref": "jules-13913734039405448339-7cafdc36",
+    "sha": "a2556e6a281d0aa34a35560704000a78a0e02642"
+  },
+  "base": { "ref": "main", "sha": "d28b135d4943f14b7561fb2582044b2d8c1aefb2" },
+  "additions": 59,
+  "deletions": 5,
+  "changed_files": 4,
+  "commits": 1,
+  "comments": 4,
+  "created_at": "2026-04-26T19:08:33Z",
+  "updated_at": "2026-04-26T19:09:30Z"
+}

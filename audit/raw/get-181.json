@@ -1,0 +1,21 @@
+{
+  "number": 181,
+  "title": "🧹 fix(chat): remove hardcoded preferred payment method",
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "mergeable_state": "unstable",
+  "user": { "login": "MeechYourGoals" },
+  "head": {
+    "ref": "jules-8587960715556372500-46f5a965",
+    "sha": "0d0bbe28875fa88944ee4b370d8dbd8d5e96aa8a"
+  },
+  "base": { "ref": "main", "sha": "f6402e7a4dae254a44d90d3600eba0a1b5ddf3f7" },
+  "additions": 36,
+  "deletions": 11,
+  "changed_files": 3,
+  "commits": 1,
+  "comments": 3,
+  "created_at": "2026-04-11T10:26:34Z",
+  "updated_at": "2026-04-11T10:28:56Z"
+}

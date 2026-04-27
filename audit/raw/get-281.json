@@ -1,0 +1,22 @@
+{
+  "number": 281,
+  "title": "Stream membership reliability: structured failure logging, server fallback, and edge function",
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "mergeable_state": "dirty",
+  "user": { "login": "ChravelApp" },
+  "labels": ["codex"],
+  "head": {
+    "ref": "codex/evaluate-get-stream-integration-readiness2026-04-14-u6qdwk",
+    "sha": "8f2250c42ceeaf6011e607b78ed2c07d2253dc44"
+  },
+  "base": { "ref": "main", "sha": "be692cceb5253292e140a8005e3521154849dd25" },
+  "additions": 496,
+  "deletions": 7,
+  "changed_files": 14,
+  "commits": 1,
+  "comments": 1,
+  "created_at": "2026-04-14T22:21:33Z",
+  "updated_at": "2026-04-14T22:25:31Z"
+}

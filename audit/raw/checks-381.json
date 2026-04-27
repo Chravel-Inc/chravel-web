@@ -1,0 +1,12 @@
+{
+  "number": 381,
+  "total": 17,
+  "passed": 12,
+  "failed": 1,
+  "cancelled": 1,
+  "skipped": 2,
+  "pending": 0,
+  "neutral": 1,
+  "ciStatus": "failing",
+  "failingChecks": ["CodeQL"]
+}

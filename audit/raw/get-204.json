@@ -1,0 +1,21 @@
+{
+  "number": 204,
+  "title": "Generate daily engineering digest",
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "mergeable_state": "dirty",
+  "user": { "login": "MeechYourGoals" },
+  "head": {
+    "ref": "claude/generate-daily-engineering-digest-10306154002651292164",
+    "sha": "6ec67b52130de349b4fe3c73096a4975347994b5"
+  },
+  "base": { "ref": "main", "sha": "059b75f14bc660292f1752a8997c1ccb4c926531" },
+  "additions": 5,
+  "deletions": 22,
+  "changed_files": 2,
+  "commits": 4,
+  "comments": 3,
+  "created_at": "2026-04-12T04:45:11Z",
+  "updated_at": "2026-04-12T17:04:32Z"
+}

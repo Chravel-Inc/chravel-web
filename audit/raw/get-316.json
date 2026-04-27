@@ -1,0 +1,21 @@
+{
+  "number": 316,
+  "title": "fix(chat): use resolved Supabase URL/key for stream-join-channel",
+  "state": "open",
+  "draft": true,
+  "merged": false,
+  "mergeable_state": "dirty",
+  "user": { "login": "cursor[bot]" },
+  "head": {
+    "ref": "cursor/chravelapp-bug-resolution-6d12",
+    "sha": "6ace322030ad27f083af30f3849bf99074e4d731"
+  },
+  "base": { "ref": "main", "sha": "37d891f9719be2e2a0e0cecde72935a47f25af9e" },
+  "additions": 25,
+  "deletions": 15,
+  "changed_files": 4,
+  "commits": 2,
+  "comments": 4,
+  "created_at": "2026-04-17T22:29:20Z",
+  "updated_at": "2026-04-18T16:03:05Z"
+}

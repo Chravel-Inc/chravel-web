@@ -1,0 +1,21 @@
+{
+  "number": 148,
+  "title": "fix(chat): Disambiguate GetStream channel vs role TripChannel in TripChat",
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "mergeable_state": "dirty",
+  "user": { "login": "cursor[bot]" },
+  "head": {
+    "ref": "cursor/chravelapp-bug-resolution-cc5b",
+    "sha": "c188929dc97620f9c91321205e1217dccca2ebcd"
+  },
+  "base": { "ref": "main", "sha": "49d949e462e157d95e3fa5e3f3dac327d41d6c7f" },
+  "additions": 30,
+  "deletions": 28,
+  "changed_files": 1,
+  "commits": 4,
+  "comments": 2,
+  "created_at": "2026-04-09T06:34:17Z",
+  "updated_at": "2026-04-11T23:14:07Z"
+}

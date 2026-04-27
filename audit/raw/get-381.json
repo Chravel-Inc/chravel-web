@@ -1,0 +1,21 @@
+{
+  "number": 381,
+  "title": "Claude/slack session k gfv a",
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "mergeable_state": "unknown",
+  "user": { "login": "ChravelApp" },
+  "head": {
+    "ref": "claude/slack-session-kGfvA",
+    "sha": "6220f782b8d273078b83ad431843cbda75ce8ea7"
+  },
+  "base": { "ref": "main", "sha": "720c8df71220e0384ea984cea755f292d3ae38f3" },
+  "additions": 40,
+  "deletions": 37,
+  "changed_files": 4,
+  "commits": 2,
+  "comments": 3,
+  "created_at": "2026-04-24T12:44:51Z",
+  "updated_at": "2026-04-24T12:46:07Z"
+}

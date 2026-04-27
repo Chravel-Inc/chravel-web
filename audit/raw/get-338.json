@@ -1,0 +1,21 @@
+{
+  "number": 338,
+  "title": "fix(events): harden EventDetail + consolidate ErrorBoundary reload UX",
+  "state": "open",
+  "draft": true,
+  "merged": false,
+  "mergeable_state": "unknown",
+  "user": { "login": "cursor[bot]" },
+  "head": {
+    "ref": "cursor/chravelapp-bug-resolution-d309",
+    "sha": "dea90449424cb5106b2c103024152cc171810159"
+  },
+  "base": { "ref": "main", "sha": "f855fb74d6991a77fb3cfa6fea5026cd183dc3a2" },
+  "additions": 67,
+  "deletions": 37,
+  "changed_files": 7,
+  "commits": 1,
+  "comments": 3,
+  "created_at": "2026-04-20T15:21:39Z",
+  "updated_at": "2026-04-20T15:22:04Z"
+}

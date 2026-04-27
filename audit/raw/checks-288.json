@@ -1,0 +1,12 @@
+{
+  "number": 288,
+  "total": 16,
+  "passed": 11,
+  "failed": 1,
+  "cancelled": 1,
+  "skipped": 2,
+  "pending": 0,
+  "neutral": 1,
+  "ciStatus": "failing",
+  "failingChecks": ["gitleaks"]
+}

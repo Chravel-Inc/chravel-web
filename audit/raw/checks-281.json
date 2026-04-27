@@ -1,0 +1,12 @@
+{
+  "number": 281,
+  "total": 5,
+  "passed": 4,
+  "failed": 0,
+  "cancelled": 0,
+  "skipped": 0,
+  "pending": 0,
+  "neutral": 1,
+  "ciStatus": "passing",
+  "failingChecks": []
+}

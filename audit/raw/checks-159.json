@@ -1,0 +1,12 @@
+{
+  "number": 159,
+  "total": 13,
+  "passed": 9,
+  "failed": 2,
+  "cancelled": 0,
+  "skipped": 2,
+  "pending": 0,
+  "neutral": 0,
+  "ciStatus": "failing",
+  "failingChecks": ["Static Checks", "Unit Tests (Vitest)"]
+}

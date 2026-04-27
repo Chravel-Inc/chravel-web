@@ -1,0 +1,21 @@
+{
+  "number": 183,
+  "title": "🧹 Extract duplicated MIME type checkers to shared utility",
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "mergeable_state": "dirty",
+  "user": { "login": "MeechYourGoals" },
+  "head": {
+    "ref": "jules-35945046654969415-4cd852f1",
+    "sha": "04f1fc5ef96325ee9265495df92f3d98d85ef0a6"
+  },
+  "base": { "ref": "main", "sha": "457367231b2849d08e5fecb9ba866ec090aca469" },
+  "additions": 11,
+  "deletions": 14,
+  "changed_files": 4,
+  "commits": 1,
+  "comments": 2,
+  "created_at": "2026-04-11T10:34:47Z",
+  "updated_at": "2026-04-11T10:36:43Z"
+}

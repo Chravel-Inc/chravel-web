@@ -1,0 +1,21 @@
+{
+  "number": 127,
+  "title": "docs(ci): E2E nightly workflow guide + optional Slack notify",
+  "state": "open",
+  "draft": true,
+  "merged": false,
+  "mergeable_state": "unstable",
+  "user": { "login": "cursor[bot]" },
+  "head": {
+    "ref": "cursor/debugging-agent-workflow-c6b8",
+    "sha": "3192efd78c1af2b96c60ac7151ca537efb135ea9"
+  },
+  "base": { "ref": "main", "sha": "57bff73887ed2bbb5a71a6bf89297472a3ab77b7" },
+  "additions": 106,
+  "deletions": 0,
+  "changed_files": 3,
+  "commits": 1,
+  "comments": 2,
+  "created_at": "2026-04-07T01:49:55Z",
+  "updated_at": "2026-04-07T01:50:07Z"
+}

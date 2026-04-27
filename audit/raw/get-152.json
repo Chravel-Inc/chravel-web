@@ -1,0 +1,21 @@
+{
+  "number": 152,
+  "title": "Clean up root markdown sprawl and technical debt",
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "mergeable_state": "dirty",
+  "user": { "login": "MeechYourGoals" },
+  "head": {
+    "ref": "jules-6333298978776761783-bd3b7cd9",
+    "sha": "81e9ed582a9263d653fcbb3c94ce21e075c1a79b"
+  },
+  "base": { "ref": "main", "sha": "c4ae1261cc90beedec705792245d923c27d9d71f" },
+  "additions": 1,
+  "deletions": 3113,
+  "changed_files": 39,
+  "commits": 2,
+  "comments": 3,
+  "created_at": "2026-04-09T16:01:48Z",
+  "updated_at": "2026-04-09T16:24:31Z"
+}

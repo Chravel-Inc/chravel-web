@@ -1,0 +1,21 @@
+{
+  "number": 314,
+  "title": "fix(web): remove service worker unregister race on startup",
+  "state": "open",
+  "draft": true,
+  "merged": false,
+  "mergeable_state": "unstable",
+  "user": { "login": "cursor[bot]" },
+  "head": {
+    "ref": "cursor/debugging-agent-workflow-0d26",
+    "sha": "2fd37f5dd7a9506bd8edf8c4c952f618ccbfb215"
+  },
+  "base": { "ref": "main", "sha": "cfd614d11ece62f7273c9956c1b9f08ff181df98" },
+  "additions": 5,
+  "deletions": 9,
+  "changed_files": 1,
+  "commits": 1,
+  "comments": 4,
+  "created_at": "2026-04-17T16:50:34Z",
+  "updated_at": "2026-04-17T16:50:54Z"
+}

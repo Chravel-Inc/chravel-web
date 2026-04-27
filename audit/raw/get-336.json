@@ -1,0 +1,21 @@
+{
+  "number": 336,
+  "title": "fix(ios-web): branded boot splash + faster auth cold start",
+  "state": "open",
+  "draft": true,
+  "merged": false,
+  "mergeable_state": "unknown",
+  "user": { "login": "cursor[bot]" },
+  "head": {
+    "ref": "cursor/debugging-agent-workflow-5cb3",
+    "sha": "e0bf99e958e76aa2df88e0f22c77ab93aafb886e"
+  },
+  "base": { "ref": "main", "sha": "35148125f855b6f7cb98a00039826315b49c553f" },
+  "additions": 53,
+  "deletions": 23,
+  "changed_files": 4,
+  "commits": 1,
+  "comments": 4,
+  "created_at": "2026-04-20T03:09:26Z",
+  "updated_at": "2026-04-20T03:09:49Z"
+}

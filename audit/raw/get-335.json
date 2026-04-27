@@ -1,0 +1,21 @@
+{
+  "number": 335,
+  "title": "fix(native): Trip type switcher modal uses theme CSS vars (dark mode)",
+  "state": "open",
+  "draft": true,
+  "merged": false,
+  "mergeable_state": "unstable",
+  "user": { "login": "cursor[bot]" },
+  "head": {
+    "ref": "cursor/-bc-69bdb041-0513-5a1c-b2c9-0c352944195a-717c",
+    "sha": "8f37a8c75422d8798d10e1697947c9871efa4900"
+  },
+  "base": { "ref": "main", "sha": "35148125f855b6f7cb98a00039826315b49c553f" },
+  "additions": 13,
+  "deletions": 14,
+  "changed_files": 1,
+  "commits": 1,
+  "comments": 3,
+  "created_at": "2026-04-20T03:03:15Z",
+  "updated_at": "2026-04-20T03:03:32Z"
+}

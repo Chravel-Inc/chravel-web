@@ -1,0 +1,18 @@
+{
+  "number": 384,
+  "title": "Deliver Daily Engineering Digest",
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "mergeable_state": "unknown",
+  "user": { "login": "MeechYourGoals" },
+  "head": { "ref": "main-9340835832936105899", "sha": "cdcb7927c8944debda30e0ec52b40b30e8dbea59" },
+  "base": { "ref": "main", "sha": "d7534e4cc01c342307c26cc036c9519383269aeb" },
+  "additions": 547,
+  "deletions": 756,
+  "changed_files": 1,
+  "commits": 2,
+  "comments": 5,
+  "created_at": "2026-04-26T04:45:51Z",
+  "updated_at": "2026-04-26T05:40:24Z"
+}

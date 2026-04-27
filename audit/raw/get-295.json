@@ -1,0 +1,21 @@
+{
+  "number": 295,
+  "title": "fix(trip): redirect trip members from /preview to main shell for chat",
+  "state": "open",
+  "draft": true,
+  "merged": false,
+  "mergeable_state": "dirty",
+  "user": { "login": "cursor[bot]" },
+  "head": {
+    "ref": "cursor/debugging-agent-workflow-5b5d",
+    "sha": "87d37245f560040ff222250a2f63b4ff387c0dab"
+  },
+  "base": { "ref": "main", "sha": "74c167a2e690f6570621a314c6fd9359b48fa607" },
+  "additions": 33,
+  "deletions": 11,
+  "changed_files": 2,
+  "commits": 1,
+  "comments": 3,
+  "created_at": "2026-04-15T22:26:03Z",
+  "updated_at": "2026-04-15T22:26:17Z"
+}

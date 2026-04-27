@@ -1,0 +1,21 @@
+{
+  "number": 227,
+  "title": "fix(concierge): restore trip tools, RAG timeout, and AIConciergeChat build",
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "mergeable_state": "dirty",
+  "user": { "login": "cursor[bot]" },
+  "head": {
+    "ref": "cursor/-bc-7ab712dd-4bc6-558d-8bd5-89f27316c441-d808",
+    "sha": "0b292cb4ebb5fd42b9ee36de006439e265d58bbd"
+  },
+  "base": { "ref": "main", "sha": "a2917acbefad7ed973eb00b5cfae743444268a03" },
+  "additions": 15,
+  "deletions": 90,
+  "changed_files": 4,
+  "commits": 2,
+  "comments": 2,
+  "created_at": "2026-04-13T04:44:13Z",
+  "updated_at": "2026-04-13T13:09:36Z"
+}

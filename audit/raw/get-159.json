@@ -1,0 +1,21 @@
+{
+  "number": 159,
+  "title": "fix(concierge): stop vibrating/jittery answers during streaming",
+  "state": "open",
+  "draft": true,
+  "merged": false,
+  "mergeable_state": "dirty",
+  "user": { "login": "cursor[bot]" },
+  "head": {
+    "ref": "cursor/chravelapp-bug-resolution-db68",
+    "sha": "5e39b3a6fe0b0e0cb4a1b487933ec02c16261dbc"
+  },
+  "base": { "ref": "main", "sha": "13ccccec6de7d311ac4318d10bbfdc9edd3e4013" },
+  "additions": 105,
+  "deletions": 26,
+  "changed_files": 3,
+  "commits": 1,
+  "comments": 2,
+  "created_at": "2026-04-09T21:55:57Z",
+  "updated_at": "2026-04-09T21:56:16Z"
+}

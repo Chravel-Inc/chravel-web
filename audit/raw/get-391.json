@@ -1,0 +1,21 @@
+{
+  "number": 391,
+  "title": "🧹 Code Health: Implement scaffold for Google Play Billing provider",
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "mergeable_state": "unknown",
+  "user": { "login": "ChravelApp" },
+  "head": {
+    "ref": "jules-1604543458986221860-7a6e1f7b",
+    "sha": "cbecc32ac289ab90b4168a3bd9a1256be40a0aa5"
+  },
+  "base": { "ref": "main", "sha": "d28b135d4943f14b7561fb2582044b2d8c1aefb2" },
+  "additions": 928,
+  "deletions": 732,
+  "changed_files": 3,
+  "commits": 2,
+  "comments": 4,
+  "created_at": "2026-04-26T19:05:12Z",
+  "updated_at": "2026-04-26T20:28:43Z"
+}
