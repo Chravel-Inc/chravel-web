@@ -30,7 +30,7 @@ export const ArchivedTripCard = ({
   onUpgrade,
 }: ArchivedTripCardProps) => {
   const navigate = useNavigate();
-  const { isPro } = useSubscription();
+  const { isPaid } = useSubscription();
 
   const formatDateRange = () => {
     if (!trip.start_date) return 'No dates set';
@@ -71,7 +71,7 @@ export const ArchivedTripCard = ({
   };
 
   const handleCardClick = () => {
-    if (!isPro) {
+    if (!isPaid) {
       onUpgrade();
       return;
     }
@@ -87,7 +87,7 @@ export const ArchivedTripCard = ({
 
   const handleRestore = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!isPro) {
+    if (!isPaid) {
       onUpgrade();
       return;
     }
@@ -102,14 +102,14 @@ export const ArchivedTripCard = ({
   return (
     <div
       className={`relative group rounded-2xl overflow-hidden transition-all duration-300 border ${
-        isPro
+        isPaid
           ? 'bg-white/5 hover:bg-white/10 border-white/10 hover:border-white/20 cursor-pointer hover:scale-[1.02]'
           : 'bg-white/5 border-white/10 opacity-60 grayscale cursor-pointer'
       }`}
       onClick={handleCardClick}
     >
       {/* Lock overlay for free users */}
-      {!isPro && (
+      {!isPaid && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
           <div className="flex flex-col items-center gap-2 text-white/80">
             <Lock size={32} className="text-amber-400" />
@@ -167,7 +167,7 @@ export const ArchivedTripCard = ({
 
         {/* Action Buttons */}
         <div className="flex gap-2">
-          {isPro ? (
+          {isPaid ? (
             <>
               <Button
                 variant="ghost"

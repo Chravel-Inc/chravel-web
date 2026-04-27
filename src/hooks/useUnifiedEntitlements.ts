@@ -28,6 +28,11 @@ export interface UseUnifiedEntitlementsReturn {
   source: 'revenuecat' | 'stripe' | 'admin' | 'demo' | 'none';
   isLoading: boolean;
   isSubscribed: boolean;
+  isPaid: boolean;
+  isExplorer: boolean;
+  isFrequentChraveler: boolean;
+  isOrgPro: boolean;
+  /** @deprecated Use isPaid or isOrgPro depending on intent. */
   isPro: boolean;
   isSuperAdmin: boolean;
   canUse: (feature: FeatureName, context?: FeatureContext) => boolean;
@@ -130,7 +135,11 @@ export function useUnifiedEntitlements(): UseUnifiedEntitlementsReturn {
     source: isSuperAdminByEmail ? 'admin' : isDemoMode ? 'demo' : store.source,
     isLoading: store.isLoading,
     isSubscribed: hasUnlimitedAccess ? true : store.isSubscribed,
-    isPro: hasUnlimitedAccess ? true : store.isPro,
+    isPaid: hasUnlimitedAccess ? true : store.isPaid,
+    isExplorer: hasUnlimitedAccess ? false : store.isExplorer,
+    isFrequentChraveler: hasUnlimitedAccess ? false : store.isFrequentChraveler,
+    isOrgPro: hasUnlimitedAccess ? true : store.isOrgPro,
+    isPro: hasUnlimitedAccess ? true : store.isOrgPro,
     isSuperAdmin: isSuperAdminByEmail || store.isSuperAdmin,
     canUse,
     getLimit,
