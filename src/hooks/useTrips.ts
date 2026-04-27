@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { tripService, Trip, CreateTripData } from '@/services/tripService';
 import { archiveService } from '@/services/archiveService';
 import { useAuth } from './useAuth';
@@ -27,6 +27,8 @@ export const useTrips = () => {
     },
     enabled: isDemoMode || !!user,
     staleTime: 1000 * 60 * 5,
+    // Show last-known trips instantly while refetch runs in background → no skeleton flash on revisit
+    placeholderData: keepPreviousData,
   });
 
   const createTripMutation = useMutation({
