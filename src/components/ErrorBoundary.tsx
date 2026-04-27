@@ -80,10 +80,14 @@ export class ErrorBoundary extends Component<Props, State> {
 
     // Auto-recover from chunk errors on new deployments
     if (isChunkError(error)) {
-      setTimeout(async () => {
-        await clearAllCaches();
-        await safeReload(true);
-      }, 1000);
+      const reloadCount = parseInt(sessionStorage.getItem('chravel_chunk_reload_count') || '0', 10);
+      if (reloadCount < 2) {
+        sessionStorage.setItem('chravel_chunk_reload_count', (reloadCount + 1).toString());
+        setTimeout(async () => {
+          await clearAllCaches();
+          await safeReload(true);
+        }, 1000);
+      }
     }
   }
 

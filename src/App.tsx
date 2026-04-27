@@ -252,7 +252,7 @@ const App = () => {
         const registrations = await navigator.serviceWorker.getRegistrations();
         await Promise.all(registrations.map(reg => reg.unregister()));
       }
-      await safeReload();
+      await safeReload(true);
     };
 
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
@@ -267,9 +267,26 @@ const App = () => {
         errorString.includes('Loading chunk');
 
       if (isChunkError && !toastShown) {
-        console.error('[App] Chunk loading error detected, auto-recovering:', error);
-        toastShown = true;
-        clearCachesAndReload();
+        const reloadCount = parseInt(
+          sessionStorage.getItem('chravel_chunk_reload_count') || '0',
+          10,
+        );
+
+        if (reloadCount < 2) {
+          sessionStorage.setItem('chravel_chunk_reload_count', (reloadCount + 1).toString());
+          console.error(
+            `[App] Chunk loading error detected, auto-recovering (attempt ${reloadCount + 1}/2):`,
+            error,
+          );
+          toastShown = true;
+          clearCachesAndReload();
+        } else {
+          console.error(
+            '[App] Chunk loading error detected, but exceeded auto-reload limit:',
+            error,
+          );
+          // Let ErrorBoundary catch and display the error instead of looping
+        }
       }
     };
 
