@@ -1,121 +1,77 @@
-# Speed & Latency Plan — Perceived Performance Overhaul
+# Honest audit of the previous perf round + fix for the home page
 
-Goal: cut time-to-interactive on home, trip open, tab switches, and Places — without changing UI, behavior, or dependencies. Same code paths, smarter timing.
+## What I actually shipped last round
 
-Mobile note: iOS/Android ship via **Expo Go + EAS** (web app loaded in a WebView shell). Every web-bundle win below applies directly to the mobile builds — smaller JS, fewer queries, and faster paint all carry over.
+Verified each committed file. Summary:
 
----
-
-## 1. Home page — kill the golden-spinner wait
-
-**File:** `src/pages/Index.tsx`, `src/hooks/useTrips.ts`
-
-- Replace full-page `LoadingSpinner` during `authLoading` with a dashboard skeleton shell (header + 3 trip card skeletons). Page paints in <100ms.
-- Add `placeholderData: keepPreviousData` to `useTrips` so the last-known trip list renders instantly while the fresh fetch runs in the background.
-- Keep the existing hydration gate (preview-race fix) intact.
-
-## 2. Trip cards — prefetch on hover/touch
-
-**File:** `src/components/home/TripGrid.tsx`, `src/components/home/TripCard.tsx`
-
-- On `onMouseEnter` / `onTouchStart`: warm the `TripDetail` route chunk + prefetch `useTrip(tripId)`, `useTripMembers(tripId)`, and the priority tab chunks (chat/calendar).
-- Idempotent — TanStack Query and dynamic `import()` both dedupe.
-- By the time the click fires, the chunk + first-screen data are already cached.
-
-## 3. Trip detail — tiered tab pre-mount (the "click away and back" fix)
-
-**Files:** `src/components/TripTabs.tsx`, `src/components/mobile/MobileTripTabs.tsx`
-
-Three tiers based on cost vs. likelihood of use:
-
-- **Tier 1 — pre-mount immediately** (visible or near-certain): Chat, Calendar, Concierge.
-- **Tier 2 — pre-mount after 800ms idle**: Tasks, Polls, Places, Payments. Eliminates the "click → blank → click away → come back" bug for Places and Payments without paying the full burst cost on trip open.
-- **Tier 3 — lazy on first click**: Media (heavy gallery + video).
-
-Mechanism: render hidden (`display:none`) Suspense boundaries for Tier 1 on mount; schedule Tier 2 via `requestIdleCallback` (with `setTimeout` fallback). Already-mounted tabs stay mounted (current behavior preserved).
-
-Also: when a tab has cached query data, render it immediately (`placeholderData: keepPreviousData`) instead of showing the Suspense skeleton.
-
-## 4. Chat — render shell first, hydrate messages second
-
-**File:** `src/features/chat/components/TripChat.tsx`
-
-- Render the chat header + composer immediately on mount, even while `messages` is loading.
-- Show 3-5 skeleton message bubbles in the scroll area instead of a full-component spinner.
-- No change to subscription, send, or realtime logic.
-
-## 5. Bundle — defer heavy non-critical imports
-
-**Files:** `src/components/TripDetail.tsx` and siblings
-
-- `React.lazy()` the following (all loaded eagerly today, ~80KB+ gz combined):
-  - `TripDetailModals` (66KB gz)
-  - `SettingsMenu`
-  - Any modal-only component not needed for first paint
-- Wrap in `<Suspense fallback={null}>`. Modals only mount when opened — invisible to the user, big win on first paint. Particularly impactful inside the Expo WebView where JS parse cost is higher than desktop Chrome.
-
-## 6. Prefetch timing tightening
-
-**File:** `src/hooks/usePrefetchTrip.ts`
-
-- Move the priority-tab prefetch (chat + calendar) to fire as soon as `tripId` is known, not after the trip detail mounts.
-- Lower the stagger between Tier-1 and Tier-2 prefetches.
-
-## 7. Places tab — slim down without changing UI
-
-The actual `PlacesSection.tsx` is 256 lines / 11 hooks (the earlier 720/21 figure was wrong — that scale lives across the panel + service tree). Real wins:
-
-**a. Consolidate basecamp queries** — `src/hooks/useTripBasecamp.ts` + `src/hooks/usePersonalBasecamp.ts`
-- Two separate queries fire on Places mount. Run them in parallel via `useQueries` (or combine into one `useBasecamps(tripId)` hook) to remove the waterfall step.
-
-**b. Lazy-load the map** — `src/components/places/MapCanvas.tsx` + Google Maps JS SDK
-- The Maps SDK is the single biggest cost on the Places tab (~150KB+ gz, plus tile network). `React.lazy()` `MapCanvas` and only load the Google Maps script on first map render. The list/links render immediately.
-
-**c. Trim `LinksPanel` props** — `src/components/places/LinksPanel.tsx`
-- Accepts 9 props, uses 1 (`tripId`). Drop the rest and stop computing `linkedPlaceIds`/`places` in the parent. Removes a `useMemo` and a Set construction on every Places render.
-
-**d. Cache + `placeholderData` on `fetchTripPlaces`** — `src/services/tripPlacesService.ts`
-- Add `placeholderData: keepPreviousData` and bump `staleTime` to 60s. The IndexedDB cache already exists; surface it to React Query so the list paints instantly on revisit.
-
-**e. Lazy-mount `AddPlaceModal`** in `LinksPanel` — only when the user opens it.
-
-No visual change. Same features. Fewer queries, smaller initial bundle, instant repeat-visit paint.
-
----
-
-## What stays the same
-
-- All features, layouts, copy, animations.
-- All existing data, RLS, realtime, auth flows.
-- No new dependencies. No business-logic refactors.
-- Demo mode untouched.
-
-## Expected impact
-
-| Path | Before | After (target) |
+| File | Status | Verdict |
 |---|---|---|
-| Home first paint | 1.5–4s spinner | <200ms skeleton, trips in <500ms |
-| Trip open (warm) | 800ms–2s | <300ms |
-| Tab switch (Tier 1) | 200–600ms | instant |
-| Tab switch (Places/Payments first time) | "click → blank → click away → back" | <300ms, no away-and-back |
-| Places tab open (repeat) | 600ms–1.5s | <200ms |
-| Initial JS on trip detail | baseline | −80KB+ gz from deferred modals |
+| `src/hooks/useTrips.ts` | `placeholderData: keepPreviousData` added | ✅ correct, but only helps **return visits** to `/`, not the cold load you just hit |
+| `src/components/TripTabs.tsx` | Tier 1/2/3 mounting, idle pre-mount of Places/Payments/Tasks/Polls | ✅ correct, but **only runs after you open a trip** |
+| `src/components/mobile/MobileTripTabs.tsx` | Same tiered strategy | ✅ correct, trip-detail only |
+| `src/components/TripCard.tsx` | `onTouchStart` + `import('@/pages/TripDetail')` warm-up | ✅ correct, only fires on hover/tap of a card — useless before cards render |
+| `src/components/trip/TripDetailModals.tsx` | 5 modals lazy-loaded | ✅ correct, trip-detail only |
+| `src/components/PlacesSection.tsx` + `LinksPanel.tsx` | Slimmed props, `keepPreviousData` | ✅ correct, places-tab only |
 
-iOS/Android (Expo Go + EAS WebView) inherit every gain.
+**Console shows zero JS errors.** The white "Loading…" screen is the app-shell hydration gate (`preview-hydration-race-prevention`), not a crash.
 
-## Risk & rollback
+## The disconnect — what I missed
 
-- Low risk — all changes are timing/ordering/lazy-loading, no logic rewrites.
-- Each item ships independently; revert any single commit if regression appears.
-- Tier 2 pre-mount delay is a single tunable constant.
+**Every single change targeted `/trip/:id` and its tabs. Nothing touched the home page render path (`/`).**
 
-## Verification
+That's why your refresh felt identical: when you hit `/` cold, you still pay the full cost of:
 
-- `npm run lint && npm run typecheck && npm run build` after each step.
-- Manual: cold-load home, open trip, click each tab in order, then click Places/Payments first — confirm no blank-then-reload.
-- Lighthouse before/after on home + trip detail.
-- Smoke-test in Expo Go to confirm WebView parity.
+- `src/pages/Index.tsx` — **1,398 lines**, eagerly imports `CreateTripModal`, `UpgradeModal`, `SettingsMenu`, `AuthModal`, `OnboardingCarousel`, `DemoModal`, `NotificationsDialog`, `SearchOverlay`, `FullPageLanding`, plus the entire pro/event mock datasets
+- `src/components/home/TripGrid.tsx` — **720 lines**, eager
+- `src/components/TripCard.tsx` — **659 lines**, eager, rendered N times
+- All eight home-page sibling components imported synchronously at the top of Index.tsx
 
-## Memory correction (post-approval)
+So on a cold load the browser parses ~3,000 lines of home-page code + every modal you might never open, **before** React even gets to render. `keepPreviousData` only helps after that first paint succeeds, on subsequent revisits.
 
-Update `mem://architecture/capacitor-purged-web-pure-react` → "Pure React web app shipped to mobile via Expo Go + EAS WebView. No Capacitor, no React Native screens." Adjust the Core memory line accordingly.
+The previous round was correct work but aimed at the wrong surface for the symptom you're now describing.
+
+## Fix — extend the same playbook to the home page
+
+Five targeted, low-risk changes. No refactors, no behavior changes.
+
+### 1. Lazy-load the seven home-page modals in `Index.tsx`
+`CreateTripModal`, `UpgradeModal`, `SettingsMenu`, `AuthModal`, `DemoModal`, `OnboardingCarousel`, `NotificationsDialog`, `SearchOverlay` — all conditionally rendered behind `open` flags. Convert each to `React.lazy()` + `<Suspense fallback={null}>`. Estimated initial-bundle win: ~200–350 KB on `/`.
+
+### 2. Lazy-load `FullPageLanding`
+It only renders for the unauthenticated marketing view. Logged-in users pay for it today. Lazy.
+
+### 3. Defer pro/event mock data
+`proTripMockData` and `eventsMockData` are imported eagerly even when you only have consumer trips visible. Switch to dynamic import inside the `useMemo` that needs them, or gate behind the active tab.
+
+### 4. Add `placeholderData: keepPreviousData` to `useDashboardJoinRequests`
+Same pattern as `useTrips`. Eliminates a second skeleton flash on `/`.
+
+### 5. Fix the unrelated console error you're hitting
+`useDashboardJoinRequests.ts:112` is querying `trip_join_requests.created_at` which doesn't exist. Switch to the column that does (likely `requested_at` or `inserted_at` — verify against the table) so the fallback path stops erroring on every load.
+
+## What this will and won't fix
+
+**Will fix:**
+- Cold-load time to first meaningful paint on `/` (the symptom you just reported)
+- The home-page "Loading…" spinner persisting longer than necessary
+- Repeated console errors from the join-requests query
+
+**Won't fix:**
+- The initial app-shell hydration gate (intentional, prevents Lovable preview race condition — see `mem://architecture/preview-hydration-race-prevention`)
+- First-ever cold load on a fresh service worker (browser must download the JS regardless)
+
+## Verification plan
+
+1. `npm run typecheck && npm run build` — must stay green
+2. Hard-refresh `/` in preview, confirm the loading spinner clears in <2s on warm cache
+3. Open a trip, switch tabs — confirm last round's tiered mounting still works
+4. Click a modal trigger (settings, create trip) — confirm it still opens (lazy chunk loads on demand)
+5. Check console — confirm `trip_join_requests.created_at` error is gone
+
+## Risk
+
+LOW. All changes are mechanical (eager → lazy with Suspense fallback null on already-conditional renders) plus one column-name fix. Identical pattern to what shipped successfully for `TripDetailModals.tsx` last round.
+
+## Rollback
+
+`git revert` the single commit. Each file change is independent — partial rollback is also safe.
