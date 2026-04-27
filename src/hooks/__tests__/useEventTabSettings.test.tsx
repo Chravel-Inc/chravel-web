@@ -4,13 +4,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEventTabSettings } from '@/hooks/useEventTabSettings';
 
-const {
-  maybeSingleMock,
-  onMock,
-  subscribeMock,
-  channelMock,
-  removeChannelMock,
-} = vi.hoisted(() => {
+const { maybeSingleMock, onMock, channelMock, removeChannelMock } = vi.hoisted(() => {
   const maybeSingleMock = vi.fn();
   const onMock = vi.fn();
   const subscribeMock = vi.fn(() => 'subscription');
@@ -23,7 +17,6 @@ const {
   return {
     maybeSingleMock,
     onMock,
-    subscribeMock,
     channelMock,
     removeChannelMock,
   };

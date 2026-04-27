@@ -277,6 +277,29 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Fixed in:** March 2026 media forensic fix
 - **Confidence:** high
 
+## Legacy nullable event enabled_features disables attendee tabs
+- **Status:** fixed
+- **Subsystem:** event tabs / admin settings / mobile event detail
+- **Bug class:** legacy schema compatibility / source-of-truth drift
+- **Symptom:** Opening an event in mobile/Android shows the same "disabled by admin" state across event tabs even though the organizer never turned them off; admin settings can also render all optional tabs as off for older events.
+- **User-facing impact:** Event surfaces look broken or unavailable for legacy events, especially on installed mobile apps where attendees primarily enter via the event detail tab rail.
+- **Trigger conditions:** Existing event rows with `trips.enabled_features = NULL` after the feature-flag column rollout; attendee tab rendering uses live DB settings instead of seeded defaults.
+- **Likely root cause:** Shared helper `buildEventEnabledTabs()` correctly treats missing settings as "all optional tabs enabled," but `useEventTabSettings` and `useEventAdmin` coerced `NULL` to `[]`, which the UI interpreted as "all optional tabs disabled."
+- **Root cause chain:**
+  - Immediate: Event tab settings hook resolves `chat/calendar/media/polls/tasks` to disabled.
+  - Proximate: Hooks normalize `NULL enabled_features` to empty array.
+  - Underlying: Legacy compatibility logic existed in one helper layer but not in the live data-fetch/admin mutation paths.
+- **How to reproduce:**
+  1. Use an event trip whose `enabled_features` column is `NULL`
+  2. Open the event on mobile/Android
+  3. Observe attendee-facing tabs appear disabled despite no organizer action
+- **How to confirm:** Inspect the row in `trips`; if `enabled_features` is `NULL` and `useEventTabSettings` / `useEventAdmin` collapse it to `[]`, this is the cause.
+- **Smallest safe fix:** Normalize `NULL` to "legacy defaults" at the shared event-tab helper boundary and route both attendee rendering and admin toggle logic through that helper.
+- **Regression risks:** New events with explicit empty arrays would still behave as explicitly disabled; ensure tests cover `undefined` and `null` separately.
+- **Related files:** `src/lib/eventTabs.ts`, `src/hooks/useEventTabSettings.ts`, `src/hooks/useEventAdmin.ts`
+- **Fixed in:** April 2026 Android event-tab forensic fix
+- **Confidence:** high
+
 ---
 
 ## LiveKit Token roomConfig Dead Code
