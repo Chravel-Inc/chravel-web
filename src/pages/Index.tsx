@@ -1,9 +1,36 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 
-import { CreateTripModal } from '../components/CreateTripModal';
-import { UpgradeModal } from '../components/UpgradeModal';
-import { SettingsMenu } from '../components/SettingsMenu';
-import { AuthModal } from '../components/AuthModal';
+// ⚡ PERFORMANCE: Lazy-load all conditionally-rendered modals + the unauthenticated
+// marketing landing. These were eagerly imported, parsing ~200-350KB of JS on every
+// `/` cold load even though most never open per session. Lazy + Suspense (with
+// `null` fallback so closed modals stay invisible) defers each chunk until needed.
+const CreateTripModal = lazy(() =>
+  import('../components/CreateTripModal').then(m => ({ default: m.CreateTripModal })),
+);
+const UpgradeModal = lazy(() =>
+  import('../components/UpgradeModal').then(m => ({ default: m.UpgradeModal })),
+);
+const SettingsMenu = lazy(() =>
+  import('../components/SettingsMenu').then(m => ({ default: m.SettingsMenu })),
+);
+const AuthModal = lazy(() =>
+  import('../components/AuthModal').then(m => ({ default: m.AuthModal })),
+);
+const FullPageLanding = lazy(() =>
+  import('../components/landing/FullPageLanding').then(m => ({ default: m.FullPageLanding })),
+);
+const SearchOverlay = lazy(() =>
+  import('../components/home/SearchOverlay').then(m => ({ default: m.SearchOverlay })),
+);
+const NotificationsDialog = lazy(() =>
+  import('../components/home/NotificationsDialog').then(m => ({ default: m.NotificationsDialog })),
+);
+const DemoModal = lazy(() =>
+  import('../components/conversion/DemoModal').then(m => ({ default: m.DemoModal })),
+);
+const OnboardingCarousel = lazy(() =>
+  import('../components/onboarding').then(m => ({ default: m.OnboardingCarousel })),
+);
 import { TripStatsOverview } from '../components/home/TripStatsOverview';
 import { TripViewToggle } from '../components/home/TripViewToggle';
 import { DesktopHeader } from '../components/home/DesktopHeader';
@@ -16,11 +43,6 @@ import {
   type TabId,
 } from '../components/native';
 import { RecommendationFilters } from '../components/home/RecommendationFilters';
-import { FullPageLanding } from '../components/landing/FullPageLanding';
-import { SearchOverlay } from '../components/home/SearchOverlay';
-import { NotificationsDialog } from '../components/home/NotificationsDialog';
-import { DemoModal } from '../components/conversion/DemoModal';
-import { OnboardingCarousel } from '../components/onboarding';
 
 import { useAuth } from '../hooks/useAuth';
 import { useIsMobile } from '../hooks/use-mobile';
