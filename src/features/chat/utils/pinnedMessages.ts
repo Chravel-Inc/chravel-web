@@ -4,15 +4,21 @@ export type PinnedChatMessage = ChatMessage & {
   pinnedAt?: string;
 };
 
+export function isPinnedMessage(message: ChatMessage & { isPinned?: boolean }) {
+  return message.isPinned === true;
+}
+
 /**
  * Stream may deliver updated message snapshots more than once while events settle.
  * Keep only one entry per message id and return newest pinned-first order.
  */
-export function derivePinnedMessages(messages: Array<ChatMessage & { isPinned?: boolean; pinnedAt?: string }>) {
+export function derivePinnedMessages(
+  messages: Array<ChatMessage & { isPinned?: boolean; pinnedAt?: string }>,
+) {
   const dedupedById = new Map<string, PinnedChatMessage>();
 
   for (const message of messages) {
-    if (!message.isPinned) {
+    if (!isPinnedMessage(message)) {
       dedupedById.delete(message.id);
       continue;
     }
