@@ -2,6 +2,9 @@ import { useState, useCallback } from 'react';
 import { useChatMessageParser } from './useChatMessageParser';
 import { getMockAvatar } from '@/utils/mockAvatars';
 import { useAuth } from '@/hooks/useAuth';
+import { useQuery } from '@tanstack/react-query';
+import { paymentService } from '@/services/paymentService';
+import { getPaymentMethodDisplayName } from '@/utils/paymentDeeplinks';
 
 export interface ChatMessage {
   id: string;
@@ -66,6 +69,13 @@ export const useChatComposer = ({
   const { user } = useAuth();
   const { parseMessage } = useChatMessageParser();
 
+  // Fetch user payment methods for formatting payment messages
+  const { data: userPaymentMethods } = useQuery({
+    queryKey: ['userPaymentMethods', user?.id],
+    queryFn: () => (user?.id ? paymentService.getUserPaymentMethods(user.id) : Promise.resolve([])),
+    enabled: !!user?.id,
+  });
+
   const createMessage = useCallback(
     (
       content: string,
@@ -83,11 +93,32 @@ export const useChatComposer = ({
 
       if (isPayment && paymentData) {
         const perPersonAmount = (paymentData.amount / paymentData.splitCount).toFixed(2);
-        const preferredPaymentMethod = 'Venmo: @yourvenmo'; // TODO: Fetch from user's payment methods
+
+        // Determine the primary payment method selected for this payment
+        const selectedMethods = paymentData.paymentMethods || [];
+        const priority = ['venmo', 'cashapp', 'zelle', 'paypal', 'applecash'];
+        const primaryType =
+          selectedMethods.find(m => priority.includes(m.split(':')[0])) ||
+          selectedMethods[0] ||
+          'venmo';
+
+        // Look up user's configured identifier for this method, fallback to a sensible default
+        const userMethod = userPaymentMethods?.find(
+          m => m.type === primaryType || (m.isPreferred && selectedMethods.includes(m.type)),
+        );
+
+        let preferredPaymentMethodStr = '';
+        if (userMethod) {
+          preferredPaymentMethodStr = `${getPaymentMethodDisplayName(userMethod.type)}: ${userMethod.identifier}`;
+        } else {
+          const defaultIdentifier =
+            primaryType === 'venmo' ? '@yourvenmo' : user?.displayName || 'me';
+          preferredPaymentMethodStr = `${getPaymentMethodDisplayName(primaryType)}: ${defaultIdentifier}`;
+        }
 
         return {
           id: messageId,
-          text: `${paymentData.description} - ${paymentData.currency} ${paymentData.amount.toFixed(2)} (split ${paymentData.splitCount} ways) • Pay me $${perPersonAmount} via ${preferredPaymentMethod}`,
+          text: `${paymentData.description} - ${paymentData.currency} ${paymentData.amount.toFixed(2)} (split ${paymentData.splitCount} ways) • Pay me ${perPersonAmount} via ${preferredPaymentMethodStr}`,
           sender: { id: user?.id || 'demo-user', name: 'You', avatar },
           createdAt: new Date().toISOString(),
           isBroadcast: false,
@@ -120,7 +151,7 @@ export const useChatComposer = ({
           : undefined,
       };
     },
-    [replyingTo, user?.avatar, user?.id, demoMode],
+    [replyingTo, user?.avatar, user?.displayName, user?.id, demoMode, userPaymentMethods],
   );
 
   const sendMessage = useCallback(
