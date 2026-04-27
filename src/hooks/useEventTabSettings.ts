@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { buildEventEnabledTabs } from '@/lib/eventTabs';
+import { buildEventEnabledTabs, normalizeEventEnabledFeatures } from '@/lib/eventTabs';
 
 interface UseEventTabSettingsOptions {
   eventId: string;
@@ -30,7 +30,7 @@ export const useEventTabSettings = ({
         .maybeSingle();
 
       if (error || !isMounted) return;
-      setEnabledFeatures(data?.enabled_features ?? []);
+      setEnabledFeatures(normalizeEventEnabledFeatures(data?.enabled_features));
     };
 
     fetchTabSettings();
@@ -46,8 +46,9 @@ export const useEventTabSettings = ({
           filter: `id=eq.${eventId}`,
         },
         payload => {
-          const nextEnabled =
-            (payload.new as { enabled_features?: string[] })?.enabled_features ?? [];
+          const nextEnabled = normalizeEventEnabledFeatures(
+            (payload.new as { enabled_features?: string[] | null })?.enabled_features,
+          );
           setEnabledFeatures(nextEnabled);
         },
       )
