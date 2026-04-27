@@ -1349,39 +1349,42 @@ const Index = () => {
 
       {/* PersistentCTABar removed until production-ready MVP launch */}
 
-      {/* Modals */}
-      <CreateTripModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
+      {/* Modals — wrapped in a single Suspense boundary so first-open chunk
+          fetch never bubbles to the route-level loading spinner */}
+      <Suspense fallback={null}>
+        <CreateTripModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
 
-      <UpgradeModal isOpen={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)} />
+        <UpgradeModal isOpen={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)} />
 
-      <SettingsMenu
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        initialConsumerSection={settingsInitialConsumerSection}
-        initialSettingsType={settingsInitialType}
-        onTripStateChange={handleTripStateChange}
-      />
+        <SettingsMenu
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          initialConsumerSection={settingsInitialConsumerSection}
+          initialSettingsType={settingsInitialType}
+          onTripStateChange={handleTripStateChange}
+        />
 
-      <DemoModal
-        isOpen={isDemoModalOpen}
-        onClose={() => setIsDemoModalOpen(false)}
-        demoType={viewMode === 'events' ? 'events' : 'pro'}
-      />
+        <DemoModal
+          isOpen={isDemoModalOpen}
+          onClose={() => setIsDemoModalOpen(false)}
+          demoType={viewMode === 'events' ? 'events' : 'pro'}
+        />
 
-      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+        <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
 
-      <SearchOverlay
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        resultCount={searchResultCount}
-        matchingTrips={allSearchableTrips}
-        onTripSelect={handleSearchTripSelect}
-      />
+        <SearchOverlay
+          isOpen={isSearchOpen}
+          onClose={() => setIsSearchOpen(false)}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          resultCount={searchResultCount}
+          matchingTrips={allSearchableTrips}
+          onTripSelect={handleSearchTripSelect}
+        />
 
-      {/* Notifications dialog (mounted at page level for mobile access) */}
-      <NotificationsDialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen} />
+        {/* Notifications dialog (mounted at page level for mobile access) */}
+        <NotificationsDialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen} />
+      </Suspense>
 
       {/* iOS-style bottom tab bar (mobile only) */}
       <NativeTabBar
