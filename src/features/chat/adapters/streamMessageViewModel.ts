@@ -40,6 +40,8 @@ export interface StreamMessageViewModel {
   createdAt: string;
   isBroadcast: boolean;
   isPayment: boolean;
+  isPinned: boolean;
+  pinnedAt?: string;
   isEdited: boolean;
   editedAt?: string;
   tags: string[];
@@ -229,6 +231,7 @@ export function mapStreamMessageToViewModel(params: {
   const createdAt = message.created_at || new Date().toISOString();
   const updatedAt = message.updated_at || createdAt;
   const messageType = (message as MessageResponse & { message_type?: string }).message_type;
+  const pinnedAt = (message as MessageResponse & { pinned_at?: string }).pinned_at;
   const parentId =
     message.parent_id || (message as MessageResponse & { reply_to_id?: string }).reply_to_id;
   const { mediaType, mediaUrl, linkPreview } = resolveMedia(message);
@@ -269,6 +272,8 @@ export function mapStreamMessageToViewModel(params: {
     createdAt,
     isBroadcast: messageType === 'broadcast',
     isPayment: messageType === 'payment',
+    isPinned: Boolean(message.pinned),
+    pinnedAt,
     isEdited: createdAt !== updatedAt,
     editedAt: createdAt !== updatedAt ? updatedAt : undefined,
     tags: messageType === 'system' ? ['system'] : [],
