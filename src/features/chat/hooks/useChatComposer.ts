@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useChatMessageParser } from './useChatMessageParser';
 import { getMockAvatar } from '@/utils/mockAvatars';
 import { useAuth } from '@/hooks/useAuth';
+import { isPinnedMessage } from '../utils/pinnedMessages';
 
 export interface ChatMessage {
   id: string;
@@ -174,8 +175,7 @@ export const useChatComposer = ({
     (messages: ChatMessage[]) => {
       if (messageFilter === 'all') return messages;
       if (messageFilter === 'broadcasts') return messages.filter(m => m.isBroadcast === true);
-      if (messageFilter === 'pinned')
-        return messages.filter(m => (m as { isPinned?: boolean }).isPinned);
+      if (messageFilter === 'pinned') return messages.filter(isPinnedMessage);
       if (messageFilter === 'channels') return []; // Channels handled separately
       return messages;
     },

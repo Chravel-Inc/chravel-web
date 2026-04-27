@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { derivePinnedMessages } from '../pinnedMessages';
+import { derivePinnedMessages, isPinnedMessage } from '../pinnedMessages';
 
 describe('derivePinnedMessages', () => {
   it('returns pinned messages sorted by pinned_at desc', () => {
@@ -53,5 +53,29 @@ describe('derivePinnedMessages', () => {
     ]);
 
     expect(pinned.map(message => message.id)).toEqual(['y']);
+  });
+});
+
+describe('isPinnedMessage', () => {
+  it('returns true only for explicitly pinned messages', () => {
+    expect(
+      isPinnedMessage({
+        id: 'pinned',
+        text: 'hello',
+        sender: { id: 'u1', name: 'A' },
+        createdAt: '2026-01-01T00:00:00.000Z',
+        isPinned: true,
+      }),
+    ).toBe(true);
+
+    expect(
+      isPinnedMessage({
+        id: 'not-pinned',
+        text: 'hello',
+        sender: { id: 'u1', name: 'A' },
+        createdAt: '2026-01-01T00:00:00.000Z',
+        isPinned: false,
+      }),
+    ).toBe(false);
   });
 });

@@ -181,6 +181,19 @@ function withoutMentionedUsers(payload: StreamSendPayload): StreamSendPayload {
   return rest as StreamSendPayload;
 }
 
+function messageTimestampMs(message: MessageResponse): number {
+  const parsed = Date.parse(message.created_at || '');
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function sortMessagesChronologically(messages: MessageResponse[]): MessageResponse[] {
+  return [...messages].sort((a, b) => {
+    const byTimestamp = messageTimestampMs(a) - messageTimestampMs(b);
+    if (byTimestamp !== 0) return byTimestamp;
+    return (a.id || '').localeCompare(b.id || '');
+  });
+}
+
 async function sendMessageWithMentionFallback(
   channel: Channel,
   payload: StreamSendPayload,
@@ -797,6 +810,17 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     }
   }, [tripId, isEnabled]);
 
+  const upsertMessageInState = useCallback((message: MessageResponse) => {
+    setMessages(prev => {
+      const existingIndex = prev.findIndex(existing => existing.id === message.id);
+      const next =
+        existingIndex >= 0
+          ? prev.map(existing => (existing.id === message.id ? message : existing))
+          : [...prev, message];
+      return sortMessagesChronologically(next);
+    });
+  }, []);
+
   // Subscribe to realtime events
   useEffect(() => {
     const channel = activeChannel;
@@ -805,20 +829,14 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     const handleNewMessage = (event: Event) => {
       if (!event.message) return;
       trackTimeToFirstMessage('realtime_new');
-      const newMsg = event.message as MessageResponse;
-
-      setMessages(prev => {
-        if (prev.some(m => m.id === newMsg.id)) {
-          return prev.map(m => (m.id === newMsg.id ? newMsg : m));
-        }
-        return [...prev, newMsg];
-      });
+      upsertMessageInState(event.message as MessageResponse);
     };
 
     const handleUpdatedMessage = (event: Event) => {
       if (!event.message) return;
-      const updated = event.message as MessageResponse;
-      setMessages(prev => prev.map(m => (m.id === updated.id ? updated : m)));
+      // Stream emits `message.updated` for edits and pin/unpin mutation confirmations.
+      // Route through the same upsert path as realtime/message-send confirmations.
+      upsertMessageInState(event.message as MessageResponse);
     };
 
     const handleDeletedMessage = (event: Event) => {
@@ -850,7 +868,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       channel.off('reaction.updated', handleReaction);
       channel.off('reaction.deleted', handleReaction);
     };
-  }, [activeChannel, tripId, trackTimeToFirstMessage]);
+  }, [activeChannel, tripId, trackTimeToFirstMessage, upsertMessageInState]);
 
   /**
    * Fire-and-forget send: Stream confirms via WebSocket (`message.new`).
@@ -1003,12 +1021,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         // Immediately insert or update the sent message in local state
         // so it appears without waiting for the `message.new` WebSocket event.
         if (sentMessage) {
-          setMessages(prev => {
-            if (prev.some(m => m.id === sentMessage.id)) {
-              return prev.map(m => (m.id === sentMessage.id ? sentMessage : m));
-            }
-            return [...prev, sentMessage];
-          });
+          upsertMessageInState(sentMessage);
 
           messageEvents.sent({
             trip_id: tripId,
@@ -1029,7 +1042,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         setIsCreating(false);
       }
     },
-    [tripId, reportCanaryIncident],
+    [tripId, reportCanaryIncident, upsertMessageInState],
   );
 
   // Load more (older messages)
