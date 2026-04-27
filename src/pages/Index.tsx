@@ -823,12 +823,14 @@ const Index = () => {
   // Show onboarding for new authenticated users
   if (showOnboarding) {
     return (
-      <OnboardingCarousel
-        onComplete={handleOnboardingComplete}
-        onSkip={handleOnboardingSkip}
-        onExploreDemoTrip={handleOnboardingExploreDemoTrip}
-        onCreateTrip={handleOnboardingCreateTrip}
-      />
+      <Suspense fallback={<div className="min-h-screen bg-background" />}>
+        <OnboardingCarousel
+          onComplete={handleOnboardingComplete}
+          onSkip={handleOnboardingSkip}
+          onExploreDemoTrip={handleOnboardingExploreDemoTrip}
+          onCreateTrip={handleOnboardingCreateTrip}
+        />
+      </Suspense>
     );
   }
 
