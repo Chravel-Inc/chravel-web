@@ -6,7 +6,7 @@ import {
   extractTextFromChatResponse,
   DEFAULT_GEMINI_FLASH_MODEL,
 } from '../_shared/gemini.ts';
-import { validateExternalHttpsUrl } from '../_shared/validation.ts';
+import { validateExternalUrlBeforeFetch } from '../_shared/validation.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { requireAuth } from '../_shared/requireAuth.ts';
 import { checkAndIncrementSmartImportUsage } from '../_shared/smartImportUsage.ts';
@@ -216,7 +216,7 @@ serve(async req => {
       });
     }
 
-    if (!validateExternalHttpsUrl(fileUrl)) {
+    if (!(await validateExternalUrlBeforeFetch(fileUrl))) {
       return new Response(JSON.stringify({ error: 'fileUrl must be HTTPS and external' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

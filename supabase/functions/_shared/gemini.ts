@@ -1,4 +1,4 @@
-import { validateExternalHttpsUrl } from './validation.ts';
+import { validateExternalUrlBeforeFetch } from './validation.ts';
 
 type ChatRole = 'system' | 'user' | 'assistant';
 
@@ -181,7 +181,7 @@ async function fetchUrlAsInlineData(
   timeoutMs: number,
 ): Promise<{ mimeType: string; data: string } | null> {
   try {
-    if (!validateExternalHttpsUrl(url)) {
+    if (!(await validateExternalUrlBeforeFetch(url))) {
       return null;
     }
 
@@ -247,7 +247,7 @@ async function toGeminiParts(
       }
 
       if (/^https?:\/\//i.test(url)) {
-        if (!validateExternalHttpsUrl(url)) {
+        if (!(await validateExternalUrlBeforeFetch(url))) {
           parts.push({ text: `Blocked non-external image URL: ${url}` });
           continue;
         }
