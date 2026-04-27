@@ -351,6 +351,20 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Fixed in:** April 2026 invite flow deep-dive pass
 - **Confidence:** medium-high
 
+## Branded trip-share proxy renders raw JSON when preview edge runtime is degraded
+- **Status:** fixed
+- **Subsystem:** trip invite/share preview proxy (`/t/:tripId` on branded host)
+- **Bug class:** error-boundary / content-type fallback gap
+- **Symptom:** Opening a branded trip share link shows raw JSON like `{"code":"SUPABASE_EDGE_RUNTIME_SERVICE_DEGRADED"...}` instead of redirecting into the app join flow.
+- **User-facing impact:** High — users cannot continue through invite/join flow from branded link during upstream preview outages.
+- **Trigger conditions:** `api/trip-preview` receives non-HTML response (often 503 JSON) from Supabase `generate-trip-preview`.
+- **Likely root cause:** Proxy passed upstream body/status through verbatim without guarding for non-HTML degraded payloads.
+- **Smallest safe fix:** In `api/trip-preview`, detect `!upstream.ok || !bodyLooksHtml` and return fallback HTML with meta-refresh + CTA to `https://chravel.app/trip/:tripId/preview`.
+- **Regression risks:** None meaningful; successful HTML previews still pass through unchanged.
+- **Related files:** `api/trip-preview.ts`, `src/__tests__/trip-preview-api.test.ts`
+- **Fixed in:** April 2026 trip-join degradation hardening.
+- **Confidence:** high
+
 ## 5. Stream ReadChannel Permission Denial for Existing Trip Members
 
 **Symptom:** Messages tab shows raw Stream error `GetOrCreateChannel failed ... ReadChannel` with retry loop.

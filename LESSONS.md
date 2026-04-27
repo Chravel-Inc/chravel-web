@@ -723,3 +723,11 @@
 - **Evidence:** Trip chat pin toggle path was using `updateMessage` directly from UI; moving to hook-level `togglePin` with partial updates preserved timeline body while keeping real-time `message.updated` propagation.
 - **Provenance:** April 27, 2026 TripChat pin/unpin integrity fix.
 - **Confidence:** high
+
+### OG/share proxy endpoints must fail over to HTML redirect pages when upstream returns JSON errors
+- **Tip:** For branded unfurl proxies (`/t/:tripId`, `/join/:code`), never pass through non-HTML upstream payloads directly. If upstream returns non-2xx or non-HTML (for example Supabase edge runtime degradation JSON), return deterministic HTML with meta-refresh and a visible fallback CTA to the primary app URL.
+- **Applies when:** A proxy endpoint is used by both social crawlers and human taps, and upstream preview generation depends on edge runtime health.
+- **Avoid when:** The endpoint is API-only and intentionally returns machine-readable JSON.
+- **Evidence:** `api/trip-preview` previously surfaced raw `SUPABASE_EDGE_RUNTIME_SERVICE_DEGRADED` JSON in mobile browser, blocking join conversion. HTML fallback restored continuation into `/trip/:id/preview` while keeping normal upstream HTML pass-through behavior.
+- **Provenance:** April 2026 branded trip invite flow degradation hardening.
+- **Confidence:** high
