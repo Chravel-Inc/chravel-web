@@ -715,3 +715,11 @@
 - **Evidence:** `useChatComposer.sendMessage` resets `replyingTo` before transport send completes; TripChat now uses `createThreadReplySuccessState(repliedParentMessageId)` to ensure thread-reply success CTA is shown only for replies.
 - **Provenance:** April 23, 2026 thread reply CTA enhancement.
 - **Confidence:** high
+
+### Stream message pin/unpin should use partial update mutations, not full update payloads
+- **Tip:** For pin state changes, call `partialUpdateMessage({ id, set: { pinned } })` instead of `updateMessage({ id, pinned, ... })` so message text/attachments are never accidentally overwritten by sparse payloads.
+- **Applies when:** Chat UIs expose pin/unpin actions on existing Stream messages.
+- **Avoid when:** You intentionally need a full message content update (editing text/attachments).
+- **Evidence:** Trip chat pin toggle path was using `updateMessage` directly from UI; moving to hook-level `togglePin` with partial updates preserved timeline body while keeping real-time `message.updated` propagation.
+- **Provenance:** April 27, 2026 TripChat pin/unpin integrity fix.
+- **Confidence:** high
