@@ -15,11 +15,15 @@
 
 import { useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase as typedSupabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { tripKeys } from '@/lib/queryKeys';
 import { toast } from 'sonner';
+
+// trip_pending_actions is not in the generated Supabase types yet; cast the client
+// to bypass type inference for this hook only. Runtime behavior is unchanged.
+const supabase = typedSupabase as any;
 
 export interface PendingAction {
   id: string;
