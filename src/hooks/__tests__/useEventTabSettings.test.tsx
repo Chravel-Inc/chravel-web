@@ -4,14 +4,30 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEventTabSettings } from '@/hooks/useEventTabSettings';
 
-const maybeSingleMock = vi.fn();
-const onMock = vi.fn();
-const subscribeMock = vi.fn(() => 'subscription');
-const channelMock = vi.fn(() => ({
-  on: onMock,
-  subscribe: subscribeMock,
-}));
-const removeChannelMock = vi.fn();
+const {
+  maybeSingleMock,
+  onMock,
+  subscribeMock,
+  channelMock,
+  removeChannelMock,
+} = vi.hoisted(() => {
+  const maybeSingleMock = vi.fn();
+  const onMock = vi.fn();
+  const subscribeMock = vi.fn(() => 'subscription');
+  const channelMock = vi.fn(() => ({
+    on: onMock,
+    subscribe: subscribeMock,
+  }));
+  const removeChannelMock = vi.fn();
+
+  return {
+    maybeSingleMock,
+    onMock,
+    subscribeMock,
+    channelMock,
+    removeChannelMock,
+  };
+});
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
