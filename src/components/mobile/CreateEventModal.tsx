@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Calendar as CalendarIcon, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
+import { parseLocalDate } from '../../utils/dateHelpers';
 import { calendarService, TripEvent } from '@/services/calendarService';
 import { toast } from 'sonner';
 
@@ -285,9 +286,7 @@ export const CreateEventModal = ({
                 // new Date("YYYY-MM-DD") parses as UTC midnight which causes timezone bugs
                 const value = e.target.value;
                 if (value) {
-                  const [year, month, day] = value.split('-').map(Number);
-                  // Month is 0-indexed in Date constructor
-                  setEventDate(new Date(year, month - 1, day));
+                  setEventDate(parseLocalDate(value));
                 }
               }}
               className="w-full px-4 py-3 bg-glass-slate-bg border border-glass-slate-border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
