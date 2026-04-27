@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import type { MessageResponse } from 'stream-chat';
 import { TripChannel, ChannelMessage } from '../../../types/roleChannels';
 import { useToast } from '../../../hooks/use-toast';
 import { getDemoChannelsForTrip } from '../../../data/demoChannelData';

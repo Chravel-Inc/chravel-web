@@ -143,7 +143,7 @@ export const useEventAdmin = ({ eventId, enabled = true }: UseEventAdminProps) =
       if (!eventId || isSaving || ALWAYS_ON_EVENT_TABS.has(featureId as any)) return;
 
       const current = [...mutableEnabledFeatures];
-      const isEnabled = current.includes(featureId);
+      const isEnabled = current.includes(featureId as any);
       const updated = isEnabled ? current.filter(f => f !== featureId) : [...current, featureId];
 
       ALWAYS_ON_EVENT_TABS.forEach(alwaysOnFeature => {
