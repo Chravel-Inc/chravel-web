@@ -12,6 +12,7 @@ const stopWatchingMock = vi.fn();
 const onMock = vi.fn();
 const offMock = vi.fn();
 const getConfigMock = vi.fn();
+const eventHandlers = new Map<string, (event: unknown) => void>();
 
 const mockChannel = {
   watch: watchMock,
@@ -84,6 +85,15 @@ vi.mock('@/services/stream/streamCanary', () => ({
 describe('useStreamTripChat send path', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    eventHandlers.clear();
+    onMock.mockImplementation((eventName: string, handler: (event: unknown) => void) => {
+      eventHandlers.set(eventName, handler);
+      return mockChannel;
+    });
+    offMock.mockImplementation((eventName: string) => {
+      eventHandlers.delete(eventName);
+      return mockChannel;
+    });
     watchMock.mockResolvedValue({ messages: [], membership: { user_id: 'user-1' } });
     queryMock.mockResolvedValue({ messages: [] });
     getConfigMock.mockReturnValue({});
@@ -115,6 +125,54 @@ describe('useStreamTripChat send path', () => {
     expect(sendMessageMock).toHaveBeenCalledTimes(1);
     // Message should appear in local state from HTTP response
     expect(result.current.messages).toHaveLength(1);
+  });
+
+  it('keeps one chronological upsert path for send confirmations and message.updated pin toggles', async () => {
+    watchMock.mockResolvedValueOnce({
+      membership: { user_id: 'user-1' },
+      messages: [
+        { id: 'msg-old', text: 'old', created_at: '2026-01-01T10:00:00.000Z' },
+        { id: 'msg-new', text: 'new', created_at: '2026-01-01T10:10:00.000Z' },
+      ],
+    });
+    sendMessageMock.mockResolvedValueOnce({
+      message: { id: 'msg-mid', text: 'mid', created_at: '2026-01-01T10:05:00.000Z' },
+    });
+
+    const { result } = renderHook(() => useStreamTripChat('trip-abc', { enabled: true }));
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.sendMessageAsync('mid', 'You');
+    });
+
+    expect(result.current.messages.map(message => message.id)).toEqual([
+      'msg-old',
+      'msg-mid',
+      'msg-new',
+    ]);
+
+    await act(async () => {
+      eventHandlers.get('message.updated')?.({
+        message: {
+          id: 'msg-mid',
+          text: 'mid',
+          created_at: '2026-01-01T10:05:00.000Z',
+          pinned: true,
+          pinned_at: '2026-01-01T10:15:00.000Z',
+        },
+      });
+    });
+
+    expect(result.current.messages.map(message => message.id)).toEqual([
+      'msg-old',
+      'msg-mid',
+      'msg-new',
+    ]);
+    expect(result.current.messages.find(message => message.id === 'msg-mid')?.pinned).toBe(true);
   });
 
   it('sends mention payload when create-mention capability is present', async () => {
