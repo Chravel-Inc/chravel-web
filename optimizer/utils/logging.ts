@@ -4,9 +4,6 @@ export function setVerbose(enabled: boolean): void {
   verboseEnabled = enabled;
 }
 
-export function isVerbose(): boolean {
-  return verboseEnabled;
-}
 
 export function log(message: string): void {
   process.stdout.write(message + '\n');
