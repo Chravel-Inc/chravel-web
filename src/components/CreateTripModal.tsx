@@ -26,6 +26,7 @@ import { ProCategoryEnum, PRO_CATEGORIES_ORDERED } from '../types/proCategories'
 import { getAllProTripColors } from '../utils/proTripColors';
 import { buildTripCoverStoragePath, TRIP_COVER_BUCKET } from '../utils/tripCoverStorage';
 import { getFeaturePaywallConfig } from './subscription/featurePaywall';
+import { parseLocalDate } from '@/utils/dateHelpers';
 
 interface CreateTripModalProps {
   isOpen: boolean;
