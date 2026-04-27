@@ -1107,25 +1107,27 @@ const Index = () => {
 
         {/* PersistentCTABar removed until production-ready MVP launch */}
 
-        <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+        <Suspense fallback={null}>
+          <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
 
-        <CreateTripModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
+          <CreateTripModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
 
-        <UpgradeModal isOpen={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)} />
+          <UpgradeModal isOpen={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)} />
 
-        <SettingsMenu
-          isOpen={isSettingsOpen}
-          onClose={() => setIsSettingsOpen(false)}
-          initialConsumerSection={settingsInitialConsumerSection}
-          initialSettingsType={settingsInitialType}
-          onTripStateChange={handleTripStateChange}
-        />
+          <SettingsMenu
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
+            initialConsumerSection={settingsInitialConsumerSection}
+            initialSettingsType={settingsInitialType}
+            onTripStateChange={handleTripStateChange}
+          />
 
-        <DemoModal
-          isOpen={isDemoModalOpen}
-          onClose={() => setIsDemoModalOpen(false)}
-          demoType={viewMode === 'events' ? 'events' : 'pro'}
-        />
+          <DemoModal
+            isOpen={isDemoModalOpen}
+            onClose={() => setIsDemoModalOpen(false)}
+            demoType={viewMode === 'events' ? 'events' : 'pro'}
+          />
+        </Suspense>
 
         {/* Search indicator when active */}
         {searchQuery && (
