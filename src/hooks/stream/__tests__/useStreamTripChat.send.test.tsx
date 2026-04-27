@@ -3,6 +3,7 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { useStreamTripChat } from '../useStreamTripChat';
 import { supabase } from '@/integrations/supabase/client';
 import { telemetry } from '@/telemetry/service';
+import { derivePinnedMessages } from '@/features/chat/utils/pinnedMessages';
 
 const sendMessageMock = vi.fn();
 const watchMock = vi.fn();
@@ -73,6 +74,11 @@ vi.mock('@/telemetry/service', () => ({
   telemetry: {
     track: vi.fn(),
   },
+}));
+
+vi.mock('@/services/stream/streamCanary', () => ({
+  isStreamCanaryEnabledForUser: vi.fn().mockResolvedValue(false),
+  reportStreamCanaryIncident: vi.fn(),
 }));
 
 describe('useStreamTripChat send path', () => {
@@ -367,5 +373,137 @@ describe('useStreamTripChat send path', () => {
       'You no longer have access to this trip chat. Ask the trip organizer to re-add you.',
     );
     expect(supabase.functions.invoke).toHaveBeenCalledTimes(1);
+  });
+
+  it('reflects pinned-visible state immediately when a message is pinned', async () => {
+    watchMock.mockResolvedValueOnce({
+      messages: [
+        {
+          id: 'msg-pin',
+          text: 'Pin me',
+          created_at: '2026-04-01T00:00:00.000Z',
+          user: { id: 'user-2' },
+          pinned: false,
+        },
+      ],
+      membership: { user_id: 'user-1' },
+    });
+
+    const { result } = renderHook(() => useStreamTripChat('trip-abc', { enabled: true }));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const updatedHandler = onMock.mock.calls.find(([event]) => event === 'message.updated')?.[1];
+    expect(updatedHandler).toBeTypeOf('function');
+
+    act(() => {
+      updatedHandler?.({
+        message: {
+          id: 'msg-pin',
+          text: 'Pin me',
+          created_at: '2026-04-01T00:00:00.000Z',
+          user: { id: 'user-2' },
+          pinned: true,
+          pinned_at: '2026-04-02T00:00:00.000Z',
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.messages.find(message => message.id === 'msg-pin')?.pinned).toBe(true);
+    });
+
+    const pinnedVisible = derivePinnedMessages(
+      result.current.messages.map(message => ({
+        id: message.id ?? '',
+        text: message.text ?? '',
+        sender: {
+          id: message.user?.id ?? 'unknown',
+          name: 'User',
+        },
+        createdAt: message.created_at ?? '',
+        isPinned: !!message.pinned,
+        pinnedAt: message.pinned_at ?? undefined,
+      })),
+    );
+    expect(pinnedVisible.map(message => message.id)).toEqual(['msg-pin']);
+  });
+
+  it('removes pinned-visible state immediately when a message is unpinned', async () => {
+    watchMock.mockResolvedValueOnce({
+      messages: [
+        {
+          id: 'msg-pin',
+          text: 'Pin me',
+          created_at: '2026-04-01T00:00:00.000Z',
+          user: { id: 'user-2' },
+          pinned: true,
+          pinned_at: '2026-04-02T00:00:00.000Z',
+        },
+      ],
+      membership: { user_id: 'user-1' },
+    });
+
+    const { result } = renderHook(() => useStreamTripChat('trip-abc', { enabled: true }));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const updatedHandler = onMock.mock.calls.find(([event]) => event === 'message.updated')?.[1];
+    expect(updatedHandler).toBeTypeOf('function');
+
+    act(() => {
+      updatedHandler?.({
+        message: {
+          id: 'msg-pin',
+          text: 'Pin me',
+          created_at: '2026-04-01T00:00:00.000Z',
+          user: { id: 'user-2' },
+          pinned: false,
+          pinned_at: null,
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.messages.find(message => message.id === 'msg-pin')?.pinned).toBe(false);
+    });
+
+    const pinnedVisible = derivePinnedMessages(
+      result.current.messages.map(message => ({
+        id: message.id ?? '',
+        text: message.text ?? '',
+        sender: {
+          id: message.user?.id ?? 'unknown',
+          name: 'User',
+        },
+        createdAt: message.created_at ?? '',
+        isPinned: !!message.pinned,
+        pinnedAt: message.pinned_at ?? undefined,
+      })),
+    );
+    expect(pinnedVisible).toHaveLength(0);
+  });
+
+  it('keeps broadcast send payload behavior unchanged', async () => {
+    const { result } = renderHook(() => useStreamTripChat('trip-abc', { enabled: true }));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.sendMessageAsync(
+        'Broadcast update',
+        'You',
+        undefined,
+        undefined,
+        'user-1',
+        undefined,
+        'broadcast',
+      );
+    });
+
+    expect(sendMessageMock).toHaveBeenCalledTimes(1);
+    expect(sendMessageMock.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        text: 'Broadcast update',
+        message_type: 'broadcast',
+      }),
+    );
   });
 });
