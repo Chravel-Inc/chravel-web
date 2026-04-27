@@ -802,7 +802,9 @@ const Index = () => {
     if (isInstalledApp()) {
       return (
         <div className="min-h-screen bg-background">
-          <AuthModal isOpen={true} onClose={() => {}} />
+          <Suspense fallback={null}>
+            <AuthModal isOpen={true} onClose={() => {}} />
+          </Suspense>
         </div>
       );
     }
@@ -810,8 +812,10 @@ const Index = () => {
     // Browser — show marketing landing page (unchanged behavior)
     return (
       <div className="min-h-screen min-h-mobile-screen bg-background font-outfit">
-        <FullPageLanding onSignUp={() => setIsAuthModalOpen(true)} />
-        <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+        <Suspense fallback={<div className="min-h-screen bg-background" />}>
+          <FullPageLanding onSignUp={() => setIsAuthModalOpen(true)} />
+          <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+        </Suspense>
       </div>
     );
   }
