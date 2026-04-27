@@ -491,13 +491,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Initialize auth state
   useEffect(() => {
-    // Safety timeout: force loading to false after 10 seconds to prevent infinite loading
-    const loadingTimeout = setTimeout(() => {
-      if (isLoadingRef.current) {
-        setIsLoading(false);
-      }
-    }, 10000);
-
     const getSessionAndUser = async () => {
       try {
         authDebug('init:getSession:start', {
@@ -598,26 +591,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return;
         }
 
-        // Check if session exists but is near expiry (within 5 min)
+        // Session near expiry: refresh in the background. Do not await — blocking here kept
+        // ProtectedRoute in isLoading until the network returned (often multi-second on mobile).
         if (session && session.expires_at) {
           const expiresAt = session.expires_at * 1000;
           const fiveMinutesFromNow = Date.now() + 5 * 60 * 1000;
 
+          if (expiresAt < fiveMinutesFromNow && import.meta.env.DEV) {
+            console.log(
+              '[Auth] Session near expiry, refreshing in background after first paint...',
+            );
+          }
+
           if (expiresAt < fiveMinutesFromNow) {
-            if (import.meta.env.DEV) {
-              console.log('[Auth] Session near expiry, proactively refreshing...');
-            }
-            const { data: refreshed } = await supabase.auth.refreshSession();
-            if (refreshed.session && isSessionTokenValid(refreshed.session.access_token)) {
-              setSession(refreshed.session);
-              setUser(buildSessionDerivedUser(refreshed.session.user));
-              prefetchUserTrips(refreshed.session.user.id);
-              void transformUser(refreshed.session.user).then(u => {
-                if (u) setUser(u);
-              });
-              setIsLoading(false);
-              return;
-            }
+            void supabase.auth.refreshSession().then(({ data: refreshed }) => {
+              if (refreshed.session && isSessionTokenValid(refreshed.session.access_token)) {
+                setSession(refreshed.session);
+                setUser(buildSessionDerivedUser(refreshed.session.user));
+                prefetchUserTrips(refreshed.session.user.id);
+                void transformUser(refreshed.session.user).then(u => {
+                  if (u) setUser(u);
+                });
+              }
+            });
           }
         }
 
@@ -785,7 +781,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => {
-      clearTimeout(loadingTimeout);
       subscription.unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- forceRefreshSession is stable (useCallback with no deps), adding it risks auth re-init loops

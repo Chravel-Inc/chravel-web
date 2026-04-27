@@ -42,6 +42,8 @@ export const supabase: SupabaseClient<Database> = createClient<Database>(
       autoRefreshToken: true,
       storageKey: 'chravel-auth-session',
       detectSessionInUrl: true,
+      // PKCE is the recommended flow for browser + WebView; avoids implicit grant edge cases on cold start.
+      flowType: 'pkce',
     },
     realtime: {
       params: {
