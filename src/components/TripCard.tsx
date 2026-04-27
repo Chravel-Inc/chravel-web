@@ -123,9 +123,14 @@ export const TripCard = ({
     ),
   );
 
-  // ⚡ PERFORMANCE: Prefetch trip data on hover/focus to reduce perceived load time
+  // ⚡ PERFORMANCE: Prefetch trip data + JS chunks on hover/focus/touch
+  // Touch prefetch fires when the finger lands — gives ~100-300ms head start
+  // before the click event navigates, which is the gap users feel on mobile.
   const handlePrefetch = useCallback(() => {
     prefetch(tripIdStr);
+    // Warm the TripDetail route chunk + first-visit tab chunks so navigation
+    // doesn't pay download latency. import() is idempotent + cached.
+    void import('@/pages/TripDetail').catch(() => {});
   }, [prefetch, tripIdStr]);
 
   const handleViewTrip = () => {
@@ -408,6 +413,7 @@ export const TripCard = ({
       className="group bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 hover:border-gold-primary/30 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl shadow-lg md:shadow-black/20"
       onMouseEnter={handlePrefetch}
       onFocus={handlePrefetch}
+      onTouchStart={handlePrefetch}
     >
       {/* Trip Image/Header - Responsive with lazy loading */}
       <div className="dark-section relative h-32 md:h-48 bg-gradient-to-br from-gold-dark/20 via-gold-primary/10 to-transparent p-4 md:p-6">
@@ -578,6 +584,7 @@ export const TripCard = ({
             onClick={handleViewTrip}
             onMouseEnter={handlePrefetch}
             onFocus={handlePrefetch}
+            onTouchStart={handlePrefetch}
             className={actionButtonClass}
           >
             View
