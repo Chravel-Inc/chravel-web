@@ -131,7 +131,8 @@ export async function searchMessagesAcrossTripChannels({
 
     const perChannelHits = await Promise.all(
       channels.map(async channel => {
-        const tripId = String(channel.data?.trip_id || '').trim();
+        const channelData = (channel.data ?? {}) as Record<string, unknown>;
+        const tripId = String((channelData.trip_id as string | undefined) || '').trim();
         if (!tripId) return [] as StreamMessageSearchHit[];
 
         const result = await channel.search(
@@ -144,7 +145,7 @@ export async function searchMessagesAcrossTripChannels({
 
         const channelType = String(channel.type || CHANNEL_TYPE_TRIP);
         const channelId = String(channel.id || '').trim();
-        const tripName = String(channel.data?.name || 'Trip');
+        const tripName = String((channelData.name as string | undefined) || 'Trip');
 
         return (result.results || []).map(item =>
           mapChannelSearchHit(item.message, {

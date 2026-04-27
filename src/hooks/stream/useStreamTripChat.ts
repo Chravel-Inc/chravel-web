@@ -91,8 +91,8 @@ function extractMembershipFailure(value: unknown): MembershipFailure | null {
 
 function mapMembershipFailureToUiError(failure: MembershipFailure): Error {
   if (
-    failure.code === 'membership_denied' ||
-    failure.code === 'membership_required' ||
+    (failure.code as string) === 'membership_denied' ||
+    (failure.code as string) === 'membership_required' ||
     failure.reasonCode === 'trip_membership_required'
   ) {
     return new Error(
@@ -256,7 +256,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       details?: Record<string, string>,
     ) => {
       if (!tripId) return;
-      telemetry.track('stream_membership_recovery', {
+      (telemetry.track as any)('stream_membership_recovery', {
         trip_id: tripId,
         stage,
         outcome,

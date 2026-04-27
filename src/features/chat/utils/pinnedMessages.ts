@@ -8,7 +8,7 @@ export type PinnedChatMessage = ChatMessage & {
  * Stream may deliver updated message snapshots more than once while events settle.
  * Keep only one entry per message id and return newest pinned-first order.
  */
-export function derivePinnedMessages(messages: Array<ChatMessage & { isPinned?: boolean }>) {
+export function derivePinnedMessages(messages: Array<ChatMessage & { isPinned?: boolean; pinnedAt?: string }>) {
   const dedupedById = new Map<string, PinnedChatMessage>();
 
   for (const message of messages) {

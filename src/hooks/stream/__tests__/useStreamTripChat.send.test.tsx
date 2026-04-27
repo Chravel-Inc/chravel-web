@@ -235,6 +235,7 @@ describe('useStreamTripChat send path', () => {
         undefined,
         'text',
         undefined,
+        undefined,
         ['user-2'],
       );
     });

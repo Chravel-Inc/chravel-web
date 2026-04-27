@@ -88,7 +88,7 @@ describe('buildTripStreamMessagePayload', () => {
     if (!result.ok) return;
 
     const parsed = extractQuotedReferenceFromStreamMessage({
-      quoted_reference: result.payload.quoted_reference,
+      quoted_reference: (result.payload as any).quoted_reference,
     });
     expect(parsed).toEqual({
       id: 'msg-parent',

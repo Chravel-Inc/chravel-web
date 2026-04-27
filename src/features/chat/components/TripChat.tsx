@@ -121,7 +121,7 @@ export const TripChat = React.memo(
     const messagesContainerRef = useRef<HTMLDivElement>(null);
     const [activeThreadMessage, setActiveThreadMessage] = useState<{
       id: string;
-      text: string;
+      content: string;
       authorName: string;
       authorAvatar?: string;
       createdAt: string;
@@ -512,7 +512,7 @@ export const TripChat = React.memo(
       messages: liveMessages,
       tripMembers,
       currentUserId: user?.id,
-      channelReadState: streamActiveChannel?.state?.read,
+      channelReadState: streamActiveChannel?.state?.read as any,
     });
   }, [liveMessages, demoMode.isDemoMode, tripMembers, streamActiveChannel?.state?.read, user?.id]);
 
@@ -678,7 +678,7 @@ export const TripChat = React.memo(
   const handleActivateThread = useCallback(
     (
       messageId: string,
-      source: 'reply_badge' | 'search_result' | 'notification' = 'reply_badge',
+      source: 'reply_badge' | 'search_result' | 'notification' | 'notification_deeplink' = 'reply_badge',
     ) => {
       const streamMessage = liveMessages.find(m => m.id === messageId);
       if (streamMessage) {
@@ -695,7 +695,10 @@ export const TripChat = React.memo(
           messageEvents.threadOpened({
             trip_id: resolvedTripId,
             parent_message_id: messageId,
-            source,
+            source: (source === 'notification_deeplink' ? 'notification' : source) as
+              | 'reply_badge'
+              | 'search_result'
+              | 'notification',
           });
         }
         return;
