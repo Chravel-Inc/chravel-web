@@ -89,6 +89,35 @@ describe('buildStreamMessageViewModels', () => {
     });
   });
 
+  it('maps pinned=true state and pinned_at timestamp', () => {
+    const results = buildStreamMessageViewModels({
+      messages: [
+        baseMessage({
+          pinned: true,
+          pinned_at: '2026-04-20T10:30:00.000Z',
+        } as unknown as MessageResponse),
+      ],
+      tripMembers: members,
+    });
+
+    expect(results[0].isPinned).toBe(true);
+    expect(results[0].pinnedAt).toBe('2026-04-20T10:30:00.000Z');
+  });
+
+  it('maps pinned=false state as unpinned', () => {
+    const results = buildStreamMessageViewModels({
+      messages: [
+        baseMessage({
+          pinned: false,
+        } as unknown as MessageResponse),
+      ],
+      tripMembers: members,
+    });
+
+    expect(results[0].isPinned).toBe(false);
+    expect(results[0].pinnedAt).toBeUndefined();
+  });
+
   it('resolves parent reply context from parent message', () => {
     const parent = baseMessage({
       id: 'parent-1',
