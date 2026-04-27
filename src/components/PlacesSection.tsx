@@ -165,9 +165,6 @@ export const PlacesSection = ({
     };
   };
 
-  const handlePersonalBasecampUpdate = (basecamp: PersonalBasecamp | null) => {
-    setPersonalBasecamp(basecamp);
-  };
 
   return (
     <div className="relative mb-12 mobile-safe-scroll">
@@ -224,27 +221,7 @@ export const PlacesSection = ({
 
         {/* Explore — display:none keeps mounted for instant tab switching (matches BasecampsPanel) */}
         <div style={{ display: activeTab === 'links' ? 'block' : 'none' }}>
-          <LinksPanel
-            tripId={tripId}
-            places={places}
-            basecamp={tripBasecamp || null}
-            personalBasecamp={personalBasecamp}
-            onPlaceAdded={() => {
-              queryClient.invalidateQueries({ queryKey: tripKeys.places(tripId) });
-            }}
-            onPlaceRemoved={placeId => {
-              queryClient.invalidateQueries({ queryKey: tripKeys.places(tripId) });
-              removeLinkByPlaceId(tripId, placeId);
-            }}
-            onAddToLinks={async place => {
-              await createLinkFromPlace(place, 'You', tripId, effectiveUserId);
-              return true;
-            }}
-            linkedPlaceIds={linkedPlaceIds}
-            onEventAdded={_eventData => {
-              // Event added to calendar (reserved for future use)
-            }}
-          />
+          <LinksPanel tripId={tripId} />
         </div>
       </div>
     </div>
