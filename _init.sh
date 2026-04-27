@@ -59,5 +59,5 @@ git log --oneline -5
 echo ""
 echo "===================================="
 echo "✅ Environment Ready"
-echo "📖 Next: Read claude-progress.txt"
+echo "📖 Next: Skim agent_memory.jsonl + recent git log"
 echo "===================================="

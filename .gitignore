@@ -57,3 +57,6 @@ jules-scratch/
 # Playwright test artifacts
 test-results/
 playwright-report/
+
+# Per-developer agent breadcrumbs (untracked to avoid recurring merge conflicts)
+claude-progress.txt
