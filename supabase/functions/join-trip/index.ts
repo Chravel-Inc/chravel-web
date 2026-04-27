@@ -38,6 +38,24 @@ type JoinTripErrorCode =
   | 'ALREADY_MEMBER'
   | 'UNKNOWN_ERROR';
 
+type JoinTripRequestBody = {
+  inviteCode?: string;
+  tripId?: string;
+};
+
+type ExistingJoinRequestRow = {
+  id: string;
+  status: string;
+  rejection_cooldown_until: string | null;
+};
+
+type TripRow = {
+  name: string;
+  trip_type: string | null;
+  created_by: string;
+  is_archived: boolean;
+};
+
 function createJsonResponse(data: unknown, status: number, corsHeaders: HeadersInit): Response {
   return new Response(JSON.stringify(data), {
     status,
@@ -60,6 +78,83 @@ function errorResponse(
 
 function successResponse(data: Record<string, unknown>, corsHeaders: HeadersInit): Response {
   return createJsonResponse({ success: true, ...data }, 200, corsHeaders);
+}
+
+function isMissingColumnError(errorMessage: string | undefined, columnName: string): boolean {
+  if (!errorMessage) return false;
+  return errorMessage.includes(`column "${columnName}" does not exist`);
+}
+
+async function findExistingActiveMembership(
+  supabaseClient: ReturnType<typeof createClient>,
+  tripId: string,
+  userId: string,
+) {
+  const activeMembershipQuery = await supabaseClient
+    .from('trip_members')
+    .select('id')
+    .eq('trip_id', tripId)
+    .eq('user_id', userId)
+    .or('status.is.null,status.eq.active')
+    .maybeSingle();
+
+  if (!isMissingColumnError(activeMembershipQuery.error?.message, 'status')) {
+    return activeMembershipQuery;
+  }
+
+  logStep('trip_members.status missing - falling back to statusless membership lookup', {
+    tripId,
+    userId,
+  });
+
+  return await supabaseClient
+    .from('trip_members')
+    .select('id')
+    .eq('trip_id', tripId)
+    .eq('user_id', userId)
+    .maybeSingle();
+}
+
+async function findExistingJoinRequest(
+  supabaseClient: ReturnType<typeof createClient>,
+  tripId: string,
+  userId: string,
+): Promise<{ data: ExistingJoinRequestRow | null; error: { message: string } | null }> {
+  const queryWithCooldown = await supabaseClient
+    .from('trip_join_requests')
+    .select('id, status, rejection_cooldown_until')
+    .eq('trip_id', tripId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (!isMissingColumnError(queryWithCooldown.error?.message, 'rejection_cooldown_until')) {
+    return {
+      data: (queryWithCooldown.data as ExistingJoinRequestRow | null) ?? null,
+      error: queryWithCooldown.error ? { message: queryWithCooldown.error.message } : null,
+    };
+  }
+
+  logStep(
+    'trip_join_requests.rejection_cooldown_until missing - falling back to compatibility lookup',
+    { tripId, userId },
+  );
+
+  const fallbackQuery = await supabaseClient
+    .from('trip_join_requests')
+    .select('id, status')
+    .eq('trip_id', tripId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  return {
+    data: fallbackQuery.data
+      ? {
+          ...(fallbackQuery.data as { id: string; status: string }),
+          rejection_cooldown_until: null,
+        }
+      : null,
+    error: fallbackQuery.error ? { message: fallbackQuery.error.message } : null,
+  };
 }
 
 serve(async req => {
@@ -124,8 +219,10 @@ serve(async req => {
       return rl.response!;
     }
 
-    // Get invite code from request
-    const requestBody = await readJsonBody<{ inviteCode?: string }>(
+    // Get invite code or trip id from request.
+    // `inviteCode` is the canonical join path, while `tripId` supports share-preview
+    // links for trips that were published without a separate trip_invites row.
+    const requestBody = await readJsonBody<JoinTripRequestBody>(
       req,
       MAX_REQUEST_CONTENT_LENGTH_BYTES,
     );
@@ -136,95 +233,126 @@ serve(async req => {
 
     const normalizedInviteCode =
       typeof requestBody.data?.inviteCode === 'string' ? requestBody.data.inviteCode.trim() : '';
-    if (!normalizedInviteCode || normalizedInviteCode.length > MAX_INVITE_CODE_LENGTH) {
-      logStep('ERROR: No invite code provided');
+    const normalizedTripId =
+      typeof requestBody.data?.tripId === 'string' ? requestBody.data.tripId.trim() : '';
+
+    if (!normalizedInviteCode && !normalizedTripId) {
+      logStep('ERROR: Neither inviteCode nor tripId provided');
       return errorResponse(
-        'This invite link appears to be malformed.',
+        'This join link appears to be malformed.',
         400,
         corsHeaders,
         'INVALID_LINK',
       );
     }
 
-    logStep('Processing invite code', { inviteCode: redactSensitiveToken(normalizedInviteCode) });
+    let invite: {
+      trip_id: string;
+      is_active: boolean;
+      expires_at: string | null;
+      max_uses: number | null;
+      current_uses: number | null;
+      require_approval: boolean | null;
+    } | null = null;
 
-    // Fetch invite data from database
-    const { data: invite, error: inviteError } = await supabaseClient
-      .from('trip_invites')
-      .select('*')
-      .eq('code', normalizedInviteCode)
-      .single();
+    if (normalizedInviteCode) {
+      logStep('Processing invite code', { inviteCode: redactSensitiveToken(normalizedInviteCode) });
 
-    if (inviteError || !invite) {
-      logStep('ERROR: Invite not found', { error: inviteError?.message });
+      const { data: inviteData, error: inviteError } = await supabaseClient
+        .from('trip_invites')
+        .select('*')
+        .eq('code', normalizedInviteCode)
+        .single();
+
+      if (inviteError || !inviteData) {
+        logStep('ERROR: Invite not found', { error: inviteError?.message });
+        return errorResponse(
+          'This invite link is invalid or has been deleted. Ask the host for a new link.',
+          404,
+          corsHeaders,
+          'INVITE_NOT_FOUND',
+        );
+      }
+
+      invite = inviteData;
+      logStep('Invite found', { tripId: invite.trip_id, isActive: invite.is_active });
+
+      if (!invite.is_active) {
+        logStep('ERROR: Invite is not active');
+        return errorResponse(
+          'The host has turned off this invite link. Contact them for a new one.',
+          403,
+          corsHeaders,
+          'INVITE_INACTIVE',
+        );
+      }
+
+      if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
+        logStep('ERROR: Invite has expired', { expiresAt: invite.expires_at });
+        return errorResponse(
+          'This invite link has expired. Ask the host for a fresh link.',
+          403,
+          corsHeaders,
+          'INVITE_EXPIRED',
+        );
+      }
+
+      if (invite.max_uses && invite.current_uses && invite.current_uses >= invite.max_uses) {
+        logStep('ERROR: Max uses reached', {
+          currentUses: invite.current_uses,
+          maxUses: invite.max_uses,
+        });
+        return errorResponse(
+          'This invite link has been used the maximum number of times. Ask the host for a new link.',
+          403,
+          corsHeaders,
+          'INVITE_MAX_USES',
+        );
+      }
+    }
+
+    const resolvedTripId = invite?.trip_id ?? normalizedTripId;
+    if (!resolvedTripId) {
       return errorResponse(
-        'This invite link is invalid or has been deleted. Ask the host for a new link.',
-        404,
+        'This join link appears to be malformed.',
+        400,
         corsHeaders,
-        'INVITE_NOT_FOUND',
+        'INVALID_LINK',
       );
     }
 
-    logStep('Invite found', { tripId: invite.trip_id, isActive: invite.is_active });
+    const { data: existingMember, error: existingMemberError } = await findExistingActiveMembership(
+      supabaseClient,
+      resolvedTripId,
+      user.id,
+    );
 
-    // Validate invite is active
-    if (!invite.is_active) {
-      logStep('ERROR: Invite is not active');
-      return errorResponse(
-        'The host has turned off this invite link. Contact them for a new one.',
-        403,
-        corsHeaders,
-        'INVITE_INACTIVE',
-      );
-    }
-
-    // Validate invite hasn't expired
-    if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
-      logStep('ERROR: Invite has expired', { expiresAt: invite.expires_at });
-      return errorResponse(
-        'This invite link has expired. Ask the host for a fresh link.',
-        403,
-        corsHeaders,
-        'INVITE_EXPIRED',
-      );
-    }
-
-    // Validate max uses hasn't been reached
-    if (invite.max_uses && invite.current_uses >= invite.max_uses) {
-      logStep('ERROR: Max uses reached', {
-        currentUses: invite.current_uses,
-        maxUses: invite.max_uses,
+    if (existingMemberError) {
+      logStep('ERROR: Failed to check existing membership', {
+        tripId: resolvedTripId,
+        error: existingMemberError.message,
       });
       return errorResponse(
-        'This invite link has been used the maximum number of times. Ask the host for a new link.',
-        403,
+        'Failed to verify your current trip access. Please try again.',
+        500,
         corsHeaders,
-        'INVITE_MAX_USES',
       );
     }
 
-    // Check if user is already an active member (exclude status=left for re-join)
-    const { data: existingMember } = await supabaseClient
-      .from('trip_members')
-      .select('id')
-      .eq('trip_id', invite.trip_id)
-      .eq('user_id', user.id)
-      .maybeSingle();
-
     if (existingMember) {
-      logStep('User already a member', { tripId: invite.trip_id });
+      logStep('User already a member', { tripId: resolvedTripId });
 
       // Get trip details for redirect
       const { data: trip } = await supabaseClient
         .from('trips')
         .select('name, trip_type')
-        .eq('id', invite.trip_id)
+        .eq('id', resolvedTripId)
         .single();
 
       return successResponse(
         {
           already_member: true,
-          trip_id: invite.trip_id,
+          trip_id: resolvedTripId,
           trip_name: trip?.name || 'Trip',
           trip_type: trip?.trip_type || 'consumer',
           message: "You're already a member of this trip!",
@@ -237,7 +365,7 @@ serve(async req => {
     const { data: trip, error: tripError } = await supabaseClient
       .from('trips')
       .select('name, trip_type, created_by, is_archived')
-      .eq('id', invite.trip_id)
+      .eq('id', resolvedTripId)
       .single();
 
     if (tripError || !trip) {
@@ -252,7 +380,7 @@ serve(async req => {
 
     // Check if trip is archived
     if (trip.is_archived) {
-      logStep('ERROR: Trip is archived', { tripId: invite.trip_id });
+      logStep('ERROR: Trip is archived', { tripId: resolvedTripId });
       return errorResponse(
         'This trip has been archived and is no longer accepting new members.',
         403,
@@ -270,9 +398,10 @@ serve(async req => {
     const requiresApproval = true;
 
     logStep('Approval requirement check', {
-      inviteRequiresApproval: invite.require_approval,
+      inviteRequiresApproval: invite?.require_approval ?? null,
       tripType: trip.trip_type,
       finalRequiresApproval: requiresApproval,
+      source: invite ? 'invite' : 'trip_preview',
     });
 
     if (requiresApproval) {
@@ -303,12 +432,23 @@ serve(async req => {
       logStep('Requester profile captured', { requesterName, requesterEmail });
 
       // Check if user has an existing request for this trip
-      const { data: existingRequest } = await supabaseClient
-        .from('trip_join_requests')
-        .select('id, status, rejection_cooldown_until')
-        .eq('trip_id', invite.trip_id)
-        .eq('user_id', user.id)
-        .single();
+      const { data: existingRequest, error: existingRequestError } = await findExistingJoinRequest(
+        supabaseClient,
+        resolvedTripId,
+        user.id,
+      );
+
+      if (existingRequestError) {
+        logStep('ERROR: Failed to check existing join request', {
+          tripId: resolvedTripId,
+          error: existingRequestError.message,
+        });
+        return errorResponse(
+          'Failed to check your existing join request. Please try again.',
+          500,
+          corsHeaders,
+        );
+      }
 
       if (existingRequest) {
         if (existingRequest.status === 'pending') {
@@ -317,7 +457,7 @@ serve(async req => {
           return successResponse(
             {
               requires_approval: true,
-              trip_id: invite.trip_id,
+              trip_id: resolvedTripId,
               trip_name: trip.name,
               trip_type: trip.trip_type,
               message: 'Your join request is pending approval from the trip organizer.',
@@ -345,7 +485,7 @@ serve(async req => {
               requested_at: new Date().toISOString(),
               resolved_at: null,
               resolved_by: null,
-              invite_code: normalizedInviteCode,
+              invite_code: normalizedInviteCode || null,
               requester_name: requesterName,
               requester_email: requesterEmail,
             })
@@ -377,7 +517,7 @@ serve(async req => {
               requested_at: new Date().toISOString(),
               resolved_at: null,
               resolved_by: null,
-              invite_code: normalizedInviteCode,
+              invite_code: normalizedInviteCode || null,
               requester_name: requesterName,
               requester_email: requesterEmail,
             })
@@ -403,9 +543,9 @@ serve(async req => {
         const { data: joinRequest, error: requestError } = await supabaseClient
           .from('trip_join_requests')
           .insert({
-            trip_id: invite.trip_id,
+            trip_id: resolvedTripId,
             user_id: user.id,
-            invite_code: normalizedInviteCode,
+            invite_code: normalizedInviteCode || null,
             status: 'pending',
             requester_name: requesterName,
             requester_email: requesterEmail,
@@ -420,7 +560,7 @@ serve(async req => {
             return successResponse(
               {
                 requires_approval: true,
-                trip_id: invite.trip_id,
+                trip_id: resolvedTripId,
                 trip_name: trip.name,
                 trip_type: trip.trip_type,
                 message: 'Your join request is pending approval from the trip organizer.',
@@ -441,18 +581,20 @@ serve(async req => {
         logStep('Join request created successfully', { requestId: joinRequestId });
 
         // Increment current_uses on the invite with optimistic concurrency
-        const currentUses = invite.current_uses ?? 0;
-        const { error: incrementError } = await supabaseClient
-          .from('trip_invites')
-          .update({ current_uses: currentUses + 1 })
-          .eq('code', normalizedInviteCode)
-          .eq('current_uses', currentUses); // optimistic lock
+        if (invite && normalizedInviteCode) {
+          const currentUses = invite.current_uses ?? 0;
+          const { error: incrementError } = await supabaseClient
+            .from('trip_invites')
+            .update({ current_uses: currentUses + 1 })
+            .eq('code', normalizedInviteCode)
+            .eq('current_uses', currentUses); // optimistic lock
 
-        if (incrementError) {
-          // Non-fatal: log but don't fail the join request
-          logStep('WARNING: Failed to increment current_uses', { error: incrementError.message });
-        } else {
-          logStep('Incremented current_uses', { from: currentUses, to: currentUses + 1 });
+          if (incrementError) {
+            // Non-fatal: log but don't fail the join request
+            logStep('WARNING: Failed to increment current_uses', { error: incrementError.message });
+          } else {
+            logStep('Incremented current_uses', { from: currentUses, to: currentUses + 1 });
+          }
         }
       }
 
@@ -469,7 +611,7 @@ serve(async req => {
         const { data: admins } = await supabaseClient
           .from('trip_admins')
           .select('user_id')
-          .eq('trip_id', invite.trip_id);
+          .eq('trip_id', resolvedTripId);
 
         if (admins && admins.length > 0) {
           const adminUserIds = admins.map(a => a.user_id);
@@ -481,7 +623,7 @@ serve(async req => {
         const { data: members } = await supabaseClient
           .from('trip_members')
           .select('user_id')
-          .eq('trip_id', invite.trip_id);
+          .eq('trip_id', resolvedTripId);
 
         if (members && members.length > 0) {
           recipientIds = members.map(m => m.user_id);
@@ -499,9 +641,9 @@ serve(async req => {
           title: `${requesterName} wants to join ${trip.name}`,
           message: 'Tap to approve or reject their request',
           type: 'join_request',
-          trip_id: invite.trip_id,
+          trip_id: resolvedTripId,
           metadata: {
-            trip_id: invite.trip_id,
+            trip_id: resolvedTripId,
             trip_name: trip.name,
             requester_id: user.id,
             requester_name: requesterName,
@@ -517,7 +659,7 @@ serve(async req => {
       return successResponse(
         {
           requires_approval: true,
-          trip_id: invite.trip_id,
+          trip_id: resolvedTripId,
           trip_name: trip.name,
           trip_type: trip.trip_type,
           message: 'Join request submitted! The trip organizer will review your request.',

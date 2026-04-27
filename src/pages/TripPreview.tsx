@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../hooks/useAuth';
 import { useDemoMode } from '../hooks/useDemoMode';
@@ -8,6 +9,7 @@ import { Users, MapPin, Calendar, Share2, ExternalLink, Sparkles } from 'lucide-
 import { Button } from '../components/ui/button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { toast } from 'sonner';
+import { tripKeys } from '../lib/queryKeys';
 
 interface TripPreviewData {
   id: string;
@@ -56,11 +58,13 @@ const TripPreview = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { setDemoView } = useDemoMode();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(true);
   const [tripData, setTripData] = useState<TripPreviewData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isMember, setIsMember] = useState<boolean | null>(null);
   const [activeInviteCode, setActiveInviteCode] = useState<string | null>(null);
+  const [joiningFromPreview, setJoiningFromPreview] = useState(false);
 
   // True while membership/invite checks are still in-flight for a logged-in user on a real trip.
   // Prevents the CTA from incorrectly denying access before async checks resolve.
@@ -280,8 +284,58 @@ const TripPreview = () => {
         navigate(`/join/${activeInviteCode}`);
         return;
       }
-      // No invite code — stay on preview and inform the user
-      toast.info('Ask the trip organizer for an invite link to join this trip.');
+      setJoiningFromPreview(true);
+      try {
+        const { data, error: joinError } = await supabase.functions.invoke('join-trip', {
+          body: { tripId },
+        });
+
+        if (joinError) {
+          let errorMessage = 'Failed to request access to this trip. Please try again.';
+          if (joinError.message) {
+            try {
+              const parsed = JSON.parse(joinError.message);
+              errorMessage = parsed.message || parsed.error || errorMessage;
+            } catch {
+              if (!joinError.message.includes('non-2xx')) {
+                errorMessage = joinError.message;
+              }
+            }
+          }
+          toast.error(errorMessage);
+          return;
+        }
+
+        if (!data?.success) {
+          toast.error(data?.message || 'Failed to request access to this trip');
+          return;
+        }
+
+        queryClient.invalidateQueries({ queryKey: tripKeys.all });
+        queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
+        queryClient.invalidateQueries({ queryKey: tripKeys.members(tripId) });
+
+        if (data.already_member) {
+          navigate(tripRoute);
+          return;
+        }
+
+        if (data.requires_approval) {
+          toast.success(
+            data.message ||
+              "Join request submitted! You'll see the trip on your home page once approved.",
+          );
+          navigate('/', { replace: true });
+          return;
+        }
+
+        toast.success(data.message || 'Successfully joined the trip!');
+        navigate(tripRoute, { replace: true });
+      } catch {
+        toast.error('An unexpected error occurred. Please try again.');
+      } finally {
+        setJoiningFromPreview(false);
+      }
       return;
     }
 
@@ -445,13 +499,13 @@ const TripPreview = () => {
                 <>
                   <Button
                     onClick={handleViewTrip}
-                    disabled={accessLoading}
+                    disabled={accessLoading || joiningFromPreview}
                     className="w-full accent-fill-gold font-semibold py-3 text-base"
                   >
-                    {accessLoading ? (
+                    {accessLoading || joiningFromPreview ? (
                       <div className="h-4 w-4 mr-2 animate-spin gold-gradient-spinner" />
                     ) : null}
-                    {ctaLabel}
+                    {joiningFromPreview ? 'Requesting...' : ctaLabel}
                   </Button>
                   {helperText && <p className="text-white/40 text-xs text-center">{helperText}</p>}
                 </>

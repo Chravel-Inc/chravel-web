@@ -351,6 +351,18 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Fixed in:** April 2026 invite flow deep-dive pass
 - **Confidence:** medium-high
 
+## Trip preview share link dead-ends when no `trip_invites` row exists
+- **Status:** fixed
+- **Subsystem:** invite conversion / trip preview CTA join mutation
+- **Bug class:** hidden dependency / source-of-truth mismatch
+- **Symptom:** A branded trip preview link (`/t/:tripId` or `/trip/:tripId/preview`) renders a valid "Request to Join" CTA, but some trips cannot actually submit a join request because the flow depends on an invite code that does not exist for that trip.
+- **Trigger conditions:** A trip is shared via preview link (`buildTripPreviewLink`) without a backing `trip_invites` row; affected environments may also lack newer compatibility columns like `trip_members.status` or `trip_join_requests.rejection_cooldown_until`.
+- **Likely root cause:** The virality/share path treated trip preview as the primary public entry point, but the mutation path still required `join-trip` to receive an `inviteCode`. Trips with no invite row had no bridge from preview CTA to join request creation.
+- **Smallest safe fix:** Let `join-trip` accept an authenticated `tripId` fallback for preview-based requests while preserving invite-code validation for real invite links. Add compatibility fallbacks for missing `trip_members.status` and `trip_join_requests.rejection_cooldown_until` so the edge function works across partially migrated production schemas.
+- **Related files:** `src/pages/TripPreview.tsx`, `src/pages/__tests__/TripPreview.inviteFlow.test.tsx`, `supabase/functions/join-trip/index.ts`
+- **Fixed in:** April 2026 trip preview join-request fallback fix
+- **Confidence:** high
+
 ## 5. Stream ReadChannel Permission Denial for Existing Trip Members
 
 **Symptom:** Messages tab shows raw Stream error `GetOrCreateChannel failed ... ReadChannel` with retry loop.
