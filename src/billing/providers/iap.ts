@@ -53,9 +53,6 @@ export class AppleIAPProvider extends BaseBillingProvider {
       return false;
     }
 
-    // TODO: Check if IAP plugin is available
-    // return this.iap !== null;
-
     return false;
   }
 
@@ -64,9 +61,6 @@ export class AppleIAPProvider extends BaseBillingProvider {
       this.log('IAP not available, returning empty products');
       return [];
     }
-
-    // TODO: Fetch products from App Store
-    // const products = await InAppPurchases.getProducts({ productIds });
 
     // For now, return config-based products
     return Object.entries(BILLING_PRODUCTS)
@@ -105,32 +99,6 @@ export class AppleIAPProvider extends BaseBillingProvider {
       };
     }
 
-    // TODO: Implement actual purchase flow
-    //
-    // const product = this.getAppleProductId(request.tier, request.billingCycle);
-    //
-    // try {
-    //   const result = await InAppPurchases.purchaseProduct({ productId: product });
-    //
-    //   if (result.transactionState === 'purchased') {
-    //     // Send receipt to server for validation
-    //     const validation = await this.validateReceipt(result.receipt);
-    //
-    //     if (validation.success) {
-    //       return {
-    //         success: true,
-    //         transactionId: result.transactionId,
-    //         entitlements: validation.entitlements,
-    //       };
-    //     }
-    //   }
-    // } catch (error) {
-    //   if (error.code === 'USER_CANCELLED') {
-    //     return { success: false, error: 'Purchase cancelled', errorCode: 'CANCELLED' };
-    //   }
-    //   throw error;
-    // }
-
     return {
       success: false,
       error: 'Apple IAP not implemented',
@@ -145,23 +113,6 @@ export class AppleIAPProvider extends BaseBillingProvider {
       this.log('IAP not available, cannot restore');
       return null;
     }
-
-    // TODO: Implement restore flow
-    //
-    // try {
-    //   const result = await InAppPurchases.restoreProducts();
-    //
-    //   for (const transaction of result.transactions) {
-    //     // Validate each receipt with server
-    //     await this.validateReceipt(transaction.receipt);
-    //   }
-    //
-    //   // Return updated entitlements
-    //   return getEntitlements(userId);
-    // } catch (error) {
-    //   this.logError('Restore failed', error);
-    //   return null;
-    // }
 
     return null;
   }
@@ -193,46 +144,6 @@ export class AppleIAPProvider extends BaseBillingProvider {
       source: 'apple',
     };
   }
-
-  /**
-   * Get Apple product ID for a tier and billing cycle
-   */
-  private getAppleProductId(
-    tier: SubscriptionTier,
-    billingCycle: 'monthly' | 'annual',
-  ): string | null {
-    const productKey =
-      tier === 'explorer'
-        ? 'consumer-explorer'
-        : tier === 'frequent-chraveler'
-          ? 'consumer-frequent-chraveler'
-          : null;
-
-    if (!productKey) return null;
-
-    const product = BILLING_PRODUCTS[productKey];
-    if (!product) return null;
-
-    return billingCycle === 'annual'
-      ? product.appleProductIdAnnual || null
-      : product.appleProductIdMonthly || null;
-  }
-
-  /**
-   * Validate receipt with server
-   * TODO: Implement this when setting up receipt validation Edge Function
-   */
-  // private async validateReceipt(receipt: string): Promise<{ success: boolean; entitlements?: UserEntitlements }> {
-  //   const { data, error } = await supabase.functions.invoke('validate-apple-receipt', {
-  //     body: { receipt },
-  //   });
-  //
-  //   if (error || !data.success) {
-  //     return { success: false };
-  //   }
-  //
-  //   return { success: true, entitlements: data.entitlements };
-  // }
 }
 
 /**
