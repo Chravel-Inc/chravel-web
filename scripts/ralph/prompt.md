@@ -67,8 +67,8 @@ cat scripts/ralph/progress.txt
 # Check project conventions
 cat CLAUDE.md 2>/dev/null || echo "No CLAUDE.md found"
 
-# Check claude-progress.txt if it exists
-cat claude-progress.txt 2>/dev/null || echo "No progress file found"
+# Check claude-progress.txt if it exists (untracked, per-developer)
+cat claude-progress.txt 2>/dev/null || echo "No local progress file found"
 ```
 
 ---

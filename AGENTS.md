@@ -13,7 +13,7 @@
 1. **Mobile-first UX.** Every UI change is evaluated for small screens + PWA constraints (tap targets ≥44px, scroll, performance).
 1. **Performance is a feature.** No heavy re-renders, excessive providers, chatty queries, or unnecessary component mounts.
 1. **Demo mode is sacred.** Mock data is NEVER modified. Authenticated mode uses parallel real data paths. This is a hard architectural invariant.
-1. **Anti-Goldfish Protocol.** Before coding: read `claude-progress.txt` + recent git log. Implement ONE feature → E2E test → commit → update breadcrumbs. Never multi-task features.
+1. **Anti-Goldfish Protocol.** Before coding: skim recent git log + `agent_memory.jsonl` / `LESSONS.md`. Implement ONE feature → E2E test → commit. Never multi-task features.
 1. **Learn from trajectories.** Before non-trivial tasks, read `DEBUG_PATTERNS.md` + `LESSONS.md`. After completing, update memory files with evidence-backed learnings. See CLAUDE.md § AGENT LEARNING PROTOCOL.
 
 -----
@@ -71,7 +71,7 @@ src/
   store/           → Zustand slices
 
 Key files:
-  claude-progress.txt       → Anti-Goldfish breadcrumbs — READ FIRST
+  agent_memory.jsonl        → Structured agent memory — READ FIRST
   supabase/migrations/      → Schema source of truth
   supabase/functions/        → Edge functions
   capacitor.config.ts       → iOS wrapper config
