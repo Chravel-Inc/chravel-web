@@ -961,18 +961,20 @@ const Index = () => {
             </div>
           )}
 
-          <SearchOverlay
-            isOpen={isSearchOpen}
-            onClose={() => setIsSearchOpen(false)}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            resultCount={searchResultCount}
-            matchingTrips={allSearchableTrips}
-            onTripSelect={handleSearchTripSelect}
-          />
+          <Suspense fallback={null}>
+            <SearchOverlay
+              isOpen={isSearchOpen}
+              onClose={() => setIsSearchOpen(false)}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              resultCount={searchResultCount}
+              matchingTrips={allSearchableTrips}
+              onTripSelect={handleSearchTripSelect}
+            />
 
-          {/* Notifications dialog (mounted at page level for mobile access) */}
-          <NotificationsDialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen} />
+            {/* Notifications dialog (mounted at page level for mobile access) */}
+            <NotificationsDialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen} />
+          </Suspense>
 
           {/* iOS-style bottom tab bar (mobile only) */}
           <NativeTabBar
