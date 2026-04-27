@@ -7,6 +7,13 @@
 
 ## Strategy Tips
 
+### Keep pin/unpin mutations inside shared chat hooks, not UI surfaces
+- **Tip:** UI components should call a shared `togglePin` hook method and avoid local Stream client mutation guards/calls, so Trips/Pro Trips/Events all execute identical pin payload logic and error handling.
+- **Applies when:** Message action menus in shared chat components (e.g., `TripChat`) invoke pin/unpin.
+- **Evidence:** Removing a redundant `streamClient` gate in `TripChat` kept pinning delegated to `useStreamTripChat.togglePin` (`partialUpdateMessage`) and eliminated surface-specific divergence risk.
+- **Provenance:** April 2026 pin-path hardening follow-up.
+- **Confidence:** high
+
 ### In transport-mixed chat surfaces, propagate transport mode to the mutation trigger component
 - **Tip:** If a parent surface supports both Stream and legacy transports, ensure the final mutation-triggering UI element (for example message action menu) receives explicit `transportMode`. Relying on an intermediate default (`'legacy'`) can silently route Stream edits/deletes into DB mutation APIs.
 - **Applies when:** Chat/message components pass edit/delete callbacks through `MessageItem`/`MessageBubble` style wrappers.
