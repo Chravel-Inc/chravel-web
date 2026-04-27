@@ -16,6 +16,45 @@ type TripPreview = {
   description?: string | null;
 };
 
+const generateInviteCode = (): string => {
+  const randomPart = crypto.randomUUID().replace(/-/g, '').slice(0, 8);
+  return `chravel${randomPart}`;
+};
+
+async function createActiveInviteForTrip(
+  supabaseClient: ReturnType<typeof createClient>,
+  tripId: string,
+  createdBy: string,
+): Promise<string | null> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const code = generateInviteCode();
+    const { error } = await supabaseClient.from('trip_invites').insert({
+      trip_id: tripId,
+      code,
+      created_by: createdBy,
+      is_active: true,
+      current_uses: 0,
+      require_approval: true,
+      expires_at: null,
+    });
+
+    if (!error) {
+      return code;
+    }
+
+    // Retry only on unique-code collisions.
+    if (error.code !== '23505') {
+      console.error('[get-trip-preview] Failed to auto-create invite', {
+        tripId,
+        error: error.message,
+      });
+      return null;
+    }
+  }
+
+  return null;
+}
+
 serve(async (req): Promise<Response> => {
   const corsHeaders = getCorsHeaders(req);
 
@@ -26,6 +65,7 @@ serve(async (req): Promise<Response> => {
   try {
     const body = req.method === 'POST' ? await req.json() : {};
     const tripId = body.tripId ?? new URL(req.url).searchParams.get('tripId');
+    const ensureInvite = body.ensureInvite === true;
 
     if (!tripId || typeof tripId !== 'string') {
       return new Response(JSON.stringify({ success: false, error: 'tripId is required' }), {
@@ -64,7 +104,7 @@ serve(async (req): Promise<Response> => {
     const { data: tripRow, error: tripError } = await supabaseClient
       .from('trips')
       .select(
-        'id, name, destination, start_date, end_date, cover_image_url, trip_type, description',
+        'id, name, destination, start_date, end_date, cover_image_url, trip_type, description, created_by',
       )
       .eq('id', tripId)
       .maybeSingle();
@@ -104,7 +144,17 @@ serve(async (req): Promise<Response> => {
       .limit(1)
       .maybeSingle();
 
-    trip.active_invite_code = inviteRow?.code ?? null;
+    let activeInviteCode = inviteRow?.code ?? null;
+
+    if (!activeInviteCode && ensureInvite) {
+      activeInviteCode = await createActiveInviteForTrip(
+        supabaseClient,
+        tripId,
+        tripRow.created_by,
+      );
+    }
+
+    trip.active_invite_code = activeInviteCode;
 
     return new Response(JSON.stringify({ success: true, trip }), {
       status: 200,

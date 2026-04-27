@@ -26,6 +26,18 @@ interface TripPreviewData {
 const isUuid = (value: string): boolean =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 
+const fetchTripPreviewPayload = async (tripId: string): Promise<TripPreviewData | null> => {
+  const { data, error: funcError } = await supabase.functions.invoke('get-trip-preview', {
+    body: { tripId, ensureInvite: true },
+  });
+
+  if (funcError || !data?.success || !data?.trip) {
+    return null;
+  }
+
+  return data.trip as TripPreviewData;
+};
+
 /**
  * Generate a contextual urgency line from trip start date.
  * Returns null if no start date or trip is in the past.
@@ -191,17 +203,14 @@ const TripPreview = () => {
 
     // Real trip (UUID) - fetch via public edge function to avoid RLS blank/404 for unauthenticated users
     try {
-      const { data, error: funcError } = await supabase.functions.invoke('get-trip-preview', {
-        body: { tripId },
-      });
-
-      if (funcError || !data?.success || !data?.trip) {
-        setError(data?.error || funcError?.message || 'Trip not found');
+      const previewTrip = await fetchTripPreviewPayload(tripId);
+      if (!previewTrip) {
+        setError('Trip not found');
         return;
       }
 
-      setTripData(data.trip as TripPreviewData);
-      setActiveInviteCode(data.trip.active_invite_code || null);
+      setTripData(previewTrip);
+      setActiveInviteCode(previewTrip.active_invite_code || null);
     } catch (err) {
       console.error('Error fetching trip preview:', err);
       setError('Failed to load trip details');
@@ -280,8 +289,17 @@ const TripPreview = () => {
         navigate(`/join/${activeInviteCode}`);
         return;
       }
-      // No invite code — stay on preview and inform the user
-      toast.info('Ask the trip organizer for an invite link to join this trip.');
+      // Retry once in case invite was not yet provisioned when preview loaded.
+      const refreshedPreview = await fetchTripPreviewPayload(tripId);
+      const refreshedInviteCode = refreshedPreview?.active_invite_code || null;
+      if (refreshedInviteCode) {
+        setActiveInviteCode(refreshedInviteCode);
+        navigate(`/join/${refreshedInviteCode}`);
+        return;
+      }
+
+      // No invite code after retry — stay on preview and inform the user.
+      toast.info('Trip invite is still being set up. Please try again in a moment.');
       return;
     }
 

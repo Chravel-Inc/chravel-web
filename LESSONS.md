@@ -731,3 +731,11 @@
 - **Evidence:** `api/trip-preview` previously surfaced raw `SUPABASE_EDGE_RUNTIME_SERVICE_DEGRADED` JSON in mobile browser, blocking join conversion. HTML fallback restored continuation into `/trip/:id/preview` while keeping normal upstream HTML pass-through behavior.
 - **Provenance:** April 2026 branded trip invite flow degradation hardening.
 - **Confidence:** high
+
+### Shared trip preview flows should self-heal missing active invites before exposing join CTA
+- **Tip:** When `/trip/:id/preview` is the conversion bridge to `/join/:code`, treat missing `active_invite_code` as a recoverable backend state, not a terminal UX. Add an explicit server-side invite bootstrap path and invoke it from preview fetch + one user-triggered retry.
+- **Applies when:** A shareable trip URL must remain joinable even if legacy/manual invite rows were deactivated, expired, or deleted.
+- **Avoid when:** Product policy explicitly requires hosts to manually create every invite and rejects auto-provisioning.
+- **Evidence:** Trip preview previously returned no invite and blocked Join CTA. Adding `ensureInvite` to `get-trip-preview` plus a retry call from `TripPreview` restored deterministic join routing for existing shared trips.
+- **Provenance:** April 2026 trip invite bootstrap hardening.
+- **Confidence:** high
