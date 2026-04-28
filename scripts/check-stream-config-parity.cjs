@@ -5,7 +5,8 @@ const crypto = require('node:crypto');
 const normalize = value => (typeof value === 'string' ? value.trim() : '');
 const present = value => normalize(value).length > 0;
 const digest = value => crypto.createHash('sha256').update(value).digest('hex').slice(0, 12);
-const mask = value => (present(value) ? `${value.slice(0, 4)}…${value.slice(-4)} (${digest(value)})` : '(missing)');
+const mask = value =>
+  present(value) ? `${value.slice(0, 4)}…${value.slice(-4)} (${digest(value)})` : '(missing)';
 
 const pick = (...keys) => {
   for (const key of keys) {
@@ -63,7 +64,11 @@ requireValue('Frontend VITE_SUPABASE_URL', frontend.supabaseUrl);
 requireValue('Frontend VITE_SUPABASE_ANON_KEY', frontend.supabaseAnonKey);
 requireValue('Supabase STREAM_API_SECRET', supabase.streamApiSecret);
 
-compareEqual('Frontend VITE_STREAM_API_KEY matches Supabase STREAM_API_KEY', frontend.streamApiKey, supabase.streamApiKey);
+compareEqual(
+  'Frontend VITE_STREAM_API_KEY matches Supabase STREAM_API_KEY',
+  frontend.streamApiKey,
+  supabase.streamApiKey,
+);
 compareEqual(
   'Supabase STREAM_WEBHOOK_SECRET matches Stream Dashboard webhook secret',
   supabase.streamWebhookSecret,
@@ -88,7 +93,9 @@ if (!present(sendsApiKeyFlag)) {
     supabase.streamApiKey,
   );
 } else {
-  warn.push('Stream webhook configured to omit x-api-key header; webhook endpoint allows omission.');
+  warn.push(
+    'Stream webhook configured to omit x-api-key header; webhook endpoint allows omission.',
+  );
 }
 
 const passed = results.filter(result => result.ok).length;
@@ -109,4 +116,3 @@ console.log(`\nSummary: ${passed} passed, ${failed} failed, ${warn.length} warni
 if (failed > 0) {
   process.exit(1);
 }
-
