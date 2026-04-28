@@ -9,6 +9,8 @@ export interface DashboardJoinRequestTrip {
   name: string;
   destination: string;
   start_date: string;
+  end_date?: string | null;
+  member_count?: number | null;
   cover_image_url?: string;
   trip_type?: string | null;
 }
@@ -32,6 +34,8 @@ type TripJoinRow = {
   name: string;
   destination: string;
   start_date: string;
+  end_date?: string | null;
+  member_count?: number | null;
   cover_image_url?: string | null;
   trip_type?: string | null;
 };
@@ -107,6 +111,8 @@ function mapRowToDashboardRequest(
           name: tripData.name,
           destination: tripData.destination,
           start_date: tripData.start_date,
+          end_date: tripData.end_date,
+          member_count: tripData.member_count,
           cover_image_url: tripData.cover_image_url ?? undefined,
           trip_type: tripData.trip_type,
         }
@@ -155,6 +161,7 @@ export function useDashboardJoinRequests(isDemoMode = false) {
             name,
             destination,
             start_date,
+            end_date,
             cover_image_url,
             trip_type
           )
@@ -209,7 +216,7 @@ export function useDashboardJoinRequests(isDemoMode = false) {
       if (tripIds.length > 0) {
         const { data: tripsData, error: tripsError } = await supabase
           .from('trips')
-          .select('id, name, destination, start_date, cover_image_url, trip_type')
+          .select('id, name, destination, start_date, end_date, cover_image_url, trip_type')
           .in('id', tripIds);
 
         if (!tripsError && tripsData) {

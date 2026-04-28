@@ -7,6 +7,14 @@
 
 ## Strategy Tips
 
+### Dashboard request cards and request counters must share the same outbound source-of-truth
+- **Tip:** If request cards can render from fallback outbound join-request rows when pending trips are not projected yet, derive the Requests counter from the same outbound rows (or a deterministic max merge) to prevent `0 Requests` while cards are visible.
+- **Applies when:** Home dashboard combines `useTrips` pending membership rows with `useDashboardJoinRequests` outbound rows.
+- **Avoid when:** Product intentionally separates “pending memberships” and “outbound requests” into distinct widgets/counters.
+- **Evidence:** Pending cards rendered from outbound fallback while stats relied only on `membership_status='pending'` trips, producing count/card drift; aligning count derivation removed the mismatch.
+- **Provenance:** April 2026 pending join-request hydration/count drift fix.
+- **Confidence:** high
+
 ### Keep pin/unpin mutations inside shared chat hooks, not UI surfaces
 - **Tip:** UI components should call a shared `togglePin` hook method and avoid local Stream client mutation guards/calls, so Trips/Pro Trips/Events all execute identical pin payload logic and error handling.
 - **Applies when:** Message action menus in shared chat components (e.g., `TripChat`) invoke pin/unpin.
