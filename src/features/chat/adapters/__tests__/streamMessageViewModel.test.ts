@@ -118,6 +118,35 @@ describe('buildStreamMessageViewModels', () => {
     expect(results[0].pinnedAt).toBeUndefined();
   });
 
+  it('hydrates pinned state from pinned_at when pinned flag is omitted', () => {
+    const results = buildStreamMessageViewModels({
+      messages: [
+        baseMessage({
+          pinned_at: '2026-04-20T10:45:00.000Z',
+        } as unknown as MessageResponse),
+      ],
+      tripMembers: members,
+    });
+
+    expect(results[0].isPinned).toBe(true);
+    expect(results[0].pinnedAt).toBe('2026-04-20T10:45:00.000Z');
+  });
+
+  it('drops stale pinned_at when payload marks message as explicitly unpinned', () => {
+    const results = buildStreamMessageViewModels({
+      messages: [
+        baseMessage({
+          pinned: false,
+          pinned_at: '2026-04-20T10:30:00.000Z',
+        } as unknown as MessageResponse),
+      ],
+      tripMembers: members,
+    });
+
+    expect(results[0].isPinned).toBe(false);
+    expect(results[0].pinnedAt).toBeUndefined();
+  });
+
   it('resolves parent reply context from parent message', () => {
     const parent = baseMessage({
       id: 'parent-1',

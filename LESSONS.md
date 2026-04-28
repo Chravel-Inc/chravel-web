@@ -7,6 +7,13 @@
 
 ## Strategy Tips
 
+### Keep pin/unpin mutations inside shared chat hooks, not UI surfaces
+- **Tip:** UI components should call a shared `togglePin` hook method and avoid local Stream client mutation guards/calls, so Trips/Pro Trips/Events all execute identical pin payload logic and error handling.
+- **Applies when:** Message action menus in shared chat components (e.g., `TripChat`) invoke pin/unpin.
+- **Evidence:** Removing a redundant `streamClient` gate in `TripChat` kept pinning delegated to `useStreamTripChat.togglePin` (`partialUpdateMessage`) and eliminated surface-specific divergence risk.
+- **Provenance:** April 2026 pin-path hardening follow-up.
+- **Confidence:** high
+
 ### In transport-mixed chat surfaces, propagate transport mode to the mutation trigger component
 - **Tip:** If a parent surface supports both Stream and legacy transports, ensure the final mutation-triggering UI element (for example message action menu) receives explicit `transportMode`. Relying on an intermediate default (`'legacy'`) can silently route Stream edits/deletes into DB mutation APIs.
 - **Applies when:** Chat/message components pass edit/delete callbacks through `MessageItem`/`MessageBubble` style wrappers.
@@ -722,4 +729,20 @@
 - **Avoid when:** You intentionally need a full message content update (editing text/attachments).
 - **Evidence:** Trip chat pin toggle path was using `updateMessage` directly from UI; moving to hook-level `togglePin` with partial updates preserved timeline body while keeping real-time `message.updated` propagation.
 - **Provenance:** April 27, 2026 TripChat pin/unpin integrity fix.
+- **Confidence:** high
+
+### OG/share proxy endpoints must fail over to HTML redirect pages when upstream returns JSON errors
+- **Tip:** For branded unfurl proxies (`/t/:tripId`, `/join/:code`), never pass through non-HTML upstream payloads directly. If upstream returns non-2xx or non-HTML (for example Supabase edge runtime degradation JSON), return deterministic HTML with meta-refresh and a visible fallback CTA to the primary app URL.
+- **Applies when:** A proxy endpoint is used by both social crawlers and human taps, and upstream preview generation depends on edge runtime health.
+- **Avoid when:** The endpoint is API-only and intentionally returns machine-readable JSON.
+- **Evidence:** `api/trip-preview` previously surfaced raw `SUPABASE_EDGE_RUNTIME_SERVICE_DEGRADED` JSON in mobile browser, blocking join conversion. HTML fallback restored continuation into `/trip/:id/preview` while keeping normal upstream HTML pass-through behavior.
+- **Provenance:** April 2026 branded trip invite flow degradation hardening.
+- **Confidence:** high
+
+### Shared trip preview flows should self-heal missing active invites before exposing join CTA
+- **Tip:** When `/trip/:id/preview` is the conversion bridge to `/join/:code`, treat missing `active_invite_code` as a recoverable backend state, not a terminal UX. Add an explicit server-side invite bootstrap path and invoke it from preview fetch + one user-triggered retry.
+- **Applies when:** A shareable trip URL must remain joinable even if legacy/manual invite rows were deactivated, expired, or deleted.
+- **Avoid when:** Product policy explicitly requires hosts to manually create every invite and rejects auto-provisioning.
+- **Evidence:** Trip preview previously returned no invite and blocked Join CTA. Adding `ensureInvite` to `get-trip-preview` plus a retry call from `TripPreview` restored deterministic join routing for existing shared trips.
+- **Provenance:** April 2026 trip invite bootstrap hardening.
 - **Confidence:** high

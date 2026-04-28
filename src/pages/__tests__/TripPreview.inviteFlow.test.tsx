@@ -80,11 +80,17 @@ describe('TripPreview invite flow', () => {
       </MemoryRouter>,
     );
 
-    const joinButton = await screen.findByRole('button', { name: 'Join This Trip' });
+    const joinButton = await screen.findByRole('button', {
+      name: /join this trip|request to join/i,
+    });
     await user.click(joinButton);
 
     await waitFor(() => {
       expect(screen.getByText('Join Route')).toBeInTheDocument();
+    });
+
+    expect(mockInvoke).toHaveBeenCalledWith('get-trip-preview', {
+      body: { tripId: '11111111-1111-4111-8111-111111111111', ensureInvite: true },
     });
   });
 
@@ -100,11 +106,73 @@ describe('TripPreview invite flow', () => {
       </MemoryRouter>,
     );
 
-    const joinButton = await screen.findByRole('button', { name: 'Join This Trip' });
+    const joinButton = await screen.findByRole('button', {
+      name: /join this trip|request to join/i,
+    });
     await user.click(joinButton);
 
     await waitFor(() => {
       expect(screen.getByText('Join Route')).toBeInTheDocument();
     });
+  });
+
+  it('retries preview fetch on join click when invite code is initially missing', async () => {
+    const user = userEvent.setup();
+
+    mockInvoke
+      .mockResolvedValueOnce({
+        data: {
+          success: true,
+          trip: {
+            id: '11111111-1111-4111-8111-111111111111',
+            name: 'Festival Weekend',
+            destination: 'Los Angeles',
+            start_date: '2026-05-02',
+            end_date: '2026-05-11',
+            cover_image_url: null,
+            trip_type: 'consumer',
+            member_count: 5,
+            active_invite_code: null,
+          },
+        },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: {
+          success: true,
+          trip: {
+            id: '11111111-1111-4111-8111-111111111111',
+            name: 'Festival Weekend',
+            destination: 'Los Angeles',
+            start_date: '2026-05-02',
+            end_date: '2026-05-11',
+            cover_image_url: null,
+            trip_type: 'consumer',
+            member_count: 5,
+            active_invite_code: 'chravelretry99',
+          },
+        },
+        error: null,
+      });
+
+    render(
+      <MemoryRouter initialEntries={['/trip/11111111-1111-4111-8111-111111111111/preview']}>
+        <Routes>
+          <Route path="/trip/:tripId/preview" element={<TripPreview />} />
+          <Route path="/join/:token" element={<div>Join Route</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const joinButton = await screen.findByRole('button', {
+      name: /join this trip|request to join/i,
+    });
+    await user.click(joinButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Join Route')).toBeInTheDocument();
+    });
+
+    expect(mockInvoke).toHaveBeenCalledTimes(2);
   });
 });

@@ -407,16 +407,11 @@ export const TripChat = React.memo(
       async (messageId: string, shouldPin: boolean) => {
         if (demoMode.isDemoMode) return;
 
-        if (!streamClient) {
-          toast.error('Chat connection unavailable. Please try again.');
-          return;
-        }
-
         try {
           await togglePin(messageId, shouldPin);
         } catch (error) {
           const details = extractStreamError(error);
-          console.error('[TripChat] Stream updateMessage pin toggle failed:', {
+          console.error('[TripChat] Stream pin toggle failed:', {
             code: details.code,
             status: details.status,
             message: details.message,
@@ -429,7 +424,7 @@ export const TripChat = React.memo(
           throw error;
         }
       },
-      [demoMode.isDemoMode, streamClient, togglePin],
+      [demoMode.isDemoMode, togglePin],
     );
 
     // System message preferences — only meaningful for consumer trips. Use the
