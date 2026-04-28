@@ -471,9 +471,33 @@ export async function applySuggestion(
         // TODO: Implement todo creation service
         return null;
 
-      case 'extract_receipt':
-        // TODO: Implement receipt extraction/storage
-        return null;
+      case 'extract_receipt': {
+        if (!suggestion.data) return null;
+
+        const sd = (suggestion.data as any).structured_data || {};
+
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData.user) return null;
+
+        const { data, error } = await supabase
+          .from('receipts')
+          .insert({
+            user_id: userData.user.id,
+            trip_id: tripId,
+            amount: sd.total_cost || 0,
+            description: sd.vendors?.[0] ? `Receipt from ${sd.vendors[0]}` : 'Parsed Receipt',
+            category: 'other',
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('[chatContentParser] Error storing receipt:', error);
+          return null;
+        }
+
+        return data.id;
+      }
 
       default:
         return null;
