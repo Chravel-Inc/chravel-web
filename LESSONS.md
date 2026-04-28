@@ -7,6 +7,22 @@
 
 ## Strategy Tips
 
+### User-trip realtime subscriptions need deterministic backfill triggers
+- **Tip:** For dashboard trip hydration, treat realtime as an accelerator, not the only source. Invalidate trips on channel `SUBSCRIBED` (reconnect path) and when the app returns to foreground (`focus` / visible tab) so missed websocket events do not strand approved users in stale pending state.
+- **Applies when:** `useTrips` depends on `trip_members` / `trip_join_requests` realtime events for approval state transitions.
+- **Avoid when:** A dedicated polling cadence already guarantees state convergence and additional invalidations would cause unacceptable load.
+- **Evidence:** Users could remain stale after approval if app backgrounding or reconnect timing dropped realtime events; adding reconnect + foreground backfills restored deterministic hydration.
+- **Provenance:** April 2026 PR #416 follow-up audit.
+- **Confidence:** high
+
+### Trip preview CTA should resolve membership and join-request status together
+- **Tip:** In shared/public trip preview surfaces, don't gate CTA behavior only on `active_invite_code` + `trip_members`. Also read the latest `trip_join_requests.status` for the signed-in user so pending requesters get a deterministic status route instead of a dead-end "invite still setting up" toast.
+- **Applies when:** `/trip/:tripId/preview` or branded `/t/:tripId` pages determine where authenticated non-members should be sent.
+- **Avoid when:** Product explicitly wants to hide request status from preview users.
+- **Evidence:** Users with pending requests could hit "Open in ChravelApp" while `active_invite_code` was null and receive no navigation; adding join-request status fallback changed CTA to "View Request Status" and navigated to Home requests context.
+- **Provenance:** April 2026 trip invite flow hardening follow-up.
+- **Confidence:** high
+
 ### Dashboard request cards and request counters must share the same outbound source-of-truth
 - **Tip:** If request cards can render from fallback outbound join-request rows when pending trips are not projected yet, derive the Requests counter from the same outbound rows (or a deterministic max merge) to prevent `0 Requests` while cards are visible.
 - **Applies when:** Home dashboard combines `useTrips` pending membership rows with `useDashboardJoinRequests` outbound rows.

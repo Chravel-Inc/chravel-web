@@ -69,5 +69,7 @@ describe('useUserTripsRealtime recovery guards', () => {
     expect(shouldBackfillTripsOnSubscribe('SUBSCRIBED', false)).toBe(false);
     expect(shouldBackfillTripsOnSubscribe('SUBSCRIBED', true)).toBe(true);
     expect(shouldBackfillTripsOnSubscribe('CHANNEL_ERROR', true)).toBe(false);
+    expect(shouldBackfillTripsOnSubscribe('TIMED_OUT', true)).toBe(false);
+    expect(shouldBackfillTripsOnSubscribe('CLOSED', true)).toBe(false);
   });
 });

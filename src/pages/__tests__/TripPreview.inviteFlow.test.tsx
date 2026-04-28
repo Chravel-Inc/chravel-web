@@ -7,6 +7,7 @@ import TripPreview from '../TripPreview';
 
 const mockInvoke = vi.fn();
 const mockMaybeSingle = vi.fn();
+const mockJoinRequestMaybeSingle = vi.fn();
 
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({
@@ -32,6 +33,21 @@ vi.mock('@/integrations/supabase/client', () => ({
             eq: () => ({
               eq: () => ({
                 maybeSingle: () => mockMaybeSingle(),
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === 'trip_join_requests') {
+        return {
+          select: () => ({
+            eq: () => ({
+              eq: () => ({
+                order: () => ({
+                  limit: () => ({
+                    maybeSingle: () => mockJoinRequestMaybeSingle(),
+                  }),
+                }),
               }),
             }),
           }),
@@ -66,6 +82,7 @@ describe('TripPreview invite flow', () => {
     });
 
     mockMaybeSingle.mockResolvedValue({ data: null, error: null });
+    mockJoinRequestMaybeSingle.mockResolvedValue({ data: null, error: null });
   });
 
   it('routes authenticated non-members through /join/:code when preview returns active invite code', async () => {
@@ -174,5 +191,46 @@ describe('TripPreview invite flow', () => {
     });
 
     expect(mockInvoke).toHaveBeenCalledTimes(2);
+  });
+
+  it('routes non-members with pending requests back to home status view', async () => {
+    const user = userEvent.setup();
+    mockInvoke.mockResolvedValueOnce({
+      data: {
+        success: true,
+        trip: {
+          id: '11111111-1111-4111-8111-111111111111',
+          name: 'Festival Weekend',
+          destination: 'Los Angeles',
+          start_date: '2026-05-02',
+          end_date: '2026-05-11',
+          cover_image_url: null,
+          trip_type: 'consumer',
+          member_count: 5,
+          active_invite_code: null,
+        },
+      },
+      error: null,
+    });
+    mockJoinRequestMaybeSingle.mockResolvedValue({
+      data: { status: 'pending' },
+      error: null,
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/trip/11111111-1111-4111-8111-111111111111/preview']}>
+        <Routes>
+          <Route path="/trip/:tripId/preview" element={<TripPreview />} />
+          <Route path="/" element={<div>Home Route</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const statusButton = await screen.findByRole('button', { name: /view request status/i });
+    await user.click(statusButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Home Route')).toBeInTheDocument();
+    });
   });
 });
