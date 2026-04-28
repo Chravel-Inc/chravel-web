@@ -3,7 +3,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { toast } from 'sonner';
 import TripPreview from '../TripPreview';
+
+vi.mock('sonner', () => ({
+  toast: {
+    error: vi.fn(),
+    info: vi.fn(),
+    success: vi.fn(),
+  },
+}));
 
 const mockInvoke = vi.fn();
 const mockMaybeSingle = vi.fn();
@@ -231,6 +240,35 @@ describe('TripPreview invite flow', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Home Route')).toBeInTheDocument();
+    });
+  });
+
+  it('surfaces a toast when membership or join-request checks fail instead of mis-routing', async () => {
+    const user = userEvent.setup();
+
+    mockMaybeSingle.mockResolvedValue({
+      data: null,
+      error: { message: 'network', code: 'PGRST301' },
+    });
+    mockJoinRequestMaybeSingle.mockResolvedValue({ data: null, error: null });
+
+    render(
+      <MemoryRouter initialEntries={['/trip/11111111-1111-4111-8111-111111111111/preview']}>
+        <Routes>
+          <Route path="/trip/:tripId/preview" element={<TripPreview />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const joinButton = await screen.findByRole('button', {
+      name: /join this trip|request to join/i,
+    });
+    await user.click(joinButton);
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        'Could not verify trip access. Check your connection and try again.',
+      );
     });
   });
 });

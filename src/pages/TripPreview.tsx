@@ -81,11 +81,18 @@ const TripPreview = () => {
   const [isMember, setIsMember] = useState<boolean | null>(null);
   const [joinRequestStatus, setJoinRequestStatus] = useState<JoinRequestStatus>(null);
   const [activeInviteCode, setActiveInviteCode] = useState<string | null>(null);
+  /** Set when parallel membership/join-request reads fail so we do not treat null data as authoritative. */
+  const [accessCheckFailed, setAccessCheckFailed] = useState(false);
 
   // True while membership/invite checks are still in-flight for a logged-in user on a real trip.
   // Prevents the CTA from incorrectly denying access before async checks resolve.
   const accessLoading =
-    !!user && !!tripId && isUuid(tripId) && isMember === null && joinRequestStatus === null;
+    !!user &&
+    !!tripId &&
+    isUuid(tripId) &&
+    isMember === null &&
+    joinRequestStatus === null &&
+    !accessCheckFailed;
 
   // Safety timeout - prevent infinite loading states
   useEffect(() => {
@@ -180,6 +187,15 @@ const TripPreview = () => {
       ]);
 
       if (!mounted) return;
+
+      if (memberResult.error || joinRequestResult.error) {
+        setAccessCheckFailed(true);
+        setIsMember(false);
+        setJoinRequestStatus(null);
+        return;
+      }
+
+      setAccessCheckFailed(false);
       setIsMember(!!memberResult.data);
       setJoinRequestStatus((joinRequestResult.data?.status as JoinRequestStatus) ?? null);
     }
@@ -295,6 +311,10 @@ const TripPreview = () => {
     }
 
     if (user) {
+      if (accessCheckFailed) {
+        toast.error('Could not verify trip access. Check your connection and try again.');
+        return;
+      }
       // Still resolving membership/invite — don't deny access yet
       if (isMember === null) {
         return;
@@ -323,7 +343,7 @@ const TripPreview = () => {
         return;
       }
 
-      const [{ data: refreshedMember }, { data: refreshedJoinRequest }] = await Promise.all([
+      const [refreshedMemberResult, refreshedJoinRequestResult] = await Promise.all([
         supabase
           .from('trip_members')
           .select('id')
@@ -339,6 +359,14 @@ const TripPreview = () => {
           .limit(1)
           .maybeSingle(),
       ]);
+
+      if (refreshedMemberResult.error || refreshedJoinRequestResult.error) {
+        toast.error('Could not verify trip access. Check your connection and try again.');
+        return;
+      }
+
+      const refreshedMember = refreshedMemberResult.data;
+      const refreshedJoinRequest = refreshedJoinRequestResult.data;
 
       if (refreshedMember) {
         setIsMember(true);

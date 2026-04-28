@@ -8,7 +8,7 @@
 ## Strategy Tips
 
 ### User-trip realtime subscriptions need deterministic backfill triggers
-- **Tip:** For dashboard trip hydration, treat realtime as an accelerator, not the only source. Invalidate trips on channel `SUBSCRIBED` (reconnect path) and when the app returns to foreground (`focus` / visible tab) so missed websocket events do not strand approved users in stale pending state.
+- **Tip:** For dashboard trip hydration, treat realtime as an accelerator, not the only source. Invalidate trips when the channel reaches `SUBSCRIBED` again after the initial subscription (reconnect/resubscribe path), and when the app returns to foreground (`focus` / visible tab), so missed websocket events do not strand approved users in stale pending state. Avoid invalidating on the very first `SUBSCRIBED` if the same mount already ran an initial trip fetch, or you duplicate refetches without adding recovery value.
 - **Applies when:** `useTrips` depends on `trip_members` / `trip_join_requests` realtime events for approval state transitions.
 - **Avoid when:** A dedicated polling cadence already guarantees state convergence and additional invalidations would cause unacceptable load.
 - **Evidence:** Users could remain stale after approval if app backgrounding or reconnect timing dropped realtime events; adding reconnect + foreground backfills restored deterministic hydration.
