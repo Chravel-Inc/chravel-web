@@ -2,7 +2,7 @@ import 'https://deno.land/x/xhr@0.1.0/mod.ts';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
 import { invokeChatModel, extractTextFromChatResponse } from '../_shared/gemini.ts';
-import { validateExternalHttpsUrl } from '../_shared/validation.ts';
+import { validateExternalUrlBeforeFetch } from '../_shared/validation.ts';
 
 import { getCorsHeaders } from '../_shared/cors.ts';
 
@@ -100,7 +100,7 @@ serve(async req => {
       );
     }
 
-    if (!validateExternalHttpsUrl(receiptImageUrl)) {
+    if (!(await validateExternalUrlBeforeFetch(receiptImageUrl))) {
       return new Response(JSON.stringify({ error: 'receiptImageUrl must be HTTPS and external' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

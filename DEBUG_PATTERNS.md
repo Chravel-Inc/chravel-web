@@ -351,6 +351,33 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Fixed in:** April 2026 invite flow deep-dive pass
 - **Confidence:** medium-high
 
+## Branded trip-share proxy renders raw JSON when preview edge runtime is degraded
+- **Status:** fixed
+- **Subsystem:** trip invite/share preview proxy (`/t/:tripId` on branded host)
+- **Bug class:** error-boundary / content-type fallback gap
+- **Symptom:** Opening a branded trip share link shows raw JSON like `{"code":"SUPABASE_EDGE_RUNTIME_SERVICE_DEGRADED"...}` instead of redirecting into the app join flow.
+- **User-facing impact:** High — users cannot continue through invite/join flow from branded link during upstream preview outages.
+- **Trigger conditions:** `api/trip-preview` receives non-HTML response (often 503 JSON) from Supabase `generate-trip-preview`.
+- **Likely root cause:** Proxy passed upstream body/status through verbatim without guarding for non-HTML degraded payloads.
+- **Smallest safe fix:** In `api/trip-preview`, detect `!upstream.ok || !bodyLooksHtml` and return fallback HTML with meta-refresh + CTA to `https://chravel.app/trip/:tripId/preview`.
+- **Regression risks:** None meaningful; successful HTML previews still pass through unchanged.
+- **Related files:** `api/trip-preview.ts`, `src/__tests__/trip-preview-api.test.ts`
+- **Fixed in:** April 2026 trip-join degradation hardening.
+- **Confidence:** high
+
+## Trip preview has no active invite code, blocking join CTA for shared UUID trip links
+- **Status:** fixed
+- **Subsystem:** trip preview → invite bridge (`get-trip-preview` + `TripPreview`)
+- **Bug class:** missing invite bootstrap / stale preview state
+- **Symptom:** User opens `/t/:tripId` or `/trip/:tripId/preview`, clicks “Join This Trip,” and gets “ask organizer for invite link” even though they already have the trip share link.
+- **User-facing impact:** High — shared trip cannot convert to join-request flow without manual organizer intervention.
+- **Trigger conditions:** Trip has no active row in `trip_invites` (inactive/expired/deleted historical links) when preview is fetched.
+- **Likely root cause:** Preview flow treated existing active invite as required input but did not self-heal missing invite state for shared trip links.
+- **Smallest safe fix:** Add optional `ensureInvite` behavior in `get-trip-preview` to auto-create one active invite when missing, and make `TripPreview` request with `ensureInvite: true` plus one retry on join click.
+- **Related files:** `supabase/functions/get-trip-preview/index.ts`, `src/pages/TripPreview.tsx`, `src/pages/__tests__/TripPreview.inviteFlow.test.tsx`
+- **Fixed in:** April 2026 trip invite bootstrap hardening.
+- **Confidence:** high
+
 ## 5. Stream ReadChannel Permission Denial for Existing Trip Members
 
 **Symptom:** Messages tab shows raw Stream error `GetOrCreateChannel failed ... ReadChannel` with retry loop.

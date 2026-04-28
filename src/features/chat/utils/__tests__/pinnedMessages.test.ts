@@ -77,5 +77,14 @@ describe('isPinnedMessage', () => {
         isPinned: false,
       }),
     ).toBe(false);
+
+    expect(
+      isPinnedMessage({
+        id: 'missing-pin-flag',
+        text: 'hello',
+        sender: { id: 'u1', name: 'A' },
+        createdAt: '2026-01-01T00:00:00.000Z',
+      }),
+    ).toBe(false);
   });
 });

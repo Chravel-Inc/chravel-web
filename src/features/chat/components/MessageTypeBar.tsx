@@ -97,7 +97,7 @@ export const MessageTypeBar = ({
           <button
             onClick={() => onFilterChange('all')}
             className={cn(
-              'relative flex items-center gap-1.5 px-3 py-2 rounded-xl',
+              'relative flex min-h-11 items-center gap-1.5 px-3 py-2 rounded-xl',
               'text-sm font-medium transition-all duration-200',
               activeFilter === 'all' ? SEGMENT_COLORS.all.active : SEGMENT_COLORS.all.inactive,
             )}
@@ -116,7 +116,7 @@ export const MessageTypeBar = ({
           <button
             onClick={() => onFilterChange('broadcasts')}
             className={cn(
-              'relative flex items-center gap-1.5 px-3 py-2 rounded-xl',
+              'relative flex min-h-11 items-center gap-1.5 px-3 py-2 rounded-xl',
               'text-sm font-medium transition-all duration-200',
               activeFilter === 'broadcasts'
                 ? SEGMENT_COLORS.broadcasts.active
@@ -143,7 +143,7 @@ export const MessageTypeBar = ({
           <button
             onClick={() => onFilterChange('pinned')}
             className={cn(
-              'relative flex items-center gap-1.5 px-3 py-2 rounded-xl',
+              'relative flex min-h-11 items-center gap-1.5 px-3 py-2 rounded-xl',
               'text-sm font-medium transition-all duration-200',
               activeFilter === 'pinned'
                 ? SEGMENT_COLORS.pinned.active
@@ -178,7 +178,7 @@ export const MessageTypeBar = ({
                   }}
                   disabled={!hasChannels}
                   className={cn(
-                    'relative flex items-center gap-1.5 px-3 py-2 rounded-xl',
+                    'relative flex min-h-11 items-center gap-1.5 px-3 py-2 rounded-xl',
                     'text-sm font-medium transition-all duration-200',
                     !hasChannels && 'opacity-40 cursor-not-allowed',
                     activeFilter === 'channels' && hasChannels
@@ -214,7 +214,7 @@ export const MessageTypeBar = ({
                         setChannelPopoverOpen(false);
                       }}
                       className={cn(
-                        'flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200',
+                        'flex min-h-11 items-center justify-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200',
                         !activeChannel
                           ? SEGMENT_COLORS.channels.active
                           : 'text-black dark:text-white/70 hover:bg-gray-100 dark:hover:bg-white/10',
@@ -233,7 +233,7 @@ export const MessageTypeBar = ({
                           key={channel.id}
                           onClick={() => handleChannelSelect(channel)}
                           className={cn(
-                            'flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200',
+                            'flex min-h-11 items-center justify-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200',
                             activeChannel?.id === channel.id
                               ? SEGMENT_COLORS.channels.active
                               : 'text-black dark:text-white/70 hover:bg-gray-100 dark:hover:bg-white/10',
@@ -258,7 +258,7 @@ export const MessageTypeBar = ({
           <button
             onClick={onSearchClick}
             className={cn(
-              'relative flex items-center gap-1.5 px-3 py-2 rounded-xl',
+              'relative flex min-h-11 items-center gap-1.5 px-3 py-2 rounded-xl',
               'text-sm font-medium transition-all duration-200',
               SEGMENT_COLORS.search.inactive,
             )}
