@@ -926,9 +926,15 @@ const Index = () => {
           <Suspense fallback={null}>
             <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
 
-            <CreateTripModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
+            <CreateTripModal
+              isOpen={isCreateModalOpen}
+              onClose={() => setIsCreateModalOpen(false)}
+            />
 
-            <UpgradeModal isOpen={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)} />
+            <UpgradeModal
+              isOpen={isUpgradeModalOpen}
+              onClose={() => setIsUpgradeModalOpen(false)}
+            />
 
             <SettingsMenu
               isOpen={isSettingsOpen}
