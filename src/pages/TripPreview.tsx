@@ -24,6 +24,8 @@ interface TripPreviewData {
   description?: string | null;
 }
 
+type JoinRequestStatus = 'pending' | 'approved' | 'rejected' | null;
+
 const isUuid = (value: string): boolean =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 
@@ -77,11 +79,20 @@ const TripPreview = () => {
   const [tripData, setTripData] = useState<TripPreviewData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isMember, setIsMember] = useState<boolean | null>(null);
+  const [joinRequestStatus, setJoinRequestStatus] = useState<JoinRequestStatus>(null);
   const [activeInviteCode, setActiveInviteCode] = useState<string | null>(null);
+  /** Set when parallel membership/join-request reads fail so we do not treat null data as authoritative. */
+  const [accessCheckFailed, setAccessCheckFailed] = useState(false);
 
   // True while membership/invite checks are still in-flight for a logged-in user on a real trip.
   // Prevents the CTA from incorrectly denying access before async checks resolve.
-  const accessLoading = !!user && !!tripId && isUuid(tripId) && isMember === null;
+  const accessLoading =
+    !!user &&
+    !!tripId &&
+    isUuid(tripId) &&
+    isMember === null &&
+    joinRequestStatus === null &&
+    !accessCheckFailed;
 
   // Safety timeout - prevent infinite loading states
   useEffect(() => {
@@ -158,15 +169,35 @@ const TripPreview = () => {
     let mounted = true;
 
     async function checkMembership() {
-      const { data: member } = await supabase
-        .from('trip_members')
-        .select('id')
-        .eq('trip_id', tripId!)
-        .eq('user_id', user!.id)
-        .maybeSingle();
+      const [memberResult, joinRequestResult] = await Promise.all([
+        supabase
+          .from('trip_members')
+          .select('id')
+          .eq('trip_id', tripId!)
+          .eq('user_id', user!.id)
+          .maybeSingle(),
+        supabase
+          .from('trip_join_requests')
+          .select('status')
+          .eq('trip_id', tripId!)
+          .eq('user_id', user!.id)
+          .order('requested_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
 
       if (!mounted) return;
-      setIsMember(!!member);
+
+      if (memberResult.error || joinRequestResult.error) {
+        setAccessCheckFailed(true);
+        setIsMember(false);
+        setJoinRequestStatus(null);
+        return;
+      }
+
+      setAccessCheckFailed(false);
+      setIsMember(!!memberResult.data);
+      setJoinRequestStatus((joinRequestResult.data?.status as JoinRequestStatus) ?? null);
     }
 
     checkMembership();
@@ -280,6 +311,10 @@ const TripPreview = () => {
     }
 
     if (user) {
+      if (accessCheckFailed) {
+        toast.error('Could not verify trip access. Check your connection and try again.');
+        return;
+      }
       // Still resolving membership/invite — don't deny access yet
       if (isMember === null) {
         return;
@@ -287,6 +322,11 @@ const TripPreview = () => {
       // If we know user is a member, go directly to trip
       if (isMember) {
         navigate(tripRoute);
+        return;
+      }
+      if (joinRequestStatus === 'pending') {
+        toast.info("Your join request is still pending. You'll see this trip once approved.");
+        navigate('/');
         return;
       }
       // If there's an active invite, route through the join flow
@@ -303,8 +343,46 @@ const TripPreview = () => {
         return;
       }
 
-      // No invite code after retry — stay on preview and inform the user.
-      toast.info('Trip invite is still being set up. Please try again in a moment.');
+      const [refreshedMemberResult, refreshedJoinRequestResult] = await Promise.all([
+        supabase
+          .from('trip_members')
+          .select('id')
+          .eq('trip_id', tripId)
+          .eq('user_id', user.id)
+          .maybeSingle(),
+        supabase
+          .from('trip_join_requests')
+          .select('status')
+          .eq('trip_id', tripId)
+          .eq('user_id', user.id)
+          .order('requested_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+
+      if (refreshedMemberResult.error || refreshedJoinRequestResult.error) {
+        toast.error('Could not verify trip access. Check your connection and try again.');
+        return;
+      }
+
+      const refreshedMember = refreshedMemberResult.data;
+      const refreshedJoinRequest = refreshedJoinRequestResult.data;
+
+      if (refreshedMember) {
+        setIsMember(true);
+        navigate(tripRoute);
+        return;
+      }
+
+      if (refreshedJoinRequest?.status === 'pending') {
+        setJoinRequestStatus('pending');
+        toast.info("Your join request is pending. We'll move you into the trip once approved.");
+        navigate('/');
+        return;
+      }
+
+      // No invite code/membership/request after retry — stay on preview and inform the user.
+      toast.info('Trip access is still syncing. Please try again in a moment.');
       return;
     }
 
@@ -458,6 +536,8 @@ const TripPreview = () => {
                 helperText = 'Create a free account to continue';
               } else if (isMember) {
                 ctaLabel = 'Open Trip';
+              } else if (joinRequestStatus === 'pending') {
+                ctaLabel = 'View Request Status';
               } else if (activeInviteCode) {
                 ctaLabel = 'Join This Trip';
               } else {
