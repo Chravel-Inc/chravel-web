@@ -8,6 +8,7 @@
 import type { BillingProvider } from './base';
 import { StripeProvider } from './stripe';
 import { AppleIAPProvider } from './iap';
+import { GooglePlayProvider } from './google';
 import { BILLING_FLAGS, BILLING_PRODUCTS } from '../config';
 import type { SubscriptionTier, BillingPlatform, PurchaseRequest } from '../types';
 import { isLikelyIosWkWebViewUserAgent, isNativeWebView } from '@/utils/platformDetection';
@@ -15,6 +16,7 @@ import { isLikelyIosWkWebViewUserAgent, isNativeWebView } from '@/utils/platform
 // Singleton instances
 let stripeProvider: StripeProvider | null = null;
 let appleProvider: AppleIAPProvider | null = null;
+let googleProvider: GooglePlayProvider | null = null;
 
 const androidBillingUnavailableProvider: BillingProvider = {
   platform: 'android',
@@ -85,13 +87,23 @@ export function getAppleProvider(): AppleIAPProvider {
 }
 
 /**
+ * Get the Google Play provider (singleton)
+ */
+export function getGoogleProvider(): GooglePlayProvider {
+  if (!googleProvider) {
+    googleProvider = new GooglePlayProvider();
+  }
+  return googleProvider;
+}
+
+/**
  * Get the appropriate billing provider for the current context
  *
  * Logic:
  * - iOS + Consumer plan + IAP enabled → Apple IAP
  * - iOS + Consumer plan + IAP disabled → Show "subscribe on web"
  * - iOS + Pro plan → Stripe (B2B exception)
- * - Android + Google Billing enabled → Google Play (TODO provider)
+ * - Android + Google Billing enabled → Google Play
  * - Android + Consumer + Google Billing disabled → unavailable provider (block web fallback)
  * - Web → Stripe
  */
@@ -131,8 +143,7 @@ export function getBillingProvider(tier?: SubscriptionTier): BillingProvider {
     }
 
     if (BILLING_FLAGS.GOOGLE_BILLING_ENABLED) {
-      // TODO: Implement Google Play provider and return it here.
-      return androidBillingUnavailableProvider;
+      return getGoogleProvider();
     }
 
     // Consumer plans must not silently fall back to web checkout on Android.
