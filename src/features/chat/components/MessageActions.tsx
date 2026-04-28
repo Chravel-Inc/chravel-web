@@ -206,10 +206,11 @@ export const MessageActions: React.FC<MessageActionsComponentProps> = ({
       await onTogglePin(messageId, !isPinned);
       toast.success(isPinned ? 'Message unpinned' : 'Message pinned');
     } catch (error) {
+      // Parent handler (TripChat) shows a specific error toast with the Stream
+      // error code; we only log here so we don't double-toast.
       if (import.meta.env.DEV) {
         console.error('Error updating pin state:', error);
       }
-      toast.error('Failed to update pin status');
     } finally {
       setIsSubmitting(false);
     }

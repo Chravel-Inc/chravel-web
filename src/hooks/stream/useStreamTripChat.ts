@@ -1129,12 +1129,16 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       throw new Error('Stream client unavailable');
     }
 
-    await streamClient.partialUpdateMessage({
-      id: messageId,
-      set: {
-        pinned: shouldPin,
-      },
-    });
+    // Use Stream's canonical pin/unpin endpoints — they set `pinned`, `pinned_at`,
+    // and `pinned_by` server-side, emit `message.updated` for all subscribers, and
+    // gate on the `pin-message` channel capability. The previous partial update
+    // call passed `{ id, set }` as the first arg; the SDK signature is
+    // (id: string, { set, unset }), so every request was rejected.
+    if (shouldPin) {
+      await streamClient.pinMessage(messageId);
+    } else {
+      await streamClient.unpinMessage(messageId);
+    }
   }, []);
 
   return {
