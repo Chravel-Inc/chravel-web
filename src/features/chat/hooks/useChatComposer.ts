@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useChatMessageParser } from './useChatMessageParser';
 import { getMockAvatar } from '@/utils/mockAvatars';
 import { useAuth } from '@/hooks/useAuth';
+import { usePayments } from '@/hooks/usePayments';
 import { derivePinnedMessages } from '../utils/pinnedMessages';
 
 export interface ChatMessage {
@@ -66,6 +67,7 @@ export const useChatComposer = ({
 
   const { user } = useAuth();
   const { parseMessage } = useChatMessageParser();
+  const { paymentMethods } = usePayments(tripId);
 
   const createMessage = useCallback(
     (
@@ -84,7 +86,10 @@ export const useChatComposer = ({
 
       if (isPayment && paymentData) {
         const perPersonAmount = (paymentData.amount / paymentData.splitCount).toFixed(2);
-        const preferredPaymentMethod = 'Venmo: @yourvenmo'; // TODO: Fetch from user's payment methods
+        const preferredMethod = paymentMethods?.find(m => m.isPreferred) || paymentMethods?.[0];
+        const preferredPaymentMethod = preferredMethod
+          ? `${preferredMethod.displayName || preferredMethod.type.charAt(0).toUpperCase() + preferredMethod.type.slice(1)}: ${preferredMethod.identifier}`
+          : 'your preferred payment method';
 
         return {
           id: messageId,
@@ -121,7 +126,7 @@ export const useChatComposer = ({
           : undefined,
       };
     },
-    [replyingTo, user?.avatar, user?.id, demoMode],
+    [replyingTo, user?.avatar, user?.id, demoMode, paymentMethods],
   );
 
   const sendMessage = useCallback(

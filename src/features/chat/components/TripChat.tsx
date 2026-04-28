@@ -683,6 +683,9 @@ export const TripChat = React.memo(
           | 'notification'
           | 'notification_deeplink' = 'reply_badge',
       ) => {
+        const telemetrySource =
+          source === 'notification_deeplink' ? 'notification' : source;
+
         const streamMessage = liveMessages.find(m => m.id === messageId);
         if (streamMessage) {
           const streamUser = (streamMessage as any).user;
@@ -698,10 +701,7 @@ export const TripChat = React.memo(
             messageEvents.threadOpened({
               trip_id: resolvedTripId,
               parent_message_id: messageId,
-              source: (source === 'notification_deeplink' ? 'notification' : source) as
-                | 'reply_badge'
-                | 'search_result'
-                | 'notification',
+              source: telemetrySource,
             });
           }
           return;
