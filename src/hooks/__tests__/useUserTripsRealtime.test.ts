@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  shouldBackfillTripsOnSubscribe,
   shouldInvalidateTripsForJoinRequestChange,
   shouldInvalidateTripsForMemberChange,
+  shouldRefreshTripsOnForeground,
 } from '../useUserTripsRealtime';
 
 describe('useUserTripsRealtime member-change filtering', () => {
@@ -54,5 +56,18 @@ describe('useUserTripsRealtime join-request filtering', () => {
         'user-1',
       ),
     ).toBe(false);
+  });
+});
+
+describe('useUserTripsRealtime recovery guards', () => {
+  it('refreshes trips when the app returns to the foreground', () => {
+    expect(shouldRefreshTripsOnForeground('visible')).toBe(true);
+    expect(shouldRefreshTripsOnForeground('hidden')).toBe(false);
+  });
+
+  it('backfills trips only on reconnect subscriptions, not the first subscribe', () => {
+    expect(shouldBackfillTripsOnSubscribe('SUBSCRIBED', false)).toBe(false);
+    expect(shouldBackfillTripsOnSubscribe('SUBSCRIBED', true)).toBe(true);
+    expect(shouldBackfillTripsOnSubscribe('CHANNEL_ERROR', true)).toBe(false);
   });
 });

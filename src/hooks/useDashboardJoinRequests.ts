@@ -56,6 +56,19 @@ type CancelOwnJoinRequestResult = {
   message?: string;
 };
 
+export function shouldRefreshJoinRequestsOnForeground(
+  visibilityState: DocumentVisibilityState,
+): boolean {
+  return visibilityState === 'visible';
+}
+
+export function shouldBackfillJoinRequestsOnSubscribe(
+  status: string,
+  hasCompletedInitialSubscribe: boolean,
+): boolean {
+  return status === 'SUBSCRIBED' && hasCompletedInitialSubscribe;
+}
+
 export function mapCancelOwnJoinRequestResult(data: CancelOwnJoinRequestResult | null): {
   success: boolean;
   message?: string;
@@ -162,6 +175,7 @@ export function useDashboardJoinRequests(isDemoMode = false) {
             destination,
             start_date,
             end_date,
+            member_count,
             cover_image_url,
             trip_type
           )
@@ -216,7 +230,9 @@ export function useDashboardJoinRequests(isDemoMode = false) {
       if (tripIds.length > 0) {
         const { data: tripsData, error: tripsError } = await supabase
           .from('trips')
-          .select('id, name, destination, start_date, end_date, cover_image_url, trip_type')
+          .select(
+            'id, name, destination, start_date, end_date, member_count, cover_image_url, trip_type',
+          )
           .in('id', tripIds);
 
         if (!tripsError && tripsData) {
@@ -249,6 +265,14 @@ export function useDashboardJoinRequests(isDemoMode = false) {
   useEffect(() => {
     if (isDemoMode || !user?.id) return;
 
+    const handleForegroundRefresh = () => {
+      if (shouldRefreshJoinRequestsOnForeground(document.visibilityState)) {
+        void fetchRequests();
+      }
+    };
+
+    let hasCompletedInitialSubscribe = false;
+
     const channel = supabase
       .channel(`dashboard_join_requests:${user.id}`)
       .on(
@@ -262,9 +286,22 @@ export function useDashboardJoinRequests(isDemoMode = false) {
           fetchRequests();
         },
       )
-      .subscribe();
+      .subscribe(status => {
+        if (shouldBackfillJoinRequestsOnSubscribe(status, hasCompletedInitialSubscribe)) {
+          void fetchRequests();
+          return;
+        }
+
+        if (status !== 'SUBSCRIBED') return;
+        hasCompletedInitialSubscribe = true;
+      });
+
+    document.addEventListener('visibilitychange', handleForegroundRefresh);
+    window.addEventListener('focus', handleForegroundRefresh);
 
     return () => {
+      document.removeEventListener('visibilitychange', handleForegroundRefresh);
+      window.removeEventListener('focus', handleForegroundRefresh);
       supabase.removeChannel(channel);
     };
   }, [user?.id, isDemoMode, fetchRequests]);
