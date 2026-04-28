@@ -165,7 +165,6 @@ export const PlacesSection = ({
     };
   };
 
-
   return (
     <div className="relative mb-12 mobile-safe-scroll">
       {(isRefreshing || pullDistance > 0) && (

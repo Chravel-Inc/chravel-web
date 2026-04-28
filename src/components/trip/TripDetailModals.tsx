@@ -5,16 +5,10 @@ import React, { lazy, Suspense } from 'react';
 // importing them just bloats the initial TripDetail bundle. Lazy + Suspense
 // (with `null` fallback so the closed state is invisible) shaves ~40-60KB
 // off the first paint and pulls the chunk only when the user opens the modal.
-const SettingsMenu = lazy(() =>
-  import('../SettingsMenu').then(m => ({ default: m.SettingsMenu })),
-);
-const InviteModal = lazy(() =>
-  import('../InviteModal').then(m => ({ default: m.InviteModal })),
-);
+const SettingsMenu = lazy(() => import('../SettingsMenu').then(m => ({ default: m.SettingsMenu })));
+const InviteModal = lazy(() => import('../InviteModal').then(m => ({ default: m.InviteModal })));
 const AuthModal = lazy(() => import('../AuthModal').then(m => ({ default: m.AuthModal })));
-const TripSettings = lazy(() =>
-  import('../TripSettings').then(m => ({ default: m.TripSettings })),
-);
+const TripSettings = lazy(() => import('../TripSettings').then(m => ({ default: m.TripSettings })));
 const PlusUpsellModal = lazy(() =>
   import('../PlusUpsellModal').then(m => ({ default: m.PlusUpsellModal })),
 );
