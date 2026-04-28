@@ -4,9 +4,10 @@ import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../hooks/useAuth';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { tripsData } from '../data/tripsData';
-import { Users, MapPin, Calendar, Share2, ExternalLink, Sparkles } from 'lucide-react';
+import { Users, MapPin, Share2, ExternalLink, Sparkles } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { CalendarGlyph } from '../components/ui/CalendarGlyph';
 import { toast } from 'sonner';
 
 interface TripPreviewData {
@@ -409,7 +410,7 @@ const TripPreview = () => {
             )}
 
             <div className="flex items-center gap-3 text-white/80">
-              <Calendar className="h-5 w-5 gold-gradient-icon flex-shrink-0" />
+              <CalendarGlyph size={20} className="gold-gradient-icon flex-shrink-0" />
               <span>
                 {formatDateRange(tripData.start_date, tripData.end_date, tripData.dateRange)}
               </span>

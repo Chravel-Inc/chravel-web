@@ -381,21 +381,34 @@ const Index = () => {
 
   // Calculate requests count per view mode (scoped by trip_type)
   const requestsCounts = useMemo(() => {
-    let consumer = 0;
-    let pro = 0;
-    let event = 0;
-
+    const pendingTripCounts = { consumer: 0, pro: 0, event: 0 };
     userTripsRaw
       .filter(trip => trip.membership_status === 'pending' && !trip.is_archived)
       .forEach(trip => {
         const tripType = trip.trip_type ?? 'consumer';
-        if (tripType === 'pro') pro++;
-        else if (tripType === 'event') event++;
-        else consumer++;
+        if (tripType === 'pro') pendingTripCounts.pro++;
+        else if (tripType === 'event') pendingTripCounts.event++;
+        else pendingTripCounts.consumer++;
       });
 
-    return { consumer, pro, event };
-  }, [userTripsRaw]);
+    const outboundRequestCounts = { consumer: 0, pro: 0, event: 0 };
+    dashboardJoinRequests
+      .filter(req => req.direction === 'outbound')
+      .forEach(req => {
+        const rawType =
+          req.trip?.trip_type ?? userTripsRaw.find(t => t.id === req.trip_id)?.trip_type;
+        const tripType = rawType ?? 'consumer';
+        if (tripType === 'pro') outboundRequestCounts.pro++;
+        else if (tripType === 'event') outboundRequestCounts.event++;
+        else outboundRequestCounts.consumer++;
+      });
+
+    return {
+      consumer: Math.max(pendingTripCounts.consumer, outboundRequestCounts.consumer),
+      pro: Math.max(pendingTripCounts.pro, outboundRequestCounts.pro),
+      event: Math.max(pendingTripCounts.event, outboundRequestCounts.event),
+    };
+  }, [dashboardJoinRequests, userTripsRaw]);
 
   const filteredDashboardJoinRequests = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();

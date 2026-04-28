@@ -11,7 +11,6 @@ import { toast } from 'sonner';
 import {
   Users,
   MapPin,
-  Calendar,
   Clock,
   AlertCircle,
   CheckCircle2,
@@ -25,6 +24,7 @@ import {
   UserX,
   Sparkles,
 } from 'lucide-react';
+import { CalendarGlyph } from '../components/ui/CalendarGlyph';
 import {
   InviteError,
   INVITE_ERROR_SPECS,
@@ -862,7 +862,7 @@ const JoinTrip = () => {
           <div className="bg-muted/30 border border-border rounded-xl p-4 mb-6 space-y-3">
             {formatDateRange() && (
               <div className="flex items-center gap-3 text-sm">
-                <Calendar size={16} className="text-primary" />
+                <CalendarGlyph size={16} className="text-primary" />
                 <span className="text-foreground">{formatDateRange()}</span>
               </div>
             )}
