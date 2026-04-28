@@ -7,6 +7,15 @@ import { TripChat } from '../TripChat';
 const mockSetReply = vi.fn();
 const mockVirtualizedMessageContainer = vi.fn();
 const mockMessageItem = vi.fn();
+const mockMessageTypeBar = vi.fn();
+const mockTripTypeState = { isConsumer: true, isPro: false, isEvent: false };
+const mockTripChatModeState = {
+  effectiveChatMode: 'all',
+  canPost: true,
+  canUploadMedia: true,
+  isLoading: false,
+  userRole: 'moderator',
+};
 
 vi.mock('react-router-dom', () => ({
   useParams: () => ({ tripId: 'trip-123' }),
@@ -36,6 +45,9 @@ vi.mock('../../hooks/useTripChat', () => ({
         created_at: '2026-01-01T00:00:00.000Z',
         reactions: { fromMessage: { count: 1, userReacted: true, users: ['user-1'] } },
         readStatuses: [{ user_id: 'user-2', read_at: '2026-01-01T00:01:00.000Z' }],
+        pinned: true,
+        pinned_at: '2026-01-01T00:02:00.000Z',
+        messageType: 'broadcast',
       },
     ],
     isLoading: false,
@@ -75,6 +87,9 @@ vi.mock('../../adapters/streamMessageViewModel', async importOriginal => {
         text: message.text,
         sender: { id: message.user.id, name: message.user.name },
         createdAt: message.created_at,
+        isPinned: message.pinned,
+        pinnedAt: message.pinned_at,
+        isBroadcast: message.messageType === 'broadcast',
         reactions: message.reactions,
         readStatuses: message.readStatuses,
       })),
@@ -108,19 +123,13 @@ vi.mock('../../hooks/useChatReactions', () => ({
 vi.mock('@/hooks/useSystemMessagePreferences', () => ({
   useEffectiveSystemMessagePreferences: () => ({ data: null }),
 }));
-vi.mock('@/hooks/useTripType', () => ({ useTripType: () => ({ isConsumer: true }) }));
+vi.mock('@/hooks/useTripType', () => ({ useTripType: () => mockTripTypeState }));
 vi.mock('@/hooks/useTripPrivacyConfig', () => ({
   useTripPrivacyConfig: () => ({ data: null }),
   getEffectivePrivacyMode: () => 'all',
 }));
 vi.mock('@/hooks/useTripChatMode', () => ({
-  useTripChatMode: () => ({
-    effectiveChatMode: 'all',
-    canPost: true,
-    canUploadMedia: true,
-    isLoading: false,
-    userRole: 'member',
-  }),
+  useTripChatMode: () => mockTripChatModeState,
 }));
 vi.mock('../../hooks/useLinkPreviews', () => ({ useLinkPreviews: () => ({}) }));
 vi.mock('@/hooks/useUserSafety', () => ({
@@ -131,7 +140,12 @@ vi.mock('@/hooks/useUserSafety', () => ({
 vi.mock('../ChatInput', () => ({ ChatInput: () => <div data-testid="chat-input" /> }));
 vi.mock('../InlineReplyComponent', () => ({ InlineReplyComponent: () => null }));
 vi.mock('../TypingIndicator', () => ({ TypingIndicator: () => null }));
-vi.mock('../MessageTypeBar', () => ({ MessageTypeBar: () => null }));
+vi.mock('../MessageTypeBar', () => ({
+  MessageTypeBar: (props: any) => {
+    mockMessageTypeBar(props);
+    return null;
+  },
+}));
 vi.mock('../ChatSearchOverlay', () => ({ ChatSearchOverlay: () => null }));
 vi.mock('../ThreadView', () => ({
   ThreadView: ({ parentMessage }: { parentMessage: { id: string } }) => (
@@ -180,11 +194,11 @@ describe('TripChat render path', () => {
     vi.clearAllMocks();
   });
 
-  const renderSubject = () => {
+  const renderSubject = (props?: React.ComponentProps<typeof TripChat>) => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={queryClient}>
-        <TripChat tripId="trip-123" />
+        <TripChat tripId="trip-123" {...props} />
       </QueryClientProvider>,
     );
   };
@@ -222,4 +236,39 @@ describe('TripChat render path', () => {
       expect(screen.getByTestId('thread-view')).toHaveTextContent('msg-1');
     });
   });
+
+  it.each([
+    {
+      surface: 'trip',
+      tripType: { isConsumer: true, isPro: false, isEvent: false },
+      props: {},
+    },
+    {
+      surface: 'pro',
+      tripType: { isConsumer: false, isPro: true, isEvent: false },
+      props: { isPro: true },
+    },
+    {
+      surface: 'event',
+      tripType: { isConsumer: false, isPro: false, isEvent: true },
+      props: { isEvent: true },
+    },
+  ])(
+    'keeps pin capability + pinned hydration parity for $surface without changing broadcast defaults',
+    ({ tripType, props }) => {
+      Object.assign(mockTripTypeState, tripType);
+      renderSubject(props);
+
+      const messageItemProps = mockMessageItem.mock.calls[0][0];
+      expect(messageItemProps.canManagePins).toBe(true);
+      expect(messageItemProps.message.isPinned).toBe(true);
+      expect(messageItemProps.message.pinnedAt).toBe('2026-01-01T00:02:00.000Z');
+      expect(messageItemProps.message.isBroadcast).toBe(true);
+      expect(screen.getByText('Pinned Messages')).toBeInTheDocument();
+
+      const messageTypeBarProps = mockMessageTypeBar.mock.calls[0][0];
+      expect(messageTypeBarProps.activeFilter).toBe('all');
+      expect(messageTypeBarProps.broadcastCount).toBe(0);
+    },
+  );
 });

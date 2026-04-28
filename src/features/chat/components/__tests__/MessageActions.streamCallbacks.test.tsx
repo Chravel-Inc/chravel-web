@@ -61,4 +61,78 @@ describe('MessageActions stream mutation callbacks', () => {
     expect(onDelete).toHaveBeenCalledTimes(1);
     expect(onDelete).toHaveBeenCalledWith('msg-2');
   });
+
+  it('shows Pin in stream mode and invokes pin callback when moderators can manage pins', async () => {
+    const user = userEvent.setup();
+    const onTogglePin = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <MessageActions
+        transportMode="stream"
+        messageId="msg-3"
+        messageContent="hello"
+        messageType="trip"
+        isOwnMessage={false}
+        canManagePins
+        isPinned={false}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onTogglePin={onTogglePin}
+      />,
+    );
+
+    await user.click(screen.getByRole('button'));
+    await user.click(screen.getByText('Pin'));
+
+    expect(onTogglePin).toHaveBeenCalledTimes(1);
+    expect(onTogglePin).toHaveBeenCalledWith('msg-3', true);
+  });
+
+  it('shows Unpin in stream mode for pinned messages and invokes unpin callback', async () => {
+    const user = userEvent.setup();
+    const onTogglePin = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <MessageActions
+        transportMode="stream"
+        messageId="msg-4"
+        messageContent="hello"
+        messageType="trip"
+        isOwnMessage={false}
+        canManagePins
+        isPinned
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onTogglePin={onTogglePin}
+      />,
+    );
+
+    await user.click(screen.getByRole('button'));
+    await user.click(screen.getByText('Unpin'));
+
+    expect(onTogglePin).toHaveBeenCalledTimes(1);
+    expect(onTogglePin).toHaveBeenCalledWith('msg-4', false);
+  });
+
+  it('hides pin actions in stream mode when user lacks pin capability', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MessageActions
+        transportMode="stream"
+        messageId="msg-5"
+        messageContent="hello"
+        messageType="trip"
+        isOwnMessage={false}
+        canManagePins={false}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onTogglePin={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole('button'));
+    expect(screen.queryByText('Pin')).not.toBeInTheDocument();
+    expect(screen.queryByText('Unpin')).not.toBeInTheDocument();
+  });
 });
