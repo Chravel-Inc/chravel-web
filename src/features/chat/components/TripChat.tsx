@@ -407,16 +407,11 @@ export const TripChat = React.memo(
       async (messageId: string, shouldPin: boolean) => {
         if (demoMode.isDemoMode) return;
 
-        if (!streamClient) {
-          toast.error('Chat connection unavailable. Please try again.');
-          return;
-        }
-
         try {
           await togglePin(messageId, shouldPin);
         } catch (error) {
           const details = extractStreamError(error);
-          console.error('[TripChat] Stream updateMessage pin toggle failed:', {
+          console.error('[TripChat] Stream pin toggle failed:', {
             code: details.code,
             status: details.status,
             message: details.message,
@@ -429,7 +424,7 @@ export const TripChat = React.memo(
           throw error;
         }
       },
-      [demoMode.isDemoMode, streamClient, togglePin],
+      [demoMode.isDemoMode, togglePin],
     );
 
     // System message preferences — only meaningful for consumer trips. Use the
@@ -688,6 +683,9 @@ export const TripChat = React.memo(
           | 'notification'
           | 'notification_deeplink' = 'reply_badge',
       ) => {
+        const telemetrySource =
+          source === 'notification_deeplink' ? 'notification' : source;
+
         const streamMessage = liveMessages.find(m => m.id === messageId);
         if (streamMessage) {
           const streamUser = (streamMessage as any).user;
@@ -703,10 +701,7 @@ export const TripChat = React.memo(
             messageEvents.threadOpened({
               trip_id: resolvedTripId,
               parent_message_id: messageId,
-              source: (source === 'notification_deeplink' ? 'notification' : source) as
-                | 'reply_badge'
-                | 'search_result'
-                | 'notification',
+              source: telemetrySource,
             });
           }
           return;

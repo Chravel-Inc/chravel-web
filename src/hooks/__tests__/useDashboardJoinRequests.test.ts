@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   getJoinRequestRequestedAt,
   mapCancelOwnJoinRequestResult,
+  shouldBackfillJoinRequestsOnSubscribe,
+  shouldRefreshJoinRequestsOnForeground,
   splitJoinRequestsByDirection,
   type DashboardJoinRequest,
 } from '@/hooks/useDashboardJoinRequests';
@@ -83,5 +85,18 @@ describe('getJoinRequestRequestedAt', () => {
         created_at: '2026-04-08T00:00:00Z',
       }),
     ).toBe('2026-04-08T00:00:00Z');
+  });
+});
+
+describe('dashboard join request recovery helpers', () => {
+  it('refreshes requests when the app returns to the foreground', () => {
+    expect(shouldRefreshJoinRequestsOnForeground('visible')).toBe(true);
+    expect(shouldRefreshJoinRequestsOnForeground('hidden')).toBe(false);
+  });
+
+  it('only backfills after a reconnect, not on the initial subscribe', () => {
+    expect(shouldBackfillJoinRequestsOnSubscribe('SUBSCRIBED', false)).toBe(false);
+    expect(shouldBackfillJoinRequestsOnSubscribe('SUBSCRIBED', true)).toBe(true);
+    expect(shouldBackfillJoinRequestsOnSubscribe('CHANNEL_ERROR', true)).toBe(false);
   });
 });

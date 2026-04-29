@@ -1,10 +1,11 @@
 import type { ChatMessage } from '../hooks/useChatComposer';
 
 export type PinnedChatMessage = ChatMessage & {
+  isPinned?: boolean;
   pinnedAt?: string;
 };
 
-export function isPinnedMessage(message: ChatMessage & { isPinned?: boolean }) {
+export function isPinnedMessage(message: Pick<PinnedChatMessage, 'isPinned'>) {
   return message.isPinned === true;
 }
 
@@ -12,9 +13,7 @@ export function isPinnedMessage(message: ChatMessage & { isPinned?: boolean }) {
  * Stream may deliver updated message snapshots more than once while events settle.
  * Keep only one entry per message id and return newest pinned-first order.
  */
-export function derivePinnedMessages(
-  messages: Array<ChatMessage & { isPinned?: boolean; pinnedAt?: string }>,
-) {
+export function derivePinnedMessages(messages: PinnedChatMessage[]) {
   const dedupedById = new Map<string, PinnedChatMessage>();
 
   for (const message of messages) {
@@ -24,7 +23,6 @@ export function derivePinnedMessages(
     }
     dedupedById.set(message.id, {
       ...message,
-      pinnedAt: (message as { pinnedAt?: string }).pinnedAt,
     });
   }
 

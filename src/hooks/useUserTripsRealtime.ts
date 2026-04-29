@@ -20,6 +20,17 @@ type JoinRequestChangePayload = {
   old?: { user_id?: string | null } | null;
 };
 
+export function shouldRefreshTripsOnForeground(visibilityState: DocumentVisibilityState): boolean {
+  return visibilityState === 'visible';
+}
+
+export function shouldBackfillTripsOnSubscribe(
+  status: string,
+  hasCompletedInitialSubscribe: boolean,
+): boolean {
+  return status === 'SUBSCRIBED' && hasCompletedInitialSubscribe;
+}
+
 export function shouldInvalidateTripsForMemberChange(
   payload: MemberChangePayload,
   userId: string,
@@ -45,6 +56,14 @@ export function useUserTripsRealtime(userId: string | undefined, isDemoMode: boo
       queryClient.invalidateQueries({ queryKey: ['proTrips'] });
       queryClient.invalidateQueries({ queryKey: ['events'] });
     };
+
+    const handleForegroundRefresh = () => {
+      if (shouldRefreshTripsOnForeground(document.visibilityState)) {
+        invalidateTrips();
+      }
+    };
+
+    let hasCompletedInitialSubscribe = false;
 
     const channel = supabase
       .channel(`user_trips:${userId}`)
@@ -78,9 +97,22 @@ export function useUserTripsRealtime(userId: string | undefined, isDemoMode: boo
           }
         },
       )
-      .subscribe();
+      .subscribe(status => {
+        if (shouldBackfillTripsOnSubscribe(status, hasCompletedInitialSubscribe)) {
+          invalidateTrips();
+          return;
+        }
+
+        if (status !== 'SUBSCRIBED') return;
+        hasCompletedInitialSubscribe = true;
+      });
+
+    document.addEventListener('visibilitychange', handleForegroundRefresh);
+    window.addEventListener('focus', handleForegroundRefresh);
 
     return () => {
+      document.removeEventListener('visibilitychange', handleForegroundRefresh);
+      window.removeEventListener('focus', handleForegroundRefresh);
       supabase.removeChannel(channel);
     };
   }, [userId, isDemoMode, queryClient]);

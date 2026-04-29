@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams, useSearchParams } from 'react-rout
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../hooks/useAuth';
+import { AuthModal } from '@/components/AuthModal';
 import {
   reportStreamMembershipSyncFailure,
   syncAddMemberToTripChannels,
@@ -11,7 +12,6 @@ import { toast } from 'sonner';
 import {
   Users,
   MapPin,
-  Calendar,
   Clock,
   AlertCircle,
   CheckCircle2,
@@ -25,6 +25,7 @@ import {
   UserX,
   Sparkles,
 } from 'lucide-react';
+import { CalendarGlyph } from '../components/ui/CalendarGlyph';
 import {
   InviteError,
   INVITE_ERROR_SPECS,
@@ -127,13 +128,14 @@ const JoinTrip = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { user, isLoading: authLoading } = useAuth();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   const [inviteData, setInviteData] = useState<InvitePreviewData | null>(null);
   const [error, setError] = useState<InviteError | null>(null);
   const [joinSuccess, setJoinSuccess] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'signin' | 'signup' | null>(null);
   const [joinSuccessType, setJoinSuccessType] = useState<'request' | 'already_member' | 'joined'>(
     'request',
   );
@@ -157,7 +159,6 @@ const JoinTrip = () => {
     if (import.meta.env.DEV) {
       console.log('[JoinTrip] Component mounted', {
         token,
-        authLoading,
         loading,
         hasUser: !!user,
         pathname: location.pathname,
@@ -369,15 +370,10 @@ const JoinTrip = () => {
 
   const handleJoinTrip = async (isAutoJoin = false) => {
     if (!user) {
-      // Store invite code in localStorage and include in query param as fallback
       if (token) {
         storeInviteCode(token);
       }
-      const returnPath = encodeURIComponent(location.pathname);
-      const inviteParam = token ? `&invite=${encodeURIComponent(token)}` : '';
-      navigate(`/auth?mode=signin&returnTo=${returnPath}${inviteParam}`, {
-        replace: true,
-      });
+      setAuthModalMode('signin');
       return;
     }
 
@@ -478,27 +474,16 @@ const JoinTrip = () => {
     }
   };
 
-  const handleLoginRedirect = () => {
+  const openAuthModal = useCallback((mode: 'signin' | 'signup') => {
     if (token) {
       storeInviteCode(token);
     }
-    const returnPath = encodeURIComponent(location.pathname);
-    const inviteParam = token ? `&invite=${encodeURIComponent(token)}` : '';
-    navigate(`/auth?mode=signin&returnTo=${returnPath}${inviteParam}`, {
-      replace: true,
-    });
-  };
+    setAuthModalMode(mode);
+  }, [token]);
 
-  const handleSignupRedirect = () => {
-    if (token) {
-      storeInviteCode(token);
-    }
-    const returnPath = encodeURIComponent(location.pathname);
-    const inviteParam = token ? `&invite=${encodeURIComponent(token)}` : '';
-    navigate(`/auth?mode=signup&returnTo=${returnPath}${inviteParam}`, {
-      replace: true,
-    });
-  };
+  const handleLoginRedirect = () => openAuthModal('signin');
+
+  const handleSignupRedirect = () => openAuthModal('signup');
 
   const formatDateRange = () => {
     if (!inviteData?.trip.start_date) return null;
@@ -558,28 +543,10 @@ const JoinTrip = () => {
     (action: string, errorData?: InviteError['metadata']) => {
       switch (action) {
         case 'login':
-          if (token) {
-            storeInviteCode(token);
-          }
-          {
-            const returnPath = encodeURIComponent(location.pathname);
-            const inviteParam = token ? `&invite=${encodeURIComponent(token)}` : '';
-            navigate(`/auth?mode=signin&returnTo=${returnPath}${inviteParam}`, {
-              replace: true,
-            });
-          }
+          openAuthModal('signin');
           break;
         case 'signup':
-          if (token) {
-            storeInviteCode(token);
-          }
-          {
-            const returnPath = encodeURIComponent(location.pathname);
-            const inviteParam = token ? `&invite=${encodeURIComponent(token)}` : '';
-            navigate(`/auth?mode=signup&returnTo=${returnPath}${inviteParam}`, {
-              replace: true,
-            });
-          }
+          openAuthModal('signup');
           break;
         case 'switch_account':
           // Sign out and redirect to login with invite preserved
@@ -587,11 +554,7 @@ const JoinTrip = () => {
             storeInviteCode(token);
           }
           supabase.auth.signOut().then(() => {
-            const returnPath = encodeURIComponent(location.pathname);
-            const inviteParam = token ? `&invite=${encodeURIComponent(token)}` : '';
-            navigate(`/auth?mode=signin&returnTo=${returnPath}${inviteParam}`, {
-              replace: true,
-            });
+            setAuthModalMode('signin');
           });
           break;
         case 'request_new_invite':
@@ -633,8 +596,7 @@ const JoinTrip = () => {
           navigate('/');
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchInvitePreview is stable in practice; wrapping in useCallback would require many deps
-    [navigate, token, location.pathname],
+    [fetchInvitePreview, navigate, openAuthModal, token],
   );
 
   /**
@@ -679,17 +641,17 @@ const JoinTrip = () => {
     }
   }, []);
 
-  // Show loading ONLY while fetching invite data
-  // DO NOT block on authLoading - unauthenticated users should see preview immediately
+  // Show loading ONLY while fetching invite data.
+  // DO NOT block on auth hydration - unauthenticated users should see preview immediately.
   if (loading) {
     if (import.meta.env.DEV) {
       console.log('[JoinTrip] Rendering loading state');
     }
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black flex items-center justify-center">
         <div className="text-center">
           <div className="h-8 w-8 mx-auto mb-4 animate-spin gold-gradient-spinner" />
-          <p className="text-muted-foreground">Loading invite details...</p>
+          <p className="text-white/70">Loading invite details...</p>
         </div>
       </div>
     );
@@ -698,11 +660,11 @@ const JoinTrip = () => {
   // Fallback for when loading is done but no data and no error
   if (!inviteData && !error) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="text-center max-w-md bg-card/50 backdrop-blur-md border border-border rounded-3xl p-8 shadow-xl">
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black flex items-center justify-center p-4">
+        <div className="text-center max-w-md bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-xl">
           <WifiOff className="h-12 w-12 text-gold-primary mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-foreground mb-4">Something went wrong</h1>
-          <p className="text-muted-foreground mb-6">
+          <h1 className="text-2xl font-bold text-white mb-4">Something went wrong</h1>
+          <p className="text-white/60 mb-6">
             We couldn't load the invite details. Please try again.
           </p>
           <button
@@ -710,14 +672,14 @@ const JoinTrip = () => {
               setLoading(true);
               void fetchInvitePreview();
             }}
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
+            className="w-full accent-fill-gold px-6 py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
           >
             <RefreshCw className="h-4 w-4" />
             Reload
           </button>
           <button
             onClick={() => navigate('/')}
-            className="mt-3 w-full bg-secondary hover:bg-secondary/80 text-secondary-foreground px-6 py-3 rounded-xl transition-colors"
+            className="mt-3 w-full bg-white/8 hover:bg-white/12 border border-white/15 text-white px-6 py-3 rounded-xl transition-colors"
           >
             Go to Dashboard
           </button>
@@ -732,17 +694,17 @@ const JoinTrip = () => {
     const secondaryCTA = error.secondaryCTA || spec.secondaryCTA;
 
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="text-center max-w-md bg-card/50 backdrop-blur-md border border-border rounded-3xl p-8">
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black flex items-center justify-center p-4">
+        <div className="text-center max-w-md bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8">
           {getErrorIcon(error)}
-          <h1 className="text-2xl font-bold text-foreground mb-4">{error.title}</h1>
-          <p className="text-muted-foreground mb-6">{error.message}</p>
+          <h1 className="text-2xl font-bold text-white mb-4">{error.title}</h1>
+          <p className="text-white/60 mb-6">{error.message}</p>
 
           {/* Trip context if available */}
           {error.metadata?.tripName && (
-            <div className="mb-6 p-3 bg-muted/30 border border-border rounded-xl">
-              <p className="text-sm text-muted-foreground">
-                Trip: <span className="text-foreground font-medium">{error.metadata.tripName}</span>
+            <div className="mb-6 p-3 bg-white/5 border border-white/10 rounded-xl">
+              <p className="text-sm text-white/60">
+                Trip: <span className="text-white font-medium">{error.metadata.tripName}</span>
               </p>
             </div>
           )}
@@ -754,7 +716,7 @@ const JoinTrip = () => {
                 Invite sent to: <span className="font-medium">{error.metadata.invitedEmail}</span>
               </p>
               {error.metadata.currentEmail && (
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-sm text-white/60 mt-1">
                   Logged in as: <span className="font-medium">{error.metadata.currentEmail}</span>
                 </p>
               )}
@@ -764,7 +726,7 @@ const JoinTrip = () => {
           {/* Primary CTA Button */}
           <button
             onClick={() => handleErrorCTA(primaryCTA, error.metadata)}
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-xl transition-colors flex items-center justify-center gap-2 font-medium"
+            className="w-full accent-fill-gold px-6 py-3 rounded-xl transition-colors flex items-center justify-center gap-2 font-medium"
           >
             {getCTAIcon(primaryCTA)}
             {getCTALabel(primaryCTA)}
@@ -774,7 +736,7 @@ const JoinTrip = () => {
           {secondaryCTA && (
             <button
               onClick={() => handleErrorCTA(secondaryCTA, error.metadata)}
-              className="mt-3 w-full bg-secondary hover:bg-secondary/80 text-secondary-foreground px-6 py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
+              className="mt-3 w-full bg-white/8 hover:bg-white/12 border border-white/15 text-white px-6 py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
             >
               {getCTAIcon(secondaryCTA)}
               {getCTALabel(secondaryCTA)}
@@ -785,7 +747,7 @@ const JoinTrip = () => {
           {(error.code === 'INVITE_EXPIRED' ||
             error.code === 'INVITE_INACTIVE' ||
             error.code === 'INVITE_MAX_USES') && (
-            <p className="mt-4 text-xs text-muted-foreground">
+            <p className="mt-4 text-xs text-white/40">
               Tip: Ask the trip organizer to send you a new invite link.
             </p>
           )}
@@ -812,13 +774,13 @@ const JoinTrip = () => {
     }[joinSuccessType];
 
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="text-center max-w-md bg-card/50 backdrop-blur-md border border-border rounded-3xl p-8">
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black flex items-center justify-center p-4">
+        <div className="text-center max-w-md bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8">
           <CheckCircle2 className="h-12 w-12 text-green-400 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-foreground mb-4">{successContent.title}</h1>
-          <p className="text-muted-foreground mb-6">{successContent.message}</p>
+          <h1 className="text-2xl font-bold text-white mb-4">{successContent.title}</h1>
+          <p className="text-white/60 mb-6">{successContent.message}</p>
           <div className="h-6 w-6 mx-auto animate-spin gold-gradient-spinner" />
-          <p className="text-sm text-muted-foreground mt-2">Redirecting...</p>
+          <p className="text-sm text-white/40 mt-2">Redirecting...</p>
         </div>
       </div>
     );
@@ -827,10 +789,11 @@ const JoinTrip = () => {
   const defaultCoverImage =
     'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&h=400&fit=crop';
   const coverImage = inviteData?.trip.cover_image_url || defaultCoverImage;
+  const inviteReturnTo = token ? `/join/${encodeURIComponent(token)}` : location.pathname;
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="bg-card/50 backdrop-blur-md border border-border rounded-3xl overflow-hidden max-w-md w-full">
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black flex items-center justify-center p-4">
+      <div className="bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl rounded-3xl overflow-hidden max-w-md w-full">
         {/* Cover Image */}
         <div className="relative h-48 overflow-hidden">
           <img
@@ -843,13 +806,18 @@ const JoinTrip = () => {
               }
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-background/90 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/70 to-transparent" />
+          <div className="absolute top-4 left-4 z-10">
+            <div className="bg-black/40 backdrop-blur-sm px-4 py-2 rounded-full">
+              <span className="text-gold-primary font-bold text-lg">ChravelApp</span>
+            </div>
+          </div>
           <div className="absolute bottom-4 left-4 right-4">
-            <h1 className="text-2xl font-bold text-foreground">
+            <h1 className="text-2xl font-bold text-white">
               {inviteData?.trip.name || 'Trip Invitation'}
             </h1>
             {inviteData?.trip.destination && (
-              <div className="flex items-center gap-1 text-muted-foreground mt-1">
+              <div className="flex items-center gap-1 text-white/80 mt-1">
                 <MapPin size={14} />
                 <span className="text-sm">{inviteData.trip.destination}</span>
               </div>
@@ -859,18 +827,18 @@ const JoinTrip = () => {
 
         <div className="p-6">
           {/* Trip Info */}
-          <div className="bg-muted/30 border border-border rounded-xl p-4 mb-6 space-y-3">
+          <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6 space-y-3">
             {formatDateRange() && (
               <div className="flex items-center gap-3 text-sm">
-                <Calendar size={16} className="text-primary" />
-                <span className="text-foreground">{formatDateRange()}</span>
+                <CalendarGlyph size={16} className="gold-gradient-icon" />
+                <span className="text-white">{formatDateRange()}</span>
               </div>
             )}
 
             {inviteData?.trip.member_count !== undefined && (
               <div className="flex items-center gap-3 text-sm">
-                <Users size={16} className="text-primary" />
-                <span className="text-foreground">
+                <Users size={16} className="gold-gradient-icon" />
+                <span className="text-white">
                   {inviteData.trip.member_count}{' '}
                   {inviteData.trip.member_count === 1 ? 'Chraveler' : 'Chravelers already planning'}
                 </span>
@@ -878,13 +846,13 @@ const JoinTrip = () => {
             )}
 
             {inviteData?.trip.trip_type && inviteData.trip.trip_type !== 'consumer' && (
-              <div className="inline-flex px-2 py-1 bg-primary/20 text-primary text-xs font-medium rounded-full">
+              <div className="inline-flex px-2 py-1 bg-gold-primary/10 text-gold-primary text-xs font-medium rounded-full border border-gold-primary/20">
                 {inviteData.trip.trip_type === 'pro' ? 'Pro Trip' : 'Event'}
               </div>
             )}
 
             {inviteData?.invite.expires_at && (
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <div className="flex items-center gap-3 text-xs text-white/50">
                 <Clock size={14} />
                 <span>
                   Invite expires: {new Date(inviteData.invite.expires_at).toLocaleDateString()}
@@ -898,9 +866,9 @@ const JoinTrip = () => {
             const urgency = getUrgencyLine(inviteData?.trip.start_date ?? null);
             if (!urgency) return null;
             return (
-              <div className="flex items-center gap-2 mb-6 px-3 py-2 bg-primary/10 border border-primary/20 rounded-xl">
-                <Sparkles size={14} className="text-primary flex-shrink-0" />
-                <span className="text-primary text-sm font-medium">{urgency}</span>
+              <div className="flex items-center gap-2 mb-6 px-3 py-2 bg-gold-primary/10 border border-gold-primary/20 rounded-xl">
+                <Sparkles size={14} className="text-gold-primary flex-shrink-0" />
+                <span className="text-gold-primary text-sm font-medium">{urgency}</span>
               </div>
             );
           })()}
@@ -908,25 +876,25 @@ const JoinTrip = () => {
           {/* Actions */}
           {!user ? (
             <div className="space-y-4">
-              <p className="text-muted-foreground text-center text-sm">
-                Please log in to request access to this trip
+              <p className="text-white/70 text-center text-sm">
+                Sign in with the standard Chravel dark auth flow to request access to this trip.
               </p>
               <div className="space-y-3">
                 <button
                   onClick={handleSignupRedirect}
-                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-3 px-6 rounded-xl transition-all duration-200 font-medium"
+                  className="w-full accent-fill-gold py-3 px-6 rounded-xl transition-all duration-200 font-medium"
                 >
-                  Sign Up to Join
+                  Continue to Sign Up
                 </button>
                 <button
                   onClick={handleLoginRedirect}
-                  className="w-full bg-secondary hover:bg-secondary/80 text-secondary-foreground py-3 px-6 rounded-xl transition-colors"
+                  className="w-full bg-white/8 hover:bg-white/12 border border-white/15 text-white py-3 px-6 rounded-xl transition-colors"
                 >
                   Already have an account? Log In
                 </button>
               </div>
-              <p className="text-muted-foreground text-center text-xs">
-                Create a free account to join the trip and participate
+              <p className="text-white/40 text-center text-xs">
+                Google, Apple, and email sign-in remain available in the same dark modal.
               </p>
             </div>
           ) : (
@@ -934,7 +902,7 @@ const JoinTrip = () => {
               <button
                 onClick={() => handleJoinTrip()}
                 disabled={joining}
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-4 px-6 rounded-xl transition-all duration-200 font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full accent-fill-gold py-4 px-6 rounded-xl transition-all duration-200 font-medium disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {joining ? (
                   <>
@@ -948,7 +916,7 @@ const JoinTrip = () => {
 
               <button
                 onClick={() => navigate('/')}
-                className="w-full bg-secondary hover:bg-secondary/80 text-secondary-foreground py-3 px-6 rounded-xl transition-colors"
+                className="w-full bg-white/8 hover:bg-white/12 border border-white/15 text-white py-3 px-6 rounded-xl transition-colors"
               >
                 Go to Dashboard
               </button>
@@ -968,6 +936,12 @@ const JoinTrip = () => {
           )}
         </div>
       </div>
+      <AuthModal
+        isOpen={authModalMode !== null}
+        initialMode={authModalMode ?? 'signin'}
+        oauthReturnTo={inviteReturnTo}
+        onClose={() => setAuthModalMode(null)}
+      />
     </div>
   );
 };

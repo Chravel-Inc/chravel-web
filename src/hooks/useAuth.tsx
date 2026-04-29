@@ -101,8 +101,8 @@ interface AuthContextType {
   session: Session | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
-  signInWithGoogle: () => Promise<{ error?: string }>;
-  signInWithApple: () => Promise<{ error?: string }>;
+  signInWithGoogle: (returnToOverride?: string) => Promise<{ error?: string }>;
+  signInWithApple: (returnToOverride?: string) => Promise<{ error?: string }>;
   signInWithPhone: (phone: string) => Promise<{ error?: string }>;
   signUp: (
     email: string,
@@ -117,6 +117,19 @@ interface AuthContextType {
   updateNotificationSettings: (updates: Partial<User['notificationSettings']>) => Promise<void>;
   switchRole: (role: string) => void;
 }
+
+const getOAuthReturnTo = (returnToOverride?: string): string | null => {
+  if (returnToOverride && returnToOverride.startsWith('/') && !returnToOverride.startsWith('//')) {
+    return returnToOverride;
+  }
+
+  const queryReturnTo = new URLSearchParams(window.location.search).get('returnTo');
+  if (queryReturnTo && queryReturnTo.startsWith('/') && !queryReturnTo.startsWith('//')) {
+    return queryReturnTo;
+  }
+
+  return null;
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -883,13 +896,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const signInWithGoogle = async (): Promise<{ error?: string }> => {
+  const signInWithGoogle = async (returnToOverride?: string): Promise<{ error?: string }> => {
     try {
       const installed = isInstalledApp();
       // Installed shells (Capacitor / PWA) return to a Universal Link that the
       // native wrapper intercepts and re-opens inside the WebView so Supabase
       // detectSessionInUrl can complete the exchange. Web stays on same-origin.
-      const returnTo = new URLSearchParams(window.location.search).get('returnTo');
+      const returnTo = getOAuthReturnTo(returnToOverride);
       const returnToQuery = returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : '';
       const redirectUrl = installed
         ? `https://chravel.app/auth-callback${returnToQuery}`
@@ -936,10 +949,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const signInWithApple = async (): Promise<{ error?: string }> => {
+  const signInWithApple = async (returnToOverride?: string): Promise<{ error?: string }> => {
     try {
       const installed = isInstalledApp();
-      const returnTo = new URLSearchParams(window.location.search).get('returnTo');
+      const returnTo = getOAuthReturnTo(returnToOverride);
       const returnToQuery = returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : '';
       const redirectUrl = installed
         ? `https://chravel.app/auth-callback${returnToQuery}`

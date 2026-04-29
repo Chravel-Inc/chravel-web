@@ -113,6 +113,8 @@ describe('useStreamTripChat pin toggles', () => {
     );
 
     expect(pinnedVisible.map(message => message.id)).toEqual(['message-1']);
+    expect(partialUpdateMessageMock.mock.calls[0]?.[0]).not.toHaveProperty('text');
+    expect(partialUpdateMessageMock.mock.calls[0]?.[0]).not.toHaveProperty('message');
   });
 
   it('unpins via partial message update', async () => {
