@@ -279,7 +279,6 @@ export function mapStreamMessageToViewModel(params: {
     pinnedAt: isPinned ? pinnedAt : undefined,
     isEdited: createdAt !== updatedAt,
     editedAt: createdAt !== updatedAt ? updatedAt : undefined,
-    isPinned: Boolean(message.pinned),
     tags: messageType === 'system' ? ['system'] : [],
     message_type: messageType,
     system_event_type: (message as MessageResponse & { system_event_type?: string })
