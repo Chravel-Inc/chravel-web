@@ -11,9 +11,19 @@ interface AuthModalProps {
    * Defaults to 'signin' to preserve existing behavior.
    */
   initialMode?: 'signin' | 'signup';
+  /**
+   * Optional post-auth destination for OAuth providers. Invite flows use this to
+   * return directly to the join route after Google/Apple complete the redirect.
+   */
+  oauthReturnTo?: string;
 }
 
-export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
+export const AuthModal = ({
+  isOpen,
+  onClose,
+  initialMode,
+  oauthReturnTo,
+}: AuthModalProps) => {
   const { signIn, signInWithGoogle, signInWithApple, signUp, resetPassword, isLoading, user } =
     useAuth();
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -30,6 +40,15 @@ export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
   // Track when we're waiting for auth state to update after successful sign-in
   const [awaitingAuth, setAwaitingAuth] = useState(false);
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setMode(initialMode ?? 'signin');
+    setError('');
+    setSuccess('');
+    setResetEmailSent(false);
+    setAwaitingAuth(false);
+  }, [isOpen, initialMode]);
 
   // Close modal immediately if user is already authenticated when modal opens
   // Also close when user becomes authenticated after sign-in attempt
@@ -309,7 +328,7 @@ export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
       data-testid="auth-modal-backdrop"
       className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in"
     >
-      <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-6 sm:p-8 max-w-md w-full safe-bottom animate-scale-in max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem))] overflow-y-auto">
+      <div className="bg-slate-950/90 backdrop-blur-xl border border-white/10 shadow-2xl rounded-3xl p-6 sm:p-8 max-w-md w-full safe-bottom animate-scale-in max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem))] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-white">
             {mode === 'forgot'
@@ -397,7 +416,7 @@ export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
                   } else {
                     authEvents.loginStarted('google');
                   }
-                  const result = await signInWithGoogle();
+                  const result = await signInWithGoogle(oauthReturnTo);
                   if (result.error) {
                     if (mode === 'signup') {
                       authEvents.signupFailed('google', result.error);
@@ -410,7 +429,7 @@ export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
                   // If no error, browser will redirect to Google
                 }}
                 disabled={isLoading || googleLoading || appleLoading || awaitingAuth}
-                className="w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-white/15 border border-white/20 text-white font-medium py-3 rounded-xl transition-all disabled:opacity-50 min-h-[48px]"
+                className="w-full flex items-center justify-center gap-2 bg-white/12 hover:bg-white/18 border border-white/15 text-white font-medium py-3 rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-all disabled:opacity-50 min-h-[48px]"
               >
                 {googleLoading ? (
                   <div className="w-5 h-5 animate-spin gold-gradient-spinner" />
@@ -448,7 +467,7 @@ export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
                   } else {
                     authEvents.loginStarted('apple');
                   }
-                  const result = await signInWithApple();
+                  const result = await signInWithApple(oauthReturnTo);
                   if (result.error) {
                     if (mode === 'signup') {
                       authEvents.signupFailed('apple', result.error);
@@ -461,7 +480,7 @@ export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
                   // If no error, browser will redirect to Apple
                 }}
                 disabled={isLoading || appleLoading || googleLoading || awaitingAuth}
-                className="w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-white/15 border border-white/20 text-white font-medium py-3 rounded-xl transition-all disabled:opacity-50 min-h-[48px]"
+                className="w-full flex items-center justify-center gap-2 bg-white/12 hover:bg-white/18 border border-white/15 text-white font-medium py-3 rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-all disabled:opacity-50 min-h-[48px]"
               >
                 {appleLoading ? (
                   <div className="w-5 h-5 animate-spin gold-gradient-spinner" />

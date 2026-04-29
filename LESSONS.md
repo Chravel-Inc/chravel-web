@@ -170,6 +170,14 @@
 - **Confidence:** high
 - **Cross-repo dependency:** The web-side changes here require matching work in `chravel-mobile` (register URL scheme, AASA/assetlinks, `@capacitor/browser`, `appUrlOpen` deep-link listener). Without that, Google still errors out in an embedded webview redirect — strictly worse than the "hidden buttons" state. Land both or neither.
 
+### Universal Link short paths must be present in the shipped AASA source-of-truth, not just API helpers
+- **Tip:** If production invite links use a short path like `/j/:code`, that exact path must exist in the deployed `apple-app-site-association` payload the app host actually serves. Updating only an API generator or docs is not enough if Vercel/public static files remain the effective source-of-truth.
+- **Applies when:** iOS invite links or auth callbacks unexpectedly open in Safari instead of handing off to the installed app.
+- **Avoid when:** The host serves the AASA exclusively from one verified endpoint and there is no parallel static copy.
+- **Evidence:** Chravel's live AASA claimed `/join/*` but not `/j/*`, so Slack-shared `https://chravel.app/j/...` invites were not eligible for Universal Link handoff even though `api/aasa.ts` already listed `/j/*`. Updating the shipped `public/.well-known/apple-app-site-association` restored parity with actual invite URLs.
+- **Provenance:** April 2026 invite auth/deep-link regression fix.
+- **Confidence:** high
+
 ### Fire-and-forget sync paths must emit structured failure signals
 - **Tip:** If a non-critical sync step intentionally runs fire-and-forget (for example membership projection into Stream after a successful Supabase mutation), never leave `.catch(() => {})` empty. Emit structured logs with operation + identifiers so support can trace drift and replay safely.
 - **Applies when:** Client-side best-effort projections to external systems (Stream membership sync, analytics mirrors, webhook side effects).
