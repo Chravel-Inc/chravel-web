@@ -4,9 +4,10 @@ import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../hooks/useAuth';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { tripsData } from '../data/tripsData';
-import { Users, MapPin, Calendar, Share2, ExternalLink, Sparkles } from 'lucide-react';
+import { Users, MapPin, Share2, ExternalLink, Sparkles } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { CalendarGlyph } from '../components/ui/CalendarGlyph';
 import { toast } from 'sonner';
 
 interface TripPreviewData {
@@ -23,8 +24,26 @@ interface TripPreviewData {
   description?: string | null;
 }
 
+type JoinRequestStatus = 'pending' | 'approved' | 'rejected' | null;
+
 const isUuid = (value: string): boolean =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+
+const fetchTripPreviewPayload = async (
+  tripId: string,
+  options?: { ensureInvite?: boolean },
+): Promise<TripPreviewData | null> => {
+  const ensureInvite = options?.ensureInvite === true;
+  const { data, error: funcError } = await supabase.functions.invoke('get-trip-preview', {
+    body: { tripId, ensureInvite },
+  });
+
+  if (funcError || !data?.success || !data?.trip) {
+    return null;
+  }
+
+  return data.trip as TripPreviewData;
+};
 
 /**
  * Generate a contextual urgency line from trip start date.
@@ -60,11 +79,20 @@ const TripPreview = () => {
   const [tripData, setTripData] = useState<TripPreviewData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isMember, setIsMember] = useState<boolean | null>(null);
+  const [joinRequestStatus, setJoinRequestStatus] = useState<JoinRequestStatus>(null);
   const [activeInviteCode, setActiveInviteCode] = useState<string | null>(null);
+  /** Set when parallel membership/join-request reads fail so we do not treat null data as authoritative. */
+  const [accessCheckFailed, setAccessCheckFailed] = useState(false);
 
   // True while membership/invite checks are still in-flight for a logged-in user on a real trip.
   // Prevents the CTA from incorrectly denying access before async checks resolve.
-  const accessLoading = !!user && !!tripId && isUuid(tripId) && isMember === null;
+  const accessLoading =
+    !!user &&
+    !!tripId &&
+    isUuid(tripId) &&
+    isMember === null &&
+    joinRequestStatus === null &&
+    !accessCheckFailed;
 
   // Safety timeout - prevent infinite loading states
   useEffect(() => {
@@ -141,15 +169,35 @@ const TripPreview = () => {
     let mounted = true;
 
     async function checkMembership() {
-      const { data: member } = await supabase
-        .from('trip_members')
-        .select('id')
-        .eq('trip_id', tripId!)
-        .eq('user_id', user!.id)
-        .maybeSingle();
+      const [memberResult, joinRequestResult] = await Promise.all([
+        supabase
+          .from('trip_members')
+          .select('id')
+          .eq('trip_id', tripId!)
+          .eq('user_id', user!.id)
+          .maybeSingle(),
+        supabase
+          .from('trip_join_requests')
+          .select('status')
+          .eq('trip_id', tripId!)
+          .eq('user_id', user!.id)
+          .order('requested_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
 
       if (!mounted) return;
-      setIsMember(!!member);
+
+      if (memberResult.error || joinRequestResult.error) {
+        setAccessCheckFailed(true);
+        setIsMember(false);
+        setJoinRequestStatus(null);
+        return;
+      }
+
+      setAccessCheckFailed(false);
+      setIsMember(!!memberResult.data);
+      setJoinRequestStatus((joinRequestResult.data?.status as JoinRequestStatus) ?? null);
     }
 
     checkMembership();
@@ -191,17 +239,14 @@ const TripPreview = () => {
 
     // Real trip (UUID) - fetch via public edge function to avoid RLS blank/404 for unauthenticated users
     try {
-      const { data, error: funcError } = await supabase.functions.invoke('get-trip-preview', {
-        body: { tripId },
-      });
-
-      if (funcError || !data?.success || !data?.trip) {
-        setError(data?.error || funcError?.message || 'Trip not found');
+      const previewTrip = await fetchTripPreviewPayload(tripId, { ensureInvite: !!user });
+      if (!previewTrip) {
+        setError('Trip not found');
         return;
       }
 
-      setTripData(data.trip as TripPreviewData);
-      setActiveInviteCode(data.trip.active_invite_code || null);
+      setTripData(previewTrip);
+      setActiveInviteCode(previewTrip.active_invite_code || null);
     } catch (err) {
       console.error('Error fetching trip preview:', err);
       setError('Failed to load trip details');
@@ -266,6 +311,10 @@ const TripPreview = () => {
     }
 
     if (user) {
+      if (accessCheckFailed) {
+        toast.error('Could not verify trip access. Check your connection and try again.');
+        return;
+      }
       // Still resolving membership/invite — don't deny access yet
       if (isMember === null) {
         return;
@@ -275,13 +324,65 @@ const TripPreview = () => {
         navigate(tripRoute);
         return;
       }
+      if (joinRequestStatus === 'pending') {
+        toast.info("Your join request is still pending. You'll see this trip once approved.");
+        navigate('/');
+        return;
+      }
       // If there's an active invite, route through the join flow
       if (activeInviteCode) {
         navigate(`/join/${activeInviteCode}`);
         return;
       }
-      // No invite code — stay on preview and inform the user
-      toast.info('Ask the trip organizer for an invite link to join this trip.');
+      // Retry once in case invite was not yet provisioned when preview loaded.
+      const refreshedPreview = await fetchTripPreviewPayload(tripId, { ensureInvite: true });
+      const refreshedInviteCode = refreshedPreview?.active_invite_code || null;
+      if (refreshedInviteCode) {
+        setActiveInviteCode(refreshedInviteCode);
+        navigate(`/join/${refreshedInviteCode}`);
+        return;
+      }
+
+      const [refreshedMemberResult, refreshedJoinRequestResult] = await Promise.all([
+        supabase
+          .from('trip_members')
+          .select('id')
+          .eq('trip_id', tripId)
+          .eq('user_id', user.id)
+          .maybeSingle(),
+        supabase
+          .from('trip_join_requests')
+          .select('status')
+          .eq('trip_id', tripId)
+          .eq('user_id', user.id)
+          .order('requested_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+
+      if (refreshedMemberResult.error || refreshedJoinRequestResult.error) {
+        toast.error('Could not verify trip access. Check your connection and try again.');
+        return;
+      }
+
+      const refreshedMember = refreshedMemberResult.data;
+      const refreshedJoinRequest = refreshedJoinRequestResult.data;
+
+      if (refreshedMember) {
+        setIsMember(true);
+        navigate(tripRoute);
+        return;
+      }
+
+      if (refreshedJoinRequest?.status === 'pending') {
+        setJoinRequestStatus('pending');
+        toast.info("Your join request is pending. We'll move you into the trip once approved.");
+        navigate('/');
+        return;
+      }
+
+      // No invite code/membership/request after retry — stay on preview and inform the user.
+      toast.info('Trip access is still syncing. Please try again in a moment.');
       return;
     }
 
@@ -387,7 +488,7 @@ const TripPreview = () => {
             )}
 
             <div className="flex items-center gap-3 text-white/80">
-              <Calendar className="h-5 w-5 gold-gradient-icon flex-shrink-0" />
+              <CalendarGlyph size={20} className="gold-gradient-icon flex-shrink-0" />
               <span>
                 {formatDateRange(tripData.start_date, tripData.end_date, tripData.dateRange)}
               </span>
@@ -435,6 +536,8 @@ const TripPreview = () => {
                 helperText = 'Create a free account to continue';
               } else if (isMember) {
                 ctaLabel = 'Open Trip';
+              } else if (joinRequestStatus === 'pending') {
+                ctaLabel = 'View Request Status';
               } else if (activeInviteCode) {
                 ctaLabel = 'Join This Trip';
               } else {

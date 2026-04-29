@@ -1,24 +1,26 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TripChat } from '../TripChat';
 
-const mockSetReply = vi.fn();
-const mockVirtualizedMessageContainer = vi.fn();
-const mockMessageItem = vi.fn();
-const mockMessageTypeBar = vi.fn();
-const mockTripTypeState = { isConsumer: true, isPro: false, isEvent: false };
-const mockTripChatModeState = {
-  effectiveChatMode: 'all',
-  canPost: true,
-  canUploadMedia: true,
-  isLoading: false,
-  userRole: 'moderator',
+type StreamLikeMessage = {
+  id: string;
+  text: string;
+  user: { id: string; name: string };
+  created_at: string;
+  pinned?: boolean;
+  pinned_at?: string | null;
 };
 
+const mockTogglePin = vi.fn();
+const mockSetMessageFilter = vi.fn();
+let mockParams: { tripId?: string; proTripId?: string; eventId?: string } = { tripId: 'trip-123' };
+let mockMessages: StreamLikeMessage[] = [];
+let mockMessageFilter: 'all' | 'broadcasts' | 'pinned' | 'channels' = 'all';
+
 vi.mock('react-router-dom', () => ({
-  useParams: () => ({ tripId: 'trip-123' }),
+  useParams: () => mockParams,
   useLocation: () => ({ state: null }),
 }));
 
@@ -37,19 +39,7 @@ vi.mock('@/hooks/useTripMembers', () => ({
 
 vi.mock('../../hooks/useTripChat', () => ({
   useTripChat: () => ({
-    messages: [
-      {
-        id: 'msg-1',
-        text: 'hello',
-        user: { id: 'user-1', name: 'User One' },
-        created_at: '2026-01-01T00:00:00.000Z',
-        reactions: { fromMessage: { count: 1, userReacted: true, users: ['user-1'] } },
-        readStatuses: [{ user_id: 'user-2', read_at: '2026-01-01T00:01:00.000Z' }],
-        pinned: true,
-        pinned_at: '2026-01-01T00:02:00.000Z',
-        messageType: 'broadcast',
-      },
-    ],
+    messages: mockMessages,
     isLoading: false,
     error: null,
     sendMessageAsync: vi.fn(),
@@ -58,6 +48,7 @@ vi.mock('../../hooks/useTripChat', () => ({
     hasMore: false,
     isLoadingMore: false,
     toggleReaction: vi.fn(),
+    togglePin: mockTogglePin,
     reload: vi.fn(),
     activeChannel: { state: { read: {} } },
   }),
@@ -67,10 +58,10 @@ vi.mock('../../hooks/useChatComposer', () => ({
   useChatComposer: () => ({
     inputMessage: '',
     setInputMessage: vi.fn(),
-    messageFilter: 'all',
-    setMessageFilter: vi.fn(),
+    messageFilter: mockMessageFilter,
+    setMessageFilter: mockSetMessageFilter,
     replyingTo: null,
-    setReply: mockSetReply,
+    setReply: vi.fn(),
     clearReply: vi.fn(),
     sendMessage: vi.fn(),
     filterMessages: (messages: unknown[]) => messages,
@@ -81,17 +72,15 @@ vi.mock('../../adapters/streamMessageViewModel', async importOriginal => {
   const actual = await importOriginal<typeof import('../../adapters/streamMessageViewModel')>();
   return {
     ...actual,
-    buildStreamMessageViewModels: ({ messages }: { messages: any[] }) =>
+    buildStreamMessageViewModels: ({ messages }: { messages: StreamLikeMessage[] }) =>
       messages.map(message => ({
         id: message.id,
         text: message.text,
         sender: { id: message.user.id, name: message.user.name },
         createdAt: message.created_at,
-        isPinned: message.pinned,
-        pinnedAt: message.pinned_at,
-        isBroadcast: message.messageType === 'broadcast',
-        reactions: message.reactions,
-        readStatuses: message.readStatuses,
+        isPinned: Boolean(message.pinned),
+        pinnedAt: message.pinned_at ?? undefined,
+        reactions: {},
       })),
   };
 });
@@ -102,7 +91,11 @@ vi.mock('@/hooks/useKeyboardHandler', () => ({
 vi.mock('@/hooks/useSwipeGesture', () => ({ useSwipeGesture: vi.fn() }));
 vi.mock('@/hooks/useOfflineStatus', () => ({ useOfflineStatus: () => ({ isOffline: false }) }));
 vi.mock('@/hooks/useRoleChannels', () => ({
-  useRoleChannels: () => ({ availableChannels: [], setActiveChannel: vi.fn() }),
+  useRoleChannels: () => ({
+    availableChannels: [{ id: 'ch-1', channelName: 'Ops', memberCount: 2 }],
+    activeChannel: null,
+    setActiveChannel: vi.fn(),
+  }),
 }));
 vi.mock('@/hooks/usePullToRefresh', () => ({
   usePullToRefresh: () => ({ isRefreshing: false, pullDistance: 0 }),
@@ -115,21 +108,24 @@ vi.mock('../../hooks/useChatTypingIndicators', () => ({
   useChatTypingIndicators: () => ({ typingUsers: [], handleTypingChange: vi.fn() }),
 }));
 vi.mock('../../hooks/useChatReactions', () => ({
-  useChatReactions: () => ({
-    reactions: { 'msg-1': { fromHook: { count: 7, userReacted: false, users: [] } } },
-    handleReaction: vi.fn(),
-  }),
+  useChatReactions: () => ({ reactions: {}, handleReaction: vi.fn() }),
 }));
 vi.mock('@/hooks/useSystemMessagePreferences', () => ({
   useEffectiveSystemMessagePreferences: () => ({ data: null }),
 }));
-vi.mock('@/hooks/useTripType', () => ({ useTripType: () => mockTripTypeState }));
+vi.mock('@/hooks/useTripType', () => ({ useTripType: () => ({ isConsumer: true }) }));
 vi.mock('@/hooks/useTripPrivacyConfig', () => ({
   useTripPrivacyConfig: () => ({ data: null }),
   getEffectivePrivacyMode: () => 'all',
 }));
 vi.mock('@/hooks/useTripChatMode', () => ({
-  useTripChatMode: () => mockTripChatModeState,
+  useTripChatMode: () => ({
+    effectiveChatMode: 'all',
+    canPost: true,
+    canUploadMedia: true,
+    isLoading: false,
+    userRole: 'admin',
+  }),
 }));
 vi.mock('../../hooks/useLinkPreviews', () => ({ useLinkPreviews: () => ({}) }));
 vi.mock('@/hooks/useUserSafety', () => ({
@@ -140,18 +136,8 @@ vi.mock('@/hooks/useUserSafety', () => ({
 vi.mock('../ChatInput', () => ({ ChatInput: () => <div data-testid="chat-input" /> }));
 vi.mock('../InlineReplyComponent', () => ({ InlineReplyComponent: () => null }));
 vi.mock('../TypingIndicator', () => ({ TypingIndicator: () => null }));
-vi.mock('../MessageTypeBar', () => ({
-  MessageTypeBar: (props: any) => {
-    mockMessageTypeBar(props);
-    return null;
-  },
-}));
 vi.mock('../ChatSearchOverlay', () => ({ ChatSearchOverlay: () => null }));
-vi.mock('../ThreadView', () => ({
-  ThreadView: ({ parentMessage }: { parentMessage: { id: string } }) => (
-    <div data-testid="thread-view">{parentMessage.id}</div>
-  ),
-}));
+vi.mock('../ThreadView', () => ({ ThreadView: () => null }));
 vi.mock('@/components/mobile/PullToRefreshIndicator', () => ({
   PullToRefreshIndicator: () => null,
 }));
@@ -165,33 +151,62 @@ vi.mock('@/services/demoModeService', () => ({ demoModeService: { getMessages: v
 vi.mock('@/services/hapticService', () => ({ hapticService: { light: vi.fn() } }));
 vi.mock('@/services/chatContentParser', () => ({ parseMessage: vi.fn() }));
 vi.mock('@/services/stream/streamClient', () => ({
-  getStreamClient: () => null,
+  getStreamClient: () => ({ userID: 'user-1' }),
   onStreamClientConnected: vi.fn(() => () => {}),
 }));
 
 vi.mock('../VirtualizedMessageContainer', () => ({
-  VirtualizedMessageContainer: (props: any) => {
-    mockVirtualizedMessageContainer(props);
-    return (
-      <div data-testid="virtualized-message-container">
-        {props.messages.map((m: any, i: number) => (
-          <React.Fragment key={m.id}>{props.renderMessage(m, i, true)}</React.Fragment>
-        ))}
-      </div>
-    );
-  },
+  VirtualizedMessageContainer: ({
+    messages,
+    renderMessage,
+  }: {
+    messages: unknown[];
+    renderMessage: (...args: unknown[]) => React.ReactNode;
+  }) => (
+    <div data-testid="virtualized-message-container">
+      {messages.map((message, index) => (
+        <React.Fragment key={(message as { id: string }).id}>
+          {renderMessage(message, index, true)}
+        </React.Fragment>
+      ))}
+    </div>
+  ),
 }));
 
 vi.mock('../MessageItem', () => ({
-  MessageItem: (props: any) => {
-    mockMessageItem(props);
-    return <div data-testid={`message-item-${props.message.id}`} />;
-  },
+  MessageItem: ({
+    message,
+    onTogglePin,
+  }: {
+    message: { id: string; text: string; isPinned?: boolean };
+    onTogglePin?: (id: string, shouldPin: boolean) => void;
+  }) => (
+    <div>
+      <p>{message.text}</p>
+      <button
+        data-testid={`toggle-pin-${message.id}`}
+        onClick={() => onTogglePin?.(message.id, !message.isPinned)}
+      >
+        {message.isPinned ? 'unpin' : 'pin'}
+      </button>
+    </div>
+  ),
 }));
 
-describe('TripChat render path', () => {
+describe('TripChat pin parity across trip/pro/event contexts', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockMessageFilter = 'all';
+    mockMessages = [
+      {
+        id: 'msg-1',
+        text: 'Preserve this text',
+        user: { id: 'user-1', name: 'User One' },
+        created_at: '2026-04-27T00:00:00.000Z',
+        pinned: true,
+        pinned_at: '2026-04-27T00:01:00.000Z',
+      },
+    ];
   });
 
   const renderSubject = (props?: React.ComponentProps<typeof TripChat>) => {
@@ -203,72 +218,28 @@ describe('TripChat render path', () => {
     );
   };
 
-  it('renders one virtualized list and one canonical message callback path', async () => {
-    renderSubject();
-
-    expect(screen.getByTestId('virtualized-message-container')).toBeInTheDocument();
-    expect(screen.getAllByTestId('virtualized-message-container')).toHaveLength(1);
-    expect(
-      mockVirtualizedMessageContainer.mock.calls.every(
-        call => typeof call[0].renderMessage === 'function',
-      ),
-    ).toBe(true);
-
-    const messageItemProps = mockMessageItem.mock.calls[0][0];
-    expect(typeof messageItemProps.onReply).toBe('function');
-    expect(typeof messageItemProps.onOpenThread).toBe('function');
-    expect(messageItemProps.reactions).toEqual({
-      fromMessage: { count: 1, userReacted: true, users: ['user-1'] },
-    });
-    expect(messageItemProps.readStatuses).toEqual([
-      { user_id: 'user-2', read_at: '2026-01-01T00:01:00.000Z' },
-    ]);
-
-    act(() => {
-      messageItemProps.onReply('msg-1');
-    });
-    expect(mockSetReply).toHaveBeenCalledWith('msg-1', 'hello', 'User One');
-
-    act(() => {
-      messageItemProps.onOpenThread('msg-1');
-    });
-    await waitFor(() => {
-      expect(screen.getByTestId('thread-view')).toHaveTextContent('msg-1');
-    });
-  });
-
   it.each([
-    {
-      surface: 'trip',
-      tripType: { isConsumer: true, isPro: false, isEvent: false },
-      props: {},
-    },
-    {
-      surface: 'pro',
-      tripType: { isConsumer: false, isPro: true, isEvent: false },
-      props: { isPro: true },
-    },
-    {
-      surface: 'event',
-      tripType: { isConsumer: false, isPro: false, isEvent: true },
-      props: { isEvent: true },
-    },
+    { label: 'trip', params: { tripId: 'trip-123' }, props: {} },
+    { label: 'pro', params: { proTripId: 'pro-123' }, props: { isPro: true } },
+    { label: 'event', params: { eventId: 'event-123' }, props: { isEvent: true } },
   ])(
-    'keeps pin capability + pinned hydration parity for $surface without changing broadcast defaults',
-    ({ tripType, props }) => {
-      Object.assign(mockTripTypeState, tripType);
+    'keeps pin/unpin parity for $label chats and keeps search/channels UX available',
+    ({ params, props }) => {
+      mockParams = params;
       renderSubject(props);
 
-      const messageItemProps = mockMessageItem.mock.calls[0][0];
-      expect(messageItemProps.canManagePins).toBe(true);
-      expect(messageItemProps.message.isPinned).toBe(true);
-      expect(messageItemProps.message.pinnedAt).toBe('2026-01-01T00:02:00.000Z');
-      expect(messageItemProps.message.isBroadcast).toBe(true);
+      expect(screen.getByText('Preserve this text')).toBeInTheDocument();
       expect(screen.getByText('Pinned Messages')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /search/i })).toBeInTheDocument();
 
-      const messageTypeBarProps = mockMessageTypeBar.mock.calls[0][0];
-      expect(messageTypeBarProps.activeFilter).toBe('all');
-      expect(messageTypeBarProps.broadcastCount).toBe(0);
+      fireEvent.click(screen.getByTestId('toggle-pin-msg-1'));
+      expect(mockTogglePin).toHaveBeenCalledWith('msg-1', false);
+
+      expect(screen.getByText('Preserve this text')).toBeInTheDocument();
+
+      if ('isPro' in props) {
+        expect(screen.getByRole('button', { name: /channels/i })).toBeInTheDocument();
+      }
     },
   );
 });

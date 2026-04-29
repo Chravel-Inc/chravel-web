@@ -1,9 +1,36 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 
-import { CreateTripModal } from '../components/CreateTripModal';
-import { UpgradeModal } from '../components/UpgradeModal';
-import { SettingsMenu } from '../components/SettingsMenu';
-import { AuthModal } from '../components/AuthModal';
+// ⚡ PERFORMANCE: Lazy-load all conditionally-rendered modals + the unauthenticated
+// marketing landing. These were eagerly imported, parsing ~200-350KB of JS on every
+// `/` cold load even though most never open per session. Lazy + Suspense (with
+// `null` fallback so closed modals stay invisible) defers each chunk until needed.
+const CreateTripModal = lazy(() =>
+  import('../components/CreateTripModal').then(m => ({ default: m.CreateTripModal })),
+);
+const UpgradeModal = lazy(() =>
+  import('../components/UpgradeModal').then(m => ({ default: m.UpgradeModal })),
+);
+const SettingsMenu = lazy(() =>
+  import('../components/SettingsMenu').then(m => ({ default: m.SettingsMenu })),
+);
+const AuthModal = lazy(() =>
+  import('../components/AuthModal').then(m => ({ default: m.AuthModal })),
+);
+const FullPageLanding = lazy(() =>
+  import('../components/landing/FullPageLanding').then(m => ({ default: m.FullPageLanding })),
+);
+const SearchOverlay = lazy(() =>
+  import('../components/home/SearchOverlay').then(m => ({ default: m.SearchOverlay })),
+);
+const NotificationsDialog = lazy(() =>
+  import('../components/home/NotificationsDialog').then(m => ({ default: m.NotificationsDialog })),
+);
+const DemoModal = lazy(() =>
+  import('../components/conversion/DemoModal').then(m => ({ default: m.DemoModal })),
+);
+const OnboardingCarousel = lazy(() =>
+  import('../components/onboarding').then(m => ({ default: m.OnboardingCarousel })),
+);
 import { TripStatsOverview } from '../components/home/TripStatsOverview';
 import { TripViewToggle } from '../components/home/TripViewToggle';
 import { DesktopHeader } from '../components/home/DesktopHeader';
@@ -16,11 +43,6 @@ import {
   type TabId,
 } from '../components/native';
 import { RecommendationFilters } from '../components/home/RecommendationFilters';
-import { FullPageLanding } from '../components/landing/FullPageLanding';
-import { SearchOverlay } from '../components/home/SearchOverlay';
-import { NotificationsDialog } from '../components/home/NotificationsDialog';
-import { DemoModal } from '../components/conversion/DemoModal';
-import { OnboardingCarousel } from '../components/onboarding';
 
 import { useAuth } from '../hooks/useAuth';
 import { useIsMobile } from '../hooks/use-mobile';
@@ -359,21 +381,34 @@ const Index = () => {
 
   // Calculate requests count per view mode (scoped by trip_type)
   const requestsCounts = useMemo(() => {
-    let consumer = 0;
-    let pro = 0;
-    let event = 0;
-
+    const pendingTripCounts = { consumer: 0, pro: 0, event: 0 };
     userTripsRaw
       .filter(trip => trip.membership_status === 'pending' && !trip.is_archived)
       .forEach(trip => {
         const tripType = trip.trip_type ?? 'consumer';
-        if (tripType === 'pro') pro++;
-        else if (tripType === 'event') event++;
-        else consumer++;
+        if (tripType === 'pro') pendingTripCounts.pro++;
+        else if (tripType === 'event') pendingTripCounts.event++;
+        else pendingTripCounts.consumer++;
       });
 
-    return { consumer, pro, event };
-  }, [userTripsRaw]);
+    const outboundRequestCounts = { consumer: 0, pro: 0, event: 0 };
+    dashboardJoinRequests
+      .filter(req => req.direction === 'outbound')
+      .forEach(req => {
+        const rawType =
+          req.trip?.trip_type ?? userTripsRaw.find(t => t.id === req.trip_id)?.trip_type;
+        const tripType = rawType ?? 'consumer';
+        if (tripType === 'pro') outboundRequestCounts.pro++;
+        else if (tripType === 'event') outboundRequestCounts.event++;
+        else outboundRequestCounts.consumer++;
+      });
+
+    return {
+      consumer: Math.max(pendingTripCounts.consumer, outboundRequestCounts.consumer),
+      pro: Math.max(pendingTripCounts.pro, outboundRequestCounts.pro),
+      event: Math.max(pendingTripCounts.event, outboundRequestCounts.event),
+    };
+  }, [dashboardJoinRequests, userTripsRaw]);
 
   const filteredDashboardJoinRequests = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -780,7 +815,9 @@ const Index = () => {
     if (isInstalledApp()) {
       return (
         <div className="min-h-screen bg-background">
-          <AuthModal isOpen={true} onClose={() => {}} />
+          <Suspense fallback={null}>
+            <AuthModal isOpen={true} onClose={() => {}} />
+          </Suspense>
         </div>
       );
     }
@@ -788,8 +825,10 @@ const Index = () => {
     // Browser — show marketing landing page (unchanged behavior)
     return (
       <div className="min-h-screen min-h-mobile-screen bg-background font-outfit">
-        <FullPageLanding onSignUp={() => setIsAuthModalOpen(true)} />
-        <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+        <Suspense fallback={<div className="min-h-screen bg-background" />}>
+          <FullPageLanding onSignUp={() => setIsAuthModalOpen(true)} />
+          <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+        </Suspense>
       </div>
     );
   }
@@ -797,12 +836,14 @@ const Index = () => {
   // Show onboarding for new authenticated users
   if (showOnboarding) {
     return (
-      <OnboardingCarousel
-        onComplete={handleOnboardingComplete}
-        onSkip={handleOnboardingSkip}
-        onExploreDemoTrip={handleOnboardingExploreDemoTrip}
-        onCreateTrip={handleOnboardingCreateTrip}
-      />
+      <Suspense fallback={<div className="min-h-screen bg-background" />}>
+        <OnboardingCarousel
+          onComplete={handleOnboardingComplete}
+          onSkip={handleOnboardingSkip}
+          onExploreDemoTrip={handleOnboardingExploreDemoTrip}
+          onCreateTrip={handleOnboardingCreateTrip}
+        />
+      </Suspense>
     );
   }
 
@@ -895,19 +936,27 @@ const Index = () => {
             </div>
           </div>
 
-          <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+          <Suspense fallback={null}>
+            <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
 
-          <CreateTripModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
+            <CreateTripModal
+              isOpen={isCreateModalOpen}
+              onClose={() => setIsCreateModalOpen(false)}
+            />
 
-          <UpgradeModal isOpen={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)} />
+            <UpgradeModal
+              isOpen={isUpgradeModalOpen}
+              onClose={() => setIsUpgradeModalOpen(false)}
+            />
 
-          <SettingsMenu
-            isOpen={isSettingsOpen}
-            onClose={() => setIsSettingsOpen(false)}
-            initialConsumerSection={settingsInitialConsumerSection}
-            initialSettingsType={settingsInitialType}
-            onTripStateChange={handleTripStateChange}
-          />
+            <SettingsMenu
+              isOpen={isSettingsOpen}
+              onClose={() => setIsSettingsOpen(false)}
+              initialConsumerSection={settingsInitialConsumerSection}
+              initialSettingsType={settingsInitialType}
+              onTripStateChange={handleTripStateChange}
+            />
+          </Suspense>
 
           {/* Search indicator when active */}
           {searchQuery && (
@@ -931,18 +980,20 @@ const Index = () => {
             </div>
           )}
 
-          <SearchOverlay
-            isOpen={isSearchOpen}
-            onClose={() => setIsSearchOpen(false)}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            resultCount={searchResultCount}
-            matchingTrips={allSearchableTrips}
-            onTripSelect={handleSearchTripSelect}
-          />
+          <Suspense fallback={null}>
+            <SearchOverlay
+              isOpen={isSearchOpen}
+              onClose={() => setIsSearchOpen(false)}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              resultCount={searchResultCount}
+              matchingTrips={allSearchableTrips}
+              onTripSelect={handleSearchTripSelect}
+            />
 
-          {/* Notifications dialog (mounted at page level for mobile access) */}
-          <NotificationsDialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen} />
+            {/* Notifications dialog (mounted at page level for mobile access) */}
+            <NotificationsDialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen} />
+          </Suspense>
 
           {/* iOS-style bottom tab bar (mobile only) */}
           <NativeTabBar
@@ -1075,25 +1126,27 @@ const Index = () => {
 
         {/* PersistentCTABar removed until production-ready MVP launch */}
 
-        <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+        <Suspense fallback={null}>
+          <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
 
-        <CreateTripModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
+          <CreateTripModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
 
-        <UpgradeModal isOpen={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)} />
+          <UpgradeModal isOpen={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)} />
 
-        <SettingsMenu
-          isOpen={isSettingsOpen}
-          onClose={() => setIsSettingsOpen(false)}
-          initialConsumerSection={settingsInitialConsumerSection}
-          initialSettingsType={settingsInitialType}
-          onTripStateChange={handleTripStateChange}
-        />
+          <SettingsMenu
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
+            initialConsumerSection={settingsInitialConsumerSection}
+            initialSettingsType={settingsInitialType}
+            onTripStateChange={handleTripStateChange}
+          />
 
-        <DemoModal
-          isOpen={isDemoModalOpen}
-          onClose={() => setIsDemoModalOpen(false)}
-          demoType={viewMode === 'events' ? 'events' : 'pro'}
-        />
+          <DemoModal
+            isOpen={isDemoModalOpen}
+            onClose={() => setIsDemoModalOpen(false)}
+            demoType={viewMode === 'events' ? 'events' : 'pro'}
+          />
+        </Suspense>
 
         {/* Search indicator when active */}
         {searchQuery && (
@@ -1117,18 +1170,20 @@ const Index = () => {
           </div>
         )}
 
-        <SearchOverlay
-          isOpen={isSearchOpen}
-          onClose={() => setIsSearchOpen(false)}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          resultCount={searchResultCount}
-          matchingTrips={allSearchableTrips}
-          onTripSelect={handleSearchTripSelect}
-        />
+        <Suspense fallback={null}>
+          <SearchOverlay
+            isOpen={isSearchOpen}
+            onClose={() => setIsSearchOpen(false)}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            resultCount={searchResultCount}
+            matchingTrips={allSearchableTrips}
+            onTripSelect={handleSearchTripSelect}
+          />
 
-        {/* Notifications dialog (mounted at page level for mobile access) */}
-        <NotificationsDialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen} />
+          {/* Notifications dialog (mounted at page level for mobile access) */}
+          <NotificationsDialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen} />
+        </Suspense>
 
         {/* iOS-style bottom tab bar (mobile only) */}
         <NativeTabBar
@@ -1313,39 +1368,42 @@ const Index = () => {
 
       {/* PersistentCTABar removed until production-ready MVP launch */}
 
-      {/* Modals */}
-      <CreateTripModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
+      {/* Modals — wrapped in a single Suspense boundary so first-open chunk
+          fetch never bubbles to the route-level loading spinner */}
+      <Suspense fallback={null}>
+        <CreateTripModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
 
-      <UpgradeModal isOpen={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)} />
+        <UpgradeModal isOpen={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)} />
 
-      <SettingsMenu
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        initialConsumerSection={settingsInitialConsumerSection}
-        initialSettingsType={settingsInitialType}
-        onTripStateChange={handleTripStateChange}
-      />
+        <SettingsMenu
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          initialConsumerSection={settingsInitialConsumerSection}
+          initialSettingsType={settingsInitialType}
+          onTripStateChange={handleTripStateChange}
+        />
 
-      <DemoModal
-        isOpen={isDemoModalOpen}
-        onClose={() => setIsDemoModalOpen(false)}
-        demoType={viewMode === 'events' ? 'events' : 'pro'}
-      />
+        <DemoModal
+          isOpen={isDemoModalOpen}
+          onClose={() => setIsDemoModalOpen(false)}
+          demoType={viewMode === 'events' ? 'events' : 'pro'}
+        />
 
-      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+        <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
 
-      <SearchOverlay
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        resultCount={searchResultCount}
-        matchingTrips={allSearchableTrips}
-        onTripSelect={handleSearchTripSelect}
-      />
+        <SearchOverlay
+          isOpen={isSearchOpen}
+          onClose={() => setIsSearchOpen(false)}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          resultCount={searchResultCount}
+          matchingTrips={allSearchableTrips}
+          onTripSelect={handleSearchTripSelect}
+        />
 
-      {/* Notifications dialog (mounted at page level for mobile access) */}
-      <NotificationsDialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen} />
+        {/* Notifications dialog (mounted at page level for mobile access) */}
+        <NotificationsDialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen} />
+      </Suspense>
 
       {/* iOS-style bottom tab bar (mobile only) */}
       <NativeTabBar

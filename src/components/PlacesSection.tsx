@@ -1,19 +1,17 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from './mobile/PullToRefreshIndicator';
 import { BasecampsPanel } from './places/BasecampsPanel';
 import { LinksPanel } from './places/LinksPanel';
 import { BasecampLocation } from '../types/basecamp';
 import { useTripVariant } from '../contexts/TripVariantContext';
-import { usePlacesLinkSync } from '../hooks/usePlacesLinkSync';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useTripBasecamp, tripBasecampKeys } from '@/hooks/useTripBasecamp';
 import { personalBasecampKeys, usePersonalBasecamp } from '@/hooks/usePersonalBasecamp';
 import { supabase } from '@/integrations/supabase/client';
-import { basecampService, PersonalBasecamp } from '@/services/basecampService';
+import { basecampService } from '@/services/basecampService';
 import { toast } from 'sonner';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
 import { fetchTripPlaces } from '@/services/tripPlacesService';
@@ -41,11 +39,8 @@ export const PlacesSection = ({
   // ⚡ PERFORMANCE: Use TanStack Query for personal basecamp (loads in parallel with trip basecamp)
   const { data: personalBasecampData } = usePersonalBasecamp(tripId);
 
-  // State
+  // State (only the small UI bits — data state lives in TanStack Query)
   const [activeTab, setActiveTab] = useState<TabView>('basecamps');
-  // places derived directly from TanStack Query — no duplicate local state
-  const [linkedPlaceIds] = useState<Set<string>>(new Set());
-  const [personalBasecamp, setPersonalBasecamp] = useState<PersonalBasecamp | null>(null);
 
   // Generate demo user ID
   const getDemoUserId = () => {
@@ -73,27 +68,28 @@ export const PlacesSection = ({
     maxPullDistance: 120,
   });
 
-  const { createLinkFromPlace, removeLinkByPlaceId } = usePlacesLinkSync();
-
-  const { data: fetchedPlaces = [] } = useQuery({
+  // ⚡ PERFORMANCE: keepPreviousData surfaces the last-known places list
+  // instantly while the background refetch runs — eliminates the empty
+  // "Add a place" flash when re-entering the tab on stale cache.
+  useQuery({
     queryKey: tripKeys.places(tripId, isDemoMode),
     queryFn: () => fetchTripPlaces(tripId, isDemoMode),
     staleTime: QUERY_CACHE_CONFIG.places.staleTime,
     gcTime: QUERY_CACHE_CONFIG.places.gcTime,
     refetchOnWindowFocus: QUERY_CACHE_CONFIG.places.refetchOnWindowFocus,
     enabled: !!tripId,
+    placeholderData: keepPreviousData,
   });
 
-  // Use query data directly — no sync useEffect needed
-  const places = fetchedPlaces;
-
-  // ⚡ PERFORMANCE: Sync personal basecamp from TanStack Query to local state
-  // This replaces the sequential useEffect fetch with parallel query loading
-  useEffect(() => {
-    if (personalBasecampData !== undefined) {
-      setPersonalBasecamp(personalBasecampData);
-    }
-  }, [personalBasecampData]);
+  // Personal basecamp comes straight from TanStack Query — no local state mirror
+  // (eliminates the duplicate useState + useEffect sync that re-rendered the
+  // whole Places section every time the personal basecamp resolved).
+  const personalBasecamp = personalBasecampData ?? null;
+  const handlePersonalBasecampUpdate = useCallback(() => {
+    queryClient.invalidateQueries({
+      queryKey: personalBasecampKeys.tripUser(tripId, effectiveUserId),
+    });
+  }, [queryClient, tripId, effectiveUserId]);
 
   // Track local updates to prevent toast spam
   const lastLocalUpdateRef = useRef<{ timestamp: number; address: string } | null>(null);
@@ -169,10 +165,6 @@ export const PlacesSection = ({
     };
   };
 
-  const handlePersonalBasecampUpdate = (basecamp: PersonalBasecamp | null) => {
-    setPersonalBasecamp(basecamp);
-  };
-
   return (
     <div className="relative mb-12 mobile-safe-scroll">
       {(isRefreshing || pullDistance > 0) && (
@@ -228,27 +220,7 @@ export const PlacesSection = ({
 
         {/* Explore — display:none keeps mounted for instant tab switching (matches BasecampsPanel) */}
         <div style={{ display: activeTab === 'links' ? 'block' : 'none' }}>
-          <LinksPanel
-            tripId={tripId}
-            places={places}
-            basecamp={tripBasecamp || null}
-            personalBasecamp={personalBasecamp}
-            onPlaceAdded={() => {
-              queryClient.invalidateQueries({ queryKey: tripKeys.places(tripId) });
-            }}
-            onPlaceRemoved={placeId => {
-              queryClient.invalidateQueries({ queryKey: tripKeys.places(tripId) });
-              removeLinkByPlaceId(tripId, placeId);
-            }}
-            onAddToLinks={async place => {
-              await createLinkFromPlace(place, 'You', tripId, effectiveUserId);
-              return true;
-            }}
-            linkedPlaceIds={linkedPlaceIds}
-            onEventAdded={_eventData => {
-              // Event added to calendar (reserved for future use)
-            }}
-          />
+          <LinksPanel tripId={tripId} />
         </div>
       </div>
     </div>

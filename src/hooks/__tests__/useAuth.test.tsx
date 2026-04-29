@@ -273,6 +273,27 @@ describe('AuthProvider', () => {
     expect(mockOpenInstalledAuthBrowser).toHaveBeenCalledWith('https://oauth.example/authorize');
   });
 
+  it('uses explicit returnTo override for OAuth redirects', async () => {
+    mockIsInstalledApp.mockReturnValue(false);
+    mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({
+      data: { url: 'https://oauth.example/authorize' },
+      error: null,
+    });
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { timeout: 3000 });
+
+    await act(async () => {
+      await result.current.signInWithGoogle('/join/chravelhmbehnbu');
+    });
+
+    const call = mockSupabaseClient.auth.signInWithOAuth.mock.calls[0][0];
+    expect(call.options.redirectTo).toContain(encodeURIComponent('/join/chravelhmbehnbu'));
+  });
+
   it('routes installed-app Apple OAuth to Universal Link and launches external auth browser', async () => {
     mockIsInstalledApp.mockReturnValue(true);
     mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({

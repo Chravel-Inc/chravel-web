@@ -7,6 +7,37 @@
 
 ## Strategy Tips
 
+### User-trip realtime subscriptions need deterministic backfill triggers
+- **Tip:** For dashboard trip hydration, treat realtime as an accelerator, not the only source. Invalidate trips when the channel reaches `SUBSCRIBED` again after the initial subscription (reconnect/resubscribe path), and when the app returns to foreground (`focus` / visible tab), so missed websocket events do not strand approved users in stale pending state. Avoid invalidating on the very first `SUBSCRIBED` if the same mount already ran an initial trip fetch, or you duplicate refetches without adding recovery value.
+- **Applies when:** `useTrips` depends on `trip_members` / `trip_join_requests` realtime events for approval state transitions.
+- **Avoid when:** A dedicated polling cadence already guarantees state convergence and additional invalidations would cause unacceptable load.
+- **Evidence:** Users could remain stale after approval if app backgrounding or reconnect timing dropped realtime events; adding reconnect + foreground backfills restored deterministic hydration.
+- **Provenance:** April 2026 PR #416 follow-up audit.
+- **Confidence:** high
+
+### Trip preview CTA should resolve membership and join-request status together
+- **Tip:** In shared/public trip preview surfaces, don't gate CTA behavior only on `active_invite_code` + `trip_members`. Also read the latest `trip_join_requests.status` for the signed-in user so pending requesters get a deterministic status route instead of a dead-end "invite still setting up" toast.
+- **Applies when:** `/trip/:tripId/preview` or branded `/t/:tripId` pages determine where authenticated non-members should be sent.
+- **Avoid when:** Product explicitly wants to hide request status from preview users.
+- **Evidence:** Users with pending requests could hit "Open in ChravelApp" while `active_invite_code` was null and receive no navigation; adding join-request status fallback changed CTA to "View Request Status" and navigated to Home requests context.
+- **Provenance:** April 2026 trip invite flow hardening follow-up.
+- **Confidence:** high
+
+### Dashboard request cards and request counters must share the same outbound source-of-truth
+- **Tip:** If request cards can render from fallback outbound join-request rows when pending trips are not projected yet, derive the Requests counter from the same outbound rows (or a deterministic max merge) to prevent `0 Requests` while cards are visible.
+- **Applies when:** Home dashboard combines `useTrips` pending membership rows with `useDashboardJoinRequests` outbound rows.
+- **Avoid when:** Product intentionally separates “pending memberships” and “outbound requests” into distinct widgets/counters.
+- **Evidence:** Pending cards rendered from outbound fallback while stats relied only on `membership_status='pending'` trips, producing count/card drift; aligning count derivation removed the mismatch.
+- **Provenance:** April 2026 pending join-request hydration/count drift fix.
+- **Confidence:** high
+
+### Keep pin/unpin mutations inside shared chat hooks, not UI surfaces
+- **Tip:** UI components should call a shared `togglePin` hook method and avoid local Stream client mutation guards/calls, so Trips/Pro Trips/Events all execute identical pin payload logic and error handling.
+- **Applies when:** Message action menus in shared chat components (e.g., `TripChat`) invoke pin/unpin.
+- **Evidence:** Removing a redundant `streamClient` gate in `TripChat` kept pinning delegated to `useStreamTripChat.togglePin` (`partialUpdateMessage`) and eliminated surface-specific divergence risk.
+- **Provenance:** April 2026 pin-path hardening follow-up.
+- **Confidence:** high
+
 ### In transport-mixed chat surfaces, propagate transport mode to the mutation trigger component
 - **Tip:** If a parent surface supports both Stream and legacy transports, ensure the final mutation-triggering UI element (for example message action menu) receives explicit `transportMode`. Relying on an intermediate default (`'legacy'`) can silently route Stream edits/deletes into DB mutation APIs.
 - **Applies when:** Chat/message components pass edit/delete callbacks through `MessageItem`/`MessageBubble` style wrappers.
@@ -138,6 +169,14 @@
 - **Provenance:** April 2026 TestFlight OAuth re-enable.
 - **Confidence:** high
 - **Cross-repo dependency:** The web-side changes here require matching work in `chravel-mobile` (register URL scheme, AASA/assetlinks, `@capacitor/browser`, `appUrlOpen` deep-link listener). Without that, Google still errors out in an embedded webview redirect — strictly worse than the "hidden buttons" state. Land both or neither.
+
+### Universal Link short paths must be present in the shipped AASA source-of-truth, not just API helpers
+- **Tip:** If production invite links use a short path like `/j/:code`, that exact path must exist in the deployed `apple-app-site-association` payload the app host actually serves. Updating only an API generator or docs is not enough if Vercel/public static files remain the effective source-of-truth.
+- **Applies when:** iOS invite links or auth callbacks unexpectedly open in Safari instead of handing off to the installed app.
+- **Avoid when:** The host serves the AASA exclusively from one verified endpoint and there is no parallel static copy.
+- **Evidence:** Chravel's live AASA claimed `/join/*` but not `/j/*`, so Slack-shared `https://chravel.app/j/...` invites were not eligible for Universal Link handoff even though `api/aasa.ts` already listed `/j/*`. Updating the shipped `public/.well-known/apple-app-site-association` restored parity with actual invite URLs.
+- **Provenance:** April 2026 invite auth/deep-link regression fix.
+- **Confidence:** high
 
 ### Fire-and-forget sync paths must emit structured failure signals
 - **Tip:** If a non-critical sync step intentionally runs fire-and-forget (for example membership projection into Stream after a successful Supabase mutation), never leave `.catch(() => {})` empty. Emit structured logs with operation + identifiers so support can trace drift and replay safely.
@@ -714,4 +753,28 @@
 - **Applies when:** Chat composers clear input/reply state immediately for optimistic UX.
 - **Evidence:** `useChatComposer.sendMessage` resets `replyingTo` before transport send completes; TripChat now uses `createThreadReplySuccessState(repliedParentMessageId)` to ensure thread-reply success CTA is shown only for replies.
 - **Provenance:** April 23, 2026 thread reply CTA enhancement.
+- **Confidence:** high
+
+### Stream message pin/unpin should use partial update mutations, not full update payloads
+- **Tip:** For pin state changes, call `partialUpdateMessage({ id, set: { pinned } })` instead of `updateMessage({ id, pinned, ... })` so message text/attachments are never accidentally overwritten by sparse payloads.
+- **Applies when:** Chat UIs expose pin/unpin actions on existing Stream messages.
+- **Avoid when:** You intentionally need a full message content update (editing text/attachments).
+- **Evidence:** Trip chat pin toggle path was using `updateMessage` directly from UI; moving to hook-level `togglePin` with partial updates preserved timeline body while keeping real-time `message.updated` propagation.
+- **Provenance:** April 27, 2026 TripChat pin/unpin integrity fix.
+- **Confidence:** high
+
+### OG/share proxy endpoints must fail over to HTML redirect pages when upstream returns JSON errors
+- **Tip:** For branded unfurl proxies (`/t/:tripId`, `/join/:code`), never pass through non-HTML upstream payloads directly. If upstream returns non-2xx or non-HTML (for example Supabase edge runtime degradation JSON), return deterministic HTML with meta-refresh and a visible fallback CTA to the primary app URL.
+- **Applies when:** A proxy endpoint is used by both social crawlers and human taps, and upstream preview generation depends on edge runtime health.
+- **Avoid when:** The endpoint is API-only and intentionally returns machine-readable JSON.
+- **Evidence:** `api/trip-preview` previously surfaced raw `SUPABASE_EDGE_RUNTIME_SERVICE_DEGRADED` JSON in mobile browser, blocking join conversion. HTML fallback restored continuation into `/trip/:id/preview` while keeping normal upstream HTML pass-through behavior.
+- **Provenance:** April 2026 branded trip invite flow degradation hardening.
+- **Confidence:** high
+
+### Shared trip preview flows should self-heal missing active invites before exposing join CTA
+- **Tip:** When `/trip/:id/preview` is the conversion bridge to `/join/:code`, treat missing `active_invite_code` as a recoverable backend state, not a terminal UX. Add an explicit server-side invite bootstrap path and invoke it from preview fetch + one user-triggered retry.
+- **Applies when:** A shareable trip URL must remain joinable even if legacy/manual invite rows were deactivated, expired, or deleted.
+- **Avoid when:** Product policy explicitly requires hosts to manually create every invite and rejects auto-provisioning.
+- **Evidence:** Trip preview previously returned no invite and blocked Join CTA. Adding `ensureInvite` to `get-trip-preview` plus a retry call from `TripPreview` restored deterministic join routing for existing shared trips.
+- **Provenance:** April 2026 trip invite bootstrap hardening.
 - **Confidence:** high

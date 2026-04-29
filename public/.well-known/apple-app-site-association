@@ -9,6 +9,7 @@
           { "/": "/tour/pro/*", "comment": "Pro trip pages" },
           { "/": "/event/*", "comment": "Event pages" },
           { "/": "/join/*", "comment": "Trip invite links" },
+          { "/": "/j/*", "comment": "Branded invite short path (p.chravel.app/j/...)" },
           { "/": "/invite/*", "comment": "Organization invites" },
           { "/": "/organization/*", "comment": "Organization pages" },
           { "/": "/profile/*", "comment": "User profiles" },

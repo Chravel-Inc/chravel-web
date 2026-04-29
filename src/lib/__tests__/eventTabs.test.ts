@@ -15,6 +15,14 @@ describe('eventTabs helpers', () => {
     expect(isEventTabEnabled('tasks', enabledTabs)).toBe(true);
   });
 
+  it('treats legacy null event settings as default enabled', () => {
+    const enabledTabs = buildEventEnabledTabs(null);
+
+    expect(isEventTabEnabled('chat', enabledTabs)).toBe(true);
+    expect(isEventTabEnabled('calendar', enabledTabs)).toBe(true);
+    expect(isEventTabEnabled('tasks', enabledTabs)).toBe(true);
+  });
+
   it('respects organizer toggles for non always-on tabs', () => {
     const enabledTabs = buildEventEnabledTabs(['calendar', 'polls']);
 

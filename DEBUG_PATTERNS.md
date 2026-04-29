@@ -277,6 +277,29 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Fixed in:** March 2026 media forensic fix
 - **Confidence:** high
 
+## Legacy nullable event enabled_features disables attendee tabs
+- **Status:** fixed
+- **Subsystem:** event tabs / admin settings / mobile event detail
+- **Bug class:** legacy schema compatibility / source-of-truth drift
+- **Symptom:** Opening an event in mobile/Android shows the same "disabled by admin" state across event tabs even though the organizer never turned them off; admin settings can also render all optional tabs as off for older events.
+- **User-facing impact:** Event surfaces look broken or unavailable for legacy events, especially on installed mobile apps where attendees primarily enter via the event detail tab rail.
+- **Trigger conditions:** Existing event rows with `trips.enabled_features = NULL` after the feature-flag column rollout; attendee tab rendering uses live DB settings instead of seeded defaults.
+- **Likely root cause:** Shared helper `buildEventEnabledTabs()` correctly treats missing settings as "all optional tabs enabled," but `useEventTabSettings` and `useEventAdmin` coerced `NULL` to `[]`, which the UI interpreted as "all optional tabs disabled."
+- **Root cause chain:**
+  - Immediate: Event tab settings hook resolves `chat/calendar/media/polls/tasks` to disabled.
+  - Proximate: Hooks normalize `NULL enabled_features` to empty array.
+  - Underlying: Legacy compatibility logic existed in one helper layer but not in the live data-fetch/admin mutation paths.
+- **How to reproduce:**
+  1. Use an event trip whose `enabled_features` column is `NULL`
+  2. Open the event on mobile/Android
+  3. Observe attendee-facing tabs appear disabled despite no organizer action
+- **How to confirm:** Inspect the row in `trips`; if `enabled_features` is `NULL` and `useEventTabSettings` / `useEventAdmin` collapse it to `[]`, this is the cause.
+- **Smallest safe fix:** Normalize `NULL` to "legacy defaults" at the shared event-tab helper boundary and route both attendee rendering and admin toggle logic through that helper.
+- **Regression risks:** New events with explicit empty arrays would still behave as explicitly disabled; ensure tests cover `undefined` and `null` separately.
+- **Related files:** `src/lib/eventTabs.ts`, `src/hooks/useEventTabSettings.ts`, `src/hooks/useEventAdmin.ts`
+- **Fixed in:** April 2026 Android event-tab forensic fix
+- **Confidence:** high
+
 ---
 
 ## LiveKit Token roomConfig Dead Code
@@ -327,6 +350,33 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Related files:** `src/pages/TripPreview.tsx`, `supabase/functions/get-trip-preview/index.ts`
 - **Fixed in:** April 2026 invite flow deep-dive pass
 - **Confidence:** medium-high
+
+## Branded trip-share proxy renders raw JSON when preview edge runtime is degraded
+- **Status:** fixed
+- **Subsystem:** trip invite/share preview proxy (`/t/:tripId` on branded host)
+- **Bug class:** error-boundary / content-type fallback gap
+- **Symptom:** Opening a branded trip share link shows raw JSON like `{"code":"SUPABASE_EDGE_RUNTIME_SERVICE_DEGRADED"...}` instead of redirecting into the app join flow.
+- **User-facing impact:** High — users cannot continue through invite/join flow from branded link during upstream preview outages.
+- **Trigger conditions:** `api/trip-preview` receives non-HTML response (often 503 JSON) from Supabase `generate-trip-preview`.
+- **Likely root cause:** Proxy passed upstream body/status through verbatim without guarding for non-HTML degraded payloads.
+- **Smallest safe fix:** In `api/trip-preview`, detect `!upstream.ok || !bodyLooksHtml` and return fallback HTML with meta-refresh + CTA to `https://chravel.app/trip/:tripId/preview`.
+- **Regression risks:** None meaningful; successful HTML previews still pass through unchanged.
+- **Related files:** `api/trip-preview.ts`, `src/__tests__/trip-preview-api.test.ts`
+- **Fixed in:** April 2026 trip-join degradation hardening.
+- **Confidence:** high
+
+## Trip preview has no active invite code, blocking join CTA for shared UUID trip links
+- **Status:** fixed
+- **Subsystem:** trip preview → invite bridge (`get-trip-preview` + `TripPreview`)
+- **Bug class:** missing invite bootstrap / stale preview state
+- **Symptom:** User opens `/t/:tripId` or `/trip/:tripId/preview`, clicks “Join This Trip,” and gets “ask organizer for invite link” even though they already have the trip share link.
+- **User-facing impact:** High — shared trip cannot convert to join-request flow without manual organizer intervention.
+- **Trigger conditions:** Trip has no active row in `trip_invites` (inactive/expired/deleted historical links) when preview is fetched.
+- **Likely root cause:** Preview flow treated existing active invite as required input but did not self-heal missing invite state for shared trip links.
+- **Smallest safe fix:** Add optional `ensureInvite` behavior in `get-trip-preview` to auto-create one active invite when missing, and make `TripPreview` request with `ensureInvite: true` plus one retry on join click.
+- **Related files:** `supabase/functions/get-trip-preview/index.ts`, `src/pages/TripPreview.tsx`, `src/pages/__tests__/TripPreview.inviteFlow.test.tsx`
+- **Fixed in:** April 2026 trip invite bootstrap hardening.
+- **Confidence:** high
 
 ## 5. Stream ReadChannel Permission Denial for Existing Trip Members
 

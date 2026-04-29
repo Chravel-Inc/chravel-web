@@ -9,6 +9,34 @@ export const config = {
   runtime: 'edge',
 };
 
+function buildTripPreviewFallbackHtml({
+  tripId,
+  appTripPreviewUrl,
+}: {
+  tripId: string;
+  appTripPreviewUrl: string;
+}): string {
+  const safeTripId = tripId.replace(/"/g, '&quot;');
+  const safeAppUrl = appTripPreviewUrl.replace(/"/g, '&quot;');
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Open Trip in Chravel</title>
+  <meta property="og:title" content="Open this trip in Chravel" />
+  <meta property="og:description" content="Tap to continue to the trip preview and join flow." />
+  <meta property="og:site_name" content="ChravelApp" />
+  <meta http-equiv="refresh" content="0; url=${safeAppUrl}" />
+</head>
+<body>
+  <p>Redirecting to trip preview...</p>
+  <p><a href="${safeAppUrl}">Continue to this trip</a></p>
+  <p style="display:none">Trip: ${safeTripId}</p>
+</body>
+</html>`;
+}
+
 export default async function handler(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const tripId = url.searchParams.get('tripId');
@@ -29,6 +57,7 @@ export default async function handler(request: Request): Promise<Response> {
     // Branded unfurl hosts (e.g. p.chravel.app) are OG surfaces and should not
     // be used as the in-app destination.
     const appBaseUrl = 'https://chravel.app';
+    const appTripPreviewUrl = `${appBaseUrl}/trip/${encodeURIComponent(tripId)}/preview`;
 
     // Proxy to Supabase generate-trip-preview edge function
     const supabaseProjectRef = 'jmjiyekmxwsxkfnqwyaa';
@@ -52,15 +81,28 @@ export default async function handler(request: Request): Promise<Response> {
 
     console.log('[trip-preview] Upstream status:', upstream.status, 'Body length:', body.length);
 
-    const upstreamContentType = upstream.headers.get('content-type') ?? '';
     const bodyLooksHtml = /^\s*<(?:!doctype\s+html|html|head|meta|body)/i.test(body);
+    const fallbackHtml = buildTripPreviewFallbackHtml({ tripId, appTripPreviewUrl });
+
+    // If upstream is degraded (e.g., runtime 503 JSON payload), fall back to HTML that
+    // still routes humans to the interactive app join flow instead of showing raw JSON.
+    if (!upstream.ok || !bodyLooksHtml) {
+      console.warn(
+        '[trip-preview] Upstream unavailable or non-HTML response, serving fallback HTML',
+      );
+      return new Response(fallbackHtml, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'no-store, max-age=0',
+        },
+      });
+    }
 
     // Always serve HTML as text/html so desktop browsers render preview pages correctly.
     // Some upstream/proxy hops can strip or rewrite content-type to text/plain, which causes
     // raw OG HTML source (and mojibake bullets) to display instead of rendering.
-    const contentType = bodyLooksHtml
-      ? 'text/html; charset=utf-8'
-      : upstreamContentType || 'text/plain; charset=utf-8';
+    const contentType = 'text/html; charset=utf-8';
 
     // Build response with proper headers
     const responseHeaders: Record<string, string> = {

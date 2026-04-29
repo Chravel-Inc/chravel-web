@@ -27,6 +27,7 @@ import {
   splitJoinRequestsByDirection,
   type DashboardJoinRequest,
 } from '@/hooks/useDashboardJoinRequests';
+import { mapOutboundRequestToTripCard } from './requestTripMapper';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { SortableTripGrid } from '../dashboard/SortableTripGrid';
@@ -81,17 +82,6 @@ export const TripGrid = React.memo(
     onCancelDashboardRequest,
     onTripStateChange,
   }: TripGridProps) => {
-    const formatRequestStartDate = useCallback((startDate?: string) => {
-      if (!startDate) return 'Date TBD';
-      const date = new Date(startDate);
-      if (Number.isNaN(date.getTime())) return 'Date TBD';
-      return date.toLocaleDateString(undefined, {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      });
-    }, []);
-
     const isMobile = useIsMobile();
     const [manualLocation, setManualLocation] = useState<string>('');
     const { toggleSave } = useSavedRecommendations();
@@ -399,17 +389,8 @@ export const TripGrid = React.memo(
 
       // Fallback path for legacy environments where pending trips are not projected
       // into useTrips yet, but outbound request rows are visible.
-      return outgoingRequests.map(request => ({
-        id: request.trip_id,
-        title: request.trip?.name || 'Trip',
-        location: request.trip?.destination || 'Destination TBD',
-        dateRange: formatRequestStartDate(request.trip?.start_date),
-        participants: [],
-        coverPhoto: request.trip?.cover_image_url,
-        peopleCount: 0,
-        placesCount: 0,
-      }));
-    }, [formatRequestStartDate, outgoingRequests, pendingTrips]);
+      return outgoingRequests.map(mapOutboundRequestToTripCard);
+    }, [outgoingRequests, pendingTrips]);
 
     // Show loading skeleton
     if (loading) {

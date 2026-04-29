@@ -4,6 +4,13 @@ import { NotificationsDialog } from '../home/NotificationsDialog';
 import { MemoryRouter } from 'react-router-dom';
 
 const mockNavigate = vi.fn();
+const mockMaybeSingle = vi.fn();
+const mockLimit = vi.fn();
+const mockOrder = vi.fn();
+const mockEq = vi.fn();
+const mockIlike = vi.fn();
+const mockSelect = vi.fn();
+const mockFrom = vi.fn();
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
@@ -41,12 +48,7 @@ vi.mock('@/hooks/useNotificationRealtime', () => ({
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: () => ({
-      select: () => ({
-        eq: () => ({ order: () => ({ limit: () => ({ data: [] }) }) }),
-        ilike: () => ({ order: () => ({ limit: () => ({ data: [] }) }) }),
-      }),
-    }),
+    from: (...args: unknown[]) => mockFrom(...args),
   },
 }));
 
@@ -65,6 +67,13 @@ describe('NotificationsDialog', () => {
     vi.clearAllMocks();
     mockNotifications = [];
     mockUnreadCount = 0;
+    mockMaybeSingle.mockResolvedValue({ data: null });
+    mockLimit.mockResolvedValue({ data: [] });
+    mockOrder.mockReturnValue({ limit: mockLimit });
+    mockEq.mockReturnValue({ order: mockOrder, maybeSingle: mockMaybeSingle });
+    mockIlike.mockReturnValue({ order: mockOrder });
+    mockSelect.mockReturnValue({ eq: mockEq, ilike: mockIlike });
+    mockFrom.mockReturnValue({ select: mockSelect });
   });
 
   it('renders empty state when open with no notifications', () => {
@@ -227,6 +236,35 @@ describe('NotificationsDialog', () => {
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/trip/trip-safe-fallback?tab=calendar', undefined);
+    });
+  });
+
+  it('hydrates trip type from trips table when approval notification lacks trip_type', async () => {
+    mockMaybeSingle.mockResolvedValueOnce({
+      data: { id: 'trip-pro-approved', trip_type: 'pro' },
+    });
+    mockNotifications = [
+      {
+        id: 'n-approval-pro',
+        type: 'system',
+        title: 'Join Request Approved',
+        description: 'Your request to join "Pro Tour" has been approved!',
+        tripId: 'trip-pro-approved',
+        tripName: 'Pro Tour',
+        timestamp: 'now',
+        isRead: false,
+        data: {
+          action: 'join_approved',
+          trip_name: 'Pro Tour',
+        },
+      },
+    ];
+
+    renderDialog(true);
+    fireEvent.click(screen.getByText('Join Request Approved'));
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/tour/pro/trip-pro-approved', undefined);
     });
   });
 });

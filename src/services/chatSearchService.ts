@@ -5,6 +5,7 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import { getStreamClient } from '@/services/stream/streamClient';
+import { CHANNEL_TYPE_TRIP, tripChannelId } from '@/services/stream/streamChannelFactory';
 import { searchTripChannelMessages } from '@/services/stream/streamMessageSearch';
 import type { ParsedMessageSearchQuery } from '@/lib/parseMessageSearchQuery';
 

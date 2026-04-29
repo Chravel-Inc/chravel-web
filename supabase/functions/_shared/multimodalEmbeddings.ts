@@ -12,7 +12,7 @@
  *   PDF: up to 6 pages/request
  */
 
-import { validateExternalHttpsUrl } from './validation.ts';
+import { validateExternalUrlBeforeFetch } from './validation.ts';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -72,7 +72,7 @@ async function fetchAsBase64(
   url: string,
   timeoutMs: number,
 ): Promise<{ base64: string; mimeType: string } | null> {
-  if (!validateExternalHttpsUrl(url)) {
+  if (!(await validateExternalUrlBeforeFetch(url))) {
     console.warn('[multimodal-embed] Blocked non-external URL:', url);
     return null;
   }

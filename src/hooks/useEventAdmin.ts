@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useJoinRequests } from './useJoinRequests';
-import { ALWAYS_ON_EVENT_TABS } from '@/lib/eventTabs';
+import { ALWAYS_ON_EVENT_TABS, getMutableEventEnabledFeatures } from '@/lib/eventTabs';
 import {
   canEnableEveryoneChat,
   EVENT_OPEN_CHAT_MAX_ATTENDEES,
@@ -110,6 +110,7 @@ export const useEventAdmin = ({ eventId, enabled = true }: UseEventAdminProps) =
   const effectiveChatMode = resolveEffectiveMainChatMode(chatMode, tripType, attendeeCount);
   const mediaUploadMode: MediaUploadMode =
     (tripData?.media_upload_mode as MediaUploadMode) || 'admin_only';
+  const mutableEnabledFeatures = getMutableEventEnabledFeatures(tripData?.enabled_features);
 
   const toggleVisibility = useCallback(async () => {
     if (!eventId || isSaving) return;
@@ -141,8 +142,8 @@ export const useEventAdmin = ({ eventId, enabled = true }: UseEventAdminProps) =
     async (featureId: string) => {
       if (!eventId || isSaving || ALWAYS_ON_EVENT_TABS.has(featureId as any)) return;
 
-      const current = tripData?.enabled_features || [];
-      const isEnabled = current.includes(featureId);
+      const current = [...mutableEnabledFeatures];
+      const isEnabled = current.includes(featureId as any);
       const updated = isEnabled ? current.filter(f => f !== featureId) : [...current, featureId];
 
       ALWAYS_ON_EVENT_TABS.forEach(alwaysOnFeature => {
@@ -169,15 +170,15 @@ export const useEventAdmin = ({ eventId, enabled = true }: UseEventAdminProps) =
         setIsSaving(false);
       }
     },
-    [eventId, tripData?.enabled_features, isSaving],
+    [eventId, isSaving, mutableEnabledFeatures],
   );
 
   const isFeatureEnabled = useCallback(
     (featureId: string) => {
       if (ALWAYS_ON_EVENT_TABS.has(featureId as any)) return true;
-      return (tripData?.enabled_features || []).includes(featureId);
+      return mutableEnabledFeatures.includes(featureId as any);
     },
-    [tripData?.enabled_features],
+    [mutableEnabledFeatures],
   );
 
   const setChatMode = useCallback(

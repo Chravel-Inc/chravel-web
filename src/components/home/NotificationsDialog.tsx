@@ -229,52 +229,86 @@ export const NotificationsDialog = ({ open, onOpenChange }: NotificationsDialogP
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } =
     useNotificationRealtime();
 
+  const resolveTripRouteContext = async (
+    notification: Notification,
+    metadata: NotificationMetadata,
+  ): Promise<{ tripId: string; tripType: string }> => {
+    const resolvedTripId = getMetadataString(metadata, 'trip_id') || notification.tripId || '';
+    const resolvedTripType =
+      getMetadataString(metadata, 'trip_type') || getMetadataString(metadata, 'tripType') || '';
+
+    if (resolvedTripId && resolvedTripType) {
+      return { tripId: resolvedTripId, tripType: resolvedTripType };
+    }
+
+    const tripNameCandidate =
+      getMetadataString(metadata, 'trip_name') ||
+      notification.tripName ||
+      extractTripNameFromApprovalDescription(notification.description) ||
+      '';
+
+    if (resolvedTripId) {
+      const { data: tripMatch } = await supabase
+        .from('trips')
+        .select('id, trip_type')
+        .eq('id', resolvedTripId)
+        .maybeSingle();
+
+      if (tripMatch) {
+        return {
+          tripId: tripMatch.id,
+          tripType: resolvedTripType || (tripMatch.trip_type as string) || '',
+        };
+      }
+
+      return { tripId: resolvedTripId, tripType: resolvedTripType };
+    }
+
+    if (!tripNameCandidate) {
+      return { tripId: '', tripType: resolvedTripType };
+    }
+
+    const { data: exactNameMatch } = await supabase
+      .from('trips')
+      .select('id, trip_type, created_at')
+      .eq('name', tripNameCandidate)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (exactNameMatch && exactNameMatch.length > 0) {
+      return {
+        tripId: exactNameMatch[0].id,
+        tripType: resolvedTripType || (exactNameMatch[0].trip_type as string) || '',
+      };
+    }
+
+    const { data: fuzzyNameMatch } = await supabase
+      .from('trips')
+      .select('id, trip_type, created_at')
+      .ilike('name', tripNameCandidate)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (fuzzyNameMatch && fuzzyNameMatch.length > 0) {
+      return {
+        tripId: fuzzyNameMatch[0].id,
+        tripType: resolvedTripType || (fuzzyNameMatch[0].trip_type as string) || '',
+      };
+    }
+
+    return { tripId: '', tripType: resolvedTripType };
+  };
+
   const handleNotificationClick = async (notification: Notification) => {
     if (!isDemoMode && user) {
       await markAsRead(notification.id);
     }
 
     const notificationData = (notification.data || {}) as NotificationMetadata;
-    let resolvedTripId =
-      getMetadataString(notificationData, 'trip_id') || notification.tripId || '';
-    let tripType =
-      getMetadataString(notificationData, 'trip_type') ||
-      getMetadataString(notificationData, 'tripType') ||
-      '';
-
-    if (!resolvedTripId && isJoinRequestApprovedNotification(notification)) {
-      const tripNameCandidate =
-        getMetadataString(notificationData, 'trip_name') ||
-        notification.tripName ||
-        extractTripNameFromApprovalDescription(notification.description) ||
-        '';
-
-      if (tripNameCandidate) {
-        const { data: exactNameMatch } = await supabase
-          .from('trips')
-          .select('id, trip_type, created_at')
-          .eq('name', tripNameCandidate)
-          .order('created_at', { ascending: false })
-          .limit(1);
-
-        if (exactNameMatch && exactNameMatch.length > 0) {
-          resolvedTripId = exactNameMatch[0].id;
-          tripType = tripType || (exactNameMatch[0].trip_type as string);
-        } else {
-          const { data: fuzzyNameMatch } = await supabase
-            .from('trips')
-            .select('id, trip_type, created_at')
-            .ilike('name', tripNameCandidate)
-            .order('created_at', { ascending: false })
-            .limit(1);
-
-          if (fuzzyNameMatch && fuzzyNameMatch.length > 0) {
-            resolvedTripId = fuzzyNameMatch[0].id;
-            tripType = tripType || (fuzzyNameMatch[0].trip_type as string);
-          }
-        }
-      }
-    }
+    const { tripId: resolvedTripId, tripType } = await resolveTripRouteContext(
+      notification,
+      notificationData,
+    );
 
     if (!resolvedTripId) {
       onOpenChange(false);

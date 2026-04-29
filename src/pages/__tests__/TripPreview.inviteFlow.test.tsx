@@ -3,10 +3,20 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { toast } from 'sonner';
 import TripPreview from '../TripPreview';
+
+vi.mock('sonner', () => ({
+  toast: {
+    error: vi.fn(),
+    info: vi.fn(),
+    success: vi.fn(),
+  },
+}));
 
 const mockInvoke = vi.fn();
 const mockMaybeSingle = vi.fn();
+const mockJoinRequestMaybeSingle = vi.fn();
 
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({
@@ -32,6 +42,21 @@ vi.mock('@/integrations/supabase/client', () => ({
             eq: () => ({
               eq: () => ({
                 maybeSingle: () => mockMaybeSingle(),
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === 'trip_join_requests') {
+        return {
+          select: () => ({
+            eq: () => ({
+              eq: () => ({
+                order: () => ({
+                  limit: () => ({
+                    maybeSingle: () => mockJoinRequestMaybeSingle(),
+                  }),
+                }),
               }),
             }),
           }),
@@ -66,6 +91,7 @@ describe('TripPreview invite flow', () => {
     });
 
     mockMaybeSingle.mockResolvedValue({ data: null, error: null });
+    mockJoinRequestMaybeSingle.mockResolvedValue({ data: null, error: null });
   });
 
   it('routes authenticated non-members through /join/:code when preview returns active invite code', async () => {
@@ -80,11 +106,17 @@ describe('TripPreview invite flow', () => {
       </MemoryRouter>,
     );
 
-    const joinButton = await screen.findByRole('button', { name: 'Join This Trip' });
+    const joinButton = await screen.findByRole('button', {
+      name: /join this trip|request to join/i,
+    });
     await user.click(joinButton);
 
     await waitFor(() => {
       expect(screen.getByText('Join Route')).toBeInTheDocument();
+    });
+
+    expect(mockInvoke).toHaveBeenCalledWith('get-trip-preview', {
+      body: { tripId: '11111111-1111-4111-8111-111111111111', ensureInvite: true },
     });
   });
 
@@ -100,11 +132,143 @@ describe('TripPreview invite flow', () => {
       </MemoryRouter>,
     );
 
-    const joinButton = await screen.findByRole('button', { name: 'Join This Trip' });
+    const joinButton = await screen.findByRole('button', {
+      name: /join this trip|request to join/i,
+    });
     await user.click(joinButton);
 
     await waitFor(() => {
       expect(screen.getByText('Join Route')).toBeInTheDocument();
+    });
+  });
+
+  it('retries preview fetch on join click when invite code is initially missing', async () => {
+    const user = userEvent.setup();
+
+    mockInvoke
+      .mockResolvedValueOnce({
+        data: {
+          success: true,
+          trip: {
+            id: '11111111-1111-4111-8111-111111111111',
+            name: 'Festival Weekend',
+            destination: 'Los Angeles',
+            start_date: '2026-05-02',
+            end_date: '2026-05-11',
+            cover_image_url: null,
+            trip_type: 'consumer',
+            member_count: 5,
+            active_invite_code: null,
+          },
+        },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: {
+          success: true,
+          trip: {
+            id: '11111111-1111-4111-8111-111111111111',
+            name: 'Festival Weekend',
+            destination: 'Los Angeles',
+            start_date: '2026-05-02',
+            end_date: '2026-05-11',
+            cover_image_url: null,
+            trip_type: 'consumer',
+            member_count: 5,
+            active_invite_code: 'chravelretry99',
+          },
+        },
+        error: null,
+      });
+
+    render(
+      <MemoryRouter initialEntries={['/trip/11111111-1111-4111-8111-111111111111/preview']}>
+        <Routes>
+          <Route path="/trip/:tripId/preview" element={<TripPreview />} />
+          <Route path="/join/:token" element={<div>Join Route</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const joinButton = await screen.findByRole('button', {
+      name: /join this trip|request to join/i,
+    });
+    await user.click(joinButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Join Route')).toBeInTheDocument();
+    });
+
+    expect(mockInvoke).toHaveBeenCalledTimes(2);
+  });
+
+  it('routes non-members with pending requests back to home status view', async () => {
+    const user = userEvent.setup();
+    mockInvoke.mockResolvedValueOnce({
+      data: {
+        success: true,
+        trip: {
+          id: '11111111-1111-4111-8111-111111111111',
+          name: 'Festival Weekend',
+          destination: 'Los Angeles',
+          start_date: '2026-05-02',
+          end_date: '2026-05-11',
+          cover_image_url: null,
+          trip_type: 'consumer',
+          member_count: 5,
+          active_invite_code: null,
+        },
+      },
+      error: null,
+    });
+    mockJoinRequestMaybeSingle.mockResolvedValue({
+      data: { status: 'pending' },
+      error: null,
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/trip/11111111-1111-4111-8111-111111111111/preview']}>
+        <Routes>
+          <Route path="/trip/:tripId/preview" element={<TripPreview />} />
+          <Route path="/" element={<div>Home Route</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const statusButton = await screen.findByRole('button', { name: /view request status/i });
+    await user.click(statusButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Home Route')).toBeInTheDocument();
+    });
+  });
+
+  it('surfaces a toast when membership or join-request checks fail instead of mis-routing', async () => {
+    const user = userEvent.setup();
+
+    mockMaybeSingle.mockResolvedValue({
+      data: null,
+      error: { message: 'network', code: 'PGRST301' },
+    });
+    mockJoinRequestMaybeSingle.mockResolvedValue({ data: null, error: null });
+
+    render(
+      <MemoryRouter initialEntries={['/trip/11111111-1111-4111-8111-111111111111/preview']}>
+        <Routes>
+          <Route path="/trip/:tripId/preview" element={<TripPreview />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const joinButton = await screen.findByRole('button', {
+      name: /join this trip|request to join/i,
+    });
+    await user.click(joinButton);
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        'Could not verify trip access. Check your connection and try again.',
+      );
     });
   });
 });

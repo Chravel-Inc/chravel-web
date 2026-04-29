@@ -91,8 +91,8 @@ function extractMembershipFailure(value: unknown): MembershipFailure | null {
 
 function mapMembershipFailureToUiError(failure: MembershipFailure): Error {
   if (
-    failure.code === 'membership_denied' ||
-    failure.code === 'membership_required' ||
+    (failure.code as string) === 'membership_denied' ||
+    (failure.code as string) === 'membership_required' ||
     failure.reasonCode === 'trip_membership_required'
   ) {
     return new Error(
@@ -181,6 +181,19 @@ function withoutMentionedUsers(payload: StreamSendPayload): StreamSendPayload {
   return rest as StreamSendPayload;
 }
 
+function messageTimestampMs(message: MessageResponse): number {
+  const parsed = Date.parse(message.created_at || '');
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function sortMessagesChronologically(messages: MessageResponse[]): MessageResponse[] {
+  return [...messages].sort((a, b) => {
+    const byTimestamp = messageTimestampMs(a) - messageTimestampMs(b);
+    if (byTimestamp !== 0) return byTimestamp;
+    return (a.id || '').localeCompare(b.id || '');
+  });
+}
+
 async function sendMessageWithMentionFallback(
   channel: Channel,
   payload: StreamSendPayload,
@@ -256,7 +269,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       details?: Record<string, string>,
     ) => {
       if (!tripId) return;
-      telemetry.track('stream_membership_recovery', {
+      (telemetry.track as any)('stream_membership_recovery', {
         trip_id: tripId,
         stage,
         outcome,
@@ -797,6 +810,17 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     }
   }, [tripId, isEnabled]);
 
+  const upsertMessageInState = useCallback((message: MessageResponse) => {
+    setMessages(prev => {
+      const existingIndex = prev.findIndex(existing => existing.id === message.id);
+      const next =
+        existingIndex >= 0
+          ? prev.map(existing => (existing.id === message.id ? message : existing))
+          : [...prev, message];
+      return sortMessagesChronologically(next);
+    });
+  }, []);
+
   // Subscribe to realtime events
   useEffect(() => {
     const channel = activeChannel;
@@ -823,6 +847,8 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         }
         return [...prev, newMsg];
       });
+      trackTimeToFirstMessage('realtime_new');
+      upsertMessageInState(event.message as MessageResponse);
     };
 
     const handleUpdatedMessage = (event: Event) => {
@@ -830,6 +856,9 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       const updated = event.message as MessageResponse;
       if (isThreadReply(updated)) return;
       setMessages(prev => prev.map(m => (m.id === updated.id ? updated : m)));
+      // Stream emits `message.updated` for edits and pin/unpin mutation confirmations.
+      // Route through the same upsert path as realtime/message-send confirmations.
+      upsertMessageInState(event.message as MessageResponse);
     };
 
     const handleDeletedMessage = (event: Event) => {
@@ -881,7 +910,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       channel.off('reaction.updated', handleReaction);
       channel.off('reaction.deleted', handleReaction);
     };
-  }, [activeChannel, tripId, trackTimeToFirstMessage]);
+  }, [activeChannel, tripId, trackTimeToFirstMessage, upsertMessageInState]);
 
   /**
    * Fire-and-forget send: Stream confirms via WebSocket (`message.new`).
@@ -1034,12 +1063,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         // Immediately insert or update the sent message in local state
         // so it appears without waiting for the `message.new` WebSocket event.
         if (sentMessage) {
-          setMessages(prev => {
-            if (prev.some(m => m.id === sentMessage.id)) {
-              return prev.map(m => (m.id === sentMessage.id ? sentMessage : m));
-            }
-            return [...prev, sentMessage];
-          });
+          upsertMessageInState(sentMessage);
 
           messageEvents.sent({
             trip_id: tripId,
@@ -1060,7 +1084,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         setIsCreating(false);
       }
     },
-    [tripId, reportCanaryIncident],
+    [tripId, reportCanaryIncident, upsertMessageInState],
   );
 
   // Load more (older messages)
@@ -1141,6 +1165,38 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     }
   }, [hasMore, isLoadingMore, messages]);
 
+  const togglePin = useCallback(
+    async (messageId: string, shouldPin: boolean) => {
+      const streamClient = getStreamClient();
+      if (!streamClient) {
+        throw new Error('Stream client unavailable');
+      }
+
+      const response = await streamClient.partialUpdateMessage({
+        id: messageId,
+        set: {
+          pinned: shouldPin,
+        },
+      });
+
+      const updatedMessage = (response as { message?: MessageResponse } | null)?.message;
+      if (updatedMessage) {
+        upsertMessageInState(updatedMessage);
+        return;
+      }
+
+      const existingMessage = messagesRef.current.find(message => message.id === messageId);
+      if (!existingMessage) return;
+
+      upsertMessageInState({
+        ...existingMessage,
+        pinned: shouldPin,
+        pinned_at: shouldPin ? new Date().toISOString() : null,
+      } as MessageResponse);
+    },
+    [upsertMessageInState],
+  );
+
   return {
     messages,
     isLoading,
@@ -1152,6 +1208,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     hasMore,
     isLoadingMore,
     toggleReaction,
+    togglePin,
     reload,
     activeChannel,
   };

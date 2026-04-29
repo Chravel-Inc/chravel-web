@@ -26,6 +26,7 @@ import { ProCategoryEnum, PRO_CATEGORIES_ORDERED } from '../types/proCategories'
 import { getAllProTripColors } from '../utils/proTripColors';
 import { buildTripCoverStoragePath, TRIP_COVER_BUCKET } from '../utils/tripCoverStorage';
 import { getFeaturePaywallConfig } from './subscription/featurePaywall';
+import { parseLocalDate } from '@/utils/dateHelpers';
 
 interface CreateTripModalProps {
   isOpen: boolean;
@@ -101,8 +102,8 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
   const validateDateRange = (startDate: string, endDate: string): string | undefined => {
     if (!startDate || !endDate) return undefined;
 
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    const start = parseLocalDate(startDate);
+    const end = parseLocalDate(endDate);
 
     if (end < start) {
       return 'End date must be after start date';

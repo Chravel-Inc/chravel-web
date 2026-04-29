@@ -34,15 +34,34 @@ export const EVENT_TABS_CONFIG: EventTabConfig[] = [
 
 export type EventEnabledTabs = Partial<Record<EventTabKey, boolean>>;
 
+export const DEFAULT_EVENT_ENABLED_FEATURES: EventTabKey[] = EVENT_TABS_CONFIG.filter(
+  tab => tab.key !== 'admin',
+).map(tab => tab.key);
+
 export const ALWAYS_ON_EVENT_TABS = new Set<EventTabKey>(
   EVENT_TABS_CONFIG.filter(tab => tab.alwaysOn).map(tab => tab.key),
 );
 
+export const normalizeEventEnabledFeatures = (
+  enabledFeatures: string[] | null | undefined,
+): EventTabKey[] | undefined => {
+  if (!Array.isArray(enabledFeatures)) return undefined;
+
+  return enabledFeatures.filter((feature): feature is EventTabKey => feature !== 'admin');
+};
+
+export const getMutableEventEnabledFeatures = (
+  enabledFeatures: string[] | null | undefined,
+): EventTabKey[] => {
+  return normalizeEventEnabledFeatures(enabledFeatures) ?? [...DEFAULT_EVENT_ENABLED_FEATURES];
+};
+
 export const buildEventEnabledTabs = (
   enabledFeatures: string[] | null | undefined,
 ): EventEnabledTabs => {
-  const hasExplicitSettings = Array.isArray(enabledFeatures);
-  const enabled = new Set(enabledFeatures ?? []);
+  const normalizedFeatures = normalizeEventEnabledFeatures(enabledFeatures);
+  const hasExplicitSettings = Array.isArray(normalizedFeatures);
+  const enabled = new Set(normalizedFeatures ?? []);
 
   return EVENT_TABS_CONFIG.reduce<EventEnabledTabs>((acc, tab) => {
     if (tab.key === 'admin') return acc;
