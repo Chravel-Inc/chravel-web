@@ -1123,19 +1123,37 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     }
   }, [hasMore, isLoadingMore, messages]);
 
-  const togglePin = useCallback(async (messageId: string, shouldPin: boolean) => {
-    const streamClient = getStreamClient();
-    if (!streamClient) {
-      throw new Error('Stream client unavailable');
-    }
+  const togglePin = useCallback(
+    async (messageId: string, shouldPin: boolean) => {
+      const streamClient = getStreamClient();
+      if (!streamClient) {
+        throw new Error('Stream client unavailable');
+      }
 
-    await streamClient.partialUpdateMessage({
-      id: messageId,
-      set: {
+      const response = await streamClient.partialUpdateMessage({
+        id: messageId,
+        set: {
+          pinned: shouldPin,
+        },
+      });
+
+      const updatedMessage = (response as { message?: MessageResponse } | null)?.message;
+      if (updatedMessage) {
+        upsertMessageInState(updatedMessage);
+        return;
+      }
+
+      const existingMessage = messagesRef.current.find(message => message.id === messageId);
+      if (!existingMessage) return;
+
+      upsertMessageInState({
+        ...existingMessage,
         pinned: shouldPin,
-      },
-    });
-  }, []);
+        pinned_at: shouldPin ? new Date().toISOString() : null,
+      } as MessageResponse);
+    },
+    [upsertMessageInState],
+  );
 
   return {
     messages,
