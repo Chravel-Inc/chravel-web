@@ -826,14 +826,36 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     const channel = activeChannel;
     if (!channel || !tripId) return;
 
+    // Thread replies (messages with parent_id) are rendered in ThreadView via
+    // Stream's getReplies API, not from the main `messages` state. Keeping them
+    // out avoids state bloat and unnecessary top-level re-renders.
+    const isThreadReply = (msg: MessageResponse): boolean => {
+      const parentId =
+        msg.parent_id || (msg as MessageResponse & { reply_to_id?: string }).reply_to_id;
+      return typeof parentId === 'string' && parentId.length > 0;
+    };
+
     const handleNewMessage = (event: Event) => {
       if (!event.message) return;
+      const newMsg = event.message as MessageResponse;
+      if (isThreadReply(newMsg)) return;
+      trackTimeToFirstMessage('realtime_new');
+
+      setMessages(prev => {
+        if (prev.some(m => m.id === newMsg.id)) {
+          return prev.map(m => (m.id === newMsg.id ? newMsg : m));
+        }
+        return [...prev, newMsg];
+      });
       trackTimeToFirstMessage('realtime_new');
       upsertMessageInState(event.message as MessageResponse);
     };
 
     const handleUpdatedMessage = (event: Event) => {
       if (!event.message) return;
+      const updated = event.message as MessageResponse;
+      if (isThreadReply(updated)) return;
+      setMessages(prev => prev.map(m => (m.id === updated.id ? updated : m)));
       // Stream emits `message.updated` for edits and pin/unpin mutation confirmations.
       // Route through the same upsert path as realtime/message-send confirmations.
       upsertMessageInState(event.message as MessageResponse);
@@ -844,12 +866,32 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       setMessages(prev => prev.filter(m => m.id !== event.message!.id));
     };
 
-    const handleReaction = () => {
+    const handleReaction = (event: Event) => {
       // Stream mutates channel.state.messages in place on reaction events.
       // Re-cloning the array forces React to re-render.
       const freshMessages = channelRef.current?.state.messages || channel.state.messages;
       if (freshMessages.length > 0 || messagesRef.current.length === 0) {
         setMessages([...freshMessages] as unknown as MessageResponse[]);
+      }
+
+      // Keep toggleReaction's per-message own-reaction tracker in sync with
+      // authoritative server state. Without this, a reaction change from
+      // another session (or after a server-side correction) leaves the local
+      // cache stale and the next tap sends a duplicate add or misses a delete.
+      const affectedMessageId = event.message?.id;
+      if (affectedMessageId) {
+        const freshMessage = (freshMessages as MessageResponse[]).find(
+          m => m.id === affectedMessageId,
+        );
+        if (freshMessage) {
+          const nextTypes = new Set<string>();
+          for (const reaction of freshMessage.own_reactions ?? []) {
+            if (reaction?.type) nextTypes.add(reaction.type);
+          }
+          ownReactionTypesByMessageRef.current.set(affectedMessageId, nextTypes);
+        } else {
+          ownReactionTypesByMessageRef.current.delete(affectedMessageId);
+        }
       }
     };
 
