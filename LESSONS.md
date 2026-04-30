@@ -31,6 +31,14 @@
 - **Provenance:** April 2026 pending join-request hydration/count drift fix.
 - **Confidence:** high
 
+### If a request card depends on joined trip metadata, ship a requester-scoped RPC instead of UI fallback mappers
+- **Tip:** When frontend relationship joins can fail (missing PostgREST relationship metadata or RLS join nulls), move pending-request card hydration to a single requester-scoped SQL RPC that returns safe card fields (`title`, `destination`, `dates`, `cover`, `member_count`, `places_count`) and consume that same query for both rendered cards and counts.
+- **Applies when:** Dashboard shows pending join requests that need trip metadata but users are not approved members yet.
+- **Avoid when:** Existing table relationship joins are guaranteed and verified across all environments (local/prod) with matching RLS behavior.
+- **Evidence:** Dashboard fallback mapper kept rendering `Trip`/`Untitled trip` placeholders because raw join-request rows were sparse; replacing with `get_my_pending_trip_request_cards` removed placeholder projection and unified desktop/mobile count+card sources.
+- **Provenance:** April 2026 pending-request source-of-truth repair.
+- **Confidence:** high
+
 ### Keep pin/unpin mutations inside shared chat hooks, not UI surfaces
 - **Tip:** UI components should call a shared `togglePin` hook method and avoid local Stream client mutation guards/calls, so Trips/Pro Trips/Events all execute identical pin payload logic and error handling.
 - **Applies when:** Message action menus in shared chat components (e.g., `TripChat`) invoke pin/unpin.

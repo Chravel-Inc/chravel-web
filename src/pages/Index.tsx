@@ -50,10 +50,7 @@ import { useDemoMode } from '../hooks/useDemoMode';
 import { useNotificationRealtime } from '../hooks/useNotificationRealtime';
 import { useDemoModeStore } from '../store/demoModeStore';
 import { useTrips } from '../hooks/useTrips';
-import {
-  useDashboardJoinRequests,
-  type DashboardJoinRequest,
-} from '../hooks/useDashboardJoinRequests';
+import { usePendingRequestTripCards } from '../hooks/usePendingRequestTripCards';
 import { proTripMockData } from '../data/proTripMockData';
 import { Trip, TripParticipant } from '../data/tripsData';
 import { eventsMockData } from '../data/eventsMockData';
@@ -214,13 +211,11 @@ const Index = () => {
   // The hook handles demo mode internally, returning empty arrays when in demo mode
   const { trips: userTripsRaw, loading: tripsLoading, refreshTrips } = useTrips();
 
-  // Fetch pending join requests for the current user (for "Requests" counter)
-  // Must be declared before handleRefresh which depends on refetchPendingTrips
   const {
-    requests: dashboardJoinRequests,
-    refetch: refetchDashboardJoinRequests,
-    cancelOutboundRequest,
-  } = useDashboardJoinRequests(isDemoMode);
+    cards: pendingRequestCards,
+    refetch: refetchPendingRequestCards,
+    cancelPendingRequest,
+  } = usePendingRequestTripCards(isDemoMode);
 
   // Callback to refresh trip list when a trip is archived/hidden/deleted
   const handleTripStateChange = useCallback(() => {
@@ -237,9 +232,9 @@ const Index = () => {
     await clearDataCaches();
     if (user) {
       await refreshTrips();
-      await refetchDashboardJoinRequests();
+      await refetchPendingRequestCards();
     }
-  }, [user, refreshTrips, refetchDashboardJoinRequests]);
+  }, [user, refreshTrips, refetchPendingRequestCards]);
 
   const { isRefreshing, pullDistance } = usePullToRefresh({
     onRefresh: handleRefresh,
@@ -270,7 +265,7 @@ const Index = () => {
     const converted = convertSupabaseTripsToMock(
       userTripsRaw.filter(t => (t.trip_type === 'consumer' || !t.trip_type) && !t.is_archived),
     );
-    // Pending requests render only in the Requests section from dashboardJoinRequests.
+    // Pending requests render only in the Requests section from usePendingRequestTripCards.
     return converted.filter(t => (t as Trip).membership_status !== 'pending');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDemoMode, userTripsRaw, demoRefreshCounter]);
@@ -370,105 +365,65 @@ const Index = () => {
 
   // Development diagnostics available via console when needed
 
-  // Single source for dashboard request cards/counts: pending trips from useTrips data.
-  // This avoids request-tab drift when join-request relation queries partially fail.
-  const pendingTripsAll = useMemo(() => {
-    if (isDemoMode) return [] as Trip[];
-    return convertSupabaseTripsToMock(
-      userTripsRaw.filter(trip => trip.membership_status === 'pending' && !trip.is_archived),
-    );
-  }, [isDemoMode, userTripsRaw]);
-
-  // Calculate requests count per view mode (scoped by trip_type)
-  const requestsCounts = useMemo(() => {
-    const pendingTripCounts = { consumer: 0, pro: 0, event: 0 };
-    userTripsRaw
-      .filter(trip => trip.membership_status === 'pending' && !trip.is_archived)
-      .forEach(trip => {
-        const tripType = trip.trip_type ?? 'consumer';
-        if (tripType === 'pro') pendingTripCounts.pro++;
-        else if (tripType === 'event') pendingTripCounts.event++;
-        else pendingTripCounts.consumer++;
-      });
-
-    const outboundRequestCounts = { consumer: 0, pro: 0, event: 0 };
-    dashboardJoinRequests
-      .filter(req => req.direction === 'outbound')
-      .forEach(req => {
-        const rawType =
-          req.trip?.trip_type ?? userTripsRaw.find(t => t.id === req.trip_id)?.trip_type;
-        const tripType = rawType ?? 'consumer';
-        if (tripType === 'pro') outboundRequestCounts.pro++;
-        else if (tripType === 'event') outboundRequestCounts.event++;
-        else outboundRequestCounts.consumer++;
-      });
-
-    return {
-      consumer: Math.max(pendingTripCounts.consumer, outboundRequestCounts.consumer),
-      pro: Math.max(pendingTripCounts.pro, outboundRequestCounts.pro),
-      event: Math.max(pendingTripCounts.event, outboundRequestCounts.event),
-    };
-  }, [dashboardJoinRequests, userTripsRaw]);
-
-  const filteredDashboardJoinRequests = useMemo(() => {
+  const scopedPendingRequestCards = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-
-    const scopeFilter = (req: DashboardJoinRequest): boolean => {
-      let tripType: string | null | undefined = req.trip?.trip_type;
-      if (tripType === undefined || tripType === null) {
-        const tripData = userTripsRaw.find(t => t.id === req.trip_id);
-        tripType = tripData?.trip_type ?? 'consumer';
-      }
-      if (viewMode === 'myTrips') return tripType !== 'pro' && tripType !== 'event';
-      if (viewMode === 'tripsPro') return tripType === 'pro';
-      if (viewMode === 'events') return tripType === 'event';
-      return true;
-    };
-
-    let list = dashboardJoinRequests.filter(scopeFilter);
-    if (q) {
-      list = list.filter(req => {
-        const name = (req.trip?.name ?? '').toLowerCase();
-        const dest = (req.trip?.destination ?? '').toLowerCase();
-        const who = (req.requesterLabel ?? '').toLowerCase();
-        return name.includes(q) || dest.includes(q) || who.includes(q);
-      });
-    }
-    return list;
-  }, [dashboardJoinRequests, userTripsRaw, viewMode, searchQuery]);
-
-  const pendingTrips = useMemo(() => {
-    const scoped = pendingTripsAll.filter(trip => {
-      const source = userTripsRaw.find(row => row.id === trip.id);
-      const tripType = source?.trip_type ?? 'consumer';
-      if (viewMode === 'myTrips') return tripType !== 'pro' && tripType !== 'event';
-      if (viewMode === 'tripsPro') return tripType === 'pro';
-      if (viewMode === 'events') return tripType === 'event';
+    const scoped = pendingRequestCards.filter(card => {
+      if (viewMode === 'myTrips') return card.tripType === 'consumer';
+      if (viewMode === 'tripsPro') return card.tripType === 'pro';
+      if (viewMode === 'events') return card.tripType === 'event';
       return true;
     });
 
-    const q = searchQuery.trim().toLowerCase();
     if (!q) return scoped;
 
-    return scoped.filter(trip => {
-      const name = (trip.title || '').toLowerCase();
-      const dest = (trip.location || '').toLowerCase();
-      return name.includes(q) || dest.includes(q);
+    return scoped.filter(card => {
+      const title = card.title.toLowerCase();
+      const destination = (card.destination ?? '').toLowerCase();
+      return title.includes(q) || destination.includes(q);
     });
-  }, [pendingTripsAll, userTripsRaw, viewMode, searchQuery]);
+  }, [pendingRequestCards, searchQuery, viewMode]);
+
+  const pendingTrips = useMemo(
+    () =>
+      scopedPendingRequestCards.map(card => ({
+        id: card.tripId,
+        title: card.title,
+        location: card.destination ?? 'Destination TBD',
+        dateRange: card.dateLabel,
+        participants: [] as TripParticipant[],
+        coverPhoto: card.coverImageUrl ?? undefined,
+        peopleCount: card.peopleCount,
+        placesCount: card.placesCount,
+      })),
+    [scopedPendingRequestCards],
+  );
+
+  // Calculate requests count per view mode (scoped by trip_type) from the exact
+  // source that powers request cards.
+  const requestsCounts = useMemo(() => {
+    let consumer = 0;
+    let pro = 0;
+    let event = 0;
+
+    pendingRequestCards.forEach(card => {
+      if (card.tripType === 'pro') pro += 1;
+      else if (card.tripType === 'event') event += 1;
+      else consumer += 1;
+    });
+
+    return { consumer, pro, event };
+  }, [pendingRequestCards]);
 
   const outboundRequestIdsByTripId = useMemo(
     () =>
-      filteredDashboardJoinRequests
-        .filter(req => req.direction === 'outbound')
-        .reduce(
-          (acc, req) => {
-            if (!acc[req.trip_id]) acc[req.trip_id] = req.id;
-            return acc;
-          },
-          {} as Record<string, string>,
-        ),
-    [filteredDashboardJoinRequests],
+      scopedPendingRequestCards.reduce(
+        (acc, card) => {
+          if (!acc[card.tripId]) acc[card.tripId] = card.requestId;
+          return acc;
+        },
+        {} as Record<string, string>,
+      ),
+    [scopedPendingRequestCards],
   );
 
   // Calculate stats for each view mode - use UNFILTERED data for accurate counts
@@ -926,10 +881,9 @@ const Index = () => {
                   loading={isLoading}
                   onCreateTrip={handleCreateTrip}
                   activeFilter={recsFilter}
-                  dashboardJoinRequests={filteredDashboardJoinRequests}
                   pendingTrips={pendingTrips}
                   outboundRequestIdsByTripId={outboundRequestIdsByTripId}
-                  onCancelDashboardRequest={cancelOutboundRequest}
+                  onCancelDashboardRequest={cancelPendingRequest}
                   onTripStateChange={handleTripStateChange}
                 />
               </div>
@@ -1114,10 +1068,9 @@ const Index = () => {
                 loading={isLoading}
                 onCreateTrip={handleCreateTrip}
                 activeFilter={recsFilter}
-                dashboardJoinRequests={filteredDashboardJoinRequests}
                 pendingTrips={pendingTrips}
                 outboundRequestIdsByTripId={outboundRequestIdsByTripId}
-                onCancelDashboardRequest={cancelOutboundRequest}
+                onCancelDashboardRequest={cancelPendingRequest}
                 onTripStateChange={handleTripStateChange}
               />
             </div>
@@ -1357,10 +1310,9 @@ const Index = () => {
             loading={tripsLoading}
             onCreateTrip={handleCreateTrip}
             activeFilter={activeFilter}
-            dashboardJoinRequests={filteredDashboardJoinRequests}
             pendingTrips={pendingTrips}
             outboundRequestIdsByTripId={outboundRequestIdsByTripId}
-            onCancelDashboardRequest={cancelOutboundRequest}
+            onCancelDashboardRequest={cancelPendingRequest}
             onTripStateChange={handleTripStateChange}
           />
         </div>

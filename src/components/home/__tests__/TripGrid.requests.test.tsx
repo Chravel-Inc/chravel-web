@@ -69,35 +69,13 @@ describe('TripGrid requests tab', () => {
     expect(screen.queryByText('pending-enabled')).not.toBeInTheDocument();
   });
 
-  it('renders outbound requests with TripCard pending mode', () => {
+  it('renders empty requests state when no pendingTrips are provided', () => {
     render(
-      <TripGrid
-        viewMode="myTrips"
-        trips={[]}
-        proTrips={{}}
-        events={{}}
-        activeFilter="requests"
-        dashboardJoinRequests={[
-          {
-            id: 'req-1',
-            trip_id: 'trip-1',
-            user_id: 'user-1',
-            requested_at: '2026-04-10T00:00:00Z',
-            direction: 'outbound',
-            trip: {
-              id: 'trip-1',
-              name: 'Pending Trip',
-              destination: 'LA',
-              start_date: '2026-05-01',
-              cover_image_url: undefined,
-            },
-          },
-        ]}
-      />,
+      <TripGrid viewMode="myTrips" trips={[]} proTrips={{}} events={{}} activeFilter="requests" />,
     );
 
-    expect(screen.getByText('pending-enabled')).toBeInTheDocument();
-    expect(screen.getByText('Cancel request')).toBeInTheDocument();
+    expect(screen.getByText('No pending requests')).toBeInTheDocument();
+    expect(screen.queryByText('Pending Trip')).not.toBeInTheDocument();
   });
 
   it('renders pending trips in Requests using standard TripCard pending mode', () => {
@@ -118,15 +96,6 @@ describe('TripGrid requests tab', () => {
           },
         ]}
         outboundRequestIdsByTripId={{ 'trip-100': 'req-100' }}
-        dashboardJoinRequests={[
-          {
-            id: 'req-100',
-            trip_id: 'trip-100',
-            user_id: 'user-1',
-            requested_at: '2026-04-10T00:00:00Z',
-            direction: 'outbound',
-          },
-        ]}
       />,
     );
 
@@ -135,114 +104,10 @@ describe('TripGrid requests tab', () => {
     expect(screen.getByText('Cancel request')).toBeInTheDocument();
   });
 
-  it('hides inbound approval requests from the Requests section', () => {
-    render(
-      <TripGrid
-        viewMode="myTrips"
-        trips={[]}
-        proTrips={{}}
-        events={{}}
-        activeFilter="requests"
-        dashboardJoinRequests={[
-          {
-            id: 'req-2',
-            trip_id: 'trip-2',
-            user_id: 'other-user',
-            requested_at: '2026-04-10T00:00:00Z',
-            direction: 'inbound',
-            requesterLabel: 'Alex',
-            trip: {
-              id: 'trip-2',
-              name: 'Inbound Trip',
-              destination: 'NYC',
-              start_date: '2026-06-01',
-              cover_image_url: undefined,
-              trip_type: 'consumer',
-            },
-          },
-        ]}
-      />,
-    );
-
-    expect(screen.getByText('No pending requests')).toBeInTheDocument();
-    expect(screen.queryByText('Inbound Trip')).not.toBeInTheDocument();
-  });
-
-  it('does not render outbound pending request cards in standard My Trips mode', () => {
-    render(
-      <TripGrid
-        viewMode="myTrips"
-        trips={[]}
-        proTrips={{}}
-        events={{}}
-        activeFilter="all"
-        dashboardJoinRequests={[
-          {
-            id: 'req-3',
-            trip_id: 'trip-3',
-            user_id: 'user-1',
-            requested_at: '2026-04-10T00:00:00Z',
-            direction: 'outbound',
-            trip: {
-              id: 'trip-3',
-              name: 'Requests Only Trip',
-              destination: 'Chicago',
-              start_date: '2026-07-01',
-              cover_image_url: undefined,
-            },
-          },
-        ]}
-      />,
-    );
+  it('does not render pending request cards in standard My Trips mode', () => {
+    render(<TripGrid viewMode="myTrips" trips={[]} proTrips={{}} events={{}} activeFilter="all" />);
 
     expect(screen.queryByText('Requests Only Trip')).not.toBeInTheDocument();
     expect(screen.queryByText('Cancel request')).not.toBeInTheDocument();
-  });
-
-  it('renders only outbound cards when inbound and outbound requests coexist', () => {
-    render(
-      <TripGrid
-        viewMode="myTrips"
-        trips={[]}
-        proTrips={{}}
-        events={{}}
-        activeFilter="requests"
-        dashboardJoinRequests={[
-          {
-            id: 'req-4',
-            trip_id: 'trip-4',
-            user_id: 'user-1',
-            requested_at: '2026-04-10T00:00:00Z',
-            direction: 'outbound',
-            trip: {
-              id: 'trip-4',
-              name: 'Outbound Trip',
-              destination: 'Austin',
-              start_date: '2026-07-01',
-              cover_image_url: undefined,
-            },
-          },
-          {
-            id: 'req-5',
-            trip_id: 'trip-5',
-            user_id: 'other-user',
-            requested_at: '2026-04-10T00:00:00Z',
-            direction: 'inbound',
-            requesterLabel: 'Sam',
-            trip: {
-              id: 'trip-5',
-              name: 'Inbound Trip',
-              destination: 'Seattle',
-              start_date: '2026-08-01',
-              cover_image_url: undefined,
-              trip_type: 'consumer',
-            },
-          },
-        ]}
-      />,
-    );
-
-    expect(screen.getByText('Outbound Trip')).toBeInTheDocument();
-    expect(screen.queryByText('Inbound Trip')).not.toBeInTheDocument();
   });
 });
