@@ -428,6 +428,7 @@ const JoinTrip = () => {
 
       clearInviteCode();
       queryClient.invalidateQueries({ queryKey: tripKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['pending-request-trip-cards'] });
       if (tripId) {
         queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
         queryClient.invalidateQueries({ queryKey: tripKeys.members(tripId) });

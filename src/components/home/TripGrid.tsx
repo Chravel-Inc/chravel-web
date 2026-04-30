@@ -23,11 +23,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { ToastAction } from '../ui/toast';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  splitJoinRequestsByDirection,
-  type DashboardJoinRequest,
-} from '@/hooks/useDashboardJoinRequests';
-import { mapOutboundRequestToTripCard } from './requestTripMapper';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { SortableTripGrid } from '../dashboard/SortableTripGrid';
@@ -57,7 +52,6 @@ interface TripGridProps {
   loading?: boolean;
   onCreateTrip?: () => void;
   activeFilter?: string;
-  dashboardJoinRequests?: DashboardJoinRequest[];
   pendingTrips?: Trip[];
   outboundRequestIdsByTripId?: Record<string, string>;
   onCancelDashboardRequest?: (
@@ -76,7 +70,6 @@ export const TripGrid = React.memo(
     loading = false,
     onCreateTrip,
     activeFilter = 'all',
-    dashboardJoinRequests = [],
     pendingTrips = [],
     outboundRequestIdsByTripId = {},
     onCancelDashboardRequest,
@@ -89,7 +82,6 @@ export const TripGrid = React.memo(
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-    const [dismissedRequestIds, setDismissedRequestIds] = useState<Set<string>>(new Set());
     const [cancelingRequestIds, setCancelingRequestIds] = useState<Set<string>>(new Set());
     const [archivedTrips, setArchivedTrips] = useState<
       Array<{
@@ -124,14 +116,6 @@ export const TripGrid = React.memo(
     );
     const activeProTrips = useMemo(() => proTrips, [proTrips]);
     const activeEvents = useMemo(() => events, [events]);
-    const visibleJoinRequests = useMemo(
-      () => dashboardJoinRequests.filter(request => !dismissedRequestIds.has(request.id)),
-      [dashboardJoinRequests, dismissedRequestIds],
-    );
-    const { outbound: outgoingRequests } = useMemo(
-      () => splitJoinRequestsByDirection(visibleJoinRequests),
-      [visibleJoinRequests],
-    );
 
     // Fetch archived trips when filter is 'archived'
     useEffect(() => {
@@ -352,7 +336,6 @@ export const TripGrid = React.memo(
             throw new Error(result?.message || 'Unable to cancel request');
           }
 
-          setDismissedRequestIds(prev => new Set(prev).add(requestId));
           toast({
             title: 'Request canceled',
             description: 'Your join request was canceled.',
@@ -384,13 +367,7 @@ export const TripGrid = React.memo(
       viewMode === 'travelRecs' ? manualLocation : undefined,
     );
 
-    const requestTrips = useMemo(() => {
-      if (pendingTrips.length > 0) return pendingTrips;
-
-      // Fallback path for legacy environments where pending trips are not projected
-      // into useTrips yet, but outbound request rows are visible.
-      return outgoingRequests.map(mapOutboundRequestToTripCard);
-    }, [outgoingRequests, pendingTrips]);
+    const requestTrips = useMemo(() => pendingTrips, [pendingTrips]);
 
     // Show loading skeleton
     if (loading) {
@@ -542,9 +519,7 @@ export const TripGrid = React.memo(
               requestTrips.length > 0 ? (
                 requestTrips.map(trip => {
                   const tripId = trip.id.toString();
-                  const requestId =
-                    outboundRequestIdsByTripId[tripId] ||
-                    outgoingRequests.find(request => request.trip_id === tripId)?.id;
+                  const requestId = outboundRequestIdsByTripId[tripId];
 
                   return (
                     <TripCard
