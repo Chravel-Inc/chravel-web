@@ -2,6 +2,11 @@ import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { invokeEmbeddingModel } from '../_shared/gemini.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import {
+  isServiceRoleRequest,
+  resolveSourceContentForTrip,
+  verifyActiveTripMembership,
+} from './ingestAuthz.ts';
 
 interface IngestRequest {
   source: 'message' | 'poll' | 'broadcast' | 'file' | 'calendar' | 'link' | 'trip_batch';
@@ -26,8 +31,7 @@ interface BatchIngestResult {
 }
 
 serve(async req => {
-  const { createOptionsResponse, createErrorResponse, createSecureResponse } =
-    await import('../_shared/securityHeaders.ts');
+  const { createOptionsResponse } = await import('../_shared/securityHeaders.ts');
 
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -37,13 +41,19 @@ serve(async req => {
   const headers = getCorsHeaders(req);
 
   try {
-    // Auth gate: require a valid user token
-    const { requireAuth } = await import('../_shared/requireAuth.ts');
-    const auth = await requireAuth(req, headers);
-    if (auth.response) return auth.response;
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const authorizationHeader = req.headers.get('authorization');
+    const allowInternalBypass = isServiceRoleRequest(authorizationHeader, supabaseServiceRoleKey);
+
+    let authenticatedUserId: string | null = null;
+    if (!allowInternalBypass) {
+      // Auth gate: require a valid user token
+      const { requireAuth } = await import('../_shared/requireAuth.ts');
+      const auth = await requireAuth(req, headers);
+      if (auth.response) return auth.response;
+      authenticatedUserId = auth.user.id;
+    }
 
     // Create Supabase client
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
@@ -65,6 +75,16 @@ serve(async req => {
             headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
           },
         );
+      }
+
+      if (!allowInternalBypass) {
+        const isMember = await verifyActiveTripMembership(supabase, authenticatedUserId!, tripId);
+        if (!isMember) {
+          return new Response(JSON.stringify({ error: 'Forbidden - not a member of this trip' }), {
+            status: 403,
+            headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+          });
+        }
       }
 
       const batchResults = await Promise.all([
@@ -107,64 +127,30 @@ serve(async req => {
 
     let textContent = content || '';
 
-    // If content not provided, fetch from source table
-    if (!textContent) {
-      switch (source) {
-        case 'message':
-          const { data: message } = await supabase
-            .from('trip_chat_messages')
-            .select('content, author_name')
-            .eq('id', sourceId)
-            .single();
-          if (message) {
-            textContent = `${message.author_name}: ${message.content}`;
-          }
-          break;
-
-        case 'poll':
-          const { data: poll } = await supabase
-            .from('trip_polls')
-            .select('question, options, total_votes')
-            .eq('id', sourceId)
-            .single();
-          if (poll) {
-            const options = Array.isArray(poll.options)
-              ? poll.options.map((opt: any) => opt.text || opt).join(', ')
-              : '';
-            textContent = `POLL: ${poll.question}\nOptions: ${options}\nTotal votes: ${poll.total_votes}`;
-          }
-          break;
-
-        case 'broadcast':
-          // Note: broadcasts table doesn't exist yet, this is placeholder
-          textContent = `Broadcast content for ${sourceId}`;
-          break;
-
-        case 'file':
-          const { data: file } = await supabase
-            .from('trip_files')
-            .select('name, content_text, ai_summary')
-            .eq('id', sourceId)
-            .single();
-          if (file) {
-            textContent = `FILE: ${file.name}\n${file.ai_summary || file.content_text || 'No content available'}`;
-          }
-          break;
-
-        case 'link':
-          const { data: link } = await supabase
-            .from('trip_links')
-            .select('title, description, url')
-            .eq('id', sourceId)
-            .single();
-          if (link) {
-            textContent = `LINK: ${link.title}\n${link.description || ''}\nURL: ${link.url}`;
-          }
-          break;
-
-        default:
-          textContent = `Content from ${source}: ${sourceId}`;
+    if (!allowInternalBypass) {
+      const isMember = await verifyActiveTripMembership(supabase, authenticatedUserId!, tripId);
+      if (!isMember) {
+        return new Response(JSON.stringify({ error: 'Forbidden - not a member of this trip' }), {
+          status: 403,
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        });
       }
+    }
+
+    // If content not provided, fetch from source table and prove the source belongs to the trip.
+    if (!textContent) {
+      const resolved = await resolveSourceContentForTrip(supabase, source, sourceId, tripId);
+      if (!resolved.found) {
+        return new Response(
+          JSON.stringify({ error: 'Source not found for this trip', success: false }),
+          {
+            status: 404,
+            headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+          },
+        );
+      }
+
+      textContent = resolved.content;
     }
 
     if (!textContent.trim()) {
