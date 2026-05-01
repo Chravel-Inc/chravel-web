@@ -241,6 +241,28 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Regression risks:** Replace mode now preserves existing metadata (bio/avatar/title) for unchanged names by design; this is safer than row recreation.
 - **Related files:** `src/hooks/useEventLineup.ts`
 - **Fixed in:** March 2026 forensic correctness audit
+## AI ingest service-role source/trip bypass can exfiltrate and poison RAG data
+- **Status:** fixed
+- **Subsystem:** AI / RAG ingestion
+- **Bug class:** authorization / source-binding drift
+- **Symptom:** An authenticated user can trigger `ai-ingest` for another trip by supplying a foreign `tripId` or `sourceId`, causing another trip's content to be copied into `kb_documents` / `kb_chunks`.
+- **User-facing impact:** Critical — cross-trip data exposure inside AI context plus knowledge-base poisoning for the targeted trip.
+- **Trigger conditions:** `ai-ingest` runs with `verify_jwt = true`, but uses a service-role client and accepts caller-supplied `tripId` / `sourceId` without verifying active membership or proving the source row belongs to that trip.
+- **Likely root cause:** Endpoint relied on JWT presence alone while skipping the explicit trip-membership and source-to-trip checks that sibling AI endpoints (`ai-search`, `ai-answer`, `file-ai-parser`) already enforce.
+- **Root cause chain:**
+  - Immediate cause: service-role reads succeed for arbitrary row IDs and arbitrary trip IDs
+  - Proximate cause: no `.eq('trip_id', tripId)` binding on single-item source fetches
+  - Underlying cause: ingestion endpoint drifted from the repo's standard "auth + active membership + scoped source lookup" pattern
+- **How to reproduce:**
+  1. Authenticate as any valid user
+  2. Call `ai-ingest` with a `tripId` the user does not belong to, or with a `sourceId` from another trip
+  3. Observe the function ingesting content into `kb_documents` / `kb_chunks` for the supplied trip instead of rejecting access
+- **How to confirm:** Trace `ai-ingest/index.ts` to see service-role client creation before any membership guard, then inspect source lookups for missing `trip_id` filters.
+- **Smallest safe fix:** For non-service-role callers, require an active `trip_members.status='active'` row for the requested trip and resolve source content only through trip-scoped lookups (`.eq('trip_id', tripId)`). Allow trusted internal service-role invocations to bypass the user-membership guard so seed/demo maintenance flows keep working.
+- **Regression risks:** Internal batch ingestion paths that invoke `ai-ingest` with the service-role bearer token must retain the internal bypass; unsupported placeholder sources should fail closed rather than fabricate content.
+- **Related files:** `supabase/functions/ai-ingest/index.ts`, `supabase/functions/ai-ingest/ingestAuthz.ts`
+- **Fixed in:** May 2026 daily repo-wide bug audit
+- **Confidence:** high
 ## Dashboard trip cards missing after join approval (status-column drift)
 - **Status:** confirmed
 - **Subsystem:** trip dashboard hydration / membership query
