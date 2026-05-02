@@ -10,7 +10,24 @@ export function sanitizeForPrompt(text: string): string {
     .trim();
 }
 
-export function buildSystemPrompt(tripContext: any, customPrompt?: string): string {
+function shouldInjectUserPreferences(userMessage?: string): boolean {
+  const normalized = userMessage?.toLowerCase().trim();
+  if (!normalized) return true;
+
+  const recommendationIntentPattern =
+    /\b(recommend|suggest|plan|itinerary|where should|ideas?|food|restaurant|eat|drink|activity|activities|things to do|venue|spot|bar|cafe|dinner|lunch|breakfast)\b/;
+  if (recommendationIntentPattern.test(normalized)) return true;
+
+  const pureLookupPattern =
+    /^(what\s+time\b|where\s+is\b|show\s+my\s+tasks\b|show\s+tasks\b|list\s+tasks\b|status\b|lookup\b|who\s+is\b|when\s+is\b)/;
+  return !pureLookupPattern.test(normalized);
+}
+
+export function buildSystemPrompt(
+  tripContext: any,
+  customPrompt?: string,
+  userMessage?: string,
+): string {
   if (customPrompt) return customPrompt;
 
   const parts: string[] = [];
@@ -105,7 +122,7 @@ Output a JSON block enclosed in \`\`\`json \`\`\` at the very start of your resp
     }
 
     // User Preferences
-    if (tripContext.userPreferences) {
+    if (tripContext.userPreferences && shouldInjectUserPreferences(userMessage)) {
       const prefs = tripContext.userPreferences;
       parts.push(`\nUSER PREFERENCES:`);
       if (prefs.dietary?.length)

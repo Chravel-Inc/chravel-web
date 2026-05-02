@@ -110,6 +110,41 @@ describe('Prompt Builder — Security Tests', () => {
       expect(prompt).toContain('vegetarian');
       expect(prompt).toContain('relaxed');
     });
+
+    it('injects preferences for recommendation/food planning intent', () => {
+      const prompt = buildSystemPrompt(
+        {
+          tripMetadata: { id: 'trip_1', title: 'Test' },
+          userPreferences: {
+            dietary: ['vegetarian'],
+            vibe: ['relaxed'],
+          },
+        },
+        undefined,
+        'Can you recommend dinner spots for tonight?',
+      );
+
+      expect(prompt).toContain('USER PREFERENCES:');
+      expect(prompt).toContain('DIETARY: vegetarian');
+      expect(prompt).toContain('VIBE: relaxed');
+    });
+
+    it('does not inject preferences for pure lookup/status intent', () => {
+      const prompt = buildSystemPrompt(
+        {
+          tripMetadata: { id: 'trip_1', title: 'Test' },
+          userPreferences: {
+            dietary: ['vegetarian'],
+            vibe: ['relaxed'],
+          },
+        },
+        undefined,
+        'what time is check-in',
+      );
+
+      expect(prompt).not.toContain('USER PREFERENCES:');
+      expect(prompt).not.toContain('DIETARY: vegetarian');
+    });
   });
 
   describe('Calendar event sanitization', () => {
