@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { getDemoDashboardJoinRequests } from '@/mockData/dashboardJoinRequestsMock';
+import { invalidatePendingRequestState } from '@/hooks/pendingRequestsCache';
 
 export interface PendingRequestTripCard {
   requestId: string;
@@ -164,8 +165,7 @@ export function usePendingRequestTripCards(isDemoMode = false) {
         return { success: false, message: data?.message || 'Unable to cancel request.' };
       }
 
-      await queryClient.invalidateQueries({ queryKey: ['pending-request-trip-cards'] });
-      await queryClient.invalidateQueries({ queryKey: ['trips'] });
+      await invalidatePendingRequestState(queryClient);
       return { success: true };
     },
     [queryClient, user?.id],
