@@ -342,48 +342,10 @@ export const tripService = {
 
       if (createdError) throw createdError;
 
-      // Fetch trips where user has pending join requests
-      const { data: pendingRequests, error: pendingError } = await supabase
-        .from('trip_join_requests')
-        .select('trip_id, status')
-        .eq('user_id', activeUserId)
-        .eq('status', 'pending')
-        .limit(100);
-
-      if (pendingError) {
-        console.error('Error fetching pending requests:', pendingError);
-        // Continue without pending trips rather than failing completely
-      }
-
-      // Fetch trip details for pending requests
-      const pendingTripIds = pendingRequests?.map(r => r.trip_id) || [];
-      let pendingTrips: Trip[] = [];
-
-      if (pendingTripIds.length > 0) {
-        const { data: pendingTripsData, error: pendingTripsError } = await supabase
-          .from('trips')
-          .select(TRIP_LIST_COLUMNS)
-          .in('id', pendingTripIds)
-          .eq('is_archived', false)
-          .eq('is_hidden', false)
-          .limit(500); // Scoped by user's pending join request IDs — safe upper bound
-
-        if (!pendingTripsError && pendingTripsData) {
-          pendingTrips = pendingTripsData.map(trip => ({
-            ...trip,
-            membership_status: 'pending' as const,
-          }));
-        }
-      }
-
-      // Combine created trips and pending trips
-      const allTrips = [
-        ...(createdTrips || []).map(trip => ({
-          ...trip,
-          membership_status: 'owner' as const,
-        })),
-        ...pendingTrips,
-      ];
+      const allTrips = (createdTrips || []).map(trip => ({
+        ...trip,
+        membership_status: 'owner' as const,
+      }));
 
       // Fetch trips where user is an active member (not creator).
       // trip_members table does not have a status column — query without it.
