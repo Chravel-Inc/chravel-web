@@ -94,10 +94,6 @@ describe('tripService.getUserTrips', () => {
         return createChainableMock({ data: [tripRecord], error: null });
       }
 
-      if (table === 'trip_join_requests') {
-        return createChainableMock({ data: [], error: null });
-      }
-
       if (table === 'trip_members') {
         return createChainableMock({
           data: [{ trip_id: 'trip-member-1' }],
@@ -119,7 +115,7 @@ describe('tripService.getUserTrips', () => {
     expect(trips[0].membership_status).toBe('member');
   });
 
-  it('transitions the same trip from pending to member after approval state changes', async () => {
+  it('does not append pending requests and returns member trip after membership appears', async () => {
     const tripRecord = {
       id: 'trip-approval-1',
       name: 'Summer Camp',
@@ -145,40 +141,18 @@ describe('tripService.getUserTrips', () => {
       if (table === 'trips') {
         tripsQueryCount += 1;
 
-        if (isApproved) {
-          // Call #1 in approved phase: creator-owned trips query
-          if (tripsQueryCount === 3) {
-            return createChainableMock({ data: [], error: null });
-          }
-
-          // Call #2 in approved phase: member trip lookup via .in('id', memberTripIds)
-          if (tripsQueryCount === 4) {
-            return createChainableMock({ data: [tripRecord], error: null });
-          }
-
+        if (!isApproved) {
           return createChainableMock({ data: [], error: null });
         }
 
-        // Call #1 in pending phase: creator-owned trips query
-        if (tripsQueryCount === 1) {
-          return createChainableMock({ data: [], error: null });
-        }
-
-        // Call #2 in pending phase: pending request trip lookup
         if (tripsQueryCount === 2) {
+          return createChainableMock({ data: [], error: null });
+        }
+
+        if (tripsQueryCount === 3) {
           return createChainableMock({ data: [tripRecord], error: null });
         }
 
-        return createChainableMock({ data: [], error: null });
-      }
-
-      if (table === 'trip_join_requests') {
-        if (!isApproved) {
-          return createChainableMock({
-            data: [{ trip_id: 'trip-approval-1', status: 'pending' }],
-            error: null,
-          });
-        }
         return createChainableMock({ data: [], error: null });
       }
 
@@ -197,13 +171,15 @@ describe('tripService.getUserTrips', () => {
         return createChainableMock({ data: [], error: null });
       }
 
+      if (table === 'trip_join_requests') {
+        throw new Error('getUserTrips should not query trip_join_requests');
+      }
+
       return createChainableMock({ data: [], error: null });
     }) as unknown);
 
     const pendingTrips = await tripService.getUserTrips(false, undefined, 'member-user');
-    expect(pendingTrips).toHaveLength(1);
-    expect(pendingTrips[0].id).toBe('trip-approval-1');
-    expect(pendingTrips[0].membership_status).toBe('pending');
+    expect(pendingTrips).toHaveLength(0);
 
     isApproved = true;
     const approvedTrips = await tripService.getUserTrips(false, undefined, 'member-user');
