@@ -236,14 +236,12 @@ export function useDashboardJoinRequests(isDemoMode = false) {
         const { data: tripsData, error: tripsError } = await supabase
           .from('trips')
           .select(
-            'id, name, destination, start_date, end_date, cover_image_url, trip_type',
+            'id, name, destination, start_date, end_date, member_count, cover_image_url, trip_type',
           )
           .in('id', tripIds);
 
         if (!tripsError && tripsData) {
-          tripById = new Map(
-            (tripsData as unknown as TripJoinRow[]).map(trip => [trip.id, trip]),
-          );
+          tripById = new Map(tripsData.map(trip => [trip.id, trip as TripJoinRow]));
         }
       }
 
