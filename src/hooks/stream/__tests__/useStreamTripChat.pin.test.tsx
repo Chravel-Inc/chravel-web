@@ -109,7 +109,7 @@ describe('useStreamTripChat pin toggles', () => {
         message_type: 'text' as const,
         isPinned: !!message.pinned,
         pinnedAt: message.pinned_at ?? undefined,
-      })) as unknown as Parameters<typeof derivePinnedMessages>[0],
+      })),
     );
 
     expect(pinnedVisible.map(message => message.id)).toEqual(['message-1']);
@@ -166,7 +166,7 @@ describe('useStreamTripChat pin toggles', () => {
         message_type: 'text' as const,
         isPinned: !!message.pinned,
         pinnedAt: message.pinned_at ?? undefined,
-      })) as unknown as Parameters<typeof derivePinnedMessages>[0],
+      })),
     );
 
     expect(pinnedVisible).toHaveLength(0);
