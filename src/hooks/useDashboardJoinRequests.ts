@@ -22,7 +22,8 @@ export interface DashboardJoinRequest {
   id: string;
   trip_id: string;
   user_id: string;
-  requested_at: string;
+  requested_at?: string;
+  created_at?: string;
   direction: 'outbound' | 'inbound';
   /** For inbound rows: best-effort display name for the requester */
   requesterLabel?: string;
@@ -94,8 +95,37 @@ export function splitJoinRequestsByDirection(rows: DashboardJoinRequest[]): {
 export function getJoinRequestRequestedAt(row: {
   requested_at?: string | null;
   created_at?: string | null;
+}): string | undefined {
+  return row.requested_at ?? row.created_at ?? undefined;
+}
+
+function parseJoinRequestTime(value?: string): number | null {
+  if (!value) return null;
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+export function sortJoinRequestsByRecency(rows: DashboardJoinRequest[]): DashboardJoinRequest[] {
+  return [...rows].sort((a, b) => {
+    const aTime = parseJoinRequestTime(a.requested_at ?? a.created_at);
+    const bTime = parseJoinRequestTime(b.requested_at ?? b.created_at);
+
+    if (aTime !== null && bTime !== null && aTime !== bTime) return bTime - aTime;
+    if (aTime !== null && bTime === null) return -1;
+    if (aTime === null && bTime !== null) return 1;
+    return a.id.localeCompare(b.id);
+  });
+}
+
+export function getJoinRequestDisplayLabel(row: {
+  requested_at?: string | null;
+  created_at?: string | null;
 }): string {
-  return row.requested_at || row.created_at || new Date(0).toISOString();
+  const timestamp = row.requested_at ?? row.created_at;
+  if (!timestamp) return 'Requested date unavailable';
+  const parsed = new Date(timestamp);
+  if (Number.isNaN(parsed.getTime())) return 'Requested date unavailable';
+  return `Requested ${parsed.toLocaleDateString()}`;
 }
 
 function mapRowToDashboardRequest(
@@ -116,6 +146,7 @@ function mapRowToDashboardRequest(
     trip_id: row.trip_id,
     user_id: row.user_id,
     requested_at: getJoinRequestRequestedAt(row),
+    created_at: row.created_at ?? undefined,
     direction,
     requesterLabel,
     trip: tripData
@@ -172,6 +203,7 @@ export function useDashboardJoinRequests(isDemoMode = false) {
           trip_id,
           user_id,
           requested_at,
+          created_at,
           requester_name,
           requester_email,
           trips (
@@ -193,7 +225,7 @@ export function useDashboardJoinRequests(isDemoMode = false) {
         const mapped = (joinedData as unknown as JoinRequestRow[] | null)?.map(r =>
           mapRowToDashboardRequest(r, user.id),
         );
-        setRequests(mapped ?? []);
+        setRequests(sortJoinRequestsByRecency(mapped ?? []));
         return;
       }
 
@@ -210,6 +242,7 @@ export function useDashboardJoinRequests(isDemoMode = false) {
           trip_id,
           user_id,
           requested_at,
+          created_at,
           requester_name,
           requester_email
         `,
@@ -254,7 +287,7 @@ export function useDashboardJoinRequests(isDemoMode = false) {
           user.id,
         ),
       );
-      setRequests(mapped);
+      setRequests(sortJoinRequestsByRecency(mapped));
     } catch (e) {
       console.error('[useDashboardJoinRequests]', e);
       setRequests([]);

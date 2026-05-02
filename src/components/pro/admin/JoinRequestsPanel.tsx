@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { UserCheck, UserX, Clock, AlertCircle, Inbox } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { getJoinRequestDisplayLabel } from '@/hooks/useDashboardJoinRequests';
 
 interface JoinRequestsPanelProps {
   tripId: string;
@@ -109,8 +110,9 @@ export const JoinRequestsPanel: React.FC<JoinRequestsPanelProps> = ({ tripId }) 
                   {request.profile?.display_name || 'Former Member'}
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  Requested{' '}
-                  {formatDistanceToNow(new Date(request.requested_at), { addSuffix: true })}
+                  {request.requested_at
+                    ? `Requested ${formatDistanceToNow(new Date(request.requested_at), { addSuffix: true })}`
+                    : getJoinRequestDisplayLabel(request)}
                 </span>
               </div>
             </div>
