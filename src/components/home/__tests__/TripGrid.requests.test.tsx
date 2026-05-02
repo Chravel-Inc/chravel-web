@@ -79,7 +79,14 @@ describe('TripGrid requests tab', () => {
 
   it('renders empty requests state when no pending request cards are provided', () => {
     render(
-      <TripGrid viewMode="myTrips" trips={[]} proTrips={{}} events={{}} activeFilter="requests" />,
+      <TripGrid
+        viewMode="myTrips"
+        trips={[]}
+        proTrips={{}}
+        events={{}}
+        activeFilter="requests"
+        pendingRequestCards={[]}
+      />,
     );
 
     expect(screen.getByText('No pending requests')).toBeInTheDocument();
