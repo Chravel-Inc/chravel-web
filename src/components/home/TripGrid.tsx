@@ -525,30 +525,26 @@ export const TripGrid = React.memo(
           >
             {activeFilter === 'requests' ? (
               requestCards.length > 0 ? (
-                requestCards.map(card => {
-                  const requestTrip: Trip = {
-                    id: card.tripId,
-                    title: card.title,
-                    location: card.destination ?? 'Destination TBD',
-                    dateRange: card.dateLabel,
-                    participants: [],
-                    coverPhoto: card.coverImageUrl ?? undefined,
-                    peopleCount: card.peopleCount,
-                    placesCount: card.placesCount,
-                  };
-
-                  return (
-                    <TripCard
-                      key={`request-${card.requestId}`}
-                      trip={requestTrip}
-                      pendingApproval
-                      pendingBadgeLabel="Pending Approval"
-                      pendingSecondaryActionLabel="Cancel request"
-                      onPendingSecondaryAction={() => handleCancelJoinRequest(card.requestId)}
-                      isPendingSecondaryActionLoading={cancelingRequestIds.has(card.requestId)}
-                    />
-                  );
-                })
+                requestCards.map(card => (
+                  <TripCard
+                    key={`request-${card.requestId}`}
+                    trip={{
+                      id: card.tripId,
+                      title: card.title,
+                      location: card.destination ?? 'Destination TBD',
+                      dateRange: card.dateLabel,
+                      participants: [],
+                      coverPhoto: card.coverImageUrl ?? undefined,
+                      peopleCount: card.peopleCount,
+                      placesCount: card.placesCount,
+                    }}
+                    pendingApproval
+                    pendingBadgeLabel="Pending Approval"
+                    pendingSecondaryActionLabel="Cancel request"
+                    onPendingSecondaryAction={() => handleCancelJoinRequest(card.requestId)}
+                    isPendingSecondaryActionLoading={cancelingRequestIds.has(card.requestId)}
+                  />
+                ))
               ) : (
                 <div className="col-span-full rounded-xl border border-border/50 bg-card/30 p-6 text-center">
                   <p className="text-lg font-semibold">No outgoing requests</p>
