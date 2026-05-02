@@ -383,21 +383,6 @@ const Index = () => {
     });
   }, [pendingRequestCards, searchQuery, viewMode]);
 
-  const pendingTrips = useMemo(
-    () =>
-      scopedPendingRequestCards.map(card => ({
-        id: card.tripId,
-        title: card.title,
-        location: card.destination ?? 'Destination TBD',
-        dateRange: card.dateLabel,
-        participants: [] as TripParticipant[],
-        coverPhoto: card.coverImageUrl ?? undefined,
-        peopleCount: card.peopleCount,
-        placesCount: card.placesCount,
-      })),
-    [scopedPendingRequestCards],
-  );
-
   // Calculate requests count per view mode (scoped by trip_type) from the exact
   // source that powers request cards.
   const requestsCounts = useMemo(() => {
@@ -413,18 +398,6 @@ const Index = () => {
 
     return { consumer, pro, event };
   }, [pendingRequestCards]);
-
-  const outboundRequestIdsByTripId = useMemo(
-    () =>
-      scopedPendingRequestCards.reduce(
-        (acc, card) => {
-          if (!acc[card.tripId]) acc[card.tripId] = card.requestId;
-          return acc;
-        },
-        {} as Record<string, string>,
-      ),
-    [scopedPendingRequestCards],
-  );
 
   // Calculate stats for each view mode - use UNFILTERED data for accurate counts
   // Stats should reflect total counts, not filtered counts
@@ -881,8 +854,7 @@ const Index = () => {
                   loading={isLoading}
                   onCreateTrip={handleCreateTrip}
                   activeFilter={recsFilter}
-                  pendingTrips={pendingTrips}
-                  outboundRequestIdsByTripId={outboundRequestIdsByTripId}
+                  pendingRequestCards={scopedPendingRequestCards}
                   onCancelDashboardRequest={cancelPendingRequest}
                   onTripStateChange={handleTripStateChange}
                 />
@@ -1068,8 +1040,7 @@ const Index = () => {
                 loading={isLoading}
                 onCreateTrip={handleCreateTrip}
                 activeFilter={recsFilter}
-                pendingTrips={pendingTrips}
-                outboundRequestIdsByTripId={outboundRequestIdsByTripId}
+                pendingRequestCards={scopedPendingRequestCards}
                 onCancelDashboardRequest={cancelPendingRequest}
                 onTripStateChange={handleTripStateChange}
               />
@@ -1310,8 +1281,7 @@ const Index = () => {
             loading={tripsLoading}
             onCreateTrip={handleCreateTrip}
             activeFilter={activeFilter}
-            pendingTrips={pendingTrips}
-            outboundRequestIdsByTripId={outboundRequestIdsByTripId}
+            pendingRequestCards={scopedPendingRequestCards}
             onCancelDashboardRequest={cancelPendingRequest}
             onTripStateChange={handleTripStateChange}
           />
