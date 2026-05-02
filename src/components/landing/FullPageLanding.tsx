@@ -14,6 +14,11 @@ const UseCasesSection = lazy(() =>
 const ReplacesSection = lazy(() =>
   import('./sections/ReplacesSection').then(module => ({ default: module.ReplacesSection })),
 );
+const CompetitiveComparisonSection = lazy(() =>
+  import('./sections/CompetitiveComparisonSection').then(module => ({
+    default: module.CompetitiveComparisonSection,
+  })),
+);
 const FAQSection = lazy(() =>
   import('./sections/FAQSection').then(module => ({ default: module.FAQSection })),
 );
@@ -48,6 +53,11 @@ const GRADIENTS = {
     ],
     direction: 'vertical' as const,
     accentGlow: { color: DESIGN_TOKENS.goldGlow, position: 'top' as const, opacity: 0.3 },
+  },
+  competitive: {
+    colors: [DESIGN_TOKENS.pureBlack, DESIGN_TOKENS.richBlack] as [string, string],
+    direction: 'vertical' as const,
+    accentGlow: { color: DESIGN_TOKENS.goldGlow, position: 'center' as const, opacity: 0.18 },
   },
   replaces: {
     colors: [DESIGN_TOKENS.richBlack, DESIGN_TOKENS.pureBlack] as [string, string],
@@ -126,7 +136,20 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           <HeroSection onSignUp={onSignUp} />
         </FullPageLandingSection>
 
-        {/* Section 2: What It Replaces */}
+        {/* Section 2: Competitive Comparison Strip */}
+        <FullPageLandingSection
+          id="section-competitive"
+          gradientColors={GRADIENTS.competitive.colors}
+          gradientDirection={GRADIENTS.competitive.direction}
+          accentGlow={GRADIENTS.competitive.accentGlow}
+          goldOverlay="mesh"
+        >
+          <Suspense fallback={<SectionLoader />}>
+            <CompetitiveComparisonSection />
+          </Suspense>
+        </FullPageLandingSection>
+
+        {/* Section 3: What It Replaces */}
         <FullPageLandingSection
           id="section-replaces"
           gradientColors={GRADIENTS.replaces.colors}
