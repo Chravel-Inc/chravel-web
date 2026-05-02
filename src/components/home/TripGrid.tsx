@@ -43,6 +43,7 @@ interface Trip {
   created_by?: string;
   coverPhoto?: string;
   trip_type?: 'consumer' | 'pro' | 'event';
+  peopleCount?: number;
 }
 
 type TripGridBaseProps = {
@@ -530,6 +531,7 @@ export const TripGrid = React.memo(
                     dateRange: card.dateLabel,
                     participants: [],
                     coverPhoto: card.coverImageUrl ?? undefined,
+                    peopleCount: card.peopleCount,
                     placesCount: card.placesCount,
                   };
 

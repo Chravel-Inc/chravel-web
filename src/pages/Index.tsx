@@ -52,11 +52,10 @@ import { useDemoModeStore } from '../store/demoModeStore';
 import { useTrips } from '../hooks/useTrips';
 import { usePendingRequestTripCards } from '../hooks/usePendingRequestTripCards';
 import { proTripMockData } from '../data/proTripMockData';
-import { Trip, TripParticipant } from '../data/tripsData';
+import { Trip, tripsData, type TripParticipant } from '../data/tripsData';
 import { eventsMockData } from '../data/eventsMockData';
 import type { ProTripData } from '../types/pro';
 import type { EventData } from '../types/events';
-import { tripsData } from '../data/tripsData';
 import { demoModeService } from '../services/demoModeService';
 import {
   calculateTripStats,
