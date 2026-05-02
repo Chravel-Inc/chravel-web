@@ -5,6 +5,7 @@ import {
   shouldBackfillJoinRequestsOnSubscribe,
   shouldRefreshJoinRequestsOnForeground,
   splitJoinRequestsByDirection,
+  getInboundAdminReviewRequests,
   type DashboardJoinRequest,
 } from '@/hooks/useDashboardJoinRequests';
 
@@ -98,5 +99,28 @@ describe('dashboard join request recovery helpers', () => {
     expect(shouldBackfillJoinRequestsOnSubscribe('SUBSCRIBED', false)).toBe(false);
     expect(shouldBackfillJoinRequestsOnSubscribe('SUBSCRIBED', true)).toBe(true);
     expect(shouldBackfillJoinRequestsOnSubscribe('CHANNEL_ERROR', true)).toBe(false);
+  });
+});
+
+describe('getInboundAdminReviewRequests', () => {
+  it('returns only inbound rows for admin moderation surfaces', () => {
+    const rows: DashboardJoinRequest[] = [
+      {
+        id: 'out-1',
+        trip_id: 'trip-1',
+        user_id: 'user-1',
+        requested_at: '2026-04-01T00:00:00Z',
+        direction: 'outbound',
+      },
+      {
+        id: 'in-1',
+        trip_id: 'trip-2',
+        user_id: 'user-2',
+        requested_at: '2026-04-02T00:00:00Z',
+        direction: 'inbound',
+      },
+    ];
+
+    expect(getInboundAdminReviewRequests(rows).map(row => row.id)).toEqual(['in-1']);
   });
 });

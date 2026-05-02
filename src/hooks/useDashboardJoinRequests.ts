@@ -91,6 +91,17 @@ export function splitJoinRequestsByDirection(rows: DashboardJoinRequest[]): {
   return { outbound, inbound };
 }
 
+/**
+ * Contract helper for admin/reviewer surfaces.
+ *
+ * Only inbound rows (requests from other users) are moderation actions.
+ * Outbound rows are context-only and MUST NOT power Home Requests cards/counters.
+ */
+export function getInboundAdminReviewRequests(
+  rows: DashboardJoinRequest[],
+): DashboardJoinRequest[] {
+  return rows.filter(row => row.direction === 'inbound');
+}
 export function getJoinRequestRequestedAt(row: {
   requested_at?: string | null;
   created_at?: string | null;
@@ -134,14 +145,16 @@ function mapRowToDashboardRequest(
 }
 
 /**
- * ADMIN / moderation-focused dashboard join-request feed.
+ * useDashboardJoinRequests contract
  *
- * Scope:
- * - Inbound moderation rows for trips the current user can administer or moderate.
- * - Includes outbound rows only as contextual data for moderation-oriented surfaces.
+ * Primary use-case: inbound/admin review surfaces only (approve/reject moderation flows).
  *
- * IMPORTANT: Do NOT use this hook for outbound Requests tab cards/counters on Home.
- * Outbound request UI must use `usePendingRequestTripCards` as the single source of truth.
+ * Outbound rows remain available as contextual metadata for admin views, but are not
+ * authoritative for dashboard outbound cards/counters.
+ *
+ * Home Requests card + counter contract:
+ * - source of truth: `usePendingRequestTripCards` (pending-card RPC pipeline)
+ * - forbidden source: `useDashboardJoinRequests`
  */
 export function useDashboardJoinRequests(isDemoMode = false) {
   const { user } = useAuth();
@@ -235,15 +248,11 @@ export function useDashboardJoinRequests(isDemoMode = false) {
       if (tripIds.length > 0) {
         const { data: tripsData, error: tripsError } = await supabase
           .from('trips')
-          .select(
-            'id, name, destination, start_date, end_date, cover_image_url, trip_type',
-          )
+          .select('id, name, destination, start_date, end_date, cover_image_url, trip_type')
           .in('id', tripIds);
 
         if (!tripsError && tripsData) {
-          tripById = new Map(
-            (tripsData as unknown as TripJoinRow[]).map(trip => [trip.id, trip]),
-          );
+          tripById = new Map((tripsData as unknown as TripJoinRow[]).map(trip => [trip.id, trip]));
         }
       }
 
@@ -349,8 +358,11 @@ export function useDashboardJoinRequests(isDemoMode = false) {
     [isDemoMode, user?.id],
   );
 
+  const inboundAdminRequests = getInboundAdminReviewRequests(requests);
+
   return {
     requests,
+    inboundAdminRequests,
     isLoading,
     refetch: fetchRequests,
     cancelOutboundRequest,
