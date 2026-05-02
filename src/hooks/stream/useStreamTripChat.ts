@@ -880,7 +880,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       // cache stale and the next tap sends a duplicate add or misses a delete.
       const affectedMessageId = event.message?.id;
       if (affectedMessageId) {
-        const freshMessage = (freshMessages as unknown as MessageResponse[]).find(
+        const freshMessage = (freshMessages as MessageResponse[]).find(
           m => m.id === affectedMessageId,
         );
         if (freshMessage) {
@@ -1172,7 +1172,8 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         throw new Error('Stream client unavailable');
       }
 
-      const response = await streamClient.partialUpdateMessage(messageId, {
+      const response = await streamClient.partialUpdateMessage({
+        id: messageId,
         set: {
           pinned: shouldPin,
         },

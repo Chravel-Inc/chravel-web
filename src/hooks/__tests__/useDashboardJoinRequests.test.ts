@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   getJoinRequestRequestedAt,
+  getJoinRequestDisplayLabel,
   mapCancelOwnJoinRequestResult,
   shouldBackfillJoinRequestsOnSubscribe,
   shouldRefreshJoinRequestsOnForeground,
+  sortJoinRequestsByRecency,
   splitJoinRequestsByDirection,
   getInboundAdminReviewRequests,
   type DashboardJoinRequest,
@@ -86,6 +88,51 @@ describe('getJoinRequestRequestedAt', () => {
         created_at: '2026-04-08T00:00:00Z',
       }),
     ).toBe('2026-04-08T00:00:00Z');
+  });
+
+  it('returns undefined when both requested_at and created_at are missing', () => {
+    expect(
+      getJoinRequestRequestedAt({
+        requested_at: null,
+        created_at: null,
+      }),
+    ).toBeUndefined();
+  });
+});
+
+describe('sortJoinRequestsByRecency', () => {
+  it('sorts rows with timestamps before rows with missing timestamps and uses deterministic id tie-breaker', () => {
+    const sorted = sortJoinRequestsByRecency([
+      {
+        id: 'z-request',
+        trip_id: 'trip-1',
+        user_id: 'user-1',
+        direction: 'outbound',
+      },
+      {
+        id: 'a-request',
+        trip_id: 'trip-2',
+        user_id: 'user-2',
+        direction: 'inbound',
+      },
+      {
+        id: 'recent',
+        trip_id: 'trip-3',
+        user_id: 'user-3',
+        requested_at: '2026-04-10T00:00:00Z',
+        direction: 'inbound',
+      },
+    ]);
+
+    expect(sorted.map(row => row.id)).toEqual(['recent', 'a-request', 'z-request']);
+  });
+});
+
+describe('getJoinRequestDisplayLabel', () => {
+  it('returns safe fallback label when request has no timestamps', () => {
+    expect(getJoinRequestDisplayLabel({ requested_at: null, created_at: null })).toBe(
+      'Requested date unavailable',
+    );
   });
 });
 
