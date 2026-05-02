@@ -69,7 +69,7 @@ describe('TripGrid requests tab', () => {
     expect(screen.queryByText('pending-enabled')).not.toBeInTheDocument();
   });
 
-  it('renders empty requests state when no pendingTrips are provided', () => {
+  it('renders empty requests state when no pending request cards are provided', () => {
     render(
       <TripGrid viewMode="myTrips" trips={[]} proTrips={{}} events={{}} activeFilter="requests" />,
     );
@@ -78,7 +78,7 @@ describe('TripGrid requests tab', () => {
     expect(screen.queryByText('Pending Trip')).not.toBeInTheDocument();
   });
 
-  it('renders pending trips in Requests using standard TripCard pending mode', () => {
+  it('renders pending request cards in Requests using standard TripCard pending mode', () => {
     render(
       <TripGrid
         viewMode="myTrips"
@@ -86,16 +86,22 @@ describe('TripGrid requests tab', () => {
         proTrips={{}}
         events={{}}
         activeFilter="requests"
-        pendingTrips={[
+        pendingRequestCards={[
           {
-            id: 'trip-100',
+            requestId: 'req-100',
+            tripId: 'trip-100',
+            tripType: 'consumer',
+            requestedAt: null,
             title: 'Pending via Trips Query',
-            location: 'Paris',
-            dateRange: 'Apr 1, 2026 - Apr 8, 2026',
-            participants: [],
+            destination: 'Paris',
+            startDate: '2026-04-01',
+            endDate: '2026-04-08',
+            dateLabel: 'Apr 1, 2026 - Apr 8, 2026',
+            coverImageUrl: null,
+            peopleCount: 2,
+            placesCount: 0,
           },
         ]}
-        outboundRequestIdsByTripId={{ 'trip-100': 'req-100' }}
       />,
     );
 

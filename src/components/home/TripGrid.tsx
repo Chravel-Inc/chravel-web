@@ -27,6 +27,7 @@ import { useDemoMode } from '@/hooks/useDemoMode';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { SortableTripGrid } from '../dashboard/SortableTripGrid';
 import { Button } from '../ui/button';
+import type { PendingRequestTripCard } from '@/hooks/usePendingRequestTripCards';
 
 interface Trip {
   id: number | string;
@@ -44,22 +45,29 @@ interface Trip {
   trip_type?: 'consumer' | 'pro' | 'event';
 }
 
-interface TripGridProps {
+type TripGridBaseProps = {
   viewMode: string;
   trips: Trip[];
   proTrips: Record<string, ProTripData>;
   events: Record<string, EventData>;
   loading?: boolean;
   onCreateTrip?: () => void;
-  activeFilter?: string;
-  pendingTrips?: Trip[];
-  outboundRequestIdsByTripId?: Record<string, string>;
   onCancelDashboardRequest?: (
     requestId: string,
   ) => Promise<{ success: boolean; message?: string }> | undefined;
   // Callback when a trip is archived/hidden/deleted (for demo mode refresh)
   onTripStateChange?: () => void;
-}
+};
+
+type TripGridProps =
+  | (TripGridBaseProps & {
+      activeFilter: 'requests';
+      pendingRequestCards: PendingRequestTripCard[];
+    })
+  | (TripGridBaseProps & {
+      activeFilter?: Exclude<string, 'requests'>;
+      pendingRequestCards?: PendingRequestTripCard[];
+    });
 
 export const TripGrid = React.memo(
   ({
@@ -70,8 +78,7 @@ export const TripGrid = React.memo(
     loading = false,
     onCreateTrip,
     activeFilter = 'all',
-    pendingTrips = [],
-    outboundRequestIdsByTripId = {},
+    pendingRequestCards = [],
     onCancelDashboardRequest,
     onTripStateChange,
   }: TripGridProps) => {
@@ -367,8 +374,6 @@ export const TripGrid = React.memo(
       viewMode === 'travelRecs' ? manualLocation : undefined,
     );
 
-    const requestTrips = useMemo(() => pendingTrips, [pendingTrips]);
-
     // Show loading skeleton
     if (loading) {
       return (
@@ -380,7 +385,7 @@ export const TripGrid = React.memo(
 
     const hasContent =
       activeFilter === 'requests'
-        ? requestTrips.length > 0
+        ? pendingRequestCards.length > 0
         : activeFilter === 'archived'
           ? archivedTrips.length > 0
           : viewMode === 'myTrips'
@@ -516,24 +521,27 @@ export const TripGrid = React.memo(
             }`}
           >
             {activeFilter === 'requests' ? (
-              requestTrips.length > 0 ? (
-                requestTrips.map(trip => {
-                  const tripId = trip.id.toString();
-                  const requestId = outboundRequestIdsByTripId[tripId];
+              pendingRequestCards.length > 0 ? (
+                pendingRequestCards.map(card => {
+                  const requestTrip: Trip = {
+                    id: card.tripId,
+                    title: card.title,
+                    location: card.destination ?? 'Destination TBD',
+                    dateRange: card.dateLabel,
+                    participants: [],
+                    coverPhoto: card.coverImageUrl ?? undefined,
+                    placesCount: card.placesCount,
+                  };
 
                   return (
                     <TripCard
-                      key={`request-${tripId}`}
-                      trip={trip}
+                      key={`request-${card.requestId}`}
+                      trip={requestTrip}
                       pendingApproval
                       pendingBadgeLabel="Pending Approval"
                       pendingSecondaryActionLabel="Cancel request"
-                      onPendingSecondaryAction={
-                        requestId ? () => handleCancelJoinRequest(requestId) : undefined
-                      }
-                      isPendingSecondaryActionLoading={
-                        requestId ? cancelingRequestIds.has(requestId) : false
-                      }
+                      onPendingSecondaryAction={() => handleCancelJoinRequest(card.requestId)}
+                      isPendingSecondaryActionLoading={cancelingRequestIds.has(card.requestId)}
                     />
                   );
                 })
