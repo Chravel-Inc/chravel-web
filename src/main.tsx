@@ -55,14 +55,19 @@ const clearAllCaches = (): void => {
 // @capacitor/push-notifications (APNs), not the web push handler in sw.js.
 const isNativePlatform = Capacitor.isNativePlatform();
 
-// Unregister stale service workers from old hosts on first load.
-// NOTE: This runs before registerServiceWorker() below to avoid unregistering
-// the freshly-registered worker. The .then() chain is already non-blocking.
+// Unregister stale service workers on non-root scopes.
+// Keep the active root scope (`/`) registration intact so we don't remove
+// the app's live `/sw.js` worker during startup.
 if (!isNativePlatform && 'serviceWorker' in navigator) {
+  const activeScope = new URL('/', window.location.origin).href;
   navigator.serviceWorker
     .getRegistrations()
     .then(registrations => {
-      registrations.forEach(reg => reg.unregister());
+      registrations
+        .filter(registration => registration.scope !== activeScope)
+        .forEach(registration => {
+          void registration.unregister();
+        });
     })
     .catch(() => {});
 }
