@@ -134,9 +134,14 @@ function mapRowToDashboardRequest(
 }
 
 /**
- * Fetches all pending trip_join_requests the current user can see via RLS:
- * - Outbound: rows where user_id = auth user (trips you asked to join)
- * - Inbound: rows for trips where you are creator, trip_admin, or member (consumer)
+ * ADMIN / moderation-focused dashboard join-request feed.
+ *
+ * Scope:
+ * - Inbound moderation rows for trips the current user can administer or moderate.
+ * - Includes outbound rows only as contextual data for moderation-oriented surfaces.
+ *
+ * IMPORTANT: Do NOT use this hook for outbound Requests tab cards/counters on Home.
+ * Outbound request UI must use `usePendingRequestTripCards` as the single source of truth.
  */
 export function useDashboardJoinRequests(isDemoMode = false) {
   const { user } = useAuth();

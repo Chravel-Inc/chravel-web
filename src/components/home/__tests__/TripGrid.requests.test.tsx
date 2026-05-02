@@ -35,6 +35,14 @@ vi.mock('../SwipeableTripCardWrapper', () => ({
   SwipeableProTripCardWrapper: () => null,
 }));
 vi.mock('../../../hooks/use-mobile', () => ({ useIsMobile: () => false }));
+
+// Guardrail: Requests tab rendering must not depend on useDashboardJoinRequests.
+vi.mock('@/hooks/useDashboardJoinRequests', () => ({
+  useDashboardJoinRequests: () => {
+    throw new Error('useDashboardJoinRequests must not be used by outbound requests rendering');
+  },
+}));
+
 vi.mock('../../../hooks/useDeleteTrip', () => ({ useDeleteTrip: () => ({ deleteTrip: vi.fn() }) }));
 vi.mock('../../../hooks/useLocationFilteredRecommendations', () => ({
   useLocationFilteredRecommendations: () => ({
@@ -107,6 +115,31 @@ describe('TripGrid requests tab', () => {
 
     expect(screen.getByText('Pending via Trips Query')).toBeInTheDocument();
     expect(screen.getByText('pending-enabled')).toBeInTheDocument();
+    expect(screen.getByText('Cancel request')).toBeInTheDocument();
+  });
+
+  it('renders outbound pending cards even when useDashboardJoinRequests is unavailable', () => {
+    render(
+      <TripGrid
+        viewMode="myTrips"
+        trips={[]}
+        proTrips={{}}
+        events={{}}
+        activeFilter="requests"
+        pendingTrips={[
+          {
+            id: 'trip-200',
+            title: 'Outbound Source Of Truth',
+            location: 'Tokyo',
+            dateRange: 'May 1, 2026 - May 4, 2026',
+            participants: [],
+          },
+        ]}
+        outboundRequestIdsByTripId={{ 'trip-200': 'req-200' }}
+      />,
+    );
+
+    expect(screen.getByText('Outbound Source Of Truth')).toBeInTheDocument();
     expect(screen.getByText('Cancel request')).toBeInTheDocument();
   });
 
