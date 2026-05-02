@@ -22,7 +22,8 @@ export interface DashboardJoinRequest {
   id: string;
   trip_id: string;
   user_id: string;
-  requested_at: string;
+  requested_at?: string;
+  created_at?: string;
   direction: 'outbound' | 'inbound';
   /** For inbound rows: best-effort display name for the requester */
   requesterLabel?: string;
@@ -91,11 +92,51 @@ export function splitJoinRequestsByDirection(rows: DashboardJoinRequest[]): {
   return { outbound, inbound };
 }
 
+/**
+ * Contract helper for admin/reviewer surfaces.
+ *
+ * Only inbound rows (requests from other users) are moderation actions.
+ * Outbound rows are context-only and MUST NOT power Home Requests cards/counters.
+ */
+export function getInboundAdminReviewRequests(
+  rows: DashboardJoinRequest[],
+): DashboardJoinRequest[] {
+  return rows.filter(row => row.direction === 'inbound');
+}
 export function getJoinRequestRequestedAt(row: {
   requested_at?: string | null;
   created_at?: string | null;
+}): string | undefined {
+  return row.requested_at ?? row.created_at ?? undefined;
+}
+
+function parseJoinRequestTime(value?: string): number | null {
+  if (!value) return null;
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+export function sortJoinRequestsByRecency(rows: DashboardJoinRequest[]): DashboardJoinRequest[] {
+  return [...rows].sort((a, b) => {
+    const aTime = parseJoinRequestTime(a.requested_at ?? a.created_at);
+    const bTime = parseJoinRequestTime(b.requested_at ?? b.created_at);
+
+    if (aTime !== null && bTime !== null && aTime !== bTime) return bTime - aTime;
+    if (aTime !== null && bTime === null) return -1;
+    if (aTime === null && bTime !== null) return 1;
+    return a.id.localeCompare(b.id);
+  });
+}
+
+export function getJoinRequestDisplayLabel(row: {
+  requested_at?: string | null;
+  created_at?: string | null;
 }): string {
-  return row.requested_at || row.created_at || new Date(0).toISOString();
+  const timestamp = row.requested_at ?? row.created_at;
+  if (!timestamp) return 'Requested date unavailable';
+  const parsed = new Date(timestamp);
+  if (Number.isNaN(parsed.getTime())) return 'Requested date unavailable';
+  return `Requested ${parsed.toLocaleDateString()}`;
 }
 
 function mapRowToDashboardRequest(
@@ -116,6 +157,7 @@ function mapRowToDashboardRequest(
     trip_id: row.trip_id,
     user_id: row.user_id,
     requested_at: getJoinRequestRequestedAt(row),
+    created_at: row.created_at ?? undefined,
     direction,
     requesterLabel,
     trip: tripData
@@ -134,14 +176,16 @@ function mapRowToDashboardRequest(
 }
 
 /**
- * ADMIN / moderation-focused dashboard join-request feed.
+ * useDashboardJoinRequests contract
  *
- * Scope:
- * - Inbound moderation rows for trips the current user can administer or moderate.
- * - Includes outbound rows only as contextual data for moderation-oriented surfaces.
+ * Primary use-case: inbound/admin review surfaces only (approve/reject moderation flows).
  *
- * IMPORTANT: Do NOT use this hook for outbound Requests tab cards/counters on Home.
- * Outbound request UI must use `usePendingRequestTripCards` as the single source of truth.
+ * Outbound rows remain available as contextual metadata for admin views, but are not
+ * authoritative for dashboard outbound cards/counters.
+ *
+ * Home Requests card + counter contract:
+ * - source of truth: `usePendingRequestTripCards` (pending-card RPC pipeline)
+ * - forbidden source: `useDashboardJoinRequests`
  */
 export function useDashboardJoinRequests(isDemoMode = false) {
   const { user } = useAuth();
@@ -172,6 +216,7 @@ export function useDashboardJoinRequests(isDemoMode = false) {
           trip_id,
           user_id,
           requested_at,
+          created_at,
           requester_name,
           requester_email,
           trips (
@@ -193,7 +238,7 @@ export function useDashboardJoinRequests(isDemoMode = false) {
         const mapped = (joinedData as unknown as JoinRequestRow[] | null)?.map(r =>
           mapRowToDashboardRequest(r, user.id),
         );
-        setRequests(mapped ?? []);
+        setRequests(sortJoinRequestsByRecency(mapped ?? []));
         return;
       }
 
@@ -210,6 +255,7 @@ export function useDashboardJoinRequests(isDemoMode = false) {
           trip_id,
           user_id,
           requested_at,
+          created_at,
           requester_name,
           requester_email
         `,
@@ -236,14 +282,12 @@ export function useDashboardJoinRequests(isDemoMode = false) {
         const { data: tripsData, error: tripsError } = await supabase
           .from('trips')
           .select(
-            'id, name, destination, start_date, end_date, cover_image_url, trip_type',
+            'id, name, destination, start_date, end_date, member_count, cover_image_url, trip_type',
           )
           .in('id', tripIds);
 
         if (!tripsError && tripsData) {
-          tripById = new Map(
-            (tripsData as unknown as TripJoinRow[]).map(trip => [trip.id, trip]),
-          );
+          tripById = new Map(tripsData.map(trip => [trip.id, trip as TripJoinRow]));
         }
       }
 
@@ -256,7 +300,7 @@ export function useDashboardJoinRequests(isDemoMode = false) {
           user.id,
         ),
       );
-      setRequests(mapped);
+      setRequests(sortJoinRequestsByRecency(mapped));
     } catch (e) {
       console.error('[useDashboardJoinRequests]', e);
       setRequests([]);
@@ -349,8 +393,11 @@ export function useDashboardJoinRequests(isDemoMode = false) {
     [isDemoMode, user?.id],
   );
 
+  const inboundAdminRequests = getInboundAdminReviewRequests(requests);
+
   return {
     requests,
+    inboundAdminRequests,
     isLoading,
     refetch: fetchRequests,
     cancelOutboundRequest,

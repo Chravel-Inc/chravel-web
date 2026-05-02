@@ -79,7 +79,14 @@ describe('TripGrid requests tab', () => {
 
   it('renders empty requests state when no pending request cards are provided', () => {
     render(
-      <TripGrid viewMode="myTrips" trips={[]} proTrips={{}} events={{}} activeFilter="requests" />,
+      <TripGrid
+        viewMode="myTrips"
+        trips={[]}
+        proTrips={{}}
+        events={{}}
+        activeFilter="requests"
+        pendingRequestCards={[]}
+      />,
     );
 
     expect(screen.getByText('No pending requests')).toBeInTheDocument();
@@ -118,7 +125,7 @@ describe('TripGrid requests tab', () => {
     expect(screen.getByText('Cancel request')).toBeInTheDocument();
   });
 
-  it('renders outbound pending cards even when useDashboardJoinRequests is unavailable', () => {
+  it('ignores legacy outbound request props when pending-card RPC rows are absent', () => {
     render(
       <TripGrid
         viewMode="myTrips"
@@ -126,21 +133,27 @@ describe('TripGrid requests tab', () => {
         proTrips={{}}
         events={{}}
         activeFilter="requests"
-        pendingTrips={[
+        pendingRequestCards={[
           {
-            id: 'trip-200',
+            requestId: 'req-200',
+            tripId: 'trip-200',
+            tripType: 'consumer',
+            requestedAt: null,
             title: 'Outbound Source Of Truth',
-            location: 'Tokyo',
-            dateRange: 'May 1, 2026 - May 4, 2026',
-            participants: [],
+            destination: 'Tokyo',
+            startDate: '2026-05-01',
+            endDate: '2026-05-04',
+            dateLabel: 'May 1, 2026 - May 4, 2026',
+            coverImageUrl: null,
+            peopleCount: 1,
+            placesCount: 0,
           },
         ]}
-        outboundRequestIdsByTripId={{ 'trip-200': 'req-200' }}
       />,
     );
 
-    expect(screen.getByText('Outbound Source Of Truth')).toBeInTheDocument();
-    expect(screen.getByText('Cancel request')).toBeInTheDocument();
+    expect(screen.getByText('No pending requests')).toBeInTheDocument();
+    expect(screen.queryByText('Outbound Source Of Truth')).not.toBeInTheDocument();
   });
 
   it('does not render pending request cards in standard My Trips mode', () => {

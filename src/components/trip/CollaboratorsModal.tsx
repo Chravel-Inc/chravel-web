@@ -277,9 +277,16 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
                         request.requester_email?.split('@')[0] ||
                         'New member';
                       const avatarUrl = request.profile?.avatar_url || request.requester_avatar_url;
-                      const timeAgo = formatDistanceToNow(new Date(request.requested_at), {
-                        addSuffix: true,
-                      });
+                      const requestedAtDate = request.requested_at
+                        ? new Date(request.requested_at)
+                        : null;
+                      const hasValidRequestedAt =
+                        requestedAtDate !== null && !Number.isNaN(requestedAtDate.getTime());
+                      const requestedLabel = hasValidRequestedAt
+                        ? `Requested ${formatDistanceToNow(requestedAtDate, {
+                            addSuffix: true,
+                          })}`
+                        : 'Requested date unavailable';
 
                       // Check if this might be an orphaned request (no profile data)
                       const mightBeOrphaned =
@@ -333,7 +340,7 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
                             )}
                             <div className="flex items-center gap-1 text-xs text-gray-400">
                               <Clock size={12} />
-                              <span>Requested {timeAgo}</span>
+                              <span>{requestedLabel}</span>
                             </div>
                           </div>
 

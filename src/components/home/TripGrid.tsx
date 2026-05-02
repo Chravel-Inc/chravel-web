@@ -43,6 +43,7 @@ interface Trip {
   created_by?: string;
   coverPhoto?: string;
   trip_type?: 'consumer' | 'pro' | 'event';
+  peopleCount?: number;
 }
 
 type TripGridBaseProps = {
@@ -66,7 +67,7 @@ type TripGridProps =
     })
   | (TripGridBaseProps & {
       activeFilter?: Exclude<string, 'requests'>;
-      pendingRequestCards?: PendingRequestTripCard[];
+      pendingRequestCards?: never;
     });
 
 export const TripGrid = React.memo(
@@ -78,7 +79,7 @@ export const TripGrid = React.memo(
     loading = false,
     onCreateTrip,
     activeFilter = 'all',
-    pendingRequestCards = [],
+    pendingRequestCards,
     onCancelDashboardRequest,
     onTripStateChange,
   }: TripGridProps) => {
@@ -383,9 +384,11 @@ export const TripGrid = React.memo(
       );
     }
 
+    const requestCards = activeFilter === 'requests' ? pendingRequestCards : undefined;
+
     const hasContent =
       activeFilter === 'requests'
-        ? pendingRequestCards.length > 0
+        ? requestCards.length > 0
         : activeFilter === 'archived'
           ? archivedTrips.length > 0
           : viewMode === 'myTrips'
@@ -521,30 +524,27 @@ export const TripGrid = React.memo(
             }`}
           >
             {activeFilter === 'requests' ? (
-              pendingRequestCards.length > 0 ? (
-                pendingRequestCards.map(card => {
-                  const requestTrip: Trip = {
-                    id: card.tripId,
-                    title: card.title,
-                    location: card.destination ?? 'Destination TBD',
-                    dateRange: card.dateLabel,
-                    participants: [],
-                    coverPhoto: card.coverImageUrl ?? undefined,
-                    placesCount: card.placesCount,
-                  };
-
-                  return (
-                    <TripCard
-                      key={`request-${card.requestId}`}
-                      trip={requestTrip}
-                      pendingApproval
-                      pendingBadgeLabel="Pending Approval"
-                      pendingSecondaryActionLabel="Cancel request"
-                      onPendingSecondaryAction={() => handleCancelJoinRequest(card.requestId)}
-                      isPendingSecondaryActionLoading={cancelingRequestIds.has(card.requestId)}
-                    />
-                  );
-                })
+              requestCards.length > 0 ? (
+                requestCards.map(card => (
+                  <TripCard
+                    key={`request-${card.requestId}`}
+                    trip={{
+                      id: card.tripId,
+                      title: card.title,
+                      location: card.destination ?? 'Destination TBD',
+                      dateRange: card.dateLabel,
+                      participants: [],
+                      coverPhoto: card.coverImageUrl ?? undefined,
+                      peopleCount: card.peopleCount,
+                      placesCount: card.placesCount,
+                    }}
+                    pendingApproval
+                    pendingBadgeLabel="Pending Approval"
+                    pendingSecondaryActionLabel="Cancel request"
+                    onPendingSecondaryAction={() => handleCancelJoinRequest(card.requestId)}
+                    isPendingSecondaryActionLoading={cancelingRequestIds.has(card.requestId)}
+                  />
+                ))
               ) : (
                 <div className="col-span-full rounded-xl border border-border/50 bg-card/30 p-6 text-center">
                   <p className="text-lg font-semibold">No outgoing requests</p>
