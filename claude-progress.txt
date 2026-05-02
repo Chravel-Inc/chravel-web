@@ -148,3 +148,8 @@
 - Added visible abuse-reporting entry points in Support and Consumer General Settings (`safety@chravelapp.com`) to improve launch trust/compliance readiness.
 - Tightened chunk error recovery heuristic in `App.tsx` by removing generic `Failed to fetch` from chunk detection.
 - Verification: `npm test -- --run src/native/__tests__/pushRouting.test.ts`, `npm run typecheck`, `npm run lint` completed successfully (lint has existing repo-wide warnings only).
+2026-04-26 — Service worker stale cleanup scope hardening (Codex PR follow-up)
+- Addressed Codex P1 follow-up in `src/main.tsx` by restricting startup SW cleanup to non-root scopes only.
+- Preserved active root-scope (`/`) registration so startup cleanup cannot remove the app's live `/sw.js` worker.
+- Kept cleanup before normal registration path and maintained non-blocking behavior.
+- Verification: `npm run typecheck` pass, `npm run lint` pass with existing warnings, `npm run build` fails in this environment due to unresolved `@capacitor/core` package.
