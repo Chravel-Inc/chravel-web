@@ -51,7 +51,6 @@ export interface NotificationPayload {
 }
 
 export type NotificationType =
-  | 'chat_message' // @deprecated - permanently suppressed
   | 'itinerary_update'
   | 'payment_request'
   | 'payment_split'
@@ -60,7 +59,6 @@ export type NotificationType =
   | 'poll_vote'
   | 'task_assigned'
   | 'broadcast'
-  | 'mention' // @deprecated - permanently suppressed
   | 'calendar_bulk_import'
   | 'join_request'
   | 'basecamp_update';

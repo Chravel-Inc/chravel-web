@@ -686,8 +686,7 @@ export const TripChat = React.memo(
           | 'notification'
           | 'notification_deeplink' = 'reply_badge',
       ) => {
-        const telemetrySource =
-          source === 'notification_deeplink' ? 'notification' : source;
+        const telemetrySource = source === 'notification_deeplink' ? 'notification' : source;
 
         const streamMessage = liveMessages.find(m => m.id === messageId);
         if (streamMessage) {

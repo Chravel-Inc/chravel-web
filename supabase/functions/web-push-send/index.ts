@@ -29,7 +29,6 @@ import {
 // ============================================================================
 
 type NotificationType =
-  | 'chat_message'
   | 'itinerary_update'
   | 'payment_request'
   | 'payment_split'
@@ -37,8 +36,7 @@ type NotificationType =
   | 'trip_invite'
   | 'poll_vote'
   | 'task_assigned'
-  | 'broadcast'
-  | 'mention';
+  | 'broadcast';
 
 interface SendPushRequest {
   // Target users

@@ -18,12 +18,7 @@ interface AuthModalProps {
   oauthReturnTo?: string;
 }
 
-export const AuthModal = ({
-  isOpen,
-  onClose,
-  initialMode,
-  oauthReturnTo,
-}: AuthModalProps) => {
+export const AuthModal = ({ isOpen, onClose, initialMode, oauthReturnTo }: AuthModalProps) => {
   const { signIn, signInWithGoogle, signInWithApple, signUp, resetPassword, isLoading, user } =
     useAuth();
   const [googleLoading, setGoogleLoading] = useState(false);
