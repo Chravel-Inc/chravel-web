@@ -36,7 +36,6 @@ export const ReadReceipts: React.FC<ReadReceiptsProps> = ({
   tripMembers = [],
 }) => {
   const readCount = readStatuses.length;
-  // const allRead = readCount === totalRecipients; // unused for now
 
   // Filter out current user's read status from display
   const otherReaders = readStatuses.filter(status => status.user_id !== currentUserId);
