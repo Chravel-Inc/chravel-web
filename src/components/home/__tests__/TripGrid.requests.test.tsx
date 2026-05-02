@@ -125,7 +125,7 @@ describe('TripGrid requests tab', () => {
     expect(screen.getByText('Cancel request')).toBeInTheDocument();
   });
 
-  it('renders outbound pending cards even when useDashboardJoinRequests is unavailable', () => {
+  it('ignores legacy outbound request props when pending-card RPC rows are absent', () => {
     render(
       <TripGrid
         viewMode="myTrips"
@@ -152,8 +152,8 @@ describe('TripGrid requests tab', () => {
       />,
     );
 
-    expect(screen.getByText('Outbound Source Of Truth')).toBeInTheDocument();
-    expect(screen.getByText('Cancel request')).toBeInTheDocument();
+    expect(screen.getByText('No pending requests')).toBeInTheDocument();
+    expect(screen.queryByText('Outbound Source Of Truth')).not.toBeInTheDocument();
   });
 
   it('does not render pending request cards in standard My Trips mode', () => {
