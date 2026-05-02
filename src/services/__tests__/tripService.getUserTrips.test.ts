@@ -48,6 +48,7 @@ function createChainableMock<T>(response: SupabaseResponse<T>): ChainableRespons
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     from: vi.fn(),
+    rpc: vi.fn(),
     auth: {
       getUser: vi.fn(),
       getSession: vi.fn(),
@@ -180,11 +181,32 @@ describe('tripService.getUserTrips', () => {
 
     const pendingTrips = await tripService.getUserTrips(false, undefined, 'member-user');
     expect(pendingTrips).toHaveLength(0);
+    expect(vi.mocked(supabase.rpc)).not.toHaveBeenCalled();
 
     isApproved = true;
     const approvedTrips = await tripService.getUserTrips(false, undefined, 'member-user');
     expect(approvedTrips).toHaveLength(1);
     expect(approvedTrips[0].id).toBe('trip-approval-1');
     expect(approvedTrips[0].membership_status).toBe('member');
+    expect(vi.mocked(supabase.rpc)).not.toHaveBeenCalled();
+  });
+
+  it('never fetches pending-request cards RPC in owner/member trip query path', async () => {
+    // intentional: mock implementation doesn't match full Supabase generics
+    (vi.mocked(supabase.from) as any).mockImplementation(((table: string) => {
+      if (table === 'trips') {
+        return createChainableMock({ data: [], error: null });
+      }
+
+      if (table === 'trip_members' || table === 'trip_events') {
+        return createChainableMock({ data: [], error: null });
+      }
+
+      throw new Error(`Unexpected table query in getUserTrips contract test: ${table}`);
+    }) as unknown);
+
+    await tripService.getUserTrips(false, undefined, 'member-user');
+
+    expect(vi.mocked(supabase.rpc)).not.toHaveBeenCalled();
   });
 });
