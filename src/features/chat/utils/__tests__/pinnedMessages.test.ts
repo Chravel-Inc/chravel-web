@@ -58,33 +58,8 @@ describe('derivePinnedMessages', () => {
 
 describe('isPinnedMessage', () => {
   it('returns true only for explicitly pinned messages', () => {
-    expect(
-      isPinnedMessage({
-        id: 'pinned',
-        text: 'hello',
-        sender: { id: 'u1', name: 'A' },
-        createdAt: '2026-01-01T00:00:00.000Z',
-        isPinned: true,
-      }),
-    ).toBe(true);
-
-    expect(
-      isPinnedMessage({
-        id: 'not-pinned',
-        text: 'hello',
-        sender: { id: 'u1', name: 'A' },
-        createdAt: '2026-01-01T00:00:00.000Z',
-        isPinned: false,
-      }),
-    ).toBe(false);
-
-    expect(
-      isPinnedMessage({
-        id: 'missing-pin-flag',
-        text: 'hello',
-        sender: { id: 'u1', name: 'A' },
-        createdAt: '2026-01-01T00:00:00.000Z',
-      }),
-    ).toBe(false);
+    expect(isPinnedMessage({ isPinned: true })).toBe(true);
+    expect(isPinnedMessage({ isPinned: false })).toBe(false);
+    expect(isPinnedMessage({})).toBe(false);
   });
 });

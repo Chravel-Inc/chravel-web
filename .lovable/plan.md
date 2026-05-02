@@ -1,77 +1,69 @@
-# Honest audit of the previous perf round + fix for the home page
+## Heads up: no build errors to fix
 
-## What I actually shipped last round
+I re-ran `tsc --noEmit` and `npm run build` against `main` — both pass cleanly. The "build errors" I flagged in the previous turn were stale notes from the patch scripts left in the repo root (`patch_tripchat*.py`), not actual current failures. Nothing to fix on that front. If you'd rather I clean up those orphaned `patch_*.py` / `resolver3.js` scripts at the repo root as housekeeping, I can fold that in.
 
-Verified each committed file. Summary:
+## What we're building
 
-| File | Status | Verdict |
-|---|---|---|
-| `src/hooks/useTrips.ts` | `placeholderData: keepPreviousData` added | ✅ correct, but only helps **return visits** to `/`, not the cold load you just hit |
-| `src/components/TripTabs.tsx` | Tier 1/2/3 mounting, idle pre-mount of Places/Payments/Tasks/Polls | ✅ correct, but **only runs after you open a trip** |
-| `src/components/mobile/MobileTripTabs.tsx` | Same tiered strategy | ✅ correct, trip-detail only |
-| `src/components/TripCard.tsx` | `onTouchStart` + `import('@/pages/TripDetail')` warm-up | ✅ correct, only fires on hover/tap of a card — useless before cards render |
-| `src/components/trip/TripDetailModals.tsx` | 5 modals lazy-loaded | ✅ correct, trip-detail only |
-| `src/components/PlacesSection.tsx` + `LinksPanel.tsx` | Slimmed props, `keepPreviousData` | ✅ correct, places-tab only |
+A **competitive comparison strip** on the landing page that visually proves the deck's core claim: *Chravel is the only product that does all 8 of these things in one place.* Today, `ReplacesGrid` shows category-by-category lists of apps Chravel replaces, but it never shows the punchline — that no competitor checks every box.
 
-**Console shows zero JS errors.** The white "Loading…" screen is the app-shell hydration gate (`preview-hydration-race-prevention`), not a crash.
+## Where it goes
 
-## The disconnect — what I missed
+Insert a new section **between Hero (Section 1) and Replaces (Section 2)** in `src/components/landing/FullPageLanding.tsx`. This makes it the first thing after the hero — the "switch moment" that motivates everything below it.
 
-**Every single change targeted `/trip/:id` and its tabs. Nothing touched the home page render path (`/`).**
+Section order becomes:
+1. Hero
+2. **Competitive Strip (new)**
+3. What It Replaces (existing detailed grid)
+4. How It Works
+5. Use Cases → AI → Pricing → FAQ → Footer
 
-That's why your refresh felt identical: when you hit `/` cold, you still pay the full cost of:
+## What the section looks like
 
-- `src/pages/Index.tsx` — **1,398 lines**, eagerly imports `CreateTripModal`, `UpgradeModal`, `SettingsMenu`, `AuthModal`, `OnboardingCarousel`, `DemoModal`, `NotificationsDialog`, `SearchOverlay`, `FullPageLanding`, plus the entire pro/event mock datasets
-- `src/components/home/TripGrid.tsx` — **720 lines**, eager
-- `src/components/TripCard.tsx` — **659 lines**, eager, rendered N times
-- All eight home-page sibling components imported synchronously at the top of Index.tsx
+A single comparison table. Rows = the 8 Chravel modules (reusing `CATEGORIES` from `ReplacesGridData.ts` so it stays in sync). Columns = Chravel + 5–6 representative competitors. Cells = ✓ (gold) or ✗ (muted). Only the Chravel column is fully ✓.
 
-So on a cold load the browser parses ~3,000 lines of home-page code + every modal you might never open, **before** React even gets to render. `keepPreviousData` only helps after that first paint succeeds, on subsequent revisits.
+```text
+                 Chravel  WhatsApp  Splitwise  Google Drive  TripIt  Notion  Slack
+Chat              ✓         ✓          ✗            ✗           ✗        ✗      ✓
+Calendar          ✓         ✗          ✗            ✗           ✓        ~      ✗
+AI Concierge      ✓         ✗          ✗            ✗           ~        ~      ✗
+Media             ✓         ~          ✗            ✓           ✗        ~      ~
+Payments          ✓         ✗          ✓            ✗           ✗        ✗      ✗
+Places            ✓         ✗          ✗            ✗           ✓        ✗      ✗
+Polls             ✓         ~          ✗            ✗           ✗        ~      ✓
+Tasks             ✓         ✗          ✗            ✗           ✗        ✓      ✓
+```
 
-The previous round was correct work but aimed at the wrong surface for the symptom you're now describing.
+(`~` = partial; rendered as a muted dot. We'll keep it conservative/defensible — no overclaiming.)
 
-## Fix — extend the same playbook to the home page
+**Header copy** (deck-aligned):
+- Eyebrow: "The only one"
+- H2: "Eight tools. One trip. Zero tab-switching."
+- Sub: "Every other app does one slice. Chravel does the whole trip."
 
-Five targeted, low-risk changes. No refactors, no behavior changes.
+**Mobile (≤ md)**: table collapses to a vertical "Chravel ✓ / Everyone else ✗" stack with the 8 module names — keeps the punchline without horizontal scroll on phones.
 
-### 1. Lazy-load the seven home-page modals in `Index.tsx`
-`CreateTripModal`, `UpgradeModal`, `SettingsMenu`, `AuthModal`, `DemoModal`, `OnboardingCarousel`, `NotificationsDialog`, `SearchOverlay` — all conditionally rendered behind `open` flags. Convert each to `React.lazy()` + `<Suspense fallback={null}>`. Estimated initial-bundle win: ~200–350 KB on `/`.
+## Files
 
-### 2. Lazy-load `FullPageLanding`
-It only renders for the unauthenticated marketing view. Logged-in users pay for it today. Lazy.
+**New:**
+- `src/components/conversion/CompetitiveComparison.tsx` — the section (table + mobile fallback). Pulls module names from `CATEGORIES` in `ReplacesGridData.ts` to stay DRY. Static competitor matrix defined inline as `as const`.
+- `src/components/landing/sections/CompetitiveComparisonSection.tsx` — thin wrapper, matches the `ReplacesSection.tsx` pattern.
 
-### 3. Defer pro/event mock data
-`proTripMockData` and `eventsMockData` are imported eagerly even when you only have consumer trips visible. Switch to dynamic import inside the `useMemo` that needs them, or gate behind the active tab.
+**Modified:**
+- `src/components/landing/FullPageLanding.tsx` — lazy-import the new section, add a new `GRADIENTS.competitive` entry (subtle gold-on-black, `goldOverlay="mesh"`), insert `<FullPageLandingSection id="section-competitive">` between Hero and Replaces.
 
-### 4. Add `placeholderData: keepPreviousData` to `useDashboardJoinRequests`
-Same pattern as `useTrips`. Eliminates a second skeleton flash on `/`.
+No changes to `ReplacesGridData.ts`, no new deps, no schema/edge-function work.
 
-### 5. Fix the unrelated console error you're hitting
-`useDashboardJoinRequests.ts:112` is querying `trip_join_requests.created_at` which doesn't exist. Switch to the column that does (likely `requested_at` or `inserted_at` — verify against the table) so the fallback path stops erroring on every load.
+## Styling
 
-## What this will and won't fix
+Reuses existing premium gold tokens (`#c49746`, `#feeaa5`, `#533517`) per memory `style/premium-gold-design-system`. ✓ glyphs in gold; ✗ in `text-white/30`. Chravel column gets a subtle gold left border + slightly brighter row backgrounds to anchor the eye.
 
-**Will fix:**
-- Cold-load time to first meaningful paint on `/` (the symptom you just reported)
-- The home-page "Loading…" spinner persisting longer than necessary
-- Repeated console errors from the join-requests query
+## Verification
 
-**Won't fix:**
-- The initial app-shell hydration gate (intentional, prevents Lovable preview race condition — see `mem://architecture/preview-hydration-race-prevention`)
-- First-ever cold load on a fresh service worker (browser must download the JS regardless)
+- `npm run typecheck && npm run lint && npm run build` clean
+- Visual check at 1244×734 (your current viewport) and at 375px width for mobile collapse
+- Confirm StickyLandingNav still works (new section is inside the same scroll root)
+- Confirm lazy-loading suspense fallback renders without layout shift
 
-## Verification plan
+## Out of scope (deferred from prior recommendations)
 
-1. `npm run typecheck && npm run build` — must stay green
-2. Hard-refresh `/` in preview, confirm the loading spinner clears in <2s on warm cache
-3. Open a trip, switch tabs — confirm last round's tiered mounting still works
-4. Click a modal trigger (settings, create trip) — confirm it still opens (lazy chunk loads on demand)
-5. Check console — confirm `trip_join_requests.created_at` error is gone
-
-## Risk
-
-LOW. All changes are mechanical (eager → lazy with Suspense fallback null on already-conditional renders) plus one column-name fix. Identical pattern to what shipped successfully for `TripDetailModals.tsx` last round.
-
-## Rollback
-
-`git revert` the single commit. Each file change is independent — partial rollback is also safe.
+Per your direction, skipping: hero copy rewrite, "Chaos Stack → Live Plan" visual, How-It-Works rewrite, Use Cases segmentation, tagline change. We can revisit any of those after this lands.
