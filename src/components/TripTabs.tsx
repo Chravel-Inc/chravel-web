@@ -62,8 +62,8 @@ interface TripTabsProps {
 }
 
 export const TripTabs = ({
-  activeTab: parentActiveTab,
-  onTabChange: parentOnTabChange,
+  activeTab,
+  onTabChange,
   tripId = '1',
   tripName,
   basecamp,
@@ -73,7 +73,6 @@ export const TripTabs = ({
   isDemoMode = false,
   tripData,
 }: TripTabsProps) => {
-  const [activeTab, setActiveTab] = useState('chat');
   const [isAddLinkModalOpen, setIsAddLinkModalOpen] = useState(false);
   const [linkPrefill, setLinkPrefill] = useState<
     | {
@@ -210,7 +209,7 @@ export const TripTabs = ({
       });
       return;
     }
-    setActiveTab(tab);
+    onTabChange(tab);
   };
 
   // Default tab skeleton for lazy loading fallback
