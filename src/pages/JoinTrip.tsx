@@ -32,7 +32,7 @@ import {
   normalizeErrorCode,
   createInviteError,
 } from '../types/inviteErrors';
-import { tripKeys } from '../lib/queryKeys';
+import { invalidatePendingRequestState } from '@/hooks/pendingRequestsCache';
 
 interface InvitePreviewData {
   invite: {
@@ -427,12 +427,7 @@ const JoinTrip = () => {
       }
 
       clearInviteCode();
-      queryClient.invalidateQueries({ queryKey: tripKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['pending-request-trip-cards'] });
-      if (tripId) {
-        queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
-        queryClient.invalidateQueries({ queryKey: tripKeys.members(tripId) });
-      }
+      void invalidatePendingRequestState(queryClient, { tripId });
 
       if (data.requires_approval) {
         toast.success(
@@ -475,12 +470,15 @@ const JoinTrip = () => {
     }
   };
 
-  const openAuthModal = useCallback((mode: 'signin' | 'signup') => {
-    if (token) {
-      storeInviteCode(token);
-    }
-    setAuthModalMode(mode);
-  }, [token]);
+  const openAuthModal = useCallback(
+    (mode: 'signin' | 'signup') => {
+      if (token) {
+        storeInviteCode(token);
+      }
+      setAuthModalMode(mode);
+    },
+    [token],
+  );
 
   const handleLoginRedirect = () => openAuthModal('signin');
 
