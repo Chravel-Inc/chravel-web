@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useCallback, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import { FullPageLandingSection } from './FullPageLandingSection';
 import { StickyLandingNav } from './StickyLandingNav';
 import { HeroSection } from './sections/HeroSection';
@@ -98,6 +98,17 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
   const [landingScrollEl, setLandingScrollEl] = useState<HTMLDivElement | null>(null);
   const landingScrollRef = useCallback((node: HTMLDivElement | null) => {
     setLandingScrollEl(node);
+  }, []);
+
+  // Marketing landing is dark-only. Force-remove the user's `light` theme class
+  // while mounted so global light-mode token remaps don't bleed into the page.
+  useEffect(() => {
+    const root = document.documentElement;
+    const wasLight = root.classList.contains('light');
+    if (wasLight) root.classList.remove('light');
+    return () => {
+      if (wasLight) root.classList.add('light');
+    };
   }, []);
 
   return (
