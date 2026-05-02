@@ -1,3 +1,16 @@
+import type {
+  TripBroadcastForPrompt,
+  TripCalendarEventForPrompt,
+  TripContextForPrompt,
+  TripLinkForPrompt,
+  TripMemberForPrompt,
+  TripPaymentForPrompt,
+  TripPlaceForPrompt,
+  TripPollForPrompt,
+  TripPollOptionForPrompt,
+  TripTaskForPrompt,
+} from './promptTypes.ts';
+
 /**
  * Sanitize user-provided text before injecting into AI prompts.
  * Strips XML-like tags that could be used for prompt injection boundary manipulation.
@@ -10,7 +23,10 @@ export function sanitizeForPrompt(text: string): string {
     .trim();
 }
 
-export function buildSystemPrompt(tripContext: any, customPrompt?: string): string {
+export function buildSystemPrompt(
+  tripContext: TripContextForPrompt | null | undefined,
+  customPrompt?: string,
+): string {
   if (customPrompt) return customPrompt;
 
   const parts: string[] = [];
@@ -126,7 +142,7 @@ Output a JSON block enclosed in \`\`\`json \`\`\` at the very start of your resp
     const members = tripContext.members;
     if (members?.length) {
       parts.push(`\nMEMBERS:`);
-      members.forEach((m: any) => {
+      members.forEach((m: TripMemberForPrompt) => {
         parts.push(
           `- ${sanitizeForPrompt(m.displayName || m.name || 'Unknown')} (${m.role || 'member'}, id: ${m.userId || m.id || '?'})`,
         );
@@ -137,7 +153,7 @@ Output a JSON block enclosed in \`\`\`json \`\`\` at the very start of your resp
     const calendarEvents = tripContext.calendar || tripContext.upcomingEvents;
     if (calendarEvents?.length) {
       parts.push(`\nCALENDAR (${calendarEvents.length} events):`);
-      calendarEvents.slice(0, 50).forEach((event: any) => {
+      calendarEvents.slice(0, 50).forEach((event: TripCalendarEventForPrompt) => {
         let line = `- ${sanitizeForPrompt(event.title)}`;
         if (event.startTime || event.date) line += ` | Start: ${event.startTime || event.date}`;
         if (event.endTime) line += ` | End: ${event.endTime}`;
@@ -151,7 +167,7 @@ Output a JSON block enclosed in \`\`\`json \`\`\` at the very start of your resp
     const tasks = tripContext.tasks;
     if (tasks?.length) {
       parts.push(`\nTASKS (${tasks.length}):`);
-      tasks.forEach((t: any) => {
+      tasks.forEach((t: TripTaskForPrompt) => {
         let line = `- ${sanitizeForPrompt(t.title)}`;
         if (t.dueAt || t.due_at) line += ` | Due: ${t.dueAt || t.due_at}`;
         if (t.completed !== undefined) line += ` | ${t.completed ? '✅ Done' : '⬜ Open'}`;
@@ -165,10 +181,10 @@ Output a JSON block enclosed in \`\`\`json \`\`\` at the very start of your resp
     const polls = tripContext.polls;
     if (polls?.length) {
       parts.push(`\nPOLLS (${polls.length}):`);
-      polls.forEach((p: any) => {
+      polls.forEach((p: TripPollForPrompt) => {
         parts.push(`- Q: ${sanitizeForPrompt(p.question)} (${p.status || 'active'})`);
         if (p.options?.length) {
-          p.options.forEach((opt: any) => {
+          p.options.forEach((opt: TripPollOptionForPrompt) => {
             parts.push(
               `  • ${sanitizeForPrompt(opt.text || opt.option_text || '')} — ${opt.votes ?? opt.vote_count ?? 0} votes`,
             );
@@ -181,7 +197,7 @@ Output a JSON block enclosed in \`\`\`json \`\`\` at the very start of your resp
     const payments = tripContext.payments;
     if (payments?.length) {
       parts.push(`\nPAYMENTS (${payments.length}):`);
-      payments.slice(0, 20).forEach((pay: any) => {
+      payments.slice(0, 20).forEach((pay: TripPaymentForPrompt) => {
         let line = `- ${sanitizeForPrompt(pay.description || 'Payment')} | $${pay.amount || 0} ${pay.currency || 'USD'}`;
         if (pay.createdByName || pay.created_by_name)
           line += ` | By: ${sanitizeForPrompt(pay.createdByName || pay.created_by_name || '')}`;
@@ -195,7 +211,7 @@ Output a JSON block enclosed in \`\`\`json \`\`\` at the very start of your resp
     const places = tripContext.places;
     if (places?.savedPlaces?.length) {
       parts.push(`\nSAVED PLACES (${places.savedPlaces.length}):`);
-      places.savedPlaces.slice(0, 20).forEach((pl: any) => {
+      places.savedPlaces.slice(0, 20).forEach((pl: TripPlaceForPrompt) => {
         let line = `- ${sanitizeForPrompt(pl.title || pl.name || 'Place')}`;
         if (pl.address) line += ` | ${sanitizeForPrompt(pl.address)}`;
         if (pl.category) line += ` | ${sanitizeForPrompt(pl.category)}`;
@@ -206,7 +222,7 @@ Output a JSON block enclosed in \`\`\`json \`\`\` at the very start of your resp
     const links = tripContext.links;
     if (links?.length) {
       parts.push(`\nLINKS (${links.length}):`);
-      links.slice(0, 15).forEach((l: any) => {
+      links.slice(0, 15).forEach((l: TripLinkForPrompt) => {
         parts.push(
           `- ${sanitizeForPrompt(l.title || l.url || 'Link')} | ${sanitizeForPrompt(l.url || '')}`,
         );
@@ -217,7 +233,7 @@ Output a JSON block enclosed in \`\`\`json \`\`\` at the very start of your resp
     const broadcasts = tripContext.broadcasts;
     if (broadcasts?.length) {
       parts.push(`\nRECENT BROADCASTS (${Math.min(broadcasts.length, 10)}):`);
-      broadcasts.slice(0, 10).forEach((b: any) => {
+      broadcasts.slice(0, 10).forEach((b: TripBroadcastForPrompt) => {
         let line = `- ${sanitizeForPrompt(b.message || '')}`;
         if (b.priority) line += ` [${b.priority}]`;
         if (b.createdByName) line += ` — ${sanitizeForPrompt(b.createdByName)}`;
