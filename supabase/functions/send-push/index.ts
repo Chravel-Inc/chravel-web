@@ -21,13 +21,7 @@ import { sendFcmV1, toFcmData } from '../_shared/fcmV1.ts';
 
 // Push notification payload types
 interface PushPayload {
-  type:
-    | 'chat_message'
-    | 'trip_update'
-    | 'poll_update'
-    | 'task_update'
-    | 'calendar_event'
-    | 'broadcast';
+  type: 'trip_update' | 'poll_update' | 'task_update' | 'calendar_event' | 'broadcast';
   tripId: string;
   threadId?: string;
   messageId?: string;

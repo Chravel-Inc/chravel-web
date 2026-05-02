@@ -475,12 +475,15 @@ const JoinTrip = () => {
     }
   };
 
-  const openAuthModal = useCallback((mode: 'signin' | 'signup') => {
-    if (token) {
-      storeInviteCode(token);
-    }
-    setAuthModalMode(mode);
-  }, [token]);
+  const openAuthModal = useCallback(
+    (mode: 'signin' | 'signup') => {
+      if (token) {
+        storeInviteCode(token);
+      }
+      setAuthModalMode(mode);
+    },
+    [token],
+  );
 
   const handleLoginRedirect = () => openAuthModal('signin');
 
