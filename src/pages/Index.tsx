@@ -853,7 +853,9 @@ const Index = () => {
                   loading={isLoading}
                   onCreateTrip={handleCreateTrip}
                   activeFilter={recsFilter}
-                  pendingRequestCards={scopedPendingRequestCards}
+                  {...(recsFilter === 'requests'
+                    ? { pendingRequestCards: scopedPendingRequestCards }
+                    : {})}
                   onCancelDashboardRequest={cancelPendingRequest}
                   onTripStateChange={handleTripStateChange}
                 />
@@ -1039,7 +1041,9 @@ const Index = () => {
                 loading={isLoading}
                 onCreateTrip={handleCreateTrip}
                 activeFilter={recsFilter}
-                pendingRequestCards={scopedPendingRequestCards}
+                {...(recsFilter === 'requests'
+                  ? { pendingRequestCards: scopedPendingRequestCards }
+                  : {})}
                 onCancelDashboardRequest={cancelPendingRequest}
                 onTripStateChange={handleTripStateChange}
               />
@@ -1280,7 +1284,9 @@ const Index = () => {
             loading={tripsLoading}
             onCreateTrip={handleCreateTrip}
             activeFilter={activeFilter}
-            pendingRequestCards={scopedPendingRequestCards}
+            {...(activeFilter === 'requests'
+              ? { pendingRequestCards: scopedPendingRequestCards }
+              : {})}
             onCancelDashboardRequest={cancelPendingRequest}
             onTripStateChange={handleTripStateChange}
           />

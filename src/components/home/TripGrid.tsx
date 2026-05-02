@@ -67,7 +67,7 @@ type TripGridProps =
     })
   | (TripGridBaseProps & {
       activeFilter?: Exclude<string, 'requests'>;
-      pendingRequestCards?: PendingRequestTripCard[];
+      pendingRequestCards?: never;
     });
 
 export const TripGrid = React.memo(
@@ -79,7 +79,7 @@ export const TripGrid = React.memo(
     loading = false,
     onCreateTrip,
     activeFilter = 'all',
-    pendingRequestCards = [],
+    pendingRequestCards,
     onCancelDashboardRequest,
     onTripStateChange,
   }: TripGridProps) => {
@@ -384,9 +384,11 @@ export const TripGrid = React.memo(
       );
     }
 
+    const requestCards = activeFilter === 'requests' ? pendingRequestCards : undefined;
+
     const hasContent =
       activeFilter === 'requests'
-        ? pendingRequestCards.length > 0
+        ? requestCards.length > 0
         : activeFilter === 'archived'
           ? archivedTrips.length > 0
           : viewMode === 'myTrips'
@@ -522,8 +524,8 @@ export const TripGrid = React.memo(
             }`}
           >
             {activeFilter === 'requests' ? (
-              pendingRequestCards.length > 0 ? (
-                pendingRequestCards.map(card => {
+              requestCards.length > 0 ? (
+                requestCards.map(card => {
                   const requestTrip: Trip = {
                     id: card.tripId,
                     title: card.title,
