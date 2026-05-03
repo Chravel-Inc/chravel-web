@@ -10,7 +10,7 @@
 
 import { BaseBillingProvider } from './base';
 import { BILLING_PRODUCTS, BILLING_FLAGS } from '../config';
-import { getEntitlementsForTier } from '../entitlements';
+import { getEntitlements } from '../entitlements';
 import type {
   BillingPlatform,
   Product,
@@ -165,10 +165,7 @@ export class GooglePlayProvider extends BaseBillingProvider {
   async verifyEntitlements(userId: string): Promise<UserEntitlements> {
     this.log('Verifying entitlements for user', userId);
 
-    return {
-      entitlements: new Set(getEntitlementsForTier('free')),
-      tier: 'free',
-      source: 'google',
-    };
+    // Entitlements are validated and stored on the backend. The client simply queries the backend.
+    return getEntitlements(userId);
   }
 }

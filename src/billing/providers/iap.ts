@@ -30,7 +30,7 @@
 
 import { BaseBillingProvider } from './base';
 import { BILLING_PRODUCTS, BILLING_FLAGS } from '../config';
-import { getEntitlementsForTier } from '../entitlements';
+import { getEntitlements } from '../entitlements';
 import type {
   BillingPlatform,
   Product,
@@ -131,18 +131,9 @@ export class AppleIAPProvider extends BaseBillingProvider {
   async verifyEntitlements(userId: string): Promise<UserEntitlements> {
     this.log('Verifying entitlements for user', userId);
 
-    // TODO: Verify with App Store Server API
-    // This should check the user's Apple receipt and return current entitlements
-    //
-    // For now, fall back to Supabase-stored entitlements
-    // This will be populated by receipt validation
-
-    // Return free tier as placeholder
-    return {
-      entitlements: new Set(getEntitlementsForTier('free')),
-      tier: 'free',
-      source: 'apple',
-    };
+    // Entitlements are validated and stored on the backend (e.g. via Edge Functions
+    // listening to App Store Server Notifications). The client simply queries the backend.
+    return getEntitlements(userId);
   }
 }
 
