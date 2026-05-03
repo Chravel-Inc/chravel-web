@@ -1,4 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
+import {
+  shouldBackfillOnSubscribe,
+  shouldRefreshOnForeground,
+} from './utils/realtimeBackfillPolicy';
+
+export const shouldRefreshJoinRequestsOnForeground = shouldRefreshOnForeground;
+export const shouldBackfillJoinRequestsOnSubscribe = shouldBackfillOnSubscribe;
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { getDemoDashboardJoinRequests } from '@/mockData/dashboardJoinRequestsMock';
@@ -56,19 +63,6 @@ type CancelOwnJoinRequestResult = {
   success?: boolean;
   message?: string;
 };
-
-export function shouldRefreshJoinRequestsOnForeground(
-  visibilityState: DocumentVisibilityState,
-): boolean {
-  return visibilityState === 'visible';
-}
-
-export function shouldBackfillJoinRequestsOnSubscribe(
-  status: string,
-  hasCompletedInitialSubscribe: boolean,
-): boolean {
-  return status === 'SUBSCRIBED' && hasCompletedInitialSubscribe;
-}
 
 export function mapCancelOwnJoinRequestResult(data: CancelOwnJoinRequestResult | null): {
   success: boolean;
@@ -156,7 +150,7 @@ function mapRowToDashboardRequest(
     id: row.id,
     trip_id: row.trip_id,
     user_id: row.user_id,
-    requested_at: getJoinRequestRequestedAt(row),
+    requested_at: getJoinRequestRequestedAt(row) ?? row.id,
     created_at: row.created_at ?? undefined,
     direction,
     requesterLabel,
@@ -242,65 +236,11 @@ export function useDashboardJoinRequests(isDemoMode = false) {
         return;
       }
 
-      console.warn(
-        '[useDashboardJoinRequests] joined fetch failed, retrying with compatibility fallback:',
-        joinedError,
-      );
-
-      const { data: baseData, error: baseError } = await supabase
-        .from('trip_join_requests')
-        .select(
-          `
-          id,
-          trip_id,
-          user_id,
-          requested_at,
-          created_at,
-          requester_name,
-          requester_email
-        `,
-        )
-        .eq('status', 'pending')
-        .order('requested_at', { ascending: false });
-
-      if (baseError) {
-        console.error('[useDashboardJoinRequests] fallback fetch error:', baseError);
+      if (joinedError) {
+        console.error('[useDashboardJoinRequests] fetch error:', joinedError);
         setRequests([]);
         return;
       }
-
-      const baseRows = (baseData as unknown as JoinRequestRow[] | null) ?? [];
-      if (baseRows.length === 0) {
-        setRequests([]);
-        return;
-      }
-
-      const tripIds = Array.from(new Set(baseRows.map(row => row.trip_id).filter(Boolean)));
-      let tripById = new Map<string, TripJoinRow>();
-
-      if (tripIds.length > 0) {
-        const { data: tripsData, error: tripsError } = await supabase
-          .from('trips')
-          .select(
-            'id, name, destination, start_date, end_date, member_count, cover_image_url, trip_type',
-          )
-          .in('id', tripIds);
-
-        if (!tripsError && tripsData) {
-          tripById = new Map(tripsData.map(trip => [trip.id, trip as TripJoinRow]));
-        }
-      }
-
-      const mapped = baseRows.map(row =>
-        mapRowToDashboardRequest(
-          {
-            ...row,
-            trips: tripById.get(row.trip_id) ?? null,
-          },
-          user.id,
-        ),
-      );
-      setRequests(sortJoinRequestsByRecency(mapped));
     } catch (e) {
       console.error('[useDashboardJoinRequests]', e);
       setRequests([]);
