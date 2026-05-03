@@ -89,4 +89,61 @@ describe('functionExecutor idempotency', () => {
 
     expect(mockFrom).toHaveBeenCalledWith('trip_pending_actions');
   });
+
+  it('should reject addToCalendar when datetime is invalid', async () => {
+    const mockSingle = vi.fn().mockResolvedValue({ data: { id: 'pending-3' }, error: null });
+    const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
+    const mockInsert = vi.fn().mockReturnValue({ select: mockSelect });
+    const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
+    const mockSupabase = { from: mockFrom };
+
+    const result = await executeFunctionCall(
+      mockSupabase,
+      'addToCalendar',
+      { title: 'Hotel', datetime: 'not-a-date' },
+      'trip-1',
+      'user-1',
+    );
+
+    expect(result).toEqual({ error: 'Invalid datetime. Please provide a valid date/time.' });
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it('should persist addToCalendar with explicit endDatetime', async () => {
+    const mockSingle = vi.fn().mockResolvedValue({ data: { id: 'pending-4' }, error: null });
+    const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
+    const mockInsert = vi.fn().mockReturnValue({ select: mockSelect });
+    const mockEq = vi.fn().mockResolvedValue({ data: null, error: null });
+    const mockUpdate = vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ eq: mockEq }) });
+    const mockTripEventsInsert = vi.fn().mockResolvedValue({ error: { message: 'rls blocked' } });
+
+    const mockFrom = vi.fn((table: string) => {
+      if (table === 'trip_pending_actions') return { insert: mockInsert, update: mockUpdate };
+      if (table === 'trip_events') return { insert: mockTripEventsInsert };
+      return { insert: vi.fn() };
+    });
+    const mockSupabase = { from: mockFrom };
+
+    const result = await executeFunctionCall(
+      mockSupabase,
+      'addToCalendar',
+      {
+        title: 'Hotel Stay',
+        datetime: '2026-06-08T00:00:00.000Z',
+        endDatetime: '2026-06-23T00:00:00.000Z',
+      },
+      'trip-1',
+      'user-1',
+    );
+
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          start_time: '2026-06-08T00:00:00.000Z',
+          end_time: '2026-06-23T00:00:00.000Z',
+        }),
+      }),
+    );
+    expect(result.success).toBe(true);
+  });
 });

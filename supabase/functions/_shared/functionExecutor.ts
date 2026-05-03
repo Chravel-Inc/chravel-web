@@ -88,9 +88,24 @@ async function _executeImpl(
 ): Promise<any> {
   switch (functionName) {
     case 'addToCalendar': {
-      const { title, datetime, location, notes } = args;
-      const startTime = new Date(datetime).toISOString();
-      const endTime = new Date(new Date(datetime).getTime() + 60 * 60 * 1000).toISOString();
+      const { title, datetime, endDatetime, location, notes } = args;
+      const normalizedTitle = String(title || '').trim();
+      if (!normalizedTitle) return { error: 'Event title is required' };
+
+      const parsedStart = new Date(datetime);
+      if (Number.isNaN(parsedStart.getTime())) {
+        return { error: 'Invalid datetime. Please provide a valid date/time.' };
+      }
+
+      const parsedEnd = endDatetime ? new Date(endDatetime) : null;
+      if (parsedEnd && Number.isNaN(parsedEnd.getTime())) {
+        return { error: 'Invalid endDatetime. Please provide a valid end date/time.' };
+      }
+
+      const startTime = parsedStart.toISOString();
+      const endTime = parsedEnd
+        ? parsedEnd.toISOString()
+        : new Date(parsedStart.getTime() + 60 * 60 * 1000).toISOString();
 
       // B4: Pending buffer (preserves UI contract + audit trail)
       const { data: pending, error: pendingError } = await supabase
@@ -100,7 +115,7 @@ async function _executeImpl(
           user_id: userId || '00000000-0000-0000-0000-000000000000',
           tool_name: 'addToCalendar',
           payload: {
-            title,
+            title: normalizedTitle,
             start_time: startTime,
             end_time: endTime,
             location: location || null,
@@ -155,8 +170,8 @@ async function _executeImpl(
         pendingActionId: pending.id,
         actionType: 'add_to_calendar',
         message: promoted
-          ? `Added "${title}" to the calendar.`
-          : `I'd like to add "${title}" to the calendar. Please confirm in the trip chat.`,
+          ? `Added "${normalizedTitle}" to the calendar.`
+          : `I'd like to add "${normalizedTitle}" to the calendar. Please confirm in the trip chat.`,
       };
     }
 
