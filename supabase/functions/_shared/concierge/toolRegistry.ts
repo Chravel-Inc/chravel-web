@@ -46,6 +46,10 @@ export const ALL_TOOL_DECLARATIONS: ToolDeclaration[] = [
         idempotency_key: { type: 'string' },
         title: { type: 'string', description: 'Event title' },
         datetime: { type: 'string', description: 'ISO 8601 datetime string' },
+        endDatetime: {
+          type: 'string',
+          description: 'Optional ISO 8601 end datetime string (for multi-day stays/events)',
+        },
         location: { type: 'string', description: 'Event location or address' },
         notes: { type: 'string', description: 'Additional notes or description' },
       },
