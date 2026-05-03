@@ -69,10 +69,12 @@
 
 ## Canonical Docs Created/Updated
 - `CLAUDE.md` — Engineering manifesto & hard constraints
+- `SOUL.md` — Agent voice, banned behaviors, pushback protocol
+- `USER.md` — Founder context, working mode, four mandatory rituals
+- `AGENTS.md` — Agent operating principles
 - `DEBUG_PATTERNS.md` — Security + performance anti-patterns
 - `LESSONS.md` — Reusable engineering tips
 - `TEST_GAPS.md` — Missing test coverage by subsystem
-- `AGENTS.md` — Agent operating principles
 - `agent_memory.jsonl` — Structured machine-readable memory
 
 ---

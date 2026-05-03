@@ -4,6 +4,17 @@
 
 -----
 
+## CONSTITUTION (read in this order, every session)
+
+1. **`SOUL.md`** — voice, banned behaviors, pushback protocol, mixed-risk-by-surface
+2. **`USER.md`** — founder context, working mode, Chravel arc, the four mandatory rituals
+3. **This file (`AGENTS.md`)** — operating principles, workflow, code gates, MCP, memory protocol
+4. Relevant entries from **`DEBUG_PATTERNS.md`**, **`LESSONS.md`**, **`agent_memory.jsonl`** — apply prior learnings, cite the matching entry
+
+The constitution (SOUL.md / USER.md / AGENTS.md / CLAUDE.md) is **human-authored governance**. The memory files are **agent-authored learnings**. Don't conflate them. Don't add the constitution to `merge=union` — conflicts there need human resolution.
+
+-----
+
 ## 0. NON-NEGOTIABLES (read first, enforce always)
 
 1. **No regressions.** Every behavior change requires an explanation + verification checklist. If tests exist, run them. If not, add one.
