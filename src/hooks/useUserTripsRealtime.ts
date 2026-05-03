@@ -20,16 +20,13 @@ type JoinRequestChangePayload = {
   old?: { user_id?: string | null } | null;
 };
 
-export function shouldRefreshTripsOnForeground(visibilityState: DocumentVisibilityState): boolean {
-  return visibilityState === 'visible';
-}
+import {
+  shouldBackfillOnSubscribe,
+  shouldRefreshOnForeground,
+} from './utils/realtimeBackfillPolicy';
 
-export function shouldBackfillTripsOnSubscribe(
-  status: string,
-  hasCompletedInitialSubscribe: boolean,
-): boolean {
-  return status === 'SUBSCRIBED' && hasCompletedInitialSubscribe;
-}
+export const shouldRefreshTripsOnForeground = shouldRefreshOnForeground;
+export const shouldBackfillTripsOnSubscribe = shouldBackfillOnSubscribe;
 
 export function shouldInvalidateTripsForMemberChange(
   payload: MemberChangePayload,
