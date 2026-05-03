@@ -43,7 +43,8 @@ for (const check of matrix.checks) {
     }
 
     const source = fs.readFileSync(filePath, 'utf8');
-    const hasSkip = /(?:describe|test|it)\.skip\s*\(/.test(source) || /test\.fixme\s*\(/.test(source);
+    const hasSkip =
+      /(?:describe|test|it)\.skip\s*\(/.test(source) || /test\.fixme\s*\(/.test(source);
     if (hasSkip) {
       fail(`Skipped/fixme tests are not allowed in readiness gate file: ${relativeFile}`);
     }
@@ -54,17 +55,15 @@ for (const check of matrix.checks) {
 
 const uniqueTestFiles = [...new Set(testFiles)];
 
-console.log(`▶ Running chat production readiness gate (${matrix.checks.length} checks, ${uniqueTestFiles.length} files)`);
-
-const vitest = spawnSync(
-  'npx',
-  ['vitest', 'run', ...uniqueTestFiles],
-  {
-    cwd: repoRoot,
-    stdio: 'inherit',
-    env: process.env,
-  },
+console.log(
+  `▶ Running chat production readiness gate (${matrix.checks.length} checks, ${uniqueTestFiles.length} files)`,
 );
+
+const vitest = spawnSync('npx', ['vitest', 'run', ...uniqueTestFiles], {
+  cwd: repoRoot,
+  stdio: 'inherit',
+  env: process.env,
+});
 
 if (vitest.status !== 0) {
   fail('Chat production readiness gate failed. Keep chat feature freeze in place.');
