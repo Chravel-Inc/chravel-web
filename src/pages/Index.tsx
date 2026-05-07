@@ -85,7 +85,7 @@ import { isInstalledApp } from '../utils/platformDetection';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { X } from 'lucide-react';
 
-const Index = () => {
+const AuthIndex = () => {
   usePerformanceMonitor('Index');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
@@ -1378,6 +1378,67 @@ const Index = () => {
       />
     </div>
   );
+};
+
+const UnauthIndex = ({
+  authLoading,
+  isInstalled,
+  isAuthModalOpen,
+  onOpenAuth,
+  onCloseAuth,
+}: {
+  authLoading: boolean;
+  isInstalled: boolean;
+  isAuthModalOpen: boolean;
+  onOpenAuth: () => void;
+  onCloseAuth: () => void;
+}) => {
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (isInstalled) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Suspense fallback={null}>
+          <AuthModal isOpen={true} onClose={() => {}} />
+        </Suspense>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen min-h-mobile-screen bg-background font-outfit">
+      <Suspense fallback={<div className="min-h-screen bg-background" />}>
+        <FullPageLanding onSignUp={onOpenAuth} />
+        <AuthModal isOpen={isAuthModalOpen} onClose={onCloseAuth} />
+      </Suspense>
+    </div>
+  );
+};
+
+const Index = () => {
+  const { user, isLoading: authLoading } = useAuth();
+  const { demoView } = useDemoMode();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  if (demoView === 'off' && !user) {
+    return (
+      <UnauthIndex
+        authLoading={authLoading}
+        isInstalled={isInstalledApp()}
+        isAuthModalOpen={isAuthModalOpen}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
+        onCloseAuth={() => setIsAuthModalOpen(false)}
+      />
+    );
+  }
+
+  return <AuthIndex />;
 };
 
 export default Index;
