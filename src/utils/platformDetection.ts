@@ -15,6 +15,22 @@ export function isCapacitorNativeShell(): boolean {
   return typeof cap?.isNativePlatform === 'function' && cap.isNativePlatform() === true;
 }
 
+/**
+ * True when running inside the chravel-mobile native WebView shell.
+ * The shell injects `window.ChravelNative.isNative === true` and appends a
+ * `ChravelNative/<version>` token to the user agent. Either signal is sufficient.
+ * Bridge contract is documented in chravel-mobile/CLAUDE.md — do not rename.
+ */
+export function isChravelNativeShell(): boolean {
+  if (typeof window === 'undefined') return false;
+  const native = (window as unknown as { ChravelNative?: { isNative?: boolean } }).ChravelNative;
+  if (native?.isNative === true) return true;
+  if (typeof navigator !== 'undefined' && /ChravelNative\//.test(navigator.userAgent || '')) {
+    return true;
+  }
+  return false;
+}
+
 /** True when running as an installed PWA in standalone display mode. */
 export function isStandalonePWA(): boolean {
   if (typeof window === 'undefined') return false;
