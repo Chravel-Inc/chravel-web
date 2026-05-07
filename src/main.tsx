@@ -143,8 +143,8 @@ createRoot(document.getElementById('root')!).render(
         <BasecampProvider>
           <Suspense
             fallback={
-              <div className="min-h-screen flex items-center justify-center bg-background">
-                <div className="w-12 h-12 animate-spin gold-gradient-spinner" />
+              <div className="app-suspense-fallback min-h-screen flex items-center justify-center bg-background">
+                <div className="app-suspense-spinner app-suspense-spin w-12 h-12 animate-spin gold-gradient-spinner" />
               </div>
             }
           >
