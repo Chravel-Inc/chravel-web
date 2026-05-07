@@ -39,6 +39,7 @@ function shouldInjectUserPreferences(userMessage?: string): boolean {
 export function buildSystemPrompt(
   tripContext: TripContextForPrompt | null | undefined,
   customPrompt?: string,
+  userMessage?: string,
 ): string {
   if (customPrompt) return customPrompt;
 
