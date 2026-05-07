@@ -8,6 +8,7 @@ import { setupGlobalPurchaseListener } from '@/integrations/revenuecat/revenueca
 import { getMissingSupabaseEnvVars } from '@/integrations/supabase/config';
 import { telemetry } from '@/telemetry/service';
 import { isLovablePreview } from './utils/env';
+import { isChravelNativeShell } from './utils/platformDetection';
 import './index.css';
 
 // ── Startup env validation ──────────────────────────────────────────────────
@@ -19,6 +20,18 @@ if (missingEnvVars.length > 0) {
 }
 const hasRequiredSupabaseEnv = missingEnvVars.length === 0;
 const App = hasRequiredSupabaseEnv ? lazy(() => import('./App.tsx')) : null;
+
+// Kick off the AuthPage chunk in parallel with App.tsx when the cold-start route
+// is /auth. Without this, AuthPage waits behind App.tsx parse + AuthProvider mount
+// before its own chunk request even leaves the device — adding a serial round trip
+// to the slowest part of the cold-start path inside the native WebView shell.
+if (
+  hasRequiredSupabaseEnv &&
+  typeof window !== 'undefined' &&
+  window.location.pathname.startsWith('/auth')
+) {
+  void import('./pages/AuthPage');
+}
 
 // ── Imperative init (runs after all imports are resolved) ──────────────────
 
@@ -47,8 +60,13 @@ const clearAllCaches = (): void => {
   }
 };
 
+// Native shell handles its own caching and lifecycle — service workers add startup
+// cost (registration, activation) without benefit inside the WebView.
+const inNativeShell = isChravelNativeShell();
+
 // Unregister stale service workers from old hosts on first load.
-if ('serviceWorker' in navigator) {
+// Skip in the native shell to avoid pointless work on cold start.
+if (!inNativeShell && 'serviceWorker' in navigator) {
   navigator.serviceWorker
     .getRegistrations()
     .then(registrations => {
@@ -81,13 +99,24 @@ if (isLovablePreview()) {
   }
 }
 
-// Register service worker for offline support
-if (import.meta.env.PROD) {
+// Register service worker for offline support (web/PWA only — native shell has its own).
+if (import.meta.env.PROD && !inNativeShell) {
   registerServiceWorker();
 }
 
-// Initialize PostHog analytics
-telemetry.init().catch(err => console.warn('[Telemetry] Init failed:', err));
+// Initialize PostHog analytics — defer in the native shell so it never competes
+// with the auth route's first paint.
+const initTelemetry = () =>
+  telemetry.init().catch(err => console.warn('[Telemetry] Init failed:', err));
+if (inNativeShell) {
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(() => initTelemetry());
+  } else {
+    setTimeout(initTelemetry, 0);
+  }
+} else {
+  initTelemetry();
+}
 
 // Global error listeners — catch unhandled errors outside React boundaries
 window.addEventListener('unhandledrejection', (e: PromiseRejectionEvent) => {
