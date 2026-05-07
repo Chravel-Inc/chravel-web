@@ -105,6 +105,13 @@ const clearAllCaches = (): void => {
   }
 };
 
+const scheduleWhenIdle = (task: () => void): void => {
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(() => task());
+    return;
+  }
+
+  setTimeout(task, 0);
 const isPublicAnonymousBootstrapRoute = (): boolean => {
   const path = window.location.pathname;
   const isPublicRoute =
@@ -136,12 +143,14 @@ const inNativeShell = isChravelNativeShell();
 // Unregister stale service workers from old hosts on first load.
 // Skip in the native shell to avoid pointless work on cold start.
 if (!inNativeShell && 'serviceWorker' in navigator) {
-  navigator.serviceWorker
-    .getRegistrations()
-    .then(registrations => {
-      registrations.forEach(reg => reg.unregister());
-    })
-    .catch(() => {});
+  if (navigator.serviceWorker.controller !== null) {
+    navigator.serviceWorker
+      .getRegistrations()
+      .then(registrations => {
+        registrations.forEach(reg => reg.unregister());
+      })
+      .catch(() => {});
+  }
 }
 
 // Initialize theme
@@ -182,32 +191,36 @@ if (import.meta.env.PROD && !inNativeShell) {
 // with the auth route's first paint.
 const initTelemetry = () =>
   telemetry.init().catch(err => console.warn('[Telemetry] Init failed:', err));
-if (inNativeShell) {
-  if ('requestIdleCallback' in window) {
-    requestIdleCallback(() => initTelemetry());
-  } else {
-    setTimeout(initTelemetry, 0);
-  }
-} else {
-  initTelemetry();
-}
+scheduleWhenIdle(initTelemetry);
 
 // Global error listeners — catch unhandled errors outside React boundaries
 window.addEventListener('unhandledrejection', (e: PromiseRejectionEvent) => {
-  telemetry.captureError(e.reason instanceof Error ? e.reason : new Error(String(e.reason)), {
-    context: 'unhandledrejection',
-  });
+  const error = e.reason instanceof Error ? e.reason : new Error(String(e.reason));
+
+  if (document.readyState === 'complete') {
+    telemetry.captureError(error, { context: 'unhandledrejection' });
+    return;
+  }
+
+  scheduleWhenIdle(() => telemetry.captureError(error, { context: 'unhandledrejection' }));
 });
 
 window.addEventListener('error', (e: ErrorEvent) => {
-  telemetry.captureError(e.error ?? new Error(e.message), { context: 'window.onerror' });
+  const error = e.error ?? new Error(e.message);
+
+  if (document.readyState === 'complete') {
+    telemetry.captureError(error, { context: 'window.onerror' });
+    return;
+  }
+
+  scheduleWhenIdle(() => telemetry.captureError(error, { context: 'window.onerror' }));
 });
 
-// Initialize global listener for native purchases (deferred — not needed before first paint)
-if ('requestIdleCallback' in window) {
-  requestIdleCallback(() => setupGlobalPurchaseListener());
-} else {
-  setTimeout(() => setupGlobalPurchaseListener(), 0);
+// Initialize global listener for purchases only after non-marketing app shell paths.
+const isMarketingShellPath =
+  window.location.pathname === '/' || window.location.pathname.startsWith('/marketing');
+if (!isMarketingShellPath) {
+  scheduleWhenIdle(() => setupGlobalPurchaseListener());
 }
 
 createRoot(document.getElementById('root')!).render(
