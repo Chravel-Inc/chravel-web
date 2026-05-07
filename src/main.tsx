@@ -112,6 +112,8 @@ const scheduleWhenIdle = (task: () => void): void => {
   }
 
   setTimeout(task, 0);
+};
+
 const isPublicAnonymousBootstrapRoute = (): boolean => {
   const path = window.location.pathname;
   const isPublicRoute =
