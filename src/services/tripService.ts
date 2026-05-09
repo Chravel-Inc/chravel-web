@@ -440,7 +440,7 @@ export const tripService = {
           trip_members: [{ count }],
           trip_events_places: [{ count: placesCountMap.get(trip.id) || 0 }],
         };
-      });
+      }) as unknown as Trip[];
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error fetching trips:', error);
