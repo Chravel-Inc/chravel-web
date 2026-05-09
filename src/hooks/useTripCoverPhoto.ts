@@ -190,15 +190,9 @@ export const useTripCoverPhoto = (
 
       // Invalidate and refetch to ensure consistency
       // Using refetchQueries ensures immediate fresh data rather than background refetch
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: tripKeys.all }),
-        queryClient.refetchQueries({
-          predicate: query => {
-            const key = query.queryKey;
-            return Array.isArray(key) && key[0] === 'trip' && key[1] === tripId;
-          },
-        }),
-      ]);
+      // Invalidate every surface that renders this trip's cover (detail page,
+      // dashboards, pro/event lists, pending requests, members) and refetch detail.
+      await invalidateTripCoverQueries();
 
       toast.success('Cover photo updated');
       return true;
