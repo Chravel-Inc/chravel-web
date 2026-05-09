@@ -36,19 +36,22 @@
 }
 
 /* ============================================
-   COLOR SYSTEM
+   COLOR SYSTEM — Chravel premium gold / warm paper
+   (aligned with tailwind gold-dark, gold-primary, gold-mid)
    ============================================ */
 
 :root {
-  --primary: #1e3a8a;
-  --accent: #2563eb;
-  --muted: #6b7280;
+  --primary: #533517;
+  --accent: #c49746;
+  --accent-mid: #e8af48;
+  --muted: #5c5348;
   --success: #059669;
   --warning: #d97706;
   --danger: #dc2626;
-  --hair: #e5e7eb;
-  --bg: #ffffff;
-  --ink: #0f172a;
+  --hair: #e8e0d4;
+  --bg: #fdfcfa;
+  --bg-muted: #f7f2ea;
+  --ink: #1a1410;
 }
 
 /* ============================================
@@ -69,7 +72,7 @@ html {
     -apple-system,
     sans-serif;
   font-size: 10.5pt;
-  line-height: 1.5;
+  line-height: 1.55;
   color: var(--ink);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
@@ -81,6 +84,7 @@ body {
   max-width: 640pt;
   margin: 0 auto;
   padding: 0;
+  background: var(--bg);
 }
 
 /* ============================================
@@ -113,9 +117,9 @@ h2 {
   color: var(--primary);
   margin-top: 24pt;
   margin-bottom: 8pt;
-  text-decoration: underline;
-  text-underline-offset: 3pt;
-  text-decoration-thickness: 0.8pt;
+  text-decoration: none;
+  border-bottom: 0.75pt solid var(--accent);
+  padding-bottom: 4pt;
   page-break-after: avoid;
 }
 
@@ -187,12 +191,22 @@ p {
 /* Header Section */
 .header {
   padding: 0 0 24pt 0;
-  border-bottom: 1.5pt solid var(--hair);
+  border-bottom: 0.75pt solid var(--hair);
   margin-bottom: 24pt;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
   page-break-after: avoid;
+}
+
+.brand-accent-rule {
+  height: 3.5pt;
+  width: 100%;
+  max-width: 160pt;
+  border-radius: 2pt;
+  margin-bottom: 14pt;
+  background: linear-gradient(90deg, #533517 0%, #c49746 42%, #e8af48 100%);
 }
 
 .header-content {
@@ -203,6 +217,7 @@ p {
 .header h1 {
   font-size: 18pt;
   margin-bottom: 6pt;
+  color: var(--primary);
 }
 
 /* Section Container */
@@ -242,8 +257,8 @@ p {
 }
 
 .table th {
-  background-color: #f7f7f7;
-  color: var(--ink);
+  background: linear-gradient(180deg, #fdf6e8 0%, #f0e4d4 100%);
+  color: var(--primary);
   font-weight: 600;
   font-size: 9.5pt;
 }
@@ -253,7 +268,7 @@ p {
 }
 
 .table tbody tr:nth-child(even) {
-  background-color: #fafafa;
+  background-color: var(--bg-muted);
 }
 
 /* Tabular Numbers for Financial Data */
@@ -280,14 +295,14 @@ p {
   margin-top: 12pt;
   margin-bottom: 6pt;
   padding-bottom: 4pt;
-  border-bottom: 0.8pt solid var(--hair);
+  border-bottom: 0.6pt solid var(--accent);
   page-break-after: avoid;
 }
 
 .event-item {
   margin: 8pt 0 8pt 12pt;
   padding-left: 8pt;
-  border-left: 2pt solid var(--hair);
+  border-left: 2pt solid var(--accent);
 }
 
 .event-item strong {
@@ -322,11 +337,12 @@ p {
 
 .net-settlement {
   padding: 8pt 12pt;
-  background: #f0f9ff;
+  background: #fdf8ee;
   border-left: 3pt solid var(--accent);
   margin: 10pt 0;
   font-size: 10pt;
   page-break-inside: avoid;
+  color: var(--ink);
 }
 
 /* ============================================
@@ -341,7 +357,7 @@ p {
   font-weight: 500;
   border: 0.4pt solid var(--hair);
   color: var(--muted);
-  background: #fafafb;
+  background: var(--bg-muted);
   line-height: 1.2;
 }
 
@@ -388,7 +404,7 @@ p {
 }
 
 .place-link {
-  color: var(--accent);
+  color: #8a5a12;
   text-decoration: underline;
   text-underline-offset: 2pt;
   word-break: break-all;
@@ -429,7 +445,7 @@ p {
   font-family: 'Source Sans 3', sans-serif;
   font-size: 9pt;
   color: var(--muted);
-  border-top: 0.4pt solid #ccc;
+  border-top: 0.4pt solid var(--hair);
   padding: 6pt 54pt;
   display: flex;
   justify-content: space-between;
@@ -511,7 +527,8 @@ hr.hair {
   font-style: italic;
   padding: 12pt 0;
   text-align: center;
-  background: #fafafb;
+  background: var(--bg-muted);
   border-radius: 4pt;
+  border: 0.4pt solid var(--hair);
   margin: 8pt 0;
 }

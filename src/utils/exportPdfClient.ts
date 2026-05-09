@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Client-Side PDF Export Fallback
  * Generates PDFs using jsPDF when server export fails or for mock trips
@@ -202,11 +202,15 @@ function chunkArray<T>(array: T[], chunkSize: number): T[][] {
 /**
  * Parse hex color to RGB array
  */
+/** Chravel recap palette — aligned with tailwind `gold-dark` / `gold-primary` */
+const RECAP_PRIMARY_RGB: [number, number, number] = [83, 53, 23];
+const RECAP_LINK_RGB: [number, number, number] = [196, 151, 70];
+
 function hexToRgb(hex: string): [number, number, number] {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result
     ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)]
-    : [66, 139, 202]; // Default blue
+    : RECAP_PRIMARY_RGB;
 }
 
 function sanitizePdfText(value: string): string {
@@ -275,10 +279,17 @@ export async function generateClientPDF(
   // Clamp maxItemsPerSection to ensure it's always >= 1 to prevent infinite loops
   // Negative or zero values would cause chunkArray's loop to never progress
   const maxItems = Math.max(1, Math.floor(customization?.maxItemsPerSection || 100));
-  const primaryColor = customization?.primaryColor || '#428BCA';
-  const secondaryColor = customization?.secondaryColor || '#5BC0DE';
+  const primaryColor = customization?.primaryColor || '#533517';
+  const secondaryColor = customization?.secondaryColor || '#c49746';
   const [primaryR, primaryG, primaryB] = hexToRgb(primaryColor);
   const [secondaryR, secondaryG, secondaryB] = hexToRgb(secondaryColor);
+
+  const tableHeadStyles = {
+    fillColor: [primaryR, primaryG, primaryB] as [number, number, number],
+    textColor: [255, 255, 255] as [number, number, number],
+    fontSize: 10,
+    fontStyle: 'bold' as const,
+  };
 
   // Report progress
   const reportProgress = (
@@ -428,7 +439,7 @@ export async function generateClientPDF(
             head: [['Event', 'Date & Time', 'Location', 'Description']],
             body: eventRows,
             theme: 'striped',
-            headStyles: { fillColor: [primaryR, primaryG, primaryB], fontSize: 10 },
+            headStyles: tableHeadStyles,
             margin: { left: margin, right: margin },
             styles: { fontSize: 9 },
           });
@@ -479,7 +490,7 @@ export async function generateClientPDF(
             head: [['Description', 'Amount', 'Split', 'Status']],
             body: paymentRows,
             theme: 'striped',
-            headStyles: { fillColor: [primaryR, primaryG, primaryB], fontSize: 10 },
+            headStyles: tableHeadStyles,
             margin: { left: margin, right: margin },
             styles: { fontSize: 9 },
           });
@@ -626,7 +637,7 @@ export async function generateClientPDF(
             head: [['Name', 'URL', 'Votes']],
             body: placeRows.map(row => [row.name, row.displayUrl, row.votes]),
             theme: 'striped',
-            headStyles: { fillColor: [primaryR, primaryG, primaryB], fontSize: 10 },
+            headStyles: tableHeadStyles,
             margin: { left: margin, right: margin },
             styles: {
               fontSize: 9,
@@ -642,7 +653,7 @@ export async function generateClientPDF(
               if (hookData.section !== 'body' || hookData.column.index !== 1) return;
               if (!placeRows[hookData.row.index]?.linkUrl) return;
 
-              hookData.cell.styles.textColor = [37, 99, 235];
+              hookData.cell.styles.textColor = [...RECAP_LINK_RGB];
             },
             didDrawCell: hookData => {
               if (hookData.section !== 'body' || hookData.column.index !== 1) return;
@@ -705,7 +716,7 @@ export async function generateClientPDF(
             head: [['Task', 'Status']],
             body: taskRows,
             theme: 'striped',
-            headStyles: { fillColor: [primaryR, primaryG, primaryB], fontSize: 10 },
+            headStyles: tableHeadStyles,
             margin: { left: margin, right: margin },
             styles: { fontSize: 9 },
           });
@@ -821,7 +832,7 @@ export async function generateClientPDF(
             head: [['Name', 'Role']],
             body: rosterRows,
             theme: 'striped',
-            headStyles: { fillColor: [primaryR, primaryG, primaryB], fontSize: 10 },
+            headStyles: tableHeadStyles,
             margin: { left: margin, right: margin },
             styles: { fontSize: 9 },
           });
@@ -878,7 +889,7 @@ export async function generateClientPDF(
               head: [['Filename', 'Category', 'Details', 'Type']],
               body: attachmentRows,
               theme: 'striped',
-              headStyles: { fillColor: [primaryR, primaryG, primaryB], fontSize: 10 },
+              headStyles: tableHeadStyles,
               margin: { left: margin, right: margin },
               styles: { fontSize: 9, cellPadding: 4, overflow: 'linebreak' },
               columnStyles: {
@@ -900,7 +911,7 @@ export async function generateClientPDF(
               head: [['Filename', 'Type']],
               body: attachmentRows,
               theme: 'striped',
-              headStyles: { fillColor: [primaryR, primaryG, primaryB], fontSize: 10 },
+              headStyles: tableHeadStyles,
               margin: { left: margin, right: margin },
               styles: { fontSize: 9 },
             });
@@ -960,7 +971,7 @@ export async function generateClientPDF(
             head: [['Date', 'Time', 'Session', 'Location', 'Category', 'Speakers']],
             body: agendaRows,
             theme: 'striped',
-            headStyles: { fillColor: [primaryR, primaryG, primaryB], fontSize: 10 },
+            headStyles: tableHeadStyles,
             margin: { left: margin, right: margin },
             styles: { fontSize: 9 },
             columnStyles: {
@@ -1018,7 +1029,7 @@ export async function generateClientPDF(
             head: [['Name', 'Title', 'Company', 'Type']],
             body: lineupRows,
             theme: 'striped',
-            headStyles: { fillColor: [primaryR, primaryG, primaryB], fontSize: 10 },
+            headStyles: tableHeadStyles,
             margin: { left: margin, right: margin },
             styles: { fontSize: 9 },
           });
@@ -1072,7 +1083,7 @@ export async function generateClientPDF(
 
     doc.setFont('NotoSans', 'normal');
     doc.setFontSize(9);
-    doc.setTextColor(30);
+    doc.setTextColor(secondaryR, secondaryG, secondaryB);
     const tagW = doc.getTextWidth(brandTagline);
     doc.text(brandTagline, pageWidth - margin - tagW, 36);
 
