@@ -62,8 +62,8 @@ interface TripTabsProps {
 }
 
 export const TripTabs = ({
-  activeTab: parentActiveTab,
-  onTabChange: parentOnTabChange,
+  activeTab,
+  onTabChange,
   tripId = '1',
   tripName,
   basecamp,
@@ -73,7 +73,6 @@ export const TripTabs = ({
   isDemoMode = false,
   tripData,
 }: TripTabsProps) => {
-  const [activeTab, setActiveTab] = useState('chat');
   const [isAddLinkModalOpen, setIsAddLinkModalOpen] = useState(false);
   const [linkPrefill, setLinkPrefill] = useState<
     | {
@@ -98,6 +97,14 @@ export const TripTabs = ({
   const [visitedTabs, setVisitedTabs] = useState<Set<string>>(
     () => new Set([activeTab, ...TIER_1]),
   );
+
+  // Keep shell state and visited mount set in sync when parent drives the tab (e.g. future URL/deeplink).
+  useEffect(() => {
+    setVisitedTabs(prev => {
+      if (prev.has(activeTab)) return prev;
+      return new Set([...prev, activeTab]);
+    });
+  }, [activeTab]);
 
   // Tab order for adjacent prefetching
   const tabOrder = [
@@ -152,16 +159,12 @@ export const TripTabs = ({
     };
   }, []);
 
-  // Mark current tab as visited and prefetch adjacent tabs
+  // Prefetch adjacent tabs when the active tab changes (avoid coupling to visitedTabs updates).
   useEffect(() => {
-    if (!visitedTabs.has(activeTab)) {
-      setVisitedTabs(prev => new Set([...prev, activeTab]));
-    }
-    // ⚡ MOBILE OPTIMIZATION: Prefetch adjacent tabs when user visits a tab
     if (tripId) {
       prefetchAdjacentTabs(tripId, activeTab, tabOrder);
     }
-  }, [activeTab, visitedTabs, tripId, prefetchAdjacentTabs]);
+  }, [activeTab, tripId, prefetchAdjacentTabs]);
 
   // Handler for saving chat links to Explore Links (trip_links table)
   const handlePromoteToTripLink = useCallback((urlData: NormalizedUrl) => {
@@ -210,7 +213,7 @@ export const TripTabs = ({
       });
       return;
     }
-    setActiveTab(tab);
+    onTabChange(tab);
   };
 
   // Default tab skeleton for lazy loading fallback

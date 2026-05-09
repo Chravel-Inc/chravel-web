@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useState } from 'react';
 import { DollarSign, Shield, FileCheck, Award } from 'lucide-react';
 import { FeatureErrorBoundary } from '../FeatureErrorBoundary';
 import { CalendarSkeleton, PlacesSkeleton, ChatSkeleton } from '../loading';
@@ -92,6 +92,8 @@ export const ProTabContent = ({
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
   const { isSuperAdmin } = useSuperAdmin();
+  /** Fallback branch renders full TripTabs; parent pro shell does not own that tab state. */
+  const [embeddedConsumerTab, setEmbeddedConsumerTab] = useState('chat');
 
   const userRole = user?.proRole || 'staff';
   const userPermissions = user?.permissions || ['read'];
@@ -265,7 +267,13 @@ export const ProTabContent = ({
       case 'ai-chat':
         return <AIConciergeChat tripId={tripId} basecamp={basecamp} onTabChange={onTabChange} />;
       default:
-        return <TripTabs activeTab="chat" onTabChange={() => {}} tripId={tripId} />;
+        return (
+          <TripTabs
+            activeTab={embeddedConsumerTab}
+            onTabChange={setEmbeddedConsumerTab}
+            tripId={tripId}
+          />
+        );
     }
   };
 
