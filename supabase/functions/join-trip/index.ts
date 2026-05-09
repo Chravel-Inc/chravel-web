@@ -364,35 +364,56 @@ serve(async req => {
           // (notification logic will be handled below)
           logStep('Rejected request updated to pending', { requestId: existingRequest.id });
         }
-        // If status is 'approved' but user is no longer an active member (e.g. they left),
-        // reset the request to pending so approvers can see it again.
+        // If status is 'approved' but user is no longer an active member (e.g. approval failed
+        // to insert, or user left), AUTO-HEAL by adding them to trip_members.
         if (existingRequest.status === 'approved') {
-          logStep('Resetting approved request to pending (user likely left and is rejoining)', {
+          logStep('Found approved request without membership - auto-healing', {
             requestId: existingRequest.id,
           });
-          const { error: updateError } = await supabaseClient
-            .from('trip_join_requests')
-            .update({
-              status: 'pending',
-              requested_at: new Date().toISOString(),
-              resolved_at: null,
-              resolved_by: null,
-              invite_code: normalizedInviteCode,
-              requester_name: requesterName,
-              requester_email: requesterEmail,
-            })
-            .eq('id', existingRequest.id);
 
-          if (updateError) {
-            logStep('ERROR: Failed to reset approved request', { error: updateError.message });
+          // Add user to trip_members (idempotent via unique constraint)
+          const { error: memberError } = await supabaseClient.from('trip_members').insert({
+            trip_id: invite.trip_id,
+            user_id: user.id,
+            role: 'member',
+          });
+
+          if (memberError && memberError.code !== '23505') {
+            // 23505 = unique violation (already member) - this is fine
+            logStep('ERROR: Failed to auto-heal membership', { error: memberError.message });
             return errorResponse(
-              'Failed to resubmit join request. Please try again.',
+              'Failed to complete your membership. Please try again.',
               500,
               corsHeaders,
             );
           }
 
-          logStep('Approved request reset to pending', { requestId: existingRequest.id });
+          // Increment invite uses if this was a fresh heal (not already member)
+          if (!memberError) {
+            const currentUses = invite.current_uses ?? 0;
+            await supabaseClient
+              .from('trip_invites')
+              .update({ current_uses: currentUses + 1 })
+              .eq('code', normalizedInviteCode)
+              .eq('current_uses', currentUses);
+          }
+
+          logStep('Auto-heal successful - user is now a member', { tripId: invite.trip_id });
+
+          // Return success - user will be routed to the trip
+          return successResponse(
+            {
+              already_member: memberError?.code === '23505',
+              trip_id: invite.trip_id,
+              trip_name: trip.name,
+              trip_type: trip.trip_type || 'consumer',
+              message:
+                memberError?.code === '23505'
+                  ? "You're already a member!"
+                  : "You're in! Your approval has been activated.",
+            },
+            corsHeaders,
+          );
         }
       }
 
