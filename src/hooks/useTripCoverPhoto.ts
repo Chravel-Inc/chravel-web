@@ -321,15 +321,8 @@ export const useTripCoverPhoto = (
       );
 
       // Invalidate and refetch
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: tripKeys.all }),
-        queryClient.refetchQueries({
-          predicate: query => {
-            const key = query.queryKey;
-            return Array.isArray(key) && key[0] === 'trip' && key[1] === tripId;
-          },
-        }),
-      ]);
+      // Invalidate detail + every list surface so cards reflect the new fit.
+      await invalidateTripCoverQueries();
 
       return true;
     } catch (error) {
