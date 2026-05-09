@@ -84,6 +84,7 @@ import { clearDataCaches } from '../utils/pwaCacheUtils';
 import { isInstalledApp } from '../utils/platformDetection';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { X } from 'lucide-react';
+import { AuthBrandWordmark } from '@/components/auth/AuthBrandWordmark';
 
 const AuthIndex = () => {
   usePerformanceMonitor('Index');
@@ -1404,6 +1405,7 @@ const UnauthIndex = ({
   if (isInstalled) {
     return (
       <div className="min-h-screen bg-background">
+        <AuthBrandWordmark />
         <Suspense fallback={null}>
           <AuthModal isOpen={true} onClose={() => {}} />
         </Suspense>
@@ -1415,6 +1417,7 @@ const UnauthIndex = ({
     <div className="min-h-screen min-h-mobile-screen bg-background font-outfit">
       <Suspense fallback={<div className="min-h-screen bg-background" />}>
         <FullPageLanding onSignUp={onOpenAuth} />
+        {isAuthModalOpen && <AuthBrandWordmark />}
         <AuthModal isOpen={isAuthModalOpen} onClose={onCloseAuth} />
       </Suspense>
     </div>

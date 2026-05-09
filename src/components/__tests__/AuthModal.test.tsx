@@ -130,15 +130,6 @@ describe('AuthModal', () => {
       expect(screen.queryByText('Welcome Back')).not.toBeInTheDocument();
     });
 
-    it('renders ChravelApp gold brand label above auth content', async () => {
-      render(<AuthModal isOpen={true} onClose={mockOnClose} />, {
-        wrapper: createTestWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(screen.getByText('ChravelApp')).toBeInTheDocument();
-      });
-    });
     it('renders when isOpen is true', async () => {
       render(<AuthModal isOpen={true} onClose={mockOnClose} />, {
         wrapper: createTestWrapper(),
