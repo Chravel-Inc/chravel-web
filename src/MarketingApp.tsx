@@ -1,11 +1,16 @@
-import { Suspense, lazy, useMemo, useState } from 'react';
+import { Suspense, lazy, useLayoutEffect, useMemo, useState } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthModal } from '@/components/AuthModal';
 import { FullPageLanding } from '@/components/landing/FullPageLanding';
+import { dismissChravelBootSplash } from '@/utils/bootSplash';
 
 const App = lazy(() => import('./App'));
 
 export default function MarketingApp() {
+  useLayoutEffect(() => {
+    dismissChravelBootSplash();
+  }, []);
+
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [loadFullShell, setLoadFullShell] = useState(false);
 

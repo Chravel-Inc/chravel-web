@@ -57,8 +57,33 @@
     <meta name="twitter:title" content="ChravelApp" />
     <meta property="og:description" content="The Group Chat Travel App" />
     <meta name="twitter:description" content="The Group Chat Travel App" />
+
+    <!-- Instant shell before JS/CSS: avoids wrong-colored blank frame in Capacitor / WebView -->
+    <style>
+      #chravel-boot-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483647;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #000000;
+        transition: opacity 0.25s ease-out;
+      }
+      #chravel-boot-splash.chravel-boot-splash--hide {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #chravel-boot-splash img {
+        max-width: min(280px, 72vw);
+        height: auto;
+      }
+    </style>
   </head>
   <body>
+    <div id="chravel-boot-splash" aria-hidden="true">
+      <img src="/chravel-logo.png" alt="" width="280" height="80" decoding="async" fetchpriority="high" />
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

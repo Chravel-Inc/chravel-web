@@ -1,4 +1,4 @@
-import React, { lazy, useEffect } from 'react';
+import React, { lazy, useEffect, useLayoutEffect } from 'react';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -34,6 +34,7 @@ import { setupGlobalSyncProcessor } from './services/globalSyncProcessor';
 import { useSwUpdate } from '@/hooks/useSwUpdate';
 import { safeReload } from '@/utils/safeReload';
 import { retryImport } from '@/lib/retryImport';
+import { dismissChravelBootSplash } from '@/utils/bootSplash';
 
 // Lazy load pages for better performance
 const Index = lazy(() => retryImport(() => import('./pages/Index')));
@@ -169,6 +170,11 @@ const App = () => {
   React.useMemo(() => {
     useDemoModeStore.getState().init();
   }, []);
+
+  useLayoutEffect(() => {
+    dismissChravelBootSplash();
+  }, []);
+
   // Track app initialization performance
   const stopTiming = performanceService.startTiming('App Initialization');
 
