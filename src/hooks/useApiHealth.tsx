@@ -17,9 +17,14 @@ export const useApiHealth = (enabled: boolean = true) => {
       return;
     }
 
+    let cancelled = false;
+    let idleHandle: number | undefined;
+    let timeoutHandle: number | undefined;
+
     const initializeHealthChecks = async () => {
       try {
         await apiHealthCheck.initialize();
+        if (cancelled) return;
 
         // Get initial statuses
         const concierge = apiHealthCheck.getHealth('concierge');
@@ -33,7 +38,18 @@ export const useApiHealth = (enabled: boolean = true) => {
       }
     };
 
-    initializeHealthChecks();
+    const kickoff = () => {
+      if (cancelled) return;
+      void initializeHealthChecks();
+    };
+
+    // Defer concierge + Maps probes until idle (or timeout) so they do not race
+    // session restore + trip list fetches on cold start (installed shell / slow networks).
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      idleHandle = window.requestIdleCallback(kickoff, { timeout: 3500 });
+    } else {
+      timeoutHandle = window.setTimeout(kickoff, 2500);
+    }
 
     // Poll for status updates every 30 seconds
     const pollInterval = setInterval(() => {
@@ -49,6 +65,17 @@ export const useApiHealth = (enabled: boolean = true) => {
     }, 30000);
 
     return () => {
+      cancelled = true;
+      if (
+        idleHandle !== undefined &&
+        typeof window !== 'undefined' &&
+        'cancelIdleCallback' in window
+      ) {
+        window.cancelIdleCallback(idleHandle);
+      }
+      if (timeoutHandle !== undefined) {
+        clearTimeout(timeoutHandle);
+      }
       clearInterval(pollInterval);
       apiHealthCheck.stopPeriodicChecks();
     };
