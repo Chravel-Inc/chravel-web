@@ -62,7 +62,7 @@ import {
   calculateProTripStats,
   calculateEventStats,
 } from '../utils/tripStatsCalculator';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useMobilePortrait } from '../hooks/useMobilePortrait';
 import {
   convertSupabaseTripsToMock,
@@ -84,7 +84,6 @@ import { clearDataCaches } from '../utils/pwaCacheUtils';
 import { isInstalledApp } from '../utils/platformDetection';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { X } from 'lucide-react';
-import { AuthBrandWordmark } from '@/components/auth/AuthBrandWordmark';
 
 const AuthIndex = () => {
   usePerformanceMonitor('Index');
@@ -1384,16 +1383,11 @@ const AuthIndex = () => {
 const UnauthIndex = ({
   authLoading,
   isInstalled,
-  isAuthModalOpen,
-  onOpenAuth,
-  onCloseAuth,
 }: {
   authLoading: boolean;
   isInstalled: boolean;
-  isAuthModalOpen: boolean;
-  onOpenAuth: () => void;
-  onCloseAuth: () => void;
 }) => {
+  const navigate = useNavigate();
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -1403,22 +1397,13 @@ const UnauthIndex = ({
   }
 
   if (isInstalled) {
-    return (
-      <div className="min-h-screen bg-background">
-        <AuthBrandWordmark />
-        <Suspense fallback={null}>
-          <AuthModal isOpen={true} onClose={() => {}} />
-        </Suspense>
-      </div>
-    );
+    return <Navigate to="/auth?mode=signin&returnTo=%2F" replace />;
   }
 
   return (
     <div className="min-h-screen min-h-mobile-screen bg-background font-outfit">
       <Suspense fallback={<div className="min-h-screen bg-background" />}>
-        <FullPageLanding onSignUp={onOpenAuth} />
-        {isAuthModalOpen && <AuthBrandWordmark />}
-        <AuthModal isOpen={isAuthModalOpen} onClose={onCloseAuth} />
+        <FullPageLanding onSignUp={() => navigate('/auth?mode=signup&returnTo=%2F')} />
       </Suspense>
     </div>
   );
@@ -1427,18 +1412,8 @@ const UnauthIndex = ({
 const Index = () => {
   const { user, isLoading: authLoading } = useAuth();
   const { demoView } = useDemoMode();
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-
   if (demoView === 'off' && !user) {
-    return (
-      <UnauthIndex
-        authLoading={authLoading}
-        isInstalled={isInstalledApp()}
-        isAuthModalOpen={isAuthModalOpen}
-        onOpenAuth={() => setIsAuthModalOpen(true)}
-        onCloseAuth={() => setIsAuthModalOpen(false)}
-      />
-    );
+    return <UnauthIndex authLoading={authLoading} isInstalled={isInstalledApp()} />;
   }
 
   return <AuthIndex />;
