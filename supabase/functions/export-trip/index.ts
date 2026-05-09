@@ -50,10 +50,10 @@ function getBrandHeaderTemplate(): string {
     <div style="width:100%; padding: 8pt 54pt 0 54pt; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;">
       <div style="width:100%; display:flex; justify-content:flex-end; text-align:right; line-height:1.15;">
         <div>
-          <div style="font-size:10.5pt; font-weight:700; color:#111827;">
+          <div style="font-size:10.5pt; font-weight:700; color:#533517;">
             ChravelApp Recap
           </div>
-          <div style="font-size:8pt; font-weight:600; color:#374151;">
+          <div style="font-size:8pt; font-weight:600; color:#a67c2a;">
             The Group Chat Travel App
           </div>
         </div>
@@ -266,7 +266,7 @@ serve(async req => {
       displayHeaderFooter: true,
       headerTemplate: getBrandHeaderTemplate(),
       footerTemplate: `
-        <div style="font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:9pt;width:100%;padding:6pt 54pt;display:flex;justify-content:space-between;color:#6B7280;">
+        <div style="font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:9pt;width:100%;padding:6pt 54pt;display:flex;justify-content:space-between;color:#6b5d4f;">
           <div>From www.Chravel.App</div>
           <div>Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>
         </div>

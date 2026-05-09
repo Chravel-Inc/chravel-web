@@ -127,8 +127,8 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
           style={{ paddingTop: 'max(12px, calc(env(safe-area-inset-top, 0px) + 12px))' }}
         >
           <div className="flex items-center gap-2">
-            <div className="bg-blue-600 p-1.5 rounded-lg">
-              <FileText size={16} />
+            <div className="bg-gradient-to-br from-gold-dark via-gold-primary to-gold-mid p-1.5 rounded-lg shadow-sm">
+              <FileText size={16} className="text-[#1a1410]" aria-hidden />
             </div>
             <h2 className="text-base font-bold text-white">{headerTitle}</h2>
           </div>
@@ -153,12 +153,12 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
         >
           {/* Upgrade prompt when free export is used */}
           {showUpgradePrompt ? (
-            <div className="bg-gradient-to-r from-primary/10 to-primary/15 border border-primary/30 rounded-lg p-4 mb-3">
+            <div className="bg-gradient-to-r from-gold-dark/20 to-gold-primary/15 border border-gold-primary/35 rounded-lg p-4 mb-3">
               <div className="flex items-center gap-2 mb-2">
-                <Crown size={18} className="text-yellow-400" />
+                <Crown size={18} className="text-gold-mid" />
                 <h3 className="text-sm font-semibold text-white">Upgrade for Unlimited Exports</h3>
               </div>
-              <p className="text-gray-300 text-xs mb-3">
+              <p className="text-gray-200/95 text-xs mb-3 leading-relaxed">
                 You've used your free export for this trip. Upgrade to create unlimited PDF recaps
                 and share your adventures with everyone!
               </p>
@@ -166,14 +166,14 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
                 <button
                   onClick={() => upgradeToTier('explorer', 'monthly')}
                   disabled={isUpgrading}
-                  className="flex-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white px-3 py-2.5 text-sm rounded-lg transition-all disabled:opacity-50 min-h-[44px]"
+                  className="flex-1 bg-gradient-to-r from-gold-dark via-gold-primary to-gold-mid text-[#1a1410] font-semibold px-3 py-2.5 text-sm rounded-lg transition-all hover:opacity-95 disabled:opacity-50 min-h-[44px]"
                 >
                   {isUpgrading ? 'Processing...' : 'Explorer from $9.99/mo'}
                 </button>
                 <button
                   onClick={() => upgradeToTier('frequent-chraveler', 'monthly')}
                   disabled={isUpgrading}
-                  className="flex-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white px-3 py-2.5 text-sm rounded-lg transition-all disabled:opacity-50 min-h-[44px]"
+                  className="flex-1 bg-gradient-to-r from-gold-dark via-gold-primary to-gold-mid text-[#1a1410] font-semibold px-3 py-2.5 text-sm rounded-lg transition-all hover:opacity-95 disabled:opacity-50 min-h-[44px]"
                 >
                   {isUpgrading ? 'Processing...' : 'Frequent Chraveler from $19.99/mo'}
                 </button>
@@ -208,9 +208,9 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
                 <div className="flex items-center gap-2 mb-2">
                   <Badge
                     variant="secondary"
-                    className="bg-purple-500/20 text-purple-300 text-[10px]"
+                    className="bg-gold-primary/15 text-gold-light border border-gold-primary/30 text-[10px]"
                   >
-                    <Sparkles size={10} className="mr-1" />
+                    <Sparkles size={10} className="mr-1 text-gold-mid" />
                     Unlimited Exports
                   </Badge>
                 </div>
@@ -232,15 +232,15 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
                     key={section.id}
                     className={`flex items-center gap-1.5 py-2 px-2.5 rounded-lg border transition-all h-10 ${
                       selectedSections.includes(section.id)
-                        ? 'bg-blue-900/30 border-blue-500 cursor-pointer hover:border-blue-400'
-                        : 'bg-gray-800 border-gray-700 cursor-pointer hover:border-gray-600'
+                        ? 'bg-gold-primary/10 border-gold-primary/60 cursor-pointer hover:border-gold-mid/80 shadow-[inset_0_0_0_1px_rgba(232,175,72,0.12)]'
+                        : 'bg-gray-800/90 border-gray-700 cursor-pointer hover:border-gray-600'
                     }`}
                   >
                     <input
                       type="checkbox"
                       checked={selectedSections.includes(section.id)}
                       onChange={() => toggleSection(section.id)}
-                      className="w-4 h-4 rounded border-gray-600 text-primary focus:ring-primary focus:ring-offset-gray-900 flex-shrink-0"
+                      className="w-4 h-4 rounded border-gray-600 text-gold-primary focus:ring-gold-primary focus:ring-offset-gray-900 flex-shrink-0"
                     />
                     <span className="text-[11px] font-medium truncate text-white">
                       {section.label}
@@ -256,10 +256,10 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
               )}
 
               {/* Info Banner */}
-              <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-1.5">
-                <p className="text-gray-300 text-[10px]">
-                  <strong>🔒</strong> Emails and phone numbers hidden. Chat and AI history never
-                  included.
+              <div className="bg-gold-dark/25 border border-gold-primary/35 rounded-lg p-2">
+                <p className="text-gray-200 text-[10px] leading-relaxed">
+                  <strong className="text-gold-light">Privacy:</strong> Emails and phone numbers
+                  hidden. Chat and AI history never included.
                 </p>
               </div>
             </>
@@ -282,7 +282,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
             <button
               onClick={handleExport}
               disabled={isExporting || selectedSections.length === 0}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 text-sm rounded-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
+              className="bg-gradient-to-r from-gold-dark via-gold-primary to-gold-mid text-[#1a1410] font-semibold hover:opacity-95 px-4 py-2.5 text-sm rounded-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] shadow-sm"
             >
               {isExporting ? (
                 <>

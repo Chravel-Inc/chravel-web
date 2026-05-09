@@ -90,6 +90,7 @@ function renderHeader(data: TripExportData): string {
 
   return `
   <div class="header">
+    <div class="brand-accent-rule" aria-hidden="true"></div>
     <div class="header-content">
       <h1>${escapeHtml(tripTitle)}</h1>
       ${subtitle ? `<p class="subtitle">${escapeHtml(subtitle)}</p>` : ''}
