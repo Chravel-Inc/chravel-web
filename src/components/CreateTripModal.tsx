@@ -27,6 +27,7 @@ import { getAllProTripColors } from '../utils/proTripColors';
 import { uploadTripCoverBlob } from '../utils/tripCoverStorage';
 import { getFeaturePaywallConfig } from './subscription/featurePaywall';
 import { parseLocalDate } from '@/utils/dateHelpers';
+import { prepareImageForUpload, ImagePrepError } from '@/utils/imagePrep';
 
 interface CreateTripModalProps {
   isOpen: boolean;
