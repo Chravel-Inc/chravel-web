@@ -44,7 +44,6 @@ import {
 } from '../components/native';
 import { RecommendationFilters } from '../components/home/RecommendationFilters';
 
-import { AuthBrandHeader } from '@/components/auth/AuthBrandHeader';
 import { useAuth } from '../hooks/useAuth';
 import { useIsMobile } from '../hooks/use-mobile';
 import { useDemoMode } from '../hooks/useDemoMode';
@@ -743,7 +742,6 @@ const AuthIndex = () => {
     if (isInstalledApp()) {
       return (
         <div className="min-h-screen bg-background">
-          <AuthBrandHeader />
           <Suspense fallback={null}>
             <AuthModal isOpen={true} onClose={() => {}} />
           </Suspense>

@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { AuthBrandHeader } from '@/components/auth/AuthBrandHeader';
 import { AuthModal } from '@/components/AuthModal';
 import { useAuth } from '@/hooks/useAuth';
 import { notifyNativeShellReady } from '@/utils/nativeBridge';
@@ -70,7 +69,6 @@ const AuthPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <AuthBrandHeader />
       <AuthModal
         isOpen={true}
         initialMode={mode}
