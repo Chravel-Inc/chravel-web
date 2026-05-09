@@ -260,26 +260,10 @@ export const useTripCoverPhoto = (
         }
       }
 
-      // Update local state
+      // Update local state, then patch caches and invalidate every surface.
       setCoverPhoto(undefined);
-      queryClient.setQueriesData({ queryKey: tripKeys.detail(tripId) }, old =>
-        old && typeof old === 'object' ? { ...old, cover_image_url: null } : old,
-      );
-      invalidateTripCoverQueries();
-
-      // Update query cache
       updateTripCacheWithCoverPhoto(null);
-
-      // Invalidate and refetch
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: tripKeys.all }),
-        queryClient.refetchQueries({
-          predicate: query => {
-            const key = query.queryKey;
-            return Array.isArray(key) && key[0] === 'trip' && key[1] === tripId;
-          },
-        }),
-      ]);
+      await invalidateTripCoverQueries();
 
       toast.success('Cover photo removed');
       return true;
