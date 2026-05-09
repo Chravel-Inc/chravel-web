@@ -72,7 +72,7 @@ export type NotificationContent = PushContent | EmailContent | SmsContent;
 const BRAND_PREFIX = 'ChravelApp:';
 const FROM_EMAIL = 'support@chravelapp.com';
 const FROM_NAME = 'ChravelApp';
-const APP_URL = 'https://app.chravelapp.com';
+const APP_URL = 'https://chravel.app';
 const SETTINGS_URL = 'https://www.chravel.app';
 const SETTINGS_CTA_TEXT =
   'Want fewer notifications like this? Log in and update your notification settings.';
