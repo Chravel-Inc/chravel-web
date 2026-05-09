@@ -150,12 +150,26 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
     return Object.keys(errors).length === 0;
   };
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setCoverImage(file);
-      const previewUrl = URL.createObjectURL(file);
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Reset input so picking the same file twice still fires onChange
+    if (e.target) e.target.value = '';
+    if (!file) return;
+    try {
+      const prepared = await prepareImageForUpload(file);
+      // Wrap normalized blob back in a File so downstream upload keeps a name/type.
+      const normalizedFile = new File([prepared.blob], prepared.fileName, {
+        type: prepared.contentType,
+      });
+      setCoverImage(normalizedFile);
+      const previewUrl = URL.createObjectURL(prepared.blob);
       setCoverImagePreview(previewUrl);
+    } catch (err) {
+      const message =
+        err instanceof ImagePrepError
+          ? err.userMessage
+          : "We couldn't use that photo. Try a different one.";
+      toast.error(message);
     }
   };
 
