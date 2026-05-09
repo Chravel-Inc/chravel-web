@@ -332,6 +332,11 @@ export const AuthModal = ({
       className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in"
     >
       <div className="bg-slate-950/90 backdrop-blur-xl border border-white/10 shadow-2xl rounded-3xl p-6 sm:p-8 max-w-md w-full safe-bottom animate-scale-in max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem))] overflow-y-auto">
+        <div className="mb-6 text-center">
+          <span className="gold-gradient-text text-3xl font-bold tracking-tight sm:text-4xl">
+            ChravelApp
+          </span>
+        </div>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-white">
             {mode === 'forgot'
