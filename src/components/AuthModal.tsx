@@ -338,7 +338,7 @@ export const AuthModal = ({
       <div className="relative flex min-h-0 flex-1 flex-col">
         <div
           aria-hidden="true"
-          className="pointer-events-none flex shrink-0 justify-center px-4 pb-2 pt-[max(env(safe-area-inset-top),16px)]"
+          className="pointer-events-none flex shrink-0 justify-center px-4 pb-3 pt-[max(calc(env(safe-area-inset-top)+20px),36px)]"
         >
           <span className="gold-gradient-text text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
             ChravelApp
@@ -346,7 +346,7 @@ export const AuthModal = ({
         </div>
         <div
           data-testid="auth-modal-content"
-          className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto p-4"
+          className="flex min-h-0 flex-1 items-start justify-center overflow-y-auto p-4 pt-2 sm:pt-3"
         >
           <div className="bg-slate-950/90 backdrop-blur-xl border border-white/10 shadow-2xl rounded-3xl p-6 sm:p-8 max-w-md w-full safe-bottom animate-scale-in max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem))] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">

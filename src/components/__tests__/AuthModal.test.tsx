@@ -140,13 +140,15 @@ describe('AuthModal', () => {
       });
     });
 
-    it('centers the sheet vertically on all breakpoints (tablet-safe)', async () => {
+    it('anchors the sheet below the brand with horizontal centering (tablet-safe)', async () => {
       render(<AuthModal isOpen={true} onClose={mockOnClose} />, {
         wrapper: createTestWrapper(),
       });
 
       await waitFor(() => {
-        expect(screen.getByTestId('auth-modal-content')).toHaveClass('items-center');
+        const sheet = screen.getByTestId('auth-modal-content');
+        expect(sheet).toHaveClass('items-start');
+        expect(sheet).toHaveClass('justify-center');
       });
     });
 
