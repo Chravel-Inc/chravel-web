@@ -202,6 +202,14 @@ export const TripChat = React.memo(
       activeChannel: streamActiveChannel,
     } = useTripChat(shouldSkipLiveChat ? undefined : resolvedTripId);
 
+    useEffect(() => {
+      if (!chatError) return;
+      console.error('[TripChat] Chat load failure', {
+        tripId: resolvedTripId,
+        message: chatError.message,
+      });
+    }, [chatError, resolvedTripId]);
+
     const { isRefreshing, pullDistance } = usePullToRefresh({
       onRefresh: async () => {
         if (resolvedTripId) {
@@ -1097,7 +1105,7 @@ export const TripChat = React.memo(
                   <div className="flex-1 flex items-center justify-center p-6">
                     <div className="text-center space-y-3">
                       <p className="text-sm text-muted-foreground">
-                        Unable to load chat right now.
+                        Something went wrong in Chat
                       </p>
                       <p className="text-xs text-muted-foreground">{NON_CRITICAL_CHAT_NOTE}</p>
                       <button
