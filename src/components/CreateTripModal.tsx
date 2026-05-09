@@ -25,7 +25,6 @@ import { PrivacyMode, getDefaultPrivacyMode } from '../types/privacy';
 import { ProCategoryEnum, PRO_CATEGORIES_ORDERED } from '../types/proCategories';
 import { getAllProTripColors } from '../utils/proTripColors';
 import { uploadTripCoverBlob } from '../utils/tripCoverStorage';
-import { ImagePrepError, prepareImageForUpload } from '../utils/imagePrep';
 import { getFeaturePaywallConfig } from './subscription/featurePaywall';
 import { parseLocalDate } from '@/utils/dateHelpers';
 
@@ -229,8 +228,6 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               client: supabase,
               tripId: newTrip.id,
               blob: coverImage,
-              fileName: coverImage.name,
-              contentType: coverImage.type,
             });
 
             // Route through useTrips update path so homepage caches invalidate immediately.
