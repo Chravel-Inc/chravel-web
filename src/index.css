@@ -365,6 +365,26 @@
     --glass-slate-bg: 0 0% 4%;
     --glass-slate-card: 0 0% 8%;
     --glass-slate-border: 42 20% 15%;
+
+    /* ═══════════════════════════════════════════════
+       SEMANTIC SURFACE / INK SCALE (theme-driven)
+       Drives the .light override shim below + new
+       bg-surface-*/text-ink-* utilities so every
+       component flips themes from one place.
+       ═══════════════════════════════════════════════ */
+    --surface-0: 0 0% 4%;     /* page bg */
+    --surface-1: 0 0% 8%;     /* card bg */
+    --surface-2: 0 0% 12%;    /* raised */
+    --surface-3: 0 0% 18%;    /* input bg */
+    --surface-4: 0 0% 22%;    /* hover/raised-2 */
+    --overlay-strong: 0 0% 0% / 0.85;
+    --overlay-soft:   0 0% 0% / 0.45;
+    --ink-1: 0 0% 98%;        /* primary text */
+    --ink-2: 0 0% 70%;        /* secondary */
+    --ink-3: 0 0% 50%;        /* muted */
+    --ink-on-accent: 0 0% 100%;
+    --hairline-strong: 0 0% 100% / 0.20;
+    --hairline-soft:   0 0% 100% / 0.10;
   }
 
   .light {
