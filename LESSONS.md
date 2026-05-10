@@ -786,3 +786,19 @@
 - **Evidence:** Trip preview previously returned no invite and blocked Join CTA. Adding `ensureInvite` to `get-trip-preview` plus a retry call from `TripPreview` restored deterministic join routing for existing shared trips.
 - **Provenance:** April 2026 trip invite bootstrap hardening.
 - **Confidence:** high
+
+### Centralize OAuth redirectTo resolution; never inline native-vs-web URL math at the call site
+- **Tip:** Export a single resolver (`getAuthRedirectUrl(returnTo?)`) used by every `signInWithOAuth` call. Inline `installed ? 'https://chravel.app/auth-callback' : ...` strings drift between providers (Apple/Google) and break in subtle ways when one is updated and the other isn't. The resolver should validate `returnTo` against same-origin rules in one place and own the rule that installed apps go to a Universal-Link host while web stays on the current origin.
+- **Applies when:** Adding any new OAuth provider, debugging post-OAuth redirect drift, or auditing returnTo handling.
+- **Avoid when:** A provider genuinely needs a different host (e.g. magic-link verifier on a different domain) — at that point split the resolver, don't inline.
+- **Evidence:** `useAuth.signInWithApple` and `useAuth.signInWithGoogle` both inlined the same redirect computation. May 2026 native OAuth deep-link fix consolidated both behind `getAuthRedirectUrl()` in `src/utils/authRedirect.ts`.
+- **Provenance:** May 2026 native OAuth deep-link regression fix (branch `claude/fix-native-oauth-deeplink-92ueB`).
+- **Confidence:** high
+
+### AuthPage on `/auth-callback` must not bounce to `/` while a code is mid-exchange
+- **Tip:** When OAuth code exchange is in flight (`?code=` in URL or `#access_token` in hash) and `user` is still null, render an explicit "Finishing sign-in…" state, not the AuthModal and not a redirect to the home route. Add a recovery state that surfaces a clear error after a 10–15s timeout. This prevents the empty-state flash that conflates "Loading session" with "Logged out, no trips yet" — the same anti-pattern called out in Lesson #1.
+- **Applies when:** Any post-OAuth redirect handler. Especially native shells where the session may complete in a different process (Safari) than the WebView.
+- **Avoid when:** The page is a generic gate that should always show the login form (`/login`, `/auth` without `?code=`).
+- **Evidence:** TestFlight users were landing on Mobile Safari at `chravel.app` showing the empty trips state because AuthPage redirected to `/` before Supabase `detectSessionInUrl` finished. Fix added a `Finishing sign-in…` view + 15s recovery in `src/pages/AuthPage.tsx`.
+- **Provenance:** May 2026 native OAuth deep-link regression fix.
+- **Confidence:** high

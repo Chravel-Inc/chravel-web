@@ -25,6 +25,7 @@ import { logAuthEvent } from '@/utils/authTelemetry';
 import { buildSessionDerivedUser } from '@/lib/sessionDerivedUser';
 import { generateSafeUuid } from '@/utils/uuid';
 import { openInstalledAuthBrowser } from '@/utils/installedAuthBrowser';
+import { getAuthRedirectUrl } from '@/utils/authRedirect';
 
 const TRIPS_QUERY_KEY = 'trips';
 
@@ -117,19 +118,6 @@ interface AuthContextType {
   updateNotificationSettings: (updates: Partial<User['notificationSettings']>) => Promise<void>;
   switchRole: (role: string) => void;
 }
-
-const getOAuthReturnTo = (returnToOverride?: string): string | null => {
-  if (returnToOverride && returnToOverride.startsWith('/') && !returnToOverride.startsWith('//')) {
-    return returnToOverride;
-  }
-
-  const queryReturnTo = new URLSearchParams(window.location.search).get('returnTo');
-  if (queryReturnTo && queryReturnTo.startsWith('/') && !queryReturnTo.startsWith('//')) {
-    return queryReturnTo;
-  }
-
-  return null;
-};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -899,14 +887,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signInWithGoogle = async (returnToOverride?: string): Promise<{ error?: string }> => {
     try {
       const installed = isInstalledApp();
-      // Installed shells (Capacitor / PWA) return to a Universal Link that the
-      // native wrapper intercepts and re-opens inside the WebView so Supabase
-      // detectSessionInUrl can complete the exchange. Web stays on same-origin.
-      const returnTo = getOAuthReturnTo(returnToOverride);
-      const returnToQuery = returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : '';
-      const redirectUrl = installed
-        ? `https://chravel.app/auth-callback${returnToQuery}`
-        : `${window.location.origin}/auth${returnToQuery}`;
+      // Installed shells return to a Universal Link the native wrapper intercepts
+      // and re-opens inside the WebView so Supabase detectSessionInUrl can complete
+      // the exchange. Web stays on same-origin. See src/utils/authRedirect.ts.
+      const redirectUrl = getAuthRedirectUrl(returnToOverride);
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -952,11 +936,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signInWithApple = async (returnToOverride?: string): Promise<{ error?: string }> => {
     try {
       const installed = isInstalledApp();
-      const returnTo = getOAuthReturnTo(returnToOverride);
-      const returnToQuery = returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : '';
-      const redirectUrl = installed
-        ? `https://chravel.app/auth-callback${returnToQuery}`
-        : `${window.location.origin}/auth${returnToQuery}`;
+      const redirectUrl = getAuthRedirectUrl(returnToOverride);
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',

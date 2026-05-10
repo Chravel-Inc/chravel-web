@@ -410,3 +410,20 @@ Known security anti-patterns discovered during audits. Reference this before int
 **Required Tests:** Unit test that any custom field round-trips: writer payload includes it → adapter exposes it. Lint rule (future) to flag `as any` on Stream message fields.
 **Regression Surfaces:** Adding any new custom Stream field — system messages, broadcast metadata, payment metadata, etc.
 **Fixed in:** `src/services/stream/adapters/mappers/messageMapper.ts`, `src/features/chat/components/TripChat.tsx` (April 2026)
+
+## 8. OAuth Callback Strands Native User in Mobile Safari with Empty Trips State
+
+**Symptom:** TestFlight/installed-app user taps "Sign in with Apple" (or Google), completes the provider flow, then ends up in **Mobile Safari** at `chravel.app` showing the "No trips yet" empty state and the "Open in the Chravel app" smart banner — instead of returning to the authenticated native app.
+**Risk:** HIGH — onboarding looks broken to native users. Session lands in Safari's storage, not the app's, so the app re-prompts for sign-in indefinitely.
+**Root Cause:** The OAuth `redirectTo` is `https://chravel.app/auth-callback`. The native shell (`chravel-mobile`) is supposed to intercept it via Universal Links / AASA and route the URL into the in-app WebView. When the handoff fails (missing `Associated Domains` entitlement, ASWebAuthenticationSession completing in Safari, or the SPA's AuthPage falling through to `/` while Supabase `detectSessionInUrl` is still mid-exchange), the user is stranded.
+**How to Confirm:**
+1. Inspect `App.entitlements` in `chravel-mobile` — `com.apple.developer.associated-domains` must include `applinks:chravel.app` and `webcredentials:chravel.app`.
+2. Validate AASA at `https://chravel.app/.well-known/apple-app-site-association` lists `/auth-callback` (it does — see `public/.well-known/apple-app-site-association`).
+3. Verify `AuthPage` does not redirect to `/` while `?code=` is still in the URL.
+**Smallest Safe Fix:**
+- Centralize `redirectTo` resolution in `src/utils/authRedirect.ts` so the native vs web URL is computed in one place.
+- Make `AuthPage` show an explicit "Finishing sign-in…" state on `/auth-callback?code=…` (and `/auth?code=…`), and never bounce to `/` while a callback is mid-flight. Add a 15s recovery state.
+- Coordinate with `chravel-mobile` to confirm the Associated Domains entitlement and that `ChravelNative.openOAuthUrl` navigates the **main** WebView to the callback URL after auth completes.
+**Required Tests:** Unit tests that AuthPage renders the "Finishing sign-in" state on `/auth-callback?code=…`, falls through to AuthModal when no code is present, and surfaces the recovery state after the timeout.
+**Regression Surfaces:** Apple Sign-In and Google Sign-In on Capacitor/Expo native shells; any future OAuth provider; PWA installs that complete OAuth in a system browser.
+**Fixed in:** `src/utils/authRedirect.ts`, `src/utils/safeReturnTo.ts`, `src/pages/AuthPage.tsx`, `src/hooks/useAuth.tsx` (May 2026, branch `claude/fix-native-oauth-deeplink-92ueB`).
