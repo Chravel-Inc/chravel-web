@@ -1272,12 +1272,34 @@ export const useTripTasks = (
     // Task assignment
     assignTask,
     bulkAssign,
-    autoAssignByRole: async (_taskId: string, _role: string) => {
-      // TODO: Get participants from trip roster
-      // const roleUsers = participants.filter(p => p.role === role).map(p => p.id);
-      // if (roleUsers.length > 0) {
-      //   await bulkAssign({ taskId, userIds: roleUsers });
-      // }
+    autoAssignByRole: async (taskId: string, role: string) => {
+      try {
+        if (isDemoMode) {
+          toast({ title: 'Auto-assign not available in demo mode' });
+          return;
+        }
+
+        // Fetch user IDs from trip_members directly for the specified role
+        const { data: roleMembers, error } = await supabase
+          .from('trip_members')
+          .select('user_id')
+          .eq('trip_id', tripId)
+          .eq('role', role);
+
+        if (error) throw error;
+
+        const roleUsers = roleMembers?.map(m => m.user_id) || [];
+
+        if (roleUsers.length > 0) {
+          await bulkAssign({ taskId, userIds: roleUsers });
+          toast({ title: `Assigned to ${roleUsers.length} members with role ${role}` });
+        } else {
+          toast({ title: `No members found with role: ${role}` });
+        }
+      } catch (error) {
+        if (import.meta.env.DEV) console.error('Failed to auto-assign by role:', error);
+        toast({ title: 'Failed to auto-assign by role', variant: 'destructive' });
+      }
     },
 
     // Mutations
