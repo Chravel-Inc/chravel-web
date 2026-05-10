@@ -1,5 +1,11 @@
 import { Suspense, lazy, useMemo, useState } from 'react';
 import { BrowserRouter } from 'react-router-dom';
+
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { AuthProvider } from '@/hooks/useAuth';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '@/lib/queryClient';
+
 import { AuthModal } from '@/components/AuthModal';
 import { FullPageLanding } from '@/components/landing/FullPageLanding';
 
@@ -27,19 +33,25 @@ export default function MarketingApp() {
   }
 
   return (
-    <BrowserRouter>
-      <Suspense fallback={fallback}>
-        <FullPageLanding onSignUp={() => setIsAuthModalOpen(true)} />
-        <AuthModal
-          isOpen={isAuthModalOpen}
-          onClose={() => setIsAuthModalOpen(false)}
-          oauthReturnTo="/"
-          onAuthSuccess={() => {
-            setIsAuthModalOpen(false);
-            setLoadFullShell(true);
-          }}
-        />
-      </Suspense>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <AuthProvider>
+            <Suspense fallback={fallback}>
+              <FullPageLanding onSignUp={() => setIsAuthModalOpen(true)} />
+              <AuthModal
+                isOpen={isAuthModalOpen}
+                onClose={() => setIsAuthModalOpen(false)}
+                oauthReturnTo="/"
+                onAuthSuccess={() => {
+                  setIsAuthModalOpen(false);
+                  setLoadFullShell(true);
+                }}
+              />
+            </Suspense>
+          </AuthProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }

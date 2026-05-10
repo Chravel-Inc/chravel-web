@@ -195,7 +195,10 @@ export class ErrorBoundary extends Component<Props, State> {
                 </>
               ) : (
                 <button
-                  onClick={() => safeReload()}
+                  onClick={() => {
+                    this.props.onRetry?.();
+                    safeReload();
+                  }}
                   className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-xl transition-colors font-medium"
                 >
                   <RefreshCw className="h-4 w-4" />

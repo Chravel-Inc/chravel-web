@@ -230,7 +230,9 @@ createRoot(document.getElementById('root')!).render(
     {hasRequiredSupabaseEnv && App ? (
       // Release guard: set VITE_MARKETING_SPLIT=0 to force legacy App bootstrap.
       shouldUseMarketingSplit && MarketingApp ? (
-        <MarketingApp />
+        <Suspense fallback={<div className="min-h-screen bg-background" />}>
+          <MarketingApp />
+        </Suspense>
       ) : (
         <TripVariantProvider variant="consumer">
           <BasecampProvider>

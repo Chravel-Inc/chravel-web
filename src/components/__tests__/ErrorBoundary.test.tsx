@@ -118,7 +118,7 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>,
     );
 
-    const retryButton = screen.getByText('Try Again');
+    const retryButton = screen.getByText('Refresh Page');
     await user.click(retryButton);
     expect(onRetry).toHaveBeenCalled();
   });
