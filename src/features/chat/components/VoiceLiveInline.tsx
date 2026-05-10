@@ -88,6 +88,7 @@ export function VoiceLiveInline({
   const barRef = useRef<SVGSVGElement>(null);
   const rafRef = useRef<number>(0);
   const assistantScrollRef = useRef<HTMLDivElement>(null);
+  const shouldAutoScrollRef = useRef(true);
   const [isDocumentVisible, setIsDocumentVisible] = useState(
     typeof document === 'undefined' ? true : !document.hidden,
   );
@@ -99,15 +100,20 @@ export function VoiceLiveInline({
     liveState === 'requesting_mic' ||
     liveState === 'reconnecting';
 
+  const handleAssistantScroll = useCallback(() => {
+    const container = assistantScrollRef.current;
+    if (!container) return;
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    shouldAutoScrollRef.current = distanceFromBottom <= 40;
+  }, []);
+
   // Auto-scroll assistant transcript only when user is near the bottom.
   useEffect(() => {
     const container = assistantScrollRef.current;
     if (!container) return;
 
-    const distanceFromBottom =
-      container.scrollHeight - container.scrollTop - container.clientHeight;
-    const isNearBottom = distanceFromBottom <= 40;
-    if (isNearBottom) {
+    if (shouldAutoScrollRef.current) {
       container.scrollTop = container.scrollHeight;
     }
   }, [assistantTranscript]);
@@ -219,6 +225,7 @@ export function VoiceLiveInline({
       {/* AI transcript — above bar, scrollable, bright white */}
       <div
         ref={assistantScrollRef}
+        onScroll={handleAssistantScroll}
         className="flex-1 w-full max-w-[90%] sm:max-w-2xl overflow-y-auto flex flex-col justify-end min-h-0 mb-4"
         role="log"
         aria-label="Assistant speech"
