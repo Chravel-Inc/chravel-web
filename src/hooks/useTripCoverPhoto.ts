@@ -182,7 +182,8 @@ export const useTripCoverPhoto = (
 
       // Update local state immediately with a cache-busted URL so any cached
       // <img> bytes are bypassed across web/PWA/iOS/Android.
-      const bustedPhotoUrl = appendCoverCacheBust(normalizedPhotoUrl, Date.now()) ?? normalizedPhotoUrl;
+      const bustedPhotoUrl =
+        appendCoverCacheBust(normalizedPhotoUrl, Date.now()) ?? normalizedPhotoUrl;
       setCoverPhoto(bustedPhotoUrl);
 
       // Update query cache using predicate matching for all trip detail queries
