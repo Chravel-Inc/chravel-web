@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 import { useWebSpeechVoice } from '@/hooks/useWebSpeechVoice';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { useLiveKitVoice } from '@/hooks/useLiveKitVoice';
@@ -8,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { ToolCallResult } from '@/types/voice';
 import type { ChatMessage } from '@/features/concierge/types';
 import { extractRichMetadata, DUPLEX_VOICE_ENABLED } from '@/features/concierge/utils/chatHelpers';
+import { getConciergeInvalidationKeys, isConciergeWriteAction } from '@/lib/conciergeInvalidation';
 
 interface Params {
   tripId: string;
@@ -30,6 +32,7 @@ export function useConciergeVoice({
   setInputMessage,
   buildLimitReachedMessage,
 }: Params) {
+  const conciergeQueryClient = useQueryClient();
   const [streamingVoiceMessage, setStreamingVoiceMessage] = useState<ChatMessage | null>(null);
   const [streamingUserMessage, setStreamingUserMessage] = useState<ChatMessage | null>(null);
   const [liveTogglePending, setLiveTogglePending] = useState(false);
@@ -107,6 +110,19 @@ export function useConciergeVoice({
       setStreamingUserMessage(null);
       acknowledgeTurn?.();
 
+      for (const toolResult of toolResults ?? []) {
+        if (!isConciergeWriteAction(toolResult.name)) continue;
+
+        if (toolResult.result?.pending && toolResult.result?.pendingActionId) {
+          conciergeQueryClient.invalidateQueries({ queryKey: ['pendingActions', tripId] });
+          continue;
+        }
+
+        for (const queryKey of getConciergeInvalidationKeys(toolResult.name, tripId)) {
+          conciergeQueryClient.invalidateQueries({ queryKey, exact: false });
+        }
+      }
+
       if (userText && assistantText && userId) {
         try {
           const voiceAssistantMsg = newMessages.find(m => m.type === 'assistant');
@@ -130,7 +146,7 @@ export function useConciergeVoice({
         }
       }
     },
-    [setMessages, tripId, userId],
+    [conciergeQueryClient, setMessages, tripId, userId],
   );
 
   const handleLiveRichCard = useCallback(

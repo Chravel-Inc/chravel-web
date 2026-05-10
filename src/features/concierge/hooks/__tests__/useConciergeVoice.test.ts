@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+
+const invalidateQueries = vi.fn();
 import { useConciergeVoice } from '../useConciergeVoice';
 
 const liveKitMock = vi.hoisted(() => ({
@@ -7,6 +9,10 @@ const liveKitMock = vi.hoisted(() => ({
     onTurnComplete: undefined as undefined | ((...args: any[]) => void),
     onPartialTranscript: undefined as undefined | ((...args: any[]) => void),
   },
+}));
+
+vi.mock('@tanstack/react-query', () => ({
+  useQueryClient: () => ({ invalidateQueries }),
 }));
 
 vi.mock('@/hooks/useWebSpeechVoice', () => ({
@@ -112,6 +118,25 @@ describe('useConciergeVoice', () => {
     });
 
     expect(result.current.streamingVoiceMessage?.content).toBe('Working on it');
+  });
+
+  it('invalidates affected trip caches for finalized voice write tools', async () => {
+    renderHook(() => useConciergeVoice(makeParams()));
+
+    await act(async () => {
+      await liveKitMock.callbacks.onTurnComplete?.(
+        'add task',
+        'done',
+        [{ name: 'createTask', result: { success: true, actionType: 'createTask' } }],
+        { id: 'turn-cache' },
+        vi.fn(),
+      );
+    });
+
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ['tripTasks', 'trip-1'],
+      exact: false,
+    });
   });
 
   it('does not create duplicate or missing persisted messages per completed turn', async () => {
