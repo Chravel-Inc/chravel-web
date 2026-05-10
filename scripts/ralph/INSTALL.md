@@ -209,8 +209,8 @@ If you already have a `CLAUDE.md` in repo root, Ralph will read it automatically
 
 ### Combine with claude-progress.txt
 
-Ralph's `progress.txt` complements your existing `claude-progress.txt` Anti-Goldfish Protocol. They serve similar purposes:
-- `claude-progress.txt` — Manual session handoffs
+Ralph's `progress.txt` complements an optional local `claude-progress.txt` (gitignored, per-developer). They serve similar purposes:
+- `claude-progress.txt` — Local manual session handoffs (untracked)
 - `scripts/ralph/progress.txt` — Autonomous iteration logs
 
 ---
