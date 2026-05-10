@@ -437,6 +437,21 @@
     --chat-bubble-other: 0 0% 75%;
     --chat-bubble-other-foreground: 0 0% 8%;
     --chat-meta: 0 0% 10% / 0.8;
+
+    /* Surface / ink scale — light mode (matches prior shim values) */
+    --surface-0: 0 0% 96%;
+    --surface-1: 0 0% 92%;
+    --surface-2: 0 0% 88%;
+    --surface-3: 0 0% 84%;
+    --surface-4: 0 0% 80%;
+    --overlay-strong: 0 0% 0% / 0.25;
+    --overlay-soft:   0 0% 0% / 0.10;
+    --ink-1: 0 0% 10%;
+    --ink-2: 0 0% 32%;
+    --ink-3: 0 0% 45%;
+    --ink-on-accent: 0 0% 100%;
+    --hairline-strong: 0 0% 0% / 0.15;
+    --hairline-soft:   0 0% 0% / 0.08;
   }
 }
 
