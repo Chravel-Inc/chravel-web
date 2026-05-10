@@ -368,8 +368,8 @@
 
     /* ═══════════════════════════════════════════════
        SEMANTIC SURFACE / INK SCALE (theme-driven)
-       Drives the .light override shim below + new
-       bg-surface-*/text-ink-* utilities so every
+       Drives the .light override shim below plus new
+       bg-surface-N and text-ink-N utilities, so every
        component flips themes from one place.
        ═══════════════════════════════════════════════ */
     --surface-0: 0 0% 4%;     /* page bg */
