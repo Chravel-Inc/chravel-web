@@ -84,6 +84,30 @@ describe('tripConverter', () => {
       );
     });
 
+    it('prefers canonical cover_image_url over legacy aliases when both exist', () => {
+      const mixedTrip = {
+        ...baseSupabaseTrip,
+        cover_image_url: 'https://example.com/canonical.jpg',
+        coverPhotoUrl: 'https://example.com/legacy.jpg',
+      } as SupabaseTrip & { coverPhotoUrl?: string };
+
+      expect(convertSupabaseTripToMock(mixedTrip).coverPhoto).toBe(
+        'https://example.com/canonical.jpg',
+      );
+    });
+
+    it('ignores blank cover aliases', () => {
+      const blankAliasTrip = {
+        ...baseSupabaseTrip,
+        cover_image_url: '   ',
+        coverPhotoUrl: 'https://example.com/fallback.jpg',
+      } as SupabaseTrip & { coverPhotoUrl?: string };
+
+      expect(convertSupabaseTripToMock(blankAliasTrip).coverPhoto).toBe(
+        'https://example.com/fallback.jpg',
+      );
+    });
+
     it('formats date range correctly when dates are valid', () => {
       const mockTrip = convertSupabaseTripToMock(baseSupabaseTrip);
       expect(mockTrip.dateRange).toBe('Oct 1 - Oct 15, 2023');

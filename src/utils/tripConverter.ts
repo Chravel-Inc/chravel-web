@@ -29,9 +29,9 @@ const getCanonicalCoverImageUrl = (trip: CoverImageFieldShape): string | undefin
   ];
 
   const resolved = candidates.find(
-    candidate => typeof candidate === 'string' && candidate.length > 0,
+    candidate => typeof candidate === 'string' && candidate.trim().length > 0,
   );
-  return resolved ?? undefined;
+  return resolved?.trim() ?? undefined;
 };
 
 /**
