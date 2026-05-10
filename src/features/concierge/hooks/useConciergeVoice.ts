@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import { useWebSpeechVoice } from '@/hooks/useWebSpeechVoice';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
@@ -32,6 +32,7 @@ export function useConciergeVoice({
 }: Params) {
   const [streamingVoiceMessage, setStreamingVoiceMessage] = useState<ChatMessage | null>(null);
   const [streamingUserMessage, setStreamingUserMessage] = useState<ChatMessage | null>(null);
+  const [liveTogglePending, setLiveTogglePending] = useState(false);
 
   const handleDictationResult = useCallback(
     (text: string) => {
@@ -207,9 +208,14 @@ export function useConciergeVoice({
   const isLiveSessionActive = DUPLEX_VOICE_ENABLED && liveState !== 'idle' && liveState !== 'error';
 
   const handleEndLiveSession = useCallback(async () => {
-    await endLiveSession();
-    setStreamingVoiceMessage(null);
-    setStreamingUserMessage(null);
+    setLiveTogglePending(true);
+    try {
+      await endLiveSession();
+      setStreamingVoiceMessage(null);
+      setStreamingUserMessage(null);
+    } finally {
+      setLiveTogglePending(false);
+    }
   }, [endLiveSession]);
 
   const handleConvoToggle = useCallback(() => {
@@ -244,7 +250,14 @@ export function useConciergeVoice({
         return;
       }
     }
-    await startLiveSession();
+    setLiveTogglePending(true);
+    try {
+      await startLiveSession();
+    } catch {
+      toast.error('Unable to start live voice session. Please try again.');
+    } finally {
+      setLiveTogglePending(false);
+    }
   }, [
     isDictationActive,
     toggleDictation,
@@ -266,6 +279,7 @@ export function useConciergeVoice({
     handleLiveToggle,
     handleEndLiveSession,
     isLiveSessionActive,
+    liveTogglePending,
     streamingVoiceMessage,
     streamingUserMessage,
     liveState,
