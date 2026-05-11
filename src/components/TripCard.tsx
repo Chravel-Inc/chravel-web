@@ -148,7 +148,11 @@ export const TripCard = ({
 
   const actionButtonClass = cn(
     buttonVariants({ variant: 'ghost', size: 'sm' }),
-    'bg-gray-800/50 text-white border border-gold-primary/30 hover:bg-gray-700/50 hover:border-gold-primary/50 disabled:opacity-50 disabled:cursor-not-allowed md:min-h-[44px] md:text-sm text-xs px-2 md:px-3 py-2.5 md:py-3 rounded-lg md:rounded-xl',
+    'bg-gray-800/50 text-white border border-white/15 hover:bg-gray-700/50 hover:border-white/30 disabled:opacity-50 disabled:cursor-not-allowed md:min-h-[44px] md:text-sm text-xs px-2 md:px-3 py-2.5 md:py-3 rounded-lg md:rounded-xl',
+  );
+  const secondaryActionButtonClass = cn(
+    actionButtonClass,
+    'flex items-center justify-center gap-1.5',
   );
   const secondaryActionButtonClass = cn(
     actionButtonClass,
@@ -418,7 +422,7 @@ export const TripCard = ({
 
   return (
     <div
-      className="group bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 hover:border-gold-primary/30 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl shadow-lg md:shadow-black/20"
+      className="group bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/15 hover:border-white/30 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl shadow-black/30"
       onMouseEnter={handlePrefetch}
       onFocus={handlePrefetch}
       onTouchStart={handlePrefetch}
