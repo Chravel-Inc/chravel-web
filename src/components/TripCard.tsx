@@ -45,6 +45,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
+import { buttonVariants } from './ui/button';
+import { cn } from '@/lib/utils';
 
 interface Participant {
   id: number | string; // Support both numeric IDs (demo) and UUID strings (Supabase)
@@ -144,8 +146,10 @@ export const TripCard = ({
     navigate(`/trip/${trip.id}`);
   };
 
-  const actionButtonClass =
-    'bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gold-primary/30 hover:border-gold-primary/50 text-xs md:text-sm min-h-[44px]';
+  const actionButtonClass = cn(
+    buttonVariants({ variant: 'ghost', size: 'sm' }),
+    'bg-gray-800/50 text-white border border-gold-primary/30 hover:bg-gray-700/50 hover:border-gold-primary/50 disabled:opacity-50 disabled:cursor-not-allowed md:min-h-[44px] md:text-sm text-xs px-2 md:px-3 py-2.5 md:py-3 rounded-lg md:rounded-xl',
+  );
 
   const handleArchiveTrip = async () => {
     // Demo mode: session-scoped, non-persistent archive
@@ -433,7 +437,10 @@ export const TripCard = ({
           <div className="flex-1 min-h-0 overflow-hidden">
             <div className="flex items-start gap-3 mb-2">
               <div className="flex-1">
-                <h3 className="text-lg md:text-xl font-bold text-white transition-all duration-300 line-clamp-2">
+                <h3
+                  title={trip.title}
+                  className="text-lg md:text-xl font-bold text-white transition-all duration-300 line-clamp-2 md:line-clamp-1"
+                >
                   {trip.title}
                 </h3>
                 {/* Trip Status Badges - Hidden on mobile to save space */}
@@ -482,7 +489,9 @@ export const TripCard = ({
             <div className="flex items-center gap-2 text-white mb-1 md:mb-3 text-sm md:text-base">
               <MapPin size={14} className="md:hidden gold-gradient-icon" />
               <MapPin size={18} className="hidden md:block gold-gradient-icon" />
-              <span className="font-medium truncate">{trip.location}</span>
+              <span title={trip.location} className="font-medium md:truncate md:max-w-[220px]">
+                {trip.location}
+              </span>
             </div>
             <div className="flex items-center gap-2 text-white text-sm md:text-base">
               <span className="md:hidden inline-flex gold-gradient-icon">
@@ -491,7 +500,9 @@ export const TripCard = ({
               <span className="hidden md:inline-flex gold-gradient-icon">
                 <CalendarGlyph size={18} />
               </span>
-              <span className="font-medium truncate">{trip.dateRange}</span>
+              <span title={trip.dateRange} className="font-medium md:truncate md:max-w-[220px]">
+                {trip.dateRange}
+              </span>
             </div>
           </div>
           {/* Archive menu - hidden for pending-approval cards */}
@@ -550,8 +561,8 @@ export const TripCard = ({
           <CardStatItem icon={MapPin} value={trip.placesCount ?? 0} label="Places" />
         </div>
 
-        {/* Action Buttons - 2x2 grid: Export/Invite top, View/Share bottom */}
-        <div className="grid grid-cols-2 gap-2 md:gap-3">
+        {/* Action Buttons */}
+        <div className="grid grid-cols-2 gap-2 md:hidden">
           {/* Top Row */}
           <button
             onClick={() => {
@@ -587,7 +598,7 @@ export const TripCard = ({
             onTouchStart={handlePrefetch}
             className={actionButtonClass}
           >
-            View
+            View Trip
           </button>
 
           <button
@@ -601,6 +612,53 @@ export const TripCard = ({
             Share
           </button>
         </div>
+
+        {!pendingApproval && (
+          <div className="hidden md:flex items-center gap-3">
+            <button
+              onClick={handleViewTrip}
+              onMouseEnter={handlePrefetch}
+              onFocus={handlePrefetch}
+              onTouchStart={handlePrefetch}
+              className={cn(actionButtonClass, 'flex-1')}
+            >
+              View Trip
+            </button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  aria-label="Open trip actions"
+                  className={cn(actionButtonClass, 'px-3 py-3 min-w-[44px]')}
+                >
+                  <MoreHorizontal size={18} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-background border-border">
+                <DropdownMenuItem onClick={() => setShowInviteModal(true)}>
+                  <User className="mr-2 h-4 w-4" />
+                  Invite
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowShareModal(true)}>
+                  <Users className="mr-2 h-4 w-4" />
+                  Share
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowExportModal(true)}>
+                  <FileDown className="mr-2 h-4 w-4" />
+                  Export Recap
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
+
+        {pendingApproval && (
+          <div className="hidden md:block">
+            <button onClick={handleViewTrip} className={cn(actionButtonClass, 'w-full')}>
+              View Trip
+            </button>
+          </div>
+        )}
         {pendingApproval && pendingSecondaryActionLabel && onPendingSecondaryAction && (
           <button
             type="button"
