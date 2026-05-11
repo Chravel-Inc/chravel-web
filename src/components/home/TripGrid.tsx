@@ -373,7 +373,11 @@ export const TripGrid = React.memo(
     // Show loading skeleton
     if (loading) {
       return (
-        <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
+        <div
+          className={`mx-auto w-full max-w-[1480px] grid gap-4 md:gap-5 xl:gap-6 ${
+            isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3'
+          }`}
+        >
           <TripCardSkeleton count={isMobile ? 3 : 6} />
         </div>
       );
@@ -471,7 +475,7 @@ export const TripGrid = React.memo(
       };
 
       return (
-        <div className="space-y-6">
+        <div className="mx-auto w-full max-w-[1480px] space-y-6">
           {/* Show location search for travel recs even when empty */}
           {viewMode === 'travelRecs' && (
             <div className="space-y-4">
@@ -492,7 +496,10 @@ export const TripGrid = React.memo(
               )}
             </div>
           )}
-          <EnhancedEmptyState {...getEmptyStateProps()} />
+          <EnhancedEmptyState
+            {...getEmptyStateProps()}
+            className="border-border/60 bg-card/45 backdrop-blur-sm shadow-[0_1px_18px_rgba(0,0,0,0.06)]"
+          />
         </div>
       );
     }
@@ -514,7 +521,7 @@ export const TripGrid = React.memo(
           )}
 
           <div
-            className={`grid gap-6 w-full ${
+            className={`mx-auto grid w-full max-w-[1480px] gap-4 md:gap-5 xl:gap-6 ${
               isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3'
             }`}
           >
