@@ -106,10 +106,16 @@ export const EventLogDrawer: React.FC<EventLogDrawerProps> = ({ isOpen, onClose,
       <div className="bg-background border border-border rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
-          <div className="flex items-center gap-2">
-            <ScrollText className="w-5 h-5 text-muted-foreground" />
-            <h2 className="text-lg font-semibold text-foreground">Event Log</h2>
-            <span className="text-sm text-muted-foreground">({events.length} events)</span>
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 rounded-lg bg-muted p-2">
+              <ScrollText className="w-4 h-4 text-muted-foreground" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-foreground">Event Log</h2>
+              <p className="text-xs text-muted-foreground">
+                Recent trip system activity · {events.length} events
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <button
