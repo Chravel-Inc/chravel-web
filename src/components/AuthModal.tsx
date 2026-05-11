@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Mail, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { authEvents } from '@/telemetry/events';
@@ -39,9 +40,14 @@ export const AuthModal = ({
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [isPortalReady, setIsPortalReady] = useState(false);
   // Track when we're waiting for auth state to update after successful sign-in
   const [awaitingAuth, setAwaitingAuth] = useState(false);
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    setIsPortalReady(true);
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -84,7 +90,7 @@ export const AuthModal = ({
     }
   }, [awaitingAuth, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !isPortalReady) return null;
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -326,7 +332,7 @@ export const AuthModal = ({
     </form>
   );
 
-  return (
+  return createPortal(
     <div
       data-testid="auth-modal-backdrop"
       className="fixed inset-0 z-[100] flex flex-col animate-fade-in"
@@ -530,6 +536,7 @@ export const AuthModal = ({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
