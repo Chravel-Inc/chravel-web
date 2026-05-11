@@ -62,6 +62,8 @@ export const ProTripCard = ({
   onHideSuccess,
   onDeleteSuccess,
 }: ProTripCardProps) => {
+  const cardShellClassName = `group bg-gradient-to-br ${tripColor.cardGradient} backdrop-blur-xl border border-white/25 hover:border-white/45 rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl shadow-xl relative`;
+  const statusBadgeClassName = 'border text-[11px] font-semibold tracking-[0.01em]';
   const navigate = useNavigate();
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -289,9 +291,7 @@ export const ProTripCard = ({
   };
 
   return (
-    <div
-      className={`group bg-gradient-to-br ${tripColor.cardGradient} backdrop-blur-xl border border-white/20 hover:border-white/40 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl shadow-lg relative`}
-    >
+    <div className={cardShellClassName}>
       {/* Hero Section - Dark overlay for text readability */}
       <div className="relative h-32 md:h-48 bg-white/30 dark:bg-black/40">
         {/* Cover photo overlay if available */}
@@ -306,20 +306,27 @@ export const ProTripCard = ({
         <div className="relative z-10 flex justify-between items-start h-full p-4 md:p-6">
           {/* Trip Info - Inside Hero */}
           <div className="flex-1 min-h-0 overflow-hidden flex flex-col justify-end">
-            <h3 className="text-lg md:text-xl font-bold text-black dark:text-white transition-colors line-clamp-2 mb-2">
+            <h3 className="text-lg md:text-xl font-bold text-black dark:text-white transition-colors line-clamp-2 mb-2 pr-1">
               {trip.title}
             </h3>
-
-            <div className="flex items-center gap-2 text-black/70 dark:text-white/80 mb-1 md:mb-2 text-sm md:text-base">
-              <MapPin size={14} className="gold-gradient-icon shrink-0" />
-              <span className="font-medium truncate">{trip.location}</span>
+            <div className="mb-2">
+              <span
+                className={`inline-flex items-center rounded-full px-2 py-0.5 bg-purple-500/20 text-purple-200 border-purple-500/30 ${statusBadgeClassName}`}
+              >
+                Pro
+              </span>
             </div>
 
-            <div className="flex items-center gap-2 text-black/70 dark:text-white/80 text-sm md:text-base">
+            <div className="flex items-center gap-2 text-black/70 dark:text-white/80 mb-1 md:mb-2 text-xs md:text-sm">
+              <MapPin size={14} className="gold-gradient-icon shrink-0" />
+              <span className="font-medium truncate leading-tight">{trip.location}</span>
+            </div>
+
+            <div className="flex items-center gap-2 text-black/70 dark:text-white/80 text-xs md:text-sm">
               <span className="gold-gradient-icon inline-flex shrink-0">
                 <CalendarGlyph size={14} />
               </span>
-              <span className="font-medium truncate">{trip.dateRange}</span>
+              <span className="font-medium truncate leading-tight">{trip.dateRange}</span>
             </div>
           </div>
 
@@ -329,7 +336,7 @@ export const ProTripCard = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-black/40 hover:text-black dark:text-white/60 dark:hover:text-white hover:bg-black/10 dark:hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-all duration-200 h-8 w-8"
+                className="text-black/40 hover:text-black dark:text-white/60 dark:hover:text-white hover:bg-black/10 dark:hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-all duration-200 h-8 w-8 shrink-0"
               >
                 <MoreHorizontal size={16} />
               </Button>

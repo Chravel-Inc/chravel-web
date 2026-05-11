@@ -29,6 +29,9 @@ export const ArchivedTripCard = ({
   onUnhide,
   onUpgrade,
 }: ArchivedTripCardProps) => {
+  const cardShellClassName =
+    'relative group rounded-3xl overflow-hidden transition-all duration-300 border shadow-xl shadow-black/20';
+  const statusBadgeClassName = 'border text-[11px] font-semibold tracking-[0.01em]';
   const navigate = useNavigate();
   const { isPaid } = useSubscription();
 
@@ -101,9 +104,9 @@ export const ArchivedTripCard = ({
 
   return (
     <div
-      className={`relative group rounded-2xl overflow-hidden transition-all duration-300 border ${
+      className={`${cardShellClassName} ${
         isPaid
-          ? 'bg-white/5 hover:bg-white/10 border-white/10 hover:border-white/20 cursor-pointer hover:scale-[1.02]'
+          ? 'bg-white/5 hover:bg-white/10 border-white/15 hover:border-white/30 cursor-pointer hover:scale-[1.02]'
           : 'bg-white/5 border-white/10 opacity-60 grayscale cursor-pointer'
       }`}
       onClick={handleCardClick}
@@ -130,11 +133,14 @@ export const ArchivedTripCard = ({
 
         {/* Badges */}
         <div className="absolute top-3 left-3 flex gap-2">
-          <Badge variant="secondary" className={getTripTypeColor()}>
+          <Badge variant="secondary" className={`${getTripTypeColor()} ${statusBadgeClassName}`}>
             {getTripTypeLabel()}
           </Badge>
           {trip.is_hidden && (
-            <Badge variant="secondary" className="bg-gray-500/20 text-gray-300 border-gray-500/30">
+            <Badge
+              variant="secondary"
+              className={`bg-gray-500/20 text-gray-300 border-gray-500/30 ${statusBadgeClassName}`}
+            >
               <EyeOff size={12} className="mr-1" />
               Hidden
             </Badge>
@@ -143,7 +149,10 @@ export const ArchivedTripCard = ({
 
         {/* Archived Badge */}
         <div className="absolute top-3 right-3">
-          <Badge variant="secondary" className="bg-amber-500/20 text-amber-300 border-amber-500/30">
+          <Badge
+            variant="secondary"
+            className={`bg-amber-500/20 text-amber-300 border-amber-500/30 ${statusBadgeClassName}`}
+          >
             Archived
           </Badge>
         </div>
@@ -151,18 +160,18 @@ export const ArchivedTripCard = ({
 
       {/* Content */}
       <div className="p-4">
-        <h3 className="text-lg font-semibold text-white mb-2 line-clamp-1">{trip.name}</h3>
+        <h3 className="text-lg font-semibold text-white mb-2 line-clamp-1 pr-1">{trip.name}</h3>
 
         {trip.destination && (
-          <div className="flex items-center gap-2 text-white/70 mb-1 text-sm">
-            <MapPin size={14} className="text-amber-400" />
-            <span className="truncate">{trip.destination}</span>
+          <div className="flex items-center gap-2 text-white/70 mb-1 text-xs md:text-sm">
+            <MapPin size={14} className="text-amber-400 shrink-0" />
+            <span className="truncate font-medium leading-tight">{trip.destination}</span>
           </div>
         )}
 
-        <div className="flex items-center gap-2 text-white/70 text-sm mb-4">
-          <CalendarDays size={14} className="gold-gradient-icon" />
-          <span>{formatDateRange()}</span>
+        <div className="flex items-center gap-2 text-white/70 text-xs md:text-sm mb-4 min-w-0">
+          <CalendarDays size={14} className="gold-gradient-icon shrink-0" />
+          <span className="truncate font-medium leading-tight">{formatDateRange()}</span>
         </div>
 
         {/* Action Buttons */}

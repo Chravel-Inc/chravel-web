@@ -97,6 +97,9 @@ export const TripCard = ({
   onPendingSecondaryAction,
   isPendingSecondaryActionLoading = false,
 }: TripCardProps) => {
+  const cardShellClassName =
+    'group bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/15 hover:border-gold-primary/35 rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl shadow-xl shadow-black/20';
+  const statusBadgeClassName = 'border text-[11px] font-semibold tracking-[0.01em]';
   const navigate = useNavigate();
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -410,7 +413,7 @@ export const TripCard = ({
 
   return (
     <div
-      className="group bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 hover:border-gold-primary/30 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl shadow-lg md:shadow-black/20"
+      className={cardShellClassName}
       onMouseEnter={handlePrefetch}
       onFocus={handlePrefetch}
       onTouchStart={handlePrefetch}
@@ -433,7 +436,7 @@ export const TripCard = ({
           <div className="flex-1 min-h-0 overflow-hidden">
             <div className="flex items-start gap-3 mb-2">
               <div className="flex-1">
-                <h3 className="text-lg md:text-xl font-bold text-white transition-all duration-300 line-clamp-2">
+                <h3 className="text-lg md:text-xl font-bold text-white transition-all duration-300 line-clamp-2 pr-1">
                   {trip.title}
                 </h3>
                 {/* Trip Status Badges - Hidden on mobile to save space */}
@@ -442,7 +445,7 @@ export const TripCard = ({
                     {momentum === 'hot' && (
                       <Badge
                         variant="secondary"
-                        className="bg-red-500/20 text-red-300 border-red-500/30"
+                        className={`bg-red-500/20 text-red-300 border-red-500/30 ${statusBadgeClassName}`}
                       >
                         <Flame size={12} className="mr-1" />
                         Hot
@@ -451,7 +454,7 @@ export const TripCard = ({
                     {momentum === 'warm' && (
                       <Badge
                         variant="secondary"
-                        className="bg-orange-500/20 text-orange-300 border-orange-500/30"
+                        className={`bg-orange-500/20 text-orange-300 border-orange-500/30 ${statusBadgeClassName}`}
                       >
                         <TrendingUp size={12} className="mr-1" />
                         Active
@@ -460,7 +463,7 @@ export const TripCard = ({
                     {daysUntil > 0 && daysUntil <= 7 && (
                       <Badge
                         variant="secondary"
-                        className="bg-gold-primary/20 text-gold-light border-gold-primary/30 animate-pulse"
+                        className={`bg-gold-primary/20 text-gold-light border-gold-primary/30 animate-pulse ${statusBadgeClassName}`}
                       >
                         {daysUntil} {daysUntil === 1 ? 'day' : 'days'} left
                       </Badge>
@@ -471,7 +474,7 @@ export const TripCard = ({
                   <div className="flex gap-2 mt-1">
                     <Badge
                       variant="secondary"
-                      className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30"
+                      className={`bg-yellow-500/20 text-yellow-300 border-yellow-500/30 ${statusBadgeClassName}`}
                     >
                       {pendingBadgeLabel}
                     </Badge>
@@ -479,26 +482,26 @@ export const TripCard = ({
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-2 text-white mb-1 md:mb-3 text-sm md:text-base">
+            <div className="flex items-center gap-2 text-white mb-1 md:mb-3 text-xs md:text-sm">
               <MapPin size={14} className="md:hidden gold-gradient-icon" />
               <MapPin size={18} className="hidden md:block gold-gradient-icon" />
-              <span className="font-medium truncate">{trip.location}</span>
+              <span className="font-medium truncate leading-tight">{trip.location}</span>
             </div>
-            <div className="flex items-center gap-2 text-white text-sm md:text-base">
+            <div className="flex items-center gap-2 text-white text-xs md:text-sm">
               <span className="md:hidden inline-flex gold-gradient-icon">
                 <CalendarGlyph size={14} />
               </span>
               <span className="hidden md:inline-flex gold-gradient-icon">
                 <CalendarGlyph size={18} />
               </span>
-              <span className="font-medium truncate">{trip.dateRange}</span>
+              <span className="font-medium truncate leading-tight">{trip.dateRange}</span>
             </div>
           </div>
           {/* Archive menu - hidden for pending-approval cards */}
           {!pendingApproval && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="text-white/60 hover:text-white transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 p-2 hover:bg-white/10 rounded-lg md:rounded-xl">
+                <button className="text-white/60 hover:text-white transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 p-2 hover:bg-white/10 rounded-lg md:rounded-xl shrink-0">
                   <MoreHorizontal size={18} className="md:hidden" />
                   <MoreHorizontal size={20} className="hidden md:block" />
                 </button>
