@@ -160,6 +160,12 @@ describe('AuthModal', () => {
       await waitFor(() => {
         const brand = screen.getByText('ChravelApp');
         expect(brand).toHaveClass('gold-gradient-text');
+        // Wordmark must live inside the flex-1 band so it stays vertically centered
+        // in the space above the sheet — not flattened to the top of the viewport.
+        const band = screen.getByTestId('auth-modal-brand');
+        expect(band.className).toMatch(/flex-1/);
+        expect(band.className).toMatch(/justify-center/);
+        expect(band.className).toMatch(/safe-area-inset-top/);
       });
     });
 
@@ -206,7 +212,7 @@ describe('AuthModal', () => {
       });
 
       expect(screen.getByRole('button', { name: /^apple$/i })).toBeInTheDocument();
-      expect(screen.queryByText(/To stay inside the app/i)).not.toBeInTheDocument();
+      expect(screen.getByText(/To stay inside the app/i)).toBeInTheDocument();
     });
   });
 });
