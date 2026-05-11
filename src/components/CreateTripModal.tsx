@@ -378,6 +378,17 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
     }
   };
 
+  const fieldLabelClassName = 'block text-sm font-medium text-gray-300 mb-2';
+  const inputBaseClassName =
+    'w-full h-11 bg-muted border border-border rounded-xl px-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring transition-colors';
+
+  const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <section className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-4">
+      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+      {children}
+    </section>
+  );
+
   return (
     <div className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain">
       <div
@@ -405,7 +416,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
 
         {/* Trip Type Toggle */}
         <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-300 mb-3">Trip Type</label>
+          <label className={fieldLabelClassName}>Trip Type</label>
           <ToggleGroup
             type="single"
             value={tripType}
@@ -441,13 +452,11 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
         {/* Pro Trip Category Selector - Only for Pro trips */}
         {tripType === 'pro' && (
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Pro Trip Category
-            </label>
+            <label className={fieldLabelClassName}>Pro Trip Category</label>
             <select
               value={proTripCategory}
               onChange={e => setProTripCategory(e.target.value as ProCategoryEnum)}
-              className="w-full bg-muted border border-border text-foreground rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring transition-colors"
+              className={`${inputBaseClassName} pr-10`}
             >
               {PRO_CATEGORIES_ORDERED.map(cat => (
                 <option key={cat.id} value={cat.id}>
@@ -466,341 +475,349 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
           onSubmit={handleSubmit}
           className="space-y-4 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]"
         >
-          {/* Trip Title / Event Title */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              {tripType === 'event' ? 'Event Title' : 'Trip Title'}
-            </label>
-            <input
-              type="text"
-              name="title"
-              value={formData.title}
-              onChange={handleInputChange}
-              className={`w-full bg-muted border rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 transition-colors ${
-                validationErrors.title
-                  ? 'border-red-500 focus:border-red-500'
-                  : 'border-border focus:border-ring'
-              }`}
-              placeholder="e.g., Summer in Paris"
-              required
-              aria-required="true"
-              maxLength={80}
-            />
-            <div className="flex items-center justify-between mt-1">
-              {validationErrors.title ? (
-                <p className="text-red-400 text-xs">{validationErrors.title}</p>
-              ) : !formData.title.trim() ? (
-                <p className="text-gray-500 text-xs">Required</p>
-              ) : (
-                <span />
-              )}
-              <p
-                className={`text-xs ${formData.title.length > 70 ? 'text-amber-400' : 'text-gray-500'}`}
-              >
-                {formData.title.length}/80
-              </p>
-            </div>
-          </div>
-
-          {/* Organizer - Only for Event trips */}
-          {tripType === 'event' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
-                <Users size={16} />
-                Organizer
-              </label>
-              <input
-                type="text"
-                name="organizer"
-                value={formData.organizer}
-                onChange={handleInputChange}
-                className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring transition-colors"
-                placeholder="e.g., Los Angeles Rams, Boys & Girls Club of Dallas"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                The organization, company, or group hosting this event
-              </p>
-            </div>
-          )}
-
-          {/* Location */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
-              <MapPin size={16} />
-              Locations
-            </label>
-            <input
-              type="text"
-              name="location"
-              value={formData.location}
-              onChange={handleInputChange}
-              className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring transition-colors"
-              placeholder="e.g., Paris, France"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Separate multiple locations with commas (e.g., Paris, Barcelona, Milan)
-            </p>
-          </div>
-
-          {/* Date Range */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
-                <Calendar size={16} />
-                Start Date
-              </label>
-              <input
-                type="date"
-                name="startDate"
-                value={formData.startDate}
-                onChange={handleInputChange}
-                max={formData.endDate || undefined}
-                className={`w-full bg-muted border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 transition-colors ${
-                  validationErrors.startDate
-                    ? 'border-red-500 focus:border-red-500'
-                    : 'border-border focus:border-ring'
-                }`}
-                required
-                aria-required="true"
-              />
-              {validationErrors.startDate && (
-                <p className="text-red-400 text-xs mt-1">{validationErrors.startDate}</p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">End Date</label>
-              <input
-                type="date"
-                name="endDate"
-                value={formData.endDate}
-                onChange={handleInputChange}
-                min={formData.startDate || undefined}
-                className={`w-full bg-muted border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 transition-colors ${
-                  validationErrors.endDate
-                    ? 'border-red-500 focus:border-red-500'
-                    : 'border-border focus:border-ring'
-                }`}
-                required
-                aria-required="true"
-              />
-              {validationErrors.endDate && (
-                <p className="text-red-400 text-xs mt-1">{validationErrors.endDate}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Event Time Zone - Only for Event trips */}
-          {tripType === 'event' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
-                <Globe size={16} />
-                Event Time Zone
-              </label>
-              <select
-                name="timezone"
-                value={formData.timezone}
-                onChange={e => setFormData(prev => ({ ...prev, timezone: e.target.value }))}
-                className="w-full bg-muted border border-border text-foreground rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring transition-colors"
-              >
-                <optgroup label="United States">
-                  <option value="America/New_York">Eastern Time (ET) - New York</option>
-                  <option value="America/Chicago">Central Time (CT) - Chicago</option>
-                  <option value="America/Denver">Mountain Time (MT) - Denver</option>
-                  <option value="America/Los_Angeles">Pacific Time (PT) - Los Angeles</option>
-                  <option value="America/Anchorage">Alaska Time (AKT)</option>
-                  <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
-                </optgroup>
-                <optgroup label="Europe">
-                  <option value="Europe/London">London (GMT/BST)</option>
-                  <option value="Europe/Paris">Paris (CET)</option>
-                  <option value="Europe/Berlin">Berlin (CET)</option>
-                  <option value="Europe/Madrid">Madrid (CET)</option>
-                  <option value="Europe/Rome">Rome (CET)</option>
-                  <option value="Europe/Amsterdam">Amsterdam (CET)</option>
-                </optgroup>
-                <optgroup label="Asia Pacific">
-                  <option value="Asia/Tokyo">Tokyo (JST)</option>
-                  <option value="Asia/Shanghai">Shanghai (CST)</option>
-                  <option value="Asia/Hong_Kong">Hong Kong (HKT)</option>
-                  <option value="Asia/Singapore">Singapore (SGT)</option>
-                  <option value="Asia/Dubai">Dubai (GST)</option>
-                  <option value="Australia/Sydney">Sydney (AEST)</option>
-                </optgroup>
-                <optgroup label="Americas">
-                  <option value="America/Toronto">Toronto (ET)</option>
-                  <option value="America/Vancouver">Vancouver (PT)</option>
-                  <option value="America/Mexico_City">Mexico City (CT)</option>
-                  <option value="America/Sao_Paulo">São Paulo (BRT)</option>
-                  <option value="America/Buenos_Aires">Buenos Aires (ART)</option>
-                </optgroup>
-                <optgroup label="Other">
-                  <option value="UTC">UTC (Coordinated Universal Time)</option>
-                  <option value="Africa/Johannesburg">Johannesburg (SAST)</option>
-                  <option value="Asia/Kolkata">India (IST)</option>
-                  <option value="Asia/Seoul">Seoul (KST)</option>
-                </optgroup>
-              </select>
-              <p className="text-xs text-gray-500 mt-1">
-                Helps attendees from other time zones know when events occur.
-              </p>
-            </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Description (Optional)
-            </label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleInputChange}
-              rows={3}
-              maxLength={500}
-              className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring transition-colors resize-none"
-              placeholder="Tell us about your trip..."
-            />
-            {formData.description.length > 0 && (
-              <p
-                className={`text-xs mt-1 text-right ${formData.description.length > 450 ? 'text-amber-400' : 'text-gray-500'}`}
-              >
-                {formData.description.length}/500
-              </p>
-            )}
-          </div>
-
-          {/* Cover Photo */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Cover Photo</label>
-            <div className="flex items-start gap-4">
-              <div className="flex-1">
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-border border-dashed rounded-xl cursor-pointer bg-muted/60 hover:bg-muted transition-colors">
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <Upload className="w-8 h-8 mb-2 text-gray-500" />
-                    <p className="text-xs text-gray-500">Click to upload cover photo</p>
-                  </div>
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="image/*"
-                    onChange={handleImageSelect}
-                  />
-                </label>
-              </div>
-              {coverImagePreview && (
-                <div className="relative w-32 h-32 rounded-xl overflow-hidden border border-border">
-                  <img
-                    src={coverImagePreview}
-                    alt="Preview"
-                    className="w-full h-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCoverImage(null);
-                      setCoverImagePreview(null);
-                    }}
-                    className="absolute top-1 right-1 bg-black/50 rounded-full p-1 hover:bg-black/70 transition-colors"
-                  >
-                    <X size={14} className="text-foreground" />
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Organization Selector - Only for Pro/Event trips AND not in demo mode */}
-          {!isDemoMode &&
-            (tripType === 'pro' || tripType === 'event') &&
-            organizations.length > 0 && (
+          <div className="space-y-4 lg:space-y-5">
+            <Section title="Core details">
+              {/* Trip Title / Event Title */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Link to Organization (Optional)
+                <label className={fieldLabelClassName}>
+                  {tripType === 'event' ? 'Event Title' : 'Trip Title'}
                 </label>
-                <select
-                  value={selectedOrganization}
-                  onChange={e => setSelectedOrganization(e.target.value)}
-                  className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring transition-colors"
-                >
-                  <option value="">No organization</option>
-                  {organizations.map(org => (
-                    <option key={org.id} value={org.id}>
-                      {org.display_name}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-2">
-                  Link this trip to an organization to share it with all members
-                </p>
-              </div>
-            )}
-
-          {/* Advanced Settings - Only for Pro/Event trips */}
-          {tripType !== 'consumer' && (
-            <Collapsible className="space-y-3">
-              <CollapsibleTrigger className="w-full flex items-center justify-between p-3 bg-muted/60 hover:bg-muted rounded-xl transition-colors">
-                <div className="flex items-center gap-2 text-gray-300">
-                  <Settings size={16} />
-                  <span className="text-sm font-medium">Advanced</span>
-                </div>
-                <ChevronDown
-                  size={16}
-                  className="text-gray-500 transition-transform duration-200 data-[state=open]:rotate-180"
+                <input
+                  type="text"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleInputChange}
+                  className={`${inputBaseClassName} ${
+                    validationErrors.title
+                      ? 'border-red-500 focus:border-red-500'
+                      : 'border-border focus:border-ring'
+                  }`}
+                  placeholder="e.g., Summer in Paris"
+                  required
+                  aria-required="true"
+                  maxLength={80}
+                  ref={titleInputRef}
+                  autoFocus
                 />
-              </CollapsibleTrigger>
-
-              <CollapsibleContent className="space-y-4 bg-muted rounded-xl p-4">
-                {/* Trip Color Picker */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Trip Color Label
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {getAllProTripColors().map(color => (
-                      <button
-                        key={color.accent}
-                        type="button"
-                        onClick={() => setSelectedCardColor(color.accent)}
-                        className={`w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-gradient-to-br ${color.cardGradient} transition-all duration-200 hover:scale-110 ${
-                          selectedCardColor === color.accent
-                            ? 'ring-2 ring-ring ring-offset-2 ring-offset-card scale-110'
-                            : 'opacity-70 hover:opacity-100'
-                        }`}
-                        title={color.accent.charAt(0).toUpperCase() + color.accent.slice(1)}
-                      />
-                    ))}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Color-code your {tripType === 'pro' ? 'Pro trips' : 'Events'} for easy
-                    organization
+                <div className="flex items-center justify-between mt-1">
+                  {validationErrors.title ? (
+                    <p className="text-red-400 text-xs">{validationErrors.title}</p>
+                  ) : !formData.title.trim() ? (
+                    <p className="text-gray-500 text-xs">Required</p>
+                  ) : (
+                    <span />
+                  )}
+                  <p
+                    className={`text-xs ${formData.title.length > 70 ? 'text-amber-400' : 'text-gray-500'}`}
+                  >
+                    {formData.title.length}/80
                   </p>
                 </div>
-              </CollapsibleContent>
-            </Collapsible>
-          )}
+              </div>
+
+              {/* Organizer - Only for Event trips */}
+              {tripType === 'event' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
+                    <Users size={16} />
+                    Organizer
+                  </label>
+                  <input
+                    type="text"
+                    name="organizer"
+                    value={formData.organizer}
+                    onChange={handleInputChange}
+                    className={inputBaseClassName}
+                    placeholder="e.g., Los Angeles Rams, Boys & Girls Club of Dallas"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    The organization, company, or group hosting this event
+                  </p>
+                </div>
+              )}
+            </Section>
+
+            <Section title="Dates & location">
+              {/* Location */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
+                  <MapPin size={16} />
+                  Locations
+                </label>
+                <input
+                  type="text"
+                  name="location"
+                  value={formData.location}
+                  onChange={handleInputChange}
+                  className={inputBaseClassName}
+                  placeholder="e.g., Paris, France"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Separate multiple locations with commas (e.g., Paris, Barcelona, Milan)
+                </p>
+              </div>
+
+              {/* Date Range */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
+                    <Calendar size={16} />
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    name="startDate"
+                    value={formData.startDate}
+                    onChange={handleInputChange}
+                    max={formData.endDate || undefined}
+                    className={`w-full bg-muted border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 transition-colors ${
+                      validationErrors.startDate
+                        ? 'border-red-500 focus:border-red-500'
+                        : 'border-border focus:border-ring'
+                    }`}
+                    required
+                    aria-required="true"
+                  />
+                  {validationErrors.startDate && (
+                    <p className="text-red-400 text-xs mt-1">{validationErrors.startDate}</p>
+                  )}
+                </div>
+                <div>
+                  <label className={fieldLabelClassName}>End Date</label>
+                  <input
+                    type="date"
+                    name="endDate"
+                    value={formData.endDate}
+                    onChange={handleInputChange}
+                    min={formData.startDate || undefined}
+                    className={`w-full bg-muted border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 transition-colors ${
+                      validationErrors.endDate
+                        ? 'border-red-500 focus:border-red-500'
+                        : 'border-border focus:border-ring'
+                    }`}
+                    required
+                    aria-required="true"
+                  />
+                  {validationErrors.endDate && (
+                    <p className="text-red-400 text-xs mt-1">{validationErrors.endDate}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Event Time Zone - Only for Event trips */}
+              {tripType === 'event' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
+                    <Globe size={16} />
+                    Event Time Zone
+                  </label>
+                  <select
+                    name="timezone"
+                    value={formData.timezone}
+                    onChange={e => setFormData(prev => ({ ...prev, timezone: e.target.value }))}
+                    className={`${inputBaseClassName} pr-10`}
+                  >
+                    <optgroup label="United States">
+                      <option value="America/New_York">Eastern Time (ET) - New York</option>
+                      <option value="America/Chicago">Central Time (CT) - Chicago</option>
+                      <option value="America/Denver">Mountain Time (MT) - Denver</option>
+                      <option value="America/Los_Angeles">Pacific Time (PT) - Los Angeles</option>
+                      <option value="America/Anchorage">Alaska Time (AKT)</option>
+                      <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
+                    </optgroup>
+                    <optgroup label="Europe">
+                      <option value="Europe/London">London (GMT/BST)</option>
+                      <option value="Europe/Paris">Paris (CET)</option>
+                      <option value="Europe/Berlin">Berlin (CET)</option>
+                      <option value="Europe/Madrid">Madrid (CET)</option>
+                      <option value="Europe/Rome">Rome (CET)</option>
+                      <option value="Europe/Amsterdam">Amsterdam (CET)</option>
+                    </optgroup>
+                    <optgroup label="Asia Pacific">
+                      <option value="Asia/Tokyo">Tokyo (JST)</option>
+                      <option value="Asia/Shanghai">Shanghai (CST)</option>
+                      <option value="Asia/Hong_Kong">Hong Kong (HKT)</option>
+                      <option value="Asia/Singapore">Singapore (SGT)</option>
+                      <option value="Asia/Dubai">Dubai (GST)</option>
+                      <option value="Australia/Sydney">Sydney (AEST)</option>
+                    </optgroup>
+                    <optgroup label="Americas">
+                      <option value="America/Toronto">Toronto (ET)</option>
+                      <option value="America/Vancouver">Vancouver (PT)</option>
+                      <option value="America/Mexico_City">Mexico City (CT)</option>
+                      <option value="America/Sao_Paulo">São Paulo (BRT)</option>
+                      <option value="America/Buenos_Aires">Buenos Aires (ART)</option>
+                    </optgroup>
+                    <optgroup label="Other">
+                      <option value="UTC">UTC (Coordinated Universal Time)</option>
+                      <option value="Africa/Johannesburg">Johannesburg (SAST)</option>
+                      <option value="Asia/Kolkata">India (IST)</option>
+                      <option value="Asia/Seoul">Seoul (KST)</option>
+                    </optgroup>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Helps attendees from other time zones know when events occur.
+                  </p>
+                </div>
+              )}
+
+              <div>
+                <label className={fieldLabelClassName}>Description (Optional)</label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  rows={3}
+                  maxLength={500}
+                  className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring transition-colors resize-none"
+                  placeholder="Tell us about your trip..."
+                />
+                {formData.description.length > 0 && (
+                  <p
+                    className={`text-xs mt-1 text-right ${formData.description.length > 450 ? 'text-amber-400' : 'text-gray-500'}`}
+                  >
+                    {formData.description.length}/500
+                  </p>
+                )}
+              </div>
+            </Section>
+
+            <Section title="Additional details">
+              {/* Cover Photo */}
+              <div>
+                <label className={fieldLabelClassName}>Cover Photo</label>
+                <div className="flex items-start gap-4">
+                  <div className="flex-1">
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-border border-dashed rounded-xl cursor-pointer bg-muted/60 hover:bg-muted transition-colors">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <Upload className="w-8 h-8 mb-2 text-gray-500" />
+                        <p className="text-xs text-gray-500">Click to upload cover photo</p>
+                      </div>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleImageSelect}
+                      />
+                    </label>
+                  </div>
+                  {coverImagePreview && (
+                    <div className="relative w-32 h-32 rounded-xl overflow-hidden border border-border">
+                      <img
+                        src={coverImagePreview}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCoverImage(null);
+                          setCoverImagePreview(null);
+                        }}
+                        className="absolute top-1 right-1 bg-black/50 rounded-full p-1 hover:bg-black/70 transition-colors"
+                      >
+                        <X size={14} className="text-foreground" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Organization Selector - Only for Pro/Event trips AND not in demo mode */}
+              {!isDemoMode &&
+                (tripType === 'pro' || tripType === 'event') &&
+                organizations.length > 0 && (
+                  <div>
+                    <label className={fieldLabelClassName}>Link to Organization (Optional)</label>
+                    <select
+                      value={selectedOrganization}
+                      onChange={e => setSelectedOrganization(e.target.value)}
+                      className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring transition-colors"
+                    >
+                      <option value="">No organization</option>
+                      {organizations.map(org => (
+                        <option key={org.id} value={org.id}>
+                          {org.display_name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Link this trip to an organization to share it with all members
+                    </p>
+                  </div>
+                )}
+
+              {/* Advanced Settings - Only for Pro/Event trips */}
+              {tripType !== 'consumer' && (
+                <Collapsible className="space-y-3">
+                  <CollapsibleTrigger className="w-full flex items-center justify-between p-3 bg-muted/60 hover:bg-muted rounded-xl transition-colors">
+                    <div className="flex items-center gap-2 text-gray-300">
+                      <Settings size={16} />
+                      <span className="text-sm font-medium">Advanced</span>
+                    </div>
+                    <ChevronDown
+                      size={16}
+                      className="text-gray-500 transition-transform duration-200 data-[state=open]:rotate-180"
+                    />
+                  </CollapsibleTrigger>
+
+                  <CollapsibleContent className="space-y-4 bg-muted rounded-xl p-4">
+                    {/* Trip Color Picker */}
+                    <div>
+                      <label className={fieldLabelClassName}>Trip Color Label</label>
+                      <div className="flex flex-wrap gap-2">
+                        {getAllProTripColors().map(color => (
+                          <button
+                            key={color.accent}
+                            type="button"
+                            onClick={() => setSelectedCardColor(color.accent)}
+                            className={`w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-gradient-to-br ${color.cardGradient} transition-all duration-200 hover:scale-110 ${
+                              selectedCardColor === color.accent
+                                ? 'ring-2 ring-ring ring-offset-2 ring-offset-card scale-110'
+                                : 'opacity-70 hover:opacity-100'
+                            }`}
+                            title={color.accent.charAt(0).toUpperCase() + color.accent.slice(1)}
+                          />
+                        ))}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Color-code your {tripType === 'pro' ? 'Pro trips' : 'Events'} for easy
+                        organization
+                      </p>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
+            </Section>
+          </div>
 
           {/* Buttons */}
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 bg-muted hover:bg-muted/80 border border-border text-foreground py-3 rounded-xl font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="flex-1 bg-gradient-to-r from-[#533517] to-[#c49746] hover:from-[#6a441e] hover:to-[#d4a74f] disabled:opacity-50 disabled:cursor-not-allowed text-foreground dark:text-white py-3 rounded-xl font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring"
-            >
-              {isLoading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <div className="h-4 w-4 animate-spin gold-gradient-spinner" />
-                  Creating...
-                </span>
-              ) : (
-                'Create'
-              )}
-            </button>
+          <div className="pt-2 border-t border-border/60">
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <button
+                type="button"
+                onClick={onClose}
+                className="order-2 sm:order-1 text-sm text-muted-foreground hover:text-foreground min-h-[44px] px-3"
+              >
+                Cancel
+              </button>
+              <div className="order-1 sm:order-2 flex gap-2 sm:justify-end">
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="min-h-[44px] px-5 bg-gradient-to-r from-[#533517] to-[#c49746] hover:from-[#6a441e] hover:to-[#d4a74f] disabled:opacity-50 disabled:cursor-not-allowed text-foreground dark:text-white rounded-xl font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring"
+                >
+                  {isLoading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="h-4 w-4 animate-spin gold-gradient-spinner" />
+                      Creating...
+                    </span>
+                  ) : (
+                    'Create'
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </form>
       </div>
