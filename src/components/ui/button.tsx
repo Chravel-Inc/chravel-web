@@ -10,16 +10,18 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          'bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary-glow hover:shadow-primary-glow/80',
+          'bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary-glow/85 hover:shadow-primary-glow/75',
         destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-lg',
         outline:
-          'border-2 border-input bg-transparent hover:bg-accent hover:text-accent-foreground shadow-md',
-        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-md',
-        ghost: 'hover:bg-accent/10 hover:text-accent-foreground',
+          'border-2 border-input/80 bg-transparent text-foreground hover:bg-accent/15 hover:text-accent-foreground shadow-sm',
+        secondary:
+          'bg-secondary/90 text-secondary-foreground hover:bg-secondary/75 hover:text-secondary-foreground shadow-sm',
+        ghost: 'text-foreground/90 hover:bg-accent/10 hover:text-accent-foreground',
         link: 'text-primary underline-offset-4 hover:underline',
       },
       size: {
-        default: 'h-12 px-8 py-3 text-base min-h-[48px]', // Larger
+        default: 'h-11 min-h-[44px] px-7 py-2.5 text-base md:h-10 md:px-6',
+        md: 'h-11 min-h-[44px] px-5 py-2 text-sm md:h-9 md:px-4',
         sm: 'h-10 rounded-lg px-4 text-sm min-h-[40px]',
         lg: 'h-14 rounded-xl px-10 text-lg min-h-[56px]', // Much larger
         icon: 'h-12 w-12 min-h-[48px] min-w-[48px]',
