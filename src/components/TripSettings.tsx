@@ -114,12 +114,17 @@ export const TripSettings = ({
     { id: 'danger', label: 'Danger Zone', icon: Trash2 },
   ];
 
+  const tabButtonClass = (isActive: boolean) =>
+    isActive
+      ? 'bg-glass-orange/20 text-glass-orange border border-glass-orange/30'
+      : 'text-muted-foreground hover:text-foreground hover:bg-white/10';
+
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50">
       <div className="flex h-full">
         {/* Sidebar */}
-        <div className="w-80 bg-white/5 backdrop-blur-md border-r border-white/10 p-6">
-          <div className="flex items-center justify-between mb-8">
+        <div className="w-80 bg-white/5 backdrop-blur-md border-r border-white/10 p-4 overflow-y-auto">
+          <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-white">Trip Settings</h2>
             <button
               onClick={onClose}
@@ -129,18 +134,16 @@ export const TripSettings = ({
             </button>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5" role="tablist" aria-label="Trip settings sections">
             {tabs.map(tab => {
               const Icon = tab.icon;
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
-                    activeTab === tab.id
-                      ? 'bg-glass-orange/20 text-glass-orange border border-glass-orange/30'
-                      : 'text-gray-300 hover:text-white hover:bg-white/10'
-                  }`}
+                  onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                  role="tab"
+                  aria-selected={activeTab === tab.id}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-colors min-h-[44px] ${tabButtonClass(activeTab === tab.id)}`}
                 >
                   <Icon size={20} />
                   {tab.label}
@@ -152,7 +155,7 @@ export const TripSettings = ({
 
         {/* Main Content */}
         <div className="flex-1 overflow-y-auto">
-          <div className="p-8">
+          <div className="p-4 pb-16 min-w-0">
             {activeTab === 'users' && (
               <TripUserManagement
                 tripId={tripId}
@@ -165,7 +168,7 @@ export const TripSettings = ({
             )}
 
             {activeTab === 'general' && (
-              <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6">
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6">
                 <h3 className="text-lg font-semibold text-white mb-6">General Settings</h3>
 
                 {/* Trip Category Selection */}
@@ -230,26 +233,27 @@ export const TripSettings = ({
             )}
 
             {activeTab === 'activity' && showEventLogTab && (
-              <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6">
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6">
                 <TripActivitySettings tripId={tripId} />
               </div>
             )}
 
             {activeTab === 'eventlog' && showEventLogTab && (
-              <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6">
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6">
                 <h3 className="text-lg font-semibold text-white mb-4">Event Log</h3>
                 <p className="text-gray-400 mb-6">View system events and activity for this trip.</p>
                 <button
                   onClick={() => setShowEventLog(true)}
-                  className="bg-glass-orange hover:bg-glass-orange/80 text-white px-6 py-3 rounded-xl transition-colors"
+                  className="inline-flex items-center gap-2 bg-glass-orange hover:bg-glass-orange/80 text-white px-6 py-3 rounded-xl transition-colors font-medium"
                 >
+                  <ScrollText size={16} aria-hidden="true" />
                   Open Event Log
                 </button>
               </div>
             )}
 
             {activeTab === 'danger' && (
-              <div className="bg-white/10 backdrop-blur-md border border-red-500/20 rounded-2xl p-6">
+              <div className="bg-white/5 backdrop-blur-md border border-red-500/40 rounded-2xl p-6">
                 <h3 className="text-lg font-semibold text-red-300 mb-4">Danger Zone</h3>
                 <p className="text-gray-400 mb-6">These actions are irreversible.</p>
                 <button className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl transition-colors">
