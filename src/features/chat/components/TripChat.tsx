@@ -1126,7 +1126,7 @@ export const TripChat = React.memo(
                   </div>
                 ) : (
                   <>
-                    {messageFilter !== 'pinned' && pinnedMessages.length > 0 && (
+                    {messageFilter === 'pinned' && pinnedMessages.length > 0 && (
                       <div className="mx-3 mt-3 mb-1 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2">
                         <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-amber-200">
                           <Pin className="h-3.5 w-3.5" />
