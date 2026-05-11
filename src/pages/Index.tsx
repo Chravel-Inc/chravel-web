@@ -802,13 +802,13 @@ const AuthIndex = () => {
 
             <div className="max-w-[1500px] mx-auto">
               {/* Desktop navigation - hidden on mobile, use NativeTabBar instead */}
-              <div className="hidden lg:flex w-full flex-col lg:flex-row gap-1.5 sm:gap-3 lg:gap-6 items-stretch mb-3 sm:mb-6">
+              <div className="hidden lg:grid w-full grid-cols-12 items-stretch gap-3 xl:gap-4 mb-3 sm:mb-6">
                 <TripViewToggle
                   viewMode={viewMode}
                   onViewModeChange={handleViewModeChange}
                   showRecsTab={false}
                   recsTabDisabled={false}
-                  className="w-full lg:flex-1 h-12 sm:h-16"
+                  className="w-full h-12 sm:h-16 lg:col-span-5"
                   requireAuth={true}
                   onAuthRequired={() => setIsAuthModalOpen(true)}
                 />
@@ -819,7 +819,7 @@ const AuthIndex = () => {
                   onNotifications={() => {}}
                   isNotificationsOpen={isNotificationsOpen}
                   setIsNotificationsOpen={setIsNotificationsOpen}
-                  className="w-full lg:flex-1 h-12 sm:h-16"
+                  className="w-full h-12 sm:h-16 lg:col-span-7"
                   requireAuth={true}
                   onAuthRequired={() => setIsAuthModalOpen(true)}
                 />
@@ -994,13 +994,13 @@ const AuthIndex = () => {
 
           <div className="max-w-[1500px] mx-auto">
             {/* Desktop navigation - hidden on mobile, use NativeTabBar instead */}
-            <div className="hidden lg:flex w-full flex-col lg:flex-row gap-1.5 sm:gap-3 lg:gap-6 items-stretch mb-3 sm:mb-6">
+            <div className="hidden lg:grid w-full grid-cols-12 items-stretch gap-3 xl:gap-4 mb-3 sm:mb-6">
               <TripViewToggle
                 viewMode={viewMode}
                 onViewModeChange={handleViewModeChange}
                 showRecsTab={isDemoMode}
                 recsTabDisabled={false}
-                className="w-full lg:flex-1 h-12 sm:h-16"
+                className="w-full h-12 sm:h-16 lg:col-span-5"
               />
               <TripActionBar
                 onSettings={() => setIsSettingsOpen(true)}
@@ -1009,7 +1009,7 @@ const AuthIndex = () => {
                 onNotifications={() => {}}
                 isNotificationsOpen={isNotificationsOpen}
                 setIsNotificationsOpen={setIsNotificationsOpen}
-                className="w-full lg:flex-1 h-12 sm:h-16"
+                className="w-full h-12 sm:h-16 lg:col-span-7"
               />
             </div>
 
@@ -1206,13 +1206,13 @@ const AuthIndex = () => {
         {/* Mobile auth moved to Settings menu - no floating button needed */}
 
         {/* Desktop navigation - hidden on mobile, use NativeTabBar instead */}
-        <div className="hidden lg:flex w-full flex-col lg:flex-row gap-1.5 sm:gap-3 lg:gap-6 items-stretch mb-3 sm:mb-6">
+        <div className="hidden lg:grid w-full grid-cols-12 items-stretch gap-3 xl:gap-4 mb-3 sm:mb-6">
           <TripViewToggle
             viewMode={viewMode}
             onViewModeChange={handleViewModeChange}
             showRecsTab={isDemoMode}
             recsTabDisabled={false}
-            className="w-full lg:flex-1 h-12 sm:h-16"
+            className="w-full h-12 sm:h-16 lg:col-span-5"
           />
           <TripActionBar
             onSettings={() => {
@@ -1227,7 +1227,7 @@ const AuthIndex = () => {
             onNotifications={() => {}}
             isNotificationsOpen={isNotificationsOpen}
             setIsNotificationsOpen={setIsNotificationsOpen}
-            className="w-full lg:flex-1 h-12 sm:h-16"
+            className="w-full h-12 sm:h-16 lg:col-span-7"
           />
         </div>
 
