@@ -37,8 +37,8 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
 
   const sectionButtonClass = (isActive: boolean) =>
     isActive
-      ? 'bg-glass-orange/20 text-glass-orange border border-glass-orange/30'
-      : 'text-muted-foreground hover:text-foreground hover:bg-white/10 text-gray-300 hover:text-white';
+      ? 'bg-black/70 text-gold-primary border border-gold-primary/60 shadow-ring-glow'
+      : 'text-gray-300 hover:text-white hover:bg-white/10 border border-transparent';
 
   if (isMobile) {
     return (
@@ -46,7 +46,7 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
         <div className="flex-shrink-0 p-3 md:p-4 border-b border-white/20">
           <button
             onClick={() => setShowMobileMenu(!showMobileMenu)}
-            className="w-full flex items-center justify-between p-2 md:p-3 bg-white/10 rounded-xl text-white"
+            className="w-full flex items-center justify-between p-3 bg-black/50 border border-white/15 rounded-xl text-white min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-primary/70"
           >
             <div className="flex items-center gap-3">
               {currentSection && <currentSection.icon size={20} />}
@@ -76,7 +76,7 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
                     }}
                     role="tab"
                     aria-selected={isActive}
-                    className={`w-full flex items-center gap-3 px-3 md:px-4 py-2 md:py-3 text-left transition-colors min-h-[44px] ${sectionButtonClass(
+                    className={`w-full flex items-center gap-3 px-3 md:px-4 py-2.5 md:py-3 text-left text-sm font-medium rounded-xl transition-colors min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-primary/70 ${sectionButtonClass(
                       isActive,
                     )}`}
                   >
@@ -100,8 +100,8 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
 
   return (
     <div className="flex h-full w-full min-w-0">
-      <aside className="w-64 flex-shrink-0 bg-white/5 backdrop-blur-md border-r border-white/10 p-4 overflow-y-auto">
-        <h2 className="text-xl font-bold text-white mb-3">{title}</h2>
+      <aside className="w-72 flex-shrink-0 bg-black/35 backdrop-blur-md border-r border-white/10 p-5 overflow-y-auto">
+        <h2 className="text-xl font-semibold tracking-tight text-white mb-3">{title}</h2>
         {subtitle && <p className="text-xs text-gray-400 mb-4">{subtitle}</p>}
         <nav className="space-y-1.5" role="tablist" aria-label="Settings sections">
           {sections.map(section => {
@@ -113,7 +113,7 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
                 onClick={() => onSectionChange(section.id)}
                 role="tab"
                 aria-selected={isActive}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-colors min-h-[44px] ${sectionButtonClass(
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-primary/70 ${sectionButtonClass(
                   isActive,
                 )}`}
               >
@@ -126,7 +126,7 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
       </aside>
 
       <main className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden">
-        <div className="p-4 pb-16 min-w-0">{children}</div>
+        <div className="p-5 lg:p-6 pb-16 min-w-0">{children}</div>
       </main>
     </div>
   );
