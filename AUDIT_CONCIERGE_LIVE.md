@@ -6,6 +6,44 @@
 
 ---
 
+> ## ⚠️ HISTORICAL DOCUMENT — DO NOT USE AS CURRENT-STATE REFERENCE
+>
+> **Status (as of 2026-05-12):** This audit is preserved as a post-mortem.
+> The architecture it analyzes is **no longer the production path** and the
+> edge functions it inventories (`gemini-voice-proxy`, `gemini-voice-session`)
+> **do not exist on disk in this repo.**
+>
+> **What changed:** The team did NOT execute the recommended migration to
+> `gemini-voice-session` (client-direct WebSocket to Vertex AI). Instead, the
+> entire Supabase-proxied Gemini Live stack was replaced with a **LiveKit-based
+> voice pipeline**:
+>
+> - **LiveKit** handles browser ↔ server WebRTC audio transport (replaces the
+>   `Deno.upgradeWebSocket` proxy that this audit identified as unsupported).
+> - The **Gemini voice agent runs as an externally-deployed worker** (outside
+>   the Supabase Edge runtime entirely), joining LiveKit rooms as a
+>   participant. This sidesteps the Deno Deploy WebSocket limitation that
+>   was the P0 root cause in this audit.
+> - **`gemini-tts`** (a small edge function) handles read-aloud / one-shot
+>   TTS. There is no `gemini-voice-session` or `gemini-voice-proxy` in the
+>   current codebase.
+> - The `livekit-token` edge function mints capability tokens for room
+>   joins. Room metadata + agent deployment are prerequisites for voice
+>   sessions (see `agent_memory.jsonl` entry 14).
+>
+> **What is still useful here:** Sections 1–7 remain valuable as a
+> snapshot of how a Supabase-proxied Gemini Live integration was shaped
+> and where it broke. Reference them when reasoning about the *prior*
+> architecture, debugging legacy traces, or evaluating whether to bring
+> any subsystem back in-tree.
+>
+> **What is obsolete:** Sections 8–9 (recommendations and handoff) point
+> at files that no longer exist. The Fastest Safe Fix and Long-Term Fix
+> were superseded by the LiveKit migration. See the updated Section 8
+> below for the actual outcome.
+
+---
+
 ## 1. Component Inventory
 
 ### Frontend Components
@@ -384,6 +422,17 @@ Supabase Edge Functions cannot act as WebSocket proxies. The architecture must c
 
 ## 8. Final Output
 
+> **Outcome update (2026-05-12):** The recommendations below were NOT
+> adopted. Rather than migrate to client-direct WebSocket via
+> `gemini-voice-session`, the team replaced the entire Supabase-proxied
+> Gemini Live stack with **LiveKit + an externally-deployed Gemini agent
+> worker + `gemini-tts`**. Both `gemini-voice-proxy` and
+> `gemini-voice-session` were removed from this repo. The root-cause
+> analysis below is preserved for historical reference; the "Fastest
+> Safe Fix" and "Correct Long-Term Fix" subsections describe a path
+> that was considered and rejected. Treat them as a record of the
+> decision space at the time, not as a to-do list.
+
 ### Top 5 Root Causes (Ranked)
 
 1. **[P0 — CRITICAL] Supabase Edge Functions do not support `Deno.upgradeWebSocket`.** The `gemini-voice-proxy` WebSocket relay cannot run in Supabase's Deno Deploy runtime. This is the primary reason Live doesn't work. The WebSocket connection from the browser is rejected at the infrastructure level before any application code runs.
@@ -396,7 +445,7 @@ Supabase Edge Functions cannot act as WebSocket proxies. The architecture must c
 
 5. **[P4 — LOW] Duplicate edge functions with drift.** `gemini-voice-proxy` and `gemini-voice-session` have independently maintained copies of the same function declarations, voice addendum, and setup message builder. They can drift. The proxy has "SILENT EXECUTION." in descriptions while the session function doesn't.
 
-### Fastest Safe Fix
+### Fastest Safe Fix (REJECTED — see banner)
 
 **Switch from WebSocket proxy to client-direct WebSocket using the existing `gemini-voice-session` endpoint.**
 
@@ -416,7 +465,7 @@ Steps:
 
 3. Security note: The GCP access token is short-lived (1hr) and scoped to `cloud-platform`. It's passed via query param on the Vertex WebSocket URL. This is the same pattern Google's own SDK uses.
 
-### Correct Long-Term Fix
+### Correct Long-Term Fix (REJECTED — see banner)
 
 1. Use `gemini-voice-session` as the session bootstrapper (HTTP → token + config)
 2. Client connects directly to Vertex AI WebSocket
@@ -426,6 +475,37 @@ Steps:
 6. Add a pre-flight health check before attempting voice (call the health endpoint)
 7. Implement structured telemetry for voice session lifecycle
 
+### Actual Outcome (2026-05-12)
+
+Neither the "Fastest Safe Fix" nor the "Correct Long-Term Fix" above was
+taken. The Supabase-proxied Gemini Live architecture as a whole was
+abandoned in favor of LiveKit:
+
+1. **`gemini-voice-proxy` was removed** from the repo. It no longer
+   exists on disk.
+2. **`gemini-voice-session` was removed** from the repo. The
+   client-direct WebSocket path it would have enabled is not used.
+3. **LiveKit** now handles browser ↔ server WebRTC audio transport,
+   sidestepping the `Deno.upgradeWebSocket` limitation entirely.
+4. **A Gemini voice agent worker is deployed externally** (outside
+   Supabase Edge Functions) and joins LiveKit rooms as a participant.
+   This is what executes voice tool calls and emits audio responses.
+5. **`gemini-tts`** edge function remains for non-Live read-aloud and
+   one-shot TTS.
+6. **`livekit-token`** edge function mints short-lived capability
+   tokens for browsers to join LiveKit rooms.
+7. `VoiceLiveOverlay` and other dead components from this audit were
+   either removed or repurposed by the LiveKit-era voice UI.
+
+Why LiveKit instead of client-direct WebSocket:
+- Externalizes the realtime transport problem to a vendor whose entire
+  business is realtime media — no more fighting Deno Deploy limits.
+- Decouples the Gemini agent's runtime from Supabase Edge Functions,
+  so the agent can use any Node/Deno/Python runtime, longer-lived
+  connections, and richer tooling.
+- Capability-token auth, room-scoped permissions, and built-in turn
+  detection are easier to reason about than a hand-rolled proxy.
+
 ### Issue Classification
 
 **The issue is primarily: BACKEND INFRA (Supabase Edge Functions don't support WebSocket upgrades)**
@@ -434,7 +514,11 @@ The UI wiring is correct. The state management is correct. The permissions are c
 
 ---
 
-## 9. Handoff Section (For Fixing LLM)
+## 9. Handoff Section (For Fixing LLM) — OBSOLETE
+
+> The handoff steps below describe modifying `useGeminiLive.ts` to call
+> `gemini-voice-session`. Neither file exists in the current repo; voice
+> now runs through LiveKit. Preserved verbatim for historical context.
 
 ### Context
 The Concierge "Live" feature in Chravel uses Gemini Live (Vertex AI bidirectional audio API) for real-time voice conversation. The feature is fully wired in the frontend but **does not work** because the WebSocket proxy edge function (`supabase/functions/gemini-voice-proxy/index.ts`) uses `Deno.upgradeWebSocket` which is NOT supported in Supabase Edge Functions.

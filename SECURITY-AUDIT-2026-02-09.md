@@ -440,6 +440,12 @@ END IF;
 - **File:** `capacitor.config.ts`
 - **Recommended fix:** Add `server.allowNavigation` list
 
+> **Addendum (2026-05-12):** E14 superseded — Capacitor is no longer in
+> this repo as of 2026-05-12. `capacitor.config.ts` and the `ios/`
+> directory have been moved out alongside the native shell. The finding
+> moves to the native shell repo's (`chravel-mobile`) backlog and should
+> be tracked and remediated there. No action required in this repo.
+
 ---
 
 ## Dependency Vulnerabilities <a name="dependency-vulnerabilities"></a>
