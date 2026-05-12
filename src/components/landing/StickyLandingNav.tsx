@@ -109,8 +109,8 @@ export const StickyLandingNav: React.FC<StickyLandingNavProps> = ({
 
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         {/* Logo */}
-        <div className="text-xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-          Chravel
+        <div className="text-xl font-bold text-gradient-gold">
+          ChravelApp
         </div>
 
         {/* For Teams Link (Desktop) */}
