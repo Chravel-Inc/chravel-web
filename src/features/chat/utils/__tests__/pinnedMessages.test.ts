@@ -85,7 +85,7 @@ describe('isPinnedMessage', () => {
         text: 'hello',
         sender: { id: 'u1', name: 'A' },
         createdAt: '2026-01-01T00:00:00.000Z',
-      }),
+      } as any),
     ).toBe(false);
   });
 });
