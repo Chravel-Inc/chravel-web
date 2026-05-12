@@ -22,6 +22,7 @@ import { useNotificationRealtime } from '@/hooks/useNotificationRealtime';
 import { mockNotifications } from '@/mockData/notifications';
 import { approveJoinRequestById, rejectJoinRequestById } from '@/lib/joinRequestMutations';
 import { cn } from '@/lib/utils';
+import { resolveNotificationCategoryByType } from '@/lib/notifications/categoryMap';
 import { useDemoTripMembersStore } from '@/store/demoTripMembersStore';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
@@ -145,20 +146,7 @@ function resolveNotificationTab(
     return 'chat';
   }
 
-  const tabMap: Record<string, string> = {
-    message: 'chat',
-    chat: 'chat',
-    broadcast: 'broadcasts',
-    calendar: 'calendar',
-    task: 'tasks',
-    payment: 'payments',
-    poll: 'polls',
-    photos: 'media',
-    join_request: 'collaborators',
-    basecamp: 'places',
-  };
-
-  return tabMap[notificationType] ?? null;
+  return resolveNotificationCategoryByType(notificationType)?.deepLinkTab ?? null;
 }
 
 function buildNavigationTarget(
