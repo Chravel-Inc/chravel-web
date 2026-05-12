@@ -90,11 +90,11 @@ interface User {
   permissions: string[];
   /** @deprecated Use useNotificationPreferences hook for notification preference reads/writes. */
   notificationSettings: {
-    messages: boolean;
-    broadcasts: boolean;
-    tripUpdates: boolean;
-    email: boolean;
-    push: boolean;
+    messages: boolean | null;
+    broadcasts: boolean | null;
+    tripUpdates: boolean | null;
+    email: boolean | null;
+    push: boolean | null;
   };
 }
 
