@@ -22,6 +22,7 @@ import { useNotificationRealtime } from '@/hooks/useNotificationRealtime';
 import { mockNotifications } from '@/mockData/notifications';
 import { approveJoinRequestById, rejectJoinRequestById } from '@/lib/joinRequestMutations';
 import { cn } from '@/lib/utils';
+import { resolveNotificationCategoryByType } from '@/lib/notifications/categoryMap';
 import { useDemoTripMembersStore } from '@/store/demoTripMembersStore';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
@@ -95,6 +96,29 @@ function isPendingJoinRequestWithActions(notification: Notification): boolean {
 function extractTripNameFromApprovalDescription(description: string): string | null {
   const match = description.match(/join\s+"([^"]+)"/i);
   return match?.[1]?.trim() || null;
+}
+
+function resolveNotificationTab(
+  notification: Notification,
+  metadata: NotificationMetadata,
+): string | null {
+  const notificationType = notification.type.toLowerCase();
+  const metadataChannelType = getMetadataString(metadata, 'channel_type').toLowerCase();
+  const metadataTab = getMetadataString(metadata, 'tab').toLowerCase();
+
+  if (notificationType === 'mention') {
+    return 'chat';
+  }
+
+  if (metadataTab) {
+    return metadataTab;
+  }
+
+  if (metadataChannelType === 'chat' || metadataChannelType === 'messages') {
+    return 'chat';
+  }
+
+  return resolveNotificationCategoryByType(notificationType)?.deepLinkTab ?? null;
 }
 
 function buildNavigationTarget(
