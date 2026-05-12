@@ -1,0 +1,27 @@
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant Auth as AuthPage / AuthForm
+    participant S as Supabase Auth
+    participant DB as Postgres (profiles, user_roles, organization_members)
+    participant App as AuthProvider (src/hooks/useAuth.tsx)
+    participant Q as TanStack Query
+    participant T as Telemetry (PostHog)
+
+    U->>Auth: Submit credentials
+    Auth->>S: supabase.auth.signInWithPassword (or OAuth)
+    S-->>Auth: { session, user }
+    S->>App: onAuthStateChange(SIGNED_IN)
+    App->>App: setSession
+    App->>App: setUser (buildSessionDerivedUser - sync)
+    par Async profile enrichment
+        App->>DB: SELECT profiles WHERE user_id = ...
+        App->>DB: SELECT user_roles WHERE user_id = ...
+        App->>DB: SELECT organization_members WHERE user_id = ... AND status='active'
+        App->>DB: load notification preferences
+    end
+    DB-->>App: profile + roles + org + notifPrefs
+    App->>App: setUser (transformUser - enriched)
+    App->>Q: prefetchQuery user-trips
+    App->>T: identify { id, display_name, is_pro, organization_id }
+    App-->>U: render protected routes

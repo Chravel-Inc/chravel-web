@@ -1,0 +1,13 @@
+graph LR
+    DB[("trips + trip_members + user_trips<br/>(Postgres)")] --> Edge["create-trip / get-trip-detail<br/>(edge functions)"]
+    DB --> RT["Supabase Realtime"]
+    Edge --> Service["services/tripService"]
+    RT --> Hook1["hooks/useUserTripsRealtime"]
+    Service --> Hook2["features/trips/hooks/use*<br/>+ hooks/useDashboardCardOrder"]
+    Hook1 --> Store["TanStack Query<br/>tripKeys.lists / tripKeys.detail"]
+    Hook2 --> Store
+    Store --> Page1["pages/Index (dashboard)"]
+    Store --> Page2["pages/TripDetail / ProTripDetail"]
+    Store --> Page3["pages/ArchivePage"]
+    Page1 --> Card["components/TripCard"]
+    Page2 --> Header["Trip header + tabs"]

@@ -1,0 +1,64 @@
+graph LR
+    subgraph "Client surfaces"
+        Web["Web (Vercel SPA)<br/>chravel.app"]
+        PWA["PWA<br/>(workbox SW)"]
+        IOS["Capacitor iOS<br/>(chravel-mobile)"]
+    end
+
+    subgraph "Frontend (React 18 + Vite 5)"
+        App["src/App.tsx<br/>33 lazy routes"]
+        QC["TanStack Query 5<br/>src/lib/queryClient.ts"]
+        Zustand["Zustand stores (6)"]
+    end
+
+    subgraph "Supabase (jmjiyekmxwsxkfnqwyaa)"
+        DB[("Postgres<br/>215 tables<br/>824 RLS policies")]
+        Auth["Auth<br/>email/Google/Apple/phone"]
+        Edge["Edge Functions (88)"]
+        Realtime["Realtime WebSocket"]
+        Storage["Storage<br/>signed URLs"]
+    end
+
+    subgraph "External SaaS"
+        Stream["Stream Chat 9.40"]
+        LiveKit["LiveKit 2.18"]
+        Gemini["Gemini / Vertex AI"]
+        Stripe["Stripe"]
+        RC["RevenueCat"]
+        Maps["Google Maps + Places"]
+        FCM["Firebase FCM v1"]
+        Sentry["Sentry"]
+        PH["PostHog"]
+        Gmail["Gmail OAuth"]
+        GCal["Google Calendar"]
+    end
+
+    subgraph "Render"
+        Unfurl["unfurl proxy<br/>p.chravel.app"]
+    end
+
+    Web --> App
+    PWA --> App
+    IOS --> App
+    App --> QC
+    App --> Zustand
+    QC --> DB
+    QC --> Edge
+    App --> Auth
+    App --> Realtime
+    App --> Stream
+    App --> LiveKit
+    App --> Maps
+    App --> Sentry
+    App --> PH
+    Edge --> DB
+    Edge --> Gemini
+    Edge --> Stripe
+    Edge --> FCM
+    Edge --> Gmail
+    Edge --> GCal
+    Edge --> Stream
+    Stripe -->|webhook| Edge
+    RC -->|webhook| Edge
+    Stream -->|webhook| Edge
+    Web --> Unfurl

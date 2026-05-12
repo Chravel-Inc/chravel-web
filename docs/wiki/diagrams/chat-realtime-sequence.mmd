@@ -1,0 +1,27 @@
+sequenceDiagram
+    autonumber
+    participant U as User A
+    participant UI as TripChat / ChatInput
+    participant Service as chatService
+    participant Stream as Stream Chat
+    participant Hook as useStreamTripChat
+    participant SB as Supabase Realtime
+    participant Sys as systemMessageService
+    participant Other as User B (other client)
+
+    U->>UI: Send "hello"
+    UI->>Service: send(message)
+    Service->>Stream: channel.sendMessage(text)
+    Stream-->>Stream: persist
+    Stream-->>Hook: message.new (echo)
+    Hook-->>UI: append to local state
+    Stream-->>Other: message.new (fan-out)
+
+    Note over Sys: Domain event (poll close, task done)
+    Sys->>Stream: channel.sendMessage({silent, skip_push, custom_fields})
+    Stream-->>Hook: message.new (system)
+    Hook-->>UI: render SystemMessageBubble inline
+
+    Note over SB: Adjacent realtime updates
+    SB-->>Hook: postgres_changes on message_reactions
+    Hook-->>UI: re-render reactions

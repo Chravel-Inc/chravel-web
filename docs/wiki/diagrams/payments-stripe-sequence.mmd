@@ -1,0 +1,26 @@
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant UI as Paywall / Upgrade CTA
+    participant Web as create-checkout (edge)
+    participant Stripe as Stripe Checkout
+    participant Hook as stripe-webhook (edge, verify_jwt=false)
+    participant DB as user_entitlements + payment_audit_log
+    participant Store as entitlementsStore
+    participant Check as check-subscription (edge)
+
+    U->>UI: Click "Upgrade to Explorer"
+    UI->>Web: POST /create-checkout (JWT)
+    Web->>Stripe: stripe.checkout.sessions.create(...)
+    Stripe-->>Web: { url }
+    Web-->>UI: redirect URL
+    UI->>U: window.location = stripe url
+    U->>Stripe: complete payment
+    Stripe-->>Hook: webhook checkout.session.completed (signed)
+    Hook->>Hook: verify STRIPE_WEBHOOK_SECRET signature
+    Hook->>DB: UPSERT user_entitlements; APPEND payment_audit_log
+    Hook-->>Stripe: 200 OK
+    UI->>Check: POST /check-subscription on return
+    Check->>DB: SELECT user_entitlements
+    Check-->>UI: { plan, status, entitlements }
+    UI->>Store: setFromStripe(...)

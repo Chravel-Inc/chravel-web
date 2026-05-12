@@ -1,0 +1,21 @@
+graph LR
+    Dev["Developer"] -->|push| GH[("GitHub<br/>Chravel-Inc/chravel-web")]
+    GH --> CI["GitHub Actions<br/>13 workflows"]
+    CI -->|on push main| Vercel["Vercel<br/>static SPA"]
+    CI -->|supabase/functions/** diff| EdgeDeploy["Supabase CLI<br/>edge fn deploy"]
+    EdgeDeploy --> SupaEdge[("Supabase Edge<br/>88 functions")]
+    CI -->|workflow_dispatch / push| LK["LiveKit Cloud<br/>voice agent"]
+    CI -->|ios-release.yml| Fastlane["Fastlane / TestFlight"]
+    Vercel --> CDN["Vercel CDN"]
+    CDN --> Browser["Browsers + PWA"]
+    Browser --> SupaDB[("Supabase Postgres<br/>jmjiyekmxwsxkfnqwyaa")]
+    Browser --> SupaAuth["Supabase Auth"]
+    Browser --> SupaRT["Supabase Realtime"]
+    Browser --> SupaStor["Supabase Storage"]
+    Browser --> Render["Render<br/>p.chravel.app unfurl"]
+    Browser --> Stream["Stream Chat"]
+    Browser --> Maps["Google Maps"]
+    SupaEdge --> SupaDB
+    Stripe[("Stripe")] -->|webhook| SupaEdge
+    RC[("RevenueCat")] -->|webhook| SupaEdge
+    Stream -->|webhook| SupaEdge

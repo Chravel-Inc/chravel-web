@@ -1,0 +1,30 @@
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant UI as Index / Trip Composer
+    participant DS as useDemoModeStore
+    participant Hook as useCreateTrip (trip mutation)
+    participant Edge as supabase/functions/create-trip
+    participant DB as trips + trip_members + user_trips
+    participant Chans as create-default-channels
+    participant Stream as Stream Chat
+    participant App as Router
+
+    U->>UI: Submit "Create Trip" form
+    UI->>DS: isDemoMode?
+    alt Demo mode
+        DS-->>UI: true
+        UI->>UI: insert mock trip into mockData store
+        UI->>App: navigate /demo/trip/:mockId
+    else Authenticated
+        DS-->>UI: false
+        UI->>Hook: createTrip(formData)
+        Hook->>Edge: POST /create-trip (JWT)
+        Edge->>DB: INSERT trips + trip_members(creator) + user_trips
+        Edge->>Chans: POST /create-default-channels
+        Chans->>Stream: create channels + permissions
+        Chans->>DB: INSERT trip_channels
+        Edge-->>Hook: { tripId }
+        Hook-->>UI: success
+        UI->>App: navigate /trip/:tripId
+    end

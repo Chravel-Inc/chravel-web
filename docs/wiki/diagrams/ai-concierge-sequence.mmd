@@ -1,0 +1,42 @@
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant UI as AiChatInput
+    participant GW as conciergeGateway (client)
+    participant Edge as lovable-concierge (edge)
+    participant Auth as requireAuth + rate limiter
+    participant QC as queryClassifier
+    participant TR as toolRegistry.ts
+    participant CB as contextBuilder
+    participant G as Gemini API
+    participant FE as functionExecutor
+    participant DB as trip_pending_actions + concierge_usage
+    participant Exec as execute-concierge-tool
+
+    U->>UI: Type message
+    UI->>GW: send(message, tripId)
+    GW->>Edge: POST /lovable-concierge (JWT)
+    Edge->>Auth: requireAuth + rate-limit check
+    Auth-->>Edge: { user, error: null }
+    Edge->>QC: classifyQuery(message) -> queryClass
+    Edge->>TR: load tools for queryClass (subset of 38)
+    Edge->>CB: build trip-scoped context
+    Edge->>G: generateContent({prompt, tools, history})
+    G-->>Edge: { text, toolCalls? }
+    alt Has toolCall (write)
+        Edge->>FE: dispatch toolCall
+        FE->>DB: INSERT trip_pending_actions (memory #7)
+        FE-->>Edge: pending action card
+        Edge-->>UI: { text, pendingAction }
+        UI->>U: render PendingActionCard
+        U->>UI: confirm
+        UI->>Exec: POST /execute-concierge-tool
+        Exec->>DB: APPLY pending -> real mutation
+    else Has toolCall (read)
+        Edge->>FE: dispatch toolCall (read)
+        FE-->>Edge: tool result
+        Edge->>G: continue with tool result
+        G-->>Edge: final text
+    end
+    Edge->>DB: track concierge_usage + concierge_tool_idempotency
+    Edge-->>UI: streamed response
