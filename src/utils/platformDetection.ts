@@ -4,19 +4,7 @@
  */
 
 /**
- * True when running inside the Capacitor native shell (TestFlight / Play Store builds).
- * Capacitor sets `window.Capacitor` and `isNativePlatform()` distinguishes real native
- * from `cap serve` / web. Relying only on WKWebView UA heuristics misses many iOS shell
- * configurations (Safari token present), which broke installed-app routing on `/`.
- */
-export function isCapacitorNativeShell(): boolean {
-  if (typeof window === 'undefined') return false;
-  const cap = (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;
-  return typeof cap?.isNativePlatform === 'function' && cap.isNativePlatform() === true;
-}
-
-/**
- * True when running inside the chravel-mobile native WebView shell.
+ * True when running inside the chravel-mobile native WebView shell (Expo + EAS Build).
  * The shell injects `window.ChravelNative.isNative === true` and appends a
  * `ChravelNative/<version>` token to the user agent. Either signal is sufficient.
  * Bridge contract is documented in chravel-mobile/CLAUDE.md — do not rename.
@@ -66,7 +54,7 @@ export function isLikelyIosWkWebViewUserAgent(userAgent: string): boolean {
 /** True when running inside a native app's webview (Expo WebView, Android WebView, etc). */
 export function isNativeWebView(): boolean {
   if (typeof window === 'undefined') return false;
-  if (isCapacitorNativeShell()) return true;
+  if (isChravelNativeShell()) return true;
   // Explicit query param from chravel-mobile Expo WebView
   const params = new URLSearchParams(window.location.search);
   if (params.get('app_context') === 'native') return true;
@@ -80,11 +68,10 @@ export function isNativeWebView(): boolean {
 
 /**
  * True when the app is running as an installed experience —
- * PWA standalone (any device) or native webview / Capacitor shell.
+ * PWA standalone (any device) or native webview / chravel-mobile shell.
  * Marketing splash and browser-first auth gates should not apply here; use in-app auth shell.
  */
 export function isInstalledApp(): boolean {
-  if (isCapacitorNativeShell()) return true;
   // Native webview should always be treated as installed app context.
   if (isNativeWebView()) return true;
   // Any standalone PWA (mobile or desktop) is a first-class app surface — same auth/OAuth rules.
