@@ -106,6 +106,9 @@ export const AiFeaturesSection = () => {
               alt="AI Concierge providing personalized recommendations"
               className="w-full h-auto object-contain"
             />
+              loading="lazy"
+              decoding="async"
+            />
           </motion.div>
 
           {/* Right: 3 Pills matching screenshot height */}
@@ -154,6 +157,9 @@ export const AiFeaturesSection = () => {
               src={placesMaps}
               alt="BaseCamps and Places exploration with maps"
               className="w-full h-auto object-contain"
+            />
+              loading="lazy"
+              decoding="async"
             />
           </motion.div>
 
