@@ -27,7 +27,7 @@
 3. Google Maps JavaScript API (maps, places, geocoding)
 4. RevenueCat (iOS/web subscription billing)
 5. Stripe (web checkout, webhooks, customer portal)
-6. Capacitor (iOS/Android native shell)
+6. Expo + EAS Build (iOS/Android native shell — lives in separate `chravel-mobile` repo, not this codebase)
 7. Sentry (error tracking)
 8. PostHog (product analytics)
 9. Google Calendar API (bi-directional sync)
@@ -101,7 +101,7 @@
 | **AI (voice)** | Vertex AI Live API (`gemini-live-2.5-flash-native-audio`) | `supabase/functions/gemini-voice-session/` |
 | **Payments (web)** | Stripe (checkout + webhooks) | `supabase/functions/stripe-webhook/` |
 | **Payments (iOS)** | RevenueCat | `src/integrations/revenuecat/` |
-| **iOS wrapper** | Capacitor 8 (NOT React Native) | `capacitor.config.ts`, `ios/` |
+| **Native shell** | Expo WebView (separate `chravel-mobile` repo, EAS Build) — bridge: `window.ChravelNative` | bridge contract: `src/utils/nativeBridge.ts` |
 | **Hosting** | Vercel (frontend) + Render (unfurl proxy) | `vercel.json`, `render.yaml` |
 | **CI/CD** | 9 GitHub Actions workflows | `.github/workflows/` |
 | **Analytics** | PostHog | `src/telemetry/` |
@@ -133,7 +133,7 @@ User → Vercel (static SPA) → Supabase (DB + Auth + Realtime + Storage + ~95 
                             → Google Gemini / Vertex AI (AI concierge)
                             → Stripe / RevenueCat (payments)
                             → Google Maps / Calendar / Gmail (integrations)
-iOS → Capacitor shell → same web app → same Supabase backend
+iOS/Android → chravel-mobile (Expo WebView, separate repo) → same web app → same Supabase backend
 ```
 
 - **Frontend queries Supabase directly** via JS client with user JWT; RLS filters at DB layer
@@ -178,7 +178,7 @@ iOS → Capacitor shell → same web app → same Supabase backend
 ## Key Architectural Decisions
 
 - **Supabase as sole backend** — deep lock-in (migration: 9/10 difficulty), but zero infra management
-- **Capacitor, not React Native** — same codebase for web+iOS, but limited native capabilities
+- **Expo WebView (chravel-mobile), not React Native** — one web codebase served to both browser and native shell via WebView, with a small `window.ChravelNative` bridge for native-only APIs (OAuth in-app browser, push, IAP). Native shell lives in the separate `chravel-mobile` repo (EAS Build).
 - **Gemini, not OpenAI** — native voice via Vertex AI Live, function calling, multimodal; `openai-chat` edge function exists as legacy
 - **Feature flags via DB table** — runtime kill switches, 60s client cache, no redeployment needed
 - **shadcn/ui + Radix** — accessible, composable primitives; "premium dark/gold" design language

@@ -115,7 +115,8 @@ Before submitting a PR, ensure:
 PRs that involve architectural changes require additional review:
 
 - [ ] No deprecated mobile strategies introduced
-- [ ] Mobile packaging strategy remains Capacitor-based
+- [ ] No mobile packaging code added here — the native shell lives in the separate `chravel-mobile` repo (Expo + EAS Build)
+- [ ] Native-bridge contract (`window.ChravelNative`) changes are coordinated with `chravel-mobile`
 - [ ] Docs updated to match code changes
 - [ ] Changes align with `ARCHITECTURE_DECISIONS.md`
 
@@ -140,8 +141,8 @@ This repository has an explicit No Regressions Policy regarding mobile platform 
 
 Specifically, do NOT:
 
-- Introduce additional mobile frameworks / separate mobile UI codebases
-- Add conflicting mobile build instructions unrelated to the Capacitor packaging approach
+- Introduce additional mobile frameworks / separate mobile UI codebases here
+- Add native build tooling to this repo — native packaging lives in `chravel-mobile`
 
 **Read:** `ARCHITECTURE_DECISIONS.md` before making architectural changes.
 
@@ -151,10 +152,12 @@ Specifically, do NOT:
 |----------|--------|------------|
 | Web | **Active** | React/TypeScript + Vite |
 | PWA | **Active** | Service Worker |
-| iOS | **Planned / In Progress** | Capacitor |
-| Android | **Planned / In Progress** | Capacitor |
+| iOS | **Active** | Expo WebView (separate `chravel-mobile` repo, EAS Build) |
+| Android | **Active** | Expo WebView (separate `chravel-mobile` repo, EAS Build) |
 
-Mobile apps are packaged from this codebase via Capacitor.
+This repo serves the web app and PWA. The native shell consumes the same
+web app via WebView from `chravel-mobile`, bridged through
+`window.ChravelNative` (see `src/utils/nativeBridge.ts`).
 
 ---
 

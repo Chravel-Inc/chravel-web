@@ -63,54 +63,34 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
-- Capacitor (for native iOS/Android)
+- Native shell: Expo WebView + EAS Build (lives in the separate `chravel-mobile` repo, not this codebase)
 - Supabase (backend)
 
 ## Mobile App Development
 
-Chravel is available as a native iOS and Android app powered by Capacitor.
+Chravel ships as web + PWA from this repo, and as a native iOS/Android
+app via a separate **`chravel-mobile`** repository (Expo + EAS Build).
+The native shell wraps this web app in an Expo WebView and exposes a
+small bridge (`window.ChravelNative`) for native-only capabilities.
 
-**Key Mobile Features:**
-- Native camera and photo integration
-- Push notifications
-- Haptic feedback
-- Geolocation services
-- Offline-first architecture
-- Background sync
+**Where things live:**
+- This repo (`chravel-web`): web app, PWA, service worker, design system,
+  Supabase edge functions, native-bridge consumer (`src/utils/nativeBridge.ts`,
+  `src/utils/installedAuthBrowser.ts`, `src/utils/platformDetection.ts`).
+- `chravel-mobile` repo: Expo app, EAS Build config, native plugins for
+  camera/push/haptics/geolocation/IAP, `WebBrowser.openAuthSessionAsync`
+  OAuth bridge, AASA / assetlinks for Universal Links.
 
-**Build Instructions:**
-
-For detailed iOS App Store submission guide, see: [IOS_APP_STORE_GUIDE.md](/docs/ACTIVE/IOS_APP_STORE_GUIDE.md)
-
-For production build checklist, see: [PRODUCTION_BUILD_CHECKLIST.md](/docs/ACTIVE/PRODUCTION_BUILD_CHECKLIST.md)
-
-For screenshot guide, see: [APP_STORE_SCREENSHOTS.md](/docs/ACTIVE/APP_STORE_SCREENSHOTS.md)
-
-**Quick Start:**
-```bash
-# Add native platforms
-npx cap add ios
-npx cap add android
-
-# Build web assets
-npm run build
-
-# Sync to native platforms
-npx cap sync
-
-# Open in native IDEs
-npx cap open ios      # Requires Xcode (Mac only)
-npx cap open android  # Requires Android Studio
-```
-
-**Mobile Architecture:**
+**Mobile-friendly behavior baked into this repo:**
 - Mobile-specific routing with conditional rendering
 - Touch-optimized UI (44px+ touch targets)
-- Service Worker for offline support
+- Service Worker for offline support (PWA; the native shell brings its own caching)
 - Virtual scrolling for performance
 - Zero impact on desktop/web experience
 
 For complete mobile readiness report, see: [MOBILE_READINESS.md](MOBILE_READINESS.md)
+For native build instructions (iOS App Store / Play Store), see the
+`chravel-mobile` repo — those flows do not run from this codebase.
 
 ## How can I deploy this project?
 

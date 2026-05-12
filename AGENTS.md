@@ -51,7 +51,7 @@ Frontend:    React 18, TypeScript, TanStack Query, Zustand
 Styling:     Tailwind CSS (mobile-first)
 Backend:     Supabase (Postgres + RLS + Edge Functions)
 Deployment:  Vercel
-Mobile:      Capacitor (iOS wrapper) / PWA
+Mobile:      Expo WebView (separate chravel-mobile repo, EAS Build) / PWA
 Payments:    Stripe
 Maps:        Google Maps
 Auth:        Supabase Auth + Firebase (notifications)
@@ -75,8 +75,7 @@ Key files:
   claude-progress.txt       → Anti-Goldfish breadcrumbs — READ FIRST
   supabase/migrations/      → Schema source of truth
   supabase/functions/        → Edge functions
-  capacitor.config.ts       → iOS wrapper config
-  vercel.json               → Deployment config
+  vercel.json               → Deployment config (native shell config lives in chravel-mobile repo)
 ```
 
 > If you don't know where something lives — search. `rg "symbolName"`. Do not guess file paths or APIs.
@@ -392,7 +391,7 @@ Husky pre-commit hook runs `lint-staged`. Install hooks with `npx husky install`
 ```
 /docs/
   supabase-schema.md       → DB types, RLS notes, migration history
-  mobile-architecture.md   → Capacitor config, PWA constraints, iOS wrapper
+  mobile-architecture.md   → PWA constraints, native bridge contract (chravel-mobile is a separate Expo repo)
   demo-mode.md             → Mock data architecture, parallel data path pattern
   prompt-engineering.md    → Expanded prompting guide for AI tools
   touring-intel.md         → CAA touring data extraction patterns (separate concern)

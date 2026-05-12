@@ -458,7 +458,7 @@ From `npm audit` (15 total: 2 critical, 6 high, 7 moderate):
 | `jspdf-autotable` | **CRITICAL** | Transitive from jspdf | Yes -- upgrade jspdf |
 | `react-router-dom` | **HIGH** | XSS via Open Redirects (GHSA-2w69) | Yes -- upgrade |
 | `xlsx` (SheetJS) | **HIGH** | Prototype Pollution + ReDoS | **NO FIX** -- consider alternative library |
-| `tar` (via `@capacitor/cli`) | **HIGH** | Path Traversal + Symlink Poisoning | Yes -- upgrade `@capacitor/cli` |
+| ~~`tar` (via `@capacitor/cli`)~~ | ~~**HIGH**~~ | ~~Path Traversal + Symlink Poisoning~~ | **N/A in this repo as of 2026-05-12** — `@capacitor/cli` is no longer a dependency. Track in `chravel-mobile` backlog if still relevant there. |
 | `lodash` | MODERATE | Prototype Pollution in `_.unset`/`_.omit` | Yes |
 | `esbuild` (via `vite`) | MODERATE | Dev server request forgery | Yes -- upgrade vite to v7 |
 | `vitest` suite | MODERATE | Transitive from vite/esbuild | Yes -- upgrade vitest to v4 |

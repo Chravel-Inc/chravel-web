@@ -7,6 +7,28 @@
 
 ---
 
+> ## ⚠️ HISTORICAL DOCUMENT — DO NOT USE AS CURRENT-STATE REFERENCE
+>
+> **Status (as of 2026-05-12):** This audit assessed an earlier Capacitor 8
+> packaging of the app from inside this repo. As of 2026-05-12 the native
+> shell has moved out: it is now an **Expo + EAS Build** project in a
+> separate `chravel-mobile` repository. No `capacitor.config.ts`, no
+> `ios/` directory, and no `@capacitor/*` dependencies remain in this
+> repo.
+>
+> **What is still useful here:** the non-Capacitor sections — RLS posture,
+> Supabase config, RevenueCat receipt validation policy, content
+> moderation flow, accessibility, App Store metadata guidance — remain
+> referenceable. Anything specifically tied to Capacitor plugins,
+> `capacitor.config.ts`, or iOS shell configuration is obsolete and
+> should be re-evaluated against the `chravel-mobile` repo.
+>
+> **What is obsolete:** the "Platform: Capacitor 8.0.0" framing, plugin
+> registration findings, and any native build / submission steps. Those
+> live in `chravel-mobile` now and are not actionable from this codebase.
+
+---
+
 ## 1) EXECUTIVE SUMMARY
 
 ### Launch Readiness Score: **82/100** (↑ from 78/100)
