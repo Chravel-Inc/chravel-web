@@ -52,27 +52,71 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="modulepreload" href="/src/components/landing/FullPageLanding.tsx" />
     <style>
-      .app-suspense-fallback {
+      /* First-paint branded splash (replaced when React mounts #root) */
+      #chravel-boot-splash {
+        box-sizing: border-box;
         min-height: 100vh;
+        min-height: 100dvh;
+        margin: 0;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
-        background: hsl(var(--background));
+        background: #000000;
+        color: #fff;
+        font-family:
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          sans-serif;
+        text-align: center;
+        padding: calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px);
       }
 
-      .app-suspense-spinner {
-        width: 3rem;
-        height: 3rem;
+      #chravel-boot-splash h1 {
+        margin: 0 0 2rem;
+        font-size: clamp(2rem, 6vw, 3.5rem);
+        font-weight: 700;
+        line-height: 1.1;
+        background: linear-gradient(
+          135deg,
+          #7ba4d9 0%,
+          #c49746 35%,
+          #e8af48 50%,
+          #c49746 65%,
+          #7ba4d9 100%
+        );
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
       }
 
-      .app-suspense-spin {
-        animation: appSuspenseSpin 1s linear infinite;
+      #chravel-boot-splash .chravel-boot-tagline {
+        margin: 1.5rem 0 0;
+        font-size: clamp(1.15rem, 3.8vw, 1.85rem);
+        font-weight: 700;
+        line-height: 1.25;
+        max-width: 22rem;
+        background: linear-gradient(
+          135deg,
+          #7ba4d9 0%,
+          #c49746 35%,
+          #e8af48 50%,
+          #c49746 65%,
+          #7ba4d9 100%
+        );
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
       }
 
-      @keyframes appSuspenseSpin {
-        to {
-          transform: rotate(360deg);
-        }
+      #chravel-boot-splash img {
+        width: clamp(7rem, 22vw, 10rem);
+        height: auto;
+        object-fit: contain;
+        filter: drop-shadow(0 0 24px rgba(196, 151, 70, 0.35));
       }
     </style>
 
@@ -87,7 +131,13 @@
     <meta name="twitter:description" content="The Group Chat Travel App" />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="chravel-boot-splash" role="status" aria-live="polite" aria-busy="true" aria-label="Loading ChravelApp">
+        <h1>ChravelApp</h1>
+        <img src="/chravel-pwa-icon.png" alt="" width="160" height="160" decoding="async" fetchpriority="high" />
+        <p class="chravel-boot-tagline">Less chaos, more coordination</p>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

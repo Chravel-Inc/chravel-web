@@ -9,6 +9,7 @@ import { getMissingSupabaseEnvVars } from '@/integrations/supabase/config';
 import { telemetry } from '@/telemetry/service';
 import { isLovablePreview } from './utils/env';
 import { isChravelNativeShell } from './utils/platformDetection';
+import { BrandBootSplash } from '@/components/BrandBootSplash';
 import './index.css';
 
 // ── Startup env validation ──────────────────────────────────────────────────
@@ -234,13 +235,7 @@ createRoot(document.getElementById('root')!).render(
       ) : (
         <TripVariantProvider variant="consumer">
           <BasecampProvider>
-            <Suspense
-              fallback={
-                <div className="app-suspense-fallback min-h-screen flex items-center justify-center bg-background">
-                  <div className="app-suspense-spinner app-suspense-spin w-12 h-12 animate-spin gold-gradient-spinner" />
-                </div>
-              }
-            >
+            <Suspense fallback={<BrandBootSplash />}>
               <App />
             </Suspense>
           </BasecampProvider>
