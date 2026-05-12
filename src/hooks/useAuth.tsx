@@ -329,11 +329,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 trip_invites: true,
                 join_requests: false,
                 basecamp_updates: true,
+                messages: true,
+                broadcasts_and_pins: true,
                 quiet_hours_enabled: false,
                 quiet_start: '22:00',
                 quiet_end: '08:00',
                 timezone: 'America/New_York',
-              },
+              } as any,
             );
           } catch (err) {
             if (import.meta.env.DEV) {
