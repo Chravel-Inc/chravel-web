@@ -19,6 +19,7 @@ import { supabase as typedSupabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { tripKeys } from '@/lib/queryKeys';
+import { calendarService } from '@/services/calendarService';
 import { toast } from 'sonner';
 
 // trip_pending_actions is not in the generated Supabase types yet; cast the client
@@ -271,6 +272,127 @@ export function usePendingActions(tripId: string) {
           break;
         }
 
+        case 'splitTaskAssignments': {
+          // Voice agent batches multiple task creations into a single
+          // pending action with an array of task objects. Re-execute by
+          // inserting each task into trip_tasks plus task_assignments and
+          // task_status parity rows, matching the createTask path.
+          // Assignee resolution by display name is deferred — assignments
+          // default to the confirming user, mirroring the createTask fallback.
+          const tasks =
+            (payload.tasks as Array<{
+              title?: string;
+              assignee?: string;
+              dueDate?: string;
+              notes?: string;
+            }>) || [];
+          if (!Array.isArray(tasks) || tasks.length === 0) {
+            throw new Error('No tasks in payload');
+          }
+          for (const task of tasks) {
+            const title = String(task.title || '').trim();
+            if (!title) continue;
+            const { data: taskRow, error: insertErr } = await (supabase as any)
+              .from('trip_tasks')
+              .insert({
+                trip_id: action.trip_id,
+                creator_id: user.id,
+                title,
+                description: task.notes || null,
+                due_at: task.dueDate || null,
+                source_type: 'ai_concierge',
+              })
+              .select('id')
+              .single();
+            if (insertErr) throw insertErr;
+            if (taskRow?.id) {
+              await (supabase as any)
+                .from('task_assignments')
+                .insert([{ task_id: taskRow.id, user_id: user.id }]);
+              await (supabase as any)
+                .from('task_status')
+                .insert([{ task_id: taskRow.id, user_id: user.id, completed: false }]);
+            }
+          }
+          break;
+        }
+
+        case 'emitBulkDeletePreview': {
+          // Voice agent (agent/src/tools.ts) writes this tool_name with
+          // search criteria only — no pre-computed IDs. Re-run the filter
+          // on confirm and bulk-delete via calendarService.
+          //
+          // Note: timezone-aware date math from functionExecutor.ts is
+          // omitted here. afterDate/beforeDate are applied as ISO string
+          // comparisons; agents pass already-normalized ISO dates.
+          const titleContains = payload.titleContains as string | undefined;
+          const locationContains = payload.locationContains as string | undefined;
+          const afterDate = payload.afterDate as string | undefined;
+          const beforeDate = payload.beforeDate as string | undefined;
+          const category = payload.category as string | undefined;
+          const eventTitles = payload.eventTitles as string[] | undefined;
+          const matchMode = (payload.matchMode as string | undefined) || 'auto';
+
+          let q = (supabase as any)
+            .from('trip_events')
+            .select('id, title, location, start_time, event_category')
+            .eq('trip_id', action.trip_id);
+          if (afterDate) q = q.gt('start_time', afterDate);
+          if (beforeDate) q = q.lt('start_time', beforeDate);
+          if (category) q = q.eq('event_category', category);
+
+          const { data: candidates, error: qErr } = await q;
+          if (qErr) throw qErr;
+
+          let filtered = (candidates || []) as Array<{
+            id: string;
+            title: string;
+            location: string | null;
+          }>;
+          if (titleContains) {
+            const needle = String(titleContains).toLowerCase();
+            filtered = filtered.filter(e => (e.title || '').toLowerCase().includes(needle));
+          }
+          if (locationContains) {
+            const needle = String(locationContains).toLowerCase();
+            filtered = filtered.filter(e => (e.location || '').toLowerCase().includes(needle));
+          }
+          if (Array.isArray(eventTitles) && eventTitles.length > 0) {
+            const needles = eventTitles.map(t => String(t).toLowerCase().trim());
+            if (matchMode === 'exact') {
+              filtered = filtered.filter(e =>
+                needles.includes((e.title || '').toLowerCase().trim()),
+              );
+            } else if (matchMode === 'contains') {
+              filtered = filtered.filter(e =>
+                needles.some(n => (e.title || '').toLowerCase().includes(n)),
+              );
+            } else {
+              let m = filtered.filter(e => needles.includes((e.title || '').toLowerCase().trim()));
+              if (m.length === 0) {
+                m = filtered.filter(e =>
+                  needles.some(n => (e.title || '').toLowerCase().startsWith(n)),
+                );
+              }
+              if (m.length === 0) {
+                m = filtered.filter(e =>
+                  needles.some(n => (e.title || '').toLowerCase().includes(n)),
+                );
+              }
+              filtered = m;
+            }
+          }
+
+          const ids = filtered.map(e => e.id);
+          if (ids.length === 0) throw new Error('No matching events to delete');
+
+          const result = await calendarService.bulkDeleteEvents(ids, action.trip_id);
+          if (result.deleted === 0 && result.failed > 0) {
+            throw new Error(`Failed to delete ${result.failed} event(s)`);
+          }
+          break;
+        }
+
         default:
           throw new Error(`Unknown tool: ${action.tool_name}`);
       }
@@ -307,6 +429,8 @@ export function usePendingActions(tripId: string) {
         cloneActivity: 'Activity cloned',
         addExpense: 'Expense added',
         updateTripDetails: 'Trip details updated',
+        splitTaskAssignments: 'Tasks assigned',
+        emitBulkDeletePreview: 'Events removed',
       };
       const label = toolLabelMap[action.tool_name] || 'Action confirmed';
       const isVerb = [
@@ -317,6 +441,8 @@ export function usePendingActions(tripId: string) {
         'Reminder noted',
         'Budget noted',
         'Trip details updated',
+        'Tasks assigned',
+        'Events removed',
       ].includes(label);
       toast.success(isVerb ? label : `${label} created`);
 
@@ -336,7 +462,11 @@ export function usePendingActions(tripId: string) {
           queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId), exact: false });
           break;
         case 'bulkMarkTasksDone':
+        case 'splitTaskAssignments':
           queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId], exact: false });
+          break;
+        case 'emitBulkDeletePreview':
+          queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId), exact: false });
           break;
         case 'addExpense':
           queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId), exact: false });

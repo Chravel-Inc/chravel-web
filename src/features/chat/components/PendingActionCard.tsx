@@ -9,6 +9,8 @@ import {
   DollarSign,
   Copy,
   Settings2,
+  Users,
+  Trash2,
 } from 'lucide-react';
 import type { PendingAction } from '@/hooks/usePendingActions';
 
@@ -33,6 +35,8 @@ const TOOL_CONFIG: Record<string, { icon: React.ElementType; label: string; colo
   cloneActivity: { icon: Copy, label: 'Clone Activity', color: 'text-purple-400' },
   addExpense: { icon: DollarSign, label: 'Expense', color: 'text-orange-400' },
   updateTripDetails: { icon: Settings2, label: 'Trip Update', color: 'text-blue-400' },
+  splitTaskAssignments: { icon: Users, label: 'Bulk Tasks', color: 'text-green-400' },
+  emitBulkDeletePreview: { icon: Trash2, label: 'Bulk Remove Events', color: 'text-red-400' },
 };
 
 function getActionTitle(action: PendingAction): string {
@@ -72,6 +76,20 @@ function getActionTitle(action: PendingAction): string {
     case 'updateTripDetails': {
       const fields = Object.keys(payload).filter(k => k !== 'trip_id');
       return fields.length > 0 ? `Update trip ${fields.join(', ')}` : 'Update trip details';
+    }
+    case 'splitTaskAssignments': {
+      const tasks = payload.tasks as unknown[] | undefined;
+      const count = Array.isArray(tasks) ? tasks.length : 0;
+      return `Create ${count} task${count !== 1 ? 's' : ''}`;
+    }
+    case 'emitBulkDeletePreview': {
+      const titles = payload.eventTitles as unknown[] | undefined;
+      const tc = payload.titleContains as string | undefined;
+      if (Array.isArray(titles) && titles.length > 0) {
+        return `Remove ${titles.length} event${titles.length !== 1 ? 's' : ''}`;
+      }
+      if (tc) return `Remove events matching "${tc}"`;
+      return 'Bulk remove events';
     }
     default:
       return 'Unknown action';
@@ -153,6 +171,29 @@ function getActionDetail(action: PendingAction): string | null {
       const name = payload.name as string | undefined;
       const destination = payload.destination as string | undefined;
       return name ? `Name: "${name}"` : destination ? `Destination: ${destination}` : null;
+    }
+    case 'splitTaskAssignments': {
+      const tasks = payload.tasks as Array<{ title?: string; assignee?: string }> | undefined;
+      if (!Array.isArray(tasks) || tasks.length === 0) return null;
+      return (
+        tasks
+          .slice(0, 3)
+          .map(t => (t.assignee ? `${t.title} → ${t.assignee}` : t.title))
+          .filter(Boolean)
+          .join(', ') + (tasks.length > 3 ? ', …' : '')
+      );
+    }
+    case 'emitBulkDeletePreview': {
+      const parts: string[] = [];
+      const after = payload.afterDate as string | undefined;
+      const before = payload.beforeDate as string | undefined;
+      const cat = payload.category as string | undefined;
+      const loc = payload.locationContains as string | undefined;
+      if (after) parts.push(`after ${after}`);
+      if (before) parts.push(`before ${before}`);
+      if (cat) parts.push(`category: ${cat}`);
+      if (loc) parts.push(`location: ${loc}`);
+      return parts.join(' · ') || null;
     }
     default:
       return null;
