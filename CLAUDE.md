@@ -27,7 +27,7 @@
 3. Google Maps JavaScript API (maps, places, geocoding)
 4. RevenueCat (iOS/web subscription billing)
 5. Stripe (web checkout, webhooks, customer portal)
-6. Capacitor (iOS/Android native shell)
+6. Stream Chat (canonical chat transport — replaced Supabase Realtime chat path)
 7. Sentry (error tracking)
 8. PostHog (product analytics)
 9. Google Calendar API (bi-directional sync)
@@ -92,22 +92,23 @@
 | **Client state** | Zustand 5 (6 stores) | `src/stores/`, `src/store/` |
 | **Styling** | Tailwind 3.4 + shadcn/ui (Radix) | `tailwind.config.ts`, `src/components/ui/` (48 primitives) |
 | **Routing** | React Router DOM 6 | `src/App.tsx` (~25 routes, all lazy-loaded) |
-| **Backend** | Supabase Edge Functions (Deno) | `supabase/functions/` (~95 functions, ~45K lines) |
-| **Database** | PostgreSQL via Supabase | `supabase/migrations/` (329 migrations, ~160 tables, 756 RLS policies) |
+| **Backend** | Supabase Edge Functions (Deno) | `supabase/functions/` (93 functions, ~45K lines) |
+| **Database** | PostgreSQL via Supabase | `supabase/migrations/` (358 migrations, ~215 tables, ~824 RLS policies) |
 | **Auth** | Supabase Auth (email + Google OAuth) | `src/hooks/useAuth.tsx`, `_shared/requireAuth.ts` |
-| **Realtime** | Supabase Realtime (WebSocket) | Chat, notifications, locations |
+| **Realtime** | Supabase Realtime (WebSocket) | Chat (legacy), notifications, locations |
+| **Chat** | Stream Chat 9.40 (canonical chat transport) | `stream-chat` SDK; webhook fanout via `supabase/functions/stream-*` |
+| **Voice** | LiveKit 2.18 client + externally-deployed Gemini-backed agent + `gemini-tts` edge function | `livekit-client`, `supabase/functions/livekit-token/`, `supabase/functions/gemini-tts/` |
 | **Storage** | Supabase Storage | Media uploads, avatars |
-| **AI (text)** | Google Gemini via `lovable-concierge` (2,155 lines) | 38 tools, 18 query classes |
-| **AI (voice)** | Vertex AI Live API (`gemini-live-2.5-flash-native-audio`) | `supabase/functions/gemini-voice-session/` |
+| **AI (text)** | Google Gemini via `lovable-concierge` (2,155 lines) | 75 registered tools, 18 query classes |
 | **Payments (web)** | Stripe (checkout + webhooks) | `supabase/functions/stripe-webhook/` |
 | **Payments (iOS)** | RevenueCat | `src/integrations/revenuecat/` |
-| **iOS wrapper** | Capacitor 8 (NOT React Native) | `capacitor.config.ts`, `ios/` |
+| **iOS shell** | NOT in this repo (web + PWA only — no Capacitor, no `ios/` dir) | — |
 | **Hosting** | Vercel (frontend) + Render (unfurl proxy) | `vercel.json`, `render.yaml` |
 | **CI/CD** | 9 GitHub Actions workflows | `.github/workflows/` |
 | **Analytics** | PostHog | `src/telemetry/` |
 | **Errors** | Sentry | `@sentry/react` |
 
-**No Python. No React Native. No GraphQL. No traditional server.**
+**No Python. No React Native. No Capacitor (in this repo). No GraphQL. No traditional server.**
 
 ## Codebase Scale
 
@@ -115,8 +116,11 @@
 |--------|-------|
 | Frontend files (.ts/.tsx) | 936 |
 | Frontend LOC | ~205,000 |
-| Edge functions | ~95 |
+| Edge functions | 93 |
 | Edge function LOC | ~45,000 |
+| Migrations | 358 |
+| Tables (live schema) | ~215 |
+| RLS policies (live schema) | ~824 |
 | Custom hooks | 100 (`src/hooks/`) |
 | Service modules | 82 (`src/services/`) |
 | Shared components | 96 (`src/components/`) |
@@ -129,11 +133,13 @@
 ## Architecture Topology
 
 ```
-User → Vercel (static SPA) → Supabase (DB + Auth + Realtime + Storage + ~95 Edge Functions)
-                            → Google Gemini / Vertex AI (AI concierge)
+User → Vercel (static SPA) → Supabase (DB + Auth + Realtime + Storage + 93 Edge Functions)
+                            → Stream Chat (canonical chat transport)
+                            → LiveKit + external Gemini-backed agent (voice concierge)
+                            → Google Gemini / Vertex AI (AI text concierge)
                             → Stripe / RevenueCat (payments)
                             → Google Maps / Calendar / Gmail (integrations)
-iOS → Capacitor shell → same web app → same Supabase backend
+(iOS native shell, if any, lives in a separate repo and consumes the same Supabase backend.)
 ```
 
 - **Frontend queries Supabase directly** via JS client with user JWT; RLS filters at DB layer
@@ -150,15 +156,15 @@ iOS → Capacitor shell → same web app → same Supabase backend
 
 ## AI Concierge Architecture
 
-1. Auth → Rate limit → Query classification (18 classes) → Selective tool loading (38 tools from `toolRegistry.ts`)
+1. Auth → Rate limit → Query classification (18 classes) → Selective tool loading (75 registered tools in `toolRegistry.ts`; subset loaded per query class)
 2. Context building per query class → Prompt assembly (conditional layers) → Gemini API call with function calling
 3. Tool execution via capability tokens + secure router → Usage tracking → Response
-4. **Voice path:** Vertex AI Live API, WebSocket duplex audio, shared tool declarations, circuit breaker, 5 voice presets
+4. **Voice path (current reality):** LiveKit room + token minting (`livekit-token` edge function) + externally-deployed Gemini-backed LiveKit agent + `gemini-tts` for synthesis. Browser uses `livekit-client` directly. The earlier "Gemini Live WebSocket proxy / session" direct path documented in `AUDIT_CONCIERGE_LIVE.md` is **aspirational** — neither `gemini-voice-session` nor `gemini-voice-proxy` exists on disk in this repo.
 5. **RAG:** `kb_documents` + `kb_chunks` + `trip_embeddings` tables, embedding generation edge functions
 
 ## Security Posture
 
-- **756 RLS policies** enforce access at DB layer
+- **~824 RLS policies** enforce access at DB layer
 - **CORS:** exact origin matching, no wildcards (`_shared/cors.ts`)
 - **Auth:** JWT validated server-side in every edge function via `requireAuth.ts`
 - **Secrets:** validated at function startup via `requireSecrets()` from `_shared/validateSecrets.ts`
@@ -178,8 +184,8 @@ iOS → Capacitor shell → same web app → same Supabase backend
 ## Key Architectural Decisions
 
 - **Supabase as sole backend** — deep lock-in (migration: 9/10 difficulty), but zero infra management
-- **Capacitor, not React Native** — same codebase for web+iOS, but limited native capabilities
-- **Gemini, not OpenAI** — native voice via Vertex AI Live, function calling, multimodal; `openai-chat` edge function exists as legacy
+- **Web + PWA only in this repo** — no native shell (Capacitor / React Native) lives here
+- **Gemini, not OpenAI** — function calling + multimodal text path; voice runs through LiveKit + external agent + `gemini-tts` (the "Gemini Live direct" path documented in audits is aspirational and not implemented in this repo). `openai-chat` edge function exists as legacy
 - **Feature flags via DB table** — runtime kill switches, 60s client cache, no redeployment needed
 - **shadcn/ui + Radix** — accessible, composable primitives; "premium dark/gold" design language
 - **Offline queue** — IndexedDB cache + mutation queue + sync processor (real, not theoretical)
@@ -201,7 +207,7 @@ iOS → Capacitor shell → same web app → same Supabase backend
 - `AIConciergeChat.tsx`: 540-line orchestrator (logic extracted to `src/features/concierge/hooks/`)
 - Flat `src/hooks/` (100 files) and `src/services/` (82 files) — need modularization
 - Only 5 of ~12 domains use `src/features/` pattern
-- ~160 tables with potential orphans (mock tables in prod schema)
+- ~215 tables with potential orphans (mock tables in prod schema)
 - 1,293 ESLint warnings (budget-tracked but high)
 - Test coverage ~12% file coverage (109 tests / 936 source files)
 

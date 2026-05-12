@@ -312,15 +312,29 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
     }
   }, [demoActive, refetchPayments]);
 
-  // Subscribe to profile updates — invalidate query cache for instant avatar/name refresh
+  // Subscribe to the current user's profile changes only. Previously this channel
+  // subscribed to ALL profile mutations in the database (no filter clause), which
+  // is the regression vector documented in agent_memory.jsonl #20. Other trip
+  // members' avatar/name edits are picked up on the next refetchOnWindowFocus
+  // or after the 30s payments staleTime — that latency is acceptable here.
   useEffect(() => {
     if (!tripId || demoActive) return;
+    if (!user?.id) return;
 
     const channel = supabase
-      .channel(`mobile-payments-profiles-${tripId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
-        queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) });
-      })
+      .channel(`mobile-payments-profiles-${tripId}-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${user.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) });
+        },
+      )
       .subscribe();
 
     return () => {
@@ -328,7 +342,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
         // ignore
       });
     };
-  }, [tripId, demoActive, queryClient]);
+  }, [tripId, demoActive, queryClient, user?.id]);
 
   // Subscribe to payment changes — trip-scoped via trip_payment_messages only.
   // (payment_splits has no trip_id; settle flow updates trip_payment_messages too)

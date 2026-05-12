@@ -70,6 +70,12 @@ jobs:
       - name: Lint migration files
         run: npx tsx scripts/lint-migrations.ts
 
+      - name: Check edge function parity (config.toml vs on-disk)
+        run: npx tsx scripts/check-edge-function-parity.ts
+
+      - name: Audit concierge tool 5-file sync
+        run: npx tsx scripts/audit-concierge-tools.ts
+
   unit-tests:
     name: Unit Tests (Vitest)
     runs-on: ubuntu-24.04
