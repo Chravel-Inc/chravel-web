@@ -115,7 +115,7 @@ Before submitting a PR, ensure:
 PRs that involve architectural changes require additional review:
 
 - [ ] No deprecated mobile strategies introduced
-- [ ] Mobile packaging strategy remains Capacitor-based
+- [ ] Mobile experience continues to be served as web + PWA from this repo (native-shell packaging lives in a separate repo)
 - [ ] Docs updated to match code changes
 - [ ] Changes align with `ARCHITECTURE_DECISIONS.md`
 
@@ -140,8 +140,8 @@ This repository has an explicit No Regressions Policy regarding mobile platform 
 
 Specifically, do NOT:
 
-- Introduce additional mobile frameworks / separate mobile UI codebases
-- Add conflicting mobile build instructions unrelated to the Capacitor packaging approach
+- Introduce additional mobile frameworks / separate mobile UI codebases inside this repo
+- Add native-shell build instructions to this repo — they belong in the separate native shell repository
 
 **Read:** `ARCHITECTURE_DECISIONS.md` before making architectural changes.
 
@@ -151,10 +151,9 @@ Specifically, do NOT:
 |----------|--------|------------|
 | Web | **Active** | React/TypeScript + Vite |
 | PWA | **Active** | Service Worker |
-| iOS | **Planned / In Progress** | Capacitor |
-| Android | **Planned / In Progress** | Capacitor |
+| iOS native shell | Maintained in a **separate repository** (consumes this repo's Supabase backend) | — |
 
-Mobile apps are packaged from this codebase via Capacitor.
+This repo packages the web + PWA experience only as of 2026-05-12. The iOS native shell (if/when it exists) is built and released from its own repo.
 
 ---
 

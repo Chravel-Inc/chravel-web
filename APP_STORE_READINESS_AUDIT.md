@@ -5,6 +5,14 @@
 **Auditor:** Senior Mobile Lead + Release Engineer
 **Platform:** Capacitor 8.0.0 + React 18 + Supabase + RevenueCat
 
+> ⚠️ **Status as of 2026-05-12:** This audit predates the removal of Capacitor
+> from this repository. The native iOS shell — `capacitor.config.ts`, the
+> `ios/` directory, Capacitor plugin configuration, and all native-build
+> sections of this document — now lives in a **separate native shell
+> repository** and should be re-validated against the actual current shell
+> repo. The Supabase / RLS / RevenueCat / RLS-hardening sections remain
+> authoritative for this repo.
+
 ---
 
 ## 1) EXECUTIVE SUMMARY

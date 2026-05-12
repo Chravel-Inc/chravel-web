@@ -87,3 +87,164 @@
 - **Rollback plan:** Revert the additions to `usePendingActions.ts`. No schema changes. Pre-fix behavior (silent failure) is restored — strictly safe.
 
 - **Launch-blocking?** No, but should ship before either tool's UX is promoted in onboarding/marketing. Currently low-traffic; impact is bounded.
+
+---
+
+## Re-launchable Session Prompts
+
+The three prompts below are self-contained briefings. Paste verbatim into a new Claude Code session. Each one starts a fresh branch and references the canonical plan above for context.
+
+### Prompt A — R-004: Top-10 entity schema-drift audit
+
+```
+Branch: claude/r-004-schema-drift-audit
+
+You are doing a Chravel schema-drift audit on the top-10 entities. Read
+FOLLOW_UP_ISSUES.md § "R-004" first — that's the canonical plan.
+
+Background: src/hooks/useAuth.tsx:228-278 contains an explicit two-step
+fallback that retries a profiles.select(...) with a narrower column list
+when the full select fails. This proves field drift between code and live
+schema has bitten this team before. The fallback hides the drift today,
+which means any other call site that selects the same columns will
+silently break.
+
+Your job:
+
+1. Regenerate src/integrations/supabase/types.ts using the Supabase MCP
+   generate_typescript_types tool against the live project. Commit the
+   regenerated file as its own commit so the diff is visible.
+
+2. For each of these 10 entities, grep every .from('<entity>').select(...)
+   call site in src/ and verify every column referenced exists in the
+   regenerated types.ts:
+   profiles, trips, trip_members, messages, channels, broadcasts,
+   calendar_events, payment_splits, media_attachments, notifications.
+
+   Fix any mismatch at the call site (rename, drop, alias). If a fix
+   requires a migration, stop and write a Follow-Up Issue Plan instead —
+   do not write migrations in this branch.
+
+3. Remove the schema-drift fallback in useAuth.tsx (the second .select with
+   the minimal column list, lines ~242-265). If the primary select fails
+   after step 2, treat it as a real error (return null, log to Sentry).
+   Add a test that asserts the null return on profile-select error.
+
+4. Add scripts/check-schema-drift.ts: a static lint that parses every
+   .from('<table>').select('<cols>') literal in src/ and asserts every
+   column appears in types.ts for that table. Wire it into
+   .github/workflows/ci.yml as a pretypecheck step. The script must
+   handle Supabase's relation syntax (creator:profiles(display_name)) and
+   nested selects.
+
+5. Validate: npm run typecheck && npm run build pass. New script passes.
+   Auth E2E flow works (sign in, view profile, view a trip).
+
+Output the standard 7-section DEFERRAL_DISCIPLINE footer at the end.
+```
+
+### Prompt B — Concierge confirm-handler gaps
+
+```
+Branch: claude/concierge-confirm-handler-gaps
+
+You are closing a memory-#25 class of bug in the AI concierge. Read
+agent_memory.jsonl entry #25 and FOLLOW_UP_ISSUES.md §
+"Concierge pending-action confirm-handler gaps" first.
+
+Background: scripts/audit-concierge-tools.ts (already in CI) flags two
+tools that insert into trip_pending_actions but have no case in the
+src/hooks/usePendingActions.ts switch:
+  - emitBulkDeletePreview
+  - splitTaskAssignments
+
+This is the silent-confirm pattern: the user taps Confirm on the card,
+nothing happens, no error toast, no DB write.
+
+Your job:
+
+1. Inspect the insert payload for each tool in
+   supabase/functions/_shared/functionExecutor.ts:
+   - emitBulkDeletePreview → starts around line 1404
+   - splitTaskAssignments → starts around line 3112
+   Capture the payload schema (what fields land in
+   trip_pending_actions.payload).
+
+2. For each tool, add a case to the primary switch in
+   usePendingActions.ts that:
+   - Re-executes the mutation server-side using the existing service
+     module (likely src/services/calendarService.ts for bulk-delete and
+     src/services/taskService.ts for split-task — verify by reading those
+     services).
+   - Returns a result the success-toast switch can consume.
+   - Adds the corresponding entry to the toolLabelMap so the success
+     toast renders correctly.
+
+3. Verify the voice path is covered. If src/hooks/useVoiceToolHandler.ts
+   has its own confirm dispatch for these tools, sync it. If it delegates
+   to usePendingActions, no extra work needed — verify by tracing the
+   call.
+
+4. Add unit tests in src/hooks/__tests__/usePendingActions.test.ts (or
+   create if missing) that mock a pending action with each tool_name and
+   assert the expected service call.
+
+5. Validate: re-run `npx tsx scripts/audit-concierge-tools.ts` — both W1
+   warnings must disappear. Manual test: trigger each tool from the text
+   concierge in a real trip, confirm the card, verify the DB write and
+   toast.
+
+Output the standard 7-section DEFERRAL_DISCIPLINE footer at the end.
+```
+
+### Prompt C — Doc-drift sweep (deeper rewrites)
+
+```
+Branch: claude/doc-drift-sweep-post-capacitor
+
+You are doing a doc-consistency sweep after Capacitor was removed from
+this repo. The web app's CLAUDE.md (already updated on main) declares
+this repo is "web + PWA only — no Capacitor, no ios/ dir" and that voice
+runs through LiveKit + an externally-deployed Gemini agent + gemini-tts
+(NOT gemini-voice-session or gemini-voice-proxy, which don't exist on
+disk).
+
+These docs still contradict CLAUDE.md and need a real rewrite, not a
+search-and-replace:
+
+1. AUDIT_CONCIERGE_LIVE.md (~470 lines) — currently calls
+   gemini-voice-proxy "THE CRITICAL PATH". Rewrite as a historical /
+   post-mortem document: keep the technical analysis, add a top-of-file
+   banner noting it is dated and that the current production path is
+   LiveKit-based, and update the "Recommendations" section to reflect
+   that the recommended migration to gemini-voice-session was NOT taken
+   — the team went with LiveKit + external agent instead.
+
+2. LESSONS.md — Capacitor OAuth + WebView lessons in the latter half of
+   the file are still useful for whoever maintains the (separate) iOS
+   shell repo. Add a section banner: "The lessons below were captured
+   when Capacitor lived in this repo. They remain canonical for the
+   native shell repo. Treat them as cross-repo knowledge."
+
+3. SECURITY-AUDIT-2026-02-09.md — Finding E14 ("Capacitor Missing
+   allowNavigation Config") is no longer actionable in this repo. Add an
+   addendum: "E14 superseded — Capacitor is no longer in this repo as of
+   2026-05-12. The finding moves to the native shell repo's backlog."
+
+4. YC_APPLICATION_SHOWCASE.md — Multiple Capacitor mentions are
+   narrative / historical and probably should stay (they describe a
+   product capability, not the repo structure). Add ONE clarifying line
+   somewhere up top: "This repo contains the web + PWA codebase; the
+   native iOS shell lives in a separate repository."
+
+5. PLATFORM_AUDIT_CONSTITUTION.md — The "(React/Capacitor): Zero trust"
+   line should become "(React, web + PWA): Zero trust" — Capacitor isn't
+   in scope for this repo's audits anymore.
+
+For each file: read it first, propose the edit, then apply. Validate
+with `grep -ni capacitor *.md` afterwards — every remaining hit should
+be inside an explicit historical-context section, not a current-state
+claim.
+
+Output the standard 7-section DEFERRAL_DISCIPLINE footer at the end.
+```
