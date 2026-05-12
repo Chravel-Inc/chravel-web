@@ -82,7 +82,7 @@ import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../components/mobile/PullToRefreshIndicator';
 import { clearDataCaches } from '../utils/pwaCacheUtils';
 import { isInstalledApp } from '../utils/platformDetection';
-import { LoadingSpinner } from '../components/LoadingSpinner';
+import { BrandBootSplash } from '../components/BrandBootSplash';
 import { X } from 'lucide-react';
 import { getSettingsRouteIntent } from '../utils/settingsRouteParams';
 
@@ -731,11 +731,7 @@ const AuthIndex = () => {
   if (demoView === 'off' && !user) {
     // Auth is still hydrating — show neutral loading state on all platforms
     if (authLoading) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-background">
-          <LoadingSpinner size="lg" />
-        </div>
-      );
+      return <BrandBootSplash />;
     }
 
     // Installed app (PWA standalone or native webview) — show auth gate, not marketing
@@ -1389,11 +1385,7 @@ const UnauthIndex = ({
 }) => {
   const navigate = useNavigate();
   if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
+    return <BrandBootSplash />;
   }
 
   if (isInstalled) {

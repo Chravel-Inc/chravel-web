@@ -1,5 +1,6 @@
 import { Suspense, lazy, useMemo, useState } from 'react';
 import { BrowserRouter } from 'react-router-dom';
+import { BrandBootSplash } from '@/components/BrandBootSplash';
 import { AuthModal } from '@/components/AuthModal';
 import { FullPageLanding } from '@/components/landing/FullPageLanding';
 
@@ -9,14 +10,7 @@ export default function MarketingApp() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [loadFullShell, setLoadFullShell] = useState(false);
 
-  const fallback = useMemo(
-    () => (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="w-12 h-12 animate-spin gold-gradient-spinner" />
-      </div>
-    ),
-    [],
-  );
+  const fallback = useMemo(() => <BrandBootSplash />, []);
 
   if (loadFullShell) {
     return (
