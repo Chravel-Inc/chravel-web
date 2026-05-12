@@ -1,5 +1,5 @@
 /**
- * Native bridge for the chravel-mobile WebView shell.
+ * Native bridge for the chravel-mobile WebView shell (Expo + EAS Build).
  *
  * Bridge contract (mirrored in chravel-mobile/CLAUDE.md):
  *   - Shell injects `window.ChravelNative.isNative === true` and a `ChravelNative/<v>`
@@ -8,11 +8,12 @@
  *     the first interactive surface is mounted.
  *   - Message names ('ready', 'chravel-web' source) are part of the contract — do
  *     not rename without updating chravel-mobile in lockstep.
- *   - Optional OAuth: `window.ChravelNative.openOAuthUrl(url)` — native should open
- *     the provider URL in an auth session (e.g. Expo `WebBrowser.openAuthSessionAsync`),
- *     then navigate the **main** WebView to `https://chravel.app/auth-callback?...` /
- *     hash so Supabase `detectSessionInUrl` completes in-app. Used when Capacitor
- *     `Plugins.Browser` is not present (typical Expo shell).
+ *   - Optional OAuth: `window.ChravelNative.openOAuthUrl(url)` — when injected,
+ *     native opens the provider URL via Expo `WebBrowser.openAuthSessionAsync`
+ *     (ASWebAuthenticationSession on iOS, Chrome Custom Tabs on Android), then
+ *     navigates the **main** WebView to `https://chravel.app/auth-callback?...` /
+ *     hash so Supabase `detectSessionInUrl` completes in-app. When this bridge
+ *     is not present, `openInstalledAuthBrowser` falls back to `location.assign`.
  */
 
 import { isChravelNativeShell } from './platformDetection';

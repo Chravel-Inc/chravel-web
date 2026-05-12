@@ -169,6 +169,26 @@
 - **Provenance:** April 2026 chat moderation controls rollout.
 - **Confidence:** high
 
+---
+
+> ## 📦 Cross-Repo Knowledge — Native Shell (Capacitor / WebView / Universal Links)
+>
+> The lessons below were captured when Capacitor lived in this repo. As of
+> 2026-05-12 the native iOS shell lives in a **separate repository**
+> (`chravel-mobile`), and this repo is web + PWA only.
+>
+> **They remain canonical for the native shell repo.** Treat them as
+> cross-repo knowledge: anything touching `@capacitor/*` plugins, in-app
+> browser tabs, AASA / Universal Links, custom URL schemes, WebView
+> launch context, or appUrlOpen deep-link listeners belongs to
+> `chravel-mobile`. The web side of each pattern (Universal Link target
+> pages, `auth-callback` handling, AASA payload at `public/.well-known/`,
+> launch-context detection) still lives here.
+>
+> When applying any lesson in this cluster, land web + native changes in
+> lockstep — landing only one side is strictly worse than landing
+> neither (see the OAuth lesson's "Cross-repo dependency" note).
+
 ### Installed-app OAuth requires in-app browser tab + Universal Link deep-link callback
 - **Tip:** For Capacitor/PWA shells, do not embed Google/Apple OAuth in the app WebView (Google rejects with `disallowed_useragent`) and do not bounce to the system browser (it strands the shell and often freezes on provider redirects). The correct pattern is: (1) set `skipBrowserRedirect: true` and point `redirectTo` at an HTTPS Universal Link owned by the app (e.g., `https://chravel.app/auth-callback`), (2) launch the provider URL via an in-app browser tab — `@capacitor/browser` gives SFSafariViewController on iOS and Chrome Custom Tabs on Android — and (3) let the native shell intercept the deep link and reload the WebView at the callback URL so Supabase `detectSessionInUrl` completes the exchange. An earlier revision of this repo hard-blocked OAuth in installed contexts instead; that eliminated the freeze but removed Google/Apple sign-in entirely from the native apps, which is the wrong long-term posture.
 - **Applies when:** Wrapping a web auth flow in a native shell (Capacitor/Expo/WebView) and offering third-party OAuth providers.

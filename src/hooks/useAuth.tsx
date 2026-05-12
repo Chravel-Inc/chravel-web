@@ -886,9 +886,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signInWithGoogle = async (returnToOverride?: string): Promise<{ error?: string }> => {
     try {
       const installed = isInstalledApp();
-      // Installed shells (Capacitor / PWA) return to a Universal Link that the
-      // native wrapper intercepts and re-opens inside the WebView so Supabase
-      // detectSessionInUrl can complete the exchange. Web stays on same-origin.
+      // Installed shells (chravel-mobile Expo WebView / PWA) return to a
+      // Universal Link that the native wrapper intercepts and re-opens
+      // inside the WebView so Supabase detectSessionInUrl can complete the
+      // exchange. Web stays on same-origin.
       const returnTo = getOAuthReturnTo(returnToOverride);
       const returnToQuery = returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : '';
       const redirectUrl = installed
@@ -899,7 +900,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         provider: 'google',
         options: {
           redirectTo: redirectUrl,
-          // In Capacitor / PWA / webview, default redirect opens the system browser and strands the shell.
+          // In installed shells (Expo WebView / PWA), default redirect opens the system browser and strands the shell.
           skipBrowserRedirect: installed,
           // Force account picker so users don't accidentally sign in with the wrong Google account,
           // which could create a duplicate profile if the email differs from their email/password account.
@@ -920,8 +921,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       if (installed && data?.url) {
-        // Prefers @capacitor/browser (SFSafariViewController / Chrome Custom Tabs)
-        // when the native shell registers it; falls back to same-tab navigation.
+        // Routes to window.ChravelNative.openOAuthUrl (Expo bridge) when the
+        // chravel-mobile shell injects it; falls back to same-tab navigation.
         // Google rejects embedded WebView OAuth with disallowed_useragent — the
         // native shell must open this URL outside the embedded WebView.
         await openInstalledAuthBrowser(data.url);

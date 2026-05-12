@@ -5,6 +5,11 @@
 > **Live Product:** [www.chravel.app](https://www.chravel.app)
 > **Founder:** Damechi ("Meech") — Solo non-technical founder, AI-native builder
 > **This document:** The markdown artifact YC requested — proof of how we build with AI
+>
+> **Repo note (2026-05-12):** This repo contains the web + PWA codebase; the
+> native iOS shell lives in a separate repository. Capacitor references
+> below are historical and describe a product capability, not the current
+> structure of this repo.
 
 ---
 

@@ -10,7 +10,7 @@
 
 | Date | File | Scope | Score/Status | Lines |
 |------|------|-------|-------------|-------|
-| 2026-01-10 | APP_STORE_READINESS_AUDIT.md | iOS launch readiness (Capacitor + RevenueCat) | 82/100 | 471 |
+| 2026-01-10 | APP_STORE_READINESS_AUDIT.md | iOS launch readiness (Capacitor + RevenueCat) — **historical: native shell moved to `chravel-mobile` (Expo) on 2026-05-12** | 82/100 | 471 |
 | 2026-03-05 | SECURITY_AUDIT_REPORT.md | Red team — 5 attacker profiles, 34 vulnerabilities | 58/100 | 527 |
 | 2026-03-07 | SECURITY_SCALE_AUDIT_2026_03_07.md | Scale + rate limiting across 10 threat vectors | MODERATE RISK | 260 |
 | 2026-03-11 | AUDIT_CONCIERGE_LIVE.md | Gemini Live voice — forensic end-to-end | 5 failure points | 472 |

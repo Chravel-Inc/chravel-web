@@ -19,7 +19,7 @@
 4. **`pdf-DhQLiaXL` chunk (~612K):** PDF generation (`exportPdfClient.ts` / `jspdf`) is heavy and should only load on user action.
 5. **`livekit-client.esm` chunk (~464K):** Voice features, could be lazy-loaded until voice session starts.
 6. **`charts-a-9arWS0` chunk (~376K):** Recharts should be dynamically imported for analytics views.
-7. **`native-B5Vb9Oiz` chunk (~392K):** Capacitor plugins might be eagerly imported in web contexts.
+7. **`native-B5Vb9Oiz` chunk (~392K):** Likely stale — no native packages are in this repo anymore (the chravel-mobile Expo shell lives separately). Verify the chunk source and remove or re-attribute.
 8. **Eager Supabase client imports:** `src/integrations/supabase/client.ts` is imported everywhere, leading to potential module duplication or side-effect bloat.
 9. **`Index-BAaLzemV` chunk (~260K):** The main landing page is too heavy for first paint.
 10. **`SettingsMenu` chunk (~224K):** Settings should not load until opened.

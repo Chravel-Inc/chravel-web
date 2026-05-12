@@ -36,7 +36,7 @@ The platform's **biggest structural risks** are located in:
 - **Collaboration Objects (`trip_events`, `trip_tasks`, `trip_polls`, `trip_chat_messages`):** Shared state owned by the Trip, mutable by members based on role.
 
 ### Trust Boundaries
-- **Client (React/Capacitor):** Zero trust. Can only propose state changes.
+- **Client (React, web + PWA):** Zero trust. Can only propose state changes.
 - **Edge Functions (Deno):** Medium trust. Must validate all JWTs, enforce rate limits, and sanitize inputs before interacting with external APIs or the database.
 - **Database (Postgres):** High trust. Enforces RLS, foreign keys, unique constraints, and pessimistic locks.
 
