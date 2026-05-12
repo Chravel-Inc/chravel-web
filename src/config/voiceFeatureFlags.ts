@@ -11,7 +11,8 @@
 type VoiceEnvKey =
   | 'VITE_VOICE_LIVE_ENABLED'
   | 'VITE_VOICE_DIAGNOSTICS_ENABLED'
-  | 'VITE_LIVEKIT_WS_URL';
+  | 'VITE_LIVEKIT_WS_URL'
+  | 'VITE_AI_VOICE_PROVIDER';
 
 const getEnv = (key: VoiceEnvKey, fallback: string): string => {
   try {
@@ -50,3 +51,11 @@ export function getVoiceFlags(): {
     LIVEKIT_WS_URL,
   };
 }
+
+export type VoiceProvider = 'openai' | 'livekit' | 'off';
+
+export const AI_VOICE_PROVIDER = ((): VoiceProvider => {
+  const raw = getEnv('VITE_AI_VOICE_PROVIDER', 'openai').toLowerCase();
+  if (raw === 'livekit' || raw === 'off') return raw;
+  return 'openai';
+})();
