@@ -1,12 +1,8 @@
-import { Suspense, lazy, useMemo, useState } from 'react';
+import { Suspense, useMemo } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { FullPageLanding } from '@/components/landing/FullPageLanding';
 
-const App = lazy(() => import('./App'));
-
 export default function MarketingApp() {
-  const [loadFullShell, setLoadFullShell] = useState(false);
-
   const fallback = useMemo(
     () => (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -15,14 +11,6 @@ export default function MarketingApp() {
     ),
     [],
   );
-
-  if (loadFullShell) {
-    return (
-      <Suspense fallback={fallback}>
-        <App />
-      </Suspense>
-    );
-  }
 
   return (
     <BrowserRouter>
