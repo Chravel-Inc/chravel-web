@@ -10,6 +10,19 @@ export type PinnedChatMessage = {
   pinnedAt?: string;
 };
 
+export function isPinnedMessage(message: {
+  isPinned?: boolean;
+  pinned?: boolean;
+  pinnedAt?: string | null;
+  pinned_at?: string | null;
+}) {
+  if (message.isPinned === true || message.pinned === true) return true;
+
+  if (message.isPinned === false || message.pinned === false) return false;
+
+  return Boolean(message.pinnedAt || message.pinned_at);
+}
+
 /**
  * Stream may deliver updated message snapshots more than once while events settle.
  * Keep only one entry per message id and return newest pinned-first order.
