@@ -221,20 +221,27 @@ export function useOpenAIRealtimeVoice(
       substep: 'Creating session',
     }));
 
-    const tokenResp = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-openai-realtime-session`,
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      throw new Error('Sign in required to start live voice');
+    }
+
+    const { data: sessionData, error: sessionError } = await supabase.functions.invoke(
+      'create-openai-realtime-session',
       {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ''}`,
-        },
-        body: JSON.stringify({ tripId, voice }),
+        body: { tripId, voice },
       },
     );
 
-    if (!tokenResp.ok) throw new Error('Failed to initialize voice session');
-    const sessionData = await tokenResp.json();
+    if (sessionError) {
+      const status = sessionError.context?.status;
+      if (status === 401) throw new Error('Your session expired. Please sign in again.');
+      if (status === 403) throw new Error('You no longer have access to this trip.');
+      throw new Error('Failed to initialize voice session');
+    }
     const ephemeralKey = sessionData?.client_secret?.value;
     const model = sessionData?.model;
     if (!ephemeralKey || !model) throw new Error('Invalid voice session response');

@@ -19,8 +19,10 @@ const ALLOWED_ORIGINS = [
   'http://127.0.0.1:5173',
   'http://127.0.0.1:3000',
   'http://127.0.0.1:8080',
-  // Mobile app / local dev
+  // Mobile app / local dev (Capacitor origins on iOS/Android + localhost)
   'http://localhost',
+  'capacitor://localhost',
+  'ionic://localhost',
   // Lovable preview deployments
   // '.lovable.app',
   // Lovable project preview (exact origin — do NOT use wildcard .lovableproject.com)
