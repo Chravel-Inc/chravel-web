@@ -283,8 +283,12 @@ export function useConciergeVoice({
     setLiveTogglePending(true);
     try {
       await startLiveSession();
-    } catch {
-      toast.error('Unable to start live voice session. Please try again.');
+    } catch (error) {
+      const description =
+        error instanceof Error && error.message
+          ? error.message
+          : 'Unable to start live voice session. Please try again.';
+      toast.error('Unable to start live voice session.', { description });
     } finally {
       setLiveTogglePending(false);
     }
