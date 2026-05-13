@@ -4,9 +4,8 @@
     <meta charset="utf-8" />
     <link rel="icon" href="/chravel-pwa-icon.png" type="image/png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
+    <!-- Cache-Control headers handled by hosting (vercel.json). Hashed asset filenames make caching safe. -->
+
     <!-- Build version for cache invalidation - replaced by Vite during build -->
     <meta name="build-version" content="__BUILD_VERSION__" />
     <title>ChravelApp</title>
@@ -47,6 +46,34 @@
     <meta name="apple-touch-fullscreen" content="yes" />
 
     <meta name="description" content="The Group Chat Travel App" />
+
+    <link rel="preconnect" href="https://jmjiyekmxwsxkfnqwyaa.supabase.co" crossorigin />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="modulepreload" href="/src/components/landing/FullPageLanding.tsx" />
+    <style>
+      .app-suspense-fallback {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: hsl(var(--background));
+      }
+
+      .app-suspense-spinner {
+        width: 3rem;
+        height: 3rem;
+      }
+
+      .app-suspense-spin {
+        animation: appSuspenseSpin 1s linear infinite;
+      }
+
+      @keyframes appSuspenseSpin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
 
     <meta property="og:site_name" content="ChravelApp" />
     <meta property="og:image" content="https://chravel.app/chravelapp-social-20251219.png" />

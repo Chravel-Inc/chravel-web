@@ -86,8 +86,11 @@ const isAnonymousRootRoute = (): boolean => {
   return !hasAuthMarker;
 };
 
+// Anonymous visitors to `/` always boot the lightweight MarketingApp shell.
+// The full authed App lazy-loads on sign-in or any non-marketing route.
+// Set VITE_MARKETING_SPLIT=0 to force legacy bootstrap if ever needed.
 const shouldUseMarketingSplit =
-  import.meta.env.VITE_MARKETING_SPLIT === '1' && isAnonymousRootRoute();
+  import.meta.env.VITE_MARKETING_SPLIT !== '0' && isAnonymousRootRoute();
 const safeLocalStorageSet = (key: string, value: string): void => {
   try {
     localStorage.setItem(key, value);
@@ -225,10 +228,10 @@ if (!isMarketingShellPath) {
   scheduleWhenIdle(() => setupGlobalPurchaseListener());
 }
 
+// Release guard: set VITE_MARKETING_SPLIT=0 to force legacy App bootstrap.
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     {hasRequiredSupabaseEnv && App ? (
-      // Release guard: set VITE_MARKETING_SPLIT=0 to force legacy App bootstrap.
       shouldUseMarketingSplit && MarketingApp ? (
         <MarketingApp />
       ) : (
@@ -236,8 +239,8 @@ createRoot(document.getElementById('root')!).render(
           <BasecampProvider>
             <Suspense
               fallback={
-                <div className="min-h-screen flex items-center justify-center bg-background">
-                  <div className="w-12 h-12 animate-spin gold-gradient-spinner" />
+                <div className="app-suspense-fallback min-h-screen flex items-center justify-center bg-background">
+                  <div className="app-suspense-spinner app-suspense-spin w-12 h-12 animate-spin gold-gradient-spinner" />
                 </div>
               }
             >

@@ -1,3 +1,5 @@
+import { isPinnedMessage } from './messageClassification';
+
 export type PinnedChatMessage = {
   id: string;
   text?: string;

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { derivePinnedMessages, isPinnedMessage } from '../pinnedMessages';
+import { derivePinnedMessages } from '../pinnedMessages';
+import { isPinnedMessage } from '../messageClassification';
 
 describe('derivePinnedMessages', () => {
   it('returns pinned messages sorted by pinned_at desc', () => {
@@ -65,7 +66,7 @@ describe('isPinnedMessage', () => {
         sender: { id: 'u1', name: 'A' },
         createdAt: '2026-01-01T00:00:00.000Z',
         isPinned: true,
-      }),
+      } as any),
     ).toBe(true);
 
     expect(
@@ -75,7 +76,7 @@ describe('isPinnedMessage', () => {
         sender: { id: 'u1', name: 'A' },
         createdAt: '2026-01-01T00:00:00.000Z',
         isPinned: false,
-      }),
+      } as any),
     ).toBe(false);
 
     expect(
@@ -84,7 +85,7 @@ describe('isPinnedMessage', () => {
         text: 'hello',
         sender: { id: 'u1', name: 'A' },
         createdAt: '2026-01-01T00:00:00.000Z',
-      }),
+      } as any),
     ).toBe(false);
   });
 });
