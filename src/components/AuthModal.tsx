@@ -335,12 +335,10 @@ export const AuthModal = ({
   return createPortal(
     <div
       data-testid="auth-modal-backdrop"
-      className="dark-section fixed inset-0 z-[100] flex flex-col animate-fade-in"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 pointer-events-none animate-fade-in"
     >
-      <div className="absolute inset-0 bg-black/95 backdrop-blur-sm" aria-hidden="true" />
-      <div className="relative flex min-h-0 flex-1 items-center justify-center p-4 sm:p-6">
-        <div data-testid="auth-modal-content" className="w-full max-w-md">
-          <div className="bg-slate-950/90 backdrop-blur-xl border border-white/10 shadow-2xl rounded-3xl p-6 sm:p-8 animate-scale-in max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem))] overflow-y-auto">
+      <div data-testid="auth-modal-content" className="w-full max-w-md pointer-events-auto">
+        <div className="bg-slate-950/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-3xl p-6 sm:p-8 animate-scale-in max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem))] overflow-y-auto">
             <div className="flex flex-col items-center mb-5">
               <span
                 className="text-3xl font-bold text-gradient-gold select-none"
