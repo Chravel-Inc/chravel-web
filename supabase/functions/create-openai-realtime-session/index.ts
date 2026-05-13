@@ -61,7 +61,7 @@ serve(async req => {
 
   const body = await req.json().catch(() => ({}));
   const tripId = typeof body?.tripId === 'string' ? body.tripId.trim() : '';
-  const fallbackVoice = (Deno.env.get('OPENAI_REALTIME_VOICE') || 'alloy').trim();
+  const fallbackVoice = (Deno.env.get('OPENAI_REALTIME_VOICE') || 'echo').trim();
   const voice = typeof body?.voice === 'string' ? body.voice.trim() : fallbackVoice;
 
   if (!tripId) {

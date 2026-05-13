@@ -84,7 +84,7 @@ export function useOpenAIRealtimeVoice(
 ): UseOpenAIRealtimeVoiceReturn {
   const {
     tripId,
-    voice = 'alloy',
+    voice = 'echo',
     onTurnComplete,
     onPartialTranscript,
     onError,
@@ -227,46 +227,29 @@ export function useOpenAIRealtimeVoice(
     }));
 
     const {
-      data: { session: authSession },
+      data: { session },
     } = await supabase.auth.getSession();
-    const accessToken = authSession?.access_token;
-    if (!accessToken) {
-      throw new Error('Sign in required to start voice');
+
+    if (!session?.access_token) {
+      throw new Error('Sign in required to start live voice');
     }
 
-    const tokenResp = await fetch(
-      `${SUPABASE_PROJECT_URL}/functions/v1/create-openai-realtime-session`,
+    const { data: sessionData, error: sessionError } = await supabase.functions.invoke(
+      'create-openai-realtime-session',
       {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-          apikey: SUPABASE_PUBLIC_API_KEY,
-        },
-        body: JSON.stringify({ tripId, voice }),
+        body: { tripId, voice },
       },
     );
 
-    const sessionRaw = await tokenResp.text();
-    let sessionData: Record<string, unknown> = {};
-    try {
-      sessionData = JSON.parse(sessionRaw) as Record<string, unknown>;
-    } catch {
-      sessionData = {};
+    if (sessionError) {
+      const status = sessionError.context?.status;
+      if (status === 401) throw new Error('Your session expired. Please sign in again.');
+      if (status === 403) throw new Error('You no longer have access to this trip.');
+      throw new Error('Failed to initialize voice session');
     }
-
-    if (!tokenResp.ok) {
-      const errMsg =
-        typeof sessionData.error === 'string' && sessionData.error.trim()
-          ? sessionData.error.trim()
-          : 'Failed to initialize voice session';
-      throw new Error(errMsg);
-    }
-
-    const ephemeralKey =
-      (sessionData.client_secret as { value?: string } | undefined)?.value ??
-      (typeof sessionData.value === 'string' ? sessionData.value : undefined);
-    if (!ephemeralKey) throw new Error('Invalid voice session response');
+    const ephemeralKey = sessionData?.client_secret?.value;
+    const model = sessionData?.model;
+    if (!ephemeralKey || !model) throw new Error('Invalid voice session response');
 
     const pc = new RTCPeerConnection();
     pcRef.current = pc;
@@ -331,6 +314,12 @@ export function useOpenAIRealtimeVoice(
       try {
         await startSession();
       } catch (e) {
+        clearSession();
+        userTranscriptRef.current = '';
+        assistantTranscriptRef.current = '';
+        pendingToolResultsRef.current = [];
+        setUserTranscript('');
+        setAssistantTranscript('');
         const msg = e instanceof Error ? e.message : 'Failed to start voice session';
         setError(msg);
         setState('error');

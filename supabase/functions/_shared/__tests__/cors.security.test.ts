@@ -98,6 +98,16 @@ describe('CORS Security Tests', () => {
       const isOriginAllowed = await getIsOriginAllowed();
       expect(isOriginAllowed('http://127.0.0.1:5173')).toBe(true);
     });
+
+    it('should allow capacitor://localhost for installed iOS/Android app', async () => {
+      const isOriginAllowed = await getIsOriginAllowed();
+      expect(isOriginAllowed('capacitor://localhost')).toBe(true);
+    });
+
+    it('should allow ionic://localhost for older Capacitor shells', async () => {
+      const isOriginAllowed = await getIsOriginAllowed();
+      expect(isOriginAllowed('ionic://localhost')).toBe(true);
+    });
   });
 
   describe('Null/empty origin handling', () => {
