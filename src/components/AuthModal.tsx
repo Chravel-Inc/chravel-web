@@ -390,16 +390,16 @@ export const AuthModal = ({
 
             {/* Tab Navigation - Only show for signin/signup */}
             {mode !== 'forgot' && (
-              <div className="flex rounded-lg bg-white/5 p-1 mb-6">
+              <div className="flex rounded-lg bg-white/5 p-1 mb-6 gap-1">
                 <button
                   onClick={() => {
                     setMode('signin');
                     setError('');
                   }}
-                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+                  className={`flex-1 py-2 px-4 rounded-md text-sm font-semibold transition-all bg-gradient-to-r from-glass-orange to-glass-yellow text-black ${
                     mode === 'signin'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-gray-400 hover:text-white'
+                      ? 'ring-2 ring-glass-yellow shadow-lg'
+                      : 'opacity-70 hover:opacity-100'
                   }`}
                 >
                   Sign In
@@ -409,10 +409,10 @@ export const AuthModal = ({
                     setMode('signup');
                     setError('');
                   }}
-                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+                  className={`flex-1 py-2 px-4 rounded-md text-sm font-semibold transition-all bg-gradient-to-r from-glass-orange to-glass-yellow text-black ${
                     mode === 'signup'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-gray-400 hover:text-white'
+                      ? 'ring-2 ring-glass-yellow shadow-lg'
+                      : 'opacity-70 hover:opacity-100'
                   }`}
                 >
                   Sign Up
