@@ -45,7 +45,7 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
 
   if (isMobile) {
     return (
-      <div className="flex flex-col h-full w-full min-w-0">
+      <div className="flex flex-col h-full min-h-0 w-full min-w-0">
         <div className="flex-shrink-0 p-3 md:p-4 border-b border-white/20">
           <button
             onClick={() => setShowMobileMenu(!showMobileMenu)}
@@ -92,7 +92,7 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
           )}
         </div>
 
-        <div className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden">
+        <div className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden native-scroll">
           <div className="p-3 md:p-4 min-w-0 pb-[max(1.5rem,calc(env(safe-area-inset-bottom,0px)+1rem))]">
             {children}
           </div>
@@ -126,7 +126,7 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
         </nav>
       </aside>
 
-      <main className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden">
+      <main className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden native-scroll">
         <div className="sticky top-0 z-10 border-b border-gold-primary/15 bg-black/70 px-6 py-4 backdrop-blur-md">
           <h3 className="text-lg font-semibold tracking-tight text-white">
             {currentSection?.label ?? title}

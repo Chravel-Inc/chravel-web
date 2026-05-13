@@ -78,6 +78,7 @@ describe('SettingsLayout', () => {
     // The scrollable area should have min-h-0 to allow shrinking in flex container
     const scrollableArea = container.querySelector('.flex-1.min-h-0.overflow-y-auto');
     expect(scrollableArea).toBeInTheDocument();
+    expect(scrollableArea?.className).toContain('native-scroll');
   });
 
   it('adds safe-area bottom padding to mobile content so last actions stay reachable', () => {
@@ -96,5 +97,6 @@ describe('SettingsLayout', () => {
     // The main element should have min-h-0
     const mainElement = container.querySelector('main.flex-1.min-h-0.overflow-y-auto');
     expect(mainElement).toBeInTheDocument();
+    expect(mainElement?.className).toContain('native-scroll');
   });
 });
