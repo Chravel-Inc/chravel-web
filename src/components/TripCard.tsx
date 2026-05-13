@@ -572,7 +572,7 @@ export const TripCard = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="grid grid-cols-2 gap-2 md:hidden">
+        <div className="grid grid-cols-2 gap-2 tablet:hidden">
           {/* Top Row */}
           <button
             onClick={() => {
@@ -624,7 +624,7 @@ export const TripCard = ({
         </div>
 
         {!pendingApproval && (
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden tablet:flex items-center gap-3">
             <button
               onClick={handleViewTrip}
               onMouseEnter={handlePrefetch}
@@ -663,7 +663,7 @@ export const TripCard = ({
         )}
 
         {pendingApproval && (
-          <div className="hidden md:block">
+          <div className="hidden tablet:block">
             <button onClick={handleViewTrip} className={cn(actionButtonClass, 'w-full')}>
               View Trip
             </button>

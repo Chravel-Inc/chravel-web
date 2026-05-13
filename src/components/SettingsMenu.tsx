@@ -229,7 +229,7 @@ export const SettingsMenu = ({
 
           {/* Render appropriate settings based on toggle */}
           <div
-            className="flex-1 flex flex-col min-h-0 overflow-hidden"
+            className="flex-1 flex flex-col min-h-0"
             style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom, 0px))' }}
           >
             {settingsType === 'consumer' ? (
