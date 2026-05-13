@@ -98,6 +98,9 @@ export function useOpenAIRealtimeVoice(
   const audioElRef = useRef<HTMLAudioElement | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const pendingToolResultsRef = useRef<ToolCallResult[]>([]);
+  const userTranscriptRef = useRef('');
+  const assistantTranscriptRef = useRef('');
+  const eventQueueRef = useRef<Promise<void>>(Promise.resolve());
 
   const clearSession = useCallback(() => {
     dcRef.current?.close();
@@ -114,15 +117,19 @@ export function useOpenAIRealtimeVoice(
     setState('idle');
     setUserTranscript('');
     setAssistantTranscript('');
+    userTranscriptRef.current = '';
+    assistantTranscriptRef.current = '';
+    pendingToolResultsRef.current = [];
   }, [clearSession]);
 
   const handleRealtimeEvent = useCallback(
-    async (event: any) => {
+    async (event: Record<string, unknown>) => {
       const type = String(event?.type || '');
       if (!type) return;
 
       if (type === 'conversation.item.input_audio_transcription.completed') {
         const text = String(event?.transcript || '');
+        userTranscriptRef.current = text;
         setUserTranscript(text);
         setConversationHistory(prev => [...prev, { role: 'user', text }]);
         onPartialTranscript?.({ role: 'user', text, isFinal: true });
@@ -131,35 +138,37 @@ export function useOpenAIRealtimeVoice(
       if (type === 'response.audio_transcript.delta' || type === 'response.output_text.delta') {
         const delta = String(event?.delta || '');
         if (!delta) return;
-        setAssistantTranscript(prev => {
-          const next = `${prev}${delta}`;
-          onPartialTranscript?.({ role: 'assistant', text: next, isFinal: false });
-          return next;
-        });
+        const nextAssistant = `${assistantTranscriptRef.current}${delta}`;
+        assistantTranscriptRef.current = nextAssistant;
+        setAssistantTranscript(nextAssistant);
+        onPartialTranscript?.({ role: 'assistant', text: nextAssistant, isFinal: false });
       }
 
       if (type === 'response.done') {
-        const assistantText = assistantTranscript;
+        const assistantText = assistantTranscriptRef.current;
         if (assistantText) {
           setConversationHistory(prev => [...prev, { role: 'assistant', text: assistantText }]);
           onPartialTranscript?.({ role: 'assistant', text: assistantText, isFinal: true });
         }
         const turnId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        const userTextFinal = userTranscript;
+        const userTextFinal = userTranscriptRef.current;
+        const toolResults = [...pendingToolResultsRef.current];
         onTurnComplete?.(
           userTextFinal,
           assistantText,
-          pendingToolResultsRef.current,
+          toolResults,
           {
             id: turnId,
             userText: userTextFinal,
             assistantText,
-            toolResults: pendingToolResultsRef.current,
+            toolResults,
             createdAt: new Date().toISOString(),
           },
           () => {
             setUserTranscript('');
             setAssistantTranscript('');
+            userTranscriptRef.current = '';
+            assistantTranscriptRef.current = '';
             pendingToolResultsRef.current = [];
           },
         );
@@ -193,7 +202,7 @@ export function useOpenAIRealtimeVoice(
         dcRef.current.send(JSON.stringify({ type: 'response.create' }));
       }
     },
-    [assistantTranscript, onPartialTranscript, onToolCall, onTurnComplete, userTranscript],
+    [onPartialTranscript, onToolCall, onTurnComplete],
   );
 
   const startSession = useCallback(async () => {
@@ -247,7 +256,10 @@ export function useOpenAIRealtimeVoice(
     dcRef.current = dc;
     dc.onmessage = ev => {
       try {
-        void handleRealtimeEvent(JSON.parse(ev.data));
+        const parsed = JSON.parse(ev.data) as Record<string, unknown>;
+        eventQueueRef.current = eventQueueRef.current
+          .then(() => handleRealtimeEvent(parsed))
+          .catch(() => undefined);
       } catch {
         // noop
       }

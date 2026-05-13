@@ -107,13 +107,17 @@ serve(async req => {
 
   const payload = await resp.text();
   if (!resp.ok) {
-    return new Response(
-      JSON.stringify({ error: 'Failed to create realtime session', detail: payload }),
-      {
-        status: 502,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      },
-    );
+    console.error('[create-openai-realtime-session] openai session create failed', {
+      status: resp.status,
+      statusText: resp.statusText,
+      body: payload,
+      tripId,
+      userId: user.id,
+    });
+    return new Response(JSON.stringify({ error: 'Failed to create realtime session' }), {
+      status: 502,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 
   return new Response(payload, {
