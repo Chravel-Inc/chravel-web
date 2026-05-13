@@ -530,8 +530,10 @@ export const AuthModal = ({
             )}
           </div>
         </div>
-      </div>
-    </div>,
+      </div>,
+      document.body,
+    );
+};
     document.body,
   );
 };
