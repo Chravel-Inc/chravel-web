@@ -571,10 +571,10 @@ export const TripCard = ({
           <CardStatItem icon={MapPin} value={trip.placesCount ?? 0} label="Places" />
         </div>
 
-        {/* Action Buttons */}
-        <div className="grid grid-cols-2 gap-2 md:hidden">
-          {/* Top Row */}
+        {/* Action grid: same 4 actions at all breakpoints (md+ used to collapse to View + menu, which regressed tablet/PWA UX). */}
+        <div className="grid grid-cols-2 gap-2 md:gap-3">
           <button
+            type="button"
             onClick={() => {
               if (pendingApproval) return;
               setShowExportModal(true);
@@ -582,12 +582,13 @@ export const TripCard = ({
             disabled={pendingApproval}
             className={secondaryActionButtonClass}
           >
-            <FileDown size={14} className="md:hidden" />
-            <FileDown size={16} className="hidden md:block" />
+            <FileDown size={14} className="shrink-0 md:hidden" />
+            <FileDown size={16} className="shrink-0 hidden md:inline" />
             Recap
           </button>
 
           <button
+            type="button"
             onClick={() => {
               if (pendingApproval) return;
               setShowInviteModal(true);
@@ -595,23 +596,25 @@ export const TripCard = ({
             disabled={pendingApproval}
             className={secondaryActionButtonClass}
           >
-            <User size={14} className="md:hidden" />
-            <User size={16} className="hidden md:block" />
+            <User size={14} className="shrink-0 md:hidden" />
+            <User size={16} className="shrink-0 hidden md:inline" />
             Invite
           </button>
 
-          {/* Bottom Row - View button with prefetch on hover/focus */}
           <button
+            type="button"
             onClick={handleViewTrip}
             onMouseEnter={handlePrefetch}
             onFocus={handlePrefetch}
             onTouchStart={handlePrefetch}
             className={actionButtonClass}
+            aria-label={pendingApproval ? 'View trip (pending approval)' : 'View trip'}
           >
-            View Trip
+            View
           </button>
 
           <button
+            type="button"
             onClick={() => {
               if (pendingApproval) return;
               setShowShareModal(true);
@@ -622,53 +625,6 @@ export const TripCard = ({
             Share
           </button>
         </div>
-
-        {!pendingApproval && (
-          <div className="hidden md:flex items-center gap-3">
-            <button
-              onClick={handleViewTrip}
-              onMouseEnter={handlePrefetch}
-              onFocus={handlePrefetch}
-              onTouchStart={handlePrefetch}
-              className={cn(actionButtonClass, 'flex-1')}
-            >
-              View Trip
-            </button>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  aria-label="Open trip actions"
-                  className={cn(actionButtonClass, 'px-3 py-3 min-w-[44px]')}
-                >
-                  <MoreHorizontal size={18} />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-background border-border">
-                <DropdownMenuItem onClick={() => setShowInviteModal(true)}>
-                  <User className="mr-2 h-4 w-4" />
-                  Invite
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setShowShareModal(true)}>
-                  <Users className="mr-2 h-4 w-4" />
-                  Share
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setShowExportModal(true)}>
-                  <FileDown className="mr-2 h-4 w-4" />
-                  Export Recap
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        )}
-
-        {pendingApproval && (
-          <div className="hidden md:block">
-            <button onClick={handleViewTrip} className={cn(actionButtonClass, 'w-full')}>
-              View Trip
-            </button>
-          </div>
-        )}
         {pendingApproval && pendingSecondaryActionLabel && onPendingSecondaryAction && (
           <button
             type="button"

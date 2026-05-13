@@ -5,6 +5,7 @@ import { ScrollArea, ScrollBar } from './ui/scroll-area';
 import { useIsMobile } from '../hooks/use-mobile';
 import { useOfflineStatus } from '../hooks/useOfflineStatus';
 import { Button } from './ui/button';
+import { cn } from '@/lib/utils';
 
 import { ProUpgradeModal } from './ProUpgradeModal';
 import { EnterpriseSettings } from './EnterpriseSettings';
@@ -58,11 +59,21 @@ export const SettingsMenu = ({
     return (
       <>
         <div
-          className={`fixed inset-0 z-[60] ${isMobile ? 'bg-black' : 'bg-black/80 backdrop-blur-sm flex items-center justify-center p-4'}`}
+          className={cn(
+            'fixed inset-0 z-[60]',
+            isMobile
+              ? 'flex flex-col min-h-0 bg-black'
+              : 'bg-black/80 backdrop-blur-sm flex items-center justify-center p-4',
+          )}
           onClick={!isMobile ? onClose : undefined}
         >
           <div
-            className={`${isMobile ? 'h-full' : 'bg-card/95 backdrop-blur-xl border border-white/10 rounded-2xl max-w-md w-full'}`}
+            className={cn(
+              'flex flex-col min-h-0 overflow-hidden',
+              isMobile
+                ? 'flex-1 h-full w-full'
+                : 'bg-card/95 backdrop-blur-xl border border-white/10 rounded-2xl max-w-md w-full',
+            )}
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
@@ -79,9 +90,7 @@ export const SettingsMenu = ({
               </button>
             </div>
             {/* Login CTA */}
-            <div
-              className={`flex flex-col items-center justify-center p-8 gap-6 text-center ${isMobile ? 'min-h-[80vh]' : ''}`}
-            >
+            <div className="flex flex-col items-center justify-center p-8 gap-6 text-center flex-1 min-h-0 overflow-y-auto native-scroll">
               <div className="h-20 w-20 rounded-full bg-primary/20 flex items-center justify-center">
                 <User className="h-10 w-10 text-primary" />
               </div>
@@ -116,11 +125,19 @@ export const SettingsMenu = ({
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-0 md:p-4"
+        className={cn(
+          'fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] min-h-0',
+          isMobile ? 'flex flex-col p-0' : 'flex items-center justify-center p-4',
+        )}
         onClick={onClose}
       >
         <div
-          className="w-full h-full max-h-[100dvh] md:h-auto md:max-h-[calc(100dvh-2rem)] md:max-w-6xl bg-black/90 md:bg-card/95 md:backdrop-blur-xl md:border md:border-white/10 md:rounded-2xl shadow-2xl flex flex-col animate-fade-in overflow-hidden min-w-0"
+          className={cn(
+            'w-full shadow-2xl flex flex-col animate-fade-in overflow-hidden min-w-0 bg-black/90',
+            isMobile
+              ? 'flex-1 min-h-0 max-h-none h-full'
+              : 'h-auto max-h-[calc(100dvh-2rem)] max-w-6xl md:bg-card/95 md:backdrop-blur-xl md:border md:border-white/10 md:rounded-2xl',
+          )}
           onClick={e => e.stopPropagation()}
         >
           {/* Combined Header with Settings Type Toggle */}
