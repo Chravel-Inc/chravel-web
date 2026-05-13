@@ -349,15 +349,17 @@ export const AuthModal = ({
                 ChravelApp
               </span>
             </div>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-white">
+            <div className="relative flex items-center justify-center mb-6">
+              <h2 className="text-2xl font-bold text-white text-center">
                 {mode === 'forgot'
                   ? 'Reset Password'
-                  : mode === 'signup'
-                    ? 'Create Account'
-                    : 'Welcome Back'}
+                  : 'Welcome to the trip'}
               </h2>
-              <button onClick={onClose} className="text-gray-400 hover:text-white">
+              <button
+                onClick={onClose}
+                className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                aria-label="Close"
+              >
                 <X size={24} />
               </button>
             </div>
