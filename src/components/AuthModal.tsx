@@ -189,7 +189,7 @@ export const AuthModal = ({
       ) : (
         <form onSubmit={handleResetPassword} className="space-y-4">
           <div>
-            <label className="block text-gray-300 text-sm mb-2">Email</label>
+            <label className="block text-white text-sm font-medium mb-2">Email</label>
             <div className="relative">
               <Mail
                 size={20}
@@ -203,7 +203,7 @@ export const AuthModal = ({
                 required
                 autoFocus
                 autoComplete="email"
-                className="w-full bg-white/10 border border-white/20 rounded-xl pl-10 pr-4 py-3 text-base text-white placeholder-gray-400 focus:outline-none focus:border-glass-orange"
+                className="w-full bg-white/10 border border-white/20 rounded-xl pl-10 pr-4 py-3 text-base text-white placeholder-white/60 focus:outline-none focus:border-glass-orange"
               />
             </div>
           </div>
@@ -226,7 +226,7 @@ export const AuthModal = ({
         <>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-gray-300 text-sm mb-2">First Name</label>
+              <label className="block text-white text-sm font-medium mb-2">First Name</label>
               <input
                 type="text"
                 value={firstName}
@@ -236,11 +236,11 @@ export const AuthModal = ({
                 autoComplete="given-name"
                 inputMode="text"
                 enterKeyHint="next"
-                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-base text-white placeholder-gray-400 focus:outline-none focus:border-glass-orange min-h-[48px]"
+                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-base text-white placeholder-white/60 focus:outline-none focus:border-glass-orange min-h-[48px]"
               />
             </div>
             <div>
-              <label className="block text-gray-300 text-sm mb-2">Last Name</label>
+              <label className="block text-white text-sm font-medium mb-2">Last Name</label>
               <input
                 type="text"
                 value={lastName}
@@ -250,7 +250,7 @@ export const AuthModal = ({
                 autoComplete="family-name"
                 inputMode="text"
                 enterKeyHint="next"
-                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-base text-white placeholder-gray-400 focus:outline-none focus:border-glass-orange min-h-[48px]"
+                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-base text-white placeholder-white/60 focus:outline-none focus:border-glass-orange min-h-[48px]"
               />
             </div>
           </div>
@@ -258,7 +258,7 @@ export const AuthModal = ({
       )}
 
       <div>
-        <label className="block text-gray-300 text-sm mb-2">Email</label>
+        <label className="block text-white text-sm font-medium mb-2">Email</label>
         <div className="relative">
           <Mail
             size={20}
@@ -274,13 +274,13 @@ export const AuthModal = ({
             autoComplete="email"
             inputMode="email"
             enterKeyHint="next"
-            className="w-full bg-white/10 border border-white/20 rounded-xl pl-10 pr-4 py-3 text-base text-white placeholder-gray-400 focus:outline-none focus:border-glass-orange min-h-[48px]"
+            className="w-full bg-white/10 border border-white/20 rounded-xl pl-10 pr-4 py-3 text-base text-white placeholder-white/60 focus:outline-none focus:border-glass-orange min-h-[48px]"
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-gray-300 text-sm mb-2">Password</label>
+        <label className="block text-white text-sm font-medium mb-2">Password</label>
         <div className="relative">
           <input
             type={showPassword ? 'text' : 'password'}
@@ -290,7 +290,7 @@ export const AuthModal = ({
             required
             autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
             enterKeyHint={mode === 'signup' ? 'done' : 'go'}
-            className="w-full bg-white/10 border border-white/20 rounded-xl pl-4 pr-10 py-3 text-base text-white placeholder-gray-400 focus:outline-none focus:border-glass-orange min-h-[48px]"
+            className="w-full bg-white/10 border border-white/20 rounded-xl pl-4 pr-10 py-3 text-base text-white placeholder-white/60 focus:outline-none focus:border-glass-orange min-h-[48px]"
           />
           <button
             type="button"
