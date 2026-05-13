@@ -8,15 +8,9 @@ import type {
   NotificationType,
 } from '@/types/notifications';
 
+import { resolveNotificationTabFromType } from '@/lib/notifications/categoryMap';
+
 const NOTIFICATION_TAB_BY_TYPE: Partial<Record<NotificationType, NotificationTab>> = {
-  mention: 'chat',
-  message: 'chat',
-  chat: 'chat',
-  broadcast: 'broadcasts',
-  calendar: 'calendar',
-  task: 'tasks',
-  payment: 'payments',
-  poll: 'polls',
   photos: 'media',
   join_request: 'collaborators',
   basecamp: 'places',
