@@ -152,3 +152,14 @@ export function resolveNotificationCategoryByType(
   const key = NOTIFICATION_TYPE_TO_CATEGORY_KEY[type.toLowerCase()];
   return key ? NOTIFICATION_CATEGORY_MAP[key] : null;
 }
+
+export function resolveNotificationCategory(type: string): NotificationCategoryKey | null {
+  return NOTIFICATION_TYPE_TO_CATEGORY_KEY[type.toLowerCase()] ?? null;
+}
+
+export function resolveNotificationTabFromType(
+  type: string,
+): NotificationDeepLinkTab | null {
+  return resolveNotificationCategoryByType(type)?.deepLinkTab ?? null;
+}
+
