@@ -43,6 +43,8 @@ const PREFERENCE_CLASSES = new Set<QueryClass>([
   'booking_reservation',
   'place_navigation',
   'trip_summary',
+  /** Aligns with QUERY_CLASS_SLICES.hotel_search which loads the preferences slice */
+  'hotel_search',
 ]);
 
 /** Classes that need calendar context in the prompt */

@@ -131,6 +131,7 @@ const LovableConciergeSchema = z.object({
       accessibility: z.array(z.string()).optional(),
       business: z.array(z.string()).optional(),
       entertainment: z.array(z.string()).optional(),
+      /** Must match client `TripPreferences.lifestyle` — used for travelStyle in prompts */
       lifestyle: z.array(z.string()).optional(),
       budgetMin: z.number().optional(),
       budgetMax: z.number().optional(),
