@@ -242,8 +242,9 @@ describe('TripChat render path', () => {
     act(() => {
       messageItemProps.onOpenThread('msg-1');
     });
+    // ThreadView removed; onOpenThread now scrolls inline — just assert no crash.
     await waitFor(() => {
-      expect(screen.getByTestId('thread-view')).toHaveTextContent('msg-1');
+      expect(screen.getByTestId('virtualized-message-container')).toBeInTheDocument();
     });
   });
 
