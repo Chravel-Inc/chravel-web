@@ -58,6 +58,20 @@ export const AuthModal = ({
     setAwaitingAuth(false);
   }, [isOpen, initialMode]);
 
+  // OAuth uses an external in-app browser (SFSafariViewController / CCT). When the user
+  // returns to the WebView, clear spinners so we never strand on "Redirecting…" if the
+  // native shell did not yet reload the callback URL into this WebView.
+  useEffect(() => {
+    if (!isOpen) return;
+    const onVisible = (): void => {
+      if (document.visibilityState !== 'visible') return;
+      setGoogleLoading(false);
+      setAppleLoading(false);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [isOpen]);
+
   // Close modal immediately if user is already authenticated when modal opens
   // Also close when user becomes authenticated after sign-in attempt
   useEffect(() => {
@@ -454,9 +468,8 @@ export const AuthModal = ({
                         authEvents.loginFailed('google', result.error);
                       }
                       setError(result.error);
-                      setGoogleLoading(false);
                     }
-                    // If no error, browser will redirect to Google
+                    setGoogleLoading(false);
                   }}
                   disabled={isLoading || googleLoading || appleLoading || awaitingAuth}
                   className="w-full flex items-center justify-center gap-2 bg-white/12 hover:bg-white/18 border border-white/15 text-white font-medium py-3 rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-all disabled:opacity-50 min-h-[48px]"
@@ -505,9 +518,8 @@ export const AuthModal = ({
                         authEvents.loginFailed('apple', result.error);
                       }
                       setError(result.error);
-                      setAppleLoading(false);
                     }
-                    // If no error, browser will redirect to Apple
+                    setAppleLoading(false);
                   }}
                   disabled={isLoading || appleLoading || googleLoading || awaitingAuth}
                   className="w-full flex items-center justify-center gap-2 bg-white/12 hover:bg-white/18 border border-white/15 text-white font-medium py-3 rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-all disabled:opacity-50 min-h-[48px]"

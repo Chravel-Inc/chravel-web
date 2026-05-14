@@ -324,6 +324,44 @@ describe('AuthProvider', () => {
     );
   });
 
+  it('normalizes WKWebView "Load failed" from Google OAuth into a user-actionable message', async () => {
+    mockIsInstalledApp.mockReturnValue(true);
+    mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({
+      data: { url: null },
+      error: { message: 'Load failed' },
+    });
+
+    const { result } = renderHook(() => useAuth(), { wrapper: createWrapper() });
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { timeout: 3000 });
+
+    let googleResult: { error?: string } = {};
+    await act(async () => {
+      googleResult = await result.current.signInWithGoogle();
+    });
+
+    expect(googleResult.error).toMatch(/Could not reach Chravel/i);
+    expect(mockOpenInstalledAuthBrowser).not.toHaveBeenCalled();
+  });
+
+  it('returns a clear error when the installed OAuth browser fails to open', async () => {
+    mockIsInstalledApp.mockReturnValue(true);
+    mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({
+      data: { url: 'https://oauth.example/authorize' },
+      error: null,
+    });
+    mockOpenInstalledAuthBrowser.mockRejectedValue(new Error('Load failed'));
+
+    const { result } = renderHook(() => useAuth(), { wrapper: createWrapper() });
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { timeout: 3000 });
+
+    let googleResult: { error?: string } = {};
+    await act(async () => {
+      googleResult = await result.current.signInWithGoogle();
+    });
+
+    expect(googleResult.error).toMatch(/Could not open the sign-in browser/i);
+  });
+
   it('returns null from fetchUserProfile on non-PGRST116 errors without retrying with a narrower select', async () => {
     // Establish a session so transformUser invokes fetchUserProfile.
     mockSupabaseClient.auth.getSession.mockResolvedValue({

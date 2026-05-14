@@ -113,10 +113,8 @@ describe('AuthModal', () => {
       const signUpTab = screen.getByRole('tab', { name: /^sign up$/i });
       fireEvent.click(signUpTab);
 
-      // Should show Create Account header (use heading role to be more specific)
       await waitFor(() => {
-        expect(screen.getByRole('heading', { name: /create account/i })).toBeInTheDocument();
-        // Name fields should appear
+        expect(screen.getByRole('heading', { name: /^create account$/i })).toBeInTheDocument();
         expect(screen.getByPlaceholderText(/john/i)).toBeInTheDocument();
       });
     });
