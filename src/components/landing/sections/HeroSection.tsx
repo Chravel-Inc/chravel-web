@@ -4,9 +4,11 @@ import demoPreviewHero from '@/assets/demo-preview-hero.webp';
 
 interface HeroSectionProps {
   onSignUp: () => void;
+  /** Scroll landing container to top (large brand treatment is a common "home" affordance). */
+  onBrandClick?: () => void;
 }
 
-export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
+export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp, onBrandClick }) => {
   return (
     <div
       className="relative container mx-auto px-4 flex flex-col min-h-[85vh] tablet:min-h-[90vh] text-center pb-8 tablet:pb-6"
@@ -60,25 +62,43 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           <span className="text-gold-primary font-semibold">Get UnFrustrated.</span>
         </p>
 
-        {/* Brand Name */}
+        {/* Brand Name — optional tap target to scroll landing back to top */}
         <div
           className="inline-block animate-fade-in"
           style={{
             animationDelay: '0.05s',
           }}
         >
-          <h2
-            className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight"
-            style={{
-              background:
-                'linear-gradient(135deg, #7ba4d9 0%, #c49746 35%, #e8af48 50%, #c49746 65%, #7ba4d9 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-            }}
-          >
-            ChravelApp
-          </h2>
+          {onBrandClick ? (
+            <button
+              type="button"
+              onClick={onBrandClick}
+              aria-label="Back to top of landing page"
+              className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight bg-transparent border-0 p-0 cursor-pointer text-left hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent rounded-md"
+              style={{
+                background:
+                  'linear-gradient(135deg, #7ba4d9 0%, #c49746 35%, #e8af48 50%, #c49746 65%, #7ba4d9 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              ChravelApp
+            </button>
+          ) : (
+            <h2
+              className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight"
+              style={{
+                background:
+                  'linear-gradient(135deg, #7ba4d9 0%, #c49746 35%, #e8af48 50%, #c49746 65%, #7ba4d9 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              ChravelApp
+            </h2>
+          )}
         </div>
       </div>
 

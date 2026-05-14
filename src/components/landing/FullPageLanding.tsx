@@ -100,6 +100,10 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
     setLandingScrollEl(node);
   }, []);
 
+  const scrollLandingToTop = useCallback(() => {
+    landingScrollEl?.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [landingScrollEl]);
+
   // Marketing landing is dark-only. Force-remove the user's `light` theme class
   // while mounted so global light-mode token remaps don't bleed into the page.
   useEffect(() => {
@@ -134,7 +138,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           minHeight="90vh"
           goldOverlay="hero"
         >
-          <HeroSection onSignUp={onSignUp} />
+          <HeroSection onSignUp={onSignUp} onBrandClick={scrollLandingToTop} />
         </FullPageLandingSection>
 
         {/* Section 2: What It Replaces */}

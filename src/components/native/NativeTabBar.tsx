@@ -98,6 +98,14 @@ export const NativeTabBar = ({
         return;
       }
 
+      // Profile + Alerts: always notify parent. `activeTab` can stay selected after the user
+      // dismisses Settings / Notifications, and the tab bar would otherwise no-op on repeat taps.
+      if (tabId === 'profile' || tabId === 'alerts') {
+        await hapticService.selectionChanged();
+        onTabChange(tabId);
+        return;
+      }
+
       // Special handling for trips tab - can toggle trip type picker
       if (tabId === 'trips' && activeTab === 'trips' && onTripTypePress) {
         await hapticService.light();
