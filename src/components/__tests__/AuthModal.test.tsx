@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import React from 'react';
 import { AuthModal } from '../AuthModal';
 import { AuthProvider } from '@/hooks/useAuth';
 import * as platformDetection from '@/utils/platformDetection';
+
+const signInWithOAuthMock = vi.fn().mockResolvedValue({ data: { url: null }, error: null });
 
 // Mock the supabase client
 vi.mock('@/integrations/supabase/client', () => ({
@@ -17,7 +19,7 @@ vi.mock('@/integrations/supabase/client', () => ({
       }),
       signInWithPassword: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
       signUp: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
-      signInWithOAuth: vi.fn().mockResolvedValue({ error: null }),
+      signInWithOAuth: (...args: unknown[]) => signInWithOAuthMock(...args),
       resetPasswordForEmail: vi.fn().mockResolvedValue({ error: null }),
     },
     from: vi.fn().mockReturnValue({
@@ -51,6 +53,7 @@ describe('AuthModal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(platformDetection, 'isInstalledApp').mockReturnValue(false);
+    signInWithOAuthMock.mockResolvedValue({ data: { url: null }, error: null });
   });
 
   describe('email form functionality', () => {
@@ -199,6 +202,95 @@ describe('AuthModal', () => {
 
       expect(screen.getByRole('button', { name: /^apple$/i })).toBeInTheDocument();
       expect(screen.queryByText(/To stay inside the app/i)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('OAuth error handling', () => {
+    it('normalizes "Load failed" from Google OAuth to actionable copy', async () => {
+      signInWithOAuthMock.mockResolvedValueOnce({
+        data: { url: null },
+        error: { message: 'Load failed' },
+      });
+
+      render(<AuthModal isOpen={true} onClose={mockOnClose} />, {
+        wrapper: createTestWrapper(),
+      });
+
+      const googleButton = await screen.findByRole('button', { name: /^google$/i });
+      await act(async () => {
+        fireEvent.click(googleButton);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(/Network issue while signing in/i)).toBeInTheDocument();
+      });
+      expect(screen.queryByText(/^Load failed$/)).not.toBeInTheDocument();
+    });
+
+    it('normalizes "Failed to fetch" from Apple OAuth to actionable copy', async () => {
+      signInWithOAuthMock.mockResolvedValueOnce({
+        data: { url: null },
+        error: { message: 'Failed to fetch' },
+      });
+
+      render(<AuthModal isOpen={true} onClose={mockOnClose} />, {
+        wrapper: createTestWrapper(),
+      });
+
+      const appleButton = await screen.findByRole('button', { name: /^apple$/i });
+      await act(async () => {
+        fireEvent.click(appleButton);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(/Network issue while signing in/i)).toBeInTheDocument();
+      });
+    });
+
+    it('clears the OAuth spinner when the document becomes visible again', async () => {
+      // Simulate a stuck-spinner scenario: signInWithOAuth resolves with a URL but never
+      // produces a callback (user backgrounds the in-app browser). The visibilitychange
+      // recovery effect should clear the spinner when the user returns.
+      vi.spyOn(platformDetection, 'isInstalledApp').mockReturnValue(true);
+      let resolveSignIn: ((value: unknown) => void) | null = null;
+      signInWithOAuthMock.mockImplementationOnce(
+        () =>
+          new Promise(resolve => {
+            resolveSignIn = resolve;
+          }),
+      );
+
+      render(<AuthModal isOpen={true} onClose={mockOnClose} />, {
+        wrapper: createTestWrapper(),
+      });
+
+      const googleButton = await screen.findByRole('button', { name: /^google$/i });
+      await act(async () => {
+        fireEvent.click(googleButton);
+      });
+
+      // Spinner button label flips to "Redirecting…" while the OAuth promise is pending.
+      expect(screen.getByRole('button', { name: /redirecting/i })).toBeInTheDocument();
+
+      // Simulate user returning to the WebView (Safari sheet dismissed).
+      Object.defineProperty(document, 'visibilityState', {
+        configurable: true,
+        get: () => 'visible',
+      });
+      await act(async () => {
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /^google$/i })).toBeInTheDocument();
+      });
+
+      // Clean up the pending promise so test runner doesn't hang.
+      if (resolveSignIn) {
+        await act(async () => {
+          resolveSignIn!({ data: { url: 'https://oauth.example/auth' }, error: null });
+        });
+      }
     });
   });
 });
