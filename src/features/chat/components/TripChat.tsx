@@ -126,14 +126,6 @@ export const TripChat = React.memo(
 
     const [showSearchOverlay, setShowSearchOverlay] = useState(false);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
-    const [activeThreadMessage, setActiveThreadMessage] = useState<{
-      id: string;
-      content: string;
-      authorName: string;
-      authorAvatar?: string;
-      createdAt: string;
-      tripId: string;
-    } | null>(null);
     const [failedMessages, setFailedMessages] = useState<
       Array<{
         id: string;
