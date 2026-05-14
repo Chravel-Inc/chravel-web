@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { AuthModal } from '@/components/AuthModal';
 import { useAuth } from '@/hooks/useAuth';
@@ -47,10 +47,7 @@ const AuthPage = () => {
     }
   }, [searchParams]);
 
-  // Signal the native WebView shell that the auth surface is mounted and interactive.
-  // Fires before session validation completes so the shell can dismiss its splash
-  // as soon as the user can tap the login form.
-  useEffect(() => {
+  const handleAuthShellInteractive = useCallback(() => {
     notifyNativeShellReady({ surface: 'auth' });
   }, []);
 
@@ -73,6 +70,7 @@ const AuthPage = () => {
         isOpen={true}
         initialMode={mode}
         onClose={() => navigate(returnTo, { replace: true })}
+        onShellInteractive={handleAuthShellInteractive}
       />
     </div>
   );
