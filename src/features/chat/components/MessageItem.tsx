@@ -15,6 +15,10 @@ interface MessageItemProps {
     threadPreviewSnippet?: string;
     hasUnreadThreadReplies?: boolean;
   };
+  /** Inline nested replies (iMessage-style). Rendered indented under this message. */
+  replies?: Array<MessageItemProps['message']>;
+  /** Recursion depth — replies are flat (depth=1). Prevents infinite nesting. */
+  depth?: number;
   reactions?: Record<string, { count: number; userReacted: boolean; users?: string[] }>;
   onReaction: (messageId: string, reactionType: string) => void;
   onReply?: (messageId: string) => void;
