@@ -63,13 +63,13 @@ export const TripActionBar = ({
         }}
         aria-label="Create New Trip"
         className={cn(
-          'h-full flex items-center justify-center gap-2 px-2 sm:px-3 lg:px-4 py-0 rounded-xl transition-all duration-300 font-bold text-base tracking-wide whitespace-nowrap',
+          'h-full flex items-center justify-center gap-2 px-2 sm:px-3 lg:px-4 py-0 rounded-xl transition-all duration-300 font-bold text-base leading-none tracking-wide whitespace-nowrap',
           isNewTripActive
             ? 'bg-gradient-to-r from-[hsl(45,95%,58%)] to-[hsl(45,90%,65%)] text-black shadow-lg shadow-primary/30'
             : 'text-white hover:text-foreground',
         )}
       >
-        <span className="inline lg:hidden text-sm">+ Trip</span>
+        <span className="inline lg:hidden text-base">+ Trip</span>
         <span className="hidden lg:inline text-base">New Trip</span>
       </button>
 
@@ -85,13 +85,13 @@ export const TripActionBar = ({
         }}
         aria-label="Alerts"
         className={cn(
-          'relative h-full w-full flex items-center justify-center gap-2 px-2 sm:px-3 lg:px-4 py-0 rounded-xl transition-all duration-300 font-bold text-base tracking-wide whitespace-nowrap',
+          'relative h-full w-full flex items-center justify-center gap-2 px-2 sm:px-3 lg:px-4 py-0 rounded-xl transition-all duration-300 font-bold text-base leading-none tracking-wide whitespace-nowrap',
           isNotificationsActive
             ? 'bg-gradient-to-r from-[hsl(45,95%,58%)] to-[hsl(45,90%,65%)] text-black shadow-lg shadow-primary/30'
             : 'text-white hover:text-foreground',
         )}
       >
-        <span className="text-sm lg:text-base">Alerts</span>
+        <span className="text-base">Alerts</span>
         {displayUnreadCount > 0 && (
           <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg">
             {displayUnreadCount > 9 ? '9+' : displayUnreadCount}
@@ -106,13 +106,13 @@ export const TripActionBar = ({
         }}
         aria-label="Settings"
         className={cn(
-          'h-full flex items-center justify-center gap-2 px-2 sm:px-3 lg:px-4 py-0 rounded-xl transition-all duration-300 font-bold text-base tracking-wide whitespace-nowrap min-w-0 overflow-hidden',
+          'h-full flex items-center justify-center gap-2 px-2 sm:px-3 lg:px-4 py-0 rounded-xl transition-all duration-300 font-bold text-base leading-none tracking-wide whitespace-nowrap min-w-0 overflow-hidden',
           isSettingsActive
             ? 'bg-gradient-to-r from-[hsl(45,95%,58%)] to-[hsl(45,90%,65%)] text-black shadow-lg shadow-primary/30'
             : 'text-white hover:text-foreground',
         )}
       >
-        <span className="text-sm lg:text-base truncate">Settings</span>
+        <span className="text-base truncate">Settings</span>
       </button>
 
       {/* Search */}
@@ -141,7 +141,7 @@ export const TripActionBar = ({
               onSearch(e.target.value);
             }}
             onFocus={() => onSearch(searchQuery)}
-            className="w-full h-full pl-8 pr-2 bg-background/50 border border-border/50 rounded-lg text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:bg-background/80 transition-all"
+            className="w-full h-full pl-8 pr-2 bg-background/50 border border-border/50 rounded-lg text-foreground text-base leading-none placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:bg-background/80 transition-all"
           />
         </div>
       </div>
