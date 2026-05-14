@@ -78,6 +78,8 @@ interface SmsOptInRow {
   opted_in: boolean;
 }
 
+const resendApiKey = Deno.env.get('RESEND_API_KEY');
+const resendFromEmail = Deno.env.get('RESEND_FROM_EMAIL') || 'noreply@chravel.app';
 const sendGridApiKey = Deno.env.get('SENDGRID_API_KEY');
 const sendGridFromEmail = Deno.env.get('SENDGRID_FROM_EMAIL') || 'support@chravelapp.com';
 const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
@@ -345,8 +347,47 @@ async function sendEmail(
   providerMessageId?: string;
   error?: string;
 }> {
+  const plainText = content.replace(/<[^>]+>/g, '');
+
+  // Prefer Resend when configured (matches send-email-with-retry and typical Chravel secrets)
+  if (resendApiKey) {
+    try {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: resendFromEmail,
+          to: [to],
+          subject,
+          html: content,
+          text: plainText || subject,
+        }),
+        signal: AbortSignal.timeout(15_000),
+      });
+
+      if (!response.ok) {
+        const body = await response.text();
+        return { ok: false, error: `Resend error ${response.status}: ${body.substring(0, 200)}` };
+      }
+
+      const parsed = (await response.json().catch(() => ({}))) as { id?: string };
+      return { ok: true, providerMessageId: parsed.id };
+    } catch (err) {
+      return {
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
+
   if (!sendGridApiKey) {
-    return { ok: false, error: 'SendGrid API key is not configured' };
+    return {
+      ok: false,
+      error: 'No email provider configured (RESEND_API_KEY or SENDGRID_API_KEY)',
+    };
   }
 
   const emailPayload = {
@@ -357,7 +398,7 @@ async function sendEmail(
     },
     content: [
       { type: 'text/html', value: content },
-      { type: 'text/plain', value: content.replace(/<[^>]+>/g, '') },
+      { type: 'text/plain', value: plainText },
     ],
   };
 
@@ -368,6 +409,7 @@ async function sendEmail(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(emailPayload),
+    signal: AbortSignal.timeout(15_000),
   });
 
   if (!response.ok) {
@@ -375,7 +417,7 @@ async function sendEmail(
     return { ok: false, error: `SendGrid error ${response.status}: ${body.substring(0, 200)}` };
   }
 
-  return { ok: true };
+  return { ok: true, providerMessageId: response.headers.get('X-Message-Id') || undefined };
 }
 
 async function sendPush(

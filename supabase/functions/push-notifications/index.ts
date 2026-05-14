@@ -167,47 +167,89 @@ async function sendPushNotification(
 }
 
 async function sendEmailNotification(
-  { userId, email, subject, content, template }: any,
+  { userId, email, userEmail, subject, content, template }: any,
   corsHeaders: Record<string, string>,
 ) {
-  const sendgridApiKey = Deno.env.get('SENDGRID_API_KEY');
+  const recipient =
+    typeof email === 'string' && email.trim()
+      ? email.trim().toLowerCase()
+      : typeof userEmail === 'string' && userEmail.trim()
+        ? userEmail.trim().toLowerCase()
+        : '';
 
-  if (!sendgridApiKey) {
-    throw new Error('SendGrid API key not configured');
+  if (!recipient) {
+    throw new Error(
+      'Missing recipient email (pass email or authenticate with a user that has email)',
+    );
   }
 
-  const emailPayload = {
-    personalizations: [
-      {
-        to: [{ email }],
+  const htmlBody = template || `<p>${content}</p>`;
+  const plainBody = htmlBody.replace(/<[^>]+>/g, '') || subject;
+
+  const resendApiKey = Deno.env.get('RESEND_API_KEY');
+  const sendgridApiKey = Deno.env.get('SENDGRID_API_KEY');
+
+  if (!resendApiKey && !sendgridApiKey) {
+    throw new Error('No email provider configured (RESEND_API_KEY or SENDGRID_API_KEY)');
+  }
+
+  if (resendApiKey) {
+    const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') || 'noreply@chravel.app';
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: fromEmail,
+        to: [recipient],
         subject,
-      },
-    ],
-    from: {
-      email: Deno.env.get('SENDGRID_FROM_EMAIL') || 'support@chravelapp.com',
-      name: 'ChravelApp',
-    },
-    content: [
-      {
-        type: 'text/html',
-        value: template || `<p>${content}</p>`,
-      },
-    ],
-  };
+        html: htmlBody,
+        text: plainBody,
+      }),
+      signal: AbortSignal.timeout(15_000),
+    });
 
-  const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${sendgridApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(emailPayload),
-    signal: AbortSignal.timeout(15_000),
-  });
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Resend error: ${error}`);
+    }
+  } else {
+    const sgKey = sendgridApiKey as string;
+    const emailPayload = {
+      personalizations: [
+        {
+          to: [{ email: recipient }],
+          subject,
+        },
+      ],
+      from: {
+        email: Deno.env.get('SENDGRID_FROM_EMAIL') || 'support@chravelapp.com',
+        name: 'ChravelApp',
+      },
+      content: [
+        {
+          type: 'text/html',
+          value: htmlBody,
+        },
+      ],
+    };
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`SendGrid error: ${error}`);
+    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${sgKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(emailPayload),
+      signal: AbortSignal.timeout(15_000),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`SendGrid error: ${error}`);
+    }
   }
 
   await supabase.from('notification_logs').insert({
@@ -215,7 +257,7 @@ async function sendEmailNotification(
     type: 'email',
     title: subject,
     body: content,
-    recipient: email,
+    recipient,
     sent_at: new Date().toISOString(),
   });
 
