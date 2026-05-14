@@ -160,11 +160,6 @@ vi.mock('../MessageTypeBar', () => ({
   },
 }));
 vi.mock('../ChatSearchOverlay', () => ({ ChatSearchOverlay: () => null }));
-vi.mock('../ThreadView', () => ({
-  ThreadView: ({ parentMessage }: { parentMessage: { id: string } }) => (
-    <div data-testid="thread-view">{parentMessage.id}</div>
-  ),
-}));
 vi.mock('@/components/mobile/PullToRefreshIndicator', () => ({
   PullToRefreshIndicator: () => null,
 }));
