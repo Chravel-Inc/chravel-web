@@ -251,7 +251,9 @@ export function useOpenAIRealtimeVoice(
     const model = sessionData?.model;
     if (!ephemeralKey || !model) throw new Error('Invalid voice session response');
 
-    const pc = new RTCPeerConnection();
+    const pc = new RTCPeerConnection({
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+    });
     pcRef.current = pc;
     const audioEl = new Audio();
     audioEl.autoplay = true;
@@ -282,20 +284,26 @@ export function useOpenAIRealtimeVoice(
     await pc.setLocalDescription(offer);
 
     const sdpPostUrl = resolveOpenAiRealtimeSdpPostUrl(sessionData);
-    const sdpResp = await fetch(sdpPostUrl, {
-      method: 'POST',
-      body: offer.sdp,
-      headers: {
-        Authorization: `Bearer ${ephemeralKey}`,
-        'Content-Type': 'application/sdp',
+    const { data: sdpData, error: sdpError } = await supabase.functions.invoke<{
+      answerSdp?: string;
+      error?: string;
+    }>('exchange-openai-realtime-sdp', {
+      body: {
+        tripId,
+        sdpOffer: offer.sdp ?? '',
+        ephemeralToken: ephemeralKey,
+        sdpPostUrl,
       },
     });
 
-    if (!sdpResp.ok) {
-      await sdpResp.text().catch(() => '');
-      throw new Error(`Voice connection failed (${sdpResp.status})`);
+    if (sdpError) {
+      const status = sdpError.context?.status;
+      if (status === 401) throw new Error('Your session expired. Please sign in again.');
+      if (status === 403) throw new Error('You no longer have access to this trip.');
+      throw new Error('Failed to connect live voice');
     }
-    const answerSdp = await sdpResp.text();
+    const answerSdp = sdpData?.answerSdp;
+    if (!answerSdp?.trim()) throw new Error('Invalid voice connection response');
     await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
     setDiagnostics(prev => ({ ...prev, connectionStatus: 'open', substep: null }));
     setState('ready');
@@ -320,7 +328,12 @@ export function useOpenAIRealtimeVoice(
         pendingToolResultsRef.current = [];
         setUserTranscript('');
         setAssistantTranscript('');
-        const msg = e instanceof Error ? e.message : 'Failed to start voice session';
+        const msg =
+          e instanceof Error && e.message.trim()
+            ? e.message
+            : typeof e === 'string' && e.trim()
+              ? e
+              : 'Failed to start voice session';
         setError(msg);
         setState('error');
         onError?.(msg);
