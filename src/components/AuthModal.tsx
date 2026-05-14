@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Mail, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { authEvents } from '@/telemetry/events';
+import { normalizeAuthErrorMessage } from '@/utils/authErrorNormalizer';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -71,6 +72,23 @@ export const AuthModal = ({
       onAuthSuccess?.();
     }
   }, [user, isOpen, onClose]);
+
+  // Recover from a stuck OAuth spinner when the user returns to the app
+  // without completing sign-in (e.g. dismissed the Safari sheet on iOS, or
+  // backgrounded the WebView). Without this, googleLoading/appleLoading can
+  // stay true forever on the in-app browser failure path the agents found.
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!googleLoading && !appleLoading) return;
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        setGoogleLoading(false);
+        setAppleLoading(false);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isOpen, googleLoading, appleLoading]);
 
   // Safety timeout: if auth takes too long, still close the modal
   useEffect(() => {
@@ -446,17 +464,23 @@ export const AuthModal = ({
                     } else {
                       authEvents.loginStarted('google');
                     }
-                    const result = await signInWithGoogle(oauthReturnTo);
-                    if (result.error) {
-                      if (mode === 'signup') {
-                        authEvents.signupFailed('google', result.error);
-                      } else {
-                        authEvents.loginFailed('google', result.error);
+                    try {
+                      const result = await signInWithGoogle(oauthReturnTo);
+                      if (result.error) {
+                        const friendly = normalizeAuthErrorMessage(result.error);
+                        if (mode === 'signup') {
+                          authEvents.signupFailed('google', friendly);
+                        } else {
+                          authEvents.loginFailed('google', friendly);
+                        }
+                        setError(friendly);
                       }
-                      setError(result.error);
+                      // On success, the OAuth sheet is now open in the native browser.
+                      // Clearing loading prevents a stuck spinner if the user returns
+                      // without completing auth — visibilitychange below also recovers.
+                    } finally {
                       setGoogleLoading(false);
                     }
-                    // If no error, browser will redirect to Google
                   }}
                   disabled={isLoading || googleLoading || appleLoading || awaitingAuth}
                   className="w-full flex items-center justify-center gap-2 bg-white/12 hover:bg-white/18 border border-white/15 text-white font-medium py-3 rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-all disabled:opacity-50 min-h-[48px]"
@@ -497,17 +521,20 @@ export const AuthModal = ({
                     } else {
                       authEvents.loginStarted('apple');
                     }
-                    const result = await signInWithApple(oauthReturnTo);
-                    if (result.error) {
-                      if (mode === 'signup') {
-                        authEvents.signupFailed('apple', result.error);
-                      } else {
-                        authEvents.loginFailed('apple', result.error);
+                    try {
+                      const result = await signInWithApple(oauthReturnTo);
+                      if (result.error) {
+                        const friendly = normalizeAuthErrorMessage(result.error);
+                        if (mode === 'signup') {
+                          authEvents.signupFailed('apple', friendly);
+                        } else {
+                          authEvents.loginFailed('apple', friendly);
+                        }
+                        setError(friendly);
                       }
-                      setError(result.error);
+                    } finally {
                       setAppleLoading(false);
                     }
-                    // If no error, browser will redirect to Apple
                   }}
                   disabled={isLoading || appleLoading || googleLoading || awaitingAuth}
                   className="w-full flex items-center justify-center gap-2 bg-white/12 hover:bg-white/18 border border-white/15 text-white font-medium py-3 rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-all disabled:opacity-50 min-h-[48px]"

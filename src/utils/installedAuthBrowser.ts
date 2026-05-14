@@ -48,14 +48,32 @@ function getChravelNativeOpenOAuthUrl(): ((url: string) => void | Promise<void>)
 export async function openInstalledAuthBrowser(url: string): Promise<void> {
   const browser = getCapacitorBrowser();
   if (browser) {
-    await browser.open({ url, presentationStyle: 'popover' });
-    return;
+    try {
+      await browser.open({ url, presentationStyle: 'popover' });
+      return;
+    } catch (err) {
+      // Capacitor Browser plugin can throw when the native shell shim is partial
+      // (e.g. Expo Go bridge present but Browser plugin not wired). Fall through to
+      // the next opener so we never strand the user on a dead "Redirecting…" state.
+      if (import.meta.env.DEV) {
+        console.warn('[installedAuthBrowser] Capacitor Browser failed, falling back:', err);
+      }
+    }
   }
 
   const nativeOpen = getChravelNativeOpenOAuthUrl();
   if (nativeOpen) {
-    await Promise.resolve(nativeOpen(url));
-    return;
+    try {
+      await Promise.resolve(nativeOpen(url));
+      return;
+    } catch (err) {
+      if (import.meta.env.DEV) {
+        console.warn(
+          '[installedAuthBrowser] ChravelNative.openOAuthUrl failed, falling back:',
+          err,
+        );
+      }
+    }
   }
 
   window.location.assign(url);
