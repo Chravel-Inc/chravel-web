@@ -160,11 +160,6 @@ vi.mock('../MessageTypeBar', () => ({
   },
 }));
 vi.mock('../ChatSearchOverlay', () => ({ ChatSearchOverlay: () => null }));
-vi.mock('../ThreadView', () => ({
-  ThreadView: ({ parentMessage }: { parentMessage: { id: string } }) => (
-    <div data-testid="thread-view">{parentMessage.id}</div>
-  ),
-}));
 vi.mock('@/components/mobile/PullToRefreshIndicator', () => ({
   PullToRefreshIndicator: () => null,
 }));
@@ -247,8 +242,9 @@ describe('TripChat render path', () => {
     act(() => {
       messageItemProps.onOpenThread('msg-1');
     });
+    // ThreadView removed; onOpenThread now scrolls inline — just assert no crash.
     await waitFor(() => {
-      expect(screen.getByTestId('thread-view')).toHaveTextContent('msg-1');
+      expect(screen.getByTestId('virtualized-message-container')).toBeInTheDocument();
     });
   });
 
