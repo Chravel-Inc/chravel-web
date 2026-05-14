@@ -170,7 +170,7 @@ export function usePendingRequestTripCards(isDemoMode = false) {
             request_id: request.id,
             trip_id: request.trip_id,
             trip_type: trip.trip_type,
-            requested_at: request.created_at,
+            requested_at: request.requested_at,
             title: trip.name,
             destination: trip.destination,
             start_date: trip.start_date,
