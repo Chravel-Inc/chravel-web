@@ -29,6 +29,23 @@ import { errorTracking } from '@/services/errorTracking';
 
 const TRIPS_QUERY_KEY = 'trips';
 
+/**
+ * WKWebView / Safari often label TLS/DNS/captive-portal failures as "Load failed".
+ * Surfacing that raw string in AuthModal looks like an app bug — normalize for users.
+ */
+const INSTALLED_OAUTH_NETWORK_HINT =
+  'Check your connection. If a Google or Apple window opened, finish there, then return here — the app should continue automatically.';
+function normalizeClientAuthMessage(message: string | undefined): string {
+  if (!message?.trim()) {
+    return 'Something went wrong. Please try again.';
+  }
+  const m = message.trim();
+  if (/^load failed$/i.test(m) || /failed to fetch/i.test(m) || /network\s*error/i.test(m)) {
+    return `Could not reach Chravel. ${INSTALLED_OAUTH_NETWORK_HINT}`;
+  }
+  return m;
+}
+
 // Timeout utility to prevent indefinite hanging on database queries
 const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> => {
   return Promise.race([
@@ -866,7 +883,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           };
         }
 
-        return { error: error.message };
+        return { error: normalizeClientAuthMessage(error.message) };
       }
 
       // Success path: clear loading state (auth state listener will update user)
@@ -916,7 +933,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (error.message.includes('provider is not enabled')) {
           return { error: 'Google sign-in is not configured. Please contact support.' };
         }
-        return { error: error.message };
+        return { error: normalizeClientAuthMessage(error.message) };
       }
 
       if (installed && data?.url) {
@@ -924,7 +941,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // when the native shell registers it; falls back to same-tab navigation.
         // Google rejects embedded WebView OAuth with disallowed_useragent — the
         // native shell must open this URL outside the embedded WebView.
-        await openInstalledAuthBrowser(data.url);
+        try {
+          await openInstalledAuthBrowser(data.url);
+        } catch (openError) {
+          if (import.meta.env.DEV) {
+            console.error('[Auth] Google OAuth browser open failed:', openError);
+          }
+          const raw = openError instanceof Error ? openError.message : '';
+          if (/load failed|failed to fetch|network/i.test(raw)) {
+            return {
+              error: `Could not open the sign-in browser. ${INSTALLED_OAUTH_NETWORK_HINT}`,
+            };
+          }
+          return {
+            error:
+              'Could not open the sign-in window. Try updating the app, or sign in with email.',
+          };
+        }
       }
 
       return {};
@@ -932,7 +965,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (import.meta.env.DEV) {
         console.error('[Auth] Unexpected Google OAuth error:', error);
       }
-      return { error: 'An unexpected error occurred. Please try again.' };
+      return {
+        error: normalizeClientAuthMessage(
+          error instanceof Error
+            ? error.message
+            : 'An unexpected error occurred. Please try again.',
+        ),
+      };
     }
   };
 
@@ -960,11 +999,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (error.message.includes('provider is not enabled')) {
           return { error: 'Apple sign-in is not configured. Please contact support.' };
         }
-        return { error: error.message };
+        return { error: normalizeClientAuthMessage(error.message) };
       }
 
       if (installed && data?.url) {
-        await openInstalledAuthBrowser(data.url);
+        try {
+          await openInstalledAuthBrowser(data.url);
+        } catch (openError) {
+          if (import.meta.env.DEV) {
+            console.error('[Auth] Apple OAuth browser open failed:', openError);
+          }
+          const raw = openError instanceof Error ? openError.message : '';
+          if (/load failed|failed to fetch|network/i.test(raw)) {
+            return {
+              error: `Could not open the sign-in browser. ${INSTALLED_OAUTH_NETWORK_HINT}`,
+            };
+          }
+          return {
+            error:
+              'Could not open the sign-in window. Try updating the app, or sign in with email.',
+          };
+        }
       }
 
       return {};
@@ -972,7 +1027,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (import.meta.env.DEV) {
         console.error('[Auth] Unexpected Apple OAuth error:', error);
       }
-      return { error: 'An unexpected error occurred. Please try again.' };
+      return {
+        error: normalizeClientAuthMessage(
+          error instanceof Error
+            ? error.message
+            : 'An unexpected error occurred. Please try again.',
+        ),
+      };
     }
   };
 
