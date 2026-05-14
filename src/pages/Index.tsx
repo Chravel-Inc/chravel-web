@@ -637,6 +637,7 @@ const AuthIndex = () => {
             break;
           case 'profile':
             setSettingsInitialType('consumer');
+            setSettingsInitialConsumerSection('profile');
             setIsSettingsOpen(true);
             break;
         }
@@ -644,6 +645,18 @@ const AuthIndex = () => {
     },
     [closeAllTabModals],
   );
+
+  const handleSettingsMenuClose = useCallback(() => {
+    setIsSettingsOpen(false);
+    setActiveTab('trips');
+  }, []);
+
+  const handleNotificationsOpenChange = useCallback((open: boolean) => {
+    setIsNotificationsOpen(open);
+    if (!open) {
+      setActiveTab('trips');
+    }
+  }, []);
 
   // Handle trip type selection from the switcher (including travelRecs)
   const handleTripTypeSelect = useCallback(
@@ -883,7 +896,7 @@ const AuthIndex = () => {
 
             <SettingsMenu
               isOpen={isSettingsOpen}
-              onClose={() => setIsSettingsOpen(false)}
+              onClose={handleSettingsMenuClose}
               initialConsumerSection={settingsInitialConsumerSection}
               initialSettingsType={settingsInitialType}
               onTripStateChange={handleTripStateChange}
@@ -924,7 +937,10 @@ const AuthIndex = () => {
             />
 
             {/* Notifications dialog (mounted at page level for mobile access) */}
-            <NotificationsDialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen} />
+            <NotificationsDialog
+              open={isNotificationsOpen}
+              onOpenChange={handleNotificationsOpenChange}
+            />
           </Suspense>
 
           {/* iOS-style bottom tab bar (mobile only) */}
@@ -1072,7 +1088,7 @@ const AuthIndex = () => {
 
           <SettingsMenu
             isOpen={isSettingsOpen}
-            onClose={() => setIsSettingsOpen(false)}
+            onClose={handleSettingsMenuClose}
             initialConsumerSection={settingsInitialConsumerSection}
             initialSettingsType={settingsInitialType}
             onTripStateChange={handleTripStateChange}
@@ -1119,7 +1135,10 @@ const AuthIndex = () => {
           />
 
           {/* Notifications dialog (mounted at page level for mobile access) */}
-          <NotificationsDialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen} />
+          <NotificationsDialog
+            open={isNotificationsOpen}
+            onOpenChange={handleNotificationsOpenChange}
+          />
         </Suspense>
 
         {/* iOS-style bottom tab bar (mobile only) */}
@@ -1319,7 +1338,7 @@ const AuthIndex = () => {
 
         <SettingsMenu
           isOpen={isSettingsOpen}
-          onClose={() => setIsSettingsOpen(false)}
+          onClose={handleSettingsMenuClose}
           initialConsumerSection={settingsInitialConsumerSection}
           initialSettingsType={settingsInitialType}
           onTripStateChange={handleTripStateChange}
@@ -1344,7 +1363,10 @@ const AuthIndex = () => {
         />
 
         {/* Notifications dialog (mounted at page level for mobile access) */}
-        <NotificationsDialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen} />
+        <NotificationsDialog
+          open={isNotificationsOpen}
+          onOpenChange={handleNotificationsOpenChange}
+        />
       </Suspense>
 
       {/* iOS-style bottom tab bar (mobile only) */}

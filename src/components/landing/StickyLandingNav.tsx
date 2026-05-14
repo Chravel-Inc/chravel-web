@@ -74,9 +74,7 @@ export const StickyLandingNav: React.FC<StickyLandingNavProps> = ({
     // Track active section via IntersectionObserver — replaces per-scroll
     // getBoundingClientRect() loop that forced layout every frame.
     const scope: ParentNode = useWindow ? document : root;
-    const sectionEls = Array.from(
-      scope.querySelectorAll<HTMLElement>('[id^="section-"]'),
-    );
+    const sectionEls = Array.from(scope.querySelectorAll<HTMLElement>('[id^="section-"]'));
     const visibility = new Map<string, number>();
     const io = new IntersectionObserver(
       entries => {
@@ -131,10 +129,15 @@ export const StickyLandingNav: React.FC<StickyLandingNavProps> = ({
       />
 
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-        {/* Logo */}
-        <div className="text-xl font-bold text-gradient-gold">
+        {/* Logo — scroll to hero (was a non-interactive div; taps felt broken) */}
+        <button
+          type="button"
+          onClick={() => scrollToSection('hero')}
+          className="text-xl font-bold text-gradient-gold cursor-pointer rounded-md px-1 -mx-1 text-left hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          aria-label="Back to top of landing page"
+        >
           ChravelApp
-        </div>
+        </button>
 
         {/* For Teams Link (Desktop) */}
         <div className="hidden lg:flex items-center">

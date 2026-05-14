@@ -226,13 +226,19 @@ export const ConsumerProfileSection = () => {
       <div className="bg-white/5 border border-white/10 rounded-xl p-3">
         <h4 className="text-base font-semibold text-white mb-2">Profile Photo</h4>
         <div className="flex flex-col items-center gap-4">
-          <div className="w-20 h-20 bg-gradient-to-r from-glass-orange to-glass-yellow rounded-full flex items-center justify-center overflow-hidden">
+          <button
+            type="button"
+            onClick={triggerFileInput}
+            disabled={isUploading || (!user && !showDemoContent)}
+            aria-label="Change profile photo"
+            className="w-20 h-20 bg-gradient-to-r from-glass-orange to-glass-yellow rounded-full flex items-center justify-center overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed shrink-0 hover:opacity-95 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glass-orange/60"
+          >
             {currentUser.avatar ? (
-              <img src={currentUser.avatar} alt="Profile" className="w-full h-full object-cover" />
+              <img src={currentUser.avatar} alt="" className="w-full h-full object-cover" />
             ) : (
               <User size={24} className="text-white" />
             )}
-          </div>
+          </button>
           <input
             type="file"
             ref={fileInputRef}
