@@ -5,6 +5,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { usePendingRequestTripCards } from '../usePendingRequestTripCards';
 
 const rpcMock = vi.fn();
+const pendingRequestsSelectEqStatusMock = vi.fn();
+const pendingRequestsSelectEqUserMock = vi.fn();
+const pendingRequestsSelectMock = vi.fn();
+const tripsSelectInMock = vi.fn();
+const tripsSelectMock = vi.fn();
+const fromMock = vi.fn((table: string) => {
+  if (table === 'trip_join_requests') return { select: pendingRequestsSelectMock };
+  if (table === 'trips') return { select: tripsSelectMock };
+  throw new Error(`Unexpected table ${table}`);
+});
 
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({ user: { id: 'user-1' } }),
@@ -13,6 +23,7 @@ vi.mock('@/hooks/useAuth', () => ({
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     rpc: (...args: unknown[]) => rpcMock(...args),
+    from: (...args: unknown[]) => fromMock(...args),
   },
 }));
 
@@ -31,6 +42,16 @@ const createWrapper = () => {
 describe('usePendingRequestTripCards', () => {
   beforeEach(() => {
     rpcMock.mockReset();
+    fromMock.mockClear();
+    pendingRequestsSelectEqStatusMock.mockReset();
+    pendingRequestsSelectEqUserMock.mockReset();
+    pendingRequestsSelectMock.mockReset();
+    tripsSelectInMock.mockReset();
+    tripsSelectMock.mockReset();
+
+    pendingRequestsSelectEqUserMock.mockReturnValue({ eq: pendingRequestsSelectEqStatusMock });
+    pendingRequestsSelectMock.mockReturnValue({ eq: pendingRequestsSelectEqUserMock });
+    tripsSelectMock.mockReturnValue({ in: tripsSelectInMock });
   });
 
   it('hydrates pending request cards from RPC rows', async () => {
@@ -99,5 +120,43 @@ describe('usePendingRequestTripCards', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.cards).toHaveLength(0);
+  });
+
+  it('uses fallback table queries when RPC succeeds but returns empty rows', async () => {
+    rpcMock.mockResolvedValueOnce({ data: [], error: null });
+    pendingRequestsSelectEqStatusMock.mockResolvedValueOnce({
+      data: [{ id: 'req-3', trip_id: 'trip-3', created_at: '2026-04-02T00:00:00Z' }],
+      error: null,
+    });
+    tripsSelectInMock.mockResolvedValueOnce({
+      data: [
+        {
+          id: 'trip-3',
+          trip_type: 'event',
+          name: 'Fallback Trip',
+          destination: 'Austin, TX',
+          start_date: '2026-04-30',
+          end_date: '2026-05-02',
+          cover_image_url: null,
+        },
+      ],
+      error: null,
+    });
+
+    const { result } = renderHook(() => usePendingRequestTripCards(false), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.cards).toHaveLength(1);
+    expect(result.current.cards[0]).toMatchObject({
+      requestId: 'req-3',
+      tripId: 'trip-3',
+      title: 'Fallback Trip',
+      tripType: 'event',
+    });
+    expect(fromMock).toHaveBeenCalledWith('trip_join_requests');
+    expect(fromMock).toHaveBeenCalledWith('trips');
   });
 });

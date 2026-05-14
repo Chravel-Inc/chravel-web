@@ -132,9 +132,66 @@ export function usePendingRequestTripCards(isDemoMode = false) {
       );
 
       if (error) throw new Error(error.message || 'Failed to load pending request cards');
-      return (data ?? [])
+      const mappedRpcCards = (data ?? [])
         .map(mapRowToCard)
         .filter((card): card is PendingRequestTripCard => card !== null);
+
+      if (mappedRpcCards.length > 0) {
+        return mappedRpcCards;
+      }
+
+      const { data: pendingRequests, error: pendingRequestsError } = await supabase
+        .from('trip_join_requests')
+        .select('id, trip_id, created_at')
+        .eq('user_id', user.id)
+        .eq('status', 'pending');
+
+      if (pendingRequestsError || !pendingRequests?.length) {
+        return mappedRpcCards;
+      }
+
+      const tripIds = [...new Set(pendingRequests.map(request => request.trip_id))];
+      const { data: trips, error: tripsError } = await supabase
+        .from('trips')
+        .select('id, trip_type, name, destination, start_date, end_date, cover_image_url')
+        .in('id', tripIds);
+
+      if (tripsError || !trips?.length) {
+        return mappedRpcCards;
+      }
+
+      const tripsById = new Map(trips.map(trip => [trip.id, trip] as const));
+      const fallbackCards = pendingRequests
+        .map(request => {
+          const trip = tripsById.get(request.trip_id);
+          if (!trip) return null;
+
+          return mapRowToCard({
+            request_id: request.id,
+            trip_id: request.trip_id,
+            trip_type: trip.trip_type,
+            requested_at: request.created_at,
+            title: trip.name,
+            destination: trip.destination,
+            start_date: trip.start_date,
+            end_date: trip.end_date,
+            cover_image_url: trip.cover_image_url,
+            member_count: 1,
+            places_count: 0,
+          });
+        })
+        .filter((card): card is PendingRequestTripCard => card !== null);
+
+      if (import.meta.env.DEV) {
+        console.warn('[usePendingRequestTripCards] Activated temporary fallback query path', {
+          rpcRowCount: data?.length ?? 0,
+          pendingRequestRowCount: pendingRequests.length,
+          tripRowCount: trips.length,
+          fallbackCardCount: fallbackCards.length,
+        });
+      }
+
+      return fallbackCards;
     },
     staleTime: 60_000,
   });
