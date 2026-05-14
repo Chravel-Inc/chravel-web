@@ -683,6 +683,8 @@ export const TripChat = React.memo(
       setReply(messageId, content, authorName);
     };
 
+    // Inline replies: "open thread" now scrolls to the parent message in the
+    // main timeline (replies render nested under it). No modal/drawer.
     const handleActivateThread = useCallback(
       (
         messageId: string,
@@ -694,42 +696,29 @@ export const TripChat = React.memo(
       ) => {
         const telemetrySource = source === 'notification_deeplink' ? 'notification' : source;
 
-        const streamMessage = liveMessages.find(m => m.id === messageId);
-        if (streamMessage) {
-          const streamUser = (streamMessage as any).user;
-          setActiveThreadMessage({
-            id: streamMessage.id,
-            content: (streamMessage as any).text || '',
-            authorName: streamUser?.name || (streamMessage as any).author_name || 'User',
-            authorAvatar: streamUser?.image,
-            createdAt: (streamMessage as any).created_at || new Date().toISOString(),
-            tripId: resolvedTripId,
+        if (!demoMode.isDemoMode && liveMessages.find(m => m.id === messageId)) {
+          messageEvents.threadOpened({
+            trip_id: resolvedTripId,
+            parent_message_id: messageId,
+            source: telemetrySource,
           });
-          if (!demoMode.isDemoMode) {
-            messageEvents.threadOpened({
-              trip_id: resolvedTripId,
-              parent_message_id: messageId,
-              source: telemetrySource,
-            });
-          }
-          return;
         }
 
-        const demoMessage = demoMessages.find(m => m.id === messageId);
-        if (!demoMessage) return;
-        setActiveThreadMessage({
-          id: demoMessage.id,
-          content: demoMessage.text || '',
-          authorName: demoMessage.sender?.name || 'User',
-          authorAvatar: demoMessage.sender?.avatar,
-          createdAt: demoMessage.createdAt,
-          tripId: resolvedTripId,
-        });
+        // Defer to next tick so any filter changes (e.g. switching to "all") have applied.
+        window.setTimeout(() => {
+          const el = document.querySelector(`[data-message-id="${messageId}"]`);
+          if (el instanceof HTMLElement) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.classList.add('search-highlight-flash');
+            window.setTimeout(() => el.classList.remove('search-highlight-flash'), 1000);
+          }
+        }, 50);
       },
-      [demoMode.isDemoMode, liveMessages, demoMessages, resolvedTripId],
+      [demoMode.isDemoMode, liveMessages, resolvedTripId],
     );
 
-    // After a successful thread reply send, open the parent thread (Stream + demo).
+    // After a successful thread reply send, scroll the parent (and its now-nested
+    // reply) into view. The reply itself appears inline via realtime/local state.
     useEffect(() => {
       const parentId = threadReplySuccess?.parentMessageId;
       if (!parentId) return;
