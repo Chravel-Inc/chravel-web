@@ -170,9 +170,11 @@ describe('AIConciergeChat', () => {
       });
     });
 
-    it('renders the live voice CTA so users can activate the live overlay', () => {
+    it('does not render the live voice CTA when duplex live voice is disabled (default)', () => {
       renderWithProviders(<AIConciergeChat tripId="test-trip" />);
-      expect(screen.getByRole('switch', { name: /start live voice session/i })).toBeInTheDocument();
+      expect(
+        screen.queryByRole('switch', { name: /start live voice session/i }),
+      ).not.toBeInTheDocument();
     });
 
     it('removes legacy status pills from header', () => {
