@@ -586,7 +586,7 @@ export const MobileTripTabs = ({
                   px-4 py-2 min-w-max h-[44px]
                   rounded-lg font-medium text-sm
                   transition-all duration-200
-                  flex-shrink-0
+                  flex-shrink-0 touch-manipulation
                   scroll-snap-align-start
                   ${enabled ? 'active:scale-95' : variant === 'event' ? '' : 'cursor-not-allowed'}
                   ${

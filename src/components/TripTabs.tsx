@@ -1,4 +1,4 @@
-import React, { useState, lazy, Suspense, useCallback, useEffect } from 'react';
+import React, { useState, lazy, Suspense, useCallback, useEffect, useMemo } from 'react';
 import {
   MessageCircle,
   Calendar,
@@ -180,28 +180,50 @@ export const TripTabs = ({
 
   // 🆕 Updated tab order: Chat, Calendar, Concierge, Media, Payments, Places, Polls, Tasks
   // Super admins always have all features enabled (no lock icons)
-  const tabs = [
-    { id: 'chat', label: 'Chat', icon: MessageCircle, enabled: isSuperAdmin || features.showChat },
-    {
-      id: 'calendar',
-      label: 'Calendar',
-      icon: Calendar,
-      enabled: isSuperAdmin || features.showCalendar,
-    },
-    { id: 'concierge', label: 'Concierge', icon: Sparkles, enabled: isSuperAdmin || showConcierge },
-    { id: 'media', label: 'Media', icon: Camera, enabled: isSuperAdmin || features.showMedia },
-    { id: 'payments', label: 'Payments', icon: DollarSign, enabled: true },
-    { id: 'places', label: 'Places', icon: MapPin, enabled: isSuperAdmin || showPlaces },
-    { id: 'polls', label: 'Polls', icon: BarChart3, enabled: isSuperAdmin || features.showPolls },
-    {
-      id: 'tasks',
-      label: 'Tasks',
-      icon: ClipboardList,
-      enabled: isSuperAdmin || features.showTasks,
-    },
-  ];
+  const tabs = useMemo(
+    () => [
+      {
+        id: 'chat',
+        label: 'Chat',
+        icon: MessageCircle,
+        enabled: isSuperAdmin || features.showChat,
+      },
+      {
+        id: 'calendar',
+        label: 'Calendar',
+        icon: Calendar,
+        enabled: isSuperAdmin || features.showCalendar,
+      },
+      {
+        id: 'concierge',
+        label: 'Concierge',
+        icon: Sparkles,
+        enabled: isSuperAdmin || showConcierge,
+      },
+      { id: 'media', label: 'Media', icon: Camera, enabled: isSuperAdmin || features.showMedia },
+      { id: 'payments', label: 'Payments', icon: DollarSign, enabled: true },
+      { id: 'places', label: 'Places', icon: MapPin, enabled: isSuperAdmin || showPlaces },
+      { id: 'polls', label: 'Polls', icon: BarChart3, enabled: isSuperAdmin || features.showPolls },
+      {
+        id: 'tasks',
+        label: 'Tasks',
+        icon: ClipboardList,
+        enabled: isSuperAdmin || features.showTasks,
+      },
+    ],
+    [
+      isSuperAdmin,
+      features.showChat,
+      features.showCalendar,
+      features.showMedia,
+      features.showPolls,
+      features.showTasks,
+      showConcierge,
+      showPlaces,
+    ],
+  );
 
-  const handleTabChange = async (tab: string, enabled: boolean) => {
+  const handleTabChange = useCallback(async (tab: string, enabled: boolean) => {
     if (!enabled) {
       // Show toast for disabled features
       const { toast } = await import('sonner');
@@ -211,7 +233,7 @@ export const TripTabs = ({
       return;
     }
     setActiveTab(tab);
-  };
+  }, []);
 
   // Default tab skeleton for lazy loading fallback
   const DefaultTabSkeleton = () => (
@@ -291,6 +313,10 @@ export const TripTabs = ({
                 basecamp={basecamp}
                 preferences={tripPreferences}
                 isDemoMode={isDemoMode}
+                onTabChange={tabId => {
+                  const meta = tabs.find(t => t.id === tabId);
+                  void handleTabChange(tabId, meta?.enabled ?? true);
+                }}
               />
             </FeatureErrorBoundary>
           );
@@ -302,7 +328,16 @@ export const TripTabs = ({
           );
       }
     },
-    [tripId, tripName, basecamp, tripPreferences, isDemoMode, handlePromoteToTripLink],
+    [
+      tripId,
+      tripName,
+      basecamp,
+      tripPreferences,
+      isDemoMode,
+      handlePromoteToTripLink,
+      tabs,
+      handleTabChange,
+    ],
   );
 
   // ⚡ PERFORMANCE: Prefetch tab data on hover
