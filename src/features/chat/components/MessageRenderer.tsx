@@ -180,7 +180,9 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({
   const showTTS = isAssistant && onTTSPlay && onTTSStop && !!sanitizedContent;
 
   return (
-    <div className={cn('flex w-full gap-2', isOwnMessage ? 'justify-end' : 'justify-start')}>
+    <div
+      className={cn('flex w-full min-w-0 gap-2', isOwnMessage ? 'justify-end' : 'justify-start')}
+    >
       {/* CA Avatar for assistant messages — Concierge AI / Chravel Agent */}
       {!isOwnMessage && (
         <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-emerald-500 flex items-center justify-center flex-shrink-0">
@@ -189,14 +191,25 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({
       )}
 
       <div
-        className={cn('flex flex-col', isOwnMessage ? 'items-end' : 'items-start', 'max-w-[78%]')}
+        className={cn(
+          'flex min-w-0 flex-col',
+          isOwnMessage
+            ? 'ml-auto max-w-[78%] items-end'
+            : 'max-w-[min(92%,calc(100%-2.5rem))] flex-1 items-start',
+        )}
       >
         <div
-          className={cn('flex items-end gap-1.5', isOwnMessage ? 'flex-row-reverse' : 'flex-row')}
+          className={cn(
+            'flex w-full min-w-0 items-end gap-1.5',
+            isOwnMessage ? 'flex-row-reverse' : 'flex-row',
+          )}
         >
           <div
             className={cn(
               'px-3.5 py-2.5 rounded-2xl backdrop-blur-sm border',
+              // When TTS sits beside the bubble, let the bubble consume remaining row width so
+              // iOS/WebKit does not leave a wide empty gutter (reported as black band on mobile).
+              showTTS && 'min-w-0 flex-1 basis-0',
               // Use transition-colors instead of transition-all to prevent layout animation jitter on iOS during streaming
               // Disable transitions entirely for streaming bubbles to eliminate iOS vibration
               message.isStreamingVoice ? 'transition-none' : 'transition-colors duration-150',
@@ -216,7 +229,7 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({
             {/* Message content — sanitize assistant text to strip leaked tool-plan JSON */}
             {message.content && isAssistant ? (
               sanitizedContent ? (
-                <div className="text-sm leading-relaxed ai-markdown-content">
+                <div className="ai-markdown-content max-w-full min-w-0 text-sm leading-relaxed">
                   <ReactMarkdown
                     components={{
                       a: ({ href, children }) => (
