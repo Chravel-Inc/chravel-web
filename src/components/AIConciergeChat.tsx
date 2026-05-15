@@ -289,18 +289,11 @@ export const AIConciergeChat = ({
     handleSendMessageRef.current = handleSendMessage;
   }, [handleSendMessage]);
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
   return (
     <div className="flex flex-col overflow-hidden flex-1 min-h-0 h-full">
-      <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col flex-1">
-        {/* Header — title row + controls row */}
-        <div className="border-b border-white/10 bg-black/30 px-3 py-2 flex-shrink-0">
+      <div className="relative isolate flex flex-col flex-1 overflow-hidden rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+        {/* Header — title row + controls row (elevated above scroll layer for hit-testing on iOS) */}
+        <div className="relative z-20 flex-shrink-0 border-b border-white/10 bg-black/30 px-3 py-2">
           {/* Row 1: Title */}
           <h3
             className="text-lg font-semibold text-white text-center truncate leading-tight"
@@ -379,7 +372,9 @@ export const AIConciergeChat = ({
           type="file"
           accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,application/pdf,text/calendar,.ics,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           multiple
-          className="hidden"
+          className="sr-only"
+          aria-label="Attach images, documents, or itineraries"
+          tabIndex={-1}
           onChange={e => {
             const files = Array.from(e.target.files || []);
             const images = files.filter(f => f.type.startsWith('image/'));
@@ -443,7 +438,7 @@ export const AIConciergeChat = ({
         ) : (
           <div
             ref={chatScrollRef}
-            className="flex-1 overflow-y-auto p-4 chat-scroll-container native-scroll min-h-0"
+            className="relative z-0 min-h-0 flex-1 overflow-y-auto p-4 chat-scroll-container native-scroll"
           >
             {/* "Picked up where you left off" divider — shown once when server history hydrates */}
             {historyLoadedFromServer && messages.length > 0 && (
@@ -502,7 +497,7 @@ export const AIConciergeChat = ({
 
         {/* Input area — sticky bottom with inline voice banner above input */}
         <div
-          className="chat-composer z-10 bg-black/30 px-3 pt-2 flex-shrink-0"
+          className="chat-composer relative z-20 flex-shrink-0 bg-black/30 px-3 pt-2"
           style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)' }}
         >
           {UPLOAD_ENABLED &&
@@ -541,7 +536,6 @@ export const AIConciergeChat = ({
             onSendMessage={() => {
               void handleSendMessage();
             }}
-            onKeyPress={handleKeyPress}
             isTyping={isTyping}
             showImageAttach={UPLOAD_ENABLED}
             attachedImages={UPLOAD_ENABLED ? attachedImages : []}
