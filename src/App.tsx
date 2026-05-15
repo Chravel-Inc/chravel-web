@@ -34,6 +34,8 @@ import { setupGlobalSyncProcessor } from './services/globalSyncProcessor';
 import { useSwUpdate } from '@/hooks/useSwUpdate';
 import { safeReload } from '@/utils/safeReload';
 import { retryImport } from '@/lib/retryImport';
+import { getPublicSeoRoute, SEO_LANDING_CONTENT } from '@/lib/seo';
+import { syncRobotsAndCanonical } from '@/components/seo/SeoHead';
 
 // Lazy load pages for better performance
 const Index = lazy(() => retryImport(() => import('./pages/Index')));
@@ -97,6 +99,7 @@ const DemoEntry = lazy(() => retryImport(() => import('./pages/DemoEntry')));
 const TripPreview = lazy(() => retryImport(() => import('./pages/TripPreview')));
 const AuthPage = lazy(() => retryImport(() => import('./pages/AuthPage')));
 const ResetPasswordPage = lazy(() => retryImport(() => import('./pages/ResetPasswordPage')));
+const SeoLandingPage = lazy(() => retryImport(() => import('./pages/SeoLandingPage')));
 const DeviceTestMatrix = lazy(() => retryImport(() => import('./pages/DeviceTestMatrix')));
 // AdminMigrateDemoImages removed - migration complete, images now in Supabase Storage
 
@@ -162,6 +165,16 @@ const OfflineIndicatorGate = () => {
 
   if (!user || isPublicRoute) return null;
   return <OfflineIndicator />;
+};
+
+const RouteHeadPolicySync = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    syncRobotsAndCanonical(pathname);
+  }, [pathname]);
+
+  return null;
 };
 
 const App = () => {
@@ -322,6 +335,7 @@ const App = () => {
                 {/* All components using react-router hooks must render inside <Router> */}
                 <Router>
                   <PageViewTracker />
+                  <RouteHeadPolicySync />
                   <ExitDemoButtonWithNav />
                   <OfflineIndicatorGate />
                   <MobileAppLayout>
@@ -443,6 +457,120 @@ const App = () => {
                         element={
                           <LazyRoute>
                             <EventDetail />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/trip-planner"
+                        element={
+                          <LazyRoute>
+                            {(() => {
+                              const config = getPublicSeoRoute('/trip-planner');
+                              if (!config) return null;
+                              return (
+                                <SeoLandingPage
+                                  config={config}
+                                  h1={SEO_LANDING_CONTENT['/trip-planner'].h1}
+                                  intro={SEO_LANDING_CONTENT['/trip-planner'].intro}
+                                  faq={[
+                                    {
+                                      q: 'Can ChravelApp replace multiple planning tools?',
+                                      a: 'ChravelApp centralizes communication, itinerary, tasks, and group coordination so teams rely less on disconnected apps.',
+                                    },
+                                    {
+                                      q: 'Is ChravelApp only for leisure travel?',
+                                      a: 'No. ChravelApp supports friend trips, events, and pro travel workflows where logistics and visibility matter.',
+                                    },
+                                  ]}
+                                />
+                              );
+                            })()}
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/group-trip-planner"
+                        element={
+                          <LazyRoute>
+                            {(() => {
+                              const config = getPublicSeoRoute('/group-trip-planner');
+                              if (!config) return null;
+                              return (
+                                <SeoLandingPage
+                                  config={config}
+                                  h1={SEO_LANDING_CONTENT['/group-trip-planner'].h1}
+                                  intro={SEO_LANDING_CONTENT['/group-trip-planner'].intro}
+                                  faq={[
+                                    {
+                                      q: 'Can ChravelApp replace multiple planning tools?',
+                                      a: 'ChravelApp centralizes communication, itinerary, tasks, and group coordination so teams rely less on disconnected apps.',
+                                    },
+                                    {
+                                      q: 'Is ChravelApp only for leisure travel?',
+                                      a: 'No. ChravelApp supports friend trips, events, and pro travel workflows where logistics and visibility matter.',
+                                    },
+                                  ]}
+                                />
+                              );
+                            })()}
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/group-travel"
+                        element={
+                          <LazyRoute>
+                            {(() => {
+                              const config = getPublicSeoRoute('/group-travel');
+                              if (!config) return null;
+                              return (
+                                <SeoLandingPage
+                                  config={config}
+                                  h1={SEO_LANDING_CONTENT['/group-travel'].h1}
+                                  intro={SEO_LANDING_CONTENT['/group-travel'].intro}
+                                  faq={[
+                                    {
+                                      q: 'Can ChravelApp replace multiple planning tools?',
+                                      a: 'ChravelApp centralizes communication, itinerary, tasks, and group coordination so teams rely less on disconnected apps.',
+                                    },
+                                    {
+                                      q: 'Is ChravelApp only for leisure travel?',
+                                      a: 'No. ChravelApp supports friend trips, events, and pro travel workflows where logistics and visibility matter.',
+                                    },
+                                  ]}
+                                />
+                              );
+                            })()}
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/how-to-plan-a-trip-with-friends"
+                        element={
+                          <LazyRoute>
+                            {(() => {
+                              const config = getPublicSeoRoute('/how-to-plan-a-trip-with-friends');
+                              if (!config) return null;
+                              return (
+                                <SeoLandingPage
+                                  config={config}
+                                  h1={SEO_LANDING_CONTENT['/how-to-plan-a-trip-with-friends'].h1}
+                                  intro={
+                                    SEO_LANDING_CONTENT['/how-to-plan-a-trip-with-friends'].intro
+                                  }
+                                  faq={[
+                                    {
+                                      q: 'Can ChravelApp replace multiple planning tools?',
+                                      a: 'ChravelApp centralizes communication, itinerary, tasks, and group coordination so teams rely less on disconnected apps.',
+                                    },
+                                    {
+                                      q: 'Is ChravelApp only for leisure travel?',
+                                      a: 'No. ChravelApp supports friend trips, events, and pro travel workflows where logistics and visibility matter.',
+                                    },
+                                  ]}
+                                />
+                              );
+                            })()}
                           </LazyRoute>
                         }
                       />
