@@ -53,6 +53,7 @@ const AdminDashboard = lazy(() =>
     import('./pages/AdminDashboard').then(module => ({ default: module.AdminDashboard })),
   ),
 );
+const SeoDashboard = lazy(() => retryImport(() => import('./pages/admin/SeoDashboard')));
 const OrganizationDashboard = lazy(() =>
   retryImport(() =>
     import('./pages/OrganizationDashboard').then(module => ({
