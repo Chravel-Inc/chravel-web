@@ -22,3 +22,25 @@ export function useIsMobile(): boolean {
 
   return isMobile;
 }
+
+/** True for mouse/trackpad UIs; false for most phones — used to avoid Radix Tooltip eating first tap. */
+export function usePrefersFinePointer(): boolean {
+  const [fine, setFine] = React.useState(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+    return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  });
+
+  React.useEffect(() => {
+    if (typeof window.matchMedia !== 'function') {
+      setFine(false);
+      return;
+    }
+    const mq = window.matchMedia('(hover: hover) and (pointer: fine)');
+    const onChange = (e: MediaQueryListEvent) => setFine(e.matches);
+    mq.addEventListener('change', onChange);
+    setFine(mq.matches);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  return fine;
+}

@@ -3,6 +3,7 @@ import { AudioLines, Lock } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { CTA_GRADIENT, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
+import { usePrefersFinePointer } from '@/hooks/use-mobile';
 
 interface VoiceButtonProps {
   /** Dictation engine state */
@@ -20,6 +21,9 @@ interface VoiceButtonProps {
 /**
  * Waveform button — dedicated to one-shot dictation only.
  * Tap to start/stop Web Speech API dictation.
+ *
+ * On coarse pointers (phones), we skip Radix Tooltip wrapping — otherwise the
+ * first tap can be consumed to "open" the tooltip and dictation feels broken.
  */
 export const VoiceButton = ({
   voiceState,
@@ -28,6 +32,8 @@ export const VoiceButton = ({
   onUpgrade,
   small,
 }: VoiceButtonProps) => {
+  const prefersFinePointer = usePrefersFinePointer();
+
   const handleClick = useCallback(() => {
     if (!isEligible) {
       onUpgrade?.();
@@ -59,63 +65,73 @@ export const VoiceButton = ({
     return 'Tap to dictate';
   };
 
+  const tooltipText = getTooltip();
+  const sizeClass = small ? 'size-6 min-w-[24px] sm:size-10 sm:min-w-[40px]' : 'size-11';
+
+  const triggerButton = (
+    <button
+      type="button"
+      onClick={handleClick}
+      className={`relative ${sizeClass} rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 shrink-0 select-none touch-manipulation ${getStyle()}`}
+      aria-label={tooltipText}
+      title={tooltipText}
+      aria-pressed={isActive}
+    >
+      {/* Animated pulse rings when dictating */}
+      {isActive && !isConnecting && (
+        <>
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 rounded-full bg-blue-400/25 animate-[voice-pulse_2s_ease-out_infinite]"
+          />
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 rounded-full bg-cyan-400/15 animate-[voice-pulse_2s_ease-out_0.6s_infinite]"
+          />
+        </>
+      )}
+      {/* Glow ring when active */}
+      {isActive && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -inset-1 rounded-full bg-gradient-to-r from-blue-400/30 via-cyan-300/15 to-blue-400/30 blur-sm"
+        />
+      )}
+      <span className="relative z-10">
+        {isConnecting ? (
+          <div
+            className={
+              small
+                ? 'w-3.5 h-3.5 sm:w-[18px] sm:h-[18px] animate-spin gold-gradient-spinner'
+                : 'h-[18px] w-[18px] animate-spin gold-gradient-spinner'
+            }
+          />
+        ) : (
+          <AudioLines
+            size={small ? undefined : CTA_ICON_SIZE}
+            className={small ? 'w-3.5 h-3.5 sm:w-[18px] sm:h-[18px]' : undefined}
+          />
+        )}
+      </span>
+      {!isEligible && (
+        <Lock
+          size={10}
+          className="absolute -top-0.5 -right-0.5 gold-gradient-icon drop-shadow-md z-10"
+        />
+      )}
+    </button>
+  );
+
+  if (!prefersFinePointer) {
+    return triggerButton;
+  }
+
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            type="button"
-            onClick={handleClick}
-            className={`relative ${small ? 'size-6 min-w-[24px] sm:size-10 sm:min-w-[40px]' : 'size-11'} rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 shrink-0 select-none touch-manipulation ${getStyle()}`}
-            aria-label={getTooltip()}
-            aria-pressed={isActive}
-          >
-            {/* Animated pulse rings when dictating */}
-            {isActive && !isConnecting && (
-              <>
-                <span
-                  aria-hidden
-                  className="pointer-events-none absolute inset-0 rounded-full bg-blue-400/25 animate-[voice-pulse_2s_ease-out_infinite]"
-                />
-                <span
-                  aria-hidden
-                  className="pointer-events-none absolute inset-0 rounded-full bg-cyan-400/15 animate-[voice-pulse_2s_ease-out_0.6s_infinite]"
-                />
-              </>
-            )}
-            {/* Glow ring when active */}
-            {isActive && (
-              <span
-                aria-hidden
-                className="pointer-events-none absolute -inset-1 rounded-full bg-gradient-to-r from-blue-400/30 via-cyan-300/15 to-blue-400/30 blur-sm"
-              />
-            )}
-            <span className="relative z-10">
-              {isConnecting ? (
-                <div
-                  className={
-                    small
-                      ? 'w-3.5 h-3.5 sm:w-[18px] sm:h-[18px] animate-spin gold-gradient-spinner'
-                      : 'h-[18px] w-[18px] animate-spin gold-gradient-spinner'
-                  }
-                />
-              ) : (
-                <AudioLines
-                  size={small ? undefined : CTA_ICON_SIZE}
-                  className={small ? 'w-3.5 h-3.5 sm:w-[18px] sm:h-[18px]' : undefined}
-                />
-              )}
-            </span>
-            {!isEligible && (
-              <Lock
-                size={10}
-                className="absolute -top-0.5 -right-0.5 gold-gradient-icon drop-shadow-md z-10"
-              />
-            )}
-          </button>
-        </TooltipTrigger>
+        <TooltipTrigger asChild>{triggerButton}</TooltipTrigger>
         <TooltipContent side="top" className="text-xs">
-          {getTooltip()}
+          {tooltipText}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

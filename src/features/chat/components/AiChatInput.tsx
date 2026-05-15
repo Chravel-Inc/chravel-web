@@ -8,7 +8,6 @@ interface AiChatInputProps {
   inputMessage: string;
   onInputChange: (message: string) => void;
   onSendMessage: () => void | Promise<void>;
-  onKeyPress: (e: React.KeyboardEvent) => void;
   isTyping: boolean;
   disabled?: boolean;
   /** Dictation state for waveform button */
@@ -45,7 +44,6 @@ export const AiChatInput = ({
   inputMessage,
   onInputChange,
   onSendMessage,
-  onKeyPress,
   isTyping,
   disabled = false,
   convoVoiceState = 'idle',
@@ -167,12 +165,10 @@ export const AiChatInput = ({
     [classifyFiles],
   );
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       void onSendMessage();
-    } else {
-      onKeyPress(e);
     }
   };
 
@@ -298,7 +294,7 @@ export const AiChatInput = ({
           <textarea
             value={inputMessage}
             onChange={e => onInputChange(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyDown}
             onPaste={handlePaste}
             placeholder={getPlaceholder()}
             rows={2}
