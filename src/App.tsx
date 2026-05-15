@@ -34,6 +34,8 @@ import { setupGlobalSyncProcessor } from './services/globalSyncProcessor';
 import { useSwUpdate } from '@/hooks/useSwUpdate';
 import { safeReload } from '@/utils/safeReload';
 import { retryImport } from '@/lib/retryImport';
+import { getPublicSeoRoute, SEO_LANDING_CONTENT } from '@/lib/seo';
+import { syncRobotsAndCanonical } from '@/components/seo/SeoHead';
 
 // Lazy load pages for better performance
 const Index = lazy(() => retryImport(() => import('./pages/Index')));
@@ -101,45 +103,6 @@ const SeoLandingPage = lazy(() => retryImport(() => import('./pages/SeoLandingPa
 const DeviceTestMatrix = lazy(() => retryImport(() => import('./pages/DeviceTestMatrix')));
 // AdminMigrateDemoImages removed - migration complete, images now in Supabase Storage
 
-const SEO_PAGE_MAP = {
-  '/trip-planner': {
-    path: '/trip-planner',
-    title: 'Trip Planner | Plan Trips Without Spreadsheet Chaos | ChravelApp',
-    description:
-      'Use ChravelApp as your trip planner to organize itinerary, tasks, budgets, and group decisions in one place for friends, families, and teams.',
-    h1: 'Trip planner for real-world group coordination',
-    intro:
-      'ChravelApp combines chat, itinerary, tasks, polls, and expenses so your trip plan stays in one source of truth from first idea to checkout day.',
-  },
-  '/group-trip-planner': {
-    path: '/group-trip-planner',
-    title: 'Group Trip Planner | Coordinate Friends, Family, and Teams | ChravelApp',
-    description:
-      'Coordinate group travel plans with shared chat, polls, itinerary, and to-dos. ChravelApp helps groups move from ideas to confirmed plans faster.',
-    h1: 'Group trip planner for friends, families, and travel teams',
-    intro:
-      'Plan together without fragmented tools by running decisions, schedules, and responsibilities in one coordinated workspace.',
-  },
-  '/group-travel': {
-    path: '/group-travel',
-    title: 'Group Travel Coordination Platform | ChravelApp',
-    description:
-      'Manage group travel for consumer trips, events, and pro teams. Keep plans, communication, tasks, and expenses aligned in one platform.',
-    h1: 'Group travel coordination built for modern teams',
-    intro:
-      'From weekend trips to touring operations, ChravelApp keeps people, plans, and updates synchronized across every stage of travel.',
-  },
-  '/how-to-plan-a-trip-with-friends': {
-    path: '/how-to-plan-a-trip-with-friends',
-    title: 'How to Plan a Trip with Friends (Step-by-Step) | ChravelApp',
-    description:
-      'Learn how to plan a trip with friends: dates, budget, itinerary, and responsibilities. Use ChravelApp to keep every detail in sync.',
-    h1: 'How to plan a trip with friends (without group-chat chaos)',
-    intro:
-      'Use a simple, repeatable process to align availability, budget, and itinerary while keeping every decision visible to the whole group.',
-  },
-} as const;
-
 // Note: Large components are already optimized with code splitting
 
 // Legacy redirect for old pro trip URLs using hyphen format
@@ -202,6 +165,16 @@ const OfflineIndicatorGate = () => {
 
   if (!user || isPublicRoute) return null;
   return <OfflineIndicator />;
+};
+
+const RouteHeadPolicySync = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    syncRobotsAndCanonical(pathname);
+  }, [pathname]);
+
+  return null;
 };
 
 const App = () => {
@@ -362,6 +335,7 @@ const App = () => {
                 {/* All components using react-router hooks must render inside <Router> */}
                 <Router>
                   <PageViewTracker />
+                  <RouteHeadPolicySync />
                   <ExitDemoButtonWithNav />
                   <OfflineIndicatorGate />
                   <MobileAppLayout>
@@ -490,25 +464,27 @@ const App = () => {
                         path="/trip-planner"
                         element={
                           <LazyRoute>
-                            <SeoLandingPage
-                              config={{
-                                path: '/trip-planner',
-                                title: SEO_PAGE_MAP['/trip-planner'].title,
-                                description: SEO_PAGE_MAP['/trip-planner'].description,
-                              }}
-                              h1={SEO_PAGE_MAP['/trip-planner'].h1}
-                              intro={SEO_PAGE_MAP['/trip-planner'].intro}
-                              faq={[
-                                {
-                                  q: 'Can ChravelApp replace multiple planning tools?',
-                                  a: 'ChravelApp centralizes communication, itinerary, tasks, and group coordination so teams rely less on disconnected apps.',
-                                },
-                                {
-                                  q: 'Is ChravelApp only for leisure travel?',
-                                  a: 'No. ChravelApp supports friend trips, events, and pro travel workflows where logistics and visibility matter.',
-                                },
-                              ]}
-                            />
+                            {(() => {
+                              const config = getPublicSeoRoute('/trip-planner');
+                              if (!config) return null;
+                              return (
+                                <SeoLandingPage
+                                  config={config}
+                                  h1={SEO_LANDING_CONTENT['/trip-planner'].h1}
+                                  intro={SEO_LANDING_CONTENT['/trip-planner'].intro}
+                                  faq={[
+                                    {
+                                      q: 'Can ChravelApp replace multiple planning tools?',
+                                      a: 'ChravelApp centralizes communication, itinerary, tasks, and group coordination so teams rely less on disconnected apps.',
+                                    },
+                                    {
+                                      q: 'Is ChravelApp only for leisure travel?',
+                                      a: 'No. ChravelApp supports friend trips, events, and pro travel workflows where logistics and visibility matter.',
+                                    },
+                                  ]}
+                                />
+                              );
+                            })()}
                           </LazyRoute>
                         }
                       />
@@ -516,25 +492,27 @@ const App = () => {
                         path="/group-trip-planner"
                         element={
                           <LazyRoute>
-                            <SeoLandingPage
-                              config={{
-                                path: '/group-trip-planner',
-                                title: SEO_PAGE_MAP['/group-trip-planner'].title,
-                                description: SEO_PAGE_MAP['/group-trip-planner'].description,
-                              }}
-                              h1={SEO_PAGE_MAP['/group-trip-planner'].h1}
-                              intro={SEO_PAGE_MAP['/group-trip-planner'].intro}
-                              faq={[
-                                {
-                                  q: 'Can ChravelApp replace multiple planning tools?',
-                                  a: 'ChravelApp centralizes communication, itinerary, tasks, and group coordination so teams rely less on disconnected apps.',
-                                },
-                                {
-                                  q: 'Is ChravelApp only for leisure travel?',
-                                  a: 'No. ChravelApp supports friend trips, events, and pro travel workflows where logistics and visibility matter.',
-                                },
-                              ]}
-                            />
+                            {(() => {
+                              const config = getPublicSeoRoute('/group-trip-planner');
+                              if (!config) return null;
+                              return (
+                                <SeoLandingPage
+                                  config={config}
+                                  h1={SEO_LANDING_CONTENT['/group-trip-planner'].h1}
+                                  intro={SEO_LANDING_CONTENT['/group-trip-planner'].intro}
+                                  faq={[
+                                    {
+                                      q: 'Can ChravelApp replace multiple planning tools?',
+                                      a: 'ChravelApp centralizes communication, itinerary, tasks, and group coordination so teams rely less on disconnected apps.',
+                                    },
+                                    {
+                                      q: 'Is ChravelApp only for leisure travel?',
+                                      a: 'No. ChravelApp supports friend trips, events, and pro travel workflows where logistics and visibility matter.',
+                                    },
+                                  ]}
+                                />
+                              );
+                            })()}
                           </LazyRoute>
                         }
                       />
@@ -542,25 +520,27 @@ const App = () => {
                         path="/group-travel"
                         element={
                           <LazyRoute>
-                            <SeoLandingPage
-                              config={{
-                                path: '/group-travel',
-                                title: SEO_PAGE_MAP['/group-travel'].title,
-                                description: SEO_PAGE_MAP['/group-travel'].description,
-                              }}
-                              h1={SEO_PAGE_MAP['/group-travel'].h1}
-                              intro={SEO_PAGE_MAP['/group-travel'].intro}
-                              faq={[
-                                {
-                                  q: 'Can ChravelApp replace multiple planning tools?',
-                                  a: 'ChravelApp centralizes communication, itinerary, tasks, and group coordination so teams rely less on disconnected apps.',
-                                },
-                                {
-                                  q: 'Is ChravelApp only for leisure travel?',
-                                  a: 'No. ChravelApp supports friend trips, events, and pro travel workflows where logistics and visibility matter.',
-                                },
-                              ]}
-                            />
+                            {(() => {
+                              const config = getPublicSeoRoute('/group-travel');
+                              if (!config) return null;
+                              return (
+                                <SeoLandingPage
+                                  config={config}
+                                  h1={SEO_LANDING_CONTENT['/group-travel'].h1}
+                                  intro={SEO_LANDING_CONTENT['/group-travel'].intro}
+                                  faq={[
+                                    {
+                                      q: 'Can ChravelApp replace multiple planning tools?',
+                                      a: 'ChravelApp centralizes communication, itinerary, tasks, and group coordination so teams rely less on disconnected apps.',
+                                    },
+                                    {
+                                      q: 'Is ChravelApp only for leisure travel?',
+                                      a: 'No. ChravelApp supports friend trips, events, and pro travel workflows where logistics and visibility matter.',
+                                    },
+                                  ]}
+                                />
+                              );
+                            })()}
                           </LazyRoute>
                         }
                       />
@@ -568,26 +548,29 @@ const App = () => {
                         path="/how-to-plan-a-trip-with-friends"
                         element={
                           <LazyRoute>
-                            <SeoLandingPage
-                              config={{
-                                path: '/how-to-plan-a-trip-with-friends',
-                                title: SEO_PAGE_MAP['/how-to-plan-a-trip-with-friends'].title,
-                                description:
-                                  SEO_PAGE_MAP['/how-to-plan-a-trip-with-friends'].description,
-                              }}
-                              h1={SEO_PAGE_MAP['/how-to-plan-a-trip-with-friends'].h1}
-                              intro={SEO_PAGE_MAP['/how-to-plan-a-trip-with-friends'].intro}
-                              faq={[
-                                {
-                                  q: 'Can ChravelApp replace multiple planning tools?',
-                                  a: 'ChravelApp centralizes communication, itinerary, tasks, and group coordination so teams rely less on disconnected apps.',
-                                },
-                                {
-                                  q: 'Is ChravelApp only for leisure travel?',
-                                  a: 'No. ChravelApp supports friend trips, events, and pro travel workflows where logistics and visibility matter.',
-                                },
-                              ]}
-                            />
+                            {(() => {
+                              const config = getPublicSeoRoute('/how-to-plan-a-trip-with-friends');
+                              if (!config) return null;
+                              return (
+                                <SeoLandingPage
+                                  config={config}
+                                  h1={SEO_LANDING_CONTENT['/how-to-plan-a-trip-with-friends'].h1}
+                                  intro={
+                                    SEO_LANDING_CONTENT['/how-to-plan-a-trip-with-friends'].intro
+                                  }
+                                  faq={[
+                                    {
+                                      q: 'Can ChravelApp replace multiple planning tools?',
+                                      a: 'ChravelApp centralizes communication, itinerary, tasks, and group coordination so teams rely less on disconnected apps.',
+                                    },
+                                    {
+                                      q: 'Is ChravelApp only for leisure travel?',
+                                      a: 'No. ChravelApp supports friend trips, events, and pro travel workflows where logistics and visibility matter.',
+                                    },
+                                  ]}
+                                />
+                              );
+                            })()}
                           </LazyRoute>
                         }
                       />

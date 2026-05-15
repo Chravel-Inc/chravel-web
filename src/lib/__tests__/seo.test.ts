@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canonicalUrl, shouldNoindex, PUBLIC_SEO_ROUTES } from '@/lib/seo';
+import { canonicalUrl, shouldNoindex, PUBLIC_SEO_ROUTES, getPublicSeoRoute } from '@/lib/seo';
 
 describe('seo config', () => {
   it('builds canonical urls from chravel production domain', () => {
@@ -22,5 +22,10 @@ describe('seo config', () => {
         '/how-to-plan-a-trip-with-friends',
       ]),
     );
+  });
+
+  it('uses one source of truth for route seo configs', () => {
+    const config = getPublicSeoRoute('/group-travel');
+    expect(config?.title).toBe('Group Travel Coordination Platform | ChravelApp');
   });
 });

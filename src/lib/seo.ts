@@ -9,6 +9,10 @@ export interface SeoConfig {
   noindex?: boolean;
   ogImage?: string;
 }
+export interface SeoLandingContent {
+  h1: string;
+  intro: string;
+}
 
 export const PUBLIC_SEO_ROUTES: SeoConfig[] = [
   {
@@ -43,6 +47,29 @@ export const PUBLIC_SEO_ROUTES: SeoConfig[] = [
   },
 ];
 
+export const SEO_LANDING_CONTENT: Record<string, SeoLandingContent> = {
+  '/trip-planner': {
+    h1: 'Trip planner for real-world group coordination',
+    intro:
+      'ChravelApp combines chat, itinerary, tasks, polls, and expenses so your trip plan stays in one source of truth from first idea to checkout day.',
+  },
+  '/group-trip-planner': {
+    h1: 'Group trip planner for friends, families, and travel teams',
+    intro:
+      'Plan together without fragmented tools by running decisions, schedules, and responsibilities in one coordinated workspace.',
+  },
+  '/group-travel': {
+    h1: 'Group travel coordination built for modern teams',
+    intro:
+      'From weekend trips to touring operations, ChravelApp keeps people, plans, and updates synchronized across every stage of travel.',
+  },
+  '/how-to-plan-a-trip-with-friends': {
+    h1: 'How to plan a trip with friends (without group-chat chaos)',
+    intro:
+      'Use a simple, repeatable process to align availability, budget, and itinerary while keeping every decision visible to the whole group.',
+  },
+};
+
 export const PRIVATE_NOINDEX_PREFIXES = [
   '/trip',
   '/tour',
@@ -67,3 +94,6 @@ export const canonicalUrl = (path: string): string => {
 
 export const shouldNoindex = (path: string): boolean =>
   PRIVATE_NOINDEX_PREFIXES.some(prefix => path.startsWith(prefix));
+
+export const getPublicSeoRoute = (path: string): SeoConfig | undefined =>
+  PUBLIC_SEO_ROUTES.find(route => route.path === path);

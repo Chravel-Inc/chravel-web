@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { SeoConfig, SITE_NAME, DEFAULT_OG_IMAGE, canonicalUrl } from '@/lib/seo';
+import { SeoConfig, SITE_NAME, DEFAULT_OG_IMAGE, canonicalUrl, shouldNoindex } from '@/lib/seo';
 
 function upsertMeta(attr: 'name' | 'property', key: string, content: string) {
   let meta = document.head.querySelector(`meta[${attr}="${key}"]`) as HTMLMetaElement | null;
@@ -21,6 +21,11 @@ function upsertLink(rel: string, href: string) {
   link.href = href;
 }
 
+export function syncRobotsAndCanonical(path: string) {
+  upsertLink('canonical', canonicalUrl(path));
+  upsertMeta('name', 'robots', shouldNoindex(path) ? 'noindex, nofollow' : 'index, follow');
+}
+
 export function SeoHead({ title, description, path, noindex, ogImage }: SeoConfig) {
   useEffect(() => {
     const image = ogImage || DEFAULT_OG_IMAGE;
@@ -28,7 +33,7 @@ export function SeoHead({ title, description, path, noindex, ogImage }: SeoConfi
 
     document.title = title;
     upsertMeta('name', 'description', description);
-    upsertLink('canonical', url);
+    syncRobotsAndCanonical(path);
     upsertMeta('property', 'og:site_name', SITE_NAME);
     upsertMeta('property', 'og:type', 'website');
     upsertMeta('property', 'og:title', title);
