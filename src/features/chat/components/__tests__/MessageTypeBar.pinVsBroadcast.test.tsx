@@ -9,11 +9,20 @@ describe('MessageTypeBar pinned vs broadcasts hinting', () => {
     onSearchClick: vi.fn(),
   } as const;
 
-  it('exposes search as an icon-only control with an accessible name', () => {
+  it('renders search as a labeled pill in regular trips (no Channels pill)', () => {
     render(<MessageTypeBar activeFilter="all" {...baseProps} />);
 
-    expect(screen.getByRole('button', { name: 'Search messages' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^search$/i })).not.toBeInTheDocument();
+    const searchButton = screen.getByRole('button', { name: 'Search messages' });
+    expect(searchButton).toHaveTextContent('Search');
+    expect(screen.queryByRole('button', { name: /channels/i })).not.toBeInTheDocument();
+  });
+
+  it('renders search as a compact icon-only control in pro trips', () => {
+    render(<MessageTypeBar activeFilter="all" isPro {...baseProps} />);
+
+    const searchButton = screen.getByRole('button', { name: 'Search messages' });
+    expect(searchButton).not.toHaveTextContent('Search');
+    expect(screen.getByRole('button', { name: /channels/i })).toBeInTheDocument();
   });
 
   it('uses a dark-mode-aware amber for the inactive Pinned label so it stays readable in light mode', () => {

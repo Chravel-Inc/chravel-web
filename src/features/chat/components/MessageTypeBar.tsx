@@ -259,20 +259,37 @@ export const MessageTypeBar = ({
             </Popover>
           )}
 
-          {/* Search Pill */}
-          <button
-            type="button"
-            onClick={onSearchClick}
-            className={cn(
-              'relative flex min-h-9 min-w-9 items-center justify-center px-1.5 py-1 sm:min-h-10 sm:min-w-10 sm:px-2 rounded-lg sm:rounded-xl shrink-0',
-              'text-[11px] sm:text-xs font-medium transition-all duration-200',
-              SEGMENT_COLORS.search.inactive,
-            )}
-            aria-label="Search messages"
-            title="Search messages"
-          >
-            <Search className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-          </button>
+          {/* Search Pill — icon-only in pro trips (Channels takes the labeled 4th slot), labeled in regular trips */}
+          {isPro ? (
+            <button
+              type="button"
+              onClick={onSearchClick}
+              className={cn(
+                'relative flex min-h-9 min-w-9 items-center justify-center px-1.5 py-1 sm:min-h-10 sm:min-w-10 sm:px-2 rounded-lg sm:rounded-xl shrink-0',
+                'text-[11px] sm:text-xs font-medium transition-all duration-200',
+                SEGMENT_COLORS.search.inactive,
+              )}
+              aria-label="Search messages"
+              title="Search messages"
+            >
+              <Search className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onSearchClick}
+              className={cn(
+                'relative flex min-h-9 items-center gap-0.5 px-1.5 py-1 sm:min-h-10 sm:gap-1 sm:px-2 sm:py-1.5 rounded-lg sm:rounded-xl shrink-0',
+                'text-[11px] sm:text-xs font-medium transition-all duration-200 whitespace-nowrap',
+                SEGMENT_COLORS.search.inactive,
+              )}
+              aria-label="Search messages"
+              title="Search messages"
+            >
+              <Search className="hidden sm:block h-3 w-3 sm:h-3.5 sm:w-3.5" />
+              <span>Search</span>
+            </button>
+          )}
         </div>
       </div>
 
