@@ -14,6 +14,8 @@ describe('MessageTypeBar pinned vs broadcasts hinting', () => {
 
     expect(screen.getByRole('button', { name: 'Search messages' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^search$/i })).not.toBeInTheDocument();
+    expect(screen.getByText('All')).toBeInTheDocument();
+    expect(screen.queryByText('Messages')).not.toBeInTheDocument();
   });
 
   it('shows explicit broadcasts hint when broadcasts tab is active', () => {
