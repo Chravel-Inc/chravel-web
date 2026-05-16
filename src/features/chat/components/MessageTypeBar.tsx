@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { MessageCircle, Hash, Search, ChevronDown, Pin } from 'lucide-react';
+import { MessageCircle, Hash, Search, ChevronDown, Pin, Megaphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { TripChannel } from '@/types/roleChannels';
@@ -85,30 +85,31 @@ export const MessageTypeBar = ({
         ? 'Pinned = important messages from any type (including broadcasts).'
         : null;
 
-  const channelsLabel = activeChannel
-    ? `#${formatChannelLabel(activeChannel.channelName)}`
+  /** Channel tab label (hash glyph is rendered separately to avoid `#` duplication with the icon) */
+  const channelsDisplayText = activeChannel
+    ? formatChannelLabel(activeChannel.channelName)
     : 'Channels';
 
   return (
     <div className="sticky top-0 z-10 w-full backdrop-blur-lg rounded-t-2xl">
-      {/* Left-aligned row scrolls horizontally on narrow viewports so the first tab is never clipped */}
-      <div className="flex min-w-0 items-center justify-start overflow-x-auto scrollbar-hide scroll-pl-2 scroll-pr-2 px-2 py-1">
+      {/* Full-width pill bar: tabs flex equally; search stays icon-only at the trailing edge */}
+      <div className="flex w-full min-w-0 items-stretch overflow-x-auto scrollbar-hide scroll-pl-2 scroll-pr-2 px-2 py-1">
         <div
           ref={pillBarRef}
-          className="inline-flex flex-shrink-0 items-center flex-nowrap rounded-xl border border-white/10 bg-neutral-900/70 p-0.5 shadow-lg backdrop-blur-md"
+          className="flex w-full min-w-0 flex-1 flex-nowrap items-stretch rounded-xl border border-white/10 bg-neutral-900/70 p-0.5 shadow-lg backdrop-blur-md"
         >
-          {/* Messages Segment */}
+          {/* All (combined timeline) */}
           <button
             onClick={() => onFilterChange('all')}
             className={cn(
-              'relative flex min-h-9 items-center gap-0.5 px-1.5 py-1 sm:min-h-10 sm:gap-1 sm:px-2 sm:py-1.5 rounded-lg sm:rounded-xl shrink-0',
-              'text-[11px] sm:text-xs font-medium transition-all duration-200 whitespace-nowrap',
+              'relative flex min-h-9 min-w-0 flex-1 items-center justify-center gap-0.5 px-1 py-1 sm:min-h-10 sm:gap-1 sm:px-1.5 sm:py-1.5 rounded-lg sm:rounded-xl',
+              'text-[11px] sm:text-xs font-medium transition-all duration-200',
               activeFilter === 'all' ? SEGMENT_COLORS.all.active : SEGMENT_COLORS.all.inactive,
             )}
             aria-pressed={activeFilter === 'all'}
           >
-            <MessageCircle className="hidden sm:block h-3 w-3 sm:h-3.5 sm:w-3.5" />
-            <span>Messages</span>
+            <MessageCircle className="hidden sm:block h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" />
+            <span className="truncate">All</span>
             {unreadCount > 0 && activeFilter !== 'all' && (
               <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-gold-primary text-black font-semibold">
                 {unreadCount}
@@ -116,12 +117,12 @@ export const MessageTypeBar = ({
             )}
           </button>
 
-          {/* Broadcasts Segment */}
+          {/* Broadcasts */}
           <button
             onClick={() => onFilterChange('broadcasts')}
             className={cn(
-              'relative flex min-h-9 items-center gap-0.5 px-1.5 py-1 sm:min-h-10 sm:gap-1 sm:px-2 sm:py-1.5 rounded-lg sm:rounded-xl shrink-0',
-              'text-[11px] sm:text-xs font-medium transition-all duration-200 whitespace-nowrap',
+              'relative flex min-h-9 min-w-0 flex-1 items-center justify-center gap-0.5 px-1 py-1 sm:min-h-10 sm:gap-1 sm:px-1.5 sm:py-1.5 rounded-lg sm:rounded-xl',
+              'text-[11px] sm:text-xs font-medium transition-all duration-200',
               activeFilter === 'broadcasts'
                 ? SEGMENT_COLORS.broadcasts.active
                 : SEGMENT_COLORS.broadcasts.inactive,
@@ -129,7 +130,8 @@ export const MessageTypeBar = ({
             aria-pressed={activeFilter === 'broadcasts'}
             title="Announcement feed (includes pinned + unpinned broadcasts)"
           >
-            <span>Broadcasts</span>
+            <Megaphone className="hidden sm:block h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" />
+            <span className="truncate">Broadcasts</span>
             {broadcastBadgeCount > 0 && activeFilter !== 'broadcasts' && (
               <span
                 className={cn(
@@ -142,12 +144,12 @@ export const MessageTypeBar = ({
             )}
           </button>
 
-          {/* Pinned Segment */}
+          {/* Pinned */}
           <button
             onClick={() => onFilterChange('pinned')}
             className={cn(
-              'relative flex min-h-9 items-center gap-0.5 px-1.5 py-1 sm:min-h-10 sm:gap-1 sm:px-2 sm:py-1.5 rounded-lg sm:rounded-xl shrink-0',
-              'text-[11px] sm:text-xs font-medium transition-all duration-200 whitespace-nowrap',
+              'relative flex min-h-9 min-w-0 flex-1 items-center justify-center gap-0.5 px-1 py-1 sm:min-h-10 sm:gap-1 sm:px-1.5 sm:py-1.5 rounded-lg sm:rounded-xl',
+              'text-[11px] sm:text-xs font-medium transition-all duration-200',
               activeFilter === 'pinned'
                 ? SEGMENT_COLORS.pinned.active
                 : SEGMENT_COLORS.pinned.inactive,
@@ -155,8 +157,8 @@ export const MessageTypeBar = ({
             aria-pressed={activeFilter === 'pinned'}
             title="Pinned essentials from any message type"
           >
-            <Pin className="hidden sm:block h-3 w-3 sm:h-3.5 sm:w-3.5" />
-            <span>Pinned</span>
+            <Pin className="hidden sm:block h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" />
+            <span className="truncate">Pinned</span>
             {pinnedCount > 0 && activeFilter !== 'pinned' && (
               <span
                 className={cn(
@@ -181,8 +183,8 @@ export const MessageTypeBar = ({
                   }}
                   disabled={!hasChannels}
                   className={cn(
-                    'relative flex min-h-9 items-center gap-0.5 px-1.5 py-1 sm:min-h-10 sm:gap-1 sm:px-2 sm:py-1.5 rounded-lg sm:rounded-xl shrink-0',
-                    'text-[11px] sm:text-xs font-medium transition-all duration-200 whitespace-nowrap',
+                    'relative flex min-h-9 min-w-0 flex-1 items-center justify-center gap-0.5 px-1 py-1 sm:min-h-10 sm:gap-1 sm:px-1.5 sm:py-1.5 rounded-lg sm:rounded-xl',
+                    'text-[11px] sm:text-xs font-medium transition-all duration-200',
                     !hasChannels && 'opacity-40 cursor-not-allowed',
                     activeFilter === 'channels' && hasChannels
                       ? SEGMENT_COLORS.channels.active
@@ -192,7 +194,8 @@ export const MessageTypeBar = ({
                   aria-pressed={activeFilter === 'channels'}
                   title={!hasChannels ? 'No role-based channels for this trip' : undefined}
                 >
-                  <span>{channelsLabel}</span>
+                  <Hash className="hidden sm:block h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" />
+                  <span className="truncate">{channelsDisplayText}</span>
                   {activeChannel && hasChannels && (
                     <ChevronDown className="h-2.5 w-2.5 opacity-70 sm:h-3 sm:w-3" />
                   )}
@@ -208,7 +211,7 @@ export const MessageTypeBar = ({
                   sideOffset={4}
                 >
                   <div className="flex flex-col gap-1 min-w-[200px]">
-                    {/* All Messages option */}
+                    {/* Combined timeline (same as All tab) */}
                     <button
                       onClick={() => {
                         onChannelSelect?.(null);
@@ -223,7 +226,7 @@ export const MessageTypeBar = ({
                       )}
                     >
                       <MessageCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                      <span className="whitespace-nowrap">All Messages</span>
+                      <span className="whitespace-nowrap">All</span>
                     </button>
 
                     <div className="h-px bg-gray-200 dark:bg-white/10 my-1" />
@@ -256,12 +259,12 @@ export const MessageTypeBar = ({
             </Popover>
           )}
 
-          {/* Search Pill */}
+          {/* Search — fixed trailing control (icon only) */}
           <button
             type="button"
             onClick={onSearchClick}
             className={cn(
-              'relative flex min-h-9 min-w-9 items-center justify-center px-1.5 py-1 sm:min-h-10 sm:min-w-10 sm:px-2 rounded-lg sm:rounded-xl shrink-0',
+              'relative flex min-h-9 min-w-9 shrink-0 items-center justify-center px-1 py-1 sm:min-h-10 sm:min-w-10 sm:px-1.5 rounded-lg sm:rounded-xl',
               'text-[11px] sm:text-xs font-medium transition-all duration-200',
               SEGMENT_COLORS.search.inactive,
             )}
