@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { tripService } from '@/services/tripService';
 import { useDemoMode } from './useDemoMode';
 import { useAuth } from './useAuth';
-import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
+import { QUERY_CACHE_CONFIG, tripDetailQueryKey, tripMembersQueryKey } from '@/lib/queryKeys';
 import { getTripById as getDemoTripById } from '@/data/tripsData';
 import { convertSupabaseTripToMock } from '@/utils/tripConverter';
 import { useDemoTripMembersStore } from '@/store/demoTripMembersStore';
@@ -84,7 +84,7 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
   // 🔑 Include authUserId in query key to prevent anon cache poisoning auth cache
   // 🔒 FIX: Use authUserId (from session) for consistent cache keys
   const tripQuery = useQuery({
-    queryKey: [...tripKeys.detail(tripId!), authUserId ?? 'anon'],
+    queryKey: tripDetailQueryKey(tripId!, authUserId),
     queryFn: async () => {
       const startTime = performance.now();
       errorTracking.addBreadcrumb({
@@ -122,7 +122,7 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
   // ⚡ PRIORITY 2: Members data - can render progressively
   // 🔑 CANONICAL: Same key as useTripMembersQuery so Trip Members + Payments share cache
   const membersQuery = useQuery({
-    queryKey: [...tripKeys.members(tripId!), demoAddedMembersCount],
+    queryKey: tripMembersQueryKey(tripId!, demoAddedMembersCount),
     queryFn: async () => {
       return await tripService.getTripMembersWithCreator(tripId!);
     },

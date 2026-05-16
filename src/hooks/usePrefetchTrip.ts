@@ -9,7 +9,13 @@ import { fetchTripMediaItemsPaginated } from '@/services/tripMediaService';
 import { fetchTripPlaces } from '@/services/tripPlacesService';
 import { useDemoMode } from './useDemoMode';
 import { useAuth } from './useAuth';
-import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
+import { useDemoTripMembersStore } from '@/store/demoTripMembersStore';
+import {
+  tripKeys,
+  QUERY_CACHE_CONFIG,
+  tripDetailQueryKey,
+  tripMembersQueryKey,
+} from '@/lib/queryKeys';
 import { preloadTabChunk, preloadTabChunks } from '@/lib/tabChunkPreloader';
 
 /**
@@ -21,23 +27,27 @@ import { preloadTabChunk, preloadTabChunks } from '@/lib/tabChunkPreloader';
 export const usePrefetchTrip = () => {
   const queryClient = useQueryClient();
   const { isDemoMode } = useDemoMode();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
+  const authUserId = user?.id ?? session?.user?.id ?? null;
 
   const prefetch = useCallback(
     (tripId: string) => {
       if (isDemoMode) return;
 
-      // ⚡ PRIORITY 1: Core trip data (needed for UI rendering)
+      const demoAddedMembersCount =
+        useDemoTripMembersStore.getState().addedMembers[tripId]?.length ?? 0;
+
+      // ⚡ PRIORITY 1: Core trip data — key MUST match `useTripDetailData` (auth-scoped)
       queryClient.prefetchQuery({
-        queryKey: tripKeys.detail(tripId),
+        queryKey: tripDetailQueryKey(tripId, authUserId),
         queryFn: () => tripService.getTripById(tripId),
         staleTime: QUERY_CACHE_CONFIG.trip.staleTime,
       });
 
-      // ⚡ PRIORITY 1: Trip members (needed for UI rendering)
+      // ⚡ PRIORITY 1: Trip members — key + shape MUST match `useTripDetailData` / `useTripMembersQuery`
       queryClient.prefetchQuery({
-        queryKey: tripKeys.members(tripId),
-        queryFn: () => tripService.getTripMembers(tripId),
+        queryKey: tripMembersQueryKey(tripId, demoAddedMembersCount),
+        queryFn: () => tripService.getTripMembersWithCreator(tripId),
         staleTime: QUERY_CACHE_CONFIG.members.staleTime,
       });
 
@@ -48,7 +58,7 @@ export const usePrefetchTrip = () => {
         staleTime: QUERY_CACHE_CONFIG.calendar.staleTime,
       });
     },
-    [isDemoMode, queryClient],
+    [isDemoMode, queryClient, authUserId],
   );
 
   /**
@@ -139,15 +149,15 @@ export const usePrefetchTrip = () => {
           // ⚡ Only prefetch payments when authenticated — unauthenticated fetches
           // cache an empty [] under the shared key, causing a temporary "no payments"
           // flash if the user signs in before staleness expires.
-          if (user?.id) {
+          if (authUserId) {
             queryClient.prefetchQuery({
               queryKey: tripKeys.payments(tripId),
               queryFn: () => paymentService.getTripPaymentMessages(tripId),
               staleTime: QUERY_CACHE_CONFIG.payments.staleTime,
             });
             queryClient.prefetchQuery({
-              queryKey: tripKeys.paymentBalances(tripId, user.id),
-              queryFn: () => paymentBalanceService.getBalanceSummary(tripId, user.id),
+              queryKey: tripKeys.paymentBalances(tripId, authUserId),
+              queryFn: () => paymentBalanceService.getBalanceSummary(tripId, authUserId),
               staleTime: QUERY_CACHE_CONFIG.paymentBalances.staleTime,
             });
           }
@@ -167,7 +177,7 @@ export const usePrefetchTrip = () => {
           break;
       }
     },
-    [isDemoMode, queryClient, user?.id],
+    [isDemoMode, queryClient, authUserId],
   );
 
   /**

@@ -63,6 +63,20 @@ export const tripKeys = {
 };
 
 /**
+ * Trip detail cache key scoped by viewer — MUST stay aligned with `useTripDetailData`
+ * and `usePrefetchTrip` so hover / tab prefetch hits the same entry as the live query.
+ */
+export const tripDetailQueryKey = (tripId: string, authUserId: string | null | undefined) =>
+  [...tripKeys.detail(tripId), authUserId ?? 'anon'] as const;
+
+/**
+ * Members cache key includes demo-store bump — MUST stay aligned with `useTripDetailData`,
+ * `useTripMembersQuery`, and `usePrefetchTrip`.
+ */
+export const tripMembersQueryKey = (tripId: string, demoAddedMembersCount: number) =>
+  [...tripKeys.members(tripId), demoAddedMembersCount] as const;
+
+/**
  * Standard cache configuration for trip-related queries
  *
  * staleTime: How long data is considered fresh (no background refetch)

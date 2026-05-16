@@ -14,7 +14,7 @@ import { useDemoMode } from './useDemoMode';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 import { useDemoTripMembersStore } from '@/store/demoTripMembersStore';
-import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
+import { tripKeys, QUERY_CACHE_CONFIG, tripMembersQueryKey } from '@/lib/queryKeys';
 export interface TripMember {
   id: string;
   name: string;
@@ -117,7 +117,7 @@ export const useTripMembersQuery = (tripId?: string) => {
 
   // Main query with caching
   const { data, isLoading, refetch } = useQuery({
-    queryKey: [...tripKeys.members(tripId || ''), demoAddedMembersCount],
+    queryKey: tripMembersQueryKey(tripId || '', demoAddedMembersCount),
     queryFn: () => fetchTripMembersData(tripId!, isDemoMode),
     enabled: !!tripId,
     staleTime: QUERY_CACHE_CONFIG.members.staleTime,
