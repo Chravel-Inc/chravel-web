@@ -95,64 +95,7 @@ serve(async req => {
       });
     }
 
-    // Sanitize URL before SSRF validation. Handles common paste artifacts:
-    // markdown link syntax, surrounding quotes/brackets, HTML entities, and
-    // trailing punctuation from natural-text copy-paste.
-    const HTML_ENTITIES: Record<string, string> = {
-      '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'",
-      '&apos;': "'", '&nbsp;': ' ',
-    };
-    const decodeHtmlEntities = (s: string): string =>
-      s
-        .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16)))
-        .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(parseInt(d, 10)))
-        .replace(/&(?:amp|lt|gt|quot|apos|nbsp|#39);/g, m => HTML_ENTITIES[m] ?? m);
-
-    const sanitizeUrl = (raw: string): string => {
-      let u = raw.trim();
-
-      // 1. Unwrap markdown link [text](url) — extract inner url
-      const mdMatch = u.match(/^\[[^\]]*\]\((.+)\)$/);
-      if (mdMatch) u = mdMatch[1].trim();
-
-      // 2. Unwrap angle-bracketed URLs <https://...>
-      const angleMatch = u.match(/^<(.+)>$/);
-      if (angleMatch) u = angleMatch[1].trim();
-
-      // 3. Strip surrounding quotes/brackets (matched pairs)
-      const pairs: Array<[string, string]> = [
-        ['"', '"'], ["'", "'"], ['`', '`'],
-        ['“', '”'], ['‘', '’'], ['«', '»'],
-        ['(', ')'], ['[', ']'], ['{', '}'],
-      ];
-      let changed = true;
-      while (changed) {
-        changed = false;
-        for (const [open, close] of pairs) {
-          if (u.startsWith(open) && u.endsWith(close) && u.length > open.length + close.length) {
-            u = u.slice(open.length, -close.length).trim();
-            changed = true;
-          }
-        }
-      }
-
-      // 4. Decode HTML entities (e.g. &amp; → &)
-      u = decodeHtmlEntities(u);
-
-      // 5. Strip trailing punctuation
-      u = u.replace(/[.,!?;:]+$/g, '');
-
-      // 6. Strip unmatched trailing closing brackets
-      while (/[)\]}]$/.test(u)) {
-        const close = u.slice(-1);
-        const open = close === ')' ? '(' : close === ']' ? '[' : '{';
-        const opens = (u.match(new RegExp(`\\${open}`, 'g')) || []).length;
-        const closes = (u.match(new RegExp(`\\${close}`, 'g')) || []).length;
-        if (closes > opens) u = u.slice(0, -1);
-        else break;
-      }
-      return u.replace(/[.,!?;:]+$/g, '');
-    };
+    // URL sanitization handled by module-scoped sanitizeUrl helper above.
 
     const url = sanitizeUrl(validation.data.url);
 
