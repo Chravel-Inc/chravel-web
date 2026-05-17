@@ -55,6 +55,23 @@ serve(async req => {
 
     const { source, sourceId, tripId, content }: IngestRequest = await req.json();
 
+    // Membership precheck: caller must be a member of the trip before any service-role read/write.
+    // Mirrors file-ai-parser. Prevents service-role from bypassing RLS for non-members.
+    if (tripId) {
+      const { data: membership, error: memErr } = await supabase
+        .from('trip_members')
+        .select('user_id')
+        .eq('trip_id', tripId)
+        .eq('user_id', auth.user!.id)
+        .maybeSingle();
+      if (memErr || !membership) {
+        return new Response(
+          JSON.stringify({ error: 'Forbidden: not a trip member' }),
+          { status: 403, headers: { ...headers, 'Content-Type': 'application/json' } },
+        );
+      }
+    }
+
     // Handle batch ingestion for entire trip
     if (source === 'trip_batch') {
       if (!tripId) {
