@@ -73,7 +73,7 @@ export const TripTabs = ({
   isDemoMode = false,
   tripData,
 }: TripTabsProps) => {
-  const [activeTab, setActiveTab] = useState('chat');
+  const [activeTab, setActiveTab] = useState(parentActiveTab || 'chat');
   const [isAddLinkModalOpen, setIsAddLinkModalOpen] = useState(false);
   const [linkPrefill, setLinkPrefill] = useState<
     | {
@@ -93,7 +93,7 @@ export const TripTabs = ({
   // ⚡ PERFORMANCE: Track visited (mounted) tabs. Seeded with Tier 1 so chat,
   // calendar, and concierge are warm immediately. Tier 2 is added at idle.
   // Tier 3 (media) stays lazy until visited — heavy gallery query/markup.
-  const TIER_1: readonly string[] = ['chat', 'calendar', 'concierge'];
+  const TIER_1: readonly string[] = ['chat', 'calendar'];
   const TIER_2: readonly string[] = ['tasks', 'polls', 'places', 'payments'];
   const [visitedTabs, setVisitedTabs] = useState<Set<string>>(
     () => new Set([activeTab, ...TIER_1]),
@@ -118,6 +118,10 @@ export const TripTabs = ({
       prefetchPriorityTabs(tripId);
     }
   }, [tripId, prefetchPriorityTabs]);
+
+  useEffect(() => {
+    setActiveTab(parentActiveTab || 'chat');
+  }, [parentActiveTab]);
 
   // ⚡ Pre-mount Tier 2 tabs after first paint settles. Uses requestIdleCallback
   // (or setTimeout fallback) at ~800ms so Tier 1 + active tab finish hydrating
@@ -211,6 +215,7 @@ export const TripTabs = ({
       return;
     }
     setActiveTab(tab);
+    parentOnTabChange(tab);
   };
 
   // Default tab skeleton for lazy loading fallback
@@ -334,7 +339,7 @@ export const TripTabs = ({
               const enabled = tab.enabled;
 
               return (
-                <TooltipProvider>
+                <TooltipProvider key={tab.id}>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
