@@ -90,11 +90,14 @@ export const TripTabs = ({
   const { isSuperAdmin } = useSuperAdmin();
   const { prefetchTab, prefetchAdjacentTabs, prefetchPriorityTabs } = usePrefetchTrip();
 
-  // ⚡ PERFORMANCE: Track visited (mounted) tabs. Seeded with Tier 1 so chat,
-  // calendar, and concierge are warm immediately. Tier 2 is added at idle.
-  // Tier 3 (media) stays lazy until visited — heavy gallery query/markup.
-  const TIER_1: readonly string[] = ['chat', 'calendar', 'concierge'];
-  const TIER_2: readonly string[] = ['tasks', 'polls', 'places', 'payments'];
+  // ⚡ PERFORMANCE: Track visited (mounted) tabs. Tier 1 = chat + calendar only.
+  // Concierge is excluded from eager pre-mount: its hooks (history, streaming,
+  // voice) are heavy; keeping it mounted display:none after a visit starved
+  // other tabs on constrained devices. Concierge unmounts when inactive; session
+  // state remains in Zustand. Tier 2 includes media so the gallery chunk/query
+  // warm up after idle like other secondary tabs.
+  const TIER_1: readonly string[] = ['chat', 'calendar'];
+  const TIER_2: readonly string[] = ['tasks', 'polls', 'places', 'payments', 'media'];
   const [visitedTabs, setVisitedTabs] = useState<Set<string>>(
     () => new Set([activeTab, ...TIER_1]),
   );
@@ -239,7 +242,7 @@ export const TripTabs = ({
 
   // ⚡ PERFORMANCE: Memoized tab content renderer
   const renderTabContent = useCallback(
-    (tabId: string) => {
+    (tabId: string, isPanelActive: boolean) => {
       switch (tabId) {
         case 'chat':
           return (
@@ -284,6 +287,7 @@ export const TripTabs = ({
             </FeatureErrorBoundary>
           );
         case 'concierge':
+          if (!isPanelActive) return null;
           return (
             <FeatureErrorBoundary featureName="AI Concierge">
               <AIConciergeChat
@@ -402,7 +406,9 @@ export const TripTabs = ({
                 className={isActive ? 'h-full' : ''}
               >
                 {/* ⚡ Per-tab error boundary + content-aware skeleton */}
-                <Suspense fallback={getSkeletonForTab(tab.id)}>{renderTabContent(tab.id)}</Suspense>
+                <Suspense fallback={getSkeletonForTab(tab.id)}>
+                  {renderTabContent(tab.id, isActive)}
+                </Suspense>
               </div>
             );
           })}

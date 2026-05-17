@@ -163,12 +163,14 @@ export const MobileTripTabs = ({
   }, [participants]);
 
   // ⚡ PERFORMANCE: Tiered tab pre-mounting (mirrors TripTabs).
-  // Tier 1 mounts immediately so chat / calendar / concierge are always warm.
-  // Tier 2 mounts after idle (~800ms) so tasks/polls/places/payments are
-  // ready when the user reaches them — fixes the "click away and back" bug.
-  // Tier 3 (media) stays lazy until visited.
-  const TIER_1_TABS: readonly string[] = ['chat', 'calendar', 'concierge'];
-  const TIER_2_TABS: readonly string[] = ['tasks', 'polls', 'places', 'payments'];
+  // Tier 1: chat + calendar only. Concierge is intentionally NOT pre-mounted —
+  // it runs heavy hooks (history, streaming, voice) and was starving the main
+  // thread when left mounted display:none after a visit, making other tabs feel
+  // stuck or slow on mobile (Capacitor / TestFlight).
+  // Tier 2 mounts after idle so secondary tabs + media are warm; concierge
+  // mounts on first open and unmounts when inactive (state lives in Zustand).
+  const TIER_1_TABS: readonly string[] = ['chat', 'calendar'];
+  const TIER_2_TABS: readonly string[] = ['tasks', 'polls', 'places', 'payments', 'media'];
   const [visitedTabs, setVisitedTabs] = useState<Set<string>>(
     () => new Set([activeTab, ...TIER_1_TABS]),
   );
@@ -317,7 +319,7 @@ export const MobileTripTabs = ({
   }, [activeTab]);
 
   const handleTabPress = useCallback(
-    async (tabId: string, enabled: boolean) => {
+    (tabId: string, enabled: boolean) => {
       if (!enabled) {
         if (variant === 'event') {
           setShowDisabledTabDialog(true);
@@ -330,7 +332,8 @@ export const MobileTripTabs = ({
         });
         return;
       }
-      await hapticService.light();
+      // Do not await — tab switch must win the event turn; native haptics may add latency.
+      void hapticService.light();
       onTabChange(tabId);
     },
     [onTabChange, variant],
@@ -408,7 +411,7 @@ export const MobileTripTabs = ({
   }, []);
 
   const renderTabContent = useCallback(
-    (tabId: string) => {
+    (tabId: string, isPanelActive: boolean) => {
       switch (tabId) {
         // Event-specific tabs
         case 'admin':
@@ -501,6 +504,9 @@ export const MobileTripTabs = ({
         case 'payments':
           return <MobileTripPayments tripId={tripId} />;
         case 'concierge':
+          // Unmount when inactive so Concierge hooks/queries do not compete with
+          // Media and other tabs. Message history persists via conciergeSessionStore.
+          if (!isPanelActive) return null;
           return (
             <AIConciergeChat
               tripId={tripId}
@@ -654,7 +660,7 @@ export const MobileTripTabs = ({
                       featureName={tab.label}
                       fallback={tab.id === 'chat' ? <ChatSkeleton /> : undefined}
                     >
-                      {renderTabContent(tab.id)}
+                      {renderTabContent(tab.id, isActive)}
                     </FeatureErrorBoundary>
                   </Suspense>
                 </div>
