@@ -44,7 +44,24 @@ serve(async req => {
       });
     }
 
-    const { url } = validation.data;
+    // Sanitize URL: strip trailing punctuation commonly appended when pasting URLs
+    // from natural text (e.g. "check https://example.com." or unbalanced parens).
+    // Also drop unmatched trailing closing brackets — common from markdown link copy-paste.
+    const sanitizeUrl = (raw: string): string => {
+      let u = raw.trim().replace(/[.,!?;:]+$/g, '');
+      // Strip trailing ) ] } that have no matching opener in the URL
+      while (/[)\]}]$/.test(u)) {
+        const close = u.slice(-1);
+        const open = close === ')' ? '(' : close === ']' ? '[' : '{';
+        const opens = (u.match(new RegExp(`\\${open}`, 'g')) || []).length;
+        const closes = (u.match(new RegExp(`\\${close}`, 'g')) || []).length;
+        if (closes > opens) u = u.slice(0, -1);
+        else break;
+      }
+      return u.replace(/[.,!?;:]+$/g, '');
+    };
+
+    const url = sanitizeUrl(validation.data.url);
 
     // DNS rebinding protection: resolve hostname and validate resolved IPs
     if (!(await validateExternalUrlBeforeFetch(url))) {
