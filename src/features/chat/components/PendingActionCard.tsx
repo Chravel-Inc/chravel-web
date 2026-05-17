@@ -9,6 +9,7 @@ import {
   DollarSign,
   Copy,
   Settings2,
+  Trash2,
 } from 'lucide-react';
 import type { PendingAction } from '@/hooks/usePendingActions';
 
@@ -33,6 +34,11 @@ const TOOL_CONFIG: Record<string, { icon: React.ElementType; label: string; colo
   cloneActivity: { icon: Copy, label: 'Clone Activity', color: 'text-purple-400' },
   addExpense: { icon: DollarSign, label: 'Expense', color: 'text-orange-400' },
   updateTripDetails: { icon: Settings2, label: 'Trip Update', color: 'text-blue-400' },
+  bulkDeleteCalendarEvents: {
+    icon: Trash2,
+    label: 'Bulk delete (calendar)',
+    color: 'text-red-400',
+  },
 };
 
 function getActionTitle(action: PendingAction): string {
@@ -72,6 +78,12 @@ function getActionTitle(action: PendingAction): string {
     case 'updateTripDetails': {
       const fields = Object.keys(payload).filter(k => k !== 'trip_id');
       return fields.length > 0 ? `Update trip ${fields.join(', ')}` : 'Update trip details';
+    }
+    case 'bulkDeleteCalendarEvents': {
+      const count = (payload.match_count as number) ?? 0;
+      const ids = payload.matched_event_ids as unknown[] | undefined;
+      const n = count || (Array.isArray(ids) ? ids.length : 0);
+      return `Delete ${n} calendar event${n !== 1 ? 's' : ''}`;
     }
     default:
       return 'Unknown action';
@@ -153,6 +165,17 @@ function getActionDetail(action: PendingAction): string | null {
       const name = payload.name as string | undefined;
       const destination = payload.destination as string | undefined;
       return name ? `Name: "${name}"` : destination ? `Destination: ${destination}` : null;
+    }
+    case 'bulkDeleteCalendarEvents': {
+      const crit = payload.criteria as Record<string, unknown> | undefined;
+      if (!crit) return null;
+      const titles = crit.eventTitles as string[] | undefined;
+      if (Array.isArray(titles) && titles.length > 0) {
+        return `Matching: ${titles.slice(0, 2).join(', ')}${titles.length > 2 ? ', …' : ''}`;
+      }
+      const tc = crit.titleContains as string | undefined;
+      if (tc) return `Title contains: "${tc}"`;
+      return null;
     }
     default:
       return null;

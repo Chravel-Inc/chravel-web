@@ -6,7 +6,7 @@ import type {
   ConciergeInvokePayload,
   FallbackTripContext,
 } from '@/features/concierge/types';
-import { VOICE_LIVE_ENABLED } from '@/config/voiceFeatureFlags';
+import { LIVE_VOICE_RUNTIME_ENABLED } from '@/config/voiceFeatureFlags';
 import type { ConciergeSession } from '@/store/conciergeSessionStore';
 
 export const FAST_RESPONSE_TIMEOUT_MS = 60_000;
@@ -32,7 +32,8 @@ export const ALLOWED_DOCUMENT_TYPES = new Set([
 export const ALL_ACCEPTED_TYPES = new Set([...ALLOWED_IMAGE_TYPES, ...ALLOWED_DOCUMENT_TYPES]);
 
 export const UPLOAD_ENABLED = true;
-export const DUPLEX_VOICE_ENABLED = VOICE_LIVE_ENABLED;
+/** True only when env enables live voice AND a realtime provider is selected (not `off`). */
+export const DUPLEX_VOICE_ENABLED = LIVE_VOICE_RUNTIME_ENABLED;
 
 export const EMPTY_SESSION: ConciergeSession = {
   tripId: '',

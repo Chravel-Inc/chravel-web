@@ -20,10 +20,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { tripKeys } from '@/lib/queryKeys';
 import { toast } from 'sonner';
+import { calendarService } from '@/services/calendarService';
 
 // trip_pending_actions is not in the generated Supabase types yet; cast the client
 // to bypass type inference for this hook only. Runtime behavior is unchanged.
 const supabase = typedSupabase as any;
+
+/** Never auto-confirm via shell effect — user must explicitly confirm (destructive). */
+const PENDING_ACTION_NO_AUTO_CONFIRM = new Set<string>(['bulkDeleteCalendarEvents']);
 
 export interface PendingAction {
   id: string;
@@ -238,6 +242,21 @@ export function usePendingActions(tripId: string) {
           break;
         }
 
+        case 'bulkDeleteCalendarEvents': {
+          const matchedIds = payload.matched_event_ids as string[] | undefined;
+          if (!Array.isArray(matchedIds) || matchedIds.length === 0) {
+            throw new Error('No events in bulk delete preview');
+          }
+          const { deleted, failed } = await calendarService.bulkDeleteEvents(
+            matchedIds,
+            action.trip_id,
+          );
+          if (deleted === 0 && failed > 0) {
+            throw new Error('Could not delete calendar events');
+          }
+          break;
+        }
+
         case 'addExpense': {
           // trip_payment_messages.trip_id is TEXT (not UUID) per schema
           const { error } = await (supabase as any).from('trip_payment_messages').insert({
@@ -305,6 +324,7 @@ export function usePendingActions(tripId: string) {
         duplicateCalendarEvent: 'Event duplicated',
         bulkMarkTasksDone: 'Tasks marked complete',
         cloneActivity: 'Activity cloned',
+        bulkDeleteCalendarEvents: 'Calendar events deleted',
         addExpense: 'Expense added',
         updateTripDetails: 'Trip details updated',
       };
@@ -313,6 +333,7 @@ export function usePendingActions(tripId: string) {
         'Event duplicated',
         'Tasks marked complete',
         'Activity cloned',
+        'Calendar events deleted',
         'Expense added',
         'Reminder noted',
         'Budget noted',
@@ -333,6 +354,7 @@ export function usePendingActions(tripId: string) {
         case 'addToCalendar':
         case 'duplicateCalendarEvent':
         case 'cloneActivity':
+        case 'bulkDeleteCalendarEvents':
           queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId), exact: false });
           break;
         case 'bulkMarkTasksDone':
@@ -391,7 +413,11 @@ export function usePendingActions(tripId: string) {
     if (!user?.id || pendingActions.length === 0) return;
 
     const selfPending = pendingActions.filter(
-      a => a.user_id === user.id && a.status === 'pending' && !autoConfirmedIds.current.has(a.id),
+      a =>
+        a.user_id === user.id &&
+        a.status === 'pending' &&
+        !autoConfirmedIds.current.has(a.id) &&
+        !PENDING_ACTION_NO_AUTO_CONFIRM.has(a.tool_name),
     );
 
     if (selfPending.length === 0) return;

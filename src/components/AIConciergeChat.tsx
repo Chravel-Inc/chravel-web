@@ -309,7 +309,11 @@ export const AIConciergeChat = ({
             Concierge AI | Chravel Agent
           </h3>
           {/* Row 2: Search | Live | Upload — evenly spaced */}
-          <div className="flex items-center justify-between mt-2">
+          <div
+            className={`flex items-center mt-2 ${
+              DUPLEX_VOICE_ENABLED ? 'justify-between' : 'justify-center gap-8'
+            }`}
+          >
             <button
               type="button"
               onClick={() => setSearchOpen(true)}

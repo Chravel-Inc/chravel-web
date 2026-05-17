@@ -5,7 +5,7 @@
  * import.meta.env (Vite injects at build time; values can be overridden
  * in .env.local for local dev).
  *
- * Voice runtime: provider-selectable (OpenAI default, LiveKit fallback). Vertex AI removed.
+ * Voice runtime: provider-selectable (`off` default for MVP cost control, `openai`, `livekit`).
  */
 
 type VoiceEnvKey =
@@ -26,9 +26,9 @@ const getEnv = (key: VoiceEnvKey, fallback: string): string => {
 const parseBool = (value: string): boolean => value.toLowerCase() === 'true' || value === '1';
 
 /**
- * Bidirectional "Live" concierge voice (LiveKit / expensive realtime path).
- * Default: false — UI hidden until explicitly enabled via env (e.g. internal QA or post-funding rollout).
- * Dictation and text concierge are unaffected.
+ * Bidirectional "Live" concierge voice (LiveKit / OpenAI Realtime — expensive).
+ * Default: false for MVP and cost control. Text concierge + browser dictation stay on.
+ * Enable only for internal QA (set true + pick a provider below).
  */
 export const VOICE_LIVE_ENABLED = parseBool(getEnv('VITE_VOICE_LIVE_ENABLED', 'false'));
 
@@ -46,11 +46,15 @@ export const LIVEKIT_WS_URL = getEnv(
 /** All voice flags for debugging / diagnostics. */
 export function getVoiceFlags(): {
   VOICE_LIVE_ENABLED: boolean;
+  LIVE_VOICE_RUNTIME_ENABLED: boolean;
+  AI_VOICE_PROVIDER: VoiceProvider;
   VOICE_DIAGNOSTICS_ENABLED: boolean;
   LIVEKIT_WS_URL: string;
 } {
   return {
     VOICE_LIVE_ENABLED,
+    LIVE_VOICE_RUNTIME_ENABLED,
+    AI_VOICE_PROVIDER,
     VOICE_DIAGNOSTICS_ENABLED,
     LIVEKIT_WS_URL,
   };
@@ -59,7 +63,13 @@ export function getVoiceFlags(): {
 export type VoiceProvider = 'openai' | 'livekit' | 'off';
 
 export const AI_VOICE_PROVIDER = ((): VoiceProvider => {
-  const raw = getEnv('VITE_AI_VOICE_PROVIDER', 'openai').toLowerCase();
+  const raw = getEnv('VITE_AI_VOICE_PROVIDER', 'off').toLowerCase();
   if (raw === 'livekit' || raw === 'off') return raw;
   return 'openai';
 })();
+
+/**
+ * Live duplex session (mic + model audio) is allowed only when both flags agree.
+ * Keeps `VITE_VOICE_LIVE_ENABLED=true` from accidentally turning on spend if provider is `off`.
+ */
+export const LIVE_VOICE_RUNTIME_ENABLED = VOICE_LIVE_ENABLED && AI_VOICE_PROVIDER !== 'off';
