@@ -114,6 +114,7 @@ export const LineupTab = ({
     isSuperAdmin,
     active: true,
   });
+  const smartImportPaywall = getFeaturePaywallConfig('smart_import_event_lineup');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMember, setSelectedMember] = useState<Speaker | null>(null);

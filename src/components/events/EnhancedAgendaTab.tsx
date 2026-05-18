@@ -239,6 +239,7 @@ export const EnhancedAgendaTab = ({
     isSuperAdmin,
     active: true,
   });
+  const smartImportPaywall = getFeaturePaywallConfig('smart_import_event_agenda');
 
   return (
     <div className="relative p-4 md:p-6 space-y-4 md:space-y-6">
