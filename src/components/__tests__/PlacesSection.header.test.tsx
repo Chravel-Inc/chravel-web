@@ -33,13 +33,6 @@ vi.mock('@/hooks/usePersonalBasecamp', () => ({
   },
 }));
 
-vi.mock('@/hooks/usePlacesLinkSync', () => ({
-  usePlacesLinkSync: () => ({
-    createLinkFromPlace: vi.fn(),
-    removeLinkByPlaceId: vi.fn(),
-  }),
-}));
-
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     channel: () => ({
