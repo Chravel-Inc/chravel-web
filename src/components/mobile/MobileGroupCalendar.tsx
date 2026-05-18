@@ -43,7 +43,6 @@ import { useTripMembersQuery } from '@/hooks/useTripMembersQuery';
 import type { TripEvent } from '@/services/calendarService';
 import { useCalendarExport } from '@/features/calendar/hooks/useCalendarExport';
 import { CalendarErrorState } from '@/features/calendar/components/CalendarErrorState';
-import { getFeaturePaywallConfig } from '@/components/subscription/featurePaywall';
 
 interface CalendarEvent {
   id: string;
@@ -139,6 +138,7 @@ export const MobileGroupCalendar = ({
     await hapticService.medium();
 
     if (!canUseSmartImport) {
+      const { getFeaturePaywallConfig } = await import('@/components/subscription/featurePaywall');
       const paywall = getFeaturePaywallConfig('smart_import_calendar');
       toast.error(`${paywall.featureBenefitCopy} Recommended plan: ${paywall.recommendedPlan}.`, {
         action: {

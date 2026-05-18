@@ -50,7 +50,6 @@ import { toast } from 'sonner';
 import { EVENT_PARITY_COL_START, EVENT_PARITY_ROW_CLASS } from '@/lib/tabParity';
 import { ActionPill } from '../ui/ActionPill';
 import { EVENT_TAB_PANEL_CLASS } from './EventTabPrimitives';
-import { getFeaturePaywallConfig } from '@/components/subscription/featurePaywall';
 
 interface LineupPermissions {
   canView: boolean;

@@ -47,7 +47,6 @@ import { normalizeCalendarCategory } from '@/constants/calendarCategories';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { hasPaidAccess } from '@/utils/paidAccess';
 import { useDeferredPaidAccess } from '@/hooks/useDeferredPaidAccess';
-import { getFeaturePaywallConfig } from '@/components/subscription/featurePaywall';
 import { useNavigate } from 'react-router-dom';
 
 interface CalendarImportModalProps {
@@ -444,7 +443,9 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
                       size="sm"
                       className="min-h-[44px]"
                       type="button"
-                      onClick={() => {
+                      onClick={async () => {
+                        const { getFeaturePaywallConfig } =
+                          await import('@/components/subscription/featurePaywall');
                         const paywall = getFeaturePaywallConfig('smart_import_calendar');
                         navigate(
                           `${paywall.destination.pathname}${paywall.destination.search}`,

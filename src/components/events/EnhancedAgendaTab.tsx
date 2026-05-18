@@ -49,7 +49,6 @@ import {
   AlertDialogTitle,
 } from '../ui/alert-dialog';
 import { toast } from 'sonner';
-import { getFeaturePaywallConfig } from '@/components/subscription/featurePaywall';
 
 interface EnhancedAgendaTabProps {
   eventId: string;
