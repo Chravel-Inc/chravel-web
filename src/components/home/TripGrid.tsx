@@ -28,6 +28,7 @@ import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { SortableTripGrid } from '../dashboard/SortableTripGrid';
 import { Button } from '../ui/button';
 import type { PendingRequestTripCard } from '@/hooks/usePendingRequestTripCards';
+import { useLocation } from 'react-router-dom';
 
 interface Trip {
   id: number | string;
@@ -99,9 +100,29 @@ export const TripGrid = React.memo(
       }>
     >([]);
     const { isDemoMode } = useDemoMode();
+    const location = useLocation();
     const { tier: _tier } = useConsumerSubscription();
     const { deleteTrip } = useDeleteTrip();
     const [reorderMode, setReorderMode] = useState<'my_trips' | 'pro' | 'events' | null>(null);
+    const exitReorderMode = useCallback(() => {
+      setReorderMode(null);
+    }, []);
+
+    // Never keep reorder mode active across navigation/tab/view context changes.
+    useEffect(() => {
+      exitReorderMode();
+    }, [location.pathname, location.search, viewMode, activeFilter, exitReorderMode]);
+
+    // iOS/webview backgrounding can interrupt touch events. Force reset on visibility loss.
+    useEffect(() => {
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'hidden') {
+          exitReorderMode();
+        }
+      };
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [exitReorderMode]);
 
     // Stable identity fns for dnd-kit — inline lambdas change every render and retrigger order sync.
     const getMyTripId = useCallback((trip: Trip) => trip.id.toString(), []);
@@ -588,7 +609,7 @@ export const TripGrid = React.memo(
                 {/* Reorder mode Done button */}
                 {reorderMode === 'my_trips' && (
                   <div className="col-span-full flex justify-center py-2">
-                    <Button size="sm" onClick={() => setReorderMode(null)}>
+                    <Button size="sm" onClick={exitReorderMode}>
                       Done
                     </Button>
                   </div>
@@ -617,7 +638,7 @@ export const TripGrid = React.memo(
                 />
                 {reorderMode === 'pro' && (
                   <div className="col-span-full flex justify-center py-2">
-                    <Button size="sm" onClick={() => setReorderMode(null)}>
+                    <Button size="sm" onClick={exitReorderMode}>
                       Done
                     </Button>
                   </div>
@@ -653,7 +674,7 @@ export const TripGrid = React.memo(
                 />
                 {reorderMode === 'events' && (
                   <div className="col-span-full flex justify-center py-2">
-                    <Button size="sm" onClick={() => setReorderMode(null)}>
+                    <Button size="sm" onClick={exitReorderMode}>
                       Done
                     </Button>
                   </div>

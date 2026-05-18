@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
 import { hapticService } from '../services/hapticService';
 
 interface LongPressOptions {
@@ -51,13 +51,18 @@ export const useLongPress = ({ onLongPress, threshold = 500 }: LongPressOptions)
   const clear = useCallback(() => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
+      timerRef.current = undefined;
     }
+    startPosRef.current = undefined;
   }, []);
+
+  useEffect(() => clear, [clear]);
 
   return {
     onTouchStart: start,
     onTouchMove: cancel,
     onTouchEnd: clear,
+    onTouchCancel: clear,
     onMouseDown: start,
     onMouseMove: cancel,
     onMouseUp: clear,
