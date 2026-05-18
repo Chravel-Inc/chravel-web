@@ -250,30 +250,6 @@ const ADDITIONAL_VARS: EnvVarSpec[] = [
     canStubForTestFlight: true,
     stubValue: '1.0.0',
   },
-  {
-    name: 'VITE_VOICE_DEBUG',
-    required: false,
-    description: 'Enable voice debugging console output',
-    provider: 'Internal flag',
-    canStubForTestFlight: true,
-    stubValue: 'false',
-  },
-  {
-    name: 'VITE_VOICE_AFFECTIVE_DIALOG',
-    required: false,
-    description: 'Enable emotional tone in voice responses',
-    provider: 'Internal flag',
-    canStubForTestFlight: true,
-    stubValue: 'true',
-  },
-  {
-    name: 'VITE_VOICE_PROACTIVE_AUDIO',
-    required: false,
-    description: 'Enable model-initiated speech',
-    provider: 'Internal flag',
-    canStubForTestFlight: true,
-    stubValue: 'true',
-  },
 ];
 
 // ---------------------------------------------------------------------------
