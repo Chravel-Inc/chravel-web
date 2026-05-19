@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Bell, Camera, MapPin, Mic, RefreshCcw, Settings as SettingsIcon } from 'lucide-react';
+import { Bell, Camera, ChevronDown, ChevronUp, Copy, ExternalLink, MapPin, Mic, RefreshCcw, Settings as SettingsIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
@@ -14,6 +14,57 @@ import {
   type PermissionStatus,
 } from '@/lib/webPermissions';
 import { isInstalledApp } from '@/utils/platformDetection';
+
+type BrowserKind = 'chrome' | 'edge' | 'safari' | 'firefox' | 'opera' | 'other';
+
+function detectBrowser(): BrowserKind {
+  if (typeof navigator === 'undefined') return 'other';
+  const ua = navigator.userAgent;
+  if (/Edg\//.test(ua)) return 'edge';
+  if (/OPR\//.test(ua)) return 'opera';
+  if (/Firefox\//.test(ua)) return 'firefox';
+  if (/Chrome\//.test(ua)) return 'chrome';
+  if (/Safari\//.test(ua)) return 'safari';
+  return 'other';
+}
+
+function getBrowserInstructions(browser: BrowserKind, permission: PermissionId): string[] {
+  const label =
+    permission === 'notifications'
+      ? 'Notifications'
+      : permission === 'location'
+      ? 'Location'
+      : permission === 'camera'
+      ? 'Camera'
+      : 'Microphone';
+  switch (browser) {
+    case 'chrome':
+    case 'edge':
+    case 'opera':
+      return [
+        'Click the lock or tune icon to the left of the address bar.',
+        `Find "${label}" in the site permissions list.`,
+        'Change it to "Allow", then reload this page.',
+      ];
+    case 'safari':
+      return [
+        'Open Safari → Settings → Websites.',
+        `Choose "${label}" in the left sidebar.`,
+        'Set this site to "Allow", then reload this page.',
+      ];
+    case 'firefox':
+      return [
+        'Click the lock icon to the left of the address bar.',
+        `Find "${label}" under permissions and remove the blocked status.`,
+        'Reload this page and allow when prompted.',
+      ];
+    default:
+      return [
+        'Open your browser settings for this site.',
+        `Allow "${label}" access, then reload this page.`,
+      ];
+  }
+}
 
 function formatState(state: PermissionState): string {
   switch (state) {
