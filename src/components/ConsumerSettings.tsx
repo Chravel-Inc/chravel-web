@@ -23,7 +23,7 @@ import { SavedRecommendations } from './SavedRecommendations';
 import { ConsumerAIConciergeSection } from './consumer/ConsumerAIConciergeSection';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { SettingsLayout, type SettingsSection } from './settings/SettingsLayout';
-import { SmartImportSettings } from '../features/smart-import/components/SmartImportSettings';
+
 
 interface ConsumerSettingsProps {
   currentUserId: string;
