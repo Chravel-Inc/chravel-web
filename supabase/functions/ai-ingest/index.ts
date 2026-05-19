@@ -65,10 +65,10 @@ serve(async req => {
         .eq('user_id', auth.user!.id)
         .maybeSingle();
       if (memErr || !membership) {
-        return new Response(
-          JSON.stringify({ error: 'Forbidden: not a trip member' }),
-          { status: 403, headers: { ...headers, 'Content-Type': 'application/json' } },
-        );
+        return new Response(JSON.stringify({ error: 'Forbidden: not a trip member' }), {
+          status: 403,
+          headers: { ...headers, 'Content-Type': 'application/json' },
+        });
       }
     }
 

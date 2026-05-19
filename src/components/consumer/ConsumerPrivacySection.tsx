@@ -345,7 +345,6 @@ export const ConsumerPrivacySection = () => {
         </div>
       </div>
 
-
       {/* Account Security */}
       <AccountSecuritySection userEmail={user?.email} showDemoContent={showDemoContent} />
 

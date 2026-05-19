@@ -26,7 +26,8 @@ async function gscFetch(path: string, init: RequestInit = {}) {
   const lovableKey = Deno.env.get('LOVABLE_API_KEY');
   const gscKey = Deno.env.get('GOOGLE_SEARCH_CONSOLE_API_KEY');
   if (!lovableKey) throw new Error('LOVABLE_API_KEY not configured');
-  if (!gscKey) throw new Error('GOOGLE_SEARCH_CONSOLE_API_KEY not configured (link the GSC connector)');
+  if (!gscKey)
+    throw new Error('GOOGLE_SEARCH_CONSOLE_API_KEY not configured (link the GSC connector)');
 
   const res = await fetch(`${GSC}${path}`, {
     ...init,
@@ -39,7 +40,11 @@ async function gscFetch(path: string, init: RequestInit = {}) {
   });
   const text = await res.text();
   let body: unknown = null;
-  try { body = text ? JSON.parse(text) : null; } catch { body = text; }
+  try {
+    body = text ? JSON.parse(text) : null;
+  } catch {
+    body = text;
+  }
   if (!res.ok) {
     throw new Error(`GSC ${res.status}: ${typeof body === 'string' ? body : JSON.stringify(body)}`);
   }
@@ -62,23 +67,27 @@ async function semrushKD(keywords: string[], database = 'us'): Promise<Record<st
   const out: Record<string, number> = {};
   // Semrush phrase_kdi: 1 keyword/call. Cap to top 25 to stay cheap.
   const top = keywords.slice(0, 25);
-  await Promise.all(top.map(async (kw) => {
-    try {
-      const url = `https://api.semrush.com/?type=phrase_kdi&key=${key}&phrase=${encodeURIComponent(kw)}&database=${database}&export_columns=Kd`;
-      const res = await fetch(url);
-      if (!res.ok) return;
-      const text = (await res.text()).trim();
-      const lines = text.split('\n');
-      if (lines.length >= 2) {
-        const v = parseFloat(lines[1]);
-        if (!Number.isNaN(v)) out[kw] = v;
+  await Promise.all(
+    top.map(async kw => {
+      try {
+        const url = `https://api.semrush.com/?type=phrase_kdi&key=${key}&phrase=${encodeURIComponent(kw)}&database=${database}&export_columns=Kd`;
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const text = (await res.text()).trim();
+        const lines = text.split('\n');
+        if (lines.length >= 2) {
+          const v = parseFloat(lines[1]);
+          if (!Number.isNaN(v)) out[kw] = v;
+        }
+      } catch {
+        /* swallow per-keyword */
       }
-    } catch { /* swallow per-keyword */ }
-  }));
+    }),
+  );
   return out;
 }
 
-serve(async (req) => {
+serve(async req => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -87,18 +96,24 @@ serve(async (req) => {
     if (auth.error) return auth.response;
     if (!isSuperAdminEmail(auth.user.email)) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
-        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const { action, siteUrl, days = 28 } = await req.json().catch(() => ({} as Record<string, unknown>));
+    const {
+      action,
+      siteUrl,
+      days = 28,
+    } = await req.json().catch(() => ({}) as Record<string, unknown>);
     const lookback = Math.min(Math.max(Number(days) || 28, 7), 90);
     const startDate = daysAgoISO(lookback);
     const endDate = todayISO();
 
     if (action === 'list_sites') {
       const data = await gscFetch('/sites');
-      const entries = (data?.siteEntry as Array<{ siteUrl: string; permissionLevel: string }>) || [];
+      const entries =
+        (data?.siteEntry as Array<{ siteUrl: string; permissionLevel: string }>) || [];
       return new Response(JSON.stringify({ sites: entries }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -106,7 +121,8 @@ serve(async (req) => {
 
     if (!siteUrl || typeof siteUrl !== 'string') {
       return new Response(JSON.stringify({ error: 'siteUrl required' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
@@ -150,32 +166,42 @@ serve(async (req) => {
         .map(k => ({ ...k, kd: kdMap[k.query] ?? null }));
 
       const totals = trend.reduce(
-        (acc, d) => ({ clicks: acc.clicks + d.clicks, impressions: acc.impressions + d.impressions }),
+        (acc, d) => ({
+          clicks: acc.clicks + d.clicks,
+          impressions: acc.impressions + d.impressions,
+        }),
         { clicks: 0, impressions: 0 },
       );
 
-      return new Response(JSON.stringify({
-        siteUrl, startDate, endDate,
-        totals: {
-          ...totals,
-          ctr: totals.impressions ? totals.clicks / totals.impressions : 0,
-        },
-        keywords: keywords.map(k => ({ ...k, kd: kdMap[k.query] ?? null })),
-        pages,
-        trend,
-        opportunities,
-        semrushEnabled: !!Deno.env.get('SEMRUSH_API_KEY'),
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(
+        JSON.stringify({
+          siteUrl,
+          startDate,
+          endDate,
+          totals: {
+            ...totals,
+            ctr: totals.impressions ? totals.clicks / totals.impressions : 0,
+          },
+          keywords: keywords.map(k => ({ ...k, kd: kdMap[k.query] ?? null })),
+          pages,
+          trend,
+          opportunities,
+          semrushEnabled: !!Deno.env.get('SEMRUSH_API_KEY'),
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
     }
 
     return new Response(JSON.stringify({ error: 'Unknown action' }), {
-      status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error('seo-dashboard error:', message);
     return new Response(JSON.stringify({ error: message }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });
