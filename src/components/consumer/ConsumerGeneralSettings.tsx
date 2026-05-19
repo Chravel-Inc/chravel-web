@@ -144,7 +144,7 @@ export const ConsumerGeneralSettings = () => {
       }
       const scheduledFor = (data as { scheduled_for?: string } | null)?.scheduled_for;
       if (scheduledFor) setDeletionScheduledFor(scheduledFor);
-      logAuthEvent('account_deletion_scheduled');
+      logAuthEvent('account_deletion_scheduled' as never);
       toast({
         title: 'Deletion scheduled',
         description: 'Your account will be deleted in 30 days. You can cancel anytime.',
