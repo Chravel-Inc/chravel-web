@@ -312,6 +312,10 @@ export const ConsumerPermissionsSection = () => {
             We only ask for permissions when you use a feature. You can review and update access
             here anytime.
           </p>
+          <p className="text-xs text-gray-500 mt-2">
+            Browsers only let apps request a permission the first time. After that, changes must be
+            made in your browser or device settings.
+          </p>
         </div>
 
         <Button
@@ -330,12 +334,40 @@ export const ConsumerPermissionsSection = () => {
         {cards.map(card => {
           const status = statuses?.[card.id];
           const state = status?.state ?? 'unknown';
-          const _canOpenSettings = status?.canOpenSettings ?? false;
           const detail = status?.detail;
 
           const isGranted = state === 'granted';
-          const isNotApplicable = state === 'not_applicable';
-          const isDisabled = isNotApplicable || busyId === card.id;
+          const isDenied = state === 'denied';
+          const isPrompt = state === 'prompt' || state === 'unknown';
+          const isNotApplicable = state === 'not_applicable' || state === 'unavailable';
+          const isBusy = busyId === card.id;
+          const helpOpen = expandedHelp === card.id;
+          const instructions = getBrowserInstructions(browser, card.id);
+
+          const openHelpOrSettings = async () => {
+            if (installed) {
+              if (card.id === 'notifications') {
+                await handleOpenNotificationSettings();
+              } else {
+                await handleOpenSettings();
+              }
+              return;
+            }
+            setExpandedHelp(helpOpen ? null : card.id);
+          };
+
+          const copySiteOrigin = async () => {
+            try {
+              await navigator.clipboard.writeText(window.location.origin);
+              toast({ title: 'Copied', description: 'Site URL copied to clipboard.' });
+            } catch {
+              toast({
+                title: 'Copy failed',
+                description: window.location.origin,
+                variant: 'destructive',
+              });
+            }
+          };
 
           return (
             <div key={card.id} className="bg-white/5 border border-white/10 rounded-xl p-4">
@@ -356,14 +388,91 @@ export const ConsumerPermissionsSection = () => {
                   </div>
                 </div>
 
-                <div className="flex flex-shrink-0 items-center">
-                  <Switch
-                    checked={isGranted}
-                    disabled={isDisabled}
-                    onCheckedChange={checked => void handleToggleChange(card.id, checked)}
-                  />
+                <div className="flex flex-shrink-0 items-center gap-2">
+                  {isPrompt && (
+                    <Switch
+                      checked={false}
+                      disabled={isBusy}
+                      onCheckedChange={checked => void handleToggleChange(card.id, checked)}
+                      aria-label={`Enable ${card.title}`}
+                    />
+                  )}
+                  {isGranted && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void openHelpOrSettings()}
+                      className="border-white/10 bg-white/5 hover:bg-white/10"
+                    >
+                      Manage
+                    </Button>
+                  )}
+                  {isDenied && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void openHelpOrSettings()}
+                      className="border-white/10 bg-white/5 hover:bg-white/10"
+                    >
+                      How to enable
+                      {!installed && (helpOpen ? (
+                        <ChevronUp className="ml-1 h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="ml-1 h-4 w-4" />
+                      ))}
+                    </Button>
+                  )}
+                  {isNotApplicable && <Switch checked={false} disabled aria-label="Unavailable" />}
                 </div>
               </div>
+
+              {isDenied && !installed && helpOpen && (
+                <div className="mt-3 border-t border-white/10 pt-3 space-y-2">
+                  <p className="text-xs text-gray-400">
+                    Your browser is blocking this. To re-enable:
+                  </p>
+                  <ol className="text-sm text-gray-300 list-decimal list-inside space-y-1">
+                    {instructions.map((step, i) => (
+                      <li key={i}>{step}</li>
+                    ))}
+                  </ol>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void copySiteOrigin()}
+                      className="border-white/10 bg-white/5 hover:bg-white/10"
+                    >
+                      <Copy className="mr-1 h-3.5 w-3.5" />
+                      Copy site URL
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void refresh()}
+                      className="border-white/10 bg-white/5 hover:bg-white/10"
+                    >
+                      <RefreshCcw className="mr-1 h-3.5 w-3.5" />
+                      I've updated — recheck
+                    </Button>
+                    {card.id === 'notifications' && (
+                      <a
+                        href="https://support.google.com/chrome/answer/3220216"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center text-xs text-glass-orange hover:underline"
+                      >
+                        Browser help
+                        <ExternalLink className="ml-1 h-3 w-3" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
