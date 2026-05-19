@@ -83,8 +83,6 @@ export const ConsumerSettings = ({
         return <ConsumerPrivacySection />;
       case 'settings':
         return <ConsumerGeneralSettings />;
-      case 'integrations':
-        return <SmartImportSettings />;
       case 'archived':
         return <ArchivedTripsSection onTripStateChange={onTripStateChange} />;
       default:
