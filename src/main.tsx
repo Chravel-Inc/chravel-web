@@ -158,10 +158,14 @@ if (!inNativeShell && 'serviceWorker' in navigator) {
   }
 }
 
-// Initialize theme
+// Initialize theme (must match `useTheme` + Tailwind `darkMode: ['class']`)
 const theme = safeLocalStorageGet('theme');
 if (theme === 'light') {
   document.documentElement.classList.add('light');
+  document.documentElement.classList.remove('dark');
+} else {
+  document.documentElement.classList.add('dark');
+  document.documentElement.classList.remove('light');
 }
 
 // Preview hardening: always clear stale caches (prevents sticky blank preview states)
