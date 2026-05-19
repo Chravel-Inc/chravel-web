@@ -120,6 +120,9 @@ export const ConsumerPermissionsSection = () => {
   const [statuses, setStatuses] = useState<Record<PermissionId, PermissionStatus> | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [busyId, setBusyId] = useState<PermissionId | null>(null);
+  const [expandedHelp, setExpandedHelp] = useState<PermissionId | null>(null);
+  const browser = useMemo(detectBrowser, []);
+  const installed = useMemo(isInstalledApp, []);
 
   const cards: PermissionCardConfig[] = useMemo(
     () => [
