@@ -572,10 +572,10 @@ export const TripGrid = React.memo(
             </Alert>
           )}
 
-          {/* Top-of-list reorder banner — always visible while reorder mode is on,
-              even if the list scrolls past the bottom Done button. */}
+          {/* Sticky reorder banner — single Done control, stays in view while the user
+              drags / scrolls so they always have a way out. */}
           {reorderMode !== null && (
-            <div className="flex items-center justify-between rounded-lg border border-border/60 bg-card/60 px-4 py-2.5">
+            <div className="sticky top-0 z-10 flex items-center justify-between rounded-lg border border-border/60 bg-card/95 px-4 py-2.5 backdrop-blur">
               <span className="text-sm font-medium text-muted-foreground">Drag to reorder</span>
               <Button size="sm" onClick={exitReorderMode}>
                 Done
@@ -651,14 +651,6 @@ export const TripGrid = React.memo(
                   isMobile={isMobile}
                   onLongPressEnterReorder={() => setReorderMode('my_trips')}
                 />
-                {/* Reorder mode Done button */}
-                {reorderMode === 'my_trips' && (
-                  <div className="col-span-full flex justify-center py-2">
-                    <Button size="sm" onClick={exitReorderMode}>
-                      Done
-                    </Button>
-                  </div>
-                )}
               </>
             ) : viewMode === 'tripsPro' ? (
               <>
@@ -681,13 +673,6 @@ export const TripGrid = React.memo(
                   isMobile={isMobile}
                   onLongPressEnterReorder={() => setReorderMode('pro')}
                 />
-                {reorderMode === 'pro' && (
-                  <div className="col-span-full flex justify-center py-2">
-                    <Button size="sm" onClick={exitReorderMode}>
-                      Done
-                    </Button>
-                  </div>
-                )}
               </>
             ) : viewMode === 'events' ? (
               <>
@@ -717,13 +702,6 @@ export const TripGrid = React.memo(
                   isMobile={isMobile}
                   onLongPressEnterReorder={() => setReorderMode('events')}
                 />
-                {reorderMode === 'events' && (
-                  <div className="col-span-full flex justify-center py-2">
-                    <Button size="sm" onClick={exitReorderMode}>
-                      Done
-                    </Button>
-                  </div>
-                )}
               </>
             ) : viewMode === 'travelRecs' ? (
               filteredRecommendations.map(recommendation => (
