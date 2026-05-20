@@ -400,7 +400,7 @@ serve(async req => {
 
     const { data: account, error: accountError } = await adminClient
       .from('gmail_accounts')
-      .select('email, access_token, refresh_token, token_expires_at, is_active')
+      .select('id, email, access_token, refresh_token, token_expires_at, is_active')
       .eq('id', accountId)
       .eq('user_id', user.id)
       .single();
@@ -414,20 +414,10 @@ serve(async req => {
 
     if (account.is_active === false) {
       return new Response(
-        JSON.stringify({ error: 'Gmail account is inactive. Reconnect Gmail.' }),
-        {
-          status: 403,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        },
-      );
-    }
-
-    let accessToken = await decryptToken(account.access_token, GMAIL_TOKEN_ENCRYPTION_KEY);
-    const refreshToken = await decryptToken(account.refresh_token, GMAIL_TOKEN_ENCRYPTION_KEY);
-
-    if (!accessToken) {
-      return new Response(
-        JSON.stringify({ error: 'No Gmail access token available. Reconnect Gmail.' }),
+        JSON.stringify({
+          error: 'Gmail account is inactive. Reconnect Gmail.',
+          code: GMAIL_RECONNECT_REQUIRED,
+        }),
         {
           status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -435,42 +425,24 @@ serve(async req => {
       );
     }
 
-    const testResponse = await fetchWithRetry(
-      'https://gmail.googleapis.com/gmail/v1/users/me/profile',
-      {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      },
-    );
-
-    if (testResponse.status === 401 && refreshToken) {
-      const refreshed = await refreshAccessToken(refreshToken);
-      accessToken = refreshed.accessToken;
-
-      await adminClient
-        .from('gmail_accounts')
-        .update({
-          access_token: await encryptToken(accessToken, GMAIL_TOKEN_ENCRYPTION_KEY),
-          token_expires_at: refreshed.expiresIn
-            ? new Date(Date.now() + (refreshed.expiresIn - 60) * 1000).toISOString()
-            : null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', accountId);
-
-      await adminClient.from('gmail_token_audit_logs').insert({
-        user_id: user.id,
-        gmail_account_email: account.email,
-        action: 'access_token_refresh',
-      });
-    } else if (testResponse.status === 401) {
-      return new Response(
-        JSON.stringify({
-          error:
-            'Gmail token expired and no refresh token available. Please reconnect your Gmail account in Settings.',
-        }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    let accessToken: string;
+    try {
+      accessToken = await getValidGmailAccessToken(
+        adminClient,
+        GMAIL_TOKEN_ENCRYPTION_KEY,
+        user.id,
+        account,
       );
+    } catch (err) {
+      if (err instanceof GmailReconnectRequiredError) {
+        return new Response(
+          JSON.stringify({ error: err.message, code: GMAIL_RECONNECT_REQUIRED }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+      throw err;
     }
+
 
     const { data: trip, error: tripError } = await supabaseClient
       .from('trips')
