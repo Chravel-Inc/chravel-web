@@ -220,7 +220,6 @@ export const ConsumerPrivacySection = () => {
   const [settings, setSettings] = useState({
     useRealName: false,
     useDisplayNameOnly: true,
-    sharePhoneNumber: false,
   });
 
   // Load settings from profile - name_preference drives Use Real Name / Use Display Name Only
@@ -229,7 +228,6 @@ export const ConsumerPrivacySection = () => {
       const useReal = user.namePreference === 'real';
       setSettings(prev => ({
         ...prev,
-        sharePhoneNumber: user.showPhone || false,
         useRealName: useReal,
         useDisplayNameOnly: !useReal,
       }));
@@ -255,7 +253,7 @@ export const ConsumerPrivacySection = () => {
         useRealName: !newValue,
       };
     } else {
-      updatedSettings[setting] = newValue;
+      (updatedSettings as Record<string, boolean>)[setting as string] = newValue;
     }
 
     setSettings(updatedSettings);
@@ -268,15 +266,11 @@ export const ConsumerPrivacySection = () => {
     // Persist to database
     if (user?.id) {
       try {
-        const updates: { name_preference?: 'real' | 'display'; show_phone?: boolean } = {};
+        const updates: { name_preference?: 'real' | 'display' } = {};
 
         if (setting === 'useRealName' || setting === 'useDisplayNameOnly') {
           updates.name_preference = updatedSettings.useRealName ? 'real' : 'display';
         }
-        if (setting === 'sharePhoneNumber') {
-          updates.show_phone = newValue;
-        }
-
         const { error } = await updateProfile(updates);
 
         if (error) throw error;
@@ -338,34 +332,6 @@ export const ConsumerPrivacySection = () => {
               <div
                 className={`absolute w-5 h-5 bg-white rounded-full top-0.5 transition-transform ${
                   settings.useDisplayNameOnly ? 'translate-x-6' : 'translate-x-0.5'
-                }`}
-              />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Contact Information Privacy */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-        <h4 className="text-base font-semibold text-white mb-3">Contact Information</h4>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
-            <div>
-              <div className="text-white font-medium">Share Phone Number with Trip Members</div>
-              <div className="text-sm text-gray-400">
-                When on, your number appears only in the member contact sheet (open Trip Members,
-                then tap your row)—not inline in chat or member lists.
-              </div>
-            </div>
-            <button
-              onClick={() => handleToggle('sharePhoneNumber')}
-              className={`relative w-12 h-6 rounded-full transition-colors ${
-                settings.sharePhoneNumber ? 'bg-glass-orange' : 'bg-gray-600'
-              }`}
-            >
-              <div
-                className={`absolute w-5 h-5 bg-white rounded-full top-0.5 transition-transform ${
-                  settings.sharePhoneNumber ? 'translate-x-6' : 'translate-x-0.5'
                 }`}
               />
             </button>
