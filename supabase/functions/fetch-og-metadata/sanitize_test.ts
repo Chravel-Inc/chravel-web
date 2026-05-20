@@ -25,17 +25,11 @@ Deno.test('sanitizeUrl: unwraps angle-bracketed URLs', () => {
 });
 
 Deno.test('sanitizeUrl: decodes HTML entities', () => {
-  assertEquals(
-    sanitizeUrl('https://example.com/?a=1&amp;b=2'),
-    'https://example.com/?a=1&b=2',
-  );
+  assertEquals(sanitizeUrl('https://example.com/?a=1&amp;b=2'), 'https://example.com/?a=1&b=2');
 });
 
 Deno.test('sanitizeUrl: decodes numeric HTML entities', () => {
-  assertEquals(
-    sanitizeUrl('https://example.com/?a=1&#38;b=2'),
-    'https://example.com/?a=1&b=2',
-  );
+  assertEquals(sanitizeUrl('https://example.com/?a=1&#38;b=2'), 'https://example.com/?a=1&b=2');
 });
 
 Deno.test('sanitizeUrl: strips trailing punctuation', () => {

@@ -5,6 +5,7 @@ import {
   closestCenter,
   PointerSensor,
   TouchSensor,
+  useDndContext,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -22,6 +23,18 @@ import { getTouchActivationConstraint } from './touchActivationConstraint';
 import { useDashboardCardOrder } from '@/hooks/useDashboardCardOrder';
 
 type DashboardType = 'my_trips' | 'pro' | 'events';
+
+/** Cancel an in-flight dnd-kit drag when reorder mode exits (tab switch, Escape, etc.). */
+function ReorderModeDragCancelListener({ reorderMode }: { reorderMode: boolean }) {
+  const { active, dispatch } = useDndContext();
+
+  useEffect(() => {
+    if (reorderMode || active == null) return;
+    dispatch({ type: 'dragCancel' });
+  }, [reorderMode, active, dispatch]);
+
+  return null;
+}
 
 interface SortableTripGridProps<T> {
   items: T[];
@@ -91,6 +104,13 @@ export function SortableTripGrid<T>({
     setActiveDragItem(null);
   }, []);
 
+  // Defensive: if reorder mode exits via a path that bypasses dnd-kit's drag-end/cancel
+  // (tab change, tap-outside, Escape, visibility change), clear any stale drag refs so the
+  // sync-from-props effect can resume on next render.
+  useEffect(() => {
+    if (!reorderMode) clearDragUi();
+  }, [reorderMode, clearDragUi]);
+
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
@@ -131,6 +151,7 @@ export function SortableTripGrid<T>({
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
+      <ReorderModeDragCancelListener reorderMode={reorderMode} />
       <SortableContext items={ids} strategy={strategy}>
         {orderedItems.map(item => (
           <SortableCardWrapper
