@@ -1,9 +1,13 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { runtimePrompt } from './prompt.ts';
-import { decryptToken, encryptToken } from '../_shared/gmailTokenCrypto.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { processInChunks } from './concurrency.ts';
+import {
+  getValidGmailAccessToken,
+  GmailReconnectRequiredError,
+  GMAIL_RECONNECT_REQUIRED,
+} from '../_shared/gmailTokenManager.ts';
 
 const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID') ?? '';
 const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '';
