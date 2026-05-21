@@ -28,8 +28,13 @@ interface OGMetadata {
 // Exported for testing. Handles common paste artifacts: markdown link syntax,
 // surrounding quotes/brackets, HTML entities, and trailing punctuation.
 const HTML_ENTITIES: Record<string, string> = {
-  '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'",
-  '&apos;': "'", '&nbsp;': ' ',
+  '&amp;': '&',
+  '&lt;': '<',
+  '&gt;': '>',
+  '&quot;': '"',
+  '&#39;': "'",
+  '&apos;': "'",
+  '&nbsp;': ' ',
 };
 const decodeHtmlEntities = (s: string): string =>
   s
@@ -40,9 +45,15 @@ const decodeHtmlEntities = (s: string): string =>
 export const sanitizeUrl = (raw: string): string => {
   let u = raw.trim();
   const pairs: Array<[string, string]> = [
-    ['"', '"'], ["'", "'"], ['`', '`'],
-    ['“', '”'], ['‘', '’'], ['«', '»'],
-    ['(', ')'], ['[', ']'], ['{', '}'],
+    ['"', '"'],
+    ["'", "'"],
+    ['`', '`'],
+    ['“', '”'],
+    ['‘', '’'],
+    ['«', '»'],
+    ['(', ')'],
+    ['[', ']'],
+    ['{', '}'],
   ];
 
   // Loop until stable (max 8 iterations) so combined wrappers like
