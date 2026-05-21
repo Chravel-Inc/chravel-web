@@ -455,15 +455,12 @@ export const TripHeader = ({
             </div>
           )}
 
-          {/* Gradient overlay - stronger at top and bottom for title/location readability */}
-          <div
-            className={cn(
-              'absolute inset-0',
-              hasCover
-                ? 'bg-gradient-to-b from-black/50 via-transparent to-black/60'
-                : 'bg-gradient-to-b from-black/70 via-gray-900/60 to-black/70',
-            )}
-          />
+          {/* Gradient overlay - only when a cover photo exists, to keep text readable over imagery.
+              When there's no cover, the dark navy background already provides full contrast for
+              bright white text (matches the dashboard card treatment). */}
+          {hasCover && (
+            <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/60" />
+          )}
 
           {/* Collapsed Layout: Horizontal info row - Desktop only */}
           {isHeroCollapsed && !drawerLayout && (
