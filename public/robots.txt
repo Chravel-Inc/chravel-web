@@ -14,4 +14,4 @@ Disallow: /reset-password
 Disallow: /join/
 Disallow: /j/
 
-Sitemap: https://chravel.app/sitemap.xml
+Sitemap: https://chravelapp.com/sitemap.xml

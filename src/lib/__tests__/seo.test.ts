@@ -3,7 +3,7 @@ import { canonicalUrl, shouldNoindex, PUBLIC_SEO_ROUTES, getPublicSeoRoute } fro
 
 describe('seo config', () => {
   it('builds canonical urls from chravel production domain', () => {
-    expect(canonicalUrl('/group-travel')).toBe('https://chravel.app/group-travel');
+    expect(canonicalUrl('/group-travel')).toBe('https://chravelapp.com/group-travel');
   });
 
   it('flags admin and private app routes as noindex', () => {
