@@ -421,3 +421,14 @@ Known security anti-patterns discovered during audits. Reference this before int
 **Required Tests:** Unit test that any custom field round-trips: writer payload includes it → adapter exposes it. Lint rule (future) to flag `as any` on Stream message fields.
 **Regression Surfaces:** Adding any new custom Stream field — system messages, broadcast metadata, payment metadata, etc.
 **Fixed in:** `src/services/stream/adapters/mappers/messageMapper.ts`, `src/features/chat/components/TripChat.tsx` (April 2026)
+
+## 9. Radix Dialog / AlertDialog Opens Behind Full-Screen In-App Overlays
+
+**Symptom:** A control inside Settings (or another `fixed inset-0 z-[60]`–`z-[70]` shell) appears dead — clicks do nothing and no modal is visible. The feature works on desktop routes without that shell.
+**Risk:** MEDIUM — GDPR export, confirmations, and similar flows look broken; users assume the backend is a no-op.
+**Root Cause:** Radix `Dialog` / `AlertDialog` portals default to `z-50` in shadcn primitives. Full-screen settings (`SettingsMenu`) and some trip modals use higher z-index (`z-[60]` / `z-[70]`), so the portaled content renders *under* the opaque overlay.
+**How to Confirm:** Open React devtools or inspect DOM while triggering the action — the dialog node exists with `data-state=open` but sits below the settings layer in paint order.
+**Smallest Safe Fix:** Raise shared `Dialog` + `AlertDialog` overlay/content to a band above in-app shells (e.g. `z-[80]`) but still below toast/auth (`z-[100]`). For Capacitor, prefer `Capacitor.Plugins.Browser.open` for signed download URLs when `<a>.click()` is unreliable.
+**Required Tests:** None mandatory for z-index; manual check from Settings on mobile + iOS shell.
+**Regression Surfaces:** Any future full-screen overlay with z-index between `50` and dialog band — keep ordering documented in component comments.
+**Fixed in:** `src/components/ui/dialog.tsx`, `src/components/ui/alert-dialog.tsx`, `src/hooks/useDataExport.ts`, `src/components/settings/SettingsLayout.tsx` (May 2026, PR #608)
