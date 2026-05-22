@@ -73,6 +73,34 @@ jobs:
       - name: Lint migration files
         run: npx tsx scripts/lint-migrations.ts
 
+  migration-drift-gate:
+    name: Migration Drift Gate (main/nightly)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    # PR jobs from forks don't have access to repo secrets, so the gate runs
+    # only where it can talk to the production project. The catch-up cron run
+    # surfaces drift introduced by out-of-band schema edits.
+    if: github.ref == 'refs/heads/main' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --fund=false
+
+      - name: Check migration drift vs production project
+        run: npx tsx scripts/check-migration-drift.ts
+        env:
+          SUPABASE_DRIFT_CHECK_URL: ${{ secrets.SUPABASE_DRIFT_CHECK_URL }}
+          SUPABASE_DRIFT_CHECK_SERVICE_KEY: ${{ secrets.SUPABASE_DRIFT_CHECK_SERVICE_KEY }}
+
   unit-tests:
     name: Unit Tests (Vitest)
     runs-on: ubuntu-24.04

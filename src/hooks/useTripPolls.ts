@@ -591,7 +591,12 @@ export const useTripPolls = (tripId: string) => {
         return;
       }
 
-      if (error?.message?.includes('deadline')) {
+      // Translate server-side RAISE EXCEPTION strings from the poll RPCs
+      // into user-facing toasts. The server remains the source of truth for
+      // every auth/RLS decision; this only changes the copy shown.
+      const lower = (error?.message ?? '').toLowerCase();
+
+      if (lower.includes('deadline')) {
         toast({
           title: 'Voting Closed',
           description: 'Voting deadline has passed.',
@@ -600,7 +605,7 @@ export const useTripPolls = (tripId: string) => {
         return;
       }
 
-      if (error?.message?.includes('only allows one option')) {
+      if (lower.includes('only allows one option')) {
         toast({
           title: 'Single Choice Poll',
           description: 'This poll allows only one option per voter.',
@@ -609,7 +614,70 @@ export const useTripPolls = (tripId: string) => {
         return;
       }
 
-      if (!error.message?.includes('modified by another user')) {
+      if (lower.includes('poll is closed')) {
+        toast({
+          title: 'Voting Closed',
+          description: 'This poll is no longer accepting votes.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (lower.includes('vote changes are not allowed')) {
+        toast({
+          title: "Can't Change Vote",
+          description: "This poll doesn't allow changing your vote once cast.",
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (lower.includes('must be a trip member')) {
+        toast({
+          title: 'Not a Trip Member',
+          description: "You're not a member of this trip, so voting is disabled.",
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (lower.includes('unauthorized vote')) {
+        toast({
+          title: 'Session Expired',
+          description: 'Please sign in again to vote.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (lower.includes('poll not found')) {
+        toast({
+          title: 'Poll Removed',
+          description: 'This poll no longer exists. Refreshing…',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (lower.includes('option not found')) {
+        toast({
+          title: 'Option Removed',
+          description: 'That option no longer exists. Refreshing to show the latest.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (lower.includes('at least one option must be selected')) {
+        toast({
+          title: 'Pick an Option',
+          description: 'Select at least one option before voting.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (!lower.includes('modified by another user')) {
         toast({
           title: 'Error',
           description: 'Failed to record vote. Please try again.',

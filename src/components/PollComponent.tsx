@@ -149,10 +149,13 @@ export const PollComponent = ({
     try {
       await votePollAsync({ pollId, optionIds });
     } catch (error: unknown) {
+      // useTripPolls.votePollMutation.onError already surfaces a specific
+      // toast for known RAISE EXCEPTION cases (closed, not a member, expired
+      // session, etc.) plus a generic fallback. Showing another toast here
+      // would double-notify; just swallow the rejection.
       if (import.meta.env.DEV) {
         console.error('Failed to vote on poll:', error);
       }
-      toast.error('Failed to vote', { description: 'Please try again.' });
     }
   };
 
