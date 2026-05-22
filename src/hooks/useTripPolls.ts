@@ -436,9 +436,17 @@ export const useTripPolls = (tripId: string) => {
       });
 
       if (batchError) {
+        // Detect "function not found" across both Postgres (42883) and PostgREST
+        // (PGRST202 / "Could not find the function ... in the schema cache") so a
+        // missing or stale RPC deployment falls back to single-option voting
+        // instead of surfacing a generic "Failed to vote" toast.
+        const msg = batchError.message?.toLowerCase() ?? '';
         const missingFn =
-          batchError.message?.toLowerCase().includes('does not exist') ||
-          batchError.code === '42883';
+          batchError.code === '42883' ||
+          batchError.code === 'PGRST202' ||
+          msg.includes('does not exist') ||
+          msg.includes('could not find the function') ||
+          msg.includes('schema cache');
 
         if (missingFn) {
           for (const optionId of optionIdsArray) {
