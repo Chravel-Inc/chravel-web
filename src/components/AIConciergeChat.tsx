@@ -350,20 +350,20 @@ export const AIConciergeChat = ({
         {messages.length === 0 && !isHistoryLoading && (
           <div className="text-center py-6 px-4 flex-shrink-0">
             <div className="text-sm text-gray-300 space-y-1 max-w-md mx-auto">
-              <p className="text-xs sm:text-sm mb-1.5">Try asking:</p>
+              <p className="text-xs sm:text-sm mb-1.5">Try asking your group&rsquo;s concierge:</p>
               <div className="text-xs text-gray-400 space-y-0.5 leading-snug">
                 <p>&bull; &ldquo;Find 5 great hotels near our base camp and show me cards&rdquo;</p>
-                <p>&bull; &ldquo;What&rsquo;s on our calendar for the rest of the trip?&rdquo;</p>
-                <p>
-                  &bull; &ldquo;Add a dinner reservation to the calendar for Saturday at 7pm near
-                  base camp&rdquo;
-                </p>
                 <p>
                   &bull; &ldquo;Create a poll: Saturday night plans with 4 options near us&rdquo;
                 </p>
+                <p>&bull; &ldquo;Send an urgent broadcast: meet at the lobby at 7pm&rdquo;</p>
+                <p>
+                  &bull; &ldquo;Split last night&rsquo;s dinner $240 four ways and log it&rdquo;
+                </p>
+                <p>&bull; &ldquo;What&rsquo;s on our calendar for the rest of the trip?&rdquo;</p>
               </div>
               <div className="mt-2 text-xs text-amber-400 bg-amber-500/10 rounded px-2.5 py-1 inline-block">
-                Chravel Agent can search, display info cards, and add things directly your trip
+                Group-aware — knows your trip, your members, and writes back to shared state.
               </div>
             </div>
           </div>
