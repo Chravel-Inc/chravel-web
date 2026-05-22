@@ -429,11 +429,22 @@ export const AIConciergeChat = ({
                 <label className="block text-[11px] text-gray-400 mb-1">Attachment intent</label>
                 <select
                   value={attachmentIntent}
-                  onChange={e => setAttachmentIntent(e.target.value as AttachmentIntent)}
+                  onChange={e => {
+                    const next = e.target.value as AttachmentIntent;
+                    if (next === 'smart_import' && userPlan === 'free') {
+                      toast.error(
+                        'Smart Import requires Explorer+. Upgrade to extract events from receipts and screenshots.',
+                      );
+                      return;
+                    }
+                    setAttachmentIntent(next);
+                  }}
                   className="w-full h-11 rounded-xl bg-zinc-900/80 border border-white/10 px-3 text-sm text-white"
                   aria-label="Attachment intent"
                 >
-                  <option value="smart_import">Extract events (Smart Import)</option>
+                  <option value="smart_import" disabled={userPlan === 'free'}>
+                    Extract events (Smart Import){userPlan === 'free' ? ' — Explorer+' : ''}
+                  </option>
                   <option value="summarize">Summarize file/image</option>
                   <option value="qa">Q&A on this file/image</option>
                 </select>

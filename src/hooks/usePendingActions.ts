@@ -168,14 +168,6 @@ export function usePendingActions(tripId: string) {
           break;
         }
 
-        case 'addReminder':
-        case 'setTripBudget': {
-          // The pending action row IS the record — no dedicated table exists yet.
-          // Marking confirmed (done below) signals user approval.
-          // TODO: future migration should introduce trip_reminders / trip_budgets tables.
-          break;
-        }
-
         case 'duplicateCalendarEvent': {
           // Payload contains pre-computed new start/end times stored by functionExecutor.
           const { error } = await (supabase as any).from('trip_events').insert({
@@ -347,10 +339,6 @@ export function usePendingActions(tripId: string) {
         createTask: 'Task',
         createPoll: 'Poll',
         addToCalendar: 'Calendar event',
-        // addReminder / setTripBudget: data lives in the pending action row (no dedicated
-        // DB table yet). Label as "noted" to avoid implying full persistence.
-        addReminder: 'Reminder noted',
-        setTripBudget: 'Budget noted',
         duplicateCalendarEvent: 'Event duplicated',
         bulkMarkTasksDone: 'Tasks marked complete',
         cloneActivity: 'Activity cloned',
@@ -366,8 +354,6 @@ export function usePendingActions(tripId: string) {
         'Tasks marked complete',
         'Activity cloned',
         'Expense added',
-        'Reminder noted',
-        'Budget noted',
         'Trip details updated',
         'Broadcast sent',
         'Notification sent',

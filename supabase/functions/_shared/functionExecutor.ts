@@ -2881,41 +2881,6 @@ async function _executeImpl(
       };
     }
 
-    case 'addReminder': {
-      const { message, remindAt, entityType, entityId, idempotency_key } = args;
-      if (!message) return { error: 'message is required' };
-      if (!remindAt) return { error: 'remindAt is required' };
-
-      const { data: pending, error: pendingError } = await supabase
-        .from('trip_pending_actions')
-        .insert({
-          trip_id: tripId,
-          user_id: userId || '00000000-0000-0000-0000-000000000000',
-          tool_name: 'addReminder',
-          ...(idempotency_key ? { tool_call_id: idempotency_key } : {}),
-          payload: {
-            message: String(message),
-            remind_at: String(remindAt),
-            entity_type: entityType || 'custom',
-            entity_id: entityId || null,
-            trip_id: tripId,
-            user_id: userId,
-          },
-          source_type: 'ai_concierge',
-        })
-        .select('id')
-        .single();
-
-      if (pendingError) throw pendingError;
-      return {
-        success: true,
-        pending: true,
-        pendingActionId: pending.id,
-        actionType: 'add_reminder',
-        message: `Reminder set: "${message}" at ${remindAt}`,
-      };
-    }
-
     case 'getVisaRequirements': {
       const { destination, passportCountry } = args;
       if (!destination) return { error: 'Destination is required' };
@@ -3185,39 +3150,6 @@ async function _executeImpl(
         placeType: String(placeType),
         places: results.slice(0, maxResults),
         message: `Nearby ${placeType} results`,
-      };
-    }
-
-    case 'setTripBudget': {
-      const { totalBudget, currency, categoryBudgets, notes, idempotency_key } = args;
-      if (totalBudget == null) return { error: 'totalBudget is required' };
-
-      const { data: pending, error: pendingError } = await supabase
-        .from('trip_pending_actions')
-        .insert({
-          trip_id: tripId,
-          user_id: userId || '00000000-0000-0000-0000-000000000000',
-          tool_name: 'setTripBudget',
-          ...(idempotency_key ? { tool_call_id: idempotency_key } : {}),
-          payload: {
-            total_budget: Number(totalBudget),
-            currency: currency ? String(currency).toUpperCase() : 'USD',
-            category_budgets: categoryBudgets || {},
-            notes: notes || null,
-            trip_id: tripId,
-          },
-          source_type: 'ai_concierge',
-        })
-        .select('id')
-        .single();
-
-      if (pendingError) throw pendingError;
-      return {
-        success: true,
-        pending: true,
-        pendingActionId: pending.id,
-        actionType: 'set_trip_budget',
-        message: `Trip budget set to ${totalBudget} ${currency || 'USD'}`,
       };
     }
 
