@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, waitFor, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { TripExportModal } from '../TripExportModal';
 
 vi.mock('@/hooks/useConsumerSubscription', () => ({
@@ -52,5 +53,30 @@ describe('TripExportModal layout (footer visibility)', () => {
     const footer = screen.getByRole('button', { name: 'Cancel' }).parentElement;
     expect(footer).toBeTruthy();
     expect(panel?.contains(footer)).toBe(true);
+  });
+
+  it('disables section checkboxes and sets aria-busy while export is in progress', async () => {
+    const user = userEvent.setup();
+    let resolveExport: (() => void) | undefined;
+    const exportPromise = new Promise<void>(resolve => {
+      resolveExport = resolve;
+    });
+    const onExport = vi.fn().mockReturnValue(exportPromise);
+
+    render(<TripExportModal {...baseProps} onExport={onExport} />);
+
+    const panel = screen.getByTestId('trip-export-modal-panel');
+    await user.click(screen.getByRole('button', { name: /create recap/i }));
+
+    await waitFor(() => {
+      expect(panel).toHaveAttribute('aria-busy', 'true');
+    });
+    const calendarCheckbox = screen.getByRole('checkbox', { name: /include calendar/i });
+    expect(calendarCheckbox).toBeDisabled();
+
+    await act(async () => {
+      resolveExport?.();
+      await exportPromise;
+    });
   });
 });

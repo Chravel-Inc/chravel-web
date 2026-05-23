@@ -61,6 +61,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const toggleSection = (sectionId: ExportSection) => {
+    if (isExporting) return;
     setSelectedSections(prev =>
       prev.includes(sectionId) ? prev.filter(id => id !== sectionId) : [...prev, sectionId],
     );
@@ -122,6 +123,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 backdrop-blur-sm max-sm:pb-[env(safe-area-inset-bottom,0px)] sm:items-center sm:p-2">
       <div
         data-testid="trip-export-modal-panel"
+        aria-busy={isExporting}
         className="flex max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-0.75rem)] min-h-0 w-full max-w-md flex-col overflow-hidden rounded-t-2xl border border-gray-700 bg-gray-900 shadow-2xl md:max-w-xl sm:max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-2rem)] sm:rounded-xl"
       >
         {/* Header — safe top inset without stacking extra padding on top of large notches */}
@@ -232,7 +234,10 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
                   return (
                     <label
                       key={section.id}
-                      className={`group flex items-center gap-2 py-2 px-2.5 rounded-lg border transition-all min-h-[44px] cursor-pointer focus-within:outline-none focus-within:ring-2 focus-within:ring-[#e8af48]/80 focus-within:ring-offset-2 focus-within:ring-offset-gray-900 ${
+                      aria-disabled={isExporting}
+                      className={`group flex items-center gap-2 py-2 px-2.5 rounded-lg border transition-all min-h-[44px] focus-within:outline-none focus-within:ring-2 focus-within:ring-[#e8af48]/80 focus-within:ring-offset-2 focus-within:ring-offset-gray-900 ${
+                        isExporting ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                      } ${
                         isSelected
                           ? 'bg-[#c49746]/20 border-[#c49746]/70 hover:border-[#e8af48] hover:bg-[#c49746]/25'
                           : 'bg-gray-800/60 border-gray-700/60 hover:border-gray-500 hover:bg-gray-800/90'
@@ -251,6 +256,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => toggleSection(section.id)}
+                        disabled={isExporting}
                         className="sr-only"
                         aria-label={`Include ${section.label}`}
                       />
