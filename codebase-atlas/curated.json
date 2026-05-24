@@ -23,74 +23,7 @@
       "CLAUDE.md, AUDIT_INDEX.md, DEBUG_PATTERNS.md, LESSONS.md, TEST_GAPS.md",
       "eslint.config.js (encoded deprecation rules)",
       "Static analysis: file counts, LOC ranking, import graph (this session)"
-    ],
-    "stats": {
-      "Source files (.ts/.tsx)": 1129,
-      "React components": 354,
-      "Custom hooks": 143,
-      "Service modules": 138,
-      "Route pages": 36,
-      "Feature modules": 6,
-      "Test files": 274,
-      "Supabase edge functions": 96,
-      "DB migrations": 378
-    },
-    "generated": "2026-05-24",
-    "commit": "f6c84c3",
-    "commitUrl": "https://github.com/chravel-inc/chravel-web/commit/f6c84c3",
-    "metrics": {
-      "knip": {
-        "files": 265,
-        "deps": 5,
-        "devDeps": 1,
-        "exports": 383,
-        "types": 378
-      },
-      "bundle": [
-        {
-          "name": "useDeferredPaidAccess",
-          "kb": 923,
-          "gzipKb": 267
-        },
-        {
-          "name": "pdf",
-          "kb": 611,
-          "gzipKb": 183
-        },
-        {
-          "name": "charts",
-          "kb": 491,
-          "gzipKb": 129
-        },
-        {
-          "name": "streamTripMemberInlineActivity",
-          "kb": 414,
-          "gzipKb": 110
-        },
-        {
-          "name": "native",
-          "kb": 388,
-          "gzipKb": 80
-        },
-        {
-          "name": "TripChat",
-          "kb": 232,
-          "gzipKb": 75
-        },
-        {
-          "name": "index",
-          "kb": 232,
-          "gzipKb": 74
-        },
-        {
-          "name": "SettingsMenu",
-          "kb": 188,
-          "gzipKb": 45
-        }
-      ],
-      "anyCount": 362,
-      "todoCount": 7
-    }
+    ]
   },
   "scores": [
     {
@@ -712,59 +645,7 @@
       "src/hooks/useTripTasks.ts": "Task logic concentration",
       "src/features/chat/components/TripChat.tsx": "Chat screen doing too much",
       "src/hooks/stream/useStreamTripChat.ts": "Stream transport + state"
-    },
-    "godFiles": [
-      {
-        "path": "src/integrations/supabase/types.ts",
-        "loc": 5184,
-        "why": "Generated types (5184 LOC) — keep generated-only, do not hand-edit"
-      },
-      {
-        "path": "src/mockData/polls.ts",
-        "loc": 3150,
-        "why": "Mock/data file (3150 LOC) — large but low logic; gate behind dev/demo"
-      },
-      {
-        "path": "src/services/tripSpecificMockDataService.ts",
-        "loc": 1612,
-        "why": "Giant mock dataset in service layer"
-      },
-      {
-        "path": "src/pages/Index.tsx",
-        "loc": 1431,
-        "why": "Heavy landing page"
-      },
-      {
-        "path": "src/hooks/useAuth.tsx",
-        "loc": 1367,
-        "why": "Auth + session + roles in one hook"
-      },
-      {
-        "path": "src/services/demoModeService.ts",
-        "loc": 1314,
-        "why": "Demo data generation, contamination risk"
-      },
-      {
-        "path": "src/hooks/useTripTasks.ts",
-        "loc": 1295,
-        "why": "Task logic concentration"
-      },
-      {
-        "path": "src/features/chat/components/TripChat.tsx",
-        "loc": 1247,
-        "why": "Chat screen doing too much"
-      },
-      {
-        "path": "src/hooks/stream/useStreamTripChat.ts",
-        "loc": 1216,
-        "why": "Stream transport + state"
-      },
-      {
-        "path": "src/data/eventsMockData.ts",
-        "loc": 1115,
-        "why": "Mock/data file (1115 LOC) — large but low logic; gate behind dev/demo"
-      }
-    ]
+    }
   },
   "features": [
     {
