@@ -9,12 +9,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { paymentService } from '../../services/paymentService';
 import { useToast } from '../../hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 interface PaymentMethodsSettingsProps {
   userId: string;
+  /** When true, omit outer card title/description (parent already provides context). */
+  embedded?: boolean;
 }
 
-export const PaymentMethodsSettings = ({ userId }: PaymentMethodsSettingsProps) => {
+export const PaymentMethodsSettings = ({
+  userId,
+  embedded = false,
+}: PaymentMethodsSettingsProps) => {
   const { toast } = useToast();
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -183,15 +189,25 @@ export const PaymentMethodsSettings = ({ userId }: PaymentMethodsSettingsProps) 
   };
 
   return (
-    <Card className="bg-background/60 border-muted shadow-sm">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <CreditCard size={20} className="text-primary" />
-          Payment Methods
-        </CardTitle>
-        <CardDescription>Manage how you want to receive payments from trip members</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
+    <Card
+      className={cn(
+        embedded
+          ? 'border-0 bg-transparent shadow-none'
+          : 'border-muted bg-background/60 shadow-sm',
+      )}
+    >
+      {!embedded && (
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard size={20} className="text-primary" />
+            Payment Methods
+          </CardTitle>
+          <CardDescription>
+            Manage how you want to receive payments from trip members
+          </CardDescription>
+        </CardHeader>
+      )}
+      <CardContent className={cn('space-y-6', embedded && 'px-0 pt-0')}>
         {/* Loading State */}
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
@@ -329,50 +345,50 @@ export const PaymentMethodsSettings = ({ userId }: PaymentMethodsSettingsProps) 
               {paymentMethods.map(method => (
                 <Card
                   key={method.id}
-                  className="bg-background border-muted shadow-sm overflow-hidden"
+                  className="overflow-hidden border-muted bg-background shadow-sm"
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between gap-3 min-w-0">
-                      <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
-                        <div className="text-primary shrink-0">{getMethodIcon(method.type)}</div>
-                        <div className="min-w-0 overflow-hidden">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="font-medium text-foreground truncate">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+                      <div className="flex min-w-0 flex-1 gap-3">
+                        <div className="text-primary mt-0.5 shrink-0">
+                          {getMethodIcon(method.type)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span className="font-medium text-foreground break-words [overflow-wrap:anywhere]">
                               {method.displayName || getDefaultDisplayName(method.type)}
                             </span>
                             {method.isPreferred && (
-                              <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full shrink-0">
+                              <span className="inline-flex shrink-0 items-center rounded-full bg-primary px-2 py-0.5 text-[11px] font-medium leading-none text-primary-foreground">
                                 Preferred
                               </span>
                             )}
                           </div>
-                          <div className="text-sm text-muted-foreground truncate">
+                          <p className="mt-1 text-sm text-muted-foreground break-words [overflow-wrap:anywhere]">
                             {method.identifier}
                             {!method.isVisible && (
                               <span className="ml-2 text-xs text-muted-foreground">(Private)</span>
                             )}
-                          </div>
+                          </p>
                         </div>
                       </div>
-                      <div className="flex gap-1 shrink-0">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-11 w-11 min-h-[44px] min-w-[44px] p-0 border-primary/40 text-primary hover:bg-primary/10 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                      <div className="flex shrink-0 items-center justify-end gap-1.5 sm:pt-0.5">
+                        <button
+                          type="button"
+                          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-primary/40 text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:h-10 sm:w-10"
                           onClick={() => handleEdit(method)}
                           aria-label={`Edit payment method: ${method.displayName || getDefaultDisplayName(method.type)}`}
                         >
-                          <Edit size={14} />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-11 w-11 min-h-[44px] min-w-[44px] p-0 border-red-500/40 text-red-300 hover:bg-red-500/10 hover:text-red-200 focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2"
+                          <Edit size={16} className="shrink-0" aria-hidden />
+                        </button>
+                        <button
+                          type="button"
+                          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-red-500/40 text-red-300 transition-colors hover:bg-red-500/10 hover:text-red-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 sm:h-10 sm:w-10"
                           onClick={() => handleDelete(method.id)}
                           aria-label={`Delete payment method: ${method.displayName || getDefaultDisplayName(method.type)}`}
                         >
-                          <Trash2 size={14} />
-                        </Button>
+                          <Trash2 size={16} className="shrink-0" aria-hidden />
+                        </button>
                       </div>
                     </div>
                   </CardContent>

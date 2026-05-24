@@ -10,6 +10,7 @@ import {
   CreditCard,
   Wallet,
   AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 import { AirlineProgram, HotelProgram, RentalCarProgram } from '../types/pro';
 import { PaymentMethodsSettings } from './payments/PaymentMethodsSettings';
@@ -460,8 +461,6 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
     }
   };
 
-  const totalPrograms = airlinePrograms.length + hotelPrograms.length + rentalCarPrograms.length;
-
   const tabs: Array<{ id: TabId; label: string; icon: typeof Plane; count: number }> = [
     { id: 'airlines', label: 'Airlines', icon: Plane, count: airlinePrograms.length },
     { id: 'hotels', label: 'Hotels', icon: Building, count: hotelPrograms.length },
@@ -470,125 +469,36 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Account Summary Band */}
-      <section
-        className="bg-gradient-to-br from-glass-orange/18 to-glass-orange/4 border border-glass-orange/25 shadow-sm rounded-2xl p-5 md:p-6"
-        aria-label="Wallet account summary"
-      >
-        <div className="flex items-center gap-3 mb-3">
-          <Wallet size={24} className="text-glass-orange" />
-          <h2 className="text-lg font-bold text-white">Travel Wallet</h2>
-        </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-          <div className="rounded-xl border border-white/15 bg-black/20 px-3 py-3 text-center">
-            <p className="text-2xl font-semibold text-white tabular-nums tracking-tight">
-              {airlinePrograms.length}
-            </p>
-            <p className="text-[11px] uppercase tracking-wide text-gray-400">Airlines</p>
-          </div>
-          <div className="rounded-xl border border-white/15 bg-black/20 px-3 py-3 text-center">
-            <p className="text-2xl font-semibold text-white tabular-nums tracking-tight">
-              {hotelPrograms.length}
-            </p>
-            <p className="text-[11px] uppercase tracking-wide text-gray-400">Hotels</p>
-          </div>
-          <div className="rounded-xl border border-white/15 bg-black/20 px-3 py-3 text-center">
-            <p className="text-2xl font-semibold text-white tabular-nums tracking-tight">
-              {rentalCarPrograms.length}
-            </p>
-            <p className="text-[11px] uppercase tracking-wide text-gray-400">Car Rentals</p>
-          </div>
-        </div>
-        {totalPrograms === 0 && !isLoading && (
-          <p className="text-sm text-gray-400 mt-3 text-center">
-            Add your loyalty programs to keep all your travel rewards in one place.
-          </p>
-        )}
-      </section>
-
-      {/* Payment Methods Band */}
-      <section
-        className="bg-white/10 backdrop-blur-md border border-white/20 shadow-sm rounded-2xl p-6 overflow-hidden md:p-7"
-        aria-label="Payment methods"
-      >
-        <div className="mb-4">
-          <h3 className="text-lg font-semibold text-white">Payment Methods</h3>
-          <p className="text-sm text-gray-400">Manage how group members can settle up with you.</p>
-        </div>
-        <PaymentMethodsSettings userId={userId} />
-      </section>
-
-      {/* Recent Activity & Actions Band */}
-      <section
-        className="bg-white/10 backdrop-blur-md border border-white/20 shadow-sm rounded-2xl p-6 overflow-hidden md:p-7"
-        aria-label="Recent activity and wallet actions"
-      >
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-white">Recent Activity & Actions</h3>
-            <p className="text-sm text-gray-400">
-              Quick wallet actions and latest metadata snapshots.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setShowAddForm(true)}
-              className="bg-glass-orange hover:bg-glass-orange/80 text-white px-4 py-2.5 min-h-[44px] rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glass-orange/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-            >
-              Add Loyalty Program
-            </button>
-            <button
-              type="button"
-              onClick={loadPrograms}
-              className="border border-white/30 text-white hover:bg-white/10 px-4 py-2.5 min-h-[44px] rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-            >
-              Refresh Wallet Data
-            </button>
-          </div>
-        </div>
-        <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <div className="rounded-xl border border-white/15 bg-black/20 px-4 py-3">
-            <p className="text-[11px] uppercase tracking-wide text-gray-400">Total Programs</p>
-            <p className="mt-1 text-2xl font-semibold text-white tabular-nums">{totalPrograms}</p>
-          </div>
-          <div className="rounded-xl border border-white/15 bg-black/20 px-4 py-3">
-            <p className="text-[11px] uppercase tracking-wide text-gray-400">Preferred Programs</p>
-            <p className="mt-1 text-2xl font-semibold text-white tabular-nums">
-              {
-                [...airlinePrograms, ...hotelPrograms, ...rentalCarPrograms].filter(
-                  program => program.isPreferred,
-                ).length
-              }
-            </p>
-          </div>
-          <div className="rounded-xl border border-white/15 bg-black/20 px-4 py-3">
-            <p className="text-[11px] uppercase tracking-wide text-gray-400">Active Category</p>
-            <p className="mt-1 text-base font-semibold text-white">
-              {tabs.find(tab => tab.id === activeTab)?.label}
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Loyalty Programs */}
+      {/* Loyalty Programs — single source for category counts + list (avoids duplicate summary cards) */}
       <section
         className="bg-white/10 backdrop-blur-md border border-white/20 shadow-sm rounded-2xl p-6 overflow-hidden md:p-7"
         aria-label="Loyalty programs"
       >
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-bold text-white flex items-center gap-2">
-            <Wallet size={24} className="text-glass-orange" />
-            Loyalty Programs
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6 min-w-0">
+          <h3 className="text-xl font-bold text-white flex items-center gap-2 min-w-0">
+            <Wallet size={24} className="text-glass-orange shrink-0" />
+            <span className="truncate">Loyalty Programs</span>
           </h3>
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="bg-glass-orange hover:bg-glass-orange/80 text-white px-4 py-3 min-h-[44px] rounded-lg flex items-center gap-2 font-medium transition-colors"
-            aria-label="Add a new loyalty program"
-          >
-            <Plus size={16} />
-            Add Program
-          </button>
+          <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => void loadPrograms()}
+              disabled={isLoading}
+              className="border border-white/30 text-white hover:bg-white/10 px-3 py-2.5 min-h-[44px] rounded-lg flex items-center gap-2 text-sm font-medium transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+              aria-label="Refresh loyalty programs from server"
+            >
+              <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="bg-glass-orange hover:bg-glass-orange/80 text-white px-4 py-3 min-h-[44px] rounded-lg flex items-center gap-2 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glass-orange/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+              aria-label="Add a new loyalty program"
+            >
+              <Plus size={16} />
+              Add Program
+            </button>
+          </div>
         </div>
 
         {/* Tabs - stack on mobile, horizontal on larger screens; ensure all fit within box */}
@@ -694,6 +604,18 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
             </div>
           )}
         </div>
+      </section>
+
+      {/* Payment Methods — settle-up identifiers shared with trip members */}
+      <section
+        className="bg-white/10 backdrop-blur-md border border-white/20 shadow-sm rounded-2xl p-6 overflow-hidden md:p-7"
+        aria-label="Payment methods"
+      >
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold text-white">Payment Methods</h3>
+          <p className="text-sm text-gray-400">Manage how group members can settle up with you.</p>
+        </div>
+        <PaymentMethodsSettings userId={userId} embedded />
       </section>
     </div>
   );
