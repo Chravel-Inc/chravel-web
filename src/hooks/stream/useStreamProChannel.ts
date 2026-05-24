@@ -29,6 +29,45 @@ export function useStreamProChannel(channelId: string | null) {
 
   const channelRef = useRef<Channel | null>(null);
   const [activeStreamChannel, setActiveStreamChannel] = useState<Channel | null>(null);
+  const isMountedRef = useRef(true);
+  const hasHydratedRef = useRef(false);
+  const lastMessageTimestampRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  // Backfill messages missed during WebSocket disconnection (same pattern as useStreamTripChat)
+  const backfillMissedMessages = useCallback(async () => {
+    const channel = channelRef.current;
+    if (!channel || !lastMessageTimestampRef.current || !isMountedRef.current || !channelId) return;
+
+    try {
+      const response = await channel.query({
+        messages: {
+          created_at_after: lastMessageTimestampRef.current,
+          limit: 100,
+        },
+      });
+
+      const fetched = (response.messages || []) as MessageResponse[];
+      if (fetched.length === 0) return;
+
+      setMessages(prev => {
+        const existingIds = new Set(prev.map(m => m.id));
+        const newMessages = fetched.filter(m => !existingIds.has(m.id));
+        if (newMessages.length === 0) return prev;
+        return [...prev, ...newMessages].sort(
+          (a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime(),
+        );
+      });
+    } catch {
+      // Non-fatal backfill failure — realtime will self-correct on the next event
+    }
+  }, [channelId]);
 
   useEffect(() => {
     const unsubscribeConnected = onStreamClientConnected(() => {
@@ -36,13 +75,16 @@ export function useStreamProChannel(channelId: string | null) {
     });
     const unsubscribeStatus = onStreamClientConnectionStatusChange(isConnected => {
       setStreamReady(isConnected);
+      if (isConnected && hasHydratedRef.current) {
+        void backfillMissedMessages();
+      }
     });
 
     return () => {
       unsubscribeConnected();
       unsubscribeStatus();
     };
-  }, []);
+  }, [backfillMissedMessages]);
 
   // Watch channel when channelId changes
   useEffect(() => {
@@ -84,6 +126,10 @@ export function useStreamProChannel(channelId: string | null) {
       }
     };
 
+    // Reset hydration state when channelId changes so backfill waits for fresh data
+    hasHydratedRef.current = false;
+    lastMessageTimestampRef.current = null;
+
     init();
 
     return () => {
@@ -95,6 +141,17 @@ export function useStreamProChannel(channelId: string | null) {
       }
     };
   }, [channelId, streamReady]);
+
+  // Track hydration state and latest message timestamp for reconnect backfill
+  useEffect(() => {
+    if (messages.length > 0) {
+      hasHydratedRef.current = true;
+      const latest = messages[messages.length - 1];
+      if (latest?.created_at) {
+        lastMessageTimestampRef.current = latest.created_at;
+      }
+    }
+  }, [messages]);
 
   // Realtime events
   useEffect(() => {

@@ -9,8 +9,12 @@
  * channel for realtime display. RSVP responses use Supabase directly.
  */
 
-import { useState, useEffect, useRef } from 'react';
-import { getStreamClient, onStreamClientConnected } from '@/services/stream/streamClient';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  getStreamClient,
+  onStreamClientConnected,
+  onStreamClientConnectionStatusChange,
+} from '@/services/stream/streamClient';
 import { CHANNEL_TYPE_BROADCAST, broadcastChannelId } from '@/services/stream/streamChannelFactory';
 import type { Channel, MessageResponse } from 'stream-chat';
 
@@ -52,14 +56,66 @@ export function useStreamBroadcasts(tripId: string | undefined) {
   const channelRef = useRef<Channel | null>(null);
   const [activeChannel, setActiveChannel] = useState<Channel | null>(null);
   const [streamClientReady, setStreamClientReady] = useState(Boolean(getStreamClient()?.userID));
+  const isMountedRef = useRef(true);
+  const hasHydratedRef = useRef(false);
+  const lastMessageTimestampRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onStreamClientConnected(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  // Backfill broadcasts missed during WebSocket disconnection (same pattern as useStreamTripChat)
+  const backfillMissedBroadcasts = useCallback(async () => {
+    const channel = channelRef.current;
+    if (!channel || !lastMessageTimestampRef.current || !isMountedRef.current || !tripId) return;
+
+    try {
+      const response = await channel.query({
+        messages: {
+          created_at_after: lastMessageTimestampRef.current,
+          limit: 100,
+        },
+      });
+
+      const fetched = ((response.messages || []) as MessageResponse[]).map(
+        normalizeMessagePriority,
+      );
+      if (fetched.length === 0) return;
+
+      setBroadcasts(prev => {
+        const existingIds = new Set(prev.map(m => m.id));
+        const newBroadcasts = fetched.filter(m => !existingIds.has(m.id));
+        if (newBroadcasts.length === 0) return prev;
+        // Merge and reverse (newest first)
+        const merged = [...prev, ...newBroadcasts].sort(
+          (a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime(),
+        );
+        return merged.reverse();
+      });
+    } catch {
+      // Non-fatal backfill failure — realtime will self-correct on the next event
+    }
+  }, [tripId]);
+
+  useEffect(() => {
+    const unsubscribeConnected = onStreamClientConnected(() => {
       setStreamClientReady(true);
     });
+    const unsubscribeStatus = onStreamClientConnectionStatusChange(isConnected => {
+      if (isConnected) setStreamClientReady(true);
+      if (isConnected && hasHydratedRef.current) {
+        void backfillMissedBroadcasts();
+      }
+    });
 
-    return unsubscribe;
-  }, []);
+    return () => {
+      unsubscribeConnected();
+      unsubscribeStatus();
+    };
+  }, [backfillMissedBroadcasts]);
 
   // Watch broadcast channel
   useEffect(() => {
@@ -97,6 +153,10 @@ export function useStreamBroadcasts(tripId: string | undefined) {
       }
     };
 
+    // Reset hydration state when tripId changes so backfill waits for fresh data
+    hasHydratedRef.current = false;
+    lastMessageTimestampRef.current = null;
+
     init();
 
     return () => {
@@ -108,6 +168,18 @@ export function useStreamBroadcasts(tripId: string | undefined) {
       }
     };
   }, [tripId, streamClientReady]);
+
+  // Track hydration state and latest broadcast timestamp for reconnect backfill
+  useEffect(() => {
+    if (broadcasts.length > 0) {
+      hasHydratedRef.current = true;
+      // broadcasts is newest-first; oldest is the last element, newest is the first
+      const newest = broadcasts[0];
+      if (newest?.created_at) {
+        lastMessageTimestampRef.current = newest.created_at;
+      }
+    }
+  }, [broadcasts]);
 
   // Realtime: new broadcasts appear instantly
   useEffect(() => {
