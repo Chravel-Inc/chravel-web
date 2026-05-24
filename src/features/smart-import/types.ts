@@ -24,6 +24,7 @@ export const IMPORT_PHASE_LABELS: Record<ImportPhase, string> = {
   validating: 'Validating extracted data…',
   preview: 'Awaiting human preview…',
   commit: 'Committing to trip…',
+  importing: 'Importing…',
   done: 'Complete',
   failed: 'Import failed',
 };
