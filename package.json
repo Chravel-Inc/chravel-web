@@ -44,7 +44,9 @@
     "qa:voice-model-guard": "node scripts/qa/voice-model-guard.cjs",
     "qa:chat-production-readiness": "node scripts/qa/run-chat-production-readiness-gate.cjs",
     "ops:check-stream-parity": "node scripts/check-stream-config-parity.cjs",
-    "qa:basecamps-casing": "node scripts/qa/check-basecamps-import-casing.cjs"
+    "qa:basecamps-casing": "node scripts/qa/check-basecamps-import-casing.cjs",
+    "permissions:generate": "node scripts/generate-permission-matrix.mjs",
+    "permissions:drift": "node scripts/check-permission-matrix-drift.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
