@@ -17,11 +17,19 @@ When invoked: read the addendum, harvest existing evidence, run analysis, then w
 ## Output contract
 
 Create a `/codebase-atlas/` folder at repo root containing:
-- `index.html` — self-contained; **opens via `file://` with no backend**. Embed the data inline (`<script>window.ATLAS_DATA=…</script>`) and keep all JS inline in the HTML so it works offline and stays outside the host repo's lint/type toolchain. Vanilla HTML/CSS/JS only; **no heavy dependencies**.
-- `architecture-data.json` — the canonical data model (same object embedded in the HTML).
+- `index.html` — self-contained; **opens via `file://` with no backend**. Embed the data inline (`<script id="atlas-data" type="application/json">…</script>`) and keep all JS inline in the HTML so it works offline and stays outside the host repo's lint/type toolchain. Vanilla HTML/CSS/JS only; **no heavy dependencies**.
+- `curated.json` — **the judgment layer you author**: scores, narratives, risks, roadmap, glossary, plus `dependencies.godFileNotes` (path→why). This is the file the skill rewrites on a refresh.
+- `architecture-data.json` — **generated**: `curated.json` merged with freshly computed metrics. Same object embedded in the HTML. Do not hand-edit.
 - `README.md` — how to open, what each section means, how the data was gathered, confidence caveats, how to regenerate.
 
 Optional: `assets/`, `diagrams/` only if genuinely needed.
+
+### Two-layer refresh (keep the atlas alive)
+Split the data so it can stay current without re-running AI on every change:
+- **Computed layer (deterministic, cheap):** file counts, largest files, knip dead-code counts, bundle sizes, `any`/TODO counts, commit + timestamp. A script (`scripts/build-atlas.mjs`, runnable via `npm run atlas`) recomputes these, merges them over `curated.json`, writes `architecture-data.json`, and re-injects the inline data block in `index.html`. Wire it to run on merge (see `.github/workflows/atlas.yml`).
+- **Curated layer (judgment):** everything requiring analysis lives in `curated.json`. Refresh it by re-running this skill, then run `npm run atlas` to fold it in. The merge-time job never overwrites it.
+
+When refreshing for Chravel: **edit `curated.json`, not `architecture-data.json`** (the latter is regenerated). Then `npm run atlas`.
 
 ## Dashboard sections (all 13)
 

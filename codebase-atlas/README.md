@@ -12,12 +12,23 @@ xdg-open codebase-atlas/index.html    # Linux
 
 It is fully self-contained — pure HTML/CSS/JS with the data embedded inline. **No server, build step, or network required.** It works straight from `file://`.
 
+## Live URL & auto-refresh
+
+A hosted copy is published to **GitHub Pages** on every merge to `main` (after CI passes): `https://chravel-inc.github.io/chravel-web/` — open it from phone or desktop, no clone required. _(One-time setup: Repo → Settings → Pages → Source = "GitHub Actions".)_
+
+The atlas has **two layers**:
+- **Computed layer (auto, every merge):** file counts, largest files, knip dead-code counts, bundle sizes, `any`/TODO counts, commit + timestamp. Recomputed deterministically by `scripts/build-atlas.mjs` (run in `.github/workflows/atlas.yml`) and shown in the **"Live metrics"** panel of the Dependency Graph section.
+- **Curated layer (on demand):** the judgment — scores, risks, narratives, roadmap — lives in `curated.json` and is refreshed by re-running the `codebase-atlas` skill. The merge-time job never overwrites it.
+
+Hosting is **publish-only**: the workflow regenerates and deploys to Pages but does **not** commit the refreshed files back, so the committed copy is a periodic seed/snapshot.
+
 ## What's inside
 
 | File | Purpose |
 |---|---|
 | `index.html` | The dashboard. Sticky nav, search/filter, expand/collapse cards, color-coded badges, risk heatmap, module scorecards, dependency tables. |
-| `architecture-data.json` | The canonical data model that drives the dashboard (the same object is embedded inline in `index.html`). Edit this to update findings. |
+| `curated.json` | **The judgment layer** (scores, narratives, roadmap, glossary). Edit this — by hand or by re-running the skill — to update findings. |
+| `architecture-data.json` | **Generated** — curated layer + freshly computed metrics, merged by `scripts/build-atlas.mjs`. Also embedded inline in `index.html`. Do not hand-edit. |
 | `README.md` | This file. |
 
 ### The 14 sections
@@ -57,10 +68,15 @@ Evidence-grounded, not generic. Sources:
 
 ## Regenerate
 
-This artifact is produced by the **`codebase-atlas`** skill (`.claude/skills/codebase-atlas/SKILL.md`). To refresh after the code changes, re-run the skill — it re-harvests the evidence sources above, rewrites `architecture-data.json`, and re-injects it into `index.html`. To tweak findings by hand, edit `architecture-data.json` and re-inject:
+**Refresh the metrics layer** (counts, dead-code, bundle, god-files) any time:
 
 ```bash
-node -e "const fs=require('fs');let h=fs.readFileSync('codebase-atlas/index.html','utf8');const d=fs.readFileSync('codebase-atlas/architecture-data.json','utf8');h=h.replace(/<script id=\"atlas-data\"[^>]*>[\s\S]*?<\/script>/,()=>'<script id=\"atlas-data\" type=\"application/json\">'+d+'</script>');fs.writeFileSync('codebase-atlas/index.html',h);"
+npm run build   # optional — only needed for fresh bundle-size metrics
+npm run atlas   # recomputes metrics, merges curated.json, rewrites architecture-data.json + re-injects into index.html
 ```
+
+This is what `.github/workflows/atlas.yml` runs automatically on each merge to `main`.
+
+**Refresh the judgment layer** (scores, risks, narratives, roadmap): re-run the **`codebase-atlas`** skill (`.claude/skills/codebase-atlas/SKILL.md`) — it re-harvests the evidence sources above and rewrites **`curated.json`**. Then run `npm run atlas` to fold the new judgment into the rendered artifact, and commit `curated.json`.
 
 > Analysis + artifact only. No production code was modified to create this atlas.
