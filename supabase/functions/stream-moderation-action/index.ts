@@ -90,11 +90,16 @@ serve(async req => {
 
     const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const [{ data: trip }, { data: adminMembership }, { data: memberRole }] = await Promise.all([
+    const [
+      { data: trip },
+      { data: adminMembership },
+      { data: memberRole },
+      { data: hasChannelPermission },
+    ] = await Promise.all([
       adminClient.from('trips').select('created_by').eq('id', body.tripId).maybeSingle(),
       adminClient
         .from('trip_admins')
-        .select('id')
+        .select('id,permissions')
         .eq('trip_id', body.tripId)
         .eq('user_id', user.id)
         .maybeSingle(),
@@ -104,11 +109,17 @@ serve(async req => {
         .eq('trip_id', body.tripId)
         .eq('user_id', user.id)
         .maybeSingle(),
+      adminClient.rpc('has_admin_permission', {
+        _user_id: user.id,
+        _trip_id: body.tripId,
+        _permission: 'can_manage_channels',
+      }),
     ]);
 
     const isAuthorized =
       trip?.created_by === user.id ||
       !!adminMembership ||
+      hasChannelPermission === true ||
       ['admin', 'organizer', 'owner'].includes(memberRole?.role || '');
 
     if (!isAuthorized) {

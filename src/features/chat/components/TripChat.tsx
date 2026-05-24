@@ -47,6 +47,7 @@ import { derivePinnedMessages } from '../utils/pinnedMessages';
 import { extractQuotedReferenceFromStreamMessage } from '@/services/stream/streamMessagePayload';
 import { messageEvents } from '@/telemetry/events';
 import { shouldUseLegacyChatSync } from '@/services/stream/streamTransportGuards';
+import { tripKeys } from '@/lib/queryKeys';
 import { buildStreamMessageViewModels } from '../adapters/streamMessageViewModel';
 import { executeModerationAction, ModerationAction } from '@/services/moderationService';
 import {
@@ -208,7 +209,18 @@ export const TripChat = React.memo(
             await reload();
           }
           // Invalidate chat query cache to force fresh fetch
-          await queryClient.invalidateQueries({ queryKey: ['tripChat', resolvedTripId] });
+          await Promise.all([
+            queryClient.invalidateQueries({ queryKey: tripKeys.chat(resolvedTripId) }),
+            queryClient.invalidateQueries({ queryKey: tripKeys.chatMessages(resolvedTripId) }),
+            queryClient.invalidateQueries({ queryKey: tripKeys.chatThreads(resolvedTripId) }),
+            ...(user?.id
+              ? [
+                  queryClient.invalidateQueries({
+                    queryKey: tripKeys.chatUnreadCount(resolvedTripId, user.id),
+                  }),
+                ]
+              : []),
+          ]);
         }
       },
     });

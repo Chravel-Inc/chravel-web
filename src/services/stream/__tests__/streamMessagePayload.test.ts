@@ -20,6 +20,7 @@ describe('buildTripStreamMessagePayload', () => {
       mentionedUserIds: ['u1', 'u2'],
       mediaType: 'image',
       mediaUrl: 'https://cdn.example/image.png',
+      idempotencyKey: 'send-abc',
     });
 
     expect(result.ok).toBe(true);
@@ -38,6 +39,7 @@ describe('buildTripStreamMessagePayload', () => {
         createdAt: '2026-04-21T09:10:00.000Z',
       },
       mentioned_users: ['u1', 'u2'],
+      idempotency_key: 'send-abc',
     });
     expect(result.payload.attachments).toEqual([
       { type: 'image', asset_url: 'https://cdn.example/image.png' },

@@ -24,6 +24,8 @@ export const tripKeys = {
     limit
       ? (['tripChatMessages', tripId, limit] as const)
       : (['tripChatMessages', tripId] as const),
+  chatThreads: (tripId: string) => ['tripChatThreads', tripId] as const,
+  chatUnreadCount: (tripId: string, userId: string) => ['tripChatUnread', tripId, userId] as const,
   calendar: (tripId: string) => ['calendarEvents', tripId] as const,
   tasks: (tripId: string, isDemoMode?: boolean) =>
     isDemoMode !== undefined
