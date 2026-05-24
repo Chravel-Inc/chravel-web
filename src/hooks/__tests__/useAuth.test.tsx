@@ -292,6 +292,55 @@ describe('AuthProvider', () => {
     expect(mockSupabaseClient.auth.signUp).toHaveBeenCalled();
   });
 
+  it('signs in without error and calls Supabase with the credentials', async () => {
+    mockSupabaseClient.auth.signInWithPassword.mockResolvedValue({
+      data: { user: mockUser, session: mockSession },
+      error: null,
+    });
+
+    const { result } = renderHook(() => useAuth(), { wrapper: createWrapper() });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const signInResult = await result.current.signIn('test@example.com', 'password123');
+    expect(signInResult.error).toBeUndefined();
+    expect(mockSupabaseClient.auth.signInWithPassword).toHaveBeenCalledWith({
+      email: 'test@example.com',
+      password: 'password123',
+    });
+  });
+
+  it('surfaces a friendly error message when sign-in credentials are invalid', async () => {
+    mockSupabaseClient.auth.signInWithPassword.mockResolvedValue({
+      data: { user: null, session: null },
+      error: { message: 'Invalid login credentials', name: 'AuthApiError' },
+    });
+
+    const { result } = renderHook(() => useAuth(), { wrapper: createWrapper() });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const signInResult = await result.current.signIn('bad@example.com', 'wrongpassword');
+    // useAuth maps the raw Supabase message to a friendlier one
+    expect(signInResult.error).toContain('Invalid email or password');
+  });
+
+  it('propagates an error when sign-up fails', async () => {
+    mockSupabaseClient.auth.signUp.mockResolvedValue({
+      data: { user: null, session: null },
+      error: { message: 'User already registered', name: 'AuthApiError' },
+    });
+
+    const { result } = renderHook(() => useAuth(), { wrapper: createWrapper() });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const signUpResult = await result.current.signUp(
+      'taken@example.com',
+      'password123',
+      'Test',
+      'User',
+    );
+    expect(signUpResult.error).toBeTruthy();
+  });
+
   it('uses default OAuth redirect in browser (no skipBrowserRedirect)', async () => {
     mockIsInstalledApp.mockReturnValue(false);
     mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({
