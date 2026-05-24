@@ -34,6 +34,7 @@ import {
   isStreamCanaryEnabledForUser,
   reportStreamCanaryIncident,
 } from '@/services/stream/streamCanary';
+import { sortMessagesWithCanonicalOrdering } from './messageEventModel';
 
 const PAGE_SIZE = 30;
 type StreamSendPayload = Parameters<Channel['sendMessage']>[0];
@@ -181,19 +182,6 @@ function withoutMentionedUsers(payload: StreamSendPayload): StreamSendPayload {
   return rest as StreamSendPayload;
 }
 
-function messageTimestampMs(message: MessageResponse): number {
-  const parsed = Date.parse(message.created_at || '');
-  return Number.isNaN(parsed) ? 0 : parsed;
-}
-
-function sortMessagesChronologically(messages: MessageResponse[]): MessageResponse[] {
-  return [...messages].sort((a, b) => {
-    const byTimestamp = messageTimestampMs(a) - messageTimestampMs(b);
-    if (byTimestamp !== 0) return byTimestamp;
-    return (a.id || '').localeCompare(b.id || '');
-  });
-}
-
 async function sendMessageWithMentionFallback(
   channel: Channel,
   payload: StreamSendPayload,
@@ -258,6 +246,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
   const guardedReloadAttemptedRef = useRef(false);
   const membershipFailureRef = useRef<MembershipFailure | null>(null);
   const ownReactionTypesByMessageRef = useRef<Map<string, Set<string>>>(new Map());
+  const pendingIdempotencyKeysRef = useRef<Set<string>>(new Set());
   const [reloadSeed, setReloadSeed] = useState(0);
   const chatOpenAtMsRef = useRef(Date.now());
   const firstMessageTrackedRef = useRef(false);
@@ -811,13 +800,28 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
   }, [tripId, isEnabled]);
 
   const upsertMessageInState = useCallback((message: MessageResponse) => {
+    const eventIdempotencyKey =
+      (message as MessageResponse & { idempotency_key?: string }).idempotency_key ?? null;
+    if (eventIdempotencyKey) {
+      pendingIdempotencyKeysRef.current.delete(eventIdempotencyKey);
+    }
     setMessages(prev => {
+      if (
+        eventIdempotencyKey &&
+        prev.some(
+          existing =>
+            (existing as MessageResponse & { idempotency_key?: string }).idempotency_key ===
+            eventIdempotencyKey,
+        )
+      ) {
+        return prev;
+      }
       const existingIndex = prev.findIndex(existing => existing.id === message.id);
       const next =
         existingIndex >= 0
           ? prev.map(existing => (existing.id === message.id ? message : existing))
           : [...prev, message];
-      return sortMessagesChronologically(next);
+      return sortMessagesWithCanonicalOrdering(next);
     });
   }, []);
 
@@ -841,13 +845,6 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       if (isThreadReply(newMsg)) return;
       trackTimeToFirstMessage('realtime_new');
 
-      setMessages(prev => {
-        if (prev.some(m => m.id === newMsg.id)) {
-          return prev.map(m => (m.id === newMsg.id ? newMsg : m));
-        }
-        return [...prev, newMsg];
-      });
-      trackTimeToFirstMessage('realtime_new');
       upsertMessageInState(event.message as MessageResponse);
     };
 
@@ -855,7 +852,6 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       if (!event.message) return;
       const updated = event.message as MessageResponse;
       if (isThreadReply(updated)) return;
-      setMessages(prev => prev.map(m => (m.id === updated.id ? updated : m)));
       // Stream emits `message.updated` for edits and pin/unpin mutation confirmations.
       // Route through the same upsert path as realtime/message-send confirmations.
       upsertMessageInState(event.message as MessageResponse);
@@ -934,6 +930,8 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       const channel = channelRef.current;
       if (!channel || !tripId) return;
       const normalizedContent = content.trim();
+      const idempotencyKey = `${tripId}:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`;
+      pendingIdempotencyKeysRef.current.add(idempotencyKey);
       const payloadResult = buildTripStreamMessagePayload({
         content,
         mediaType,
@@ -943,6 +941,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         replyToId,
         quotedReference,
         mentionedUserIds,
+        idempotencyKey,
       });
 
       if (!payloadResult.ok) {
@@ -1041,6 +1040,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         replyToId,
         quotedReference,
         mentionedUserIds,
+        idempotencyKey: `${tripId}:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`,
       });
 
       if (!payloadResult.ok) {

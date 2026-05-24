@@ -20,6 +20,7 @@ export interface BuildTripStreamPayloadInput {
   attachments?: unknown[];
   linkPreview?: StreamLinkPreviewInput;
   quotedReference?: StreamQuotedReferenceInput;
+  idempotencyKey?: string;
 }
 
 export interface StreamQuotedReferenceInput {
@@ -126,6 +127,9 @@ export function buildTripStreamMessagePayload(
 
   if (input.mentionedUserIds && input.mentionedUserIds.length > 0) {
     payload.mentioned_users = input.mentionedUserIds;
+  }
+  if (input.idempotencyKey) {
+    payload.idempotency_key = input.idempotencyKey;
   }
 
   const attachments = buildAttachments(input);
