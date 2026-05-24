@@ -9,13 +9,19 @@
  * - Logout cleanup: clears Zustand store when user becomes null
  */
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useDemoMode } from './useDemoMode';
 import { useNotificationRealtimeStore } from '@/store/notificationRealtimeStore';
 import { formatDistanceToNow } from 'date-fns';
-import type { NotificationItem } from '@/store/notificationRealtimeStore';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import type { NotificationCacheItem } from '@/lib/query/realtimeCache';
+import {
+  applyNotificationPatch,
+  clearOptimisticMutation,
+  markNotificationReadOptimistic,
+} from '@/lib/query/realtimeCache';
 import {
   parseNotificationIngestionRow,
   parseNotificationMetadata,
@@ -24,7 +30,9 @@ import {
 const NOTIFICATION_COLUMNS =
   'id, type, title, message, is_read, is_visible, metadata, trip_id, created_at';
 
-export function mapRowToNotification(row: Record<string, unknown>): NotificationItem | null {
+type NotificationEntity = Omit<NotificationCacheItem, 'timestampMs' | 'optimisticMutationId'>;
+
+export function mapRowToNotification(row: Record<string, unknown>): NotificationEntity | null {
   const parsedRow = parseNotificationIngestionRow(row);
   if (!parsedRow) {
     return null;
@@ -128,22 +136,19 @@ export function useNotificationRealtime() {
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
   const {
-    notifications,
     unreadCount,
-    setNotifications,
     setUnreadCount,
-    addNotification,
-    updateNotification,
-    removeNotification,
-    markAllRead,
+    incrementUnread,
+    decrementUnread,
     clearAll: storeClearAll,
   } = useNotificationRealtimeStore();
+  const queryClient = useQueryClient();
 
   // Track whether initial fetch has completed to avoid double-fetch on SUBSCRIBED
   const initialFetchDone = useRef(false);
 
-  const fetchNotifications = useCallback(async () => {
-    if (!user) return;
+  const fetchNotifications = useCallback(async (): Promise<NotificationCacheItem[]> => {
+    if (!user) return [];
 
     const { data, error } = await supabase
       .from('notifications')
@@ -157,16 +162,21 @@ export function useNotificationRealtime() {
       if (import.meta.env.DEV) {
         console.error('[useNotificationRealtime] Error fetching notifications:', error);
       }
-      return;
+      return [];
     }
 
     if (data) {
       const mapped = data
         .map(row => mapRowToNotification(row as Record<string, unknown>))
-        .filter((item): item is NotificationItem => item !== null);
-      setNotifications(mapped);
+        .filter(
+          (item): item is NonNullable<ReturnType<typeof mapRowToNotification>> => item !== null,
+        )
+        .map(item => ({ ...item, timestampMs: Date.now() }));
+      return mapped;
     }
-  }, [user, setNotifications]);
+
+    return [];
+  }, [user]);
 
   const fetchUnreadCount = useCallback(async () => {
     if (!user) return;
@@ -196,7 +206,7 @@ export function useNotificationRealtime() {
     if (isDemoMode || !user) return;
 
     initialFetchDone.current = false;
-    fetchNotifications();
+    void queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
     fetchUnreadCount();
     initialFetchDone.current = true;
 
@@ -204,21 +214,23 @@ export function useNotificationRealtime() {
       onInsert: (newRow: Record<string, unknown>) => {
         const item = mapRowToNotification(newRow);
         if (!item) return;
-        addNotification(item);
+        queryClient.setQueryData<NotificationCacheItem[]>(['notifications', user.id], old =>
+          applyNotificationPatch(old ?? [], { ...item, timestampMs: Date.now() }),
+        );
+        if (!item.isRead) incrementUnread();
       },
       onUpdate: (updatedRow: Record<string, unknown>) => {
         const id = updatedRow.id as string;
         if (!id) return;
 
-        // If notification was cleared (is_visible=false), remove it from the store
-        if (updatedRow.is_visible === false) {
-          removeNotification(id);
-          return;
-        }
-
-        // Propagate read state changes from other devices
-        updateNotification(id, {
-          isRead: (updatedRow.is_read as boolean) || false,
+        queryClient.setQueryData<NotificationCacheItem[]>(['notifications', user.id], old => {
+          if (!old) return old;
+          if (updatedRow.is_visible === false) return old.filter(n => n.id !== id);
+          return applyNotificationPatch(old, {
+            ...old.find(n => n.id === id)!,
+            isRead: Boolean(updatedRow.is_read),
+            timestampMs: Date.now(),
+          });
         });
       },
       onReconnect: () => {
@@ -232,31 +244,28 @@ export function useNotificationRealtime() {
 
     return cleanup;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- user object is unstable; user?.id already in deps
-  }, [
-    user?.id,
-    isDemoMode,
-    fetchNotifications,
-    fetchUnreadCount,
-    addNotification,
-    updateNotification,
-    removeNotification,
-  ]);
+  }, [user?.id, isDemoMode, fetchNotifications, fetchUnreadCount, incrementUnread]);
 
   const markAsRead = useCallback(
     async (notificationId: string) => {
-      updateNotification(notificationId, { isRead: true });
-
-      if (user) {
-        await supabase.from('notifications').update({ is_read: true }).eq('id', notificationId);
-        fetchUnreadCount();
-      }
+      if (!user) return;
+      const mutationId = `${notificationId}:${Date.now()}`;
+      queryClient.setQueryData<NotificationCacheItem[]>(['notifications', user.id], old =>
+        markNotificationReadOptimistic(old ?? [], notificationId, mutationId),
+      );
+      decrementUnread();
+      await supabase.from('notifications').update({ is_read: true }).eq('id', notificationId);
+      queryClient.setQueryData<NotificationCacheItem[]>(['notifications', user.id], old =>
+        clearOptimisticMutation(old ?? [], notificationId, mutationId),
+      );
+      fetchUnreadCount();
     },
-    [user, updateNotification, fetchUnreadCount],
+    [user, queryClient, decrementUnread, fetchUnreadCount],
   );
 
   const markAllAsRead = useCallback(
-    async (currentNotifications: NotificationItem[]) => {
-      markAllRead();
+    async (currentNotifications: NotificationCacheItem[]) => {
+      setUnreadCount(0);
 
       if (user) {
         const unreadIds = currentNotifications.filter(n => !n.isRead).map(n => n.id);
@@ -265,11 +274,11 @@ export function useNotificationRealtime() {
         }
       }
     },
-    [user, markAllRead],
+    [user, setUnreadCount],
   );
 
   const clearAll = useCallback(
-    async (currentNotifications: NotificationItem[]) => {
+    async (currentNotifications: NotificationCacheItem[]) => {
       const ids = currentNotifications.map(n => n.id);
       storeClearAll();
 
@@ -285,7 +294,11 @@ export function useNotificationRealtime() {
 
   const deleteNotification = useCallback(
     async (notificationId: string) => {
-      removeNotification(notificationId);
+      if (user) {
+        queryClient.setQueryData<NotificationCacheItem[]>(['notifications', user.id], old =>
+          (old ?? []).filter(n => n.id !== notificationId),
+        );
+      }
 
       if (user) {
         await supabase
@@ -294,8 +307,17 @@ export function useNotificationRealtime() {
           .eq('id', notificationId);
       }
     },
-    [user, removeNotification],
+    [user, queryClient],
   );
+
+  const notificationsQuery = useQuery({
+    queryKey: ['notifications', user?.id],
+    enabled: Boolean(user && !isDemoMode),
+    queryFn: fetchNotifications,
+    staleTime: 30_000,
+  });
+
+  const notifications = useMemo(() => notificationsQuery.data ?? [], [notificationsQuery.data]);
 
   return {
     notifications,
