@@ -36,8 +36,8 @@
       "DB migrations": 378
     },
     "generated": "2026-05-24",
-    "commit": "f6c84c3",
-    "commitUrl": "https://github.com/chravel-inc/chravel-web/commit/f6c84c3",
+    "commit": "6a316fb",
+    "commitUrl": "https://github.com/chravel-inc/chravel-web/commit/6a316fb",
     "metrics": {
       "knip": {
         "files": 265,
@@ -53,7 +53,7 @@
           "gzipKb": 267
         },
         {
-          "name": "pdf",
+          "name": "pdf-BfBsdCw-",
           "kb": 611,
           "gzipKb": 183
         },

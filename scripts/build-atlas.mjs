@@ -169,6 +169,15 @@ curated.dependencies.godFiles = largestFiles(10).map(g => ({
 // ---- 6. write data + re-inject inline into index.html ----
 const json = JSON.stringify(curated, null, 2);
 writeFileSync(DATA, json + '\n');
+// Escape HTML-significant chars before embedding so a literal "</script>"
+// (or "<!--") inside any curated string can't break out of the inline JSON
+// <script> block. JSON.stringify does NOT escape these; the \uXXXX forms
+// decode back to the originals via JSON.parse, so the data is unchanged at
+// read time. The standalone architecture-data.json above keeps raw JSON.
+const htmlSafeJson = json
+  .replace(/</g, '\\u003c')
+  .replace(/>/g, '\\u003e')
+  .replace(/&/g, '\\u0026');
 let html = readFileSync(HTML, 'utf8');
 const re = /<script id="atlas-data" type="application\/json">[\s\S]*?<\/script>/;
 if (!re.test(html)) {
@@ -177,7 +186,7 @@ if (!re.test(html)) {
 }
 html = html.replace(
   re,
-  () => '<script id="atlas-data" type="application/json">' + json + '</script>',
+  () => '<script id="atlas-data" type="application/json">' + htmlSafeJson + '</script>',
 );
 writeFileSync(HTML, html);
 
