@@ -3,10 +3,13 @@ export type ImportPhase =
   | 'idle'
   | 'ingest'
   | 'parse'
+  | 'parsing'
   | 'extract'
   | 'validate'
+  | 'validating'
   | 'preview'
   | 'commit'
+  | 'importing'
   | 'done'
   | 'failed';
 
@@ -15,10 +18,13 @@ export const IMPORT_PHASE_LABELS: Record<ImportPhase, string> = {
   idle: 'Ready',
   ingest: 'Ingesting artifacts…',
   parse: 'Parsing artifacts…',
+  parsing: 'Parsing artifacts…',
   extract: 'Extracting reservation data…',
   validate: 'Validating extracted data…',
+  validating: 'Validating extracted data…',
   preview: 'Awaiting human preview…',
   commit: 'Committing to trip…',
+  importing: 'Importing…',
   done: 'Complete',
   failed: 'Import failed',
 };
