@@ -95,6 +95,12 @@ export function usePendingActions(tripId: string) {
     mutationFn: async (actionId: string) => {
       if (!user?.id) throw new Error('Not authenticated');
 
+      // Double-confirm guard: bail out if this id is already being confirmed.
+      if (inFlightConfirms.current.has(actionId)) {
+        throw new Error('Confirmation already in progress');
+      }
+      inFlightConfirms.current.add(actionId);
+
       // Fetch the pending action
       const { data: action, error: fetchError } = await supabase
         .from('trip_pending_actions')
