@@ -41,7 +41,11 @@ export interface PendingAction {
 
 type PendingActionToolName =
   | 'createTask'
+  | 'updateTask'
+  | 'deleteTask'
   | 'createPoll'
+  | 'closePoll'
+  | 'saveLink'
   | 'addToCalendar'
   | 'duplicateCalendarEvent'
   | 'bulkMarkTasksDone'
@@ -51,6 +55,7 @@ type PendingActionToolName =
   | 'createBroadcast'
   | 'createNotification'
   | 'settleExpense';
+
 
 function assertNeverToolName(toolName: never): never {
   throw new Error(`Unknown tool: ${toolName}`);
@@ -341,9 +346,68 @@ export function usePendingActions(tripId: string) {
           break;
         }
 
+        case 'updateTask': {
+          const taskId = payload.task_id as string;
+          if (!taskId) throw new Error('No task_id in payload');
+          const updatePayload: Record<string, unknown> = {};
+          if (payload.title !== undefined) updatePayload.title = payload.title;
+          if (payload.description !== undefined) updatePayload.description = payload.description;
+          if (payload.due_at !== undefined) updatePayload.due_at = payload.due_at;
+          if (payload.completed !== undefined) {
+            updatePayload.completed = Boolean(payload.completed);
+            updatePayload.completed_at = payload.completed ? new Date().toISOString() : null;
+          }
+          if (Object.keys(updatePayload).length === 0) break;
+          const { error } = await (supabase as any)
+            .from('trip_tasks')
+            .update(updatePayload)
+            .eq('id', taskId)
+            .eq('trip_id', action.trip_id);
+          if (error) throw error;
+          break;
+        }
+
+        case 'deleteTask': {
+          const taskId = payload.task_id as string;
+          if (!taskId) throw new Error('No task_id in payload');
+          const { error } = await (supabase as any)
+            .from('trip_tasks')
+            .delete()
+            .eq('id', taskId)
+            .eq('trip_id', action.trip_id);
+          if (error) throw error;
+          break;
+        }
+
+        case 'closePoll': {
+          const pollId = payload.poll_id as string;
+          if (!pollId) throw new Error('No poll_id in payload');
+          const { error } = await (supabase as any)
+            .from('trip_polls')
+            .update({ status: 'closed' })
+            .eq('id', pollId)
+            .eq('trip_id', action.trip_id);
+          if (error) throw error;
+          break;
+        }
+
+        case 'saveLink': {
+          const { error } = await (supabase as any).from('trip_links').insert({
+            trip_id: action.trip_id,
+            title: payload.title as string,
+            url: payload.url as string,
+            description: (payload.description as string | null) || null,
+            category: (payload.category as string | null) || null,
+            added_by: (payload.added_by as string) || user.id,
+          });
+          if (error) throw error;
+          break;
+        }
+
         default:
           assertNeverToolName(toolName);
       }
+
 
       // Mark as confirmed — re-check status to prevent TOCTOU race
       // intentional: trip_pending_actions not yet in generated Supabase types
@@ -366,7 +430,11 @@ export function usePendingActions(tripId: string) {
     onSuccess: action => {
       const toolLabelMap: Record<string, string> = {
         createTask: 'Task',
+        updateTask: 'Task updated',
+        deleteTask: 'Task deleted',
         createPoll: 'Poll',
+        closePoll: 'Poll closed',
+        saveLink: 'Link saved',
         addToCalendar: 'Calendar event',
         duplicateCalendarEvent: 'Event duplicated',
         bulkMarkTasksDone: 'Tasks marked complete',
@@ -379,6 +447,10 @@ export function usePendingActions(tripId: string) {
       };
       const label = toolLabelMap[action.tool_name] || 'Action confirmed';
       const isVerb = [
+        'Task updated',
+        'Task deleted',
+        'Poll closed',
+        'Link saved',
         'Event duplicated',
         'Tasks marked complete',
         'Activity cloned',
@@ -397,18 +469,23 @@ export function usePendingActions(tripId: string) {
       // so ['tripTasks', tripId, isDemoMode] variants are also invalidated.
       switch (toolName) {
         case 'createTask':
+        case 'updateTask':
+        case 'deleteTask':
+        case 'bulkMarkTasksDone':
           queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId], exact: false });
           break;
         case 'createPoll':
+        case 'closePoll':
           queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId], exact: false });
+          break;
+        case 'saveLink':
+          queryClient.invalidateQueries({ queryKey: ['tripLinks', tripId], exact: false });
+          queryClient.invalidateQueries({ queryKey: ['tripPlaces', tripId], exact: false });
           break;
         case 'addToCalendar':
         case 'duplicateCalendarEvent':
         case 'cloneActivity':
           queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId), exact: false });
-          break;
-        case 'bulkMarkTasksDone':
-          queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId], exact: false });
           break;
         case 'addExpense':
           queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId), exact: false });
@@ -430,6 +507,7 @@ export function usePendingActions(tripId: string) {
         default:
           assertNeverToolName(toolName as never);
       }
+
     },
     onError: (error: Error) => {
       // Suppress the noisy toast for the deliberate double-tap guard.
