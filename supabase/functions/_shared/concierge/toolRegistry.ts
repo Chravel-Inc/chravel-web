@@ -321,6 +321,28 @@ export const ALL_TOOL_DECLARATIONS: ToolDeclaration[] = [
     },
   },
   {
+    name: 'saveLink',
+    description:
+      'Save a web link, article, reservation confirmation, or any URL resource to the trip Places/Links tab. Use when the user says "save this link", "add this article to the trip", "bookmark this", or shares a non-place URL worth keeping. For physical venues/restaurants/hotels prefer savePlace. For flight deeplinks use savePlace with category="activity".',
+    parameters: {
+      type: 'object',
+      properties: {
+        url: { type: 'string', description: 'The URL to save (required)' },
+        title: { type: 'string', description: 'Display title for the link (falls back to URL host)' },
+        description: { type: 'string', description: 'Optional note explaining why this link matters' },
+        category: {
+          type: 'string',
+          description: 'Optional: attraction, accommodation, activity, appetite, or other (default: other)',
+        },
+        idempotency_key: {
+          type: 'string',
+          description: 'Unique string to prevent duplicate tool execution',
+        },
+      },
+      required: ['url', 'idempotency_key'],
+    },
+  },
+  {
     name: 'setBasecamp',
     description:
       'Set the trip basecamp (group hotel/accommodation) or personal basecamp (user\'s own accommodation). Use when user says "make this my hotel", "set our basecamp to...", "this is where I\'m staying", or "make this the trip basecamp".',
