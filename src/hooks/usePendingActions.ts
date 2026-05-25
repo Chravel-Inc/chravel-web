@@ -379,7 +379,7 @@ export function usePendingActions(tripId: string) {
       ].includes(label);
       toast.success(isVerb ? label : `${label} created`);
 
-      const toolName = action.tool_name as ToolName;
+      const toolName = action.tool_name as PendingActionToolName;
       const tripId = action.trip_id;
 
       // Invalidate relevant queries — use exact: false for prefix matching
