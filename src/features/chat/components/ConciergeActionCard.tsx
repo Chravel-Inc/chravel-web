@@ -9,7 +9,9 @@ import {
   ExternalLink,
   AlertTriangle,
   Copy,
+  Trash2,
 } from 'lucide-react';
+
 
 export type ActionResultStatus = 'success' | 'failure' | 'duplicate' | 'skipped';
 
