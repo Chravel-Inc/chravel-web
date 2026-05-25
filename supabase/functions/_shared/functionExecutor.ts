@@ -3911,7 +3911,7 @@ async function _executeImpl(
     }
 
     case 'closePoll': {
-      const { pollId } = args;
+      const { pollId, idempotency_key, tool_call_id } = args;
       if (!pollId) return { error: 'pollId is required' };
 
       const { data: existing, error: fetchErr } = await supabase
@@ -3923,21 +3923,64 @@ async function _executeImpl(
       if (fetchErr || !existing) return { error: 'Poll not found in this trip' };
       if (existing.status === 'closed') return { error: 'Poll is already closed' };
 
-      const { data, error } = await supabase
+      // Buffered confirm-card flow
+      const dedupeId = tool_call_id || idempotency_key || null;
+      const { data: pending, error: pendingError } = await supabase
+        .from('trip_pending_actions')
+        .insert({
+          trip_id: tripId,
+          user_id: userId || '00000000-0000-0000-0000-000000000000',
+          tool_name: 'closePoll',
+          ...(dedupeId ? { tool_call_id: dedupeId } : {}),
+          payload: { poll_id: String(pollId), question: existing.question },
+          source_type: 'ai_concierge',
+        })
+        .select('id')
+        .single();
+      if (pendingError) throw pendingError;
+
+      let promoted = false;
+      let updatedPoll: Record<string, unknown> | null = null;
+      const { data, error: writeErr } = await supabase
         .from('trip_polls')
         .update({ status: 'closed' })
         .eq('id', String(pollId))
         .eq('trip_id', tripId)
         .select()
         .single();
-      if (error) throw error;
+
+      if (!writeErr && data) {
+        updatedPoll = data;
+        promoted = true;
+        await supabase
+          .from('trip_pending_actions')
+          .update({
+            status: 'confirmed',
+            resolved_at: new Date().toISOString(),
+            resolved_by: userId,
+          })
+          .eq('id', pending.id)
+          .eq('status', 'pending');
+      } else if (writeErr) {
+        console.warn(
+          '[Tool] closePoll fast-path failed, falling back to client confirm:',
+          writeErr.message,
+        );
+      }
+
       return {
         success: true,
-        poll: data,
+        pending: !promoted,
+        promoted,
+        pendingActionId: pending.id,
+        poll: updatedPoll,
         actionType: 'close_poll',
-        message: `Closed poll: "${existing.question}"`,
+        message: promoted
+          ? `Closed poll: "${existing.question}"`
+          : `I'd like to close the poll "${existing.question}". Please confirm in the trip chat.`,
       };
     }
+
 
     case 'getRecentActivity': {
       const limit = Math.min(Number(args.limit || 20), 50);
