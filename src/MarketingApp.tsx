@@ -12,7 +12,9 @@ import { AuthModal } from '@/components/AuthModal';
  * marketing landing because MarketingApp has no route for the dashboard.
  */
 function PostAuthBoot() {
-  const { user, isLoading } = useAuth();
+  const auth = useOptionalAuth();
+  const user = auth?.user ?? null;
+  const isLoading = auth?.isLoading ?? true;
 
   useEffect(() => {
     if (!isLoading && user) {
