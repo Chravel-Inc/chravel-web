@@ -129,6 +129,7 @@ const PageViewTracker = () => {
     if (pathname !== prevPathRef.current) {
       prevPathRef.current = pathname;
       pageView(pathname);
+      window.scrollTo(0, 0);
     }
   }, [pathname]);
 

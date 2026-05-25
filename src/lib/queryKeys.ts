@@ -71,9 +71,9 @@ export const tripKeys = {
  * gcTime: How long to keep data in cache after all observers unmount
  */
 export const QUERY_CACHE_CONFIG = {
-  // Trip detail - stable data, refresh on focus
+  // Trip detail - stable data; realtime subscriptions handle invalidation so 5 min is safe
   trip: {
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: true,
   },
