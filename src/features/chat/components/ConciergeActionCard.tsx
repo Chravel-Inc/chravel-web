@@ -89,6 +89,13 @@ const ACTION_CONFIG: Record<
     tab: 'polls',
     color: 'purple',
   },
+  delete_task: {
+    icon: Trash2,
+    label: 'Task Deleted',
+    tab: 'tasks',
+    color: 'red',
+  },
+
 };
 
 
