@@ -432,7 +432,14 @@ export function usePendingActions(tripId: string) {
       }
     },
     onError: (error: Error) => {
+      // Suppress the noisy toast for the deliberate double-tap guard.
+      if (error.message === 'Confirmation already in progress') return;
       toast.error(error.message || 'Failed to confirm action');
+    },
+    onSettled: (_data, _error, actionId) => {
+      // Release the in-flight guard whether the confirm succeeded or failed
+      // so a legitimate retry after a real failure isn't permanently blocked.
+      if (typeof actionId === 'string') inFlightConfirms.current.delete(actionId);
     },
   });
 
