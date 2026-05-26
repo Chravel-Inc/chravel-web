@@ -236,7 +236,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
                   return (
                     <label
                       key={section.id}
-                      className={`group flex items-center gap-2 py-2 px-2.5 rounded-lg border transition-all min-h-[44px] cursor-pointer focus-within:outline-none focus-within:ring-2 focus-within:ring-[#e8af48]/80 focus-within:ring-offset-2 focus-within:ring-offset-gray-900 ${
+                      className={`group flex items-center gap-2 py-1.5 px-2.5 rounded-lg border transition-all min-h-[40px] cursor-pointer focus-within:outline-none focus-within:ring-2 focus-within:ring-[#e8af48]/80 focus-within:ring-offset-2 focus-within:ring-offset-gray-900 ${
                         isSelected
                           ? 'bg-[#c49746]/20 border-[#c49746]/70 hover:border-[#e8af48] hover:bg-[#c49746]/25'
                           : 'bg-gray-800/60 border-gray-700/60 hover:border-gray-500 hover:bg-gray-800/90'
