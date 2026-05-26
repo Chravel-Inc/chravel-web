@@ -410,7 +410,7 @@ export const TripHeader = ({
         <div
           data-trip-section="hero"
           className={cn(
-            'relative rounded-2xl md:rounded-3xl overflow-hidden bg-cover bg-center transition-all duration-300',
+            'on-media relative rounded-2xl md:rounded-3xl overflow-hidden bg-cover bg-center transition-all duration-300',
             // Mobile/tablet: always full height
             drawerLayout ? 'h-full min-h-[320px] mb-0' : '',
             // Desktop: collapsed vs expanded
