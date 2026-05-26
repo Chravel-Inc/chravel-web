@@ -242,7 +242,7 @@ export const EventCard = ({
     >
       {/* Header */}
       <div
-        className={`relative h-48 bg-gradient-to-br from-${accentColors.primary}/20 to-${accentColors.secondary}/20 p-6`}
+        className={`on-media relative h-48 bg-gradient-to-br from-${accentColors.primary}/20 to-${accentColors.secondary}/20 p-6`}
       >
         {/* Cover photo overlay if available */}
         {event.coverPhoto ? (
