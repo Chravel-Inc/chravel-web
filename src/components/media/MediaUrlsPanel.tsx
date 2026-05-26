@@ -283,16 +283,7 @@ export const MediaUrlsPanel = ({ tripId, allowPromoteToTripLink = false }: Media
   const handlePromote = async (link: MediaLink) => {
     if (!tripId) return;
 
-    const getDemoUserId = () => {
-      let demoId = sessionStorage.getItem('demo-user-id');
-      if (!demoId) {
-        demoId = `demo-user-${Date.now()}`;
-        sessionStorage.setItem('demo-user-id', demoId);
-      }
-      return demoId;
-    };
-
-    const effectiveUserId = user?.id || getDemoUserId();
+    const effectiveUserId = getEffectiveUserId(user?.id);
 
     setPromotingLinkId(link.id);
     try {

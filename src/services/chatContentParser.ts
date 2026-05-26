@@ -50,6 +50,16 @@ export interface ParsedItinerary {
   confidence_overall: number;
 }
 
+export interface ParsedTodo {
+  title: string;
+  description?: string;
+  category: 'booking' | 'packing' | 'documentation' | 'preparation' | 'logistics';
+  priority: 'high' | 'medium' | 'low';
+  due_date?: string; // YYYY-MM-DD
+  estimated_duration?: number; // minutes
+  confidence: number;
+}
+
 export interface ExtractedEntities {
   dates?: Array<{ value: string; confidence: number }>;
   times?: Array<{ value: string; confidence: number }>;
@@ -77,7 +87,7 @@ export interface ParsedContent {
   };
   confidence: number;
   suggestions?: Array<{
-    action: 'create_calendar_event' | 'extract_receipt' | 'none';
+    action: 'create_calendar_event' | 'create_todo' | 'extract_receipt' | 'none';
     data?: Record<string, unknown>;
     message: string;
   }>;
@@ -335,6 +345,25 @@ export async function parseMessage(messageText: string, tripId: string): Promise
         }
       });
     }
+
+    // Extract actionable to-dos; high-confidence ones become "Create todo" suggestions.
+    // A todo-extraction failure is non-fatal — keep any calendar suggestions already found.
+    const { data: todoData, error: todoError } = await invokeEnhancedAiParser({
+      messageText,
+      extractionType: 'todo',
+      tripId,
+    });
+
+    const todos: ParsedTodo[] = todoError ? [] : todoData?.todos || [];
+    todos.forEach(todo => {
+      if (todo.confidence > 0.7) {
+        suggestions.push({
+          action: 'create_todo',
+          data: todo as unknown as Record<string, unknown>,
+          message: `Create todo: "${todo.title}"`,
+        });
+      }
+    });
 
     return {
       type: 'message',
