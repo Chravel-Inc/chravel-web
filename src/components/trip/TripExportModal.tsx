@@ -122,10 +122,14 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 backdrop-blur-sm max-sm:pb-[env(safe-area-inset-bottom,0px)] sm:items-center sm:p-2">
       <div
         data-testid="trip-export-modal-panel"
-        className="flex max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-0.75rem)] min-h-0 w-full max-w-md flex-col overflow-hidden rounded-t-2xl border border-gray-700 bg-gray-900 shadow-2xl md:max-w-xl sm:max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-2rem)] sm:rounded-xl"
+        className="flex max-h-[100svh] min-h-0 w-full max-w-md flex-col overflow-hidden rounded-t-2xl border border-gray-700 bg-gray-900 shadow-2xl md:max-w-xl sm:max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-2rem)] sm:rounded-xl"
+        style={{
+          maxHeight:
+            'calc(100svh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))',
+        }}
       >
         {/* Header — safe top inset without stacking extra padding on top of large notches */}
-        <div className="flex flex-shrink-0 items-center justify-between border-b border-gray-700/50 px-3 pb-2.5 pt-[max(10px,calc(env(safe-area-inset-top,0px)+8px))]">
+        <div className="flex flex-shrink-0 items-center justify-between border-b border-gray-700/50 px-3 pb-2 pt-[max(8px,calc(env(safe-area-inset-top,0px)+6px))]">
           <div className="flex items-center gap-2">
             <div className="bg-gradient-to-br from-[#e8af48] via-[#c49746] to-[#a07a32] p-1.5 rounded-lg shadow-[0_0_8px_rgba(196,151,70,0.3)]">
               <FileText size={16} className="text-black" />
