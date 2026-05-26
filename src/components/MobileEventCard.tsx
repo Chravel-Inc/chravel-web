@@ -210,7 +210,7 @@ export const MobileEventCard = ({
     >
       {/* Mobile Header */}
       <div
-        className={`relative h-36 bg-gradient-to-br from-${accentColors.primary}/10 to-${accentColors.secondary}/10 p-4`}
+        className={`on-media relative h-36 bg-gradient-to-br from-${accentColors.primary}/10 to-${accentColors.secondary}/10 p-4`}
       >
         {/* Cover photo overlay if available */}
         {event.coverPhoto ? (
