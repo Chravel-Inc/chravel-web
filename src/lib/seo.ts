@@ -1,5 +1,5 @@
 export const SITE_NAME = 'ChravelApp';
-export const SITE_URL = 'https://chravel.app';
+export const SITE_URL = 'https://chravelapp.com';
 export const DEFAULT_OG_IMAGE = `${SITE_URL}/chravelapp-social-20251219.png`;
 
 export interface SeoConfig {
