@@ -15,5 +15,5 @@ PITR backups,Absent,Recommended,Required,Supabase add-on,0,100,Low,Data recovery
 Log drains / observability,Absent,Yes,Yes,Supabase $60 + Vercel $0.50/GB,0,200,Medium,No external log retention
 HIPAA BAAs (vendor-by-vendor),None signed,No,Yes,Supabase/Vercel/Google/OpenAI/Stream/Sentry/PostHog/AWS,15000,1500,High,Legal exposure if PHI handled
 SOC 2,Not started (marketing label only),Yes,Recommended,Auditor + tooling (Vanta/Drata),15000,500,High,Enterprise procurement blocker
-HIPAA total (near-term per instruction),Aspirational label only,n/a,Required,Multi-vendor,20000-40000,1500-3000,High,Cannot target healthcare/PHI customers
+HIPAA total (deferred - separate enterprise case),Aspirational label only,n/a,Required,Multi-vendor,20000-40000,1500-3000,High,Deferred until PHI/healthcare deal; modeled as scenario 8 not base; cannot target healthcare/PHI customers until funded
 Hardcoded fallback creds in client.ts,Present (flagged),Fix required,Fix required,In-house,0,0,Low,Secret hygiene; manifesto violation

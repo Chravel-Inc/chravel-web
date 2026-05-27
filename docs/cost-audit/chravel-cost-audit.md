@@ -14,7 +14,7 @@
 - **Which numbers are reliable?** The fixed plan list-prices (Supabase Pro $25 — *confirmed live*, Vercel Pro $20/seat, Sentry $26, etc.). What is **not** reliable yet: anything usage-based, because (a) we're pre-launch so there's no representative volume, and (b) we have no Google Cloud / Stripe / Stream billing export in hand.
 - **What scales first?** In order: **Google AI/Maps**, **GetStream MAU tiers** ($399 → $599 → enterprise step-functions), **voice (OpenAI Realtime + LiveKit)** which is the single most expensive per-minute line, then **Supabase egress/storage** (media has *no client-side compression* today), then **Vercel bandwidth**.
 - **Are we underestimating infra/compliance risk?** Yes, materially. The live security scan returned **361 advisories** (4 publicly-listable storage buckets, 2 RLS policies that are effectively "allow all", leaked-password protection disabled). We are **not** privacy-compliant by default and we are **not** HIPAA-ready despite the "HIPAA Ready" label shown in the product tier copy.
-- **HIPAA:** Per your instruction this report **costs HIPAA-readiness as a near-term line item** (BAAs + tooling + controls baked into the base monthly model). ⚠️ Note: this is the opposite of the "defer HIPAA" stance in your draft Slack reply — §8 and §11 present both so you and Phil can make the call explicitly. One-time setup is modeled at **$20–40k**; recurring at **~$1.5–3k/mo**.
+- **HIPAA: defer the spend.** This report treats HIPAA-readiness as a *separate enterprise scenario* (§9 scenario 8), **not** a base-model line — matching your draft Slack stance. Do the free controls now (MFA, RLS/bucket fixes); trigger the HIPAA spend (one-time **$20–40k**, recurring **~$1.5–3k/mo**) only when a healthcare/PHI deal is in hand. Sell sports/teams in the meantime by contractually prohibiting PHI.
 - **Vercel:** Not locked in. Fine for MVP. The balloon triggers are real and priced below (SAML SSO **$300/mo**, HIPAA BAA **$350/mo**, log drains **$0.50/GB**, bandwidth overage **$0.15/GB**). §6 models alternatives.
 - **Egress / log drains / SSO** all need their own line items — they are invisible in the current model.
 
@@ -150,7 +150,7 @@ Egress is driven by **media downloads** (no client-side compression today → ~2
 
 **Can we sell sports/teams without HIPAA?** Yes — **if** the product contractually and technically **prohibits PHI** (no health/medical/injury data fields, no medical document uploads). Roster/schedule/logistics data for a sports team is generally not PHI. The risk is *uncontrolled user-generated content* (someone uploads a medical record into chat/files). Mitigate with: ToS prohibition, content policy, and not building health-data features.
 
-**Per your instruction, HIPAA is costed as near-term** (baked into base model in §9):
+**HIPAA is deferred** — modeled as a *separate* enterprise scenario (§9 scenario 8), not carried in the base monthly model. The cost envelope if/when triggered:
 
 - **One-time setup: $20–40k** — legal (BAA review, policies), security tooling onboarding, RLS/bucket remediation, MFA/SSO, audit-log buildout, pen test, risk assessment, staff training.
 - **Recurring: ~$1.5–3k/mo** — vendor HIPAA add-ons + compliance tooling + audit/log retention.
@@ -174,7 +174,7 @@ Egress is driven by **media downloads** (no client-side compression today → ~2
 
 **Timeline estimate:** 2–4 months to "HIPAA-ready" given the current gaps.
 
-**Trade-off for you + Phil to confirm:** Costing HIPAA near-term adds ~$1.5–3k/mo + $20–40k once *before* we have a healthcare customer to pay for it. The alternative (your draft Slack stance) is **defer**: ship PHI-prohibited, pursue sports/teams now, and trigger HIPAA spend only when a healthcare/PHI deal is in hand. **Recommendation: defer the spend but do the free controls now** (MFA, leaked-password, bucket/RLS fixes) so the runway to compliant is short.
+**Recommendation — defer:** Ship PHI-prohibited, pursue sports/teams now, and trigger the HIPAA spend (~$1.5–3k/mo + $20–40k once) only when a healthcare/PHI deal is in hand — don't carry it in the base model before a customer pays for it. **Do the free controls now** (MFA, leaked-password, bucket/RLS fixes) so the runway to compliant is short (2–4 months). If Phil decides to be HIPAA-ready *before* a deal, that's §9 scenario 8 — priced and ready to switch on.
 
 ---
 
@@ -182,7 +182,7 @@ Egress is driven by **media downloads** (no client-side compression today → ~2
 
 `Total = Fixed SaaS + Vendor Base + Seats + Usage + Compliance + Support` · `Cost/MAU = Total / MAU`
 
-HIPAA line is **included near-term per your instruction** (amortized $30k setup over 12 mo = $2.5k/mo + ~$2k/mo recurring ≈ **$4.5k/mo** once triggered; shown separately so it can be removed if deferred).
+HIPAA is **deferred** — it is **not** in the base totals for scenarios 1–7. It appears **only** as the separate enterprise case (scenario 8): amortized $30k setup over 12 mo = $2.5k/mo + ~$2k/mo recurring ≈ **$4.5k/mo**, switched on only when a PHI/healthcare deal is signed.
 
 | # | Scenario | MAU | Fixed SaaS | Variable infra (usage+egress) | Compliance (HIPAA+SSO) | **Total/mo** | Cost/MAU | Notes |
 |---|---|---|---|---|---|---|---|---|
@@ -227,7 +227,7 @@ HIPAA line is **included near-term per your instruction** (amortized $30k setup 
 > • **Biggest missing live variables:** Google Gemini/Maps/Vision, OpenAI Realtime voice, GetStream MAU tiers, LiveKit. Voice is the scariest — OpenAI Realtime runs ~$0.18–0.46/**minute**, so a few power users dwarf everything. We'll default voice to the cheaper Gemini Live path and cap minutes.
 > • **Supabase $25 reality:** it's not billed on read/write — it's egress (250GB included), storage, DB disk, MAU, then realtime. Fine to ~10k MAU; we move to Team ($599) for SOC2/HIPAA/longer logs. And no, it's **not** privacy-compliant out of the box: our live scan flagged 361 issues (public buckets, 2 RLS policies that allow-all, MFA/leaked-password off). I'm fixing the free ones now.
 > • **Vercel:** not locked in. SSO is $300/mo, HIPAA BAA $350/mo, log drains $0.50/GB, bandwidth $0.15/GB over 1TB — these balloon, so I priced Render/Cloudflare/Enterprise alternatives.
-> • **HIPAA:** you asked me to cost it near-term, so the model includes it (~$20–40k setup, ~$1.5–3k/mo). My honest rec is to **do the free controls now (MFA, RLS/bucket fixes) but defer the big HIPAA spend** until we have a healthcare/PHI deal — and sell sports/teams in the meantime by prohibiting PHI. Flagging because that's a real fork: tell me which way you want the model to read.
+> • **HIPAA:** my rec is to **defer the big spend**. We do the free controls now (MFA, RLS/bucket fixes), prohibit PHI in our ToS, and sell sports/teams in the meantime — then trigger HIPAA-readiness (~$20–40k setup, ~$1.5–3k/mo) only when a healthcare/PHI deal is actually in hand. I've modeled HIPAA-ready enterprise as a **separate** scenario so we can price it into that deal without inflating the base model. We just can't go after healthcare/PHI customers until it's funded.
 > • New line items we were missing entirely: **egress, log drains, SSO, MFA, compliance.**
 >
 > Full report + CSVs (vendor costs, scenario assumptions, egress, compliance) are in the repo under `docs/cost-audit/`. I still need our actual billing exports (Google Cloud, Stripe, Stream) to convert list-price to billed-cost.
