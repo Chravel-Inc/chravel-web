@@ -17,14 +17,14 @@ export const ReplacesGrid = () => {
           className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white"
           style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)' }}
         >
-          Why Juggle a Dozen Apps for ONE Trip?
+          Why Juggle a Dozen Apps for One Trip?
         </h2>
         <p
           className="text-base sm:text-lg md:text-xl text-white font-semibold mt-4"
           style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)' }}
         >
-          Tap below to see how ChravelApp brings together the trip chaos usually scattered across
-          your app stack
+          Tap below to see how ChravelApp brings scattered trip planning into one coordinated
+          space.
         </p>
 
         {/* Placeholder for ChravelTabs screenshot */}
