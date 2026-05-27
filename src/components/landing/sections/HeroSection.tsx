@@ -71,7 +71,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
             textShadow: '0 2px 4px rgba(0,0,0,0.4)',
           }}
         >
-          For Friends, Families, Sports, Tours, Work & More.
+          For friend trips, family vacations, team travel, tours, and work offsites.
         </p>
       </div>
 
