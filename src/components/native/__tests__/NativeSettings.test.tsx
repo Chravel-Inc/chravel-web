@@ -19,6 +19,25 @@ vi.mock('@/integrations/revenuecat/revenuecatClient', () => ({
   getPlatform: () => 'web',
 }));
 
+// useNotificationPreferences calls useAuth internally; mock it so the component
+// renders without an AuthProvider in this isolated unit test.
+vi.mock('@/hooks/useNotificationPreferences', () => ({
+  useNotificationPreferences: () => ({
+    preferences: {
+      push_enabled: true,
+      email_enabled: true,
+      broadcasts_and_pins: true,
+      messages: true,
+      calendar_events: true,
+    },
+    isLoading: false,
+    isSaving: false,
+    error: null,
+    loadPreferences: vi.fn(),
+    updatePreference: vi.fn().mockResolvedValue(true),
+  }),
+}));
+
 describe('NativeSettings', () => {
   beforeEach(() => {
     vi.clearAllMocks();

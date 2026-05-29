@@ -15,6 +15,20 @@ interface TripMember {
   isCreator?: boolean;
 }
 
+/**
+ * Permanent trip-fetch errors must not be retried — they won't change on retry
+ * and retrying only delays the correct UI (login / not-a-member / not-found).
+ * tripService throws explicit `ACCESS_DENIED` / `AUTH_REQUIRED` / `TRIP_NOT_FOUND`
+ * markers, so match those in addition to the generic permission / not-found / 403 / 404
+ * phrasing.
+ */
+const isPermanentTripError = (error: unknown): boolean => {
+  const msg = error instanceof Error ? error.message : '';
+  return /permission|not found|not_found|access_denied|auth_required|trip_not_found|403|404/i.test(
+    msg,
+  );
+};
+
 interface UseTripDetailDataResult {
   trip: ReturnType<typeof getDemoTripById> | null;
   tripMembers: TripMember[];
@@ -111,11 +125,8 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
     staleTime: QUERY_CACHE_CONFIG.trip.staleTime,
     gcTime: QUERY_CACHE_CONFIG.trip.gcTime,
     retry: (failureCount, error) => {
-      // Don't retry on 403/404 - those are permanent
-      const msg = error instanceof Error ? error.message : '';
-      if (msg.includes('permission') || msg.includes('not found')) {
-        return false;
-      }
+      // Don't retry permanent errors (403/404/access-denied/not-found) - they won't change
+      if (isPermanentTripError(error)) return false;
       return failureCount < 2;
     },
   });
@@ -131,11 +142,8 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
     staleTime: QUERY_CACHE_CONFIG.members.staleTime,
     gcTime: QUERY_CACHE_CONFIG.members.gcTime,
     retry: (failureCount, error) => {
-      // Don't retry on 403/404 - those are permanent
-      const msg = error instanceof Error ? error.message : '';
-      if (msg.includes('permission') || msg.includes('not found')) {
-        return false;
-      }
+      // Don't retry permanent errors (403/404/access-denied/not-found) - they won't change
+      if (isPermanentTripError(error)) return false;
       return failureCount < 2;
     },
   });

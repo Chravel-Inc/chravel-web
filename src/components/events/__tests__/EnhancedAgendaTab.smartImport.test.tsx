@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { EnhancedAgendaTab } from '../EnhancedAgendaTab';
@@ -87,7 +87,7 @@ describe('EnhancedAgendaTab Smart Import', () => {
     vi.clearAllMocks();
   });
 
-  it('shows enabled Import Agenda button when organizer has paid access', () => {
+  it('shows enabled Import Agenda button when organizer has paid access', async () => {
     mockUseConsumerSubscription.mockReturnValue({
       tier: 'explorer',
       subscription: { status: 'active' },
@@ -98,9 +98,13 @@ describe('EnhancedAgendaTab Smart Import', () => {
       wrapper: createWrapper(),
     });
 
-    const importButton = screen.getByRole('button', { name: /Smart Import/i });
-    expect(importButton).toBeInTheDocument();
-    expect(importButton).not.toBeDisabled();
+    // Paid access is computed by useDeferredPaidAccess, which only enables after
+    // an idle callback / timeout (or user interaction) — so the enabled state is
+    // not present on the first synchronous render.
+    await waitFor(
+      () => expect(screen.getByRole('button', { name: /Smart Import/i })).not.toBeDisabled(),
+      { timeout: 2000 },
+    );
   });
 
   it('shows disabled Import Agenda button when organizer lacks paid access', () => {

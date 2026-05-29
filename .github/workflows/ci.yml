@@ -74,9 +74,13 @@ jobs:
         run: npx tsx scripts/lint-migrations.ts
 
   unit-tests:
-    name: Unit Tests (Vitest)
+    name: Unit Tests (Vitest) shard ${{ matrix.shard }}/4
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
 
     steps:
       - name: Checkout code
@@ -92,8 +96,8 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --fund=false
 
-      - name: Run unit tests with coverage
-        run: npm run test:run:ci
+      - name: Run unit tests with coverage (shard ${{ matrix.shard }}/4)
+        run: npm run test:run:ci -- --shard=${{ matrix.shard }}/4
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v5
@@ -105,6 +109,28 @@ jobs:
           fail_ci_if_error: false
           disable_search: false
           verbose: true
+
+  # Stable aggregate status so branch protection can keep requiring a single
+  # "Unit Tests (Vitest)" check regardless of shard count. The full suite plus
+  # v8 coverage overran the single-runner 30-min budget; sharding across 4
+  # runners keeps each leg well under timeout while this gate preserves the
+  # original required-check name. Passes only if every shard succeeded.
+  unit-tests-gate:
+    name: Unit Tests (Vitest)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    needs: [unit-tests]
+    if: always()
+
+    steps:
+      - name: Verify all unit-test shards passed
+        run: |
+          result="${{ needs.unit-tests.result }}"
+          if [ "$result" != "success" ]; then
+            echo "One or more unit-test shards did not succeed (aggregate result: $result)."
+            exit 1
+          fi
+          echo "All unit-test shards passed."
 
   build:
     name: Build Web App

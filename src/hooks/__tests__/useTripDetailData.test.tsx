@@ -21,6 +21,9 @@ vi.mock('@/hooks/useAuth', () => ({
     user: { id: 'user-1', displayName: 'Member One', avatar: null },
     session: { user: { id: 'user-1' } },
     isLoading: false,
+    // The hook gates fetches on `isHydrated && !isAuthLoading` (auth-hydration
+    // guard). Without isHydrated the hook stays in the loading state forever.
+    isHydrated: true,
   }),
 }));
 
