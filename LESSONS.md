@@ -141,6 +141,9 @@ Logged-in ≠ authorized.
 ### Keep founder/super-admin bypass identity in one shared module across edge functions
 Drift between edge functions creates inconsistent privilege grants.
 
+### Historical `trips.created_by` is not a live admin grant after `leave_trip`
+When leave flows soft-delete membership and transfer admins, service-role/RPC auth must check active membership plus current admin assignment (`trip_admins`), not the immutable creator ID alone.
+
 ### Enforce payment SDK boundary: RevenueCat for iOS, Stripe for web
 Subscription checks should branch on platform; mixing creates double-charge / mismatched entitlement risk.
 
