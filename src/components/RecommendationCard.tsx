@@ -153,8 +153,9 @@ export const RecommendationCard = ({
           <Button
             variant="ghost"
             size="sm"
-            className="text-muted-foreground hover:text-foreground"
+            className="text-muted-foreground hover:text-foreground min-h-[44px] min-w-[44px]"
             onClick={handleSaveClick}
+            aria-label="Save recommendation"
           >
             <Bookmark className="w-4 h-4" />
           </Button>
@@ -178,16 +179,18 @@ export const RecommendationCard = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-md hover:bg-background/90"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-md hover:bg-background/90 min-h-[44px] min-w-[44px]"
                   onClick={prevImage}
+                  aria-label="Previous image"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-md hover:bg-background/90"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-md hover:bg-background/90 min-h-[44px] min-w-[44px]"
                   onClick={nextImage}
+                  aria-label="Next image"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </Button>
