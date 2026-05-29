@@ -35,6 +35,9 @@ Depend on `arr.length` or a derived primitive, not the array itself, unless deep
 
 ## Realtime & Chat
 
+### Trip-scoped realtime hubs must be real shared coordinators, not implied patterns
+If multiple hooks subscribe to the same trip tables independently, hidden channel sprawl becomes the scale ceiling long before the database does. A "shared hub" only counts if one concrete owner actually creates, multiplexes, and tears down the subscriptions.
+
 ### Realtime subscriptions must filter by trip_id
 Unfiltered Supabase realtime channels receive ALL global events — always specify the table-column filter.
 
@@ -77,8 +80,11 @@ Replies without parent context are unmoored.
 
 ## AI Concierge
 
-### AI concierge writes go through the pending actions buffer, not directly to shared state
-Every AI-initiated mutation pauses for user confirmation via `trip_pending_actions`; bypass = silent state corruption.
+### AI write safety must converge on one confirmation model instead of mixing pending and fast-path writes
+Chravel currently mixes pending rows with fast-path promotions on some tools; that drift is the bug. Shared-state AI writes should converge on one declared contract so a failed confirm update or second execution surface cannot replay the mutation.
+
+### AI concierge shared-state writes should route through the pending actions buffer, not a mixed direct-write path
+If some AI tools write immediately while others require confirmation, the product loses a single trust model. Pending-action confirmation should be the shared-state default unless a tool is explicitly classified as safe auto-apply.
 
 ### Concierge tool additions require 5-file sync — miss one and the tool silently fails
 A new concierge tool touches: `toolRegistry.ts` · tool implementation · pending-action confirm switch · renderer · voice tool surface. Use the `chravel-ai-concierge` skill checklist. Symptom of a partial implementation: tool works in text but not voice, or confirms silently.
@@ -119,6 +125,9 @@ Voice model string drifts silently; assert it equals the canonical literal in CI
 ---
 
 ## Auth, Permissions, Payments
+
+### Permission matrices must compile into server enforcement or viewer mode becomes client fiction
+If roles live in `trip_members`, `trip_admins`, `user_trip_roles`, and a generated client matrix, whichever layer is missing the rule becomes the real product behavior. One capability source has to feed RLS, RPCs, edge functions, and the UI.
 
 ### Permission model varies by trip type: consumer open · pro role-based · event organizer-only
 Any mutation hook serving multiple trip types must branch on type before authorizing.
