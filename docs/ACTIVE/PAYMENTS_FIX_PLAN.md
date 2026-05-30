@@ -15,6 +15,7 @@
 | Storage-limit drift | `src/billing/entitlements.ts` | `media_upload.explorer` `2000` → `50000` (MB) + cross-link comment |
 | Stale legacy price | `src/constants/stripe.ts` | `STRIPE_PRODUCTS['pro-enterprise'].price` `199` → `0` (custom) |
 | Parity guard | `src/billing/__tests__/pricingParity.test.ts` | New — 11 assertions locking config mirrors |
+| Refund correlation | `supabase/functions/stripe-webhook/index.ts` | `handleChargeRefunded` correlates the refunded charge → Checkout Session (`metadata.purchase_type`) and only revokes a Trip Pass when the pass purchase itself was refunded — not on unrelated refunds for the same customer (the lookup repoint re-activated this previously-dead handler) |
 
 All are non-destructive. No DB schema change.
 

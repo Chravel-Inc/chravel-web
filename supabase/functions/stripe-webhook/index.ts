@@ -259,7 +259,12 @@ serve(async req => {
         break;
 
       case 'charge.refunded':
-        await handleChargeRefunded(event.data.object as Stripe.Charge, supabaseClient, event.id);
+        await handleChargeRefunded(
+          event.data.object as Stripe.Charge,
+          supabaseClient,
+          stripe,
+          event.id,
+        );
         break;
 
       default:
@@ -737,7 +742,12 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice, supabase: any
   logStep('Payment failure recorded — plan retained with past_due status', { userId });
 }
 
-async function handleChargeRefunded(charge: Stripe.Charge, supabase: any, eventId: string) {
+async function handleChargeRefunded(
+  charge: Stripe.Charge,
+  supabase: any,
+  stripe: Stripe,
+  eventId: string,
+) {
   logStep('Processing charge refund', { chargeId: charge.id });
 
   const customerId = charge.customer as string;
@@ -759,7 +769,42 @@ async function handleChargeRefunded(charge: Stripe.Charge, supabase: any, eventI
 
   const userId = profiles[0].user_id;
 
-  // Check if this user has a Trip Pass — expire it on refund
+  // Only a refund of the *Trip Pass purchase itself* should revoke a pass.
+  // Trip Passes are bought via a one-time Checkout Session (mode: 'payment') whose
+  // metadata carries purchase_type='pass'; that metadata does NOT propagate to the
+  // Charge. So correlate the refunded charge back to its originating Checkout Session
+  // via the PaymentIntent. If the refund is for a subscription (or any other) charge
+  // on the same customer, leave the pass intact and let the subscription flows handle it.
+  const paymentIntentId =
+    typeof charge.payment_intent === 'string'
+      ? charge.payment_intent
+      : (charge.payment_intent?.id ?? null);
+
+  let refundedPurchaseType: string | null = null;
+  if (paymentIntentId) {
+    try {
+      const sessions = await stripe.checkout.sessions.list({
+        payment_intent: paymentIntentId,
+        limit: 1,
+      });
+      refundedPurchaseType = sessions.data[0]?.metadata?.purchase_type ?? null;
+    } catch (err) {
+      logStep('Could not resolve checkout session for refunded charge', {
+        paymentIntentId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  if (refundedPurchaseType !== 'pass') {
+    logStep('Refund is not a Trip Pass purchase — pass entitlement left intact', {
+      userId,
+      refundedPurchaseType,
+    });
+    return;
+  }
+
+  // Confirmed: the refunded charge was a Trip Pass purchase. Expire the active pass.
   const { data: passEntitlement } = await supabase
     .from('user_entitlements')
     .select('purchase_type, plan, status')
@@ -803,8 +848,6 @@ async function handleChargeRefunded(charge: Stripe.Charge, supabase: any, eventI
 
     logStep('Trip Pass revoked due to refund', { userId });
   } else {
-    logStep('Refund processed — no active pass found, subscription handler will manage', {
-      userId,
-    });
+    logStep('Pass refund processed — no active pass entitlement to revoke', { userId });
   }
 }
