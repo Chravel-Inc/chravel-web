@@ -68,7 +68,7 @@ serve(async req => {
 
     // Get user's Stripe customer ID from profiles (keyed by user_id).
     // NOTE: the `private_profiles` PII-separation table is not deployed; billing
-    // identifiers live on `profiles`. See PAYMENTS_AUDIT.md.
+    // identifiers live on `profiles`. See docs/ACTIVE/PAYMENTS_AUDIT.md.
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
       .select('stripe_customer_id')

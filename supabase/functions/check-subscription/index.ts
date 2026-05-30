@@ -287,7 +287,7 @@ serve(async req => {
 
     // Cache the resolved Stripe customer id on the profile (keyed by user_id).
     // NOTE: the `private_profiles` PII-separation table is not deployed; billing
-    // identifiers live on `profiles`. See PAYMENTS_AUDIT.md.
+    // identifiers live on `profiles`. See docs/ACTIVE/PAYMENTS_AUDIT.md.
     await supabaseClient
       .from('profiles')
       .update({ stripe_customer_id: customerId })

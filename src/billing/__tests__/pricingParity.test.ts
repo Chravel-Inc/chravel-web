@@ -11,7 +11,7 @@
  *
  * These can drift silently. This test fails CI the moment any mirror diverges
  * from billing/config.ts, so a price/ID change in one place must be reflected in
- * all. See PAYMENTS_AUDIT.md for the full source-of-truth model.
+ * all. See docs/ACTIVE/PAYMENTS_AUDIT.md for the full source-of-truth model.
  */
 
 import { describe, expect, it } from 'vitest';
