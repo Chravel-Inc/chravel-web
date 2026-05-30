@@ -397,3 +397,12 @@ When an audit asks for many health scores to reach 90+, create durable issue IDs
 
 ### Rare export dependencies should load on explicit export intent
 Screenshot/export libraries such as `html2canvas` should not sit in route-level bundles when the only user path is clicking Export. Dynamically import them inside the export handler and preserve a print/download fallback. *Evidence: Team org chart export moved `html2canvas` behind `handleExportChart`.*
+
+### Privacy exports need table-level manifests, not silent skips
+If an export path catches table fetch errors and still returns `success: true`, users cannot distinguish complete exports from partial compliance failures. Record every section with included/empty/skipped/failed status, and fail hard for required identity, settings, membership, and file tables. *Evidence: AHS-12 added `export-user-data` manifest policy and tests.*
+
+### Smart Import retries must check durable outputs before usage counters
+If a parser increments quota before checking whether the same file/type has already been extracted, network retries double-charge users. Check durable extraction records first, return cached payloads, then charge only for new AI work. *Evidence: AHS-14 added file-ai-parser idempotency helpers/tests and moved the existing extraction lookup before `checkAndIncrementSmartImportUsage`.*
+
+### Import workers need explicit terminal status policy
+`completed` cannot represent mixed success/failure batches. Derive final status from stats: all success -> `completed`, mixed success/error -> `completed_partial`, all error -> `failed`. *Evidence: AHS-15 added Gmail import status policy/tests and worker wiring.*
