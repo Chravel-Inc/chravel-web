@@ -2,7 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { MapPin, Star, ChevronLeft, ChevronRight, Users, Bookmark } from 'lucide-react';
+import {
+  MapPin,
+  Star,
+  ChevronLeft,
+  ChevronRight,
+  Users,
+  Bookmark,
+  BookmarkCheck,
+} from 'lucide-react';
 import { Recommendation } from '../data/recommendations';
 import { useIsMobile } from '../hooks/use-mobile';
 import { OptimizedImage } from './mobile/OptimizedImage';
@@ -13,6 +21,8 @@ import { useInView } from 'react-intersection-observer';
 interface RecommendationCardProps {
   recommendation: Recommendation;
   onSaveToTrip?: (id: number) => void;
+  /** Whether this recommendation is currently saved — drives the bookmark/save visual state. */
+  isSaved?: boolean;
   tripId?: string;
   surface?: 'recs_page' | 'trip_detail' | 'concierge' | 'home';
   position?: number;
@@ -21,6 +31,7 @@ interface RecommendationCardProps {
 export const RecommendationCard = ({
   recommendation,
   onSaveToTrip,
+  isSaved = false,
   tripId,
   surface = 'recs_page',
   position = 0,
@@ -153,11 +164,20 @@ export const RecommendationCard = ({
           <Button
             variant="ghost"
             size="sm"
-            className="text-muted-foreground hover:text-foreground min-h-[44px] min-w-[44px]"
+            className={`min-h-[44px] min-w-[44px] ${
+              isSaved
+                ? 'text-gold-primary hover:text-gold-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
             onClick={handleSaveClick}
-            aria-label="Save recommendation"
+            aria-pressed={isSaved}
+            aria-label={isSaved ? 'Remove from saved' : 'Save recommendation'}
           >
-            <Bookmark className="w-4 h-4" />
+            {isSaved ? (
+              <BookmarkCheck className="w-4 h-4 fill-gold-primary" />
+            ) : (
+              <Bookmark className="w-4 h-4" />
+            )}
           </Button>
         </div>
       </div>
@@ -267,8 +287,22 @@ export const RecommendationCard = ({
           >
             {recommendation.ctaButton.text}
           </Button>
-          <Button variant="outline" className="px-3" onClick={handleSaveClick}>
-            Save
+          <Button
+            variant="outline"
+            className={`px-3 ${
+              isSaved ? 'border-gold-primary text-gold-primary hover:text-gold-primary' : ''
+            }`}
+            onClick={handleSaveClick}
+            aria-pressed={isSaved}
+          >
+            {isSaved ? (
+              <>
+                <BookmarkCheck className="w-4 h-4 mr-1 fill-gold-primary" />
+                Saved
+              </>
+            ) : (
+              'Save'
+            )}
           </Button>
         </div>
 

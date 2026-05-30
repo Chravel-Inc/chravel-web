@@ -98,6 +98,7 @@ const AuthIndex = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>('');
   const [recsFilter, setRecsFilter] = useState('all');
+  const [recsSearch, setRecsSearch] = useState('');
   const [settingsInitialConsumerSection, setSettingsInitialConsumerSection] = useState<
     string | undefined
   >(undefined);
@@ -842,6 +843,8 @@ const AuthIndex = () => {
                     activeFilter={recsFilter}
                     onFilterChange={setRecsFilter}
                     showInlineSearch={true}
+                    searchValue={recsSearch}
+                    onSearchChange={setRecsSearch}
                   />
                 </div>
               )}
@@ -861,6 +864,8 @@ const AuthIndex = () => {
                   onCancelDashboardRequest={cancelPendingRequest}
                   onTripStateChange={handleTripStateChange}
                   activeTab={activeTab}
+                  recsSearchQuery={recsSearch}
+                  onRecsFilterChange={setRecsFilter}
                 />
               </div>
             </div>
@@ -1031,6 +1036,8 @@ const AuthIndex = () => {
                   activeFilter={recsFilter}
                   onFilterChange={setRecsFilter}
                   showInlineSearch={true}
+                  searchValue={recsSearch}
+                  onSearchChange={setRecsSearch}
                 />
               </div>
             )}
@@ -1050,6 +1057,8 @@ const AuthIndex = () => {
                 onCancelDashboardRequest={cancelPendingRequest}
                 onTripStateChange={handleTripStateChange}
                 activeTab={activeTab}
+                recsSearchQuery={recsSearch}
+                onRecsFilterChange={setRecsFilter}
               />
             </div>
           </div>
@@ -1252,6 +1261,8 @@ const AuthIndex = () => {
               activeFilter={recsFilter}
               onFilterChange={setRecsFilter}
               showInlineSearch={true}
+              searchValue={recsSearch}
+              onSearchChange={setRecsSearch}
             />
           </div>
         )}
@@ -1287,13 +1298,15 @@ const AuthIndex = () => {
             events={filteredData.events}
             loading={tripsLoading}
             onCreateTrip={handleCreateTrip}
-            activeFilter={activeFilter}
+            activeFilter={viewMode === 'travelRecs' ? recsFilter : activeFilter}
             {...(activeFilter === 'requests'
               ? { pendingRequestCards: scopedPendingRequestCards }
               : {})}
             onCancelDashboardRequest={cancelPendingRequest}
             onTripStateChange={handleTripStateChange}
             activeTab={activeTab}
+            recsSearchQuery={recsSearch}
+            onRecsFilterChange={setRecsFilter}
           />
         </div>
       </div>
