@@ -47,6 +47,7 @@ import { RecommendationFilters } from '../components/home/RecommendationFilters'
 import { useAuth } from '../hooks/useAuth';
 import { useIsMobile } from '../hooks/use-mobile';
 import { useDemoMode } from '../hooks/useDemoMode';
+import { useRecsAccess } from '../hooks/useRecsAccess';
 import { useNotificationRealtime } from '../hooks/useNotificationRealtime';
 import { useDemoModeStore } from '../store/demoModeStore';
 import { useTrips } from '../hooks/useTrips';
@@ -117,6 +118,7 @@ const AuthIndex = () => {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { demoView, isDemoMode, setDemoView } = useDemoMode();
+  const { canAccessRecs } = useRecsAccess();
   const isMobilePortrait = useMobilePortrait();
 
   // Notification unread count for mobile tab bar badge
@@ -964,7 +966,7 @@ const AuthIndex = () => {
                     : 'myTrips'
             }
             onSelectType={handleTripTypeSelect}
-            showRecsOption={isDemoMode}
+            showRecsOption={canAccessRecs}
             recsDisabled={false}
           />
         </div>
@@ -999,7 +1001,7 @@ const AuthIndex = () => {
               <TripViewToggle
                 viewMode={viewMode}
                 onViewModeChange={handleViewModeChange}
-                showRecsTab={isDemoMode}
+                showRecsTab={canAccessRecs}
                 recsTabDisabled={false}
                 className="w-full h-12 sm:h-16"
               />
@@ -1155,7 +1157,7 @@ const AuthIndex = () => {
                   : 'myTrips'
           }
           onSelectType={handleTripTypeSelect}
-          showRecsOption={isDemoMode}
+          showRecsOption={canAccessRecs}
           recsDisabled={false}
         />
       </div>
@@ -1212,7 +1214,7 @@ const AuthIndex = () => {
           <TripViewToggle
             viewMode={viewMode}
             onViewModeChange={handleViewModeChange}
-            showRecsTab={isDemoMode}
+            showRecsTab={canAccessRecs}
             recsTabDisabled={false}
             className="w-full h-12 sm:h-16"
           />
@@ -1376,7 +1378,7 @@ const AuthIndex = () => {
                 : 'myTrips'
         }
         onSelectType={handleTripTypeSelect}
-        showRecsOption={isDemoMode}
+        showRecsOption={canAccessRecs}
         recsDisabled={false}
       />
     </div>
