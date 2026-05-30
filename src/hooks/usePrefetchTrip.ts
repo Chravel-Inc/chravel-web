@@ -7,9 +7,12 @@ import { paymentService } from '@/services/paymentService';
 import { paymentBalanceService } from '@/services/paymentBalanceService';
 import { fetchTripMediaItemsPaginated } from '@/services/tripMediaService';
 import { fetchTripPlaces } from '@/services/tripPlacesService';
+import { basecampService } from '@/services/basecampService';
 import { useDemoMode } from './useDemoMode';
 import { useAuth } from './useAuth';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
+import { tripBasecampKeys } from '@/hooks/useTripBasecamp';
+import { personalBasecampKeys } from '@/hooks/usePersonalBasecamp';
 import { preloadTabChunk, preloadTabChunks } from '@/lib/tabChunkPreloader';
 
 const scheduleIdlePrefetch = (task: () => void, timeoutMs = 2000): void => {
@@ -181,12 +184,29 @@ export const usePrefetchTrip = () => {
           break;
 
         case 'places':
-          // ⚡ NEW: Prefetch trip links for instant Places > Links sub-tab
+          // Prefetch places list + basecamps in parallel (mirrors PlacesSection hooks)
           queryClient.prefetchQuery({
             queryKey: tripKeys.places(tripId, isDemoMode),
             queryFn: () => fetchTripPlaces(tripId, isDemoMode),
             staleTime: QUERY_CACHE_CONFIG.places.staleTime,
           });
+          queryClient.prefetchQuery({
+            queryKey: tripBasecampKeys.trip(tripId),
+            queryFn: async () => {
+              const dbBasecamp = await basecampService.getTripBasecamp(tripId);
+              if (!dbBasecamp) return null;
+              const version = await basecampService.getBasecampVersion(tripId);
+              return { ...dbBasecamp, _version: version };
+            },
+            staleTime: 30_000,
+          });
+          if (user?.id) {
+            queryClient.prefetchQuery({
+              queryKey: personalBasecampKeys.tripUser(tripId, user.id),
+              queryFn: () => basecampService.getPersonalBasecamp(tripId, user.id),
+              staleTime: 2 * 60 * 1000,
+            });
+          }
           break;
 
         case 'concierge':

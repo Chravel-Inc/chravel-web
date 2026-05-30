@@ -81,6 +81,46 @@ const checkCodeExists = async (code: string): Promise<boolean> => {
   }
 };
 
+type ReusableInviteRow = {
+  code: string;
+  expires_at: string | null;
+  require_approval: boolean | null;
+};
+
+/** Reuse an active invite when settings match — avoids 3–5 round trips on every modal open. */
+const findReusableInvite = async (
+  tripIdValue: string,
+  userId: string,
+  requireApproval: boolean,
+  expireIn7Days: boolean,
+): Promise<ReusableInviteRow | null> => {
+  const { data, error } = await supabase
+    .from('trip_invites')
+    .select('code, expires_at, require_approval')
+    .eq('trip_id', tripIdValue)
+    .eq('is_active', true)
+    .eq('created_by', userId)
+    .eq('require_approval', requireApproval)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data?.code) {
+    return null;
+  }
+
+  if (data.expires_at && new Date(data.expires_at) <= new Date()) {
+    return null;
+  }
+
+  const hasExpiry = Boolean(data.expires_at);
+  if (expireIn7Days !== hasExpiry) {
+    return null;
+  }
+
+  return data as ReusableInviteRow;
+};
+
 // Generate a unique branded code with collision detection
 const generateUniqueCode = async (maxAttempts = 5): Promise<string> => {
   for (let i = 0; i < maxAttempts; i++) {
@@ -267,6 +307,19 @@ export const useInviteLink = ({
       const msg = 'Please log in to create invite links';
       setError(msg);
       toast.error(msg);
+      setLoading(false);
+      return;
+    }
+
+    const reusable = await findReusableInvite(
+      actualTripId,
+      user.id,
+      requireApproval,
+      expireIn7Days,
+    );
+    if (reusable?.code) {
+      setExpiresAt(reusable.expires_at);
+      setInviteLink(buildInviteLink(reusable.code));
       setLoading(false);
       return;
     }
