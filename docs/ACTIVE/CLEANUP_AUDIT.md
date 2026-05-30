@@ -25,10 +25,21 @@ server-side-referenced.
 
 1. **Deleted 10 provably-unused files** (8 dead modules + 1 abandoned experiment + its test) — each
    verified to have zero production references.
-2. **Fixed one genuinely-broken feature:** the Admin "Broadcasts" scheduling panel read a feature
-   flag (`broadcast-scheduling-enabled`) that was **never seeded**, so a complete, fully-wired feature
-   was silently dark. Added a migration seeding it **enabled**.
-3. **Committed this report.**
+2. **Committed this report** and fixed misleading Admin UI copy (see below).
+
+> **Correction (post-review).** An earlier revision of this PR seeded the
+> `broadcast-scheduling-enabled` flag to `true`, claiming the Admin "Broadcasts" scheduling feature
+> was "fully wired." That was wrong. A PR review (Cursor) correctly flagged — and code inspection
+> confirmed — that the scheduled-broadcast **dispatcher was intentionally removed for MVP**:
+> the `send-scheduled-broadcasts` edge function was deleted and its cron unscheduled
+> (`20260411000000_disable_scheduled_broadcasts_cron.sql`), and `message-scheduler` targets the
+> separate `scheduled_messages` table, not `broadcasts`. So enabling the flag would have produced a
+> **misleading stub** — admins could "schedule" a broadcast and see a success toast, but it would
+> never be delivered. The seed migration was therefore **dropped entirely** (the flag stays unseeded;
+> client default `false` keeps the feature dark, exactly as it was before this PR). The only
+> broadcast-related change that remains is making the Admin UI helper copy truthful in both flag
+> states. Restoring real scheduled-broadcast delivery (dispatcher + cron + trigger fanout) is a
+> separate, larger effort — see §6.4.
 
 **What was intentionally preserved (not touched):** all demo/mock data, all edge functions
 (incl. the intentionally-deprecated `create-default-channels` which returns HTTP 410), all historical
@@ -49,7 +60,7 @@ Buckets: **A** Active/Working · **B** Active/Broken · **C** Stubbed-but-intent
 | Routing & navigation (29 routes, mobile bottom nav, settings menu) | A | All routes live, lazy-loaded; thin routers delegate to Mobile/Desktop variants; nav items all map to working handlers | Keep |
 | Trips / Pro Trips / Events detail pages | A | Responsive delegation pattern (router → `Mobile*`/`*Desktop`), not duplication | Keep |
 | Demo mode (`src/mockData/*` ×9, `src/data/*` ×9, `demoModeStore`, `seed-*` edge fns, `demo-concierge`) | C | Investor/app-preview demo surfaces, gated by `demoModeStore` / `demo_mode` flag | **Preserve** (zero-tolerance contamination risk) |
-| Admin → Broadcasts scheduling | B→A | Feature fully wired (broadcasts table + `message-scheduler` fn) but flag never seeded → silently off | **Fixed** (seed flag, see §5) |
+| Admin → Broadcasts scheduling | D | Dispatcher (`send-scheduled-broadcasts` + cron) removed for MVP; flag never seeded so feature is dark. Enabling it would surface a misleading stub (schedules accepted, never delivered) | Keep flag dark; **fixed misleading UI copy**; restore is a follow-up (§6.4) |
 | Chravel Recs | C | Feature-gated via `useRecsAccess()`; hidden when ineligible | Keep |
 | Advertiser settings panel | C | Gated to `isAppPreview` (demo-only) | Keep |
 | Edge functions (95 + `_shared`) | A/C | 1 intentionally deprecated (`create-default-channels` → HTTP 410); rest are live or webhook/worker/cron-triggered | Keep |
@@ -112,32 +123,18 @@ No misleading user-facing stubs were found in production (non-demo) navigation s
 
 ## 5. Backend / Supabase Report
 
-**Migration added:** `supabase/migrations/20260530120000_seed_broadcast_scheduling_flag.sql`
+**No migration is added by this PR.** An earlier revision added one seeding
+`broadcast-scheduling-enabled = true`; it was **removed** after review confirmed the dispatcher is
+absent (see the Correction in §1 and the follow-up in §6.4). The flag stays unseeded, so the
+client-side default `false` keeps the feature dark — identical to pre-PR behavior, and honest about
+the missing delivery path.
 
-```sql
-INSERT INTO public.feature_flags (key, enabled, description)
-VALUES ('broadcast-scheduling-enabled', true,
-        'Admin broadcast scheduling panel — schedule Pro Trip broadcasts ahead of time.')
-ON CONFLICT (key) DO NOTHING;
-```
+No backend objects were changed. No tables, RLS policies, storage buckets, edge functions, or
+historical migrations were created or deleted (all verified as referenced or append-only).
 
-- **Why:** `src/pages/AdminDashboard.tsx` and `src/services/unifiedMessagingService.ts` both gate
-  broadcast scheduling on this flag, but it was never seeded → client default `false` won → the
-  feature was silently dark (button disabled, `scheduleMessage()` short-circuited). The backend is
-  fully wired: `getScheduledMessages()` queries the `broadcasts` table, `scheduleMessage()` inserts
-  into it (with a server-side flag re-check), and a `message-scheduler` edge function dispatches.
-  So this is a real defect fix, not the surfacing of a stub.
-- **Schema impact:** none — `feature_flags` already exists; this is a pure data seed. No
-  `types.ts` regeneration needed.
-- **Safety:** `ON CONFLICT (key) DO NOTHING` is idempotent and won't override a value an admin set in prod.
-- **Kill switch (no redeploy, ~60s TTL):** `UPDATE public.feature_flags SET enabled = false WHERE key = 'broadcast-scheduling-enabled';`
-- **Rollback:** `DELETE FROM public.feature_flags WHERE key = 'broadcast-scheduling-enabled';`
-- **Post-deploy verification (manual):** as an admin, open Admin → Broadcasts, confirm the
-  "Schedule Pro Trip Message" button is enabled, schedule a future message, and confirm it appears
-  under "Upcoming Scheduled Messages" and lands in the `broadcasts` table with `is_sent = false`.
-
-No other backend objects were changed. No tables, RLS policies, storage buckets, edge functions, or
-historical migrations were deleted (all verified as referenced or append-only).
+**Only non-deletion code change:** `src/pages/AdminDashboard.tsx` — the "Broadcasts" helper copy is
+now conditional on `isBroadcastSchedulingEnabled` so it no longer hardcodes "temporarily unavailable"
+regardless of state. **Rollback:** revert that one-line JSX change.
 
 ---
 
@@ -165,8 +162,25 @@ producing demo-only render bugs. Not a cleanup item; a guardrail gap.
 
 ### 6.3 — Pre-existing working-tree changes (NOT part of this audit)
 Three edge-function files were already modified in the working tree before this audit began
-(`supabase/functions/{get-trip-preview,health,image-proxy}/index.ts`). They were **intentionally left
-unstaged and uncommitted** here — they are not this audit's work and should be reviewed/owned separately.
+(`supabase/functions/{get-trip-preview,health,image-proxy}/index.ts`). They are **whitespace/formatting
+only** (Prettier reflow, no behavioral change). To keep the working tree clean they were committed
+**separately** on this branch as `chore: prettier formatting for edge functions`, isolated from the
+audit commit so they are not misattributed to this work.
+
+### 6.4 — Restore scheduled-broadcast delivery (follow-up — larger effort)
+The Admin "Broadcasts" scheduling UI exists and the `broadcasts` table accepts `scheduled_for` rows,
+but the **delivery path was intentionally removed for MVP**: `send-scheduled-broadcasts` (edge fn) was
+deleted, its cron unscheduled (`20260411000000_disable_scheduled_broadcasts_cron.sql`), and
+`message-scheduler` writes to the separate `scheduled_messages` table. Until delivery is restored the
+flag must stay dark (this PR drops the seed). Doc drift to fix alongside: `docs/SECURE_STORAGE_ACCESS.md`,
+`docs/SECURITY.md`, and `docs/PRD.md` still reference the now-deleted `src/utils/securityUtils.ts`.
+
+> Follow-up prompt: "Restore scheduled-broadcast delivery: re-add a `send-scheduled-broadcasts` worker
+> (or a DB job) that, at `scheduled_for`, sets `broadcasts.is_sent = true` and triggers member fanout
+> via the canonical `notify_on_broadcast` path; re-schedule its cron with the CronGuard secret; add a
+> test proving a scheduled row is delivered exactly once. Then seed `broadcast-scheduling-enabled = true`.
+> Separately, update `docs/SECURE_STORAGE_ACCESS.md` / `docs/SECURITY.md` / `docs/PRD.md` to drop
+> references to the deleted `securityUtils.ts`."
 
 ---
 
