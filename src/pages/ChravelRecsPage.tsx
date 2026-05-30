@@ -24,7 +24,7 @@ export const ChravelRecsPage = () => {
     useMockData: true,
   });
 
-  const { toggleSave } = useSavedRecommendations();
+  const { toggleSave, isSaved } = useSavedRecommendations();
 
   // We still do client-side filtering as a fallback/enhancement
   const filteredRecommendations = useMemo(() => {
@@ -169,6 +169,7 @@ export const ChravelRecsPage = () => {
                       <RecommendationCard
                         key={rec.uuid ?? rec.campaignId ?? rec.id}
                         recommendation={rec}
+                        isSaved={isSaved(rec.id)}
                         onSaveToTrip={() => handleSaveToTrip(rec)}
                       />
                     ))}
