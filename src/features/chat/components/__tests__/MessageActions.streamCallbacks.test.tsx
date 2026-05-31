@@ -119,6 +119,31 @@ describe('MessageActions stream mutation callbacks', () => {
     expect(toast.success).not.toHaveBeenCalled();
   });
 
+  it('shows delete for own messages when delete-any is granted without delete-own', async () => {
+    const user = userEvent.setup();
+    const onDelete = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <MessageActions
+        transportMode="stream"
+        messageId="msg-delete-any-own"
+        messageContent="hello"
+        messageType="trip"
+        isOwnMessage
+        canDeleteOwnMessage={false}
+        canDeleteAnyMessage
+        onEdit={vi.fn()}
+        onDelete={onDelete}
+      />,
+    );
+
+    await user.click(screen.getByRole('button'));
+    await user.click(screen.getByText('Delete'));
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(onDelete).toHaveBeenCalledWith('msg-delete-any-own');
+  });
+
   it('shows Pin in stream mode and invokes pin callback when moderators can manage pins', async () => {
     const user = userEvent.setup();
     const onTogglePin = vi.fn().mockResolvedValue(undefined);

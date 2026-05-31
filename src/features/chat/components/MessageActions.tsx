@@ -287,7 +287,7 @@ export const MessageActions: React.FC<MessageActionsComponentProps> = ({
             Copy
           </DropdownMenuItem>
           {/* Own-message actions: edit + delete */}
-          {isOwnMessage && (canUpdateOwnMessage || canDeleteOwnMessage) && (
+          {isOwnMessage && (canUpdateOwnMessage || canDeleteMessage) && (
             <>
               <DropdownMenuSeparator />
               {canUpdateOwnMessage && (
@@ -301,7 +301,7 @@ export const MessageActions: React.FC<MessageActionsComponentProps> = ({
                   Edit
                 </DropdownMenuItem>
               )}
-              {canDeleteOwnMessage && (
+              {canDeleteMessage && (
                 <DropdownMenuItem
                   onClick={() => setShowDeleteDialog(true)}
                   className="text-red-600 focus:text-red-600"
