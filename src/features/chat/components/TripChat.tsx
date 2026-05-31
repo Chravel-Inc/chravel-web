@@ -388,7 +388,7 @@ export const TripChat = React.memo(
           authorId === streamClient.userID
         );
 
-        if (authorId && streamClient.userID && !isOwnMessage) {
+        if (authorId && streamClient.userID && !isOwnMessage && !canDeleteAnyMessage) {
           throw new Error('You can only delete your own messages');
         }
 
@@ -414,7 +414,13 @@ export const TripChat = React.memo(
           throw new Error(`Failed to delete message${codeSuffix}`);
         }
       },
-      [canDeleteOwnMessage, demoMode.isDemoMode, streamClient, findMessageAuthorId],
+      [
+        canDeleteAnyMessage,
+        canDeleteOwnMessage,
+        demoMode.isDemoMode,
+        streamClient,
+        findMessageAuthorId,
+      ],
     );
 
     const handleMessagePinToggle = useCallback(

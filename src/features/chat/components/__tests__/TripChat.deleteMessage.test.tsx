@@ -273,6 +273,23 @@ describe('TripChat delete message', () => {
     expect(screen.queryByTestId('delete-msg-123')).not.toBeInTheDocument();
   });
 
+  it('allows admin delete when Stream delete-any grant is present', async () => {
+    mockChatModeUserRole = 'admin';
+    mockOwnCapabilities = ['delete-any-message', 'update-own-message'];
+    mockMessageAuthorId = 'user-2';
+    mockGetStreamClient.mockReturnValue({
+      deleteMessage: mockDeleteMessage,
+      userID: 'user-1',
+    } as any);
+    mockDeleteMessage.mockResolvedValue(undefined);
+
+    renderSubject();
+    fireEvent.click(screen.getByTestId('delete-msg-123'));
+
+    expect(mockDeleteMessage).toHaveBeenCalledTimes(1);
+    expect(mockDeleteMessage).toHaveBeenCalledWith('msg-123');
+  });
+
   it('keeps TripChat on Stream transport when Stream client is unavailable', async () => {
     mockGetStreamClient.mockReturnValue(null);
 
