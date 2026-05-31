@@ -97,6 +97,10 @@ type LegacyMessageActionsProps = Omit<MessageActionsProps, 'transportMode'> & {
 
 type MessageActionsComponentProps = StreamMessageActionsProps | LegacyMessageActionsProps;
 
+function getActionErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message.trim().length > 0 ? error.message : fallback;
+}
+
 export const MessageActions: React.FC<MessageActionsComponentProps> = ({
   messageId,
   messageContent,
@@ -166,7 +170,7 @@ export const MessageActions: React.FC<MessageActionsComponentProps> = ({
       if (import.meta.env.DEV) {
         console.error('Error editing message:', error);
       }
-      toast.error('Failed to edit message');
+      toast.error(getActionErrorMessage(error, 'Failed to edit message'));
     } finally {
       setIsSubmitting(false);
     }
@@ -193,7 +197,7 @@ export const MessageActions: React.FC<MessageActionsComponentProps> = ({
       if (import.meta.env.DEV) {
         console.error('Error deleting message:', error);
       }
-      toast.error('Failed to delete message');
+      toast.error(getActionErrorMessage(error, 'Failed to delete message'));
     } finally {
       setIsSubmitting(false);
     }
@@ -209,7 +213,7 @@ export const MessageActions: React.FC<MessageActionsComponentProps> = ({
       if (import.meta.env.DEV) {
         console.error('Error updating pin state:', error);
       }
-      toast.error('Failed to update pin status');
+      toast.error(getActionErrorMessage(error, 'Failed to update pin status'));
     } finally {
       setIsSubmitting(false);
     }
