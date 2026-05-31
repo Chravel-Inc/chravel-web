@@ -2,7 +2,7 @@
 
 Current Phase 1 decision: **dictation-only**.
 
-The shipped Concierge voice UI uses browser Web Speech dictation through `useConciergeVoice` and `useWebSpeechVoice`. Realtime conversational voice paths (`livekit-token` and `create-openai-realtime-session`) remain in the repository for investigation, but they fail closed unless `REALTIME_VOICE_ENABLED=true` is explicitly set.
+The shipped Concierge voice UI uses browser Web Speech dictation through `useConciergeVoice` and `useWebSpeechVoice`. Realtime conversational voice paths (`livekit-token` and `create-openai-realtime-session`) remain in the repository for investigation, but they fail closed unless the `realtime_voice` feature flag is enabled in `public.feature_flags`.
 
 Before enabling realtime voice:
 

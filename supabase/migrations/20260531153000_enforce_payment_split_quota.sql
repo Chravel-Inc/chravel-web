@@ -17,18 +17,56 @@ DECLARE
   payment_id uuid;
   participant uuid;
   split_amount numeric;
+  v_auth_uid uuid := auth.uid();
   effective_plan text := 'free';
   payment_limit integer := 3;
   existing_payment_count integer := 0;
 BEGIN
+  IF v_auth_uid IS NULL THEN
+    RAISE EXCEPTION 'Authentication required';
+  END IF;
+
+  IF p_created_by IS NULL OR p_created_by <> v_auth_uid THEN
+    RAISE EXCEPTION 'Payment creator must match authenticated user';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM trip_members
+    WHERE trip_id = p_trip_id
+      AND user_id = v_auth_uid
+  ) THEN
+    RAISE EXCEPTION 'Not a member of this trip';
+  END IF;
+
   IF p_split_count IS NULL OR p_split_count <= 0 THEN
     RAISE EXCEPTION 'Payment split count must be greater than zero';
   END IF;
 
+  IF jsonb_typeof(p_split_participants) <> 'array'
+    OR jsonb_array_length(p_split_participants) <> p_split_count THEN
+    RAISE EXCEPTION 'Split participants must match split count';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM jsonb_array_elements_text(p_split_participants) AS participant_id(user_id)
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM trip_members
+      WHERE trip_id = p_trip_id
+        AND user_id = participant_id.user_id::uuid
+    )
+  ) THEN
+    RAISE EXCEPTION 'All split participants must be trip members';
+  END IF;
+
+  PERFORM pg_advisory_xact_lock(hashtext(p_trip_id), hashtext(v_auth_uid::text));
+
   SELECT COALESCE(ue.plan, 'free')
   INTO effective_plan
   FROM user_entitlements ue
-  WHERE ue.user_id = p_created_by
+  WHERE ue.user_id = v_auth_uid
     AND ue.plan <> 'free'
     AND (
       ue.status IN ('active', 'trialing', 'past_due')
@@ -62,7 +100,7 @@ BEGIN
     INTO existing_payment_count
     FROM trip_payment_messages
     WHERE trip_id = p_trip_id
-      AND created_by = p_created_by;
+      AND created_by = v_auth_uid;
 
     IF existing_payment_count >= payment_limit THEN
       RAISE EXCEPTION 'Payment request limit reached for current plan';
@@ -76,7 +114,7 @@ BEGIN
     split_participants, payment_methods, created_by
   ) VALUES (
     p_trip_id, p_amount, p_currency, p_description, p_split_count,
-    p_split_participants, p_payment_methods, p_created_by
+    p_split_participants, p_payment_methods, v_auth_uid
   ) RETURNING id INTO payment_id;
 
   FOR participant IN SELECT jsonb_array_elements_text(p_split_participants)::uuid
@@ -92,7 +130,7 @@ BEGIN
   VALUES (
     payment_id,
     'created',
-    p_created_by,
+    v_auth_uid,
     jsonb_build_object('amount', p_amount, 'currency', p_currency)
   );
 

@@ -37,8 +37,9 @@ export interface UpdateTripLinkParams {
 }
 
 export type TripLinkDeleteSource = 'chat' | 'manual' | 'places';
+export type TripLinkDeleteTable = 'trip_link_index' | 'trip_links';
 
-export function getTripLinkDeleteTable(source: TripLinkDeleteSource): 'trip_link_index' | 'trip_links' {
+export function getTripLinkDeleteTable(source: TripLinkDeleteSource): TripLinkDeleteTable {
   return source === 'manual' ? 'trip_links' : 'trip_link_index';
 }
 
@@ -390,9 +391,25 @@ export async function deleteTripLinkBySource(
   isDemoMode: boolean,
   options: { suppressToast?: boolean } = {},
 ): Promise<boolean> {
+  return deleteTripLinkFromTable(
+    linkId,
+    tripId,
+    getTripLinkDeleteTable(source),
+    isDemoMode,
+    options,
+  );
+}
+
+export async function deleteTripLinkFromTable(
+  linkId: string,
+  tripId: string,
+  deleteTable: TripLinkDeleteTable,
+  isDemoMode: boolean,
+  options: { suppressToast?: boolean } = {},
+): Promise<boolean> {
   console.info('[TripLinksService] Deleting trip link by source', {
     linkId,
-    source,
+    deleteTable,
     isDemoMode,
   });
 
@@ -412,9 +429,8 @@ export async function deleteTripLinkBySource(
   }
 
   try {
-    const table = getTripLinkDeleteTable(source);
     const { data: deleted, error } = await supabase
-      .from(table)
+      .from(deleteTable)
       .delete()
       .eq('id', linkId)
       .select('id');

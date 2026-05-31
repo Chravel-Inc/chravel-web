@@ -12,19 +12,28 @@ export const useTripMembers = (tripId?: string) => {
   const canRemoveMembers = useCallback(async (): Promise<boolean> => {
     const {
       data: { user },
+      error: authError,
     } = await supabase.auth.getUser();
+    if (authError) {
+      console.error('[useTripMembers] Failed to resolve auth user:', authError);
+      return false;
+    }
     if (!tripId || !user?.id) return false;
 
     // Check if user is creator
     if (tripCreatorId === user.id) return true;
 
     // Check if user is admin
-    const { data: adminData } = await supabase
+    const { data: adminData, error: adminError } = await supabase
       .from('trip_admins')
       .select('id')
       .eq('trip_id', tripId)
       .eq('user_id', user.id)
       .maybeSingle();
+    if (adminError) {
+      console.error('[useTripMembers] Failed to check trip admin permission:', adminError);
+      return false;
+    }
 
     return !!adminData;
   }, [tripId, tripCreatorId]);

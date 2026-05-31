@@ -10,7 +10,11 @@ import { MediaGridItem } from './MediaGridItem';
 import { SwipeableListItem } from './SwipeableListItem';
 import { MediaViewerModal, type MediaViewerItem } from '../media/MediaViewerModal';
 import { useAuth } from '@/hooks/useAuth';
-import { createTripLink, deleteTripLinkBySource, type TripLinkDeleteSource } from '@/services/tripLinksService';
+import {
+  createTripLink,
+  deleteTripLinkFromTable,
+  type TripLinkDeleteTable,
+} from '@/services/tripLinksService';
 import { toast } from 'sonner';
 import { mediaService, uploadTripMedia } from '@/services/mediaService';
 import { getUploadContentType } from '@/utils/mime';
@@ -130,7 +134,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
   const [linkToDelete, setLinkToDelete] = useState<{
     id: string;
     title: string;
-    source: TripLinkDeleteSource;
+    deleteTable: TripLinkDeleteTable;
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -436,7 +440,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
     }
   };
 
-  const handleDeleteLink = async (linkId: string, source: TripLinkDeleteSource) => {
+  const handleDeleteLink = async (linkId: string, deleteTable: TripLinkDeleteTable) => {
     if (!user?.id && !isDemoMode) {
       toast.error('Please sign in to delete');
       return;
@@ -452,7 +456,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
         return;
       }
 
-      const deleted = await deleteTripLinkBySource(linkId, tripId, source, isDemoMode, {
+      const deleted = await deleteTripLinkFromTable(linkId, tripId, deleteTable, isDemoMode, {
         suppressToast: true,
       });
       if (!deleted) throw new Error('Delete failed');
@@ -784,7 +788,11 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
                   <SwipeableListItem
                     key={link.id}
                     onDelete={() =>
-                      setLinkToDelete({ id: link.id, title: link.title, source: link.source })
+                      setLinkToDelete({
+                        id: link.id,
+                        title: link.title,
+                        deleteTable: link.deleteTable,
+                      })
                     }
                     className="rounded-xl"
                   >
@@ -894,7 +902,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
                 Cancel
               </button>
               <button
-                onClick={() => handleDeleteLink(linkToDelete.id, linkToDelete.source)}
+                onClick={() => handleDeleteLink(linkToDelete.id, linkToDelete.deleteTable)}
                 className="native-button bg-red-600 text-white py-3 rounded-xl font-medium flex items-center justify-center gap-2"
                 disabled={isDeleting}
               >

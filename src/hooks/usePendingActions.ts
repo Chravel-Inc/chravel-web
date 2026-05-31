@@ -100,19 +100,20 @@ export function usePendingActions(tripId: string, options: UsePendingActionsOpti
   const { data: pendingActions = [], isLoading } = useQuery({
     queryKey,
     queryFn: async (): Promise<PendingAction[]> => {
-      if (isDemoMode || !tripId) return [];
+      if (isDemoMode || !tripId || !user?.id) return [];
 
       const { data, error } = await supabase
         .from('trip_pending_actions')
         .select('*')
         .eq('trip_id', tripId)
+        .eq('user_id', user.id)
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       return (data || []) as PendingAction[];
     },
-    enabled: !!tripId && !isDemoMode,
+    enabled: !!tripId && !!user?.id && !isDemoMode,
     staleTime: 10_000,
     gcTime: 60_000,
     refetchOnWindowFocus: true,
@@ -134,6 +135,7 @@ export function usePendingActions(tripId: string, options: UsePendingActionsOpti
         .from('trip_pending_actions')
         .select('*')
         .eq('id', actionId)
+        .eq('user_id', user.id)
         .eq('status', 'pending')
         .single();
 
@@ -441,6 +443,7 @@ export function usePendingActions(tripId: string, options: UsePendingActionsOpti
           resolved_by: user.id,
         })
         .eq('id', actionId)
+        .eq('user_id', user.id)
         .eq('status', 'pending')
         .select()
         .single();
@@ -556,6 +559,7 @@ export function usePendingActions(tripId: string, options: UsePendingActionsOpti
           resolved_by: user.id,
         })
         .eq('id', actionId)
+        .eq('user_id', user.id)
         .eq('status', 'pending');
 
       if (error) throw error;
