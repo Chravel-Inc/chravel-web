@@ -290,10 +290,15 @@ export function usePendingActions(tripId: string, options: UsePendingActionsOpti
         }
 
         case 'addExpense': {
+          const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
           const rawParticipants = Array.isArray(payload.split_participants)
             ? (payload.split_participants as string[])
             : [];
-          const splitParticipants = rawParticipants.length > 0 ? rawParticipants : [user.id];
+          const splitParticipants =
+            rawParticipants.length > 0 &&
+            rawParticipants.every(participant => uuidPattern.test(participant))
+              ? rawParticipants
+              : [user.id];
           const splitCount = splitParticipants.length;
           const { error } = await (supabase.rpc as any)('create_payment_with_splits_v2', {
             p_trip_id: action.trip_id,

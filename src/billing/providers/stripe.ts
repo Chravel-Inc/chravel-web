@@ -87,6 +87,7 @@ export class StripeProvider extends BaseBillingProvider {
         body: {
           tier: tierKey,
           billing_cycle: request.billingCycle,
+          platform: 'web',
         },
       });
 
