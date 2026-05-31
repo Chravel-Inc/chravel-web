@@ -924,6 +924,18 @@
   }
 }
 
+/* AI Concierge: keep long markdown/links inside bubble width on mobile */
+.ai-markdown-content {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.ai-markdown-content pre,
+.ai-markdown-content code {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 /* AI Concierge: inline image grid (Gemini-like) when multiple images in markdown */
 .ai-markdown-content > a:has(img) {
   display: inline-block;
@@ -1453,7 +1465,9 @@
   /* Chat scroll container - no CSS smooth scroll to prevent iOS vibration during streaming */
   .chat-scroll-container {
     overflow-y: auto;
+    overflow-x: hidden;
     overscroll-behavior-y: contain;
+    overscroll-behavior-x: none;
     /* scroll-behavior: smooth removed - causes message vibration on iOS when combined with programmatic scrollTop */
     -webkit-overflow-scrolling: touch;
   }
