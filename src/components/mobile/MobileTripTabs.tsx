@@ -634,14 +634,19 @@ export const MobileTripTabs = ({
             return (
               <div
                 key={tab.id}
+                data-tab-panel={tab.id}
+                data-tab-active={isActive ? 'true' : 'false'}
                 style={{
                   display: isActive ? 'flex' : 'none',
                   flexDirection: 'column',
                   minHeight: 0,
-                  overflow: isActive ? 'auto' : 'hidden',
-                  WebkitOverflowScrolling: isActive ? 'touch' : undefined,
+                  // Child tabs (chat, concierge, media, etc.) own vertical scroll.
+                  // Outer overflow:auto caused horizontal pan + iOS touch routing that
+                  // blocked tab-bar taps while Concierge was open.
+                  overflow: 'hidden',
+                  pointerEvents: isActive ? 'auto' : 'none',
                 }}
-                className={isActive ? 'h-full flex-1 relative' : ''}
+                className={isActive ? 'h-full flex-1 relative min-w-0' : ''}
               >
                 {/* ⚡ Per-tab error boundary: errors stay on failing tab, no bounce-back */}
                 <div
