@@ -19,6 +19,9 @@ import {
   MapPin,
   TrendingUp,
 } from 'lucide-react';
+// Pricing/tier data from the central source of truth (billing/config.ts).
+import { SUBSCRIPTION_TIERS } from '@/types/pro';
+import { CONSUMER_PRICE_DISPLAY, TRIP_PASS_DISPLAY } from '@/billing/pricingDisplay';
 
 interface PricingTier {
   id: string;
@@ -117,9 +120,7 @@ const consumerTiers: PricingTier[] = [
 ];
 
 // Pro/Enterprise Tiers - Chravel Pro (Starter, Growth, Enterprise)
-// Import from central source of truth
-import { SUBSCRIPTION_TIERS } from '@/types/pro';
-import { CONSUMER_PRICE_DISPLAY, TRIP_PASS_DISPLAY } from '@/billing/pricingDisplay';
+// (SUBSCRIPTION_TIERS / pricing-display imports are hoisted to the top of the file.)
 
 const proTiers: PricingTier[] = [
   {
