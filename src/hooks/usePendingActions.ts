@@ -39,6 +39,29 @@ export interface PendingAction {
   resolved_by: string | null;
 }
 
+interface UsePendingActionsOptions {
+  autoConfirmOwnActions?: boolean;
+}
+
+const globalAutoConfirmedIds = new Set<string>();
+const globalAutoConfirmInFlightIds = new Set<string>();
+
+export function selectAutoConfirmPendingActions(
+  pendingActions: PendingAction[],
+  userId: string | undefined,
+  confirmedIds: ReadonlySet<string>,
+  inFlightIds: ReadonlySet<string>,
+): PendingAction[] {
+  if (!userId) return [];
+  return pendingActions.filter(
+    action =>
+      action.user_id === userId &&
+      action.status === 'pending' &&
+      !confirmedIds.has(action.id) &&
+      !inFlightIds.has(action.id),
+  );
+}
+
 type PendingActionToolName =
   | 'createTask'
   | 'updateTask'
@@ -60,10 +83,11 @@ function assertNeverToolName(toolName: never): never {
   throw new Error(`Unknown tool: ${toolName}`);
 }
 
-export function usePendingActions(tripId: string) {
+export function usePendingActions(tripId: string, options: UsePendingActionsOptions = {}) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
+  const autoConfirmOwnActions = options.autoConfirmOwnActions ?? false;
 
   // In-flight confirm guard: prevents the same actionId from being confirmed
   // twice when a user rapidly double-taps the confirm button before the
@@ -548,30 +572,38 @@ export function usePendingActions(tripId: string) {
 
   // Auto-confirm pending actions created by the current user.
   // Batch-process ALL self-owned pending actions in one tick (e.g. multi-tool messages
-  // that create both a calendar event AND a task). Each id is guarded by autoConfirmedIds
-  // so a single id is never confirmed twice across renders.
-  const autoConfirmedIds = useRef<Set<string>>(new Set());
+  // that create both a calendar event AND a task). Auto-confirm is intentionally owned
+  // by the trip shell, not by Concierge chat, so the same row cannot race across mounts.
   useEffect(() => {
+    if (!autoConfirmOwnActions) return;
     if (!user?.id || pendingActions.length === 0) return;
 
-    const selfPending = pendingActions.filter(
-      a => a.user_id === user.id && a.status === 'pending' && !autoConfirmedIds.current.has(a.id),
+    const selfPending = selectAutoConfirmPendingActions(
+      pendingActions,
+      user.id,
+      globalAutoConfirmedIds,
+      globalAutoConfirmInFlightIds,
     );
 
     if (selfPending.length === 0) return;
 
-    selfPending.forEach(a => autoConfirmedIds.current.add(a.id));
+    selfPending.forEach(a => {
+      globalAutoConfirmedIds.add(a.id);
+      globalAutoConfirmInFlightIds.add(a.id);
+    });
     void Promise.all(
       selfPending.map(a =>
         confirmMutation.mutateAsync(a.id).catch(err => {
           // Allow re-attempt on next tick if the confirm failed (e.g. transient RLS race)
-          autoConfirmedIds.current.delete(a.id);
+          globalAutoConfirmedIds.delete(a.id);
           if (import.meta.env.DEV) console.warn('[usePendingActions] auto-confirm failed', err);
+        }).finally(() => {
+          globalAutoConfirmInFlightIds.delete(a.id);
         }),
       ),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingActions, user?.id]);
+  }, [autoConfirmOwnActions, pendingActions, user?.id]);
 
   return {
     pendingActions,
