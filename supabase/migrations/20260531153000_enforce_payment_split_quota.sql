@@ -30,12 +30,7 @@ BEGIN
     RAISE EXCEPTION 'Payment creator must match authenticated user';
   END IF;
 
-  IF NOT EXISTS (
-    SELECT 1
-    FROM trip_members
-    WHERE trip_id = p_trip_id
-      AND user_id = v_auth_uid
-  ) THEN
+  IF NOT public.is_active_trip_member(v_auth_uid, p_trip_id) THEN
     RAISE EXCEPTION 'Not a member of this trip';
   END IF;
 
@@ -51,12 +46,7 @@ BEGIN
   IF EXISTS (
     SELECT 1
     FROM jsonb_array_elements_text(p_split_participants) AS participant_id(user_id)
-    WHERE NOT EXISTS (
-      SELECT 1
-      FROM trip_members
-      WHERE trip_id = p_trip_id
-        AND user_id = participant_id.user_id::uuid
-    )
+    WHERE NOT public.is_active_trip_member(participant_id.user_id::uuid, p_trip_id)
   ) THEN
     RAISE EXCEPTION 'All split participants must be trip members';
   END IF;
@@ -140,3 +130,91 @@ EXCEPTION
     RAISE EXCEPTION 'Payment creation failed: %', SQLERRM;
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION public.enforce_payment_request_quota()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_auth_uid uuid := auth.uid();
+  effective_plan text := 'free';
+  payment_limit integer := 3;
+  existing_payment_count integer := 0;
+BEGIN
+  IF v_auth_uid IS NULL THEN
+    RAISE EXCEPTION 'Authentication required';
+  END IF;
+
+  IF NEW.created_by IS NULL OR NEW.created_by <> v_auth_uid THEN
+    RAISE EXCEPTION 'Payment creator must match authenticated user';
+  END IF;
+
+  IF NOT public.is_active_trip_member(v_auth_uid, NEW.trip_id) THEN
+    RAISE EXCEPTION 'Not a member of this trip';
+  END IF;
+
+  PERFORM pg_advisory_xact_lock(hashtext(NEW.trip_id), hashtext(v_auth_uid::text));
+
+  SELECT COALESCE(ue.plan, 'free')
+  INTO effective_plan
+  FROM user_entitlements ue
+  WHERE ue.user_id = v_auth_uid
+    AND ue.plan <> 'free'
+    AND (
+      ue.status IN ('active', 'trialing', 'past_due')
+      OR (
+        ue.status = 'canceled'
+        AND ue.current_period_end IS NOT NULL
+        AND ue.current_period_end > now()
+      )
+    )
+  ORDER BY CASE ue.plan
+    WHEN 'pro-enterprise' THEN 6
+    WHEN 'pro-growth' THEN 5
+    WHEN 'pro-starter' THEN 4
+    WHEN 'frequent-chraveler' THEN 3
+    WHEN 'explorer' THEN 2
+    ELSE 1
+  END DESC
+  LIMIT 1;
+
+  payment_limit := CASE effective_plan
+    WHEN 'explorer' THEN 10
+    WHEN 'frequent-chraveler' THEN -1
+    WHEN 'pro-starter' THEN -1
+    WHEN 'pro-growth' THEN -1
+    WHEN 'pro-enterprise' THEN -1
+    ELSE 3
+  END;
+
+  IF payment_limit >= 0 THEN
+    SELECT COUNT(*)
+    INTO existing_payment_count
+    FROM trip_payment_messages
+    WHERE trip_id = NEW.trip_id
+      AND created_by = v_auth_uid;
+
+    IF existing_payment_count >= payment_limit THEN
+      RAISE EXCEPTION 'Payment request limit reached for current plan';
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS enforce_payment_request_quota ON public.trip_payment_messages;
+CREATE TRIGGER enforce_payment_request_quota
+  BEFORE INSERT ON public.trip_payment_messages
+  FOR EACH ROW
+  EXECUTE FUNCTION public.enforce_payment_request_quota();
+
+INSERT INTO public.feature_flags (key, enabled, description)
+VALUES (
+  'realtime_voice',
+  false,
+  'Realtime conversational Concierge voice. Current product path is dictation-only.'
+)
+ON CONFLICT (key) DO NOTHING;

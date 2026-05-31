@@ -290,16 +290,19 @@ export function usePendingActions(tripId: string, options: UsePendingActionsOpti
         }
 
         case 'addExpense': {
-          // trip_payment_messages.trip_id is TEXT (not UUID) per schema
-          const { error } = await (supabase as any).from('trip_payment_messages').insert({
-            trip_id: action.trip_id,
-            created_by: (payload.created_by as string) || user.id,
-            amount: payload.amount as number,
-            currency: (payload.currency as string) || 'USD',
-            description: payload.description as string,
-            split_count: (payload.split_count as number) || 1,
-            split_participants: (payload.split_participants as unknown[]) || [],
-            payment_methods: [],
+          const splitParticipants = (payload.split_participants as string[] | undefined) || [
+            user.id,
+          ];
+          const splitCount = (payload.split_count as number | undefined) || splitParticipants.length;
+          const { error } = await (supabase.rpc as any)('create_payment_with_splits_v2', {
+            p_trip_id: action.trip_id,
+            p_amount: payload.amount as number,
+            p_currency: (payload.currency as string) || 'USD',
+            p_description: payload.description as string,
+            p_split_count: splitCount,
+            p_split_participants: splitParticipants,
+            p_payment_methods: [],
+            p_created_by: user.id,
           });
           if (error) throw error;
           break;
