@@ -87,6 +87,11 @@ import {
   resolveCanceledTransition,
   resolveEntitlementTransition,
 } from './entitlementTransitions.ts';
+import {
+  extractRefundedPurchaseType,
+  resolvePaymentIntentId,
+  shouldRevokeTripPassOnRefund,
+} from './refundCorrelation.ts';
 
 /**
  * Log an entitlement change to the audit trail (best-effort — does not block).
@@ -259,7 +264,12 @@ serve(async req => {
         break;
 
       case 'charge.refunded':
-        await handleChargeRefunded(event.data.object as Stripe.Charge, supabaseClient, event.id);
+        await handleChargeRefunded(
+          event.data.object as Stripe.Charge,
+          supabaseClient,
+          stripe,
+          event.id,
+        );
         break;
 
       default:
@@ -317,11 +327,10 @@ async function handleCheckoutCompleted(
     return;
   }
 
-  // Update private_profiles with customer ID
-  await supabase
-    .from('private_profiles')
-    .upsert({ id: userId, stripe_customer_id: customerId })
-    .select();
+  // Link the Stripe customer to the user on their profile (keyed by user_id).
+  // NOTE: the `private_profiles` PII-separation table is not deployed; billing
+  // identifiers live on `profiles`. See docs/ACTIVE/PAYMENTS_AUDIT.md.
+  await supabase.from('profiles').update({ stripe_customer_id: customerId }).eq('user_id', userId);
 
   // Handle Trip Pass purchase
   if (purchaseType === 'pass') {
@@ -409,30 +418,30 @@ async function handleSubscriptionUpdated(
   const subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
   const tier = PRODUCT_TO_TIER[productId] || 'free';
 
-  // Find user by customer ID
+  // Find user by customer ID (billing identifiers live on `profiles`, keyed by user_id)
   const { data: profiles } = await supabase
-    .from('private_profiles')
-    .select('id')
+    .from('profiles')
+    .select('user_id')
     .eq('stripe_customer_id', customerId)
     .limit(1);
 
   if (!profiles || profiles.length === 0) {
-    logStep('Customer not found in private_profiles', { customerId });
+    logStep('Customer not found in profiles', { customerId });
     return;
   }
 
-  const userId = profiles[0].id;
+  const userId = profiles[0].user_id;
 
   // Read current entitlement for audit trail
   const currentEnt = await getCurrentEntitlement(supabase, userId, 'subscription');
 
-  // Update private_profiles with subscription details
+  // Persist the subscription id on the profile
   await supabase
-    .from('private_profiles')
+    .from('profiles')
     .update({
       stripe_subscription_id: subscription.id,
     })
-    .eq('id', userId);
+    .eq('user_id', userId);
 
   // Update public profile with subscription status
   const { error: profileError } = await supabase
@@ -561,8 +570,8 @@ async function handleSubscriptionDeleted(
   const customerId = subscription.customer as string;
 
   const { data: profiles } = await supabase
-    .from('private_profiles')
-    .select('id')
+    .from('profiles')
+    .select('user_id')
     .eq('stripe_customer_id', customerId)
     .limit(1);
 
@@ -571,17 +580,17 @@ async function handleSubscriptionDeleted(
     return;
   }
 
-  const userId = profiles[0].id;
+  const userId = profiles[0].user_id;
 
   // Read current entitlement for audit trail
   const currentEnt = await getCurrentEntitlement(supabase, userId, 'subscription');
 
   await supabase
-    .from('private_profiles')
+    .from('profiles')
     .update({
       stripe_subscription_id: null,
     })
-    .eq('id', userId);
+    .eq('user_id', userId);
 
   // FIX 5: Keep the subscription_end so we know when access actually expires.
   // The period end is honored: if it's in the future the user keeps access until
@@ -683,14 +692,14 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice, supabase: any
   const customerId = invoice.customer as string;
 
   const { data: profiles } = await supabase
-    .from('private_profiles')
-    .select('id')
+    .from('profiles')
+    .select('user_id')
     .eq('stripe_customer_id', customerId)
     .limit(1);
 
   if (!profiles || profiles.length === 0) return;
 
-  const userId = profiles[0].id;
+  const userId = profiles[0].user_id;
 
   // Read current entitlement for audit trail
   const currentEnt = await getCurrentEntitlement(supabase, userId, 'subscription');
@@ -738,7 +747,12 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice, supabase: any
   logStep('Payment failure recorded — plan retained with past_due status', { userId });
 }
 
-async function handleChargeRefunded(charge: Stripe.Charge, supabase: any, eventId: string) {
+async function handleChargeRefunded(
+  charge: Stripe.Charge,
+  supabase: any,
+  stripe: Stripe,
+  eventId: string,
+) {
   logStep('Processing charge refund', { chargeId: charge.id });
 
   const customerId = charge.customer as string;
@@ -748,8 +762,8 @@ async function handleChargeRefunded(charge: Stripe.Charge, supabase: any, eventI
   }
 
   const { data: profiles } = await supabase
-    .from('private_profiles')
-    .select('id')
+    .from('profiles')
+    .select('user_id')
     .eq('stripe_customer_id', customerId)
     .limit(1);
 
@@ -758,9 +772,41 @@ async function handleChargeRefunded(charge: Stripe.Charge, supabase: any, eventI
     return;
   }
 
-  const userId = profiles[0].id;
+  const userId = profiles[0].user_id;
 
-  // Check if this user has a Trip Pass — expire it on refund
+  // Only a refund of the *Trip Pass purchase itself* should revoke a pass.
+  // Trip Passes are bought via a one-time Checkout Session (mode: 'payment') whose
+  // metadata carries purchase_type='pass'; that metadata does NOT propagate to the
+  // Charge. So correlate the refunded charge back to its originating Checkout Session
+  // via the PaymentIntent. If the refund is for a subscription (or any other) charge
+  // on the same customer, leave the pass intact and let the subscription flows handle it.
+  const paymentIntentId = resolvePaymentIntentId(charge.payment_intent);
+
+  let refundedPurchaseType: string | null = null;
+  if (paymentIntentId) {
+    try {
+      const sessions = await stripe.checkout.sessions.list({
+        payment_intent: paymentIntentId,
+        limit: 1,
+      });
+      refundedPurchaseType = extractRefundedPurchaseType(sessions.data[0]);
+    } catch (err) {
+      logStep('Could not resolve checkout session for refunded charge', {
+        paymentIntentId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  if (!shouldRevokeTripPassOnRefund(refundedPurchaseType)) {
+    logStep('Refund is not a Trip Pass purchase — pass entitlement left intact', {
+      userId,
+      refundedPurchaseType,
+    });
+    return;
+  }
+
+  // Confirmed: the refunded charge was a Trip Pass purchase. Expire the active pass.
   const { data: passEntitlement } = await supabase
     .from('user_entitlements')
     .select('purchase_type, plan, status')
@@ -804,8 +850,6 @@ async function handleChargeRefunded(charge: Stripe.Charge, supabase: any, eventI
 
     logStep('Trip Pass revoked due to refund', { userId });
   } else {
-    logStep('Refund processed — no active pass found, subscription handler will manage', {
-      userId,
-    });
+    logStep('Pass refund processed — no active pass entitlement to revoke', { userId });
   }
 }
