@@ -38,9 +38,9 @@ const faqItems = [
       'Trips are free with limited features. Upgrade for unlimited trips and more. For Pro, only the admin pays and assigns seats — ideal for teams.',
   },
   {
-    question: "What's included with the free Pro Trip and Event?",
+    question: "What's included with the free Pro Trip and events?",
     answer:
-      'Every account gets 1 free Pro trip and 1 free Event — try all premium features, no commitment.',
+      'Every account gets 1 free Pro trip and up to 3 events. Unlimited events are included with Frequent Chraveler — no separate events plan needed.',
   },
   {
     question: 'Are Events included in my subscription?',

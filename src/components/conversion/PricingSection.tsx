@@ -261,9 +261,9 @@ const _faqItems = [
       'No! Only the trip creator or organization admin pays. All invited members join for free. For ChravelApp Pro, the admin pays and can assign seats to team members — ideal for organizations, sports teams, and tour management.',
   },
   {
-    question: "What's included with the free Pro Trip and Event?",
+    question: "What's included with the free Pro Trip and events?",
     answer:
-      "Every account gets 1 free ChravelApp Pro trip and 1 free Event to experience all premium features. It's our way of letting you try before you buy — no commitment required!",
+      "Every account gets 1 free ChravelApp Pro trip and up to 3 events to experience the platform. Need unlimited events? They're included with Frequent Chraveler — no separate events subscription required.",
   },
   {
     question: 'Are Events included in my subscription?',
