@@ -112,11 +112,14 @@ view_audit_logs`. (`impersonate` is **not** implemented.)
 
 ## 6. Super-admin (Chravel staff)
 
-`is_super_admin()` matches the caller's JWT email against a small founder
-allowlist (mirrored in `src/constants/admins.ts` / `_shared/superAdmins.ts`).
-It gates internal-admin routes and **read** access to `admin_audit_logs`. It does
-not grant write access to audit logs (those are append-only; see §7). Planned
-hardening: move to a DB-backed `super_admins` table with its own audit trail.
+`is_super_admin()` resolves the caller's JWT email against the DB-backed
+`super_admins` table (active = `revoked_at IS NULL`). Grants/revocations go through
+the `grant_super_admin` / `revoke_super_admin` SECURITY DEFINER functions (caller
+must already be a super admin) and every change is written to `admin_audit_logs`.
+The roster is readable only by super admins; `src/constants/admins.ts` /
+`_shared/superAdmins.ts` remain a client-side UX failsafe that should mirror the
+active roster. `is_super_admin()` gates internal-admin routes and **read** access
+to the audit logs; it does not grant write access (those are append-only; see §7).
 
 ---
 
@@ -126,18 +129,22 @@ Two audit tables in `public` (see `docs/ENTERPRISE_SECURITY_READINESS.md` for th
 full treatment):
 
 - **`admin_audit_logs`** — deliberate privileged actions (org seat assign/reclaim/
-  suspend/transfer via `log_org_admin_action`, moderation actions). **Append-only**:
-  a `BEFORE UPDATE/DELETE` trigger (`prevent_admin_audit_mutation`) blocks mutation
-  for *all* roles including `service_role`. Inserts restricted to `service_role`;
-  reads restricted to `is_super_admin()`.
+  suspend/transfer via `log_org_admin_action`, moderation, super-admin grant/revoke).
+  **Append-only**: `BEFORE UPDATE/DELETE/TRUNCATE` triggers block mutation for *all*
+  roles including `service_role`. Inserts restricted to `service_role`; reads
+  restricted to `is_super_admin()`. **Tamper-evident**: each row stores `prev_hash`
+  and `event_hash = sha256(prev_hash || payload)` ordered by a monotonic `seq`
+  (BEFORE INSERT trigger `compute_admin_audit_hash`); integrity is checked by
+  `verify_admin_audit_chain()` (empty result = intact).
 - **`security_audit_log`** — runtime security events (auth events, rate-limit hits,
-  token issuance: `stream.token_issued`, `livekit.token_issued`). Written by
-  `_shared/logSecurityEvent.ts` (and `log-auth-event`) using the table's real
-  columns `(user_id, action, table_name, record_id, metadata)`.
+  token issuance: `stream.token_issued`, `livekit.token_issued`). Append-only
+  (UPDATE/DELETE/TRUNCATE blocked). Written by `_shared/logSecurityEvent.ts` (and
+  `log-auth-event`) using the table's real columns
+  `(user_id, action, table_name, record_id, metadata)`.
 
-**Known future work (not yet built):** cryptographic hash-chaining
-(`prev_hash`/`event_hash`), a separate `audit` schema / external WORM sink, and a
-DB-backed super-admin table. Tracked in the SOC 2 readiness doc.
+**Known future work (not yet built):** an external write-once (WORM) log sink and an
+optional separate `audit` schema — design in the SOC 2 readiness doc. (Hash-chaining,
+append-only on both logs, and a DB-backed super-admin table are now implemented.)
 
 ---
 

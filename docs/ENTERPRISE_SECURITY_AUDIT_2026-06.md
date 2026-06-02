@@ -117,18 +117,26 @@ fixed the silently-failing audit writer, and added small edge hardening.
 
 ## 6. Remaining risks / tracked follow-ups
 
-- **R1 (Medium):** `security_audit_log` is not yet append-only at the trigger level
-  (only `admin_audit_logs` is). Add the same trigger pattern in a follow-up.
-- **R2 (Low):** `types.ts` regeneration for the newly-surfaced tables
-  (`admin_audit_logs`, `organization_seats/teams/role_policies/subscription_links`)
-  is deferred — **no `src/**` code references them yet**, so CI schema-drift stays
-  green; regenerate on the next routine types pass.
+**Resolved in the follow-up cycle (2026-06-02):**
+- **R1 — DONE:** `security_audit_log` is now append-only (UPDATE/DELETE/TRUNCATE
+  triggers), mirroring `admin_audit_logs`.
+- **R2 — DONE:** `src/integrations/supabase/types.ts` now includes
+  `admin_audit_logs`, `super_admins`, and `organization_seats/teams/role_policies/
+  subscription_links` (surgically injected; the file tracks the forward repo schema,
+  which is ahead of the live DB, so it was not full-regenerated from live).
+- **R4 — DONE:** super-admin access moved to a DB-backed `super_admins` table with
+  grant/revoke functions and an audit trigger; `is_super_admin()` now reads the table.
+- **R5 — PARTIAL:** hash-chaining (`prev_hash`/`event_hash` + `verify_admin_audit_chain()`)
+  is implemented on `admin_audit_logs`. The external WORM sink remains future work;
+  its design is documented in `docs/ENTERPRISE_SECURITY_READINESS.md`.
+  - *Note:* the first hash-chain implementation ordered by `(created_at, id)`, which
+    is non-deterministic for same-transaction rows; corrected to a monotonic `seq`
+    column (migration `20260602160000`) and verified intact in production.
+
+**Still open:**
 - **R3 (Low):** trip→organization relationship is app-level, not a DB FK. Consider
   enforcing once all legacy trips are backfilled (two-phase migration).
-- **R4 (Low):** super-admin is an email allowlist in code; move to a DB-backed
-  `super_admins` table with its own audit trail.
-- **R5 (SOC 2):** hash-chaining / external WORM log sink not yet implemented — see
-  `docs/ENTERPRISE_SECURITY_READINESS.md` §SOC 2.
+- **R6 (SOC 2):** external write-once (WORM) audit-log sink — designed, not built.
 
 ---
 

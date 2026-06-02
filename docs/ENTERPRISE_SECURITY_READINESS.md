@@ -89,32 +89,67 @@ role-based; event trips are organizer-only.
 Two separated, purpose-built logs in the database:
 
 - **`admin_audit_logs`** — deliberate privileged actions (e.g. organization seat
-  assign/reclaim/suspend/transfer, moderation). It is **append-only**: a database
-  trigger blocks UPDATE and DELETE for *every* role, including the service role and
-  the table owner. Writes are restricted to the service role; reads are restricted
-  to Chravel super-admins. (Verified in production: update and delete both rejected.)
+  assign/reclaim/suspend/transfer, moderation, super-admin grant/revoke). It is
+  **append-only**: triggers block UPDATE, DELETE, **and TRUNCATE** for *every* role,
+  including the service role and the table owner. Writes are restricted to the
+  service role; reads are restricted to Chravel super-admins. (Verified in
+  production: update, delete, and truncate all rejected.) It is also
+  **tamper-evident via hash-chaining**: every row stores `prev_hash` and
+  `event_hash = sha256(prev_hash || row payload)`, ordered by a monotonic `seq`.
+  Any insertion, reordering, or content edit breaks the chain and is detected by
+  the `verify_admin_audit_chain()` function (verified in production: an intact
+  chain returns zero breaks; a tampered chain is reported).
 - **`security_audit_log`** — runtime security events: authentication events,
   rate-limit hits, and capability-token issuance (`stream.token_issued`,
-  `livekit.token_issued`).
+  `livekit.token_issued`). Also **append-only** (UPDATE/DELETE/TRUNCATE blocked by
+  trigger).
 
 **What is logged:** auth events, member/role changes (via DB triggers), privileged
-org admin actions, token issuance, entitlement/billing changes, account-deletion
-processing, and webhook receipt.
+org admin actions, super-admin grants/revocations, token issuance, entitlement/
+billing changes, account-deletion processing, and webhook receipt.
 
 **Where stored & how separated:** both live in the application Postgres database in
 dedicated tables with their own RLS, distinct from mutable product tables. They are
 queryable by date, actor, action, resource, and outcome via the indexed columns.
 
 **Who can query:** Chravel super-admins (platform support), narrowly and itself
-auditable. Enterprise-admin org-scoped read access is on the roadmap.
+auditable. Super-admin access itself is now managed in a DB-backed `super_admins`
+table whose every grant/revoke is written to `admin_audit_logs`. Enterprise-admin
+org-scoped read access is on the roadmap.
 
-**Current limits / future SOC 2 improvements:** append-only enforcement currently
-covers `admin_audit_logs` (trigger) and is being extended to `security_audit_log`;
-cryptographic **hash-chaining** (`prev_hash`/`event_hash`) for tamper-evidence, a
-**separate `audit` schema**, and an **external write-once (WORM) log sink** are
-planned but not yet implemented.
+**Current limits / future SOC 2 improvements:** append-only + hash-chaining are
+implemented in-database. The remaining hardening is an **external write-once (WORM)
+log sink** and an optional **separate `audit` schema** (see design below).
 
 ---
+
+## External WORM log sink — design (planned)
+
+In-database append-only + hash-chaining makes tampering *detectable*. A
+write-once-read-many (WORM) sink makes the canonical copy *immutable even to a
+database superuser*, which is the bar SOC 2 auditors look for. Planned design:
+
+- **Source:** a Postgres `AFTER INSERT` trigger on `admin_audit_logs` (and
+  `security_audit_log`) enqueues each row — including its `event_hash` — onto a
+  durable queue (Supabase `pg_net`/`pgmq` or an edge function fan-out). The row is
+  never updated, so a one-shot forward ship is sufficient.
+- **Sink:** an object store configured for WORM/immutability:
+  - AWS S3 **Object Lock** in *Compliance* mode (retention N years; not even the
+    root account can delete before expiry), or GCS bucket retention-lock.
+  - Objects keyed by `{table}/{yyyy}/{mm}/{dd}/{seq}-{event_hash}.json` so the
+    object name itself carries the chain hash.
+- **Integrity:** a daily job recomputes the chain from the WORM copy and compares
+  it to `verify_admin_audit_chain()` on the live DB; divergence pages on-call. The
+  periodic chain head (`event_hash` of the latest row) is also anchored to an
+  append-only external notary (e.g. a monitoring log) so the live DB cannot be
+  rolled back undetectably.
+- **Access:** the WORM bucket is write-only for the shipper identity and
+  read-only for auditors; no delete permission is granted to any application role.
+- **Failure mode:** shipping is best-effort and **fail-open for the app** (never
+  blocks a privileged action) but **fail-loud for ops** (queue depth / ship-lag
+  alerts), so a sink outage is visible without degrading the product.
+
+This is not yet implemented; the in-database controls above are the current state.
 
 ## What SOC 2 controls are supported today?
 
@@ -140,8 +175,9 @@ This is a **readiness foundation**, not certification. Remaining work:
 - Periodic, evidenced access reviews (org membership + super-admin).
 - Documented incident-response plan and runbooks.
 - Backup / disaster-recovery evidence and testing cadence.
-- Hash-chaining + external WORM audit-log sink; extend append-only enforcement to
-  `security_audit_log`; DB-backed super-admin table.
+- External WORM audit-log sink (design above). *Done in-database this cycle:
+  append-only on both audit tables, hash-chaining + verifier on `admin_audit_logs`,
+  and a DB-backed, audited `super_admins` table.*
 - Third-party penetration test.
 - Continuous security monitoring/alerting.
 - Engagement with a SOC 2 auditor and the observation/audit period.
