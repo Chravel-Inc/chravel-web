@@ -81,8 +81,9 @@ export const FooterSection = () => {
                   Android (Play Store)
                 </a>
               </li>
-
+            </ul>
           </div>
+
 
           {/* Company Links */}
           <div className="space-y-4">
