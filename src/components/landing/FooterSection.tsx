@@ -78,7 +78,7 @@ export const FooterSection = () => {
                   rel="noopener noreferrer"
                   className="text-foreground hover:text-primary transition-colors"
                 >
-                  Android (Play Store)
+                  Android Beta (Play Store)
                 </a>
               </li>
             </ul>
