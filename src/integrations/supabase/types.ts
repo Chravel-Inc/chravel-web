@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_logs: {
+        Row: {
+          action: string
+          admin_id: string | null
+          created_at: string
+          event_hash: string | null
+          id: string
+          new_state: Json | null
+          old_state: Json | null
+          prev_hash: string | null
+          seq: number
+          target_user_id: string | null
+          trip_id: string | null
+        }
+        Insert: {
+          action: string
+          admin_id?: string | null
+          created_at?: string
+          event_hash?: string | null
+          id?: string
+          new_state?: Json | null
+          old_state?: Json | null
+          prev_hash?: string | null
+          seq?: never
+          target_user_id?: string | null
+          trip_id?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string | null
+          created_at?: string
+          event_hash?: string | null
+          id?: string
+          new_state?: Json | null
+          old_state?: Json | null
+          prev_hash?: string | null
+          seq?: never
+          target_user_id?: string | null
+          trip_id?: string | null
+        }
+        Relationships: []
+      }
       advertisers: {
         Row: {
           company_email: string
@@ -1831,6 +1873,211 @@ export type Database = {
           },
         ]
       }
+      organization_role_policies: {
+        Row: {
+          created_at: string
+          id: string
+          organization_id: string
+          policy: Json
+          role: Database["public"]["Enums"]["org_member_role"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          organization_id: string
+          policy?: Json
+          role: Database["public"]["Enums"]["org_member_role"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          organization_id?: string
+          policy?: Json
+          role?: Database["public"]["Enums"]["org_member_role"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_role_policies_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_seats: {
+        Row: {
+          assigned_at: string | null
+          assigned_member_id: string | null
+          created_at: string
+          id: string
+          organization_id: string
+          revoked_at: string | null
+          seat_key: string
+          seat_status: string
+          suspended_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_member_id?: string | null
+          created_at?: string
+          id?: string
+          organization_id: string
+          revoked_at?: string | null
+          seat_key: string
+          seat_status?: string
+          suspended_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_member_id?: string | null
+          created_at?: string
+          id?: string
+          organization_id?: string
+          revoked_at?: string | null
+          seat_key?: string
+          seat_status?: string
+          suspended_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_seats_assigned_member_id_fkey"
+            columns: ["assigned_member_id"]
+            isOneToOne: false
+            referencedRelation: "organization_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_seats_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_subscription_links: {
+        Row: {
+          billing_record_id: string | null
+          created_at: string
+          external_customer_id: string | null
+          metadata: Json
+          organization_id: string
+          provider: string
+          provider_subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          billing_record_id?: string | null
+          created_at?: string
+          external_customer_id?: string | null
+          metadata?: Json
+          organization_id: string
+          provider?: string
+          provider_subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          billing_record_id?: string | null
+          created_at?: string
+          external_customer_id?: string | null
+          metadata?: Json
+          organization_id?: string
+          provider?: string
+          provider_subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_subscription_links_billing_record_id_fkey"
+            columns: ["billing_record_id"]
+            isOneToOne: false
+            referencedRelation: "organization_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_subscription_links_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_team_members: {
+        Row: {
+          created_at: string
+          organization_member_id: string
+          team_id: string
+        }
+        Insert: {
+          created_at?: string
+          organization_member_id: string
+          team_id: string
+        }
+        Update: {
+          created_at?: string
+          organization_member_id?: string
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_team_members_organization_member_id_fkey"
+            columns: ["organization_member_id"]
+            isOneToOne: false
+            referencedRelation: "organization_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "organization_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_teams: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_teams_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           created_at: string
@@ -2655,6 +2902,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      super_admins: {
+        Row: {
+          email: string
+          granted_at: string
+          granted_by: string | null
+          id: string
+          note: string | null
+          revoked_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          email: string
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          note?: string | null
+          revoked_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          email?: string
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          note?: string | null
+          revoked_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       task_assignments: {
         Row: {
@@ -4460,6 +4737,18 @@ export type Database = {
       }
     }
     Views: {
+      billing_entitlement_reconciliation_candidates: {
+        Row: {
+          current_period_end: string | null
+          plan: string | null
+          purchase_type: string | null
+          status: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
       campaigns_public: {
         Row: {
           description: string | null
@@ -4649,6 +4938,27 @@ export type Database = {
     }
     Functions: {
       approve_join_request: { Args: { _request_id: string }; Returns: Json }
+      assign_org_seat: {
+        Args: { _member_id: string; _org_id: string; _seat_key: string }
+        Returns: {
+          assigned_at: string | null
+          assigned_member_id: string | null
+          created_at: string
+          id: string
+          organization_id: string
+          revoked_at: string | null
+          seat_key: string
+          seat_status: string
+          suspended_at: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "organization_seats"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       assign_trip_role: {
         Args: {
           _role_id: string
@@ -4846,6 +5156,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      grant_super_admin: {
+        Args: { _email: string; _note?: string }
+        Returns: undefined
+      }
       has_admin_permission: {
         Args: { _permission: string; _trip_id: string; _user_id: string }
         Returns: boolean
@@ -4901,12 +5215,17 @@ export type Database = {
         Args: { _org_id: string; _user_id: string }
         Returns: boolean
       }
+      is_super_admin: { Args: never; Returns: boolean }
       is_trip_admin: {
         Args: { _trip_id: string; _user_id: string }
         Returns: boolean
       }
       is_trip_co_member: {
         Args: { target_user_id: string; viewer_id: string }
+        Returns: boolean
+      }
+      is_trip_creator: {
+        Args: { _trip_id: string; _user_id: string }
         Returns: boolean
       }
       is_trip_member: {
@@ -4937,6 +5256,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      log_org_admin_action: {
+        Args: {
+          _action: string
+          _new_state: Json
+          _old_state: Json
+          _org_id: string
+          _target_user_id: string
+        }
+        Returns: undefined
+      }
       mark_broadcast_viewed: {
         Args: { p_broadcast_id: string; p_user_id: string }
         Returns: undefined
@@ -4961,6 +5290,27 @@ export type Database = {
         Args: { _target_user_id: string; _trip_id: string }
         Returns: Json
       }
+      reclaim_org_seat: {
+        Args: { _org_id: string; _seat_key: string }
+        Returns: {
+          assigned_at: string | null
+          assigned_member_id: string | null
+          created_at: string
+          id: string
+          organization_id: string
+          revoked_at: string | null
+          seat_key: string
+          seat_status: string
+          suspended_at: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "organization_seats"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       reject_join_request: { Args: { _request_id: string }; Returns: Json }
       remove_user_from_role: {
         Args: { _role_id: string; _trip_id: string; _user_id: string }
@@ -4970,6 +5320,7 @@ export type Database = {
         Args: { p_poll_id: string; p_user_id: string }
         Returns: undefined
       }
+      revoke_super_admin: { Args: { _email: string }; Returns: undefined }
       send_notification: {
         Args: {
           p_message: string
@@ -4989,6 +5340,27 @@ export type Database = {
         }
         Returns: boolean
       }
+      suspend_org_seat: {
+        Args: { _org_id: string; _seat_key: string }
+        Returns: {
+          assigned_at: string | null
+          assigned_member_id: string | null
+          created_at: string
+          id: string
+          organization_id: string
+          revoked_at: string | null
+          seat_key: string
+          seat_status: string
+          suspended_at: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "organization_seats"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       toggle_task_status: {
         Args: {
           p_completed: boolean
@@ -4997,6 +5369,31 @@ export type Database = {
           p_user_id: string
         }
         Returns: boolean
+      }
+      transfer_org_seat: {
+        Args: {
+          _from_member_id: string
+          _org_id: string
+          _to_member_id: string
+        }
+        Returns: {
+          assigned_at: string | null
+          assigned_member_id: string | null
+          created_at: string
+          id: string
+          organization_id: string
+          revoked_at: string | null
+          seat_key: string
+          seat_status: string
+          suspended_at: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "organization_seats"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       update_trip_basecamp_with_version: {
         Args: {
@@ -5013,6 +5410,13 @@ export type Database = {
       users_share_trip: {
         Args: { target_id: string; viewer_id: string }
         Returns: boolean
+      }
+      verify_admin_audit_chain: {
+        Args: never
+        Returns: {
+          broken_at_id: string
+          reason: string
+        }[]
       }
       vote_on_poll: {
         Args: {
