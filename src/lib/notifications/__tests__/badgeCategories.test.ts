@@ -31,6 +31,11 @@ describe('badgeCategories', () => {
       ).toBe(true);
     });
 
+    it('counts trip acceptance from the alternate writer that sets type="join_approved"', () => {
+      // edge approve-join-request writes type='join_approved' without metadata.action.
+      expect(isBadgeCountable({ type: 'join_approved' }, CHAT_OFF)).toBe(true);
+    });
+
     it('does NOT count polls, tasks, calendar, or payments', () => {
       expect(isBadgeCountable({ type: 'poll_vote' }, CHAT_ON)).toBe(false);
       expect(isBadgeCountable({ type: 'task_assigned' }, CHAT_ON)).toBe(false);

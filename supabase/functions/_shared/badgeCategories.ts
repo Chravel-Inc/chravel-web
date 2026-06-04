@@ -23,6 +23,9 @@ export const BADGE_NOTIFICATION_TYPES = [
   'basecamp',
   'basecamp_update',
   'trip_update',
+  // Trip acceptance from the alternate edge writer, which sets type='join_approved'
+  // (the canonical RPC sets type='success' + metadata.action — matched separately below).
+  'join_approved',
 ] as const;
 
 /** `metadata.action` marker for an approved join request (trip acceptance). */
@@ -37,13 +40,17 @@ function buildBadgeOrFilter(chatEnabled: boolean): string {
 
 /**
  * Count the recipient's unread, visible, badge-countable notifications.
- * Returns 0 on any error so a count failure never blocks delivery.
+ *
+ * Returns `null` (NOT 0) on any error so callers can tell "unknown count" apart
+ * from "genuinely zero unread". Sending an erroneous 0 would clear the OS icon
+ * while unread badge-eligible notifications still exist; callers must omit the
+ * badge field on `null` to leave the existing badge untouched.
  */
 export async function computeBadgeCount(
   supabase: SupabaseClient,
   userId: string,
   prefs: NotificationPreferences,
-): Promise<number> {
+): Promise<number | null> {
   try {
     const { count, error } = await supabase
       .from('notifications')
@@ -55,11 +62,11 @@ export async function computeBadgeCount(
 
     if (error) {
       console.warn('[badgeCategories] computeBadgeCount failed:', error.message);
-      return 0;
+      return null;
     }
-    return count ?? 0;
+    return count ?? null;
   } catch (err) {
     console.warn('[badgeCategories] computeBadgeCount threw:', err);
-    return 0;
+    return null;
   }
 }

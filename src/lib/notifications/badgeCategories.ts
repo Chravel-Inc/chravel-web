@@ -26,6 +26,9 @@ export const BADGE_NOTIFICATION_TYPES = [
   'basecamp',
   'basecamp_update',
   'trip_update',
+  // Trip acceptance from the alternate edge writer, which sets type='join_approved'
+  // (the canonical RPC sets type='success' + metadata.action — matched separately below).
+  'join_approved',
 ] as const;
 
 /** `metadata.action` marker for an approved join request (trip acceptance). */

@@ -616,7 +616,9 @@ serve(async req => {
 
     // Cache the app-icon badge count per recipient — multiple deliveries in this
     // batch can share a recipient, so compute the count query at most once each.
-    const badgeCountByUser = new Map<string, number>();
+    // `null` means the count query failed (unknown) — we omit the badge rather
+    // than sending 0, which would wrongly clear the icon.
+    const badgeCountByUser = new Map<string, number | null>();
 
     for (const delivery of deliveries) {
       const notification = notificationById.get(delivery.notification_id);
@@ -691,11 +693,15 @@ serve(async req => {
         const providerIds: string[] = [];
 
         // App-icon badge count (category-filtered unread total) for this recipient.
+        // `undefined` = not yet computed; `null` = computed but query failed (unknown).
         let badgeCount = badgeCountByUser.get(userId);
         if (badgeCount === undefined) {
           badgeCount = await computeBadgeCount(supabase, userId, prefs);
           badgeCountByUser.set(userId, badgeCount);
         }
+        // Only forward a concrete number; on unknown we omit the badge entirely so
+        // a transient count failure can't clear a still-valid icon badge.
+        const badgeValue = typeof badgeCount === 'number' ? badgeCount : undefined;
 
         // 1. Deliver to FCM if available
         if (fcmTokens.length > 0) {
@@ -707,9 +713,9 @@ serve(async req => {
               notificationId: notification.id,
               type: notification.type || 'notification',
               tripId: notification.trip_id,
-              badgeCount,
+              badgeCount: badgeValue,
             },
-            badgeCount,
+            badgeValue,
           );
           if (pushResult.ok) {
             pushSucceeded = true;
@@ -734,7 +740,8 @@ serve(async req => {
                   tripId: notification.trip_id,
                   type: notification.type,
                   // SW reads this to update the PWA app-icon badge (Web Badging API).
-                  badgeCount,
+                  // Omitted when the count is unknown so the SW leaves the badge as-is.
+                  badgeCount: badgeValue,
                 },
               },
               vapidPublicKey,
