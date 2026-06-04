@@ -73,7 +73,7 @@ export const FooterSection = () => {
               </li>
               <li>
                 <a
-                  href="https://play.google.com/store/apps/details?id=com.chravel.app"
+                  href="https://play.google.com/apps/testing/com.chravel.app"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-foreground hover:text-primary transition-colors"
