@@ -7,6 +7,7 @@ import {
 } from '../../services/userPreferencesService';
 import { useToast } from '../../hooks/use-toast';
 import { usePushPreferenceToggle } from '@/hooks/usePushPreferenceToggle';
+import { TestNotificationButton } from '@/components/notifications/TestNotificationButton';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { NotificationPreviewPanel } from '@/components/dev/NotificationPreviewPanel';
 import { getTripNotificationPreferenceCategories } from '@/components/settings/tripNotificationPreferenceCategories';
@@ -309,6 +310,15 @@ export const ConsumerNotificationsSection = () => {
             </div>
             {renderToggle('push', notificationSettings.push, isUpdatingPush)}
           </div>
+
+          {notificationSettings.push && (
+            <div className="px-3">
+              <TestNotificationButton />
+              <p className="mt-1 text-xs text-gray-500">
+                Sends a test notification to this device and shows the app-icon badge.
+              </p>
+            </div>
+          )}
 
           <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
             <div className="flex items-center gap-3">
