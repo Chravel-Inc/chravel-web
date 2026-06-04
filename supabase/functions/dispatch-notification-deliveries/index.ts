@@ -18,6 +18,7 @@ import { sendWebPushNotification, type WebPushSubscription } from '../_shared/we
 import {
   buildNotificationContent,
   type EmailContent,
+  type PushContent,
   type NotificationContentType,
   type TripContext,
 } from '../_shared/notificationContentBuilder.ts';
@@ -583,9 +584,34 @@ serve(async req => {
         // includes the notification being delivered). Falls back to 1.
         const badgeCount = unreadByUser.get(userId) ?? 1;
 
+        // Per-type push copy: use the centralized content builder (same source as
+        // email) so each notification type has polished, contextual title/body.
+        // Falls back to the caller-provided title/message for unmapped types.
+        let pushTitle = notification.title;
+        let pushBody = notification.message;
+        const pushContentType = categoryToContentType(category, metadata);
+        if (pushContentType) {
+          const pushTripCtx = buildTripContextFromRow(notification, tripById, metadata);
+          const pushActorId = getActorUserId(metadata);
+          const pushActorName =
+            (typeof metadata.sender_name === 'string' && metadata.sender_name) ||
+            (typeof metadata.requester_name === 'string' && metadata.requester_name) ||
+            getDisplayName(pushActorId ? profileByUserId.get(pushActorId) : undefined);
+          const pushContent = buildNotificationContent({
+            type: pushContentType,
+            channel: 'push',
+            tripContext: pushTripCtx,
+            actorName: pushActorName,
+            count: typeof metadata.count === 'number' ? metadata.count : undefined,
+            extra: { tripId: notification.trip_id || undefined },
+          }) as PushContent;
+          pushTitle = pushContent.title;
+          pushBody = pushContent.body;
+        }
+
         // 1. Deliver to FCM if available
         if (fcmTokens.length > 0) {
-          const pushResult = await sendPush(fcmTokens, notification.title, notification.message, {
+          const pushResult = await sendPush(fcmTokens, pushTitle, pushBody, {
             notificationId: notification.id,
             type: notification.type || 'notification',
             tripId: notification.trip_id,
@@ -606,8 +632,8 @@ serve(async req => {
             const webResult = await sendWebPushNotification(
               sub,
               {
-                title: notification.title,
-                body: notification.message,
+                title: pushTitle,
+                body: pushBody,
                 tag: `notif-${notification.id}`,
                 data: {
                   notificationId: notification.id,
