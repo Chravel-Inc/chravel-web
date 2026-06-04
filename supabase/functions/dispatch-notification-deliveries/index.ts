@@ -474,6 +474,19 @@ serve(async req => {
 
       summary.processed++;
 
+      // Defensive: push + email are the only supported channels. A non-push/email
+      // delivery (e.g. a historical channel='sms' row queued before the SMS-removal
+      // migration marked it skipped) is claimed as 'processing' by the RPC; mark it
+      // skipped here so it never gets stuck or double-counted in the summary.
+      if ((channel as string) !== 'push' && (channel as string) !== 'email') {
+        await markDelivery(supabase, delivery.id, {
+          status: 'skipped',
+          error: `unsupported_channel:${String(channel)}`,
+          attempts: delivery.attempts + 1,
+        });
+        continue;
+      }
+
       const basePreferenceDecision = enforcePreferenceAtSendTime(channel, category, prefs);
       if (!basePreferenceDecision.allow && basePreferenceDecision.reason === 'category_disabled') {
         await markDelivery(supabase, delivery.id, {
