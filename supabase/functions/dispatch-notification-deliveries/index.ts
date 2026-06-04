@@ -45,9 +45,9 @@ interface NotificationRow {
 interface DeliveryRow {
   id: string;
   notification_id: string;
-  recipient_user_id: string;
   channel: DeliveryChannel;
-  attempts: number;
+  attempt_count: number;
+  max_attempts?: number;
 }
 
 interface ProfileRow {
@@ -475,7 +475,7 @@ serve(async req => {
       processed: 0,
       sent: { push: 0, email: 0 },
       failed: { push: 0, email: 0 },
-      skipped: { push: 0, email: 0 },
+      cancelled: { push: 0, email: 0 },
       deferred: 0,
     };
 
@@ -484,8 +484,9 @@ serve(async req => {
       if (!notification) {
         await markDelivery(supabase, delivery.id, {
           status: 'failed',
-          error: 'Missing notification row',
-          attempts: delivery.attempts + 1,
+          error_message: 'Missing notification row',
+          attempt_count: delivery.attempt_count + 1,
+          last_attempted_at: new Date().toISOString(),
         });
         summary.processed++;
         summary.failed[delivery.channel]++;
@@ -506,9 +507,9 @@ serve(async req => {
       // skipped here so it never gets stuck or double-counted in the summary.
       if ((channel as string) !== 'push' && (channel as string) !== 'email') {
         await markDelivery(supabase, delivery.id, {
-          status: 'skipped',
-          error: `unsupported_channel:${String(channel)}`,
-          attempts: delivery.attempts + 1,
+          status: 'cancelled',
+          error_message: `unsupported_channel:${String(channel)}`,
+          attempt_count: delivery.attempt_count + 1,
         });
         continue;
       }
@@ -516,11 +517,11 @@ serve(async req => {
       const basePreferenceDecision = enforcePreferenceAtSendTime(channel, category, prefs);
       if (!basePreferenceDecision.allow && basePreferenceDecision.reason === 'category_disabled') {
         await markDelivery(supabase, delivery.id, {
-          status: 'skipped',
-          error: `category_disabled:${category || 'unknown'}`,
-          attempts: delivery.attempts + 1,
+          status: 'cancelled',
+          error_message: `category_disabled:${category || 'unknown'}`,
+          attempt_count: delivery.attempt_count + 1,
         });
-        summary.skipped[channel]++;
+        summary.cancelled[channel]++;
         await logDeliveryAttempt(supabase, {
           userId,
           channel,
@@ -545,7 +546,7 @@ serve(async req => {
         const nextAttemptAt = new Date(Date.now() + delayMinutes * 60 * 1000).toISOString();
         await markDelivery(supabase, delivery.id, {
           status: 'queued',
-          error: 'quiet_hours_deferred',
+          error_message: 'quiet_hours_deferred',
           next_attempt_at: nextAttemptAt,
         });
         summary.deferred++;
@@ -555,11 +556,11 @@ serve(async req => {
       if (channel === 'push') {
         if (!basePreferenceDecision.allow) {
           await markDelivery(supabase, delivery.id, {
-            status: 'skipped',
-            error: 'push_disabled',
-            attempts: delivery.attempts + 1,
+            status: 'cancelled',
+            error_message: 'push_disabled',
+            attempt_count: delivery.attempt_count + 1,
           });
-          summary.skipped.push++;
+          summary.cancelled.push++;
           continue;
         }
 
@@ -568,11 +569,11 @@ serve(async req => {
 
         if (fcmTokens.length === 0 && webPushSubs.length === 0) {
           await markDelivery(supabase, delivery.id, {
-            status: 'skipped',
-            error: 'no_push_targets',
-            attempts: delivery.attempts + 1,
+            status: 'cancelled',
+            error_message: 'no_push_targets',
+            attempt_count: delivery.attempt_count + 1,
           });
-          summary.skipped.push++;
+          summary.cancelled.push++;
           continue;
         }
 
@@ -672,9 +673,10 @@ serve(async req => {
           await markDelivery(supabase, delivery.id, {
             status: 'sent',
             provider_message_id: providerIds.join(','),
-            error: null,
+            error_message: null,
             sent_at: new Date().toISOString(),
-            attempts: delivery.attempts + 1,
+            attempt_count: delivery.attempt_count + 1,
+            last_attempted_at: new Date().toISOString(),
           });
           summary.sent.push++;
           await logDeliveryAttempt(supabase, {
@@ -688,8 +690,9 @@ serve(async req => {
         } else {
           await markDelivery(supabase, delivery.id, {
             status: 'failed',
-            error: pushError || 'push_delivery_failed',
-            attempts: delivery.attempts + 1,
+            error_message: pushError || 'push_delivery_failed',
+            attempt_count: delivery.attempt_count + 1,
+            last_attempted_at: new Date().toISOString(),
           });
           summary.failed.push++;
           await logDeliveryAttempt(supabase, {
@@ -708,22 +711,22 @@ serve(async req => {
       if (channel === 'email') {
         if (!basePreferenceDecision.allow) {
           await markDelivery(supabase, delivery.id, {
-            status: 'skipped',
-            error: 'email_disabled',
-            attempts: delivery.attempts + 1,
+            status: 'cancelled',
+            error_message: 'email_disabled',
+            attempt_count: delivery.attempt_count + 1,
           });
-          summary.skipped.email++;
+          summary.cancelled.email++;
           continue;
         }
 
         const recipientEmail = profileByUserId.get(userId)?.email?.trim();
         if (!recipientEmail) {
           await markDelivery(supabase, delivery.id, {
-            status: 'skipped',
-            error: 'missing_email',
-            attempts: delivery.attempts + 1,
+            status: 'cancelled',
+            error_message: 'missing_email',
+            attempt_count: delivery.attempt_count + 1,
           });
-          summary.skipped.email++;
+          summary.cancelled.email++;
           continue;
         }
 
@@ -762,9 +765,10 @@ serve(async req => {
           await markDelivery(supabase, delivery.id, {
             status: 'sent',
             provider_message_id: emailResult.providerMessageId || null,
-            error: null,
+            error_message: null,
             sent_at: new Date().toISOString(),
-            attempts: delivery.attempts + 1,
+            attempt_count: delivery.attempt_count + 1,
+            last_attempted_at: new Date().toISOString(),
           });
           summary.sent.email++;
           await logDeliveryAttempt(supabase, {
@@ -779,8 +783,9 @@ serve(async req => {
         } else {
           await markDelivery(supabase, delivery.id, {
             status: 'failed',
-            error: emailResult.error || 'email_delivery_failed',
-            attempts: delivery.attempts + 1,
+            error_message: emailResult.error || 'email_delivery_failed',
+            attempt_count: delivery.attempt_count + 1,
+            last_attempted_at: new Date().toISOString(),
           });
           summary.failed.email++;
           await logDeliveryAttempt(supabase, {

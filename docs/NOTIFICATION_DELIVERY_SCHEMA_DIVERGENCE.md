@@ -1,6 +1,23 @@
 # Notification Delivery: repo ↔ production schema divergence (BLOCKER for push)
 
-**Date:** 2026-06-04 · **Status:** needs a team decision before push can work · **Severity:** high
+**Date:** 2026-06-04 · **Status:** Option A implemented in-branch — needs review + deploy + device verification · **Severity:** high
+
+> **Update:** Option A (production schema is canonical) has been implemented on this
+> branch and is ready for a **reviewed deploy** (no blind prod DDL):
+> - `supabase/migrations/20260604170000_notification_fanout_prod_schema.sql` — adds the
+>   `UNIQUE(notification_id, channel)` index + the `queue_notification_deliveries()`
+>   function + `AFTER INSERT` trigger, inserting only columns that exist in prod.
+> - `supabase/functions/dispatch-notification-deliveries/index.ts` — realigned to the
+>   prod schema: `recipient_user_id`→derived from `notifications.user_id`,
+>   `attempts`→`attempt_count`/`max_attempts`, `error`→`error_message`,
+>   `'skipped'`→`'cancelled'`, dropped `dead_lettered_at`; badges/quiet-hours/per-type
+>   copy preserved. `notification_logs` writes were already prod-compatible.
+> - **Deploy the migration and the function together**, then verify per the runbook.
+>   Still required: `VAPID_*`/`VITE_VAPID_PUBLIC_KEY`/FCM `VERTEX_PROJECT_ID` secrets,
+>   and users registering for push (the web-push subscription fix is in this branch).
+> - **Open question to confirm before deploy:** how prod's `notification_deliveries`
+>   table was originally created (the source of `attempt_count`/`recipient`), to be
+>   certain prod's schema is intentional and there isn't a competing canonical design.
 
 ## TL;DR
 
