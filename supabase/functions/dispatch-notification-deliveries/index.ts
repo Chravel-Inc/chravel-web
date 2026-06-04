@@ -4,28 +4,15 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 import { sendFcmV1, toFcmData } from '../_shared/fcmV1.ts';
 import {
   DEFAULT_NOTIFICATION_PREFERENCES,
-  getMinutesUntilQuietHoursEnd,
-  isQuietHours,
   normalizeCategory,
   type NotificationCategory,
   type NotificationPreferences,
 } from '../_shared/notificationUtils.ts';
 import {
-  computeRetryPolicy,
   enforcePreferenceAtSendTime,
   type DeliveryChannel,
 } from '../_shared/notificationDispatchPolicy.ts';
-import {
-  formatTimeForTimezone,
-  generateSmsMessage,
-  SMS_APP_BASE_URL,
-  type SmsTemplateData,
-} from '../_shared/smsTemplates.ts';
 import { sendWebPushNotification, type WebPushSubscription } from '../_shared/webPushUtils.ts';
-import {
-  mapPrimaryEntitlementsByUser,
-  type EntitlementRow,
-} from '../_shared/entitlementSelection.ts';
 import {
   buildNotificationContent,
   type EmailContent,
@@ -73,21 +60,10 @@ interface TripRow {
   name: string;
 }
 
-interface SmsOptInRow {
-  user_id: string;
-  phone_e164: string;
-  verified: boolean;
-  opted_in: boolean;
-}
-
 const sendGridApiKey = Deno.env.get('SENDGRID_API_KEY');
 const sendGridFromEmail = Deno.env.get('SENDGRID_FROM_EMAIL') || 'support@chravelapp.com';
 const resendApiKey = Deno.env.get('RESEND_API_KEY');
 const resendFromEmail = Deno.env.get('RESEND_FROM_EMAIL') || 'support@chravelapp.com';
-const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
-const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER');
-const twilioMessagingServiceSid = Deno.env.get('TWILIO_MESSAGING_SERVICE_SID');
 const internalSecret = Deno.env.get('NOTIFICATION_DISPATCH_SECRET');
 
 const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY');
@@ -101,16 +77,6 @@ function getDisplayName(profile?: ProfileRow): string {
     [profile.first_name, profile.last_name].filter(Boolean).join(' ').trim() ||
     (profile.email ? profile.email.split('@')[0] : null) ||
     'Someone'
-  );
-}
-
-function isUserSmsEntitled(entitlement?: EntitlementRow): boolean {
-  if (!entitlement) return false;
-  if (!['active', 'trialing'].includes((entitlement.status || '').toLowerCase())) return false;
-
-  const plan = (entitlement.plan || '').toLowerCase();
-  return ['explorer', 'frequent-chraveler', 'pro-starter', 'pro-growth', 'pro-enterprise'].includes(
-    plan,
   );
 }
 
@@ -192,56 +158,6 @@ function getActorUserId(metadata: Record<string, unknown>): string | undefined {
   return typeof actorId === 'string' ? actorId : undefined;
 }
 
-function buildSmsTemplateData(
-  notification: NotificationRow,
-  category: NotificationCategory,
-  tripName: string,
-  senderName: string,
-  timezone: string,
-): SmsTemplateData {
-  const metadata = parseMetadata(notification.metadata);
-  const eventTimeRaw =
-    (typeof metadata.event_time === 'string' && metadata.event_time) ||
-    (typeof metadata.start_time === 'string' && metadata.start_time) ||
-    undefined;
-
-  const deepLink = notification.trip_id
-    ? `${SMS_APP_BASE_URL}/trip/${notification.trip_id}`
-    : undefined;
-
-  return {
-    tripName,
-    senderName,
-    deepLink,
-    amount:
-      typeof metadata.amount === 'number' || typeof metadata.amount === 'string'
-        ? (metadata.amount as number | string)
-        : undefined,
-    count:
-      typeof metadata.count === 'number' || typeof metadata.count === 'string'
-        ? (metadata.count as number | string)
-        : undefined,
-    currency: typeof metadata.currency === 'string' ? metadata.currency : undefined,
-    location:
-      typeof metadata.new_location_name === 'string'
-        ? metadata.new_location_name
-        : typeof metadata.location === 'string'
-          ? metadata.location
-          : undefined,
-    eventName:
-      typeof metadata.event_title === 'string'
-        ? metadata.event_title
-        : typeof metadata.event_name === 'string'
-          ? metadata.event_name
-          : undefined,
-    eventTime: formatTimeForTimezone(eventTimeRaw, timezone),
-    preview: notification.message,
-    taskTitle: typeof metadata.task_title === 'string' ? metadata.task_title : notification.title,
-    pollQuestion:
-      typeof metadata.poll_question === 'string' ? metadata.poll_question : notification.title,
-  };
-}
-
 async function markDelivery(
   supabase: any,
   deliveryId: string,
@@ -282,59 +198,6 @@ async function logDeliveryAttempt(
     sent_at: params.status === 'sent' ? new Date().toISOString() : null,
     created_at: new Date().toISOString(),
   });
-}
-
-async function sendSms(
-  phoneNumber: string,
-  message: string,
-): Promise<{
-  ok: boolean;
-  providerMessageId?: string;
-  error?: string;
-  httpStatus?: number;
-}> {
-  if (!twilioAccountSid || !twilioAuthToken || (!twilioPhoneNumber && !twilioMessagingServiceSid)) {
-    return { ok: false, error: 'Twilio credentials are not configured' };
-  }
-
-  const smsParams: Record<string, string> = {
-    To: phoneNumber,
-    Body: message,
-  };
-  if (twilioMessagingServiceSid) {
-    smsParams.MessagingServiceSid = twilioMessagingServiceSid;
-  } else {
-    smsParams.From = twilioPhoneNumber!;
-  }
-
-  const credentials = btoa(`${twilioAccountSid}:${twilioAuthToken}`);
-  const response = await fetch(
-    `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${credentials}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams(smsParams),
-    },
-  );
-
-  const responseText = await response.text();
-  if (!response.ok) {
-    return {
-      ok: false,
-      httpStatus: response.status,
-      error: `Twilio error ${response.status}: ${responseText.substring(0, 200)}`,
-    };
-  }
-
-  try {
-    const parsed = JSON.parse(responseText);
-    return { ok: true, providerMessageId: parsed.sid };
-  } catch {
-    return { ok: true };
-  }
 }
 
 async function sendEmail(
@@ -524,24 +387,12 @@ serve(async req => {
 
     const [
       { data: preferenceRows },
-      { data: entitlementRows },
-      { data: smsOptInRows },
       { data: tripRows },
       { data: profileRows },
       { data: pushTokenRows },
       { data: webPushRows },
     ] = await Promise.all([
       supabase.from('notification_preferences').select('*').in('user_id', recipientIds),
-      supabase
-        .from('user_entitlements')
-        .select('user_id, plan, status, current_period_end, purchase_type, updated_at')
-        .in('user_id', recipientIds)
-        .in('purchase_type', ['subscription', 'pass'])
-        .order('updated_at', { ascending: false }),
-      supabase
-        .from('sms_opt_in')
-        .select('user_id, phone_e164, verified, opted_in')
-        .in('user_id', recipientIds),
       tripIds.length
         ? supabase.from('trips').select('id, name').in('id', tripIds)
         : Promise.resolve({ data: [], error: null }),
@@ -573,12 +424,6 @@ serve(async req => {
       preferencesByUser.set(userId, mergePreferences(userId, raw || undefined));
     }
 
-    const entitlementsByUser = mapPrimaryEntitlementsByUser(
-      entitlementRows as EntitlementRow[] | null,
-    );
-    const smsOptInByUser = new Map<string, SmsOptInRow>(
-      ((smsOptInRows || []) as SmsOptInRow[]).map(row => [row.user_id, row]),
-    );
     const tripById = new Map<string, TripRow>(
       ((tripRows || []) as TripRow[]).map(row => [row.id, row]),
     );
@@ -602,9 +447,9 @@ serve(async req => {
 
     const summary = {
       processed: 0,
-      sent: { push: 0, email: 0, sms: 0 },
-      failed: { push: 0, email: 0, sms: 0 },
-      skipped: { push: 0, email: 0, sms: 0 },
+      sent: { push: 0, email: 0 },
+      failed: { push: 0, email: 0 },
+      skipped: { push: 0, email: 0 },
       deferred: 0,
     };
 
@@ -864,187 +709,6 @@ serve(async req => {
         }
 
         continue;
-      }
-
-      // SMS
-      if (!basePreferenceDecision.allow) {
-        await markDelivery(supabase, delivery.id, {
-          status: 'skipped',
-          error: 'sms_disabled',
-          attempts: delivery.attempts + 1,
-        });
-        summary.skipped.sms++;
-        continue;
-      }
-
-      const entitlement = entitlementsByUser.get(userId);
-      if (!isUserSmsEntitled(entitlement)) {
-        await markDelivery(supabase, delivery.id, {
-          status: 'skipped',
-          error: 'sms_not_entitled',
-          attempts: delivery.attempts + 1,
-        });
-        summary.skipped.sms++;
-
-        // Auto-disable SMS preference when entitlement is missing.
-        await supabase
-          .from('notification_preferences')
-          .update({ sms_enabled: false, updated_at: new Date().toISOString() })
-          .eq('user_id', userId);
-
-        await logDeliveryAttempt(supabase, {
-          userId,
-          channel: 'sms',
-          title: notification.title,
-          body: notification.message,
-          status: 'skipped',
-          error: 'User is not entitled for SMS delivery',
-        });
-        continue;
-      }
-
-      // sms_opt_in is optional: use it only when fully verified; otherwise use notification_preferences
-      const optIn = smsOptInByUser.get(userId);
-      const smsPhone =
-        optIn?.opted_in && optIn?.verified ? optIn.phone_e164 : prefs.sms_phone_number || null;
-
-      if (!smsPhone) {
-        await markDelivery(supabase, delivery.id, {
-          status: 'skipped',
-          error: 'missing_sms_phone',
-          attempts: delivery.attempts + 1,
-        });
-        summary.skipped.sms++;
-        continue;
-      }
-
-      // Check daily rate limit via RPC (handles DB reset on new day)
-      const SMS_DAILY_LIMIT = 10;
-      const { data: rateLimitRows, error: rateLimitErr } = await supabase.rpc(
-        'check_sms_rate_limit',
-        {
-          p_user_id: userId,
-          p_daily_limit: SMS_DAILY_LIMIT,
-        },
-      );
-
-      const rateLimit =
-        Array.isArray(rateLimitRows) && rateLimitRows.length > 0 ? rateLimitRows[0] : null;
-      const allowed = rateLimit?.allowed ?? true;
-
-      if (rateLimitErr) {
-        console.error('[dispatch] Rate limit check failed:', rateLimitErr);
-      }
-
-      if (!allowed) {
-        await markDelivery(supabase, delivery.id, {
-          status: 'skipped',
-          error: 'rate_limited',
-          attempts: delivery.attempts + 1,
-        });
-        summary.skipped.sms++;
-        await logDeliveryAttempt(supabase, {
-          userId,
-          channel: 'sms',
-          title: notification.title,
-          body: notification.message,
-          status: 'skipped',
-          error: `Daily limit of ${SMS_DAILY_LIMIT} SMS reached. Resets at ${rateLimit?.reset_at ?? 'midnight'}`,
-        });
-        continue;
-      }
-
-      if (isQuietHours(prefs)) {
-        const delayMinutes = Math.max(getMinutesUntilQuietHoursEnd(prefs), 1);
-        const nextAttemptAt = new Date(Date.now() + delayMinutes * 60 * 1000).toISOString();
-        await markDelivery(supabase, delivery.id, {
-          status: 'queued',
-          error: 'quiet_hours_deferred',
-          next_attempt_at: nextAttemptAt,
-        });
-        summary.deferred++;
-        continue;
-      }
-
-      const tripName = notification.trip_id
-        ? tripById.get(notification.trip_id)?.name || 'your trip'
-        : 'your trip';
-      const actorUserId = getActorUserId(metadata);
-      const senderName =
-        (typeof metadata.sender_name === 'string' && metadata.sender_name) ||
-        (typeof metadata.requester_name === 'string' && metadata.requester_name) ||
-        getDisplayName(actorUserId ? profileByUserId.get(actorUserId) : undefined);
-
-      const smsMessage = generateSmsMessage(
-        category as Parameters<typeof generateSmsMessage>[0],
-        buildSmsTemplateData(
-          notification,
-          category,
-          tripName,
-          senderName,
-          prefs.timezone || 'America/Los_Angeles',
-        ),
-      );
-
-      const smsResult = await sendSms(smsPhone, smsMessage);
-      if (smsResult.ok) {
-        // Increment local counter for batch consistency (persistence handled by RPC below)
-        prefs.sms_sent_today = (prefs.sms_sent_today || 0) + 1;
-
-        await markDelivery(supabase, delivery.id, {
-          status: 'sent',
-          provider_message_id: smsResult.providerMessageId || null,
-          error: null,
-          sent_at: new Date().toISOString(),
-          attempts: delivery.attempts + 1,
-        });
-        summary.sent.sms++;
-        await supabase.rpc('increment_sms_counter', { p_user_id: userId });
-        await logDeliveryAttempt(supabase, {
-          userId,
-          channel: 'sms',
-          title: notification.title,
-          body: smsMessage,
-          recipient: smsPhone,
-          status: 'sent',
-          externalId: smsResult.providerMessageId,
-          metadata: { category },
-        });
-      } else {
-        const newAttempts = delivery.attempts + 1;
-        const retryPolicy = computeRetryPolicy('sms', newAttempts, smsResult.httpStatus);
-
-        if (retryPolicy.retryable && retryPolicy.nextAttemptMinutes) {
-          const nextAttemptAt = new Date(
-            Date.now() + retryPolicy.nextAttemptMinutes * 60 * 1000,
-          ).toISOString();
-          await markDelivery(supabase, delivery.id, {
-            status: 'queued',
-            error: `retry_${newAttempts}:${smsResult.error || 'transient_failure'}`,
-            attempts: newAttempts,
-            next_attempt_at: nextAttemptAt,
-          });
-          summary.deferred++;
-        } else {
-          await markDelivery(supabase, delivery.id, {
-            status: 'failed',
-            error: smsResult.error || 'sms_delivery_failed',
-            attempts: newAttempts,
-            dead_lettered_at: retryPolicy.deadLetter ? new Date().toISOString() : null,
-          });
-          summary.failed.sms++;
-        }
-
-        await logDeliveryAttempt(supabase, {
-          userId,
-          channel: 'sms',
-          title: notification.title,
-          body: smsMessage,
-          recipient: smsPhone,
-          status: 'failed',
-          error: smsResult.error,
-          metadata: { category, attempt: newAttempts, willRetry: retryPolicy.retryable },
-        });
       }
     }
 
