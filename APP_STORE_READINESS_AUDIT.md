@@ -150,12 +150,68 @@ deps and only `@revenuecat/purchases-js` (web SDK). Those artifacts live in `chr
 
 ---
 
-## 8) DEFERRAL-DISCIPLINE FOOTER
+## 8) PASS 2 — EDGE-CASE AUDIT (subtle rejection triggers)
 
-1. **Fixed now** — deleted dead placeholder AASA endpoint; corrected stale IAP price comment; rewrote this audit to true state.
-2. **Discovered** — prior audit stale (2 already-closed P1s); duplicate AASA sources w/ placeholder Team ID (resolved); native blockers live in `chravel-mobile`.
-3. **Intentionally deferred** — all native-shell + dashboard P0s in §6.
-4. **Why deferral necessary** — those artifacts are not in this repo/session scope and cannot be edited here.
-5. **Paste-ready follow-up prompt** — see §6 "chravel-mobile" block; run it in a `chravel-mobile` session with Apple Developer + RevenueCat dashboard access.
-6. **Validation completed** — `npm run lint && npm run typecheck && npm run build`; targeted vitest (AASA + `create-checkout/checkoutTier`); reference grep confirming no `api/aasa` refs remain.
-7. **Remaining launch blockers** — the §6 cross-repo / dashboard P0s; none are blockable from `chravel-web`.
+A second pass targeted the less-obvious rejection triggers (UGC moderation, Sign-in-with-Apple
+token revocation, anti-steering, permission-prompt timing). Reachability was verified directly —
+two agent-reported "criticals" were dead/unmounted code and are re-rated below.
+
+| # | Finding | Guideline | Reviewer-reachable | Severity | Status |
+|---|---|---|---|---|---|
+| F1 | Account deletion does **not revoke the Apple Sign-in token** (token never captured/stored) | 5.1.1(v) | Yes | High | **Deferred → chravel-mobile** (needs Apple `.p8`; see prompt below) |
+| F2 | `ConsumerBillingSection` native guard was hardcoded `false` → "Manage/Cancel" opened the external **Stripe portal on iOS** | 3.1.1 | Yes | Medium | ✅ **Fixed** — wired to `detectNativeBillingPlatform`; iOS now routes to `itms-apps://…/account/subscriptions` |
+| F3 | **Blocked-Users management UI was absent** though the block dialog promised it "in Settings" | 1.2 | Yes | Med-High | ✅ **Fixed** — `BlockedUsersList` in Settings → Safety & Abuse |
+| F4 | **No Terms/EULA agreement at signup** | 1.2 / 5.1.1 | Yes | Medium | ✅ **Fixed** — agreement line + Terms/Privacy links in `AuthModal` signup |
+| F5 | Dead "subscribe on our website at chravel.app" scaffold | 3.1.1 | No (dead code) | Low | ✅ **Removed** — `NativeSubscriptionPaywall` + `SHOW_WEB_SUBSCRIBE_PROMPT` path deleted |
+| F6 | Terms lacked explicit **zero-tolerance UGC** language | 1.2 | n/a | Low | ✅ **Fixed** — zero-tolerance clause added to Terms §4 |
+| F8 | Reviewer-visible **"Coming Soon"** badge on a disabled "Deactivate Account" row | 2.1 | Yes | Medium | ✅ **Removed** |
+| — | Permissions fire on user action only; no IDFA / cross-app tracking | 5.1.1 / 5.1.2 | — | — | ✅ Clean (no ATT required) |
+| — | Report content, block users, admin moderation (hide/ban/mute/shadow-ban) | 1.2 | — | — | ✅ Already present (`userSafetyService`, `stream-moderation-action`) |
+
+**Re-rated agent claims:** the "subscribe on web" message (F5) and `NativeSubscriptionPaywall` are
+**not reviewer-reachable** — `NativeSubscriptionPaywall` is rendered nowhere and the provider
+`purchase()` path is only callable via `useBilling`'s purchase actions, which no UI invokes
+(`useBilling` is consumed solely by `useEntitlements` read-side). They were removed as cleanup, not
+treated as live blockers. Automated profanity/image moderation is **not** strictly required by 1.2
+(report + block + admin removal satisfies it); tracked as an optional post-launch enhancement (F7).
+
+### F1 — paste-ready prompt for the `chravel-mobile` repo (Apple token revocation, 5.1.1(v))
+
+> **Task:** Implement Apple Sign-in token revocation on account deletion (App Store Guideline
+> 5.1.1(v)). Today, `chravel-web`'s `supabase/functions/process-account-deletions/index.ts` deletes
+> the Supabase auth user but never revokes the user's Apple token, and the Apple refresh token is
+> never captured at sign-in. For users who signed in with Apple, Apple requires the token be revoked
+> via `https://appleid.apple.com/auth/revoke`.
+>
+> Implement:
+> 1. **Capture the Apple credential at native sign-in.** In the native Sign in with Apple flow
+>    (ASAuthorization), capture the `authorizationCode`, exchange it server-side for a
+>    `refresh_token`, and persist that token encrypted server-side keyed by the Supabase `user_id`
+>    (new table, e.g. `apple_auth_tokens`, service-role-only RLS). Coordinate the table + a
+>    `store-apple-refresh-token` edge function with the chravel-web Supabase project (same DB).
+> 2. **Mint the client secret.** Generate the Apple client-secret JWT (ES256) using the Apple
+>    private key `.p8` (Key ID, Team ID `2T6WY43H3X`, Services/Bundle ID `com.chravel.app`). Store
+>    the `.p8` contents, `APPLE_KEY_ID`, `APPLE_TEAM_ID`, `APPLE_CLIENT_ID` as **edge-function
+>    secrets** — never commit the key.
+> 3. **Revoke on deletion.** Extend `process-account-deletions` (in chravel-web) to, before deleting
+>    `auth.users`, look up the stored Apple refresh token and `POST` to
+>    `https://appleid.apple.com/auth/revoke` with `client_id`, `client_secret`, `token`,
+>    `token_type_hint=refresh_token`. Log success/failure to `security_audit_log`; treat a missing
+>    token (non-Apple user) as a no-op. Then delete the `apple_auth_tokens` row.
+> 4. **Verify** with a sandbox Apple account: sign in with Apple → delete account → confirm the app
+>    no longer appears under Settings → Apple ID → Sign in with Apple, and re-sign-in creates a fresh
+>    grant.
+>
+> Constraints: never read/commit the `.p8`; use it only as a runtime secret. Coordinate the shared
+> Supabase table/edge-function changes with chravel-web so deletion revokes regardless of whether the
+> user signed in on web (Supabase OAuth) or native (ASAuthorization).
+
+## 9) DEFERRAL-DISCIPLINE FOOTER
+
+1. **Fixed now** — Pass 1: deleted dead AASA endpoint; corrected IAP price comment; rewrote audit. Pass 2: F2 iOS subscription-management steering, F3 Blocked-Users UI, F4 signup Terms agreement, F5 removed dead web-subscribe scaffold, F6 zero-tolerance Terms language, F8 removed reviewer-visible "Coming Soon" badge.
+2. **Discovered** — prior audit stale (2 already-closed P1s); F1 Apple token revocation missing (5.1.1(v)); report/block/moderation stack already present.
+3. **Intentionally deferred** — F1 (needs Apple `.p8`); F7 automated moderation (optional, not required by 1.2); all native-shell + dashboard P0s in §6.
+4. **Why deferral necessary** — F1's `.p8` signing key and native sign-in capture live in `chravel-mobile`/secrets (off-limits here); §6 items are cross-repo/dashboard.
+5. **Paste-ready follow-up prompt** — F1: §8 "chravel-mobile" block; cross-repo/dashboard P0s: §6.
+6. **Validation completed** — `npm run lint` (0 errors) / `typecheck` / `build` green; vitest: new `userSafetyService.test.ts` (2) + billing (25) + AASA + `checkoutTier` all pass.
+7. **Remaining launch blockers** — F1 (chravel-mobile) + the §6 cross-repo / dashboard P0s; none others are blockable from `chravel-web`.

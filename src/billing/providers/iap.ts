@@ -83,15 +83,8 @@ export class AppleIAPProvider extends BaseBillingProvider {
     this.log('Purchase requested', request);
 
     if (!this.isAvailable()) {
-      // IAP not available - prompt user to subscribe on web
-      if (BILLING_FLAGS.SHOW_WEB_SUBSCRIBE_PROMPT) {
-        return {
-          success: false,
-          error: 'Please subscribe on our website at chravel.app',
-          errorCode: 'SUBSCRIBE_ON_WEB',
-        };
-      }
-
+      // App Store 3.1.1: never steer iOS users to an external/web purchase for digital
+      // subscriptions. Surface a neutral unavailable state instead of a "subscribe on web" link.
       return {
         success: false,
         error: 'In-app purchases are not available',
