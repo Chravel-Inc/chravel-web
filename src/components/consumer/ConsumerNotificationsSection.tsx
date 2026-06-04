@@ -14,6 +14,9 @@ import { getTripNotificationPreferenceCategories } from '@/components/settings/t
 import { ChatActivitySettings } from '@/components/settings/ChatActivitySettings';
 import { useGlobalSystemMessagePreferences } from '@/hooks/useSystemMessagePreferences';
 import { SystemMessageCategoryPrefs } from '@/utils/systemMessageCategory';
+import { usePushPreferenceToggle } from '@/hooks/usePushPreferenceToggle';
+import { PushDiagnostics } from '@/components/notifications/PushDiagnostics';
+import { TestNotificationButton } from '@/components/notifications/TestNotificationButton';
 
 export const ConsumerNotificationsSection = () => {
   const { user } = useAuth();
@@ -29,6 +32,7 @@ export const ConsumerNotificationsSection = () => {
     permission: webPushPermission,
   } = useWebPush();
   const { showDemoContent } = useDemoMode();
+  const { applyPushEnabled } = usePushPreferenceToggle();
   const [isLoadingPreferences, setIsLoadingPreferences] = useState(true);
   const [isUpdatingPush, setIsUpdatingPush] = useState(false);
 
