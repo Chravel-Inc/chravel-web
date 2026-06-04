@@ -44,6 +44,17 @@ prod's table was created/altered **outside** this repo's migration history.
    `push_device_tokens` — nobody was ever subscribed. (The settings "Push" toggle
    never created a web-push subscription; **fixed in this branch**.)
 
+## Confirmed against the live deployment (2026-06-04)
+
+The **deployed** `dispatch-notification-deliveries` function (v539, built by CI from
+`main`) still references `recipient_user_id` / `attempts` (and still contains the
+old Twilio/SMS code). So the deployed **code** expects the **repo** schema, while
+the deployed **table** is the divergent prod schema (`recipient` / `attempt_count`).
+The code and the table it runs against have **never matched** — the delivery system
+is non-functional by construction, independent of this branch. (How prod's table
+came to differ — which migration/source created `attempt_count`/`recipient` — is the
+key unknown to resolve first.)
+
 ## What this branch already fixed (independent of the divergence)
 
 - Twilio/SMS fully removed (UI, settings, code, `notification_preferences` schema).
