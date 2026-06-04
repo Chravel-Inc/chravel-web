@@ -8,6 +8,7 @@ import {
 import { useToast } from '../../hooks/use-toast';
 import { usePushPreferenceToggle } from '@/hooks/usePushPreferenceToggle';
 import { TestNotificationButton } from '@/components/notifications/TestNotificationButton';
+import { PushDiagnostics } from '@/components/notifications/PushDiagnostics';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { NotificationPreviewPanel } from '@/components/dev/NotificationPreviewPanel';
 import { getTripNotificationPreferenceCategories } from '@/components/settings/tripNotificationPreferenceCategories';
@@ -310,6 +311,8 @@ export const ConsumerNotificationsSection = () => {
             </div>
             {renderToggle('push', notificationSettings.push, isUpdatingPush)}
           </div>
+
+          <PushDiagnostics />
 
           {notificationSettings.push && (
             <div className="px-3">
