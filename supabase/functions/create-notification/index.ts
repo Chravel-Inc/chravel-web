@@ -49,6 +49,13 @@ interface CreateNotificationRequest {
 // Roles that can send trip-wide notifications
 const NOTIFICATION_SENDER_ROLES = ['organizer', 'admin', 'creator'];
 
+// Email delivery is intentionally OFF: the notification fan-out trigger
+// (20260604170000_notification_fanout_prod_schema.sql) enqueues push only,
+// because every user currently has email_enabled = true and an email fan-out
+// would blast the whole base. Keep reported emailSent honest (no email is
+// delivered) until email is deliberately re-enabled with per-category gating.
+const EMAIL_FANOUT_ENABLED = false;
+
 interface NotificationResult {
   userId: string;
   inAppCreated: boolean;
@@ -323,7 +330,7 @@ Deno.serve(async req => {
         response.pushSent++;
       }
 
-      if (decision.sendEmail) {
+      if (EMAIL_FANOUT_ENABLED && decision.sendEmail) {
         result.emailSent = true;
         response.emailSent++;
       }
@@ -383,7 +390,8 @@ Deno.serve(async req => {
     if (dispatchData && typeof dispatchData.sent === 'object' && dispatchData.sent) {
       const sentObj = dispatchData.sent as Record<string, unknown>;
       if (typeof sentObj.push === 'number') response.pushSent = sentObj.push;
-      if (typeof sentObj.email === 'number') response.emailSent = sentObj.email;
+      if (EMAIL_FANOUT_ENABLED && typeof sentObj.email === 'number')
+        response.emailSent = sentObj.email;
     }
 
     // ========================================================================

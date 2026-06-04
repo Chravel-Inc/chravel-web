@@ -311,14 +311,23 @@ serve(async req => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  if (internalSecret) {
-    const providedSecret = req.headers.get('x-notification-secret');
-    if (providedSecret !== internalSecret) {
-      return new Response(JSON.stringify({ error: 'Unauthorized dispatch request' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+  // Auth — FAIL CLOSED. This function runs with the service-role client and can
+  // drive mass push/email, so it must never process an unauthenticated request.
+  // Accept either: (a) the internal cron, which authenticates with the
+  // service-role bearer (the `app.settings.service_role_key` GUC the cron job
+  // already references — it MUST be set in prod), or (b) an ops caller presenting
+  // the NOTIFICATION_DISPATCH_SECRET. Anything else is rejected.
+  const authHeader = req.headers.get('Authorization') || '';
+  const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  const providedSecret = req.headers.get('x-notification-secret');
+  const isServiceRole = serviceRoleKey.length > 20 && bearer === serviceRoleKey;
+  const hasValidSecret = !!internalSecret && providedSecret === internalSecret;
+  if (!isServiceRole && !hasValidSecret) {
+    return new Response(JSON.stringify({ error: 'Unauthorized dispatch request' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 
   if (req.method !== 'POST') {

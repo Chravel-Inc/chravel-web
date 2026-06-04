@@ -18,42 +18,16 @@
 -- Reversible: see the documented ROLLBACK block at the bottom of this file.
 -- ============================================================================
 
--- 1) Stop producing SMS delivery rows at the source: the per-notification
---    fan-out trigger function now enqueues push + email only.
-CREATE OR REPLACE FUNCTION public.queue_notification_deliveries()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  INSERT INTO public.notification_deliveries (
-    notification_id,
-    recipient_user_id,
-    channel,
-    status,
-    next_attempt_at
-  )
-  VALUES
-    (NEW.id, NEW.user_id, 'push', 'queued', COALESCE(NEW.created_at, NOW())),
-    (NEW.id, NEW.user_id, 'email', 'queued', COALESCE(NEW.created_at, NOW()))
-  ON CONFLICT (notification_id, channel) DO NOTHING;
+-- NOTE: This migration intentionally does NOT recreate the fan-out trigger or
+-- touch notification_deliveries rows. Production's notification_deliveries schema
+-- differs from this repo's older migrations (it uses error_message + a
+-- notification_delivery_status enum incl. 'cancelled', and has no
+-- recipient_user_id) — see docs/NOTIFICATION_DELIVERY_SCHEMA_DIVERGENCE.md. The
+-- prod-shaped fan-out (push-only) is owned exclusively by
+-- 20260604170000_notification_fanout_prod_schema.sql so this migration cannot
+-- fail on prod-canonical columns. Here we only drop the SMS-specific objects.
 
-  RETURN NEW;
-END;
-$$;
-
--- 2) Neutralize any queued/historical SMS deliveries so the dispatcher (which no
---    longer has an 'sms' branch) never leaves them stuck 'queued'. Mark as
---    'skipped' rather than DELETE to preserve audit history.
-UPDATE public.notification_deliveries
-SET status = 'skipped',
-    error = COALESCE(error, 'sms_channel_removed'),
-    updated_at = NOW()
-WHERE channel = 'sms'
-  AND status = 'queued';
-
--- 3) Drop the SMS entitlement enforcement trigger + function on the SHARED
+-- 1) Drop the SMS entitlement enforcement trigger + function on the SHARED
 --    notification_preferences table (drop the trigger before the function, and
 --    the dependent function before is_user_sms_entitled).
 DROP TRIGGER IF EXISTS trigger_enforce_sms_entitlement ON public.notification_preferences;
