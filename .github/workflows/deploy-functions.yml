@@ -13,7 +13,6 @@ on:
           - create-trip
           - join-trip
           - approve-join-request
-          - livekit-token
   push:
     branches:
       - main
