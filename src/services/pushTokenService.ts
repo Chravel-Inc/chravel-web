@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { detectNativePushPlatform, isNativePushAvailable } from '@/lib/nativePushBridge';
 
 export interface DeviceToken {
   id: string;
@@ -31,10 +32,10 @@ function getDeviceId(): string {
   return deviceId;
 }
 
-/**
- * Get the current platform (always 'web' — native handled by chravel-mobile)
- */
 function getPlatform(): 'ios' | 'android' | 'web' {
+  if (isNativePushAvailable()) {
+    return detectNativePushPlatform();
+  }
   return 'web';
 }
 
@@ -42,8 +43,12 @@ function getPlatform(): 'ios' | 'android' | 'web' {
  * Save a device token to Supabase
  * Uses upsert to handle token refresh scenarios
  */
-export async function saveDeviceToken(userId: string, token: string): Promise<boolean> {
-  const platform = getPlatform();
+export async function saveDeviceToken(
+  userId: string,
+  token: string,
+  platformOverride?: 'ios' | 'android' | 'web',
+): Promise<boolean> {
+  const platform = platformOverride ?? getPlatform();
   const deviceId = getDeviceId();
   const now = new Date().toISOString();
 
@@ -63,14 +68,17 @@ export async function saveDeviceToken(userId: string, token: string): Promise<bo
     );
 
     if (error) {
-      console.error('[PushTokenService] Failed to save token:', error);
+      if (import.meta.env.DEV) {
+        console.error('[PushTokenService] Failed to save token:', error);
+      }
       return false;
     }
 
-    console.log('[PushTokenService] Token saved successfully');
     return true;
   } catch (err) {
-    console.error('[PushTokenService] Unexpected error saving token:', err);
+    if (import.meta.env.DEV) {
+      console.error('[PushTokenService] Unexpected error saving token:', err);
+    }
     return false;
   }
 }
@@ -88,14 +96,17 @@ export async function removeDeviceToken(userId: string, token: string): Promise<
       .eq('token', token);
 
     if (error) {
-      console.error('[PushTokenService] Failed to remove token:', error);
+      if (import.meta.env.DEV) {
+        console.error('[PushTokenService] Failed to remove token:', error);
+      }
       return false;
     }
 
-    console.log('[PushTokenService] Token removed successfully');
     return true;
   } catch (err) {
-    console.error('[PushTokenService] Unexpected error removing token:', err);
+    if (import.meta.env.DEV) {
+      console.error('[PushTokenService] Unexpected error removing token:', err);
+    }
     return false;
   }
 }
@@ -109,13 +120,17 @@ export async function removeAllUserTokens(userId: string): Promise<boolean> {
     const { error } = await supabase.from('push_device_tokens').delete().eq('user_id', userId);
 
     if (error) {
-      console.error('[PushTokenService] Failed to remove all tokens:', error);
+      if (import.meta.env.DEV) {
+        console.error('[PushTokenService] Failed to remove all tokens:', error);
+      }
       return false;
     }
 
     return true;
   } catch (err) {
-    console.error('[PushTokenService] Unexpected error removing all tokens:', err);
+    if (import.meta.env.DEV) {
+      console.error('[PushTokenService] Unexpected error removing all tokens:', err);
+    }
     return false;
   }
 }
@@ -131,9 +146,8 @@ export async function updateLastSeen(userId: string, token: string): Promise<voi
       .update({ last_seen_at: new Date().toISOString() })
       .eq('user_id', userId)
       .eq('token', token);
-  } catch (err) {
+  } catch {
     // Silent fail - not critical
-    console.warn('[PushTokenService] Failed to update last_seen:', err);
   }
 }
 
@@ -162,7 +176,9 @@ export async function getUserTokens(userId: string): Promise<DeviceToken[]> {
       updatedAt: row.updated_at,
     }));
   } catch (err) {
-    console.error('[PushTokenService] Failed to get user tokens:', err);
+    if (import.meta.env.DEV) {
+      console.error('[PushTokenService] Failed to get user tokens:', err);
+    }
     return [];
   }
 }

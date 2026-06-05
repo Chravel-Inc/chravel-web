@@ -13,8 +13,8 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
-
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+import { getVapidPublicKeyFromEnv, resolveVapidPublicKey } from '@/lib/vapidPublicKey';
+import { isNativePushAvailable } from '@/lib/nativePushBridge';
 
 // ============================================================================
 // Types
@@ -32,6 +32,8 @@ export interface WebPushState {
   requiresHomeScreen: boolean;
   /** iOS version too old for push */
   iosUnsupported: boolean;
+  /** Whether a VAPID public key is available (build-time or runtime) */
+  vapidConfigured: boolean;
 }
 
 export interface UseWebPushReturn extends WebPushState {
@@ -159,8 +161,16 @@ export function useWebPush(): UseWebPushReturn {
   const { user } = useAuth();
   const serviceWorkerRef = useRef<ServiceWorkerRegistration | null>(null);
 
-  // Check platform support once
-  const pushSupport = checkPushSupport();
+  // Native shells use FCM/APNs — never Web Push / VAPID / service workers.
+  const nativeShell = isNativePushAvailable();
+  const pushSupport = nativeShell
+    ? {
+        supported: false,
+        requiresHomeScreen: false,
+        iosUnsupported: false,
+        reason: 'Native app uses device push tokens',
+      }
+    : checkPushSupport();
 
   const [state, setState] = useState<WebPushState>({
     isSupported: pushSupport.supported,
@@ -170,6 +180,7 @@ export function useWebPush(): UseWebPushReturn {
     error: null,
     requiresHomeScreen: pushSupport.requiresHomeScreen,
     iosUnsupported: pushSupport.iosUnsupported,
+    vapidConfigured: Boolean(getVapidPublicKeyFromEnv()),
   });
 
   // Get service worker registration
@@ -198,10 +209,12 @@ export function useWebPush(): UseWebPushReturn {
       return false;
     }
 
-    if (!VAPID_PUBLIC_KEY) {
-      setState(prev => ({ ...prev, error: 'VAPID key not configured' }));
+    const vapidPublicKey = await resolveVapidPublicKey();
+    if (!vapidPublicKey) {
+      setState(prev => ({ ...prev, error: 'VAPID key not configured', vapidConfigured: false }));
       return false;
     }
+    setState(prev => ({ ...prev, vapidConfigured: true }));
 
     if (!user) {
       setState(prev => ({ ...prev, error: 'Must be logged in' }));
@@ -234,7 +247,7 @@ export function useWebPush(): UseWebPushReturn {
       if (!subscription) {
         subscription = await (registration as any).pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
         });
       }
 
@@ -300,6 +313,16 @@ export function useWebPush(): UseWebPushReturn {
       return false;
     }
   }, [user, getRegistration]);
+
+  // Resolve VAPID availability for diagnostics when not baked into the build.
+  useEffect(() => {
+    if (nativeShell || getVapidPublicKeyFromEnv()) return;
+    void resolveVapidPublicKey().then(key => {
+      if (key) {
+        setState(prev => ({ ...prev, vapidConfigured: true }));
+      }
+    });
+  }, [nativeShell]);
 
   // Initialize
   useEffect(() => {
