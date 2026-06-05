@@ -3,6 +3,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { FullPageLanding } from '@/components/landing/FullPageLanding';
 import { AuthProvider, useOptionalAuth } from '@/hooks/useAuth';
 import { AuthModal } from '@/components/AuthModal';
+import { markAppBooted } from '@/utils/chunkRecovery';
 
 /**
  * After a successful sign-in inside the lightweight marketing shell, force a
@@ -27,6 +28,12 @@ function PostAuthBoot() {
 
 export default function MarketingApp() {
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | null>(null);
+
+  // The marketing shell mounted — its chunk loaded successfully. Clear the one-shot
+  // chunk-recovery guard so a later, independent stale-chunk error can recover too.
+  useEffect(() => {
+    markAppBooted();
+  }, []);
 
   const fallback = useMemo(
     () => (
