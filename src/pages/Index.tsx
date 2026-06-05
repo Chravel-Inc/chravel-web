@@ -805,7 +805,7 @@ const AuthIndex = () => {
 
             <div className="max-w-[1500px] mx-auto">
               {/* Desktop navigation - hidden on mobile, use NativeTabBar instead */}
-              <div className="hidden lg:grid w-full grid-cols-1 xl:grid-cols-2 items-stretch gap-4 xl:gap-5 2xl:gap-6 mb-3 sm:mb-6">
+              <div className="hidden lg:grid w-full grid-cols-2 items-stretch gap-4 xl:gap-5 2xl:gap-6 mb-3 sm:mb-6">
                 <TripViewToggle
                   viewMode={viewMode}
                   onViewModeChange={handleViewModeChange}
@@ -1002,7 +1002,7 @@ const AuthIndex = () => {
 
           <div className="max-w-[1500px] mx-auto">
             {/* Desktop navigation - hidden on mobile, use NativeTabBar instead */}
-            <div className="hidden lg:grid w-full grid-cols-1 xl:grid-cols-2 items-stretch gap-4 xl:gap-5 2xl:gap-6 mb-3 sm:mb-6">
+            <div className="hidden lg:grid w-full grid-cols-2 items-stretch gap-4 xl:gap-5 2xl:gap-6 mb-3 sm:mb-6">
               <TripViewToggle
                 viewMode={viewMode}
                 onViewModeChange={handleViewModeChange}
@@ -1219,7 +1219,7 @@ const AuthIndex = () => {
         {/* Mobile auth moved to Settings menu - no floating button needed */}
 
         {/* Desktop navigation - hidden on mobile, use NativeTabBar instead */}
-        <div className="hidden lg:grid w-full grid-cols-1 xl:grid-cols-2 items-stretch gap-4 xl:gap-5 2xl:gap-6 mb-3 sm:mb-6">
+        <div className="hidden lg:grid w-full grid-cols-2 items-stretch gap-4 xl:gap-5 2xl:gap-6 mb-3 sm:mb-6">
           <TripViewToggle
             viewMode={viewMode}
             onViewModeChange={handleViewModeChange}
