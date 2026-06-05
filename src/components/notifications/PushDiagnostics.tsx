@@ -1,6 +1,7 @@
 import React from 'react';
 import { CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import { useWebPush } from '@/hooks/useWebPush';
+import { useNativePush } from '@/hooks/useNativePush';
 
 type Status = 'ok' | 'warn' | 'bad';
 
@@ -17,15 +18,20 @@ function Row({ status, label }: { status: Status; label: string }) {
 }
 
 /**
- * Surfaces why web/PWA push is or isn't deliverable on THIS device, so a user
- * verifying push doesn't hit a silent black box. Reads the state useWebPush
- * already computes (support, install requirement, permission, subscription).
- * Native shells handle push separately, so this only renders for the web path.
+ * Surfaces why push is or isn't deliverable on THIS device.
+ * Native shells use APNs/FCM; web/PWA uses Web Push + VAPID.
  */
 export const PushDiagnostics: React.FC = () => {
-  const { isSupported, permission, isSubscribed, requiresHomeScreen, iosUnsupported } =
-    useWebPush();
-  const vapidConfigured = Boolean(import.meta.env.VITE_VAPID_PUBLIC_KEY);
+  const { isNative, permission: nativePermission, isRegistered, error: nativeError } =
+    useNativePush();
+  const {
+    isSupported,
+    permission: webPermission,
+    isSubscribed,
+    requiresHomeScreen,
+    iosUnsupported,
+    vapidConfigured,
+  } = useWebPush();
 
   return (
     <div className="rounded-lg border border-white/10 bg-white/5 p-3 space-y-1.5">
@@ -33,28 +39,49 @@ export const PushDiagnostics: React.FC = () => {
         Push status (this device)
       </p>
 
-      {iosUnsupported ? (
-        <Row status="bad" label="iOS version too old for web push (needs iOS 16.4+)" />
-      ) : requiresHomeScreen ? (
-        <Row status="warn" label="Add to Home Screen to enable push on iOS" />
-      ) : isSupported ? (
-        <Row status="ok" label="Push supported on this browser" />
+      {isNative ? (
+        <>
+          <Row status="ok" label="Native app push (APNs / FCM)" />
+          <Row
+            status={
+              nativePermission === 'granted' ? 'ok' : nativePermission === 'denied' ? 'bad' : 'warn'
+            }
+            label={`Notification permission: ${nativePermission}`}
+          />
+          <Row
+            status={isRegistered ? 'ok' : 'warn'}
+            label={
+              isRegistered ? 'Device registered for push' : 'Not registered yet — toggle push ON'
+            }
+          />
+          {nativeError ? <Row status="bad" label={nativeError} /> : null}
+        </>
       ) : (
-        <Row status="bad" label="Push not supported on this browser" />
-      )}
+        <>
+          {iosUnsupported ? (
+            <Row status="bad" label="iOS version too old for web push (needs iOS 16.4+)" />
+          ) : requiresHomeScreen ? (
+            <Row status="warn" label="Add to Home Screen to enable push on iOS" />
+          ) : isSupported ? (
+            <Row status="ok" label="Push supported on this browser" />
+          ) : (
+            <Row status="bad" label="Push not supported on this browser" />
+          )}
 
-      <Row
-        status={permission === 'granted' ? 'ok' : permission === 'denied' ? 'bad' : 'warn'}
-        label={`Notification permission: ${permission}`}
-      />
-      <Row
-        status={isSubscribed ? 'ok' : 'warn'}
-        label={isSubscribed ? 'Subscribed to push' : 'Not subscribed yet'}
-      />
-      <Row
-        status={vapidConfigured ? 'ok' : 'bad'}
-        label={vapidConfigured ? 'Push keys configured' : 'Push keys not configured (VAPID)'}
-      />
+          <Row
+            status={webPermission === 'granted' ? 'ok' : webPermission === 'denied' ? 'bad' : 'warn'}
+            label={`Notification permission: ${webPermission}`}
+          />
+          <Row
+            status={isSubscribed ? 'ok' : 'warn'}
+            label={isSubscribed ? 'Subscribed to push' : 'Not subscribed yet'}
+          />
+          <Row
+            status={vapidConfigured ? 'ok' : 'bad'}
+            label={vapidConfigured ? 'Push keys configured' : 'Push keys not configured (VAPID)'}
+          />
+        </>
+      )}
     </div>
   );
 };
