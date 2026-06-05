@@ -93,8 +93,7 @@ describe('useStreamTripChat pin toggles', () => {
     });
 
     expect(partialUpdateMessageMock).toHaveBeenCalledTimes(1);
-    expect(partialUpdateMessageMock).toHaveBeenCalledWith({
-      id: 'message-1',
+    expect(partialUpdateMessageMock).toHaveBeenCalledWith('message-1', {
       set: { pinned: true },
     });
 
@@ -113,8 +112,10 @@ describe('useStreamTripChat pin toggles', () => {
     );
 
     expect(pinnedVisible.map(message => message.id)).toEqual(['message-1']);
-    expect(partialUpdateMessageMock.mock.calls[0]?.[0]).not.toHaveProperty('text');
-    expect(partialUpdateMessageMock.mock.calls[0]?.[0]).not.toHaveProperty('message');
+    // partialUpdateMessage(id, partialMessageObject): the partial payload is the
+    // SECOND arg and must only `set` pinned — never replace the message text/body.
+    expect(partialUpdateMessageMock.mock.calls[0]?.[1]).not.toHaveProperty('text');
+    expect(partialUpdateMessageMock.mock.calls[0]?.[1]).not.toHaveProperty('message');
   });
 
   it('unpins via partial message update', async () => {
@@ -150,8 +151,7 @@ describe('useStreamTripChat pin toggles', () => {
       await result.current.togglePin('message-2', false);
     });
 
-    expect(partialUpdateMessageMock).toHaveBeenCalledWith({
-      id: 'message-2',
+    expect(partialUpdateMessageMock).toHaveBeenCalledWith('message-2', {
       set: { pinned: false },
     });
 
