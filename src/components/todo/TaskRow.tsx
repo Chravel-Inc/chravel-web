@@ -59,6 +59,8 @@ export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
 
   const handleToggleComplete = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent opening detail modal
+    if (toggleTaskMutation.isPending) return;
+
     const willBeCompleted = !userCompleted;
 
     if (willBeCompleted) {
@@ -113,7 +115,7 @@ export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
                 : isOverdue
                   ? 'border-red-400 hover:border-red-300'
                   : 'border-muted-foreground hover:border-foreground'
-            } ${justCompleted ? 'scale-110' : ''}`}
+            } ${justCompleted ? 'scale-110' : ''} ${toggleTaskMutation.isPending ? 'opacity-60 pointer-events-none' : ''}`}
           >
             {userCompleted && <Check size={12} className="text-white" />}
           </button>

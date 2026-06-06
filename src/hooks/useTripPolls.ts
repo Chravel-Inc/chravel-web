@@ -698,13 +698,27 @@ export const useTripPolls = (tripId: string) => {
       if (error) throw error;
       return data;
     },
+    onMutate: async ({ pollId }: ClosePollRequest) => {
+      await queryClient.cancelQueries({ queryKey: ['tripPolls', tripId, isDemoMode] });
+      const previous = queryClient.getQueryData<TripPoll[]>(['tripPolls', tripId, isDemoMode]);
+      queryClient.setQueryData<TripPoll[]>(['tripPolls', tripId, isDemoMode], old =>
+        old
+          ? old.map(p =>
+              p.id === pollId
+                ? {
+                    ...p,
+                    status: 'closed' as const,
+                    closed_at: new Date().toISOString(),
+                  }
+                : p,
+            )
+          : old,
+      );
+      return { previous };
+    },
     onSuccess: data => {
-      queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId, isDemoMode] });
       void haptics.success();
-      toast({
-        title: 'Poll closed',
-        description: 'No more votes will be accepted.',
-      });
+      // Success toast removed; optimistic closed state is enough feedback
       if (!isDemoMode && data?.id) {
         const options = parsePollOptions(data.options);
         const winning = options.length
@@ -718,12 +732,18 @@ export const useTripPolls = (tripId: string) => {
         );
       }
     },
-    onError: () => {
+    onError: (_error, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['tripPolls', tripId, isDemoMode], context.previous);
+      }
       toast({
         title: 'Error',
         description: 'Failed to close poll. Please try again.',
         variant: 'destructive',
       });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId, isDemoMode] });
     },
   });
 
@@ -755,19 +775,29 @@ export const useTripPolls = (tripId: string) => {
       if (error) throw error;
       return pollId;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId, isDemoMode] });
-      toast({
-        title: 'Poll deleted',
-        description: 'The poll has been removed.',
-      });
+    onMutate: async (pollId: string) => {
+      await queryClient.cancelQueries({ queryKey: ['tripPolls', tripId, isDemoMode] });
+      const previous = queryClient.getQueryData<TripPoll[]>(['tripPolls', tripId, isDemoMode]);
+      queryClient.setQueryData<TripPoll[]>(['tripPolls', tripId, isDemoMode], old =>
+        old ? old.filter(p => p.id !== pollId) : old,
+      );
+      return { previous };
     },
-    onError: () => {
+    onSuccess: () => {
+      // Success toast removed; optimistic removal is enough feedback
+    },
+    onError: (_error, _pollId, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['tripPolls', tripId, isDemoMode], context.previous);
+      }
       toast({
         title: 'Error',
         description: 'Failed to delete poll. Only the creator can delete.',
         variant: 'destructive',
       });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId, isDemoMode] });
     },
   });
 

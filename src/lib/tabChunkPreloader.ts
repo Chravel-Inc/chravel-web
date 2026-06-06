@@ -20,6 +20,8 @@ const mobileChunks: Record<string, () => Promise<unknown>> = {
   media: () => import('@/components/mobile/MobileUnifiedMediaHub'),
   places: () => import('@/components/PlacesSection'),
   concierge: () => import('@/components/AIConciergeChat'),
+  // Pro mobile/desktop may use `ai-chat` tab id
+  'ai-chat': () => import('@/components/AIConciergeChat'),
   payments: () => import('@/components/mobile/MobileTripPayments'),
 };
 
@@ -34,6 +36,8 @@ const desktopChunks: Record<string, () => Promise<unknown>> = {
   media: () => import('@/components/UnifiedMediaHub'),
   places: () => import('@/components/PlacesSection'),
   concierge: () => import('@/components/AIConciergeChat'),
+  // Pro desktop uses `ai-chat` tab id — same component bundle as concierge
+  'ai-chat': () => import('@/components/AIConciergeChat'),
   payments: () => import('@/components/payments/PaymentsTab'),
 };
 

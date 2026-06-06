@@ -60,7 +60,7 @@ export const useCalendarEvents = (tripId?: string) => {
       await queryClient.cancelQueries({ queryKey: tripKeys.calendar(tripId || '') });
       const previousEvents = queryClient.getQueryData<TripEvent[]>(tripKeys.calendar(tripId || ''));
 
-      if (previousEvents && tripId) {
+      if (tripId) {
         const optimisticEvent: TripEvent = {
           id: `temp-${Date.now()}`,
           trip_id: tripId,
@@ -78,7 +78,7 @@ export const useCalendarEvents = (tripId?: string) => {
           updated_at: new Date().toISOString(),
         };
         queryClient.setQueryData<TripEvent[]>(tripKeys.calendar(tripId), [
-          ...previousEvents,
+          ...(previousEvents ?? []),
           optimisticEvent,
         ]);
       }
@@ -163,6 +163,11 @@ export const useCalendarEvents = (tripId?: string) => {
     onError: (_err, _eventId, context) => {
       if (context?.previousEvents && tripId) {
         queryClient.setQueryData(tripKeys.calendar(tripId), context.previousEvents);
+      }
+    },
+    onSettled: () => {
+      if (tripId) {
+        queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
       }
     },
   });
