@@ -5,6 +5,8 @@ import { MobileTripTabs } from '../components/mobile/MobileTripTabs';
 import { MobileErrorBoundary } from '../components/mobile/MobileErrorBoundary';
 import { MobileTripInfoDrawer } from '../components/mobile/MobileTripInfoDrawer';
 import { MobileHeaderOptionsSheet } from '../components/mobile/MobileHeaderOptionsSheet';
+import { DemoTripBar } from '../components/demo/DemoTripBar';
+import { isDemoTrip } from '@/utils/demoUtils';
 import { TripExportModal } from '../components/trip/TripExportModal';
 import { InviteModal } from '../components/InviteModal';
 import { DeleteTripConfirmDialog } from '../components/DeleteTripConfirmDialog';
@@ -119,8 +121,10 @@ export const MobileTripDetail = () => {
     return {
       ...trip,
       description: tripDescription || trip.description,
-      // Merge real trip members for authenticated trips instead of empty array
-      participants: isDemoMode
+      // Merge real trip members for authenticated trips instead of empty array.
+      // 🔒 Key on isDemoTrip(tripId) — the same structural gate useTripDetailData uses to serve
+      // demo data — so participants can't diverge from the loader's demo decision.
+      participants: isDemoTrip(tripId)
         ? trip.participants
         : (tripMembers.map(m => ({
             id: m.id as any, // UUID strings for authenticated trips
@@ -129,7 +133,7 @@ export const MobileTripDetail = () => {
             role: 'member',
           })) as any),
     };
-  }, [trip, tripDescription, isDemoMode, tripMembers]);
+  }, [trip, tripId, tripDescription, tripMembers]);
 
   const mockData = React.useMemo(() => {
     if (!trip) return null;
@@ -455,15 +459,6 @@ export const MobileTripDetail = () => {
             <button
               onClick={() => {
                 hapticService.light();
-                navigate(`/trip/${tripId}/preview`);
-              }}
-              className="bg-white/10 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
-            >
-              View Trip Preview
-            </button>
-            <button
-              onClick={() => {
-                hapticService.light();
                 navigate('/');
               }}
               className="bg-white/10 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
@@ -606,6 +601,9 @@ export const MobileTripDetail = () => {
             </div>
           </div>
         </div>
+
+        {/* Demo Mode bar — reserved-height row above the pills (no overlap with header/pills) */}
+        <DemoTripBar />
 
         {/* Mobile Tabs - Swipeable */}
         <MobileTripTabs

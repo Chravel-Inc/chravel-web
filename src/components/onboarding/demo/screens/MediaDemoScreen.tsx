@@ -1,13 +1,13 @@
 /**
  * Media Demo Screen — Shared album activity feed
  *
- * ~6s loop: header → 3 media upload rows → counter → reset
+ * ~6s loop: header → 5 media upload rows → counter → reset
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DemoMediaRow } from '../primitives';
-import { motion as motionPreset, LOOP_DURATION } from '../tokens';
+import { motion as motionPreset } from '../tokens';
+import { useDemoStepSequence } from '../useDemoStepSequence';
 import { Images } from 'lucide-react';
 
 const slideUp = {
@@ -17,25 +17,8 @@ const slideUp = {
 };
 
 export const MediaDemoScreen = () => {
-  const [cycle, setCycle] = useState(0);
-  const [step, setStep] = useState(0);
-
-  const resetAndLoop = useCallback(() => {
-    setStep(0);
-    setCycle(c => c + 1);
-  }, []);
-
-  useEffect(() => {
-    const timers = [
-      setTimeout(() => setStep(1), 500),
-      setTimeout(() => setStep(2), 1200),
-      setTimeout(() => setStep(3), 2200),
-      setTimeout(() => setStep(4), 3200),
-      setTimeout(() => setStep(5), 4200),
-      setTimeout(resetAndLoop, LOOP_DURATION * 1000),
-    ];
-    return () => timers.forEach(clearTimeout);
-  }, [cycle, resetAndLoop]);
+  // Steps: 1 header, 2-6 five upload rows, 7 counter.
+  const { step, cycle } = useDemoStepSequence([400, 900, 1500, 2100, 2700, 3300, 4200]);
 
   return (
     <div className="flex flex-col h-full px-3 py-3 gap-2.5">
@@ -45,14 +28,14 @@ export const MediaDemoScreen = () => {
           <motion.div key={`${cycle}-header`} {...slideUp} className="flex items-center gap-2 px-1">
             <Images className="w-4 h-4 text-primary" />
             <span className="text-sm font-medium text-foreground">Shared Album</span>
-            {step >= 5 && (
+            {step >= 7 && (
               <motion.span
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={motionPreset.micro}
                 className="text-[10px] text-green-400 ml-auto"
               >
-                ✓ 19 items shared
+                ✓ 29 items shared
               </motion.span>
             )}
           </motion.div>
@@ -93,6 +76,32 @@ export const MediaDemoScreen = () => {
               count={4}
               mediaType="file"
               tripName="Hannah Gets Hitched"
+            />
+          </motion.div>
+        )}
+
+        {/* Maya Chen — Photos */}
+        {step >= 5 && (
+          <motion.div key={`${cycle}-media4`} {...slideUp}>
+            <DemoMediaRow
+              avatar={{ initial: 'M', color: 'bg-purple-500' }}
+              name="Maya Chen"
+              count={8}
+              mediaType="photo"
+              tripName="Bali Yoga Retreat"
+            />
+          </motion.div>
+        )}
+
+        {/* Diego Ruiz — Videos */}
+        {step >= 6 && (
+          <motion.div key={`${cycle}-media5`} {...slideUp}>
+            <DemoMediaRow
+              avatar={{ initial: 'D', color: 'bg-emerald-500' }}
+              name="Diego Ruiz"
+              count={2}
+              mediaType="video"
+              tripName="Bachelor Party Vegas"
             />
           </motion.div>
         )}

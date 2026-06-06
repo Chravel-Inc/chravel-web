@@ -1,13 +1,13 @@
 /**
  * Calendar Demo Screen — Itinerary timeline with shared group visibility
  *
- * ~6s loop: Day header → 3 events → shared badge → reset
+ * ~6s loop: Day header → 5 events → shared badge → reset
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DemoDayHeader, DemoTimelineEvent } from '../primitives';
-import { motion as motionPreset, LOOP_DURATION } from '../tokens';
+import { motion as motionPreset } from '../tokens';
+import { useDemoStepSequence } from '../useDemoStepSequence';
 import { Users } from 'lucide-react';
 
 const slideUp = {
@@ -17,25 +17,8 @@ const slideUp = {
 };
 
 export const CalendarDemoScreen = () => {
-  const [cycle, setCycle] = useState(0);
-  const [step, setStep] = useState(0);
-
-  const resetAndLoop = useCallback(() => {
-    setStep(0);
-    setCycle(c => c + 1);
-  }, []);
-
-  useEffect(() => {
-    const timers = [
-      setTimeout(() => setStep(1), 500), // day header
-      setTimeout(() => setStep(2), 1200), // event 1
-      setTimeout(() => setStep(3), 2200), // event 2
-      setTimeout(() => setStep(4), 3200), // event 3
-      setTimeout(() => setStep(5), 4200), // shared badge
-      setTimeout(resetAndLoop, LOOP_DURATION * 1000),
-    ];
-    return () => timers.forEach(clearTimeout);
-  }, [cycle, resetAndLoop]);
+  // Steps: 1 day header, 2-6 five events, 7 shared badge.
+  const { step, cycle } = useDemoStepSequence([400, 1000, 1700, 2400, 3100, 3800, 4600]);
 
   return (
     <div className="flex flex-col h-full px-3 py-3 gap-2">
@@ -89,8 +72,36 @@ export const CalendarDemoScreen = () => {
           </motion.div>
         )}
 
-        {/* Shared indicator */}
+        {/* Event 4 */}
         {step >= 5 && (
+          <motion.div key={`${cycle}-ev4`} {...slideUp}>
+            <DemoTimelineEvent
+              emoji="🎭"
+              title="Broadway Show"
+              category="activity"
+              categoryLabel="Show"
+              time="8:00 PM"
+              location="Lyric Theatre"
+            />
+          </motion.div>
+        )}
+
+        {/* Event 5 */}
+        {step >= 6 && (
+          <motion.div key={`${cycle}-ev5`} {...slideUp}>
+            <DemoTimelineEvent
+              emoji="🏖️"
+              title="Free Afternoon"
+              category="activity"
+              categoryLabel="Free Time"
+              time="2:00 PM"
+              location="Beachfront"
+            />
+          </motion.div>
+        )}
+
+        {/* Shared indicator */}
+        {step >= 7 && (
           <motion.div
             key={`${cycle}-shared`}
             initial={{ opacity: 0 }}
