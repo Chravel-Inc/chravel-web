@@ -155,20 +155,31 @@ Deliver the video, the script/VO it used, and a poster frame.
 ## Part D — Bringing assets back into the repo
 
 The generated outputs slot into Chravel's existing ASO / App Store pipeline
-(`aso-appstore-screenshots` skill):
+(`aso-appstore-screenshots` skill). **In-repo companions now exist for each skill** —
+deterministic, on-brand starting points you can ship as-is or replace with Pika output:
 
-| Asset | Suggested location | Notes |
+| Asset | Location | Status |
 |---|---|---|
-| App-screen marketing frames | `appstore/screenshots/marketing/iPhone-6.7/` | Matches `compose_screenshot.py` output naming (`NN-verb.png`), 1290×2796 |
-| Brand kit (logo, palette, sheet) | `appstore/brand/` *(new)* | Keep source-of-truth marks here |
-| Sizzle + founder video | `appstore/video/` *(new)* | Plus poster frames |
+| App-screen marketing frames | `appstore/screenshots/marketing/` | ✅ Generated — 8× `NN-verb.png` @ 1290×2796 |
+| Brand kit (palette, sheet, lockup, guidelines) | `appstore/brand/` | ✅ Generated — `generate_brand_kit.py` + `brand-guidelines.html` |
+| Sizzle storyboard + founder script | `appstore/video/` | ✅ Written — paste the Part C prompts to render the actual videos |
 
-Pipeline reference (already in repo): `appstore/scripts/compose_screenshot.py`,
-`appstore/scripts/showcase.py`, and the `aso-appstore-screenshots` skill.
+Pipeline reference (already in repo): `appstore/scripts/generate_brand_kit.py`,
+`appstore/scripts/generate_marketing_screenshots.py`, `appstore/scripts/showcase.py`,
+and the `aso-appstore-screenshots` skill.
 
-> **Repo hygiene:** don't bloat git with large video binaries — store/link them and
-> commit only this kit + small reference stills. The 8 marketing PNGs are the
-> App-Store-ready deliverable.
+**Regenerate the local companions:**
+
+```bash
+python3 appstore/scripts/generate_brand_kit.py            # brand/ palette + sheet
+python3 appstore/scripts/generate_marketing_screenshots.py # 8 App Store screens
+open appstore/brand/brand-guidelines.html                  # full identity reference
+```
+
+> **Repo hygiene:** the 8 marketing PNGs + brand stills are the committed,
+> App-Store-ready deliverables. Don't bloat git with large video binaries — render
+> `sizzle.mp4` / `founder.mp4`, store them in cloud storage, link them, and commit
+> only the small poster stills + the storyboard/script `.md` files.
 
 ---
 
