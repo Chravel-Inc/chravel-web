@@ -22,10 +22,12 @@ describe('classifyError', () => {
     );
   });
 
-  it('classifies not-found via PGRST116 / 404 / message', () => {
+  it('classifies not-found via PGRST116 / 404 / message / app sentinel', () => {
     expect(classifyError({ code: 'PGRST116' })).toBe('not-found');
     expect(classifyError({ status: 404 })).toBe('not-found');
     expect(classifyError({ message: 'no rows returned' })).toBe('not-found');
+    // App-level sentinel raised by the trip loader (underscored, no space).
+    expect(classifyError(new Error('TRIP_NOT_FOUND'))).toBe('not-found');
   });
 
   it('separates rate-limit (429) from network', () => {

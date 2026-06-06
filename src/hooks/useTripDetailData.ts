@@ -161,16 +161,30 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
   const authRequired = !shouldUseDemoPath && isAuthResolved && !authUserId && !!tripId;
   useEffect(() => {
     if (shouldUseDemoPath || !tripId) return;
-    // Genuine fetch failure (trip or members) → exception with a diagnosable category.
     const failure = realTripError ?? realMembersError;
     if (failure) {
+      const category = classifyError(failure);
+      const source = realTripError ? 'trip' : 'members';
+      // not-found (deleted/invalid trip) and auth-required (signed out) are EXPECTED,
+      // user-visible outcomes the UI renders as dedicated screens. Critically, the members
+      // query can reject with TRIP_NOT_FOUND while tripError stays null, so capturing the
+      // failure as an exception would flood error tracking on a common, non-fault path and
+      // mask real load failures. Record a breadcrumb for those instead (same treatment the
+      // auth-required branch below already gets).
+      if (category === 'not-found' || category === 'auth-required') {
+        errorTracking.addBreadcrumb({
+          category: 'trip-detail-load',
+          level: 'info',
+          message: `Trip load resolved to ${category}`,
+          data: { tripId, category, source },
+        });
+        return;
+      }
+      // Genuine fetch failure → exception with a diagnosable category.
       errorTracking.captureException(failure, {
         action: 'trip-detail-load',
         tripId,
-        metadata: {
-          category: classifyError(failure),
-          source: realTripError ? 'trip' : 'members',
-        },
+        metadata: { category, source },
       });
       return;
     }

@@ -36,6 +36,15 @@ vi.mock('@/store/demoTripMembersStore', () => {
   return { useDemoTripMembersStore: store };
 });
 
+const captureExceptionMock = vi.hoisted(() => vi.fn());
+const addBreadcrumbMock = vi.hoisted(() => vi.fn());
+vi.mock('@/utils/errorTracking', () => ({
+  errorTracking: {
+    captureException: captureExceptionMock,
+    addBreadcrumb: addBreadcrumbMock,
+  },
+}));
+
 const createWrapper = () => {
   const queryClient = new QueryClient({
     // The hook sets its own per-query retry policy (which overrides the client default),
@@ -124,5 +133,46 @@ describe('useTripDetailData', () => {
 
     expect(result.current.trip).toBeNull();
     expect(result.current.tripError).toBeNull();
+  });
+
+  it('does NOT capture an exception when the members query rejects with TRIP_NOT_FOUND', async () => {
+    // Expected, user-visible not-found outcome (getTripById null + members TRIP_NOT_FOUND).
+    // It must be a breadcrumb, not a captured exception, or it floods error tracking and
+    // masks real load failures.
+    vi.mocked(tripService.getTripById).mockResolvedValue(null);
+    vi.mocked(tripService.getTripMembersWithCreator).mockRejectedValue(new Error('TRIP_NOT_FOUND'));
+
+    const { result } = renderHook(() => useTripDetailData('trip-missing'), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(addBreadcrumbMock).toHaveBeenCalled());
+
+    expect(captureExceptionMock).not.toHaveBeenCalled();
+    expect(addBreadcrumbMock).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ category: 'not-found' }) }),
+    );
+  });
+
+  it('DOES capture an exception for a genuine (network) load failure', async () => {
+    vi.mocked(tripService.getTripById).mockRejectedValue(
+      new Error('NetworkError: failed to fetch'),
+    );
+    vi.mocked(tripService.getTripMembersWithCreator).mockRejectedValue(
+      new Error('NetworkError: failed to fetch'),
+    );
+
+    const { result } = renderHook(() => useTripDetailData('trip-net'), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.tripError).not.toBeNull());
+    await waitFor(() => expect(captureExceptionMock).toHaveBeenCalled());
+
+    expect(captureExceptionMock).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({ metadata: expect.objectContaining({ category: 'network' }) }),
+    );
   });
 });

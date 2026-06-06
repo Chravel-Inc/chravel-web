@@ -69,11 +69,12 @@ export function classifyError(error: unknown): ErrorCategory {
     return 'validation';
   }
 
-  // --- Not found / no rows ---
+  // --- Not found / no rows (incl. app sentinels like TRIP_NOT_FOUND) ---
   if (
     code === 'PGRST116' ||
     status === 404 ||
     combined.includes('not found') ||
+    combined.includes('not_found') ||
     combined.includes('no rows')
   ) {
     return 'not-found';
