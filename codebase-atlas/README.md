@@ -12,15 +12,15 @@ xdg-open codebase-atlas/index.html    # Linux
 
 It is fully self-contained — pure HTML/CSS/JS with the data embedded inline. **No server, build step, or network required.** It works straight from `file://`.
 
-## Live URL & auto-refresh
+## Live URL & on-demand refresh
 
-A hosted copy is published to **GitHub Pages** on every merge to `main` (after CI passes): `https://chravel-inc.github.io/chravel-web/` — open it from phone or desktop, no clone required. _(One-time setup: Repo → Settings → Pages → Source = "GitHub Actions".)_
+A hosted copy can be published to **GitHub Pages** at `https://chravel-inc.github.io/chravel-web/` — open it from phone or desktop, no clone required. _(One-time setup: Repo → Settings → Pages → Source = "GitHub Actions".)_ Publishing happens **only when you manually trigger** the **Atlas** workflow (`workflow_dispatch`) from the Actions tab — there is no automatic refresh on merge.
 
 The atlas has **two layers**:
-- **Computed layer (auto, every merge):** file counts, largest files, knip dead-code counts, bundle sizes, `any`/TODO counts, commit + timestamp. Recomputed deterministically by `scripts/build-atlas.mjs` (run in `.github/workflows/atlas.yml`) and shown in the **"Live metrics"** panel of the Dependency Graph section.
-- **Curated layer (on demand):** the judgment — scores, risks, narratives, roadmap — lives in `curated.json` and is refreshed by re-running the `codebase-atlas` skill. The merge-time job never overwrites it.
+- **Computed layer (on demand):** file counts, largest files, knip dead-code counts, bundle sizes, `any`/TODO counts, commit + timestamp. Recomputed deterministically by `scripts/build-atlas.mjs` (`npm run atlas`) and shown in the **"Live metrics"** panel of the Dependency Graph section.
+- **Curated layer (on demand):** the judgment — scores, risks, narratives, roadmap — lives in `curated.json` and is refreshed by re-running the `codebase-atlas` skill. Regenerating metrics never overwrites it.
 
-Hosting is **publish-only**: the workflow regenerates and deploys to Pages but does **not** commit the refreshed files back, so the committed copy is a periodic seed/snapshot.
+All files here are tracked in git, including the generated `index.html` and `architecture-data.json`. They are **only refreshed when you explicitly update the atlas** — a routine code change never regenerates them — so they don't churn or conflict on every branch. Refresh + commit them deliberately (ideally on `main`), not as a side effect of unrelated work. Hosting is **publish-only**: the workflow regenerates and deploys to Pages but does **not** commit anything back.
 
 ## What's inside
 
@@ -75,7 +75,7 @@ npm run build   # optional — only needed for fresh bundle-size metrics
 npm run atlas   # recomputes metrics, merges curated.json, rewrites architecture-data.json + re-injects into index.html
 ```
 
-This is what `.github/workflows/atlas.yml` runs automatically on each merge to `main`.
+This rewrites the tracked `index.html` and `architecture-data.json`. Commit them only when you are deliberately updating the atlas — if you ran `npm run atlas` just to look at the output, `git restore` them so an incidental refresh doesn't ride along on unrelated work. To publish the refreshed atlas to GitHub Pages, manually run the **Atlas** workflow (`workflow_dispatch`) from the Actions tab — it runs `npm run atlas` on the runner and deploys, committing nothing back.
 
 **Refresh the judgment layer** (scores, risks, narratives, roadmap): re-run the **`codebase-atlas`** skill (`.claude/skills/codebase-atlas/SKILL.md`) — it re-harvests the evidence sources above and rewrites **`curated.json`**. Then run `npm run atlas` to fold the new judgment into the rendered artifact, and commit `curated.json`.
 

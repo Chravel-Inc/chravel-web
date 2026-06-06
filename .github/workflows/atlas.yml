@@ -1,15 +1,12 @@
 name: Atlas
 
-# Refreshes the Codebase Architecture Atlas metrics after CI passes on main,
-# then publishes codebase-atlas/ to GitHub Pages. Publish-only: nothing is
-# committed back to the repo (the committed copy stays a periodic seed/snapshot).
+# Refreshes the Codebase Architecture Atlas metrics and publishes codebase-atlas/
+# to GitHub Pages. Manual-dispatch only — runs solely when you trigger it from the
+# Actions tab, never automatically on merge. Publish-only: nothing is committed back
+# to the repo (the generated index.html / architecture-data.json are gitignored).
 # The judgment layer (curated.json) is refreshed separately via the codebase-atlas skill.
 
 on:
-  workflow_run:
-    workflows: ['CI']
-    types: [completed]
-    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -30,18 +27,16 @@ env:
 
 jobs:
   publish:
-    # Only after CI succeeds on main, or when triggered manually.
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Checkout (the commit CI validated)
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ github.sha }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

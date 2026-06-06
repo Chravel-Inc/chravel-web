@@ -26,8 +26,8 @@ Optional: `assets/`, `diagrams/` only if genuinely needed.
 
 ### Two-layer refresh (keep the atlas alive)
 Split the data so it can stay current without re-running AI on every change:
-- **Computed layer (deterministic, cheap):** file counts, largest files, knip dead-code counts, bundle sizes, `any`/TODO counts, commit + timestamp. A script (`scripts/build-atlas.mjs`, runnable via `npm run atlas`) recomputes these, merges them over `curated.json`, writes `architecture-data.json`, and re-injects the inline data block in `index.html`. Wire it to run on merge (see `.github/workflows/atlas.yml`).
-- **Curated layer (judgment):** everything requiring analysis lives in `curated.json`. Refresh it by re-running this skill, then run `npm run atlas` to fold it in. The merge-time job never overwrites it.
+- **Computed layer (deterministic, cheap):** file counts, largest files, knip dead-code counts, bundle sizes, `any`/TODO counts, commit + timestamp. A script (`scripts/build-atlas.mjs`, runnable via `npm run atlas`) recomputes these, merges them over `curated.json`, writes `architecture-data.json`, and re-injects the inline data block in `index.html`. In Chravel this runs **on demand only** — manually via `npm run atlas`, or via the manual **Atlas** workflow dispatch (`.github/workflows/atlas.yml`); it is not wired to run on merge. `index.html` and `architecture-data.json` are tracked but should only be regenerated and committed when deliberately updating the atlas, never as a side effect of unrelated work.
+- **Curated layer (judgment):** everything requiring analysis lives in `curated.json`. Refresh it by re-running this skill, then run `npm run atlas` to fold it in. Regenerating metrics never overwrites it.
 
 When refreshing for Chravel: **edit `curated.json`, not `architecture-data.json`** (the latter is regenerated). Then `npm run atlas`.
 
