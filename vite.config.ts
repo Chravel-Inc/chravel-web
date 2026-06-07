@@ -66,8 +66,6 @@ export default defineConfig(({ mode }) => ({
           pdf: ['jspdf', 'jspdf-autotable', 'html2canvas'],
           // exceljs (~950 KB) — only needed when importing a spreadsheet, lazy-loaded
           exceljs: ['exceljs'],
-          // RevenueCat web billing SDK (808 KB) — only needed when user hits paywall
-          'revenuecat-web': ['@revenuecat/purchases-js'],
         },
         // Optimize chunk names - include build version for aggressive cache busting
         chunkFileNames: `assets/js/[name]-[hash]-${buildVersion}.js`,
