@@ -31,3 +31,7 @@
 - Added CSS-first Trips grid/card sizing so mobile portrait cards are denser, mobile landscape switches the Trips grid to two columns, and Trips content gets NativeTabBar-height + safe-area bottom padding.
 - Kept the change scoped to `TripGrid`, consumer/pro trip cards, and shared CSS; no data/auth/realtime/API paths changed and demo mock data was not modified.
 - Targeted TripGrid layout test, lint:check, typecheck, and build pass. Full `npm run test:run` was attempted but has unrelated existing failures in edge/config/offline contract suites; screenshot capture was blocked by Playwright CDN 403.
+
+2026-06-07 — Trips QA follow-up responsive breakpoint hardening
+- Tightened the Trips responsive CSS after QA review: landscape/mobile-tablet grids now use two columns through 1024px without the previous short-height-only gap, 1024px mobile-shell views retain bottom nav padding, and the CSS override no longer needs `!important`.
+- Targeted TripGrid test, lint:check, typecheck, and build pass. Real screenshot capture is still blocked: Playwright/Puppeteer browser downloads return 403 and Ubuntu's Chromium package is a snap stub with no running snapd.
