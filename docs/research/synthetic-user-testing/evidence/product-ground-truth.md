@@ -38,7 +38,11 @@ Capacitor iOS wrapper of the same web app. ~35 routes, ~95 edge functions.
   Celebrations, Other — each with its own roster terminology), **Event** (large-attendee).
 - Required: title (unique per user), start/end dates, timezone. Optional: location, description,
   cover photo (crop modal), trip color (pro).
-- Pro trip creation and Event creation are **gated to Frequent Chraveler tier and above** (see §10).
+- Pro trip creation is **gated to Frequent Chraveler tier and above** (1 free Pro trip trial on Free).
+  Event creation is NOT immediately paywalled: Free and Explorer get **3 lifetime events**
+  (`src/billing/entitlements.ts:296-302`); only the 4th event requires Frequent Chraveler. The
+  advertised per-event attendee caps (100/200) have **no enforcement call sites** — verified by
+  persona 5; only invite `max_uses` actually blocks joins.
 
 ## 5. Invites (`src/pages/JoinTrip.tsx`, `InviteModal`)
 
