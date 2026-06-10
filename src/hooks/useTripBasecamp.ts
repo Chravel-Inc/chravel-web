@@ -291,6 +291,13 @@ export function useClearTripBasecamp(tripId: string | undefined) {
         throw new Error('No tripId provided');
       }
 
+      // Guardrail: basecamp is never queued offline (prevent silent overwrites).
+      // Checked BEFORE permissions — offline, role data can't be fetched, so the
+      // permission guard would misreport "admins only" when connectivity is the issue.
+      if (!isDemoMode && typeof navigator !== 'undefined' && navigator.onLine === false) {
+        throw new Error('OFFLINE: Trip Base Camp updates require an internet connection.');
+      }
+
       // Permission guard: pro/event trips restrict basecamp to admins/organizers
       if (!permissions.canSetBasecamp && !isDemoMode) {
         throw new Error('PERMISSION: Only admins can clear the basecamp for this trip.');
