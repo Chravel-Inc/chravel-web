@@ -57,12 +57,16 @@ function resolveFeatureFlagEnabled(data: FeatureFlagRow | null, defaultValue: bo
 // ---------------------------------------------------------------------------
 
 /**
- * Returns whether a feature flag is enabled.
+ * Returns whether a feature flag is enabled, along with whether the backing query
+ * has settled yet. Use `isPending` to avoid acting on the `defaultValue` during the
+ * first fetch (e.g. routing decisions that would flash the wrong screen).
  * Reads from Supabase `feature_flags` table with 60s cache.
- * Falls back to `defaultValue` if table is unreachable.
  */
-export function useFeatureFlag(key: string, defaultValue: boolean = true): boolean {
-  const { data } = useQuery({
+export function useFeatureFlagStatus(
+  key: string,
+  defaultValue: boolean = true,
+): { enabled: boolean; isPending: boolean } {
+  const { data, isPending } = useQuery({
     queryKey: ['feature-flag', key],
     queryFn: async (): Promise<FeatureFlagRow | null> => fetchFeatureFlagRow(key),
     staleTime: 60_000, // Cache for 1 minute — kill switch takes effect within 60s
@@ -71,7 +75,16 @@ export function useFeatureFlag(key: string, defaultValue: boolean = true): boole
     refetchOnWindowFocus: true, // Re-check when user returns to tab
   });
 
-  return resolveFeatureFlagEnabled(data, defaultValue);
+  return { enabled: resolveFeatureFlagEnabled(data ?? null, defaultValue), isPending };
+}
+
+/**
+ * Returns whether a feature flag is enabled.
+ * Reads from Supabase `feature_flags` table with 60s cache.
+ * Falls back to `defaultValue` if table is unreachable.
+ */
+export function useFeatureFlag(key: string, defaultValue: boolean = true): boolean {
+  return useFeatureFlagStatus(key, defaultValue).enabled;
 }
 
 /**

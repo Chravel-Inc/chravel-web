@@ -88,7 +88,7 @@ import { shouldShowOnboarding, capturePendingDestination } from '../utils/onboar
 // Direct file import (not the feature barrel) so the survey/choice components stay
 // in their own lazy chunk instead of riding along in the Index bundle.
 import { useChaosSurveyStore } from '../features/onboarding/hooks/useChaosSurveyStore';
-import { useFeatureFlag } from '../lib/featureFlags';
+import { useFeatureFlagStatus } from '../lib/featureFlags';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../components/mobile/PullToRefreshIndicator';
 import { clearDataCaches } from '../utils/pwaCacheUtils';
@@ -162,7 +162,10 @@ const AuthIndex = () => {
   // Gated by a Supabase kill switch (defaults OFF so a flag-fetch failure falls back
   // to today's behavior: tour from screen 0). Path/completion are tracked separately
   // from `has_seen_onboarding`, which only the tour-complete/skip-to-app paths set.
-  const isSurveyEnabled = useFeatureFlag('onboarding_survey', false);
+  const { enabled: isSurveyEnabled, isPending: isSurveyFlagPending } = useFeatureFlagStatus(
+    'onboarding_survey',
+    false,
+  );
   const surveyStateLoaded = useChaosSurveyStore(state => state.isInitialized);
   const onboardingPath = useChaosSurveyStore(state => state.path);
   const surveyCompleted = useChaosSurveyStore(state => state.surveyCompleted);
@@ -813,9 +816,12 @@ const AuthIndex = () => {
   // Show onboarding for new authenticated users — choose-your-own-adventure:
   // choice screen → (survey → personalized tour) | (tour) | (straight to dashboard).
   if (showOnboarding) {
-    // Wait for this user's per-user state to load before deciding, so we neither
-    // flash a screen prematurely nor honor another user's choices on this device.
-    if (isSurveyEnabled && !surveyStateLoaded) {
+    // Hold in a neutral loading state until the kill-switch flag query settles.
+    // `useFeatureFlagStatus(..., false)` returns false while pending, so deciding
+    // now would flash the legacy carousel and then eject the user to the choice
+    // screen once the (DB-enabled) flag resolves. Wait for the flag AND this user's
+    // per-user survey state before routing.
+    if (isSurveyFlagPending || (isSurveyEnabled && !surveyStateLoaded)) {
       return <div className="min-h-screen bg-background" />;
     }
     if (isSurveyEnabled && onboardingPath === null) {
