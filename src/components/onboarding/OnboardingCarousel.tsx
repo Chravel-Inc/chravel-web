@@ -36,6 +36,8 @@ interface OnboardingCarouselProps {
   onSkip: () => void;
   onExploreDemoTrip: () => void;
   onCreateTrip: () => void;
+  /** Screen index to open on (e.g. personalized by the chaos diagnostic). Defaults to 0. */
+  initialScreen?: number;
 }
 
 interface ScreenConfig {
@@ -129,8 +131,12 @@ export const OnboardingCarousel = ({
   onSkip,
   onExploreDemoTrip,
   onCreateTrip,
+  initialScreen = 0,
 }: OnboardingCarouselProps) => {
-  const [currentScreen, setCurrentScreen] = useState(0);
+  // Clamp the requested starting screen into range (defends against stale/bad values).
+  const [currentScreen, setCurrentScreen] = useState(() =>
+    Math.min(Math.max(initialScreen, 0), TOTAL_SCREENS - 1),
+  );
   const [direction, setDirection] = useState(0);
   const layout = useOnboardingLayout();
 

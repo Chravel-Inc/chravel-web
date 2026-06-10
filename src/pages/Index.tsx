@@ -31,6 +31,12 @@ const DemoModal = lazy(() =>
 const OnboardingCarousel = lazy(() =>
   import('../components/onboarding').then(m => ({ default: m.OnboardingCarousel })),
 );
+const TripChaosDiagnostic = lazy(() =>
+  import('../features/onboarding').then(m => ({ default: m.TripChaosDiagnostic })),
+);
+const OnboardingChoiceScreen = lazy(() =>
+  import('../features/onboarding').then(m => ({ default: m.OnboardingChoiceScreen })),
+);
 import { TripStatsOverview } from '../components/home/TripStatsOverview';
 import { TripViewToggle } from '../components/home/TripViewToggle';
 import { DesktopHeader } from '../components/home/DesktopHeader';
@@ -79,6 +85,10 @@ import {
 } from '../utils/semanticTripFilter';
 import { useOnboarding } from '../hooks/useOnboarding';
 import { shouldShowOnboarding, capturePendingDestination } from '../utils/onboardingUtils';
+// Direct file import (not the feature barrel) so the survey/choice components stay
+// in their own lazy chunk instead of riding along in the Index bundle.
+import { useChaosSurveyStore } from '../features/onboarding/hooks/useChaosSurveyStore';
+import { useFeatureFlagStatus } from '../lib/featureFlags';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../components/mobile/PullToRefreshIndicator';
 import { clearDataCaches } from '../utils/pwaCacheUtils';
@@ -146,6 +156,39 @@ const AuthIndex = () => {
     isInitialized,
     isDemoMode,
   });
+
+  // Choose-your-own-adventure onboarding: a choice screen offers (1) the Trip Chaos
+  // survey → personalized tour, (2) the demo tour, or (3) straight to the dashboard.
+  // Gated by a Supabase kill switch (defaults OFF so a flag-fetch failure falls back
+  // to today's behavior: tour from screen 0). Path/completion are tracked separately
+  // from `has_seen_onboarding`, which only the tour-complete/skip-to-app paths set.
+  const { enabled: isSurveyEnabled, isPending: isSurveyFlagPending } = useFeatureFlagStatus(
+    'onboarding_survey',
+    false,
+  );
+  const surveyStateLoaded = useChaosSurveyStore(state => state.isInitialized);
+  const onboardingPath = useChaosSurveyStore(state => state.path);
+  const surveyCompleted = useChaosSurveyStore(state => state.surveyCompleted);
+  const personalizedScreen = useChaosSurveyStore(state => state.personalizedScreen);
+  const initSurveyForUser = useChaosSurveyStore(state => state.initForUser);
+  const setOnboardingPath = useChaosSurveyStore(state => state.setPath);
+  const markSurveyCompleted = useChaosSurveyStore(state => state.markCompleted);
+
+  // Load this user's survey state (per-user key) so a previous user's choices on a
+  // shared device can't suppress the flow for a new signup.
+  useEffect(() => {
+    initSurveyForUser(user?.id ?? null);
+  }, [user?.id, initSurveyForUser]);
+
+  const handleChooseSurvey = useCallback(() => setOnboardingPath('survey'), [setOnboardingPath]);
+  const handleChooseDemo = useCallback(() => setOnboardingPath('demo'), [setOnboardingPath]);
+  const handleSurveyComplete = useCallback(
+    (screen: number | null) => markSurveyCompleted(screen),
+    [markSurveyCompleted],
+  );
+  // X on the survey returns to the choice screen (nothing answered is lost-proof:
+  // the survey restarts fresh if they pick it again).
+  const handleSurveyExit = useCallback(() => setOnboardingPath(null), [setOnboardingPath]);
 
   // Navigate to pending destination after onboarding, or stay on dashboard
   const navigateToPendingOrDashboard = useCallback(() => {
@@ -770,11 +813,40 @@ const AuthIndex = () => {
     );
   }
 
-  // Show onboarding for new authenticated users
+  // Show onboarding for new authenticated users — choose-your-own-adventure:
+  // choice screen → (survey → personalized tour) | (tour) | (straight to dashboard).
   if (showOnboarding) {
+    // Hold in a neutral loading state until the kill-switch flag query settles.
+    // `useFeatureFlagStatus(..., false)` returns false while pending, so deciding
+    // now would flash the legacy carousel and then eject the user to the choice
+    // screen once the (DB-enabled) flag resolves. Wait for the flag AND this user's
+    // per-user survey state before routing.
+    if (isSurveyFlagPending || (isSurveyEnabled && !surveyStateLoaded)) {
+      return <div className="min-h-screen bg-background" />;
+    }
+    if (isSurveyEnabled && onboardingPath === null) {
+      return (
+        <Suspense fallback={<div className="min-h-screen bg-background" />}>
+          <OnboardingChoiceScreen
+            onTakeSurvey={handleChooseSurvey}
+            onSeeDemo={handleChooseDemo}
+            onSkipToApp={handleOnboardingSkip}
+          />
+        </Suspense>
+      );
+    }
+    if (isSurveyEnabled && onboardingPath === 'survey' && !surveyCompleted) {
+      return (
+        <Suspense fallback={<div className="min-h-screen bg-background" />}>
+          <TripChaosDiagnostic onComplete={handleSurveyComplete} onSkip={handleSurveyExit} />
+        </Suspense>
+      );
+    }
+    // Tour: personalized start for the survey path, screen 0 for the demo path.
     return (
       <Suspense fallback={<div className="min-h-screen bg-background" />}>
         <OnboardingCarousel
+          initialScreen={personalizedScreen ?? 0}
           onComplete={handleOnboardingComplete}
           onSkip={handleOnboardingSkip}
           onExploreDemoTrip={handleOnboardingExploreDemoTrip}
