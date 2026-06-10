@@ -31,6 +31,9 @@ const DemoModal = lazy(() =>
 const OnboardingCarousel = lazy(() =>
   import('../components/onboarding').then(m => ({ default: m.OnboardingCarousel })),
 );
+const TripChaosDiagnostic = lazy(() =>
+  import('../features/onboarding').then(m => ({ default: m.TripChaosDiagnostic })),
+);
 import { TripStatsOverview } from '../components/home/TripStatsOverview';
 import { TripViewToggle } from '../components/home/TripViewToggle';
 import { DesktopHeader } from '../components/home/DesktopHeader';
@@ -79,6 +82,8 @@ import {
 } from '../utils/semanticTripFilter';
 import { useOnboarding } from '../hooks/useOnboarding';
 import { shouldShowOnboarding, capturePendingDestination } from '../utils/onboardingUtils';
+import { useChaosSurveyStore } from '../features/onboarding';
+import { useFeatureFlag } from '../lib/featureFlags';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../components/mobile/PullToRefreshIndicator';
 import { clearDataCaches } from '../utils/pwaCacheUtils';
@@ -146,6 +151,29 @@ const AuthIndex = () => {
     isInitialized,
     isDemoMode,
   });
+
+  // Trip Chaos Diagnostic — a short survey shown before the tour for new users.
+  // Gated by a Supabase kill switch (defaults OFF so a flag-fetch failure falls back
+  // to today's behavior: tour from screen 0). Completion is tracked separately from
+  // `has_seen_onboarding` so the survey precedes — but never replaces — the tour.
+  const isSurveyEnabled = useFeatureFlag('onboarding_survey', false);
+  const surveyStateLoaded = useChaosSurveyStore(state => state.isInitialized);
+  const surveyCompleted = useChaosSurveyStore(state => state.surveyCompleted);
+  const personalizedScreen = useChaosSurveyStore(state => state.personalizedScreen);
+  const initSurveyForUser = useChaosSurveyStore(state => state.initForUser);
+  const markSurveyCompleted = useChaosSurveyStore(state => state.markCompleted);
+
+  // Load this user's survey state (per-user key) so a previous user's completion on a
+  // shared device can't suppress the survey for a new signup.
+  useEffect(() => {
+    initSurveyForUser(user?.id ?? null);
+  }, [user?.id, initSurveyForUser]);
+
+  const handleSurveyComplete = useCallback(
+    (screen: number | null) => markSurveyCompleted(screen),
+    [markSurveyCompleted],
+  );
+  const handleSurveySkip = useCallback(() => markSurveyCompleted(null), [markSurveyCompleted]);
 
   // Navigate to pending destination after onboarding, or stay on dashboard
   const navigateToPendingOrDashboard = useCallback(() => {
@@ -772,9 +800,24 @@ const AuthIndex = () => {
 
   // Show onboarding for new authenticated users
   if (showOnboarding) {
+    // Diagnostic survey runs first (when enabled and not yet completed this flow),
+    // then hands off to the tour — opening on the personalized screen it picked.
+    // Wait for this user's per-user survey state to load before deciding, so we
+    // neither flash the tour prematurely nor honor another user's completion flag.
+    if (isSurveyEnabled && !surveyStateLoaded) {
+      return <div className="min-h-screen bg-background" />;
+    }
+    if (isSurveyEnabled && !surveyCompleted) {
+      return (
+        <Suspense fallback={<div className="min-h-screen bg-background" />}>
+          <TripChaosDiagnostic onComplete={handleSurveyComplete} onSkip={handleSurveySkip} />
+        </Suspense>
+      );
+    }
     return (
       <Suspense fallback={<div className="min-h-screen bg-background" />}>
         <OnboardingCarousel
+          initialScreen={personalizedScreen ?? 0}
           onComplete={handleOnboardingComplete}
           onSkip={handleOnboardingSkip}
           onExploreDemoTrip={handleOnboardingExploreDemoTrip}
