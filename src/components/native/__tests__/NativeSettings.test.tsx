@@ -19,6 +19,15 @@ vi.mock('@/integrations/revenuecat/revenuecatClient', () => ({
   getPlatform: () => 'web',
 }));
 
+// useNotificationPreferences requires an AuthProvider; this spec targets the
+// upgrade-press routing, so a static preferences stub is sufficient.
+vi.mock('@/hooks/useNotificationPreferences', () => ({
+  useNotificationPreferences: () => ({
+    preferences: {},
+    updatePreference: vi.fn(),
+  }),
+}));
+
 describe('NativeSettings', () => {
   beforeEach(() => {
     vi.clearAllMocks();

@@ -12,6 +12,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { tripKeys } from '@/lib/queryKeys';
 import { PersonalBalance } from '../../services/paymentBalanceService';
 import { supabase } from '../../integrations/supabase/client';
+import { settleSplitsForDebtor } from '../../services/paymentSettlementService';
 import { toast } from '../ui/use-toast';
 import { CheckCircle2 } from 'lucide-react';
 import { hapticService as haptics } from '@/services/hapticService';
@@ -45,20 +46,19 @@ export const ConfirmPaymentDialog = ({
       } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Update all unsettled payment splits for this user pair
-      const { error: updateError } = await supabase
-        .from('payment_splits')
-        .update({
-          confirmation_status: 'confirmed',
-          confirmed_by: user.id,
-          confirmed_at: new Date().toISOString(),
-          is_settled: true,
-          settled_at: new Date().toISOString(),
-        })
-        .eq('debtor_user_id', balance.userId)
-        .eq('confirmation_status', 'pending');
-
-      if (updateError) throw updateError;
+      // Crediting transition for this payer/payee pair — must go through the
+      // atomic settlement RPC (row lock + status guard prevents double-credit),
+      // scoped to THESE payment messages rather than every pending split the
+      // debtor has anywhere in the app.
+      const paymentIds = balance.unsettledPayments.map(p => p.paymentId);
+      const result = await settleSplitsForDebtor(
+        paymentIds,
+        balance.userId,
+        balance.preferredPaymentMethod?.type || null,
+      );
+      if (!result.success) {
+        throw new Error(result.error?.message || 'Failed to confirm payment');
+      }
 
       toast({
         title: 'Payment Confirmed',

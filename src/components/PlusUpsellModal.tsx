@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { X, Sparkles, MessageCircle, Settings, Zap, Camera, Globe } from 'lucide-react';
+import { X, Sparkles, MessageCircle, Settings, Zap, Camera, Globe, Ticket } from 'lucide-react';
 import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
 import { CONSUMER_PRICING } from '../types/consumer';
+import { TripPassModal } from './conversion/TripPassModal';
+import { TRIP_PASS_DISPLAY } from '../billing/pricingDisplay';
 
 interface PlusUpsellModalProps {
   isOpen: boolean;
@@ -12,6 +14,7 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
   const { upgradeToTier, isLoading } = useConsumerSubscription();
   const [selectedTier, setSelectedTier] = useState<'explorer' | 'frequent-chraveler'>('explorer');
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
+  const [showTripPass, setShowTripPass] = useState(false);
 
   if (!isOpen) return null;
 
@@ -162,7 +165,7 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
                 <li>• Shared calendar (manual)</li>
                 <li>• Photo & video sharing</li>
                 <li>• 10 AI queries per user per trip</li>
-                <li>• 1 PDF export per trip</li>
+                <li>• 1 free PDF export per trip</li>
                 <li>• ICS calendar download</li>
               </ul>
             </div>
@@ -259,8 +262,24 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
               {isLoading ? 'Processing...' : 'Start Free Trial'}
             </button>
           </div>
+
+          {/* One-off Trip Pass alternative — no subscription required */}
+          <button
+            type="button"
+            onClick={() => setShowTripPass(true)}
+            data-testid="trip-pass-affordance"
+            className="mt-4 mx-auto flex items-center justify-center gap-2 text-sm text-glass-yellow hover:text-glass-orange underline underline-offset-4 transition-colors min-h-[44px]"
+          >
+            <Ticket size={16} />
+            <span>
+              Or unlock just this trip — Trip Pass from {TRIP_PASS_DISPLAY.explorer.price}
+            </span>
+          </button>
         </div>
       </div>
+
+      {/* Trip Pass checkout — reuses the existing modal; renders above this overlay */}
+      <TripPassModal open={showTripPass} onOpenChange={setShowTripPass} />
     </div>
   );
 };

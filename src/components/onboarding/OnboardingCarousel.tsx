@@ -1,5 +1,9 @@
 /**
- * Onboarding Carousel - Premium 5-screen product tour
+ * Onboarding Carousel - Premium 10-screen product tour
+ *
+ * Every screen carries a visible "Skip demo" affordance (header X on all
+ * screens + text button on non-final screens) so users who want the full
+ * walkthrough get it and everyone else can bail at any point.
  *
  * Desktop: two-column layout (phone preview + copy/controls)
  * Tablet: centered phone frame + controls below
@@ -33,8 +37,6 @@ interface OnboardingCarouselProps {
   onExploreDemoTrip: () => void;
   onCreateTrip: () => void;
 }
-
-const TOTAL_SCREENS = 10;
 
 interface ScreenConfig {
   component:
@@ -112,6 +114,9 @@ const screens: ScreenConfig[] = [
   },
   { component: FinalCTAScreen, title: '', subtitle: '', showInFrame: false },
 ];
+
+// Derived from the screens array so the count can never drift from the flow.
+const TOTAL_SCREENS = screens.length;
 
 const slideVariants = {
   enter: (direction: number) => ({ x: direction > 0 ? 300 : -300, opacity: 0 }),
@@ -248,7 +253,7 @@ export const OnboardingCarousel = ({
             onClick={handleSkip}
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            Skip tour
+            Skip demo
           </button>
         </div>
       )}

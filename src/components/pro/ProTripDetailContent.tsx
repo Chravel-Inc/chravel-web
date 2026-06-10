@@ -4,10 +4,11 @@ import { ProTabNavigation } from './ProTabNavigation';
 import { ProTabContent } from './ProTabContent';
 import { getVisibleTabs } from './ProTabsConfig';
 import { useAuth } from '../../hooks/useAuth';
+import { useDemoMode } from '../../hooks/useDemoMode';
 import { useRoleAssignments } from '../../hooks/useRoleAssignments';
 import { useTripRoles } from '../../hooks/useTripRoles';
 
-import { ProTripData, TeamTripContext } from '../../types/pro';
+import { ProTripData, RoomAssignment, TeamTripContext } from '../../types/pro';
 import { ProTripCategory } from '../../types/proCategories';
 
 interface ProTripDetailContentProps {
@@ -39,6 +40,7 @@ export const ProTripDetailContent = ({
 }: ProTripDetailContentProps) => {
   const [showRoomModal, setShowRoomModal] = useState(false);
   const { user } = useAuth();
+  const { isDemoMode } = useDemoMode();
 
   // Hooks for role assignment persistence
   const { assignRole } = useRoleAssignments({
@@ -50,9 +52,13 @@ export const ProTripDetailContent = ({
   const userRole = user?.proRole || 'staff';
   const userPermissions = user?.permissions || ['read'];
 
-  const visibleTabs = getVisibleTabs(userRole, userPermissions, selectedCategory);
+  // Placeholder-backed tabs (finance/medical/compliance/sponsors) are only
+  // offered on demo trips — real trips have no backing data for them yet.
+  const visibleTabs = getVisibleTabs(userRole, userPermissions, selectedCategory, {
+    isDemoTrip: isDemoMode,
+  });
 
-  const handleUpdateRoomAssignments = (_assignments: any[]) => {
+  const handleUpdateRoomAssignments = (_assignments: RoomAssignment[]): void => {
     // In a real app, this would update the trip data
   };
 

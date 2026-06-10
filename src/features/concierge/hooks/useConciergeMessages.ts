@@ -42,13 +42,18 @@ export function useConciergeMessages({ tripId, isDemoMode, userId, userPlan }: P
   const buildLimitReachedMessage = useCallback((): ChatMessage => {
     const paywall = getFeaturePaywallConfig('concierge_limit');
     const currentPlan = userPlan === 'explorer' ? 'Explorer' : 'free';
+    // Explorer already includes the higher per-trip cap, so once an Explorer
+    // user hits the wall the only meaningful step up is the unlimited tier.
+    const upgradePitch =
+      userPlan === 'explorer'
+        ? `Go unlimited with ${paywall.secondaryPlan ?? 'Frequent Chraveler'}.`
+        : paywall.featureBenefitCopy;
     return {
       id: `limit-reached-${Date.now()}`,
       type: 'assistant',
       content:
-        `Thanks so much for your question! Unfortunately you've reached your Concierge limit ` +
-        `for this trip on the ${currentPlan} plan. ${paywall.featureBenefitCopy} ` +
-        `Recommended plan: ${paywall.recommendedPlan}.`,
+        `You've reached your Concierge limit for this trip on the ${currentPlan} plan. ` +
+        `${upgradePitch} Tap **Upgrade** below to see plans — or grab a one-time Trip Pass for just this trip.`,
       timestamp: new Date().toISOString(),
     };
   }, [userPlan]);

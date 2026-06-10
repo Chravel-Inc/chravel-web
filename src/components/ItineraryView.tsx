@@ -1,19 +1,29 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
 import { Clock, MapPin, Download, Share2, Calendar } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { cn } from '../lib/utils';
 import { CalendarEvent } from '../types/calendar';
+import { usePdfExportUsage } from '../hooks/usePdfExportUsage';
 
 interface ItineraryViewProps {
   events: CalendarEvent[];
   tripName?: string;
+  /** Trip id used for PDF-export entitlement tracking (1 free PDF export per trip). */
+  tripId?: string;
 }
 
-export const ItineraryView = ({ events, tripName = 'Trip Itinerary' }: ItineraryViewProps) => {
+export const ItineraryView = ({
+  events,
+  tripName = 'Trip Itinerary',
+  tripId = '',
+}: ItineraryViewProps) => {
   const [showAllEvents, setShowAllEvents] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const { canExport, isPaidUser, recordExport } = usePdfExportUsage(tripId);
 
   // Group events by day and filter for itinerary
   const itineraryDays = useMemo(() => {
@@ -65,20 +75,94 @@ export const ItineraryView = ({ events, tripName = 'Trip Itinerary' }: Itinerary
     return colors[category] || 'bg-slate-500/20 text-slate-300';
   };
 
-  const handleExportPDF = () => {
-    // Implement PDF export using html2canvas + jsPDF
-  };
+  const handleExportPDF = useCallback(async () => {
+    if (isExporting) return;
 
-  const handleShare = () => {
-    // Implement sharing functionality
-    if (navigator.share) {
-      navigator.share({
-        title: tripName,
-        text: 'Check out our trip itinerary!',
-        url: window.location.href,
-      });
+    if (itineraryDays.length === 0) {
+      toast.error('Add events to the itinerary before exporting.');
+      return;
     }
-  };
+
+    // Same entitlement gate as TripExportModal: free users get 1 PDF export per trip.
+    if (!isPaidUser && !canExport) {
+      toast.error(
+        "You've used your 1 free PDF export for this trip. Upgrade for unlimited exports.",
+      );
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      // Lazy-load the shared export pipeline only on explicit export intent
+      const [{ generateClientPDF }, { openOrDownloadBlob }] = await Promise.all([
+        import('../utils/exportPdfClient'),
+        import('../utils/download'),
+      ]);
+
+      const calendar = itineraryDays.flatMap(day =>
+        day.events.map(event => ({
+          title: event.title,
+          start_time: event.date.toISOString(),
+          end_time: event.end_time?.toISOString(),
+          location: event.location,
+          description: event.description,
+        })),
+      );
+
+      const firstDay = itineraryDays[0].date;
+      const lastDay = itineraryDays[itineraryDays.length - 1].date;
+      const dateRange =
+        itineraryDays.length === 1
+          ? format(firstDay, 'MMMM d, yyyy')
+          : `${format(firstDay, 'MMM d, yyyy')} - ${format(lastDay, 'MMM d, yyyy')}`;
+
+      const blob = await generateClientPDF({ tripId, tripTitle: tripName, dateRange, calendar }, [
+        'calendar',
+      ]);
+
+      const filename = `${tripName.replace(/[^a-z0-9]/gi, '_')}_Itinerary_${Date.now()}.pdf`;
+      await openOrDownloadBlob(blob, filename, { mimeType: 'application/pdf' });
+
+      if (!isPaidUser && tripId) {
+        recordExport();
+      }
+      toast.success('Itinerary PDF exported');
+    } catch {
+      toast.error('Failed to export the itinerary PDF. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  }, [isExporting, itineraryDays, isPaidUser, canExport, tripId, tripName, recordExport]);
+
+  const copyShareLink = useCallback(async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Itinerary link copied to clipboard');
+    } catch {
+      toast.error('Unable to copy the link. Please copy the URL from your browser.');
+    }
+  }, []);
+
+  const handleShare = useCallback(async () => {
+    const shareUrl = window.location.href;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: tripName,
+          text: 'Check out our trip itinerary!',
+          url: shareUrl,
+        });
+      } catch (error) {
+        // User dismissing the native share sheet is not an error
+        if (error instanceof Error && error.name === 'AbortError') return;
+        await copyShareLink(shareUrl);
+      }
+    } else {
+      // Desktop browsers without the Web Share API: copy the link instead
+      await copyShareLink(shareUrl);
+    }
+  }, [tripName, copyShareLink]);
 
   if (itineraryDays.length === 0) {
     return (
@@ -119,9 +203,9 @@ export const ItineraryView = ({ events, tripName = 'Trip Itinerary' }: Itinerary
             <Share2 size={16} className="mr-1" />
             Share
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExportPDF}>
+          <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={isExporting}>
             <Download size={16} className="mr-1" />
-            Export PDF
+            {isExporting ? 'Exporting...' : 'Export PDF'}
           </Button>
         </div>
       </div>

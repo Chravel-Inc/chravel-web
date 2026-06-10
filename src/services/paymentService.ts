@@ -4,6 +4,70 @@ import { mockPayments } from '@/mockData/payments';
 import { recordPaymentSplitPattern } from './chatAnalysisService';
 import { isDemoTrip } from '@/utils/demoUtils';
 import { toAppPayment } from '@/lib/adapters/paymentAdapter';
+import { FEATURE_LIMITS } from '@/billing/entitlements';
+import { resolveEffectiveTier } from './entitlementService';
+
+/** Typed error code returned when the per-trip payment split cap is hit. */
+export const SPLIT_LIMIT_ERROR_CODE = 'SPLIT_LIMIT_REACHED';
+
+export interface SplitLimitCheckResult {
+  allowed: boolean;
+  /** The user's per-trip split limit (only set when blocked). */
+  limit?: number;
+  /** The resolved tier (only set when blocked). */
+  tier?: string;
+}
+
+/**
+ * Enforce the advertised per-trip payment split cap (Free = 3, Explorer = 10,
+ * Frequent Chraveler and Pro = unlimited). Counts split requests authored by
+ * THIS user in THIS trip against FEATURE_LIMITS.payment_splitting.
+ *
+ * - Unlimited tiers (-1) never run the count query — zero behavior change for paid users.
+ * - Fails OPEN on tier/count lookup errors: a failed lookup must never block a
+ *   (potentially paying) user's payment.
+ */
+export async function checkPaymentSplitLimit(
+  tripId: string,
+  userId: string,
+): Promise<SplitLimitCheckResult> {
+  let limit: number;
+  let tier: string;
+  try {
+    tier = await resolveEffectiveTier(userId);
+    limit =
+      FEATURE_LIMITS.payment_splitting[tier as keyof typeof FEATURE_LIMITS.payment_splitting] ??
+      FEATURE_LIMITS.payment_splitting.free ??
+      -1;
+  } catch (error) {
+    if (import.meta.env.DEV)
+      console.error('[paymentService] Tier lookup failed — skipping split cap check:', error);
+    return { allowed: true };
+  }
+
+  if (limit === -1) {
+    return { allowed: true };
+  }
+
+  const { count, error } = await supabase
+    .from('trip_payment_messages')
+    .select('id', { count: 'exact', head: true })
+    .eq('trip_id', tripId)
+    .eq('created_by', userId);
+
+  if (error) {
+    // Fail OPEN: do not block payment creation because a count query failed.
+    if (import.meta.env.DEV)
+      console.error('[paymentService] Split count lookup failed — failing open:', error);
+    return { allowed: true };
+  }
+
+  if ((count ?? 0) >= limit) {
+    return { allowed: false, limit, tier };
+  }
+
+  return { allowed: true };
+}
 
 interface MockPayment {
   id: string;
@@ -155,6 +219,23 @@ export const paymentService = {
         };
       }
 
+      // Enforce the advertised per-trip split cap (Free = 3 / Explorer = 10).
+      // Unlimited tiers skip the check entirely; lookup failures fail open.
+      const splitLimit = await checkPaymentSplitLimit(tripId, userId);
+      if (!splitLimit.allowed) {
+        const limitLabel = splitLimit.limit ?? 3;
+        return {
+          success: false,
+          error: {
+            code: SPLIT_LIMIT_ERROR_CODE,
+            message:
+              splitLimit.tier === 'free'
+                ? `Free plan includes ${limitLabel} payment splits per trip — upgrade or get a Trip Pass to add more.`
+                : `Your plan includes ${limitLabel} payment splits per trip — upgrade for unlimited splits.`,
+          },
+        };
+      }
+
       // Use enhanced v2 function with audit trail and transaction safety
       const { data: paymentId, error } = await supabase.rpc('create_payment_with_splits_v2', {
         p_trip_id: tripId,
@@ -286,8 +367,7 @@ export const paymentService = {
       const userId = authData?.user?.id;
       if (!userId) return false;
 
-      // RPC not yet in generated Supabase types
-      const { data, error } = await (supabase as any).rpc('settle_payment_split', {
+      const { data, error } = await supabase.rpc('settle_payment_split', {
         p_split_id: splitId,
         p_user_id: userId,
         p_method: settlementMethod,
@@ -300,11 +380,11 @@ export const paymentService = {
       }
 
       // RPC returns { success, error?, all_settled? }
-      if (!data?.success) {
-        if (data?.error === 'ALREADY_SETTLED') {
-          throw new Error('Payment has already been settled by another user.');
-        }
-        return false;
+      const payload = (data ?? {}) as { success?: boolean; error?: string };
+      if (!payload.success) {
+        // A concurrent caller already settled it — the desired end state holds,
+        // so report idempotent success instead of a user-facing failure.
+        return payload.error === 'ALREADY_SETTLED';
       }
 
       return true;
@@ -314,37 +394,24 @@ export const paymentService = {
     }
   },
 
-  // Unsettle a payment split (toggle back to unpaid)
+  // Unsettle a payment split (toggle back to unpaid).
+  // Atomic RPC: row lock + status guard replace the race-prone read-then-write
+  // path; already-unsettled is an idempotent success and the parent payment's
+  // settled flag is rolled back inside the same transaction.
   async unsettlePayment(splitId: string): Promise<boolean> {
     try {
-      const { data: currentSplit, error: fetchError } = await supabase
-        .from('payment_splits')
-        .select('is_settled, payment_message_id')
-        .eq('id', splitId)
-        .single();
+      const { data, error } = await supabase.rpc('unsettle_payment_split', {
+        p_split_id: splitId,
+      });
 
-      if (fetchError) throw fetchError;
-
-      if (!currentSplit.is_settled) {
-        return true; // Already unsettled
+      if (error) {
+        if (import.meta.env.DEV)
+          console.error('[paymentService] unsettle_payment_split RPC error:', error);
+        return false;
       }
 
-      // Mark split as unsettled
-      const { error } = await supabase
-        .from('payment_splits')
-        .update({
-          is_settled: false,
-          settled_at: null,
-          settlement_method: null,
-        })
-        .eq('id', splitId);
-
-      if (error) return false;
-
-      // Update parent payment settled status
-      await this.updateParentPaymentSettledStatus(currentSplit.payment_message_id);
-
-      return true;
+      const payload = (data ?? {}) as { success?: boolean; already_unsettled?: boolean };
+      return payload.success === true;
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error unsettling payment:', error);
       return false;

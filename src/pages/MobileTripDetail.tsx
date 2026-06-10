@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, MoreVertical, Info, LogIn, Users } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Info, LogIn, Users, UserPlus } from 'lucide-react';
 import { MobileTripTabs } from '../components/mobile/MobileTripTabs';
 import { MobileErrorBoundary } from '../components/mobile/MobileErrorBoundary';
 import { MobileTripInfoDrawer } from '../components/mobile/MobileTripInfoDrawer';
@@ -11,6 +11,8 @@ import { TripExportModal } from '../components/trip/TripExportModal';
 import { InviteModal } from '../components/InviteModal';
 import { DeleteTripConfirmDialog } from '../components/DeleteTripConfirmDialog';
 import { useDeleteTrip } from '../hooks/useDeleteTrip';
+import { useTripNotificationMute } from '../hooks/useTripNotificationMute';
+import { useFeatureFlag } from '@/lib/featureFlags';
 import { useAuth } from '../hooks/useAuth';
 import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
 import { hapticService } from '../services/hapticService';
@@ -66,6 +68,8 @@ export const MobileTripDetail = () => {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { deleteTrip, isDeleting } = useDeleteTrip();
+  const muteToggleEnabled = useFeatureFlag('per_trip_notification_mute');
+  const { muted, toggleMute } = useTripNotificationMute(tripId);
   const headerRef = React.useRef<HTMLDivElement>(null);
 
   // Persist activeTab changes to sessionStorage
@@ -587,17 +591,33 @@ export const MobileTripDetail = () => {
                 </div>
               </div>
 
-              {/* Options button */}
-              <button
-                onClick={() => {
-                  hapticService.light();
-                  setShowOptionsSheet(true);
-                }}
-                className="flex-shrink-0 min-w-[44px] min-h-[44px] p-2 -mr-2 active:scale-95 transition-transform touch-manipulation flex items-center justify-center"
-                style={{ touchAction: 'manipulation' }}
-              >
-                <MoreVertical size={22} className="text-white" />
-              </button>
+              {/* Invite (primary) + Options */}
+              <div className="flex-shrink-0 flex items-center gap-0.5">
+                <button
+                  onClick={() => {
+                    hapticService.light();
+                    setShowInviteModal(true);
+                  }}
+                  data-testid="mobile-invite-cta"
+                  className="flex items-center gap-1 min-h-[40px] px-2.5 rounded-full bg-gold-primary hover:bg-gold-mid text-black text-sm font-semibold active:scale-95 transition-transform touch-manipulation"
+                  style={{ touchAction: 'manipulation' }}
+                  aria-label="Invite people to this trip"
+                >
+                  <UserPlus size={16} />
+                  <span>Invite</span>
+                </button>
+                <button
+                  onClick={() => {
+                    hapticService.light();
+                    setShowOptionsSheet(true);
+                  }}
+                  className="min-w-[44px] min-h-[44px] p-2 -mr-2 active:scale-95 transition-transform touch-manipulation flex items-center justify-center"
+                  style={{ touchAction: 'manipulation' }}
+                  aria-label="More options"
+                >
+                  <MoreVertical size={22} className="text-white" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -638,6 +658,8 @@ export const MobileTripDetail = () => {
           onExport={() => setShowExportModal(true)}
           onInvite={() => setShowInviteModal(true)}
           onDelete={() => setShowDeleteDialog(true)}
+          onToggleMute={muteToggleEnabled && tripId && !isDemoTrip(tripId) ? toggleMute : undefined}
+          muted={muted}
         />
 
         {/* Export Modal */}

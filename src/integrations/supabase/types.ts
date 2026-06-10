@@ -3764,6 +3764,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          notifications_muted: boolean
           role: string
           trip_id: string
           updated_at: string
@@ -3772,6 +3773,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          notifications_muted?: boolean
           role?: string
           trip_id: string
           updated_at?: string
@@ -3780,6 +3782,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          notifications_muted?: boolean
           role?: string
           trip_id?: string
           updated_at?: string
@@ -5368,6 +5371,29 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_trip_notifications_muted: {
+        Args: {
+          p_muted: boolean
+          p_trip_id: string
+        }
+        Returns: Json
+      }
+      settle_payment_split: {
+        Args: {
+          p_method: string
+          p_split_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      settle_payment_splits_for_debtor: {
+        Args: {
+          p_debtor_user_id: string
+          p_method: string
+          p_payment_message_ids: string[]
+        }
+        Returns: Json
+      }
       should_send_notification: {
         Args: {
           p_channel?: string
@@ -5430,6 +5456,12 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      unsettle_payment_split: {
+        Args: {
+          p_split_id: string
+        }
+        Returns: Json
       }
       update_trip_basecamp_with_version: {
         Args: {
