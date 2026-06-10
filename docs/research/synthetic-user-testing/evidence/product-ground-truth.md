@@ -55,42 +55,42 @@ Capacitor iOS wrapper of the same web app. ~35 routes, ~95 edge functions.
 
 ## 6. Feature set (all implemented unless noted)
 
-| Feature | Details | Key files |
-|---|---|---|
-| **Chat** | Stream Chat SDK; threads, reactions, pins, mentions, link unfurl, search, system messages; per-role channels + broadcasts on Pro | `src/features/chat/` |
-| **AI Concierge (text)** | 38 tools / 18 query classes (places, flights/hotels deeplinks, itinerary writes, recommendations, expense parsing, Q&A on trip context); AI writes go through a **pending-action confirm card** ("Save to Trip?") | `src/components/AIConciergeChat.tsx`, `src/features/concierge/` |
-| **AI Concierge (voice)** | Gemini Live / Vertex; gated to Frequent Chraveler+. See known issues §11 — architecture currently broken | `supabase/functions/` voice paths |
-| **Calendar** | Month/day/list views; event create with place autocomplete; Google Calendar sync (Explorer+); Smart Import feeds it | `src/features/calendar/` |
-| **Smart Import** | Gmail OAuth, PDF/ICS/CSV/images, links, screenshots, raw text; state machine ingest→parse→extract→validate→preview→commit with cherry-pick and duplicate detection | `src/features/smart-import/` |
-| **Places / Basecamp** | Google Places search/save; Basecamp = trip home base used for distances and concierge context; map + list views | `src/components/PlacesSection.tsx`, `BasecampSelector.tsx` |
-| **Polls** | Options, auto/manual close, anonymous option, change vote, realtime counts; poll-as-task mode | `src/components/poll/` |
-| **Tasks** | Assignment (multi), due dates, filters (mine/unassigned/overdue), poll mode | `src/components/todo/` |
-| **Payments** | Log expense, equal/custom split, who-owes-whom summary, settle-up (manual + **Venmo deeplink** — no in-app money movement), receipts | `src/components/payments/` |
-| **Media** | Photos/videos/links/files; grid + lightbox; compression pipeline; share-sheet ingestion on iOS | `src/components/UnifiedMediaHub.tsx` |
-| **Notifications** | In-app dialog with categories; PWA/native push opt-in; preferences. **No per-trip mute, no batching** (known gap) | `src/components/home/NotificationsDialog.tsx` |
-| **Pro surfaces** | Roster + roles + org chart, role-based channels, broadcasts (recipient targeting, delivery tracking), join-request approval, room assignments, day-sheet style schedule; per-diem/compliance/settlement **partially stubbed** | `src/components/pro/admin/` |
-| **Events** | RSVP states, attendee roles, agenda/lineup, broadcasts, attendee caps by tier | `src/pages/EventDetail.tsx` |
-| **Profile/Settings** | Profile stats, archived trips, notification prefs, integrations (Gmail, GCal), billing, privacy | `src/pages/{ProfilePage,SettingsPage}.tsx` |
+| Feature                  | Details                                                                                                                                                                                                                       | Key files                                                       |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| **Chat**                 | Stream Chat SDK; threads, reactions, pins, mentions, link unfurl, search, system messages; per-role channels + broadcasts on Pro                                                                                              | `src/features/chat/`                                            |
+| **AI Concierge (text)**  | 38 tools / 18 query classes (places, flights/hotels deeplinks, itinerary writes, recommendations, expense parsing, Q&A on trip context); AI writes go through a **pending-action confirm card** ("Save to Trip?")             | `src/components/AIConciergeChat.tsx`, `src/features/concierge/` |
+| **AI Concierge (voice)** | Gemini Live / Vertex; gated to Frequent Chraveler+. See known issues §11 — architecture currently broken                                                                                                                      | `supabase/functions/` voice paths                               |
+| **Calendar**             | Month/day/list views; event create with place autocomplete; Google Calendar sync (Explorer+); Smart Import feeds it                                                                                                           | `src/features/calendar/`                                        |
+| **Smart Import**         | Gmail OAuth, PDF/ICS/CSV/images, links, screenshots, raw text; state machine ingest→parse→extract→validate→preview→commit with cherry-pick and duplicate detection                                                            | `src/features/smart-import/`                                    |
+| **Places / Basecamp**    | Google Places search/save; Basecamp = trip home base used for distances and concierge context; map + list views                                                                                                               | `src/components/PlacesSection.tsx`, `BasecampSelector.tsx`      |
+| **Polls**                | Options, auto/manual close, anonymous option, change vote, realtime counts; poll-as-task mode                                                                                                                                 | `src/components/poll/`                                          |
+| **Tasks**                | Assignment (multi), due dates, filters (mine/unassigned/overdue), poll mode                                                                                                                                                   | `src/components/todo/`                                          |
+| **Payments**             | Log expense, equal/custom split, who-owes-whom summary, settle-up (manual + **Venmo deeplink** — no in-app money movement), receipts                                                                                          | `src/components/payments/`                                      |
+| **Media**                | Photos/videos/links/files; grid + lightbox; compression pipeline; share-sheet ingestion on iOS                                                                                                                                | `src/components/UnifiedMediaHub.tsx`                            |
+| **Notifications**        | In-app dialog with categories; PWA/native push opt-in; preferences. **No per-trip mute, no batching** (known gap)                                                                                                             | `src/components/home/NotificationsDialog.tsx`                   |
+| **Pro surfaces**         | Roster + roles + org chart, role-based channels, broadcasts (recipient targeting, delivery tracking), join-request approval, room assignments, day-sheet style schedule; per-diem/compliance/settlement **partially stubbed** | `src/components/pro/admin/`                                     |
+| **Events**               | RSVP states, attendee roles, agenda/lineup, broadcasts, attendee caps by tier                                                                                                                                                 | `src/pages/EventDetail.tsx`                                     |
+| **Profile/Settings**     | Profile stats, archived trips, notification prefs, integrations (Gmail, GCal), billing, privacy                                                                                                                               | `src/pages/{ProfilePage,SettingsPage}.tsx`                      |
 
 Empty/loading/error states exist throughout (skeletons; "No trips yet", "All settled up!", offline
 indicator, "Couldn't Load Trip", concierge status chips including Limited/Degraded/Timeout).
 
 ## 7. Tiers & pricing — CANONICAL (`src/billing/config.ts`, `src/billing/entitlements.ts`)
 
-| | Free | Explorer $9.99/mo · $99/yr | Frequent Chraveler $19.99/mo · $199/yr | Pro Starter $49/mo | Growth $99/mo | Enterprise custom |
-|---|---|---|---|---|---|---|
-| Trips | **3 active** | ∞ | ∞ | ∞ | ∞ | ∞ |
-| AI queries | **10 /user/trip** | 25 /user/trip | ∞ | ∞ | ∞ | ∞ |
-| Storage | **500 MB** | 50 GB | ∞ | ∞ | ∞ | ∞ |
-| Payment splits | 3 /trip | 10 /trip | ∞ | ∞ | ∞ | ∞ |
-| Events | 3 lifetime | 3 lifetime | ∞ (100 attendees) | ∞ (100) | ∞ (200) | ∞ |
-| PDF export / GCal sync | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Voice concierge | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ |
-| Pro trip creation | 1 free trial | ✗ | 1/month | ∞ | ∞ | ∞ |
-| Channels/roles/roster | ✗ | ✗ | ✗ | ✓ | ✓ | ✓ |
-| Logistics | ✗ | ✗ | ✗ | ✗ | ✓ | ✓ |
-| Approvals/QuickBooks/compliance | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ |
-| Seats | 1 | 1 | 1 | 50 | 100 | 250 |
+|                                 | Free              | Explorer $9.99/mo · $99/yr | Frequent Chraveler $19.99/mo · $199/yr | Pro Starter $49/mo | Growth $99/mo | Enterprise custom |
+| ------------------------------- | ----------------- | -------------------------- | -------------------------------------- | ------------------ | ------------- | ----------------- |
+| Trips                           | **3 active**      | ∞                          | ∞                                      | ∞                  | ∞             | ∞                 |
+| AI queries                      | **10 /user/trip** | 25 /user/trip              | ∞                                      | ∞                  | ∞             | ∞                 |
+| Storage                         | **500 MB**        | 50 GB                      | ∞                                      | ∞                  | ∞             | ∞                 |
+| Payment splits                  | 3 /trip           | 10 /trip                   | ∞                                      | ∞                  | ∞             | ∞                 |
+| Events                          | 3 lifetime        | 3 lifetime                 | ∞ (100 attendees)                      | ∞ (100)            | ∞ (200)       | ∞                 |
+| PDF export / GCal sync          | ✗                 | ✓                          | ✓                                      | ✓                  | ✓             | ✓                 |
+| Voice concierge                 | ✗                 | ✗                          | ✓                                      | ✓                  | ✓             | ✓                 |
+| Pro trip creation               | 1 free trial      | ✗                          | 1/month                                | ∞                  | ∞             | ∞                 |
+| Channels/roles/roster           | ✗                 | ✗                          | ✗                                      | ✓                  | ✓             | ✓                 |
+| Logistics                       | ✗                 | ✗                          | ✗                                      | ✗                  | ✓             | ✓                 |
+| Approvals/QuickBooks/compliance | ✗                 | ✗                          | ✗                                      | ✗                  | ✗             | ✓                 |
+| Seats                           | 1                 | 1                          | 1                                      | 50                 | 100           | 250               |
 
 - **Trip Passes** (one-time): Explorer 45 days $39.99 · Frequent Chraveler 90 days $74.99.
 - Paywall surfaces: `PlusUpsellModal.tsx` ("Start Free Trial", 14-day, "Maybe Later"),
@@ -121,6 +121,7 @@ labeled hypothesis, not observation.
 ## 10. Known issues register (citable as `[OBSERVED]` with these sources)
 
 ### Critical, open
+
 1. **Payment settlement double-credit race** — settlement mutation not atomic; concurrent requests can
    double-credit (PLATFORM_AUDIT_CONSTITUTION.md). Idempotency keys missing on chat/payments/calendar
    mutations → retries can duplicate.
@@ -136,6 +137,7 @@ labeled hypothesis, not observation.
    hardcoded anon key fallback; jsPDF CVE; seed-demo-data unauthenticated (SECURITY_AUDIT_REPORT.md).
 
 ### High, open
+
 4. **Notification fanout blocks the INSERT transaction** at event scale (4,000 members → 12,000 rows
    synchronously); no per-trip/channel mute; no batching/grouping (NOTIFICATION_AUDIT.md).
 5. **No hot-trip realtime isolation** — one big trip saturates realtime (PLATFORM_AUDIT_CONSTITUTION.md).
@@ -146,6 +148,7 @@ labeled hypothesis, not observation.
    data (TEST_GAPS.md).
 
 ### Recently fixed — cite as fragility/regression-watch, not open bugs
+
 - Trip Not Found flash during auth hydration; marketing bootstrap trapping TestFlight cold-starts.
 - Chat message loss on websocket reconnect (backfill added); read-receipt write storms; reaction refetch storms.
 - Invite CTA loop after auth; trip preview without active invite code; share-proxy raw JSON on 503.
@@ -155,6 +158,7 @@ labeled hypothesis, not observation.
 - Mock-ID tier gate that disabled consumer-only features on all real trips.
 
 ### Design-level frictions (citable)
+
 - Concierge "Action Plan JSON" mandate frequently ignored by model; preference injection on irrelevant
   queries (DEBUG_PATTERNS.md).
 - Pro logistics (per-diem, compliance, settlement) partially stubbed.
@@ -163,6 +167,7 @@ labeled hypothesis, not observation.
 ## 11. Evidence discipline for persona reports
 
 Label every claim:
+
 - `[OBSERVED — <file or audit doc>]` — verified in code/docs (you may and should open files yourself).
 - `[SIMULATED RISK]` — realistic persona friction inferred from the real flow, but not a verified defect.
 - `[HYPOTHESIS — needs live test]` — requires a running app or real users to confirm.

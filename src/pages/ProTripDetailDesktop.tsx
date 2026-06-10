@@ -568,7 +568,7 @@ export const ProTripDetailDesktop = () => {
             <ProTripDetailContent
               activeTab={activeTab}
               onTabChange={setActiveTab}
-              onShowTripsPlusModal={() => setShowTripsPlusModal(false)}
+              onShowTripsPlusModal={() => setShowTripsPlusModal(true)}
               tripId={proTripId}
               basecamp={basecamp}
               tripData={{

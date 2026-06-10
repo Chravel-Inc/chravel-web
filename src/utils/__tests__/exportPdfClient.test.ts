@@ -17,6 +17,8 @@ vi.mock('jspdf', () => {
     lastAutoTable?: { finalY: number };
     _texts: string[] = [];
     _links: string[] = [];
+    _tables: Array<Record<string, unknown>> = [];
+    _properties: Record<string, unknown> | null = null;
 
     constructor() {
       JsPDFMock.instances.push(this);
@@ -52,6 +54,9 @@ vi.mock('jspdf', () => {
         this._links.push(options.url);
       }
     }
+    setProperties(props: Record<string, unknown>) {
+      this._properties = props;
+    }
     output() {
       return new Blob(['pdf']);
     }
@@ -63,6 +68,10 @@ vi.mock('jspdf', () => {
 vi.mock('jspdf-autotable', () => ({
   default: (doc: Record<string, unknown>, options: Record<string, unknown>) => {
     doc.lastAutoTable = { finalY: ((options?.startY as number) || 0) + 20 };
+
+    const tables = (doc._tables as Array<Record<string, unknown>>) || [];
+    tables.push(options);
+    doc._tables = tables;
 
     const body = (options?.body as Array<Array<string>>) || [];
     const didParseCell = options?.didParseCell as
@@ -95,6 +104,21 @@ vi.mock('jspdf-autotable', () => ({
 }));
 
 import jsPDF from 'jspdf';
+import { resolveSectionOrder } from '../exportPdfClient';
+import type { ExportSection } from '@/types/tripExport';
+
+interface JsPDFMockInstance {
+  _texts: string[];
+  _links: string[];
+  _tables: Array<Record<string, unknown>>;
+  _properties: Record<string, unknown> | null;
+}
+
+function getLatestMockDoc(): JsPDFMockInstance {
+  const instances = (jsPDF as unknown as Record<string, unknown[]>)
+    .instances as JsPDFMockInstance[];
+  return instances[instances.length - 1];
+}
 
 // Note: These are basic unit tests for helper functions
 // Full integration tests would require jsPDF mocking
@@ -241,6 +265,151 @@ describe('PDF Export Client Helpers', () => {
     it('should call progress callback', async () => {
       // This would test progress callbacks fire correctly
       expect(true).toBe(true); // Placeholder - requires jsPDF mocking
+    });
+  });
+
+  describe('resolveSectionOrder', () => {
+    it('respects a custom sectionOrder exactly', () => {
+      const sections: ExportSection[] = ['calendar', 'payments', 'tasks'];
+      const customOrder: ExportSection[] = ['tasks', 'payments', 'calendar'];
+
+      expect(resolveSectionOrder(sections, customOrder)).toEqual(['tasks', 'payments', 'calendar']);
+    });
+
+    it('appends sections missing from the custom order alphabetically by heading', () => {
+      const sections: ExportSection[] = ['roster', 'calendar', 'payments', 'tasks'];
+      const customOrder: ExportSection[] = ['tasks'];
+
+      // Headings: Calendar Events < Payments < Trip Members (roster)
+      expect(resolveSectionOrder(sections, customOrder)).toEqual([
+        'tasks',
+        'calendar',
+        'payments',
+        'roster',
+      ]);
+    });
+
+    it('drops custom-order entries that are not included sections and ignores duplicates', () => {
+      const sections: ExportSection[] = ['calendar', 'tasks'];
+      const customOrder: ExportSection[] = ['polls', 'tasks', 'tasks', 'calendar'];
+
+      expect(resolveSectionOrder(sections, customOrder)).toEqual(['tasks', 'calendar']);
+    });
+
+    it('falls back to alphabetical-by-heading order without a custom order', () => {
+      const sections: ExportSection[] = ['tasks', 'roster', 'calendar', 'agenda'];
+
+      // Headings: Agenda < Calendar Events < Tasks < Trip Members (roster)
+      expect(resolveSectionOrder(sections)).toEqual(['agenda', 'calendar', 'tasks', 'roster']);
+      expect(resolveSectionOrder(sections, [])).toEqual(['agenda', 'calendar', 'tasks', 'roster']);
+    });
+
+    it('survives generateClientPDF: custom order controls rendered heading order', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+
+      const { generateClientPDF } = await import('../exportPdfClient');
+
+      await generateClientPDF(
+        {
+          tripId: '1',
+          tripTitle: 'Trip',
+          calendar: [{ title: 'Dinner', start_time: '2026-06-10T19:00:00Z' }],
+          tasks: [{ title: 'Pack bags', completed: false }],
+        },
+        ['calendar', 'tasks'],
+        { customization: { sectionOrder: ['tasks', 'calendar'] } },
+      );
+
+      const texts = getLatestMockDoc()._texts;
+      const tasksIndex = texts.indexOf('Tasks');
+      const calendarIndex = texts.indexOf('Calendar Events');
+
+      expect(tasksIndex).toBeGreaterThan(-1);
+      expect(calendarIndex).toBeGreaterThan(-1);
+      // Alphabetical would put Calendar Events first; the custom order must win.
+      expect(tasksIndex).toBeLessThan(calendarIndex);
+    });
+  });
+
+  describe('deliverable branding', () => {
+    it('uses the trip name as document title and modest footer attribution', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+
+      const { generateClientPDF } = await import('../exportPdfClient');
+
+      await generateClientPDF(
+        {
+          tripId: '1',
+          tripTitle: 'Smith Wedding Weekend',
+          calendar: [{ title: 'Rehearsal Dinner', start_time: '2026-06-10T19:00:00Z' }],
+        },
+        ['calendar'],
+      );
+
+      const doc = getLatestMockDoc();
+
+      // Marketing copy must not appear anywhere in the deliverable
+      expect(doc._texts).not.toContain('ChravelApp Recap');
+      expect(doc._texts).not.toContain('The Group Chat Travel App');
+
+      // Modest single-line attribution remains
+      expect(doc._texts).toContain('Made with Chravel');
+
+      // Trip name is the heading and the PDF metadata title
+      expect(doc._texts).toContain('Smith Wedding Weekend');
+      expect(doc._properties).toEqual({ title: 'Smith Wedding Weekend' });
+    });
+
+    it('still honors a custom footerText override', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+
+      const { generateClientPDF } = await import('../exportPdfClient');
+
+      await generateClientPDF({ tripId: '1', tripTitle: 'Trip' }, ['calendar'], {
+        customization: { footerText: 'Prepared by Atelier Travel' },
+      });
+
+      const doc = getLatestMockDoc();
+      expect(doc._texts).toContain('Prepared by Atelier Travel');
+      expect(doc._texts).not.toContain('Made with Chravel');
+    });
+  });
+
+  describe('calendar description rendering', () => {
+    it('keeps full event descriptions (no 60-char truncation)', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+
+      const { generateClientPDF } = await import('../exportPdfClient');
+
+      const longDescription =
+        'Private sunset catamaran charter departing from the marina, including champagne service, ' +
+        'a four-course tasting menu, and return transfer to the villa.';
+
+      await generateClientPDF(
+        {
+          tripId: '1',
+          tripTitle: 'Trip',
+          calendar: [
+            {
+              title: 'Catamaran Charter',
+              start_time: '2026-06-10T17:30:00Z',
+              description: longDescription,
+            },
+          ],
+        },
+        ['calendar'],
+      );
+
+      const doc = getLatestMockDoc();
+      const calendarTable = doc._tables.find(table => {
+        const head = table.head as string[][] | undefined;
+        return head?.[0]?.includes('Description');
+      });
+
+      expect(calendarTable).toBeTruthy();
+      const body = calendarTable?.body as string[][];
+      expect(body[0][3]).toBe(longDescription);
+      expect(body[0][3]).not.toMatch(/\.\.\.$/);
     });
   });
 });

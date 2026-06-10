@@ -288,7 +288,7 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
             isRetrying={isFetching}
           />
         ) : (
-          <ItineraryView events={events} tripName="Trip Itinerary" />
+          <ItineraryView events={events} tripName="Trip Itinerary" tripId={tripId} />
         )}
 
         {/* ICS Import Modal */}

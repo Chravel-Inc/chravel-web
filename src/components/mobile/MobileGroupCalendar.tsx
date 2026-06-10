@@ -37,6 +37,7 @@ import { useBackgroundImport } from '@/features/calendar/hooks/useBackgroundImpo
 import { toast } from 'sonner';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { useDeferredPaidAccess } from '@/hooks/useDeferredPaidAccess';
+import { useSmartImportTaste } from '@/features/smart-import/hooks/useSmartImportTaste';
 import { useRolePermissions } from '@/hooks/useRolePermissions';
 import { useTripMembersQuery } from '@/hooks/useTripMembersQuery';
 import type { TripEvent } from '@/services/calendarService';
@@ -99,6 +100,8 @@ export const MobileGroupCalendar = ({
     isSuperAdmin,
     active: true,
   });
+  // Free-tier "taste": 1 Smart Import per trip before the paywall fires.
+  const { canUseFreeImport, invalidateTaste } = useSmartImportTaste(tripId);
   const { canPerformAction, isLoading: permissionsLoading } = useRolePermissions(tripId);
   const { tripMembers } = useTripMembersQuery(tripId);
 
@@ -136,19 +139,23 @@ export const MobileGroupCalendar = ({
   const handleImport = async () => {
     await hapticService.medium();
 
-    if (!canUseSmartImport) {
+    // Free users get 1 Smart Import per trip before the paywall fires.
+    if (!canUseSmartImport && !canUseFreeImport) {
       const { getFeaturePaywallConfig } = await import('@/components/subscription/featurePaywall');
       const paywall = getFeaturePaywallConfig('smart_import_calendar');
-      toast.error(`${paywall.featureBenefitCopy} Recommended plan: ${paywall.recommendedPlan}.`, {
-        action: {
-          label: 'View Plans',
-          onClick: () =>
-            navigate(
-              `${paywall.destination.pathname}${paywall.destination.search}`,
-              paywall.destination.state ? { state: paywall.destination.state } : undefined,
-            ),
+      toast.error(
+        `You've used your free Smart Import for this trip. ${paywall.recommendedPlan} includes unlimited Smart Import.`,
+        {
+          action: {
+            label: 'View Plans',
+            onClick: () =>
+              navigate(
+                `${paywall.destination.pathname}${paywall.destination.search}`,
+                paywall.destination.state ? { state: paywall.destination.state } : undefined,
+              ),
+          },
         },
-      });
+      );
       return;
     }
 
@@ -164,6 +171,8 @@ export const MobileGroupCalendar = ({
   const handleImportComplete = async () => {
     await queryClient.cancelQueries({ queryKey: tripKeys.calendar(tripId) });
     await queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
+    // Refresh the free-import taste so the next attempt sees consumed usage.
+    invalidateTaste();
     await refreshEvents();
   };
 

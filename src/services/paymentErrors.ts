@@ -280,6 +280,7 @@ export class PaymentErrorHandler {
       VALIDATION_FAILED: 'Validation Error',
       NETWORK_ERROR: 'Connection Error',
       DEMO_ERROR: 'Demo Error',
+      SPLIT_LIMIT_REACHED: 'Split Limit Reached',
       UNKNOWN: 'Error',
     };
     return {

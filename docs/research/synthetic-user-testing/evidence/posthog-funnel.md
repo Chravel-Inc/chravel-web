@@ -16,7 +16,7 @@ SELECT event, count() AS n FROM events WHERE timestamp > now() - INTERVAL 90 DAY
 -- → 0 rows (last 90 days)
 ```
 
-The event *definitions* visible in the project are PostHog's built-in taxonomy ($pageview, $screen,
+The event _definitions_ visible in the project are PostHog's built-in taxonomy ($pageview, $screen,
 $identify, Application opened, …) plus MCP-server telemetry — none are Chravel product events with data.
 
 ## Why: instrumented but not enabled
@@ -48,11 +48,11 @@ The codebase ships a complete, well-designed telemetry layer that is **silently 
 
 ## What was checked
 
-| Check | Result |
-|---|---|
-| Projects in org | 1 ("Default project", 339009) |
-| Events ingested, all time | 0 |
-| Events ingested, last 90 days | 0 |
-| Product event definitions with data | none |
-| Telemetry layer in code | complete (`src/telemetry/`), gated on `VITE_POSTHOG_API_KEY` |
-| Manual `$pageview` capture | implemented (`telemetry.page()`), `capture_pageview: false` by design |
+| Check                               | Result                                                                |
+| ----------------------------------- | --------------------------------------------------------------------- |
+| Projects in org                     | 1 ("Default project", 339009)                                         |
+| Events ingested, all time           | 0                                                                     |
+| Events ingested, last 90 days       | 0                                                                     |
+| Product event definitions with data | none                                                                  |
+| Telemetry layer in code             | complete (`src/telemetry/`), gated on `VITE_POSTHOG_API_KEY`          |
+| Manual `$pageview` capture          | implemented (`telemetry.page()`), `capture_pageview: false` by design |

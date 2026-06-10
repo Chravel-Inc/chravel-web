@@ -195,13 +195,13 @@ RPC `has_admin_permission`, all written to `admin_audit_logs`
 `[OBSERVED — supabase/functions/stream-moderation-action/index.ts:95-151]`. Telemetry emits
 `moderation_action` executed/failed events `[OBSERVED — moderationService.ts:30-61]` (though PostHog
 has ingested zero events ever, so no one is watching `[OBSERVED — ground-truth §9]`). The holes:
-(1) **content-level free-for-all** — moderation governs chat, but consumer_member wildcard delete
+(1) **content-level free-for-all** — moderation governs chat, but consumer*member wildcard delete
 governs everything else, so a banned-from-chat prankster can still delete the calendar
 `[OBSERVED — permissionMatrix.generated.ts:36-43]`; (2) **no lockdown switch** — no "announcements
 only" or read-only mode for the channel below Pro role-channels; (3) **re-entry** — on consumer
 trips any member can approve joins, so removal isn't sticky `[OBSERVED — InviteModal.tsx:30]`;
 (4) member **block** is personal-feed filtering, not removal `[OBSERVED — TripChat.tsx:835-839]`.
-Net: the chair can punish a spammer but cannot _prevent_ chaos.
+Net: the chair can punish a spammer but cannot \_prevent* chaos.
 
 ## E. Emotional Reaction
 

@@ -14,12 +14,7 @@ import { OnboardingProgressDots } from './OnboardingProgressDots';
 import { WelcomeScreen } from './demo/screens/WelcomeScreen';
 import { ChatDemoScreen } from './demo/screens/ChatDemoScreen';
 import { CalendarDemoScreen } from './demo/screens/CalendarDemoScreen';
-import { ConciergeDemoScreen } from './demo/screens/ConciergeDemoScreen';
 import { PaymentsTrackingDemoScreen } from './demo/screens/PaymentsTrackingDemoScreen';
-import { PlacesDemoScreen } from './demo/screens/PlacesDemoScreen';
-import { MediaDemoScreen } from './demo/screens/MediaDemoScreen';
-import { PollsDemoScreen } from './demo/screens/PollsDemoScreen';
-import { TasksDemoScreen } from './demo/screens/TasksDemoScreen';
 import { FinalCTAScreen } from './demo/screens/FinalCTAScreen';
 import { PhoneFrame } from './demo/PhoneFrame';
 import { useOnboardingLayout } from './demo/useOnboardingLayout';
@@ -33,8 +28,6 @@ interface OnboardingCarouselProps {
   onExploreDemoTrip: () => void;
   onCreateTrip: () => void;
 }
-
-const TOTAL_SCREENS = 10;
 
 interface ScreenConfig {
   component:
@@ -69,49 +62,17 @@ const screens: ScreenConfig[] = [
     showInFrame: true,
   },
   {
-    component: ConciergeDemoScreen,
-    title: 'Your Chravel Agent.',
-    subtitle: 'Ask anything — get restaurant picks, hotel recs, and trip ideas instantly.',
-    pill: 'concierge',
-    showInFrame: true,
-  },
-  {
-    component: MediaDemoScreen,
-    title: 'Every moment, together.',
-    subtitle: 'Photos, videos, and files — one shared album for the whole trip.',
-    pill: 'media',
-    showInFrame: true,
-  },
-  {
     component: PaymentsTrackingDemoScreen,
     title: 'Money, organized.',
     subtitle: 'Track expenses, split bills, settle up.',
     pill: 'payments',
     showInFrame: true,
   },
-  {
-    component: PlacesDemoScreen,
-    title: 'Pin your spots.',
-    subtitle: 'Save hotels, restaurants, and landmarks — your group always knows where to go.',
-    pill: 'places',
-    showInFrame: true,
-  },
-  {
-    component: PollsDemoScreen,
-    title: 'Decide together.',
-    subtitle: 'Polls that settle debates — destination, budget, plans.',
-    pill: 'polls',
-    showInFrame: true,
-  },
-  {
-    component: TasksDemoScreen,
-    title: 'Everyone knows their part.',
-    subtitle: "Assign tasks, set deadlines, track who's done.",
-    pill: 'tasks',
-    showInFrame: true,
-  },
   { component: FinalCTAScreen, title: '', subtitle: '', showInFrame: false },
 ];
+
+// Derived from the screens array so the count can never drift from the flow.
+const TOTAL_SCREENS = screens.length;
 
 const slideVariants = {
   enter: (direction: number) => ({ x: direction > 0 ? 300 : -300, opacity: 0 }),

@@ -112,8 +112,8 @@ export const PlacesSection = ({
             lastLocalUpdateRef.current &&
             now - lastLocalUpdateRef.current.timestamp < UPDATE_DEBOUNCE_MS;
 
+          // Local updates within the debounce window skip the remote-change notification.
           if (!isLocalUpdate) {
-            console.log('[PlacesSection] Remote basecamp update detected, invalidating cache');
             queryClient.invalidateQueries({ queryKey: tripBasecampKeys.trip(tripId) });
 
             const updatedBasecamp = await basecampService.getTripBasecamp(tripId);
@@ -122,8 +122,6 @@ export const PlacesSection = ({
                 description: updatedBasecamp.name || updatedBasecamp.address,
               });
             }
-          } else {
-            console.log('[PlacesSection] Local basecamp update detected, skipping notification');
           }
         },
       )

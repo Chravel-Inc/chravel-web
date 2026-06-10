@@ -1,5 +1,5 @@
 import React from 'react';
-import { Share2, FileDown, UserPlus, Trash2 } from 'lucide-react';
+import { Share2, FileDown, UserPlus, Trash2, Bell, BellOff } from 'lucide-react';
 import { hapticService } from '../../services/hapticService';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '../ui/drawer';
 
@@ -10,6 +10,9 @@ interface MobileHeaderOptionsSheetProps {
   onExport?: () => void;
   onInvite?: () => void;
   onDelete?: () => void;
+  /** Per-trip notification mute toggle (rendered only when provided). */
+  onToggleMute?: () => void;
+  muted?: boolean;
   tripTitle?: string;
 }
 
@@ -20,6 +23,8 @@ export const MobileHeaderOptionsSheet: React.FC<MobileHeaderOptionsSheetProps> =
   onExport,
   onInvite,
   onDelete,
+  onToggleMute,
+  muted = false,
   tripTitle = 'Trip',
 }) => {
   const handleAction = (action?: () => void) => {
@@ -48,8 +53,10 @@ export const MobileHeaderOptionsSheet: React.FC<MobileHeaderOptionsSheetProps> =
                 <Share2 size={20} className="text-blue-400" />
               </div>
               <div>
-                <p className="text-white font-medium">Share Trip</p>
-                <p className="text-gray-400 text-sm">Send trip details to friends</p>
+                <p className="text-white font-medium">Share preview</p>
+                <p className="text-gray-400 text-sm">
+                  Send a view-only preview link (not an invite)
+                </p>
               </div>
             </button>
           )}
@@ -80,6 +87,31 @@ export const MobileHeaderOptionsSheet: React.FC<MobileHeaderOptionsSheetProps> =
               <div>
                 <p className="text-white font-medium">Invite</p>
                 <p className="text-gray-400 text-sm">Add people to this trip</p>
+              </div>
+            </button>
+          )}
+
+          {onToggleMute && (
+            <button
+              onClick={() => handleAction(onToggleMute)}
+              className="w-full flex items-center gap-4 p-4 rounded-xl bg-gray-800/50 hover:bg-gray-800 active:scale-[0.98] transition-all text-left"
+            >
+              <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                {muted ? (
+                  <Bell size={20} className="text-amber-400" />
+                ) : (
+                  <BellOff size={20} className="text-amber-400" />
+                )}
+              </div>
+              <div>
+                <p className="text-white font-medium">
+                  {muted ? 'Unmute notifications' : 'Mute notifications'}
+                </p>
+                <p className="text-gray-400 text-sm">
+                  {muted
+                    ? 'Resume notifications for this trip'
+                    : 'Silence this trip — other trips stay on'}
+                </p>
               </div>
             </button>
           )}
