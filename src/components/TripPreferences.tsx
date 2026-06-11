@@ -158,7 +158,7 @@ export const TripPreferences = ({
                 onClick={() => handleDietaryChange(option)}
                 className={`px-3 py-2 rounded-full text-sm transition-colors ${
                   preferences.dietary.includes(option)
-                    ? `bg-primary text-white`
+                    ? `bg-primary text-primary-foreground`
                     : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                 }`}
               >
@@ -178,7 +178,7 @@ export const TripPreferences = ({
                 onClick={() => handleVibeChange(option)}
                 className={`px-3 py-2 rounded-full text-sm transition-colors ${
                   preferences.vibe.includes(option)
-                    ? `bg-primary text-white`
+                    ? `bg-primary text-primary-foreground`
                     : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                 }`}
               >
@@ -198,7 +198,7 @@ export const TripPreferences = ({
                 onClick={() => handleCategoryChange('accessibility', option)}
                 className={`px-3 py-2 rounded-full text-sm transition-colors ${
                   preferences.accessibility.includes(option)
-                    ? `bg-primary text-white`
+                    ? `bg-primary text-primary-foreground`
                     : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                 }`}
               >
@@ -218,7 +218,7 @@ export const TripPreferences = ({
                 onClick={() => handleCategoryChange('business', option)}
                 className={`px-3 py-2 rounded-full text-sm transition-colors ${
                   preferences.business.includes(option)
-                    ? `bg-primary text-white`
+                    ? `bg-primary text-primary-foreground`
                     : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                 }`}
               >
@@ -238,7 +238,7 @@ export const TripPreferences = ({
                 onClick={() => handleCategoryChange('entertainment', option)}
                 className={`px-3 py-2 rounded-full text-sm transition-colors ${
                   preferences.entertainment.includes(option)
-                    ? `bg-primary text-white`
+                    ? `bg-primary text-primary-foreground`
                     : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                 }`}
               >
@@ -258,7 +258,7 @@ export const TripPreferences = ({
                 onClick={() => handleCategoryChange('lifestyle', option)}
                 className={`px-3 py-2 rounded-full text-sm transition-colors ${
                   preferences.lifestyle.includes(option)
-                    ? `bg-primary text-white`
+                    ? `bg-primary text-primary-foreground`
                     : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                 }`}
               >
@@ -323,7 +323,7 @@ export const TripPreferences = ({
                 onClick={() => handleTimeChange(option as any)}
                 className={`px-4 py-2 rounded-xl text-sm transition-colors capitalize ${
                   preferences.timePreference === option
-                    ? `bg-primary text-white`
+                    ? `bg-primary text-primary-foreground`
                     : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                 }`}
               >

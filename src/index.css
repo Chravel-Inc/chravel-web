@@ -1491,7 +1491,9 @@
   }
 
   .skeleton-shimmer {
-    background: linear-gradient(
+    /* background-image (not the shorthand) so utility background-color
+       like bg-muted/50 on the same element is preserved */
+    background-image: linear-gradient(
       90deg,
       rgba(255, 255, 255, 0.05) 0%,
       rgba(255, 255, 255, 0.1) 50%,

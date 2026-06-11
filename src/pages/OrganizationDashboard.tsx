@@ -526,20 +526,20 @@ export const OrganizationDashboard = () => {
         {/* Desktop Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="bg-white/5 border border-white/10">
-            <TabsTrigger value="overview" className="data-[state=active]:bg-primary">
+            <TabsTrigger value="overview">
               <Building size={16} className="mr-2" />
               Overview
             </TabsTrigger>
-            <TabsTrigger value="team" className="data-[state=active]:bg-primary">
+            <TabsTrigger value="team">
               <Users size={16} className="mr-2" />
               Team ({members.length})
             </TabsTrigger>
-            <TabsTrigger value="trips" className="data-[state=active]:bg-primary">
+            <TabsTrigger value="trips">
               <Briefcase size={16} className="mr-2" />
               Trips
             </TabsTrigger>
             {isAdmin && (
-              <TabsTrigger value="settings" className="data-[state=active]:bg-primary">
+              <TabsTrigger value="settings">
                 <Settings size={16} className="mr-2" />
                 Settings
               </TabsTrigger>
