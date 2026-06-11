@@ -1,0 +1,1177 @@
+{
+  "study_date": "2026-06-11",
+  "persona_count": 30,
+  "disclaimer": "SYNTHETIC \u2014 not real user data",
+  "responses": [
+    {
+      "persona_id": 1,
+      "name": "Serena Vale",
+      "segment": "Girls luxury trip planner",
+      "screener": {
+        "trips_last_12_months": "4+",
+        "typical_group_size": "5-8",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "iOS",
+        "would_do_45min_call": "Yes",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "No"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "Aesthetic cohesion + restaurant curation",
+        "apps_used_count": 12,
+        "ratings": {
+          "likelihood_next_trip": 7,
+          "clarity": 6,
+          "time_saved": 5,
+          "ai_trust": 4,
+          "would_invite": 5,
+          "mobile_usability": 4,
+          "web_usability": 4,
+          "pricing_fit": 5,
+          "nps_sentiment": -10
+        },
+        "willingness_to_pay": "$15-30/mo",
+        "beta_followup": "Yes"
+      },
+      "conversion_scores": {
+        "activation": 6,
+        "invite": 5,
+        "day7": 5,
+        "paid": 5,
+        "nps": -10
+      }
+    },
+    {
+      "persona_id": 2,
+      "name": "Dana Whitfield",
+      "segment": "Youth soccer team mom",
+      "screener": {
+        "trips_last_12_months": "4+",
+        "typical_group_size": "9-15",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "iOS",
+        "would_do_45min_call": "Maybe",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "No"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "Schedule changes unseen",
+        "apps_used_count": 8,
+        "ratings": {
+          "likelihood_next_trip": 6,
+          "clarity": 6,
+          "time_saved": 5,
+          "ai_trust": 3,
+          "would_invite": 4,
+          "mobile_usability": 4,
+          "web_usability": 4,
+          "pricing_fit": 2,
+          "nps_sentiment": -5
+        },
+        "willingness_to_pay": "Trip Pass $30-40",
+        "beta_followup": "Maybe"
+      },
+      "conversion_scores": {
+        "activation": 6,
+        "invite": 4,
+        "day7": 5,
+        "paid": 2,
+        "nps": -5
+      }
+    },
+    {
+      "persona_id": 3,
+      "name": "Keisha Morgan",
+      "segment": "AAU volleyball parent coordinator",
+      "screener": {
+        "trips_last_12_months": "4+",
+        "typical_group_size": "9-15",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "mixed",
+        "would_do_45min_call": "Maybe",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "No"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "Multi-city tournament logistics",
+        "apps_used_count": 12,
+        "ratings": {
+          "likelihood_next_trip": 6,
+          "clarity": 6,
+          "time_saved": 5,
+          "ai_trust": 4,
+          "would_invite": 4,
+          "mobile_usability": 3,
+          "web_usability": 4,
+          "pricing_fit": 3,
+          "nps_sentiment": 0
+        },
+        "willingness_to_pay": "Trip Pass",
+        "beta_followup": "Maybe"
+      },
+      "conversion_scores": {
+        "activation": 6,
+        "invite": 4,
+        "day7": 5,
+        "paid": 3,
+        "nps": 0
+      }
+    },
+    {
+      "persona_id": 4,
+      "name": "Mia Torres",
+      "segment": "Bachelorette maid of honor",
+      "screener": {
+        "trips_last_12_months": "2-3",
+        "typical_group_size": "9-15",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "iOS",
+        "would_do_45min_call": "Maybe",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "No"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "Decision paralysis in group chat",
+        "apps_used_count": 8,
+        "ratings": {
+          "likelihood_next_trip": 7,
+          "clarity": 7,
+          "time_saved": 6,
+          "ai_trust": 4,
+          "would_invite": 5,
+          "mobile_usability": 4,
+          "web_usability": 4,
+          "pricing_fit": 4,
+          "nps_sentiment": -5
+        },
+        "willingness_to_pay": "Trip Pass $39.99",
+        "beta_followup": "Maybe"
+      },
+      "conversion_scores": {
+        "activation": 7,
+        "invite": 5,
+        "day7": 4,
+        "paid": 4,
+        "nps": -5
+      }
+    },
+    {
+      "persona_id": 5,
+      "name": "Brad Olsen",
+      "segment": "Guys golf birthday trip",
+      "screener": {
+        "trips_last_12_months": "2-3",
+        "typical_group_size": "5-8",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "Android",
+        "would_do_45min_call": "Maybe",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "No"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "Tee times + dinner splits",
+        "apps_used_count": 8,
+        "ratings": {
+          "likelihood_next_trip": 6,
+          "clarity": 6,
+          "time_saved": 5,
+          "ai_trust": 4,
+          "would_invite": 5,
+          "mobile_usability": 3,
+          "web_usability": 4,
+          "pricing_fit": 3,
+          "nps_sentiment": 5
+        },
+        "willingness_to_pay": "$5-15/mo",
+        "beta_followup": "Maybe"
+      },
+      "conversion_scores": {
+        "activation": 6,
+        "invite": 5,
+        "day7": 4,
+        "paid": 3,
+        "nps": 5
+      }
+    },
+    {
+      "persona_id": 6,
+      "name": "Priya & James Chen",
+      "segment": "Destination wedding couple",
+      "screener": {
+        "trips_last_12_months": "2-3",
+        "typical_group_size": "16+",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "mixed",
+        "would_do_45min_call": "Maybe",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "No"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "Guest comms fragmentation",
+        "apps_used_count": 12,
+        "ratings": {
+          "likelihood_next_trip": 6,
+          "clarity": 6,
+          "time_saved": 5,
+          "ai_trust": 4,
+          "would_invite": 4,
+          "mobile_usability": 3,
+          "web_usability": 4,
+          "pricing_fit": 5,
+          "nps_sentiment": -5
+        },
+        "willingness_to_pay": "Trip Pass $74.99",
+        "beta_followup": "Maybe"
+      },
+      "conversion_scores": {
+        "activation": 6,
+        "invite": 4,
+        "day7": 5,
+        "paid": 5,
+        "nps": -5
+      }
+    },
+    {
+      "persona_id": 7,
+      "name": "Robert Ellison",
+      "segment": "Family reunion planner",
+      "screener": {
+        "trips_last_12_months": "2-3",
+        "typical_group_size": "16+",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "Desktop-first",
+        "would_do_45min_call": "Maybe",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "No"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "Older relatives can't use apps",
+        "apps_used_count": 8,
+        "ratings": {
+          "likelihood_next_trip": 5,
+          "clarity": 5,
+          "time_saved": 4,
+          "ai_trust": 3,
+          "would_invite": 3,
+          "mobile_usability": 3,
+          "web_usability": 5,
+          "pricing_fit": 1,
+          "nps_sentiment": -15
+        },
+        "willingness_to_pay": "Free only",
+        "beta_followup": "Maybe"
+      },
+      "conversion_scores": {
+        "activation": 5,
+        "invite": 3,
+        "day7": 4,
+        "paid": 1,
+        "nps": -15
+      }
+    },
+    {
+      "persona_id": 8,
+      "name": "Tyler Brooks",
+      "segment": "College spring break planner",
+      "screener": {
+        "trips_last_12_months": "2-3",
+        "typical_group_size": "9-15",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "iOS",
+        "would_do_45min_call": "Yes",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "No"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "Budget tracking in chat",
+        "apps_used_count": 8,
+        "ratings": {
+          "likelihood_next_trip": 7,
+          "clarity": 7,
+          "time_saved": 6,
+          "ai_trust": 4,
+          "would_invite": 6,
+          "mobile_usability": 4,
+          "web_usability": 4,
+          "pricing_fit": 1,
+          "nps_sentiment": 10
+        },
+        "willingness_to_pay": "Free only",
+        "beta_followup": "Yes"
+      },
+      "conversion_scores": {
+        "activation": 7,
+        "invite": 6,
+        "day7": 3,
+        "paid": 1,
+        "nps": 10
+      }
+    },
+    {
+      "persona_id": 9,
+      "name": "Camille Dubois",
+      "segment": "Couples group (4 couples)",
+      "screener": {
+        "trips_last_12_months": "2-3",
+        "typical_group_size": "5-8",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "iOS",
+        "would_do_45min_call": "Maybe",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "No"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "Fair cost splitting",
+        "apps_used_count": 8,
+        "ratings": {
+          "likelihood_next_trip": 6,
+          "clarity": 6,
+          "time_saved": 5,
+          "ai_trust": 4,
+          "would_invite": 5,
+          "mobile_usability": 4,
+          "web_usability": 4,
+          "pricing_fit": 3,
+          "nps_sentiment": 0
+        },
+        "willingness_to_pay": "Per-trip",
+        "beta_followup": "Maybe"
+      },
+      "conversion_scores": {
+        "activation": 6,
+        "invite": 5,
+        "day7": 5,
+        "paid": 3,
+        "nps": 0
+      }
+    },
+    {
+      "persona_id": 10,
+      "name": "Jordan Kim",
+      "segment": "Solo friend-trip organizer",
+      "screener": {
+        "trips_last_12_months": "2-3",
+        "typical_group_size": "5-8",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "mixed",
+        "would_do_45min_call": "Yes",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "No"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "Chasing RSVPs",
+        "apps_used_count": 8,
+        "ratings": {
+          "likelihood_next_trip": 7,
+          "clarity": 7,
+          "time_saved": 6,
+          "ai_trust": 4,
+          "would_invite": 4,
+          "mobile_usability": 3,
+          "web_usability": 4,
+          "pricing_fit": 3,
+          "nps_sentiment": -5
+        },
+        "willingness_to_pay": "Trip Pass",
+        "beta_followup": "Yes"
+      },
+      "conversion_scores": {
+        "activation": 7,
+        "invite": 4,
+        "day7": 5,
+        "paid": 3,
+        "nps": -5
+      }
+    },
+    {
+      "persona_id": 11,
+      "name": "Dana Okafor",
+      "segment": "NFL travel logistics",
+      "screener": {
+        "trips_last_12_months": "4+",
+        "typical_group_size": "16+",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "Desktop-first",
+        "would_do_45min_call": "Yes",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "Yes"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "Day sheet + role comms",
+        "apps_used_count": 12,
+        "ratings": {
+          "likelihood_next_trip": 5,
+          "clarity": 6,
+          "time_saved": 5,
+          "ai_trust": 4,
+          "would_invite": 7,
+          "mobile_usability": 3,
+          "web_usability": 5,
+          "pricing_fit": 2,
+          "nps_sentiment": -35
+        },
+        "willingness_to_pay": "Team $99+/mo",
+        "beta_followup": "Yes"
+      },
+      "conversion_scores": {
+        "activation": 6,
+        "invite": 7,
+        "day7": 3,
+        "paid": 2,
+        "nps": -35
+      }
+    },
+    {
+      "persona_id": 12,
+      "name": "Marcus Webb",
+      "segment": "NBA travel operations",
+      "screener": {
+        "trips_last_12_months": "4+",
+        "typical_group_size": "16+",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "Desktop-first",
+        "would_do_45min_call": "Yes",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "Yes"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "Bus call acknowledgments",
+        "apps_used_count": 12,
+        "ratings": {
+          "likelihood_next_trip": 5,
+          "clarity": 6,
+          "time_saved": 5,
+          "ai_trust": 4,
+          "would_invite": 7,
+          "mobile_usability": 3,
+          "web_usability": 5,
+          "pricing_fit": 2,
+          "nps_sentiment": -30
+        },
+        "willingness_to_pay": "Enterprise",
+        "beta_followup": "Yes"
+      },
+      "conversion_scores": {
+        "activation": 6,
+        "invite": 7,
+        "day7": 3,
+        "paid": 2,
+        "nps": -30
+      }
+    },
+    {
+      "persona_id": 13,
+      "name": "Coach Elena Ruiz",
+      "segment": "Duke basketball travel coord",
+      "screener": {
+        "trips_last_12_months": "2-3",
+        "typical_group_size": "16+",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "mixed",
+        "would_do_45min_call": "Yes",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "Yes"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "NCAA compliance visibility",
+        "apps_used_count": 12,
+        "ratings": {
+          "likelihood_next_trip": 6,
+          "clarity": 6,
+          "time_saved": 5,
+          "ai_trust": 4,
+          "would_invite": 6,
+          "mobile_usability": 3,
+          "web_usability": 4,
+          "pricing_fit": 3,
+          "nps_sentiment": -20
+        },
+        "willingness_to_pay": "Team plan",
+        "beta_followup": "Yes"
+      },
+      "conversion_scores": {
+        "activation": 6,
+        "invite": 6,
+        "day7": 4,
+        "paid": 3,
+        "nps": -20
+      }
+    },
+    {
+      "persona_id": 14,
+      "name": "Pat Sullivan",
+      "segment": "HS athletic director",
+      "screener": {
+        "trips_last_12_months": "2-3",
+        "typical_group_size": "16+",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "Desktop-first",
+        "would_do_45min_call": "Maybe",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "Yes"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "Multiple teams same weekend",
+        "apps_used_count": 12,
+        "ratings": {
+          "likelihood_next_trip": 5,
+          "clarity": 5,
+          "time_saved": 4,
+          "ai_trust": 4,
+          "would_invite": 5,
+          "mobile_usability": 3,
+          "web_usability": 5,
+          "pricing_fit": 2,
+          "nps_sentiment": -25
+        },
+        "willingness_to_pay": "Enterprise",
+        "beta_followup": "Maybe"
+      },
+      "conversion_scores": {
+        "activation": 5,
+        "invite": 5,
+        "day7": 3,
+        "paid": 2,
+        "nps": -25
+      }
+    },
+    {
+      "persona_id": 15,
+      "name": "Riley Park",
+      "segment": "Touring comedian tour manager",
+      "screener": {
+        "trips_last_12_months": "2-3",
+        "typical_group_size": "9-15",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "iOS",
+        "would_do_45min_call": "Yes",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "Yes"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "Venue changes night-of",
+        "apps_used_count": 12,
+        "ratings": {
+          "likelihood_next_trip": 6,
+          "clarity": 6,
+          "time_saved": 5,
+          "ai_trust": 4,
+          "would_invite": 6,
+          "mobile_usability": 4,
+          "web_usability": 4,
+          "pricing_fit": 3,
+          "nps_sentiment": -15
+        },
+        "willingness_to_pay": "$49-99/mo",
+        "beta_followup": "Yes"
+      },
+      "conversion_scores": {
+        "activation": 6,
+        "invite": 6,
+        "day7": 4,
+        "paid": 3,
+        "nps": -15
+      }
+    },
+    {
+      "persona_id": 16,
+      "name": "Devon Hayes",
+      "segment": "Music artist tour manager (25-city)",
+      "screener": {
+        "trips_last_12_months": "4+",
+        "typical_group_size": "16+",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "mixed",
+        "would_do_45min_call": "Yes",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "Yes"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "Multi-city basecamps",
+        "apps_used_count": 12,
+        "ratings": {
+          "likelihood_next_trip": 5,
+          "clarity": 5,
+          "time_saved": 4,
+          "ai_trust": 4,
+          "would_invite": 6,
+          "mobile_usability": 3,
+          "web_usability": 4,
+          "pricing_fit": 2,
+          "nps_sentiment": -40
+        },
+        "willingness_to_pay": "$99+/mo",
+        "beta_followup": "Yes"
+      },
+      "conversion_scores": {
+        "activation": 5,
+        "invite": 6,
+        "day7": 3,
+        "paid": 2,
+        "nps": -40
+      }
+    },
+    {
+      "persona_id": 17,
+      "name": "Sofia Marchetti",
+      "segment": "Film shoot production coord",
+      "screener": {
+        "trips_last_12_months": "2-3",
+        "typical_group_size": "16+",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "Desktop-first",
+        "would_do_45min_call": "Yes",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "Yes"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "Call sheet distribution",
+        "apps_used_count": 12,
+        "ratings": {
+          "likelihood_next_trip": 5,
+          "clarity": 5,
+          "time_saved": 4,
+          "ai_trust": 4,
+          "would_invite": 6,
+          "mobile_usability": 3,
+          "web_usability": 5,
+          "pricing_fit": 3,
+          "nps_sentiment": -20
+        },
+        "willingness_to_pay": "Client-billable",
+        "beta_followup": "Yes"
+      },
+      "conversion_scores": {
+        "activation": 5,
+        "invite": 6,
+        "day7": 3,
+        "paid": 3,
+        "nps": -20
+      }
+    },
+    {
+      "persona_id": 18,
+      "name": "Alex Rivera",
+      "segment": "Corporate 150-person offsite",
+      "screener": {
+        "trips_last_12_months": "2-3",
+        "typical_group_size": "16+",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "Desktop-first",
+        "would_do_45min_call": "Yes",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "No"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "Agenda + reimbursement",
+        "apps_used_count": 12,
+        "ratings": {
+          "likelihood_next_trip": 5,
+          "clarity": 5,
+          "time_saved": 4,
+          "ai_trust": 4,
+          "would_invite": 6,
+          "mobile_usability": 3,
+          "web_usability": 5,
+          "pricing_fit": 2,
+          "nps_sentiment": -25
+        },
+        "willingness_to_pay": "One-off pass $99-199",
+        "beta_followup": "Yes"
+      },
+      "conversion_scores": {
+        "activation": 5,
+        "invite": 6,
+        "day7": 3,
+        "paid": 2,
+        "nps": -25
+      }
+    },
+    {
+      "persona_id": 19,
+      "name": "Claire Nguyen",
+      "segment": "Executive assistant (confidential travel)",
+      "screener": {
+        "trips_last_12_months": "2-3",
+        "typical_group_size": "5-8",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "Desktop-first",
+        "would_do_45min_call": "Yes",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "Yes"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "Privacy + discretion",
+        "apps_used_count": 12,
+        "ratings": {
+          "likelihood_next_trip": 6,
+          "clarity": 6,
+          "time_saved": 5,
+          "ai_trust": 4,
+          "would_invite": 5,
+          "mobile_usability": 3,
+          "web_usability": 5,
+          "pricing_fit": 2,
+          "nps_sentiment": -15
+        },
+        "willingness_to_pay": "Enterprise",
+        "beta_followup": "Yes"
+      },
+      "conversion_scores": {
+        "activation": 6,
+        "invite": 5,
+        "day7": 4,
+        "paid": 2,
+        "nps": -15
+      }
+    },
+    {
+      "persona_id": 20,
+      "name": "Helena Cross",
+      "segment": "Travel concierge company",
+      "screener": {
+        "trips_last_12_months": "4+",
+        "typical_group_size": "5-8",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "Desktop-first",
+        "would_do_45min_call": "Yes",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "Yes"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "Multi-client itineraries",
+        "apps_used_count": 12,
+        "ratings": {
+          "likelihood_next_trip": 6,
+          "clarity": 6,
+          "time_saved": 5,
+          "ai_trust": 4,
+          "would_invite": 5,
+          "mobile_usability": 3,
+          "web_usability": 5,
+          "pricing_fit": 4,
+          "nps_sentiment": 0
+        },
+        "willingness_to_pay": "White-label plan",
+        "beta_followup": "Yes"
+      },
+      "conversion_scores": {
+        "activation": 6,
+        "invite": 5,
+        "day7": 5,
+        "paid": 4,
+        "nps": 0
+      }
+    },
+    {
+      "persona_id": 21,
+      "name": "Vanessa Ortiz",
+      "segment": "Wedding planner (multi-vendor)",
+      "screener": {
+        "trips_last_12_months": "2-3",
+        "typical_group_size": "16+",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "mixed",
+        "would_do_45min_call": "Maybe",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "No"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "Vendor + guest coordination",
+        "apps_used_count": 12,
+        "ratings": {
+          "likelihood_next_trip": 6,
+          "clarity": 6,
+          "time_saved": 5,
+          "ai_trust": 4,
+          "would_invite": 5,
+          "mobile_usability": 3,
+          "web_usability": 4,
+          "pricing_fit": 4,
+          "nps_sentiment": 5
+        },
+        "willingness_to_pay": "Client-billable",
+        "beta_followup": "Maybe"
+      },
+      "conversion_scores": {
+        "activation": 6,
+        "invite": 5,
+        "day7": 5,
+        "paid": 4,
+        "nps": 5
+      }
+    },
+    {
+      "persona_id": 22,
+      "name": "Dr. Alan Pierce",
+      "segment": "1000-person conference organizer",
+      "screener": {
+        "trips_last_12_months": "2-3",
+        "typical_group_size": "16+",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "Desktop-first",
+        "would_do_45min_call": "Yes",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "No"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "Broadcast reliability at scale",
+        "apps_used_count": 12,
+        "ratings": {
+          "likelihood_next_trip": 4,
+          "clarity": 4,
+          "time_saved": 3,
+          "ai_trust": 4,
+          "would_invite": 5,
+          "mobile_usability": 3,
+          "web_usability": 5,
+          "pricing_fit": 2,
+          "nps_sentiment": -30
+        },
+        "willingness_to_pay": "Enterprise",
+        "beta_followup": "Yes"
+      },
+      "conversion_scores": {
+        "activation": 4,
+        "invite": 5,
+        "day7": 2,
+        "paid": 2,
+        "nps": -30
+      }
+    },
+    {
+      "persona_id": 23,
+      "name": "Zoe Martinez",
+      "segment": "Music festival group lead",
+      "screener": {
+        "trips_last_12_months": "2-3",
+        "typical_group_size": "9-15",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "iOS",
+        "would_do_45min_call": "Maybe",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "No"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "Lodging + meetup points",
+        "apps_used_count": 8,
+        "ratings": {
+          "likelihood_next_trip": 7,
+          "clarity": 7,
+          "time_saved": 6,
+          "ai_trust": 4,
+          "would_invite": 6,
+          "mobile_usability": 4,
+          "web_usability": 4,
+          "pricing_fit": 3,
+          "nps_sentiment": 5
+        },
+        "willingness_to_pay": "Trip Pass",
+        "beta_followup": "Maybe"
+      },
+      "conversion_scores": {
+        "activation": 7,
+        "invite": 6,
+        "day7": 4,
+        "paid": 3,
+        "nps": 5
+      }
+    },
+    {
+      "persona_id": 24,
+      "name": "Chris Delaney",
+      "segment": "Run club race weekend",
+      "screener": {
+        "trips_last_12_months": "2-3",
+        "typical_group_size": "16+",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "Android",
+        "would_do_45min_call": "Maybe",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "No"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "Weekly repeat trips",
+        "apps_used_count": 8,
+        "ratings": {
+          "likelihood_next_trip": 5,
+          "clarity": 5,
+          "time_saved": 4,
+          "ai_trust": 4,
+          "would_invite": 5,
+          "mobile_usability": 3,
+          "web_usability": 4,
+          "pricing_fit": 1,
+          "nps_sentiment": -20
+        },
+        "willingness_to_pay": "Free only",
+        "beta_followup": "Maybe"
+      },
+      "conversion_scores": {
+        "activation": 5,
+        "invite": 5,
+        "day7": 4,
+        "paid": 1,
+        "nps": -20
+      }
+    },
+    {
+      "persona_id": 25,
+      "name": "Jake Morrison",
+      "segment": "Fraternity rush chair",
+      "screener": {
+        "trips_last_12_months": "2-3",
+        "typical_group_size": "16+",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "iOS",
+        "would_do_45min_call": "Maybe",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "No"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "Daily event chaos",
+        "apps_used_count": 12,
+        "ratings": {
+          "likelihood_next_trip": 7,
+          "clarity": 7,
+          "time_saved": 6,
+          "ai_trust": 4,
+          "would_invite": 8,
+          "mobile_usability": 4,
+          "web_usability": 4,
+          "pricing_fit": 1,
+          "nps_sentiment": -10
+        },
+        "willingness_to_pay": "Chapter expense",
+        "beta_followup": "Maybe"
+      },
+      "conversion_scores": {
+        "activation": 7,
+        "invite": 8,
+        "day7": 3,
+        "paid": 1,
+        "nps": -10
+      }
+    },
+    {
+      "persona_id": 26,
+      "name": "Pastor David Greene",
+      "segment": "Church nonprofit group trip",
+      "screener": {
+        "trips_last_12_months": "2-3",
+        "typical_group_size": "16+",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "mixed",
+        "would_do_45min_call": "Maybe",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "No"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "Volunteer coordination",
+        "apps_used_count": 8,
+        "ratings": {
+          "likelihood_next_trip": 5,
+          "clarity": 5,
+          "time_saved": 4,
+          "ai_trust": 3,
+          "would_invite": 3,
+          "mobile_usability": 3,
+          "web_usability": 4,
+          "pricing_fit": 1,
+          "nps_sentiment": 0
+        },
+        "willingness_to_pay": "Free/donation",
+        "beta_followup": "Maybe"
+      },
+      "conversion_scores": {
+        "activation": 5,
+        "invite": 3,
+        "day7": 4,
+        "paid": 1,
+        "nps": 0
+      }
+    },
+    {
+      "persona_id": 27,
+      "name": "Ms. Linda Park",
+      "segment": "School field trip coordinator",
+      "screener": {
+        "trips_last_12_months": "2-3",
+        "typical_group_size": "16+",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "Desktop-first",
+        "would_do_45min_call": "Maybe",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "No"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "Parent permission + chaperones",
+        "apps_used_count": 8,
+        "ratings": {
+          "likelihood_next_trip": 5,
+          "clarity": 5,
+          "time_saved": 4,
+          "ai_trust": 4,
+          "would_invite": 4,
+          "mobile_usability": 3,
+          "web_usability": 5,
+          "pricing_fit": 2,
+          "nps_sentiment": -5
+        },
+        "willingness_to_pay": "School budget",
+        "beta_followup": "Maybe"
+      },
+      "conversion_scores": {
+        "activation": 5,
+        "invite": 4,
+        "day7": 4,
+        "paid": 2,
+        "nps": -5
+      }
+    },
+    {
+      "persona_id": 28,
+      "name": "Mike Santoro",
+      "segment": "Price-sensitive bachelor party",
+      "screener": {
+        "trips_last_12_months": "2-3",
+        "typical_group_size": "9-15",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "Android",
+        "would_do_45min_call": "Maybe",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "No"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "Cost transparency",
+        "apps_used_count": 8,
+        "ratings": {
+          "likelihood_next_trip": 6,
+          "clarity": 6,
+          "time_saved": 5,
+          "ai_trust": 4,
+          "would_invite": 5,
+          "mobile_usability": 3,
+          "web_usability": 4,
+          "pricing_fit": 1,
+          "nps_sentiment": -5
+        },
+        "willingness_to_pay": "Free only",
+        "beta_followup": "Maybe"
+      },
+      "conversion_scores": {
+        "activation": 6,
+        "invite": 5,
+        "day7": 3,
+        "paid": 1,
+        "nps": -5
+      }
+    },
+    {
+      "persona_id": 29,
+      "name": "Isabelle Fontaine",
+      "segment": "Luxury travel advisor",
+      "screener": {
+        "trips_last_12_months": "4+",
+        "typical_group_size": "5-8",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "Desktop-first",
+        "would_do_45min_call": "Yes",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "Yes"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "Client-facing polish",
+        "apps_used_count": 12,
+        "ratings": {
+          "likelihood_next_trip": 6,
+          "clarity": 6,
+          "time_saved": 5,
+          "ai_trust": 4,
+          "would_invite": 5,
+          "mobile_usability": 3,
+          "web_usability": 5,
+          "pricing_fit": 5,
+          "nps_sentiment": 10
+        },
+        "willingness_to_pay": "Client-billable",
+        "beta_followup": "Yes"
+      },
+      "conversion_scores": {
+        "activation": 6,
+        "invite": 5,
+        "day7": 6,
+        "paid": 5,
+        "nps": 10
+      }
+    },
+    {
+      "persona_id": 30,
+      "name": "Amara Osei",
+      "segment": "International group organizer",
+      "screener": {
+        "trips_last_12_months": "2-3",
+        "typical_group_size": "9-15",
+        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "primary_device": "mixed",
+        "would_do_45min_call": "Yes",
+        "role": "Primary planner",
+        "pro_ops_responsibility": "No"
+      },
+      "interview": {
+        "used_chravel_before": "Not yet",
+        "most_frustrating": "Timezones + multilingual",
+        "apps_used_count": 12,
+        "ratings": {
+          "likelihood_next_trip": 6,
+          "clarity": 6,
+          "time_saved": 5,
+          "ai_trust": 4,
+          "would_invite": 5,
+          "mobile_usability": 3,
+          "web_usability": 4,
+          "pricing_fit": 4,
+          "nps_sentiment": 5
+        },
+        "willingness_to_pay": "$15-30/mo",
+        "beta_followup": "Yes"
+      },
+      "conversion_scores": {
+        "activation": 6,
+        "invite": 5,
+        "day7": 5,
+        "paid": 4,
+        "nps": 5
+      }
+    }
+  ]
+}

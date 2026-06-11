@@ -1,0 +1,31 @@
+persona_id,name,segment,preferred_model,wtp_range,best_cta,worst_cta,upgrade_trigger,objection
+1,Serena Vale,Girls luxury trip planner,Subscription,$15-30/mo,Explorer at export wall,Voice upsell,PDF export limit,Branding not client-ready
+2,Dana Whitfield,Youth soccer team mom,Per-trip,$30-40,Trip Pass at split wall,iOS Subscribe on web,4th payment split,Too expensive for parents
+3,Keisha Morgan,AAU volleyball parent coordinator,Per-trip,$39.99,Trip Pass mid-season,Subscription,Smart Import paywall,Multi-city confusion
+4,Mia Torres,Bachelorette maid of honor,Per-trip,$39.99,Unlock this trip $39.99,$19.99/mo sub,Photo wall + splits,Can't find pass in-app
+5,Brad Olsen,Guys golf birthday trip,Subscription,$5-15/mo,Explorer at splits,Pro mailto,Split cap,Too many tabs
+6,Priya & James Chen,Destination wedding couple,Per-trip,$74.99,Wedding Pass 90-day,100-attendee scare,Storage/photos,Cap label mismatch
+7,Robert Ellison,Family reunion planner,Free,$0,Print schedule free,Any paywall,Elder can't sign up,Free only
+8,Tyler Brooks,College spring break planner,Free,$0,None,Any subscription,N/A,Broke students
+9,Camille Dubois,Couples group (4 couples),Per-trip,$39.99,Trip Pass,iOS dead-end,Fair splits,Subscription aversion
+10,Jordan Kim,Solo friend-trip organizer,Per-trip,$39.99,Pass at concierge wall,Settings redirect,Concierge limit,Invite friction
+11,Dana Okafor,NFL travel logistics,Team/enterprise,$99+/mo,Self-serve Pro checkout,mailto demo,Working day sheet,Hollow ops
+12,Marcus Webb,NBA travel operations,Enterprise,Custom,Self-serve Growth,mailto,Broadcast ack,Targeting broken
+13,Coach Elena Ruiz,Duke basketball travel coord,Team,$49-99/mo,Pro Starter checkout,Compliance upsell,Compliance real,Stub tabs
+14,Pat Sullivan,HS athletic director,Enterprise,Custom,Multi-team plan,Per-seat sub,Multi-team view,Scale
+15,Riley Park,Touring comedian tour manager,Team,$49/mo,Pro trial,Voice upsell,Day sheet mobile,Offline
+16,Devon Hayes,Music artist tour manager (25-city),Team,$99/mo,Growth self-serve,Demo bait,Settlement real,Demo gap
+17,Sofia Marchetti,Film shoot production coord,Client-billable,$99+/mo,Invoice one-off,mailto,Call sheet export,Notification scale
+18,Alex Rivera,Corporate 150-person offsite,One-off pass,$99-199,Offsite Pass,$49/mo seats,Reimbursement,Org ownership
+19,Claire Nguyen,Executive assistant (confidential travel),Enterprise,Custom,Security pack,Consumer pricing,Signed URLs,Privacy
+20,Helena Cross,Travel concierge company,White-label,Custom,Agency plan,Consumer tiers,Client workspaces,No multi-tenant
+21,Vanessa Ortiz,Wedding planner (multi-vendor),Client-billable,Per-event,Event pass,Attendee cap label,Vendor roles,Guest wall
+22,Dr. Alan Pierce,1000-person conference organizer,Enterprise,Custom,Sales + SLA,Self-serve only,Broadcast reliability,Fanout at scale
+23,Zoe Martinez,Music festival group lead,Per-trip,$39.99,Pass at import,Sub framing,Import links,Paywall
+24,Chris Delaney,Run club race weekend,Free,$0,Duplicate trip free,Trip cap wall,Recurring template,3-trip cap
+25,Jake Morrison,Fraternity rush chair,Org one-off,Chapter,Season pass,Personal sub,Mute controls,Notifications
+26,Pastor David Greene,Church nonprofit group trip,Free/donation,$0,Free tier,Payments upsell,Volunteer tasks,Tech literacy
+27,Ms. Linda Park,School field trip coordinator,School budget,$50-200/yr,Team plan,Consumer sub,Chaperone roles,Privacy
+28,Mike Santoro,Price-sensitive bachelor party,Free,$0,Free forever,Upgrade popups,Cost tracking,Any pay prompt
+29,Isabelle Fontaine,Luxury travel advisor,Client-billable,$30+/client,White-label export,Generic branding,Branded PDF,No white-label
+30,Amara Osei,International group organizer,Subscription,$15-30/mo,Explorer,US-only copy,Timezone support,No i18n
