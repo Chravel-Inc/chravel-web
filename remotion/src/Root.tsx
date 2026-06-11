@@ -11,6 +11,10 @@ import { BeforeAfterChaos, BEFORE_AFTER_DURATION } from './compositions/BeforeAf
 import { BRollOverlay, BROLL_OVERLAY_DURATION } from './compositions/BRollOverlay';
 import { ProductLaunchV2, PRODUCT_LAUNCH_V2_DURATION } from './compositions/ProductLaunchV2';
 import { HomepageHeroDemo, HOMEPAGE_HERO_DURATION } from './compositions/HomepageHeroDemo';
+import {
+  HomepageHeroDemo60,
+  HOMEPAGE_HERO_60_DURATION,
+} from './compositions/HomepageHeroDemo60';
 import { MobileAppDemo, MOBILE_DEMO_DURATION } from './compositions/MobileAppDemo';
 
 const FPS = 30;
@@ -20,7 +24,17 @@ const HEIGHT = 1080;
 export const RemotionRoot = () => {
   return (
     <>
-      {/* Homepage hero product demo (consumer-only, 1920x1080, ~18s loop) */}
+      {/* 60-second product walkthrough built from REAL Tokyo Adventure screenshots */}
+      <Composition
+        id="HomepageHeroDemo60"
+        component={HomepageHeroDemo60}
+        durationInFrames={HOMEPAGE_HERO_60_DURATION}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+      />
+
+      {/* Legacy homepage hero (kept for back-compat) */}
       <Composition
         id="HomepageHeroDemo"
         component={HomepageHeroDemo}
