@@ -90,7 +90,8 @@ export function useUnifiedEntitlements(): UseUnifiedEntitlementsReturn {
       store.clear();
       return;
     }
-    await store.refreshEntitlements(user.id, user.email);
+    // Manual refresh (post-purchase, restore, settings) must bypass the TTL cache.
+    await store.refreshEntitlements(user.id, user.email, { force: true });
   }, [isDemoMode, user?.id, user?.email, isSuperAdminByEmail, store]);
 
   // Super admins and demo mode get unlimited access to everything

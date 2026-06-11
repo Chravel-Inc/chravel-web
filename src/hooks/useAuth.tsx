@@ -25,6 +25,7 @@ import { buildSessionDerivedUser } from '@/lib/sessionDerivedUser';
 import { generateSafeUuid } from '@/utils/uuid';
 import { openInstalledAuthBrowser } from '@/utils/installedAuthBrowser';
 import { errorTracking } from '@/services/errorTracking';
+import { performanceService } from '@/services/performanceService';
 import type { AuthUser as User, UserProfile, AuthContextType } from './auth/types';
 import { createDemoUser, getOAuthReturnTo, withTimeout } from './auth/authHelpers';
 import { captureAppleRefreshToken } from './auth/captureAppleToken';
@@ -583,6 +584,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setIsLoading(false);
       } finally {
         setIsHydrated(true);
+        performanceService.markBootPhase('auth_hydrated');
       }
     };
 

@@ -1,4 +1,16 @@
 import { telemetry } from '@/telemetry/service';
+import { isChravelNativeShell, isInstalledApp } from '@/utils/platformDetection';
+
+/**
+ * Cold-start boot phases, all measured as ms since timeOrigin so they are
+ * directly comparable:
+ * - `entry`: entry module evaluated (marked with a raw performance.mark in
+ *   main.tsx so the entry chunk doesn't need this module).
+ * - `app_mounted`: the lazy App shell mounted (App.tsx).
+ * - `auth_hydrated`: supabase.auth.getSession() settled (useAuth.tsx).
+ * - `dashboard_rendered`: first authenticated dashboard content painted (Index.tsx).
+ */
+export type BootPhase = 'app_mounted' | 'auth_hydrated' | 'dashboard_rendered';
 
 interface PerformanceMetrics {
   navigationStart?: number;
@@ -12,6 +24,8 @@ interface PerformanceMetrics {
 class PerformanceService {
   private metrics: PerformanceMetrics = {};
   private observer?: PerformanceObserver;
+  private bootPhases = new Map<BootPhase, number>();
+  private bootTimelineReported = false;
 
   constructor() {
     this.initializeObservers();
@@ -108,6 +122,50 @@ class PerformanceService {
         value: Math.round(value),
       });
     }
+  }
+
+  /**
+   * Record a cold-start boot phase (first occurrence only). When the dashboard
+   * renders, the full timeline is reported as one `boot_timeline` event — the
+   * before/after yardstick for startup work.
+   */
+  public markBootPhase(phase: BootPhase): void {
+    if (this.bootPhases.has(phase)) return;
+    this.bootPhases.set(phase, Math.round(performance.now()));
+    try {
+      performance.mark(`chravel-boot:${phase}`);
+    } catch {
+      // performance.mark unavailable in some embedded WebViews — timings still recorded
+    }
+    if (phase === 'dashboard_rendered') {
+      this.reportBootTimeline();
+    }
+  }
+
+  private reportBootTimeline(): void {
+    if (this.bootTimelineReported) return;
+    this.bootTimelineReported = true;
+
+    // Entry is marked in main.tsx with a raw performance.mark (no import cost).
+    const entryMark = performance.getEntriesByName('chravel-boot:entry')[0];
+
+    telemetry.track('boot_timeline', {
+      entry_ms: entryMark ? Math.round(entryMark.startTime) : null,
+      app_mounted_ms: this.bootPhases.get('app_mounted') ?? null,
+      auth_hydrated_ms: this.bootPhases.get('auth_hydrated') ?? null,
+      dashboard_rendered_ms: this.bootPhases.get('dashboard_rendered') ?? null,
+      lcp_ms:
+        this.metrics.largestContentfulPaint !== undefined
+          ? Math.round(this.metrics.largestContentfulPaint)
+          : null,
+      fcp_ms:
+        this.metrics.firstContentfulPaint !== undefined
+          ? Math.round(this.metrics.firstContentfulPaint)
+          : null,
+      network_type: (navigator as any).connection?.effectiveType ?? null,
+      native_shell: isChravelNativeShell(),
+      installed_app: isInstalledApp(),
+    });
   }
 
   // Public methods for manual tracking

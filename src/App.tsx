@@ -19,6 +19,8 @@ import { ConsumerSubscriptionProvider } from './hooks/useConsumerSubscription';
 import { MobileAppLayout } from './components/mobile/MobileAppLayout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { LazyRoute } from './components/LazyRoute';
+import { DashboardSkeleton, TripShellSkeleton } from './components/home/DashboardSkeleton';
+import { bootHasAuthMarker } from './lib/bootAuthMarker';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { InternalAdminRoute } from './components/InternalAdminRoute';
 import { performanceService } from './services/performanceService';
@@ -199,6 +201,7 @@ const App = () => {
   // (The app-icon badge is reconciled in AppInitializer via useAppBadge, not here.)
   useEffect(() => {
     markAppBooted();
+    performanceService.markBootPhase('app_mounted');
   }, []);
 
   // Track app initialization performance
@@ -313,7 +316,9 @@ const App = () => {
                       <Route
                         path="/"
                         element={
-                          <LazyRoute>
+                          <LazyRoute
+                            fallback={bootHasAuthMarker ? <DashboardSkeleton /> : undefined}
+                          >
                             <Index />
                           </LazyRoute>
                         }
@@ -329,7 +334,9 @@ const App = () => {
                       <Route
                         path="/trip/:tripId"
                         element={
-                          <LazyRoute>
+                          <LazyRoute
+                            fallback={bootHasAuthMarker ? <TripShellSkeleton /> : undefined}
+                          >
                             <TripDetail />
                           </LazyRoute>
                         }

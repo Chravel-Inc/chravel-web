@@ -94,6 +94,9 @@ import { PullToRefreshIndicator } from '../components/mobile/PullToRefreshIndica
 import { clearDataCaches } from '../utils/pwaCacheUtils';
 import { isInstalledApp } from '../utils/platformDetection';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { DashboardSkeleton } from '../components/home/DashboardSkeleton';
+import { bootHasAuthMarker } from '../lib/bootAuthMarker';
+import { performanceService } from '../services/performanceService';
 import { X } from 'lucide-react';
 import { getSettingsRouteIntent } from '../utils/settingsRouteParams';
 
@@ -156,6 +159,14 @@ const AuthIndex = () => {
     isInitialized,
     isDemoMode,
   });
+
+  // Boot timeline: dashboard reached with a resolved authenticated session.
+  // markBootPhase records only the first occurrence, so re-renders are free.
+  useEffect(() => {
+    if (!authLoading && user) {
+      performanceService.markBootPhase('dashboard_rendered');
+    }
+  }, [authLoading, user]);
 
   // Choose-your-own-adventure onboarding: a choice screen offers (1) the Trip Chaos
   // survey → personalized tour, (2) the demo tour, or (3) straight to the dashboard.
@@ -782,8 +793,14 @@ const AuthIndex = () => {
   // MRKTING toggle: Show marketing page only for unauthenticated BROWSER users.
   // Gate on authLoading to prevent marketing page flash during session hydration.
   if (demoView === 'off' && !user) {
-    // Auth is still hydrating — show neutral loading state on all platforms
+    // Auth is still hydrating. With a persisted auth marker the session almost
+    // certainly resolves to this dashboard, so paint its skeleton instead of a
+    // spinner; anonymous devices keep the neutral state (they're headed to the
+    // auth gate or marketing page, where a dashboard skeleton would be wrong).
     if (authLoading) {
+      if (bootHasAuthMarker) {
+        return <DashboardSkeleton />;
+      }
       return (
         <div className="min-h-screen flex items-center justify-center bg-background">
           <LoadingSpinner size="lg" />
@@ -1486,6 +1503,10 @@ const UnauthIndex = ({
 }) => {
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | null>(null);
   if (authLoading) {
+    // Same skeleton-vs-spinner split as AuthIndex's hydration gate above.
+    if (bootHasAuthMarker) {
+      return <DashboardSkeleton />;
+    }
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <LoadingSpinner size="lg" />
