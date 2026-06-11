@@ -10,6 +10,8 @@ import { TabNavigationHero, TAB_NAV_DURATION } from './compositions/TabNavigatio
 import { BeforeAfterChaos, BEFORE_AFTER_DURATION } from './compositions/BeforeAfterChaos';
 import { BRollOverlay, BROLL_OVERLAY_DURATION } from './compositions/BRollOverlay';
 import { ProductLaunchV2, PRODUCT_LAUNCH_V2_DURATION } from './compositions/ProductLaunchV2';
+import { HomepageHeroDemo, HOMEPAGE_HERO_DURATION } from './compositions/HomepageHeroDemo';
+import { MobileAppDemo, MOBILE_DEMO_DURATION } from './compositions/MobileAppDemo';
 
 const FPS = 30;
 const WIDTH = 1920;
@@ -18,6 +20,26 @@ const HEIGHT = 1080;
 export const RemotionRoot = () => {
   return (
     <>
+      {/* Homepage hero product demo (consumer-only, 1920x1080, ~18s loop) */}
+      <Composition
+        id="HomepageHeroDemo"
+        component={HomepageHeroDemo}
+        durationInFrames={HOMEPAGE_HERO_DURATION}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+      />
+
+      {/* Mobile vertical product demo (1080x1920, ~13s) */}
+      <Composition
+        id="MobileAppDemo"
+        component={MobileAppDemo}
+        durationInFrames={MOBILE_DEMO_DURATION}
+        fps={FPS}
+        width={1080}
+        height={1920}
+      />
+
       {/* Original launch video */}
       <Composition
         id="ChravelLaunch"
