@@ -1275,6 +1275,11 @@
       0 3px 10px rgba(196, 151, 70, 0.25);
   }
 
+  /* ── Canonical modal backdrop (matches ui/dialog overlay treatment) ── */
+  .modal-backdrop {
+    @apply fixed inset-0 bg-black/70 backdrop-blur-sm;
+  }
+
   /* ── App Switch/Toggle (checked state) ── */
   .accent-switch-checked {
     background: linear-gradient(135deg, #533517 0%, #c49746 60%, #e8af48 100%);
