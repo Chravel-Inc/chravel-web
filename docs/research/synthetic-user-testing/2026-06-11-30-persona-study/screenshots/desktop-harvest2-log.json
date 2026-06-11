@@ -1,0 +1,2902 @@
+{
+  "mode": "desktop",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "steps": [
+    {
+      "step": 0,
+      "note": "miss: dashboard View button"
+    },
+    {
+      "step": 1,
+      "slug": "consumer-trip-chat",
+      "file": "desktop2-01-consumer-trip-chat.jpg",
+      "url": "http://localhost:8080/trip/1",
+      "note": "Consumer demo trip after View click (default tab)"
+    },
+    {
+      "step": 2,
+      "slug": "consumer-tab-calendar",
+      "file": "desktop2-02-consumer-tab-calendar.jpg",
+      "url": "http://localhost:8080/trip/1",
+      "note": "Consumer trip tab: Calendar"
+    },
+    {
+      "step": 3,
+      "slug": "consumer-tab-concierge",
+      "file": "desktop2-03-consumer-tab-concierge.jpg",
+      "url": "http://localhost:8080/trip/1",
+      "note": "Consumer trip tab: Concierge"
+    },
+    {
+      "step": 4,
+      "slug": "consumer-tab-media",
+      "file": "desktop2-04-consumer-tab-media.jpg",
+      "url": "http://localhost:8080/trip/1",
+      "note": "Consumer trip tab: Media"
+    },
+    {
+      "step": 5,
+      "slug": "consumer-tab-payments",
+      "file": "desktop2-05-consumer-tab-payments.jpg",
+      "url": "http://localhost:8080/trip/1",
+      "note": "Consumer trip tab: Payments"
+    },
+    {
+      "step": 6,
+      "slug": "consumer-tab-places",
+      "file": "desktop2-06-consumer-tab-places.jpg",
+      "url": "http://localhost:8080/trip/1",
+      "note": "Consumer trip tab: Places"
+    },
+    {
+      "step": 7,
+      "slug": "consumer-tab-polls",
+      "file": "desktop2-07-consumer-tab-polls.jpg",
+      "url": "http://localhost:8080/trip/1",
+      "note": "Consumer trip tab: Polls"
+    },
+    {
+      "step": 8,
+      "slug": "consumer-tab-tasks",
+      "file": "desktop2-08-consumer-tab-tasks.jpg",
+      "url": "http://localhost:8080/trip/1",
+      "note": "Consumer trip tab: Tasks"
+    },
+    {
+      "step": 9,
+      "slug": "consumer-chat-broadcasts",
+      "file": "desktop2-09-consumer-chat-broadcasts.jpg",
+      "url": "http://localhost:8080/trip/1",
+      "note": "Chat subview: Broadcasts"
+    },
+    {
+      "step": 10,
+      "slug": "consumer-chat-pinned",
+      "file": "desktop2-10-consumer-chat-pinned.jpg",
+      "url": "http://localhost:8080/trip/1",
+      "note": "Chat subview: Pinned"
+    },
+    {
+      "step": 10,
+      "note": "miss: chat subview Channels"
+    },
+    {
+      "step": 11,
+      "slug": "consumer-invite-modal",
+      "file": "desktop2-11-consumer-invite-modal.jpg",
+      "url": "http://localhost:8080/trip/1",
+      "note": "Invite modal from trip header"
+    },
+    {
+      "step": 11,
+      "note": "miss: New Trip button"
+    },
+    {
+      "step": 11,
+      "note": "miss: Alerts nav item"
+    },
+    {
+      "step": 12,
+      "slug": "pro-tab-concierge",
+      "file": "desktop2-12-pro-tab-concierge.jpg",
+      "url": "http://localhost:8080/tour/pro/beyonce-cowboy-carter-tour",
+      "note": "Pro trip tab: Concierge"
+    },
+    {
+      "step": 13,
+      "slug": "pro-tab-media",
+      "file": "desktop2-13-pro-tab-media.jpg",
+      "url": "http://localhost:8080/tour/pro/beyonce-cowboy-carter-tour",
+      "note": "Pro trip tab: Media"
+    },
+    {
+      "step": 14,
+      "slug": "pro-tab-payments",
+      "file": "desktop2-14-pro-tab-payments.jpg",
+      "url": "http://localhost:8080/tour/pro/beyonce-cowboy-carter-tour",
+      "note": "Pro trip tab: Payments"
+    },
+    {
+      "step": 15,
+      "slug": "pro-tab-places",
+      "file": "desktop2-15-pro-tab-places.jpg",
+      "url": "http://localhost:8080/tour/pro/beyonce-cowboy-carter-tour",
+      "note": "Pro trip tab: Places"
+    },
+    {
+      "step": 16,
+      "slug": "pro-tab-polls",
+      "file": "desktop2-16-pro-tab-polls.jpg",
+      "url": "http://localhost:8080/tour/pro/beyonce-cowboy-carter-tour",
+      "note": "Pro trip tab: Polls"
+    },
+    {
+      "step": 17,
+      "slug": "pro-tab-tasks",
+      "file": "desktop2-17-pro-tab-tasks.jpg",
+      "url": "http://localhost:8080/tour/pro/beyonce-cowboy-carter-tour",
+      "note": "Pro trip tab: Tasks"
+    },
+    {
+      "step": 18,
+      "slug": "pro-tab-team",
+      "file": "desktop2-18-pro-tab-team.jpg",
+      "url": "http://localhost:8080/tour/pro/beyonce-cowboy-carter-tour",
+      "note": "Pro trip tab: Team"
+    },
+    {
+      "step": 19,
+      "slug": "pro-chat-broadcasts",
+      "file": "desktop2-19-pro-chat-broadcasts.jpg",
+      "url": "http://localhost:8080/tour/pro/beyonce-cowboy-carter-tour",
+      "note": "Pro chat subview: Broadcasts"
+    },
+    {
+      "step": 20,
+      "slug": "pro-chat-channels",
+      "file": "desktop2-20-pro-chat-channels.jpg",
+      "url": "http://localhost:8080/tour/pro/beyonce-cowboy-carter-tour",
+      "note": "Pro chat subview: Channels"
+    },
+    {
+      "step": 21,
+      "slug": "pro-pdf-recap",
+      "file": "desktop2-21-pro-pdf-recap.jpg",
+      "url": "http://localhost:8080/tour/pro/beyonce-cowboy-carter-tour",
+      "note": "PDF Recap flow from pro trip header"
+    },
+    {
+      "step": 21,
+      "note": "miss: event tab Lineup"
+    },
+    {
+      "step": 21,
+      "note": "miss: event tab Broadcasts"
+    },
+    {
+      "step": 22,
+      "slug": "event-tab-tasks",
+      "file": "desktop2-22-event-tab-tasks.jpg",
+      "url": "http://localhost:8080/event/netflix-joke-fest-2026",
+      "note": "Event tab: Tasks"
+    },
+    {
+      "step": 23,
+      "slug": "event-tab-polls",
+      "file": "desktop2-23-event-tab-polls.jpg",
+      "url": "http://localhost:8080/event/netflix-joke-fest-2026",
+      "note": "Event tab: Polls"
+    },
+    {
+      "step": 23,
+      "note": "miss: event tab Team"
+    },
+    {
+      "step": 24,
+      "slug": "event-tab-calendar",
+      "file": "desktop2-24-event-tab-calendar.jpg",
+      "url": "http://localhost:8080/event/netflix-joke-fest-2026",
+      "note": "Event tab: Calendar"
+    }
+  ],
+  "consoleErrors": [
+    {
+      "step": 0,
+      "text": "Refused to load the script 'https://us-assets.i.posthog.com/array/phc_vVm8jyTKmHos7KrVBNY59kexLoeFdRZQzvqEmM83BCpp/config.js' because it violates the following Content Security Policy directive: \"script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://*.supabase.co https://*.googleapis.com htt"
+    },
+    {
+      "step": 0,
+      "text": "Refused to connect to 'https://us-assets.i.posthog.com/array/phc_vVm8jyTKmHos7KrVBNY59kexLoeFdRZQzvqEmM83BCpp/config?ip=0&_=1781204408500&ver=1.386.0' because it violates the following Content Security Policy directive: \"connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.stream-i"
+    },
+    {
+      "step": 0,
+      "text": "Fetch API cannot load https://us-assets.i.posthog.com/array/phc_vVm8jyTKmHos7KrVBNY59kexLoeFdRZQzvqEmM83BCpp/config?ip=0&_=1781204408500&ver=1.386.0. Refused to connect because it violates the document's Content Security Policy."
+    },
+    {
+      "step": 0,
+      "text": "[PostHog.js] TypeError: Failed to fetch\n    at method (http://localhost:8080/node_modules/posthog-js/dist/module.js?v=30300671:1:69559)\n    at http://localhost:8080/node_modules/posthog-js/dist/module.js?v=30300671:1:99334\n    at Qo._send_request (http://localhost:8080/node_modules/posthog-js/dist/m"
+    },
+    {
+      "step": 0,
+      "text": "[PostHog.js] [RemoteConfig] Failed to fetch remote config from PostHog."
+    },
+    {
+      "step": 0,
+      "text": "Refused to connect to 'https://us.i.posthog.com/flags/?v=2&ip=0&_=1781204408532&ver=1.386.0&compression=base64' because it violates the following Content Security Policy directive: \"connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.stream-io-api.com wss://*.stream-io-api.com htt"
+    },
+    {
+      "step": 0,
+      "text": "Fetch API cannot load https://us.i.posthog.com/flags/?v=2&ip=0&_=1781204408532&ver=1.386.0&compression=base64. Refused to connect because it violates the document's Content Security Policy."
+    },
+    {
+      "step": 0,
+      "text": "[PostHog.js] TypeError: Failed to fetch\n    at method (http://localhost:8080/node_modules/posthog-js/dist/module.js?v=30300671:1:69559)\n    at http://localhost:8080/node_modules/posthog-js/dist/module.js?v=30300671:1:99334\n    at Qo._send_request (http://localhost:8080/node_modules/posthog-js/dist/m"
+    },
+    {
+      "step": 0,
+      "text": "[StreamClient] Connection failed: No active Supabase session — cannot fetch Stream token"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Error fetching notification preferences: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…p://localhost:8080/src/hooks/useAppBadge.ts:51:23, hint: , code: }"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Error checking subscription: FunctionsFetchError: Failed to send a request to the Edge Function\n    at http://localhost:8080/node_modules/.vite/deps/@supabase_supabase-js.js?v=8ccc7a97:159:17"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to fetch PDF export usage: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…alhost:8080/src/hooks/usePdfExportUsage.ts:30:37), hint: , code: }"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to fetch PDF export usage: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…alhost:8080/src/hooks/usePdfExportUsage.ts:30:37), hint: , code: }"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to fetch PDF export usage: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…alhost:8080/src/hooks/usePdfExportUsage.ts:30:37), hint: , code: }"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to fetch PDF export usage: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…alhost:8080/src/hooks/usePdfExportUsage.ts:30:37), hint: , code: }"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to fetch PDF export usage: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…alhost:8080/src/hooks/usePdfExportUsage.ts:30:37), hint: , code: }"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to fetch PDF export usage: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…alhost:8080/src/hooks/usePdfExportUsage.ts:30:37), hint: , code: }"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to fetch PDF export usage: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…alhost:8080/src/hooks/usePdfExportUsage.ts:30:37), hint: , code: }"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to fetch PDF export usage: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…alhost:8080/src/hooks/usePdfExportUsage.ts:30:37), hint: , code: }"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to fetch PDF export usage: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…alhost:8080/src/hooks/usePdfExportUsage.ts:30:37), hint: , code: }"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to fetch PDF export usage: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…alhost:8080/src/hooks/usePdfExportUsage.ts:30:37), hint: , code: }"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to fetch PDF export usage: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…alhost:8080/src/hooks/usePdfExportUsage.ts:30:37), hint: , code: }"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to fetch PDF export usage: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…alhost:8080/src/hooks/usePdfExportUsage.ts:30:37), hint: , code: }"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Error fetching payment methods: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…://localhost:8080/src/hooks/usePayments.ts:91:33), hint: , code: }"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Error fetching payment methods: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…://localhost:8080/src/hooks/usePayments.ts:91:33), hint: , code: }"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Refused to load the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330' because it violates the following Content Security Policy directive: \"img-src 'self' data: blob: https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://maps.gstatic.com https://maps.googlea"
+    },
+    {
+      "step": 0,
+      "text": "Refused to load the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330' because it violates the following Content Security Policy directive: \"img-src 'self' data: blob: https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://maps.gstatic.com https://maps.googlea"
+    },
+    {
+      "step": 0,
+      "text": "Refused to load the image 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d' because it violates the following Content Security Policy directive: \"img-src 'self' data: blob: https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://maps.gstatic.com https://maps.googlea"
+    },
+    {
+      "step": 0,
+      "text": "Refused to load the image 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d' because it violates the following Content Security Policy directive: \"img-src 'self' data: blob: https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://maps.gstatic.com https://maps.googlea"
+    },
+    {
+      "step": 0,
+      "text": "Refused to load the image 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80' because it violates the following Content Security Policy directive: \"img-src 'self' data: blob: https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://maps.gstatic.com https://maps.googlea"
+    },
+    {
+      "step": 0,
+      "text": "Refused to load the image 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80' because it violates the following Content Security Policy directive: \"img-src 'self' data: blob: https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://maps.gstatic.com https://maps.googlea"
+    },
+    {
+      "step": 0,
+      "text": "Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s \n\nCheck the render method of `Primitive.button.SlotClone`. \n    at Dialog (http://localhost:8080/node_modules/.vite/deps/chunk-XZVQEV52.js?v=30300671:147:5)\n    at ht"
+    },
+    {
+      "step": 0,
+      "text": "Refused to load the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330' because it violates the following Content Security Policy directive: \"img-src 'self' data: blob: https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://maps.gstatic.com https://maps.googlea"
+    },
+    {
+      "step": 0,
+      "text": "Refused to load the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330' because it violates the following Content Security Policy directive: \"img-src 'self' data: blob: https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://maps.gstatic.com https://maps.googlea"
+    },
+    {
+      "step": 0,
+      "text": "Refused to load the image 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d' because it violates the following Content Security Policy directive: \"img-src 'self' data: blob: https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://maps.gstatic.com https://maps.googlea"
+    },
+    {
+      "step": 0,
+      "text": "Refused to load the image 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d' because it violates the following Content Security Policy directive: \"img-src 'self' data: blob: https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://maps.gstatic.com https://maps.googlea"
+    },
+    {
+      "step": 0,
+      "text": "Refused to load the image 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80' because it violates the following Content Security Policy directive: \"img-src 'self' data: blob: https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://maps.gstatic.com https://maps.googlea"
+    },
+    {
+      "step": 0,
+      "text": "Refused to load the image 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80' because it violates the following Content Security Policy directive: \"img-src 'self' data: blob: https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://maps.gstatic.com https://maps.googlea"
+    },
+    {
+      "step": 0,
+      "text": "Refused to load the image 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e' because it violates the following Content Security Policy directive: \"img-src 'self' data: blob: https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://maps.gstatic.com https://maps.googlea"
+    },
+    {
+      "step": 0,
+      "text": "Refused to load the image 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e' because it violates the following Content Security Policy directive: \"img-src 'self' data: blob: https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://maps.gstatic.com https://maps.googlea"
+    },
+    {
+      "step": 0,
+      "text": "Refused to load the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330' because it violates the following Content Security Policy directive: \"img-src 'self' data: blob: https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://maps.gstatic.com https://maps.googlea"
+    },
+    {
+      "step": 0,
+      "text": "Refused to load the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330' because it violates the following Content Security Policy directive: \"img-src 'self' data: blob: https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://maps.gstatic.com https://maps.googlea"
+    },
+    {
+      "step": 0,
+      "text": "Refused to load the image 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d' because it violates the following Content Security Policy directive: \"img-src 'self' data: blob: https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://maps.gstatic.com https://maps.googlea"
+    },
+    {
+      "step": 0,
+      "text": "Refused to load the image 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d' because it violates the following Content Security Policy directive: \"img-src 'self' data: blob: https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://maps.gstatic.com https://maps.googlea"
+    },
+    {
+      "step": 0,
+      "text": "Refused to load the image 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80' because it violates the following Content Security Policy directive: \"img-src 'self' data: blob: https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://maps.gstatic.com https://maps.googlea"
+    },
+    {
+      "step": 0,
+      "text": "Refused to load the image 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80' because it violates the following Content Security Policy directive: \"img-src 'self' data: blob: https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://maps.gstatic.com https://maps.googlea"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Error fetching payment methods: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…://localhost:8080/src/hooks/usePayments.ts:91:33), hint: , code: }"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Error fetching payment methods: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…://localhost:8080/src/hooks/usePayments.ts:91:33), hint: , code: }"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 2,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 2,
+      "text": "Failed to fetch entitlement plan: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…alhost:8080/src/hooks/useConciergeUsage.ts:81:43), hint: , code: }"
+    },
+    {
+      "step": 2,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 2,
+      "text": "Failed to fetch profile plan fallback: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…lhost:8080/src/hooks/useConciergeUsage.ts:103:37), hint: , code: }"
+    },
+    {
+      "step": 2,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 2,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 2,
+      "text": "Failed to fetch smart import usage: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…/smart-import/hooks/useSmartImportTaste.ts:38:43), hint: , code: }"
+    },
+    {
+      "step": 2,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 2,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 2,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 2,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 2,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 2,
+      "text": "Failed to fetch concierge usage: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…lhost:8080/src/hooks/useConciergeUsage.ts:153:66), hint: , code: }"
+    },
+    {
+      "step": 2,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 2,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 2,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 2,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 2,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 3,
+      "text": "[TripMediaRenderer] Media failed to load: {url: /mock/videos/team-celebration.mp4, mimeType: video/mp4, mediaError: undefined}"
+    },
+    {
+      "step": 3,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 3,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 3,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 3,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 3,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 3,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 3,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 4,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 4,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 4,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 4,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 4,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 4,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 4,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 4,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 4,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 4,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 4,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 5,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 5,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 5,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 5,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 5,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 5,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 5,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 5,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 5,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 6,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 6,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 6,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 6,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 6,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 6,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 6,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 6,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 6,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 6,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 6,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 7,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 7,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 7,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 7,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 7,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 7,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 7,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 7,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 7,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 7,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 8,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 8,
+      "text": "[Telemetry:Console] Error {name: Error, message: ResizeObserver loop completed with undelivered notifications., stack: Error: ResizeObserver loop completed with undelive…\n    at http://localhost:8080/src/main.tsx:175:30, context: Object, user_id: undefined}"
+    },
+    {
+      "step": 8,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 8,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 8,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 8,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 8,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 8,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 8,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 8,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 8,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 8,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 8,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 8,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 8,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 8,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 8,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 8,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 8,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 8,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 9,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 9,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 9,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 9,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 9,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 9,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 9,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 9,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 9,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 9,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 10,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 11,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 11,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 11,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 11,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 11,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 11,
+      "text": "Refused to load the script 'https://us-assets.i.posthog.com/array/phc_vVm8jyTKmHos7KrVBNY59kexLoeFdRZQzvqEmM83BCpp/config.js' because it violates the following Content Security Policy directive: \"script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://*.supabase.co https://*.googleapis.com htt"
+    },
+    {
+      "step": 11,
+      "text": "Refused to connect to 'https://us-assets.i.posthog.com/array/phc_vVm8jyTKmHos7KrVBNY59kexLoeFdRZQzvqEmM83BCpp/config?ip=0&_=1781204444889&ver=1.386.0' because it violates the following Content Security Policy directive: \"connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.stream-i"
+    },
+    {
+      "step": 11,
+      "text": "Fetch API cannot load https://us-assets.i.posthog.com/array/phc_vVm8jyTKmHos7KrVBNY59kexLoeFdRZQzvqEmM83BCpp/config?ip=0&_=1781204444889&ver=1.386.0. Refused to connect because it violates the document's Content Security Policy."
+    },
+    {
+      "step": 11,
+      "text": "[PostHog.js] TypeError: Failed to fetch\n    at method (http://localhost:8080/node_modules/posthog-js/dist/module.js?v=30300671:1:69559)\n    at http://localhost:8080/node_modules/posthog-js/dist/module.js?v=30300671:1:99334\n    at Qo._send_request (http://localhost:8080/node_modules/posthog-js/dist/m"
+    },
+    {
+      "step": 11,
+      "text": "[PostHog.js] [RemoteConfig] Failed to fetch remote config from PostHog."
+    },
+    {
+      "step": 11,
+      "text": "Refused to connect to 'https://us.i.posthog.com/flags/?v=2&ip=0&_=1781204444896&ver=1.386.0&compression=base64' because it violates the following Content Security Policy directive: \"connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.stream-io-api.com wss://*.stream-io-api.com htt"
+    },
+    {
+      "step": 11,
+      "text": "Fetch API cannot load https://us.i.posthog.com/flags/?v=2&ip=0&_=1781204444896&ver=1.386.0&compression=base64. Refused to connect because it violates the document's Content Security Policy."
+    },
+    {
+      "step": 11,
+      "text": "[PostHog.js] TypeError: Failed to fetch\n    at method (http://localhost:8080/node_modules/posthog-js/dist/module.js?v=30300671:1:69559)\n    at http://localhost:8080/node_modules/posthog-js/dist/module.js?v=30300671:1:99334\n    at Qo._send_request (http://localhost:8080/node_modules/posthog-js/dist/m"
+    },
+    {
+      "step": 11,
+      "text": "Warning: React does not recognize the `%s` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `%s` instead. If you accidentally passed it from a parent component, remove it from the DOM element.%s fetchPriority fetchpriority \n    at "
+    },
+    {
+      "step": 11,
+      "text": "Refused to load the script 'https://us-assets.i.posthog.com/array/phc_vVm8jyTKmHos7KrVBNY59kexLoeFdRZQzvqEmM83BCpp/config.js' because it violates the following Content Security Policy directive: \"script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://*.supabase.co https://*.googleapis.com htt"
+    },
+    {
+      "step": 11,
+      "text": "Refused to connect to 'https://us-assets.i.posthog.com/array/phc_vVm8jyTKmHos7KrVBNY59kexLoeFdRZQzvqEmM83BCpp/config?ip=0&_=1781204454938&ver=1.386.0' because it violates the following Content Security Policy directive: \"connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.stream-i"
+    },
+    {
+      "step": 11,
+      "text": "Fetch API cannot load https://us-assets.i.posthog.com/array/phc_vVm8jyTKmHos7KrVBNY59kexLoeFdRZQzvqEmM83BCpp/config?ip=0&_=1781204454938&ver=1.386.0. Refused to connect because it violates the document's Content Security Policy."
+    },
+    {
+      "step": 11,
+      "text": "[PostHog.js] TypeError: Failed to fetch\n    at method (http://localhost:8080/node_modules/posthog-js/dist/module.js?v=30300671:1:69559)\n    at http://localhost:8080/node_modules/posthog-js/dist/module.js?v=30300671:1:99334\n    at Qo._send_request (http://localhost:8080/node_modules/posthog-js/dist/m"
+    },
+    {
+      "step": 11,
+      "text": "[PostHog.js] [RemoteConfig] Failed to fetch remote config from PostHog."
+    },
+    {
+      "step": 11,
+      "text": "Refused to connect to 'https://us.i.posthog.com/flags/?v=2&ip=0&_=1781204454949&ver=1.386.0&compression=base64' because it violates the following Content Security Policy directive: \"connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.stream-io-api.com wss://*.stream-io-api.com htt"
+    },
+    {
+      "step": 11,
+      "text": "Fetch API cannot load https://us.i.posthog.com/flags/?v=2&ip=0&_=1781204454949&ver=1.386.0&compression=base64. Refused to connect because it violates the document's Content Security Policy."
+    },
+    {
+      "step": 11,
+      "text": "[PostHog.js] TypeError: Failed to fetch\n    at method (http://localhost:8080/node_modules/posthog-js/dist/module.js?v=30300671:1:69559)\n    at http://localhost:8080/node_modules/posthog-js/dist/module.js?v=30300671:1:99334\n    at Qo._send_request (http://localhost:8080/node_modules/posthog-js/dist/m"
+    },
+    {
+      "step": 11,
+      "text": "[StreamClient] Connection failed: No active Supabase session — cannot fetch Stream token"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "text": "Error checking subscription: FunctionsFetchError: Failed to send a request to the Edge Function\n    at http://localhost:8080/node_modules/.vite/deps/@supabase_supabase-js.js?v=8ccc7a97:159:17"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "text": "Error fetching notification preferences: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…p://localhost:8080/src/hooks/useAppBadge.ts:51:23, hint: , code: }"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "text": "Error fetching notification preferences: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…p://localhost:8080/src/hooks/useAppBadge.ts:51:23, hint: , code: }"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "text": "Failed to fetch PDF export usage: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…alhost:8080/src/hooks/usePdfExportUsage.ts:30:37), hint: , code: }"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "text": "[tripService.getTripMembersWithCreator] Trip query error: {tripId: beyonce-cowboy-carter-tour, code: , message: TypeError: Failed to fetch}"
+    },
+    {
+      "step": 11,
+      "text": "[useTripMembersQuery] Failed to fetch members: Error: Failed to load trip data: TypeError: Failed to fetch\n    at Object.getTripMembersWithCreator (http://localhost:8080/src/services/tripService.ts:489:19)\n    at async fetchTripMembersData (http://localhost:8080/src/hooks/useTripMembersQuery.ts:69:4"
+    },
+    {
+      "step": 11,
+      "text": "WebSocket connection to 'wss://jmjiyekmxwsxkfnqwyaa.supabase.co/realtime/v1/websocket?apikey=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINh"
+    },
+    {
+      "step": 11,
+      "text": "[StreamClient] Connection failed: No active Supabase session — cannot fetch Stream token"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "text": "[useTripPrivacyConfig] Error fetching config: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…ost:8080/src/hooks/useTripPrivacyConfig.ts:14:37), hint: , code: }"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "text": "Error fetching payment messages: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…://localhost:8080/src/hooks/usePayments.ts:78:20), hint: , code: }"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "text": "Error fetching payment methods: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…://localhost:8080/src/hooks/usePayments.ts:91:33), hint: , code: }"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "text": "Error fetching payment methods: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…://localhost:8080/src/hooks/usePayments.ts:91:33), hint: , code: }"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "text": "WebSocket connection to 'wss://jmjiyekmxwsxkfnqwyaa.supabase.co/realtime/v1/websocket?apikey=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINh"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "text": "Failed to fetch entitlement plan: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…alhost:8080/src/hooks/useConciergeUsage.ts:81:43), hint: , code: }"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "text": "Failed to fetch profile plan fallback: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…lhost:8080/src/hooks/useConciergeUsage.ts:103:37), hint: , code: }"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "text": "Failed to fetch smart import usage: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…/smart-import/hooks/useSmartImportTaste.ts:38:43), hint: , code: }"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "text": "Failed to fetch concierge usage: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…lhost:8080/src/hooks/useConciergeUsage.ts:153:66), hint: , code: }"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 11,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 12,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 12,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 12,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 12,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 12,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 12,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 12,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 12,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 12,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 12,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 12,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 12,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 13,
+      "text": "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.%s \n    at MediaSearchBar (http://localhost:8080/src/components/media/MediaSearchBar.tsx:"
+    },
+    {
+      "step": 13,
+      "text": "WebSocket connection to 'wss://jmjiyekmxwsxkfnqwyaa.supabase.co/realtime/v1/websocket?apikey=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINh"
+    },
+    {
+      "step": 13,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 13,
+      "text": "Error fetching payment methods: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…://localhost:8080/src/hooks/usePayments.ts:91:33), hint: , code: }"
+    },
+    {
+      "step": 13,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 13,
+      "text": "Error fetching payment methods: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…://localhost:8080/src/hooks/usePayments.ts:91:33), hint: , code: }"
+    },
+    {
+      "step": 13,
+      "text": "WebSocket connection to 'wss://jmjiyekmxwsxkfnqwyaa.supabase.co/realtime/v1/websocket?apikey=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINh"
+    },
+    {
+      "step": 14,
+      "text": "Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s \n\nCheck the render method of `Primitive.button.SlotClone`. \n    at Dialog (http://localhost:8080/node_modules/.vite/deps/chunk-XZVQEV52.js?v=30300671:147:5)\n    at ht"
+    },
+    {
+      "step": 14,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 14,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 14,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 14,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 14,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 14,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 14,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 14,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 14,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 14,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 14,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 14,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 14,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 14,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 14,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 14,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 15,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 15,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 15,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 15,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 15,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 15,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 16,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 16,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 16,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 16,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 16,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 16,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 16,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 16,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 16,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 16,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 16,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 16,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 16,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 16,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 16,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 16,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 16,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 16,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 18,
+      "text": "WebSocket connection to 'wss://jmjiyekmxwsxkfnqwyaa.supabase.co/realtime/v1/websocket?apikey=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINh"
+    },
+    {
+      "step": 18,
+      "text": "[StreamClient] Connection failed: No active Supabase session — cannot fetch Stream token"
+    },
+    {
+      "step": 18,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 18,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 18,
+      "text": "Error fetching payment methods: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…://localhost:8080/src/hooks/usePayments.ts:91:33), hint: , code: }"
+    },
+    {
+      "step": 18,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 18,
+      "text": "Error fetching payment methods: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…://localhost:8080/src/hooks/usePayments.ts:91:33), hint: , code: }"
+    },
+    {
+      "step": 18,
+      "text": "WebSocket connection to 'wss://jmjiyekmxwsxkfnqwyaa.supabase.co/realtime/v1/websocket?apikey=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINh"
+    },
+    {
+      "step": 18,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 19,
+      "text": "WebSocket connection to 'wss://jmjiyekmxwsxkfnqwyaa.supabase.co/realtime/v1/websocket?apikey=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINh"
+    },
+    {
+      "step": 21,
+      "text": "Refused to load the script 'https://us-assets.i.posthog.com/array/phc_vVm8jyTKmHos7KrVBNY59kexLoeFdRZQzvqEmM83BCpp/config.js' because it violates the following Content Security Policy directive: \"script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://*.supabase.co https://*.googleapis.com htt"
+    },
+    {
+      "step": 21,
+      "text": "Refused to connect to 'https://us-assets.i.posthog.com/array/phc_vVm8jyTKmHos7KrVBNY59kexLoeFdRZQzvqEmM83BCpp/config?ip=0&_=1781204477940&ver=1.386.0' because it violates the following Content Security Policy directive: \"connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.stream-i"
+    },
+    {
+      "step": 21,
+      "text": "Fetch API cannot load https://us-assets.i.posthog.com/array/phc_vVm8jyTKmHos7KrVBNY59kexLoeFdRZQzvqEmM83BCpp/config?ip=0&_=1781204477940&ver=1.386.0. Refused to connect because it violates the document's Content Security Policy."
+    },
+    {
+      "step": 21,
+      "text": "[PostHog.js] TypeError: Failed to fetch\n    at method (http://localhost:8080/node_modules/posthog-js/dist/module.js?v=30300671:1:69559)\n    at http://localhost:8080/node_modules/posthog-js/dist/module.js?v=30300671:1:99334\n    at Qo._send_request (http://localhost:8080/node_modules/posthog-js/dist/m"
+    },
+    {
+      "step": 21,
+      "text": "[PostHog.js] [RemoteConfig] Failed to fetch remote config from PostHog."
+    },
+    {
+      "step": 21,
+      "text": "Refused to connect to 'https://us.i.posthog.com/flags/?v=2&ip=0&_=1781204477947&ver=1.386.0&compression=base64' because it violates the following Content Security Policy directive: \"connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.stream-io-api.com wss://*.stream-io-api.com htt"
+    },
+    {
+      "step": 21,
+      "text": "Fetch API cannot load https://us.i.posthog.com/flags/?v=2&ip=0&_=1781204477947&ver=1.386.0&compression=base64. Refused to connect because it violates the document's Content Security Policy."
+    },
+    {
+      "step": 21,
+      "text": "[PostHog.js] TypeError: Failed to fetch\n    at method (http://localhost:8080/node_modules/posthog-js/dist/module.js?v=30300671:1:69559)\n    at http://localhost:8080/node_modules/posthog-js/dist/module.js?v=30300671:1:99334\n    at Qo._send_request (http://localhost:8080/node_modules/posthog-js/dist/m"
+    },
+    {
+      "step": 21,
+      "text": "[StreamClient] Connection failed: No active Supabase session — cannot fetch Stream token"
+    },
+    {
+      "step": 21,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 21,
+      "text": "Error checking subscription: FunctionsFetchError: Failed to send a request to the Edge Function\n    at http://localhost:8080/node_modules/.vite/deps/@supabase_supabase-js.js?v=8ccc7a97:159:17"
+    },
+    {
+      "step": 21,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 21,
+      "text": "Error fetching notification preferences: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…p://localhost:8080/src/hooks/useAppBadge.ts:51:23, hint: , code: }"
+    },
+    {
+      "step": 21,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 21,
+      "text": "Error fetching notification preferences: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…p://localhost:8080/src/hooks/useAppBadge.ts:51:23, hint: , code: }"
+    },
+    {
+      "step": 21,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 21,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 21,
+      "text": "Refused to load the image 'https://www.w3.org/WAI/WCAG21/Techniques/pdf/img/table-word.jpg' because it violates the following Content Security Policy directive: \"img-src 'self' data: blob: https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://maps.gstatic.com https://maps.goog"
+    },
+    {
+      "step": 21,
+      "text": "Refused to load the image 'https://www.w3.org/WAI/WCAG21/Techniques/pdf/img/table-word.jpg' because it violates the following Content Security Policy directive: \"img-src 'self' data: blob: https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://maps.gstatic.com https://maps.goog"
+    },
+    {
+      "step": 21,
+      "text": "WebSocket connection to 'wss://jmjiyekmxwsxkfnqwyaa.supabase.co/realtime/v1/websocket?apikey=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINh"
+    },
+    {
+      "step": 21,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 21,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 21,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 21,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 21,
+      "text": "Failed to fetch PDF export usage: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…alhost:8080/src/hooks/usePdfExportUsage.ts:30:37), hint: , code: }"
+    },
+    {
+      "step": 21,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 21,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 21,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 21,
+      "text": "[tripService.getTripMembersWithCreator] Trip query error: {tripId: netflix-joke-fest-2026, code: , message: TypeError: Failed to fetch}"
+    },
+    {
+      "step": 21,
+      "text": "[useTripMembersQuery] Failed to fetch members: Error: Failed to load trip data: TypeError: Failed to fetch\n    at Object.getTripMembersWithCreator (http://localhost:8080/src/services/tripService.ts:489:19)\n    at async fetchTripMembersData (http://localhost:8080/src/hooks/useTripMembersQuery.ts:69:4"
+    },
+    {
+      "step": 21,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 21,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 21,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 21,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 21,
+      "text": "WebSocket connection to 'wss://jmjiyekmxwsxkfnqwyaa.supabase.co/realtime/v1/websocket?apikey=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINh"
+    },
+    {
+      "step": 21,
+      "text": "WebSocket connection to 'wss://jmjiyekmxwsxkfnqwyaa.supabase.co/realtime/v1/websocket?apikey=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINh"
+    },
+    {
+      "step": 21,
+      "text": "WebSocket connection to 'wss://jmjiyekmxwsxkfnqwyaa.supabase.co/realtime/v1/websocket?apikey=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINh"
+    },
+    {
+      "step": 22,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 22,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 22,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 22,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 22,
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 22,
+      "text": "Failed to load user roles: {message: TypeError: Failed to fetch, details: TypeError: Failed to fetch\n    at http://localhost…host:8080/src/hooks/useEventPermissions.ts:107:66, hint: , code: }"
+    },
+    {
+      "step": 23,
+      "text": "WebSocket connection to 'wss://jmjiyekmxwsxkfnqwyaa.supabase.co/realtime/v1/websocket?apikey=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINh"
+    }
+  ],
+  "failedRequests": [
+    {
+      "step": 0,
+      "url": "https://us-assets.i.posthog.com/array/phc_vVm8jyTKmHos7KrVBNY59kexLoeFdRZQzvqEmM83BCpp/config.js",
+      "failure": "csp"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/notification_preferences?select=*&user_id=eq.c4fc5acb-97f5-4f79-acd1-e5c4fe37dbb7",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/functions/v1/check-subscription",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/notifications?select=id&user_id=eq.c4fc5acb-97f5-4f79-acd1-e5c4fe37dbb7&is_read=eq.false&is_visible=eq.true&or=",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/trip-media/demo-covers/cancun-spring-break.jpg",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/trip-media/demo-covers/tokyo-adventure.jpg",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/trip-media/demo-covers/bali-destination-wedding.jpg",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/trip-media/demo-covers/nashville-bachelorette.jpg",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/trip-media/demo-covers/coachella-festival.jpg",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/trip-media/demo-covers/dubai-birthday.jpg",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/trip-media/demo-covers/phoenix-golf-outing.jpg",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/trip-media/demo-covers/tulum-yoga-wellness.jpg",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/trip-media/demo-covers/napa-wine-getaway.jpg",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/trip-media/demo-covers/aspen-corporate-ski.jpg",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/trip-media/demo-covers/disney-family-cruise.jpg",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/trip-media/demo-covers/yellowstone-hiking-group.jpg",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/feature_flags?select=key%2Cenabled%2Crollout_percentage&key=eq.onboarding_survey",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/dashboard_card_order?select=ordered_ids&user_id=eq.c4fc5acb-97f5-4f79-acd1-e5c4fe37dbb7&dashboard_type=eq.my_tr",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/dashboard_card_order?select=ordered_ids&user_id=eq.c4fc5acb-97f5-4f79-acd1-e5c4fe37dbb7&dashboard_type=eq.my_tr",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/rpc/get_trip_pdf_export_usage",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/rpc/get_trip_pdf_export_usage",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/rpc/get_trip_pdf_export_usage",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/rpc/get_trip_pdf_export_usage",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/rpc/get_trip_pdf_export_usage",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/rpc/get_trip_pdf_export_usage",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/rpc/get_trip_pdf_export_usage",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/rpc/get_trip_pdf_export_usage",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/rpc/get_trip_pdf_export_usage",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/rpc/get_trip_pdf_export_usage",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/rpc/get_trip_pdf_export_usage",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/rpc/get_trip_pdf_export_usage",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_blocks?select=blocked_id&order=created_at.desc",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trip_member_preferences?select=show_system_messages%2Csystem_message_categories&trip_id=eq.1&user_id=eq.c4fc5ac",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_payment_methods?select=*&user_id=eq.c4fc5acb-97f5-4f79-acd1-e5c4fe37dbb7&order=created_at.desc&limit=50",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_payment_methods?select=*&user_id=eq.c4fc5acb-97f5-4f79-acd1-e5c4fe37dbb7&order=created_at.desc&limit=50",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_preferences?select=show_system_messages%2Csystem_message_categories&user_id=eq.c4fc5acb-97f5-4f79-acd1-e5c",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://images.unsplash.com/photo-1494790108377-be9c29b29330",
+      "failure": "csp"
+    },
+    {
+      "step": 0,
+      "url": "https://images.unsplash.com/photo-1494790108377-be9c29b29330",
+      "failure": "csp"
+    },
+    {
+      "step": 0,
+      "url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d",
+      "failure": "csp"
+    },
+    {
+      "step": 0,
+      "url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d",
+      "failure": "csp"
+    },
+    {
+      "step": 0,
+      "url": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80",
+      "failure": "csp"
+    },
+    {
+      "step": 0,
+      "url": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80",
+      "failure": "csp"
+    },
+    {
+      "step": 0,
+      "url": "https://images.unsplash.com/photo-1494790108377-be9c29b29330",
+      "failure": "csp"
+    },
+    {
+      "step": 0,
+      "url": "https://images.unsplash.com/photo-1494790108377-be9c29b29330",
+      "failure": "csp"
+    },
+    {
+      "step": 0,
+      "url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d",
+      "failure": "csp"
+    },
+    {
+      "step": 0,
+      "url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d",
+      "failure": "csp"
+    },
+    {
+      "step": 0,
+      "url": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80",
+      "failure": "csp"
+    },
+    {
+      "step": 0,
+      "url": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80",
+      "failure": "csp"
+    },
+    {
+      "step": 0,
+      "url": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e",
+      "failure": "csp"
+    },
+    {
+      "step": 0,
+      "url": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e",
+      "failure": "csp"
+    },
+    {
+      "step": 0,
+      "url": "https://images.unsplash.com/photo-1494790108377-be9c29b29330",
+      "failure": "csp"
+    },
+    {
+      "step": 0,
+      "url": "https://images.unsplash.com/photo-1494790108377-be9c29b29330",
+      "failure": "csp"
+    },
+    {
+      "step": 0,
+      "url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d",
+      "failure": "csp"
+    },
+    {
+      "step": 0,
+      "url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d",
+      "failure": "csp"
+    },
+    {
+      "step": 0,
+      "url": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80",
+      "failure": "csp"
+    },
+    {
+      "step": 0,
+      "url": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80",
+      "failure": "csp"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/feature_flags?select=key%2Cenabled%2Crollout_percentage&key=eq.payment_attachments",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_payment_methods?select=*&user_id=eq.c4fc5acb-97f5-4f79-acd1-e5c4fe37dbb7&order=created_at.desc&limit=50",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trip_base_camps?select=*&trip_id=eq.1&order=order_index.asc%2Cstart_date.asc.nullslast",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trip_personal_base_camps?select=*&trip_id=eq.1&user_id=eq.c4fc5acb-97f5-4f79-acd1-e5c4fe37dbb7&order=order_inde",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.1",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.1",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.1",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.1",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_payment_methods?select=*&user_id=eq.c4fc5acb-97f5-4f79-acd1-e5c4fe37dbb7&order=created_at.desc&limit=50",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.1",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.1",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.1",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.1",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.1",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.1",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.1",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.1",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.1&user_i",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.1&user_i",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.1&user_i",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.1&user_i",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.1&user_i",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.1&user_i",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.1&user_i",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.1&user_i",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.1&user_i",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_blocks?select=blocked_id&order=created_at.desc",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.1&user_i",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.1&user_i",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.1&user_i",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trip_base_camps?select=*&trip_id=eq.1&order=order_index.asc%2Cstart_date.asc.nullslast",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 0,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trip_personal_base_camps?select=*&trip_id=eq.1&user_id=eq.c4fc5acb-97f5-4f79-acd1-e5c4fe37dbb7&order=order_inde",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 2,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_entitlements?select=plan%2Cstatus%2Ccurrent_period_end%2Cpurchase_type%2Csource%2Cupdated_at&user_id=eq.c4",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 2,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/profiles?select=app_role%2Csubscription_status%2Csubscription_product_id&user_id=eq.c4fc5acb-97f5-4f79-acd1-e5c",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 2,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/rpc/get_concierge_trip_usage",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 2,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/smart_import_usage?select=usage_count&user_id=eq.c4fc5acb-97f5-4f79-acd1-e5c4fe37dbb7&trip_id=eq.1",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 2,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_preferences?select=preferences&user_id=eq.c4fc5acb-97f5-4f79-acd1-e5c4fe37dbb7",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 2,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.1",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 2,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/ai_queries?select=id%2Cquery_text%2Cresponse_text%2Ccreated_at%2Cmetadata&trip_id=eq.1&user_id=eq.c4fc5acb-97f5",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 2,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.1",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 2,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/concierge_usage?select=query_count&user_id=eq.c4fc5acb-97f5-4f79-acd1-e5c4fe37dbb7&context_type=in.%28trip%2Cev",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 2,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.1&user_i",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 2,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.1&user_i",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 2,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/ai_queries?select=id%2Cquery_text%2Cresponse_text%2Ccreated_at%2Cmetadata&trip_id=eq.1&user_id=eq.c4fc5acb-97f5",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "url": "https://us-assets.i.posthog.com/array/phc_vVm8jyTKmHos7KrVBNY59kexLoeFdRZQzvqEmM83BCpp/config.js",
+      "failure": "csp"
+    },
+    {
+      "step": 11,
+      "url": "https://us-assets.i.posthog.com/array/phc_vVm8jyTKmHos7KrVBNY59kexLoeFdRZQzvqEmM83BCpp/config.js",
+      "failure": "csp"
+    },
+    {
+      "step": 11,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/functions/v1/check-subscription",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/notification_preferences?select=*&user_id=eq.972a6a94-536a-4d40-8d0c-38f118b50acf",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/notification_preferences?select=*&user_id=eq.972a6a94-536a-4d40-8d0c-38f118b50acf",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/notifications?select=id&user_id=eq.972a6a94-536a-4d40-8d0c-38f118b50acf&is_read=eq.false&is_visible=eq.true&or=",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/notifications?select=id&user_id=eq.972a6a94-536a-4d40-8d0c-38f118b50acf&is_read=eq.false&is_visible=eq.true&or=",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/rpc/get_trip_pdf_export_usage",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.beyonce-cowboy-carter-tour",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trip_members?select=id%2Cuser_id%2Crole%2Ccreated_at&trip_id=eq.beyonce-cowboy-carter-tour&limit=500",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_blocks?select=blocked_id&order=created_at.desc",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trip_privacy_configs?select=*&trip_id=eq.beyonce-cowboy-carter-tour",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trip_member_preferences?select=show_system_messages%2Csystem_message_categories&trip_id=eq.beyonce-cowboy-carte",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trip_payment_messages?select=*&trip_id=eq.beyonce-cowboy-carter-tour&order=created_at.desc&limit=500",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_payment_methods?select=*&user_id=eq.972a6a94-536a-4d40-8d0c-38f118b50acf&order=created_at.desc&limit=50",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_payment_methods?select=*&user_id=eq.972a6a94-536a-4d40-8d0c-38f118b50acf&order=created_at.desc&limit=50",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_preferences?select=show_system_messages%2Csystem_message_categories&user_id=eq.972a6a94-536a-4d40-8d0c-38f",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_blocks?select=blocked_id&order=created_at.desc",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/rpc/get_concierge_trip_usage",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_entitlements?select=plan%2Cstatus%2Ccurrent_period_end%2Cpurchase_type%2Csource%2Cupdated_at&user_id=eq.97",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/profiles?select=app_role%2Csubscription_status%2Csubscription_product_id&user_id=eq.972a6a94-536a-4d40-8d0c-38f",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/smart_import_usage?select=usage_count&user_id=eq.972a6a94-536a-4d40-8d0c-38f118b50acf&trip_id=eq.beyonce-cowboy",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_preferences?select=preferences&user_id=eq.972a6a94-536a-4d40-8d0c-38f118b50acf",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.beyonce-cowboy-carter-tour",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/ai_queries?select=id%2Cquery_text%2Cresponse_text%2Ccreated_at%2Cmetadata&trip_id=eq.beyonce-cowboy-carter-tour",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.beyonce-cowboy-carter-tour",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/concierge_usage?select=query_count&user_id=eq.972a6a94-536a-4d40-8d0c-38f118b50acf&context_type=in.%28trip%2Cev",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.beyonce-",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.beyonce-",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 11,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/ai_queries?select=id%2Cquery_text%2Cresponse_text%2Ccreated_at%2Cmetadata&trip_id=eq.beyonce-cowboy-carter-tour",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 13,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_payment_methods?select=*&user_id=eq.972a6a94-536a-4d40-8d0c-38f118b50acf&order=created_at.desc&limit=50",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 13,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_payment_methods?select=*&user_id=eq.972a6a94-536a-4d40-8d0c-38f118b50acf&order=created_at.desc&limit=50",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 14,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trip_base_camps?select=*&trip_id=eq.beyonce-cowboy-carter-tour&order=order_index.asc%2Cstart_date.asc.nullslast",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 14,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trip_personal_base_camps?select=*&trip_id=eq.beyonce-cowboy-carter-tour&user_id=eq.972a6a94-536a-4d40-8d0c-38f1",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 14,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.beyonce-cowboy-carter-tour",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 14,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.beyonce-cowboy-carter-tour",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 14,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.beyonce-cowboy-carter-tour",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 14,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.beyonce-cowboy-carter-tour",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 14,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.beyonce-",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 14,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.beyonce-",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 14,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.beyonce-",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 14,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.beyonce-",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 14,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trip_base_camps?select=*&trip_id=eq.beyonce-cowboy-carter-tour&order=order_index.asc%2Cstart_date.asc.nullslast",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 14,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trip_personal_base_camps?select=*&trip_id=eq.beyonce-cowboy-carter-tour&user_id=eq.972a6a94-536a-4d40-8d0c-38f1",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 15,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.beyonce-cowboy-carter-tour",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 15,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.beyonce-cowboy-carter-tour",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 15,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.beyonce-",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 15,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.beyonce-",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 16,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.beyonce-cowboy-carter-tour",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 16,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.beyonce-cowboy-carter-tour",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 16,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.beyonce-cowboy-carter-tour",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 16,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.beyonce-cowboy-carter-tour",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 16,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.beyonce-cowboy-carter-tour",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 16,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.beyonce-cowboy-carter-tour",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 16,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.beyonce-",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 16,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.beyonce-",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 16,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.beyonce-",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 16,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.beyonce-",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 16,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.beyonce-",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 16,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.beyonce-",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 18,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_blocks?select=blocked_id&order=created_at.desc",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 18,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_payment_methods?select=*&user_id=eq.972a6a94-536a-4d40-8d0c-38f118b50acf&order=created_at.desc&limit=50",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 18,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_payment_methods?select=*&user_id=eq.972a6a94-536a-4d40-8d0c-38f118b50acf&order=created_at.desc&limit=50",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 18,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_blocks?select=blocked_id&order=created_at.desc",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 21,
+      "url": "https://us-assets.i.posthog.com/array/phc_vVm8jyTKmHos7KrVBNY59kexLoeFdRZQzvqEmM83BCpp/config.js",
+      "failure": "csp"
+    },
+    {
+      "step": 21,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/functions/v1/check-subscription",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 21,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/notification_preferences?select=*&user_id=eq.31d70e02-dab3-4fb7-8ac6-e88064bbf327",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 21,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/notification_preferences?select=*&user_id=eq.31d70e02-dab3-4fb7-8ac6-e88064bbf327",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 21,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/notifications?select=id&user_id=eq.31d70e02-dab3-4fb7-8ac6-e88064bbf327&is_read=eq.false&is_visible=eq.true&or=",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 21,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/notifications?select=id&user_id=eq.31d70e02-dab3-4fb7-8ac6-e88064bbf327&is_read=eq.false&is_visible=eq.true&or=",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 21,
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/pdf/img/table-word.jpg",
+      "failure": "csp"
+    },
+    {
+      "step": 21,
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/pdf/img/table-word.jpg",
+      "failure": "csp"
+    },
+    {
+      "step": 21,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.netflix-joke-fest-2026",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 21,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.netflix-joke-fest-2026",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 21,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=enabled_features&id=eq.netflix-joke-fest-2026",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 21,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/rpc/get_trip_pdf_export_usage",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 21,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.netflix-joke-fest-2026",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 21,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=enabled_features&id=eq.netflix-joke-fest-2026",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 21,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trip_members?select=id%2Cuser_id%2Crole%2Ccreated_at&trip_id=eq.netflix-joke-fest-2026&limit=500",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 21,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.netflix-",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 21,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.netflix-",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 22,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.netflix-joke-fest-2026",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 22,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/trips?select=created_by&id=eq.netflix-joke-fest-2026",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 22,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.netflix-",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": 22,
+      "url": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/rest/v1/user_trip_roles?select=id%2Crole_id%2Cis_primary%2Ctrip_roles%3Arole_id%28id%2Crole_name%29&trip_id=eq.netflix-",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    }
+  ]
+}
