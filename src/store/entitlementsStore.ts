@@ -239,6 +239,13 @@ const ENTITLEMENTS_TTL_MS = 5 * 60 * 1000;
 // Concurrent mounts during the same boot share one in-flight refresh.
 let inFlightRefresh: { userId: string; promise: Promise<void> } | null = null;
 
+// Write-generation guard: a refresh may only write state if no newer refresh,
+// clear(), or demo/admin override started after it. Without this, a slow
+// pre-purchase refresh resolving late overwrites a forced post-purchase one,
+// and a previous user's in-flight refresh repopulates the store after
+// sign-out cleared it.
+let refreshGeneration = 0;
+
 export const useEntitlementsStore = create<EntitlementsState>((set, get) => ({
   ...DEFAULT_STATE,
 
@@ -263,7 +270,12 @@ export const useEntitlementsStore = create<EntitlementsState>((set, get) => ({
       }
     }
 
-    const refreshPromise = performRefresh(userId, userEmail, set);
+    const myGeneration = ++refreshGeneration;
+    const guardedSet: SetEntitlementsState = partial => {
+      if (refreshGeneration === myGeneration) set(partial);
+    };
+
+    const refreshPromise = performRefresh(userId, userEmail, guardedSet);
     inFlightRefresh = { userId, promise: refreshPromise };
     try {
       await refreshPromise;
@@ -275,6 +287,8 @@ export const useEntitlementsStore = create<EntitlementsState>((set, get) => ({
   },
 
   setSuperAdminMode: () => {
+    // Invalidate any in-flight refresh so its late set() can't overwrite this.
+    refreshGeneration += 1;
     set({
       ...getPlanFlags(SUPER_ADMIN_TIER, true),
       plan: SUPER_ADMIN_TIER,
@@ -291,6 +305,8 @@ export const useEntitlementsStore = create<EntitlementsState>((set, get) => ({
   },
 
   setDemoMode: (enabled: boolean) => {
+    // Invalidate any in-flight refresh so its late set() can't overwrite this.
+    refreshGeneration += 1;
     if (enabled) {
       // Demo mode gets full access
       const demoTier: SubscriptionTier = 'frequent-chraveler';
@@ -304,6 +320,12 @@ export const useEntitlementsStore = create<EntitlementsState>((set, get) => ({
         currentPeriodEnd: null,
         entitlements: new Set(tierEntitlements),
         isLoading: false,
+        // Demo state is an override, never "synced" state: clear the TTL
+        // stamps so the refresh after demo exit always hits the server —
+        // otherwise a fresh pre-demo stamp keeps the demo plan alive for up
+        // to 5 minutes after exiting (demo-mode contamination).
+        lastSyncedAt: null,
+        ownerUserId: null,
         error: null,
         isSubscribed: true,
         isPro: false,
@@ -349,6 +371,10 @@ export const useEntitlementsStore = create<EntitlementsState>((set, get) => ({
   },
 
   clear: () => {
+    // Bump the generation so a previous user's in-flight refresh resolving
+    // after sign-out cannot repopulate the cleared store.
+    refreshGeneration += 1;
+    inFlightRefresh = null;
     set(DEFAULT_STATE);
   },
 }));

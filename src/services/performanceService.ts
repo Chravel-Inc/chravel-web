@@ -24,8 +24,12 @@ interface PerformanceMetrics {
 class PerformanceService {
   private metrics: PerformanceMetrics = {};
   private observer?: PerformanceObserver;
-  private bootPhases = new Map<BootPhase, number>();
   private bootTimelineReported = false;
+  // Captured at module eval (before the Router mounts), so it is the COLD
+  // START path even after in-app navigations. boot_timeline only reports for
+  // '/' boots — marking dashboard_rendered after a deep-link boot navigates
+  // home minutes later would poison the yardstick with multi-minute outliers.
+  private bootPath = typeof window !== 'undefined' ? window.location.pathname : '';
 
   constructor() {
     this.initializeObservers();
@@ -124,20 +128,32 @@ class PerformanceService {
     }
   }
 
+  /** Start time of a chravel-boot mark in ms since timeOrigin, or null. */
+  private bootPhaseTime(phase: string): number | null {
+    try {
+      const entry = performance.getEntriesByName(`chravel-boot:${phase}`)[0];
+      return entry ? Math.round(entry.startTime) : null;
+    } catch {
+      return null;
+    }
+  }
+
   /**
-   * Record a cold-start boot phase (first occurrence only). When the dashboard
-   * renders, the full timeline is reported as one `boot_timeline` event — the
-   * before/after yardstick for startup work.
+   * Record a cold-start boot phase (first occurrence only; the performance
+   * marks are the single source of truth — entry is marked the same way in
+   * main.tsx without importing this service). When the dashboard renders on a
+   * '/' boot, the full timeline is reported as one `boot_timeline` event —
+   * the before/after yardstick for startup work.
    */
   public markBootPhase(phase: BootPhase): void {
-    if (this.bootPhases.has(phase)) return;
-    this.bootPhases.set(phase, Math.round(performance.now()));
     try {
+      if (performance.getEntriesByName(`chravel-boot:${phase}`).length > 0) return;
       performance.mark(`chravel-boot:${phase}`);
     } catch {
-      // performance.mark unavailable in some embedded WebViews — timings still recorded
+      // performance.mark unavailable — boot timeline silently disabled
+      return;
     }
-    if (phase === 'dashboard_rendered') {
+    if (phase === 'dashboard_rendered' && this.bootPath === '/') {
       this.reportBootTimeline();
     }
   }
@@ -146,14 +162,11 @@ class PerformanceService {
     if (this.bootTimelineReported) return;
     this.bootTimelineReported = true;
 
-    // Entry is marked in main.tsx with a raw performance.mark (no import cost).
-    const entryMark = performance.getEntriesByName('chravel-boot:entry')[0];
-
     telemetry.track('boot_timeline', {
-      entry_ms: entryMark ? Math.round(entryMark.startTime) : null,
-      app_mounted_ms: this.bootPhases.get('app_mounted') ?? null,
-      auth_hydrated_ms: this.bootPhases.get('auth_hydrated') ?? null,
-      dashboard_rendered_ms: this.bootPhases.get('dashboard_rendered') ?? null,
+      entry_ms: this.bootPhaseTime('entry'),
+      app_mounted_ms: this.bootPhaseTime('app_mounted'),
+      auth_hydrated_ms: this.bootPhaseTime('auth_hydrated'),
+      dashboard_rendered_ms: this.bootPhaseTime('dashboard_rendered'),
       lcp_ms:
         this.metrics.largestContentfulPaint !== undefined
           ? Math.round(this.metrics.largestContentfulPaint)

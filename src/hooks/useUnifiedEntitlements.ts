@@ -67,11 +67,14 @@ export function useUnifiedEntitlements(): UseUnifiedEntitlementsReturn {
         return;
       }
 
-      if (isNativePlatform() && REVENUECAT_CONFIG.enabled) {
+      const syncedFromRevenueCat = isNativePlatform() && REVENUECAT_CONFIG.enabled;
+      if (syncedFromRevenueCat) {
         await syncRevenueCatEntitlementsForUser(user.id, isDemoMode);
       }
-      // Pass email for super admin check inside refreshEntitlements
-      await store.refreshEntitlements(user.id, user.email);
+      // Pass email for super admin check inside refreshEntitlements. When the
+      // RevenueCat sync just wrote fresh entitlements to the DB, force past
+      // the store's TTL so the write is actually read back.
+      await store.refreshEntitlements(user.id, user.email, { force: syncedFromRevenueCat });
     };
     init();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- store from Zustand is unstable; would cause infinite loop

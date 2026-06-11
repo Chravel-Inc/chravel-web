@@ -1031,12 +1031,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Clear all cached server data so next user on this device sees nothing —
     // including the persisted IDB copy (explicit delete; don't rely on the
-    // persister's throttled propagation of clear()).
+    // persister's throttled propagation of clear()). Runs concurrently with
+    // realtime teardown: both must finish before the trailing navigation, but
+    // a cold IDB open mustn't serially delay sign-out.
     queryClient.clear();
-    await removePersistedQueryCache();
-
-    // Tear down all Realtime subscriptions to prevent cross-user notification leaks
-    await supabase.removeAllChannels();
+    await Promise.all([
+      removePersistedQueryCache(),
+      // Tear down all Realtime subscriptions to prevent cross-user notification leaks
+      supabase.removeAllChannels(),
+    ]);
 
     // Clear AI concierge localStorage caches (PII — trip planning conversations)
     conciergeCacheService.clearAllCaches();

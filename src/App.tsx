@@ -20,8 +20,7 @@ import { ConsumerSubscriptionProvider } from './hooks/useConsumerSubscription';
 import { MobileAppLayout } from './components/mobile/MobileAppLayout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { LazyRoute } from './components/LazyRoute';
-import { DashboardSkeleton, TripShellSkeleton } from './components/home/DashboardSkeleton';
-import { bootHasAuthMarker } from './lib/bootAuthMarker';
+import { BootHydrationFallback } from './components/home/DashboardSkeleton';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { InternalAdminRoute } from './components/InternalAdminRoute';
 import { performanceService } from './services/performanceService';
@@ -320,9 +319,7 @@ const App = () => {
                       <Route
                         path="/"
                         element={
-                          <LazyRoute
-                            fallback={bootHasAuthMarker ? <DashboardSkeleton /> : undefined}
-                          >
+                          <LazyRoute fallback={<BootHydrationFallback />}>
                             <Index />
                           </LazyRoute>
                         }
@@ -338,9 +335,7 @@ const App = () => {
                       <Route
                         path="/trip/:tripId"
                         element={
-                          <LazyRoute
-                            fallback={bootHasAuthMarker ? <TripShellSkeleton /> : undefined}
-                          >
+                          <LazyRoute fallback={<BootHydrationFallback variant="trip" />}>
                             <TripDetail />
                           </LazyRoute>
                         }

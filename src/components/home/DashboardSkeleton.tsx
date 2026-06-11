@@ -1,4 +1,6 @@
 import React from 'react';
+import { LoadingSpinner } from '../LoadingSpinner';
+import { deviceLikelyAuthenticated } from '../../lib/bootAuthMarker';
 
 /**
  * Branded placeholder for the home dashboard while auth hydrates on cold start.
@@ -47,6 +49,26 @@ export const DashboardSkeleton: React.FC = () => (
     </div>
   </div>
 );
+
+/**
+ * Single home of the skeleton-vs-spinner policy for boot/route loading states:
+ * devices that look authenticated (canonical Supabase session key present) get
+ * the app skeleton; anonymous devices get a neutral spinner because they're
+ * headed to the auth gate or marketing page where an app skeleton would be
+ * wrong. Evaluated at render time so mid-session sign-in/sign-out flips it.
+ */
+export const BootHydrationFallback: React.FC<{ variant?: 'dashboard' | 'trip' }> = ({
+  variant = 'dashboard',
+}) => {
+  if (!deviceLikelyAuthenticated()) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+  return variant === 'trip' ? <TripShellSkeleton /> : <DashboardSkeleton />;
+};
 
 /**
  * Trip-detail shell placeholder shown while the trip page chunk loads.

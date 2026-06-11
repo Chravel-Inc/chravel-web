@@ -54,7 +54,7 @@ const ErrorDisplay = ({ type }: { type: ErrorState }) => {
 export const GoogleMapsWidget = ({ widgetToken, height = 300 }: GoogleMapsWidgetProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [errorState, setErrorState] = useState<ErrorState>(null);
-  const [_isLoaded, setIsLoaded] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   // Maps JS (~100KB+) loads only on tap — rendering it eagerly per location
   // message stalled the virtualized chat list during scroll.
   const [activated, setActivated] = useState(false);
@@ -150,9 +150,14 @@ export const GoogleMapsWidget = ({ widgetToken, height = 300 }: GoogleMapsWidget
             <MapPin size={24} className="text-blue-400" />
             <span className="text-sm font-medium">Tap to load map</span>
           </button>
-        ) : (
-          errorState && <ErrorDisplay type={errorState} />
-        )}
+        ) : errorState ? (
+          <ErrorDisplay type={errorState} />
+        ) : !isLoaded ? (
+          // Post-tap, pre-script-load: never leave the tapped card blank
+          <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
+            Loading map…
+          </div>
+        ) : null}
       </div>
     </div>
   );

@@ -54,15 +54,11 @@ class ErrorTrackingService {
   /** Loaded SDK module; null while the dynamic import is in flight. */
   private sentry: SentryModule | null = null;
   private userId: string | null = null;
-  private pendingExceptions: Array<{ error: Error; context?: ErrorContext }> = [];
-  private pendingMessages: Array<{
-    message: string;
-    level: 'info' | 'warning' | 'error';
-    context?: ErrorContext;
-  }> = [];
-  /** undefined = no change queued; null = clear queued; object = set queued. */
-  private pendingUser: { id: string; data?: Record<string, unknown> } | null | undefined =
-    undefined;
+  /**
+   * Operations issued before the Sentry chunk resolved, replayed in original
+   * order on load (single bounded queue — setUser/capture/etc. all share it).
+   */
+  private pendingOps: Array<(sentry: SentryModule) => void> = [];
 
   /**
    * Initialize error tracking service.
@@ -98,10 +94,20 @@ class ErrorTrackingService {
       })
       .catch(err => {
         this.sentryEnabled = false;
-        this.pendingExceptions = [];
-        this.pendingMessages = [];
+        this.pendingOps = [];
         console.warn('[ErrorTracking] Failed to load Sentry SDK:', err);
       });
+  }
+
+  /** Run now if the SDK is loaded, else queue (bounded) for the load flush. */
+  private enqueueOrRun(op: (sentry: SentryModule) => void): void {
+    if (this.sentry) {
+      op(this.sentry);
+      return;
+    }
+    if (this.sentryEnabled && this.pendingOps.length < MAX_PENDING_EVENTS) {
+      this.pendingOps.push(op);
+    }
   }
 
   /** Replay everything captured while the SDK chunk was loading, in order. */
@@ -118,24 +124,8 @@ class ErrorTrackingService {
       });
     }
 
-    if (this.pendingUser !== undefined) {
-      this.sentry.setUser(
-        this.pendingUser ? { id: this.pendingUser.id, ...this.pendingUser.data } : null,
-      );
-      this.pendingUser = undefined;
-    }
-
-    for (const { error, context } of this.pendingExceptions.splice(0)) {
-      this.sentry.captureException(error, {
-        contexts: { custom: context as Record<string, unknown> },
-      });
-    }
-
-    for (const { message, level, context } of this.pendingMessages.splice(0)) {
-      this.sentry.captureMessage(message, {
-        level: level as SentryTypes.SeverityLevel,
-        contexts: { custom: context as Record<string, unknown> },
-      });
+    for (const op of this.pendingOps.splice(0)) {
+      op(this.sentry);
     }
   }
 
@@ -144,12 +134,7 @@ class ErrorTrackingService {
    */
   setUser(userId: string, userData?: Record<string, unknown>) {
     this.userId = userId;
-
-    if (this.sentry) {
-      this.sentry.setUser({ id: userId, ...userData });
-    } else if (this.sentryEnabled) {
-      this.pendingUser = { id: userId, data: userData };
-    }
+    this.enqueueOrRun(sentry => sentry.setUser({ id: userId, ...userData }));
   }
 
   /**
@@ -157,12 +142,7 @@ class ErrorTrackingService {
    */
   clearUser() {
     this.userId = null;
-
-    if (this.sentry) {
-      this.sentry.setUser(null);
-    } else if (this.sentryEnabled) {
-      this.pendingUser = null;
-    }
+    this.enqueueOrRun(sentry => sentry.setUser(null));
   }
 
   /**
@@ -179,15 +159,13 @@ class ErrorTrackingService {
       });
     }
 
-    if (this.sentry) {
-      this.sentry.captureException(errorObj, {
+    this.enqueueOrRun(sentry =>
+      sentry.captureException(errorObj, {
         contexts: {
           custom: context as Record<string, unknown>,
         },
-      });
-    } else if (this.sentryEnabled && this.pendingExceptions.length < MAX_PENDING_EVENTS) {
-      this.pendingExceptions.push({ error: errorObj, context });
-    }
+      }),
+    );
 
     return errorObj;
   }
@@ -200,16 +178,14 @@ class ErrorTrackingService {
     level: 'info' | 'warning' | 'error' = 'info',
     context?: ErrorContext,
   ) {
-    if (this.sentry) {
-      this.sentry.captureMessage(message, {
+    this.enqueueOrRun(sentry =>
+      sentry.captureMessage(message, {
         level: level as SentryTypes.SeverityLevel,
         contexts: {
           custom: context as Record<string, unknown>,
         },
-      });
-    } else if (this.sentryEnabled && this.pendingMessages.length < MAX_PENDING_EVENTS) {
-      this.pendingMessages.push({ message, level, context });
-    }
+      }),
+    );
   }
 
   /**
