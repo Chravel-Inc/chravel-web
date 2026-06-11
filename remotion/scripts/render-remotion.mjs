@@ -1,4 +1,3 @@
-/* global process, console */
 import { bundle } from '@remotion/bundler';
 import { renderMedia, selectComposition, openBrowser } from '@remotion/renderer';
 import path from 'path';
@@ -6,16 +5,16 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const compositionId = process.argv[2] || 'ProductLaunchV2';
-const outputPath = process.argv[3] || '/mnt/documents/chravel-product-launch-v2.mp4';
+const outArg = process.argv[2] || '/mnt/documents/chravel-homepage-demo-60.mp4';
+const compId = process.argv[3] || 'HomepageHeroDemo60';
 
-console.log(`Bundling entry point...`);
+console.log(`[render] bundling…`);
 const bundled = await bundle({
   entryPoint: path.resolve(__dirname, '../src/index.ts'),
-  webpackOverride: config => config,
+  webpackOverride: (c) => c,
 });
 
-console.log(`Opening browser...`);
+console.log(`[render] launching chromium…`);
 const browser = await openBrowser('chrome', {
   browserExecutable: process.env.PUPPETEER_EXECUTABLE_PATH ?? '/bin/chromium',
   chromiumOptions: {
@@ -24,25 +23,29 @@ const browser = await openBrowser('chrome', {
   chromeMode: 'chrome-for-testing',
 });
 
-console.log(`Selecting composition "${compositionId}"...`);
+console.log(`[render] selecting composition ${compId}…`);
 const composition = await selectComposition({
   serveUrl: bundled,
-  id: compositionId,
+  id: compId,
   puppeteerInstance: browser,
 });
 
-console.log(
-  `Rendering ${composition.durationInFrames} frames (${composition.durationInFrames / composition.fps}s)...`,
-);
+console.log(`[render] rendering ${composition.durationInFrames} frames -> ${outArg}`);
 await renderMedia({
   composition,
   serveUrl: bundled,
   codec: 'h264',
-  outputLocation: outputPath,
+  outputLocation: outArg,
   puppeteerInstance: browser,
   muted: true,
-  concurrency: 1,
+  concurrency: 2,
+  crf: 23,
+  onProgress: ({ progress }) => {
+    if (Math.round(progress * 100) % 10 === 0) {
+      process.stdout.write(`  ${Math.round(progress * 100)}%\n`);
+    }
+  },
 });
 
-console.log(`Done! Output: ${outputPath}`);
 await browser.close({ silent: false });
+console.log(`[render] done -> ${outArg}`);

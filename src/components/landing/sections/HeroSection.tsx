@@ -1,11 +1,15 @@
 import React, { useRef, useState } from 'react';
 import { Button } from '../../ui/button';
-import demoPreviewHero from '@/assets/demo-preview-hero.webp';
-import heroVideoAsset from '@/assets/chravel-homepage-hero.mp4.asset.json';
+
+// Real-product-walkthrough video built from Tokyo Adventure demo screenshots.
+// Source: remotion/src/compositions/HomepageHeroDemo60.tsx
+// Regenerate via: cd remotion && node scripts/render-remotion.mjs /mnt/documents/chravel-homepage-demo-60.mp4 HomepageHeroDemo60
+import heroVideoAsset from '@/assets/chravel-homepage-demo-60.mp4.asset.json';
+import heroPosterAsset from '@/assets/chravel-homepage-demo-60-poster.jpg.asset.json';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 const HERO_VIDEO_SRC = heroVideoAsset.url;
-const HERO_VIDEO_POSTER = demoPreviewHero;
+const HERO_VIDEO_POSTER = heroPosterAsset.url;
 
 interface HeroSectionProps {
   onSignUp: () => void;
@@ -105,9 +109,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
               </video>
             ) : (
               <img
-                src={demoPreviewHero}
-                alt="ChravelApp trip dashboard preview"
-                className="w-full h-auto"
+                src={HERO_VIDEO_POSTER}
+                alt="ChravelApp Tokyo Adventure trip dashboard preview"
+                className="w-full h-full object-cover"
                 fetchPriority="high"
                 decoding="async"
               />
