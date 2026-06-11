@@ -479,7 +479,7 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
           <button
             onClick={handleSave}
             disabled={loading}
-            className="flex-1 px-4 py-3 bg-primary hover:bg-primary/90 rounded-xl text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-3 bg-primary hover:bg-primary/90 rounded-xl text-primary-foreground font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {loading ? (
               <>

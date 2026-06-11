@@ -15,7 +15,6 @@ import { CardStatItem } from './ui/CardStatItem';
 import { CalendarGlyph } from './ui/CalendarGlyph';
 import { useShallow } from 'zustand/react/shallow';
 import { EventData } from '../types/events';
-import { useTripVariant } from '../contexts/TripVariantContext';
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
 import { DeleteTripConfirmDialog } from './DeleteTripConfirmDialog';
 import { InviteModal } from './InviteModal';
@@ -76,7 +75,6 @@ export const EventCard = ({
   const [showShareModal, setShowShareModal] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
-  const { accentColors } = useTripVariant();
   const { isDemoMode } = useDemoMode();
   const { deleteTrip, isDeleting } = useDeleteTrip();
 
@@ -242,7 +240,7 @@ export const EventCard = ({
     >
       {/* Header */}
       <div
-        className={`on-media relative h-48 bg-gradient-to-br from-${accentColors.primary}/20 to-${accentColors.secondary}/20 p-6`}
+        className={`on-media relative h-48 bg-gradient-to-br from-gold-primary/20 to-gold-mid/20 p-6`}
       >
         {/* Cover photo overlay if available */}
         {event.coverPhoto ? (

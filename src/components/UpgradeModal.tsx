@@ -77,7 +77,7 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
               onClick={() => setSelectedPlan('explorer')}
               className={`px-3 py-2 rounded-xl font-medium transition-all flex items-center gap-2 text-sm ${
                 selectedPlan === 'explorer'
-                  ? 'bg-gradient-to-r from-glass-orange to-glass-yellow text-white'
+                  ? 'bg-gradient-to-r from-gold-primary to-gold-mid text-primary-foreground'
                   : 'text-gray-300 hover:text-white'
               }`}
             >
@@ -117,7 +117,7 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
               <div
                 className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
                   selectedPlan === 'explorer'
-                    ? 'bg-gradient-to-r from-glass-orange to-glass-yellow'
+                    ? 'bg-gradient-to-r from-gold-primary to-gold-mid'
                     : 'bg-gradient-to-r from-primary to-primary/80'
                 }`}
               >
@@ -148,7 +148,7 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                 className="relative w-12 h-6 bg-gray-700 rounded-full transition-colors"
               >
                 <div
-                  className={`absolute top-1 w-4 h-4 bg-glass-orange rounded-full transition-transform ${
+                  className={`absolute top-1 w-4 h-4 bg-primary rounded-full transition-transform ${
                     billingCycle === 'annual' ? 'translate-x-7' : 'translate-x-1'
                   }`}
                 />
@@ -167,7 +167,7 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
 
             {/* Pricing */}
             <div className="text-center">
-              <div className="bg-gradient-to-r from-glass-orange/20 to-glass-yellow/20 backdrop-blur-sm border border-glass-orange/30 rounded-2xl p-6 mb-6">
+              <div className="bg-gradient-to-r from-gold-primary/20 to-gold-mid/20 backdrop-blur-sm border border-primary/30 rounded-2xl p-6 mb-6">
                 <div className="text-4xl font-bold text-white mb-2">
                   {billingCycle === 'monthly'
                     ? CONSUMER_PRICE_DISPLAY[consumerPlan].monthly
@@ -200,31 +200,31 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                 {selectedPlan === 'explorer' && (
                   <>
                     <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                       Unlimited saved trips - keep every memory forever
                     </li>
                     <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                       25 AI queries per user per trip
                     </li>
                     <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                       Location-aware AI suggestions
                     </li>
                     <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                       Smart notifications - never miss important updates
                     </li>
                     <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                       Search past trips - find that perfect restaurant again
                     </li>
                     <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                       Up to 3 events (upgrade to Frequent Chraveler for unlimited)
                     </li>
                     <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                       Priority support
                     </li>
                   </>
@@ -232,31 +232,31 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                 {selectedPlan === 'frequent-chraveler' && (
                   <>
                     <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                       Everything in Explorer
                     </li>
                     <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                       Unlimited AI queries
                     </li>
                     <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                       Calendar sync & PDF export
                     </li>
                     <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                       Unlimited events
                     </li>
                     <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                       Create 1 Chravel Pro trip per month (50-seat limit)
                     </li>
                     <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                       Role-based channels on Pro trips
                     </li>
                     <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                       Early feature access
                     </li>
                   </>
@@ -389,7 +389,7 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
           <button
             onClick={handleUpgrade}
             disabled={isLoading}
-            className="px-8 py-3 bg-gradient-to-r from-glass-orange to-glass-yellow hover:from-glass-orange/80 hover:to-glass-yellow/80 text-white font-medium rounded-2xl transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50"
+            className="px-8 py-3 bg-gradient-to-r from-gold-primary to-gold-mid hover:from-gold-mid hover:to-gold-primary text-primary-foreground font-medium rounded-2xl transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50"
           >
             {isLoading ? 'Processing...' : 'Start Free Trial'}
           </button>

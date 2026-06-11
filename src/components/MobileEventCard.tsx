@@ -16,7 +16,6 @@ import { CardStatItem } from './ui/CardStatItem';
 import { CalendarGlyph } from './ui/CalendarGlyph';
 import { useIsMobile } from '../hooks/use-mobile';
 import { EventData } from '../types/events';
-import { useTripVariant } from '../contexts/TripVariantContext';
 import {
   calculatePeopleCount,
   calculateDaysCount,
@@ -62,7 +61,6 @@ export const MobileEventCard = ({
 }: MobileEventCardProps) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const { accentColors } = useTripVariant();
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -210,7 +208,7 @@ export const MobileEventCard = ({
     >
       {/* Mobile Header */}
       <div
-        className={`on-media relative h-36 bg-gradient-to-br from-${accentColors.primary}/10 to-${accentColors.secondary}/10 p-4`}
+        className={`on-media relative h-36 bg-gradient-to-br from-gold-primary/10 to-gold-mid/10 p-4`}
       >
         {/* Cover photo overlay if available */}
         {event.coverPhoto ? (
