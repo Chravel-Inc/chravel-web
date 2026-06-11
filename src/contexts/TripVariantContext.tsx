@@ -13,8 +13,8 @@ interface TripVariantContextType {
 }
 
 // Single gold accent across all trip variants. The old per-variant palettes
-// (glass-orange/crimson/blue) were never defined in Tailwind, so they never
-// rendered — trip types are differentiated by badges/labels, not accent hue.
+// (orange/crimson/blue "glass" colors) were never defined in Tailwind, so they
+// never rendered — trip types are differentiated by badges/labels, not accent hue.
 const GOLD_ACCENT = {
   primary: 'gold-primary',
   secondary: 'gold-mid',
