@@ -19,7 +19,16 @@
  * }
  * ```
  */
-import * as Sentry from '@sentry/react';
+// Type-only import — erased at build time. The SDK itself is dynamically
+// imported in init() so @sentry/react stays out of the App critical path
+// (it was statically pulled in by App.tsx and useAuth.tsx).
+import type * as SentryTypes from '@sentry/react';
+
+type SentryModule = typeof SentryTypes;
+
+// Errors thrown before the Sentry chunk resolves are buffered (bounded) and
+// flushed in order once it loads, so early boot failures are not lost.
+const MAX_PENDING_EVENTS = 20;
 
 export interface ErrorContext {
   userId?: string;
@@ -40,8 +49,20 @@ class ErrorTrackingService {
   private breadcrumbs: BreadcrumbData[] = [];
   private maxBreadcrumbs = 50;
   private initialized = false;
+  /** DSN configured — Sentry chunk is loading or loaded; buffer until `sentry` is set. */
   private sentryEnabled = false;
+  /** Loaded SDK module; null while the dynamic import is in flight. */
+  private sentry: SentryModule | null = null;
   private userId: string | null = null;
+  private pendingExceptions: Array<{ error: Error; context?: ErrorContext }> = [];
+  private pendingMessages: Array<{
+    message: string;
+    level: 'info' | 'warning' | 'error';
+    context?: ErrorContext;
+  }> = [];
+  /** undefined = no change queued; null = clear queued; object = set queued. */
+  private pendingUser: { id: string; data?: Record<string, unknown> } | null | undefined =
+    undefined;
 
   /**
    * Initialize error tracking service.
@@ -49,26 +70,73 @@ class ErrorTrackingService {
    */
   init(config?: { userId?: string; environment?: string }) {
     if (this.initialized) return;
+    this.initialized = true;
 
     if (config?.userId) {
       this.userId = config.userId;
     }
 
     const dsn = import.meta.env.VITE_SENTRY_DSN;
-    if (dsn) {
-      Sentry.init({
-        dsn,
-        environment: config?.environment || import.meta.env.MODE || 'production',
-        // Sample 100% of errors, 20% of transactions in production
-        tracesSampleRate: import.meta.env.PROD ? 0.2 : 1.0,
-        // Only send errors in production/staging
-        enabled: import.meta.env.PROD || import.meta.env.VITE_SENTRY_FORCE_ENABLE === 'true',
-        integrations: [Sentry.browserTracingIntegration()],
+    if (!dsn) return;
+
+    this.sentryEnabled = true;
+    const environment = config?.environment || import.meta.env.MODE || 'production';
+
+    void import('@sentry/react')
+      .then(Sentry => {
+        Sentry.init({
+          dsn,
+          environment,
+          // Sample 100% of errors, 20% of transactions in production
+          tracesSampleRate: import.meta.env.PROD ? 0.2 : 1.0,
+          // Only send errors in production/staging
+          enabled: import.meta.env.PROD || import.meta.env.VITE_SENTRY_FORCE_ENABLE === 'true',
+          integrations: [Sentry.browserTracingIntegration()],
+        });
+        this.sentry = Sentry;
+        this.flushPending();
+      })
+      .catch(err => {
+        this.sentryEnabled = false;
+        this.pendingExceptions = [];
+        this.pendingMessages = [];
+        console.warn('[ErrorTracking] Failed to load Sentry SDK:', err);
       });
-      this.sentryEnabled = true;
+  }
+
+  /** Replay everything captured while the SDK chunk was loading, in order. */
+  private flushPending(): void {
+    if (!this.sentry) return;
+
+    // Breadcrumbs first so buffered exceptions carry their context
+    for (const breadcrumb of this.breadcrumbs) {
+      this.sentry.addBreadcrumb({
+        category: breadcrumb.category,
+        message: breadcrumb.message,
+        level: breadcrumb.level as SentryTypes.SeverityLevel,
+        data: breadcrumb.data,
+      });
     }
 
-    this.initialized = true;
+    if (this.pendingUser !== undefined) {
+      this.sentry.setUser(
+        this.pendingUser ? { id: this.pendingUser.id, ...this.pendingUser.data } : null,
+      );
+      this.pendingUser = undefined;
+    }
+
+    for (const { error, context } of this.pendingExceptions.splice(0)) {
+      this.sentry.captureException(error, {
+        contexts: { custom: context as Record<string, unknown> },
+      });
+    }
+
+    for (const { message, level, context } of this.pendingMessages.splice(0)) {
+      this.sentry.captureMessage(message, {
+        level: level as SentryTypes.SeverityLevel,
+        contexts: { custom: context as Record<string, unknown> },
+      });
+    }
   }
 
   /**
@@ -77,8 +145,10 @@ class ErrorTrackingService {
   setUser(userId: string, userData?: Record<string, unknown>) {
     this.userId = userId;
 
-    if (this.sentryEnabled) {
-      Sentry.setUser({ id: userId, ...userData });
+    if (this.sentry) {
+      this.sentry.setUser({ id: userId, ...userData });
+    } else if (this.sentryEnabled) {
+      this.pendingUser = { id: userId, data: userData };
     }
   }
 
@@ -88,8 +158,10 @@ class ErrorTrackingService {
   clearUser() {
     this.userId = null;
 
-    if (this.sentryEnabled) {
-      Sentry.setUser(null);
+    if (this.sentry) {
+      this.sentry.setUser(null);
+    } else if (this.sentryEnabled) {
+      this.pendingUser = null;
     }
   }
 
@@ -107,12 +179,14 @@ class ErrorTrackingService {
       });
     }
 
-    if (this.sentryEnabled) {
-      Sentry.captureException(errorObj, {
+    if (this.sentry) {
+      this.sentry.captureException(errorObj, {
         contexts: {
           custom: context as Record<string, unknown>,
         },
       });
+    } else if (this.sentryEnabled && this.pendingExceptions.length < MAX_PENDING_EVENTS) {
+      this.pendingExceptions.push({ error: errorObj, context });
     }
 
     return errorObj;
@@ -126,13 +200,15 @@ class ErrorTrackingService {
     level: 'info' | 'warning' | 'error' = 'info',
     context?: ErrorContext,
   ) {
-    if (this.sentryEnabled) {
-      Sentry.captureMessage(message, {
-        level: level as Sentry.SeverityLevel,
+    if (this.sentry) {
+      this.sentry.captureMessage(message, {
+        level: level as SentryTypes.SeverityLevel,
         contexts: {
           custom: context as Record<string, unknown>,
         },
       });
+    } else if (this.sentryEnabled && this.pendingMessages.length < MAX_PENDING_EVENTS) {
+      this.pendingMessages.push({ message, level, context });
     }
   }
 
@@ -153,11 +229,13 @@ class ErrorTrackingService {
       this.breadcrumbs = this.breadcrumbs.slice(-this.maxBreadcrumbs);
     }
 
-    if (this.sentryEnabled) {
-      Sentry.addBreadcrumb({
+    // Pre-load breadcrumbs aren't queued separately: the local ring buffer is
+    // replayed into Sentry by flushPending() when the SDK resolves.
+    if (this.sentry) {
+      this.sentry.addBreadcrumb({
         category: breadcrumb.category,
         message: breadcrumb.message,
-        level: breadcrumb.level as Sentry.SeverityLevel,
+        level: breadcrumb.level as SentryTypes.SeverityLevel,
         data: breadcrumb.data,
       });
     }
