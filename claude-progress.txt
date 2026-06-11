@@ -35,3 +35,8 @@
 2026-06-07 — Trips QA follow-up responsive breakpoint hardening
 - Tightened the Trips responsive CSS after QA review: landscape/mobile-tablet grids now use two columns through 1024px without the previous short-height-only gap, 1024px mobile-shell views retain bottom nav padding, and the CSS override no longer needs `!important`.
 - Targeted TripGrid test, lint:check, typecheck, and build pass. Real screenshot capture is still blocked: Playwright/Puppeteer browser downloads return 403 and Ubuntu's Chromium package is a snap stub with no running snapd.
+
+2026-06-11 — 30-persona synthetic research package
+- Created `docs/research/synthetic-user-testing/2026-06-11-30-persona-study/` as a research-only package with 30 personas, full reports, synthesis, CSVs, JSON raw responses, priority fixes, beta interview questions, and web/mobile comparison.
+- Preserved the existing 10-persona synthetic study and reused its evidence-label discipline: findings are marked `[OBSERVED]`, `[SIMULATED RISK]`, or `[HYPOTHESIS]`, with explicit warnings that synthetic testing is not customer validation.
+- Local Vite dev-server HTML/PWA shell was verified; Playwright browser execution was attempted but blocked by missing Chromium in the environment. CSV/JSON/persona-count validation passed.

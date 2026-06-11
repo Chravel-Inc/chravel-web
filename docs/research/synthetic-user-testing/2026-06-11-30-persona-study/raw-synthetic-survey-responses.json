@@ -1,0 +1,2362 @@
+[
+  {
+    "persona_id": 1,
+    "name": "Dana Miller",
+    "segment": "Consumer / Personal Trips",
+    "profile": {
+      "age_range": "38-45",
+      "location_timezone": "Columbus, OH / ET",
+      "role": "Youth soccer team mom",
+      "industry": "Youth sports",
+      "platform_preference": "iOS",
+      "tech_comfort": "medium",
+      "group_size": "16+",
+      "trip_event_complexity": "medium-high",
+      "budget_sensitivity": "high",
+      "current_tools": "iMessage / SMS; GroupMe; Google Sheets; TeamSnap",
+      "primary_use_case": "Weekend youth soccer tournament",
+      "likely_chravel_mode": "Regular Trips",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "team-level per-trip"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating weekend youth soccer tournament, I want one shared source of truth, so I can stop reconciling iMessage / SMS with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "4+",
+      "Typical group size": "16+",
+      "Main tools used today": "iMessage / SMS; GroupMe; Google Sheets; TeamSnap",
+      "Primary planning device": "iOS",
+      "45-minute call + screenshare": "Maybe",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "No"
+    },
+    "survey": {
+      "about": {
+        "name": "Dana Miller",
+        "email": "synthetic.persona+01@example.invalid",
+        "phone": "not provided",
+        "industry": "Youth sports",
+        "location_timezone": "Columbus, OH / ET",
+        "primary_use_case": "Weekend youth soccer tournament",
+        "platform": "iOS",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Dana Miller described a recent weekend youth soccer tournament where the first plan started in iMessage / SMS, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 5 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Not primary, but event-style guest privacy and simple broadcasts matter if the group gets large.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through iMessage / SMS. One person usually does most planning.",
+      "willingness_to_pay": "$20-50 per trip",
+      "ratings": {
+        "Likelihood to use for next trip": 4,
+        "Clarity of organization": 4,
+        "Perceived time saved": 4,
+        "Trust in AI concierge": 3,
+        "Would invite group": 4,
+        "Mobile usability": 3,
+        "Web usability": 3,
+        "Pricing fit": 3,
+        "Overall NPS-style sentiment": 0
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Maybe"
+    }
+  },
+  {
+    "persona_id": 2,
+    "name": "Marisol Vega",
+    "segment": "Consumer / Personal Trips",
+    "profile": {
+      "age_range": "42-50",
+      "location_timezone": "Dallas, TX / CT",
+      "role": "AAU volleyball parent coordinator",
+      "industry": "Youth sports",
+      "platform_preference": "mixed",
+      "tech_comfort": "medium",
+      "group_size": "16+",
+      "trip_event_complexity": "high",
+      "budget_sensitivity": "medium",
+      "current_tools": "GroupMe; Google Sheets; email; SportsEngine",
+      "primary_use_case": "Multi-city AAU tournament coordination",
+      "likely_chravel_mode": "Pro Trips",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "team plan"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating multi-city aau tournament coordination, I want one shared source of truth, so I can stop reconciling GroupMe with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "4+",
+      "Typical group size": "16+",
+      "Main tools used today": "GroupMe; Google Sheets; email; SportsEngine",
+      "Primary planning device": "Both",
+      "45-minute call + screenshare": "Maybe",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "Shared responsibility"
+    },
+    "survey": {
+      "about": {
+        "name": "Marisol Vega",
+        "email": "synthetic.persona+02@example.invalid",
+        "phone": "not provided",
+        "industry": "Youth sports",
+        "location_timezone": "Dallas, TX / CT",
+        "primary_use_case": "Multi-city AAU tournament coordination",
+        "platform": "mixed",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Marisol Vega described a recent multi-city aau tournament coordination where the first plan started in GroupMe, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 5 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Not primary, but event-style guest privacy and simple broadcasts matter if the group gets large.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through GroupMe. One person usually does most planning.",
+      "willingness_to_pay": "$49-199/mo org-paid",
+      "ratings": {
+        "Likelihood to use for next trip": 4,
+        "Clarity of organization": 4,
+        "Perceived time saved": 4,
+        "Trust in AI concierge": 3,
+        "Would invite group": 4,
+        "Mobile usability": 3,
+        "Web usability": 3,
+        "Pricing fit": 3,
+        "Overall NPS-style sentiment": 0
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Maybe"
+    }
+  },
+  {
+    "persona_id": 3,
+    "name": "Tori Bennett",
+    "segment": "Consumer / Personal Trips",
+    "profile": {
+      "age_range": "27-34",
+      "location_timezone": "Atlanta, GA / ET",
+      "role": "Maid of honor",
+      "industry": "Consumer celebrations",
+      "platform_preference": "iOS",
+      "tech_comfort": "high",
+      "group_size": "9-15",
+      "trip_event_complexity": "high",
+      "budget_sensitivity": "medium",
+      "current_tools": "iMessage; Instagram; Google Docs; Venmo; OpenTable",
+      "primary_use_case": "Bachelorette party planning",
+      "likely_chravel_mode": "Regular Trips",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "per-trip"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating bachelorette party planning, I want one shared source of truth, so I can stop reconciling iMessage with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "4+",
+      "Typical group size": "9-15",
+      "Main tools used today": "iMessage; Instagram; Google Docs; Venmo; OpenTable",
+      "Primary planning device": "iOS",
+      "45-minute call + screenshare": "Maybe",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "No"
+    },
+    "survey": {
+      "about": {
+        "name": "Tori Bennett",
+        "email": "synthetic.persona+03@example.invalid",
+        "phone": "not provided",
+        "industry": "Consumer celebrations",
+        "location_timezone": "Atlanta, GA / ET",
+        "primary_use_case": "Bachelorette party planning",
+        "platform": "iOS",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Tori Bennett described a recent bachelorette party planning where the first plan started in iMessage, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 5 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Not primary, but event-style guest privacy and simple broadcasts matter if the group gets large.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through iMessage. One person usually does most planning.",
+      "willingness_to_pay": "$20-50 per trip",
+      "ratings": {
+        "Likelihood to use for next trip": 4,
+        "Clarity of organization": 4,
+        "Perceived time saved": 4,
+        "Trust in AI concierge": 3,
+        "Would invite group": 4,
+        "Mobile usability": 3,
+        "Web usability": 3,
+        "Pricing fit": 3,
+        "Overall NPS-style sentiment": 20
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Maybe"
+    }
+  },
+  {
+    "persona_id": 4,
+    "name": "Marcus Reed",
+    "segment": "Consumer / Personal Trips",
+    "profile": {
+      "age_range": "31-40",
+      "location_timezone": "Charlotte, NC / ET",
+      "role": "Guys birthday golf trip planner",
+      "industry": "Consumer leisure",
+      "platform_preference": "iOS",
+      "tech_comfort": "medium",
+      "group_size": "5-8",
+      "trip_event_complexity": "medium",
+      "budget_sensitivity": "medium",
+      "current_tools": "iMessage; GolfNow; Airbnb; Venmo",
+      "primary_use_case": "Birthday golf trip",
+      "likely_chravel_mode": "Regular Trips",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "per-trip"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating birthday golf trip, I want one shared source of truth, so I can stop reconciling iMessage with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "4+",
+      "Typical group size": "5-8",
+      "Main tools used today": "iMessage; GolfNow; Airbnb; Venmo",
+      "Primary planning device": "iOS",
+      "45-minute call + screenshare": "Maybe",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "No"
+    },
+    "survey": {
+      "about": {
+        "name": "Marcus Reed",
+        "email": "synthetic.persona+04@example.invalid",
+        "phone": "not provided",
+        "industry": "Consumer leisure",
+        "location_timezone": "Charlotte, NC / ET",
+        "primary_use_case": "Birthday golf trip",
+        "platform": "iOS",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Marcus Reed described a recent birthday golf trip where the first plan started in iMessage, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 5 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Not primary, but event-style guest privacy and simple broadcasts matter if the group gets large.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through iMessage. One person usually does most planning.",
+      "willingness_to_pay": "$20-50 per trip",
+      "ratings": {
+        "Likelihood to use for next trip": 4,
+        "Clarity of organization": 4,
+        "Perceived time saved": 4,
+        "Trust in AI concierge": 3,
+        "Would invite group": 4,
+        "Mobile usability": 3,
+        "Web usability": 3,
+        "Pricing fit": 3,
+        "Overall NPS-style sentiment": 20
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Maybe"
+    }
+  },
+  {
+    "persona_id": 5,
+    "name": "Priya Shah",
+    "segment": "Consumer / Personal Trips",
+    "profile": {
+      "age_range": "29-37",
+      "location_timezone": "New York, NY / ET",
+      "role": "Destination wedding bride",
+      "industry": "Wedding",
+      "platform_preference": "mixed",
+      "tech_comfort": "high",
+      "group_size": "16+",
+      "trip_event_complexity": "high",
+      "budget_sensitivity": "medium",
+      "current_tools": "Email; Google Sheets; The Knot; WhatsApp",
+      "primary_use_case": "Wedding weekend guest coordination",
+      "likely_chravel_mode": "Events",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "event pass"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating wedding weekend guest coordination, I want one shared source of truth, so I can stop reconciling Email with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "4+",
+      "Typical group size": "16+",
+      "Main tools used today": "Email; Google Sheets; The Knot; WhatsApp",
+      "Primary planning device": "Both",
+      "45-minute call + screenshare": "Maybe",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "Shared responsibility"
+    },
+    "survey": {
+      "about": {
+        "name": "Priya Shah",
+        "email": "synthetic.persona+05@example.invalid",
+        "phone": "not provided",
+        "industry": "Wedding",
+        "location_timezone": "New York, NY / ET",
+        "primary_use_case": "Wedding weekend guest coordination",
+        "platform": "mixed",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Priya Shah described a recent wedding weekend guest coordination where the first plan started in Email, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 5 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Not primary, but event-style guest privacy and simple broadcasts matter if the group gets large.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through Email. One person usually does most planning.",
+      "willingness_to_pay": "$20-50 per trip",
+      "ratings": {
+        "Likelihood to use for next trip": 4,
+        "Clarity of organization": 4,
+        "Perceived time saved": 4,
+        "Trust in AI concierge": 3,
+        "Would invite group": 4,
+        "Mobile usability": 3,
+        "Web usability": 3,
+        "Pricing fit": 3,
+        "Overall NPS-style sentiment": 0
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Maybe"
+    }
+  },
+  {
+    "persona_id": 6,
+    "name": "Linda Brooks",
+    "segment": "Consumer / Personal Trips",
+    "profile": {
+      "age_range": "55-67",
+      "location_timezone": "Phoenix, AZ / MT",
+      "role": "Family reunion planner",
+      "industry": "Family/community",
+      "platform_preference": "Android",
+      "tech_comfort": "low",
+      "group_size": "16+",
+      "trip_event_complexity": "medium",
+      "budget_sensitivity": "high",
+      "current_tools": "SMS; Facebook; email; printed docs",
+      "primary_use_case": "Family reunion with older relatives",
+      "likely_chravel_mode": "Regular Trips",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "free only"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating family reunion with older relatives, I want one shared source of truth, so I can stop reconciling SMS with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "2\u20133",
+      "Typical group size": "16+",
+      "Main tools used today": "SMS; Facebook; email; printed docs",
+      "Primary planning device": "Android",
+      "45-minute call + screenshare": "Maybe",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "No"
+    },
+    "survey": {
+      "about": {
+        "name": "Linda Brooks",
+        "email": "synthetic.persona+06@example.invalid",
+        "phone": "not provided",
+        "industry": "Family/community",
+        "location_timezone": "Phoenix, AZ / MT",
+        "primary_use_case": "Family reunion with older relatives",
+        "platform": "Android",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Linda Brooks described a recent family reunion with older relatives where the first plan started in SMS, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 5 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Not primary, but event-style guest privacy and simple broadcasts matter if the group gets large.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through SMS. One person usually does most planning.",
+      "willingness_to_pay": "Nothing/free",
+      "ratings": {
+        "Likelihood to use for next trip": 3,
+        "Clarity of organization": 4,
+        "Perceived time saved": 3,
+        "Trust in AI concierge": 3,
+        "Would invite group": 3,
+        "Mobile usability": 3,
+        "Web usability": 3,
+        "Pricing fit": 2,
+        "Overall NPS-style sentiment": -10
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Maybe"
+    }
+  },
+  {
+    "persona_id": 7,
+    "name": "Jalen Carter",
+    "segment": "Consumer / Personal Trips",
+    "profile": {
+      "age_range": "20-24",
+      "location_timezone": "Tallahassee, FL / ET",
+      "role": "College spring break planner",
+      "industry": "College travel",
+      "platform_preference": "iOS",
+      "tech_comfort": "high",
+      "group_size": "9-15",
+      "trip_event_complexity": "medium",
+      "budget_sensitivity": "high",
+      "current_tools": "GroupMe; Snapchat; Notes; Cash App",
+      "primary_use_case": "Spring break group house",
+      "likely_chravel_mode": "Regular Trips",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "free only"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating spring break group house, I want one shared source of truth, so I can stop reconciling GroupMe with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "2\u20133",
+      "Typical group size": "9-15",
+      "Main tools used today": "GroupMe; Snapchat; Notes; Cash App",
+      "Primary planning device": "iOS",
+      "45-minute call + screenshare": "Maybe",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "No"
+    },
+    "survey": {
+      "about": {
+        "name": "Jalen Carter",
+        "email": "synthetic.persona+07@example.invalid",
+        "phone": "not provided",
+        "industry": "College travel",
+        "location_timezone": "Tallahassee, FL / ET",
+        "primary_use_case": "Spring break group house",
+        "platform": "iOS",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Jalen Carter described a recent spring break group house where the first plan started in GroupMe, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 5 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Not primary, but event-style guest privacy and simple broadcasts matter if the group gets large.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through GroupMe. One person usually does most planning.",
+      "willingness_to_pay": "Nothing/free",
+      "ratings": {
+        "Likelihood to use for next trip": 3,
+        "Clarity of organization": 4,
+        "Perceived time saved": 3,
+        "Trust in AI concierge": 3,
+        "Would invite group": 3,
+        "Mobile usability": 3,
+        "Web usability": 3,
+        "Pricing fit": 2,
+        "Overall NPS-style sentiment": -10
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Maybe"
+    }
+  },
+  {
+    "persona_id": 8,
+    "name": "Camille Laurent",
+    "segment": "Consumer / Personal Trips",
+    "profile": {
+      "age_range": "30-42",
+      "location_timezone": "Los Angeles, CA / PT",
+      "role": "Luxury girls trip planner",
+      "industry": "Luxury leisure",
+      "platform_preference": "iOS",
+      "tech_comfort": "high",
+      "group_size": "5-8",
+      "trip_event_complexity": "high",
+      "budget_sensitivity": "low",
+      "current_tools": "iMessage; Instagram; Resy; Google Maps; shared album",
+      "primary_use_case": "Luxury girls trip",
+      "likely_chravel_mode": "Regular Trips",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "subscription"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating luxury girls trip, I want one shared source of truth, so I can stop reconciling iMessage with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "4+",
+      "Typical group size": "5-8",
+      "Main tools used today": "iMessage; Instagram; Resy; Google Maps; shared album",
+      "Primary planning device": "iOS",
+      "45-minute call + screenshare": "Maybe",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "No"
+    },
+    "survey": {
+      "about": {
+        "name": "Camille Laurent",
+        "email": "synthetic.persona+08@example.invalid",
+        "phone": "not provided",
+        "industry": "Luxury leisure",
+        "location_timezone": "Los Angeles, CA / PT",
+        "primary_use_case": "Luxury girls trip",
+        "platform": "iOS",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Camille Laurent described a recent luxury girls trip where the first plan started in iMessage, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 5 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Not primary, but event-style guest privacy and simple broadcasts matter if the group gets large.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through iMessage. One person usually does most planning.",
+      "willingness_to_pay": "$49-199/mo org-paid",
+      "ratings": {
+        "Likelihood to use for next trip": 4,
+        "Clarity of organization": 4,
+        "Perceived time saved": 4,
+        "Trust in AI concierge": 4,
+        "Would invite group": 4,
+        "Mobile usability": 3,
+        "Web usability": 3,
+        "Pricing fit": 3,
+        "Overall NPS-style sentiment": 20
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Maybe"
+    }
+  },
+  {
+    "persona_id": 9,
+    "name": "Evan Kim",
+    "segment": "Consumer / Personal Trips",
+    "profile": {
+      "age_range": "33-45",
+      "location_timezone": "Seattle, WA / PT",
+      "role": "Couples group trip planner",
+      "industry": "Consumer leisure",
+      "platform_preference": "mixed",
+      "tech_comfort": "medium",
+      "group_size": "5-8",
+      "trip_event_complexity": "medium",
+      "budget_sensitivity": "medium",
+      "current_tools": "WhatsApp; Google Calendar; Airbnb; Splitwise",
+      "primary_use_case": "Four-couple ski weekend",
+      "likely_chravel_mode": "Regular Trips",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "per-trip"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating four-couple ski weekend, I want one shared source of truth, so I can stop reconciling WhatsApp with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "4+",
+      "Typical group size": "5-8",
+      "Main tools used today": "WhatsApp; Google Calendar; Airbnb; Splitwise",
+      "Primary planning device": "Both",
+      "45-minute call + screenshare": "Maybe",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "No"
+    },
+    "survey": {
+      "about": {
+        "name": "Evan Kim",
+        "email": "synthetic.persona+09@example.invalid",
+        "phone": "not provided",
+        "industry": "Consumer leisure",
+        "location_timezone": "Seattle, WA / PT",
+        "primary_use_case": "Four-couple ski weekend",
+        "platform": "mixed",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Evan Kim described a recent four-couple ski weekend where the first plan started in WhatsApp, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 5 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Not primary, but event-style guest privacy and simple broadcasts matter if the group gets large.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through WhatsApp. One person usually does most planning.",
+      "willingness_to_pay": "$20-50 per trip",
+      "ratings": {
+        "Likelihood to use for next trip": 4,
+        "Clarity of organization": 4,
+        "Perceived time saved": 4,
+        "Trust in AI concierge": 3,
+        "Would invite group": 4,
+        "Mobile usability": 3,
+        "Web usability": 3,
+        "Pricing fit": 3,
+        "Overall NPS-style sentiment": 0
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Maybe"
+    }
+  },
+  {
+    "persona_id": 10,
+    "name": "Nina Torres",
+    "segment": "Consumer / Personal Trips",
+    "profile": {
+      "age_range": "26-38",
+      "location_timezone": "Chicago, IL / CT",
+      "role": "Solo friend-trip organizer",
+      "industry": "Consumer leisure",
+      "platform_preference": "iOS",
+      "tech_comfort": "high",
+      "group_size": "5-8",
+      "trip_event_complexity": "medium",
+      "budget_sensitivity": "medium",
+      "current_tools": "iMessage; Notes; Google Maps; Venmo",
+      "primary_use_case": "Recurring friend trips",
+      "likely_chravel_mode": "Regular Trips",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "subscription"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating recurring friend trips, I want one shared source of truth, so I can stop reconciling iMessage with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "4+",
+      "Typical group size": "5-8",
+      "Main tools used today": "iMessage; Notes; Google Maps; Venmo",
+      "Primary planning device": "iOS",
+      "45-minute call + screenshare": "Maybe",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "No"
+    },
+    "survey": {
+      "about": {
+        "name": "Nina Torres",
+        "email": "synthetic.persona+10@example.invalid",
+        "phone": "not provided",
+        "industry": "Consumer leisure",
+        "location_timezone": "Chicago, IL / CT",
+        "primary_use_case": "Recurring friend trips",
+        "platform": "iOS",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Nina Torres described a recent recurring friend trips where the first plan started in iMessage, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 5 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Not primary, but event-style guest privacy and simple broadcasts matter if the group gets large.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through iMessage. One person usually does most planning.",
+      "willingness_to_pay": "$49-199/mo org-paid",
+      "ratings": {
+        "Likelihood to use for next trip": 4,
+        "Clarity of organization": 4,
+        "Perceived time saved": 4,
+        "Trust in AI concierge": 4,
+        "Would invite group": 4,
+        "Mobile usability": 3,
+        "Web usability": 3,
+        "Pricing fit": 3,
+        "Overall NPS-style sentiment": 20
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Maybe"
+    }
+  },
+  {
+    "persona_id": 11,
+    "name": "Greg Wallace",
+    "segment": "Pro / Sports / Touring / Work",
+    "profile": {
+      "age_range": "38-55",
+      "location_timezone": "Kansas City, MO / CT",
+      "role": "NFL travel logistics coordinator",
+      "industry": "Pro sports",
+      "platform_preference": "Desktop-first",
+      "tech_comfort": "high",
+      "group_size": "16+",
+      "trip_event_complexity": "very high",
+      "budget_sensitivity": "low",
+      "current_tools": "Teamworks; Excel; email; charters vendor portal",
+      "primary_use_case": "NFL road-game travel",
+      "likely_chravel_mode": "Pro Trips",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "enterprise"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating nfl road-game travel, I want one shared source of truth, so I can stop reconciling Teamworks with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up.",
+      "When the workflow is professional or client-facing, I want roles, permissions, auditability, and exportable recaps, so I can trust it in front of stakeholders."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "4+",
+      "Typical group size": "16+",
+      "Main tools used today": "Teamworks; Excel; email; charters vendor portal",
+      "Primary planning device": "Desktop-first",
+      "45-minute call + screenshare": "Yes",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "Yes, I own logistics"
+    },
+    "survey": {
+      "about": {
+        "name": "Greg Wallace",
+        "email": "synthetic.persona+11@example.invalid",
+        "phone": "not provided",
+        "industry": "Pro sports",
+        "location_timezone": "Kansas City, MO / CT",
+        "primary_use_case": "NFL road-game travel",
+        "platform": "Desktop-first",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Greg Wallace described a recent nfl road-game travel where the first plan started in Teamworks, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 8 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Professional-grade means role-based visibility, broadcast/read receipts, audit trails, exportable run sheets, private channels, reliable import, and no placeholder ops claims.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through Teamworks. One person usually does most planning.",
+      "willingness_to_pay": "Enterprise/client-billable",
+      "ratings": {
+        "Likelihood to use for next trip": 4,
+        "Clarity of organization": 4,
+        "Perceived time saved": 4,
+        "Trust in AI concierge": 3,
+        "Would invite group": 4,
+        "Mobile usability": 3,
+        "Web usability": 4,
+        "Pricing fit": 3,
+        "Overall NPS-style sentiment": 0
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Yes"
+    }
+  },
+  {
+    "persona_id": 12,
+    "name": "Alicia Grant",
+    "segment": "Pro / Sports / Touring / Work",
+    "profile": {
+      "age_range": "34-48",
+      "location_timezone": "Miami, FL / ET",
+      "role": "NBA team travel ops coordinator",
+      "industry": "Pro sports",
+      "platform_preference": "Desktop-first",
+      "tech_comfort": "high",
+      "group_size": "16+",
+      "trip_event_complexity": "very high",
+      "budget_sensitivity": "low",
+      "current_tools": "Teamworks; Slack; Excel; airline/hotel portals",
+      "primary_use_case": "NBA team road trip operations",
+      "likely_chravel_mode": "Pro Trips",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "enterprise"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating nba team road trip operations, I want one shared source of truth, so I can stop reconciling Teamworks with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up.",
+      "When the workflow is professional or client-facing, I want roles, permissions, auditability, and exportable recaps, so I can trust it in front of stakeholders."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "4+",
+      "Typical group size": "16+",
+      "Main tools used today": "Teamworks; Slack; Excel; airline/hotel portals",
+      "Primary planning device": "Desktop-first",
+      "45-minute call + screenshare": "Yes",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "Yes, I own logistics"
+    },
+    "survey": {
+      "about": {
+        "name": "Alicia Grant",
+        "email": "synthetic.persona+12@example.invalid",
+        "phone": "not provided",
+        "industry": "Pro sports",
+        "location_timezone": "Miami, FL / ET",
+        "primary_use_case": "NBA team road trip operations",
+        "platform": "Desktop-first",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Alicia Grant described a recent nba team road trip operations where the first plan started in Teamworks, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 8 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Professional-grade means role-based visibility, broadcast/read receipts, audit trails, exportable run sheets, private channels, reliable import, and no placeholder ops claims.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through Teamworks. One person usually does most planning.",
+      "willingness_to_pay": "Enterprise/client-billable",
+      "ratings": {
+        "Likelihood to use for next trip": 4,
+        "Clarity of organization": 4,
+        "Perceived time saved": 4,
+        "Trust in AI concierge": 3,
+        "Would invite group": 4,
+        "Mobile usability": 3,
+        "Web usability": 4,
+        "Pricing fit": 3,
+        "Overall NPS-style sentiment": 0
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Yes"
+    }
+  },
+  {
+    "persona_id": 13,
+    "name": "Monique Ellis",
+    "segment": "Pro / Sports / Touring / Work",
+    "profile": {
+      "age_range": "32-50",
+      "location_timezone": "Durham, NC / ET",
+      "role": "Duke basketball travel coordinator",
+      "industry": "College athletics",
+      "platform_preference": "mixed",
+      "tech_comfort": "high",
+      "group_size": "16+",
+      "trip_event_complexity": "very high",
+      "budget_sensitivity": "medium",
+      "current_tools": "Teamworks; Outlook; Excel; texts",
+      "primary_use_case": "College basketball travel",
+      "likely_chravel_mode": "Pro Trips",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "team plan"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating college basketball travel, I want one shared source of truth, so I can stop reconciling Teamworks with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up.",
+      "When the workflow is professional or client-facing, I want roles, permissions, auditability, and exportable recaps, so I can trust it in front of stakeholders."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "4+",
+      "Typical group size": "16+",
+      "Main tools used today": "Teamworks; Outlook; Excel; texts",
+      "Primary planning device": "Both",
+      "45-minute call + screenshare": "Maybe",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "Yes, I own logistics"
+    },
+    "survey": {
+      "about": {
+        "name": "Monique Ellis",
+        "email": "synthetic.persona+13@example.invalid",
+        "phone": "not provided",
+        "industry": "College athletics",
+        "location_timezone": "Durham, NC / ET",
+        "primary_use_case": "College basketball travel",
+        "platform": "mixed",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Monique Ellis described a recent college basketball travel where the first plan started in Teamworks, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 8 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Professional-grade means role-based visibility, broadcast/read receipts, audit trails, exportable run sheets, private channels, reliable import, and no placeholder ops claims.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through Teamworks. One person usually does most planning.",
+      "willingness_to_pay": "$49-199/mo org-paid",
+      "ratings": {
+        "Likelihood to use for next trip": 4,
+        "Clarity of organization": 4,
+        "Perceived time saved": 4,
+        "Trust in AI concierge": 3,
+        "Would invite group": 4,
+        "Mobile usability": 3,
+        "Web usability": 3,
+        "Pricing fit": 3,
+        "Overall NPS-style sentiment": 0
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Maybe"
+    }
+  },
+  {
+    "persona_id": 14,
+    "name": "Tom Nguyen",
+    "segment": "Pro / Sports / Touring / Work",
+    "profile": {
+      "age_range": "40-58",
+      "location_timezone": "San Jose, CA / PT",
+      "role": "Athletic director",
+      "industry": "School athletics",
+      "platform_preference": "Desktop-first",
+      "tech_comfort": "medium",
+      "group_size": "16+",
+      "trip_event_complexity": "very high",
+      "budget_sensitivity": "high",
+      "current_tools": "FinalForms; Google Sheets; email; SMS",
+      "primary_use_case": "Multiple school teams travel",
+      "likely_chravel_mode": "Pro Trips",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "team plan"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating multiple school teams travel, I want one shared source of truth, so I can stop reconciling FinalForms with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up.",
+      "When the workflow is professional or client-facing, I want roles, permissions, auditability, and exportable recaps, so I can trust it in front of stakeholders."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "4+",
+      "Typical group size": "16+",
+      "Main tools used today": "FinalForms; Google Sheets; email; SMS",
+      "Primary planning device": "Desktop-first",
+      "45-minute call + screenshare": "Maybe",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "Yes, I own logistics"
+    },
+    "survey": {
+      "about": {
+        "name": "Tom Nguyen",
+        "email": "synthetic.persona+14@example.invalid",
+        "phone": "not provided",
+        "industry": "School athletics",
+        "location_timezone": "San Jose, CA / PT",
+        "primary_use_case": "Multiple school teams travel",
+        "platform": "Desktop-first",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Tom Nguyen described a recent multiple school teams travel where the first plan started in FinalForms, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 8 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Professional-grade means role-based visibility, broadcast/read receipts, audit trails, exportable run sheets, private channels, reliable import, and no placeholder ops claims.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through FinalForms. One person usually does most planning.",
+      "willingness_to_pay": "$49-199/mo org-paid",
+      "ratings": {
+        "Likelihood to use for next trip": 4,
+        "Clarity of organization": 4,
+        "Perceived time saved": 4,
+        "Trust in AI concierge": 3,
+        "Would invite group": 4,
+        "Mobile usability": 3,
+        "Web usability": 4,
+        "Pricing fit": 3,
+        "Overall NPS-style sentiment": 0
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Maybe"
+    }
+  },
+  {
+    "persona_id": 15,
+    "name": "Rae Jenkins",
+    "segment": "Pro / Sports / Touring / Work",
+    "profile": {
+      "age_range": "29-43",
+      "location_timezone": "Austin, TX / CT",
+      "role": "Touring comedian tour manager",
+      "industry": "Live entertainment",
+      "platform_preference": "iOS",
+      "tech_comfort": "high",
+      "group_size": "5-8",
+      "trip_event_complexity": "high",
+      "budget_sensitivity": "medium",
+      "current_tools": "Google Calendar; texts; Sheets; email",
+      "primary_use_case": "Comedy tour logistics",
+      "likely_chravel_mode": "Pro Trips",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "subscription"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating comedy tour logistics, I want one shared source of truth, so I can stop reconciling Google Calendar with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up.",
+      "When the workflow is professional or client-facing, I want roles, permissions, auditability, and exportable recaps, so I can trust it in front of stakeholders."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "4+",
+      "Typical group size": "5-8",
+      "Main tools used today": "Google Calendar; texts; Sheets; email",
+      "Primary planning device": "iOS",
+      "45-minute call + screenshare": "Maybe",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "Yes, I own logistics"
+    },
+    "survey": {
+      "about": {
+        "name": "Rae Jenkins",
+        "email": "synthetic.persona+15@example.invalid",
+        "phone": "not provided",
+        "industry": "Live entertainment",
+        "location_timezone": "Austin, TX / CT",
+        "primary_use_case": "Comedy tour logistics",
+        "platform": "iOS",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Rae Jenkins described a recent comedy tour logistics where the first plan started in Google Calendar, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 8 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Professional-grade means role-based visibility, broadcast/read receipts, audit trails, exportable run sheets, private channels, reliable import, and no placeholder ops claims.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through Google Calendar. One person usually does most planning.",
+      "willingness_to_pay": "$49-199/mo org-paid",
+      "ratings": {
+        "Likelihood to use for next trip": 4,
+        "Clarity of organization": 4,
+        "Perceived time saved": 4,
+        "Trust in AI concierge": 3,
+        "Would invite group": 4,
+        "Mobile usability": 3,
+        "Web usability": 3,
+        "Pricing fit": 3,
+        "Overall NPS-style sentiment": 0
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Maybe"
+    }
+  },
+  {
+    "persona_id": 16,
+    "name": "Devon Hart",
+    "segment": "Pro / Sports / Touring / Work",
+    "profile": {
+      "age_range": "33-49",
+      "location_timezone": "Nashville, TN / CT",
+      "role": "Music artist tour manager",
+      "industry": "Music touring",
+      "platform_preference": "mixed",
+      "tech_comfort": "high",
+      "group_size": "16+",
+      "trip_event_complexity": "very high",
+      "budget_sensitivity": "medium",
+      "current_tools": "Master Tour; WhatsApp; Dropbox; Sheets",
+      "primary_use_case": "25-city music tour",
+      "likely_chravel_mode": "Pro Trips",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "enterprise"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating 25-city music tour, I want one shared source of truth, so I can stop reconciling Master Tour with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up.",
+      "When the workflow is professional or client-facing, I want roles, permissions, auditability, and exportable recaps, so I can trust it in front of stakeholders."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "4+",
+      "Typical group size": "16+",
+      "Main tools used today": "Master Tour; WhatsApp; Dropbox; Sheets",
+      "Primary planning device": "Both",
+      "45-minute call + screenshare": "Maybe",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "Yes, I own logistics"
+    },
+    "survey": {
+      "about": {
+        "name": "Devon Hart",
+        "email": "synthetic.persona+16@example.invalid",
+        "phone": "not provided",
+        "industry": "Music touring",
+        "location_timezone": "Nashville, TN / CT",
+        "primary_use_case": "25-city music tour",
+        "platform": "mixed",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Devon Hart described a recent 25-city music tour where the first plan started in Master Tour, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 8 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Professional-grade means role-based visibility, broadcast/read receipts, audit trails, exportable run sheets, private channels, reliable import, and no placeholder ops claims.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through Master Tour. One person usually does most planning.",
+      "willingness_to_pay": "Enterprise/client-billable",
+      "ratings": {
+        "Likelihood to use for next trip": 4,
+        "Clarity of organization": 4,
+        "Perceived time saved": 4,
+        "Trust in AI concierge": 3,
+        "Would invite group": 4,
+        "Mobile usability": 3,
+        "Web usability": 3,
+        "Pricing fit": 3,
+        "Overall NPS-style sentiment": 0
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Maybe"
+    }
+  },
+  {
+    "persona_id": 17,
+    "name": "Sofia Mendes",
+    "segment": "Pro / Sports / Touring / Work",
+    "profile": {
+      "age_range": "28-44",
+      "location_timezone": "Los Angeles, CA / PT",
+      "role": "Film production coordinator",
+      "industry": "Film production",
+      "platform_preference": "Desktop-first",
+      "tech_comfort": "high",
+      "group_size": "16+",
+      "trip_event_complexity": "very high",
+      "budget_sensitivity": "medium",
+      "current_tools": "Movie Magic; call sheets; Slack; Dropbox",
+      "primary_use_case": "Location shoot movement",
+      "likely_chravel_mode": "Pro Trips",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "team plan"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating location shoot movement, I want one shared source of truth, so I can stop reconciling Movie Magic with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up.",
+      "When the workflow is professional or client-facing, I want roles, permissions, auditability, and exportable recaps, so I can trust it in front of stakeholders."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "4+",
+      "Typical group size": "16+",
+      "Main tools used today": "Movie Magic; call sheets; Slack; Dropbox",
+      "Primary planning device": "Desktop-first",
+      "45-minute call + screenshare": "Maybe",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "Yes, I own logistics"
+    },
+    "survey": {
+      "about": {
+        "name": "Sofia Mendes",
+        "email": "synthetic.persona+17@example.invalid",
+        "phone": "not provided",
+        "industry": "Film production",
+        "location_timezone": "Los Angeles, CA / PT",
+        "primary_use_case": "Location shoot movement",
+        "platform": "Desktop-first",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Sofia Mendes described a recent location shoot movement where the first plan started in Movie Magic, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 8 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Professional-grade means role-based visibility, broadcast/read receipts, audit trails, exportable run sheets, private channels, reliable import, and no placeholder ops claims.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through Movie Magic. One person usually does most planning.",
+      "willingness_to_pay": "$49-199/mo org-paid",
+      "ratings": {
+        "Likelihood to use for next trip": 4,
+        "Clarity of organization": 4,
+        "Perceived time saved": 4,
+        "Trust in AI concierge": 3,
+        "Would invite group": 4,
+        "Mobile usability": 3,
+        "Web usability": 4,
+        "Pricing fit": 3,
+        "Overall NPS-style sentiment": 0
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Maybe"
+    }
+  },
+  {
+    "persona_id": 18,
+    "name": "Harper Lewis",
+    "segment": "Pro / Sports / Touring / Work",
+    "profile": {
+      "age_range": "35-52",
+      "location_timezone": "Denver, CO / MT",
+      "role": "Corporate offsite planner",
+      "industry": "Corporate events",
+      "platform_preference": "Desktop-first",
+      "tech_comfort": "high",
+      "group_size": "16+",
+      "trip_event_complexity": "very high",
+      "budget_sensitivity": "medium",
+      "current_tools": "Cvent; Slack; Google Sheets; email",
+      "primary_use_case": "150-person retreat",
+      "likely_chravel_mode": "Events",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "enterprise"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating 150-person retreat, I want one shared source of truth, so I can stop reconciling Cvent with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up.",
+      "When the workflow is professional or client-facing, I want roles, permissions, auditability, and exportable recaps, so I can trust it in front of stakeholders."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "4+",
+      "Typical group size": "16+",
+      "Main tools used today": "Cvent; Slack; Google Sheets; email",
+      "Primary planning device": "Desktop-first",
+      "45-minute call + screenshare": "Yes",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "Yes, I own logistics"
+    },
+    "survey": {
+      "about": {
+        "name": "Harper Lewis",
+        "email": "synthetic.persona+18@example.invalid",
+        "phone": "not provided",
+        "industry": "Corporate events",
+        "location_timezone": "Denver, CO / MT",
+        "primary_use_case": "150-person retreat",
+        "platform": "Desktop-first",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Harper Lewis described a recent 150-person retreat where the first plan started in Cvent, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 8 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Professional-grade means role-based visibility, broadcast/read receipts, audit trails, exportable run sheets, private channels, reliable import, and no placeholder ops claims.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through Cvent. One person usually does most planning.",
+      "willingness_to_pay": "Enterprise/client-billable",
+      "ratings": {
+        "Likelihood to use for next trip": 4,
+        "Clarity of organization": 4,
+        "Perceived time saved": 4,
+        "Trust in AI concierge": 3,
+        "Would invite group": 4,
+        "Mobile usability": 3,
+        "Web usability": 4,
+        "Pricing fit": 3,
+        "Overall NPS-style sentiment": 0
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Yes"
+    }
+  },
+  {
+    "persona_id": 19,
+    "name": "Elaine Chen",
+    "segment": "Pro / Sports / Touring / Work",
+    "profile": {
+      "age_range": "30-55",
+      "location_timezone": "San Francisco, CA / PT",
+      "role": "Executive assistant",
+      "industry": "Executive operations",
+      "platform_preference": "iOS",
+      "tech_comfort": "high",
+      "group_size": "2-4",
+      "trip_event_complexity": "high",
+      "budget_sensitivity": "low",
+      "current_tools": "Outlook; texts; airline app; Concur",
+      "primary_use_case": "Confidential executive travel",
+      "likely_chravel_mode": "Pro Trips",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "enterprise"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating confidential executive travel, I want one shared source of truth, so I can stop reconciling Outlook with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up.",
+      "When the workflow is professional or client-facing, I want roles, permissions, auditability, and exportable recaps, so I can trust it in front of stakeholders."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "4+",
+      "Typical group size": "2-4",
+      "Main tools used today": "Outlook; texts; airline app; Concur",
+      "Primary planning device": "iOS",
+      "45-minute call + screenshare": "Maybe",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "Yes, I own logistics"
+    },
+    "survey": {
+      "about": {
+        "name": "Elaine Chen",
+        "email": "synthetic.persona+19@example.invalid",
+        "phone": "not provided",
+        "industry": "Executive operations",
+        "location_timezone": "San Francisco, CA / PT",
+        "primary_use_case": "Confidential executive travel",
+        "platform": "iOS",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Elaine Chen described a recent confidential executive travel where the first plan started in Outlook, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 8 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Professional-grade means role-based visibility, broadcast/read receipts, audit trails, exportable run sheets, private channels, reliable import, and no placeholder ops claims.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through Outlook. One person usually does most planning.",
+      "willingness_to_pay": "Enterprise/client-billable",
+      "ratings": {
+        "Likelihood to use for next trip": 4,
+        "Clarity of organization": 4,
+        "Perceived time saved": 4,
+        "Trust in AI concierge": 3,
+        "Would invite group": 4,
+        "Mobile usability": 3,
+        "Web usability": 3,
+        "Pricing fit": 3,
+        "Overall NPS-style sentiment": 0
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Maybe"
+    }
+  },
+  {
+    "persona_id": 20,
+    "name": "Omar Siddiq",
+    "segment": "Pro / Sports / Touring / Work",
+    "profile": {
+      "age_range": "34-50",
+      "location_timezone": "Boston, MA / ET",
+      "role": "Travel concierge operator",
+      "industry": "Travel services",
+      "platform_preference": "Desktop-first",
+      "tech_comfort": "high",
+      "group_size": "9-15",
+      "trip_event_complexity": "high",
+      "budget_sensitivity": "low",
+      "current_tools": "Travefy; email; Google Docs; Stripe invoices",
+      "primary_use_case": "Multiple client itineraries",
+      "likely_chravel_mode": "Pro Trips",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "client-billable expense"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating multiple client itineraries, I want one shared source of truth, so I can stop reconciling Travefy with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up.",
+      "When the workflow is professional or client-facing, I want roles, permissions, auditability, and exportable recaps, so I can trust it in front of stakeholders."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "4+",
+      "Typical group size": "9-15",
+      "Main tools used today": "Travefy; email; Google Docs; Stripe invoices",
+      "Primary planning device": "Desktop-first",
+      "45-minute call + screenshare": "Yes",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "Yes, I own logistics"
+    },
+    "survey": {
+      "about": {
+        "name": "Omar Siddiq",
+        "email": "synthetic.persona+20@example.invalid",
+        "phone": "not provided",
+        "industry": "Travel services",
+        "location_timezone": "Boston, MA / ET",
+        "primary_use_case": "Multiple client itineraries",
+        "platform": "Desktop-first",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Omar Siddiq described a recent multiple client itineraries where the first plan started in Travefy, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 8 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Professional-grade means role-based visibility, broadcast/read receipts, audit trails, exportable run sheets, private channels, reliable import, and no placeholder ops claims.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through Travefy. One person usually does most planning.",
+      "willingness_to_pay": "Enterprise/client-billable",
+      "ratings": {
+        "Likelihood to use for next trip": 4,
+        "Clarity of organization": 4,
+        "Perceived time saved": 4,
+        "Trust in AI concierge": 4,
+        "Would invite group": 4,
+        "Mobile usability": 3,
+        "Web usability": 4,
+        "Pricing fit": 3,
+        "Overall NPS-style sentiment": 20
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Yes"
+    }
+  },
+  {
+    "persona_id": 21,
+    "name": "Bethany Cole",
+    "segment": "Events / Large Groups / Communities",
+    "profile": {
+      "age_range": "31-48",
+      "location_timezone": "Savannah, GA / ET",
+      "role": "Wedding planner",
+      "industry": "Wedding/event ops",
+      "platform_preference": "mixed",
+      "tech_comfort": "high",
+      "group_size": "16+",
+      "trip_event_complexity": "very high",
+      "budget_sensitivity": "medium",
+      "current_tools": "Aisle Planner; email; texts; Google Drive",
+      "primary_use_case": "Vendor and guest wedding weekend",
+      "likely_chravel_mode": "Events",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "client-billable expense"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating vendor and guest wedding weekend, I want one shared source of truth, so I can stop reconciling Aisle Planner with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up.",
+      "When the workflow is professional or client-facing, I want roles, permissions, auditability, and exportable recaps, so I can trust it in front of stakeholders."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "4+",
+      "Typical group size": "16+",
+      "Main tools used today": "Aisle Planner; email; texts; Google Drive",
+      "Primary planning device": "Both",
+      "45-minute call + screenshare": "Yes",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "Yes, I own logistics"
+    },
+    "survey": {
+      "about": {
+        "name": "Bethany Cole",
+        "email": "synthetic.persona+21@example.invalid",
+        "phone": "not provided",
+        "industry": "Wedding/event ops",
+        "location_timezone": "Savannah, GA / ET",
+        "primary_use_case": "Vendor and guest wedding weekend",
+        "platform": "mixed",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Bethany Cole described a recent vendor and guest wedding weekend where the first plan started in Aisle Planner, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 8 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Professional-grade means role-based visibility, broadcast/read receipts, audit trails, exportable run sheets, private channels, reliable import, and no placeholder ops claims.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through Aisle Planner. One person usually does most planning.",
+      "willingness_to_pay": "Enterprise/client-billable",
+      "ratings": {
+        "Likelihood to use for next trip": 4,
+        "Clarity of organization": 4,
+        "Perceived time saved": 4,
+        "Trust in AI concierge": 3,
+        "Would invite group": 4,
+        "Mobile usability": 3,
+        "Web usability": 3,
+        "Pricing fit": 3,
+        "Overall NPS-style sentiment": 20
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Yes"
+    }
+  },
+  {
+    "persona_id": 22,
+    "name": "Victor Huang",
+    "segment": "Events / Large Groups / Communities",
+    "profile": {
+      "age_range": "36-55",
+      "location_timezone": "Las Vegas, NV / PT",
+      "role": "Conference organizer",
+      "industry": "Professional events",
+      "platform_preference": "Desktop-first",
+      "tech_comfort": "high",
+      "group_size": "16+",
+      "trip_event_complexity": "very high",
+      "budget_sensitivity": "medium",
+      "current_tools": "Cvent; Eventbrite; Slack; email",
+      "primary_use_case": "1,000-person conference",
+      "likely_chravel_mode": "Events",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "enterprise"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating 1,000-person conference, I want one shared source of truth, so I can stop reconciling Cvent with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up.",
+      "When the workflow is professional or client-facing, I want roles, permissions, auditability, and exportable recaps, so I can trust it in front of stakeholders."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "4+",
+      "Typical group size": "16+",
+      "Main tools used today": "Cvent; Eventbrite; Slack; email",
+      "Primary planning device": "Desktop-first",
+      "45-minute call + screenshare": "Maybe",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "Yes, I own logistics"
+    },
+    "survey": {
+      "about": {
+        "name": "Victor Huang",
+        "email": "synthetic.persona+22@example.invalid",
+        "phone": "not provided",
+        "industry": "Professional events",
+        "location_timezone": "Las Vegas, NV / PT",
+        "primary_use_case": "1,000-person conference",
+        "platform": "Desktop-first",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Victor Huang described a recent 1,000-person conference where the first plan started in Cvent, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 8 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Professional-grade means role-based visibility, broadcast/read receipts, audit trails, exportable run sheets, private channels, reliable import, and no placeholder ops claims.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through Cvent. One person usually does most planning.",
+      "willingness_to_pay": "Enterprise/client-billable",
+      "ratings": {
+        "Likelihood to use for next trip": 3,
+        "Clarity of organization": 4,
+        "Perceived time saved": 3,
+        "Trust in AI concierge": 3,
+        "Would invite group": 4,
+        "Mobile usability": 3,
+        "Web usability": 4,
+        "Pricing fit": 3,
+        "Overall NPS-style sentiment": -10
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Maybe"
+    }
+  },
+  {
+    "persona_id": 23,
+    "name": "Maya Patel",
+    "segment": "Events / Large Groups / Communities",
+    "profile": {
+      "age_range": "24-34",
+      "location_timezone": "Brooklyn, NY / ET",
+      "role": "Music festival attendee group lead",
+      "industry": "Community/leisure",
+      "platform_preference": "iOS",
+      "tech_comfort": "high",
+      "group_size": "9-15",
+      "trip_event_complexity": "high",
+      "budget_sensitivity": "medium",
+      "current_tools": "WhatsApp; Instagram; Google Maps; shared notes",
+      "primary_use_case": "Festival weekend friend group",
+      "likely_chravel_mode": "Events",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "event pass"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating festival weekend friend group, I want one shared source of truth, so I can stop reconciling WhatsApp with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up.",
+      "When the workflow is professional or client-facing, I want roles, permissions, auditability, and exportable recaps, so I can trust it in front of stakeholders."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "4+",
+      "Typical group size": "9-15",
+      "Main tools used today": "WhatsApp; Instagram; Google Maps; shared notes",
+      "Primary planning device": "iOS",
+      "45-minute call + screenshare": "Maybe",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "Shared responsibility"
+    },
+    "survey": {
+      "about": {
+        "name": "Maya Patel",
+        "email": "synthetic.persona+23@example.invalid",
+        "phone": "not provided",
+        "industry": "Community/leisure",
+        "location_timezone": "Brooklyn, NY / ET",
+        "primary_use_case": "Festival weekend friend group",
+        "platform": "iOS",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Maya Patel described a recent festival weekend friend group where the first plan started in WhatsApp, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 8 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Professional-grade means role-based visibility, broadcast/read receipts, audit trails, exportable run sheets, private channels, reliable import, and no placeholder ops claims.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through WhatsApp. One person usually does most planning.",
+      "willingness_to_pay": "$20-50 per trip",
+      "ratings": {
+        "Likelihood to use for next trip": 4,
+        "Clarity of organization": 4,
+        "Perceived time saved": 4,
+        "Trust in AI concierge": 3,
+        "Would invite group": 4,
+        "Mobile usability": 3,
+        "Web usability": 3,
+        "Pricing fit": 3,
+        "Overall NPS-style sentiment": 0
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Maybe"
+    }
+  },
+  {
+    "persona_id": 24,
+    "name": "Andre Williams",
+    "segment": "Events / Large Groups / Communities",
+    "profile": {
+      "age_range": "29-45",
+      "location_timezone": "Atlanta, GA / ET",
+      "role": "Run club organizer",
+      "industry": "Community sports",
+      "platform_preference": "Android",
+      "tech_comfort": "medium",
+      "group_size": "16+",
+      "trip_event_complexity": "medium",
+      "budget_sensitivity": "high",
+      "current_tools": "Strava; Instagram; WhatsApp; Google Calendar",
+      "primary_use_case": "Race weekend for run club",
+      "likely_chravel_mode": "Events",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "free only"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating race weekend for run club, I want one shared source of truth, so I can stop reconciling Strava with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up.",
+      "When the workflow is professional or client-facing, I want roles, permissions, auditability, and exportable recaps, so I can trust it in front of stakeholders."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "4+",
+      "Typical group size": "16+",
+      "Main tools used today": "Strava; Instagram; WhatsApp; Google Calendar",
+      "Primary planning device": "Android",
+      "45-minute call + screenshare": "Maybe",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "Shared responsibility"
+    },
+    "survey": {
+      "about": {
+        "name": "Andre Williams",
+        "email": "synthetic.persona+24@example.invalid",
+        "phone": "not provided",
+        "industry": "Community sports",
+        "location_timezone": "Atlanta, GA / ET",
+        "primary_use_case": "Race weekend for run club",
+        "platform": "Android",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Andre Williams described a recent race weekend for run club where the first plan started in Strava, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 8 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Professional-grade means role-based visibility, broadcast/read receipts, audit trails, exportable run sheets, private channels, reliable import, and no placeholder ops claims.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through Strava. One person usually does most planning.",
+      "willingness_to_pay": "Nothing/free",
+      "ratings": {
+        "Likelihood to use for next trip": 3,
+        "Clarity of organization": 4,
+        "Perceived time saved": 3,
+        "Trust in AI concierge": 3,
+        "Would invite group": 3,
+        "Mobile usability": 3,
+        "Web usability": 3,
+        "Pricing fit": 2,
+        "Overall NPS-style sentiment": -10
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Maybe"
+    }
+  },
+  {
+    "persona_id": 25,
+    "name": "Cole Whitman",
+    "segment": "Events / Large Groups / Communities",
+    "profile": {
+      "age_range": "20-23",
+      "location_timezone": "Athens, GA / ET",
+      "role": "Fraternity rush chair",
+      "industry": "College/community",
+      "platform_preference": "iOS",
+      "tech_comfort": "high",
+      "group_size": "16+",
+      "trip_event_complexity": "high",
+      "budget_sensitivity": "medium",
+      "current_tools": "GroupMe; Google Sheets; Instagram; SMS",
+      "primary_use_case": "Daily rush events",
+      "likely_chravel_mode": "Events",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "subscription"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating daily rush events, I want one shared source of truth, so I can stop reconciling GroupMe with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up.",
+      "When the workflow is professional or client-facing, I want roles, permissions, auditability, and exportable recaps, so I can trust it in front of stakeholders."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "4+",
+      "Typical group size": "16+",
+      "Main tools used today": "GroupMe; Google Sheets; Instagram; SMS",
+      "Primary planning device": "iOS",
+      "45-minute call + screenshare": "Maybe",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "Shared responsibility"
+    },
+    "survey": {
+      "about": {
+        "name": "Cole Whitman",
+        "email": "synthetic.persona+25@example.invalid",
+        "phone": "not provided",
+        "industry": "College/community",
+        "location_timezone": "Athens, GA / ET",
+        "primary_use_case": "Daily rush events",
+        "platform": "iOS",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Cole Whitman described a recent daily rush events where the first plan started in GroupMe, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 8 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Professional-grade means role-based visibility, broadcast/read receipts, audit trails, exportable run sheets, private channels, reliable import, and no placeholder ops claims.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through GroupMe. One person usually does most planning.",
+      "willingness_to_pay": "$49-199/mo org-paid",
+      "ratings": {
+        "Likelihood to use for next trip": 3,
+        "Clarity of organization": 4,
+        "Perceived time saved": 3,
+        "Trust in AI concierge": 3,
+        "Would invite group": 4,
+        "Mobile usability": 3,
+        "Web usability": 3,
+        "Pricing fit": 3,
+        "Overall NPS-style sentiment": -10
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Maybe"
+    }
+  },
+  {
+    "persona_id": 26,
+    "name": "Pastor Grace Evans",
+    "segment": "Events / Large Groups / Communities",
+    "profile": {
+      "age_range": "45-62",
+      "location_timezone": "Memphis, TN / CT",
+      "role": "Church/nonprofit trip organizer",
+      "industry": "Nonprofit",
+      "platform_preference": "Android",
+      "tech_comfort": "medium",
+      "group_size": "16+",
+      "trip_event_complexity": "medium-high",
+      "budget_sensitivity": "high",
+      "current_tools": "Email; SMS; Facebook; paper forms",
+      "primary_use_case": "Youth mission trip",
+      "likely_chravel_mode": "Events",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "team plan"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating youth mission trip, I want one shared source of truth, so I can stop reconciling Email with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up.",
+      "When the workflow is professional or client-facing, I want roles, permissions, auditability, and exportable recaps, so I can trust it in front of stakeholders."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "4+",
+      "Typical group size": "16+",
+      "Main tools used today": "Email; SMS; Facebook; paper forms",
+      "Primary planning device": "Android",
+      "45-minute call + screenshare": "Maybe",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "Yes, I own logistics"
+    },
+    "survey": {
+      "about": {
+        "name": "Pastor Grace Evans",
+        "email": "synthetic.persona+26@example.invalid",
+        "phone": "not provided",
+        "industry": "Nonprofit",
+        "location_timezone": "Memphis, TN / CT",
+        "primary_use_case": "Youth mission trip",
+        "platform": "Android",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Pastor Grace Evans described a recent youth mission trip where the first plan started in Email, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 8 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Professional-grade means role-based visibility, broadcast/read receipts, audit trails, exportable run sheets, private channels, reliable import, and no placeholder ops claims.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through Email. One person usually does most planning.",
+      "willingness_to_pay": "$49-199/mo org-paid",
+      "ratings": {
+        "Likelihood to use for next trip": 4,
+        "Clarity of organization": 4,
+        "Perceived time saved": 4,
+        "Trust in AI concierge": 3,
+        "Would invite group": 4,
+        "Mobile usability": 3,
+        "Web usability": 3,
+        "Pricing fit": 3,
+        "Overall NPS-style sentiment": 0
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Maybe"
+    }
+  },
+  {
+    "persona_id": 27,
+    "name": "Rachel Stein",
+    "segment": "Events / Large Groups / Communities",
+    "profile": {
+      "age_range": "36-52",
+      "location_timezone": "Minneapolis, MN / CT",
+      "role": "School field trip coordinator",
+      "industry": "Education",
+      "platform_preference": "Desktop-first",
+      "tech_comfort": "medium",
+      "group_size": "16+",
+      "trip_event_complexity": "high",
+      "budget_sensitivity": "high",
+      "current_tools": "School email; permission slips; Google Sheets",
+      "primary_use_case": "School field trip",
+      "likely_chravel_mode": "Events",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "team plan"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating school field trip, I want one shared source of truth, so I can stop reconciling School email with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up.",
+      "When the workflow is professional or client-facing, I want roles, permissions, auditability, and exportable recaps, so I can trust it in front of stakeholders."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "4+",
+      "Typical group size": "16+",
+      "Main tools used today": "School email; permission slips; Google Sheets",
+      "Primary planning device": "Desktop-first",
+      "45-minute call + screenshare": "Maybe",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "Yes, I own logistics"
+    },
+    "survey": {
+      "about": {
+        "name": "Rachel Stein",
+        "email": "synthetic.persona+27@example.invalid",
+        "phone": "not provided",
+        "industry": "Education",
+        "location_timezone": "Minneapolis, MN / CT",
+        "primary_use_case": "School field trip",
+        "platform": "Desktop-first",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Rachel Stein described a recent school field trip where the first plan started in School email, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 8 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Professional-grade means role-based visibility, broadcast/read receipts, audit trails, exportable run sheets, private channels, reliable import, and no placeholder ops claims.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through School email. One person usually does most planning.",
+      "willingness_to_pay": "$49-199/mo org-paid",
+      "ratings": {
+        "Likelihood to use for next trip": 3,
+        "Clarity of organization": 4,
+        "Perceived time saved": 3,
+        "Trust in AI concierge": 3,
+        "Would invite group": 4,
+        "Mobile usability": 3,
+        "Web usability": 4,
+        "Pricing fit": 3,
+        "Overall NPS-style sentiment": -10
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Maybe"
+    }
+  },
+  {
+    "persona_id": 28,
+    "name": "Kyle Romano",
+    "segment": "Consumer / Personal Trips",
+    "profile": {
+      "age_range": "28-38",
+      "location_timezone": "Philadelphia, PA / ET",
+      "role": "Price-sensitive bachelor party planner",
+      "industry": "Consumer celebrations",
+      "platform_preference": "iOS",
+      "tech_comfort": "medium",
+      "group_size": "9-15",
+      "trip_event_complexity": "high-chaos",
+      "budget_sensitivity": "very high",
+      "current_tools": "iMessage; Venmo; Google Sheets; Airbnb",
+      "primary_use_case": "Bachelor party with budget arguments",
+      "likely_chravel_mode": "Regular Trips",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "per-trip"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating bachelor party with budget arguments, I want one shared source of truth, so I can stop reconciling iMessage with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up.",
+      "When the workflow is professional or client-facing, I want roles, permissions, auditability, and exportable recaps, so I can trust it in front of stakeholders."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "2\u20133",
+      "Typical group size": "9-15",
+      "Main tools used today": "iMessage; Venmo; Google Sheets; Airbnb",
+      "Primary planning device": "iOS",
+      "45-minute call + screenshare": "Maybe",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "No"
+    },
+    "survey": {
+      "about": {
+        "name": "Kyle Romano",
+        "email": "synthetic.persona+28@example.invalid",
+        "phone": "not provided",
+        "industry": "Consumer celebrations",
+        "location_timezone": "Philadelphia, PA / ET",
+        "primary_use_case": "Bachelor party with budget arguments",
+        "platform": "iOS",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Kyle Romano described a recent bachelor party with budget arguments where the first plan started in iMessage, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 8 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Professional-grade means role-based visibility, broadcast/read receipts, audit trails, exportable run sheets, private channels, reliable import, and no placeholder ops claims.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through iMessage. One person usually does most planning.",
+      "willingness_to_pay": "$20-50 per trip",
+      "ratings": {
+        "Likelihood to use for next trip": 4,
+        "Clarity of organization": 4,
+        "Perceived time saved": 4,
+        "Trust in AI concierge": 3,
+        "Would invite group": 3,
+        "Mobile usability": 3,
+        "Web usability": 3,
+        "Pricing fit": 3,
+        "Overall NPS-style sentiment": 0
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Maybe"
+    }
+  },
+  {
+    "persona_id": 29,
+    "name": "Serena Dubois",
+    "segment": "Pro / Sports / Touring / Work",
+    "profile": {
+      "age_range": "35-55",
+      "location_timezone": "Miami, FL / ET",
+      "role": "Luxury travel advisor",
+      "industry": "Luxury travel services",
+      "platform_preference": "Desktop-first",
+      "tech_comfort": "high",
+      "group_size": "2-8",
+      "trip_event_complexity": "high",
+      "budget_sensitivity": "low",
+      "current_tools": "Travefy; Virtuoso tools; email; WhatsApp",
+      "primary_use_case": "Affluent client itinerary delivery",
+      "likely_chravel_mode": "Pro Trips",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "white-label/client plan"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating affluent client itinerary delivery, I want one shared source of truth, so I can stop reconciling Travefy with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up.",
+      "When the workflow is professional or client-facing, I want roles, permissions, auditability, and exportable recaps, so I can trust it in front of stakeholders."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "4+",
+      "Typical group size": "16+",
+      "Main tools used today": "Travefy; Virtuoso tools; email; WhatsApp",
+      "Primary planning device": "Desktop-first",
+      "45-minute call + screenshare": "Yes",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "Yes, I own logistics"
+    },
+    "survey": {
+      "about": {
+        "name": "Serena Dubois",
+        "email": "synthetic.persona+29@example.invalid",
+        "phone": "not provided",
+        "industry": "Luxury travel services",
+        "location_timezone": "Miami, FL / ET",
+        "primary_use_case": "Affluent client itinerary delivery",
+        "platform": "Desktop-first",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Serena Dubois described a recent affluent client itinerary delivery where the first plan started in Travefy, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 8 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Professional-grade means role-based visibility, broadcast/read receipts, audit trails, exportable run sheets, private channels, reliable import, and no placeholder ops claims.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through Travefy. One person usually does most planning.",
+      "willingness_to_pay": "Enterprise/client-billable",
+      "ratings": {
+        "Likelihood to use for next trip": 4,
+        "Clarity of organization": 4,
+        "Perceived time saved": 4,
+        "Trust in AI concierge": 4,
+        "Would invite group": 4,
+        "Mobile usability": 3,
+        "Web usability": 4,
+        "Pricing fit": 3,
+        "Overall NPS-style sentiment": 20
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Yes"
+    }
+  },
+  {
+    "persona_id": 30,
+    "name": "Anika M\u00fcller",
+    "segment": "Consumer / Personal Trips",
+    "profile": {
+      "age_range": "30-46",
+      "location_timezone": "Berlin, Germany / CET",
+      "role": "International group trip organizer",
+      "industry": "International leisure",
+      "platform_preference": "mixed",
+      "tech_comfort": "high",
+      "group_size": "9-15",
+      "trip_event_complexity": "very high",
+      "budget_sensitivity": "medium",
+      "current_tools": "WhatsApp; Google Translate; Sheets; Calendar",
+      "primary_use_case": "Multi-country multilingual trip",
+      "likely_chravel_mode": "Regular Trips",
+      "adoption_trigger": "clear invite value plus one imported schedule/payment/place artifact",
+      "rejection_trigger": "account wall, vague AI, pricing surprise, or missing privacy controls",
+      "payment_preference": "per-trip"
+    },
+    "jobs_to_be_done": [
+      "When I am coordinating multi-country multilingual trip, I want one shared source of truth, so I can stop reconciling WhatsApp with separate docs.",
+      "When dates, locations, or costs change, I want the update to hit the right people immediately, so I can avoid repeat explanations.",
+      "When people do not respond, I want lightweight nudges and visible status, so I can know who is blocking the plan.",
+      "When links, confirmations, or schedules arrive, I want to paste/import them, so I can avoid manual re-entry.",
+      "When money or responsibility is involved, I want clear ownership, so I can reduce awkward follow-up.",
+      "When the workflow is professional or client-facing, I want roles, permissions, auditability, and exportable recaps, so I can trust it in front of stakeholders."
+    ],
+    "screener_answers": {
+      "Group trips last 12 months": "4+",
+      "Typical group size": "9-15",
+      "Main tools used today": "WhatsApp; Google Translate; Sheets; Calendar",
+      "Primary planning device": "Both",
+      "45-minute call + screenshare": "Maybe",
+      "Role in group": "Primary planner",
+      "Pro/Ops responsibility": "Shared responsibility"
+    },
+    "survey": {
+      "about": {
+        "name": "Anika M\u00fcller",
+        "email": "synthetic.persona+30@example.invalid",
+        "phone": "not provided",
+        "industry": "International leisure",
+        "location_timezone": "Berlin, Germany / CET",
+        "primary_use_case": "Multi-country multilingual trip",
+        "platform": "mixed",
+        "used_chravel_before": "Not yet"
+      },
+      "recent_trip": "Anika M\u00fcller described a recent multi-country multilingual trip where the first plan started in WhatsApp, then spread into docs, payments, maps, and email. The frustrating part was chasing confirmations; the surprisingly good part was that one motivated organizer kept momentum. About 8 total apps/tools were involved. Right after the first plan, people asked repetitive questions about dates, costs, and locations.",
+      "workflow": "Idea \u2192 rough dates \u2192 lodging/venue \u2192 invite \u2192 schedule \u2192 reminders \u2192 live changes \u2192 photos/receipts/recap. Decisions get stuck around budget, exact times, and who is actually committed. Non-responders get individual texts or DMs. Example thread: \u201cCan everyone confirm by Friday? Also who paid Kyle for the Airbnb?\u201d followed by side replies and screenshots.",
+      "feature_areas": {
+        "Create / Invite": "Wants trip setup and invite copy that makes value obvious before account creation.",
+        "Places": "Saves places in Google Maps/Yelp/Resy today; wants addresses, confirmation numbers, and directions in one context.",
+        "Calendar / Itinerary": "Needs readable itinerary plus edit pressure handling when times change.",
+        "Polls / Decisions": "Needs quick yes/no or ranked decisions without buried chat votes.",
+        "Tasks / Responsibilities": "Useful when there are owners; overkill if it feels like work software for friends.",
+        "Smart Import": "Most wants links, email confirmations, PDFs, screenshots, and pasted chat plans imported without duplicates.",
+        "AI Concierge": "Wants itinerary suggestions, restaurant/activity shortlists, conflict checks, and draft messages.",
+        "AI Trust": "Would distrust vague recommendations, hallucinated reservations, stale hours, money math, or unsourced operational changes.",
+        "Settings": "Notifications, privacy, roles, sharing, mute/leave controls, and email/phone visibility matter."
+      },
+      "pro_events_branch": "Professional-grade means role-based visibility, broadcast/read receipts, audit trails, exportable run sheets, private channels, reliable import, and no placeholder ops claims.",
+      "money": "Currently tracks payments through Venmo/Cash App/Splitwise/Sheets depending on group. Reimbursement is easiest when the app shows exact amount, payee, due date, and settlement status. Changes are communicated through WhatsApp. One person usually does most planning.",
+      "willingness_to_pay": "$20-50 per trip",
+      "ratings": {
+        "Likelihood to use for next trip": 4,
+        "Clarity of organization": 4,
+        "Perceived time saved": 4,
+        "Trust in AI concierge": 4,
+        "Would invite group": 4,
+        "Mobile usability": 3,
+        "Web usability": 3,
+        "Pricing fit": 3,
+        "Overall NPS-style sentiment": 20
+      },
+      "wrap_up": "Change one thing: stop making the organizer chase the same answer in five places. Would recommend if invitees get value quickly and the tool does not create another inbox. Follow-up: Maybe"
+    }
+  }
+]
