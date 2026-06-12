@@ -37,6 +37,7 @@ import { classifyQuery, isTripRelatedClass } from '../_shared/concierge/queryCla
 import { getToolsForQueryClass } from '../_shared/concierge/toolRegistry.ts';
 import { assemblePrompt } from '../_shared/concierge/promptAssembler.ts';
 import { QUERY_CLASS_SLICES } from '../_shared/contextBuilder.ts';
+import { isSuperAdminEmail } from '../_shared/superAdmins.ts';
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 // DEPRECATED: Lovable gateway fallback is legacy. Gemini is the only production provider.
