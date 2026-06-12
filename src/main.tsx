@@ -12,6 +12,7 @@ import { isLovablePreview } from './utils/env';
 import { hasAuthStorageMarker, shouldUseMarketingBootstrap } from './lib/bootstrapShell';
 import { isChravelNativeShell, isInstalledApp } from './utils/platformDetection';
 import { installChunkErrorRecovery, claimOneShotReload } from '@/utils/chunkRecovery';
+import { warmRouteChunksForPath } from './lib/routeChunks';
 import './index.css';
 
 // ── Startup env validation ──────────────────────────────────────────────────
@@ -25,16 +26,11 @@ const hasRequiredSupabaseEnv = missingEnvVars.length === 0;
 const App = hasRequiredSupabaseEnv ? lazy(() => import('./App.tsx')) : null;
 const MarketingApp = hasRequiredSupabaseEnv ? lazy(() => import('./MarketingApp.tsx')) : null;
 
-// Kick off the AuthPage chunk in parallel with App.tsx when the cold-start route
-// is /auth. Without this, AuthPage waits behind App.tsx parse + AuthProvider mount
-// before its own chunk request even leaves the device — adding a serial round trip
-// to the slowest part of the cold-start path inside the native WebView shell.
-if (
-  hasRequiredSupabaseEnv &&
-  typeof window !== 'undefined' &&
-  window.location.pathname.startsWith('/auth')
-) {
-  void import('./pages/AuthPage');
+// Kick off route-critical chunks in parallel with App.tsx. The manifest in
+// routeChunks.ts shares its import() loaders with App.tsx's lazy() routes, so
+// the warmed chunk can never drift from the chunk the router actually renders.
+if (hasRequiredSupabaseEnv && typeof window !== 'undefined') {
+  warmRouteChunksForPath(window.location.pathname);
 }
 
 // ── Imperative init (runs after all imports are resolved) ──────────────────
@@ -120,8 +116,12 @@ const isPublicAnonymousBootstrapRoute = (): boolean => {
     path.startsWith('/demo') ||
     path.startsWith('/healthz');
 
-  const likelyAuthenticated = Boolean(safeLocalStorageGet('chravel-auth-session'));
-  return isPublicRoute && !likelyAuthenticated;
+  // Same boot-time heuristic as the marketing split: a persisted auth *marker*
+  // (bootstrapShell.AUTH_STORAGE_MARKERS) means "likely authenticated" — it is
+  // NOT a verified session, just enough signal to decide whether a version-bust
+  // reload is worth paying a second cold load. Canonical session checks live in
+  // useAuth, after hydration.
+  return isPublicRoute && !hasAuthMarkerOnBoot;
 };
 
 // Native shell handles its own caching and lifecycle — service workers add startup
