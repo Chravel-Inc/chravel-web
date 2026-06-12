@@ -11,7 +11,7 @@ const compId = process.argv[3] || 'HomepageHeroDemo60';
 console.log(`[render] bundling…`);
 const bundled = await bundle({
   entryPoint: path.resolve(__dirname, '../src/index.ts'),
-  webpackOverride: (c) => c,
+  webpackOverride: c => c,
 });
 
 console.log(`[render] launching chromium…`);

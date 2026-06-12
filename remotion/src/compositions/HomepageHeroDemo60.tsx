@@ -296,12 +296,10 @@ export const HomepageHeroDemo60: React.FC = () => {
           extrapolateLeft: 'clamp',
           extrapolateRight: 'clamp',
         });
-        const outFade = interpolate(
-          local,
-          [SCENE_FRAMES - FADE_FRAMES, SCENE_FRAMES],
-          [1, 0],
-          { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
-        );
+        const outFade = interpolate(local, [SCENE_FRAMES - FADE_FRAMES, SCENE_FRAMES], [1, 0], {
+          extrapolateLeft: 'clamp',
+          extrapolateRight: 'clamp',
+        });
         const opacity = Math.min(inFade, outFade);
         return (
           <Sequence key={i} from={start} durationInFrames={SCENE_FRAMES + FADE_FRAMES}>
