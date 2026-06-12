@@ -41,6 +41,8 @@ interface EntitlementsState {
   entitlements: Set<EntitlementId>;
   isLoading: boolean;
   lastSyncedAt: Date | null;
+  /** User the current state was synced for — a different userId never hits the warm TTL path. */
+  ownerUserId: string | null;
   error: string | null;
   purchaseType: PurchaseType;
 
@@ -56,7 +58,11 @@ interface EntitlementsState {
   daysRemaining: number | null;
 
   // Actions
-  refreshEntitlements: (userId: string, userEmail?: string) => Promise<void>;
+  refreshEntitlements: (
+    userId: string,
+    userEmail?: string,
+    options?: { force?: boolean },
+  ) => Promise<void>;
   setSuperAdminMode: () => void;
   setDemoMode: (enabled: boolean) => void;
   setFromStripe: (data: {
@@ -76,6 +82,7 @@ const DEFAULT_STATE = {
   entitlements: new Set<EntitlementId>(),
   isLoading: false,
   lastSyncedAt: null,
+  ownerUserId: null as string | null,
   error: null,
   isSubscribed: false,
   isPro: false,
@@ -99,125 +106,189 @@ const getSuperAdminEntitlements = (): Set<EntitlementId> => {
   return allEntitlements;
 };
 
-export const useEntitlementsStore = create<EntitlementsState>((set, _get) => ({
+type SetEntitlementsState = (partial: Partial<EntitlementsState>) => void;
+
+async function performRefresh(
+  userId: string,
+  userEmail: string | undefined,
+  set: SetEntitlementsState,
+): Promise<void> {
+  set({ isLoading: true, error: null });
+
+  try {
+    // SUPER ADMIN CHECK FIRST - email allowlist is the failsafe
+    if (userEmail && isSuperAdminEmail(userEmail)) {
+      if (import.meta.env.DEV)
+        console.log('[EntitlementsStore] Super admin detected by email:', userEmail);
+      set({
+        ...getPlanFlags(SUPER_ADMIN_TIER, true),
+        plan: SUPER_ADMIN_TIER,
+        status: 'active',
+        source: 'admin',
+        currentPeriodEnd: null,
+        entitlements: getSuperAdminEntitlements(),
+        isLoading: false,
+        lastSyncedAt: new Date(),
+        ownerUserId: userId,
+        error: null,
+        isSubscribed: true,
+        isPro: true,
+        isSuperAdmin: true,
+      });
+      return;
+    }
+
+    // Check user_roles for enterprise_admin role (super admin)
+    const { data: rolesData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId);
+
+    // Cast to string for comparison since role is an enum
+    const roles = rolesData?.map(r => String(r.role)) || [];
+    const hasAdminRole = roles.includes('enterprise_admin');
+
+    if (hasAdminRole) {
+      if (import.meta.env.DEV) console.log('[EntitlementsStore] Super admin detected by role');
+      set({
+        ...getPlanFlags(SUPER_ADMIN_TIER, true),
+        plan: SUPER_ADMIN_TIER,
+        status: 'active',
+        source: 'admin',
+        currentPeriodEnd: null,
+        entitlements: getSuperAdminEntitlements(),
+        isLoading: false,
+        lastSyncedAt: new Date(),
+        ownerUserId: userId,
+        error: null,
+        isSubscribed: true,
+        isPro: true,
+        isSuperAdmin: true,
+      });
+      return;
+    }
+
+    // Fetch from user_entitlements table for regular users
+    const { data: rows, error } = await supabase
+      .from('user_entitlements')
+      .select('*')
+      .eq('user_id', userId)
+      .in('purchase_type', ['subscription', 'pass'])
+      .order('updated_at', { ascending: false });
+
+    if (error) {
+      if (import.meta.env.DEV) console.error('[EntitlementsStore] Fetch error:', error);
+      set({ isLoading: false, error: error.message });
+      return;
+    }
+
+    const data = pickPrimaryEntitlement(rows as EntitlementSelectorRow[] | null);
+
+    if (data) {
+      const plan = data.plan as SubscriptionTier;
+      const status = data.status as EntitlementStatus;
+      const tierEntitlements = TIER_ENTITLEMENTS[plan] || [];
+      const pType = (data.purchase_type as PurchaseType) || 'subscription';
+      const periodEnd = data.current_period_end ? new Date(data.current_period_end) : null;
+      const isSubscribed = isEffectivelyActive(status, periodEnd);
+      const planFlags = getPlanFlags(plan, isSubscribed);
+      const daysLeft = periodEnd
+        ? Math.max(0, Math.ceil((periodEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+        : null;
+
+      set({
+        plan,
+        status,
+        source: data.source as EntitlementSource,
+        currentPeriodEnd: periodEnd,
+        entitlements: new Set(tierEntitlements),
+        isLoading: false,
+        lastSyncedAt: new Date(),
+        ownerUserId: userId,
+        error: null,
+        isSubscribed,
+        isPro: planFlags.isOrgPro,
+        isPaid: planFlags.isPaid,
+        isExplorer: planFlags.isExplorer,
+        isFrequentChraveler: planFlags.isFrequentChraveler,
+        isOrgPro: planFlags.isOrgPro,
+        isSuperAdmin: false,
+        purchaseType: pType,
+        daysRemaining: pType === 'pass' ? daysLeft : null,
+      });
+    } else {
+      // No entitlements record - default to free
+      set({
+        ...DEFAULT_STATE,
+        isLoading: false,
+        lastSyncedAt: new Date(),
+        ownerUserId: userId,
+      });
+    }
+  } catch (err) {
+    if (import.meta.env.DEV) console.error('[EntitlementsStore] Error:', err);
+    set({ isLoading: false, error: 'Failed to load entitlements' });
+  }
+}
+
+// Entitlements change rarely (purchases, plan changes) but useUnifiedEntitlements
+// mounts in many components, each re-running the fetch. The TTL absorbs those
+// duplicate hits at boot/navigation; purchase paths bypass it with force: true.
+const ENTITLEMENTS_TTL_MS = 5 * 60 * 1000;
+
+// Concurrent mounts during the same boot share one in-flight refresh.
+let inFlightRefresh: { userId: string; promise: Promise<void> } | null = null;
+
+// Write-generation guard: a refresh may only write state if no newer refresh,
+// clear(), or demo/admin override started after it. Without this, a slow
+// pre-purchase refresh resolving late overwrites a forced post-purchase one,
+// and a previous user's in-flight refresh repopulates the store after
+// sign-out cleared it.
+let refreshGeneration = 0;
+
+export const useEntitlementsStore = create<EntitlementsState>((set, get) => ({
   ...DEFAULT_STATE,
 
-  refreshEntitlements: async (userId: string, userEmail?: string) => {
-    set({ isLoading: true, error: null });
+  refreshEntitlements: async (
+    userId: string,
+    userEmail?: string,
+    options?: { force?: boolean },
+  ) => {
+    const force = options?.force ?? false;
 
+    if (!force) {
+      const { ownerUserId, lastSyncedAt, error: lastError } = get();
+      const isFresh =
+        ownerUserId === userId &&
+        !lastError &&
+        lastSyncedAt !== null &&
+        Date.now() - lastSyncedAt.getTime() < ENTITLEMENTS_TTL_MS;
+      if (isFresh) return;
+
+      if (inFlightRefresh && inFlightRefresh.userId === userId) {
+        return inFlightRefresh.promise;
+      }
+    }
+
+    const myGeneration = ++refreshGeneration;
+    const guardedSet: SetEntitlementsState = partial => {
+      if (refreshGeneration === myGeneration) set(partial);
+    };
+
+    const refreshPromise = performRefresh(userId, userEmail, guardedSet);
+    inFlightRefresh = { userId, promise: refreshPromise };
     try {
-      // SUPER ADMIN CHECK FIRST - email allowlist is the failsafe
-      if (userEmail && isSuperAdminEmail(userEmail)) {
-        if (import.meta.env.DEV)
-          console.log('[EntitlementsStore] Super admin detected by email:', userEmail);
-        set({
-          ...getPlanFlags(SUPER_ADMIN_TIER, true),
-          plan: SUPER_ADMIN_TIER,
-          status: 'active',
-          source: 'admin',
-          currentPeriodEnd: null,
-          entitlements: getSuperAdminEntitlements(),
-          isLoading: false,
-          lastSyncedAt: new Date(),
-          error: null,
-          isSubscribed: true,
-          isPro: true,
-          isSuperAdmin: true,
-        });
-        return;
+      await refreshPromise;
+    } finally {
+      if (inFlightRefresh?.promise === refreshPromise) {
+        inFlightRefresh = null;
       }
-
-      // Check user_roles for enterprise_admin role (super admin)
-      const { data: rolesData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId);
-
-      // Cast to string for comparison since role is an enum
-      const roles = rolesData?.map(r => String(r.role)) || [];
-      const hasAdminRole = roles.includes('enterprise_admin');
-
-      if (hasAdminRole) {
-        if (import.meta.env.DEV) console.log('[EntitlementsStore] Super admin detected by role');
-        set({
-          ...getPlanFlags(SUPER_ADMIN_TIER, true),
-          plan: SUPER_ADMIN_TIER,
-          status: 'active',
-          source: 'admin',
-          currentPeriodEnd: null,
-          entitlements: getSuperAdminEntitlements(),
-          isLoading: false,
-          lastSyncedAt: new Date(),
-          error: null,
-          isSubscribed: true,
-          isPro: true,
-          isSuperAdmin: true,
-        });
-        return;
-      }
-
-      // Fetch from user_entitlements table for regular users
-      const { data: rows, error } = await supabase
-        .from('user_entitlements')
-        .select('*')
-        .eq('user_id', userId)
-        .in('purchase_type', ['subscription', 'pass'])
-        .order('updated_at', { ascending: false });
-
-      if (error) {
-        if (import.meta.env.DEV) console.error('[EntitlementsStore] Fetch error:', error);
-        set({ isLoading: false, error: error.message });
-        return;
-      }
-
-      const data = pickPrimaryEntitlement(rows as EntitlementSelectorRow[] | null);
-
-      if (data) {
-        const plan = data.plan as SubscriptionTier;
-        const status = data.status as EntitlementStatus;
-        const tierEntitlements = TIER_ENTITLEMENTS[plan] || [];
-        const pType = (data.purchase_type as PurchaseType) || 'subscription';
-        const periodEnd = data.current_period_end ? new Date(data.current_period_end) : null;
-        const isSubscribed = isEffectivelyActive(status, periodEnd);
-        const planFlags = getPlanFlags(plan, isSubscribed);
-        const daysLeft = periodEnd
-          ? Math.max(0, Math.ceil((periodEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
-          : null;
-
-        set({
-          plan,
-          status,
-          source: data.source as EntitlementSource,
-          currentPeriodEnd: periodEnd,
-          entitlements: new Set(tierEntitlements),
-          isLoading: false,
-          lastSyncedAt: new Date(),
-          error: null,
-          isSubscribed,
-          isPro: planFlags.isOrgPro,
-          isPaid: planFlags.isPaid,
-          isExplorer: planFlags.isExplorer,
-          isFrequentChraveler: planFlags.isFrequentChraveler,
-          isOrgPro: planFlags.isOrgPro,
-          isSuperAdmin: false,
-          purchaseType: pType,
-          daysRemaining: pType === 'pass' ? daysLeft : null,
-        });
-      } else {
-        // No entitlements record - default to free
-        set({
-          ...DEFAULT_STATE,
-          isLoading: false,
-          lastSyncedAt: new Date(),
-        });
-      }
-    } catch (err) {
-      if (import.meta.env.DEV) console.error('[EntitlementsStore] Error:', err);
-      set({ isLoading: false, error: 'Failed to load entitlements' });
     }
   },
 
   setSuperAdminMode: () => {
+    // Invalidate any in-flight refresh so its late set() can't overwrite this.
+    refreshGeneration += 1;
     set({
       ...getPlanFlags(SUPER_ADMIN_TIER, true),
       plan: SUPER_ADMIN_TIER,
@@ -234,6 +305,8 @@ export const useEntitlementsStore = create<EntitlementsState>((set, _get) => ({
   },
 
   setDemoMode: (enabled: boolean) => {
+    // Invalidate any in-flight refresh so its late set() can't overwrite this.
+    refreshGeneration += 1;
     if (enabled) {
       // Demo mode gets full access
       const demoTier: SubscriptionTier = 'frequent-chraveler';
@@ -247,6 +320,12 @@ export const useEntitlementsStore = create<EntitlementsState>((set, _get) => ({
         currentPeriodEnd: null,
         entitlements: new Set(tierEntitlements),
         isLoading: false,
+        // Demo state is an override, never "synced" state: clear the TTL
+        // stamps so the refresh after demo exit always hits the server —
+        // otherwise a fresh pre-demo stamp keeps the demo plan alive for up
+        // to 5 minutes after exiting (demo-mode contamination).
+        lastSyncedAt: null,
+        ownerUserId: null,
         error: null,
         isSubscribed: true,
         isPro: false,
@@ -292,6 +371,10 @@ export const useEntitlementsStore = create<EntitlementsState>((set, _get) => ({
   },
 
   clear: () => {
+    // Bump the generation so a previous user's in-flight refresh resolving
+    // after sign-out cannot repopulate the cleared store.
+    refreshGeneration += 1;
+    inFlightRefresh = null;
     set(DEFAULT_STATE);
   },
 }));

@@ -12,6 +12,7 @@ import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { invalidateAuthCache } from '@/lib/authCache';
 import { queryClient } from '@/lib/queryClient';
+import { removePersistedQueryCache } from '@/lib/queryPersister';
 import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
 import { useDemoModeStore } from '@/store/demoModeStore';
 import { conciergeCacheService } from '@/services/conciergeCacheService';
@@ -25,6 +26,7 @@ import { buildSessionDerivedUser } from '@/lib/sessionDerivedUser';
 import { generateSafeUuid } from '@/utils/uuid';
 import { openInstalledAuthBrowser } from '@/utils/installedAuthBrowser';
 import { errorTracking } from '@/services/errorTracking';
+import { performanceService } from '@/services/performanceService';
 import type { AuthUser as User, UserProfile, AuthContextType } from './auth/types';
 import { createDemoUser, getOAuthReturnTo, withTimeout } from './auth/authHelpers';
 import { captureAppleRefreshToken } from './auth/captureAppleToken';
@@ -583,6 +585,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setIsLoading(false);
       } finally {
         setIsHydrated(true);
+        performanceService.markBootPhase('auth_hydrated');
       }
     };
 
@@ -686,8 +689,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else {
         authDebug('onAuthStateChange:signedOutOrNoSession');
         invalidateAuthCache();
-        // Clear cached data and subscriptions on token-expiry-triggered signouts
+        // Clear cached data and subscriptions on token-expiry-triggered signouts.
+        // The persisted IDB copy is deleted explicitly: clear() propagates via the
+        // persister's 1s throttle, which a crash could outrun.
         queryClient.clear();
+        void removePersistedQueryCache();
         void supabase.removeAllChannels();
         conciergeCacheService.clearAllCaches();
         void clearNotificationRealtimeStore();
@@ -1023,11 +1029,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Clear onboarding cache to prevent stale data polluting next account
     localStorage.removeItem('chravel_onboarding_completed');
 
-    // Clear all cached server data so next user on this device sees nothing
+    // Clear all cached server data so next user on this device sees nothing —
+    // including the persisted IDB copy (explicit delete; don't rely on the
+    // persister's throttled propagation of clear()). Runs concurrently with
+    // realtime teardown: both must finish before the trailing navigation, but
+    // a cold IDB open mustn't serially delay sign-out.
     queryClient.clear();
-
-    // Tear down all Realtime subscriptions to prevent cross-user notification leaks
-    await supabase.removeAllChannels();
+    await Promise.all([
+      removePersistedQueryCache(),
+      // Tear down all Realtime subscriptions to prevent cross-user notification leaks
+      supabase.removeAllChannels(),
+    ]);
 
     // Clear AI concierge localStorage caches (PII — trip planning conversations)
     conciergeCacheService.clearAllCaches();

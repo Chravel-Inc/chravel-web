@@ -49,14 +49,38 @@
 
     <link rel="preconnect" href="https://jmjiyekmxwsxkfnqwyaa.supabase.co" crossorigin />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="modulepreload" href="/src/components/landing/FullPageLanding.tsx" />
     <style>
+      /* Splash styles are shared by the static splash below and the React
+         Suspense fallback in main.tsx, so the swap is pixel-identical.
+         Colors are hardcoded (not hsl(var(--background))) because index.css
+         hasn't loaded when this first paints. Splash is always dark — the app
+         defaults to the dark theme and a brief dark flash is acceptable for
+         light-theme users. */
       .app-suspense-fallback {
         min-height: 100vh;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
-        background: hsl(var(--background));
+        gap: 1.25rem;
+        background: #000;
+      }
+
+      .app-splash-wordmark {
+        margin: 0;
+        font-family:
+          'Inter',
+          -apple-system,
+          system-ui,
+          sans-serif;
+        font-size: 1.75rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        background: linear-gradient(135deg, #c49746 0%, #feeaa5 50%, #c49746 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        color: #feeaa5; /* fallback if background-clip:text unsupported */
       }
 
       .app-suspense-spinner {
@@ -66,6 +90,29 @@
 
       .app-suspense-spin {
         animation: appSuspenseSpin 1s linear infinite;
+      }
+
+      /* Inline copy of index.css .gold-gradient-spinner (not yet loaded at first paint) */
+      .app-splash-gold {
+        border: 2.5px solid transparent;
+        border-radius: 9999px;
+        background: conic-gradient(
+            from 180deg,
+            transparent 0%,
+            #c49746 25%,
+            #feeaa5 50%,
+            #c49746 75%,
+            transparent 100%
+          )
+          border-box;
+        mask:
+          linear-gradient(#fff 0 0) padding-box,
+          linear-gradient(#fff 0 0);
+        mask-composite: exclude;
+        -webkit-mask:
+          linear-gradient(#fff 0 0) padding-box,
+          linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
       }
 
       @keyframes appSuspenseSpin {
@@ -86,7 +133,15 @@
     <meta name="twitter:description" content="The Group Chat Travel App" />
   </head>
   <body>
-    <div id="root"></div>
+    <!-- Static splash: paints with the HTML, before any JS downloads or parses.
+         createRoot().render() replaces it; main.tsx's Suspense fallback renders
+         the same markup so the handoff is seamless. -->
+    <div id="root">
+      <div class="app-suspense-fallback">
+        <p class="app-splash-wordmark">Chravel</p>
+        <div class="app-suspense-spinner app-suspense-spin app-splash-gold"></div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

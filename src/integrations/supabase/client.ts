@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './types';
-import { resolveSupabaseConfig } from './config';
+import { resolveSupabaseConfig, SUPABASE_AUTH_STORAGE_KEY } from './config';
 
 /**
  * Safe storage implementation for environments where localStorage is unavailable
@@ -40,7 +40,7 @@ export const supabase: SupabaseClient<Database> = createClient<Database>(
       storage: createSafeStorage(),
       persistSession: true,
       autoRefreshToken: true,
-      storageKey: 'chravel-auth-session',
+      storageKey: SUPABASE_AUTH_STORAGE_KEY,
       detectSessionInUrl: true,
     },
     realtime: {

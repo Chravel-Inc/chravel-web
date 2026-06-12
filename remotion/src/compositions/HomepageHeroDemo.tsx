@@ -25,8 +25,7 @@ const SCENE = 75; // 2.5s per scene
 const TRANSITION = 14;
 const END = 90;
 
-export const HOMEPAGE_HERO_DURATION =
-  SCENE * 6 + END - TRANSITION * 6; // ≈ 540 - 84 + 90 ≈ 546 frames ≈ 18.2s
+export const HOMEPAGE_HERO_DURATION = SCENE * 6 + END - TRANSITION * 6; // ≈ 540 - 84 + 90 ≈ 546 frames ≈ 18.2s
 
 // ─── Shared chrome ───────────────────────────────────────────────────────────
 
@@ -73,11 +72,12 @@ const Card: React.FC<{ children: React.ReactNode; width?: number; height?: numbe
 const Row: React.FC<{ children: React.ReactNode; style?: React.CSSProperties }> = ({
   children,
   style,
-}) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: 16, ...style }}>{children}</div>
-);
+}) => <div style={{ display: 'flex', alignItems: 'center', gap: 16, ...style }}>{children}</div>;
 
-const Avatar: React.FC<{ initials: string; color?: string }> = ({ initials, color = COLORS.gold }) => (
+const Avatar: React.FC<{ initials: string; color?: string }> = ({
+  initials,
+  color = COLORS.gold,
+}) => (
   <div
     style={{
       width: 44,
@@ -188,10 +188,34 @@ const TripCard: React.FC<{
 
 const ChatScene: React.FC = () => {
   const msgs = [
-    { from: 'Maya', initials: 'M', text: 'What time are we leaving for dinner?', side: 'left' as const, delay: 6 },
-    { from: 'You', initials: 'J', text: 'Basecamp address is pinned in Places 📍', side: 'right' as const, delay: 16 },
-    { from: 'Alex', initials: 'A', text: 'Just added the airport pickup to Calendar.', side: 'left' as const, delay: 28 },
-    { from: 'You', initials: 'J', text: 'Can everyone vote on Saturday brunch?', side: 'right' as const, delay: 42 },
+    {
+      from: 'Maya',
+      initials: 'M',
+      text: 'What time are we leaving for dinner?',
+      side: 'left' as const,
+      delay: 6,
+    },
+    {
+      from: 'You',
+      initials: 'J',
+      text: 'Basecamp address is pinned in Places 📍',
+      side: 'right' as const,
+      delay: 16,
+    },
+    {
+      from: 'Alex',
+      initials: 'A',
+      text: 'Just added the airport pickup to Calendar.',
+      side: 'left' as const,
+      delay: 28,
+    },
+    {
+      from: 'You',
+      initials: 'J',
+      text: 'Can everyone vote on Saturday brunch?',
+      side: 'right' as const,
+      delay: 42,
+    },
   ];
   return (
     <>
@@ -201,13 +225,15 @@ const ChatScene: React.FC = () => {
           <Row>
             <Avatar initials="BT" />
             <div>
-              <div style={{ color: COLORS.white, fontWeight: 700, fontSize: 17 }}>Bali Trip 2026</div>
+              <div style={{ color: COLORS.white, fontWeight: 700, fontSize: 17 }}>
+                Bali Trip 2026
+              </div>
               <div style={{ color: COLORS.muted, fontSize: 12 }}>6 members · Chat</div>
             </div>
           </Row>
         </div>
         <div style={{ padding: '28px 40px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {msgs.map((m) => (
+          {msgs.map(m => (
             <ChatRow key={m.text} {...m} />
           ))}
         </div>
@@ -278,7 +304,13 @@ const CalendarScene: React.FC = () => {
     { time: '8:30 AM', title: 'Airport pickup', loc: 'DPS → Villa', delay: 6, hl: false },
     { time: '11:30 AM', title: 'Brunch at Sisterfields', loc: 'Seminyak', delay: 14, hl: false },
     { time: '2:00 PM', title: 'Beach + surf lessons', loc: 'Echo Beach', delay: 22, hl: true },
-    { time: '8:00 PM', title: 'Group dinner reservation', loc: 'Mama San (8 ppl)', delay: 30, hl: false },
+    {
+      time: '8:00 PM',
+      title: 'Group dinner reservation',
+      loc: 'Mama San (8 ppl)',
+      delay: 30,
+      hl: false,
+    },
   ];
   return (
     <>
@@ -290,11 +322,13 @@ const CalendarScene: React.FC = () => {
               Saturday · Mar 21
             </div>
             <div style={{ flex: 1 }} />
-            <div style={{ color: COLORS.gold, fontSize: 13, fontWeight: 700 }}>Shared itinerary</div>
+            <div style={{ color: COLORS.gold, fontSize: 13, fontWeight: 700 }}>
+              Shared itinerary
+            </div>
           </Row>
         </div>
         <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {events.map((e) => (
+          {events.map(e => (
             <CalRow key={e.title} {...e} />
           ))}
         </div>
@@ -343,7 +377,14 @@ const CalRow: React.FC<{
 
 const PlacesScene: React.FC = () => {
   const pins = [
-    { label: 'Villa Basecamp', sub: 'Jl. Pantai Batu Bolong 88', x: 38, y: 46, primary: true, delay: 6 },
+    {
+      label: 'Villa Basecamp',
+      sub: 'Jl. Pantai Batu Bolong 88',
+      x: 38,
+      y: 46,
+      primary: true,
+      delay: 6,
+    },
     { label: 'Mama San', sub: 'Dinner · Sat 8pm', x: 62, y: 38, primary: false, delay: 14 },
     { label: 'Echo Beach', sub: 'Surf lessons · 2pm', x: 28, y: 64, primary: false, delay: 22 },
     { label: 'DPS Airport', sub: 'Pickup zone', x: 74, y: 70, primary: false, delay: 30 },
@@ -389,7 +430,7 @@ const PlacesScene: React.FC = () => {
               }}
             />
           ))}
-          {pins.map((p) => (
+          {pins.map(p => (
             <Pin key={p.label} {...p} />
           ))}
         </div>
@@ -459,7 +500,13 @@ const Pin: React.FC<{
 const PaymentsScene: React.FC = () => {
   const expenses = [
     { who: 'You paid', what: 'Villa deposit', amount: '$1,200', split: '$200 each', delay: 6 },
-    { who: 'Maya paid', what: 'Group dinner · Mama San', amount: '$336', split: '$42 each', delay: 14 },
+    {
+      who: 'Maya paid',
+      what: 'Group dinner · Mama San',
+      amount: '$336',
+      split: '$42 each',
+      delay: 14,
+    },
     { who: 'Alex paid', what: 'Surf lessons', amount: '$240', split: '$30 each', delay: 22 },
   ];
   return (
@@ -485,7 +532,7 @@ const PaymentsScene: React.FC = () => {
           </Row>
         </div>
         <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {expenses.map((e) => (
+          {expenses.map(e => (
             <ExpenseRow key={e.what} {...e} />
           ))}
         </div>
@@ -523,7 +570,9 @@ const ExpenseRow: React.FC<{
     >
       <div style={{ flex: 1 }}>
         <div style={{ color: COLORS.muted, fontSize: 13 }}>{who}</div>
-        <div style={{ color: COLORS.white, fontWeight: 700, fontSize: 19, marginTop: 2 }}>{what}</div>
+        <div style={{ color: COLORS.white, fontWeight: 700, fontSize: 19, marginTop: 2 }}>
+          {what}
+        </div>
       </div>
       <div style={{ textAlign: 'right' }}>
         <div style={{ color: COLORS.white, fontWeight: 800, fontSize: 22 }}>{amount}</div>
@@ -605,7 +654,15 @@ const ConciergeScene: React.FC = () => {
                 fontWeight: 500,
               }}
             >
-              <div style={{ color: COLORS.gold, fontSize: 12, fontWeight: 700, marginBottom: 6, letterSpacing: '0.15em' }}>
+              <div
+                style={{
+                  color: COLORS.gold,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  marginBottom: 6,
+                  letterSpacing: '0.15em',
+                }}
+              >
                 CHRAVEL CONCIERGE
               </div>
               {answer.slice(0, answerChars)}

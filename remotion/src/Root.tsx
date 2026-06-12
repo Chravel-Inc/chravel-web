@@ -11,10 +11,7 @@ import { BeforeAfterChaos, BEFORE_AFTER_DURATION } from './compositions/BeforeAf
 import { BRollOverlay, BROLL_OVERLAY_DURATION } from './compositions/BRollOverlay';
 import { ProductLaunchV2, PRODUCT_LAUNCH_V2_DURATION } from './compositions/ProductLaunchV2';
 import { HomepageHeroDemo, HOMEPAGE_HERO_DURATION } from './compositions/HomepageHeroDemo';
-import {
-  HomepageHeroDemo60,
-  HOMEPAGE_HERO_60_DURATION,
-} from './compositions/HomepageHeroDemo60';
+import { HomepageHeroDemo60, HOMEPAGE_HERO_60_DURATION } from './compositions/HomepageHeroDemo60';
 import { MobileAppDemo, MOBILE_DEMO_DURATION } from './compositions/MobileAppDemo';
 
 const FPS = 30;

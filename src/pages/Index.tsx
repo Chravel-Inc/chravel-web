@@ -94,6 +94,8 @@ import { PullToRefreshIndicator } from '../components/mobile/PullToRefreshIndica
 import { clearDataCaches } from '../utils/pwaCacheUtils';
 import { isInstalledApp } from '../utils/platformDetection';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { BootHydrationFallback } from '../components/home/DashboardSkeleton';
+import { performanceService } from '../services/performanceService';
 import { X } from 'lucide-react';
 import { getSettingsRouteIntent } from '../utils/settingsRouteParams';
 
@@ -156,6 +158,14 @@ const AuthIndex = () => {
     isInitialized,
     isDemoMode,
   });
+
+  // Boot timeline: dashboard reached with a resolved authenticated session.
+  // markBootPhase records only the first occurrence, so re-renders are free.
+  useEffect(() => {
+    if (!authLoading && user) {
+      performanceService.markBootPhase('dashboard_rendered');
+    }
+  }, [authLoading, user]);
 
   // Choose-your-own-adventure onboarding: a choice screen offers (1) the Trip Chaos
   // survey → personalized tour, (2) the demo tour, or (3) straight to the dashboard.
@@ -782,13 +792,10 @@ const AuthIndex = () => {
   // MRKTING toggle: Show marketing page only for unauthenticated BROWSER users.
   // Gate on authLoading to prevent marketing page flash during session hydration.
   if (demoView === 'off' && !user) {
-    // Auth is still hydrating — show neutral loading state on all platforms
+    // Auth is still hydrating — BootHydrationFallback paints the dashboard
+    // skeleton when the device looks authenticated, else a neutral spinner.
     if (authLoading) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-background">
-          <LoadingSpinner size="lg" />
-        </div>
-      );
+      return <BootHydrationFallback />;
     }
 
     // Installed app (PWA standalone or native webview) — show auth gate, not marketing
@@ -1486,11 +1493,7 @@ const UnauthIndex = ({
 }) => {
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | null>(null);
   if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
+    return <BootHydrationFallback />;
   }
 
   if (isInstalled) {
