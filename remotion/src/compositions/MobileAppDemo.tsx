@@ -22,7 +22,10 @@ const TRANSITION = 12;
 const END = 75;
 export const MOBILE_DEMO_DURATION = SCENE * 5 + END - TRANSITION * 5; // ≈ 390 frames ≈ 13s
 
-const PhoneStage: React.FC<{ children: React.ReactNode; caption: string }> = ({ children, caption }) => (
+const PhoneStage: React.FC<{ children: React.ReactNode; caption: string }> = ({
+  children,
+  caption,
+}) => (
   <AbsoluteFill style={{ background: COLORS.background, fontFamily }}>
     <AbsoluteFill style={{ background: GRADIENTS.backgroundRadial }} />
     <AbsoluteFill style={{ background: GRADIENTS.goldAmbient }} />
@@ -85,7 +88,7 @@ const PhoneChat: React.FC = () => {
       <div style={{ color: COLORS.white, fontWeight: 700, fontSize: 14, marginBottom: 4 }}>
         Bali Trip 2026
       </div>
-      {msgs.map((m) => (
+      {msgs.map(m => (
         <PhoneBubble key={m.t} {...m} />
       ))}
     </div>
@@ -123,7 +126,7 @@ const PhoneCalendar: React.FC = () => (
       { t: '11:30a', l: 'Brunch · Sisterfields', hl: false },
       { t: '2:00p', l: 'Beach + surf', hl: true },
       { t: '8:00p', l: 'Dinner · Mama San', hl: false },
-    ].map((e) => (
+    ].map(e => (
       <div
         key={e.l}
         style={{
@@ -163,7 +166,7 @@ const PhonePayments: React.FC = () => (
       { w: 'Villa deposit', a: '$1,200', s: '$200 each' },
       { w: 'Dinner · Mama San', a: '$336', s: '$42 each' },
       { w: 'Surf lessons', a: '$240', s: '$30 each' },
-    ].map((e) => (
+    ].map(e => (
       <div
         key={e.w}
         style={{
@@ -189,7 +192,9 @@ const PhonePayments: React.FC = () => (
 const PhoneConcierge: React.FC = () => {
   const frame = useCurrentFrame();
   const answer = 'Brunch 11:30, beach 2pm, dinner 8pm. Jordan & Maya owe $42 each.';
-  const n = Math.floor(interpolate(frame, [20, 65], [0, answer.length], { extrapolateRight: 'clamp' }));
+  const n = Math.floor(
+    interpolate(frame, [20, 65], [0, answer.length], { extrapolateRight: 'clamp' }),
+  );
   return (
     <div style={{ padding: 14, color: COLORS.white }}>
       <div
@@ -216,7 +221,15 @@ const PhoneConcierge: React.FC = () => {
           maxWidth: '90%',
         }}
       >
-        <div style={{ color: COLORS.gold, fontSize: 9, fontWeight: 700, letterSpacing: '0.15em', marginBottom: 4 }}>
+        <div
+          style={{
+            color: COLORS.gold,
+            fontSize: 9,
+            fontWeight: 700,
+            letterSpacing: '0.15em',
+            marginBottom: 4,
+          }}
+        >
           CONCIERGE
         </div>
         {answer.slice(0, n)}

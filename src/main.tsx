@@ -16,6 +16,14 @@ import { warmRouteChunksForPath } from './lib/routeChunks';
 import { getSafeStorage, safeGetItem, safeSetItem } from '@/utils/safeStorage';
 import './index.css';
 
+// Boot-timeline anchor: raw mark (not performanceService) so the entry chunk
+// stays lean. performanceService reads it back when reporting `boot_timeline`.
+try {
+  performance.mark('chravel-boot:entry');
+} catch {
+  // ignore — older embedded WebViews without performance.mark
+}
+
 // ── Startup env validation ──────────────────────────────────────────────────
 // Supabase config is required at runtime. Accept either the modern
 // publishable key or legacy anon key.
@@ -65,7 +73,34 @@ const shouldUseMarketingSplit =
     pathname: window.location.pathname,
     hasAuthMarker: hasAuthMarkerOnBoot,
     isInstalledApp: isInstalledApp(),
+    forceMarketing:
+      window.location.search.includes('marketing=1') ||
+      window.location.pathname === '/home' ||
+      window.location.pathname === '/index',
   });
+
+// Warm the cold-start route's page chunk in parallel with the App.tsx chunk —
+// same trick as the /auth warm-up above. Without this the page chunk is a
+// serial network hop AFTER App.tsx parses (index.html → entry → App → page),
+// which is the dominant cold-start cost in the native shell where no service
+// worker caches chunks. Vite dedupes the import promise, so the lazy() route
+// in App.tsx resolves instantly from the in-flight request.
+if (hasRequiredSupabaseEnv && typeof window !== 'undefined') {
+  const bootPath = window.location.pathname;
+  if (bootPath === '/' && !shouldUseMarketingSplit) {
+    void import('./pages/Index');
+  } else if (bootPath.startsWith('/trip/')) {
+    void import('./pages/TripDetail');
+  }
+}
+const safeLocalStorageSet = (key: string, value: string): void => {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // ignore storage failures in restricted environments (e.g. sandboxed previews)
+  }
+};
+
 const clearAllCaches = (): void => {
   if ('caches' in window) {
     caches
@@ -251,11 +286,7 @@ createRoot(document.getElementById('root')!).render(
           <TripVariantProvider variant="consumer">
             <BasecampProvider>
               <Suspense
-                fallback={
-                  <div className="app-suspense-fallback min-h-screen flex items-center justify-center bg-background">
-                    <div className="app-suspense-spinner app-suspense-spin w-12 h-12 animate-spin gold-gradient-spinner" />
-                  </div>
-                }
+                fallback={<div className="app-suspense-fallback" />}
               >
                 <App />
               </Suspense>

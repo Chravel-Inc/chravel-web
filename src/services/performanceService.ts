@@ -1,4 +1,16 @@
 import { telemetry } from '@/telemetry/service';
+import { isChravelNativeShell, isInstalledApp } from '@/utils/platformDetection';
+
+/**
+ * Cold-start boot phases, all measured as ms since timeOrigin so they are
+ * directly comparable:
+ * - `entry`: entry module evaluated (marked with a raw performance.mark in
+ *   main.tsx so the entry chunk doesn't need this module).
+ * - `app_mounted`: the lazy App shell mounted (App.tsx).
+ * - `auth_hydrated`: supabase.auth.getSession() settled (useAuth.tsx).
+ * - `dashboard_rendered`: first authenticated dashboard content painted (Index.tsx).
+ */
+export type BootPhase = 'app_mounted' | 'auth_hydrated' | 'dashboard_rendered';
 
 interface PerformanceMetrics {
   navigationStart?: number;
@@ -12,6 +24,12 @@ interface PerformanceMetrics {
 class PerformanceService {
   private metrics: PerformanceMetrics = {};
   private observer?: PerformanceObserver;
+  private bootTimelineReported = false;
+  // Captured at module eval (before the Router mounts), so it is the COLD
+  // START path even after in-app navigations. boot_timeline only reports for
+  // '/' boots — marking dashboard_rendered after a deep-link boot navigates
+  // home minutes later would poison the yardstick with multi-minute outliers.
+  private bootPath = typeof window !== 'undefined' ? window.location.pathname : '';
 
   constructor() {
     this.initializeObservers();
@@ -108,6 +126,59 @@ class PerformanceService {
         value: Math.round(value),
       });
     }
+  }
+
+  /** Start time of a chravel-boot mark in ms since timeOrigin, or null. */
+  private bootPhaseTime(phase: string): number | null {
+    try {
+      const entry = performance.getEntriesByName(`chravel-boot:${phase}`)[0];
+      return entry ? Math.round(entry.startTime) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Record a cold-start boot phase (first occurrence only; the performance
+   * marks are the single source of truth — entry is marked the same way in
+   * main.tsx without importing this service). When the dashboard renders on a
+   * '/' boot, the full timeline is reported as one `boot_timeline` event —
+   * the before/after yardstick for startup work.
+   */
+  public markBootPhase(phase: BootPhase): void {
+    try {
+      if (performance.getEntriesByName(`chravel-boot:${phase}`).length > 0) return;
+      performance.mark(`chravel-boot:${phase}`);
+    } catch {
+      // performance.mark unavailable — boot timeline silently disabled
+      return;
+    }
+    if (phase === 'dashboard_rendered' && this.bootPath === '/') {
+      this.reportBootTimeline();
+    }
+  }
+
+  private reportBootTimeline(): void {
+    if (this.bootTimelineReported) return;
+    this.bootTimelineReported = true;
+
+    telemetry.track('boot_timeline', {
+      entry_ms: this.bootPhaseTime('entry'),
+      app_mounted_ms: this.bootPhaseTime('app_mounted'),
+      auth_hydrated_ms: this.bootPhaseTime('auth_hydrated'),
+      dashboard_rendered_ms: this.bootPhaseTime('dashboard_rendered'),
+      lcp_ms:
+        this.metrics.largestContentfulPaint !== undefined
+          ? Math.round(this.metrics.largestContentfulPaint)
+          : null,
+      fcp_ms:
+        this.metrics.firstContentfulPaint !== undefined
+          ? Math.round(this.metrics.firstContentfulPaint)
+          : null,
+      network_type: (navigator as any).connection?.effectiveType ?? null,
+      native_shell: isChravelNativeShell(),
+      installed_app: isInstalledApp(),
+    });
   }
 
   // Public methods for manual tracking

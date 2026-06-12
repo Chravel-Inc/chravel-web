@@ -2,7 +2,8 @@ import React, { lazy, useEffect } from 'react';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { persistOptions } from '@/lib/queryPersister';
 import { queryClient } from '@/lib/queryClient';
 import {
   BrowserRouter,
@@ -19,6 +20,7 @@ import { ConsumerSubscriptionProvider } from './hooks/useConsumerSubscription';
 import { MobileAppLayout } from './components/mobile/MobileAppLayout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { LazyRoute } from './components/LazyRoute';
+import { BootHydrationFallback } from './components/home/DashboardSkeleton';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { InternalAdminRoute } from './components/InternalAdminRoute';
 import { performanceService } from './services/performanceService';
@@ -201,6 +203,7 @@ const App = () => {
   // (The app-icon badge is reconciled in AppInitializer via useAppBadge, not here.)
   useEffect(() => {
     markAppBooted();
+    performanceService.markBootPhase('app_mounted');
   }, []);
 
   // Track app initialization performance
@@ -296,7 +299,10 @@ const App = () => {
           </linearGradient>
         </defs>
       </svg>
-      <QueryClientProvider client={queryClient}>
+      {/* PersistQueryClientProvider restores the allowlisted IDB cache before
+          queries run (warm starts paint last-known data instantly), then acts
+          as a normal QueryClientProvider. Safety model in queryPersister.ts. */}
+      <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
         <AuthProvider>
           <ConsumerSubscriptionProvider>
             <AppInitializer>
@@ -315,7 +321,7 @@ const App = () => {
                       <Route
                         path="/"
                         element={
-                          <LazyRoute>
+                          <LazyRoute fallback={<BootHydrationFallback />}>
                             <Index />
                           </LazyRoute>
                         }
@@ -331,7 +337,7 @@ const App = () => {
                       <Route
                         path="/trip/:tripId"
                         element={
-                          <LazyRoute>
+                          <LazyRoute fallback={<BootHydrationFallback variant="trip" />}>
                             <TripDetail />
                           </LazyRoute>
                         }
@@ -717,7 +723,7 @@ const App = () => {
             </AppInitializer>
           </ConsumerSubscriptionProvider>
         </AuthProvider>
-      </QueryClientProvider>
+      </PersistQueryClientProvider>
     </ErrorBoundary>
   );
 };

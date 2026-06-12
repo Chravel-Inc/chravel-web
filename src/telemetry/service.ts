@@ -316,6 +316,9 @@ class TelemetryService {
   }
 
   private isPerformanceEvent(event: TelemetryEventName): boolean {
+    // boot_timeline is deliberately NOT sampled: it fires at most once per
+    // cold start to '/' and is the before/after yardstick for startup work —
+    // sampling it 10% would make boot regressions ~10x slower to detect.
     return ['app_loaded', 'chat_render', 'page_view'].includes(event);
   }
 

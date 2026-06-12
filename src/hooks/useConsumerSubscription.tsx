@@ -47,6 +47,10 @@ type SubscriptionRefreshReason =
 
 export const ConsumerSubscriptionProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
+  // useAuth sets a session-derived user first and the enriched user moments
+  // later — two object identities for the same login. Key effects/callbacks on
+  // the stable id so the initial check-subscription edge call fires once.
+  const userId = user?.id;
   const [subscription, setSubscription] = useState<ConsumerSubscription | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [lastRevalidatedAt, setLastRevalidatedAt] = useState<number | null>(null);
@@ -63,7 +67,7 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
 
   const checkSubscription = useCallback(
     async (reason: SubscriptionRefreshReason = 'manual') => {
-      if (!user) return;
+      if (!userId) return;
 
       setIsLoading(true);
       try {
@@ -107,7 +111,7 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
         setIsLoading(false);
       }
     },
-    [user],
+    [userId],
   );
 
   const checkSubscriptionWithStaleGuard = useCallback(
@@ -125,10 +129,10 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
   );
 
   useEffect(() => {
-    if (user) {
+    if (userId) {
       checkSubscription('initial');
     }
-  }, [user, checkSubscription]);
+  }, [userId, checkSubscription]);
 
   useEffect(() => {
     if (!user) return;

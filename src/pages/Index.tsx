@@ -92,8 +92,10 @@ import { useFeatureFlagStatus } from '../lib/featureFlags';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../components/mobile/PullToRefreshIndicator';
 import { clearDataCaches } from '../utils/pwaCacheUtils';
-import { isInstalledApp } from '../utils/platformDetection';
+import { isInstalledApp, isNativeAuthSurface } from '../utils/platformDetection';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { BootHydrationFallback } from '../components/home/DashboardSkeleton';
+import { performanceService } from '../services/performanceService';
 import { X } from 'lucide-react';
 import { getSettingsRouteIntent } from '../utils/settingsRouteParams';
 
@@ -156,6 +158,14 @@ const AuthIndex = () => {
     isInitialized,
     isDemoMode,
   });
+
+  // Boot timeline: dashboard reached with a resolved authenticated session.
+  // markBootPhase records only the first occurrence, so re-renders are free.
+  useEffect(() => {
+    if (!authLoading && user) {
+      performanceService.markBootPhase('dashboard_rendered');
+    }
+  }, [authLoading, user]);
 
   // Choose-your-own-adventure onboarding: a choice screen offers (1) the Trip Chaos
   // survey → personalized tour, (2) the demo tour, or (3) straight to the dashboard.
@@ -782,17 +792,16 @@ const AuthIndex = () => {
   // MRKTING toggle: Show marketing page only for unauthenticated BROWSER users.
   // Gate on authLoading to prevent marketing page flash during session hydration.
   if (demoView === 'off' && !user) {
-    // Auth is still hydrating — show neutral loading state on all platforms
+    // Auth is still hydrating — BootHydrationFallback paints the dashboard
+    // skeleton when the device looks authenticated, else a neutral spinner.
     if (authLoading) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-background">
-          <LoadingSpinner size="lg" />
-        </div>
-      );
+      return <BootHydrationFallback />;
     }
 
-    // Installed app (PWA standalone or native webview) — show auth gate, not marketing
-    if (isInstalledApp()) {
+    // Only real native shells / installed PWA jump straight to the auth gate.
+    // Generic iOS WKWebViews (Instagram/Facebook in-app browsers, embedded
+    // previews) fall through to the marketing landing.
+    if (isNativeAuthSurface()) {
       return (
         <div className="min-h-screen bg-background">
           <Suspense fallback={null}>
@@ -812,6 +821,7 @@ const AuthIndex = () => {
       </div>
     );
   }
+
 
   // Show onboarding for new authenticated users — choose-your-own-adventure:
   // choice screen → (survey → personalized tour) | (tour) | (straight to dashboard).
@@ -1486,11 +1496,7 @@ const UnauthIndex = ({
 }) => {
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | null>(null);
   if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
+    return <BootHydrationFallback />;
   }
 
   if (isInstalled) {
@@ -1515,7 +1521,7 @@ const Index = () => {
   const { user, isLoading: authLoading } = useAuth();
   const { demoView } = useDemoMode();
   if (demoView === 'off' && !user) {
-    return <UnauthIndex authLoading={authLoading} isInstalled={isInstalledApp()} />;
+    return <UnauthIndex authLoading={authLoading} isInstalled={isNativeAuthSurface()} />;
   }
 
   return <AuthIndex />;
