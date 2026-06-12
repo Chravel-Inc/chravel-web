@@ -1,12 +1,26 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { Button } from '../../ui/button';
-import demoPreviewHero from '@/assets/demo-preview-hero.webp';
+
+// Real-product-walkthrough video built from Tokyo Adventure demo screenshots.
+// Source: remotion/src/compositions/HomepageHeroDemo60.tsx
+// Regenerate via: cd remotion && node scripts/render-remotion.mjs /mnt/documents/chravel-homepage-demo-60.mp4 HomepageHeroDemo60
+import heroVideoAsset from '@/assets/chravel-homepage-demo-60.mp4.asset.json';
+import heroPosterAsset from '@/assets/chravel-homepage-demo-60-poster.jpg.asset.json';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
+
+const HERO_VIDEO_SRC = heroVideoAsset.url;
+const HERO_VIDEO_POSTER = heroPosterAsset.url;
 
 interface HeroSectionProps {
   onSignUp: () => void;
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
+  const reducedMotion = useReducedMotion();
+  const [videoFailed, setVideoFailed] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const showVideo = !reducedMotion && !videoFailed;
+
   return (
     <div
       className="relative container mx-auto px-4 flex flex-col min-h-[85vh] tablet:min-h-[90vh] text-center pb-8 tablet:pb-6"
@@ -41,12 +55,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
             animationDelay: '0.05s',
           }}
         >
-          <h2
-            className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight text-white"
-            style={{
-              textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
-            }}
-          >
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight text-gradient-gold">
             ChravelApp
           </h2>
         </div>
@@ -65,7 +74,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
 
         {/* New Subtitle */}
         <p
-          className="text-sm sm:text-base md:text-lg lg:text-xl text-white font-medium max-w-3xl mx-auto mb-3 tablet:mb-4 animate-fade-in"
+          className="text-sm sm:text-base md:text-lg lg:text-xl text-white/90 font-medium max-w-3xl mx-auto mb-3 tablet:mb-4 animate-fade-in"
           style={{
             animationDelay: '0.05s',
             textShadow: '0 2px 4px rgba(0,0,0,0.4)',
@@ -82,14 +91,31 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           className="w-full max-w-6xl mx-auto px-2 animate-fade-in"
           style={{ animationDelay: '0.1s' }}
         >
-          <div className="relative rounded-xl overflow-hidden shadow-2xl shadow-black/40 border border-white/10">
-            <img
-              src={demoPreviewHero}
-              alt="ChravelApp trip dashboard preview"
-              className="w-full h-auto"
-              fetchPriority="high"
-              decoding="async"
-            />
+          <div className="relative rounded-xl overflow-hidden shadow-2xl shadow-black/40 border border-white/10 aspect-video bg-[#070B1A]">
+            {showVideo ? (
+              <video
+                ref={videoRef}
+                className="w-full h-full object-cover"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                poster={HERO_VIDEO_POSTER}
+                aria-label="ChravelApp trip dashboard product demo"
+                onError={() => setVideoFailed(true)}
+              >
+                <source src={HERO_VIDEO_SRC} type="video/mp4" />
+              </video>
+            ) : (
+              <img
+                src={HERO_VIDEO_POSTER}
+                alt="ChravelApp Tokyo Adventure trip dashboard preview"
+                className="w-full h-full object-cover"
+                fetchPriority="high"
+                decoding="async"
+              />
+            )}
             {/* Subtle overlay to blend edges */}
             <div className="absolute inset-0 bg-gradient-to-t from-[#070B1A]/30 via-transparent to-transparent pointer-events-none" />
           </div>
@@ -98,7 +124,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         {/* Mobile CTA - centered below preview */}
         <Button
           onClick={onSignUp}
-          className="mt-4 px-6 py-3 accent-fill-gold backdrop-blur-md rounded-lg text-base font-semibold animate-fade-in lg:hidden"
+          className="mt-4 px-6 py-3 accent-fill-gold backdrop-blur-md rounded-xl text-base font-semibold animate-fade-in lg:hidden"
           style={{ animationDelay: '0.2s' }}
         >
           Login or Signup
