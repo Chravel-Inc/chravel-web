@@ -92,7 +92,7 @@ import { useFeatureFlagStatus } from '../lib/featureFlags';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../components/mobile/PullToRefreshIndicator';
 import { clearDataCaches } from '../utils/pwaCacheUtils';
-import { isInstalledApp } from '../utils/platformDetection';
+import { isInstalledApp, isNativeAuthSurface } from '../utils/platformDetection';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { BootHydrationFallback } from '../components/home/DashboardSkeleton';
 import { performanceService } from '../services/performanceService';
