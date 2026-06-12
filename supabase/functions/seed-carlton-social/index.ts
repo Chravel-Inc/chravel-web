@@ -1923,13 +1923,11 @@ serve(async req => {
 
   const headers = { ...getCorsHeaders(req), 'Content-Type': 'application/json' };
 
-  // Service-role auth gate (admin-only function)
-  const authHeader = req.headers.get('authorization');
-  if (!authHeader) {
-    return new Response(JSON.stringify({ error: 'Authentication required' }), {
-      status: 401,
-      headers,
-    });
+  // Super-admin auth gate — validate JWT and require super-admin role.
+  const auth = await requireAuth(req, headers);
+  if (auth.error) return auth.response;
+  if (!isSuperAdminEmail(auth.user.email)) {
+    return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers });
   }
 
   const supabase = createClient(
