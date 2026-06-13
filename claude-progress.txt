@@ -35,3 +35,8 @@
 2026-06-07 — Trips QA follow-up responsive breakpoint hardening
 - Tightened the Trips responsive CSS after QA review: landscape/mobile-tablet grids now use two columns through 1024px without the previous short-height-only gap, 1024px mobile-shell views retain bottom nav padding, and the CSS override no longer needs `!important`.
 - Targeted TripGrid test, lint:check, typecheck, and build pass. Real screenshot capture is still blocked: Playwright/Puppeteer browser downloads return 403 and Ubuntu's Chromium package is a snap stub with no running snapd.
+
+2026-06-13 — Recs nightlife sports landmarks expansion
+- Added Nightlife, Sports, and Landmarks recommendation categories to the existing mock Recs feed with organic cards, official outbound links, and no promoted/discount claims.
+- Kept category filtering on the existing horizontally scrollable pill row and added regression coverage for unique IDs, organic disclosure behavior, and requested LA/global content.
+- Verification: typecheck, targeted recommendation tests, lint:check, and build pass; full test run still has unrelated pre-existing failures in AuthModal, Apple client secret, Supabase config, and tool-result contract suites.
