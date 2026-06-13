@@ -55,9 +55,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           }}
         >
           <h2
-            className="text-sm sm:text-base md:text-lg font-semibold tracking-wider uppercase text-white/80"
+            className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight"
             style={{
-              textShadow: '0 1px 4px rgba(0,0,0,0.5)',
+              textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
             }}
           >
             ChravelApp
