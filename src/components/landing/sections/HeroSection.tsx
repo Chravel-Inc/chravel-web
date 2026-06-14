@@ -117,7 +117,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
               <img
                 src={HERO_VIDEO_POSTER}
                 alt="ChravelApp trips dashboard preview"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover scale-[1.18]"
                 fetchPriority="high"
                 decoding="async"
               />
