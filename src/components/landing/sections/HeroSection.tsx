@@ -6,7 +6,6 @@ import { Button } from '../../ui/button';
 // Regenerate: see public/videos/README.md (capture → render → poster).
 // Served from public/ so the file ships with every deploy — no external
 // asset store involved (a previous sandbox-only asset URL broke in prod).
-import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 const HERO_VIDEO_SRC = '/videos/chravel-homepage-demo-60.mp4';
 const HERO_VIDEO_POSTER = '/videos/chravel-homepage-demo-60-poster.jpg';
@@ -16,9 +15,11 @@ interface HeroSectionProps {
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
-  const reducedMotion = useReducedMotion();
   const [videoFailed, setVideoFailed] = useState(false);
-  const showVideo = !reducedMotion && !videoFailed;
+  // Hero demo is muted + decorative — always autoplay regardless of
+  // prefers-reduced-motion. Fallback to poster only on real load error.
+  const showVideo = !videoFailed;
+
 
   return (
     <div
