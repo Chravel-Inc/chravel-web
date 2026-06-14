@@ -9,14 +9,14 @@ const ProfilePage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const displayName = user?.name || user?.email?.split('@')[0] || 'User';
+  const displayName = user?.displayName || user?.email?.split('@')[0] || 'User';
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 md:p-6">
       {/* Profile Header */}
       <div className="text-center mb-8 animate-fade-in">
         <Avatar className="w-24 h-24 mx-auto mb-4 transition-all duration-200 hover:scale-105">
-          <AvatarImage src={user?.avatar_url || undefined} alt={displayName} />
+          <AvatarImage src={user?.avatar || undefined} alt={displayName} />
           <AvatarFallback className="bg-muted text-foreground text-2xl">
             {displayName.charAt(0).toUpperCase()}
           </AvatarFallback>

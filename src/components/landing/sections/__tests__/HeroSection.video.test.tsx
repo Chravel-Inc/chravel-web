@@ -37,10 +37,14 @@ describe('HeroSection demo video', () => {
     expect(fallback).toHaveAttribute('src', '/videos/chravel-homepage-demo-60-poster.jpg');
   });
 
-  it('shows the static poster instead of video under prefers-reduced-motion', () => {
+  it('still autoplays the muted decorative video under prefers-reduced-motion', () => {
+    // Intentional product decision (see HeroSection.tsx): the hero demo is muted
+    // and decorative, so it autoplays regardless of prefers-reduced-motion. The
+    // poster still backstops a real load error via the <video> poster attribute.
     mockReducedMotion.mockReturnValue(true);
     render(<HeroSection onSignUp={vi.fn()} />);
-    expect(screen.queryByLabelText('ChravelApp trip dashboard product demo')).toBeNull();
-    expect(screen.getByAltText('ChravelApp trips dashboard preview')).toBeInTheDocument();
+    const video = screen.getByLabelText('ChravelApp trip dashboard product demo');
+    expect(video).toHaveAttribute('autoplay');
+    expect(video).toHaveAttribute('poster', '/videos/chravel-homepage-demo-60-poster.jpg');
   });
 });
