@@ -12,7 +12,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, Play, ArrowRight, ChevronRight } from 'lucide-react';
+import { Bomb, Play, ArrowRight, ChevronRight } from 'lucide-react';
 
 interface ChoiceOption {
   icon: React.ComponentType<{ className?: string }>;
