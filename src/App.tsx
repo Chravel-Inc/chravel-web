@@ -553,6 +553,38 @@ const App = () => {
                         }
                       />
                       <Route
+                        path="/group-travel-planning-app"
+                        element={
+                          <LazyRoute>
+                            {(() => {
+                              const config = getPublicSeoRoute('/group-travel-planning-app');
+                              if (!config) return null;
+                              return (
+                                <SeoLandingPage
+                                  config={config}
+                                  h1={SEO_LANDING_CONTENT['/group-travel-planning-app'].h1}
+                                  intro={SEO_LANDING_CONTENT['/group-travel-planning-app'].intro}
+                                  faq={[
+                                    {
+                                      q: 'How is Chravel different from Wanderlog or TripIt?',
+                                      a: 'Wanderlog and TripIt focus on itinerary storage. Chravel adds a real group chat, polls, tasks, shared places, and split payments — so coordination and conversation live in the same place.',
+                                    },
+                                    {
+                                      q: 'Is there a free plan for group travel planning?',
+                                      a: 'Yes. Chravel is free for small groups, with paid tiers for larger trips, pro touring teams, and events.',
+                                    },
+                                    {
+                                      q: 'Does it work on iPhone, Android, and web?',
+                                      a: 'Yes — Chravel runs as a web app and an installable PWA on iOS and Android, with full feature parity for group trip planning.',
+                                    },
+                                  ]}
+                                />
+                              );
+                            })()}
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
                         path="/teams"
                         element={
                           <LazyRoute>
