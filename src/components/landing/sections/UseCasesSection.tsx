@@ -47,7 +47,7 @@ const scenarios = [
     before: 'Staff juggling travel, practices, and logistics across too many tools.',
     expandCTA: 'ChravelApp helps programs stay aligned',
     after:
-      'Role-based access, team schedules, and instant updates—built to scale from college to the pros.',
+      'Role-based access, team schedules, and instant updates—built to scale from Amateur to the Pros.',
     badge: 'Fewer errors · faster decisions',
   },
   {
