@@ -1894,8 +1894,10 @@ serve(async req => {
           candidate = null;
           aiResponse =
             'I completed the action, but had trouble generating a summary. Check your trip tabs for the update.';
+          followUpFailed = true;
           break;
         }
+
       }
 
       if (candidate) {
