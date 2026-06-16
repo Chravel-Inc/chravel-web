@@ -45,6 +45,12 @@ export const PUBLIC_SEO_ROUTES: SeoConfig[] = [
     description:
       'Learn how to plan a trip with friends: dates, budget, itinerary, and responsibilities. Use ChravelApp to keep every detail in sync.',
   },
+  {
+    path: '/group-travel-planning-app',
+    title: 'Best Group Travel Planning App: Chravel vs Wanderlog vs TripIt',
+    description:
+      'Compare the top group travel planning apps. See how ChravelApp combines group chat, itinerary, polls, tasks, and payments in one place — unlike Wanderlog or TripIt.',
+  },
 ];
 
 export const SEO_LANDING_CONTENT: Record<string, SeoLandingContent> = {
