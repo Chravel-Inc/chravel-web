@@ -562,7 +562,7 @@ export const MobileTripTabs = ({
   }, [activeTab, isEventAdmin, onTabChange, tabs, variant]);
 
   return (
-    <>
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       {/* Horizontal Scrollable Tab Bar - Fixed flex item, always visible */}
       <div className="flex-shrink-0 z-40 bg-black/95 backdrop-blur-md border-b border-white/10">
         <div
@@ -616,15 +616,8 @@ export const MobileTripTabs = ({
         </div>
       </div>
 
-      {/* Tab Content - bounded height ensures tab rail stays visible regardless of parent layout */}
-      <div
-        ref={contentRef}
-        className="bg-background flex flex-col min-h-0 flex-1 overflow-hidden"
-        style={{
-          height: 'calc(100dvh - var(--mobile-header-h, 73px) - var(--mobile-tabs-h, 52px))',
-          WebkitOverflowScrolling: 'touch',
-        }}
-      >
+      {/* Tab content fills remaining shell height (header/demo bar/tab rail already reserved). */}
+      <div ref={contentRef} className="bg-background flex flex-col min-h-0 flex-1 overflow-hidden">
         {tabs
           .filter(t => variant === 'event' || t.enabled !== false)
           .map(tab => {
@@ -639,22 +632,22 @@ export const MobileTripTabs = ({
             if (!hasBeenVisited && !isActive) return null;
 
             const ownsInternalScroll = INTERNAL_SCROLL_TABS.includes(tab.id);
+            const scrollContained = isActive && ownsInternalScroll;
 
             return (
               <div
                 key={tab.id}
+                data-tab-panel={tab.id}
+                data-scroll-contained={scrollContained ? 'true' : 'false'}
                 style={{
                   display: isActive ? 'flex' : 'none',
                   flexDirection: 'column',
                   minHeight: 0,
-                  overflowY: ownsInternalScroll ? 'hidden' : isActive ? 'auto' : 'hidden',
+                  overflowY: scrollContained ? 'hidden' : isActive ? 'auto' : 'hidden',
                   overflowX: 'hidden',
                   overscrollBehaviorX: 'none',
-                  WebkitOverflowScrolling: ownsInternalScroll
-                    ? undefined
-                    : isActive
-                      ? 'touch'
-                      : undefined,
+                  overscrollBehaviorY: scrollContained ? 'none' : undefined,
+                  WebkitOverflowScrolling: isActive && !scrollContained ? 'touch' : undefined,
                 }}
                 className={isActive ? 'h-full flex-1 relative' : ''}
               >
@@ -687,6 +680,6 @@ export const MobileTripTabs = ({
       </div>
 
       <DisabledTabDialog open={showDisabledTabDialog} onOpenChange={setShowDisabledTabDialog} />
-    </>
+    </div>
   );
 };
