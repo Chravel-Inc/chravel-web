@@ -5,6 +5,8 @@ interface PullToRefreshOptions {
   onRefresh: () => Promise<void>;
   threshold?: number;
   maxPullDistance?: number;
+  /** When set, pull-to-refresh only arms when this element is scrolled to the top. */
+  scrollContainerRef?: React.MutableRefObject<HTMLElement | null>;
 }
 
 /**
@@ -18,6 +20,7 @@ export const usePullToRefresh = ({
   onRefresh,
   threshold = 80,
   maxPullDistance = 120,
+  scrollContainerRef,
 }: PullToRefreshOptions) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
@@ -28,6 +31,7 @@ export const usePullToRefresh = ({
   const startYRef = useRef(0);
   const pullDistanceRef = useRef(0);
   const onRefreshRef = useRef(onRefresh);
+  const scrollContainerRefRef = useRef(scrollContainerRef);
 
   // Keep callback ref current without re-running the effect
   useEffect(() => {
@@ -35,10 +39,21 @@ export const usePullToRefresh = ({
   }, [onRefresh]);
 
   useEffect(() => {
+    scrollContainerRefRef.current = scrollContainerRef;
+  }, [scrollContainerRef]);
+
+  const isAtScrollTop = () => {
+    const container = scrollContainerRefRef.current?.current;
+    if (container) {
+      return container.scrollTop <= 0;
+    }
+    return (window.scrollY || document.documentElement.scrollTop) === 0;
+  };
+
+  useEffect(() => {
     const handleTouchStart = (e: TouchEvent) => {
       if (isRefreshingRef.current) return;
-      const scrollTop = window.scrollY || document.documentElement.scrollTop;
-      if (scrollTop === 0) {
+      if (isAtScrollTop()) {
         startYRef.current = e.touches[0].clientY;
         isPullingRef.current = true;
       }
