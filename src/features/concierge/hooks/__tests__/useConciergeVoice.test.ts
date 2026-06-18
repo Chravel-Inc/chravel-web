@@ -4,8 +4,12 @@ import { useConciergeVoice } from '../useConciergeVoice';
 
 const toggleVoice = vi.fn();
 
-vi.mock('@/hooks/useWebSpeechVoice', () => ({
-  useWebSpeechVoice: () => ({ voiceState: 'idle', toggleVoice }),
+vi.mock('../useConciergeVoiceInput', () => ({
+  useConciergeVoiceInput: ({ onTranscript: _ }: { onTranscript: (text: string) => void }) => ({
+    voiceState: 'idle' as const,
+    toggleVoice,
+    isSupported: true,
+  }),
 }));
 
 describe('useConciergeVoice', () => {
