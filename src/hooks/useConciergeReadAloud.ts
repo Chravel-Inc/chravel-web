@@ -11,14 +11,15 @@ import {
   SUPABASE_PROJECT_URL,
   SUPABASE_PUBLIC_ANON_KEY,
 } from '@/integrations/supabase/client';
+import {
+  useConciergeVoicePreference,
+  DEFAULT_CONCIERGE_VOICE,
+} from '@/features/concierge/hooks/useConciergeVoicePreference';
 
 export type TTSPlaybackState = 'idle' | 'loading' | 'playing' | 'error';
 
-const DEFAULT_VOICE = 'Charon';
 const RETRYABLE_FETCH_ERROR = 'Failed to fetch';
-const CONCIERGE_VOICE_STYLE = 'warm, calm, concise premium travel concierge voice';
-const USE_GEMINI_TTS = (import.meta.env.VITE_CONCIERGE_TTS_ENABLED ?? 'true') === 'true';
-const TTS_URL = `${SUPABASE_PROJECT_URL}/functions/v1/${USE_GEMINI_TTS ? 'gemini-tts' : 'concierge-tts'}`;
+const TTS_URL = `${SUPABASE_PROJECT_URL}/functions/v1/concierge-voice-tts`;
 
 const toReadablePlaybackError = (err: unknown): string => {
   if (!(err instanceof Error)) return 'TTS playback failed';
