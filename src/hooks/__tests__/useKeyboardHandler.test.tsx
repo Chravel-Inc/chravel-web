@@ -71,6 +71,26 @@ describe('useKeyboardHandler', () => {
     expect(document.documentElement.style.getPropertyValue('--visual-viewport-height')).toBe(
       '500px',
     );
+    expect(document.documentElement.style.getPropertyValue('--visual-viewport-offset-top')).toBe(
+      '0px',
+    );
+  });
+
+  it('publishes visual viewport offsetTop when iOS pans the layout viewport', () => {
+    renderHook(() => useKeyboardHandler({ adjustViewport: true }));
+
+    act(() => {
+      mockVisualViewport.height = 480;
+      mockVisualViewport.offsetTop = 120;
+      visualViewportListeners.get('scroll')?.forEach(listener => listener(new Event('scroll')));
+    });
+
+    expect(document.documentElement.style.getPropertyValue('--visual-viewport-offset-top')).toBe(
+      '120px',
+    );
+    expect(document.documentElement.style.getPropertyValue('--visual-viewport-height')).toBe(
+      '480px',
+    );
   });
 
   it('keeps viewport CSS vars synchronized on visual viewport scroll as the iOS keyboard settles', () => {

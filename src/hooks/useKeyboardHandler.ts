@@ -23,23 +23,27 @@ export const useKeyboardHandler = (options: KeyboardHandlerOptions = {}) => {
     const clearViewportVars = () => {
       document.documentElement.style.removeProperty('--keyboard-height');
       document.documentElement.style.removeProperty('--visual-viewport-height');
+      document.documentElement.style.removeProperty('--visual-viewport-offset-top');
+    };
+
+    const syncViewportVars = (height: number, offsetTop: number) => {
+      if (!options.adjustViewport) return;
+
+      document.documentElement.style.setProperty('--visual-viewport-height', `${height}px`);
+      document.documentElement.style.setProperty('--visual-viewport-offset-top', `${offsetTop}px`);
     };
 
     const handleViewportChange = () => {
       if (!window.visualViewport) return;
 
       const currentHeight = window.visualViewport.height;
+      const offsetTop = window.visualViewport.offsetTop;
       const heightDifference = (initialViewportHeight.current || 0) - currentHeight;
 
       // Keyboard is considered visible if viewport height decreased by more than 150px
       const nextVisible = heightDifference > 150;
 
-      if (options.adjustViewport) {
-        document.documentElement.style.setProperty(
-          '--visual-viewport-height',
-          `${currentHeight}px`,
-        );
-      }
+      syncViewportVars(currentHeight, offsetTop);
 
       if (nextVisible !== keyboardVisibleRef.current) {
         keyboardVisibleRef.current = nextVisible;
@@ -54,6 +58,11 @@ export const useKeyboardHandler = (options: KeyboardHandlerOptions = {}) => {
               '--keyboard-height',
               `${heightDifference}px`,
             );
+            // iOS pans the layout viewport when focusing bottom inputs — reset so the
+            // fixed trip shell (positioned via --visual-viewport-offset-top) stays put.
+            if (window.visualViewport.offsetTop > 0) {
+              window.scrollTo(0, 0);
+            }
           }
         } else {
           document.body.classList.remove('keyboard-visible');

@@ -448,9 +448,9 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Status:** confirmed
 - **Subsystem:** mobile trip chat / concierge layout
 - **Bug class:** iOS visual viewport + document scroll ownership
-- **Symptom:** Message list scroll or keyboard focus drags the whole chat screen/composer instead of keeping the composer pinned like iMessage/WhatsApp.
-- **Likely root cause:** The chat pane may size to the visual viewport, but if `.mobile-trip-shell` remains in normal document flow, WebKit can still make the page/body the scroll container during rubber-band or keyboard reveal.
-- **Smallest safe fix:** Make the mobile trip shell own the viewport (`position: fixed; inset: 0; height: var(--visual-viewport-height, 100dvh); overflow-hidden`) and keep chat/concierge as internal-scroll tabs only.
-- **Required tests:** Verify `useKeyboardHandler` updates viewport vars on both `visualViewport.resize` and `visualViewport.scroll`; verify mobile tab content continues to size from `--visual-viewport-height`.
+- **Symptom:** Composer jumps to top of screen with large dead zone above keyboard; or message list scroll drags the whole chat screen instead of keeping the composer pinned like iMessage/WhatsApp.
+- **Likely root cause:** (1) Tailwind `h-[100dvh]` on `.mobile-trip-shell` overrides `height: var(--visual-viewport-height)` so the shell never shrinks when the keyboard opens; WebKit then scrolls the webview to reveal the focused textarea. (2) Missing `--visual-viewport-offset-top` when iOS pans the layout viewport. (3) `scrollIntoView` on pinned composers (already guarded).
+- **Smallest safe fix:** Remove `h-[100dvh]` from mobile trip shell JSX; position shell with `top: var(--visual-viewport-offset-top)` + `height: var(--visual-viewport-height)`; publish both vars from `useKeyboardHandler` on resize **and** scroll; add `interactive-widget=resizes-content` to viewport meta.
+- **Required tests:** Verify `useKeyboardHandler` updates viewport vars on both `visualViewport.resize` and `visualViewport.scroll`; verify mobile tab content sizes from `--visual-viewport-height`; verify `.mobile-trip-shell` has no conflicting `h-[100dvh]` utility.
 - **Regression risks:** Applying fixed-shell behavior too broadly can break non-trip pages; scope the class to mobile trip detail shells only.
-- **Fixed in:** `src/index.css`, `src/hooks/useKeyboardHandler.ts` (June 2026 follow-up after PR #721)
+- **Fixed in:** `src/index.css`, `src/hooks/useKeyboardHandler.ts`, `src/pages/Mobile*TripDetail.tsx`, `index.html` (June 2026)

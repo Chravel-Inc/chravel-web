@@ -950,9 +950,16 @@
    * Native-chat invariant: trip detail screens own the viewport. The document
    * must never become the scroll container, or iOS will rubber-band the entire
    * webview and drag the composer with it before/while the keyboard opens.
+   *
+   * Track visualViewport offsetTop + height (published by useKeyboardHandler) so
+   * the shell stays aligned with the visible viewport when iOS pans for the
+   * keyboard. Do NOT add Tailwind h-[100dvh] on this element — it overrides
+   * --visual-viewport-height and recreates the composer-at-top bug.
    */
   position: fixed;
-  inset: 0;
+  top: var(--visual-viewport-offset-top, 0px);
+  left: 0;
+  right: 0;
   width: 100%;
   height: var(--visual-viewport-height, 100dvh);
   max-height: var(--visual-viewport-height, 100dvh);
