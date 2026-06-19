@@ -15,6 +15,8 @@ import {
   useConciergeVoicePreference,
   DEFAULT_CONCIERGE_VOICE,
 } from '@/features/concierge/hooks/useConciergeVoicePreference';
+import { streamPcmSpeech } from '@/features/concierge/lib/streamConciergeTts';
+
 
 export type TTSPlaybackState = 'idle' | 'loading' | 'playing' | 'error';
 
