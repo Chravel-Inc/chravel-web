@@ -236,7 +236,7 @@ export function useConciergeReadAloud(
           throw new Error('Not authenticated. Please sign in to use voice.');
         }
 
-        const resolvedVoiceId = voiceIdProp || DEFAULT_VOICE;
+        const resolvedVoiceId = voiceIdProp || preferredVoice || DEFAULT_CONCIERGE_VOICE;
         const sentences = splitIntoSentences(speechText);
 
         // Fire first AND second sentence fetches in parallel for overlap
