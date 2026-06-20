@@ -34,7 +34,6 @@ import {
   BalanceSummary as BalanceSummaryType,
 } from '@/services/paymentBalanceService';
 import { supabase } from '@/integrations/supabase/client';
-import { optimisticallyAddPayment, buildPaymentMessage } from '@/lib/paymentCacheUtils';
 import { getTripById } from '@/data/tripsData';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useAuth } from '@/hooks/useAuth';
@@ -110,41 +109,43 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
     return base;
   }, [demoActive, canonicalMembers, user]);
 
-  // ⚡ PERFORMANCE: TanStack Query for payments + balance (members from canonical useTripMembersQuery)
+  // ⚡ PERFORMANCE: TanStack Query for payments + balance (aligned with usePrefetchTrip keys)
   const {
-    data: authPaymentData,
-    isLoading: authQueryLoading,
+    data: authPayments = [],
+    isLoading: paymentsQueryLoading,
     refetch: refetchPayments,
   } = useQuery({
     queryKey: tripKeys.payments(tripId),
-    queryFn: async () => {
-      const [paymentsData, balanceResult] = await Promise.all([
-        paymentService.getTripPaymentMessages(tripId),
-        user?.id
-          ? paymentBalanceService.getBalanceSummary(tripId, user.id).catch(() => ({
-              totalOwed: 0,
-              totalOwedToYou: 0,
-              netBalance: 0,
-              baseCurrency: 'USD' as const,
-              balances: [],
-            }))
-          : Promise.resolve(null),
-      ]);
-
-      return {
-        payments: paymentsData,
-        balanceSummary: balanceResult ?? null,
-      };
-    },
+    queryFn: () => paymentService.getTripPaymentMessages(tripId),
     enabled: !demoActive && !demoLoading && !!user,
     staleTime: QUERY_CACHE_CONFIG.payments.staleTime,
     gcTime: QUERY_CACHE_CONFIG.payments.gcTime,
     refetchOnWindowFocus: QUERY_CACHE_CONFIG.payments.refetchOnWindowFocus,
   });
 
+  const { data: authBalanceSummary = null, isLoading: balanceQueryLoading } = useQuery({
+    queryKey: tripKeys.paymentBalances(tripId, user?.id ?? ''),
+    queryFn: () =>
+      user?.id
+        ? paymentBalanceService.getBalanceSummary(tripId, user.id).catch(() => ({
+            totalOwed: 0,
+            totalOwedToYou: 0,
+            netBalance: 0,
+            baseCurrency: 'USD' as const,
+            balances: [],
+          }))
+        : Promise.resolve(null),
+    enabled: !demoActive && !demoLoading && !!user?.id,
+    staleTime: QUERY_CACHE_CONFIG.paymentBalances.staleTime,
+    gcTime: QUERY_CACHE_CONFIG.paymentBalances.gcTime,
+    refetchOnWindowFocus: QUERY_CACHE_CONFIG.paymentBalances.refetchOnWindowFocus,
+  });
+
+  const authQueryLoading = paymentsQueryLoading || balanceQueryLoading;
+
   // Convert raw payments to Payment format using canonical members (payer names)
   const payments = useMemo(() => {
-    const raw = authPaymentData?.payments ?? [];
+    const raw = authPayments;
     if (raw.length === 0) return [];
     return raw.map(p => {
       const payer = tripMembers.find(m => m.id === p.createdBy);
@@ -163,7 +164,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
         isSettled: p.isSettled,
       };
     });
-  }, [authPaymentData?.payments, tripMembers]);
+  }, [authPayments, tripMembers]);
 
   // Demo mode state (unchanged logic, just separated from auth flow)
   const [demoMembers, setDemoMembers] = useState<
@@ -264,7 +265,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
   // ⚡ Unified data accessors — demo or auth (memoized for stable callback deps)
   const effectiveTripMembers = demoActive ? demoMembers : tripMembers;
   const effectivePayments = demoActive ? demoPayments : payments;
-  const balanceSummary = demoActive ? demoBalance : (authPaymentData?.balanceSummary ?? null);
+  const balanceSummary = demoActive ? demoBalance : authBalanceSummary;
   const isLoading = demoActive
     ? !demoDataLoaded && !demoLoading
     : authQueryLoading || (membersLoading && !hadMembersError);
@@ -425,23 +426,13 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
 
         setDemoPayments([...convertedSessionPayments, ...convertedMockPayments]);
       } else {
-        // ⚡ Optimistic update: show payment immediately
+        // ⚡ Refetch balance after server confirms payment (optimistic row already visible)
         if (newPayment && user?.id) {
-          const paymentMessage = buildPaymentMessage(newPayment.id, tripId, user.id, {
-            amount: newPayment.amount,
-            currency: newPayment.currency,
-            description: newPayment.description,
-            splitCount: newPayment.splitCount,
-            splitParticipants: newPayment.splitParticipants,
-            paymentMethods: newPayment.paymentMethods,
-          });
-          optimisticallyAddPayment(queryClient, tripId, paymentMessage);
+          await Promise.all([
+            queryClient.invalidateQueries({ queryKey: tripKeys.paymentBalances(tripId, user.id) }),
+            queryClient.invalidateQueries({ queryKey: tripKeys.members(tripId) }),
+          ]);
         }
-        // Refetch to ensure server truth (balance, etc.)
-        await Promise.all([
-          queryClient.refetchQueries({ queryKey: tripKeys.payments(tripId) }),
-          queryClient.invalidateQueries({ queryKey: tripKeys.members(tripId) }),
-        ]);
       }
     },
     [tripId, demoActive, effectiveTripMembers, queryClient, user?.id],
@@ -655,7 +646,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
                 tripId={tripId}
                 tripMembers={effectiveTripMembers}
                 onPaymentUpdated={() => refetchPayments()}
-                payments={authPaymentData?.payments ?? []}
+                payments={authPayments}
                 onUpdatePayment={handleUpdatePayment}
                 onDeletePayment={handleDeletePayment}
               />

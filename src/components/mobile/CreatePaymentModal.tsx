@@ -14,6 +14,13 @@ import { CURRENCIES } from '@/constants/currencies';
 import { useFeatureFlag } from '@/lib/featureFlags';
 import { usePaymentAttachmentDraft } from '@/features/payments/hooks/usePaymentAttachmentDraft';
 import { PaymentAttachmentPicker } from '@/features/payments/components/PaymentAttachmentPicker';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  buildPaymentMessage,
+  optimisticallyAddPayment,
+  optimisticallyRemovePayment,
+  replaceOptimisticPaymentId,
+} from '@/lib/paymentCacheUtils';
 
 interface CreatePaymentModalProps {
   isOpen: boolean;
@@ -50,6 +57,7 @@ export const CreatePaymentModal = ({
 }: CreatePaymentModalProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const attachmentsEnabled = useFeatureFlag('payment_attachments', true);
   const attachmentDraft = usePaymentAttachmentDraft();
 
@@ -106,7 +114,8 @@ export const CreatePaymentModal = ({
         return;
       }
 
-      const result = await paymentService.createPaymentMessage(tripId, userId, {
+      const optimisticId = `optimistic-payment-${crypto.randomUUID()}`;
+      const optimisticPayment = buildPaymentMessage(optimisticId, tripId, userId, {
         amount: paymentData.amount,
         currency: paymentData.currency,
         description: paymentData.description,
@@ -114,8 +123,25 @@ export const CreatePaymentModal = ({
         splitParticipants: paymentData.splitParticipants,
         paymentMethods: paymentData.paymentMethods,
       });
+      optimisticallyAddPayment(queryClient, tripId, optimisticPayment);
+
+      let result;
+      try {
+        result = await paymentService.createPaymentMessage(tripId, userId, {
+          amount: paymentData.amount,
+          currency: paymentData.currency,
+          description: paymentData.description,
+          splitCount: paymentData.splitCount,
+          splitParticipants: paymentData.splitParticipants,
+          paymentMethods: paymentData.paymentMethods,
+        });
+      } catch (error) {
+        optimisticallyRemovePayment(queryClient, tripId, optimisticId);
+        throw error;
+      }
 
       if (result.success && result.paymentId && userId) {
+        replaceOptimisticPaymentId(queryClient, tripId, optimisticId, result.paymentId);
         const newPayment = {
           id: result.paymentId,
           amount: paymentData.amount,
@@ -152,6 +178,7 @@ export const CreatePaymentModal = ({
           description: `${paymentData.description} - ${formatCurrency(paymentData.amount, paymentData.currency)}`,
         });
       } else if (result.error) {
+        optimisticallyRemovePayment(queryClient, tripId, optimisticId);
         const { title, description } = PaymentErrorHandler.getServiceErrorDisplay(result.error);
         toast({
           title,
