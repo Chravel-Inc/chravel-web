@@ -21,6 +21,8 @@ interface FeaturePaywallConfig {
   triggerContext: string;
   featureBenefitCopy: string;
   recommendedPlan: string;
+  /** Optional higher tier pitched as the "unlimited" alternative to recommendedPlan. */
+  secondaryPlan?: string;
   destination: FeaturePaywallDestination;
 }
 
@@ -48,8 +50,9 @@ const FEATURE_PAYWALL_CONFIG: Record<FeaturePaywallGate, FeaturePaywallConfig> =
   concierge_limit: {
     triggerContext: 'concierge_message_limit',
     featureBenefitCopy:
-      'Keep chatting with AI Concierge for personalized recommendations without trip-level caps.',
-    recommendedPlan: 'Frequent Chraveler',
+      'Upgrade to Explorer for 25 Concierge asks per trip, or go unlimited with Frequent Chraveler.',
+    recommendedPlan: 'Explorer',
+    secondaryPlan: 'Frequent Chraveler',
     destination: buildSettingsDestination('concierge_limit', 'concierge'),
   },
   smart_import_calendar: {
@@ -93,10 +96,12 @@ const FEATURE_PAYWALL_CONFIG: Record<FeaturePaywallGate, FeaturePaywallConfig> =
     recommendedPlan: 'Explorer',
     destination: buildSettingsDestination('trip_cap_pro', 'trip-cap'),
   },
+  // Explorer shares the same 3-lifetime-events cap as free, so the event cap
+  // must recommend Frequent Chraveler — the first tier that actually lifts it.
   trip_cap_event: {
     triggerContext: 'event_trip_cap',
     featureBenefitCopy: 'Run unlimited Events and keep every production workspace active.',
-    recommendedPlan: 'Explorer',
+    recommendedPlan: 'Frequent Chraveler',
     destination: buildSettingsDestination('trip_cap_event', 'trip-cap'),
   },
 };

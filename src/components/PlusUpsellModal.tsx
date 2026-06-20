@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { X, Sparkles, MessageCircle, Settings, Zap, Camera, Globe } from 'lucide-react';
+import { X, Crown, MessageCircle, Settings, Zap, Camera, Globe, Ticket } from 'lucide-react';
 import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
 import { CONSUMER_PRICING } from '../types/consumer';
+import { TripPassModal } from './conversion/TripPassModal';
+import { TRIP_PASS_DISPLAY } from '../billing/pricingDisplay';
 
 interface PlusUpsellModalProps {
   isOpen: boolean;
@@ -12,6 +14,7 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
   const { upgradeToTier, isLoading } = useConsumerSubscription();
   const [selectedTier, setSelectedTier] = useState<'explorer' | 'frequent-chraveler'>('explorer');
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
+  const [showTripPass, setShowTripPass] = useState(false);
 
   if (!isOpen) return null;
 
@@ -34,7 +37,7 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div className="modal-backdrop z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 sm:p-8 max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto pb-[max(2rem,env(safe-area-inset-bottom))]">
         <div
           className="flex items-start justify-between mb-6 gap-4"
@@ -44,15 +47,15 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
             <div
               className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${
                 selectedTier === 'explorer'
-                  ? 'bg-gradient-to-r from-glass-orange to-glass-yellow'
+                  ? 'bg-gradient-to-r from-gold-primary to-gold-mid'
                   : 'bg-gradient-to-r from-primary to-primary/80'
               }`}
             >
               {selectedTier === 'explorer' && (
-                <Globe size={20} className="text-white sm:w-6 sm:h-6" />
+                <Globe size={20} className="text-primary-foreground sm:w-6 sm:h-6" />
               )}
               {selectedTier === 'frequent-chraveler' && (
-                <Sparkles size={20} className="text-white sm:w-6 sm:h-6" />
+                <Crown size={20} className="text-primary-foreground sm:w-6 sm:h-6" />
               )}
             </div>
             <div className="min-w-0">
@@ -83,7 +86,7 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
               onClick={() => setSelectedTier(tier)}
               className={`px-4 py-2 rounded-xl font-medium transition-all capitalize ${
                 selectedTier === tier
-                  ? 'bg-gradient-to-r from-glass-orange to-glass-yellow text-white'
+                  ? 'bg-gradient-to-r from-gold-primary to-gold-mid text-primary-foreground'
                   : 'text-gray-300 hover:text-white bg-white/5'
               }`}
             >
@@ -96,7 +99,7 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
         <div className="grid md:grid-cols-2 gap-6 mb-8">
           <div className="bg-gradient-to-br from-primary/10 to-primary/10 border border-primary/20 rounded-2xl p-6">
             <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary/80 rounded-xl flex items-center justify-center mb-4">
-              <Sparkles size={24} className="text-white" />
+              <Crown size={24} className="text-white" />
             </div>
             <h3 className="text-lg font-bold text-white mb-2">Concierge</h3>
             <p className="text-gray-300 text-sm">
@@ -162,7 +165,7 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
                 <li>• Shared calendar (manual)</li>
                 <li>• Photo & video sharing</li>
                 <li>• 10 AI queries per user per trip</li>
-                <li>• 1 PDF export per trip</li>
+                <li>• 1 free PDF export per trip</li>
                 <li>• ICS calendar download</li>
               </ul>
             </div>
@@ -206,7 +209,7 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
             className="relative w-12 h-6 bg-gray-700 rounded-full transition-colors"
           >
             <div
-              className={`absolute top-1 w-4 h-4 bg-glass-orange rounded-full transition-transform ${
+              className={`absolute top-1 w-4 h-4 bg-primary rounded-full transition-transform ${
                 billingCycle === 'annual' ? 'translate-x-7' : 'translate-x-1'
               }`}
             />
@@ -225,7 +228,7 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
 
         {/* Pricing */}
         <div className="text-center">
-          <div className="bg-gradient-to-r from-glass-orange/20 to-glass-yellow/20 backdrop-blur-sm border border-glass-orange/30 rounded-2xl p-6 mb-6">
+          <div className="bg-gradient-to-r from-gold-primary/20 to-gold-mid/20 backdrop-blur-sm border border-primary/30 rounded-2xl p-6 mb-6">
             <div className="text-4xl font-bold text-white mb-2">
               ${getPrice()}
               {billingCycle === 'monthly' ? '/month' : '/year'}
@@ -241,7 +244,7 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
               </>
             )}
             <p className="text-gray-300 mb-4">14-day free trial • Cancel anytime</p>
-            <div className="text-sm text-glass-yellow">No credit card required for trial</div>
+            <div className="text-sm text-gold-light">No credit card required for trial</div>
           </div>
 
           <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 justify-center">
@@ -254,13 +257,29 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
             <button
               onClick={handleUpgrade}
               disabled={isLoading}
-              className="px-8 py-3 bg-gradient-to-r from-glass-orange to-glass-yellow hover:from-glass-orange/80 hover:to-glass-yellow/80 text-white font-medium rounded-2xl transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50 min-h-[48px]"
+              className="px-8 py-3 bg-gradient-to-r from-gold-primary to-gold-mid hover:from-gold-mid hover:to-gold-primary text-primary-foreground font-medium rounded-2xl transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50 min-h-[48px]"
             >
               {isLoading ? 'Processing...' : 'Start Free Trial'}
             </button>
           </div>
+
+          {/* One-off Trip Pass alternative — no subscription required */}
+          <button
+            type="button"
+            onClick={() => setShowTripPass(true)}
+            data-testid="trip-pass-affordance"
+            className="mt-4 mx-auto flex items-center justify-center gap-2 text-sm text-gold-light hover:text-primary underline underline-offset-4 transition-colors min-h-[44px]"
+          >
+            <Ticket size={16} />
+            <span>
+              Or unlock just this trip — Trip Pass from {TRIP_PASS_DISPLAY.explorer.price}
+            </span>
+          </button>
         </div>
       </div>
+
+      {/* Trip Pass checkout — reuses the existing modal; renders above this overlay */}
+      <TripPassModal open={showTripPass} onOpenChange={setShowTripPass} />
     </div>
   );
 };

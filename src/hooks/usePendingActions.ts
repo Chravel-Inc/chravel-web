@@ -376,11 +376,18 @@ export function usePendingActions(tripId: string, options: UsePendingActionsOpti
         case 'settleExpense': {
           const splitId = payload.split_id as string;
           if (!splitId) throw new Error('No split_id in payload');
-          const { error } = await (supabase as any)
-            .from('payment_splits')
-            .update({ is_settled: true })
-            .eq('id', splitId);
+          // Crediting transition — atomic RPC (row lock + status guard);
+          // ALREADY_SETTLED means the desired end state already holds.
+          const { data, error } = await supabase.rpc('settle_payment_split', {
+            p_split_id: splitId,
+            p_user_id: user.id,
+            p_method: (payload.method as string) ?? null,
+          });
           if (error) throw error;
+          const result = (data ?? {}) as { success?: boolean; error?: string };
+          if (!result.success && result.error !== 'ALREADY_SETTLED') {
+            throw new Error(result.error || 'Failed to settle expense');
+          }
           break;
         }
 

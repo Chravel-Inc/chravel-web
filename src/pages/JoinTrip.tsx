@@ -25,7 +25,7 @@ import {
   Lock,
   WifiOff,
   UserX,
-  Sparkles,
+  Star,
 } from 'lucide-react';
 import { CalendarGlyph } from '../components/ui/CalendarGlyph';
 import {
@@ -95,6 +95,35 @@ function getUrgencyLine(startDate: string | null): string | null {
   }
   const formatted = start.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
   return `Trip starts ${formatted}`;
+}
+
+export interface JoinActionPresentation {
+  ctaLabel: string;
+  ctaBusyLabel: string;
+  showApprovalNotice: boolean;
+  signedOutPrompt: string;
+}
+
+/**
+ * Resolve the join CTA and approval framing from the invite's
+ * `require_approval` flag. Invites that require approval keep the
+ * request/review framing; open invites present a direct join.
+ */
+export function getJoinActionPresentation(requireApproval: boolean): JoinActionPresentation {
+  if (requireApproval) {
+    return {
+      ctaLabel: 'Request to Join',
+      ctaBusyLabel: 'Requesting...',
+      showApprovalNotice: true,
+      signedOutPrompt: 'Sign in or create a free account to request to join this trip.',
+    };
+  }
+  return {
+    ctaLabel: 'Join Trip',
+    ctaBusyLabel: 'Joining...',
+    showApprovalNotice: false,
+    signedOutPrompt: 'Sign in or create a free account to join this trip.',
+  };
 }
 
 /**
@@ -825,6 +854,9 @@ const JoinTrip = () => {
     'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&h=400&fit=crop';
   const coverImage = inviteData?.trip.cover_image_url || defaultCoverImage;
   const inviteReturnTo = token ? `/join/${encodeURIComponent(token)}` : location.pathname;
+  // Default to approval framing when the flag is missing — the join-trip edge
+  // function routes joins through approval unless the invite says otherwise.
+  const joinPresentation = getJoinActionPresentation(inviteData?.invite.require_approval ?? true);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black flex items-center justify-center p-4">
@@ -902,7 +934,7 @@ const JoinTrip = () => {
             if (!urgency) return null;
             return (
               <div className="flex items-center gap-2 mb-6 px-3 py-2 bg-gold-primary/10 border border-gold-primary/20 rounded-xl">
-                <Sparkles size={14} className="text-gold-primary flex-shrink-0" />
+                <Star size={14} className="text-gold-primary flex-shrink-0" />
                 <span className="text-gold-primary text-sm font-medium">{urgency}</span>
               </div>
             );
@@ -912,7 +944,7 @@ const JoinTrip = () => {
           {!user ? (
             <div className="space-y-4">
               <p className="text-white/70 text-center text-sm">
-                Sign in with the standard Chravel dark auth flow to request access to this trip.
+                {joinPresentation.signedOutPrompt}
               </p>
               <div className="space-y-3">
                 <button
@@ -929,7 +961,7 @@ const JoinTrip = () => {
                 </button>
               </div>
               <p className="text-white/40 text-center text-xs">
-                Google, Apple, and email sign-in remain available in the same dark modal.
+                You can use Google, Apple, or email.
               </p>
             </div>
           ) : (
@@ -942,10 +974,10 @@ const JoinTrip = () => {
                 {joining ? (
                   <>
                     <div className="h-4 w-4 animate-spin gold-gradient-spinner" />
-                    Requesting...
+                    {joinPresentation.ctaBusyLabel}
                   </>
                 ) : (
-                  'Request to Join'
+                  joinPresentation.ctaLabel
                 )}
               </button>
 
@@ -958,7 +990,7 @@ const JoinTrip = () => {
             </div>
           )}
 
-          {!joining && user && (
+          {!joining && user && joinPresentation.showApprovalNotice && (
             <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
               <div className="flex items-center gap-2 mb-2">
                 <Users className="h-5 w-5 text-blue-400" />

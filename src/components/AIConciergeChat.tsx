@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
+import { createPortal } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Search, ImagePlus } from 'lucide-react';
 import { ConciergeSearchModal } from './ai/ConciergeSearchModal';
@@ -27,8 +28,15 @@ import type { AIConciergeChatProps, AttachmentIntent } from '@/features/concierg
 import { useConciergeAttachments } from '@/features/concierge/hooks/useConciergeAttachments';
 import { useSmartImportActions } from '@/features/concierge/hooks/useSmartImportActions';
 import { useConciergeMessages } from '@/features/concierge/hooks/useConciergeMessages';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useConciergeVoice } from '@/features/concierge/hooks/useConciergeVoice';
 import { useConciergeStreaming } from '@/features/concierge/hooks/useConciergeStreaming';
+import { useSmartImportTaste } from '@/features/smart-import/hooks/useSmartImportTaste';
+
+// Lazy: only loads when an upgrade moment actually fires (limit hit / chip tap).
+const PlusUpsellModal = lazy(() =>
+  import('./PlusUpsellModal').then(m => ({ default: m.PlusUpsellModal })),
+);
 
 export type { ChatMessage } from '@/features/concierge/types';
 
@@ -42,12 +50,12 @@ export const AIConciergeChat = ({
   const { basecamp: globalBasecamp } = useBasecamp();
   const { user: authUser } = useAuth();
   const conciergeQueryClient = useQueryClient();
-  const {
-    usage: _usage,
-    incrementUsageOnSuccess,
-    isLimitedPlan,
-    userPlan,
-  } = useConciergeUsage(tripId);
+  const { usage, getUsageStatus, incrementUsageOnSuccess, isLimitedPlan, userPlan } =
+    useConciergeUsage(tripId);
+  // Free-tier "taste": 1 Smart Import per trip before the paywall fires.
+  const { canUseFreeImport: canUseSmartImportTaste } = useSmartImportTaste(tripId);
+  const smartImportBlockedForFree = userPlan === 'free' && !canUseSmartImportTaste;
+  const [showUpsellModal, setShowUpsellModal] = useState(false);
   const {
     confirmAction,
     rejectAction,
@@ -339,10 +347,10 @@ export const AIConciergeChat = ({
 
         {/* History loading skeleton — prevents flash of empty → populated */}
         {isHistoryLoading && messages.length === 0 && (
-          <div className="flex flex-col gap-3 p-4 animate-pulse flex-shrink-0">
-            <div className="h-8 bg-white/10 rounded-xl w-3/4" />
-            <div className="h-8 bg-white/10 rounded-xl w-1/2 self-end" />
-            <div className="h-8 bg-white/10 rounded-xl w-2/3" />
+          <div className="flex flex-col gap-3 p-4 flex-shrink-0">
+            <Skeleton className="h-8 rounded-xl w-3/4" />
+            <Skeleton className="h-8 rounded-xl w-1/2 self-end" />
+            <Skeleton className="h-8 rounded-xl w-2/3" />
           </div>
         )}
 
@@ -422,6 +430,32 @@ export const AIConciergeChat = ({
           className="chat-composer z-10 bg-black/30 px-3 pt-2 flex-shrink-0"
           style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)' }}
         >
+          {/* Usage meter — only for plans with a finite per-trip ask limit */}
+          {!isDemoMode && usage && usage.limit !== null && (
+            <div className="mb-1.5 flex items-center justify-end gap-2">
+              {usage.isLimitReached && (
+                <button
+                  type="button"
+                  onClick={() => setShowUpsellModal(true)}
+                  data-testid="concierge-limit-upgrade-cta"
+                  className="text-[11px] font-medium text-primary-foreground bg-gradient-to-r from-gold-primary to-gold-mid rounded-full px-3 py-1 active:scale-95 transition-transform"
+                >
+                  Upgrade — get more asks
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowUpsellModal(true)}
+                data-testid="concierge-usage-chip"
+                aria-label="Concierge usage — tap to see upgrade options"
+                className="flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-1 active:scale-95 transition-transform"
+              >
+                <span className={`text-[11px] leading-none ${getUsageStatus().color}`}>
+                  {usage.remaining}/{usage.limit} {userPlan === 'free' ? 'free asks' : 'asks'}
+                </span>
+              </button>
+            </div>
+          )}
           {UPLOAD_ENABLED &&
             (attachedImages.length > 0 || attachedDocuments.length > 0) &&
             inputMessage.trim().length === 0 && (
@@ -431,9 +465,15 @@ export const AIConciergeChat = ({
                   value={attachmentIntent}
                   onChange={e => {
                     const next = e.target.value as AttachmentIntent;
-                    if (next === 'smart_import' && userPlan === 'free') {
+                    if (next === 'smart_import' && smartImportBlockedForFree) {
                       toast.error(
-                        'Smart Import requires Explorer+. Upgrade to extract events from receipts and screenshots.',
+                        "You've used your free Smart Import for this trip. Explorer includes unlimited Smart Import.",
+                        {
+                          action: {
+                            label: 'Upgrade',
+                            onClick: () => setShowUpsellModal(true),
+                          },
+                        },
                       );
                       return;
                     }
@@ -442,8 +482,13 @@ export const AIConciergeChat = ({
                   className="w-full h-11 rounded-xl bg-zinc-900/80 border border-white/10 px-3 text-sm text-white"
                   aria-label="Attachment intent"
                 >
-                  <option value="smart_import" disabled={userPlan === 'free'}>
-                    Extract events (Smart Import){userPlan === 'free' ? ' — Explorer+' : ''}
+                  <option value="smart_import" disabled={smartImportBlockedForFree}>
+                    Extract events (Smart Import)
+                    {userPlan === 'free'
+                      ? canUseSmartImportTaste
+                        ? ' — 1 free'
+                        : ' — Explorer+'
+                      : ''}
                   </option>
                   <option value="summarize">Summarize file/image</option>
                   <option value="qa">Q&A on this file/image</option>
@@ -502,6 +547,16 @@ export const AIConciergeChat = ({
           />
         </div>
       </div>
+
+      {/* Upgrade surface — portaled to body so z-index/fixed positioning escapes
+          transformed tab containers. PlusUpsellModal also hosts the Trip Pass option. */}
+      {showUpsellModal &&
+        createPortal(
+          <Suspense fallback={null}>
+            <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
+          </Suspense>,
+          document.body,
+        )}
     </div>
   );
 };

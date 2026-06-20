@@ -45,6 +45,12 @@ export const PUBLIC_SEO_ROUTES: SeoConfig[] = [
     description:
       'Learn how to plan a trip with friends: dates, budget, itinerary, and responsibilities. Use ChravelApp to keep every detail in sync.',
   },
+  {
+    path: '/group-travel-planning-app',
+    title: 'Best Group Travel Planning App: Chravel vs Wanderlog vs TripIt',
+    description:
+      'Compare the top group travel planning apps. See how ChravelApp combines group chat, itinerary, polls, tasks, and payments in one place — unlike Wanderlog or TripIt.',
+  },
 ];
 
 export const SEO_LANDING_CONTENT: Record<string, SeoLandingContent> = {
@@ -67,6 +73,11 @@ export const SEO_LANDING_CONTENT: Record<string, SeoLandingContent> = {
     h1: 'How to plan a trip with friends (without group-chat chaos)',
     intro:
       'Use a simple, repeatable process to align availability, budget, and itinerary while keeping every decision visible to the whole group.',
+  },
+  '/group-travel-planning-app': {
+    h1: 'The best group travel planning app for friends, families, and teams',
+    intro:
+      'Most group travel apps make you choose between chat and logistics. Chravel pulls itinerary, polls, tasks, places, payments, and a real group chat into one shared workspace — so the plan and the conversation never drift apart.',
   },
 };
 

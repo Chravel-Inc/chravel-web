@@ -59,6 +59,8 @@ export const usePdfExportUsage = (tripId: string) => {
     queryFn: async (): Promise<PdfExportUsage> => {
       if (!user?.id || !tripId) return getUsageFallback();
 
+      // `as any`: RPC is not present in the generated Database types yet; row shape
+      // is normalized below via PdfUsageRpcRow.
       const { data, error } = await (supabase.rpc as any)('get_trip_pdf_export_usage', {
         p_trip_id: tripId,
       });
@@ -96,6 +98,8 @@ export const usePdfExportUsage = (tripId: string) => {
     mutationFn: async () => {
       if (!user?.id || !tripId) return;
 
+      // `as any`: RPC is not present in the generated Database types yet; row shape
+      // is normalized below via IncrementPdfUsageRpcRow.
       const { data, error } = await (supabase.rpc as any)('increment_trip_pdf_export_usage', {
         p_trip_id: tripId,
       });

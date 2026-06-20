@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { tripService } from '@/services/tripService';
 import { useDemoMode } from './useDemoMode';
@@ -8,6 +9,7 @@ import { convertSupabaseTripToMock } from '@/utils/tripConverter';
 import { useDemoTripMembersStore } from '@/store/demoTripMembersStore';
 import { errorTracking } from '@/utils/errorTracking';
 import { isDemoTrip } from '@/utils/demoUtils';
+import { classifyError } from '@/utils/errorClassification';
 
 interface TripMember {
   id: string;
@@ -64,7 +66,15 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
   }
 
   // Demo mode: Fast path - synchronous, no network
-  const shouldUseDemoPath = isDemoMode && isDemoTrip(tripId);
+  // 🔒 RESILIENCE: Gate the demo fast path on the *structural* trip-id check alone, NOT on
+  // the (fragile, hydration/race-prone) isDemoMode flag. Demo trip ids are numeric 1–12 while
+  // real trips are UUIDs, so isDemoTrip() can never match a real trip. Serving canonical local
+  // data from src/data/tripsData.ts for these ids is always correct and guarantees the demo
+  // trip loads with no Supabase call, no RLS, and no auth requirement — even on cold start,
+  // PWA, or TestFlight, and even if the demo-mode flag momentarily flips. This is what keeps
+  // "Couldn't Load Trip" out of the demo path. (isDemoMode still gates sub-feature isolation
+  // in the payment/places/chat services, so demo mode is kept ON via Index.tsx — see RACE FIX.)
+  const shouldUseDemoPath = isDemoTrip(tripId);
 
   // Get demo members from store for numeric trip IDs
   const demoAddedMembersCount = useDemoTripMembersStore(state =>
@@ -139,6 +149,55 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
       return failureCount < 2;
     },
   });
+
+  // 🔭 Structured failure logging for the REAL-trip path. Without this, every failure
+  // collapses into the same generic "Couldn't Load Trip" screen, making post-mortems
+  // impossible. The demo path never errors (handled above) so it is excluded here.
+  const realTripError = tripQuery.error as Error | null;
+  const realMembersError = membersQuery.error as Error | null;
+  // An unauthenticated visit to a real trip is an EXPECTED state (we render a sign-in
+  // prompt), NOT a fault — so it must not be captured as an exception, or it would flood
+  // error tracking on every logged-out trip link click.
+  const authRequired = !shouldUseDemoPath && isAuthResolved && !authUserId && !!tripId;
+  useEffect(() => {
+    if (shouldUseDemoPath || !tripId) return;
+    const failure = realTripError ?? realMembersError;
+    if (failure) {
+      const category = classifyError(failure);
+      const source = realTripError ? 'trip' : 'members';
+      // not-found (deleted/invalid trip) and auth-required (signed out) are EXPECTED,
+      // user-visible outcomes the UI renders as dedicated screens. Critically, the members
+      // query can reject with TRIP_NOT_FOUND while tripError stays null, so capturing the
+      // failure as an exception would flood error tracking on a common, non-fault path and
+      // mask real load failures. Record a breadcrumb for those instead (same treatment the
+      // auth-required branch below already gets).
+      if (category === 'not-found' || category === 'auth-required') {
+        errorTracking.addBreadcrumb({
+          category: 'trip-detail-load',
+          level: 'info',
+          message: `Trip load resolved to ${category}`,
+          data: { tripId, category, source },
+        });
+        return;
+      }
+      // Genuine fetch failure → exception with a diagnosable category.
+      errorTracking.captureException(failure, {
+        action: 'trip-detail-load',
+        tripId,
+        metadata: { category, source },
+      });
+      return;
+    }
+    // Expected non-fault: record a breadcrumb for trace context, not an exception.
+    if (authRequired) {
+      errorTracking.addBreadcrumb({
+        category: 'trip-detail-load',
+        level: 'info',
+        message: 'Trip requires auth (user not signed in)',
+        data: { tripId, category: 'auth-required' },
+      });
+    }
+  }, [shouldUseDemoPath, realTripError, realMembersError, authRequired, tripId]);
 
   // Demo mode: Return mock data immediately
   if (shouldUseDemoPath && tripId) {

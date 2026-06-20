@@ -56,28 +56,40 @@ async function enforceUploadLimits(
   const tier = await resolveUserTier(userId);
   const limits = FREEMIUM_LIMITS[tier];
 
-  // 1. Storage quota check (account-wide MB limit)
+  // 1. Storage quota check (account-wide MB limit).
+  // Uploader identity lives in metadata.uploaded_by — both insert paths
+  // (insertMediaIndex via normalizeMediaMetadata, and mediaService) write that key;
+  // the dedicated uploaded_by column is never populated by clients, so filtering on
+  // it would count zero rows and silently disable enforcement.
   if (limits.storageAccountMB !== -1) {
-    const { data: mediaData } = await (supabase as any)
+    const { data: mediaData, error: storageQueryError } = await supabase
       .from('trip_media_index')
       .select('file_size')
-      .eq('uploaded_by', userId);
+      .eq('metadata->>uploaded_by', userId);
 
-    const usedBytes = (mediaData ?? []).reduce(
-      (sum: number, item: { file_size: number | null }) => sum + (item.file_size ?? 0),
-      0,
-    );
-    const usedMB = usedBytes / (1024 * 1024);
-    const fileMB = fileSizeBytes / (1024 * 1024);
-
-    if (usedMB + fileMB > limits.storageAccountMB) {
-      throw new StorageQuotaExceededError(
-        `Storage quota exceeded. You've used ${Math.round(usedMB)}MB of ${limits.storageAccountMB}MB. Upgrade your plan for more storage.`,
+    if (storageQueryError) {
+      // Fail open: never block an upload because the usage lookup failed.
+      if (import.meta.env.DEV)
+        console.error('[uploadService] Storage usage lookup failed:', storageQueryError);
+    } else {
+      const usedBytes = (mediaData ?? []).reduce(
+        (sum: number, item: { file_size: number | null }) => sum + (item.file_size ?? 0),
+        0,
       );
+      const usedMB = usedBytes / (1024 * 1024);
+      const fileMB = fileSizeBytes / (1024 * 1024);
+
+      if (usedMB + fileMB > limits.storageAccountMB) {
+        throw new StorageQuotaExceededError(
+          `Storage quota exceeded. You've used ${Math.round(usedMB)}MB of ${limits.storageAccountMB}MB. Upgrade your plan for more storage.`,
+        );
+      }
     }
   }
 
-  // 2. Per-trip media count check
+  // 2. Per-trip media count check — per uploader, NOT trip-wide. Each member's
+  // own uploads count against their own tier limit, so a 10-person free group
+  // gets 10 × 5 photos and one member upgrading lifts only their own cap.
   const mediaTypeKey =
     subdir === 'images' ? 'photosPerTrip' : subdir === 'videos' ? 'videosPerTrip' : 'filesPerTrip';
   const countLimit = limits[mediaTypeKey];
@@ -87,25 +99,38 @@ async function enforceUploadLimits(
 
     let count = 0;
     if (mediaType) {
-      const { count: mediaCount } = await supabase
+      const { count: mediaCount, error: countError } = await supabase
         .from('trip_media_index')
         .select('*', { count: 'exact', head: true })
         .eq('trip_id', tripId)
-        .eq('media_type', mediaType);
+        .eq('media_type', mediaType)
+        .eq('metadata->>uploaded_by', userId);
+      if (countError) {
+        // Fail open on count errors — never block an upload on a failed lookup.
+        if (import.meta.env.DEV)
+          console.error('[uploadService] Media count lookup failed:', countError);
+        return;
+      }
       count = mediaCount ?? 0;
     } else {
-      // files — count from trip_files table
-      const { count: fileCount } = await supabase
+      // files — count from trip_files table (uploaded_by is a real column there)
+      const { count: fileCount, error: fileCountError } = await supabase
         .from('trip_files')
         .select('*', { count: 'exact', head: true })
-        .eq('trip_id', tripId);
+        .eq('trip_id', tripId)
+        .eq('uploaded_by', userId);
+      if (fileCountError) {
+        if (import.meta.env.DEV)
+          console.error('[uploadService] File count lookup failed:', fileCountError);
+        return;
+      }
       count = fileCount ?? 0;
     }
 
     if (count >= countLimit) {
       const typeLabel = subdir === 'images' ? 'photos' : subdir;
       throw new MediaCountExceededError(
-        `You've reached the limit of ${countLimit} ${typeLabel} per trip on your current plan. Upgrade for unlimited uploads.`,
+        `You've reached your limit of ${countLimit} ${typeLabel} per trip on your current plan. Upgrade for unlimited uploads.`,
       );
     }
   }

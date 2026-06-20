@@ -7,7 +7,7 @@ import {
   ClipboardList,
   Lock,
   MapPin,
-  Sparkles,
+  Headset,
   DollarSign,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
@@ -165,7 +165,7 @@ export const TripTabs = ({
       icon: Calendar,
       enabled: isSuperAdmin || features.showCalendar,
     },
-    { id: 'concierge', label: 'Concierge', icon: Sparkles, enabled: isSuperAdmin || showConcierge },
+    { id: 'concierge', label: 'Concierge', icon: Headset, enabled: isSuperAdmin || showConcierge },
     { id: 'media', label: 'Media', icon: Camera, enabled: isSuperAdmin || features.showMedia },
     { id: 'payments', label: 'Payments', icon: DollarSign, enabled: true },
     { id: 'places', label: 'Places', icon: MapPin, enabled: isSuperAdmin || showPlaces },
@@ -324,8 +324,8 @@ export const TripTabs = ({
                         isActive && enabled
                           ? 'accent-ring-active text-white'
                           : enabled
-                            ? 'accent-ring-idle text-gray-300 hover:text-white'
-                            : 'bg-white/5 text-gray-500 cursor-not-allowed opacity-40 grayscale'
+                            ? 'accent-ring-idle text-ink-2 hover:text-white'
+                            : 'bg-white/5 text-ink-3 cursor-not-allowed opacity-40 grayscale'
                       }
                       ${enabled ? 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent' : 'pointer-events-none'}
                     `}

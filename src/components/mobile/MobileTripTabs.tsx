@@ -6,7 +6,7 @@ import {
   BarChart3,
   Camera,
   MapPin,
-  Sparkles,
+  Headset,
   CreditCard,
   Lock,
   Users,
@@ -169,6 +169,13 @@ export const MobileTripTabs = ({
   // Tier 3 (media) stays lazy until visited.
   const TIER_1_TABS: readonly string[] = ['chat', 'calendar', 'concierge'];
   const TIER_2_TABS: readonly string[] = ['tasks', 'polls', 'places', 'payments'];
+
+  // Tabs that own an internal scroll area + a pinned composer (message list scrolls
+  // inside the tab; the composer is a fixed bottom sibling). These must NOT be wrapped
+  // in a scroll container — on iOS WKWebView a momentum-scroll wrapper rubber-bands the
+  // whole tab (composer included) before the input is even focused, and the page's
+  // bg-black shows through underneath. Content tabs keep page scroll on the wrapper.
+  const INTERNAL_SCROLL_TABS: readonly string[] = ['chat', 'concierge'];
   const [visitedTabs, setVisitedTabs] = useState<Set<string>>(
     () => new Set([activeTab, ...TIER_1_TABS]),
   );
@@ -257,7 +264,7 @@ export const MobileTripTabs = ({
     const baseTabs = [
       { id: 'chat', label: 'Chat', icon: MessageCircle, enabled: features.showChat },
       { id: 'calendar', label: 'Calendar', icon: Calendar, enabled: features.showCalendar },
-      { id: 'concierge', label: 'Concierge', icon: Sparkles, enabled: features.showConcierge },
+      { id: 'concierge', label: 'Concierge', icon: Headset, enabled: features.showConcierge },
       { id: 'media', label: 'Media', icon: Camera, enabled: features.showMedia },
       { id: 'payments', label: 'Payments', icon: CreditCard, enabled: features.showPayments },
       { id: 'places', label: 'Places', icon: MapPin, enabled: features.showPlaces },
@@ -596,7 +603,7 @@ export const MobileTripTabs = ({
                         ? 'accent-ring-idle text-muted-foreground hover:bg-muted/70 hover:text-foreground'
                         : variant === 'event'
                           ? 'accent-ring-idle text-muted-foreground'
-                          : 'bg-white/5 text-gray-500 opacity-40 grayscale cursor-not-allowed'
+                          : 'bg-white/5 text-ink-3 opacity-40 grayscale cursor-not-allowed'
                   }
                 `}
               >
@@ -631,6 +638,8 @@ export const MobileTripTabs = ({
             // updates visitedTabs AFTER the first render, causing the tab to not mount
             if (!hasBeenVisited && !isActive) return null;
 
+            const ownsInternalScroll = INTERNAL_SCROLL_TABS.includes(tab.id);
+
             return (
               <div
                 key={tab.id}
@@ -638,10 +647,14 @@ export const MobileTripTabs = ({
                   display: isActive ? 'flex' : 'none',
                   flexDirection: 'column',
                   minHeight: 0,
-                  overflowY: isActive ? 'auto' : 'hidden',
+                  overflowY: ownsInternalScroll ? 'hidden' : isActive ? 'auto' : 'hidden',
                   overflowX: 'hidden',
                   overscrollBehaviorX: 'none',
-                  WebkitOverflowScrolling: isActive ? 'touch' : undefined,
+                  WebkitOverflowScrolling: ownsInternalScroll
+                    ? undefined
+                    : isActive
+                      ? 'touch'
+                      : undefined,
                 }}
                 className={isActive ? 'h-full flex-1 relative' : ''}
               >

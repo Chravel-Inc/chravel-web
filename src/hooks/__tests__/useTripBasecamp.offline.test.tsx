@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
-import { useUpdateTripBasecamp } from '../useTripBasecamp';
+import { useUpdateTripBasecamp, useClearTripBasecamp } from '../useTripBasecamp';
 import { basecampService } from '@/services/basecampService';
 
 vi.mock('@/services/basecampService', () => ({
@@ -62,6 +62,18 @@ describe('useUpdateTripBasecamp - offline guardrails', () => {
     await expect(
       result.current.mutateAsync({ address: '123 Main St', name: 'Hotel' }),
     ).rejects.toThrow('OFFLINE:');
+
+    expect(basecampService.setTripBasecamp).not.toHaveBeenCalled();
+  });
+
+  it('blocks basecamp clears while offline (never queued)', async () => {
+    Object.defineProperty(navigator, 'onLine', { writable: true, value: false });
+
+    const { result } = renderHook(() => useClearTripBasecamp('trip-1'), {
+      wrapper: createWrapper(),
+    });
+
+    await expect(result.current.mutateAsync()).rejects.toThrow('OFFLINE:');
 
     expect(basecampService.setTripBasecamp).not.toHaveBeenCalled();
   });

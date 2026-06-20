@@ -21,7 +21,7 @@ const faqItems = [
   {
     question: 'How do AI queries work on each plan?',
     answer:
-      'Free: 10 AI queries per user per trip. Explorer: 25. Frequent Chraveler: unlimited. Voice sessions count as one query. Each new trip resets your limit.',
+      'Free: 10 AI queries per user per trip. Explorer: 25. Frequent Chraveler: unlimited. Voice input to the AI concierge counts as one query. Each new trip resets your limit.',
   },
   {
     question: 'Can I change plans anytime?',
@@ -45,7 +45,7 @@ const faqItems = [
   {
     question: 'Are Events included in my subscription?',
     answer:
-      'Yes — bundled into all paid plans. Explorer: up to 50 guests per event. Frequent Chraveler: up to 100 guests per event. Pro tiers: unlimited events (up to 100 guests each).',
+      'Yes — events are bundled into every plan. Free and Explorer include up to 3 events; Frequent Chraveler and Pro tiers include unlimited events, built for large groups.',
   },
 ];
 export const FAQSection = () => {

@@ -12,6 +12,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { tripKeys } from '@/lib/queryKeys';
 import { PersonalBalance } from '../../services/paymentBalanceService';
 import { supabase } from '../../integrations/supabase/client';
+import { markSplitsPending, settleSplitsForDebtor } from '../../services/paymentSettlementService';
 import { useToast } from '../ui/use-toast';
 import { formatCurrency } from '../../services/currencyService';
 
@@ -45,43 +46,24 @@ export const SettlePaymentDialog = ({
       if (!user) throw new Error('Not authenticated');
 
       const youOweThem = balance.amountOwed < 0;
-      const splitIds = balance.unsettledPayments.map(p => p.paymentId);
+      const paymentIds = balance.unsettledPayments.map(p => p.paymentId);
+      const method = balance.preferredPaymentMethod?.type || 'other';
 
-      // If you're the payer (you owe them), mark as pending confirmation
+      // If you're the payer (you owe them), mark as pending confirmation —
+      // a non-crediting transition; the creditor's confirmation credits it.
       if (youOweThem) {
-        const { error: updateError } = await supabase
-          .from('payment_splits')
-          .update({
-            confirmation_status: 'pending',
-            settlement_method: balance.preferredPaymentMethod?.type || 'other',
-          })
-          .in('payment_message_id', splitIds)
-          .eq('debtor_user_id', user.id)
-          .eq('is_settled', false);
-
-        if (updateError) throw updateError;
+        const result = await markSplitsPending(paymentIds, method);
+        if (!result.success) throw new Error(result.error?.message || 'Failed to mark as paid');
 
         toast({
           title: 'Payment Marked as Paid',
           description: `${balance.userName} will be notified to confirm receipt`,
         });
       } else {
-        // If they owe you, you're marking as settled (immediate)
-        const { error: updateError } = await supabase
-          .from('payment_splits')
-          .update({
-            is_settled: true,
-            settled_at: new Date().toISOString(),
-            confirmation_status: 'confirmed',
-            confirmed_by: user.id,
-            confirmed_at: new Date().toISOString(),
-            settlement_method: balance.preferredPaymentMethod?.type || 'other',
-          })
-          .in('payment_message_id', splitIds)
-          .eq('debtor_user_id', balance.userId)
-          .eq('is_settled', false);
-
-        if (updateError) throw updateError;
+        // They owe you: crediting transition — must go through the atomic
+        // settlement RPC (row lock + status guard prevents double-credit).
+        const result = await settleSplitsForDebtor(paymentIds, balance.userId, method);
+        if (!result.success) throw new Error(result.error?.message || 'Failed to settle payment');
 
         toast({
           title: 'Payment Settled',

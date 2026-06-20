@@ -10,6 +10,8 @@ interface UseInviteLinkProps {
   tripName: string;
   requireApproval: boolean;
   expireIn7Days: boolean;
+  /** Maximum number of joins for the invite. null/undefined = unlimited. */
+  maxUses?: number | null;
   tripId?: string;
   proTripId?: string;
 }
@@ -98,6 +100,7 @@ export const useInviteLink = ({
   tripName,
   requireApproval,
   expireIn7Days,
+  maxUses,
   tripId,
   proTripId,
 }: UseInviteLinkProps): InviteLinkResult => {
@@ -114,7 +117,7 @@ export const useInviteLink = ({
       generateTripLink();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- generateTripLink closure deps already covered by dep array
-  }, [isOpen, requireApproval, expireIn7Days, tripId, proTripId, isDemoMode]);
+  }, [isOpen, requireApproval, expireIn7Days, maxUses, tripId, proTripId, isDemoMode]);
 
   const createInviteInDatabase = async (
     tripIdValue: string,
@@ -182,6 +185,11 @@ export const useInviteLink = ({
         }
       }
 
+      // Only persist max_uses when a valid positive limit is set; omit the
+      // column entirely when the limit is off so the invite stays unlimited.
+      const normalizedMaxUses: number | null =
+        typeof maxUses === 'number' && Number.isInteger(maxUses) && maxUses > 0 ? maxUses : null;
+
       const inviteData = {
         trip_id: tripIdValue,
         code: inviteCode,
@@ -192,6 +200,7 @@ export const useInviteLink = ({
         expires_at: expireIn7Days
           ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
           : null,
+        ...(normalizedMaxUses !== null ? { max_uses: normalizedMaxUses } : {}),
       };
 
       const { error } = await supabase.from('trip_invites').insert([inviteData]);
@@ -407,7 +416,7 @@ export const useInviteLink = ({
     setError(null);
     await generateTripLink();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- generateTripLink uses stable state setters
-  }, [isOpen, requireApproval, expireIn7Days, tripId, proTripId, isDemoMode]);
+  }, [isOpen, requireApproval, expireIn7Days, maxUses, tripId, proTripId, isDemoMode]);
 
   return {
     copied,

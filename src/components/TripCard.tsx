@@ -11,6 +11,7 @@ import {
   EyeOff,
   FileDown,
   Trash2,
+  ArrowUpDown,
 } from 'lucide-react';
 import { CardStatItem } from './ui/CardStatItem';
 import { CalendarGlyph } from './ui/CalendarGlyph';
@@ -85,6 +86,9 @@ interface TripCardProps {
   pendingSecondaryActionLabel?: string;
   onPendingSecondaryAction?: () => void;
   isPendingSecondaryActionLoading?: boolean;
+  reorderMode?: boolean;
+  onMoveTrip?: () => void;
+  onExitMoveMode?: () => void;
 }
 
 export const TripCard = ({
@@ -98,12 +102,16 @@ export const TripCard = ({
   pendingSecondaryActionLabel,
   onPendingSecondaryAction,
   isPendingSecondaryActionLoading = false,
+  reorderMode = false,
+  onMoveTrip,
+  onExitMoveMode,
 }: TripCardProps) => {
   const navigate = useNavigate();
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { deleteTrip, isDeleting } = useDeleteTrip();
   const [showExportModal, setShowExportModal] = useState(false);
   const { toast } = useToast();
@@ -135,7 +143,23 @@ export const TripCard = ({
     void import('@/pages/TripDetail').catch(() => {});
   }, [prefetch, tripIdStr]);
 
+  const handleMoveModeCardClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      if (!reorderMode) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setIsMenuOpen(false);
+      onExitMoveMode?.();
+    },
+    [reorderMode, onExitMoveMode],
+  );
+
   const handleViewTrip = () => {
+    if (reorderMode) {
+      setIsMenuOpen(false);
+      onExitMoveMode?.();
+      return;
+    }
     if (pendingApproval) {
       toast({
         title: 'Your request is still pending approval.',
@@ -149,7 +173,7 @@ export const TripCard = ({
   const actionButtonClass = cn(
     buttonVariants({ variant: 'ghost', size: 'sm' }),
     // Ghost applies hover:text-accent-foreground (black in theme); keep labels white on tap/hover (mobile + desktop).
-    'bg-gray-800/50 text-white border border-white/15 hover:bg-gray-700/50 hover:border-white/30 hover:text-white active:text-white focus-visible:text-white disabled:opacity-50 disabled:cursor-not-allowed md:min-h-[44px] md:text-sm text-xs px-2 md:px-3 py-2.5 md:py-3 rounded-lg md:rounded-xl',
+    'min-h-[44px] bg-white/5 text-white border border-white/10 hover:bg-white/10 hover:border-primary/30 hover:text-white active:text-white focus-visible:text-white disabled:opacity-50 disabled:cursor-not-allowed md:text-sm text-xs px-2 md:px-3 py-2.5 md:py-3 rounded-xl',
   );
   const secondaryActionButtonClass = cn(
     actionButtonClass,
@@ -419,13 +443,14 @@ export const TripCard = ({
 
   return (
     <div
-      className="group bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/15 hover:border-white/30 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl shadow-black/30"
+      className="group w-full min-w-0 bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/15 hover:border-primary/25 rounded-2xl overflow-hidden transition-all duration-300 motion-safe:hover:-translate-y-1 shadow-enterprise hover:shadow-enterprise-md"
       onMouseEnter={handlePrefetch}
       onFocus={handlePrefetch}
       onTouchStart={handlePrefetch}
+      onClickCapture={handleMoveModeCardClick}
     >
       {/* Trip Image/Header - Responsive with lazy loading */}
-      <div className="on-media dark-section relative h-32 md:h-48 bg-gradient-to-br from-gold-dark/20 via-gold-primary/10 to-transparent p-4 md:p-6">
+      <div className="trips-card-hero on-media dark-section relative bg-gradient-to-br from-gold-dark/20 via-gold-primary/10 to-transparent p-3 md:p-4 tablet:p-6">
         {trip.coverPhoto && (
           <OptimizedImage
             src={trip.coverPhoto}
@@ -444,7 +469,7 @@ export const TripCard = ({
               <div className="flex-1">
                 <h3
                   title={trip.title}
-                  className="text-lg md:text-xl font-bold text-white transition-all duration-300 line-clamp-2 md:line-clamp-1 md:truncate"
+                  className="text-base md:text-lg tablet:text-xl font-bold tracking-tight text-white transition-all duration-300 line-clamp-2 md:line-clamp-1 md:truncate"
                 >
                   {trip.title}
                 </h3>
@@ -470,10 +495,7 @@ export const TripCard = ({
                       </Badge>
                     )}
                     {daysUntil > 0 && daysUntil <= 7 && (
-                      <Badge
-                        variant="secondary"
-                        className="bg-gold-primary/20 text-gold-light border-gold-primary/30 animate-pulse"
-                      >
+                      <Badge variant="gold" className="shadow-ring-glow">
                         {daysUntil} {daysUntil === 1 ? 'day' : 'days'} left
                       </Badge>
                     )}
@@ -518,17 +540,35 @@ export const TripCard = ({
           </div>
           {/* Archive menu - hidden for pending-approval cards */}
           {!pendingApproval && (
-            <DropdownMenu>
+            <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <DropdownMenuTrigger asChild>
-                <button className="text-white/60 hover:text-white transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 p-2 hover:bg-white/10 rounded-lg md:rounded-xl">
+                <button
+                  className="text-white/60 hover:text-white transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 p-2 hover:bg-white/10 rounded-lg md:rounded-xl min-h-11 min-w-11 inline-flex items-center justify-center"
+                  aria-label="Trip actions"
+                >
                   <MoreHorizontal size={18} className="md:hidden" />
                   <MoreHorizontal size={20} className="hidden md:block" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-background border-border">
+                {onMoveTrip && (
+                  <>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        onMoveTrip();
+                      }}
+                      className="text-muted-foreground hover:text-foreground min-h-11"
+                    >
+                      <ArrowUpDown className="mr-2 h-4 w-4" />
+                      Move Trip
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
                 <DropdownMenuItem
                   onClick={() => setShowArchiveDialog(true)}
-                  className="text-muted-foreground hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground min-h-11"
                 >
                   <Archive className="mr-2 h-4 w-4" />
                   Archive Trip
@@ -536,7 +576,7 @@ export const TripCard = ({
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={handleHideTrip}
-                  className="text-muted-foreground hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground min-h-11"
                 >
                   <EyeOff className="mr-2 h-4 w-4" />
                   Hide Trip
@@ -544,7 +584,7 @@ export const TripCard = ({
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => setShowDeleteDialog(true)}
-                  className="text-destructive hover:text-destructive"
+                  className="text-destructive hover:text-destructive min-h-11"
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete for me
@@ -556,9 +596,9 @@ export const TripCard = ({
       </div>
 
       {/* Trip Content - Responsive padding */}
-      <div className="p-4 md:p-6">
+      <div className="p-3 md:p-4 tablet:p-6">
         {/* Quick Stats - icon above → number → label */}
-        <div className="flex justify-between items-center md:grid md:grid-cols-3 md:gap-4 mb-4 md:mb-6">
+        <div className="flex justify-between items-center md:grid md:grid-cols-3 md:gap-4 mb-3 md:mb-4 tablet:mb-6">
           <CardStatItem
             icon={Users}
             value={trip.peopleCount ?? participantsWithAvatars.length}

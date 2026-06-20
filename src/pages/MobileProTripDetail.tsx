@@ -5,6 +5,7 @@ import { MobileTripTabs } from '../components/mobile/MobileTripTabs';
 import { MobileErrorBoundary } from '../components/mobile/MobileErrorBoundary';
 import { MobileTripInfoDrawer } from '../components/mobile/MobileTripInfoDrawer';
 import { MobileHeaderOptionsSheet } from '../components/mobile/MobileHeaderOptionsSheet';
+import { DemoTripBar } from '../components/demo/DemoTripBar';
 import { TripExportModal } from '../components/trip/TripExportModal';
 import { InviteModal } from '../components/InviteModal';
 import { DeleteTripConfirmDialog } from '../components/DeleteTripConfirmDialog';
@@ -432,7 +433,7 @@ export const MobileProTripDetail = () => {
 
   return (
     <MobileErrorBoundary>
-      <div className="flex flex-col h-[100dvh] bg-black overflow-hidden">
+      <div className="mobile-trip-shell flex flex-col h-[100dvh] bg-black overflow-hidden">
         {/* Mobile Header - Fixed flex item (not sticky) for reliable iOS PWA visibility */}
         <div
           ref={headerRef}
@@ -486,6 +487,9 @@ export const MobileProTripDetail = () => {
             </div>
           </div>
         </div>
+
+        {/* Demo Mode bar — reserved-height row above the pills (no overlap with header/pills) */}
+        <DemoTripBar />
 
         {/* Mobile Tabs - Swipeable */}
         <MobileTripTabs

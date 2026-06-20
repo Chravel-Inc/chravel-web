@@ -19,14 +19,15 @@ export const ForTeams = () => {
     },
     {
       icon: <BarChart3 size={32} className="text-primary" />,
-      title: 'Compliance & Reporting',
+      title: 'Seat & Member Management',
       description:
-        'Built-in audit trails, compliance features, and real-time analytics for your operations',
+        'Admin-controlled seats, invite approvals, and bulk role assignment for traveling parties of any size',
     },
     {
       icon: <Zap size={32} className="text-accent" />,
-      title: 'Advanced Integrations',
-      description: 'Connect with Slack, QuickBooks, Google Workspace, and your existing tool stack',
+      title: 'Calendar Sync & Smart Import',
+      description:
+        'Google Calendar sync plus AI-powered import of schedules and reservations from emails, PDFs, and links — with more integrations on the way',
     },
   ];
 

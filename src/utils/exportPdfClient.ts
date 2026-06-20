@@ -189,6 +189,54 @@ interface ExportData {
 }
 
 /**
+ * Canonical section headings — display names for each export section.
+ */
+const SECTION_HEADINGS: Record<string, string> = {
+  agenda: 'Agenda',
+  attachments: 'Attachments',
+  broadcasts: 'Broadcasts',
+  calendar: 'Calendar Events',
+  lineup: 'Lineup',
+  payments: 'Payments',
+  places: 'Places & Explore Links',
+  polls: 'Polls',
+  roster: 'Trip Members',
+  tasks: 'Tasks',
+};
+
+/**
+ * Resolve the final render order for export sections.
+ *
+ * A provided custom order wins: included sections render in exactly that order,
+ * and any included sections the custom order does not mention are appended
+ * afterwards, sorted alphabetically by display heading. Without a custom order,
+ * all sections sort alphabetically by display heading.
+ */
+export function resolveSectionOrder(
+  sections: ExportSection[],
+  customOrder?: ExportSection[],
+): ExportSection[] {
+  const byHeading = (a: ExportSection, b: ExportSection): number =>
+    (SECTION_HEADINGS[a] || a).localeCompare(SECTION_HEADINGS[b] || b);
+
+  if (!customOrder || customOrder.length === 0) {
+    return [...sections].sort(byHeading);
+  }
+
+  const seen = new Set<ExportSection>();
+  const ordered: ExportSection[] = [];
+  for (const section of customOrder) {
+    if (sections.includes(section) && !seen.has(section)) {
+      seen.add(section);
+      ordered.push(section);
+    }
+  }
+
+  const remaining = sections.filter(section => !seen.has(section)).sort(byHeading);
+  return [...ordered, ...remaining];
+}
+
+/**
  * Chunk array into smaller arrays for pagination
  */
 function chunkArray<T>(array: T[], chunkSize: number): T[][] {
@@ -347,25 +395,8 @@ export async function generateClientPDF(
   doc.line(margin, yPos, pageWidth - margin, yPos);
   yPos += 30;
 
-  // Canonical section headings — sorted alphabetically by display name
-  const SECTION_HEADINGS: Record<string, string> = {
-    agenda: 'Agenda',
-    attachments: 'Attachments',
-    broadcasts: 'Broadcasts',
-    calendar: 'Calendar Events',
-    lineup: 'Lineup',
-    payments: 'Payments',
-    places: 'Places & Explore Links',
-    polls: 'Polls',
-    roster: 'Trip Members',
-    tasks: 'Tasks',
-  };
-
-  // Determine section order: alphabetical by display heading (customization override still respected)
-  const sectionOrder = customization?.sectionOrder || sections;
-  const orderedSections = sectionOrder
-    .filter(s => sections.includes(s))
-    .sort((a, b) => (SECTION_HEADINGS[a] || a).localeCompare(SECTION_HEADINGS[b] || b));
+  // Determine section order: a custom sectionOrder wins; alphabetical is the fallback
+  const orderedSections = resolveSectionOrder(sections, customization?.sectionOrder);
 
   // Helper: render section heading (always shown, even for empty sections)
   const renderSectionHeading = (heading: string) => {
@@ -415,15 +446,15 @@ export async function generateClientPDF(
           if (chunkIndex > 0) yPos = checkPageBreak(doc, yPos, 60);
 
           const eventRows = chunk.map((event: any) => {
+            // Full description is kept and wraps within its column — truncating at
+            // 60 chars dropped details from client-facing itineraries.
             const description = event.description ? sanitizePdfText(event.description) : '';
-            const truncatedDescription =
-              description.length > 60 ? `${description.slice(0, 60)}...` : description;
 
             return [
               sanitizePdfText(event.title || 'Untitled Event'),
               formatEventDateTime(event.start_time, event.end_time),
               sanitizePdfText(event.location || 'N/A'),
-              truncatedDescription || ' ',
+              description || ' ',
             ];
           });
 
@@ -434,7 +465,13 @@ export async function generateClientPDF(
             theme: 'striped',
             headStyles: { fillColor: [primaryR, primaryG, primaryB], fontSize: 10 },
             margin: { left: margin, right: margin },
-            styles: { fontSize: 9 },
+            styles: { fontSize: 9, overflow: 'linebreak' },
+            columnStyles: {
+              0: { cellWidth: contentWidth * 0.24 },
+              1: { cellWidth: contentWidth * 0.26 },
+              2: { cellWidth: contentWidth * 0.18 },
+              3: { cellWidth: contentWidth * 0.32 },
+            },
           });
 
           yPos = getFinalY(doc, yPos) + 10;
@@ -1059,28 +1096,31 @@ export async function generateClientPDF(
     'Finalizing PDF...',
   );
 
-  const footerText = customization?.footerText || 'From www.Chravel.App';
-  const brandTitle = 'ChravelApp Recap';
-  const brandTagline = 'The Group Chat Travel App';
+  // Modest attribution: the trip name is the document header; branding is a
+  // single small footer line so client-facing deliverables stay presentable.
+  const footerText = customization?.footerText || 'Made with Chravel';
+  const runningHeader = sanitizePdfText(data.tripTitle);
 
-  // Add footer to all pages
+  // PDF document metadata title = trip name (shown in browser tabs / readers)
+  doc.setProperties?.({ title: runningHeader });
+
+  // Add running header + footer to all pages
   const totalPages = doc.internal.pages.length - 1; // jsPDF uses 1-indexed pages but array is 0-indexed
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
-    // Top-right brand text (no logo) - Chravel gold
-    doc.setFont('NotoSans', 'bold');
-    doc.setFontSize(12);
-    doc.setTextColor(196, 151, 70); // Chravel warm metallic gold
-    const titleW = doc.getTextWidth(brandTitle);
-    doc.text(brandTitle, pageWidth - margin - titleW, 22);
 
-    doc.setFont('NotoSans', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(83, 53, 23); // Chravel dark bronze for tagline
-    const tagW = doc.getTextWidth(brandTagline);
-    doc.text(brandTagline, pageWidth - margin - tagW, 36);
+    // Top-right running header: trip name (skipped on page 1, which already
+    // carries the full-size trip title heading)
+    if (i > 1 && runningHeader) {
+      doc.setFont('NotoSans', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(120);
+      const headerW = doc.getTextWidth(runningHeader);
+      doc.text(runningHeader, pageWidth - margin - headerW, 22);
+    }
 
     // Bottom-left footer with subtle gold accent
+    doc.setFont('NotoSans', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(160, 122, 50); // Muted gold for footer
     doc.text(footerText, margin, pageHeight - 20);

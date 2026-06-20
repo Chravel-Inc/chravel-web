@@ -84,6 +84,9 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
       'voice_concierge',
       'pro_trip_creation',
       'events_create',
+      // Attendee-cap entitlements are NOT enforced anywhere yet (no join-path
+      // check produces a "trip full" error). Pricing copy must not advertise
+      // numeric attendee caps until enforcement exists.
       'events_attendees_100',
     ],
   },
@@ -167,6 +170,9 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
       'events_create',
       'events_attendees_unlimited',
       'approval_workflows',
+      // QuickBooks is NOT yet shipped — no integration code exists. Any
+      // user-facing copy must say "coming soon" (Enterprise is contact-sales).
+      // The entitlement ID stays so existing subscriptions keep their grants.
       'quickbooks_integration',
       'compliance_audit',
     ],

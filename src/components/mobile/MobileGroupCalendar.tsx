@@ -33,10 +33,13 @@ import {
 import { CreateEventModal } from './CreateEventModal';
 import { CalendarImportModal } from '@/features/calendar/components/CalendarImportModal';
 import { useCalendarEvents } from '@/features/calendar/hooks/useCalendarEvents';
+import { demoModeService } from '@/services/demoModeService';
+import { useDemoMode } from '@/hooks/useDemoMode';
 import { useBackgroundImport } from '@/features/calendar/hooks/useBackgroundImport';
 import { toast } from 'sonner';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { useDeferredPaidAccess } from '@/hooks/useDeferredPaidAccess';
+import { useSmartImportTaste } from '@/features/smart-import/hooks/useSmartImportTaste';
 import { useRolePermissions } from '@/hooks/useRolePermissions';
 import { useTripMembersQuery } from '@/hooks/useTripMembersQuery';
 import type { TripEvent } from '@/services/calendarService';
@@ -99,6 +102,8 @@ export const MobileGroupCalendar = ({
     isSuperAdmin,
     active: true,
   });
+  // Free-tier "taste": 1 Smart Import per trip before the paywall fires.
+  const { canUseFreeImport, invalidateTaste } = useSmartImportTaste(tripId);
   const { canPerformAction, isLoading: permissionsLoading } = useRolePermissions(tripId);
   const { tripMembers } = useTripMembersQuery(tripId);
 
@@ -136,19 +141,23 @@ export const MobileGroupCalendar = ({
   const handleImport = async () => {
     await hapticService.medium();
 
-    if (!canUseSmartImport) {
+    // Free users get 1 Smart Import per trip before the paywall fires.
+    if (!canUseSmartImport && !canUseFreeImport) {
       const { getFeaturePaywallConfig } = await import('@/components/subscription/featurePaywall');
       const paywall = getFeaturePaywallConfig('smart_import_calendar');
-      toast.error(`${paywall.featureBenefitCopy} Recommended plan: ${paywall.recommendedPlan}.`, {
-        action: {
-          label: 'View Plans',
-          onClick: () =>
-            navigate(
-              `${paywall.destination.pathname}${paywall.destination.search}`,
-              paywall.destination.state ? { state: paywall.destination.state } : undefined,
-            ),
+      toast.error(
+        `You've used your free Smart Import for this trip. ${paywall.recommendedPlan} includes unlimited Smart Import.`,
+        {
+          action: {
+            label: 'View Plans',
+            onClick: () =>
+              navigate(
+                `${paywall.destination.pathname}${paywall.destination.search}`,
+                paywall.destination.state ? { state: paywall.destination.state } : undefined,
+              ),
+          },
         },
-      });
+      );
       return;
     }
 
@@ -164,6 +173,8 @@ export const MobileGroupCalendar = ({
   const handleImportComplete = async () => {
     await queryClient.cancelQueries({ queryKey: tripKeys.calendar(tripId) });
     await queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
+    // Refresh the free-import taste so the next attempt sees consumed usage.
+    invalidateTaste();
     await refreshEvents();
   };
 
@@ -181,9 +192,20 @@ export const MobileGroupCalendar = ({
 
   const { exportTripEvents } = useCalendarExport(tripId);
 
+  const { isDemoMode } = useDemoMode();
+
   // Convert TripEvent[] to CalendarEvent[] format for UI
   const events = useMemo(() => {
-    const calendarEvents = tripEvents.map((event, index) => {
+    // Demo-mode parity with desktop GroupCalendar (useCalendarManagement):
+    // the Cancun demo trip injects dynamic events for the selected date so
+    // the day list is never empty while exploring.
+    let sourceEvents = tripEvents;
+    if (isDemoMode && tripId === '1') {
+      const dynamicDemoEvents = demoModeService.getDynamicDemoEventsForDate(tripId, selectedDate);
+      const existingIds = new Set(tripEvents.map(e => e.id));
+      sourceEvents = [...tripEvents, ...dynamicDemoEvents.filter(e => !existingIds.has(e.id))];
+    }
+    const calendarEvents = sourceEvents.map((event, index) => {
       const calendarEvent = {
         id: event.id,
         title: event.title,
@@ -202,7 +224,7 @@ export const MobileGroupCalendar = ({
       return calendarEvent;
     });
     return calendarEvents;
-  }, [tripEvents, tripMembers?.length]);
+  }, [tripEvents, tripMembers?.length, isDemoMode, tripId, selectedDate]);
 
   const { isRefreshing, pullDistance } = usePullToRefresh({
     onRefresh: async () => {

@@ -10,6 +10,7 @@ import {
   Trash2,
   FileDown,
   Share2,
+  ArrowUpDown,
 } from 'lucide-react';
 import { CardStatItem } from './ui/CardStatItem';
 import { CalendarGlyph } from './ui/CalendarGlyph';
@@ -57,6 +58,9 @@ interface ProTripCardProps {
   onArchiveSuccess?: () => void;
   onHideSuccess?: () => void;
   onDeleteSuccess?: () => void;
+  reorderMode?: boolean;
+  onMoveTrip?: () => void;
+  onExitMoveMode?: () => void;
 }
 
 export const ProTripCard = ({
@@ -64,6 +68,9 @@ export const ProTripCard = ({
   onArchiveSuccess,
   onHideSuccess,
   onDeleteSuccess,
+  reorderMode = false,
+  onMoveTrip,
+  onExitMoveMode,
 }: ProTripCardProps) => {
   const navigate = useNavigate();
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
@@ -71,6 +78,7 @@ export const ProTripCard = ({
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -99,7 +107,23 @@ export const ProTripCard = ({
     return baseCount + addedDemoMembers.length;
   }, [trip, addedDemoMembers]);
 
+  const handleMoveModeCardClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      if (!reorderMode) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setIsMenuOpen(false);
+      onExitMoveMode?.();
+    },
+    [reorderMode, onExitMoveMode],
+  );
+
   const handleViewTrip = () => {
+    if (reorderMode) {
+      setIsMenuOpen(false);
+      onExitMoveMode?.();
+      return;
+    }
     navigate(`/tour/pro/${trip.id}`);
   };
 
@@ -283,11 +307,11 @@ export const ProTripCard = ({
   // Share trip data structure
 
   const cardShellClass =
-    'group bg-gradient-to-br backdrop-blur-xl border border-white/15 hover:border-white/30 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl shadow-black/30 relative';
+    'group w-full min-w-0 bg-gradient-to-br backdrop-blur-xl border border-white/15 hover:border-primary/25 rounded-2xl overflow-hidden transition-all duration-300 motion-safe:hover:-translate-y-1 shadow-enterprise hover:shadow-enterprise-md relative';
   const actionButtonClass = cn(
     buttonVariants({ variant: 'ghost', size: 'sm' }),
     // Ghost applies hover:text-accent-foreground (black); keep CTA labels white when pressed/hovered.
-    'bg-black/30 hover:bg-black/40 text-white border border-white/20 hover:border-white/30 hover:text-white active:text-white focus-visible:text-white disabled:opacity-50 disabled:cursor-not-allowed md:min-h-[44px] md:text-sm text-xs px-2 md:px-3 py-2.5 md:py-3 rounded-lg md:rounded-xl',
+    'min-h-[44px] bg-black/30 hover:bg-black/40 text-white border border-white/20 hover:border-primary/30 hover:text-white active:text-white focus-visible:text-white disabled:opacity-50 disabled:cursor-not-allowed md:text-sm text-xs px-2 md:px-3 py-2.5 md:py-3 rounded-xl',
   );
 
   const shareTrip = {
@@ -301,9 +325,12 @@ export const ProTripCard = ({
   };
 
   return (
-    <div className={cn(cardShellClass, tripColor.cardGradient)}>
+    <div
+      className={cn(cardShellClass, tripColor.cardGradient)}
+      onClickCapture={handleMoveModeCardClick}
+    >
       {/* Hero Section - Dark overlay for text readability */}
-      <div className="relative h-32 md:h-48 bg-white/30 dark:bg-black/40">
+      <div className="trips-card-hero relative bg-white/30 dark:bg-black/40">
         {/* Cover photo overlay if available */}
         {coverPhoto && (
           <div
@@ -313,14 +340,14 @@ export const ProTripCard = ({
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-white/50 via-transparent to-transparent dark:from-black/70 dark:via-black/30 dark:to-transparent" />
 
-        <div className="relative z-10 flex justify-between items-start h-full p-4 md:p-6">
+        <div className="relative z-10 flex justify-between items-start h-full p-3 md:p-4 tablet:p-6">
           {/* Trip Info - Inside Hero */}
           <div className="flex-1 min-h-0 overflow-hidden flex flex-col justify-end">
             <div className="flex items-center gap-2 mb-2">
               <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30">Pro</Badge>
             </div>
             <h3
-              className="text-lg md:text-xl font-bold text-black dark:text-white transition-colors line-clamp-2 md:line-clamp-1 mb-2"
+              className="text-base md:text-lg tablet:text-xl font-bold text-black dark:text-white transition-colors line-clamp-2 md:line-clamp-1 mb-2"
               title={trip.title}
             >
               {trip.title}
@@ -344,20 +371,36 @@ export const ProTripCard = ({
           </div>
 
           {/* Menu Button */}
-          <DropdownMenu>
+          <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-black/40 hover:text-black dark:text-white/60 dark:hover:text-white hover:bg-black/10 dark:hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-all duration-200 h-8 w-8"
+                className="text-black/40 hover:text-black dark:text-white/60 dark:hover:text-white hover:bg-black/10 dark:hover:bg-white/10 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-200 h-11 w-11"
+                aria-label="Trip actions"
               >
                 <MoreHorizontal size={16} />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-background border-border">
+              {onMoveTrip && (
+                <>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onMoveTrip();
+                    }}
+                    className="text-muted-foreground hover:text-foreground min-h-11"
+                  >
+                    <ArrowUpDown className="mr-2 h-4 w-4" />
+                    Move Trip
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
               <DropdownMenuItem
                 onClick={() => setShowArchiveDialog(true)}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground min-h-11"
               >
                 <Archive className="mr-2 h-4 w-4" />
                 Archive Trip
@@ -365,7 +408,7 @@ export const ProTripCard = ({
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={handleHideTrip}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground min-h-11"
               >
                 <EyeOff className="mr-2 h-4 w-4" />
                 Hide Trip
@@ -373,7 +416,7 @@ export const ProTripCard = ({
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => setShowDeleteDialog(true)}
-                className="text-destructive hover:text-destructive"
+                className="text-destructive hover:text-destructive min-h-11"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete for me
@@ -384,9 +427,9 @@ export const ProTripCard = ({
       </div>
 
       {/* Content Section */}
-      <div className="p-4 md:p-6">
+      <div className="p-3 md:p-4 tablet:p-6">
         {/* Stats Row - icon above → number → label */}
-        <div className="flex justify-between items-center md:grid md:grid-cols-3 md:gap-4 mb-4 md:mb-6">
+        <div className="flex justify-between items-center md:grid md:grid-cols-3 md:gap-4 mb-3 md:mb-4 tablet:mb-6">
           <CardStatItem icon={Users} value={formatPeopleCount(totalPeopleCount)} label="People" />
           <CardStatItem
             icon={CalendarGlyph}

@@ -54,12 +54,12 @@ const OrgDashboardSkeleton = () => (
     <div className="container mx-auto p-6 max-w-7xl">
       {/* Header skeleton */}
       <div className="mb-8">
-        <Skeleton className="h-5 w-40 bg-white/10 mb-4" />
+        <Skeleton className="h-5 w-40 mb-4" />
         <div className="flex items-center gap-4">
-          <Skeleton className="w-16 h-16 rounded-xl bg-white/10" />
+          <Skeleton className="w-16 h-16 rounded-xl" />
           <div>
-            <Skeleton className="h-8 w-56 bg-white/10 mb-2" />
-            <Skeleton className="h-4 w-32 bg-white/10" />
+            <Skeleton className="h-8 w-56 mb-2" />
+            <Skeleton className="h-4 w-32" />
           </div>
         </div>
       </div>
@@ -69,21 +69,21 @@ const OrgDashboardSkeleton = () => (
         {Array.from({ length: 4 }).map((_, i) => (
           <Card key={i} className="bg-white/5 border-white/10">
             <CardHeader className="pb-3">
-              <Skeleton className="h-4 w-24 bg-white/10" />
+              <Skeleton className="h-4 w-24" />
             </CardHeader>
             <CardContent>
-              <Skeleton className="h-8 w-16 bg-white/10 mb-2" />
-              <Skeleton className="h-4 w-20 bg-white/10" />
+              <Skeleton className="h-8 w-16 mb-2" />
+              <Skeleton className="h-4 w-20" />
             </CardContent>
           </Card>
         ))}
       </div>
 
       {/* Tabs skeleton */}
-      <Skeleton className="h-10 w-full bg-white/10 mb-6" />
+      <Skeleton className="h-10 w-full mb-6" />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Skeleton className="h-64 bg-white/10 rounded-xl" />
-        <Skeleton className="h-64 bg-white/10 rounded-xl" />
+        <Skeleton className="h-64 rounded-xl" />
+        <Skeleton className="h-64 rounded-xl" />
       </div>
     </div>
   </div>
@@ -92,22 +92,22 @@ const OrgDashboardSkeleton = () => (
 /** Skeleton placeholder for mobile org dashboard loading state */
 const MobileOrgDashboardSkeleton = () => (
   <div className="min-h-screen bg-black text-white p-4">
-    <Skeleton className="h-5 w-40 bg-white/10 mb-4" />
+    <Skeleton className="h-5 w-40 mb-4" />
     <div className="flex items-center gap-3 mb-4">
-      <Skeleton className="w-12 h-12 rounded-xl bg-white/10" />
+      <Skeleton className="w-12 h-12 rounded-xl" />
       <div>
-        <Skeleton className="h-6 w-40 bg-white/10 mb-1" />
-        <Skeleton className="h-4 w-24 bg-white/10" />
+        <Skeleton className="h-6 w-40 mb-1" />
+        <Skeleton className="h-4 w-24" />
       </div>
     </div>
     <div className="grid grid-cols-2 gap-3 mb-4">
-      <Skeleton className="h-20 bg-white/10 rounded-lg" />
-      <Skeleton className="h-20 bg-white/10 rounded-lg" />
+      <Skeleton className="h-20 rounded-lg" />
+      <Skeleton className="h-20 rounded-lg" />
     </div>
-    <Skeleton className="h-11 w-full bg-white/10 rounded-lg mb-6" />
-    <Skeleton className="h-6 w-32 bg-white/10 mb-3" />
+    <Skeleton className="h-11 w-full rounded-lg mb-6" />
+    <Skeleton className="h-6 w-32 mb-3" />
     {Array.from({ length: 3 }).map((_, i) => (
-      <Skeleton key={i} className="h-16 w-full bg-white/10 rounded-lg mb-3" />
+      <Skeleton key={i} className="h-16 w-full rounded-lg mb-3" />
     ))}
   </div>
 );
@@ -339,8 +339,8 @@ export const OrganizationDashboard = () => {
           </button>
 
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-r from-glass-orange to-glass-yellow rounded-xl flex items-center justify-center">
-              <Building size={24} className="text-white" />
+            <div className="w-12 h-12 bg-gradient-to-r from-gold-primary to-gold-mid rounded-xl flex items-center justify-center">
+              <Building size={24} className="text-primary-foreground" />
             </div>
             <div>
               <h1 className="text-xl font-bold">{currentOrg.display_name}</h1>
@@ -369,7 +369,7 @@ export const OrganizationDashboard = () => {
           {isAdmin && (
             <Button
               onClick={() => setShowInviteModal(true)}
-              className="w-full bg-glass-orange hover:bg-glass-orange/80 min-h-[44px]"
+              className="w-full bg-primary hover:bg-primary/80 min-h-[44px]"
               aria-label="Invite a new team member"
             >
               <UserPlus size={16} className="mr-2" />
@@ -444,8 +444,8 @@ export const OrganizationDashboard = () => {
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-gradient-to-r from-glass-orange to-glass-yellow rounded-xl flex items-center justify-center">
-                <Building size={32} className="text-white" />
+              <div className="w-16 h-16 bg-gradient-to-r from-gold-primary to-gold-mid rounded-xl flex items-center justify-center">
+                <Building size={32} className="text-primary-foreground" />
               </div>
               <div>
                 <h1 className="text-3xl font-bold">{currentOrg.display_name}</h1>
@@ -456,7 +456,7 @@ export const OrganizationDashboard = () => {
             {isAdmin && (
               <Button
                 onClick={() => setShowInviteModal(true)}
-                className="bg-glass-orange hover:bg-glass-orange/80 min-h-[44px]"
+                className="bg-primary hover:bg-primary/80 min-h-[44px]"
                 aria-label="Invite a new team member"
               >
                 <UserPlus size={16} className="mr-2" />
@@ -505,7 +505,7 @@ export const OrganizationDashboard = () => {
                 aria-label="Seat usage progress"
               >
                 <div
-                  className="bg-glass-orange h-2 rounded-full transition-all"
+                  className="bg-primary h-2 rounded-full transition-all"
                   style={{ width: `${seatUsage}%` }}
                 />
               </div>
@@ -526,20 +526,20 @@ export const OrganizationDashboard = () => {
         {/* Desktop Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="bg-white/5 border border-white/10">
-            <TabsTrigger value="overview" className="data-[state=active]:bg-glass-orange">
+            <TabsTrigger value="overview">
               <Building size={16} className="mr-2" />
               Overview
             </TabsTrigger>
-            <TabsTrigger value="team" className="data-[state=active]:bg-glass-orange">
+            <TabsTrigger value="team">
               <Users size={16} className="mr-2" />
               Team ({members.length})
             </TabsTrigger>
-            <TabsTrigger value="trips" className="data-[state=active]:bg-glass-orange">
+            <TabsTrigger value="trips">
               <Briefcase size={16} className="mr-2" />
               Trips
             </TabsTrigger>
             {isAdmin && (
-              <TabsTrigger value="settings" className="data-[state=active]:bg-glass-orange">
+              <TabsTrigger value="settings">
                 <Settings size={16} className="mr-2" />
                 Settings
               </TabsTrigger>
@@ -600,13 +600,13 @@ export const OrganizationDashboard = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {Array.from({ length: 3 }).map((_, i) => (
                   <Card key={i} className="bg-white/5 border-white/10">
-                    <Skeleton className="h-32 bg-white/10 rounded-t-lg" />
+                    <Skeleton className="h-32 rounded-t-lg" />
                     <CardHeader>
-                      <Skeleton className="h-6 w-40 bg-white/10" />
-                      <Skeleton className="h-4 w-24 bg-white/10 mt-1" />
+                      <Skeleton className="h-6 w-40" />
+                      <Skeleton className="h-4 w-24 mt-1" />
                     </CardHeader>
                     <CardContent>
-                      <Skeleton className="h-4 w-32 bg-white/10" />
+                      <Skeleton className="h-4 w-32" />
                     </CardContent>
                   </Card>
                 ))}
@@ -648,7 +648,7 @@ export const OrganizationDashboard = () => {
                       />
                     )}
                     <CardHeader>
-                      <CardTitle className="text-white group-hover:text-glass-orange transition-colors">
+                      <CardTitle className="text-white group-hover:text-primary transition-colors">
                         {trip.name}
                       </CardTitle>
                       <p className="text-sm text-gray-400">{trip.destination}</p>

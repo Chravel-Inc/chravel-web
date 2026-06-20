@@ -1,12 +1,25 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '../../ui/button';
-import demoPreviewHero from '@/assets/demo-preview-hero.webp';
+
+// Real-product-walkthrough video built from fresh demo-mode UI captures.
+// Source: remotion/src/compositions/HomepageProductDemo60.tsx
+// Regenerate: see public/videos/README.md (capture → render → poster).
+// Served from public/ so the file ships with every deploy — no external
+// asset store involved (a previous sandbox-only asset URL broke in prod).
+
+const HERO_VIDEO_SRC = '/videos/chravel-homepage-demo-60.mp4';
+const HERO_VIDEO_POSTER = '/videos/chravel-homepage-demo-60-poster.jpg';
 
 interface HeroSectionProps {
   onSignUp: () => void;
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
+  const [videoFailed, setVideoFailed] = useState(false);
+  // Hero demo is muted + decorative — always autoplay regardless of
+  // prefers-reduced-motion. Fallback to poster only on real load error.
+  const showVideo = !videoFailed;
+
   return (
     <div
       className="relative container mx-auto px-4 flex flex-col min-h-[85vh] tablet:min-h-[90vh] text-center pb-8 tablet:pb-6"
@@ -34,45 +47,68 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
 
       {/* Top Section: Brand + Headline + Subtitle */}
       <div className="flex-shrink-0 pt-4 tablet:pt-8">
-        {/* Brand Name */}
+        {/* Eyebrow chip — gold rule + label, premium signal */}
         <div
-          className="inline-block animate-fade-in mb-2 tablet:mb-3"
-          style={{
-            animationDelay: '0.05s',
-          }}
+          className="flex items-center justify-center gap-3 mb-3 tablet:mb-4 animate-fade-in"
+          style={{ animationDelay: '0.02s' }}
+          aria-hidden="true"
         >
-          <h2
-            className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight text-white"
-            style={{
-              textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
-            }}
+          <span className="h-px w-8 sm:w-12 bg-gradient-to-r from-transparent to-[#c49746]" />
+          <span
+            className="text-[10px] sm:text-xs font-semibold tracking-[0.32em] uppercase text-[#feeaa5]"
+            style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}
           >
-            ChravelApp
-          </h2>
+            Less Chaos · More Coordination
+          </span>
+          <span className="h-px w-8 sm:w-12 bg-gradient-to-l from-transparent to-[#c49746]" />
         </div>
 
-        {/* Pain-First Headline */}
-        <div className="w-full flex items-center justify-center px-2 tablet:px-4 mb-2 tablet:mb-3">
-          <h1
-            className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight animate-fade-in text-center w-full"
+        {/* Brand Name (styled div — not a heading, to preserve h1→h2→h3 order) */}
+        <div
+          className="inline-block animate-fade-in mb-2 tablet:mb-3"
+          style={{ animationDelay: '0.05s' }}
+        >
+          <div
+            className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight tracking-tight"
             style={{
-              textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
+              textShadow:
+                '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4), 0 0 32px rgba(196,151,70,0.22)',
+            }}
+            aria-hidden="true"
+          >
+            ChravelApp
+          </div>
+        </div>
+
+        {/* Pain-First Headline — primary H1 for the page */}
+        <div className="w-full flex items-center justify-center px-2 tablet:px-4 mb-3 tablet:mb-4">
+          <h1
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-[1.05] tracking-tight animate-fade-in text-center w-full"
+            style={{
+              textShadow:
+                '0 2px 8px rgba(0,0,0,0.6), 0 4px 18px rgba(0,0,0,0.45), 0 0 44px rgba(196,151,70,0.28)',
             }}
           >
             The Group Chat Travel App
           </h1>
         </div>
 
+        {/* Gold divider — premium accent */}
+        <div
+          className="mx-auto h-px w-24 sm:w-32 bg-gradient-to-r from-transparent via-[#c49746] to-transparent mb-3 tablet:mb-4 animate-fade-in"
+          style={{ animationDelay: '0.08s' }}
+          aria-hidden="true"
+        />
+
         {/* New Subtitle */}
         <p
-          className="text-sm sm:text-base md:text-lg lg:text-xl text-white font-medium max-w-3xl mx-auto mb-3 tablet:mb-4 animate-fade-in"
+          className="text-sm sm:text-base md:text-lg lg:text-xl text-white/95 font-medium max-w-3xl mx-auto mb-3 tablet:mb-4 animate-fade-in"
           style={{
-            animationDelay: '0.05s',
-            textShadow: '0 2px 4px rgba(0,0,0,0.4)',
+            animationDelay: '0.1s',
+            textShadow: '0 2px 6px rgba(0,0,0,0.55), 0 4px 12px rgba(0,0,0,0.35)',
           }}
         >
-          For Friend & Family trips, Team Travel, Touring Crews, Local Community Clubs, & Anybody
-          Organizing a Group
+          Built for group planning. All your trip's important info. In one place.
         </p>
       </div>
 
@@ -82,14 +118,31 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           className="w-full max-w-6xl mx-auto px-2 animate-fade-in"
           style={{ animationDelay: '0.1s' }}
         >
-          <div className="relative rounded-xl overflow-hidden shadow-2xl shadow-black/40 border border-white/10">
-            <img
-              src={demoPreviewHero}
-              alt="ChravelApp trip dashboard preview"
-              className="w-full h-auto"
-              fetchPriority="high"
-              decoding="async"
-            />
+          <div className="relative rounded-xl overflow-hidden shadow-2xl shadow-black/40 border border-white/10 aspect-video bg-[#070B1A]">
+            {showVideo ? (
+              <video
+                className="w-full h-full object-cover object-bottom scale-[1.08] origin-bottom"
+                // src directly on <video> (not a <source> child) so a missing
+                // file fires onError here and the poster fallback engages.
+                src={HERO_VIDEO_SRC}
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                poster={HERO_VIDEO_POSTER}
+                aria-label="ChravelApp trip dashboard product demo"
+                onError={() => setVideoFailed(true)}
+              />
+            ) : (
+              <img
+                src={HERO_VIDEO_POSTER}
+                alt="ChravelApp trips dashboard preview"
+                className="w-full h-full object-cover object-bottom scale-[1.08] origin-bottom"
+                fetchPriority="high"
+                decoding="async"
+              />
+            )}
             {/* Subtle overlay to blend edges */}
             <div className="absolute inset-0 bg-gradient-to-t from-[#070B1A]/30 via-transparent to-transparent pointer-events-none" />
           </div>
@@ -98,7 +151,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         {/* Mobile CTA - centered below preview */}
         <Button
           onClick={onSignUp}
-          className="mt-4 px-6 py-3 accent-fill-gold backdrop-blur-md rounded-lg text-base font-semibold animate-fade-in lg:hidden"
+          className="mt-4 px-6 py-3 accent-fill-gold backdrop-blur-md rounded-xl text-base font-semibold animate-fade-in lg:hidden"
           style={{ animationDelay: '0.2s' }}
         >
           Login or Signup
@@ -120,7 +173,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
               textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
             }}
           >
-            Less Chaos, More Coordination
+            {"\n"}
           </h3>
         </div>
 
@@ -132,7 +185,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
             textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
           }}
         >
-          Plans, photos, places, and payments — one private place for every trip.
+          Plans, Photos, Places, & Payments — one Private Place for each specific trip.
         </p>
       </div>
     </div>

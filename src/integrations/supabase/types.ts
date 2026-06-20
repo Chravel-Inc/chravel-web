@@ -1771,6 +1771,42 @@ export type Database = {
         }
         Relationships: []
       }
+      onboarding_responses: {
+        Row: {
+          biggest_chaos: string | null
+          chaos_score: number | null
+          created_at: string
+          desired_solution: string | null
+          frustration_level: string | null
+          id: string
+          scattered_apps: string[]
+          scroll_pain: string | null
+          user_id: string
+        }
+        Insert: {
+          biggest_chaos?: string | null
+          chaos_score?: number | null
+          created_at?: string
+          desired_solution?: string | null
+          frustration_level?: string | null
+          id?: string
+          scattered_apps?: string[]
+          scroll_pain?: string | null
+          user_id?: string
+        }
+        Update: {
+          biggest_chaos?: string | null
+          chaos_score?: number | null
+          created_at?: string
+          desired_solution?: string | null
+          frustration_level?: string | null
+          id?: string
+          scattered_apps?: string[]
+          scroll_pain?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       organization_billing: {
         Row: {
           billing_email: string
@@ -2146,6 +2182,62 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      payment_attachments: {
+        Row: {
+          attachment_type: string
+          created_at: string
+          file_name: string | null
+          file_size: number | null
+          id: string
+          metadata: Json
+          mime_type: string | null
+          payment_message_id: string
+          storage_path: string | null
+          title: string | null
+          trip_id: string
+          uploaded_by: string
+          url: string | null
+        }
+        Insert: {
+          attachment_type: string
+          created_at?: string
+          file_name?: string | null
+          file_size?: number | null
+          id?: string
+          metadata?: Json
+          mime_type?: string | null
+          payment_message_id: string
+          storage_path?: string | null
+          title?: string | null
+          trip_id: string
+          uploaded_by: string
+          url?: string | null
+        }
+        Update: {
+          attachment_type?: string
+          created_at?: string
+          file_name?: string | null
+          file_size?: number | null
+          id?: string
+          metadata?: Json
+          mime_type?: string | null
+          payment_message_id?: string
+          storage_path?: string | null
+          title?: string | null
+          trip_id?: string
+          uploaded_by?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_attachments_payment_message_id_fkey"
+            columns: ["payment_message_id"]
+            isOneToOne: false
+            referencedRelation: "trip_payment_messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payment_audit_log: {
         Row: {
@@ -4564,6 +4656,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_loyalty_programs: {
+        Row: {
+          company_name: string
+          created_at: string
+          id: string
+          is_preferred: boolean | null
+          membership_number: string
+          program_name: string
+          program_type: string
+          tier: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_name: string
+          created_at?: string
+          id?: string
+          is_preferred?: boolean | null
+          membership_number: string
+          program_name: string
+          program_type: string
+          tier?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_name?: string
+          created_at?: string
+          id?: string
+          is_preferred?: boolean | null
+          membership_number?: string
+          program_name?: string
+          program_type?: string
+          tier?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_payment_methods: {
         Row: {
           created_at: string
@@ -4695,6 +4826,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      waitlist: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          source?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          source?: string
+        }
+        Relationships: []
       }
       web_push_subscriptions: {
         Row: {

@@ -28,6 +28,25 @@ vi.mock('../useDemoMode', () => ({
     isDemoMode: false,
   }),
 }));
+// Allow-all permissions: these specs exercise the mutation paths themselves
+// (insert errors, offline queueing), not the client-side permission guard.
+vi.mock('../useMutationPermissions', () => ({
+  useMutationPermissions: () => ({
+    isLoading: false,
+    tripType: 'consumer',
+    canCreateTask: true,
+    canEditTask: true,
+    canDeleteTask: true,
+    canCreatePoll: true,
+    canClosePoll: true,
+    canDeletePoll: true,
+    canCreateEvent: true,
+    canEditEvent: true,
+    canDeleteEvent: true,
+    canSetBasecamp: true,
+    canSaveLink: true,
+  }),
+}));
 vi.mock('../use-toast', () => ({
   useToast: () => ({
     toast: vi.fn(),

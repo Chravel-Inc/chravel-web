@@ -1,14 +1,18 @@
 import React, { useState, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, MoreVertical, Info, LogIn, Users } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Info, LogIn, Users, UserPlus } from 'lucide-react';
 import { MobileTripTabs } from '../components/mobile/MobileTripTabs';
 import { MobileErrorBoundary } from '../components/mobile/MobileErrorBoundary';
 import { MobileTripInfoDrawer } from '../components/mobile/MobileTripInfoDrawer';
 import { MobileHeaderOptionsSheet } from '../components/mobile/MobileHeaderOptionsSheet';
+import { DemoTripBar } from '../components/demo/DemoTripBar';
+import { isDemoTrip } from '@/utils/demoUtils';
 import { TripExportModal } from '../components/trip/TripExportModal';
 import { InviteModal } from '../components/InviteModal';
 import { DeleteTripConfirmDialog } from '../components/DeleteTripConfirmDialog';
 import { useDeleteTrip } from '../hooks/useDeleteTrip';
+import { useTripNotificationMute } from '../hooks/useTripNotificationMute';
+import { useFeatureFlag } from '@/lib/featureFlags';
 import { useAuth } from '../hooks/useAuth';
 import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
 import { hapticService } from '../services/hapticService';
@@ -64,6 +68,8 @@ export const MobileTripDetail = () => {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { deleteTrip, isDeleting } = useDeleteTrip();
+  const muteToggleEnabled = useFeatureFlag('per_trip_notification_mute');
+  const { muted, toggleMute } = useTripNotificationMute(tripId);
   const headerRef = React.useRef<HTMLDivElement>(null);
 
   // Persist activeTab changes to sessionStorage
@@ -119,8 +125,10 @@ export const MobileTripDetail = () => {
     return {
       ...trip,
       description: tripDescription || trip.description,
-      // Merge real trip members for authenticated trips instead of empty array
-      participants: isDemoMode
+      // Merge real trip members for authenticated trips instead of empty array.
+      // 🔒 Key on isDemoTrip(tripId) — the same structural gate useTripDetailData uses to serve
+      // demo data — so participants can't diverge from the loader's demo decision.
+      participants: isDemoTrip(tripId)
         ? trip.participants
         : (tripMembers.map(m => ({
             id: m.id as any, // UUID strings for authenticated trips
@@ -129,7 +137,7 @@ export const MobileTripDetail = () => {
             role: 'member',
           })) as any),
     };
-  }, [trip, tripDescription, isDemoMode, tripMembers]);
+  }, [trip, tripId, tripDescription, tripMembers]);
 
   const mockData = React.useMemo(() => {
     if (!trip) return null;
@@ -321,7 +329,10 @@ export const MobileTripDetail = () => {
   if (loading || isAuthLoading) {
     return (
       <MobileErrorBoundary>
-        <div className="flex flex-col h-[100dvh] bg-black overflow-hidden" aria-hidden="true">
+        <div
+          className="mobile-trip-shell flex flex-col h-[100dvh] bg-black overflow-hidden"
+          aria-hidden="true"
+        >
           {/* Skeleton Header */}
           <div className="flex-shrink-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/[0.06] mobile-safe-header">
             <div className="px-4 py-2">
@@ -455,15 +466,6 @@ export const MobileTripDetail = () => {
             <button
               onClick={() => {
                 hapticService.light();
-                navigate(`/trip/${tripId}/preview`);
-              }}
-              className="bg-white/10 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
-            >
-              View Trip Preview
-            </button>
-            <button
-              onClick={() => {
-                hapticService.light();
                 navigate('/');
               }}
               className="bg-white/10 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
@@ -551,7 +553,7 @@ export const MobileTripDetail = () => {
 
   return (
     <MobileErrorBoundary>
-      <div className="flex flex-col h-[100dvh] bg-black overflow-hidden">
+      <div className="mobile-trip-shell flex flex-col h-[100dvh] bg-black overflow-hidden">
         {/* Mobile Header - Fixed flex item (not sticky) for reliable iOS PWA visibility */}
         <div
           ref={headerRef}
@@ -592,20 +594,39 @@ export const MobileTripDetail = () => {
                 </div>
               </div>
 
-              {/* Options button */}
-              <button
-                onClick={() => {
-                  hapticService.light();
-                  setShowOptionsSheet(true);
-                }}
-                className="flex-shrink-0 min-w-[44px] min-h-[44px] p-2 -mr-2 active:scale-95 transition-transform touch-manipulation flex items-center justify-center"
-                style={{ touchAction: 'manipulation' }}
-              >
-                <MoreVertical size={22} className="text-white" />
-              </button>
+              {/* Invite (primary) + Options */}
+              <div className="flex-shrink-0 flex items-center gap-0.5">
+                <button
+                  onClick={() => {
+                    hapticService.light();
+                    setShowInviteModal(true);
+                  }}
+                  data-testid="mobile-invite-cta"
+                  className="flex items-center gap-1 min-h-[40px] px-2.5 rounded-full bg-gold-primary hover:bg-gold-mid text-black text-sm font-semibold active:scale-95 transition-transform touch-manipulation"
+                  style={{ touchAction: 'manipulation' }}
+                  aria-label="Invite people to this trip"
+                >
+                  <UserPlus size={16} />
+                  <span>Invite</span>
+                </button>
+                <button
+                  onClick={() => {
+                    hapticService.light();
+                    setShowOptionsSheet(true);
+                  }}
+                  className="min-w-[44px] min-h-[44px] p-2 -mr-2 active:scale-95 transition-transform touch-manipulation flex items-center justify-center"
+                  style={{ touchAction: 'manipulation' }}
+                  aria-label="More options"
+                >
+                  <MoreVertical size={22} className="text-white" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Demo Mode bar — reserved-height row above the pills (no overlap with header/pills) */}
+        <DemoTripBar />
 
         {/* Mobile Tabs - Swipeable */}
         <MobileTripTabs
@@ -640,6 +661,8 @@ export const MobileTripDetail = () => {
           onExport={() => setShowExportModal(true)}
           onInvite={() => setShowInviteModal(true)}
           onDelete={() => setShowDeleteDialog(true)}
+          onToggleMute={muteToggleEnabled && tripId && !isDemoTrip(tripId) ? toggleMute : undefined}
+          muted={muted}
         />
 
         {/* Export Modal */}

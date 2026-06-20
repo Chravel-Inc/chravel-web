@@ -1,13 +1,14 @@
 /**
  * Places Demo Screen — Saved places with base-camp highlight
  *
- * ~6s loop: header → hotel base camp → restaurant → museum → base camp glow → reset
+ * ~6s loop: header → 5 saved places (hotel base camp, restaurant, museum, venue,
+ *           airport) → base camp glow → reset
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DemoPlaceCard } from '../primitives';
-import { motion as motionPreset, LOOP_DURATION } from '../tokens';
+import { motion as motionPreset } from '../tokens';
+import { useDemoStepSequence } from '../useDemoStepSequence';
 import { MapPin } from 'lucide-react';
 
 const slideUp = {
@@ -17,25 +18,8 @@ const slideUp = {
 };
 
 export const PlacesDemoScreen = () => {
-  const [cycle, setCycle] = useState(0);
-  const [step, setStep] = useState(0);
-
-  const resetAndLoop = useCallback(() => {
-    setStep(0);
-    setCycle(c => c + 1);
-  }, []);
-
-  useEffect(() => {
-    const timers = [
-      setTimeout(() => setStep(1), 500),
-      setTimeout(() => setStep(2), 1200),
-      setTimeout(() => setStep(3), 2200),
-      setTimeout(() => setStep(4), 3200),
-      setTimeout(() => setStep(5), 4200),
-      setTimeout(resetAndLoop, LOOP_DURATION * 1000),
-    ];
-    return () => timers.forEach(clearTimeout);
-  }, [cycle, resetAndLoop]);
+  // Steps: 1 header, 2-6 five places (hotel/restaurant/museum/venue/airport), 7 base-camp glow.
+  const { step, cycle } = useDemoStepSequence([400, 1000, 1700, 2400, 3100, 3800, 4600]);
 
   return (
     <div className="flex flex-col h-full px-3 py-3 gap-2.5">
@@ -45,7 +29,7 @@ export const PlacesDemoScreen = () => {
           <motion.div key={`${cycle}-header`} {...slideUp} className="flex items-center gap-2 px-1">
             <MapPin className="w-4 h-4 text-primary" />
             <span className="text-sm font-medium text-foreground">Your Places</span>
-            <span className="text-[10px] text-muted-foreground ml-auto">3 saved</span>
+            <span className="text-[10px] text-muted-foreground ml-auto">5 saved</span>
           </motion.div>
         )}
 
@@ -57,7 +41,7 @@ export const PlacesDemoScreen = () => {
               name="Hotel Nikkō"
               tag="Base Camp"
               saved
-              highlight={step >= 5}
+              highlight={step >= 7}
             />
           </motion.div>
         )}
@@ -73,6 +57,20 @@ export const PlacesDemoScreen = () => {
         {step >= 4 && (
           <motion.div key={`${cycle}-place3`} {...slideUp}>
             <DemoPlaceCard emoji="🎯" name="National Art Museum" tag="Day 2" saved />
+          </motion.div>
+        )}
+
+        {/* Venue */}
+        {step >= 5 && (
+          <motion.div key={`${cycle}-place4`} {...slideUp}>
+            <DemoPlaceCard emoji="🏟️" name="Tokyo Dome" tag="Concert Night" saved />
+          </motion.div>
+        )}
+
+        {/* Airport */}
+        {step >= 6 && (
+          <motion.div key={`${cycle}-place5`} {...slideUp}>
+            <DemoPlaceCard emoji="✈️" name="Narita Airport" tag="Departure" saved />
           </motion.div>
         )}
       </AnimatePresence>

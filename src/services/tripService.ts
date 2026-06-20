@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { getCachedAuthUser } from '@/lib/authCache';
+import { errorTracking } from '@/utils/errorTracking';
 import { syncTripMemberToStreamChannelsOnly } from '@/lib/streamTripMemberInlineActivity';
 import { reportStreamMembershipSyncFailure } from '@/services/stream/streamMembershipCoordinator';
 import { demoModeService } from './demoModeService';
@@ -352,16 +353,54 @@ export const tripService = {
       }));
 
       // Fetch trips where user is an active member (not creator).
-      // trip_members table does not have a status column — query without it.
-      const memberTripsQueryResult = await supabase
+      // Canonical schema: trip_members has no status column, so the primary
+      // lookup queries without one. Compatibility retry (DEBUG_PATTERNS.md
+      // "status-column drift"): if the primary lookup errors — transient
+      // failure or an environment where membership rows carry a status column
+      // and must be filtered to active — retry once with the legacy
+      // active-membership filter instead of silently dropping member trips.
+      // An approved member must always see their trip on the dashboard.
+      let memberTrips: Array<{ trip_id: string }> | null = null;
+
+      const primaryMemberResult = await supabase
         .from('trip_members')
         .select('trip_id')
         .eq('user_id', activeUserId)
         .limit(1000);
 
-      const { data: memberTrips, error: memberError } = memberTripsQueryResult;
+      if (primaryMemberResult.error) {
+        errorTracking.captureException(
+          new Error(
+            `getUserTrips member lookup failed (retrying with legacy status filter): ${primaryMemberResult.error.message}`,
+          ),
+          { userId: activeUserId, context: 'tripService.getUserTrips.memberLookup' },
+        );
 
-      if (!memberError && memberTrips && memberTrips.length > 0) {
+        const legacyMemberResult = await supabase
+          .from('trip_members')
+          .select('trip_id')
+          .eq('user_id', activeUserId)
+          .or('status.is.null,status.eq.active')
+          .limit(1000);
+
+        if (legacyMemberResult.error) {
+          // Both lookups failed. Report loudly — member trips will be missing
+          // from the dashboard — but still return owner trips below rather
+          // than conflating this failure with an empty dashboard.
+          errorTracking.captureException(
+            new Error(
+              `getUserTrips member lookup retry failed: ${legacyMemberResult.error.message}`,
+            ),
+            { userId: activeUserId, context: 'tripService.getUserTrips.memberLookupRetry' },
+          );
+        } else {
+          memberTrips = legacyMemberResult.data;
+        }
+      } else {
+        memberTrips = primaryMemberResult.data;
+      }
+
+      if (memberTrips && memberTrips.length > 0) {
         const memberTripIds = memberTrips
           .map(m => m.trip_id)
           .filter(id => !allTrips.some(t => t.id === id)); // Exclude already fetched trips
@@ -374,7 +413,13 @@ export const tripService = {
             .eq('is_archived', false)
             .eq('is_hidden', false);
 
-          if (!memberTripsError && memberTripsData) {
+          if (memberTripsError) {
+            // Don't silently hide member trips — report and continue with owner trips.
+            errorTracking.captureException(
+              new Error(`getUserTrips member trip hydration failed: ${memberTripsError.message}`),
+              { userId: activeUserId, context: 'tripService.getUserTrips.memberTripHydration' },
+            );
+          } else if (memberTripsData) {
             allTrips.push(
               ...memberTripsData.map(trip => ({
                 ...trip,
@@ -448,6 +493,12 @@ export const tripService = {
       if (import.meta.env.DEV) {
         console.error('Error fetching trips:', error);
       }
+      // Report before returning [] so a failed dashboard load is observable
+      // and not silently indistinguishable from a genuinely empty dashboard.
+      errorTracking.captureException(error instanceof Error ? error : new Error(String(error)), {
+        userId,
+        context: 'tripService.getUserTrips',
+      });
       return [];
     }
   },

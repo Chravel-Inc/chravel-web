@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 
 const scenarios = [
   {
-    title: 'Family Hubs, Schedules & Carpools',
+    title: 'Use as a Household Hub: Schedules & Responsibilities',
     subtitle: 'Practices · pickups · errands · roommates · season planning',
     before: 'Missed email updates. Missed pickups. Confusion spread across multiple threads.',
     expandCTA: 'ChravelApp helps families stay organized',
@@ -20,22 +20,22 @@ const scenarios = [
     before: 'Spreadsheets, endless texts, missed details. Overwhelmed managers, annoyed artists.',
     expandCTA: 'ChravelApp helps tours stay in sync',
     after:
-      'Show days, off days, crew channels, logistics, and payments—all in one place. Everyone aligned, every city.',
+      'Show days, Rehearsal times, off days, crew channels, logistics, and payments—all in one place. Everyone aligned, every city.',
     badge: 'Fewer mistakes · smoother tours',
   },
   {
-    title: 'Bach Parties → Wedding Weekends',
+    title: 'Bacheleor/ette Parties → Wedding Weekends',
     subtitle: 'Bachelor & bachelorette trips · guests · families · vendors',
-    before: 'Dozens of chats. Guests constantly asking where to be and when.',
+    before: 'Dozens of chats with too many guests asking the same questions over and over. ',
     expandCTA: 'ChravelApp helps celebrations run smoothly',
-    after: 'Shared itinerary, pinned locations, live photos — no confusion, just celebration.',
+    after: 'Shared itinerary, approved wedding looks, pinned locations, group sharing of wedding photos — less confusion, more celebration.',
     badge: 'Fewer questions · more memories',
   },
   {
     title: 'Fraternities/Sororities & Similar Organizations',
-    subtitle: 'Rush · formals · retreats · philanthropy · chapter ops',
+    subtitle: 'Rush · Formals · retreats · philanthropy · chapter ops',
     before:
-      'One giant group chat — endless scrollback, mixed events, sensitive moments living forever in one thread.',
+      'One giant group chat — endless scrollback, mixed events , sensitive moments living forever in one thread.',
     expandCTA: 'ChravelApp helps chapters stay private',
     after:
       'Separate vaults per event — Rush, Formal, Retreat. Chat and media stay compartmentalized. Access controlled, moments stay private.',
@@ -47,13 +47,13 @@ const scenarios = [
     before: 'Staff juggling travel, practices, and logistics across too many tools.',
     expandCTA: 'ChravelApp helps programs stay aligned',
     after:
-      'Role-based access, team schedules, and instant updates—built to scale from college to the pros.',
+      'Role-based access, team schedules, and instant updates—built to scale from Amateur to the Pros.',
     badge: 'Fewer errors · faster decisions',
   },
   {
     title: 'Local Community Groups',
-    subtitle: 'Run clubs · dog park crews · faith groups · recurring meetups',
-    before: 'Plans scattered across DMs, texts, and random calendar invites.',
+    subtitle: 'Run clubs · Dog park Crews· Faith groups · Recurring meetups',
+    before: 'Plans scattered across DMs, texts, and random calendar invites or flyers',
     expandCTA: 'ChravelApp helps groups stay connected',
     after: 'One shared home for meetups, locations, and photos. Your group stays connected.',
     badge: 'Consistency · better turnout',
@@ -80,20 +80,24 @@ export const UseCasesSection = () => {
       <div className="container mx-auto px-4 relative z-10 flex flex-col items-center space-y-12">
         {/* Headline - positioned higher to avoid towel overlap */}
         <div className="text-center space-y-4 max-w-4xl">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground">
-            Built for Every Journey
-          </h2>
-          <div
-            className="inline-block px-6 py-4 rounded-xl"
+          <h2
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight"
             style={{
-              backgroundColor: 'rgba(30, 30, 30, 0.7)',
-              backdropFilter: 'blur(8px)',
+              textShadow:
+                '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4), 0 0 36px rgba(196,151,70,0.18)',
             }}
           >
-            <p className="text-xl sm:text-2xl md:text-3xl text-foreground">
-              Work trips, vacations, sports, tours, local events — ChravelApp handles it all.
-            </p>
-          </div>
+            Built for Every Journey
+          </h2>
+          <p
+            className="text-xl sm:text-2xl md:text-3xl text-white font-semibold max-w-3xl mx-auto"
+            style={{
+              textShadow:
+                '0 2px 6px rgba(0,0,0,0.65), 0 4px 14px rgba(0,0,0,0.45)',
+            }}
+          >
+            Friend Trips, Family Vacations, Sports Travel, Touring Teams, & local events like Run Clubs & Dog Park Meetups — ChravelApp handles it all.
+          </p>
         </div>
 
         {/* Scenarios Grid — single column on phones, 2-col on tablets (768px+), 3-col on desktop */}
