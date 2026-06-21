@@ -1793,7 +1793,6 @@ serve(async req => {
       // increment so users aren't charged for a failed AI response.
       let followUpFailed = false;
 
-
       let candidate = data.candidates?.[0];
       if (!candidate) {
         throw new Error('No response candidate from Gemini');
@@ -1902,7 +1901,6 @@ serve(async req => {
           followUpFailed = true;
           break;
         }
-
       }
 
       if (candidate) {
@@ -1963,7 +1961,6 @@ serve(async req => {
           return buildTripLimitReachedResponse(corsHeaders, usagePlan);
         }
       }
-
 
       // Skip database storage in demo mode
       if (!serverDemoMode) {

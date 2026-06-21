@@ -28,7 +28,8 @@ const scenarios = [
     subtitle: 'Bachelor & bachelorette trips · guests · families · vendors',
     before: 'Dozens of chats with too many guests asking the same questions over and over. ',
     expandCTA: 'ChravelApp helps celebrations run smoothly',
-    after: 'Shared itinerary, approved wedding looks, pinned locations, group sharing of wedding photos — less confusion, more celebration.',
+    after:
+      'Shared itinerary, approved wedding looks, pinned locations, group sharing of wedding photos — less confusion, more celebration.',
     badge: 'Fewer questions · more memories',
   },
   {
@@ -92,11 +93,11 @@ export const UseCasesSection = () => {
           <p
             className="text-xl sm:text-2xl md:text-3xl text-white font-semibold max-w-3xl mx-auto"
             style={{
-              textShadow:
-                '0 2px 6px rgba(0,0,0,0.65), 0 4px 14px rgba(0,0,0,0.45)',
+              textShadow: '0 2px 6px rgba(0,0,0,0.65), 0 4px 14px rgba(0,0,0,0.45)',
             }}
           >
-            Friend Trips, Family Vacations, Sports Travel, Touring Teams, & local events like Run Clubs & Dog Park Meetups — ChravelApp handles it all.
+            Friend Trips, Family Vacations, Sports Travel, Touring Teams, & local events like Run
+            Clubs & Dog Park Meetups — ChravelApp handles it all.
           </p>
         </div>
 

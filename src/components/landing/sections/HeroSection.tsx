@@ -46,8 +46,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
       return;
     }
     const io = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) attemptPlay();
+      entries => {
+        if (entries.some(e => e.isIntersecting)) attemptPlay();
       },
       { threshold: 0.1 },
     );
@@ -189,7 +189,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
                     className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-[1px] group focus:outline-none focus:ring-2 focus:ring-[#c49746]"
                   >
                     <span className="flex items-center justify-center w-20 h-20 rounded-full bg-black/55 border border-white/30 group-hover:scale-105 transition-transform">
-                      <svg viewBox="0 0 24 24" className="w-9 h-9 ml-1 fill-white" aria-hidden="true">
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="w-9 h-9 ml-1 fill-white"
+                        aria-hidden="true"
+                      >
                         <path d="M8 5v14l11-7z" />
                       </svg>
                     </span>
@@ -235,7 +239,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
               textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
             }}
           >
-            {"\n"}
+            {'\n'}
           </h3>
         </div>
 
