@@ -4,11 +4,12 @@ import { useConciergeVoice } from '../useConciergeVoice';
 
 const toggleVoice = vi.fn();
 
-vi.mock('../useConciergeVoiceInput', () => ({
-  useConciergeVoiceInput: ({ onTranscript: _ }: { onTranscript: (text: string) => void }) => ({
+vi.mock('@/hooks/useWebSpeechVoice', () => ({
+  useWebSpeechVoice: ({ onUserMessage: _ }: { onUserMessage?: (text: string) => void }) => ({
     voiceState: 'idle' as const,
     toggleVoice,
-    isSupported: true,
+    userTranscript: '',
+    errorMessage: null,
   }),
 }));
 
@@ -18,7 +19,9 @@ describe('useConciergeVoice', () => {
   });
 
   it('exposes dictation voice state and toggle handler', () => {
-    const { result } = renderHook(() => useConciergeVoice({ setInputMessage: vi.fn() }));
+    const { result } = renderHook(() =>
+      useConciergeVoice({ inputMessage: '', setInputMessage: vi.fn() }),
+    );
 
     expect(result.current.convoVoiceState).toBe('idle');
     result.current.handleConvoToggle();

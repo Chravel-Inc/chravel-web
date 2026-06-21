@@ -50,7 +50,7 @@ export const AIConciergeChat = ({
   const { basecamp: globalBasecamp } = useBasecamp();
   const { user: authUser } = useAuth();
   const conciergeQueryClient = useQueryClient();
-  const { usage, getUsageStatus, incrementUsageOnSuccess, isLimitedPlan, userPlan } =
+  const { usage, getUsageStatus, refreshUsage, isLimitedPlan, userPlan } =
     useConciergeUsage(tripId);
   // Free-tier "taste": 1 Smart Import per trip before the paywall fires.
   const { canUseFreeImport: canUseSmartImportTaste } = useSmartImportTaste(tripId);
@@ -136,6 +136,7 @@ export const AIConciergeChat = ({
   });
 
   const { convoVoiceState, handleConvoToggle } = useConciergeVoice({
+    inputMessage,
     setInputMessage,
   });
 
@@ -250,7 +251,8 @@ export const AIConciergeChat = ({
     streamAbortRef,
     setIsTyping,
     setAiStatus,
-    incrementUsageOnSuccess,
+    isLimitReached: usage?.isLimitReached ?? false,
+    refreshUsage,
     buildLimitReachedMessage,
     basecamp,
     globalBasecamp,
