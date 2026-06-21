@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-04-18T15:10:50.048Z",
-  "baseUrl": "http://127.0.0.1:4173",
+  "timestamp": "2026-06-21T16:25:48.395Z",
+  "baseUrl": "http://localhost:4173",
   "device": "all",
   "results": [
     {
@@ -30,19 +30,19 @@
     {
       "name": "04-ai-concierge",
       "device": "iPhone 6.7\"",
-      "status": "warning",
+      "status": "success",
       "tripUsed": "/trip/8",
       "tab": "concierge",
-      "dimensions": "1290x2796",
-      "error": "Tab \"concierge\" content may not be fully loaded"
+      "dimensions": "1290x2796"
     },
     {
       "name": "05-expense-splitting",
       "device": "iPhone 6.7\"",
-      "status": "success",
+      "status": "warning",
       "tripUsed": "/trip/4",
       "tab": "payments",
-      "dimensions": "1290x2796"
+      "dimensions": "1290x2796",
+      "error": "Tab \"payments\" content may not be fully loaded"
     },
     {
       "name": "06-maps-places",
@@ -55,11 +55,10 @@
     {
       "name": "07-media-gallery",
       "device": "iPhone 6.7\"",
-      "status": "warning",
+      "status": "success",
       "tripUsed": "/trip/5",
       "tab": "media",
-      "dimensions": "1290x2796",
-      "error": "Tab \"media\" content may not be fully loaded"
+      "dimensions": "1290x2796"
     },
     {
       "name": "08-polls-voting",
@@ -75,7 +74,7 @@
       "status": "success",
       "tripUsed": "/demo",
       "tab": null,
-      "dimensions": "2048x2732"
+      "dimensions": "2388x3184"
     },
     {
       "name": "02-trip-chat",
@@ -83,7 +82,7 @@
       "status": "success",
       "tripUsed": "/trip/4",
       "tab": "chat",
-      "dimensions": "2048x2732"
+      "dimensions": "2388x3184"
     },
     {
       "name": "03-calendar-itinerary",
@@ -91,7 +90,7 @@
       "status": "success",
       "tripUsed": "/trip/8",
       "tab": "calendar",
-      "dimensions": "2048x2732"
+      "dimensions": "2388x3184"
     },
     {
       "name": "04-maps-places",
@@ -99,13 +98,13 @@
       "status": "success",
       "tripUsed": "/trip/2",
       "tab": "places",
-      "dimensions": "2048x2732"
+      "dimensions": "2388x3184"
     }
   ],
   "summary": {
     "total": 12,
-    "success": 10,
-    "warning": 2,
+    "success": 11,
+    "warning": 1,
     "failed": 0
   }
 }

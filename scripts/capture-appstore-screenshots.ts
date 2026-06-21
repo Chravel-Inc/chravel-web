@@ -46,9 +46,29 @@ function findChromium(): string | undefined {
   return undefined;
 }
 
-// Device viewport specs (App Store required resolutions)
-const IPHONE_67 = { width: 1290, height: 2796 };
-const IPAD_129 = { width: 2048, height: 2732 };
+// Device specs.
+//
+// IMPORTANT: viewport is the CSS-pixel viewport the app renders into; the
+// captured PNG is viewport * deviceScaleFactor. Real devices report a small
+// CSS viewport at a high DPR — an iPhone 6.7" is ~430 CSS px wide at DPR 3,
+// not 1290. Setting the viewport to the physical pixel count (the old bug)
+// pushed the app past its 1024px mobile breakpoint, so it rendered the
+// DESKTOP layout shrunk into a phone frame. We now drive the real responsive
+// layout: phone CSS width 430 (mobile UI), tablet CSS width 1194 (large-screen
+// UI), and let deviceScaleFactor produce the required output resolution.
+//
+// 430 * 3 = 1290 x 2796  (iPhone 6.7")
+// 1194 * 2 = 2388 x 3184 (iPad-class large screen; cropped/padded to 9:16 later)
+const IPHONE_67 = {
+  viewport: { width: 430, height: 932 },
+  deviceScaleFactor: 3,
+  isMobile: true,
+};
+const IPAD_129 = {
+  viewport: { width: 1194, height: 1592 },
+  deviceScaleFactor: 2,
+  isMobile: true,
+};
 
 // ---------------------------------------------------------------------------
 // Screenshot definitions with trip diversity
@@ -533,11 +553,14 @@ async function captureScreenshots(): Promise<void> {
 
       const ctx = await browser.newContext({
         ignoreHTTPSErrors: true,
+        viewport: IPHONE_67.viewport,
+        deviceScaleFactor: IPHONE_67.deviceScaleFactor,
+        isMobile: IPHONE_67.isMobile,
+        hasTouch: true,
         userAgent:
           'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
       });
       const page = await ctx.newPage();
-      await page.setViewportSize(IPHONE_67);
 
       await enableDemoMode(page);
 
@@ -545,7 +568,10 @@ async function captureScreenshots(): Promise<void> {
       for (const shot of shots) {
         const dir = path.join(OUTPUT_BASE, 'iPhone-6.7');
         fs.mkdirSync(dir, { recursive: true });
-        const result = await captureShot(page, shot, dir, 'iPhone 6.7"', IPHONE_67);
+        const result = await captureShot(page, shot, dir, 'iPhone 6.7"', {
+          width: IPHONE_67.viewport.width * IPHONE_67.deviceScaleFactor,
+          height: IPHONE_67.viewport.height * IPHONE_67.deviceScaleFactor,
+        });
         results.push(result);
       }
 
@@ -560,11 +586,14 @@ async function captureScreenshots(): Promise<void> {
 
       const ctx = await browser.newContext({
         ignoreHTTPSErrors: true,
+        viewport: IPAD_129.viewport,
+        deviceScaleFactor: IPAD_129.deviceScaleFactor,
+        isMobile: IPAD_129.isMobile,
+        hasTouch: true,
         userAgent:
           'Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
       });
       const page = await ctx.newPage();
-      await page.setViewportSize(IPAD_129);
 
       await enableDemoMode(page);
 
@@ -572,7 +601,10 @@ async function captureScreenshots(): Promise<void> {
       for (const shot of shots) {
         const dir = path.join(OUTPUT_BASE, 'iPad-Pro-12.9');
         fs.mkdirSync(dir, { recursive: true });
-        const result = await captureShot(page, shot, dir, 'iPad Pro 12.9"', IPAD_129);
+        const result = await captureShot(page, shot, dir, 'iPad Pro 12.9"', {
+          width: IPAD_129.viewport.width * IPAD_129.deviceScaleFactor,
+          height: IPAD_129.viewport.height * IPAD_129.deviceScaleFactor,
+        });
         results.push(result);
       }
 
