@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '../../ui/button';
 
 // Real-product-walkthrough video built from fresh demo-mode UI captures.
@@ -16,9 +16,49 @@ interface HeroSectionProps {
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
   const [videoFailed, setVideoFailed] = useState(false);
+  const [autoplayBlocked, setAutoplayBlocked] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   // Hero demo is muted + decorative — always autoplay regardless of
   // prefers-reduced-motion. Fallback to poster only on real load error.
   const showVideo = !videoFailed;
+
+  // Explicitly invoke play() so we can observe autoplay-policy rejections
+  // (the <video autoplay> attribute swallows them silently). Desktop Chrome
+  // and the Lovable preview iframe (no allow="autoplay") commonly block
+  // muted autoplay; mobile Safari/Chrome are more permissive.
+  const attemptPlay = useCallback(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    const p = el.play();
+    if (p && typeof p.then === 'function') {
+      p.then(() => setAutoplayBlocked(false)).catch(() => setAutoplayBlocked(true));
+    }
+  }, []);
+
+  // Trigger first play attempt when the hero is actually visible (handles
+  // tab-switch and slow first-paint where the autoplay heuristic already
+  // decided). Fall back to immediate attempt if IO is unavailable.
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el || videoFailed) return;
+    if (typeof IntersectionObserver === 'undefined') {
+      attemptPlay();
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) attemptPlay();
+      },
+      { threshold: 0.1 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [attemptPlay, videoFailed]);
+
+  const handleManualPlay = () => {
+    setAutoplayBlocked(false);
+    attemptPlay();
+  };
 
   return (
     <div
@@ -120,20 +160,42 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         >
           <div className="relative rounded-xl overflow-hidden shadow-2xl shadow-black/40 border border-white/10 aspect-video bg-[#070B1A]">
             {showVideo ? (
-              <video
-                className="w-full h-full object-cover object-bottom scale-[1.08] origin-bottom"
-                // src directly on <video> (not a <source> child) so a missing
-                // file fires onError here and the poster fallback engages.
-                src={HERO_VIDEO_SRC}
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="metadata"
-                poster={HERO_VIDEO_POSTER}
-                aria-label="ChravelApp trip dashboard product demo"
-                onError={() => setVideoFailed(true)}
-              />
+              <>
+                <video
+                  ref={videoRef}
+                  className="w-full h-full object-cover object-bottom scale-[1.08] origin-bottom"
+                  // src directly on <video> (not a <source> child) so a missing
+                  // file fires onError here and the poster fallback engages.
+                  src={HERO_VIDEO_SRC}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  poster={HERO_VIDEO_POSTER}
+                  aria-label="ChravelApp trip dashboard product demo"
+                  onError={() => setVideoFailed(true)}
+                  onCanPlay={() => {
+                    // Retry once if our initial play() lost the race with metadata.
+                    if (autoplayBlocked) attemptPlay();
+                  }}
+                  onPlaying={() => setAutoplayBlocked(false)}
+                />
+                {autoplayBlocked && (
+                  <button
+                    type="button"
+                    onClick={handleManualPlay}
+                    aria-label="Play product demo video"
+                    className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-[1px] group focus:outline-none focus:ring-2 focus:ring-[#c49746]"
+                  >
+                    <span className="flex items-center justify-center w-20 h-20 rounded-full bg-black/55 border border-white/30 group-hover:scale-105 transition-transform">
+                      <svg viewBox="0 0 24 24" className="w-9 h-9 ml-1 fill-white" aria-hidden="true">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </span>
+                  </button>
+                )}
+              </>
             ) : (
               <img
                 src={HERO_VIDEO_POSTER}
