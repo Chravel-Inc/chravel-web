@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '../../ui/button';
 
 // Real-product-walkthrough video built from fresh demo-mode UI captures.
@@ -16,9 +16,49 @@ interface HeroSectionProps {
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
   const [videoFailed, setVideoFailed] = useState(false);
+  const [autoplayBlocked, setAutoplayBlocked] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   // Hero demo is muted + decorative — always autoplay regardless of
   // prefers-reduced-motion. Fallback to poster only on real load error.
   const showVideo = !videoFailed;
+
+  // Explicitly invoke play() so we can observe autoplay-policy rejections
+  // (the <video autoplay> attribute swallows them silently). Desktop Chrome
+  // and the Lovable preview iframe (no allow="autoplay") commonly block
+  // muted autoplay; mobile Safari/Chrome are more permissive.
+  const attemptPlay = useCallback(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    const p = el.play();
+    if (p && typeof p.then === 'function') {
+      p.then(() => setAutoplayBlocked(false)).catch(() => setAutoplayBlocked(true));
+    }
+  }, []);
+
+  // Trigger first play attempt when the hero is actually visible (handles
+  // tab-switch and slow first-paint where the autoplay heuristic already
+  // decided). Fall back to immediate attempt if IO is unavailable.
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el || videoFailed) return;
+    if (typeof IntersectionObserver === 'undefined') {
+      attemptPlay();
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) attemptPlay();
+      },
+      { threshold: 0.1 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [attemptPlay, videoFailed]);
+
+  const handleManualPlay = () => {
+    setAutoplayBlocked(false);
+    attemptPlay();
+  };
 
   return (
     <div
