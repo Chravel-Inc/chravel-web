@@ -125,6 +125,21 @@ vi.mock('@/hooks/useWebSpeechVoice', () => ({
   }),
 }));
 
+// Mock useConciergeReadAloud (TTS) to isolate the component from the voice
+// subsystem. The real hook transitively pulls in useConciergeVoicePreference →
+// useSubscription plus Supabase auth/realtime and HTMLAudioElement playback,
+// none of which settle under jsdom — leaving the test worker hung.
+vi.mock('@/hooks/useConciergeReadAloud', () => ({
+  useConciergeReadAloud: () => ({
+    playbackState: 'idle',
+    playingMessageId: null,
+    errorMessage: null,
+    usedFallbackVoice: false,
+    play: vi.fn(),
+    stop: vi.fn(),
+  }),
+}));
+
 vi.mock('../../contexts/BasecampContext', () => ({
   useBasecamp: () => ({
     basecamp: {
