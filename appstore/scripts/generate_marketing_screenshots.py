@@ -115,6 +115,34 @@ IPAD_SCREENSHOTS = [
         "desc": "AMAZING PLACES",
         "bg": "#0D1117",
     },
+    {
+        "raw": "05-ai-concierge.png",
+        "out": "05-ask.png",
+        "verb": "ASK",
+        "desc": "YOUR AI TRAVEL GUIDE",
+        "bg": "#170D06",
+    },
+    {
+        "raw": "06-expense-splitting.png",
+        "out": "06-split.png",
+        "verb": "SPLIT",
+        "desc": "EXPENSES EFFORTLESSLY",
+        "bg": "#0A0A0A",
+    },
+    {
+        "raw": "07-media-gallery.png",
+        "out": "07-share.png",
+        "verb": "SHARE",
+        "desc": "TRIP MEMORIES",
+        "bg": "#1A1207",
+    },
+    {
+        "raw": "08-polls-voting.png",
+        "out": "08-decide.png",
+        "verb": "DECIDE",
+        "desc": "TOGETHER",
+        "bg": "#0D1117",
+    },
 ]
 
 

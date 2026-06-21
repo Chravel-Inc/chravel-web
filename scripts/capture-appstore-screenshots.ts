@@ -137,6 +137,30 @@ const IPAD_SHOTS: ShotDef[] = [
     tab: 'places',
     fallbackTrips: ['/trip/3', '/trip/5'],
   },
+  {
+    name: '05-ai-concierge',
+    tripPath: '/trip/8',
+    tab: 'concierge',
+    fallbackTrips: ['/trip/4', '/trip/2'],
+  },
+  {
+    name: '06-expense-splitting',
+    tripPath: '/trip/4',
+    tab: 'payments',
+    fallbackTrips: ['/trip/1', '/trip/8'],
+  },
+  {
+    name: '07-media-gallery',
+    tripPath: '/trip/5',
+    tab: 'media',
+    fallbackTrips: ['/trip/1', '/trip/6'],
+  },
+  {
+    name: '08-polls-voting',
+    tripPath: '/trip/6',
+    tab: 'polls',
+    fallbackTrips: ['/trip/3', '/trip/4'],
+  },
 ];
 
 // ---------------------------------------------------------------------------

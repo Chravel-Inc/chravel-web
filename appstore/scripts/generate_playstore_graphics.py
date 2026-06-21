@@ -32,6 +32,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 
 PWA_ICON = os.path.join(PROJECT_ROOT, "public", "chravel-pwa-icon.png")
 LOGO_LOCKUP = os.path.join(PROJECT_ROOT, "public", "chravel-icon.png")
+FAVICON = os.path.join(PROJECT_ROOT, "public", "favicon.ico")
 
 OUT_DIR = os.path.join(PROJECT_ROOT, "playstore", "graphics")
 ICON_OUT = os.path.join(OUT_DIR, "app-icon-512.png")
@@ -88,22 +89,60 @@ def _save_under(img, path, max_bytes):
 
 
 # ---------------------------------------------------------------------------
-# App icon — normalize the canonical app icon to a 512x512 store asset
+# App icon — unified premium dark/gold mark (globe emblem on a dark field)
 # ---------------------------------------------------------------------------
+def _radial_gradient(size, inner, outer):
+    """Square radial gradient: inner color at center -> outer color at corners."""
+    grad = Image.new("RGB", (size, size))
+    px = grad.load()
+    c = (size - 1) / 2
+    maxd = (c ** 2 + c ** 2) ** 0.5
+    for y in range(size):
+        for x in range(size):
+            d = ((x - c) ** 2 + (y - c) ** 2) ** 0.5 / maxd
+            px[x, y] = (
+                int(inner[0] + (outer[0] - inner[0]) * d),
+                int(inner[1] + (outer[1] - inner[1]) * d),
+                int(inner[2] + (outer[2] - inner[2]) * d),
+            )
+    return grad
+
+
+def _render_dark_icon(size):
+    """Compose the dark/gold app icon at the given square size."""
+    # Full-bleed dark radial field (Google masks the corners itself).
+    base = _radial_gradient(size, inner=(28, 20, 9), outer=BG_PRIMARY)  # warm center
+
+    # Soft gold glow centered behind the emblem.
+    glow = _radial_glow(size, size, center=(size // 2, size // 2),
+                        radius=int(size * 0.5), color=GOLD_GLOW, max_alpha=60)
+    base = Image.alpha_composite(base.convert("RGBA"), glow).convert("RGB")
+
+    # Globe emblem, screen-blended so its black field drops onto the gradient.
+    em = int(size * 0.82)
+    emblem = _crop_emblem().resize((em, em), Image.LANCZOS).convert("RGB")
+    off = (size - em) // 2
+    region = base.crop((off, off, off + em, off + em))
+    base.paste(_screen(region, emblem), (off, off))
+    return base
+
+
 def build_app_icon():
-    src = Image.open(PWA_ICON)
-    # Flatten any transparency onto the brand near-black, then ensure 512x512.
-    if src.mode in ("RGBA", "LA", "P"):
-        src = src.convert("RGBA")
-        canvas = Image.new("RGB", src.size, BG_PRIMARY)
-        canvas.paste(src, (0, 0), src)
-        src = canvas
-    else:
-        src = src.convert("RGB")
-    if src.size != (512, 512):
-        src = src.resize((512, 512), Image.LANCZOS)
-    out = _save_under(src, ICON_OUT, 1 * 1024 * 1024)
+    master = _render_dark_icon(1024)
+    icon512 = master.resize((512, 512), Image.LANCZOS)
+    out = _save_under(icon512, ICON_OUT, 1 * 1024 * 1024)
     print(f"  app icon       {os.path.basename(out)}  512x512  ({os.path.getsize(out) / 1024:.0f} KB)")
+
+    # Align the SHIPPED icon (favicon + apple-touch + PWA manifest 192/512 all
+    # reference public/chravel-pwa-icon.png) so the installed app matches.
+    icon512.save(PWA_ICON, "PNG", optimize=True)
+    print(f"  shipped icon   public/chravel-pwa-icon.png  512x512  (aligned)")
+
+    # Refresh favicon.ico to match (multi-size .ico from the same master).
+    master.resize((256, 256), Image.LANCZOS).save(
+        FAVICON, format="ICO", sizes=[(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)]
+    )
+    print(f"  favicon        public/favicon.ico  (aligned)")
 
 
 # ---------------------------------------------------------------------------
