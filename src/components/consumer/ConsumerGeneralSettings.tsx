@@ -332,13 +332,14 @@ export const ConsumerGeneralSettings = () => {
                 You will be signed out as soon as deletion completes.
               </p>
               <p className="pt-2">
-                To confirm, type <strong>DELETE</strong> below:
+                To confirm, type <strong>delete</strong> below. Your account will be removed
+                immediately — there is no waiting period.
               </p>
               <input
                 type="text"
                 value={confirmText}
-                onChange={e => setConfirmText(e.target.value.toUpperCase())}
-                placeholder="Type DELETE to confirm"
+                onChange={e => setConfirmText(e.target.value)}
+                placeholder="Type delete to confirm"
                 className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 disabled={isDeleting}
               />
@@ -376,7 +377,7 @@ export const ConsumerGeneralSettings = () => {
             <AlertDialogAction
               onClick={handleDeleteAccount}
               disabled={
-                confirmText !== 'DELETE' ||
+                confirmText.trim().toLowerCase() !== 'delete' ||
                 (requiresPasswordReauth && !reAuthPassword) ||
                 isDeleting
               }
