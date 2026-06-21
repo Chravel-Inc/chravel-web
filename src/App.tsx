@@ -110,6 +110,8 @@ const ResetPasswordPage = lazy(() => retryImport(() => import('./pages/ResetPass
 const SeoLandingPage = lazy(() => retryImport(() => import('./pages/SeoLandingPage')));
 const UseCasesHub = lazy(() => retryImport(() => import('./pages/UseCasesHub')));
 const UseCasePage = lazy(() => retryImport(() => import('./pages/UseCasePage')));
+const BlogIndex = lazy(() => retryImport(() => import('./pages/BlogIndex')));
+const BlogPost = lazy(() => retryImport(() => import('./pages/BlogPost')));
 const DeviceTestMatrix = lazy(() => retryImport(() => import('./pages/DeviceTestMatrix')));
 // AdminMigrateDemoImages removed - migration complete, images now in Supabase Storage
 
@@ -599,6 +601,22 @@ const App = () => {
                         element={
                           <LazyRoute>
                             <UseCasePage />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/blog"
+                        element={
+                          <LazyRoute>
+                            <BlogIndex />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/blog/:slug"
+                        element={
+                          <LazyRoute>
+                            <BlogPost />
                           </LazyRoute>
                         }
                       />

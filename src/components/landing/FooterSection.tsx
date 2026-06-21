@@ -60,6 +60,11 @@ export const FooterSection = () => {
                 </Link>
               </li>
               <li>
+                <Link to="/blog" className="text-foreground hover:text-primary transition-colors">
+                  Blog
+                </Link>
+              </li>
+              <li>
                 <Link to="/teams" className="text-foreground hover:text-primary transition-colors">
                   For Teams
                 </Link>

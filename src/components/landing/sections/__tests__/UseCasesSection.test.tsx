@@ -26,4 +26,14 @@ describe('UseCasesSection (homepage)', () => {
     const link = screen.getByRole('link', { name: /see how chravelapp helps/i });
     expect(link).toHaveAttribute('href', '/use-cases/travel-concierge-client-portal');
   });
+
+  it('is keyboard-accessible: cards are buttons that toggle on Enter', () => {
+    renderSection();
+    const card = screen.getByText('Travel Concierge & Advisors').closest('[role="button"]');
+    expect(card).not.toBeNull();
+    expect(card).toHaveAttribute('tabindex', '0');
+    expect(card).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.keyDown(card!, { key: 'Enter' });
+    expect(card).toHaveAttribute('aria-expanded', 'true');
+  });
 });

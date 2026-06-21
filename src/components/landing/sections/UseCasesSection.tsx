@@ -136,9 +136,21 @@ export const UseCasesSection = () => {
             return (
               <div
                 key={index}
+                role="button"
+                tabIndex={0}
+                aria-expanded={isExpanded}
                 onClick={() => toggleCard(index)}
+                onKeyDown={e => {
+                  // Toggle only when the card itself is focused, so activating an inner
+                  // link (the "See how" / hub links) doesn't also toggle the card.
+                  if (e.target !== e.currentTarget) return;
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleCard(index);
+                  }
+                }}
                 className={cn(
-                  'bg-card/50 backdrop-blur-sm border rounded-2xl p-4 sm:p-5 tablet:p-6 transition-all duration-300 cursor-pointer max-w-md mx-auto tablet:max-w-none',
+                  'bg-card/50 backdrop-blur-sm border rounded-2xl p-4 sm:p-5 tablet:p-6 transition-all duration-300 cursor-pointer max-w-md mx-auto tablet:max-w-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
                   isExpanded ? 'border-primary/50 bg-card/60' : 'hover:border-primary/30',
                   scenario.isHero
                     ? 'border-primary/40 ring-2 ring-primary/20 shadow-lg shadow-primary/10'
