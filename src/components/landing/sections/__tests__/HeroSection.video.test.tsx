@@ -7,11 +7,6 @@ import { HeroSection } from '../HeroSection';
 // 2) hero video showed only the poster on desktop / inside the Lovable preview
 //    iframe because the autoplay-promise rejection was silently swallowed.
 
-const mockReducedMotion = vi.fn(() => false);
-vi.mock('@/hooks/useReducedMotion', () => ({
-  useReducedMotion: () => mockReducedMotion(),
-}));
-
 // jsdom doesn't implement IntersectionObserver — stub one that fires immediately.
 class IOStub {
   constructor(private cb: IntersectionObserverCallback) {}
@@ -33,7 +28,6 @@ describe('HeroSection demo video', () => {
   let originalPlay: HTMLMediaElement['play'];
 
   beforeEach(() => {
-    mockReducedMotion.mockReturnValue(false);
     originalIO = (globalThis as { IntersectionObserver?: typeof IntersectionObserver })
       .IntersectionObserver;
     (globalThis as unknown as { IntersectionObserver: unknown }).IntersectionObserver = IOStub;
@@ -82,9 +76,8 @@ describe('HeroSection demo video', () => {
     expect(fallback).toHaveAttribute('src', '/videos/chravel-homepage-demo-60-poster.jpg');
   });
 
-  it('still autoplays the muted decorative video under prefers-reduced-motion', () => {
+  it('still autoplays the muted decorative video (decorative hero; no reduced-motion gate)', () => {
     HTMLMediaElement.prototype.play = vi.fn().mockResolvedValue(undefined);
-    mockReducedMotion.mockReturnValue(true);
     render(<HeroSection onSignUp={vi.fn()} />);
     const video = screen.getByLabelText('ChravelApp trip dashboard product demo');
     expect(video).toHaveAttribute('autoplay');
