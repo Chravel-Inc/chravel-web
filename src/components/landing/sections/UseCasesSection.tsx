@@ -79,12 +79,6 @@ const scenarios: Scenario[] = [
     href: '/use-cases/sports-team-travel-coordination',
   },
   {
-    title: 'Local Community Groups',
-    subtitle: 'Run clubs · Dog park crews · Faith groups · Recurring meetups',
-    before: 'Plans scattered across DMs, texts, and random calendar invites or flyers',
-    expandCTA: 'ChravelApp helps groups stay connected',
-    after: 'One shared home for meetups, locations, and photos. Your group stays connected.',
-    badge: 'Consistency · better turnout',
     title: 'Travel Concierge Companies',
     subtitle: 'Luxury planners · family offices · destination specialists · VIP travel',
     before:
