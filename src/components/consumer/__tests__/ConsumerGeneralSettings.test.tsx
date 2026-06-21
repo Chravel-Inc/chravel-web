@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { Session } from '@supabase/supabase-js';
@@ -101,6 +101,8 @@ function makeSession(provider: 'google' | 'apple' | 'email'): Session {
 }
 
 describe('ConsumerGeneralSettings account deletion', () => {
+  let confirmSpy: ReturnType<typeof vi.spyOn>;
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockSession = makeSession('google');
@@ -110,6 +112,13 @@ describe('ConsumerGeneralSettings account deletion', () => {
     });
     mockSignInWithPassword.mockResolvedValue({ error: null });
     mockSignOut.mockResolvedValue({ error: null });
+    // The component shows a final window.confirm() before the destructive call;
+    // jsdom returns false by default, so accept it to exercise the delete path.
+    confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    confirmSpy.mockRestore();
   });
 
   it('does not ask OAuth users for a password before deleting immediately', async () => {
@@ -149,6 +158,20 @@ describe('ConsumerGeneralSettings account deletion', () => {
       password: 'secret-password',
     });
     expect(mockDeleteAccountImmediately).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not delete when the user cancels the final confirmation', async () => {
+    confirmSpy.mockReturnValue(false);
+    const user = userEvent.setup();
+    render(<ConsumerGeneralSettings />);
+
+    await user.click(screen.getByRole('button', { name: /delete account/i }));
+    await user.type(screen.getByPlaceholderText(/type delete to confirm/i), 'DELETE');
+    await user.click(screen.getByRole('button', { name: /delete account permanently/i }));
+
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(mockDeleteAccountImmediately).not.toHaveBeenCalled();
+    expect(mockSignOut).not.toHaveBeenCalled();
   });
 
   it('clears the DELETE confirmation when the dialog is dismissed', async () => {
