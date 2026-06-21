@@ -13,7 +13,6 @@ const sections: NavSection[] = [
   { id: 'features', label: 'Features' },
   { id: 'how', label: 'How It Works' },
   { id: 'ai', label: 'AI' },
-  { id: 'use-cases', label: 'Use Cases' },
   { id: 'storage', label: 'Storage' },
   { id: 'proof', label: 'Reviews' },
   { id: 'replaces', label: 'Compare' },
@@ -183,9 +182,20 @@ export const StickyLandingNav: React.FC<StickyLandingNavProps> = ({
           ))}
         </div>
 
-        {/* Active Section Name (Desktop) */}
-        <div className="hidden lg:block text-sm text-foreground font-medium min-w-[100px] text-center">
-          {sections.find(s => s.id === activeSection)?.label || 'Home'}
+        {/* Page Links (Right, Desktop) */}
+        <div className="hidden lg:flex items-center gap-1">
+          <Link
+            to="/"
+            className="text-sm font-medium text-foreground hover:text-primary transition-colors px-4 py-2 rounded-md hover:bg-accent/10"
+          >
+            Home
+          </Link>
+          <Link
+            to="/use-cases"
+            className="text-sm font-medium text-foreground hover:text-primary transition-colors px-4 py-2 rounded-md hover:bg-accent/10"
+          >
+            Use Cases
+          </Link>
         </div>
 
         {/* Right: Log In for non-authenticated users */}
