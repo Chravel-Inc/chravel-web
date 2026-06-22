@@ -8,9 +8,10 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { useInviteLink } from '../useInviteLink';
 
 const insertMock = vi.fn();
+let mockIsDemoMode = false;
 
 vi.mock('@/hooks/useDemoMode', () => ({
-  useDemoMode: () => ({ isDemoMode: false }),
+  useDemoMode: () => ({ isDemoMode: mockIsDemoMode }),
 }));
 
 vi.mock('sonner', () => ({
@@ -88,6 +89,7 @@ async function getInsertedInvite(): Promise<Record<string, unknown>> {
 describe('useInviteLink max_uses persistence', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockIsDemoMode = false;
     insertMock.mockResolvedValue({ error: null });
   });
 
@@ -119,5 +121,18 @@ describe('useInviteLink max_uses persistence', () => {
 
     const payload = await getInsertedInvite();
     expect(payload).not.toHaveProperty('max_uses');
+  });
+
+  it('creates a database-backed invite for real UUID trips even when demo mode is active', async () => {
+    mockIsDemoMode = true;
+
+    const { result } = renderInviteLink(null);
+
+    const payload = await getInsertedInvite();
+    expect(payload.trip_id).toBe(VALID_TRIP_ID);
+    await waitFor(() =>
+      expect(result.current.inviteLink).toMatch(/^https:\/\/chravel\.app\/join\/chravel/),
+    );
+    expect(result.current.inviteLink).not.toContain('/demo-');
   });
 });

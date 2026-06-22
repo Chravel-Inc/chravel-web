@@ -442,3 +442,6 @@ For account deletion, having a backend/RPC and a nested settings flow is insuffi
 
 ### Stream message search text must use the SDK query string path
 `channel.search('term', options)` triggers Stream full-text search; `channel.search({ text: 'term' }, options)` is a message-filter path and can miss normal chat body text like “join this trip”.
+
+### Demo mode flags must not override real entity identity
+When a flow has both a demo-mode flag and a production UUID/entity ID, classify the entity first; stale local demo state must never route real-user writes or share links into mock/demo paths.
