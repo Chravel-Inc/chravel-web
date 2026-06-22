@@ -266,14 +266,16 @@ export const CreatePollForm = ({
                 value={deadlineDate}
                 onChange={e => setDeadlineDate(e.target.value)}
                 min={new Date().toISOString().split('T')[0]}
-                className="flex-1 bg-glass-slate-bg border-glass-slate-border text-foreground text-sm h-11"
+                // [color-scheme:dark] forces the native date control to paint its value
+                // light-on-dark; without it the OS renders dark text on the dark box.
+                className="flex-1 bg-glass-slate-bg border-glass-slate-border text-foreground text-sm h-11 [color-scheme:dark]"
               />
               <Input
                 type="time"
                 value={deadlineTime}
                 onChange={e => setDeadlineTime(e.target.value)}
                 disabled={!deadlineDate}
-                className="w-32 bg-glass-slate-bg border-glass-slate-border text-foreground text-sm h-11"
+                className="w-32 bg-glass-slate-bg border-glass-slate-border text-foreground text-sm h-11 [color-scheme:dark]"
               />
             </div>
             {deadlineDate && (
