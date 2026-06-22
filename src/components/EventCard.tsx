@@ -34,7 +34,7 @@ import { useDemoTripMembersStore } from '../store/demoTripMembersStore';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { getProTripColor } from '../utils/proTripColors';
 import { getDemoTripCoverFallback } from '@/data/demoTripCoverFallbacks';
-import { buildCoverBackgroundImage } from '@/utils/coverImageStyle';
+import { OptimizedImage } from './OptimizedImage';
 import { getExportData } from '../services/tripExportDataService';
 import { orderExportSections } from '../utils/exportSectionOrder';
 import { ExportSection } from '../types/tripExport';
@@ -81,6 +81,7 @@ export const EventCard = ({
   // Get color for this event - uses saved color if available, otherwise deterministic fallback
   const eventColor = getProTripColor(event.id, event.card_color);
   const demoCoverFallback = isDemoMode ? getDemoTripCoverFallback(event.id) : undefined;
+  const coverFit = event.coverDisplayMode === 'contain' ? 'contain' : 'cover';
 
   // Get added members from the demo store - use stable empty array reference with shallow comparison
   const eventIdStr = event.id.toString();
@@ -244,9 +245,14 @@ export const EventCard = ({
       >
         {/* Cover photo overlay if available */}
         {event.coverPhoto ? (
-          <div
-            className="absolute inset-0 bg-cover bg-center opacity-25"
-            style={buildCoverBackgroundImage(event.coverPhoto, demoCoverFallback)}
+          <OptimizedImage
+            src={event.coverPhoto}
+            alt={`${event.title} cover`}
+            fallbackSrc={demoCoverFallback}
+            lazy
+            fit={coverFit}
+            showBlurBackdrop={coverFit === 'contain'}
+            className={`absolute inset-0 ${coverFit === 'contain' ? 'opacity-80' : 'opacity-25'}`}
           />
         ) : null}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />

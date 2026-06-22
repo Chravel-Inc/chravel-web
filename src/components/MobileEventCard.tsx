@@ -37,7 +37,7 @@ import { getExportData } from '../services/tripExportDataService';
 import { orderExportSections } from '../utils/exportSectionOrder';
 import { ExportSection } from '../types/tripExport';
 import { getDemoTripCoverFallback } from '@/data/demoTripCoverFallbacks';
-import { buildCoverBackgroundImage } from '@/utils/coverImageStyle';
+import { OptimizedImage } from './OptimizedImage';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -75,6 +75,7 @@ export const MobileEventCard = ({
   // Get color for this event - uses saved color if available, otherwise deterministic fallback
   const eventColor = getProTripColor(event.id, event.card_color);
   const demoCoverFallback = isDemoMode ? getDemoTripCoverFallback(event.id) : undefined;
+  const coverFit = event.coverDisplayMode === 'contain' ? 'contain' : 'cover';
 
   const handleViewEvent = () => {
     navigate(`/event/${event.id}`);
@@ -212,9 +213,14 @@ export const MobileEventCard = ({
       >
         {/* Cover photo overlay if available */}
         {event.coverPhoto ? (
-          <div
-            className="absolute inset-0 bg-cover bg-center opacity-15"
-            style={buildCoverBackgroundImage(event.coverPhoto, demoCoverFallback)}
+          <OptimizedImage
+            src={event.coverPhoto}
+            alt={`${event.title} cover`}
+            fallbackSrc={demoCoverFallback}
+            lazy
+            fit={coverFit}
+            showBlurBackdrop={coverFit === 'contain'}
+            className={`absolute inset-0 ${coverFit === 'contain' ? 'opacity-80' : 'opacity-15'}`}
           />
         ) : null}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
