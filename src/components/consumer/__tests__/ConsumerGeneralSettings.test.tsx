@@ -103,6 +103,10 @@ function makeSession(provider: 'google' | 'apple' | 'email'): Session {
 describe('ConsumerGeneralSettings account deletion', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // The deletion handler shows a native window.confirm as a final, irreversible
+    // gate before calling the API. jsdom does not implement confirm (returns false),
+    // so stub it to "OK" to exercise the path past that gate.
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
     mockSession = makeSession('google');
     mockDeleteAccountImmediately.mockResolvedValue({
       success: true,
