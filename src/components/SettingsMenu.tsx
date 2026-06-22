@@ -227,14 +227,9 @@ export const SettingsMenu = ({
           <div className="flex-shrink-0 p-4 border-b border-white/10 bg-gradient-to-r from-primary/10 to-primary/5 min-w-0 overflow-hidden">
             {user ? (
               // Logged In: Show user info only (Sign Out is in Profile > Account section)
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="h-10 w-10 flex-shrink-0 rounded-full bg-gold-primary/20 flex items-center justify-center">
-                  <User className="h-5 w-5 text-gold-primary" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs text-gray-400">Signed in as</p>
-                  <p className="text-sm font-medium text-white truncate">{user.email}</p>
-                </div>
+              <div className="min-w-0">
+                <p className="text-xs text-gray-400">Signed in as</p>
+                <p className="text-sm font-medium text-white truncate">{user.email}</p>
               </div>
             ) : (
               // Logged Out: Show Login/Sign Up

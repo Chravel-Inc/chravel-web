@@ -214,14 +214,9 @@ export const ConsumerProfileSection = () => {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-3 mb-3">
-        <div className="w-12 h-12 bg-gradient-to-r from-gold-primary to-gold-mid rounded-xl flex items-center justify-center">
-          <User size={24} className="text-primary-foreground" />
-        </div>
-        <div>
-          <h3 className="text-2xl font-bold text-white">Profile Settings</h3>
-          <p className="text-gray-400">Manage your personal profile and preferences</p>
-        </div>
+      <div className="mb-3">
+        <h3 className="text-2xl font-bold text-white">Profile Settings</h3>
+        <p className="text-gray-400">Manage your personal profile and preferences</p>
       </div>
 
       {/* Profile Photo */}
