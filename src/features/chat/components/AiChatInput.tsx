@@ -66,6 +66,7 @@ export const AiChatInput = ({
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [isDragActive, setIsDragActive] = useState(false);
   const dropZoneRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dragCounterRef = useRef(0);
 
   useEffect(() => {
@@ -181,6 +182,11 @@ export const AiChatInput = ({
     void onSendMessage();
   };
 
+  const handleConvoToggle = useCallback(() => {
+    textareaRef.current?.focus();
+    onConvoToggle?.();
+  }, [onConvoToggle]);
+
   // Derived conversation active state (dictation only now)
   const isConvoActive =
     isVoiceEligible && convoVoiceState !== 'idle' && convoVoiceState !== 'error';
@@ -288,7 +294,7 @@ export const AiChatInput = ({
           <VoiceButton
             voiceState={convoVoiceState}
             isEligible={isVoiceEligible}
-            onToggle={onConvoToggle}
+            onToggle={handleConvoToggle}
             onUpgrade={onVoiceUpgrade}
           />
         )}
@@ -296,6 +302,7 @@ export const AiChatInput = ({
         {/* Input container — clean, no embedded Live button */}
         <div className="relative flex-1 min-w-0 rounded-full">
           <textarea
+            ref={textareaRef}
             value={inputMessage}
             onChange={e => onInputChange(e.target.value)}
             onKeyPress={handleKeyPress}

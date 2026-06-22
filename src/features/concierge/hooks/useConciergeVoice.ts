@@ -1,46 +1,70 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { useConciergeVoiceInput } from './useConciergeVoiceInput';
+import { useWebSpeechVoice } from '@/hooks/useWebSpeechVoice';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 
 const ENABLED = (import.meta.env?.VITE_CONCIERGE_VOICE_ENABLED ?? 'true') !== 'false';
 
 interface Params {
+  inputMessage: string;
   setInputMessage: React.Dispatch<React.SetStateAction<string>>;
 }
 
-export function useConciergeVoice({ setInputMessage }: Params) {
+export function useConciergeVoice({ inputMessage, setInputMessage }: Params) {
+  const dictationBaseRef = useRef('');
+  const inputMessageRef = useRef(inputMessage);
+  inputMessageRef.current = inputMessage;
+
   const handleTranscript = useCallback(
     (text: string) => {
       const trimmed = text.trim();
       if (!trimmed) return;
-      setInputMessage(prev => {
-        const separator = prev && !prev.endsWith(' ') ? ' ' : '';
-        return prev + separator + trimmed;
-      });
+
+      const base = dictationBaseRef.current;
+      const separator = base && !base.endsWith(' ') ? ' ' : '';
+      dictationBaseRef.current = '';
+      setInputMessage(base + separator + trimmed);
     },
     [setInputMessage],
   );
 
-  const handleError = useCallback((message: string) => {
+  const { voiceState, toggleVoice, userTranscript, errorMessage } = useWebSpeechVoice(
+    handleTranscript,
+  );
+
+  useEffect(() => {
+    if (!errorMessage) return;
     try {
-      toast.error(message);
+      toast.error(errorMessage);
     } catch {
       /* toast unavailable in tests */
     }
-  }, []);
+  }, [errorMessage]);
 
-  const { voiceState, toggleVoice } = useConciergeVoiceInput({
-    onTranscript: handleTranscript,
-    onError: handleError,
-  });
+  const isDictating = voiceState === 'listening' || voiceState === 'connecting';
+
+  useEffect(() => {
+    if (!isDictating) return;
+
+    const base = dictationBaseRef.current;
+    const interim = userTranscript.trim();
+    if (!interim) return;
+
+    const separator = base && !base.endsWith(' ') ? ' ' : '';
+    setInputMessage(base + separator + interim);
+  }, [isDictating, setInputMessage, userTranscript]);
 
   const convoVoiceState: VoiceState = ENABLED ? voiceState : 'idle';
 
   const handleConvoToggle = useCallback(() => {
     if (!ENABLED) return;
+
+    if (voiceState === 'idle' || voiceState === 'error') {
+      dictationBaseRef.current = inputMessageRef.current;
+    }
+
     toggleVoice();
-  }, [toggleVoice]);
+  }, [toggleVoice, voiceState]);
 
   return {
     convoVoiceState,
