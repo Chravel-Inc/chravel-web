@@ -3859,6 +3859,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          notifications_muted: boolean
           role: string
           trip_id: string
           updated_at: string
@@ -3867,6 +3868,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          notifications_muted?: boolean
           role?: string
           trip_id: string
           updated_at?: string
@@ -3875,6 +3877,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          notifications_muted?: boolean
           role?: string
           trip_id?: string
           updated_at?: string
@@ -5522,6 +5525,10 @@ export type Database = {
           p_user_ids: string[]
         }
         Returns: undefined
+      }
+      set_trip_notifications_muted: {
+        Args: { p_muted: boolean; p_trip_id: string }
+        Returns: Json
       }
       should_send_notification: {
         Args: {
