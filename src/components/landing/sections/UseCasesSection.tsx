@@ -115,8 +115,8 @@ export const UseCasesSection = () => {
               textShadow: '0 2px 6px rgba(0,0,0,0.65), 0 4px 14px rgba(0,0,0,0.45)',
             }}
           >
-            From Travel Concierges, to Friend Trips, Family Vacations, Sports Travel, Touring Teams,
-            & local Meetups — ChravelApp handles it all.
+            Travel Concierge, Friend Trips, Family Vacations, Sports Travel, Touring Teams, & Local
+            Meetups — ChravelApp handles it all.
           </p>
         </div>
 
