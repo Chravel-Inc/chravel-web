@@ -66,21 +66,21 @@ vi.mock('../../hooks/useConciergeUsage', () => ({
   useConciergeUsage: () => ({
     usage: {
       used: 5,
-      limit: 10,
-      remaining: 5,
+      limit: 25,
+      remaining: 20,
       isLimitReached: false,
       plan: 'explorer',
     },
     refreshUsage: vi.fn().mockResolvedValue({
       used: 5,
-      limit: 10,
-      remaining: 5,
+      limit: 25,
+      remaining: 20,
       isLimitReached: false,
       plan: 'explorer',
     }),
     getUsageStatus: () => ({
       status: 'ok',
-      message: '5/10 Asks',
+      message: '20/25 Asks',
       color: 'text-green-500',
     }),
     incrementUsageOnSuccess: vi.fn(),

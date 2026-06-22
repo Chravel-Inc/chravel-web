@@ -62,7 +62,7 @@ const consumerTiers: PricingTier[] = [
       'Shared Group Calendar Sync',
       'Payment tracking',
       'Polls & group decisions',
-      'AI Trip Assistant (10 queries per user per trip)',
+      'AI Trip Assistant (3 queries per user per trip)',
       '1 PDF export per trip (sample it!)',
       'Save up to 3 active trips',
       '🎁 1 free Pro trip to try',
@@ -232,7 +232,7 @@ const _faqItems = [
   {
     question: 'How do AI queries work on each plan?',
     answer:
-      'Free users get 10 AI queries per user per trip. Explorer gets 25 AI queries per user per trip. Frequent Chraveler gets unlimited AI queries. A counter shows how many you have left. Each new trip starts fresh with your full query limit. Voice input to the AI concierge counts as a single query.',
+      'Free users get 3 AI queries per user per trip. Explorer gets 25 AI queries per user per trip. Frequent Chraveler gets unlimited AI queries. A counter shows how many you have left. Each new trip starts fresh with your full query limit. Voice input to the AI concierge counts as a single query.',
   },
   {
     question: 'Can I change plans anytime?',

@@ -750,7 +750,7 @@ serve(async req => {
     // Plan resolution is fast (~20-50 ms) and keeps all subsequent fetches clean.
     const planResolution = await (!serverDemoMode && user
       ? resolveUsagePlanForUser(supabase, user.id)
-      : Promise.resolve({ usagePlan: 'free' as const, tripQueryLimit: 5 }));
+      : Promise.resolve({ usagePlan: 'free' as const, tripQueryLimit: 3 }));
     const isPaidUser = planResolution.usagePlan !== 'free';
 
     // Fire remaining independent queries at once
@@ -1793,7 +1793,6 @@ serve(async req => {
       // increment so users aren't charged for a failed AI response.
       let followUpFailed = false;
 
-
       let candidate = data.candidates?.[0];
       if (!candidate) {
         throw new Error('No response candidate from Gemini');
@@ -1902,7 +1901,6 @@ serve(async req => {
           followUpFailed = true;
           break;
         }
-
       }
 
       if (candidate) {
@@ -1963,7 +1961,6 @@ serve(async req => {
           return buildTripLimitReachedResponse(corsHeaders, usagePlan);
         }
       }
-
 
       // Skip database storage in demo mode
       if (!serverDemoMode) {

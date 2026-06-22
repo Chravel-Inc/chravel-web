@@ -84,3 +84,13 @@
 - Audited real trip invite generation, branded invite preview, join redemption, and demo-mode branches after reports that real-user invite links could resolve to demo trips.
 - Root cause: `useInviteLink` trusted the global demo-mode flag before checking the trip identity, so a signed-in user with stale app-preview demo state could generate `demo-{uuid}-{timestamp}` links instead of persisted `trip_invites` rows.
 - Fixed invite generation so only non-UUID demo trip IDs use demo links; UUID trips always create database-backed invite codes even if demo mode is still active. Added regression coverage for real UUID invites under active demo mode.
+
+2026-06-22 — Subscription permission marketing parity
+- Aligned the billing entitlement source of truth with the marketing pricing grid: Explorer now grants unlimited saved/active consumer trips, Frequent Chraveler grants role-based channels/roles, and tier comments reflect Free 10 / Explorer 25 AI query limits.
+- Tightened Smart Import server defaults to match the product-facing free taste/unlimited paid framing: Free defaults to 1 import, Explorer and Frequent Chraveler default to unlimited.
+- Added pricing/permission parity tests covering Explorer and Frequent Chraveler grants; targeted entitlement tests, typecheck, lint:check, and build pass. Merge preflight remains blocked by origin/main fetch in this environment.
+
+2026-06-22 — Free AI query limit reduction
+- Chose 3 free AI Concierge queries per user per trip (instead of 5 or a pooled lifetime cap) to give a quick taste while bounding abuse from users creating multiple free trips.
+- Updated client and edge-function permission maps, pricing/FAQ/settings/upsell copy, usage meter test data, and product-ground-truth docs from Free=10 to Free=3 while keeping Explorer=25 and Frequent Chraveler=unlimited.
+- Added/updated parity coverage so `FEATURE_LIMITS.ai_concierge.free`, `FREEMIUM_LIMITS.free.aiQueriesPerTrip`, and the shared concierge trip-limit helper agree. Targeted billing/limit tests, typecheck, lint:check, and build pass; AIConciergeChat usage-meter suite still hangs in this environment after startup and was killed.

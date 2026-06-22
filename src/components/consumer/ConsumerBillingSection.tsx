@@ -143,7 +143,7 @@ export const ConsumerBillingSection = () => {
         'Photo & video sharing',
         'Basic itinerary planning',
         'Expense tracking',
-        'AI Trip Assistant (10 queries per user per trip)',
+        'AI Trip Assistant (3 queries per user per trip)',
         '1 PDF export per trip',
         'ICS calendar download',
       ],

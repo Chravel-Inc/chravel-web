@@ -445,3 +445,9 @@ For account deletion, having a backend/RPC and a nested settings flow is insuffi
 
 ### Demo mode flags must not override real entity identity
 When a flow has both a demo-mode flag and a production UUID/entity ID, classify the entity first; stale local demo state must never route real-user writes or share links into mock/demo paths.
+
+### Subscription marketing copy must be enforced by entitlement parity tests
+When pricing cards advertise limits or role/channel access, assert those claims against `BILLING_PRODUCTS`, `FEATURE_LIMITS`, and `FREEMIUM_LIMITS` together so display copy cannot drift from actual gates.
+
+### AI quota copy must be changed in both client and edge limit maps
+Concierge query caps are duplicated across UI copy, client helpers, and Supabase edge usage policy; changing a free/paid quota requires grep-driven updates plus parity tests for `FEATURE_LIMITS`, `FREEMIUM_LIMITS`, and `CONCIERGE_TRIP_QUERY_LIMITS`.

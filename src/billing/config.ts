@@ -53,7 +53,7 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
     priceAnnual: 99,
     entitlements: [
       'ai_queries_extended',
-      'trips_extended',
+      'trips_unlimited',
       'storage_extended',
       'payments_extended',
       'pdf_export',
@@ -84,6 +84,8 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
       'voice_concierge',
       'pro_trip_creation',
       'events_create',
+      'channels_enabled',
+      'roles_enabled',
       // Attendee-cap entitlements are NOT enforced anywhere yet (no join-path
       // check produces a "trip full" error). Pricing copy must not advertise
       // numeric attendee caps until enforcement exists.
