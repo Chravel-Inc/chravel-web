@@ -78,16 +78,6 @@ const scenarios: Scenario[] = [
     badge: 'Fewer errors · faster decisions',
     href: '/use-cases/sports-team-travel-coordination',
   },
-  {
-    title: 'Travel Concierge Companies',
-    subtitle: 'Luxury planners · family offices · destination specialists · VIP travel',
-    before:
-      'WhatsApp threads, iMessage chains, PDFs in Drive, emailed itineraries, and screenshots of confirmations — a premium price tag delivered through a messy stack of consumer apps.',
-    expandCTA: 'ChravelApp helps concierge teams deliver a premium client experience',
-    after:
-      'A polished, private trip portal per client. Itinerary, calendar, files, receipts, base camps, recommendations, tasks, and broadcasts — preloaded before the client even opens the app.',
-    badge: 'Look more buttoned-up · stop chasing the same questions',
-  },
 ];
 
 export const UseCasesSection = () => {
