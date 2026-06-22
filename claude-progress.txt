@@ -79,3 +79,8 @@
 - Diagnosed Messages search miss for chat text like "join this trip": Stream helper passed `{ text: query }` as message-filter conditions, not the SDK full-text query string, so regular message body terms could be missed.
 - Switched single-trip and universal Stream message search to `channel.search(query, options)` and added regression coverage that searching `join` returns `join this trip`.
 - Targeted Stream message search test passes; lint:check passes with existing warning baseline; typecheck remains blocked by pre-existing duplicate object literal keys in `src/components/landing/sections/UseCasesSection.tsx`.
+
+2026-06-22 — Invite links demo-mode bleed fix
+- Audited real trip invite generation, branded invite preview, join redemption, and demo-mode branches after reports that real-user invite links could resolve to demo trips.
+- Root cause: `useInviteLink` trusted the global demo-mode flag before checking the trip identity, so a signed-in user with stale app-preview demo state could generate `demo-{uuid}-{timestamp}` links instead of persisted `trip_invites` rows.
+- Fixed invite generation so only non-UUID demo trip IDs use demo links; UUID trips always create database-backed invite codes even if demo mode is still active. Added regression coverage for real UUID invites under active demo mode.
