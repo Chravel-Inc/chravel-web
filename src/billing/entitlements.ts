@@ -235,7 +235,7 @@ const FEATURE_TO_ENTITLEMENTS: Record<FeatureName, EntitlementId[]> = {
  */
 export const FEATURE_LIMITS: Record<FeatureName, Partial<Record<SubscriptionTier, number>>> = {
   ai_concierge: {
-    free: 10,
+    free: 3,
     explorer: 25,
     'frequent-chraveler': -1,
     'pro-starter': -1,
@@ -244,7 +244,7 @@ export const FEATURE_LIMITS: Record<FeatureName, Partial<Record<SubscriptionTier
   },
   trip_creation: {
     free: 3,
-    explorer: 10,
+    explorer: -1,
     'frequent-chraveler': -1,
     'pro-starter': -1,
     'pro-growth': -1,
@@ -307,7 +307,7 @@ export const FEATURE_LIMITS: Record<FeatureName, Partial<Record<SubscriptionTier
   channels: {
     free: 0,
     explorer: 0,
-    'frequent-chraveler': 0,
+    'frequent-chraveler': -1,
     'pro-starter': -1,
     'pro-growth': -1,
     'pro-enterprise': -1,
@@ -315,7 +315,7 @@ export const FEATURE_LIMITS: Record<FeatureName, Partial<Record<SubscriptionTier
   roles: {
     free: 0,
     explorer: 0,
-    'frequent-chraveler': 0,
+    'frequent-chraveler': -1,
     'pro-starter': -1,
     'pro-growth': -1,
     'pro-enterprise': -1,

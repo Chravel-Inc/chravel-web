@@ -21,7 +21,7 @@ const faqItems = [
   {
     question: 'How do AI queries work on each plan?',
     answer:
-      'Free: 10 AI queries per user per trip. Explorer: 25. Frequent Chraveler: unlimited. Voice input to the AI concierge counts as one query. Each new trip resets your limit.',
+      'Free: 3 AI queries per user per trip. Explorer: 25. Frequent Chraveler: unlimited. Voice input to the AI concierge counts as one query. Each new trip resets your limit.',
   },
   {
     question: 'Can I change plans anytime?',

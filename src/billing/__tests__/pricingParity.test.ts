@@ -148,6 +148,14 @@ describe('pricing parity — constants/revenuecat.ts mirrors billing/config.ts',
 });
 
 describe('limit parity — FEATURE_LIMITS aligns with FREEMIUM_LIMITS storage', () => {
+  it('ai_concierge caps match marketed per-trip limits', () => {
+    expect(FEATURE_LIMITS.ai_concierge.free).toBe(FREEMIUM_LIMITS.free.aiQueriesPerTrip);
+    expect(FEATURE_LIMITS.ai_concierge.free).toBe(3);
+    expect(FEATURE_LIMITS.ai_concierge.explorer).toBe(FREEMIUM_LIMITS.explorer.aiQueriesPerTrip);
+    expect(FEATURE_LIMITS.ai_concierge.explorer).toBe(25);
+    expect(FEATURE_LIMITS.ai_concierge['frequent-chraveler']).toBe(-1);
+  });
+
   it('media_upload caps match the enforced storage caps (MB)', () => {
     expect(FEATURE_LIMITS.media_upload.free).toBe(FREEMIUM_LIMITS.free.storageAccountMB);
     expect(FEATURE_LIMITS.media_upload.explorer).toBe(FREEMIUM_LIMITS.explorer.storageAccountMB);
@@ -211,6 +219,41 @@ describe('pricing parity — secondary numeric tables derive from billing/config
     expect(CONSUMER_PRICE_DISPLAY.explorer.annualPerMonth).toBe(
       `$${(BILLING_PRODUCTS['consumer-explorer'].priceAnnual! / 12).toFixed(2)}`,
     );
+  });
+});
+
+describe('marketing plan permissions parity', () => {
+  it('Explorer grants unlimited saved trips and standard planning exports', () => {
+    const explorer = BILLING_PRODUCTS['consumer-explorer'];
+    expect(explorer.entitlements).toEqual(
+      expect.arrayContaining([
+        'ai_queries_extended',
+        'trips_unlimited',
+        'pdf_export',
+        'calendar_sync',
+      ]),
+    );
+    expect(explorer.entitlements).not.toContain('trips_extended');
+    expect(FEATURE_LIMITS.trip_creation.explorer).toBe(FREEMIUM_LIMITS.explorer.activeTripsLimit);
+    expect(FEATURE_LIMITS.ai_concierge.explorer).toBe(FREEMIUM_LIMITS.explorer.aiQueriesPerTrip);
+  });
+
+  it('Frequent Chraveler grants unlimited consumer usage plus role-based channels', () => {
+    const frequent = BILLING_PRODUCTS['consumer-frequent-chraveler'];
+    expect(frequent.entitlements).toEqual(
+      expect.arrayContaining([
+        'ai_queries_unlimited',
+        'trips_unlimited',
+        'pdf_export',
+        'calendar_sync',
+        'channels_enabled',
+        'roles_enabled',
+      ]),
+    );
+    expect(FEATURE_LIMITS.ai_concierge['frequent-chraveler']).toBe(-1);
+    expect(FEATURE_LIMITS.trip_creation['frequent-chraveler']).toBe(-1);
+    expect(FEATURE_LIMITS.channels['frequent-chraveler']).toBe(-1);
+    expect(FEATURE_LIMITS.roles['frequent-chraveler']).toBe(-1);
   });
 });
 

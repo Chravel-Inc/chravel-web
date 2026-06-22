@@ -164,7 +164,7 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
                 <li>• Basic group chat</li>
                 <li>• Shared calendar (manual)</li>
                 <li>• Photo & video sharing</li>
-                <li>• 10 AI queries per user per trip</li>
+                <li>• 3 AI queries per user per trip</li>
                 <li>• 1 free PDF export per trip</li>
                 <li>• ICS calendar download</li>
               </ul>

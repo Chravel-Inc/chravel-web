@@ -3,7 +3,7 @@ import { pickPrimaryEntitlement } from '../entitlementSelection.ts';
 export type UsagePlan = 'free' | 'explorer' | 'frequent_chraveler';
 
 const CONCIERGE_TRIP_QUERY_LIMITS: Record<UsagePlan, number | null> = {
-  free: 10,
+  free: 3,
   explorer: 25,
   frequent_chraveler: null,
 };

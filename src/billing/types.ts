@@ -11,14 +11,14 @@
  */
 export type EntitlementId =
   // AI Concierge
-  | 'ai_queries_basic' // 5/trip (Free)
-  | 'ai_queries_extended' // 10/trip (Explorer)
+  | 'ai_queries_basic' // 3/trip (Free)
+  | 'ai_queries_extended' // 25/trip (Explorer)
   | 'ai_queries_unlimited' // Unlimited (Frequent Chraveler, Pro)
 
   // Trip Management
   | 'trips_basic' // 3 trips (Free)
-  | 'trips_extended' // 10 trips (Explorer)
-  | 'trips_unlimited' // Unlimited (Frequent Chraveler, Pro)
+  | 'trips_extended' // Legacy Explorer grant; prefer trips_unlimited for current Explorer
+  | 'trips_unlimited' // Unlimited (Explorer, Frequent Chraveler, Pro)
   | 'pro_trip_creation' // Can create Pro trips
 
   // Storage & Media
