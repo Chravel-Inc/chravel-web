@@ -300,9 +300,18 @@
     }
   }
 
-  /* Smooth scrolling */
+  /* Default to the dark color-scheme so native form controls (date/time pickers,
+     select menus, scrollbars) paint light-on-dark instead of dark-on-dark. The
+     light theme (html.light) overrides it below.
+     NOTE: global `scroll-behavior: smooth` was removed — on iOS it fights momentum
+     and programmatic scrolls (focus-into-view, keyboard, scrollIntoView), producing
+     the scroll "vibration" users reported. Opt into smooth scrolling per-element. */
   html {
-    scroll-behavior: smooth;
+    color-scheme: dark;
+  }
+
+  html.light {
+    color-scheme: light;
   }
 
   :root {
