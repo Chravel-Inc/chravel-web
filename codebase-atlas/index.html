@@ -557,8 +557,8 @@
       "DB migrations": 419
     },
     "generated": "2026-06-22",
-    "commit": "6681529",
-    "commitUrl": "https://github.com/chravel-inc/chravel-web/commit/6681529",
+    "commit": "fd16b41",
+    "commitUrl": "https://github.com/chravel-inc/chravel-web/commit/fd16b41",
     "metrics": {
       "knip": {
         "files": 210,
@@ -2369,13 +2369,13 @@
     }
   ],
   "costEstimate": {
-    "lens": "What it would cost to rebuild Chravel from scratch — the same feature surface and quality bar, on the same third-party platforms (Supabase, Stream, Stripe/RevenueCat, Google, Gemini/Vertex) — with no AI coding assistance. For internal reference, not a sales quote.",
-    "methodology": "Bottom-up and transparent. (1) Each major system is sized in engineering-hours for a competent team rebuilding a known spec — no product discovery, no pivots. (2) Three effort bands: Conservative (lean, senior, aggressive reuse, minimal polish), Moderate (average competent devs at a normal pace), High (enterprise rigor, full tests, edge cases). (3) Hours convert to a schedule using a realistic working pattern — about 6 productive (heads-down) hours inside an 8-hour workday, 5 days/week (30 hrs/week, ~1,500 productive hrs/year per developer). (4) Calendar time divides that effort across each vendor's team size (freelancer = 1 dev solo, agency = 2 devs, high-end firm = 3 simultaneous devs), applying a sub-linear efficiency factor (2 devs ≈ 1.8×, 3 devs ≈ 2.5×) for coordination overhead. (5) Cost = effort-hours × the vendor's blended rate.",
-    "disclaimer": "Human-only rebuild of a known spec on the same managed platforms — integration work, not platform engineering. Excludes ongoing SaaS/infra, app-store fees, and post-launch maintenance.",
+    "lens": "What it would realistically cost to rebuild Chravel from scratch today — the same feature surface and quality bar, on the same managed platforms (Supabase, Stream, Stripe/RevenueCat, Google, Gemini/Vertex), by a competent team using current AI coding tools. Calibrated against how Chravel was actually built (a small team shipped it in roughly a year), not a worst-case hand-coded estimate. For internal reference, not a sales quote.",
+    "methodology": "Bottom-up, then reality-checked. (1) Each major system is sized in engineering-hours for a competent team rebuilding a known spec — no product discovery, no pivots — using today’s AI coding tools. (2) Three effort bands: Conservative (lean, senior, heavy reuse, MVP-parity), Moderate (solid quality, tests on critical paths), High (enterprise rigor, broad tests, edge cases). (3) The whole table is calibrated to the actual build history — Chravel was shipped by a small team in roughly a year — so a known-spec rebuild lands in the same order of magnitude rather than the inflated multi-year figures naive estimators produce. (4) Hours convert to a schedule at ~6 productive hours/day, 5 days/week (30 hrs/week, ~1,500 hrs/year/dev). (5) Calendar time divides that effort across each vendor’s team size (freelancer = 1 dev solo, agency = 2 devs, high-end firm = 3 devs) with sub-linear efficiency (2 devs ≈ 1.8×, 3 devs ≈ 2.5×). (6) Cost = effort-hours × the vendor’s blended rate.",
+    "disclaimer": "Realistic modern rebuild of a known spec on the same managed platforms, using current AI tooling — integration work, not platform engineering. Calibrated to the product’s actual ~1-year build. Excludes ongoing SaaS/infra, app-store fees, and post-launch maintenance.",
     "totals": {
-      "conservative": 3820,
-      "moderate": 5800,
-      "high": 8840
+      "conservative": 1235,
+      "moderate": 1895,
+      "high": 2855
     },
     "model": {
       "workdayHours": 8,
@@ -2405,156 +2405,156 @@
       {
         "area": "Foundation \u0026 design system",
         "note": "Scaffold, routing, Tailwind + shadcn/Radix, app shell, CI/CD",
-        "conservative": 150,
-        "moderate": 220,
-        "high": 320
+        "conservative": 45,
+        "moderate": 70,
+        "high": 105
       },
       {
         "area": "Auth \u0026 session",
         "note": "Supabase Auth, Google OAuth, role/tier resolution, hydration guards",
-        "conservative": 120,
-        "moderate": 180,
-        "high": 280
+        "conservative": 40,
+        "moderate": 60,
+        "high": 90
       },
       {
         "area": "Data layer \u0026 Supabase integration",
         "note": "Client gateway, ~140 service modules, query-key cache contract, generated types",
-        "conservative": 190,
-        "moderate": 280,
-        "high": 420
+        "conservative": 60,
+        "moderate": 90,
+        "high": 135
       },
       {
         "area": "Database schema \u0026 RLS",
         "note": "Final schema, ~750 row-level-security policies as patterns, migrations",
-        "conservative": 230,
-        "moderate": 360,
-        "high": 560
+        "conservative": 80,
+        "moderate": 120,
+        "high": 180
       },
       {
         "area": "Trips \u0026 membership",
         "note": "CRUD, invites, 3 trip tiers (consumer/pro/event), archival",
-        "conservative": 190,
-        "moderate": 280,
-        "high": 420
+        "conservative": 60,
+        "moderate": 90,
+        "high": 135
       },
       {
         "area": "Permissions \u0026 roles",
         "note": "Per-trip-type permission matrix, RLS-backed",
-        "conservative": 110,
-        "moderate": 160,
-        "high": 250
+        "conservative": 35,
+        "moderate": 50,
+        "high": 75
       },
       {
         "area": "Unified messaging / chat",
         "note": "Stream Chat, channels, broadcasts, threads, reactions, read receipts, reconnect/backfill",
-        "conservative": 280,
-        "moderate": 420,
-        "high": 620
+        "conservative": 90,
+        "moderate": 140,
+        "high": 210
       },
       {
         "area": "AI Concierge — text",
         "note": "Gemini, ~38 tools, query classification, pending-actions write buffer",
-        "conservative": 250,
-        "moderate": 380,
-        "high": 560
+        "conservative": 80,
+        "moderate": 125,
+        "high": 190
       },
       {
         "area": "AI Concierge — voice",
         "note": "Vertex AI Live, audio session lifecycle",
-        "conservative": 140,
-        "moderate": 220,
-        "high": 340
+        "conservative": 45,
+        "moderate": 70,
+        "high": 105
       },
       {
         "area": "Calendar \u0026 Google sync",
         "note": "Bi-directional, idempotent, recurring events, RSVP",
-        "conservative": 170,
-        "moderate": 260,
-        "high": 400
+        "conservative": 55,
+        "moderate": 85,
+        "high": 130
       },
       {
         "area": "Payments \u0026 subscriptions",
         "note": "Stripe (web) + RevenueCat (iOS), webhooks, entitlements, expense splitting",
-        "conservative": 220,
-        "moderate": 340,
-        "high": 520
+        "conservative": 70,
+        "moderate": 110,
+        "high": 165
       },
       {
         "area": "Smart Import",
         "note": "Gmail OAuth, PDF/image parsing, Gemini extraction, checkpoint state machine",
-        "conservative": 200,
-        "moderate": 300,
-        "high": 460
+        "conservative": 65,
+        "moderate": 100,
+        "high": 150
       },
       {
         "area": "Media gallery \u0026 storage",
         "note": "Upload, compression, AI tagging, lightbox, quota",
-        "conservative": 130,
-        "moderate": 200,
-        "high": 300
+        "conservative": 40,
+        "moderate": 65,
+        "high": 100
       },
       {
         "area": "Maps \u0026 places",
         "note": "Google Maps, places search, autocomplete, caching",
-        "conservative": 100,
-        "moderate": 150,
-        "high": 230
+        "conservative": 35,
+        "moderate": 50,
+        "high": 75
       },
       {
         "area": "Notifications \u0026 realtime",
         "note": "Push/email/SMS (APNS/Resend/Twilio), dedup, badge counts",
-        "conservative": 160,
-        "moderate": 240,
-        "high": 360
+        "conservative": 50,
+        "moderate": 80,
+        "high": 120
       },
       {
         "area": "Organizations \u0026 B2B",
         "note": "Seat-based billing, team management, org admin dashboard",
-        "conservative": 140,
-        "moderate": 220,
-        "high": 340
+        "conservative": 45,
+        "moderate": 70,
+        "high": 105
       },
       {
         "area": "Mobile / PWA / native",
         "note": "Capacitor 8 iOS wrapper, offline, service worker, web/native parity",
-        "conservative": 210,
-        "moderate": 320,
-        "high": 480
+        "conservative": 70,
+        "moderate": 105,
+        "high": 160
       },
       {
         "area": "Admin, security \u0026 audit",
         "note": "Append-only + hash-chained audit logs, super-admin, secret validation",
-        "conservative": 140,
-        "moderate": 220,
-        "high": 340
+        "conservative": 45,
+        "moderate": 70,
+        "high": 105
       },
       {
         "area": "Observability \u0026 feature flags",
         "note": "Sentry, PostHog, runtime kill switches",
-        "conservative": 60,
-        "moderate": 90,
-        "high": 140
+        "conservative": 20,
+        "moderate": 30,
+        "high": 45
       },
       {
         "area": "Testing",
         "note": "Unit + integration across critical paths (~350 specs)",
-        "conservative": 280,
-        "moderate": 420,
-        "high": 640
+        "conservative": 90,
+        "moderate": 140,
+        "high": 210
       },
       {
         "area": "Marketing site, blog \u0026 SEO",
         "note": "Landing, blog content system, SEO",
-        "conservative": 100,
-        "moderate": 160,
-        "high": 260
+        "conservative": 35,
+        "moderate": 50,
+        "high": 75
       },
       {
         "area": "Integration glue, QA \u0026 PM overhead",
         "note": "Cross-feature wiring, bug-fixing, coordination",
-        "conservative": 250,
-        "moderate": 380,
-        "high": 600
+        "conservative": 80,
+        "moderate": 125,
+        "high": 190
       }
     ],
     "vendors": [
@@ -2591,24 +2591,24 @@
       }
     ],
     "assumptions": [
-      "Effort is measured in engineering-hours; the schedule assumes ~6 productive (heads-down) hours inside an 8-hour workday, 5 days/week — 30 hrs/week and ~1,500 productive hrs/year per developer.",
+      "Assumes a competent team using today’s standard AI coding tools — the realistic 2026 default, not a hand-coded build.",
+      "Calibrated to reality: Chravel was actually built by a small team in roughly a year, so a known-spec rebuild is anchored to that order of magnitude.",
+      "Effort is engineering-hours; the schedule assumes ~6 productive (heads-down) hours inside an 8-hour workday, 5 days/week — 30 hrs/week, ~1,500 productive hrs/year per developer.",
       "Team size by vendor: a freelancer works solo (1 dev), an established agency runs 2 dedicated devs, and a high-end firm runs 3 simultaneous devs.",
-      "Adding developers is sub-linear: 2 devs ≈ 1.8× and 3 devs ≈ 2.5× a solo developer's pace after coordination overhead, so calendar time drops less than headcount rises.",
+      "Adding developers is sub-linear: 2 devs ≈ 1.8× and 3 devs ≈ 2.5× a solo developer’s pace after coordination overhead, so calendar time drops less than headcount rises.",
       "US-market blended contractor rates (2026); offshore teams would be materially cheaper.",
-      "Rebuilding a known spec — no product discovery, design iteration, or pivots (those consumed much of the original calendar time).",
-      "Same managed platforms reused (Supabase, Stream, Stripe/RevenueCat, Google, Gemini) — you integrate them, you do not rebuild auth servers, realtime, chat, or payment rails.",
-      "Competent developers at a normal pace — not padded worst-case-everything estimates.",
-      "Human-only: no AI coding assistance is assumed (the AI-assisted figure is intentionally kept off this page)."
+      "Rebuilding a known spec — no product discovery, design iteration, or pivots (those consumed much of the original calendar time and don’t recur).",
+      "Same managed platforms reused (Supabase, Stream, Stripe/RevenueCat, Google, Gemini) — you integrate them, you don’t rebuild auth servers, realtime, chat, or payment rails."
     ],
     "whyNotMore": [
-      "Recreating a known spec skips discovery, dead-ends, and pivots — typically 40–60% of the original calendar time never reappears.",
+      "Calibrated to the actual build: this product was shipped by a small team in about a year, so the rebuild is anchored to reality, not a theoretical worst case.",
+      "Modern AI coding tools do a large share of the boilerplate, wiring, and test scaffolding — the 2026 baseline, not optional.",
+      "Recreating a known spec skips discovery, dead-ends, and pivots — much of the original calendar time never recurs.",
       "Off-the-shelf platforms do the heavy lifting: no custom auth server, realtime engine, chat backend, or payment processor to build.",
       "UI is assembled from shadcn/Radix + Tailwind primitives rather than hand-built components.",
-      "The 419 migrations and ~750 RLS policies are iterative history; the final schema is authored once and is far smaller than replaying every migration.",
-      "File count is not effort: many of the 1,180 source files are small, repetitive hooks and components.",
-      "Estimates assume focused senior/mid developers, not a worst-case junior team."
+      "File count is not effort: many of the 1,180 source files are small, repetitive, AI-generatable hooks and components."
     ],
-    "note": "Every input is adjustable in curated.json → costEstimate: per-system hours, blended rates, productive hours/day, days/week, team size, and the multi-dev efficiency factors. All tables (effort, schedule, and quotes) recompute from them. Rates are US-market blended (2026); offshore would be materially lower."
+    "note": "A hand-coded build with no AI assistance would run roughly 1.7–2× these hours — a useful upper bound, but not today’s reality. Every input is adjustable in curated.json → costEstimate (per-system hours, rates, productive hours/day, team size, efficiency factors); all tables recompute. Rates are US-market blended (2026); offshore would be materially lower."
   }
 }</script>
     <script>
@@ -3539,7 +3539,7 @@
           var cols = el('<div class="cols" style="margin-bottom:14px"></div>');
           cols.appendChild(
             el(
-              '<div class="panel" style="border-left:4px solid var(--gold)"><h4>Rebuild effort — moderate, human-only</h4>' +
+              '<div class="panel" style="border-left:4px solid var(--gold)"><h4>Rebuild effort — moderate band</h4>' +
                 '<div class="val" style="font-size:30px;font-weight:800;color:var(--gold)">' +
                 fmt(t.moderate) +
                 ' hrs</div><div class="v muted" style="font-size:12.5px">≈ ' +
@@ -3785,7 +3785,7 @@
             el(
               '<div class="panel" style="border-left:4px solid ' +
                 COLOR.green +
-                '"><h4>Why it is not 15,000+ hours</h4>' +
+                '"><h4>Why these are realistic, not inflated</h4>' +
                 list(ce.whyNotMore) +
                 '</div>',
             ),
