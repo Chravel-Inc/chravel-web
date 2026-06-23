@@ -1985,7 +1985,8 @@ serve(async req => {
         user &&
         tripQueryLimit !== null &&
         resolvedTripId !== 'unknown' &&
-        !followUpFailed
+        !followUpFailed &&
+        (await shouldIncrementForSession(user.id, resolvedTripId))
       ) {
         const incrementUsageResult = await incrementConciergeTripUsage(
           supabase,
