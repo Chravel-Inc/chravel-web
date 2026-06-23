@@ -21,6 +21,8 @@ export const ConsumerProfileSection = () => {
   const [phone, setPhone] = useState(user?.phone || '');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
 
   // Initialize state when user loads
   useEffect(() => {
