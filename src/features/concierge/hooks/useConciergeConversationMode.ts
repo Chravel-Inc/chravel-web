@@ -172,7 +172,7 @@ export function useConciergeConversationMode({
 
   // ── STT call ──────────────────────────────────────────────────────────
   const transcribe = useCallback(
-    async (blob: Blob): Promise<string> => {
+    async (blob: Blob, signal: AbortSignal): Promise<string> => {
       const form = new FormData();
       const ext = mimeRef.current.includes('mp4')
         ? 'mp4'
@@ -182,10 +182,21 @@ export function useConciergeConversationMode({
       form.append('audio', blob, `recording.${ext}`);
       form.append('mimeType', mimeRef.current);
 
-      const { data, error } = await supabase.functions.invoke<{
+      // supabase-js doesn't forward AbortSignal cleanly into functions.invoke,
+      // so we surface cancellation via a manual race.
+      const invoke = supabase.functions.invoke<{
         transcript?: string;
         error?: string;
       }>('concierge-stt', { body: form });
+
+      const aborted = new Promise<never>((_, reject) => {
+        if (signal.aborted) reject(new DOMException('Aborted', 'AbortError'));
+        signal.addEventListener('abort', () =>
+          reject(new DOMException('Aborted', 'AbortError')),
+        );
+      });
+
+      const { data, error } = await Promise.race([invoke, aborted]);
 
       if (error) {
         throw new Error((error as { message?: string })?.message ?? 'Transcription failed');
