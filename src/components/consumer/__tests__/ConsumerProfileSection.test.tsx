@@ -101,11 +101,16 @@ describe('ConsumerProfileSection', () => {
     expect(avatar).toHaveAttribute('src', 'https://example.com/demo-avatar.png');
   });
 
-  it('surfaces account deletion from the signed-in profile account row', () => {
+  it('surfaces side-by-side account actions styled like primary CTAs', () => {
     render(<ConsumerProfileSection />);
 
+    expect(screen.getByRole('heading', { name: /account/i })).toBeInTheDocument();
+    expect(screen.queryByText(/signed in as/i)).not.toBeInTheDocument();
+
     const deleteButton = screen.getByRole('button', { name: /delete account/i });
-    expect(deleteButton).toBeInTheDocument();
+    const signOutButton = screen.getByRole('button', { name: /sign out/i });
+    expect(deleteButton).toHaveClass('flex-1', 'bg-destructive', 'text-destructive-foreground');
+    expect(signOutButton).toHaveClass('flex-1', 'bg-destructive', 'text-destructive-foreground');
   });
 
   it('does not render a Camera overlay button', () => {
