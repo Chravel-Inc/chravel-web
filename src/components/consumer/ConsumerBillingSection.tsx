@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { Crown, Globe, Building, TrendingUp, Shield } from 'lucide-react';
+import { Crown, Globe, Building, TrendingUp, Shield, Ticket } from 'lucide-react';
 import { useConsumerSubscription } from '../../hooks/useConsumerSubscription';
 import { CONSUMER_PRICING } from '../../types/consumer';
-import { CONSUMER_PRICE_DISPLAY } from '@/billing/pricingDisplay';
+import { CONSUMER_PRICE_DISPLAY, TRIP_PASS_DISPLAY } from '@/billing/pricingDisplay';
 import { BILLING_PRODUCTS } from '@/billing/config';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { detectNativeBillingPlatform, isNativeWebView } from '@/utils/platformDetection';
+import { TripPassModal } from '../conversion/TripPassModal';
 
 // App Store 3.1.1: inside the iOS app, consumers must not be steered to an external
 // web checkout or the Stripe-hosted billing portal for digital subscriptions. Manage/
