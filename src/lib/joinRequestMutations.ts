@@ -8,6 +8,12 @@ type RpcResult = {
   success: boolean;
   message: string;
   cleaned_up?: boolean;
+  /**
+   * Set when a stale/duplicate click hits an already-resolved request
+   * (migration `20260623000000_idempotent_join_request_resolution`). The client treats
+   * this as a handled no-op — info toast + cache refresh — never a scary error.
+   */
+  already_resolved?: boolean;
   trip_id?: string;
   user_id?: string;
   /** Present after migration `20260514194530_approve_join_request_member_inserted_flag` */
@@ -44,6 +50,13 @@ export async function approveJoinRequestById(
   if (error) throw error;
 
   const result = data as RpcResult;
+
+  // Stale/duplicate click on an already-resolved request — handled, not an error.
+  if (result?.already_resolved) {
+    toast.info(result.message || 'This request was already handled');
+    invalidateTripJoinCaches(queryClient, tripId, 'approve');
+    return;
+  }
 
   if (result && !result.success) {
     if (result.cleaned_up) {
@@ -111,6 +124,13 @@ export async function rejectJoinRequestById(
   if (error) throw error;
 
   const result = data as RpcResult;
+
+  // Stale/duplicate click on an already-resolved request — handled, not an error.
+  if (result?.already_resolved) {
+    toast.info(result.message || 'This request was already handled');
+    invalidateTripJoinCaches(queryClient, tripId, 'reject');
+    return;
+  }
 
   if (result && !result.success) {
     throw new Error(result.message || 'Failed to reject request');

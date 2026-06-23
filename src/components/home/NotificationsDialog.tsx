@@ -435,15 +435,29 @@ export const NotificationsDialog = ({ open, onOpenChange }: NotificationsDialogP
         }
 
         await approveJoinRequestById(queryClient, { requestId, tripId: tripId || undefined });
+        // Mark read first so the unread bell-badge count decrements (markAsRead runs the
+        // authoritative fetchUnreadCount), then durably resolve the approver's actionable
+        // notification: deleteNotification sets is_visible=false + cleared_at, removing it
+        // from the feed immediately, persisting across refresh/sessions, and propagating to
+        // other devices via realtime — unlike the old sessionStorage-only resolution that
+        // reappeared with live Accept/Deny buttons on a fresh client.
         await markAsRead(notification.id);
-        persistJoinResolution(notification.id, 'accepted');
+        await deleteNotification(notification.id);
       } catch (error) {
         toast.error(error instanceof Error ? error.message : 'Failed to approve request');
       } finally {
         setJoinActionLoadingId(null);
       }
     },
-    [joinActionLoadingId, isDemoMode, user, queryClient, markAsRead, persistJoinResolution],
+    [
+      joinActionLoadingId,
+      isDemoMode,
+      user,
+      queryClient,
+      markAsRead,
+      deleteNotification,
+      persistJoinResolution,
+    ],
   );
 
   const handleJoinRequestReject = useCallback(
@@ -470,15 +484,25 @@ export const NotificationsDialog = ({ open, onOpenChange }: NotificationsDialogP
         }
 
         await rejectJoinRequestById(queryClient, { requestId, tripId: tripId || undefined });
+        // Mark read (keeps the unread badge accurate) then durably resolve the approver's
+        // actionable notification — see the accept handler for the full rationale.
         await markAsRead(notification.id);
-        persistJoinResolution(notification.id, 'rejected');
+        await deleteNotification(notification.id);
       } catch (error) {
         toast.error(error instanceof Error ? error.message : 'Failed to reject request');
       } finally {
         setJoinActionLoadingId(null);
       }
     },
-    [joinActionLoadingId, isDemoMode, user, queryClient, markAsRead, persistJoinResolution],
+    [
+      joinActionLoadingId,
+      isDemoMode,
+      user,
+      queryClient,
+      markAsRead,
+      deleteNotification,
+      persistJoinResolution,
+    ],
   );
 
   const handleDismissSingleNotification = useCallback(
