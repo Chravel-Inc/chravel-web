@@ -102,51 +102,62 @@ serve(async req => {
       );
     }
 
+    // Users who left keep a soft-deleted trip_members row; approval power must
+    // follow active membership, not mere row existence.
+    const { data: activeMembership, error: activeMembershipError } = await supabaseClient
+      .from('trip_members')
+      .select('id')
+      .eq('trip_id', joinRequest.trip_id)
+      .eq('user_id', user.id)
+      .or('status.is.null,status.eq.active')
+      .maybeSingle();
+
+    if (activeMembershipError) {
+      logStep('ERROR: Failed to verify active membership', {
+        error: activeMembershipError.message,
+      });
+      return new Response(
+        JSON.stringify({ success: false, message: 'Failed to verify authorization' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    if (!activeMembership) {
+      logStep('ERROR: User is not an active trip member');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: 'Only active trip members can approve join requests',
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     // Check authorization based on trip type
-    const isCreator = joinRequest.trips.created_by === user.id;
     const tripType = joinRequest.trips.trip_type;
 
     if (tripType === 'pro' || tripType === 'event') {
-      // Pro/Event trips: Only creator or admins can approve
+      // Pro/Event trips: only currently assigned admins can approve.
       const { data: adminCheck } = await supabaseClient
         .from('trip_admins')
         .select('id')
         .eq('trip_id', joinRequest.trip_id)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (!isCreator && !adminCheck) {
+      if (!adminCheck) {
         logStep('ERROR: User is not admin for Pro/Event trip');
         return new Response(
           JSON.stringify({
             success: false,
-            message: 'Only trip admins can approve join requests for Pro/Event trips',
-          }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-        );
-      }
-    } else {
-      // Consumer trips (My Trips): Any trip member can approve
-      const { data: memberCheck } = await supabaseClient
-        .from('trip_members')
-        .select('id')
-        .eq('trip_id', joinRequest.trip_id)
-        .eq('user_id', user.id)
-        .single();
-
-      if (!memberCheck) {
-        logStep('ERROR: User is not a trip member');
-        return new Response(
-          JSON.stringify({
-            success: false,
-            message: 'Only trip members can approve join requests',
+            message: 'Only active trip admins can approve join requests for Pro/Event trips',
           }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         );
       }
     }
 
-    logStep('Authorization verified', { tripType, isCreator });
+    logStep('Authorization verified', { tripType });
 
     // Check if already resolved
     if (joinRequest.status !== 'pending') {
@@ -158,6 +169,33 @@ serve(async req => {
         }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
+    }
+
+    // If approved, restore/create membership before resolving the request so we
+    // never end up with an approved request that still leaves the user locked out.
+    if (action === 'approve') {
+      const { error: memberError } = await supabaseClient.from('trip_members').upsert(
+        {
+          trip_id: joinRequest.trip_id,
+          user_id: joinRequest.user_id,
+          role: 'member',
+          status: 'active',
+          left_at: null,
+        },
+        {
+          onConflict: 'trip_id,user_id',
+        },
+      );
+
+      if (memberError) {
+        logStep('ERROR: Failed to add member', { error: memberError.message });
+        return new Response(
+          JSON.stringify({ success: false, message: 'Failed to add member to trip' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+
+      logStep('Member added successfully');
     }
 
     // Update request status
@@ -176,25 +214,6 @@ serve(async req => {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
-    }
-
-    // If approved, add user to trip_members
-    if (action === 'approve') {
-      const { error: memberError } = await supabaseClient.from('trip_members').insert({
-        trip_id: joinRequest.trip_id,
-        user_id: joinRequest.user_id,
-        role: 'member',
-      });
-
-      if (memberError) {
-        logStep('ERROR: Failed to add member', { error: memberError.message });
-        return new Response(
-          JSON.stringify({ success: false, message: 'Failed to add member to trip' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-        );
-      }
-
-      logStep('Member added successfully');
     }
 
     // Create notification for the requester

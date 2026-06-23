@@ -519,4 +519,282 @@ test.describe('Leave Trip Persistence', () => {
       .single();
     expect(membership?.status).toBe('active');
   });
+
+  test('LEAVE-004: Former pro creator cannot approve join requests after leaving', async ({
+    createTestUser,
+    createTestTrip,
+    addTripMember,
+    createInviteLink,
+    getClientAsUser,
+    supabaseAdmin,
+  }) => {
+    const creator = await createTestUser({ displayName: 'Former Pro Creator' });
+    const remainingMember = await createTestUser({ displayName: 'Remaining Pro Member' });
+    const joiner = await createTestUser({ displayName: 'Pending Joiner' });
+
+    const trip = await createTestTrip(creator, {
+      name: 'Former Creator Approval Trap',
+      tripType: 'pro',
+    });
+    await addTripMember(trip.id, remainingMember.id);
+    const invite = await createInviteLink(trip.id, { requireApproval: true });
+
+    const formerCreatorClient = await getClientAsUser(creator);
+    const { data: leaveResult, error: leaveError } = await formerCreatorClient.rpc('leave_trip', {
+      _trip_id: trip.id,
+    });
+    expect(leaveError).toBeNull();
+    expect((leaveResult as { success?: boolean })?.success).toBe(true);
+
+    const joinerClient = await getClientAsUser(joiner);
+    const { data: joinData, error: joinError } = await joinerClient.functions.invoke('join-trip', {
+      body: { inviteCode: invite.code },
+    });
+    expect(joinError).toBeNull();
+    expect(joinData?.requires_approval).toBe(true);
+
+    const { data: request } = await supabaseAdmin
+      .from('trip_join_requests')
+      .select('id, status')
+      .eq('trip_id', trip.id)
+      .eq('user_id', joiner.id)
+      .single();
+
+    const requestId = request?.id;
+    expect(request?.status).toBe('pending');
+    expect(requestId).toBeTruthy();
+
+    const { data: approvalResult, error: approvalError } = await formerCreatorClient.rpc(
+      'approve_join_request',
+      {
+        _request_id: requestId!,
+      },
+    );
+
+    expect(approvalError).toBeNull();
+    expect((approvalResult as { success?: boolean })?.success).toBe(false);
+    expect((approvalResult as { message?: string })?.message).toContain('active trip admins');
+
+    const { data: requestAfter } = await supabaseAdmin
+      .from('trip_join_requests')
+      .select('status, resolved_by')
+      .eq('id', requestId!)
+      .single();
+
+    expect(requestAfter?.status).toBe('pending');
+    expect(requestAfter?.resolved_by).toBeNull();
+
+    const { data: joinerMembership } = await supabaseAdmin
+      .from('trip_members')
+      .select('status')
+      .eq('trip_id', trip.id)
+      .eq('user_id', joiner.id)
+      .maybeSingle();
+
+    expect(joinerMembership).toBeNull();
+  });
+
+  test('LEAVE-005: Former consumer member cannot approve join requests via edge function', async ({
+    createTestUser,
+    createTestTrip,
+    addTripMember,
+    createInviteLink,
+    getClientAsUser,
+    supabaseAdmin,
+  }) => {
+    const creator = await createTestUser({ displayName: 'Consumer Creator' });
+    const member = await createTestUser({ displayName: 'Former Consumer Member' });
+    const joiner = await createTestUser({ displayName: 'Consumer Pending Joiner' });
+
+    const trip = await createTestTrip(creator, { name: 'Former Member Edge Approval Trap' });
+    await addTripMember(trip.id, member.id);
+    const invite = await createInviteLink(trip.id, { requireApproval: true });
+
+    const formerMemberClient = await getClientAsUser(member);
+    const { data: leaveResult, error: leaveError } = await formerMemberClient.rpc('leave_trip', {
+      _trip_id: trip.id,
+    });
+    expect(leaveError).toBeNull();
+    expect((leaveResult as { success?: boolean })?.success).toBe(true);
+
+    const joinerClient = await getClientAsUser(joiner);
+    const { data: joinData, error: joinError } = await joinerClient.functions.invoke('join-trip', {
+      body: { inviteCode: invite.code },
+    });
+    expect(joinError).toBeNull();
+    expect(joinData?.requires_approval).toBe(true);
+
+    const { data: request } = await supabaseAdmin
+      .from('trip_join_requests')
+      .select('id, status')
+      .eq('trip_id', trip.id)
+      .eq('user_id', joiner.id)
+      .single();
+
+    const requestId = request?.id;
+    expect(request?.status).toBe('pending');
+    expect(requestId).toBeTruthy();
+
+    const { data: edgeData, error: edgeError } = await formerMemberClient.functions.invoke(
+      'approve-join-request',
+      {
+        body: { requestId: requestId!, action: 'approve' },
+      },
+    );
+
+    expect(edgeData).toBeNull();
+    expect(edgeError).not.toBeNull();
+    expect(
+      (edgeError as { context?: { status?: number } } | null)?.context?.status,
+    ).toBe(403);
+
+    const { data: requestAfter } = await supabaseAdmin
+      .from('trip_join_requests')
+      .select('status, resolved_by')
+      .eq('id', requestId!)
+      .single();
+
+    expect(requestAfter?.status).toBe('pending');
+    expect(requestAfter?.resolved_by).toBeNull();
+
+    const { data: joinerMembership } = await supabaseAdmin
+      .from('trip_members')
+      .select('status')
+      .eq('trip_id', trip.id)
+      .eq('user_id', joiner.id)
+      .maybeSingle();
+
+    expect(joinerMembership).toBeNull();
+  });
+
+  test('LEAVE-006: Former pro creator cannot reject join requests after leaving', async ({
+    createTestUser,
+    createTestTrip,
+    addTripMember,
+    createInviteLink,
+    getClientAsUser,
+    supabaseAdmin,
+  }) => {
+    const creator = await createTestUser({ displayName: 'Former Pro Rejector' });
+    const remainingMember = await createTestUser({ displayName: 'Remaining Pro Member 2' });
+    const joiner = await createTestUser({ displayName: 'Pending Joiner 2' });
+
+    const trip = await createTestTrip(creator, {
+      name: 'Former Creator Reject Trap',
+      tripType: 'pro',
+    });
+    await addTripMember(trip.id, remainingMember.id);
+    const invite = await createInviteLink(trip.id, { requireApproval: true });
+
+    const formerCreatorClient = await getClientAsUser(creator);
+    const { data: leaveResult, error: leaveError } = await formerCreatorClient.rpc('leave_trip', {
+      _trip_id: trip.id,
+    });
+    expect(leaveError).toBeNull();
+    expect((leaveResult as { success?: boolean })?.success).toBe(true);
+
+    const joinerClient = await getClientAsUser(joiner);
+    const { data: joinData, error: joinError } = await joinerClient.functions.invoke('join-trip', {
+      body: { inviteCode: invite.code },
+    });
+    expect(joinError).toBeNull();
+    expect(joinData?.requires_approval).toBe(true);
+
+    const { data: request } = await supabaseAdmin
+      .from('trip_join_requests')
+      .select('id, status')
+      .eq('trip_id', trip.id)
+      .eq('user_id', joiner.id)
+      .single();
+
+    const requestId = request?.id;
+    expect(request?.status).toBe('pending');
+    expect(requestId).toBeTruthy();
+
+    const { data: rejectResult, error: rejectError } = await formerCreatorClient.rpc(
+      'reject_join_request',
+      {
+        _request_id: requestId!,
+      },
+    );
+
+    expect(rejectError).toBeNull();
+    expect((rejectResult as { success?: boolean })?.success).toBe(false);
+    expect((rejectResult as { message?: string })?.message).toContain('active trip admins');
+
+    const { data: requestAfter } = await supabaseAdmin
+      .from('trip_join_requests')
+      .select('status, resolved_by')
+      .eq('id', requestId!)
+      .single();
+
+    expect(requestAfter?.status).toBe('pending');
+    expect(requestAfter?.resolved_by).toBeNull();
+  });
+
+  test('LEAVE-007: Approving a former requester restores active membership', async ({
+    createTestUser,
+    createTestTrip,
+    addTripMember,
+    createInviteLink,
+    getClientAsUser,
+    supabaseAdmin,
+  }) => {
+    const creator = await createTestUser({ displayName: 'Reapproval Creator' });
+    const formerMember = await createTestUser({ displayName: 'Former Requester' });
+
+    const trip = await createTestTrip(creator, {
+      name: 'Reapproval Restores Membership',
+    });
+    await addTripMember(trip.id, formerMember.id);
+    const invite = await createInviteLink(trip.id, { requireApproval: true });
+
+    const formerMemberClient = await getClientAsUser(formerMember);
+    const { data: leaveResult, error: leaveError } = await formerMemberClient.rpc('leave_trip', {
+      _trip_id: trip.id,
+    });
+    expect(leaveError).toBeNull();
+    expect((leaveResult as { success?: boolean })?.success).toBe(true);
+
+    const { data: joinData, error: joinError } = await formerMemberClient.functions.invoke(
+      'join-trip',
+      {
+        body: { inviteCode: invite.code },
+      },
+    );
+    expect(joinError).toBeNull();
+    expect(joinData?.requires_approval).toBe(true);
+
+    const { data: request } = await supabaseAdmin
+      .from('trip_join_requests')
+      .select('id, status')
+      .eq('trip_id', trip.id)
+      .eq('user_id', formerMember.id)
+      .single();
+
+    const requestId = request?.id;
+    expect(request?.status).toBe('pending');
+    expect(requestId).toBeTruthy();
+
+    const creatorClient = await getClientAsUser(creator);
+    const { data: approvalResult, error: approvalError } = await creatorClient.rpc(
+      'approve_join_request',
+      {
+        _request_id: requestId!,
+      },
+    );
+
+    expect(approvalError).toBeNull();
+    expect((approvalResult as { success?: boolean })?.success).toBe(true);
+
+    const { data: membership } = await supabaseAdmin
+      .from('trip_members')
+      .select('status, left_at')
+      .eq('trip_id', trip.id)
+      .eq('user_id', formerMember.id)
+      .single();
+
+    expect(membership?.status).toBe('active');
+    expect(membership?.left_at).toBeNull();
+  });
 });
