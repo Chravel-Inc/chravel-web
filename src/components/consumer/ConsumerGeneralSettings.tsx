@@ -35,84 +35,13 @@ function saveAppPreferences(prefs: AppPreferences): void {
 }
 
 export const ConsumerGeneralSettings = () => {
-  const { user, session } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const { isDarkMode, toggleTheme } = useTheme();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [confirmText, setConfirmText] = useState('');
-  const [reAuthPassword, setReAuthPassword] = useState('');
-  const [reAuthError, setReAuthError] = useState('');
   const [appPrefs, setAppPrefs] = useState<AppPreferences>(loadAppPreferences);
   const [cacheClearSuccess, setCacheClearSuccess] = useState(false);
-  const requiresPasswordReauth = useMemo(() => userHasEmailPasswordIdentity(session), [session]);
 
-  const handleDeleteAccount = useCallback(async () => {
-    if (confirmText.trim().toLowerCase() !== 'delete') return;
-    if (requiresPasswordReauth && !reAuthPassword) return;
 
-    // Final, stronger confirmation right before the destructive API call.
-    // App Store reviewers must clearly see that deletion is immediate + irreversible.
-    const finalConfirmed = window.confirm(
-      'FINAL CONFIRMATION\n\n' +
-        'This will IMMEDIATELY and PERMANENTLY delete your Chravel account and all ' +
-        'associated data — profile, trips you own, messages, uploaded media, payment ' +
-        'history, AI Concierge history, notifications, and preferences.\n\n' +
-        'There is NO 30-day grace period. There is NO way to recover this account or ' +
-        'its data after you click OK.\n\n' +
-        'Click OK to delete your account right now, or Cancel to keep your account.',
-    );
-    if (!finalConfirmed) return;
-
-    setIsDeleting(true);
-    setReAuthError('');
-    try {
-      // Email/password users must re-authenticate. OAuth-only users (Google/Apple)
-      // are already verified by their active session.
-      if (requiresPasswordReauth && user?.email) {
-        const { error: authErr } = await supabase.auth.signInWithPassword({
-          email: user.email,
-          password: reAuthPassword,
-        });
-        if (authErr) {
-          setReAuthError('Incorrect password. Please try again.');
-          setIsDeleting(false);
-          return;
-        }
-      }
-
-      const result = await deleteAccountImmediately();
-      if (result.success === false) {
-        toast({
-          title: 'Error',
-          description: result.error,
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      logAuthEvent('account_deletion_requested');
-      setShowDeleteDialog(false);
-      setConfirmText('');
-      setReAuthPassword('');
-
-      toast({
-        title: 'Account deleted',
-        description: result.message,
-      });
-
-      await supabase.auth.signOut().catch(() => undefined);
-      navigate('/', { replace: true });
-    } catch {
-      toast({
-        title: 'Error',
-        description: 'Failed to delete your account. Please contact privacy@chravelapp.com',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsDeleting(false);
-    }
-  }, [confirmText, navigate, reAuthPassword, requiresPasswordReauth, user?.email]);
 
   return (
     <div className="space-y-3">
