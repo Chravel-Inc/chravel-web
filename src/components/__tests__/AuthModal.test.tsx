@@ -213,5 +213,19 @@ describe('AuthModal', () => {
       expect(screen.getByRole('button', { name: /^apple$/i })).toBeInTheDocument();
       expect(screen.queryByText(/To stay inside the app/i)).not.toBeInTheDocument();
     });
+
+    it('invokes onShellInteractive once after the portal is ready', async () => {
+      const onShellInteractive = vi.fn();
+      render(
+        <AuthModal isOpen={true} onClose={mockOnClose} onShellInteractive={onShellInteractive} />,
+        {
+          wrapper: createTestWrapper(),
+        },
+      );
+
+      await waitFor(() => {
+        expect(onShellInteractive).toHaveBeenCalledTimes(1);
+      });
+    });
   });
 });

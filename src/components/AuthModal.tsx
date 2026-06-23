@@ -18,6 +18,12 @@ interface AuthModalProps {
    */
   oauthReturnTo?: string;
   onAuthSuccess?: () => void;
+  /**
+   * chravel-mobile WebView: fired once when the modal portal is open and mounted.
+   * Used from `/auth` so `notifyNativeShellReady({ surface: 'auth' })` aligns with the
+   * visible auth UI (native splash/header can hide without a blank gap).
+   */
+  onShellInteractive?: () => void;
 }
 
 export const AuthModal = ({
@@ -26,6 +32,7 @@ export const AuthModal = ({
   initialMode,
   oauthReturnTo,
   onAuthSuccess,
+  onShellInteractive,
 }: AuthModalProps) => {
   const { signIn, signInWithGoogle, signInWithApple, signUp, resetPassword, isLoading, user } =
     useAuth();
@@ -48,6 +55,11 @@ export const AuthModal = ({
   useEffect(() => {
     setIsPortalReady(true);
   }, []);
+
+  useEffect(() => {
+    if (!isOpen || !isPortalReady || !onShellInteractive) return;
+    onShellInteractive();
+  }, [isOpen, isPortalReady, onShellInteractive]);
 
   useEffect(() => {
     if (!isOpen) return;

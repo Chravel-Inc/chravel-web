@@ -4,8 +4,9 @@
  * Bridge contract (mirrored in chravel-mobile/CLAUDE.md):
  *   - Shell injects `window.ChravelNative.isNative === true` and a `ChravelNative/<v>`
  *     UA suffix before loading the web app.
- *   - Web app emits `{ type: 'ready', source: 'chravel-web', route, timestamp }` once
- *     the first interactive surface is mounted.
+ *   - Web app emits `{ type: 'ready', source: 'chravel-web', surface, timestamp }` when
+ *     an interactive surface mounts (same `surface` may re-emit after leaving/re-entering
+ *     a route; rapid duplicates within ~400ms are deduped for React StrictMode).
  *   - Message names ('ready', 'chravel-web' source) are part of the contract — do
  *     not rename without updating chravel-mobile in lockstep.
  *   - Optional Settings: `window.ChravelNative.openAppSettings()` and/or
@@ -29,7 +30,11 @@ interface WebkitMessageHandlers {
   ChravelNative?: { postMessage?: (payload: unknown) => void };
 }
 
-let readyDispatched = false;
+/** Last successful `ready` postMessage (used to dedupe React StrictMode double-invoke only). */
+let lastReadyDispatch: { surface: string; at: number } | null = null;
+
+/** Suppress duplicate identical-surface posts within this window (StrictMode ~0ms; re-entry to /auth is much later). */
+const READY_SAME_SURFACE_DEDUPE_MS = 400;
 
 export interface NativeReadyOptions {
   /** Logical surface that became interactive (e.g. "auth", "trip"). Defaults to current pathname. */
@@ -38,33 +43,43 @@ export interface NativeReadyOptions {
 
 /**
  * Notify the native shell that the current surface is mounted and interactive.
- * Idempotent: safe to call multiple times — only the first call dispatches.
- * No-op outside the chravel-mobile shell.
+ * Dedupes rapid repeat calls for the same `surface` (React StrictMode) but allows the
+ * same surface again after a short quiet window so re-entry to `/auth` can dismiss
+ * native chrome again. No-op outside the chravel-mobile shell.
  */
 export function notifyNativeShellReady(options: NativeReadyOptions = {}): void {
-  if (readyDispatched) return;
   if (typeof window === 'undefined') return;
   if (!isChravelNativeShell()) return;
+
+  const surface = options.surface ?? window.location.pathname;
+  const now = Date.now();
+  if (
+    lastReadyDispatch &&
+    lastReadyDispatch.surface === surface &&
+    now - lastReadyDispatch.at < READY_SAME_SURFACE_DEDUPE_MS
+  ) {
+    return;
+  }
 
   const message = {
     type: 'ready' as const,
     source: 'chravel-web' as const,
-    surface: options.surface ?? window.location.pathname,
-    timestamp: Date.now(),
+    surface,
+    timestamp: now,
   };
 
   try {
     const native = (window as unknown as { ChravelNative?: NativeBridgePostMessage }).ChravelNative;
     if (typeof native?.postMessage === 'function') {
       native.postMessage(JSON.stringify(message));
-      readyDispatched = true;
+      lastReadyDispatch = { surface, at: Date.now() };
       return;
     }
     const webkit = (window as unknown as { webkit?: { messageHandlers?: WebkitMessageHandlers } })
       .webkit;
     if (typeof webkit?.messageHandlers?.ChravelNative?.postMessage === 'function') {
       webkit.messageHandlers.ChravelNative.postMessage(message);
-      readyDispatched = true;
+      lastReadyDispatch = { surface, at: Date.now() };
       return;
     }
   } catch (err) {
@@ -74,7 +89,7 @@ export function notifyNativeShellReady(options: NativeReadyOptions = {}): void {
   }
 }
 
-/** Test-only: reset the latch so unit tests can re-trigger dispatch. */
+/** Test-only: reset dedupe state so unit tests can re-trigger dispatch. */
 export function __resetNativeBridgeForTests(): void {
-  readyDispatched = false;
+  lastReadyDispatch = null;
 }
