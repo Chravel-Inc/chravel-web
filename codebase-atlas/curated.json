@@ -814,7 +814,10 @@
           "detail": "Routes wait for hydrated session before fetching"
         }
       ],
-      "failurePoints": ["Fetch fires before hydration → Trip Not Found flash"],
+      "failurePoints": [],
+      "mitigated": [
+        "Fetch fires before hydration → Trip Not Found flash — guarded: useTripDetailData gates queries on isHydrated && !isAuthLoading && !!authUserId, and the render path distinguishes loading / AUTH_REQUIRED / ACCESS_DENIED / not-found as separate states (src/hooks/useTripDetailData.ts, src/pages/TripDetailDesktop.tsx, src/pages/MobileTripDetail.tsx)"
+      ],
       "risks": ["Token refresh failure", "demo/auth crossover"]
     },
     {
@@ -837,8 +840,11 @@
           "detail": "TripDetail / MobileTripDetail"
         }
       ],
-      "failurePoints": ["Existence ≠ access: must check membership, not just row exists"],
-      "risks": ["RLS gap leaks data", "loading vs not-found conflation"]
+      "failurePoints": [],
+      "mitigated": [
+        "Existence ≠ access — membership verified at five layers: trips SELECT RLS policy (creator OR trip_members row), the get-trip-detail edge function, tripService.getTripById (throws ACCESS_DENIED rather than 404), useTripDetailData, and distinct UI states (supabase/migrations/20251208000217_b347c1a8-3c2c-416c-81b5-395b6ea5cfe2.sql, supabase/functions/get-trip-detail/index.ts, src/services/tripService.ts, src/hooks/useTripDetailData.ts)"
+      ],
+      "risks": ["RLS gap on any newly added query", "loading vs not-found conflation"]
     },
     {
       "name": "Send a chat message",
@@ -856,7 +862,10 @@
           "detail": "Supabase Realtime for system messages, filtered by trip_id"
         }
       ],
-      "failurePoints": ["WebSocket reconnect without backfill loses messages"],
+      "failurePoints": [],
+      "mitigated": [
+        "WebSocket reconnect without backfill loses messages — backfillMissedMessages runs on Stream connection-status change and on visibilitychange (cursor-based via lastConfirmedCursorRef, deduped by message id, throttled), gated on hasHydratedMessages; covered by 7 reconnect tests (src/hooks/stream/useStreamTripChat.ts, src/hooks/stream/__tests__/useStreamTripChat.reconnect.test.tsx)"
+      ],
       "risks": ["Read-receipt write amplification", "reaction refetch storm"]
     },
     {
@@ -904,7 +913,10 @@
           "detail": "Entitlement checked server-side"
         }
       ],
-      "failurePoints": ["Webhook delivery failure leaves state stale"],
+      "failurePoints": [],
+      "mitigated": [
+        "Webhook delivery failure leaves state stale — check-subscription reconciles from the Stripe API on a stale/missing read (user_entitlements is the cache, Stripe is the authoritative fallback); webhooks are idempotent via the webhook_events table and RevenueCat carries a reorder guard (supabase/functions/check-subscription/index.ts, supabase/functions/stripe-webhook/index.ts, supabase/functions/revenuecat-webhook/index.ts)"
+      ],
       "risks": ["Client-side billing bypass", "cache drift"]
     },
     {
@@ -927,7 +939,10 @@
           "detail": "Items reviewed into trip"
         }
       ],
-      "failurePoints": ["Retry drops parsed items if partial state not persisted"],
+      "failurePoints": [],
+      "mitigated": [
+        "Retry drops parsed items if partial state not persisted — import is a state machine persisted at job, artifact, and candidate levels: a deterministic SHA-256 artifact fingerprint plus dedupe_key make candidate inserts idempotent, and artifact-ingest short-circuits on an existing trip_artifacts row, so retries preserve work and avoid duplicates (supabase/functions/gmail-import-worker/index.ts, supabase/functions/gmail-import-worker/importJobState.ts, supabase/functions/artifact-ingest/index.ts)"
+      ],
       "risks": ["Duplicate records from parser ambiguity", "OAuth refresh failure"]
     }
   ],
