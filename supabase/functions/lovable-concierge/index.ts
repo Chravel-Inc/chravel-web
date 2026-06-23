@@ -1737,7 +1737,13 @@ serve(async req => {
             : 'Sorry, I could not generate a response right now.';
 
       // Increment usage
-      if (!serverDemoMode && user && tripQueryLimit !== null && tripId !== 'unknown') {
+      if (
+        !serverDemoMode &&
+        user &&
+        tripQueryLimit !== null &&
+        tripId !== 'unknown' &&
+        (await shouldIncrementForSession(user.id, tripId))
+      ) {
         const incrementUsageResult = await incrementConciergeTripUsage(
           supabase,
           tripId,
