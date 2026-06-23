@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Bell,
   MessageCircle,
@@ -84,45 +84,10 @@ function getJoinRequestIdFromMetadata(metadata: Record<string, unknown>): string
   return typeof raw === 'string' && raw.trim() !== '' ? raw : '';
 }
 
-const JOIN_REQUEST_RESOLUTION_STORAGE_KEY = 'chravel:joinRequestNotificationResolutions';
-
+// Demo-only: tracks the muted "Accepted"/"Denied" label shown after a demo action.
+// Real-mode join-request notifications are durably resolved via deleteNotification
+// (is_visible=false), so they leave the feed entirely and need no client-side flag.
 type JoinRequestUiResolution = 'accepted' | 'rejected';
-
-function readStoredJoinResolutions(): Record<string, JoinRequestUiResolution> {
-  if (typeof sessionStorage === 'undefined') {
-    return {};
-  }
-  try {
-    const raw = sessionStorage.getItem(JOIN_REQUEST_RESOLUTION_STORAGE_KEY);
-    if (!raw) {
-      return {};
-    }
-    const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') {
-      return {};
-    }
-    const out: Record<string, JoinRequestUiResolution> = {};
-    for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
-      if (v === 'accepted' || v === 'rejected') {
-        out[k] = v;
-      }
-    }
-    return out;
-  } catch {
-    return {};
-  }
-}
-
-function writeStoredJoinResolutions(next: Record<string, JoinRequestUiResolution>): void {
-  if (typeof sessionStorage === 'undefined') {
-    return;
-  }
-  try {
-    sessionStorage.setItem(JOIN_REQUEST_RESOLUTION_STORAGE_KEY, JSON.stringify(next));
-  } catch {
-    // ignore quota / private mode
-  }
-}
 
 /** In-app join request awaiting organizer action (has request id); excludes approved notices. */
 function isPendingJoinRequestWithActions(notification: Notification): boolean {
@@ -261,39 +226,20 @@ export const NotificationsDialog = ({ open, onOpenChange }: NotificationsDialogP
   const [demoJoinResolutions, setDemoJoinResolutions] = useState<
     Record<string, JoinRequestUiResolution>
   >(() => ({}));
-  const [joinRequestResolutions, setJoinRequestResolutions] = useState<
-    Record<string, JoinRequestUiResolution>
-  >(() => readStoredJoinResolutions());
-
-  useEffect(() => {
-    setJoinRequestResolutions(readStoredJoinResolutions());
-  }, [open]);
 
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll, deleteNotification } =
     useNotificationRealtime();
 
+  // Demo-only resolution display. In real mode the notification is removed on accept/deny,
+  // so this map stays empty and the live Accept/Deny buttons simply stop rendering.
   const persistJoinResolution = useCallback(
     (notificationId: string, resolution: JoinRequestUiResolution) => {
-      setJoinRequestResolutions(prev => {
-        const next = { ...prev, [notificationId]: resolution };
-        writeStoredJoinResolutions(next);
-        return next;
-      });
       setDemoJoinResolutions(prev => ({ ...prev, [notificationId]: resolution }));
     },
     [],
   );
 
   const clearJoinResolutionForId = useCallback((notificationId: string) => {
-    setJoinRequestResolutions(prev => {
-      if (!(notificationId in prev)) {
-        return prev;
-      }
-      const next = { ...prev };
-      delete next[notificationId];
-      writeStoredJoinResolutions(next);
-      return next;
-    });
     setDemoJoinResolutions(prev => {
       if (!(notificationId in prev)) {
         return prev;
@@ -533,8 +479,6 @@ export const NotificationsDialog = ({ open, onOpenChange }: NotificationsDialogP
 
   const handleClearAll = async () => {
     if (!isDemoMode && user) {
-      setJoinRequestResolutions({});
-      writeStoredJoinResolutions({});
       await clearAll(notifications);
     }
   };
@@ -613,9 +557,9 @@ export const NotificationsDialog = ({ open, onOpenChange }: NotificationsDialogP
             </div>
           ) : (
             displayNotifications.map(notification => {
-              const joinResolution = isDemoMode
-                ? demoJoinResolutions[notification.id]
-                : joinRequestResolutions[notification.id];
+              // Real-mode resolutions remove the notification entirely; only demo mode shows
+              // the muted "Accepted"/"Denied" label, so this map is the sole source.
+              const joinResolution = demoJoinResolutions[notification.id];
               const showPendingJoinActions = isPendingJoinRequestWithActions(notification);
 
               return (

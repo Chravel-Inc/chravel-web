@@ -232,15 +232,25 @@ export function useNotificationRealtime() {
         const id = updatedRow.id as string;
         if (!id) return;
 
+        const becameInvisible = updatedRow.is_visible === false;
+        const cached = queryClient.getQueryData<NotificationCacheItem[]>([
+          'notifications',
+          user.id,
+        ]);
+        const wasUnread = cached?.some(n => n.id === id && !n.isRead) ?? false;
+
         queryClient.setQueryData<NotificationCacheItem[]>(['notifications', user.id], old => {
           if (!old) return old;
-          if (updatedRow.is_visible === false) return old.filter(n => n.id !== id);
+          if (becameInvisible) return old.filter(n => n.id !== id);
           return applyNotificationPatch(old, {
             ...old.find(n => n.id === id)!,
             isRead: Boolean(updatedRow.is_read),
             timestampMs: Date.now(),
           });
         });
+        // A notification cleared on another device (is_visible -> false) must also leave the
+        // bell-badge count here if it was still unread in this client's cache.
+        if (becameInvisible && wasUnread) decrementUnread();
         // Read-state may have changed on another device — reconcile the badge.
         bumpBadgeDirty();
       },
@@ -255,7 +265,15 @@ export function useNotificationRealtime() {
 
     return cleanup;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- user object is unstable; user?.id already in deps
-  }, [user?.id, isDemoMode, fetchNotifications, fetchUnreadCount, incrementUnread, bumpBadgeDirty]);
+  }, [
+    user?.id,
+    isDemoMode,
+    fetchNotifications,
+    fetchUnreadCount,
+    incrementUnread,
+    decrementUnread,
+    bumpBadgeDirty,
+  ]);
 
   const markAsRead = useCallback(
     async (notificationId: string) => {
@@ -308,12 +326,19 @@ export function useNotificationRealtime() {
   const deleteNotification = useCallback(
     async (notificationId: string) => {
       if (user) {
+        // Removing an unread notification must also drop it from the bell-badge count.
+        const cached = queryClient.getQueryData<NotificationCacheItem[]>([
+          'notifications',
+          user.id,
+        ]);
+        const wasUnread = cached?.some(n => n.id === notificationId && !n.isRead) ?? false;
+
         queryClient.setQueryData<NotificationCacheItem[]>(['notifications', user.id], old =>
           (old ?? []).filter(n => n.id !== notificationId),
         );
-      }
 
-      if (user) {
+        if (wasUnread) decrementUnread();
+
         await supabase
           .from('notifications')
           .update({ is_visible: false, cleared_at: new Date().toISOString() })
@@ -321,7 +346,7 @@ export function useNotificationRealtime() {
       }
       bumpBadgeDirty();
     },
-    [user, queryClient, bumpBadgeDirty],
+    [user, queryClient, decrementUnread, bumpBadgeDirty],
   );
 
   const notificationsQuery = useQuery({
