@@ -101,7 +101,7 @@ describe('ConsumerProfileSection', () => {
     expect(avatar).toHaveAttribute('src', 'https://example.com/demo-avatar.png');
   });
 
-  it('surfaces stacked account actions without redundant signed-in copy', () => {
+  it('surfaces side-by-side account actions styled like primary CTAs', () => {
     render(<ConsumerProfileSection />);
 
     expect(screen.getByRole('heading', { name: /account/i })).toBeInTheDocument();
@@ -109,8 +109,8 @@ describe('ConsumerProfileSection', () => {
 
     const deleteButton = screen.getByRole('button', { name: /delete account/i });
     const signOutButton = screen.getByRole('button', { name: /sign out/i });
-    expect(deleteButton).toHaveClass('w-full');
-    expect(signOutButton).toHaveClass('w-full');
+    expect(deleteButton).toHaveClass('flex-1', 'bg-destructive', 'text-destructive-foreground');
+    expect(signOutButton).toHaveClass('flex-1', 'bg-destructive', 'text-destructive-foreground');
   });
 
   it('does not render a Camera overlay button', () => {

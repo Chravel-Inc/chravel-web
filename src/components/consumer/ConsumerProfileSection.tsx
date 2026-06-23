@@ -6,7 +6,6 @@ import { supabase } from '../../integrations/supabase/client';
 import { useToast } from '../../hooks/use-toast';
 import { getConsistentAvatar } from '../../utils/avatarUtils';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '../ui/button';
 
 export const ConsumerProfileSection = () => {
   const { user, updateProfile, signOut } = useAuth();
@@ -345,27 +344,27 @@ export const ConsumerProfileSection = () => {
         </div>
       </div>
 
-      {/* Account actions — email shown in SettingsMenu header; keep heading + stacked CTAs */}
+      {/* Account actions — email shown in SettingsMenu header */}
       {user && (
         <div className="bg-white/5 border border-white/10 rounded-xl p-3">
           <h4 className="text-base font-semibold text-white mb-3">Account</h4>
-          <div className="flex flex-col gap-2">
-            <Button
-              variant="destructive"
-              className="w-full bg-red-900 hover:bg-red-800 text-white"
+          <div className="flex gap-2">
+            <button
+              type="button"
               onClick={() => navigate('/settings', { state: { section: 'settings' } })}
+              className="flex-1 min-w-0 bg-destructive hover:bg-destructive/80 text-destructive-foreground font-medium px-4 py-2 min-h-[44px] rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
             >
               <Trash2 size={16} />
               Delete Account
-            </Button>
-            <Button
-              variant="destructive"
-              className="w-full bg-red-900 hover:bg-red-800 text-white"
+            </button>
+            <button
+              type="button"
               onClick={() => signOut()}
+              className="flex-1 min-w-0 bg-destructive hover:bg-destructive/80 text-destructive-foreground font-medium px-4 py-2 min-h-[44px] rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
             >
               <LogOut size={16} />
               Sign Out
-            </Button>
+            </button>
           </div>
         </div>
       )}
