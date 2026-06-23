@@ -436,6 +436,7 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
                 </div>
               </div>
 
+              {gmailFlagEnabled && (
               <div
                 className="rounded-xl border border-border/60 bg-muted/20 px-3 py-3 mb-1"
                 onClick={e => e.stopPropagation()}
