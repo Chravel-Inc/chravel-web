@@ -164,7 +164,14 @@ export const NativeSettings = ({
           </NativeListSection>
 
           {/* Subscription Section */}
-          <NativeListSection header="Subscription">
+          <NativeListSection
+            header="Subscription"
+            footer={
+              showTripPasses
+                ? 'Trip Pass gives you full premium for one trip — no recurring charge. Restore Purchases re-applies passes you already bought.'
+                : undefined
+            }
+          >
             <NativeListItem
               icon={<Crown size={18} />}
               label={isPro ? 'ChravelApp Pro' : 'Free Plan'}
@@ -175,6 +182,40 @@ export const NativeSettings = ({
               showChevron
               onPress={isPro ? () => handleNavigate('subscription') : handleUpgrade}
             />
+            {showTripPasses && (
+              <>
+                <NativeListItem
+                  icon={<Ticket size={18} />}
+                  label="Explorer Trip Pass"
+                  sublabel={`${TRIP_PASS_DISPLAY.explorer.price} · ${TRIP_PASS_DISPLAY.explorer.durationDays} days`}
+                  value={
+                    tripPassLoading === 'explorer' ? (
+                      <span className="text-gray-400">…</span>
+                    ) : undefined
+                  }
+                  onPress={
+                    tripPassLoading
+                      ? undefined
+                      : () => void handlePurchaseTripPass('explorer')
+                  }
+                />
+                <NativeListItem
+                  icon={<Ticket size={18} />}
+                  label="Frequent Chraveler Trip Pass"
+                  sublabel={`${TRIP_PASS_DISPLAY['frequent-chraveler'].price} · ${TRIP_PASS_DISPLAY['frequent-chraveler'].durationDays} days`}
+                  value={
+                    tripPassLoading === 'frequent-chraveler' ? (
+                      <span className="text-gray-400">…</span>
+                    ) : undefined
+                  }
+                  onPress={
+                    tripPassLoading
+                      ? undefined
+                      : () => void handlePurchaseTripPass('frequent-chraveler')
+                  }
+                />
+              </>
+            )}
           </NativeListSection>
 
           {/* Notifications Section */}
