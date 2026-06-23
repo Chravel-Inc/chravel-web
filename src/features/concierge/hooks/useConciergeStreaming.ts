@@ -90,7 +90,10 @@ export function useConciergeStreaming(params: Params) {
     queryClient: conciergeQueryClient,
   } = params;
 
-  const handleSendMessage = async (messageOverride?: string) => {
+  const handleSendMessage = async (
+    messageOverride?: string,
+    opts?: { conversationSessionId?: string },
+  ) => {
     const typedMessage =
       typeof messageOverride === 'string' ? messageOverride.trim() : inputMessage.trim();
     const selectedImages = UPLOAD_ENABLED ? [...attachedImages] : [];
@@ -224,6 +227,9 @@ export function useConciergeStreaming(params: Params) {
           maxTokens: 4096,
         },
         ...(hasAnyAttachments && !typedMessage ? { attachmentIntent } : {}),
+        ...(opts?.conversationSessionId
+          ? { conversation_session_id: opts.conversationSessionId }
+          : {}),
       };
 
       // === STREAMING PATH ===

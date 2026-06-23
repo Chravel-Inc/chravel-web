@@ -34,7 +34,9 @@ import { useConciergeStreaming } from '@/features/concierge/hooks/useConciergeSt
 import { useSmartImportTaste } from '@/features/smart-import/hooks/useSmartImportTaste';
 import { useConciergeConversationMode } from '@/features/concierge/hooks/useConciergeConversationMode';
 import { ConciergeConversationButton } from '@/features/concierge/components/ConciergeConversationButton';
+import { useConversationModePreference } from '@/features/concierge/hooks/useConversationModePreference';
 import { useFeatureFlag } from '@/lib/featureFlags';
+import { Switch } from '@/components/ui/switch';
 import type { ChatMessage } from '@/features/concierge/types';
 
 // Lazy: only loads when an upgrade moment actually fires (limit hit / chip tap).
@@ -274,6 +276,11 @@ export const AIConciergeChat = ({
 
   // ── Hands-free conversation mode ─────────────────────────────────────
   const conversationModeFlag = useFeatureFlag('concierge_conversation_mode', true);
+  const { enabled: conversationModeUserPref, setEnabled: setConversationModeUserPref } =
+    useConversationModePreference();
+  const conversationModeEffective =
+    conversationModeFlag && conversationModeUserPref && !isDemoMode;
+
   const buildSpeechForMessage = useCallback((msg: ChatMessage) => {
     if (msg.type !== 'assistant' || !msg.content) return '';
     const clean = sanitizeConciergeContent(msg.content);
@@ -294,7 +301,7 @@ export const AIConciergeChat = ({
   }, []);
 
   const conversation = useConciergeConversationMode({
-    enabled: conversationModeFlag && !isDemoMode,
+    enabled: conversationModeEffective,
     messages,
     isTyping,
     handleSendMessage,
@@ -303,6 +310,15 @@ export const AIConciergeChat = ({
     ttsPlaybackState,
     buildSpeechText: buildSpeechForMessage,
     onError: msg => toast.error(msg),
+    onCancelStream: () => {
+      try {
+        streamAbortRef.current?.();
+      } catch {
+        /* ignore */
+      }
+      streamAbortRef.current = null;
+      setIsTyping(false);
+    },
   });
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -535,11 +551,35 @@ export const AIConciergeChat = ({
               </div>
             )}
           {conversationModeFlag && !isDemoMode && conversation.isSupported && (
+            <div className="flex items-center justify-between gap-3 px-1 pt-1 pb-1.5">
+              <label
+                htmlFor="concierge-conv-mode-toggle"
+                className="text-[11px] font-medium text-gray-300 select-none cursor-pointer"
+              >
+                Conversation mode
+                <span className="ml-1.5 text-gray-500 font-normal">
+                  (one full chat = one query)
+                </span>
+              </label>
+              <Switch
+                id="concierge-conv-mode-toggle"
+                checked={conversationModeUserPref}
+                onCheckedChange={next => {
+                  if (!next && conversation.active) conversation.cancel();
+                  setConversationModeUserPref(next);
+                }}
+                aria-label="Toggle hands-free conversation mode"
+              />
+            </div>
+          )}
+          {conversationModeEffective && conversation.isSupported && (
             <ConciergeConversationButton
               active={conversation.active}
               state={conversation.state}
               onToggle={conversation.toggle}
+              onCancel={conversation.cancel}
               liveTranscript={conversation.liveTranscript}
+              lastFinalTranscript={conversation.lastFinalTranscript}
               disabled={usage?.isLimitReached ?? false}
             />
           )}

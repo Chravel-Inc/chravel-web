@@ -63,24 +63,32 @@ function isSupported(): boolean {
   );
 }
 
+interface SendOptions {
+  conversationSessionId?: string;
+}
+
 interface Options {
   enabled: boolean;
   messages: ChatMessage[];
   isTyping: boolean;
-  handleSendMessage: (override?: string) => Promise<void> | void;
+  handleSendMessage: (override?: string, opts?: SendOptions) => Promise<void> | void;
   ttsPlay: (messageId: string, speechText: string) => Promise<void>;
   ttsStop: () => void;
   ttsPlaybackState: TTSPlaybackState;
   buildSpeechText: (msg: ChatMessage) => string;
   onError?: (message: string) => void;
+  /** Abort an in-flight assistant stream (from useConciergeMessages). */
+  onCancelStream?: () => void;
 }
 
 interface Result {
   active: boolean;
   state: ConversationState;
   toggle: () => void;
+  cancel: () => void;
   isSupported: boolean;
   liveTranscript: string;
+  lastFinalTranscript: string;
 }
 
 export function useConciergeConversationMode({
@@ -93,15 +101,20 @@ export function useConciergeConversationMode({
   ttsPlaybackState,
   buildSpeechText,
   onError,
+  onCancelStream,
 }: Options): Result {
   const [active, setActive] = useState(false);
   const [state, setState] = useState<ConversationState>('idle');
   const [liveTranscript, setLiveTranscript] = useState('');
+  const [lastFinalTranscript, setLastFinalTranscript] = useState('');
 
   const activeRef = useRef(false);
   activeRef.current = active;
   const stateRef = useRef<ConversationState>('idle');
   stateRef.current = state;
+
+  const sessionIdRef = useRef<string | null>(null);
+  const sttAbortRef = useRef<AbortController | null>(null);
 
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -159,7 +172,7 @@ export function useConciergeConversationMode({
 
   // ── STT call ──────────────────────────────────────────────────────────
   const transcribe = useCallback(
-    async (blob: Blob): Promise<string> => {
+    async (blob: Blob, signal: AbortSignal): Promise<string> => {
       const form = new FormData();
       const ext = mimeRef.current.includes('mp4')
         ? 'mp4'
@@ -169,10 +182,21 @@ export function useConciergeConversationMode({
       form.append('audio', blob, `recording.${ext}`);
       form.append('mimeType', mimeRef.current);
 
-      const { data, error } = await supabase.functions.invoke<{
+      // supabase-js doesn't forward AbortSignal cleanly into functions.invoke,
+      // so we surface cancellation via a manual race.
+      const invoke = supabase.functions.invoke<{
         transcript?: string;
         error?: string;
       }>('concierge-stt', { body: form });
+
+      const aborted = new Promise<never>((_, reject) => {
+        if (signal.aborted) reject(new DOMException('Aborted', 'AbortError'));
+        signal.addEventListener('abort', () =>
+          reject(new DOMException('Aborted', 'AbortError')),
+        );
+      });
+
+      const { data, error } = await Promise.race([invoke, aborted]);
 
       if (error) {
         throw new Error((error as { message?: string })?.message ?? 'Transcription failed');
@@ -210,10 +234,17 @@ export function useConciergeConversationMode({
     }
 
     setState('transcribing');
+    setLiveTranscript('');
+    const sttAbort = new AbortController();
+    sttAbortRef.current = sttAbort;
     let transcript = '';
     try {
-      transcript = await transcribe(blob);
+      transcript = await transcribe(blob, sttAbort.signal);
     } catch (err) {
+      sttAbortRef.current = null;
+      if ((err as { name?: string })?.name === 'AbortError' || !activeRef.current) {
+        return;
+      }
       const msg = err instanceof Error ? err.message : 'Transcription failed';
       onError?.(msg);
       setState('error');
@@ -224,18 +255,27 @@ export function useConciergeConversationMode({
       }
       return;
     }
+    sttAbortRef.current = null;
+
+    if (!activeRef.current) return;
 
     if (!transcript) {
       if (activeRef.current) void startListening();
       return;
     }
 
+    setLastFinalTranscript(transcript);
     setLiveTranscript(transcript);
     setState('sending');
     lastIndexAtStartRef.current = messagesRef.current.length;
     try {
-      await Promise.resolve(handleSendMessage(transcript));
+      await Promise.resolve(
+        handleSendMessage(transcript, {
+          conversationSessionId: sessionIdRef.current ?? undefined,
+        }),
+      );
     } catch (err) {
+      if (!activeRef.current) return;
       const msg = err instanceof Error ? err.message : 'Send failed';
       onError?.(msg);
       setState('error');
@@ -341,24 +381,48 @@ export function useConciergeConversationMode({
     }
   }, [onError, releaseMic, supported, tickVad]);
 
-  // ── Public toggle ─────────────────────────────────────────────────────
+  // ── Public cancel / toggle ────────────────────────────────────────────
+  const cancel = useCallback(() => {
+    setActive(false);
+    activeRef.current = false;
+    try {
+      sttAbortRef.current?.abort();
+    } catch {
+      /* ignore */
+    }
+    sttAbortRef.current = null;
+    try {
+      onCancelStream?.();
+    } catch {
+      /* ignore */
+    }
+    releaseMic();
+    ttsStop();
+    setState('idle');
+    setLiveTranscript('');
+    sessionIdRef.current = null;
+  }, [onCancelStream, releaseMic, ttsStop]);
+
   const toggle = useCallback(() => {
     if (!supported) {
       onError?.('Conversation mode is not supported in this browser.');
       return;
     }
     if (active) {
-      setActive(false);
-      releaseMic();
-      ttsStop();
-      setState('idle');
-      setLiveTranscript('');
+      cancel();
       return;
     }
+    // New conversation session — one usage query covers all turns inside it.
+    try {
+      sessionIdRef.current = crypto.randomUUID();
+    } catch {
+      sessionIdRef.current = `cv_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    }
+    setLastFinalTranscript('');
     setActive(true);
     activeRef.current = true;
     void startListening();
-  }, [active, onError, releaseMic, startListening, supported, ttsStop]);
+  }, [active, cancel, onError, startListening, supported]);
 
   // ── Watch for assistant reply → speak it → resume mic ────────────────
   const messagesRef = useRef<ChatMessage[]>([]);
@@ -427,7 +491,9 @@ export function useConciergeConversationMode({
     active,
     state,
     toggle,
+    cancel,
     isSupported: supported,
     liveTranscript,
+    lastFinalTranscript,
   };
 }

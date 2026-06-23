@@ -150,6 +150,9 @@ const LovableConciergeSchema = z.object({
     .optional(),
   isDemoMode: z.boolean().optional(),
   attachmentIntent: z.enum(['smart_import', 'summarize', 'qa']).optional(),
+  // Hands-free conversation mode: when all turns share this id, only the first
+  // turn counts toward the per-trip query limit.
+  conversation_session_id: z.string().uuid().optional(),
   stream: z.boolean().optional(),
   config: z
     .object({
@@ -643,7 +646,39 @@ serve(async req => {
       config = {},
       isDemoMode: requestedDemoMode = false,
       stream: requestedStream = false,
+      conversation_session_id: conversationSessionId,
     } = validatedData;
+
+    /**
+     * Records a conversation-mode session for this user/trip and returns true
+     * if this is the FIRST turn of that session (i.e. usage should be
+     * incremented). Subsequent turns return false so the whole hands-free
+     * call counts as one query. No session id → always increment.
+     */
+    const shouldIncrementForSession = async (
+      uid: string,
+      tripScope: string,
+    ): Promise<boolean> => {
+      if (!conversationSessionId) return true;
+      try {
+        const { error: insertErr } = await supabase
+          .from('concierge_conversation_sessions')
+          .insert({
+            user_id: uid,
+            trip_id: tripScope,
+            session_id: conversationSessionId,
+          });
+        if (!insertErr) return true; // first turn
+        // Unique-violation = already recorded → skip increment
+        const code = (insertErr as { code?: string })?.code;
+        if (code === '23505') return false;
+        console.error('[ConvoSession] insert failed; defaulting to increment:', insertErr);
+        return true;
+      } catch (e) {
+        console.error('[ConvoSession] unexpected error; defaulting to increment:', e);
+        return true;
+      }
+    };
 
     // 🆕 SAFETY: Content filtering and PII redaction
     const profanityCheck = filterProfanity(message);
@@ -1419,7 +1454,8 @@ serve(async req => {
               !serverDemoMode &&
               user &&
               tripQueryLimit !== null &&
-              resolvedTripId !== 'unknown'
+              resolvedTripId !== 'unknown' &&
+              (await shouldIncrementForSession(user.id, resolvedTripId))
             ) {
               const incrementResult = await incrementConciergeTripUsage(
                 supabase,
@@ -1701,7 +1737,13 @@ serve(async req => {
             : 'Sorry, I could not generate a response right now.';
 
       // Increment usage
-      if (!serverDemoMode && user && tripQueryLimit !== null && tripId !== 'unknown') {
+      if (
+        !serverDemoMode &&
+        user &&
+        tripQueryLimit !== null &&
+        tripId !== 'unknown' &&
+        (await shouldIncrementForSession(user.id, tripId))
+      ) {
         const incrementUsageResult = await incrementConciergeTripUsage(
           supabase,
           tripId,
@@ -1943,7 +1985,8 @@ serve(async req => {
         user &&
         tripQueryLimit !== null &&
         resolvedTripId !== 'unknown' &&
-        !followUpFailed
+        !followUpFailed &&
+        (await shouldIncrementForSession(user.id, resolvedTripId))
       ) {
         const incrementUsageResult = await incrementConciergeTripUsage(
           supabase,
