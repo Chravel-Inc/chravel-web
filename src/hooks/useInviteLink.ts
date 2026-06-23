@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useDemoMode } from '@/hooks/useDemoMode';
@@ -112,14 +112,21 @@ export const useInviteLink = ({
   const [error, setError] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const { isDemoMode } = useDemoMode();
+  const lastGeneratedKeyRef = useRef<string | null>(null);
 
-  // Generate invite link when modal opens
+  // Generate invite link when modal opens or trip changes — not when settings toggle.
+  // Users apply new approval/expiry/max-use settings via "Regenerate link".
   useEffect(() => {
-    if (isOpen) {
-      generateTripLink();
+    if (!isOpen) {
+      lastGeneratedKeyRef.current = null;
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- generateTripLink closure deps already covered by dep array
-  }, [isOpen, requireApproval, expireIn7Days, maxUses, tripId, proTripId, isDemoMode]);
+    const generationKey = `${proTripId || tripId || ''}:${isDemoMode}`;
+    if (lastGeneratedKeyRef.current === generationKey) return;
+    lastGeneratedKeyRef.current = generationKey;
+    void generateTripLink();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- settings apply via regenerate only
+  }, [isOpen, tripId, proTripId, isDemoMode]);
 
   const createInviteInDatabase = async (
     tripIdValue: string,

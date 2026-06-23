@@ -587,6 +587,7 @@ export const MobileTripTabs = ({
                 data-active={isActive ? 'true' : 'false'}
                 onClick={() => handleTabPress(tab.id, enabled)}
                 onMouseEnter={() => enabled && handleTabHover(tab.id)}
+                onTouchStart={() => enabled && handleTabHover(tab.id)}
                 onFocus={() => enabled && handleTabHover(tab.id)}
                 className={`
                   flex items-center justify-center gap-2 

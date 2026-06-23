@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { QueryClient } from '@tanstack/react-query';
 import type { ChatMessage } from '@/features/concierge/types';
 import type { SmartImportPreviewEvent } from '@/services/conciergeGateway';
+import { tripKeys } from '@/lib/queryKeys';
 
 interface Params {
   tripId: string;
@@ -55,10 +56,12 @@ export function useSmartImportActions({ tripId, userId, setMessages, queryClient
             result: { imported: result.imported, failed: result.failed },
           },
         }));
-        if (result.imported > 0)
+        if (result.imported > 0) {
+          await queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
           toast.success(
             `Added ${result.imported} event${result.imported !== 1 ? 's' : ''} to Calendar`,
           );
+        }
         if (result.failed > 0)
           toast.error(`${result.failed} event${result.failed !== 1 ? 's' : ''} failed to import`);
       } catch {
@@ -69,7 +72,7 @@ export function useSmartImportActions({ tripId, userId, setMessages, queryClient
         toast.error('Failed to import events. Please try again.');
       }
     },
-    [tripId],
+    [tripId, queryClient],
   );
 
   const handleSmartImportDismiss = useCallback(

@@ -100,20 +100,7 @@ export const usePrefetchTrip = () => {
           break;
 
         case 'chat':
-          queryClient.prefetchQuery({
-            queryKey: tripKeys.chat(tripId),
-            queryFn: async () => {
-              const { data } = await supabase
-                .from('trip_chat_messages')
-                .select('*')
-                .eq('trip_id', tripId)
-                .eq('is_deleted', false)
-                .order('created_at', { ascending: false })
-                .limit(15);
-              return (data || []).reverse();
-            },
-            staleTime: QUERY_CACHE_CONFIG.chat.staleTime,
-          });
+          // Chat is Stream-backed; chunk preload above is sufficient — no Supabase prefetch.
           break;
 
         case 'tasks':

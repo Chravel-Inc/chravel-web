@@ -504,15 +504,7 @@ export async function getExportData(
         return aEnriched - bEnriched;
       });
 
-      (result as unknown).attachments = attachments;
-      result.attachments =
-        files?.map(f => ({
-          name: f.name,
-          type: f.file_type,
-          uploaded_at: f.created_at,
-          uploaded_by:
-            (f.profiles as { display_name: string | null } | null)?.display_name || 'Unknown',
-        })) || [];
+      result.attachments = attachments;
     }
 
     // Fetch agenda items if requested (event-specific)
