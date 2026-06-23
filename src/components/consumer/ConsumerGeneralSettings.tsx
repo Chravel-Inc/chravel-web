@@ -35,7 +35,6 @@ function saveAppPreferences(prefs: AppPreferences): void {
 }
 
 export const ConsumerGeneralSettings = () => {
-  useAuth();
   const { isDarkMode, toggleTheme } = useTheme();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [appPrefs, setAppPrefs] = useState<AppPreferences>(loadAppPreferences);
