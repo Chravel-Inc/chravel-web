@@ -361,6 +361,7 @@ export const ConsumerProfileSection = () => {
           </div>
         </div>
       )}
+      <DeleteAccountDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog} />
     </div>
   );
 };
