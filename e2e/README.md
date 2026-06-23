@@ -2,6 +2,8 @@
 
 This directory contains end-to-end tests for Chravel. This file intentionally separates what is implemented today from roadmap coverage to prevent false confidence.
 
+For **nightly CI**, optional **Slack** notifications, and a **copy-paste Cursor/Codex prompt**, see [`docs/e2e-scheduled-workflow.md`](../docs/e2e-scheduled-workflow.md).
+
 ## ✅ Implemented suites (source of truth)
 
 - `e2e/specs/auth/full-auth.spec.ts`
