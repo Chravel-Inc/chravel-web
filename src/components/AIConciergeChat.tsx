@@ -272,6 +272,39 @@ export const AIConciergeChat = ({
     handleSendMessageRef.current = handleSendMessage;
   }, [handleSendMessage]);
 
+  // ── Hands-free conversation mode ─────────────────────────────────────
+  const conversationModeFlag = useFeatureFlag('concierge_conversation_mode', true);
+  const buildSpeechForMessage = useCallback((msg: ChatMessage) => {
+    if (msg.type !== 'assistant' || !msg.content) return '';
+    const clean = sanitizeConciergeContent(msg.content);
+    if (!clean) return '';
+    return buildSpeechText({
+      displayText: clean,
+      hotels: msg.functionCallHotels,
+      places: msg.functionCallPlaces,
+      flights: msg.functionCallFlights?.map(f => ({
+        origin: f.origin,
+        destination: f.destination,
+        airline: f.airline,
+        price: f.price,
+        stops: f.stops,
+        durationMinutes: f.durationMinutes,
+      })),
+    });
+  }, []);
+
+  const conversation = useConciergeConversationMode({
+    enabled: conversationModeFlag && !isDemoMode,
+    messages,
+    isTyping,
+    handleSendMessage,
+    ttsPlay: ttsPlayRaw,
+    ttsStop,
+    ttsPlaybackState,
+    buildSpeechText: buildSpeechForMessage,
+    onError: msg => toast.error(msg),
+  });
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
