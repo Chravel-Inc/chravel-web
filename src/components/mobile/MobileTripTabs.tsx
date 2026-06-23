@@ -163,12 +163,12 @@ export const MobileTripTabs = ({
   }, [participants]);
 
   // ⚡ PERFORMANCE: Tiered tab pre-mounting (mirrors TripTabs).
-  // Tier 1 mounts immediately so chat / calendar / concierge are always warm.
-  // Tier 2 mounts after idle (~800ms) so tasks/polls/places/payments are
+  // Tier 1 mounts immediately so chat / calendar are always warm.
+  // Tier 2 mounts after idle (~800ms) so tasks/polls/places/payments/concierge are
   // ready when the user reaches them — fixes the "click away and back" bug.
   // Tier 3 (media) stays lazy until visited.
-  const TIER_1_TABS: readonly string[] = ['chat', 'calendar', 'concierge'];
-  const TIER_2_TABS: readonly string[] = ['tasks', 'polls', 'places', 'payments'];
+  const TIER_1_TABS: readonly string[] = ['chat', 'calendar'];
+  const TIER_2_TABS: readonly string[] = ['tasks', 'polls', 'places', 'payments', 'concierge'];
 
   // Tabs that own an internal scroll area + a pinned composer (message list scrolls
   // inside the tab; the composer is a fixed bottom sibling). These must NOT be wrapped
@@ -324,7 +324,7 @@ export const MobileTripTabs = ({
   }, [activeTab]);
 
   const handleTabPress = useCallback(
-    async (tabId: string, enabled: boolean) => {
+    (tabId: string, enabled: boolean) => {
       if (!enabled) {
         if (variant === 'event') {
           setShowDisabledTabDialog(true);
@@ -337,10 +337,11 @@ export const MobileTripTabs = ({
         });
         return;
       }
-      await hapticService.light();
+      prefetchTab(tripId, tabId);
+      void hapticService.light();
       onTabChange(tabId);
     },
-    [onTabChange, variant],
+    [onTabChange, prefetchTab, tripId, variant],
   );
 
   // ⚡ PERFORMANCE: Prefetch tab data on hover/focus
@@ -587,6 +588,7 @@ export const MobileTripTabs = ({
                 data-active={isActive ? 'true' : 'false'}
                 onClick={() => handleTabPress(tab.id, enabled)}
                 onMouseEnter={() => enabled && handleTabHover(tab.id)}
+                onTouchStart={() => enabled && handleTabHover(tab.id)}
                 onFocus={() => enabled && handleTabHover(tab.id)}
                 className={`
                   flex items-center justify-center gap-2 

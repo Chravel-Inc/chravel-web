@@ -100,20 +100,8 @@ export const usePrefetchTrip = () => {
           break;
 
         case 'chat':
-          queryClient.prefetchQuery({
-            queryKey: tripKeys.chat(tripId),
-            queryFn: async () => {
-              const { data } = await supabase
-                .from('trip_chat_messages')
-                .select('*')
-                .eq('trip_id', tripId)
-                .eq('is_deleted', false)
-                .order('created_at', { ascending: false })
-                .limit(15);
-              return (data || []).reverse();
-            },
-            staleTime: QUERY_CACHE_CONFIG.chat.staleTime,
-          });
+          // Chat is Stream-backed (useStreamTripChat); legacy Supabase prefetch was wasted work.
+          // Chunk preload above is the only safe prefetch for this tab.
           break;
 
         case 'tasks':
@@ -246,6 +234,7 @@ export const usePrefetchTrip = () => {
       if (isDemoMode) return;
 
       // Phase 2: immediate data prefetch for likely first interactions.
+      // Chat data is Stream-backed — chunk preload only (handled in prefetchTab).
       prefetchTab(tripId, 'chat');
       setTimeout(() => prefetchTab(tripId, 'calendar'), 125);
 
