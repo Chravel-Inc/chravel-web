@@ -227,6 +227,9 @@ export function useConciergeStreaming(params: Params) {
           maxTokens: 4096,
         },
         ...(hasAnyAttachments && !typedMessage ? { attachmentIntent } : {}),
+        ...(opts?.conversationSessionId
+          ? { conversation_session_id: opts.conversationSessionId }
+          : {}),
       };
 
       // === STREAMING PATH ===
