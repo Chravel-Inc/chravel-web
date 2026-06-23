@@ -370,7 +370,6 @@ export async function purchaseTripPass(
     };
   }
 }
-}
 
 /**
  * Restore purchases (required for Apple compliance)
