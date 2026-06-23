@@ -377,7 +377,7 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
 
                 {/* Format badges */}
                 <div className="flex flex-wrap justify-center gap-1.5 mb-4">
-                  {FORMAT_BADGES.map(({ label, icon: Icon }) => (
+                  {formatBadges.map(({ label, icon: Icon }) => (
                     <span
                       key={label}
                       className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground"
