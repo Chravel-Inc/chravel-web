@@ -276,8 +276,7 @@ export const AIConciergeChat = ({
 
   // ── Hands-free conversation mode ─────────────────────────────────────
   const conversationModeFlag = useFeatureFlag('concierge_conversation_mode', true);
-  const { enabled: conversationModeUserPref, setEnabled: setConversationModeUserPref } =
-    useConversationModePreference();
+  const { enabled: conversationModeUserPref } = useConversationModePreference();
   const conversationModeEffective = conversationModeFlag && conversationModeUserPref && !isDemoMode;
 
   const buildSpeechForMessage = useCallback((msg: ChatMessage) => {
