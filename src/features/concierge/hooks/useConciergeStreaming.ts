@@ -11,6 +11,7 @@ import {
 import type { HotelResult } from '@/features/chat/components/HotelResultCards';
 import type { TripPreferences } from '@/types/consumer';
 import { supabase } from '@/integrations/supabase/client';
+import { useConciergeLanguagePreference } from '@/features/concierge/hooks/useConciergeLanguagePreference';
 import { getConciergeInvalidationKeys, isConciergeWriteAction } from '@/lib/conciergeInvalidation';
 import { sanitizeConciergeContent } from '@/lib/sanitizeConciergeContent';
 import { conciergeCacheService } from '@/services/conciergeCacheService';
@@ -89,6 +90,8 @@ export function useConciergeStreaming(params: Params) {
     clearAttachments: _clearAttachments,
     queryClient: conciergeQueryClient,
   } = params;
+
+  const { isoCode: replyLanguage } = useConciergeLanguagePreference();
 
   const handleSendMessage = async (
     messageOverride?: string,
@@ -218,6 +221,7 @@ export function useConciergeStreaming(params: Params) {
         message: currentInput,
         tripId,
         preferences: effectivePreferences,
+        ...(replyLanguage ? { replyLanguage } : {}),
         chatHistory,
         attachments,
         isDemoMode,

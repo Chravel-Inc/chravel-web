@@ -29,6 +29,31 @@ export interface PromptAssemblyOptions {
   customSystemPrompt?: string;
   imageIntentAddendum?: string;
   useChainOfThought?: boolean;
+  /** Manual reply-language override (ISO 639-1). When set, overrides auto-detect. */
+  replyLanguage?: string;
+}
+
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: 'English',
+  es: 'Spanish',
+  fr: 'French',
+  de: 'German',
+  pt: 'Portuguese',
+  it: 'Italian',
+  ja: 'Japanese',
+  zh: 'Chinese (Simplified)',
+  ko: 'Korean',
+  ar: 'Arabic',
+};
+
+function replyLanguageOverrideLayer(code: string): string {
+  const name = LANGUAGE_NAMES[code] || code;
+  return `
+**REPLY LANGUAGE OVERRIDE (HIGHEST PRIORITY — supersedes LANGUAGE MATCHING above):**
+- The user has manually selected ${name} as their Concierge reply language.
+- Respond entirely in ${name}, regardless of the language of the incoming user message.
+- Still quote existing trip content (chat messages, calendar entries, place names, member names, broadcasts) VERBATIM in its original language. Only translate your own surrounding explanation into ${name}.
+- Preserve proper nouns, brand names, addresses, URLs, email addresses, and numeric values (dates, times, prices, currency codes) unchanged.`;
 }
 
 // ── Query class sets for conditional layers ──────────────────────────────────
@@ -308,14 +333,18 @@ export function assemblePrompt(options: PromptAssemblyOptions): string {
     customSystemPrompt,
     imageIntentAddendum,
     useChainOfThought,
+    replyLanguage,
   } = options;
 
-  // Custom system prompt overrides everything
-  if (customSystemPrompt) return customSystemPrompt;
+  const overrideSuffix =
+    replyLanguage && LANGUAGE_NAMES[replyLanguage] ? '\n' + replyLanguageOverrideLayer(replyLanguage) : '';
+
+  // Custom system prompt overrides everything (but still honor manual language pick).
+  if (customSystemPrompt) return customSystemPrompt + overrideSuffix;
 
   // General knowledge without trip context → lean web-only prompt
   if (queryClass === 'general_knowledge' || !tripContext) {
-    return generalWebPrompt(imageIntentAddendum);
+    return generalWebPrompt(imageIntentAddendum) + overrideSuffix;
   }
 
   // ── Build trip-aware prompt from layers ──────────────────────────────────
@@ -372,6 +401,11 @@ export function assemblePrompt(options: PromptAssemblyOptions): string {
   // 11. Voice addendum (voice only)
   if (isVoice) {
     layers.push(VOICE_ADDENDUM);
+  }
+
+  // 12. Manual reply-language override (must be last so it wins over all prior language guidance)
+  if (overrideSuffix) {
+    layers.push(overrideSuffix);
   }
 
   return layers.join('\n');

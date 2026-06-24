@@ -8,6 +8,7 @@ import { userPreferencesService } from '../../services/userPreferencesService';
 import { toast } from 'sonner';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { ConciergeVoicePicker } from '@/features/concierge/components/ConciergeVoicePicker';
+import { ConciergeLanguagePicker } from '@/features/concierge/components/ConciergeLanguagePicker';
 
 export const ConsumerAIConciergeSection = () => {
   useConsumerSubscription();
@@ -142,6 +143,9 @@ export const ConsumerAIConciergeSection = () => {
         onPreferencesChange={handlePreferencesChange}
         initialPreferences={preferences || undefined}
       />
+
+      {/* Reply Language */}
+      <ConciergeLanguagePicker />
 
       {/* Voice Picker */}
       <ConciergeVoicePicker />
