@@ -123,11 +123,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 backdrop-blur-sm max-sm:pb-[env(safe-area-inset-bottom,0px)] sm:items-center sm:p-2">
       <div
         data-testid="trip-export-modal-panel"
-        className="flex max-h-[100svh] min-h-0 w-full max-w-md flex-col overflow-hidden rounded-t-2xl border border-gray-700 bg-gray-900 shadow-2xl md:max-w-xl sm:max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-2rem)] sm:rounded-xl"
-        style={{
-          maxHeight:
-            'calc(100svh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))',
-        }}
+        className="trip-export-modal-panel flex min-h-0 w-full max-w-md flex-col overflow-hidden rounded-t-2xl border border-gray-700 bg-gray-900 shadow-2xl md:max-w-xl sm:rounded-xl"
       >
         {/* Header — safe top inset without stacking extra padding on top of large notches */}
         <div className="flex flex-shrink-0 items-center justify-between border-b border-gray-700/50 px-3 pb-2 pt-[max(8px,calc(env(safe-area-inset-top,0px)+6px))]">
@@ -282,13 +278,12 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
                 {error ? `Export error: ${error}` : ''}
               </div>
 
-              {/* Info Banner */}
-              <div className="bg-[#c49746]/10 border border-[#c49746]/25 rounded-lg p-2">
-                <p className="text-gray-300 text-xs">
-                  <span className="text-[#c49746]">🔒</span> Emails and phone numbers hidden. Chat
-                  and AI history never included.
-                </p>
-              </div>
+              {/* Privacy note — kept to a single compact line so it doesn't
+                  waste space above the (always-visible) footer actions. */}
+              <p className="px-0.5 text-[11px] leading-snug text-gray-400">
+                <span className="text-[#c49746]">🔒</span> Emails and phone numbers hidden. Chat and
+                AI history never included.
+              </p>
             </>
           )}
         </div>

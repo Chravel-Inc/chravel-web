@@ -53,4 +53,16 @@ describe('TripExportModal layout (footer visibility)', () => {
     expect(footer).toBeTruthy();
     expect(panel?.contains(footer)).toBe(true);
   });
+
+  it('bounds the panel height via the viewport-aware CSS class (not a brittle svh-only inline cap)', () => {
+    // Older iOS WebViews drop `calc(100svh - …)` as invalid, leaving the panel
+    // unbounded so the footer slides off-screen with nothing scrollable. The
+    // height cap must come from the `.trip-export-modal-panel` class (which
+    // cascades 100vh → --visual-viewport-height) instead of an inline svh calc.
+    render(<TripExportModal {...baseProps} />);
+
+    const panel = screen.getByTestId('trip-export-modal-panel');
+    expect(panel.className).toContain('trip-export-modal-panel');
+    expect(panel.style.maxHeight).toBe('');
+  });
 });

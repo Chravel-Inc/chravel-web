@@ -986,6 +986,47 @@
   max-height: var(--visual-viewport-height, 100dvh);
 }
 
+/*
+ * Trip/Event recap export modal panel.
+ *
+ * The panel is a flex column (header / scrollable body / footer). For the
+ * footer actions (Cancel + Create Recap/PDF) to stay pinned and the body to
+ * scroll, the panel MUST have a bounded height. Older iOS Capacitor WebViews
+ * don't honor `svh`/`dvh`, so a `calc(100svh - …)` cap is dropped as invalid,
+ * the panel grows to full content height, and the footer slides off-screen
+ * with nothing scrollable.
+ *
+ * `100vh` is the universal fallback. The dynamic/keyboard-aware value is gated
+ * behind `@supports` rather than a second `max-height` declaration, because a
+ * `var(…, 100dvh)` that resolves to an unsupported unit is "invalid at
+ * computed-value time" and resets max-height to its initial `none` (it does
+ * NOT cascade back to the earlier `100vh`). The `@supports` gate guarantees
+ * the enhanced value only applies where `dvh` actually works.
+ */
+.trip-export-modal-panel {
+  max-height: 100vh;
+}
+
+@supports (height: 100dvh) {
+  .trip-export-modal-panel {
+    /* Keyboard-aware dynamic viewport — same var the mobile shell uses. */
+    max-height: var(--visual-viewport-height, 100dvh);
+  }
+}
+
+@media (min-width: 640px) {
+  /* Centered desktop dialog keeps a ~2rem gutter top + bottom. */
+  .trip-export-modal-panel {
+    max-height: calc(100vh - 2rem);
+  }
+
+  @supports (height: 100dvh) {
+    .trip-export-modal-panel {
+      max-height: calc(var(--visual-viewport-height, 100dvh) - 2rem);
+    }
+  }
+}
+
 .keyboard-visible .chat-composer-tray,
 .keyboard-visible .chat-composer {
   /* Home-indicator inset is covered by the keyboard — keep only tap buffer. */
