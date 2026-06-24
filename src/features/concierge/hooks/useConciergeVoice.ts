@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { useWebSpeechVoice } from '@/hooks/useWebSpeechVoice';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
+import { useConciergeLanguagePreference } from '@/features/concierge/hooks/useConciergeLanguagePreference';
 
 const ENABLED = (import.meta.env?.VITE_CONCIERGE_VOICE_ENABLED ?? 'true') !== 'false';
 
@@ -28,8 +29,12 @@ export function useConciergeVoice({ inputMessage, setInputMessage }: Params) {
     [setInputMessage],
   );
 
-  const { voiceState, toggleVoice, userTranscript, errorMessage } =
-    useWebSpeechVoice(handleTranscript);
+  const { bcp47 } = useConciergeLanguagePreference();
+  const { voiceState, toggleVoice, userTranscript, errorMessage } = useWebSpeechVoice(
+    handleTranscript,
+    undefined,
+    bcp47 ?? undefined,
+  );
 
   useEffect(() => {
     if (!errorMessage) return;
