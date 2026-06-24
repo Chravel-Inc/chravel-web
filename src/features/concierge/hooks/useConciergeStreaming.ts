@@ -221,6 +221,7 @@ export function useConciergeStreaming(params: Params) {
         message: currentInput,
         tripId,
         preferences: effectivePreferences,
+        ...(replyLanguage ? { replyLanguage } : {}),
         chatHistory,
         attachments,
         isDemoMode,
