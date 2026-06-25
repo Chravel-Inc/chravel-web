@@ -450,6 +450,11 @@ export const ConsumerBillingSection = () => {
           For teams, sports organizations, tours, and enterprises. Pro subscribers get all Frequent
           Chraveler benefits included.
         </p>
+        {isNativeIOS && (
+          <p className="text-xs text-muted-foreground mb-3">
+            Subscriptions are managed on chravel.app on the web.
+          </p>
+        )}
 
         <div className="space-y-3">
           {Object.entries(proPlans).map(([key, plan]) => {
