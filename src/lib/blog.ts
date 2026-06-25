@@ -1025,7 +1025,7 @@ export const BLOG_POSTS: BlogPost[] = [
     h1: 'How a major artist’s arena tour keeps a huge crew aligned with ChravelApp',
     excerpt:
       'An arena tour moves a small city every day — band, dancers, security, wardrobe, content, VIPs, and local crew. Here’s how a large touring operation stays aligned, city to city, in ChravelApp.',
-    datePublished: '2025-07-22',
+    datePublished: '2025-08-22',
     author: BLOG_AUTHOR,
     tags: ['Music Touring', 'Production'],
     sections: [
@@ -1451,7 +1451,7 @@ const MONTHS = [
 export const formatBlogDate = (iso: string): string => {
   const [y, m, d] = iso.split('-').map(Number);
   if (!y || !m || !d) return iso;
-  return `${MONTHS[m - 1]} ${d}, ${y}`;
+  return `${MONTHS[m - 1]}\u00A0${d}, ${y}`;
 };
 
 /** Rough reading time at ~200 words/min over the post's text. */
