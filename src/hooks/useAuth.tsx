@@ -17,7 +17,11 @@ import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
 import { useDemoModeStore } from '@/store/demoModeStore';
 import { conciergeCacheService } from '@/services/conciergeCacheService';
 import { isSessionTokenValid } from '@/utils/tokenValidation';
-import { isInstalledApp } from '@/utils/platformDetection';
+import {
+  isInstalledApp,
+  isCapacitorNativeShell,
+  isChravelNativeShell,
+} from '@/utils/platformDetection';
 import { authDebug } from '@/utils/authDebug';
 import { telemetry } from '@/telemetry/service';
 import { toast } from '@/hooks/use-toast';
