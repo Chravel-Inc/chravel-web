@@ -42,6 +42,9 @@ export const FullPageLandingSection: React.FC<FullPageLandingSectionProps> = ({
   gradientDirection = 'diagonal',
   accentGlow,
   goldOverlay = 'waves',
+  backgroundImage,
+  backgroundOverlayOpacity = 0.72,
+  backgroundPosition = 'center',
 }) => {
   // Build the gradient based on direction and colors
   const getGradientStyle = () => {
