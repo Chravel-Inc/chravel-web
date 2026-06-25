@@ -1,7 +1,8 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/utils/avatarUtils';
 import { cn } from '@/lib/utils';
+import { LARGE_LIST_THRESHOLDS } from '@/lib/largeListThresholds';
 
 export interface TripMember {
   id: string;
@@ -28,10 +29,20 @@ export const MentionPicker: React.FC<MentionPickerProps> = ({
 }) => {
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Filter members based on search query
-  const filteredMembers = members.filter(member =>
-    member.name.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  // Filter members based on search query, capped for large rosters
+  const filteredMembers = useMemo(() => {
+    const normalized = searchQuery.toLowerCase();
+    const matches = members.filter(member => member.name.toLowerCase().includes(normalized));
+    return matches.slice(0, LARGE_LIST_THRESHOLDS.mentionPickerMaxResults);
+  }, [members, searchQuery]);
+
+  const hiddenMatchCount = useMemo(() => {
+    const normalized = searchQuery.toLowerCase();
+    const totalMatches = members.filter(member =>
+      member.name.toLowerCase().includes(normalized),
+    ).length;
+    return Math.max(totalMatches - filteredMembers.length, 0);
+  }, [filteredMembers.length, members, searchQuery]);
 
   // Scroll selected item into view
   useEffect(() => {
@@ -84,6 +95,11 @@ export const MentionPicker: React.FC<MentionPickerProps> = ({
             <span className="text-sm font-medium truncate">{member.name}</span>
           </button>
         ))}
+        {hiddenMatchCount > 0 && (
+          <p className="px-3 py-2 text-xs text-muted-foreground">
+            {hiddenMatchCount} more — refine your search
+          </p>
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Shield,
   Globe,
@@ -41,6 +41,7 @@ import { Label } from '@/components/ui/label';
 import { useEventAdmin, MediaUploadMode } from '@/hooks/useEventAdmin';
 import { EVENT_TABS_CONFIG } from '@/lib/eventTabs';
 import { NativeSegmentedControl } from '@/components/native/NativeSegmentedControl';
+import { SearchableVirtualMemberList } from '@/components/members/SearchableVirtualMemberList';
 
 interface EventAdminTabProps {
   eventId: string;
@@ -91,6 +92,16 @@ export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
 
   const [mediaModalOpen, setMediaModalOpen] = useState(false);
   const [pendingMediaMode, setPendingMediaMode] = useState<MediaUploadMode>(mediaUploadMode);
+
+  const searchableAttendees = useMemo(
+    () =>
+      members.map(member => ({
+        ...member,
+        id: member.user_id,
+        searchText: member.display_name || 'Member',
+      })),
+    [members],
+  );
 
   if (isLoading) {
     return (
@@ -224,24 +235,32 @@ export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
             </span>
           </div>
 
-          <div className="overflow-y-auto space-y-2 max-h-[360px]">
+          <div className="flex-1 min-h-0">
             {members.length === 0 && (!isPrivate || joinRequests.length === 0) ? (
               <p className="text-sm text-muted-foreground text-center py-4">No attendees yet</p>
             ) : (
               <>
-                {members.map(member => (
-                  <div key={member.user_id} className="flex items-center gap-3 py-1.5">
-                    <Avatar className="h-8 w-8 flex-shrink-0">
-                      <AvatarImage src={member.avatar_url || undefined} />
-                      <AvatarFallback className="text-xs bg-muted">
-                        {(member.display_name || '?').charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm text-foreground truncate">
-                      {member.display_name || 'Member'}
-                    </span>
-                  </div>
-                ))}
+                <SearchableVirtualMemberList
+                  items={searchableAttendees}
+                  renderItem={member => (
+                    <div className="flex items-center gap-3 py-1.5">
+                      <Avatar className="h-8 w-8 flex-shrink-0">
+                        <AvatarImage src={member.avatar_url || undefined} />
+                        <AvatarFallback className="text-xs bg-muted">
+                          {(member.display_name || '?').charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm text-foreground truncate">
+                        {member.display_name || 'Member'}
+                      </span>
+                    </div>
+                  )}
+                  emptyLabel="No attendees match your search"
+                  searchPlaceholder="Search attendees…"
+                  listAriaLabel="Event attendees"
+                  maxHeightClassName="max-h-[300px]"
+                  rowHeight={44}
+                />
 
                 {isPrivate && joinRequests.length > 0 && (
                   <div className="border-t border-border pt-3 mt-2 space-y-2">
