@@ -221,24 +221,25 @@ export const ProUpgradeModal = ({ isOpen, onClose }: ProUpgradeModalProps) => {
         {/* CTA Section */}
         <div className="text-center">
           <div className="text-sm text-gold-light mb-4">
-            {blockOnIOS
-              ? 'Subscriptions are managed on chravel.app on the web.'
+            {iosNative
+              ? 'Subscribe with Apple — billed through your App Store account.'
               : '14-day free trial • No credit card required • Cancel anytime'}
           </div>
           <div className={`flex justify-center ${isMobile ? '' : ''}`}>
             <button
               onClick={() => handleStartFreeTrial(selectedTier)}
-              disabled={isLoading || blockOnIOS}
+              disabled={isLoading}
               className="px-8 py-3 bg-gradient-to-r from-gold-primary to-gold-mid hover:from-gold-mid hover:to-gold-primary text-primary-foreground font-medium rounded-2xl transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {blockOnIOS
-                ? 'Manage on chravel.app'
-                : isLoading
-                  ? 'Processing...'
+              {isLoading
+                ? 'Processing...'
+                : iosNative
+                  ? `Subscribe with Apple - ${SUBSCRIPTION_TIERS[selectedTier].name}`
                   : `Start Free Trial - ${SUBSCRIPTION_TIERS[selectedTier].name}`}
             </button>
           </div>
         </div>
+
       </div>
     </div>
   );
