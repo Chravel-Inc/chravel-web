@@ -42,13 +42,42 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
   const consumerPlan: 'explorer' | 'frequent-chraveler' =
     selectedPlan === 'frequent-chraveler' ? 'frequent-chraveler' : 'explorer';
 
-  const blockOnIOS = isIOSNativeShell();
+  const iosNative = isIOSNativeShell();
 
   const handleUpgrade = async () => {
-    if (blockOnIOS) {
-      toast.info('Subscriptions are managed on chravel.app on the web.');
+    // iOS native shell — Apple IAP via RevenueCat for every plan (Guideline 3.1.1)
+    if (iosNative) {
+      if (selectedPlan === 'travel-pro') {
+        const result = await purchaseProSubscription('pro-starter', billingCycle);
+        if (result.success) {
+          toast.success('Chravel Pro activated!');
+          onClose();
+        } else if (result.errorCode === 'CANCELLED') {
+          // silent
+        } else if (!result.supported) {
+          toast.error('In-app purchases are not available on this device.');
+        } else {
+          toast.error(result.error || 'Failed to start purchase.');
+        }
+        return;
+      }
+      const result = await purchaseConsumerSubscription(
+        selectedPlan as 'explorer' | 'frequent-chraveler',
+        billingCycle,
+      );
+      if (result.success) {
+        toast.success('Subscription activated!');
+        onClose();
+      } else if (result.errorCode === 'CANCELLED') {
+        // silent
+      } else if (!result.supported) {
+        toast.error('In-app purchases are not available on this device.');
+      } else {
+        toast.error(result.error || 'Failed to start purchase.');
+      }
       return;
     }
+
     if (['explorer', 'frequent-chraveler'].includes(selectedPlan)) {
       await upgradeToTier(selectedPlan as 'explorer' | 'frequent-chraveler', billingCycle);
       onClose();
@@ -58,8 +87,6 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
         const { data, error } = await supabase.functions.invoke('create-checkout', {
           body: {
             tier: 'pro-starter',
-            // Defense-in-depth: forward platform so the edge function can enforce
-            // the Apple IAP boundary if tier classification ever regresses.
             platform: detectNativeBillingPlatform(navigator.userAgent || '', isNativeWebView()),
           },
         });
@@ -76,6 +103,7 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
       }
     }
   };
+
 
   return (
     <div className="modal-backdrop z-50 flex items-center justify-center p-4">
