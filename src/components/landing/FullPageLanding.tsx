@@ -4,6 +4,10 @@ import { StickyLandingNav } from './StickyLandingNav';
 import { MobileLandingNav } from './MobileLandingNav';
 import { HeroSection } from './sections/HeroSection';
 import { ProblemSolutionSection } from './sections/ProblemSolutionSection';
+import bgCoastline from '@/assets/landing/bg-coastline.jpg';
+import bgSkyline from '@/assets/landing/bg-skyline.jpg';
+import bgJet from '@/assets/landing/bg-jet.jpg';
+import bgMountain from '@/assets/landing/bg-mountain.jpg';
 
 // Lazy load sections for better performance
 const AiFeaturesSection = lazy(() =>
