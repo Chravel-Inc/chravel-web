@@ -538,7 +538,9 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
         className={`grid gap-4 tablet:gap-6 max-w-7xl mx-auto px-2 ${
           activeTab === 'consumer'
             ? 'grid-cols-1 lg:grid-cols-3'
-            : 'grid-cols-1 tablet:grid-cols-2 lg:grid-cols-3'
+            : activeTab === 'pass'
+              ? 'grid-cols-1 md:grid-cols-2 max-w-4xl'
+              : 'grid-cols-1 tablet:grid-cols-2 lg:grid-cols-3'
         }`}
       >
         {getCurrentTiers().map(tier => (
