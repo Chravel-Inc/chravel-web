@@ -56,8 +56,7 @@ export const ReplacesGrid = () => {
                       {category.benefit}
                     </span>
                   </div>
-                  <ChevronDown className="h-5 w-5 shrink-0 text-white transition-transform duration-200 justify-self-end" />
-                </div>
+                  <div className="w-5" />
 
                 {/* Mobile/Phone: Center-aligned, full-width layout (hidden on tablet+) */}
                 <div className="flex flex-col w-full tablet:hidden text-center">
