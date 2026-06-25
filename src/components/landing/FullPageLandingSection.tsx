@@ -26,6 +26,9 @@ interface FullPageLandingSectionProps {
     | 'aurora'
     | 'footer'
     | 'none';
+  backgroundImage?: string;
+  backgroundOverlayOpacity?: number; // 0-1, dark scrim over image for legibility
+  backgroundPosition?: string;
 }
 
 export const FullPageLandingSection: React.FC<FullPageLandingSectionProps> = ({
