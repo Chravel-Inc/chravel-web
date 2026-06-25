@@ -13,6 +13,9 @@ import {
   purchaseProSubscription,
 } from '@/integrations/revenuecat/revenuecatClient';
 import { TripPassModal } from '../conversion/TripPassModal';
+import { RestorePurchasesButton } from '../billing/RestorePurchasesButton';
+import { handlePurchaseResult } from '@/integrations/revenuecat/revenuecatClient';
+
 
 
 // App Store 3.1.1: inside the iOS app, consumers must not be steered to an external
