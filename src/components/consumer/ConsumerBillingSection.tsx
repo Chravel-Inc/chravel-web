@@ -112,6 +112,11 @@ export const ConsumerBillingSection = () => {
   };
 
   const handleUpgradeToProPlan = async (planKey: string) => {
+    // App Store 3.1.1: no external purchase entry points from the iOS app.
+    if (isNativeIOS) {
+      toast.info('Subscriptions are managed on chravel.app on the web.');
+      return;
+    }
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { tier: planKey },
@@ -504,10 +509,14 @@ export const ConsumerBillingSection = () => {
                     {!isCurrentProPlan && (
                       <button
                         onClick={() => handleUpgradeToProPlan(key)}
-                        disabled={isLoading}
+                        disabled={isLoading || isNativeIOS}
                         className="mt-4 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
                       >
-                        {isLoading ? 'Processing...' : `Upgrade to ${plan.name}`}
+                        {isNativeIOS
+                          ? 'Manage on chravel.app'
+                          : isLoading
+                            ? 'Processing...'
+                            : `Upgrade to ${plan.name}`}
                       </button>
                     )}
                   </div>
