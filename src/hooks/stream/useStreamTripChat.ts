@@ -35,7 +35,7 @@ import {
   reportStreamCanaryIncident,
 } from '@/services/stream/streamCanary';
 import { sortMessagesWithCanonicalOrdering } from './messageEventModel';
-import { capRetainedMessages } from '@/lib/chatMessageRetention';
+import { capPrependedMessages, capRetainedMessages } from '@/lib/chatMessageRetention';
 
 const PAGE_SIZE = 30;
 type StreamSendPayload = Parameters<Channel['sendMessage']>[0];
@@ -1133,7 +1133,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       const olderMessages = (result.messages || []) as MessageResponse[];
 
       if (olderMessages.length > 0) {
-        setMessages(prev => capRetainedMessages([...olderMessages, ...prev]));
+        setMessages(prev => capPrependedMessages(olderMessages, prev));
         setHasMore(olderMessages.length === PAGE_SIZE);
       } else {
         setHasMore(false);

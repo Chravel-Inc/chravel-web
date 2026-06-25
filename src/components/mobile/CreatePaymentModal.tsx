@@ -288,7 +288,11 @@ export const CreatePaymentModal = ({
                 </p>
               )}
               <div className="max-h-32 overflow-y-auto flex flex-wrap gap-2 p-3 bg-white/5 border border-white/10 rounded-xl native-scroll">
-                {filteredTripMembers.length === 0 ? (
+                {tripMembers.length === 0 ? (
+                  <p className="text-sm text-gray-400 text-center py-2 w-full">
+                    No trip members found
+                  </p>
+                ) : filteredTripMembers.length === 0 ? (
                   <p className="text-sm text-gray-400 text-center py-2 w-full">
                     No members match your search
                   </p>

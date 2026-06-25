@@ -22,13 +22,13 @@ export function sumSplitShares(shares: number[]): number {
 }
 
 /**
- * Display amount for equal splits. When shares are uniform, returns that amount.
- * When remainder causes mixed shares, returns the lower (base) share for conservative display.
+ * Display amount for equal splits. Returns the majority (base) share; when shares
+ * are uniform, all participants owe the same amount.
  */
 export function getDisplayPerPersonAmount(totalAmount: number, participantCount: number): number {
   const shares = distributeEqualSplitCents(totalAmount, participantCount);
   if (shares.length === 0) return 0;
-  return shares[0];
+  return Math.min(...shares);
 }
 
 export function hasUniformSplitShares(shares: number[]): boolean {

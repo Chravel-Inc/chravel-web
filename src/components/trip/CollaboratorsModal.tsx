@@ -267,6 +267,7 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
               renderItem={renderMemberRow}
               emptyLabel="No members yet"
               searchPlaceholder="Search trip members…"
+              noResultsLabel="No members match your search"
               listAriaLabel="All members"
               maxHeightClassName="max-h-[60vh]"
             />

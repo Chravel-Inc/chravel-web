@@ -339,7 +339,9 @@ export const PaymentInput = ({
             )}
 
             <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
-              {filteredTripMembers.length === 0 ? (
+              {tripMembers.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-2">No trip members found.</p>
+              ) : filteredTripMembers.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-2">No members match your search.</p>
               ) : (
                 filteredTripMembers.map(member => {

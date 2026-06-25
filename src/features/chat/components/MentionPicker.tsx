@@ -10,6 +10,12 @@ export interface TripMember {
   avatar?: string;
 }
 
+export function filterMentionMembers(members: TripMember[], searchQuery: string): TripMember[] {
+  const normalized = searchQuery.toLowerCase();
+  const matches = members.filter(member => member.name.toLowerCase().includes(normalized));
+  return matches.slice(0, LARGE_LIST_THRESHOLDS.mentionPickerMaxResults);
+}
+
 interface MentionPickerProps {
   members: TripMember[];
   searchQuery: string;
@@ -30,11 +36,10 @@ export const MentionPicker: React.FC<MentionPickerProps> = ({
   const listRef = useRef<HTMLDivElement>(null);
 
   // Filter members based on search query, capped for large rosters
-  const filteredMembers = useMemo(() => {
-    const normalized = searchQuery.toLowerCase();
-    const matches = members.filter(member => member.name.toLowerCase().includes(normalized));
-    return matches.slice(0, LARGE_LIST_THRESHOLDS.mentionPickerMaxResults);
-  }, [members, searchQuery]);
+  const filteredMembers = useMemo(
+    () => filterMentionMembers(members, searchQuery),
+    [members, searchQuery],
+  );
 
   const hiddenMatchCount = useMemo(() => {
     const normalized = searchQuery.toLowerCase();

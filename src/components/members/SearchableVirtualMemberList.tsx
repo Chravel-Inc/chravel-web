@@ -13,6 +13,7 @@ interface SearchableVirtualMemberListProps<T extends SearchableMemberListItem> {
   items: T[];
   renderItem: (item: T) => React.ReactNode;
   emptyLabel?: string;
+  noResultsLabel?: string;
   searchPlaceholder?: string;
   listAriaLabel?: string;
   maxHeightClassName?: string;
@@ -23,6 +24,7 @@ export function SearchableVirtualMemberList<T extends SearchableMemberListItem>(
   items,
   renderItem,
   emptyLabel = 'No members found',
+  noResultsLabel = 'No members match your search',
   searchPlaceholder = 'Search members…',
   listAriaLabel = 'Member list',
   maxHeightClassName = 'max-h-[50vh]',
@@ -63,7 +65,9 @@ export function SearchableVirtualMemberList<T extends SearchableMemberListItem>(
       )}
 
       {filteredItems.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-6">{emptyLabel}</p>
+        <p className="text-sm text-muted-foreground text-center py-6">
+          {items.length === 0 ? emptyLabel : noResultsLabel}
+        </p>
       ) : shouldVirtualize ? (
         <div
           ref={parentRef}

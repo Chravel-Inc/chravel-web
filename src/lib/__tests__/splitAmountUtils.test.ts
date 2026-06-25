@@ -30,6 +30,6 @@ describe('splitAmountUtils', () => {
   });
 
   it('returns base share for uneven splits', () => {
-    expect(getDisplayPerPersonAmount(10, 3)).toBe(3.34);
+    expect(getDisplayPerPersonAmount(10, 3)).toBe(3.33);
   });
 });
