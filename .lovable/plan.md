@@ -1,82 +1,73 @@
 ## Goal
-Transform the marketing surface from generic SaaS into a premium editorial feel — without rewriting any copy. Hierarchy comes from **typeface contrast (serif ↔ sans)**, **weight contrast (300 vs 700)**, and **tracking** — not from color tricks or rainbow gradients.
+Resolve both rejection items for v2.0(53) so the app can be resubmitted:
+1. **2.1(a)** — "App goes back to login page after sign in with Apple" on iPhone 17 Pro Max / iOS 26.5.
+2. **3.1.1** — App still contains paths to purchase digital subscriptions via mechanisms other than IAP.
 
-## Type system
+What I can change is the web bundle the Capacitor / chravel-mobile WebView loads. The native Apple-bridge ships from the separate `chravel-mobile` repo, so the web fix has to be defense-in-depth on the WebView side.
 
-**Install via `@fontsource`** (per workspace rules — no CDN, no `<link>` in index.html):
-- `@fontsource/dm-serif-display` (400, 400-italic) → display
-- `@fontsource/fira-sans` (300, 400, 500, 600, 700) → body + eyebrow
+---
 
-Wire in `src/main.tsx`, register in `tailwind.config.ts`:
-```
-fontFamily: {
-  display: ['"DM Serif Display"', 'Georgia', 'serif'],
-  sans:    ['"Fira Sans"', 'system-ui', 'sans-serif'],
-}
-```
+## 1. Apple Sign-In loop fix (2.1a)
 
-Keep existing `font-sans` default = Fira Sans. App-shell (authenticated product) is untouched.
+### Root cause (most likely)
+Native `window.ChravelNative.signInWithApple` isn't in build 53, so `useAuth.signInWithApple` falls through to `supabase.auth.signInWithOAuth({ provider: 'apple' })` with `skipBrowserRedirect: true` and hands the URL to `openInstalledAuthBrowser`. Apple completes auth and redirects to `https://chravel.app/auth-callback#access_token=…`, but that hash is delivered to ASWebAuthenticationSession, never to the main WebView. The WebView reloads on the original `/auth` URL with no session → user is bounced to login.
 
-## Stylization recipe — "Pure weight contrast"
+### Changes (web side)
+1. **`src/integrations/supabase/client.ts`** — set `auth.flowType: 'pkce'`. PKCE returns `?code=` (query) instead of `#access_token` (hash), survives the ASWeb round-trip better, and lets us `exchangeCodeForSession` explicitly.
+2. **New `src/pages/AuthCallbackPage.tsx`** + wire it to `/auth-callback` in `src/App.tsx` (replace current `AuthPage` mount for that route).
+   - On mount, if `?code=` or `#access_token` is present, call `supabase.auth.exchangeCodeForSession(window.location.href)` (PKCE) or rely on hash detection. Await `getSession()` with a short retry loop (up to ~3s).
+   - On success → `navigate(returnTo, { replace: true })` (default `/`).
+   - On failure → show clear error + "Try email instead" button that navigates to `/auth?mode=signin`. Never silently bounce back to login.
+   - Read `returnTo` from query, validated like `AuthPage`.
+3. **`src/hooks/useAuth.tsx` — `signInWithApple`** — when no native bridge AND `openInstalledAuthBrowser` returns `web-redirect` inside a native shell, surface the same "update Chravel" error already used for missing bridge, instead of silently `location.assign`-ing inside the WebView (which is the failure mode App Review saw).
+4. **`src/components/AuthModal.tsx`** — make email/password the primary visual CTA above OAuth providers on iOS native shell, so App Review (and any user blocked by the OAuth flow) can complete sign-in. (No copy change to web.) Detection via `isNativeAuthSurface()` + iOS UA.
 
-One rule per element type, applied consistently:
+### Verification
+- Build passes.
+- Manual: hit `/auth-callback?code=fake` in dev — page shows error + fallback CTA (no infinite redirect).
+- Manual on iOS Safari (best proxy we have without the binary): Email login flow works inside `/auth` and lands at `/`.
 
-| Element | Treatment |
+---
+
+## 2. Remove all external-checkout entry points on iOS (3.1.1)
+
+Today, iOS already blocks **consumer** Stripe checkout (`blockConsumerCheckoutOnIOS` in `ConsumerBillingSection.tsx`), but these paths are still reachable inside the native iOS WebView:
+
+| Surface | Calls `create-checkout` and opens external Stripe URL |
 |---|---|
-| Eyebrow / kicker | `font-sans` · `uppercase` · `tracking-[0.22em]` · `text-xs` · `font-medium` · muted gold (existing `--primary`) |
-| H1 / hero | `font-display` · `font-normal` · `tracking-[-0.02em]` · `leading-[1.05]` · oversized (clamp 44→96px) |
-| H2 / section | `font-display` · `font-normal` · `tracking-[-0.015em]` · clamp 32→64px |
-| H3 / card title | `font-sans` · `font-semibold` (600) · `tracking-tight` |
-| Lede / sub-headline | `font-sans` · `font-light` (300) · `text-lg/relaxed` · 80ch max |
-| Body | `font-sans` · `font-normal` · `leading-relaxed` |
-| Button / nav | `font-sans` · `font-medium` · `tracking-wide` |
-| Stat number | `font-display` · oversized · `tabular-nums` |
+| `src/components/conversion/PricingSection.tsx` | Trip Pass purchase, Pro CTA (visible to logged-out users on landing inside the WebView) |
+| `src/components/conversion/TripPassModal.tsx` | Both Trip Pass tiers |
+| `src/components/UpgradeModal.tsx` | All consumer + Pro tiers |
+| `src/components/ProUpgradeModal.tsx` | Pro tier trial |
+| `src/components/consumer/ConsumerBillingSection.tsx` → `handleUpgradeToProPlan` | Pro/Org plans (NOT gated today) |
 
-**Weight contrast inside headlines:** the existing copy already has em-dashes and natural breaks. Where a headline has two clauses, set the lead-in in `font-light italic` (DM Serif's italic) and the payoff in regular roman — e.g. *"Built for group planning."* / "All your trip's important info." This adds rhythm without changing copy.
+### Changes
+Introduce a single helper `isIOSNativeShell()` (already derivable from `detectNativeBillingPlatform(ua, isNativeWebView()) === 'ios'`) and gate every external-checkout button across the surfaces above:
 
-**No** gold word-highlights, **no** per-word color swaps, **no** rainbow gradients. Premium = restraint.
+- On iOS native shell, **hide** Trip Pass cards and replace the "Upgrade to …" CTAs with a disabled button labeled `Manage on chravel.app` (no external link, no `window.open`). Add a one-line note: *"Subscriptions are managed on chravel.app on the web."* No "tap here" — Apple flagged steering language.
+- `PricingSection.tsx` — when iOS native shell, hide the "Trip Passes" tab entirely and replace `handlePassPurchase` / Pro CTAs with the same disabled state. The marketing pricing grid should still render for context, just without purchase actions.
+- `TripPassModal.tsx`, `UpgradeModal.tsx`, `ProUpgradeModal.tsx` — when iOS, render an info state instead of the purchase button.
+- `ConsumerBillingSection.tsx` `handleUpgradeToProPlan` — guard with `if (isNativeIOS) return;` and disable Pro upgrade buttons with the same label.
 
-## Files to touch (full marketing surface)
+### Verification
+- `rg "create-checkout"` and `rg "window.open\(.*url"` — confirm every hit in `src/components/**` is wrapped by the iOS guard.
+- Build + typecheck pass.
+- Manual (desktop browser with UA spoof to iOS WKWebView): every purchase button is disabled or hidden, no `create-checkout` invocations fire.
 
-Landing sections (`src/components/landing/sections/`):
-- `HeroSection.tsx`
-- `AiFeaturesSection.tsx`
-- `UseCasesSection.tsx`
-- `HowItWorksSection.tsx`
-- `FaqSection.tsx`
-- `FullPageLandingSection.tsx` (eyebrow + section-title wrapper if present)
+---
 
-Conversion blocks (`src/components/conversion/`):
-- `PricingSection.tsx`
-- `ReplacesGrid.tsx`
-- any CTA blocks rendered on landing
+## Out of scope (explicit)
+- Native `chravel-mobile` Expo shell changes (signing-in-with-Apple bridge, `openOAuthUrl`) — separate repo, separate submission. Recommend you also ship the native `signInWithApple` bridge in the next build; PKCE + AuthCallback page is the web-side belt to the native suspenders.
+- RevenueCat IAP wiring on iOS (already implemented in `NativeSettings.tsx`). No change here.
 
-Marketing pages:
-- `src/pages/BlogIndex.tsx`, `src/pages/BlogPost.tsx`
-- `src/pages/UseCasesHub.tsx`, `src/pages/UseCasePage.tsx`
+## Rollback
+All edits are additive guards + one new page; revert the four touched files and delete `AuthCallbackPage.tsx` to restore current behavior.
 
-Nav:
-- `src/components/landing/StickyLandingNav.tsx`
-- `src/components/landing/MobileLandingNav.tsx`
-(font-family + tracking only; no layout changes)
-
-Config:
-- `src/main.tsx` — font imports
-- `tailwind.config.ts` — `fontFamily.display` + `fontFamily.sans`
-- `src/index.css` — optional `font-feature-settings: 'ss01','liga','kern'` on `body` for refined rendering
-
-## Out of scope
-- No copy edits (user explicit: keep all text as is)
-- No layout, spacing, or section reordering
-- No color/background changes — backgrounds stay the cinematic gold-black photography
-- App-shell (post-login) untouched
-- No new dependencies beyond the two `@fontsource` packages
-
-## Verification
-1. `npm run typecheck && npm run lint && npm run build` clean
-2. Visual pass at 440px, 768px, 1280px on `/`, `/blog`, `/use-cases`
-3. Confirm DM Serif Display loads (no FOUT flash to Georgia) — `font-display: swap` via @fontsource default is fine
-4. Confirm authenticated app shell visually unchanged
-
-## Risk
-LOW. Additive font registration + className swaps. Rollback = revert the touched files; fonts auto-tree-shake if unused.
+## Deferral footer
+- **Fixed now:** PKCE flow, explicit `/auth-callback` page with retry + error fallback, native-bridge missing → friendly error (not silent redirect), all iOS external-checkout buttons hidden/disabled.
+- **Discovered:** `handleUpgradeToProPlan` in `ConsumerBillingSection` had no iOS guard; `PricingSection` Trip Pass + Pro CTAs had no iOS guard.
+- **Intentionally deferred:** native `chravel-mobile` Apple bridge ship — different repo.
+- **Why deferred:** can't touch that repo from here; web-side PKCE+callback covers the failure mode independently.
+- **Follow-up prompt:** *"In chravel-mobile, ship `window.ChravelNative.signInWithApple` using `expo-apple-authentication` and ensure `openOAuthUrl` reloads the callback URL in the main WebView so PKCE `exchangeCodeForSession` runs."*
+- **Validation:** lint + typecheck + build; manual check of `/auth-callback?code=xxx` and every gated button.
+- **Remaining launch blockers:** none from this branch; resubmit after native bridge ships if Apple repros.

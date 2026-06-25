@@ -22,7 +22,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { detectNativeBillingPlatform, isNativeWebView } from '@/utils/platformDetection';
+import { detectNativeBillingPlatform, isIOSNativeShell, isNativeWebView } from '@/utils/platformDetection';
 import { toast } from 'sonner';
 // Pricing/tier data from the central source of truth (billing/config.ts).
 import { SUBSCRIPTION_TIERS } from '@/types/pro';
@@ -306,7 +306,13 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
   const [tripPassOpen, setTripPassOpen] = useState(false);
   const [passLoading, setPassLoading] = useState<string | null>(null);
 
+  const blockOnIOS = isIOSNativeShell();
+
   const handlePassPurchase = async (passId: string) => {
+    if (blockOnIOS) {
+      toast.info('Trip Passes are available on chravel.app on the web.');
+      return;
+    }
     setPassLoading(passId);
     try {
       const {
