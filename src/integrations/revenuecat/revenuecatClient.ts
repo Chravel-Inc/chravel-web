@@ -145,6 +145,16 @@ export async function configureRevenueCat(
     });
 
     console.log('[RevenueCat] Configured successfully for user:', userId);
+
+    // Fire-and-forget runtime audit: do every REQUIRED iOS product ID exist
+    // in the live RevenueCat offerings? Logs missing IDs so dashboard drift
+    // surfaces in Sentry/console rather than as opaque purchase failures.
+    if (platform === 'ios') {
+      void assertIosOfferingsContainRequiredProducts(isDemoMode).catch(err => {
+        console.warn('[RevenueCat] Offerings audit failed:', err);
+      });
+    }
+
     return { success: true, supported: true };
 
   } catch (error) {
