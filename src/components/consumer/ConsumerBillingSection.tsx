@@ -158,6 +158,28 @@ export const ConsumerBillingSection = () => {
     }
   };
 
+  const handleConsumerUpgrade = async (
+    consumerTier: 'explorer' | 'frequent-chraveler',
+    cycle: 'monthly' | 'annual',
+  ) => {
+    if (isNativeIOS) {
+      const result = await purchaseConsumerSubscription(consumerTier, cycle);
+      if (result.success) {
+        toast.success('Subscription activated!');
+        await checkSubscription();
+      } else if (result.errorCode === 'CANCELLED') {
+        // silent
+      } else if (!result.supported) {
+        toast.error('In-app purchases are not available on this device.');
+      } else {
+        toast.error(result.error || 'Failed to start purchase.');
+      }
+      return;
+    }
+    await upgradeToTier(consumerTier, cycle);
+  };
+
+
   const plans = {
     free: {
       name: 'Free',
