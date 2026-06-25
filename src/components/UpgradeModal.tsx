@@ -433,19 +433,15 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
 
         {/* Action Buttons */}
         <div className="flex flex-col items-center">
-          {blockOnIOS && (
-            <p className="text-xs text-muted-foreground mb-3">
-              Subscriptions are managed on chravel.app on the web.
-            </p>
-          )}
           <button
             onClick={handleUpgrade}
-            disabled={isLoading || blockOnIOS}
+            disabled={isLoading}
             className="px-8 py-3 bg-gradient-to-r from-gold-primary to-gold-mid hover:from-gold-mid hover:to-gold-primary text-primary-foreground font-medium rounded-2xl transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50"
           >
-            {blockOnIOS ? 'Manage on chravel.app' : isLoading ? 'Processing...' : 'Start Free Trial'}
+            {isLoading ? 'Processing...' : iosNative ? 'Subscribe with Apple' : 'Start Free Trial'}
           </button>
         </div>
+
       </div>
     </div>
   );
