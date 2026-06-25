@@ -295,17 +295,14 @@ export const ConsumerBillingSection = () => {
 
         {!isSubscribed && (
           <button
-            onClick={() => upgradeToTier('explorer', billingCycle)}
-            disabled={isLoading || useAppleManagementOnIOS}
+            onClick={() => handleConsumerUpgrade('explorer', billingCycle)}
+            disabled={isLoading}
             className="bg-gradient-to-r from-gold-primary to-gold-mid hover:from-gold-mid hover:to-gold-primary text-black px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
           >
-            {useAppleManagementOnIOS
-              ? 'Unavailable on iOS'
-              : isLoading
-                ? 'Processing...'
-                : 'View Upgrade Options'}
+            {isLoading ? 'Processing...' : 'View Upgrade Options'}
           </button>
         )}
+
 
         {isSubscribed && (
           <div className="flex gap-3">
