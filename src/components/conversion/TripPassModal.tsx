@@ -6,8 +6,10 @@ import { Badge } from '../ui/badge';
 import { Check, Globe, Crown, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { detectNativeBillingPlatform, isIOSNativeShell, isNativeWebView } from '@/utils/platformDetection';
+import { purchaseTripPass } from '@/integrations/revenuecat/revenuecatClient';
 import { toast } from 'sonner';
 import { CONSUMER_PRICE_DISPLAY, TRIP_PASS_DISPLAY } from '@/billing/pricingDisplay';
+
 
 interface TripPassModalProps {
   open: boolean;
