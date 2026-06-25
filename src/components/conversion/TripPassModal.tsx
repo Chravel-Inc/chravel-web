@@ -58,21 +58,35 @@ const passes = [
 
 export const TripPassModal: React.FC<TripPassModalProps> = ({ open, onOpenChange }) => {
   const [loading, setLoading] = useState<string | null>(null);
-  const blockOnIOS = isIOSNativeShell();
+  const iosNative = isIOSNativeShell();
 
   const handlePurchase = async (passId: string) => {
-    if (blockOnIOS) {
-      toast.info('Trip Passes are available on chravel.app on the web.');
-      return;
-    }
     setLoading(passId);
     try {
+      // iOS native shell — Apple IAP via RevenueCat (Guideline 3.1.1)
+      if (iosNative) {
+        const tier: 'explorer' | 'frequent-chraveler' =
+          passId === 'pass-explorer-45' ? 'explorer' : 'frequent-chraveler';
+        const result = await purchaseTripPass(tier);
+        if (result.success) {
+          toast.success('Trip Pass activated! Premium features are unlocking…');
+          onOpenChange(false);
+        } else if (result.errorCode === 'CANCELLED') {
+          // user dismissed — silent
+        } else if (!result.supported) {
+          toast.error('In-app purchases are not available on this device.');
+        } else {
+          toast.error(result.error || 'Failed to purchase Trip Pass. Please try again.');
+        }
+        return;
+      }
+
+      // Web / Android web shell — Stripe Checkout
       const {
         data: { session },
       } = await supabase.auth.getSession();
       if (!session) {
         toast.error('Please sign in to purchase a Trip Pass');
-        setLoading(null);
         return;
       }
 
@@ -99,6 +113,7 @@ export const TripPassModal: React.FC<TripPassModalProps> = ({ open, onOpenChange
       setLoading(null);
     }
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
