@@ -941,6 +941,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 'Your Chravel app needs an update to sign in with Apple. Please update from the App Store and try again.',
             };
           }
+          // Belt-and-suspenders: if we're in a native shell but ended up on the
+          // unsafe `web-redirect` path (no Capacitor Browser, no ChravelNative
+          // bridge), refuse to strand the user inside the WebView's provider
+          // chain — surface an actionable error instead (App Store 2.1a).
+          if (
+            result.strategy === 'web-redirect' &&
+            (isCapacitorNativeShell() || isChravelNativeShell())
+          ) {
+            return {
+              error:
+                'Your Chravel app needs an update to sign in with Apple. Please update from the App Store, or sign in with email.',
+            };
+          }
         }
 
 
