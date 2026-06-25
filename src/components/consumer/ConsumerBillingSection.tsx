@@ -124,20 +124,16 @@ export const ConsumerBillingSection = () => {
   const handleUpgradeToProPlan = async (planKey: string) => {
     // iOS native shell — Apple IAP via RevenueCat (Guideline 3.1.1)
     if (isNativeIOS) {
-      const result = await purchaseProSubscription(
-        planKey as 'pro-starter' | 'pro-growth' | 'pro-enterprise',
-        'monthly',
-      );
-      if (result.success) {
-        toast.success('Chravel Pro activated!');
-        await checkSubscription();
-      } else if (result.errorCode === 'CANCELLED') {
-        // silent
-      } else if (!result.supported) {
-        toast.error('In-app purchases are not available on this device.');
-      } else {
-        toast.error(result.error || 'Failed to start purchase.');
-      }
+      const tier = planKey as 'pro-starter' | 'pro-growth' | 'pro-enterprise';
+      const attempt = () => purchaseProSubscription(tier, 'monthly');
+      const result = await attempt();
+      handlePurchaseResult(result, {
+        successMessage: 'Chravel Pro activated!',
+        successDescription: 'Your Pro features are unlocking now.',
+        onRetry: () => void handleUpgradeToProPlan(planKey),
+        context: tier,
+      });
+      if (result.success) await checkSubscription();
       return;
     }
     try {
@@ -167,20 +163,18 @@ export const ConsumerBillingSection = () => {
   ) => {
     if (isNativeIOS) {
       const result = await purchaseConsumerSubscription(consumerTier, cycle);
-      if (result.success) {
-        toast.success('Subscription activated!');
-        await checkSubscription();
-      } else if (result.errorCode === 'CANCELLED') {
-        // silent
-      } else if (!result.supported) {
-        toast.error('In-app purchases are not available on this device.');
-      } else {
-        toast.error(result.error || 'Failed to start purchase.');
-      }
+      handlePurchaseResult(result, {
+        successMessage: 'Subscription activated!',
+        successDescription: 'Your premium features are unlocking now.',
+        onRetry: () => void handleConsumerUpgrade(consumerTier, cycle),
+        context: `${consumerTier}/${cycle}`,
+      });
+      if (result.success) await checkSubscription();
       return;
     }
     await upgradeToTier(consumerTier, cycle);
   };
+
 
 
   const plans = {
