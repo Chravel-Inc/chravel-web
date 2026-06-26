@@ -444,7 +444,7 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
       <div className="text-center space-y-6">
         <div className="inline-block accent-fill-gold px-6 py-4 rounded-lg max-w-3xl mx-auto">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-black mb-2">
-            Start free. Upgrade when your trip gets serious.
+            Start free. Upgrade when you're ready for relief.
           </h2>
           <p className="text-sm sm:text-base md:text-lg text-black font-bold leading-relaxed break-words">
             Don't lose receipts, links, or the final plan.{' '}
