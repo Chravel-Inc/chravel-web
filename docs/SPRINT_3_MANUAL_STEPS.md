@@ -590,7 +590,7 @@ The Supabase sync is fully implemented:
 2. **Entitlement sync triggered** → `useEntitlementsSync` hook runs
 3. **RevenueCat configured** → `configureRevenueCat(userId)` called (iOS only)
 4. **Customer info fetched** → `getCustomerInfo()` from RevenueCat
-5. **Sync to Supabase** → POST to `sync-revenuecat-entitlement` edge function
+5. **Sync to Supabase** → POST to `sync-revenuecat-entitlement` edge function, which verifies the subscriber via RevenueCat's secret server API before writing `user_entitlements`
 6. **Database updated** → `user_entitlements` table upserted
 7. **App state updated** → `entitlementsStore.refreshEntitlements(userId)`
 8. **UI reflects entitlements** → Premium features unlocked/locked
@@ -616,9 +616,7 @@ Or from web console:
 
 ```javascript
 // Browser console
-const { data, error } = await supabase.functions.invoke('sync-revenuecat-entitlement', {
-  body: { customerInfo: { /* data from RevenueCat */ } }
-});
+const { data, error } = await supabase.functions.invoke('sync-revenuecat-entitlement');
 console.log('Sync result:', data);
 ```
 

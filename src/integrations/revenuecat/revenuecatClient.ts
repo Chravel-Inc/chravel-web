@@ -23,6 +23,8 @@ import type {
   RevenueCatOfferings,
   RevenueCatPurchaseResult,
   DerivedPlan,
+  SyncEntitlementLane,
+  SyncEntitlementsResponse,
 } from './types';
 import type { SubscriptionTier } from '@/billing/types';
 import { toast } from 'sonner';
@@ -540,9 +542,7 @@ export async function syncRevenueCatEntitlementsForUser(
     return customerInfoResult;
   }
 
-  const syncResult = await supabase.functions.invoke('sync-revenuecat-entitlement', {
-    body: { customerInfo: customerInfoResult.data },
-  });
+  const syncResult = await supabase.functions.invoke('sync-revenuecat-entitlement');
 
   if (syncResult.error) {
     return {
@@ -562,7 +562,7 @@ export function derivePlanFromCustomerInfo(customerInfo: RevenueCatCustomerInfo)
 
   // Default to free
   let tier: SubscriptionTier = 'free';
-  let status: 'active' | 'trialing' | 'expired' | 'canceled' = 'active';
+  let status: 'active' | 'trialing' | 'past_due' | 'expired' | 'canceled' = 'active';
   let currentPeriodEnd: Date | null = null;
 
   // Check for highest tier entitlement (frequent-chraveler > explorer)
@@ -604,6 +604,47 @@ export function derivePlanFromCustomerInfo(customerInfo: RevenueCatCustomerInfo)
     currentPeriodEnd,
     source: 'revenuecat',
     entitlements: entitlementIds,
+  };
+}
+
+function hasSyncedLaneAccess(lane: SyncEntitlementLane): boolean {
+  if (lane.status === 'active' || lane.status === 'trialing' || lane.status === 'past_due') {
+    return true;
+  }
+
+  return (
+    lane.status === 'canceled' &&
+    !!lane.currentPeriodEnd &&
+    new Date(lane.currentPeriodEnd) > new Date()
+  );
+}
+
+function derivePlanFromSyncedEntitlements(syncResponse: SyncEntitlementsResponse): DerivedPlan {
+  const lanes = syncResponse.entitlements ?? [];
+  const preferredLane =
+    lanes.find(lane => lane.purchaseType === 'subscription' && hasSyncedLaneAccess(lane)) ||
+    lanes.find(lane => lane.purchaseType === 'pass' && hasSyncedLaneAccess(lane)) ||
+    lanes.find(lane => lane.purchaseType === 'subscription') ||
+    lanes[0];
+
+  if (!preferredLane) {
+    return {
+      tier: 'free',
+      status: 'expired',
+      currentPeriodEnd: null,
+      source: 'revenuecat',
+      entitlements: [],
+    };
+  }
+
+  return {
+    tier: preferredLane.plan,
+    status: preferredLane.status,
+    currentPeriodEnd: preferredLane.currentPeriodEnd
+      ? new Date(preferredLane.currentPeriodEnd)
+      : null,
+    source: 'revenuecat',
+    entitlements: preferredLane.entitlementIds,
   };
 }
 
@@ -702,19 +743,27 @@ export async function restoreAndSyncEntitlements(
 
   // Push restored entitlements to the backend so server-side checks
   // (`useConsumerSubscription`, edge function gating) reflect them.
-  const syncRes = await supabase.functions.invoke('sync-revenuecat-entitlement', {
-    body: { customerInfo },
-  });
+  const syncRes = await supabase.functions.invoke('sync-revenuecat-entitlement');
   if (syncRes.error) {
     console.warn('[RevenueCat] Restore sync failed:', syncRes.error);
+    return {
+      success: false,
+      supported: true,
+      errorCode: 'UNKNOWN',
+      error: syncRes.error.message || 'Failed to sync restored RevenueCat entitlements',
+    };
   }
+  const syncData = syncRes.data as SyncEntitlementsResponse | null;
+  const verifiedPlan = derivePlanFromSyncedEntitlements(
+    syncData ?? { success: true, entitlements: [] },
+  );
 
   // Sanity-check entitlement → feature mapping for diagnosability after
   // restore / app relaunch. Warnings here mean RevenueCat is returning an
   // entitlement ID we don't know about (dashboard drift).
   verifyEntitlementMapping(customerInfo);
 
-  return { success: true, supported: true, data: { customerInfo, plan } };
+  return { success: true, supported: true, data: { customerInfo, plan: verifiedPlan } };
 }
 
 /**

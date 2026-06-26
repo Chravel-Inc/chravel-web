@@ -224,14 +224,14 @@ is resolved (see #1/#4 follow-ups).
 | `customer-portal` | Stripe billing portal session | Looks up customer by email |
 | `fetch-invoices` | List Stripe invoices | Repointed to `profiles` |
 | `revenuecat-webhook` | Process RC events → `user_entitlements` | Auth via `REVENUECAT_WEBHOOK_SECRET`; idempotent; stale-expiration guard |
-| `sync-revenuecat-entitlement` | Client-initiated RC → Supabase sync | Web RC path |
+| `sync-revenuecat-entitlement` | Native client-triggered RC verification → Supabase sync | Server verifies via RevenueCat subscriber API before writing `user_entitlements` |
 | `organization-billing-portal` | B2B org billing portal | `organization_billing` table |
 | `payment-reminders` | Overdue **trip expense** reminders | Not subscription billing |
 
 **Env / secrets:** Frontend `VITE_STRIPE_PUBLISHABLE_KEY`, `VITE_ENABLE_STRIPE_PAYMENTS`,
 `VITE_REVENUECAT_API_KEY` (web), `VITE_REVENUECAT_IOS_API_KEY` / `_ANDROID_API_KEY`,
 `VITE_REVENUECAT_*_ENTITLEMENT_ID`. Edge secrets (Supabase Dashboard, **not** in `.env`): `STRIPE_SECRET_KEY`,
-`STRIPE_WEBHOOK_SECRET`, `REVENUECAT_WEBHOOK_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`. Test vs live is governed by key
+`STRIPE_WEBHOOK_SECRET`, `REVENUECAT_WEBHOOK_SECRET`, `REVENUECAT_SECRET_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. Test vs live is governed by key
 prefix (`sk_test_`/`sk_live_`, `pk_test_`/`pk_live_`, `whsec_…`). **Confirm production uses live keys and the
 Stripe webhook endpoint points at the production function** via the browser-agent scripts.
 
