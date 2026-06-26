@@ -1,4 +1,10 @@
 
+2026-06-26 — RevenueCat entitlement sync server verification
+- Replaced the unsafe `sync-revenuecat-entitlement` request-body trust model with a server-side RevenueCat subscriber lookup using `REVENUECAT_SECRET_API_KEY`, so authenticated users can no longer forge paid entitlements by posting fake `customerInfo`.
+- Added pure sync-state derivation + tests for active/trial/past_due, refunded subscriptions, missing product identifiers, and Trip Pass lane separation; the edge function now preserves distinct `subscription` and `pass` rows on `user_entitlements`.
+- Updated native restore flow to fail when backend sync fails and to drive the success tier from the server-verified sync lanes instead of transient SDK state. Validation: targeted vitest suites plus lint/typecheck/build passed.
+- Discovered follow-up: `src/integrations/revenuecat/revenuecatClient.ts` still has a stubbed Purchases loader (`const Purchases = null`), so the native purchase/restore UI surfaces remain non-functional until the mobile shell or plugin bridge is wired back in.
+
 2026-06-26 — Repo-wide bug audit: direct push target authorization
 - Audited auth, invites/share, payments, AI/imports, edge functions, and notification senders for confirmed high-severity issues instead of limiting to recent commits.
 - Fixed `send-push` so authenticated callers can no longer send arbitrary direct push notifications to unrelated users: non-self direct sends now require a trip context, the caller must be an active member of that trip, every target must be an active member of the same trip, and mismatched `body.tripId` vs `notification.data.tripId` payloads are rejected.
