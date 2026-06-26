@@ -108,23 +108,18 @@ export interface RevenueCatPurchaseResult extends RevenueCatResult<RevenueCatCus
  */
 export interface DerivedPlan {
   tier: SubscriptionTier;
-  status: 'active' | 'trialing' | 'expired' | 'canceled';
+  status: 'active' | 'trialing' | 'past_due' | 'expired' | 'canceled';
   currentPeriodEnd: Date | null;
   source: 'revenuecat';
   entitlements: string[];
 }
 
-/**
- * Sync request to edge function
- */
-export interface SyncEntitlementsRequest {
-  customerInfo: {
-    originalAppUserId: string;
-    entitlements: {
-      active: Record<string, { isActive: boolean; expirationDate: string | null }>;
-    };
-    latestExpirationDate: string | null;
-  };
+export interface SyncEntitlementLane {
+  purchaseType: 'subscription' | 'pass';
+  plan: SubscriptionTier;
+  status: 'active' | 'trialing' | 'past_due' | 'expired' | 'canceled';
+  currentPeriodEnd: string | null;
+  entitlementIds: string[];
 }
 
 /**
@@ -132,9 +127,8 @@ export interface SyncEntitlementsRequest {
  */
 export interface SyncEntitlementsResponse {
   success: boolean;
-  plan: SubscriptionTier;
-  status: 'active' | 'trialing' | 'expired' | 'canceled';
-  currentPeriodEnd: string | null;
-  entitlements: string[];
+  synced?: boolean;
+  reason?: 'no_change';
+  entitlements: SyncEntitlementLane[];
   error?: string;
 }

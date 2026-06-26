@@ -18,6 +18,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { sendFcmV1, toFcmData } from '../_shared/fcmV1.ts';
+import { authorizeDirectPushUserIds } from '../_shared/pushTargetAuthorization.ts';
 
 // Push notification payload types
 interface PushPayload {
@@ -335,13 +336,24 @@ Deno.serve(async req => {
     // Parse request
     const body: SendPushRequest = await req.json();
 
-    // Authorization: If sending to a trip, verify the caller is a trip member
-    if (body.tripId) {
+    const notificationTripId = body.notification?.data?.tripId;
+    const authorizationTripId = body.tripId || notificationTripId || null;
+
+    if (body.tripId && notificationTripId && body.tripId !== notificationTripId) {
+      return new Response(JSON.stringify({ error: 'tripId must match notification.data.tripId' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Authorization: If sending to a trip, verify the caller is an active trip member
+    if (authorizationTripId) {
       const { data: membership, error: memberError } = await supabase
         .from('trip_members')
         .select('id')
-        .eq('trip_id', body.tripId)
+        .eq('trip_id', authorizationTripId)
         .eq('user_id', callerUserId)
+        .or('status.is.null,status.eq.active')
         .maybeSingle();
       if (memberError || !membership) {
         return new Response(
@@ -374,7 +386,8 @@ Deno.serve(async req => {
       const { data: members, error: membersError } = await supabase
         .from('trip_members')
         .select('user_id')
-        .eq('trip_id', body.tripId);
+        .eq('trip_id', body.tripId)
+        .or('status.is.null,status.eq.active');
 
       if (membersError) {
         console.error('[send-push] Failed to fetch trip members:', membersError);
@@ -385,6 +398,60 @@ Deno.serve(async req => {
       }
 
       targetUserIds = (members || []).map(m => m.user_id);
+    } else if (body.userIds?.length) {
+      const nonSelfTargets = body.userIds.filter(id => id !== callerUserId);
+
+      if (nonSelfTargets.length > 0) {
+        if (!authorizationTripId) {
+          return new Response(
+            JSON.stringify({
+              error: 'Direct notifications require a trip context unless you are sending to yourself',
+            }),
+            {
+              status: 403,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            },
+          );
+        }
+
+        const { data: activeMembers, error: activeMembersError } = await supabase
+          .from('trip_members')
+          .select('user_id')
+          .eq('trip_id', authorizationTripId)
+          .or('status.is.null,status.eq.active');
+
+        if (activeMembersError) {
+          console.error('[send-push] Failed to fetch trip members for direct send:', activeMembersError);
+          return new Response(JSON.stringify({ error: 'Failed to verify notification targets' }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        const authorization = authorizeDirectPushUserIds({
+          callerId: callerUserId,
+          requestedUserIds: body.userIds,
+          callerTripIds: [authorizationTripId],
+          sharedUserIds: (activeMembers || []).map(member => member.user_id),
+        });
+
+        if (authorization.unauthorizedUserIds.length > 0) {
+          console.warn(
+            `[send-push] Unauthorized targets for caller ${callerUserId}: ${authorization.unauthorizedUserIds.join(', ')}`,
+          );
+          return new Response(
+            JSON.stringify({
+              error: 'You can only send notifications to users you share a trip with',
+            }),
+            {
+              status: 403,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            },
+          );
+        }
+
+        targetUserIds = authorization.authorizedUserIds;
+      }
     }
 
     // Exclude sender if specified

@@ -56,6 +56,7 @@ These are set as Supabase project secrets (`supabase secrets set KEY=value`).
 | **Supabase Admin** | Supabase | `SUPABASE_SERVICE_ROLE_KEY` | All admin edge functions | Auto-provided by Supabase | N — core infra |
 | **Stripe Payments** | Stripe | `STRIPE_SECRET_KEY` | `create-checkout`, `stripe-webhook`, `check-subscription` | Stripe Dashboard > API Keys | Y — disable via feature flag |
 | **Stripe Webhook** | Stripe | `STRIPE_WEBHOOK_SECRET` | `stripe-webhook` | Stripe Dashboard > Webhooks | Y — disable via feature flag |
+| **RevenueCat Secret API** | RevenueCat | `REVENUECAT_SECRET_API_KEY` | `sync-revenuecat-entitlement` | RevenueCat Dashboard > Project Settings > API Keys (secret `sk_...`) | N — required for verified native entitlement sync |
 | **Stripe Prices** | Stripe | `STRIPE_PLUS_PRICE_ID`, `STRIPE_PRO_PRICE_ID` | `create-checkout` | Stripe Dashboard > Products | Y |
 | **AI / LLM** | Lovable | `LOVABLE_API_KEY` | `ai-answer`, `ai-search`, `ai-ingest`, `daily-digest`, `document-processor`, `file-ai-parser` | Lovable.dev dashboard | Y — disable via `VITE_ENABLE_AI_CONCIERGE=false` |
 | **Gemini (AI Concierge)** | Google AI Studio | `GEMINI_API_KEY` | `lovable-concierge` | [Google AI Studio](https://aistudio.google.com/apikey) | **Required** for direct Gemini. If missing, text falls back to Lovable. Set via `supabase secrets set GEMINI_API_KEY=...` then redeploy. (Realtime/bidirectional voice was removed for MVP — concierge is text + dictation only.) |

@@ -202,6 +202,9 @@ Don't rewrite SPA destination paths — preview metadata leaks into the live app
 ### OG/share proxy endpoints must fail over to HTML redirect pages when upstream returns JSON
 Crawlers expect HTML; a JSON 500 prevents Universal Link interception.
 
+### Direct push-target APIs must bind `userIds` to the same trip context they deliver
+A JWT alone only proves the sender's identity, not their right to notify arbitrary recipients; for push/email endpoints that accept explicit `userIds`, require self-only sends or verify the caller and every target against the same trip context carried in the payload, and reject mismatched `tripId` sources to prevent cross-trip spoofed deep links. *Evidence: June 2026 repo-wide audit fixed `send-push` so non-self direct sends require the request's active trip context and `body.tripId` must match `notification.data.tripId`.*
+
 ### Shared trip preview flows should self-heal missing active invites before exposing the join CTA
 Pending invite that's silently inactive = users see "Join" but hit a dead-end toast.
 
@@ -463,3 +466,6 @@ When pricing cards advertise limits or role/channel access, assert those claims 
 
 ### AI quota copy must be changed in both client and edge limit maps
 Concierge query caps are duplicated across UI copy, client helpers, and Supabase edge usage policy; changing a free/paid quota requires grep-driven updates plus parity tests for `FEATURE_LIMITS`, `FREEMIUM_LIMITS`, and `CONCIERGE_TRIP_QUERY_LIMITS`.
+
+### RevenueCat sync must verify server-side and preserve purchase lanes
+Never persist `user_entitlements` from client-supplied RevenueCat SDK payloads. Fetch the subscriber snapshot with a RevenueCat secret API key on the server, then upsert separate `purchase_type` lanes (`subscription` vs `pass`) so Trip Pass restores cannot overwrite the recurring-subscription row. *Evidence: June 2026 repo-wide audit hardened `sync-revenuecat-entitlement` to use `GET /v1/subscribers/{app_user_id}` and to persist native pass/subscription rows independently.*

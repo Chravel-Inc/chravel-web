@@ -2,28 +2,8 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { USER_ENTITLEMENT_CONFLICT_TARGET } from '../_shared/entitlementUpsert.ts';
-
-// Entitlement ID to plan mapping (must match RevenueCat dashboard)
-const ENTITLEMENT_TO_PLAN: Record<string, string> = {
-  chravel_explorer: 'explorer',
-  chravel_frequent_chraveler: 'frequent-chraveler',
-  chravel_pro_starter: 'pro-starter',
-  chravel_pro_growth: 'pro-growth',
-  chravel_pro_enterprise: 'pro-enterprise',
-};
-
-interface SyncRequest {
-  customerInfo: {
-    originalAppUserId: string;
-    entitlements: {
-      active: Record<
-        string,
-        { isActive: boolean; expirationDate: string | null; periodType?: string }
-      >;
-    };
-    latestExpirationDate: string | null;
-  };
-}
+import { createMissingSecretResponse, requireSecret } from '../_shared/validateSecrets.ts';
+import { deriveRevenueCatSyncStates, type RevenueCatSubscriberResponse } from './syncState.ts';
 
 serve(async req => {
   const corsHeaders = getCorsHeaders(req);
@@ -34,9 +14,11 @@ serve(async req => {
   }
 
   try {
+    const revenueCatSecretKey = requireSecret('REVENUECAT_SECRET_API_KEY', /^sk_/);
+
     // Get auth token
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    if (!authHeader?.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -65,118 +47,131 @@ serve(async req => {
       });
     }
 
-    // Parse request body
-    const body: SyncRequest = await req.json();
-    const { customerInfo } = body;
-
-    if (!customerInfo) {
-      return new Response(JSON.stringify({ error: 'Missing customerInfo' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    console.log('[sync-rc] Syncing entitlements for user:', user.id);
-    console.log(
-      '[sync-rc] Active entitlements:',
-      Object.keys(customerInfo.entitlements?.active || {}),
+    const subscriberResponse = await fetch(
+      `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(user.id)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${revenueCatSecretKey}`,
+          'Content-Type': 'application/json',
+        },
+      },
     );
 
-    // Derive plan from entitlements
-    let plan = 'free';
-    let status = 'active';
-    let currentPeriodEnd: string | null = null;
-    const entitlementIds: string[] = [];
+    if (!subscriberResponse.ok) {
+      const errorBody = await subscriberResponse.text();
+      console.error('[sync-rc] RevenueCat subscriber lookup failed', {
+        userId: user.id,
+        status: subscriberResponse.status,
+        body: errorBody.slice(0, 500),
+      });
 
-    const activeEntitlements = customerInfo.entitlements?.active || {};
-
-    // Find highest tier entitlement
-    for (const [entitlementId, info] of Object.entries(activeEntitlements)) {
-      if (info.isActive) {
-        entitlementIds.push(entitlementId);
-        const mappedPlan = ENTITLEMENT_TO_PLAN[entitlementId];
-        if (mappedPlan) {
-          // Priority: pro-enterprise > pro-growth > pro-starter > frequent-chraveler > explorer
-          const planPriority = [
-            'free',
-            'explorer',
-            'frequent-chraveler',
-            'pro-starter',
-            'pro-growth',
-            'pro-enterprise',
-          ];
-          if (planPriority.indexOf(mappedPlan) > planPriority.indexOf(plan)) {
-            plan = mappedPlan;
-          }
-        }
-        if (info.expirationDate) {
-          currentPeriodEnd = info.expirationDate;
-        }
-        if (info.periodType === 'trial') {
-          status = 'trialing';
-        }
-      }
+      return new Response(
+        JSON.stringify({ error: 'Failed to verify RevenueCat entitlement state' }),
+        {
+          status: 502,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      );
     }
 
-    // If no active entitlements, check if expired
-    if (entitlementIds.length === 0 && customerInfo.latestExpirationDate) {
-      const expDate = new Date(customerInfo.latestExpirationDate);
-      if (expDate < new Date()) {
-        status = 'expired';
-      }
-    }
+    const customerInfo = (await subscriberResponse.json()) as RevenueCatSubscriberResponse;
+    const derivedStates = deriveRevenueCatSyncStates(customerInfo);
+
+    console.log('[sync-rc] Syncing verified entitlements for user:', user.id);
+    console.log(
+      '[sync-rc] Active entitlements by purchase type:',
+      derivedStates.map(state => ({
+        purchaseType: state.purchaseType,
+        entitlements: state.entitlementIds,
+      })),
+    );
+
+    const revenueCatCustomerId =
+      derivedStates[0]?.revenueCatCustomerId ??
+      customerInfo.subscriber.original_app_user_id ??
+      null;
 
     // Use service role client to upsert (bypasses RLS)
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Idempotency guard: skip DB write when nothing has changed.
-    // RevenueCat sync is user-triggered and may fire repeatedly with identical state.
-    const { data: existing } = await serviceClient
+    const { data: existingRows, error: existingRowsError } = await serviceClient
       .from('user_entitlements')
-      .select('plan, status, current_period_end')
+      .select('plan, status, current_period_end, purchase_type, entitlements')
       .eq('user_id', user.id)
-      .eq('source', 'revenuecat')
-      .eq('purchase_type', 'subscription')
-      .maybeSingle();
+      .eq('source', 'revenuecat');
 
-    const normalizedPeriodEnd = currentPeriodEnd ? new Date(currentPeriodEnd).toISOString() : null;
-    const existingPeriodEnd = existing?.current_period_end
-      ? new Date(existing.current_period_end).toISOString()
-      : null;
+    if (existingRowsError) {
+      console.error('[sync-rc] Failed to load existing entitlement rows:', existingRowsError);
+      return new Response(JSON.stringify({ error: 'Failed to sync entitlements' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
-    if (
-      existing &&
-      existing.plan === plan &&
-      existing.status === status &&
-      existingPeriodEnd === normalizedPeriodEnd
-    ) {
+    const existingByPurchaseType = new Map(
+      (existingRows ?? []).map(row => [row.purchase_type, row] as const),
+    );
+
+    const statesToPersist = derivedStates.filter(
+      state => state.entitlementIds.length > 0 || existingByPurchaseType.has(state.purchaseType),
+    );
+
+    const rowsToUpsert = statesToPersist.filter(state => {
+      const existing = existingByPurchaseType.get(state.purchaseType);
+      const normalizedPeriodEnd = state.currentPeriodEnd
+        ? new Date(state.currentPeriodEnd).toISOString()
+        : null;
+      const existingPeriodEnd = existing?.current_period_end
+        ? new Date(existing.current_period_end).toISOString()
+        : null;
+      const normalizedEntitlements = [...state.entitlementIds].sort();
+      const existingEntitlements = Array.isArray(existing?.entitlements)
+        ? [...existing.entitlements].sort()
+        : [];
+
+      return !(
+        existing &&
+        existing.plan === state.plan &&
+        existing.status === state.status &&
+        existingPeriodEnd === normalizedPeriodEnd &&
+        existingEntitlements.length === normalizedEntitlements.length &&
+        existingEntitlements.every(
+          (entitlementId, index) => entitlementId === normalizedEntitlements[index],
+        )
+      );
+    });
+
+    if (rowsToUpsert.length === 0) {
       console.log('[sync-rc] No change detected — skipping DB write');
       return new Response(
         JSON.stringify({
           success: true,
           synced: false,
           reason: 'no_change',
-          plan,
-          status,
-          currentPeriodEnd,
-          entitlements: entitlementIds,
+          entitlements: statesToPersist.map(state => ({
+            purchaseType: state.purchaseType,
+            plan: state.plan,
+            status: state.status,
+            currentPeriodEnd: state.currentPeriodEnd,
+            entitlementIds: state.entitlementIds,
+          })),
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
     const { error: upsertError } = await serviceClient.from('user_entitlements').upsert(
-      {
+      rowsToUpsert.map(state => ({
         user_id: user.id,
         source: 'revenuecat',
-        plan,
-        status,
-        purchase_type: 'subscription',
-        current_period_end: currentPeriodEnd,
-        entitlements: entitlementIds,
-        revenuecat_customer_id: customerInfo.originalAppUserId,
+        plan: state.plan,
+        status: state.status,
+        purchase_type: state.purchaseType,
+        current_period_end: state.currentPeriodEnd,
+        entitlements: state.entitlementIds,
+        revenuecat_customer_id: revenueCatCustomerId ?? user.id,
         updated_at: new Date().toISOString(),
-      },
+      })),
       {
         onConflict: USER_ENTITLEMENT_CONFLICT_TARGET,
       },
@@ -190,22 +185,41 @@ serve(async req => {
       });
     }
 
-    console.log('[sync-rc] Successfully synced:', { plan, status, entitlements: entitlementIds });
+    console.log(
+      '[sync-rc] Successfully synced:',
+      rowsToUpsert.map(state => ({
+        purchaseType: state.purchaseType,
+        plan: state.plan,
+        status: state.status,
+        entitlements: state.entitlementIds,
+      })),
+    );
 
     return new Response(
       JSON.stringify({
         success: true,
         synced: true,
-        plan,
-        status,
-        currentPeriodEnd,
-        entitlements: entitlementIds,
+        entitlements: rowsToUpsert.map(state => ({
+          purchaseType: state.purchaseType,
+          plan: state.plan,
+          status: state.status,
+          currentPeriodEnd: state.currentPeriodEnd,
+          entitlementIds: state.entitlementIds,
+        })),
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
     );
   } catch (error) {
+    if (
+      error instanceof Error &&
+      (error.message.includes('Missing required secret: REVENUECAT_SECRET_API_KEY') ||
+        error.message.includes('Secret REVENUECAT_SECRET_API_KEY has invalid format'))
+    ) {
+      return createMissingSecretResponse(error, corsHeaders);
+    }
+
     console.error('[sync-rc] Error:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
