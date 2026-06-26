@@ -371,8 +371,10 @@ const JoinTrip = () => {
     }
   };
 
-  // Auto-join after auth completes (P0 conversion path)
-  // Only set autoJoinAttemptedRef on success so transient failures allow retry
+  // Auto-join after auth completes (P0 conversion path).
+  // Only auto-attempt once per loaded invite so an expired/stale session cannot
+  // loop the page into a perpetual "Requesting..." state. Users can still retry
+  // manually after the automatic attempt settles.
   useEffect(() => {
     if (!user) return;
     if (!token) return;
@@ -382,7 +384,7 @@ const JoinTrip = () => {
     if (joinSuccess) return;
     if (autoJoinAttemptedRef.current) return;
 
-    // Don't set ref here — set it only on successful completion inside handleJoinTrip
+    autoJoinAttemptedRef.current = true;
     void handleJoinTrip(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, token, inviteData, loading, joining, joinSuccess]);
@@ -428,11 +430,6 @@ const JoinTrip = () => {
         toast.error(data.message || 'Failed to join trip');
         setJoining(false);
         return;
-      }
-
-      // Mark auto-join as completed on success
-      if (isAutoJoin) {
-        autoJoinAttemptedRef.current = true;
       }
 
       // Post-join cleanup: invalidate queries and clear stored invite code

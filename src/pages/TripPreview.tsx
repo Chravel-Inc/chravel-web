@@ -37,6 +37,45 @@ const isUuid = (value: string): boolean =>
 const isActiveTripMember = (member: TripMemberAccessRow | null | undefined): boolean =>
   Boolean(member && (member.status == null || member.status === 'active'));
 
+const isMissingTripMemberStatusError = (error: unknown): boolean => {
+  const message =
+    error && typeof error === 'object' && 'message' in error ? String(error.message) : '';
+  return message.includes('status') && message.includes('trip_members');
+};
+
+const fetchTripMemberAccessRow = async (
+  tripId: string,
+  userId: string,
+): Promise<TripMemberAccessRow | null> => {
+  const statusQuery = await supabase
+    .from('trip_members')
+    .select('id, status')
+    .eq('trip_id', tripId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (!statusQuery.error) {
+    return (statusQuery.data as unknown as TripMemberAccessRow | null) ?? null;
+  }
+
+  if (!isMissingTripMemberStatusError(statusQuery.error)) {
+    throw statusQuery.error;
+  }
+
+  const fallbackQuery = await supabase
+    .from('trip_members')
+    .select('id')
+    .eq('trip_id', tripId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (fallbackQuery.error) {
+    throw fallbackQuery.error;
+  }
+
+  return (fallbackQuery.data as unknown as TripMemberAccessRow | null) ?? null;
+};
+
 const fetchTripPreviewPayload = async (
   tripId: string,
   options?: { ensureInvite?: boolean },
@@ -177,35 +216,37 @@ const TripPreview = () => {
     let mounted = true;
 
     async function checkMembership() {
-      const [memberResult, joinRequestResult] = await Promise.all([
-        supabase
-          .from('trip_members')
-          .select('id, status')
-          .eq('trip_id', tripId!)
-          .eq('user_id', user!.id)
-          .maybeSingle(),
-        supabase
-          .from('trip_join_requests')
-          .select('status')
-          .eq('trip_id', tripId!)
-          .eq('user_id', user!.id)
-          .order('requested_at', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-      ]);
+      try {
+        const [memberRow, joinRequestResult] = await Promise.all([
+          fetchTripMemberAccessRow(tripId!, user!.id),
+          supabase
+            .from('trip_join_requests')
+            .select('status')
+            .eq('trip_id', tripId!)
+            .eq('user_id', user!.id)
+            .order('requested_at', { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+        ]);
 
-      if (!mounted) return;
+        if (!mounted) return;
 
-      if (memberResult.error || joinRequestResult.error) {
+        if (joinRequestResult.error) {
+          setAccessCheckFailed(true);
+          setIsMember(false);
+          setJoinRequestStatus(null);
+          return;
+        }
+
+        setAccessCheckFailed(false);
+        setIsMember(isActiveTripMember(memberRow));
+        setJoinRequestStatus((joinRequestResult.data?.status as JoinRequestStatus) ?? null);
+      } catch {
+        if (!mounted) return;
         setAccessCheckFailed(true);
         setIsMember(false);
         setJoinRequestStatus(null);
-        return;
       }
-
-      setAccessCheckFailed(false);
-      setIsMember(isActiveTripMember(memberResult.data as TripMemberAccessRow | null));
-      setJoinRequestStatus((joinRequestResult.data?.status as JoinRequestStatus) ?? null);
     }
 
     checkMembership();
@@ -344,32 +385,33 @@ const TripPreview = () => {
         navigate(`/join/${activeInviteCode}`);
         return;
       }
-      const [refreshedMemberResult, refreshedJoinRequestResult] = await Promise.all([
-        supabase
-          .from('trip_members')
-          .select('id, status')
-          .eq('trip_id', tripId)
-          .eq('user_id', user.id)
-          .maybeSingle(),
-        supabase
-          .from('trip_join_requests')
-          .select('status')
-          .eq('trip_id', tripId)
-          .eq('user_id', user.id)
-          .order('requested_at', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-      ]);
-
-      if (refreshedMemberResult.error || refreshedJoinRequestResult.error) {
+      let refreshedMember: TripMemberAccessRow | null = null;
+      let refreshedJoinRequestResult;
+      try {
+        [refreshedMember, refreshedJoinRequestResult] = await Promise.all([
+          fetchTripMemberAccessRow(tripId, user.id),
+          supabase
+            .from('trip_join_requests')
+            .select('status')
+            .eq('trip_id', tripId)
+            .eq('user_id', user.id)
+            .order('requested_at', { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+        ]);
+      } catch {
         toast.error('Could not verify trip access. Check your connection and try again.');
         return;
       }
 
-      const refreshedMember = refreshedMemberResult.data;
+      if (refreshedJoinRequestResult.error) {
+        toast.error('Could not verify trip access. Check your connection and try again.');
+        return;
+      }
+
       const refreshedJoinRequest = refreshedJoinRequestResult.data;
 
-      if (isActiveTripMember(refreshedMember as TripMemberAccessRow | null)) {
+      if (isActiveTripMember(refreshedMember)) {
         setIsMember(true);
         navigate(tripRoute);
         return;

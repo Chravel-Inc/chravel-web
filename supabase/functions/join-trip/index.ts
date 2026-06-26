@@ -19,6 +19,11 @@ const JOIN_TRIP_RATE_LIMIT_WINDOW_SECONDS = 60;
 const MAX_INVITE_CODE_LENGTH = 128;
 const MAX_REQUEST_CONTENT_LENGTH_BYTES = 4 * 1024;
 
+type TripMemberAccessRow = {
+  id: string;
+  status?: string | null;
+};
+
 /**
  * Error codes for join-trip failures.
  * These map to the InviteErrorCode type in the frontend for targeted CTAs.
@@ -60,6 +65,45 @@ function errorResponse(
 
 function successResponse(data: Record<string, unknown>, corsHeaders: HeadersInit): Response {
   return createJsonResponse({ success: true, ...data }, 200, corsHeaders);
+}
+
+function isMissingTripMemberStatusError(error: { message?: string } | null): boolean {
+  const message = error?.message ?? '';
+  return message.includes('status') && message.includes('trip_members');
+}
+
+async function fetchTripMemberAccessRow(
+  supabaseClient: ReturnType<typeof createClient>,
+  tripId: string,
+  userId: string,
+): Promise<TripMemberAccessRow | null> {
+  const statusQuery = await supabaseClient
+    .from('trip_members')
+    .select('id, status')
+    .eq('trip_id', tripId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (!statusQuery.error) {
+    return statusQuery.data as TripMemberAccessRow | null;
+  }
+
+  if (!isMissingTripMemberStatusError(statusQuery.error)) {
+    throw statusQuery.error;
+  }
+
+  const fallbackQuery = await supabaseClient
+    .from('trip_members')
+    .select('id')
+    .eq('trip_id', tripId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (fallbackQuery.error) {
+    throw fallbackQuery.error;
+  }
+
+  return fallbackQuery.data as TripMemberAccessRow | null;
 }
 
 serve(async req => {
@@ -205,12 +249,7 @@ serve(async req => {
 
     // Check if user is already an active member. Left/inactive rows must fall back
     // through the request flow so approval can reactivate membership cleanly.
-    const { data: existingMember } = await supabaseClient
-      .from('trip_members')
-      .select('id, status')
-      .eq('trip_id', invite.trip_id)
-      .eq('user_id', user.id)
-      .maybeSingle();
+    const existingMember = await fetchTripMemberAccessRow(supabaseClient, invite.trip_id, user.id);
 
     const isActiveMember =
       !!existingMember &&
