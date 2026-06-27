@@ -34,7 +34,6 @@ import {
   BalanceSummary as BalanceSummaryType,
 } from '@/services/paymentBalanceService';
 import { supabase } from '@/integrations/supabase/client';
-import { optimisticallyAddPayment, buildPaymentMessage } from '@/lib/paymentCacheUtils';
 import { getTripById } from '@/data/tripsData';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useAuth } from '@/hooks/useAuth';
@@ -432,25 +431,8 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
         }));
 
         setDemoPayments([...convertedSessionPayments, ...convertedMockPayments]);
-      } else {
-        // ⚡ Optimistic update: show payment immediately
-        if (newPayment && user?.id) {
-          const paymentMessage = buildPaymentMessage(newPayment.id, tripId, user.id, {
-            amount: newPayment.amount,
-            currency: newPayment.currency,
-            description: newPayment.description,
-            splitCount: newPayment.splitCount,
-            splitParticipants: newPayment.splitParticipants,
-            paymentMethods: newPayment.paymentMethods,
-          });
-          optimisticallyAddPayment(queryClient, tripId, paymentMessage);
-        }
-        // Refetch to ensure server truth (balance, etc.)
-        await Promise.all([
-          queryClient.refetchQueries({ queryKey: tripKeys.payments(tripId) }),
-          queryClient.invalidateQueries({ queryKey: tripKeys.members(tripId) }),
-        ]);
       }
+      // Auth path: CreatePaymentModal uses usePayments — optimistic cache update is immediate.
     },
     [tripId, demoActive, effectiveTripMembers, queryClient, user?.id],
   );

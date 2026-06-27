@@ -1197,20 +1197,32 @@ export const useTripTasks = (
       if (error) throw error;
       return taskId;
     },
+    onMutate: async (taskId: string) => {
+      await queryClient.cancelQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
+
+      const previousTasks = queryClient.getQueryData<TripTask[]>(['tripTasks', tripId, isDemoMode]);
+
+      queryClient.setQueryData<TripTask[]>(['tripTasks', tripId, isDemoMode], old =>
+        old ? old.filter(task => task.id !== taskId) : old,
+      );
+
+      return { previousTasks };
+    },
     onSuccess: (_data: unknown, taskId: string) => {
       taskEvents.deleted(tripId, taskId);
-      queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
-      toast({
-        title: 'Task deleted',
-        description: 'The task has been removed.',
-      });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _taskId: string, context) => {
+      if (context?.previousTasks) {
+        queryClient.setQueryData(['tripTasks', tripId, isDemoMode], context.previousTasks);
+      }
       toast({
         title: 'Error',
         description: error.message || 'Failed to delete task.',
         variant: 'destructive',
       });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
     },
   });
 

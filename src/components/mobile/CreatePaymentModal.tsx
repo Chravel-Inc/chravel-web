@@ -3,7 +3,7 @@ import { X, DollarSign, Users, Check, Search, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { demoModeService } from '@/services/demoModeService';
-import { paymentService } from '@/services/paymentService';
+import { usePayments } from '@/hooks/usePayments';
 import { usePaymentSplits } from '@/hooks/usePaymentSplits';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { getInitials } from '@/utils/avatarUtils';
@@ -60,7 +60,8 @@ export const CreatePaymentModal = ({
   memberTotalCount,
   isSearchingMembers = false,
 }: CreatePaymentModalProps) => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { createPaymentMessage, isCreatingPayment } = usePayments(tripId);
+  const isSubmitting = isCreatingPayment;
   const { toast } = useToast();
   const attachmentsEnabled = useFeatureFlag('payment_attachments', true);
   const attachmentDraft = usePaymentAttachmentDraft();
@@ -114,12 +115,11 @@ export const CreatePaymentModal = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    if (isSubmitting) return;
 
     try {
       const paymentData = getPaymentData();
       if (!paymentData) {
-        setIsSubmitting(false);
         return;
       }
 
@@ -138,11 +138,10 @@ export const CreatePaymentModal = ({
           description: 'Please sign in to create payment requests.',
           variant: 'destructive',
         });
-        setIsSubmitting(false);
         return;
       }
 
-      const result = await paymentService.createPaymentMessage(tripId, userId, {
+      const result = await createPaymentMessage({
         amount: paymentData.amount,
         currency: paymentData.currency,
         description: paymentData.description,
@@ -196,14 +195,14 @@ export const CreatePaymentModal = ({
         });
       }
     } catch (error) {
-      console.error('Failed to create payment:', error);
+      if (import.meta.env.DEV) {
+        console.error('Failed to create payment:', error);
+      }
       toast({
         title: 'Error',
         description: 'Failed to create payment. Please try again.',
         variant: 'destructive',
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 

@@ -33,6 +33,8 @@ export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
   const { toggleTaskMutation, deleteTaskMutation } = useTripTasks(tripId);
+  const isTogglingThisTask =
+    toggleTaskMutation.isPending && toggleTaskMutation.variables?.taskId === task.id;
 
   const isCompleted = task.is_poll
     ? (task.task_status?.filter(s => s.completed).length || 0) >= (task.task_status?.length || 1)
@@ -100,6 +102,7 @@ export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
           {/* Completion Circle Button */}
           <button
             onClick={handleToggleComplete}
+            disabled={isTogglingThisTask}
             aria-label={
               userCompleted
                 ? `Mark "${task.title}" as incomplete`
@@ -108,6 +111,8 @@ export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
             aria-checked={userCompleted}
             role="checkbox"
             className={`w-8 h-8 min-w-[44px] min-h-[44px] rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 ${
+              isTogglingThisTask ? 'opacity-60 pointer-events-none' : ''
+            } ${
               userCompleted
                 ? 'bg-green-500 border-green-500'
                 : isOverdue
