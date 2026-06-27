@@ -322,10 +322,6 @@ export const useTripPolls = (tripId: string) => {
       return data;
     },
     onSuccess: data => {
-      toast({
-        title: 'Poll created',
-        description: 'Your poll has been added to the trip.',
-      });
       if (!isDemoMode && data?.id && data?.question) {
         void systemMessageService.pollCreated(
           tripId,

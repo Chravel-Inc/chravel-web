@@ -424,6 +424,7 @@ export const usePayments = (tripId?: string) => {
     settlePayment,
     unsettlePayment,
     getTripPaymentSummary,
+    isCreatingPayment: createPaymentMutation.isPending,
   };
 };
 

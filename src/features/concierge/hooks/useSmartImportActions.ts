@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import type { QueryClient } from '@tanstack/react-query';
+import { tripKeys } from '@/lib/queryKeys';
 import type { ChatMessage } from '@/features/concierge/types';
 import type { SmartImportPreviewEvent } from '@/services/conciergeGateway';
 
@@ -48,6 +49,9 @@ export function useSmartImportActions({ tripId, userId, setMessages, queryClient
           },
         }));
         const result = await calendarService.bulkCreateEvents(createEvents);
+        if (result.imported > 0) {
+          void queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
+        }
         setSmartImportStates(prev => ({
           ...prev,
           [messageId]: {
@@ -113,7 +117,7 @@ export function useSmartImportActions({ tripId, userId, setMessages, queryClient
             },
           },
         }));
-        queryClient.invalidateQueries({ queryKey: ['calendarEvents', tripId] });
+        queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
         if (result.deleted > 0) {
           const extra =
             result.alreadyMissing > 0 ? ` ${result.alreadyMissing} were already gone.` : '';

@@ -545,6 +545,7 @@ export const MobileTripTabs = ({
       handleLineupUpdate,
       isLoadingRoster,
       onTabChange,
+      activeTab,
     ],
   );
 
