@@ -76,6 +76,7 @@ export const MobileEventCard = ({
   const eventColor = getProTripColor(event.id, event.card_color);
   const demoCoverFallback = isDemoMode ? getDemoTripCoverFallback(event.id) : undefined;
   const coverFit = event.coverDisplayMode === 'contain' ? 'contain' : 'cover';
+  const eventTags = Array.isArray(event.tags) ? event.tags : [];
 
   const handleViewEvent = () => {
     navigate(`/event/${event.id}`);
@@ -297,22 +298,24 @@ export const MobileEventCard = ({
           />
         </div>
 
-        {/* Tags */}
-        <div className="flex flex-wrap gap-1 mb-4">
-          {event.tags.slice(0, 2).map((tag, index) => (
-            <span
-              key={index}
-              className="bg-white/10 backdrop-blur-sm px-2 py-1 rounded-md text-xs text-white"
-            >
-              {tag}
-            </span>
-          ))}
-          {event.tags.length > 2 && (
-            <span className="bg-white/10 backdrop-blur-sm px-2 py-1 rounded-md text-xs text-white">
-              +{event.tags.length - 2}
-            </span>
-          )}
-        </div>
+        {/* Tags — optional; real/partial event payloads may omit tags at runtime */}
+        {eventTags.length > 0 ? (
+          <div className="flex flex-wrap gap-1 mb-4">
+            {eventTags.slice(0, 2).map((tag, index) => (
+              <span
+                key={index}
+                className="bg-white/10 backdrop-blur-sm px-2 py-1 rounded-md text-xs text-white"
+              >
+                {tag}
+              </span>
+            ))}
+            {eventTags.length > 2 ? (
+              <span className="bg-white/10 backdrop-blur-sm px-2 py-1 rounded-md text-xs text-white">
+                +{eventTags.length - 2}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
 
         {/* Organizer Display */}
         <div className="mb-4">

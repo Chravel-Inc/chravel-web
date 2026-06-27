@@ -142,6 +142,9 @@ export function convertSupabaseTripToProTrip(supabaseTrip: SupabaseTrip): ProTri
   };
 }
 
+const normalizeEventTags = (tags: unknown): string[] =>
+  Array.isArray(tags) ? tags.filter((tag): tag is string => typeof tag === 'string') : [];
+
 /**
  * Converts a Supabase trip to EventData format
  */
@@ -156,7 +159,7 @@ export function convertSupabaseTripToEvent(supabaseTrip: SupabaseTrip): EventDat
     dateRange: mockTrip.dateRange,
     category: 'Conference',
     description: mockTrip.description || '',
-    tags: [],
+    tags: normalizeEventTags((supabaseTrip as Record<string, unknown>).tags),
     capacity: 100,
     registrationStatus: 'open',
     attendanceExpected: 0,
