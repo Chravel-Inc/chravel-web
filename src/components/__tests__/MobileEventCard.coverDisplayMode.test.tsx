@@ -78,4 +78,13 @@ describe('MobileEventCard cover display mode', () => {
     const img = screen.getByAltText('Mobile Fest cover');
     expect(img.className).toContain('object-cover');
   });
+
+  it('renders without crashing when tags are missing at runtime', () => {
+    const { tags: _tags, ...eventWithoutTags } = baseEvent;
+
+    expect(() => render(<MobileEventCard event={eventWithoutTags as EventData} />)).not.toThrow();
+
+    expect(screen.getByText('Mobile Fest')).toBeInTheDocument();
+    expect(screen.queryByText('Comedy')).not.toBeInTheDocument();
+  });
 });

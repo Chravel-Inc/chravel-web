@@ -273,5 +273,16 @@ describe('tripConverter', () => {
       expect(eventTrip.coverDisplayMode).toBeUndefined();
       expect(eventTrip.card_color).toBeUndefined();
     });
+
+    it('normalizes missing or invalid tags to an empty array', () => {
+      const noTagsTrip = { ...eventSupabaseTrip, tags: undefined };
+      expect(convertSupabaseTripToEvent(noTagsTrip).tags).toEqual([]);
+
+      const nullTagsTrip = { ...eventSupabaseTrip, tags: null };
+      expect(convertSupabaseTripToEvent(nullTagsTrip).tags).toEqual([]);
+
+      const stringTagsTrip = { ...eventSupabaseTrip, tags: ['Festival', 'Music'] };
+      expect(convertSupabaseTripToEvent(stringTagsTrip).tags).toEqual(['Festival', 'Music']);
+    });
   });
 });
