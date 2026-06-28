@@ -7,7 +7,7 @@ Periodic forensic audit. Knip reports ~210 "unused files" repo-wide; most are fa
 | Metric | Count |
 |--------|-------|
 | Total candidates reviewed | 32 |
-| Safe to remove now | 18 (9 files + 7 co-located tests + 2 export trims) |
+| Safe to remove now | 19 (10 files + 7 co-located tests + 2 export trims) |
 | Refactor first | 1 (`errorTracking` duplicate — deferred) |
 | External confirmation needed | 210+ (knip framework/orphan entries) |
 
