@@ -14,7 +14,7 @@ import { useEventAgenda } from '@/hooks/useEventAgenda';
 import { useEventLineup } from '@/hooks/useEventLineup';
 
 import { EventData } from '../../types/events';
-import { TripContext } from '@/types';
+import { TripContext } from '@/types/tripContext';
 import { useTripVariant } from '../../contexts/TripVariantContext';
 import { DisabledTabDialog } from './DisabledTabDialog';
 import { cn } from '@/lib/utils';
