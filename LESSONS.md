@@ -404,6 +404,9 @@ MediaSubTabs' entire `type==='urls'` branch (with its Add Link button) was dead 
 ### Scorecard remediation needs a task registry before code motion
 When an audit asks for many health scores to reach 90+, create durable issue IDs with DoD and verification before broad refactors. This prevents a mega-PR from mixing architecture, bundle, security, and dead-code work without a rollback path. *Evidence: Atlas remediation kickoff created AHS-01..AHS-19 before implementing the first low-risk slices.*
 
+### Synthetic research exports need self-contained source labels
+When a synthetic study emits standalone CSV/JSON, include `data_source` and evidence-label metadata in the files themselves, not only in the README, so detached rows cannot be mistaken for real respondent data. *Evidence: 2026-06-11 30-persona study review flagged persona/pricing CSVs and consent-like survey fields before metadata columns were added.*
+
 ### Rare export dependencies should load on explicit export intent
 Screenshot/export libraries such as `html2canvas` should not sit in route-level bundles when the only user path is clicking Export. Dynamically import them inside the export handler and preserve a print/download fallback. *Evidence: Team org chart export moved `html2canvas` behind `handleExportChart`.*
 
