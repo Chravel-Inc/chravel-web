@@ -7,7 +7,7 @@
  *
  * Architecture:
  *   - Uses stream-chat JS client (low-level, no UI components)
- *   - Messages are transformed via messageMapper to match TripChatMessage shape
+ *   - Messages are transformed via streamMessageViewModel to match TripChatMessage shape
  *   - Realtime delivery via Stream WebSocket (replaces dual-path broadcast+CDC)
  *   - Read state, typing, reactions handled by Stream built-ins
  *   - Offline support via Stream SDK's built-in persistence
