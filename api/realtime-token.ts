@@ -32,6 +32,12 @@ const DEFAULT_MODEL = 'openai/gpt-realtime-2';
 // Short-lived: the secret only needs to live long enough to open the socket.
 const TOKEN_TTL_SECONDS = 600;
 
+// Per-user cap on token mints so a logged-in user can't loop this endpoint to burn
+// Gateway spend. A continuous session re-mints ~every 9 min (≈7/hr) plus restarts —
+// 30/hr leaves comfortable headroom while still blocking abuse.
+const MINT_RATE_LIMIT_MAX = 30;
+const MINT_RATE_LIMIT_WINDOW_SECONDS = 3600;
+
 const SUPABASE_PROJECT_REF = 'jmjiyekmxwsxkfnqwyaa';
 
 function resolveSupabaseUrl(): string {
@@ -85,6 +91,44 @@ async function verifySupabaseUser(authHeader: string): Promise<{ id: string } | 
   }
 }
 
+/**
+ * Per-user mint throttle, reusing the same `increment_rate_limit` Postgres RPC the
+ * Supabase edge functions use (SECURITY DEFINER, granted to `authenticated`). Called
+ * with the user's JWT so the key is derived from a verified id, not client input.
+ * Fails closed (treats as limited) on any error — protecting Gateway spend matches
+ * the security-over-availability posture of the shared checkRateLimit helper.
+ */
+async function isMintRateLimited(authHeader: string, userId: string): Promise<boolean> {
+  const anonKey = resolveSupabaseAnonKey();
+  if (!anonKey) return true;
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  try {
+    const resp = await fetch(`${resolveSupabaseUrl()}/rest/v1/rpc/increment_rate_limit`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: anonKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        rate_key: `realtime-token:${userId}`,
+        max_requests: MINT_RATE_LIMIT_MAX,
+        window_seconds: MINT_RATE_LIMIT_WINDOW_SECONDS,
+      }),
+    });
+    if (!resp.ok) {
+      console.error('[realtime-token] rate-limit RPC failed:', resp.status);
+      return true;
+    }
+    const rows = (await resp.json()) as Array<{ allowed?: boolean }> | { allowed?: boolean };
+    const row = Array.isArray(rows) ? rows[0] : rows;
+    return !(row?.allowed ?? false);
+  } catch (err) {
+    console.error('[realtime-token] rate-limit RPC error:', err);
+    return true;
+  }
+}
+
 export default async function handler(request: Request): Promise<Response> {
   if (request.method === 'OPTIONS') {
     return new Response('ok', { headers: CORS_HEADERS });
@@ -101,6 +145,13 @@ export default async function handler(request: Request): Promise<Response> {
   const user = await verifySupabaseUser(authHeader);
   if (!user) {
     return json({ error: 'Invalid authentication' }, 401);
+  }
+
+  if (await isMintRateLimited(authHeader, user.id)) {
+    return json(
+      { error: 'Too many voice session requests. Please wait a bit and try again.' },
+      429,
+    );
   }
 
   // Optional model override from the body, constrained to the allowlist.

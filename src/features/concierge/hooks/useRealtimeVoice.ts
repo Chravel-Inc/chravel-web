@@ -65,16 +65,34 @@ function errorToMessage(err: unknown): string {
   return err instanceof Error ? err.message : 'Voice session error.';
 }
 
+// Re-mint the ephemeral token this long before it expires and reconnect, so a
+// conversation survives past the token's ~10-minute TTL. If the server doesn't
+// report an expiry, fall back to a conservative interval under the known TTL.
+const TOKEN_REFRESH_LEAD_MS = 60_000;
+const DEFAULT_SESSION_REFRESH_MS = 8 * 60 * 1000;
+
 export function useRealtimeVoice(): UseRealtimeVoiceResult {
   const [token, setToken] = useState('');
   const [sessionConfig, setSessionConfig] = useState<RealtimeSessionConfigResponse | null>(null);
   const [starting, setStarting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Transcript turns carried over from before a token-refresh reconnect (the new
+  // realtime store starts empty), so the on-screen transcript doesn't wipe.
+  const [priorTurns, setPriorTurns] = useState<RealtimeTranscriptTurn[]>([]);
 
   const tripIdRef = useRef<string | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const pendingConnectRef = useRef(false);
   const startingRef = useRef(false);
+
+  // Token refresh / reconnect bookkeeping.
+  const intendActiveRef = useRef(false);
+  const expiresAtRef = useRef<number | null>(null);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const refreshingRef = useRef(false);
+  const refreshSessionRef = useRef<() => Promise<void>>(() => Promise.resolve());
+  const reconnectSeqRef = useRef(0);
+  const storeTurnsRef = useRef<RealtimeTranscriptTurn[]>([]);
 
   // The realtime model object is pure on the client (getWebSocketConfig / parse /
   // serialize); the ephemeral token carries auth. Create it once.
@@ -135,6 +153,63 @@ export function useRealtimeVoice(): UseRealtimeVoiceResult {
     streamRef.current = null;
   }, []);
 
+  const clearRefreshTimer = useCallback(() => {
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+  }, []);
+
+  // Arm the next token refresh based on the current token's expiry.
+  const scheduleRefresh = useCallback(
+    (expiresAtSeconds?: number | null) => {
+      clearRefreshTimer();
+      const untilLead =
+        typeof expiresAtSeconds === 'number'
+          ? expiresAtSeconds * 1000 - Date.now() - TOKEN_REFRESH_LEAD_MS
+          : DEFAULT_SESSION_REFRESH_MS;
+      const delay = Math.max(untilLead, 5_000);
+      refreshTimerRef.current = setTimeout(() => {
+        void refreshSessionRef.current();
+      }, delay);
+    },
+    [clearRefreshTimer],
+  );
+
+  // Re-mint the token and reconnect, reusing the live mic stream, so the session
+  // outlives the ephemeral token. Recreating the store loses the model's in-session
+  // memory, but the user keeps talking and the transcript is carried over.
+  const refreshSession = useCallback(async () => {
+    if (!intendActiveRef.current || refreshingRef.current) return;
+    refreshingRef.current = true;
+    try {
+      const tokenResult = await fetchRealtimeToken();
+      if (!intendActiveRef.current) return; // stopped while minting
+      if (!tokenResult.token) throw new Error('Empty refresh token');
+      // Carry the transcript so far into priorTurns (new store starts empty). Namespace
+      // ids by reconnect count so React keys stay unique across store instances.
+      reconnectSeqRef.current += 1;
+      const seq = reconnectSeqRef.current;
+      const carried = storeTurnsRef.current.map(turn => ({ ...turn, id: `r${seq}:${turn.id}` }));
+      if (carried.length) setPriorTurns(prev => [...prev, ...carried]);
+      expiresAtRef.current = tokenResult.expiresAt ?? null;
+      pendingConnectRef.current = true;
+      setToken(tokenResult.token); // store recreates → connect effect reconnects + re-attaches mic
+      scheduleRefresh(tokenResult.expiresAt);
+    } catch {
+      // Keep the current session up and retry soon so we still beat expiry.
+      if (intendActiveRef.current) {
+        clearRefreshTimer();
+        refreshTimerRef.current = setTimeout(() => {
+          void refreshSessionRef.current();
+        }, 15_000);
+      }
+    } finally {
+      refreshingRef.current = false;
+    }
+  }, [scheduleRefresh, clearRefreshTimer]);
+  refreshSessionRef.current = refreshSession;
+
   // Connect once both the token and session config are in state.
   useEffect(() => {
     if (!pendingConnectRef.current) return;
@@ -194,10 +269,16 @@ export function useRealtimeVoice(): UseRealtimeVoiceResult {
         if (!tokenResult.token) {
           throw new Error('Could not start the voice session. Please try again.');
         }
+        intendActiveRef.current = true;
+        expiresAtRef.current = tokenResult.expiresAt ?? null;
+        setPriorTurns([]);
         pendingConnectRef.current = true;
         setToken(tokenResult.token);
         setSessionConfig(config);
+        scheduleRefresh(tokenResult.expiresAt);
       } catch (err) {
+        intendActiveRef.current = false;
+        clearRefreshTimer();
         cleanupStream();
         tripIdRef.current = null;
         setErrorMessage(errorToMessage(err));
@@ -205,10 +286,13 @@ export function useRealtimeVoice(): UseRealtimeVoiceResult {
         startingRef.current = false;
       }
     },
-    [cleanupStream],
+    [cleanupStream, scheduleRefresh, clearRefreshTimer],
   );
 
   const stop = useCallback(() => {
+    intendActiveRef.current = false;
+    clearRefreshTimer();
+    expiresAtRef.current = null;
     try {
       realtimeRef.current.stopAudioCapture();
     } catch {
@@ -225,8 +309,9 @@ export function useRealtimeVoice(): UseRealtimeVoiceResult {
     setStarting(false);
     setToken('');
     setSessionConfig(null);
+    setPriorTurns([]);
     tripIdRef.current = null;
-  }, [cleanupStream]);
+  }, [cleanupStream, clearRefreshTimer]);
 
   // Tear down on unmount so a stray socket/mic never outlives the screen.
   useEffect(() => stop, [stop]);
@@ -245,7 +330,7 @@ export function useRealtimeVoice(): UseRealtimeVoiceResult {
     }
   }, [starting, realtime.status, realtime.isPlaying]);
 
-  const turns: RealtimeTranscriptTurn[] = useMemo(() => {
+  const storeTurns: RealtimeTranscriptTurn[] = useMemo(() => {
     return realtime.messages
       .filter(message => message.role === 'user' || message.role === 'assistant')
       .map(message => ({
@@ -255,6 +340,14 @@ export function useRealtimeVoice(): UseRealtimeVoiceResult {
       }))
       .filter(turn => turn.text.length > 0);
   }, [realtime.messages]);
+  // Snapshot for refreshSession to carry forward across a reconnect.
+  storeTurnsRef.current = storeTurns;
+
+  // Carried-over turns (pre-reconnect) followed by the current store's turns.
+  const turns: RealtimeTranscriptTurn[] = useMemo(
+    () => [...priorTurns, ...storeTurns],
+    [priorTurns, storeTurns],
+  );
 
   const latestUserText = useMemo(
     () => [...turns].reverse().find(turn => turn.role === 'user')?.text ?? '',
