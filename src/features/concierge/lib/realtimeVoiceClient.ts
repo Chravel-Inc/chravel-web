@@ -3,7 +3,7 @@
  * the Vercel AI Gateway).
  *
  * Three server round-trips, all authenticated with the user's Supabase JWT:
- *  1. fetchRealtimeToken        → Vercel `/api/realtime-token` mints a short-lived
+ *  1. fetchRealtimeToken        → Supabase `mint-realtime-token` mints a short-lived
  *                                 AI Gateway client secret (provider key stays server-side).
  *  2. fetchRealtimeSessionConfig→ Supabase `realtime-voice-session` builds the
  *                                 trip-aware system prompt + the concierge tool set.
