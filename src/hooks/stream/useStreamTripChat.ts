@@ -17,7 +17,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import {
   connectStreamClient,
-  getStreamApiKey,
   getStreamClient,
   onStreamClientConnected,
   onStreamClientConnectionStatusChange,
@@ -433,12 +432,6 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
 
     const timer = window.setTimeout(() => {
       if (streamClientReady || getStreamClient()?.userID) return;
-
-      if (!getStreamApiKey()) {
-        setError(new Error('Stream chat is not configured'));
-        setIsLoading(false);
-        return;
-      }
 
       setError(new Error('Timed out waiting for chat connection'));
       setIsLoading(false);

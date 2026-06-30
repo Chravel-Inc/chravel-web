@@ -49,9 +49,20 @@ describe('streamClient auth listener', () => {
     expect(clearStreamTokenCacheMock).toHaveBeenCalledTimes(1);
   });
 
-  it('does not ship a hard-coded Stream API key fallback', async () => {
-    const { getStreamApiKey } = await import('../streamClient');
+  it('resolves the Stream API key from stream-token without a hard-coded fallback', async () => {
+    const { getStreamToken } = await import('../streamTokenService');
+    vi.mocked(getStreamToken).mockResolvedValue({
+      token: 'token',
+      userId: 'user-1',
+      apiKey: 'runtime-key',
+    });
+
+    const { connectStreamClient, getStreamApiKey } = await import('../streamClient');
 
     expect(getStreamApiKey()).toBeNull();
+
+    await connectStreamClient();
+
+    expect(getStreamApiKey()).toBe('runtime-key');
   });
 });
