@@ -194,6 +194,8 @@ export function useRealtimeVoice(): UseRealtimeVoiceResult {
       if (carried.length) setPriorTurns(prev => [...prev, ...carried]);
       expiresAtRef.current = tokenResult.expiresAt ?? null;
       pendingConnectRef.current = true;
+      // Clear any stale error as we reconnect; if this attempt fails, onError re-sets it.
+      setErrorMessage(null);
       setToken(tokenResult.token); // store recreates → connect effect reconnects + re-attaches mic
       scheduleRefresh(tokenResult.expiresAt);
     } catch {
@@ -310,6 +312,9 @@ export function useRealtimeVoice(): UseRealtimeVoiceResult {
     setToken('');
     setSessionConfig(null);
     setPriorTurns([]);
+    // Clear the error too, or phase stays 'error' (errorMessage set) and the overlay
+    // can never be dismissed after a failed start.
+    setErrorMessage(null);
     tripIdRef.current = null;
   }, [cleanupStream, clearRefreshTimer]);
 
@@ -322,13 +327,20 @@ export function useRealtimeVoice(): UseRealtimeVoiceResult {
       case 'connecting':
         return 'connecting';
       case 'connected':
+        // A live/reconnected session always shows its real state — never latch to
+        // 'error' from a stale errorMessage (e.g. a transient WS blip that the token
+        // refresh already recovered from).
         return realtime.isPlaying ? 'speaking' : 'listening';
       case 'error':
         return 'error';
       default:
-        return 'idle';
+        // 'disconnected': a failed start leaves the store disconnected but sets
+        // errorMessage. Surface it as 'error' (keeps the overlay mounted to show the
+        // reason) instead of 'idle' (which would unmount and swallow it — the
+        // "flash and vanish" bug).
+        return errorMessage ? 'error' : 'idle';
     }
-  }, [starting, realtime.status, realtime.isPlaying]);
+  }, [starting, errorMessage, realtime.status, realtime.isPlaying]);
 
   const storeTurns: RealtimeTranscriptTurn[] = useMemo(() => {
     return realtime.messages

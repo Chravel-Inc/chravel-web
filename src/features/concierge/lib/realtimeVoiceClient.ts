@@ -74,8 +74,19 @@ export async function fetchRealtimeToken(
     body: JSON.stringify({ model }),
   });
   if (!resp.ok) {
-    const detail = (await resp.json().catch(() => null)) as { error?: string } | null;
-    throw new Error(detail?.error ?? 'Failed to start realtime voice session.');
+    // Surface the real status + body so the overlay shows the precise cause (e.g. a 404
+    // means the function isn't deployed on this host; a 502 carries the Gateway's message;
+    // a non-JSON body means an HTML error page). Handle non-JSON responses gracefully.
+    const raw = await resp.text().catch(() => '');
+    let message = raw;
+    try {
+      const parsed = JSON.parse(raw) as { error?: string };
+      if (parsed?.error) message = parsed.error;
+    } catch {
+      /* non-JSON body (e.g. HTML error page) — use the raw text */
+    }
+    const snippet = message ? `: ${message.slice(0, 200)}` : '';
+    throw new Error(`Voice token request failed (${resp.status})${snippet}`);
   }
   return (await resp.json()) as RealtimeTokenResponse;
 }

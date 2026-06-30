@@ -5,9 +5,10 @@
  * behind the `concierge_realtime_voice` kill switch — renders nothing when disabled.
  */
 import { useCallback } from 'react';
-import { Sparkles } from 'lucide-react';
+import { AudioLines } from 'lucide-react';
 import { useFeatureFlag } from '@/lib/featureFlags';
 import { cn } from '@/lib/utils';
+import { CTA_BUTTON, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 import { useRealtimeVoice } from '@/features/concierge/hooks/useRealtimeVoice';
 import { RealtimeVoiceOverlay } from '@/features/concierge/components/RealtimeVoiceOverlay';
 
@@ -42,14 +43,9 @@ export function RealtimeVoiceButton({
         disabled={voice.isActive}
         aria-label="Start voice conversation"
         title="Talk to your concierge"
-        className={cn(
-          'inline-flex h-9 w-9 items-center justify-center rounded-full',
-          'bg-gradient-to-br from-[#e8af48] to-[#c49746] text-black shadow-gold-glow',
-          'transition hover:brightness-110 active:scale-95 disabled:opacity-50',
-          className,
-        )}
+        className={cn(CTA_BUTTON, className)}
       >
-        <Sparkles className="h-4 w-4" />
+        <AudioLines size={CTA_ICON_SIZE} className="text-white" />
       </button>
 
       {voice.isActive && (
