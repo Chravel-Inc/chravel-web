@@ -173,7 +173,8 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           gradientDirection={GRADIENTS.howItWorks.direction}
           accentGlow={GRADIENTS.howItWorks.accentGlow}
           goldOverlay="triangles"
-          backgroundImage={bgMountain}
+          backgroundImage={bgWedding}
+
           backgroundOverlayOpacity={0.64}
         >
           <ProblemSolutionSection />
