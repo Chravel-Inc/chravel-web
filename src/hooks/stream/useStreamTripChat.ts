@@ -423,7 +423,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     return () => {
       cancelled = true;
     };
-  }, [isEnabled, tripId, streamClientReady]);
+  }, [isEnabled, tripId, streamClientReady, reloadSeed]);
 
   useEffect(() => {
     if (!isEnabled || !tripId) return;
