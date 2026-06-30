@@ -1130,22 +1130,30 @@ export const TripChat = React.memo(
                 {chatError && !isLoading ? (
                   <div className="flex-1 flex items-center justify-center p-6">
                     <div className="text-center space-y-3">
-                      <p className="text-sm text-muted-foreground">Something went wrong in Chat</p>
-                      <p className="text-xs text-muted-foreground">{NON_CRITICAL_CHAT_NOTE}</p>
-                      <button
-                        onClick={() => {
-                          toast.error('Chat needs a refresh', {
-                            description:
-                              'Please retry. If this persists, pull to refresh or reopen the trip.',
-                          });
-                          reload?.();
-                        }}
-                        className="text-sm text-primary underline hover:no-underline"
-                      >
-                        Retry
-                      </button>
+                      {getStreamApiKey() ? (
+                        <>
+                          <p className="text-sm text-muted-foreground">Something went wrong in Chat</p>
+                          <p className="text-xs text-muted-foreground">{NON_CRITICAL_CHAT_NOTE}</p>
+                          <button
+                            onClick={() => {
+                              reload?.();
+                            }}
+                            className="text-sm text-primary underline hover:no-underline"
+                          >
+                            Retry
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm text-muted-foreground">Chat is initializing…</p>
+                          <p className="text-xs text-muted-foreground">
+                            Hang tight — connecting to the messaging service.
+                          </p>
+                        </>
+                      )}
                     </div>
                   </div>
+
                 ) : isLoading ? (
                   <div className="flex-1 overflow-y-auto p-4">
                     <MessageSkeleton />
