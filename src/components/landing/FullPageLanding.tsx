@@ -9,7 +9,10 @@ import {
   bgSkyline,
   bgStadium,
   bgMountain,
+  bgWedding,
+  bgTeamBus,
 } from '@/assets/landing/backgrounds';
+
 
 // Lazy load sections for better performance
 const AiFeaturesSection = lazy(() =>
