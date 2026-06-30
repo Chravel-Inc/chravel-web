@@ -8,10 +8,12 @@
  * stream-token response because Lovable reserves user-created VITE_ secrets.
  * Only an explicit disable flag should send chat through legacy sync paths.
  */
-const STREAM_DISABLED = import.meta.env.VITE_STREAM_CHAT_DISABLED === 'true';
+function isStreamDisabled(): boolean {
+  return import.meta.env.VITE_STREAM_CHAT_DISABLED === 'true';
+}
 
 export function isStreamConfigured(): boolean {
-  return !STREAM_DISABLED;
+  return !isStreamDisabled();
 }
 
 export function shouldUseLegacyChatSync(): boolean {
