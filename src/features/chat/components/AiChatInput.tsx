@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Send, X, CalendarPlus, Bookmark, ListChecks, Upload } from 'lucide-react';
-import { VoiceButton } from './VoiceButton';
+import { Send, X, CalendarPlus, Bookmark, ListChecks, Upload, Mic } from 'lucide-react';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { CTA_BUTTON, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 
@@ -292,21 +291,26 @@ export const AiChatInput = ({
       )}
 
       <div className="chat-composer flex flex-nowrap items-center gap-2 sm:gap-3 min-w-0">
-        {/* Waveform / Dictation button (one-shot speech-to-text) */}
-        {onConvoToggle && (
-          <VoiceButton
-            voiceState={convoVoiceState}
-            isEligible={isVoiceEligible}
-            onToggle={handleConvoToggle}
-            onUpgrade={onVoiceUpgrade}
-          />
-        )}
-
-        {/* Optional extra control on the left — hands-free Conversation Mode mic. */}
+        {/* Prominent left control — bidirectional voice concierge (or flag-off fallback). */}
         {leftAccessory}
 
-        {/* Input container — clean, no embedded Live button */}
+        {/* Input container, with a subtle in-field dictation mic. */}
         <div className="relative flex-1 min-w-0 rounded-full">
+          {/* Subtle dictation mic — lives INSIDE the field so it doesn't break the
+              search / upload / send button symmetry. Tap to dictate (one-shot STT). */}
+          {onConvoToggle && (
+            <button
+              type="button"
+              onClick={isVoiceEligible ? handleConvoToggle : onVoiceUpgrade}
+              aria-label={isConvoActive ? 'Stop dictation' : 'Dictate a message'}
+              title="Dictate"
+              className={`absolute left-3 top-1/2 z-10 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full transition-colors ${
+                isConvoActive ? 'text-primary animate-pulse' : 'text-white/40 hover:text-white/70'
+              }`}
+            >
+              <Mic size={18} />
+            </button>
+          )}
           <textarea
             ref={textareaRef}
             value={inputMessage}
@@ -321,7 +325,7 @@ export const AiChatInput = ({
                 ? 'Dictation in progress. Speak to add text.'
                 : 'Message your AI Concierge'
             }
-            className={`w-full bg-white/5 border rounded-2xl px-4 py-3 text-white placeholder-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 backdrop-blur-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
+            className={`w-full bg-white/5 border rounded-2xl py-3 pr-4 ${onConvoToggle ? 'pl-12' : 'pl-4'} text-white placeholder-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 backdrop-blur-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
               isConvoActive ? 'border-primary/30 bg-primary/5' : 'border-white/10'
             }`}
           />

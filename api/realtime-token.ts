@@ -95,12 +95,15 @@ async function verifySupabaseUser(authHeader: string): Promise<{ id: string } | 
  * Per-user mint throttle, reusing the same `increment_rate_limit` Postgres RPC the
  * Supabase edge functions use (SECURITY DEFINER, granted to `authenticated`). Called
  * with the user's JWT so the key is derived from a verified id, not client input.
- * Fails closed (treats as limited) on any error — protecting Gateway spend matches
- * the security-over-availability posture of the shared checkRateLimit helper.
+ *
+ * Fails OPEN: only blocks when the RPC explicitly reports `allowed = false`. A transient
+ * RPC/transport error or an unexpected shape must NOT take the whole feature down — the
+ * Supabase `realtime-voice-session` endpoint still enforces a fail-closed per-user limit,
+ * so abuse protection remains while availability is preserved here.
  */
 async function isMintRateLimited(authHeader: string, userId: string): Promise<boolean> {
   const anonKey = resolveSupabaseAnonKey();
-  if (!anonKey) return true;
+  if (!anonKey) return false;
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
   try {
     const resp = await fetch(`${resolveSupabaseUrl()}/rest/v1/rpc/increment_rate_limit`, {
@@ -117,15 +120,16 @@ async function isMintRateLimited(authHeader: string, userId: string): Promise<bo
       }),
     });
     if (!resp.ok) {
-      console.error('[realtime-token] rate-limit RPC failed:', resp.status);
-      return true;
+      console.error('[realtime-token] rate-limit RPC failed (allowing):', resp.status);
+      return false;
     }
     const rows = (await resp.json()) as Array<{ allowed?: boolean }> | { allowed?: boolean };
     const row = Array.isArray(rows) ? rows[0] : rows;
-    return !(row?.allowed ?? false);
+    // Only treat as limited when the RPC explicitly says allowed === false.
+    return row?.allowed === false;
   } catch (err) {
-    console.error('[realtime-token] rate-limit RPC error:', err);
-    return true;
+    console.error('[realtime-token] rate-limit RPC error (allowing):', err);
+    return false;
   }
 }
 
@@ -178,7 +182,9 @@ export default async function handler(request: Request): Promise<Response> {
     return json({ token: secret.token, url: secret.url, expiresAt: secret.expiresAt, model }, 200);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error('[realtime-token] mint failed:', message);
-    return json({ error: 'Failed to start realtime voice session.' }, 502);
+    console.error(`[realtime-token] mint failed for model ${model}:`, message);
+    // Return the Gateway's reason (model unavailable, credits, enablement, etc.) — it is
+    // not sensitive and is what diagnoses the config. Truncated to keep responses small.
+    return json({ error: `Gateway mint failed: ${message.slice(0, 300)}`, model }, 502);
   }
 }
