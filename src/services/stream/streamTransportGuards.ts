@@ -4,15 +4,16 @@
  * Keep Stream-canonical transport checks in one place so queue/sync services
  * cannot drift on cutover semantics.
  *
- * NOTE: Guard checks are intentionally env-driven so blank/absent keys can
- * disable Stream paths in tests and staged rollouts.
+ * NOTE: Stream's public key may be resolved at runtime from the authenticated
+ * stream-token response because Lovable reserves user-created VITE_ secrets.
+ * Only an explicit disable flag should send chat through legacy sync paths.
  */
-function getStreamApiKeyFromEnv(): string {
-  return import.meta.env.VITE_STREAM_API_KEY ?? '';
+function isStreamDisabled(): boolean {
+  return import.meta.env.VITE_STREAM_CHAT_DISABLED === 'true';
 }
 
 export function isStreamConfigured(): boolean {
-  return getStreamApiKeyFromEnv().trim().length > 0;
+  return !isStreamDisabled();
 }
 
 export function shouldUseLegacyChatSync(): boolean {

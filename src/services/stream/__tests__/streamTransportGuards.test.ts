@@ -11,8 +11,15 @@ afterEach(() => {
 });
 
 describe('streamTransportGuards', () => {
-  it('treats blank Stream API keys as not configured', () => {
-    vi.stubEnv('VITE_STREAM_API_KEY', '   ');
+  it('keeps Stream configured when the public key is runtime-resolved', () => {
+    vi.stubEnv('VITE_STREAM_API_KEY', '');
+
+    expect(isStreamConfigured()).toBe(true);
+    expect(shouldUseLegacyChatSync()).toBe(false);
+  });
+
+  it('allows an explicit kill switch to disable Stream', () => {
+    vi.stubEnv('VITE_STREAM_CHAT_DISABLED', 'true');
 
     expect(isStreamConfigured()).toBe(false);
     expect(shouldUseLegacyChatSync()).toBe(true);
