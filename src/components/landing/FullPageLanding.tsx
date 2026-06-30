@@ -166,15 +166,14 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           </Suspense>
         </FullPageLandingSection>
 
-        {/* Section 3: How It Works — mountain sunrise */}
+        {/* Section 3: How It Works — team bus / sports */}
         <FullPageLandingSection
           id="section-features"
           gradientColors={GRADIENTS.howItWorks.colors}
           gradientDirection={GRADIENTS.howItWorks.direction}
           accentGlow={GRADIENTS.howItWorks.accentGlow}
           goldOverlay="triangles"
-          backgroundImage={bgWedding}
-
+          backgroundImage={bgTeamBus}
           backgroundOverlayOpacity={0.64}
         >
           <ProblemSolutionSection />
@@ -212,7 +211,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           </Suspense>
         </FullPageLandingSection>
 
-        {/* Section 6: Pricing — coastline reprise */}
+        {/* Section 6: Pricing — wedding celebration */}
         <FullPageLandingSection
           id="section-pricing"
           gradientColors={GRADIENTS.pricing.colors}
@@ -220,8 +219,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           accentGlow={GRADIENTS.pricing.accentGlow}
           minHeight="110vh"
           goldOverlay="mesh"
-          backgroundImage={bgTeamBus}
-
+          backgroundImage={bgWedding}
           backgroundOverlayOpacity={0.66}
         >
           <Suspense fallback={<SectionLoader />}>
