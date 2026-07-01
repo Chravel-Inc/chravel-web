@@ -1,46 +1,58 @@
-## Goal
-Produce 7 App Review screenshots (one per IAP product) sized for iPhone 6.7" (1290×2796), saved to `/mnt/documents/` so you can download them, plus a paste-ready Agentic Browser script that walks App Store Connect and uploads the correct file to each product.
+## What I got wrong
 
-## What I'll generate
-One PNG per product, each a realistic in-app paywall mock highlighting that specific plan (name + exact price + "Subscribe" / "Get Pass" CTA), styled in Chravel's black-and-gold theme so it matches the live app.
+Previous screenshots were composed images I built with Python/PIL — decorative "cards" on a black-and-gold canvas that are not from the actual app. They never opened the app, never went to Settings → Billing, and the text was tiny and unreadable. That's not what App Store review needs.
 
-| # | File | Product ID | Plan shown | Price |
-|---|------|------------|------------|-------|
-| 1 | `iap-01-frequent-monthly.png` | com.chravel.app.frequent.monthly | Frequent Chraveler | $19.99/mo |
-| 2 | `iap-02-explorer-annual.png` | com.chravel.app.explorer.annual | Annual Explorer | $99.99/yr |
-| 3 | `iap-03-frequent-annual.png` | com.chravel.app.frequent.annual | Annual Frequent Chraveler | $199.99/yr |
-| 4 | `iap-04-pro-starter-monthly.png` | com.chravel.app.pro.starter.monthly | Starter Pro | $49.99/mo |
-| 5 | `iap-05-pro-growth-monthly.png` | com.chravel.app.pro.growth.monthly | Growth Pro | $99.99/mo |
-| 6 | `iap-06-trippass-explorer.png` | com.chravel.app.trippass.explorer | Explorer Trip Pass | $39.99 |
-| 7 | `iap-07-trippass-frequent.png` | com.chravel.app.trippass.frequent | Frequent Chraveler Trip Pass | $74.99 |
+You showed me exactly the right page: **Settings → Billing** (`ConsumerBillingSection`), showing "Frequent-Chraveler / Premium Features Active / $19.99/month", Billing Period toggle (Monthly / Annual), and Available Plans (Free, Explorer, Frequent Chraveler…).
 
-All files written to `/mnt/documents/iap-screenshots/`, plus a `chravel-iap-screenshots.zip` bundle. Each rendered at 1290×2796 (well above Apple's 640×920 minimum and reusable for any device size).
+## What I'll do instead
 
-## How I'll build them
-Pure Python + Pillow composite (same pipeline as the existing marketing screenshots under `appstore/scripts/`):
-- Black background with subtle gold radial vignette
-- Chravel wordmark at top
-- Headline ("Choose your plan" / "Unlock this trip")
-- Three plan cards with the target plan highlighted in gold and a clear price badge
-- Prominent CTA matching App Review's expectation ("Subscribe" for auto-renewables, "Get Pass" for non-renewing)
-- Apple-required footer line for auto-renewable products: auto-renew disclosure + Terms/Privacy links
+### 1. Capture from the real running app via Playwright
+Drive the local dev server (`http://localhost:8080`) with headless Chromium at iPhone-native `1290×2796`:
+- Open the app.
+- Restore the managed Supabase session if `LOVABLE_BROWSER_AUTH_STATUS=injected`. If it's `signed_out`, stop and ask you to sign in to the preview once (as `ccamechi@gmail.com` per your screenshot) so I can inject the session — I will not invent credentials.
+- Open Settings → Personal Settings → **Billing** (the same panel in your screenshot).
+- Interact to reveal each product, then screenshot the visible viewport (not full-page, per the browser-use rules).
 
-No app changes, no Playwright needed — these are static review assets, not live app screenshots, which is what App Store Connect expects for the "App Review screenshot" slot.
+### 2. Seven captures, each from the real Billing UI
 
-## Agentic Browser script
-After the PNGs exist, I'll write `docs/agentic/app-store-connect-iap-review-screenshots.md` containing a paste-ready script that:
-1. Opens App Store Connect → Apps → ChravelApp → Subscriptions (Group 22200648) and Non-Renewing Subscriptions
-2. For each product (by exact Apple ID from the table above), opens it, scrolls to "App Review Information → Review Screenshot", uploads the matching file from `iap-screenshots/`, and clicks Save
-3. After all 7, navigates to the in-progress App Store version and confirms each product no longer shows "Missing Metadata"
-4. Treats credentials as secret per the browser-use rules — never echoes them
+| # | File | What's on screen |
+|---|---|---|
+| 1 | `iap-01-frequent-monthly.png` | Billing Period = **Monthly**, Frequent Chraveler card expanded showing `$19.99/month` + features + "Subscribe with Apple — Frequent Chraveler" CTA |
+| 2 | `iap-02-explorer-annual.png` | Billing Period = **Annual**, Explorer card expanded showing `$99/yr ($8.25/mo)` + CTA |
+| 3 | `iap-03-frequent-annual.png` | Billing Period = **Annual**, Frequent Chraveler card expanded showing `$199/yr ($16.58/mo)` + CTA |
+| 4 | `iap-04-pro-starter-monthly.png` | Organization Plans → **Starter Pro** expanded, `$49/month` + CTA |
+| 5 | `iap-05-pro-growth-monthly.png` | Organization Plans → **Growth Pro** expanded, `$99/month` + CTA |
+| 6 | `iap-06-trippass-explorer.png` | TripPassModal open, **Explorer Trip Pass** card visible with `$39.99` / 45 days / "Buy with Apple" or "Get Trip Pass" |
+| 7 | `iap-07-trippass-frequent.png` | TripPassModal open, **Frequent Chraveler Trip Pass** visible with `$74.99` / 90 days / CTA |
 
-## Deliverables
-- `/mnt/documents/iap-screenshots/iap-01..07-*.png` (7 files)
-- `/mnt/documents/chravel-iap-screenshots.zip`
-- `docs/agentic/app-store-connect-iap-review-screenshots.md` (the script)
-- `<presentation-artifact>` tags for the zip and the script so you can download both
+For Pro (4, 5) I'll force the iOS-native CTA copy ("Subscribe with Apple — …") by setting the userAgent to iPhone before rendering, so the screenshot matches what an Apple reviewer sees in the app on iOS.
 
-## Out of scope
-- No changes to live paywall code, RevenueCat config, or product metadata
-- Not enabling Apple IAP (`APPLE_IAP_ENABLED` stays as-is)
-- Not submitting the app version — only moving the 7 products from "Missing Metadata" to "Ready to Submit"
+For Trip Passes (6, 7) same iPhone UA so the button reads "Buy with Apple".
+
+### 3. Pricing parity check (Settings ↔ marketing PricingSection)
+Both `ConsumerBillingSection` and `PricingSection` already read from a single source of truth (`src/billing/config.ts` → `CONSUMER_PRICE_DISPLAY` + `TRIP_PASS_DISPLAY` + `SUBSCRIPTION_TIERS`). I'll:
+- Diff the numbers rendered on `/` (marketing) against Settings → Billing.
+- Report any drift.
+- If numbers already agree (expected), no code change; if they drift, propose a single-line fix in the drifting component only. No refactors.
+
+### 4. Quality gate before I deliver
+- Contact sheet of all 7 PNGs.
+- OCR each PNG; require the product name and the exact price string to appear in the extracted text.
+- Zoom-inspect at least one crop per screenshot to confirm the CTA button is readable.
+- Regenerate any that fail.
+
+### 5. Deliverables (versioned, won't overwrite the bad ones)
+- `/mnt/documents/iap-screenshots-v3/iap-01…iap-07.png`
+- `/mnt/documents/chravel-iap-screenshots-v3.zip`
+- Short QA note listing the exact text I verified on each screenshot
+- Updated `docs/agentic/app-store-connect-iap-review-screenshots.md` if filenames change (they won't unless capture forces it)
+
+## Definition of done
+
+- All 7 images are captured from the actual Settings → Billing UI (or the Trip Pass modal launched from it), matching the reference screenshot you sent.
+- Every image legibly shows product name, price/period, and the visible CTA.
+- Settings pricing verified to match the marketing PricingSection, with drift (if any) fixed.
+
+## What I need from you before I start
+
+One thing only: confirm the Supabase preview session for `ccamechi@gmail.com` is active in the Lovable preview (the app in the right pane). If it isn't, sign in once and tell me — I'll inject that session into Playwright and proceed. No credentials needed in chat.
