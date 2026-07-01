@@ -1,39 +1,46 @@
-## Objective
-Restore trip chat without broad rewrites by proving where the Stream pipeline stops, then fixing only that boundary.
+## Goal
+Produce 7 App Review screenshots (one per IAP product) sized for iPhone 6.7" (1290×2796), saved to `/mnt/documents/` so you can download them, plus a paste-ready Agentic Browser script that walks App Store Connect and uploads the correct file to each product.
 
-## What I found
-- The frontend currently shows the chat failure state, but browser/network signals show no request to `/functions/v1/stream-token`.
-- Supabase has the backend secrets needed for Stream: `STREAM_API_KEY`, `STREAM_API_SECRET`, and `STREAM_ADMIN_SECRET` exist.
-- Hosted edge logs also show no recent `stream-token` invocation, confirming the client is not reaching the token function.
-- Stream feature flags are enabled for trip chat/channels/broadcasts.
+## What I'll generate
+One PNG per product, each a realistic in-app paywall mock highlighting that specific plan (name + exact price + "Subscribe" / "Get Pass" CTA), styled in Chravel's black-and-gold theme so it matches the live app.
 
-## Likely root cause
-The last change added `VITE_STREAM_API_KEY` locally, but if the running preview/published build does not actually receive that build-time env var, `getStreamApiKey()` returns empty and `connectStreamClient()` exits before requesting `stream-token`. That matches the observed absence of network and edge-function logs.
+| # | File | Product ID | Plan shown | Price |
+|---|------|------------|------------|-------|
+| 1 | `iap-01-frequent-monthly.png` | com.chravel.app.frequent.monthly | Frequent Chraveler | $19.99/mo |
+| 2 | `iap-02-explorer-annual.png` | com.chravel.app.explorer.annual | Annual Explorer | $99.99/yr |
+| 3 | `iap-03-frequent-annual.png` | com.chravel.app.frequent.annual | Annual Frequent Chraveler | $199.99/yr |
+| 4 | `iap-04-pro-starter-monthly.png` | com.chravel.app.pro.starter.monthly | Starter Pro | $49.99/mo |
+| 5 | `iap-05-pro-growth-monthly.png` | com.chravel.app.pro.growth.monthly | Growth Pro | $99.99/mo |
+| 6 | `iap-06-trippass-explorer.png` | com.chravel.app.trippass.explorer | Explorer Trip Pass | $39.99 |
+| 7 | `iap-07-trippass-frequent.png` | com.chravel.app.trippass.frequent | Frequent Chraveler Trip Pass | $74.99 |
 
-## Fix plan
-1. **Verify build-time Stream key availability**
-   - Add a safe diagnostics path that reports whether the client build sees a non-empty `VITE_STREAM_API_KEY` without exposing the key.
-   - Confirm the deployed/preview bundle is not stale.
+All files written to `/mnt/documents/iap-screenshots/`, plus a `chravel-iap-screenshots.zip` bundle. Each rendered at 1290×2796 (well above Apple's 640×920 minimum and reusable for any device size).
 
-2. **Repair the client connection lifecycle**
-   - Make `useStreamClient` and `useStreamTripChat` treat missing client config as an explicit “configuration unavailable” state, not a generic chat failure.
-   - If `VITE_STREAM_API_KEY` is present, force the Stream connect attempt to surface a specific error when `stream-token` is never called.
+## How I'll build them
+Pure Python + Pillow composite (same pipeline as the existing marketing screenshots under `appstore/scripts/`):
+- Black background with subtle gold radial vignette
+- Chravel wordmark at top
+- Headline ("Choose your plan" / "Unlock this trip")
+- Three plan cards with the target plan highlighted in gold and a clear price badge
+- Prominent CTA matching App Review's expectation ("Subscribe" for auto-renewables, "Get Pass" for non-renewing)
+- Apple-required footer line for auto-renewable products: auto-renew disclosure + Terms/Privacy links
 
-3. **Verify the backend function directly**
-   - Call `stream-token` with the preview auth session if available.
-   - If it fails, inspect logs and fix only that edge-function/CORS/auth issue.
-   - If it succeeds, the remaining issue is strictly frontend env/deployment propagation.
+No app changes, no Playwright needed — these are static review assets, not live app screenshots, which is what App Store Connect expects for the "App Review screenshot" slot.
 
-4. **Deployment/config correction**
-   - Ensure `VITE_STREAM_API_KEY` is in the project’s frontend env/build config in the same place as other `VITE_*` values.
-   - Restart/rebuild the preview so `import.meta.env.VITE_STREAM_API_KEY` is compiled into the bundle.
+## Agentic Browser script
+After the PNGs exist, I'll write `docs/agentic/app-store-connect-iap-review-screenshots.md` containing a paste-ready script that:
+1. Opens App Store Connect → Apps → ChravelApp → Subscriptions (Group 22200648) and Non-Renewing Subscriptions
+2. For each product (by exact Apple ID from the table above), opens it, scrolls to "App Review Information → Review Screenshot", uploads the matching file from `iap-screenshots/`, and clicks Save
+3. After all 7, navigates to the in-progress App Store version and confirms each product no longer shows "Missing Metadata"
+4. Treats credentials as secret per the browser-use rules — never echoes them
 
-5. **Proof**
-   - Verify browser network shows `POST /functions/v1/stream-token`.
-   - Verify Supabase edge logs show `stream-token` executed.
-   - Verify Stream WebSocket/channel watch happens and the chat panel loads messages instead of the reload/error state.
+## Deliverables
+- `/mnt/documents/iap-screenshots/iap-01..07-*.png` (7 files)
+- `/mnt/documents/chravel-iap-screenshots.zip`
+- `docs/agentic/app-store-connect-iap-review-screenshots.md` (the script)
+- `<presentation-artifact>` tags for the zip and the script so you can download both
 
-## Scope control
-- No chat rewrite.
-- No legacy Supabase chat resurrection unless Stream backend is proven unavailable.
-- No changes to trip permissions, RLS, or message data model.
+## Out of scope
+- No changes to live paywall code, RevenueCat config, or product metadata
+- Not enabling Apple IAP (`APPLE_IAP_ENABLED` stays as-is)
+- Not submitting the app version — only moving the 7 products from "Missing Metadata" to "Ready to Submit"
