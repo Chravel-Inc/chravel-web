@@ -48,7 +48,7 @@ export const JournalSection: React.FC<JournalSectionProps> = ({ onSignUp }) => {
           className="lg:col-span-3"
           initial={reduceMotion ? false : { opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-40px' }}
+          viewport={{ once: true, margin: '0px 0px 25% 0px' }}
           transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
         >
           <Link
@@ -98,7 +98,7 @@ export const JournalSection: React.FC<JournalSectionProps> = ({ onSignUp }) => {
               className="flex-1"
               initial={reduceMotion ? false : { opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-40px' }}
+              viewport={{ once: true, margin: '0px 0px 25% 0px' }}
               transition={{
                 duration: 0.55,
                 delay: 0.1 + index * 0.08,
@@ -157,7 +157,7 @@ export const JournalSection: React.FC<JournalSectionProps> = ({ onSignUp }) => {
         className="w-full max-w-4xl"
         initial={reduceMotion ? false : { opacity: 0, y: 24 }}
         whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: '-40px' }}
+        viewport={{ once: true, margin: '0px 0px 25% 0px' }}
         transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
       >
         <div className="relative overflow-hidden rounded-3xl border border-[#c49746]/30 bg-gradient-to-b from-white/[0.05] to-transparent p-8 sm:p-12 text-center backdrop-blur-sm">

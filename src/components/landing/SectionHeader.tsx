@@ -35,7 +35,9 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
       className={cn('max-w-4xl', centered ? 'mx-auto text-center' : 'text-left', className)}
       initial={reduceMotion ? false : { opacity: 0, y: 18 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-60px' }}
+      // Positive bottom margin starts the reveal just before entry, so fast
+      // scrolling never lands on a blank (pre-reveal) section.
+      viewport={{ once: true, margin: '0px 0px 25% 0px' }}
       transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
     >
       <div

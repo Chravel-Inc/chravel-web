@@ -154,7 +154,7 @@ const ScenarioCard: React.FC<ScenarioCardProps> = ({ scenario, index, isExpanded
       }}
       initial={reduceMotion ? false : { opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-40px' }}
+      viewport={{ once: true, margin: '0px 0px 25% 0px' }}
       transition={{ duration: 0.5, delay: Math.min(index % 3, 2) * 0.08, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
         'group/card relative overflow-hidden rounded-2xl border bg-card/50 p-5 sm:p-6 backdrop-blur-sm cursor-pointer',
