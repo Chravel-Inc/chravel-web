@@ -464,6 +464,10 @@ When pricing cards advertise limits or role/channel access, assert those claims 
 ### AI quota copy must be changed in both client and edge limit maps
 Concierge query caps are duplicated across UI copy, client helpers, and Supabase edge usage policy; changing a free/paid quota requires grep-driven updates plus parity tests for `FEATURE_LIMITS`, `FREEMIUM_LIMITS`, and `CONCIERGE_TRIP_QUERY_LIMITS`.
 
+## Design System & Theme
+
+### Fix light-mode regressions at semantic tokens before screen-level patches
+When light mode feels muddy across many surfaces, repair `background/card/popover/surface/ink/input/border/ring` tokens and shared primitives first; one-off page colors multiply inconsistencies and miss PWA safe-area/toast/modal surfaces.
 ### Landing scroll reveals: use positive rootMargin + idle chunk prefetch, never negative-margin whileInView on full-viewport sections
 `whileInView` with negative viewport margins (`margin: '-40px'`) on the marketing landing left fast scrollers (PgDn / nav-dot jumps) staring at fully blank pre-reveal sections — on the black theme this reads as a full-screen gap between sections. Fix pattern: positive bottom rootMargin (`'0px 0px 25% 0px'`) so reveals start before entry, plus `requestIdleCallback` prefetch of all lazy section chunks in `FullPageLanding` so Suspense's `min-h-screen` SectionLoader never appears mid-scroll. *Evidence: July 2026 homepage redesign — video review flagged a viewport-height black gap at the features/use-cases seam; both fixes together eliminated it.*
 
