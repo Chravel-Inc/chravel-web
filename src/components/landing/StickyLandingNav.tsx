@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { HeaderAuthButton } from '../HeaderAuthButton';
 import { Link } from 'react-router-dom';
+import { useOptionalAuth } from '@/hooks/useAuth';
 
 interface NavSection {
   id: string;
@@ -21,7 +22,7 @@ const sections: NavSection[] = [
 ];
 
 interface StickyLandingNavProps {
-  onSignUp: () => void;
+  onAuthRequired: () => void;
   /**
    * Scroll container for landing: pass the `overflow-y-auto` element so nav/progress work.
    * - `undefined`: listen on `window` (legacy / document scroll).
@@ -31,13 +32,14 @@ interface StickyLandingNavProps {
 }
 
 export const StickyLandingNav: React.FC<StickyLandingNavProps> = ({
-  onSignUp: _onSignUp,
+  onAuthRequired,
   scrollRoot,
 }) => {
   const [activeSection, setActiveSection] = useState('hero');
   const [isVisible, setIsVisible] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const user = null;
+  const auth = useOptionalAuth();
+  const user = auth?.user ?? null;
 
   useEffect(() => {
     if (scrollRoot === null) return;
@@ -200,7 +202,9 @@ export const StickyLandingNav: React.FC<StickyLandingNavProps> = ({
         </div>
 
         {/* Right: Log In for non-authenticated users */}
-        <div className="flex items-center gap-2">{!user && <HeaderAuthButton />}</div>
+        <div className="flex items-center gap-2">
+          {!user && <HeaderAuthButton onLoginClick={onAuthRequired} />}
+        </div>
       </div>
     </nav>
   );
