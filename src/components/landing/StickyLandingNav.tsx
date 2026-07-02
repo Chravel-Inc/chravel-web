@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { HeaderAuthButton } from '../HeaderAuthButton';
 import { Link } from 'react-router-dom';
+import { useOptionalAuth } from '@/hooks/useAuth';
 
 interface NavSection {
   id: string;
@@ -37,7 +38,8 @@ export const StickyLandingNav: React.FC<StickyLandingNavProps> = ({
   const [activeSection, setActiveSection] = useState('hero');
   const [isVisible, setIsVisible] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const user = null;
+  const auth = useOptionalAuth();
+  const user = auth?.user ?? null;
 
   useEffect(() => {
     if (scrollRoot === null) return;
