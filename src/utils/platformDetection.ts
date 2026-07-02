@@ -131,21 +131,22 @@ export function isInstalledApp(): boolean {
  * chravel-mobile native shell. Live detection (`isChravelNativeShell` /
  * `isCapacitorNativeShell`) depends on native code injecting a bridge object
  * before our JS runs — if that injection happens via a post-navigation bridge
- * call instead of a document-start user script, `main.tsx`'s synchronous
- * boot-time check can lose that race on every cold start, repeatedly mounting
- * `MarketingApp` and forcing a reload loop after sign-in (App Review 2.1(a) —
- * "looped back to login"). Once we ever see the live signal, we persist it so
- * every later boot in this WebView instance is correct immediately, without
- * depending on injection timing.
+ * call instead of a document-start user script, a synchronous boot-time check
+ * can lose that race on every cold start, repeatedly mounting `MarketingApp`
+ * (or falling through to the web auth surface deeper inside `App`/`Index`)
+ * and forcing a reload loop after sign-in (App Review 2.1(a) — "looped back
+ * to login"). Once we ever see the live signal, we persist it so every later
+ * check in this WebView instance is correct immediately, without depending on
+ * injection timing.
  *
- * Deliberately narrower than `isInstalledApp()`: only the two dedicated-shell
- * signals (Capacitor, ChravelNative bridge) are persisted. `isStandalonePWA()`
- * is a synchronous `matchMedia`/`navigator.standalone` read with no injection
- * race to guard against, and its storage is NOT isolated from an ordinary
- * browser tab on the same origin/profile (unlike a native WebView's data
- * store, which is wiped on app uninstall) — persisting on that signal would
- * let one PWA-install visit permanently misclassify a later plain-browser
- * visit on a shared profile, with no way to ever unconfirm it.
+ * Deliberately narrower than `isInstalledApp()` for what gets PERSISTED: only
+ * the two dedicated-shell signals (Capacitor, ChravelNative bridge) write the
+ * marker. `isStandalonePWA()` is a synchronous `matchMedia`/`navigator.standalone`
+ * read with no injection race to guard against, and its storage is NOT isolated
+ * from an ordinary browser tab on the same origin/profile (unlike a native
+ * WebView's data store, which is wiped on app uninstall) — persisting on that
+ * signal would let one PWA-install visit permanently misclassify a later
+ * plain-browser visit on a shared profile, with no way to ever unconfirm it.
  */
 const NATIVE_SHELL_CONFIRMED_KEY = 'chravel-native-shell-confirmed';
 
@@ -153,38 +154,54 @@ export function hasConfirmedNativeShell(): boolean {
   return safeGetItem('local', NATIVE_SHELL_CONFIRMED_KEY) === '1';
 }
 
-export function confirmNativeShell(): void {
-  if (hasConfirmedNativeShell()) return;
-  safeSetItem('local', NATIVE_SHELL_CONFIRMED_KEY, '1');
+/**
+ * Side-effecting — persists the marker when the live dedicated-shell signal
+ * is currently true. Call from an effect or imperative boot code (`main.tsx`,
+ * `useEffect`), never from a React render body — renders must stay pure.
+ */
+export function confirmNativeShellIfDetected(): void {
+  if (isCapacitorNativeShell() || isChravelNativeShell()) {
+    if (hasConfirmedNativeShell()) return;
+    safeSetItem('local', NATIVE_SHELL_CONFIRMED_KEY, '1');
+  }
+}
+
+/**
+ * Pure read (no side effects, safe to call during render): true if the live
+ * dedicated-shell signal is up right now, OR it was ever confirmed before in
+ * this WebView instance via `confirmNativeShellIfDetected()`.
+ */
+export function isNativeShellSticky(): boolean {
+  return isCapacitorNativeShell() || isChravelNativeShell() || hasConfirmedNativeShell();
 }
 
 /**
  * `isInstalledApp()` plus the sticky marker above. Use this (not the plain
  * live check) anywhere a misdetection would strand the user — the
- * marketing/full-app boot split and its installed-shell escape hatch.
+ * marketing/full-app boot split and its installed-shell escape hatch. Pure —
+ * never persists anything itself; pair with `confirmNativeShellIfDetected()`
+ * in an effect/imperative context to actually write the marker.
  */
 export function isInstalledAppSticky(): boolean {
-  if (isCapacitorNativeShell() || isChravelNativeShell()) {
-    confirmNativeShell();
-    return true;
-  }
-  if (hasConfirmedNativeShell()) return true;
-  return isStandalonePWA();
+  return isNativeShellSticky() || isInstalledApp();
 }
 
 /**
  * Stricter than `isInstalledApp()` — only true for OUR real native shells
  * (Capacitor build, ChravelNative WebView) or an installed standalone PWA.
- *
  * Critically, this does NOT treat generic iOS WKWebViews (Instagram/Facebook
- * in-app browsers, embedded preview iframes) as installed. Those should see
+ * in-app browsers, embedded preview iframes) as installed — those should see
  * the marketing homepage, not the in-app auth gate.
+ *
+ * Sticky (not just live): the in-app native-vs-marketing auth gate inside
+ * `Index.tsx` runs one layer deeper than the `main.tsx`/`MarketingApp` boot
+ * split, so a native shell whose bridge hasn't (re-)injected by the time
+ * THIS render happens still resolves correctly from a marker set on an
+ * earlier boot, instead of re-losing the same injection race. Pure — like
+ * `isInstalledAppSticky()`, never persists anything itself.
  */
-export function isNativeAuthSurface(): boolean {
-  if (isCapacitorNativeShell()) return true;
-  if (isChravelNativeShell()) return true;
-  if (isStandalonePWA()) return true;
-  return false;
+export function isNativeAuthSurfaceSticky(): boolean {
+  return isNativeShellSticky() || isStandalonePWA();
 }
 
 /**

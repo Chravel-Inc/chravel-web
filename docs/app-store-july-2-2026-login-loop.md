@@ -47,39 +47,55 @@ Confirmed from this repo:
 
 ## Fix shipped in this repo (chravel-web)
 
-Added a **sticky, persisted** native-shell confirmation (`src/utils/platformDetection.ts`:
-`isInstalledAppSticky()` / `confirmNativeShell()` / `hasConfirmedNativeShell()`, backed by the
-`chravel-native-shell-confirmed` localStorage key) so the boot/marketing-split decision no longer depends on
-winning the injection race every single time:
+Added a **sticky, persisted** native-shell confirmation in `src/utils/platformDetection.ts`, backed by a
+`chravel-native-shell-confirmed` localStorage key, split into a pure read half and a side-effecting write half
+so the boot/marketing-split decision no longer depends on winning the injection race every single time:
 
-- The moment live detection of a genuine dedicated shell (`isCapacitorNativeShell()` or `isChravelNativeShell()`
-  — deliberately **not** `isStandalonePWA()`, see below) is ever true, we persist that fact. Every later boot in
-  that WebView instance — including `PostAuthBoot`'s forced reload — reads the sticky marker first and skips
-  `MarketingApp` immediately, without re-racing the bridge.
-- Scoped narrowly on purpose: `isStandalonePWA()` is excluded from the sticky write. It's a synchronous
-  `matchMedia`/`navigator.standalone` read with no injection race to guard against, and — unlike a native
-  WebView's isolated data store, which is wiped on app uninstall — its localStorage is shared with an ordinary
-  browser tab on the same origin/profile. Persisting on that signal would let one PWA-install visit permanently
-  misclassify a later plain-browser visit on a shared device, with no way to ever unconfirm it. Same reasoning
-  ruled out persisting on the broader `isInstalledApp()`/`isNativeWebView()` (which also matches a generic
-  Android `; wv)` UA token that third-party embedded WebViews — Instagram/Facebook in-app browsers opening a
-  shared trip link — can also match).
+- `isNativeShellSticky()` — pure read: true if the live dedicated-shell signal (`isCapacitorNativeShell()` or
+  `isChravelNativeShell()`) is up right now, OR it was ever confirmed before via the function below. No side
+  effects — safe to call from a React render body.
+- `confirmNativeShellIfDetected()` — the one write. Persists the marker when the live dedicated-shell signal is
+  currently true. Called only from imperative/effect code (`main.tsx`'s boot script, `MarketingApp`'s
+  `InstalledShellEscape` effect) — never from a component render body, to keep renders pure.
+- `isInstalledAppSticky()` (`main.tsx` / `MarketingApp.tsx` boot split) and `isNativeAuthSurfaceSticky()`
+  (`Index.tsx`'s in-app native-vs-marketing auth gate, replacing the now-dead `isNativeAuthSurface()`) both
+  build on `isNativeShellSticky()`. Their **live** check is the same breadth as the plain functions they
+  replace — `isInstalledApp()`'s full signal set (Capacitor, ChravelNative bridge, `app_context=native` param,
+  generic WebView UA heuristics) and `isStandalonePWA()` respectively — only *persistence* is narrower. (An
+  earlier draft of this fix mistakenly narrowed the live check itself down to just the two dedicated-shell
+  signals, silently dropping the `app_context=native` param and the generic UA heuristics; caught and fixed
+  during review before this landed — see `isInstalledAppSticky()`'s doc comment.)
+- Two call sites needed this, not one: `main.tsx` decides `MarketingApp` vs. the full `App` shell at boot, but
+  even after `App` is correctly chosen, `Index.tsx` makes its *own*, separate native-vs-marketing decision one
+  layer deeper (`isNativeAuthSurface()`, now `isNativeAuthSurfaceSticky()`) to decide whether an unauthenticated
+  visit shows the native auth gate or the marketing landing inside the already-mounted app shell. Both used a
+  live-only check and could independently lose the same injection race; both are now sticky-aware.
+- Scoped narrowly on purpose: `isStandalonePWA()` and the generic WebView/`app_context` signals are excluded
+  from the sticky *write*. They're synchronous reads with no injection race to guard against, and — unlike a
+  native WebView's isolated data store, which is wiped on app uninstall — a standalone PWA's localStorage is
+  shared with an ordinary browser tab on the same origin/profile, and the generic Android `; wv)` UA heuristic
+  can also match third-party embedded WebViews (Instagram/Facebook in-app browsers). Persisting on either would
+  let one visit permanently misclassify a later, unrelated visit on a shared device, with no way to unconfirm it.
+- `main.tsx`'s own native-shell check for gating service-worker registration (`inNativeShell`) was switched to
+  `isNativeShellSticky()` too, for the identical reason: a service worker that slips through inside the native
+  shell persists across app updates and serves stale chunk hashes after the next deploy (a *second*, unrelated
+  blank-screen failure mode this fix incidentally also closes).
 - `MarketingApp`'s `InstalledShellEscape` safety net changed from a one-shot check-on-mount (which only ever
   caught the bridge if it arrived before React's first render) to a bounded poll (150ms interval, 8s timeout
   measured against a `Date.now()` wall-clock deadline rather than a tick count, since a congested cold boot —
   the exact condition that delays bridge injection — is also the condition most likely to delay `setTimeout`
-  firing on schedule). If the bridge is injected late — while the user is already looking at the marketing
-  landing or its auth modal — this now self-heals within one bounded window instead of requiring a correct
-  detection on the very first synchronous check, and persists the marker so it never has to re-detect again.
-- `main.tsx` and `MarketingApp.tsx` both now call `isInstalledAppSticky()` instead of the plain live
-  `isInstalledApp()` for the marketing/app boot split specifically. Every other consumer of `isInstalledApp()`
-  (billing/RevenueCat vs. Stripe routing, permission prompts, etc.) is untouched — folding the sticky marker in
-  there was deliberately avoided to keep the payment-SDK boundary (RevenueCat iOS / Stripe web) exactly as
-  live-detected, per CLAUDE.md's "don't mix" rule.
+  firing on schedule). It checks immediately on mount (zero added delay for the common already-confirmed case),
+  then re-checks every 150ms until the deadline. If the bridge is injected late — while the user is already
+  looking at the marketing landing or its auth modal — this now self-heals within one bounded window instead of
+  requiring a correct detection on the very first synchronous check, and persists the marker so it never has to
+  re-detect again.
+- Every other consumer of `isInstalledApp()` (billing/RevenueCat vs. Stripe routing, permission prompts, etc.)
+  is untouched — folding the sticky marker in there was deliberately avoided to keep the payment-SDK boundary
+  (RevenueCat iOS / Stripe web) exactly as live-detected, per CLAUDE.md's "don't mix" rule.
 
-This makes `chravel-web` resilient to the *symptom* (repeated misdetection) regardless of the exact injection
-timing on the native side, and bounds the number of reload loops a reviewer or user could ever see to a small,
-fixed number instead of indefinitely.
+This makes `chravel-web` resilient to the *symptom* (repeated misdetection, at both the boot-split layer and
+the in-app auth-gate layer) regardless of the exact injection timing on the native side, and bounds the number
+of reload loops a reviewer or user could ever see to a small, fixed number instead of indefinitely.
 
 ## Still required in `chravel-mobile` (the actual root cause)
 

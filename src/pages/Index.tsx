@@ -93,7 +93,7 @@ import { clearPendingInviteCode, getPendingInviteCode } from '../lib/pendingInvi
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../components/mobile/PullToRefreshIndicator';
 import { clearDataCaches } from '../utils/pwaCacheUtils';
-import { isInstalledApp, isNativeAuthSurface } from '../utils/platformDetection';
+import { isInstalledApp, isNativeAuthSurfaceSticky } from '../utils/platformDetection';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { BootHydrationFallback } from '../components/home/DashboardSkeleton';
 import { performanceService } from '../services/performanceService';
@@ -801,7 +801,7 @@ const AuthIndex = () => {
     // Only real native shells / installed PWA jump straight to the auth gate.
     // Generic iOS WKWebViews (Instagram/Facebook in-app browsers, embedded
     // previews) fall through to the marketing landing.
-    if (isNativeAuthSurface()) {
+    if (isNativeAuthSurfaceSticky()) {
       return (
         <div className="min-h-screen bg-background">
           <Suspense fallback={null}>
@@ -1525,7 +1525,7 @@ const Index = () => {
     if (!isHydrated || authLoading || session) {
       return <BootHydrationFallback />;
     }
-    return <UnauthIndex authLoading={authLoading} isInstalled={isNativeAuthSurface()} />;
+    return <UnauthIndex authLoading={authLoading} isInstalled={isNativeAuthSurfaceSticky()} />;
   }
 
   return <AuthIndex />;

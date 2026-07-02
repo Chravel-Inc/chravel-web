@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  confirmNativeShell,
+  confirmNativeShellIfDetected,
   detectNativeBillingPlatform,
   hasConfirmedNativeShell,
   isCapacitorNativeShell,
@@ -8,6 +8,8 @@ import {
   isInstalledApp,
   isInstalledAppSticky,
   isLikelyMobileDevice,
+  isNativeAuthSurfaceSticky,
+  isNativeShellSticky,
   isNativeWebView,
   isStandalonePWA,
 } from '@/utils/platformDetection';
@@ -143,7 +145,7 @@ describe('platformDetection', () => {
     expect(isNativeWebView()).toBe(false);
   });
 
-  it('persists a sticky native marker the first time live detection succeeds', () => {
+  it('confirmNativeShellIfDetected persists the marker the first time live detection succeeds', () => {
     setUserAgent(
       'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
     );
@@ -154,8 +156,42 @@ describe('platformDetection', () => {
     };
 
     expect(hasConfirmedNativeShell()).toBe(false);
-    expect(isInstalledAppSticky()).toBe(true);
+    confirmNativeShellIfDetected();
     expect(hasConfirmedNativeShell()).toBe(true);
+  });
+
+  it('isInstalledAppSticky and isNativeShellSticky are pure reads — they never write the marker themselves', () => {
+    setUserAgent(
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+    );
+    setMatchMedia(false);
+    setLocationSearch('');
+    (window as unknown as { ChravelNative: { isNative: boolean } }).ChravelNative = {
+      isNative: true,
+    };
+
+    expect(isNativeShellSticky()).toBe(true);
+    expect(isInstalledAppSticky()).toBe(true);
+    // Reading, even repeatedly, must never persist — only confirmNativeShellIfDetected() does.
+    expect(hasConfirmedNativeShell()).toBe(false);
+  });
+
+  it('isInstalledAppSticky still checks the FULL isInstalledApp() live signals, not just the two dedicated-shell ones', () => {
+    // Regression guard: an earlier draft of isInstalledAppSticky() only consulted
+    // isCapacitorNativeShell()/isChravelNativeShell() live, silently dropping the
+    // app_context=native param and the generic WebView UA heuristics that
+    // isInstalledApp()/isNativeWebView() also check — which would misroute any
+    // shell that only self-identifies via those signals.
+    setUserAgent(
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+    );
+    setMatchMedia(false);
+    setLocationSearch('?app_context=native');
+
+    expect(isChravelNativeShell()).toBe(false);
+    expect(isCapacitorNativeShell()).toBe(false);
+    expect(isInstalledApp()).toBe(true);
+    expect(isInstalledAppSticky()).toBe(true);
   });
 
   it('stays installed via the sticky marker even after the live bridge signal disappears', () => {
@@ -163,7 +199,11 @@ describe('platformDetection', () => {
     // injected late by native code and is gone again by the time of a later boot
     // (or never arrived in time on this particular reload) — a fresh
     // `isInstalledApp()` check would misdetect and re-mount MarketingApp.
-    confirmNativeShell();
+    (window as unknown as { ChravelNative: { isNative: boolean } }).ChravelNative = {
+      isNative: true,
+    };
+    confirmNativeShellIfDetected();
+    delete (window as unknown as { ChravelNative?: unknown }).ChravelNative;
 
     setUserAgent(
       'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
@@ -173,6 +213,7 @@ describe('platformDetection', () => {
 
     expect(isInstalledApp()).toBe(false);
     expect(isInstalledAppSticky()).toBe(true);
+    expect(isNativeAuthSurfaceSticky()).toBe(true);
   });
 
   it('does not confirm a native shell for an ordinary anonymous browser visit', () => {
@@ -182,7 +223,9 @@ describe('platformDetection', () => {
     setMatchMedia(false);
     setLocationSearch('');
 
+    confirmNativeShellIfDetected();
     expect(isInstalledAppSticky()).toBe(false);
+    expect(isNativeAuthSurfaceSticky()).toBe(false);
     expect(hasConfirmedNativeShell()).toBe(false);
   });
 
@@ -198,6 +241,8 @@ describe('platformDetection', () => {
 
     expect(isStandalonePWA()).toBe(true);
     expect(isInstalledAppSticky()).toBe(true);
+    expect(isNativeAuthSurfaceSticky()).toBe(true);
+    confirmNativeShellIfDetected();
     expect(hasConfirmedNativeShell()).toBe(false);
   });
 

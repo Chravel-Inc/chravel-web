@@ -10,7 +10,11 @@ import { getMissingSupabaseEnvVars } from '@/integrations/supabase/config';
 import { telemetry } from '@/telemetry/service';
 import { isLovablePreview } from './utils/env';
 import { hasAuthStorageMarker, shouldUseMarketingBootstrap } from './lib/bootstrapShell';
-import { isChravelNativeShell, isInstalledAppSticky } from './utils/platformDetection';
+import {
+  confirmNativeShellIfDetected,
+  isInstalledAppSticky,
+  isNativeShellSticky,
+} from './utils/platformDetection';
 import { installChunkErrorRecovery, claimOneShotReload } from '@/utils/chunkRecovery';
 import { warmRouteChunksForPath } from './lib/routeChunks';
 import { getSafeStorage, safeGetItem, safeSetItem } from '@/utils/safeStorage';
@@ -63,6 +67,13 @@ const hasAuthMarkerOnBoot =
     sessionStorage: getSafeStorage('session'),
     cookieIncludes: safeCookieIncludes,
   });
+
+// Persist native-shell detection the moment it's live-true, so every later
+// check in this WebView instance (including this same boot's own SW-gate
+// check below, and Index.tsx's in-app auth gate) is correct even if the
+// bridge hasn't (re-)injected by the time THAT check runs. Safe here — this
+// is imperative boot code, not a React render body.
+confirmNativeShellIfDetected();
 
 // Anonymous browser visitors to `/` boot MarketingApp for faster first paint.
 // Installed shells (PWA, Capacitor, chravel-mobile TestFlight) always boot App
@@ -149,8 +160,12 @@ const isPublicAnonymousBootstrapRoute = (): boolean => {
 };
 
 // Native shell handles its own caching and lifecycle — service workers add startup
-// cost (registration, activation) without benefit inside the WebView.
-const inNativeShell = isChravelNativeShell();
+// cost (registration, activation) without benefit inside the WebView. Sticky
+// check (not the plain live one): a native shell whose bridge hasn't
+// (re-)injected by this exact boot must still never get a service worker
+// registered — one that slips through here persists across app updates and
+// serves stale chunk hashes after the next deploy (blank-screen regression).
+const inNativeShell = isNativeShellSticky();
 
 if ('serviceWorker' in navigator) {
   if (inNativeShell) {

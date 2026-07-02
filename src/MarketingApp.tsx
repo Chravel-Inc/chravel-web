@@ -3,7 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { FullPageLanding } from '@/components/landing/FullPageLanding';
 import { AuthProvider, useOptionalAuth } from '@/hooks/useAuth';
 import { AuthModal } from '@/components/AuthModal';
-import { isInstalledAppSticky } from '@/utils/platformDetection';
+import { confirmNativeShellIfDetected, isInstalledAppSticky } from '@/utils/platformDetection';
 import { markAppBooted } from '@/utils/chunkRecovery';
 
 // How long we keep polling for a late `window.ChravelNative` bridge injection
@@ -72,8 +72,7 @@ function InstalledShellEscape() {
     let timer: number;
 
     const check = () => {
-      // isInstalledAppSticky() persists the marker itself the moment live
-      // detection succeeds — nothing else needs to write it here.
+      confirmNativeShellIfDetected();
       if (isInstalledAppSticky()) {
         window.location.replace('/auth');
         return;
@@ -83,7 +82,10 @@ function InstalledShellEscape() {
       }
     };
 
-    timer = window.setTimeout(check, NATIVE_SHELL_POLL_INTERVAL_MS);
+    // Check immediately (not just via the first setTimeout) — the common case
+    // is the sticky marker already being true from a prior boot, and that case
+    // deserves zero added delay, not one wasted poll interval.
+    check();
     return () => window.clearTimeout(timer);
   }, []);
   return null;
