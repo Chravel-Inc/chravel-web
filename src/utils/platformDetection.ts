@@ -1,3 +1,5 @@
+import { safeGetItem, safeSetItem } from '@/utils/safeStorage';
+
 /**
  * Centralized platform detection.
  * These are synchronous checks — context does not change during a session.
@@ -121,6 +123,52 @@ export function isInstalledApp(): boolean {
   // Native webview should always be treated as installed app context.
   if (isNativeWebView()) return true;
   // Any standalone PWA (mobile or desktop) is a first-class app surface — same auth/OAuth rules.
+  return isStandalonePWA();
+}
+
+/**
+ * Sticky, persisted confirmation that this browser/WebView instance is the
+ * chravel-mobile native shell. Live detection (`isChravelNativeShell` /
+ * `isCapacitorNativeShell`) depends on native code injecting a bridge object
+ * before our JS runs — if that injection happens via a post-navigation bridge
+ * call instead of a document-start user script, `main.tsx`'s synchronous
+ * boot-time check can lose that race on every cold start, repeatedly mounting
+ * `MarketingApp` and forcing a reload loop after sign-in (App Review 2.1(a) —
+ * "looped back to login"). Once we ever see the live signal, we persist it so
+ * every later boot in this WebView instance is correct immediately, without
+ * depending on injection timing.
+ *
+ * Deliberately narrower than `isInstalledApp()`: only the two dedicated-shell
+ * signals (Capacitor, ChravelNative bridge) are persisted. `isStandalonePWA()`
+ * is a synchronous `matchMedia`/`navigator.standalone` read with no injection
+ * race to guard against, and its storage is NOT isolated from an ordinary
+ * browser tab on the same origin/profile (unlike a native WebView's data
+ * store, which is wiped on app uninstall) — persisting on that signal would
+ * let one PWA-install visit permanently misclassify a later plain-browser
+ * visit on a shared profile, with no way to ever unconfirm it.
+ */
+const NATIVE_SHELL_CONFIRMED_KEY = 'chravel-native-shell-confirmed';
+
+export function hasConfirmedNativeShell(): boolean {
+  return safeGetItem('local', NATIVE_SHELL_CONFIRMED_KEY) === '1';
+}
+
+export function confirmNativeShell(): void {
+  if (hasConfirmedNativeShell()) return;
+  safeSetItem('local', NATIVE_SHELL_CONFIRMED_KEY, '1');
+}
+
+/**
+ * `isInstalledApp()` plus the sticky marker above. Use this (not the plain
+ * live check) anywhere a misdetection would strand the user — the
+ * marketing/full-app boot split and its installed-shell escape hatch.
+ */
+export function isInstalledAppSticky(): boolean {
+  if (isCapacitorNativeShell() || isChravelNativeShell()) {
+    confirmNativeShell();
+    return true;
+  }
+  if (hasConfirmedNativeShell()) return true;
   return isStandalonePWA();
 }
 

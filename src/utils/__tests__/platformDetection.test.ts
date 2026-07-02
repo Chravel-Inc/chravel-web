@@ -1,9 +1,12 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  confirmNativeShell,
   detectNativeBillingPlatform,
+  hasConfirmedNativeShell,
   isCapacitorNativeShell,
   isChravelNativeShell,
   isInstalledApp,
+  isInstalledAppSticky,
   isLikelyMobileDevice,
   isNativeWebView,
   isStandalonePWA,
@@ -33,6 +36,10 @@ const setLocationSearch = (search: string) => {
 };
 
 describe('platformDetection', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
   afterEach(() => {
     vi.unstubAllGlobals();
     delete (window as unknown as { Capacitor?: unknown }).Capacitor;
@@ -41,6 +48,7 @@ describe('platformDetection', () => {
       value: originalLocation,
       configurable: true,
     });
+    window.localStorage.clear();
   });
 
   it('classifies desktop standalone PWA as installed app (auth shell, not marketing)', () => {
@@ -133,6 +141,64 @@ describe('platformDetection', () => {
 
     expect(isCapacitorNativeShell()).toBe(false);
     expect(isNativeWebView()).toBe(false);
+  });
+
+  it('persists a sticky native marker the first time live detection succeeds', () => {
+    setUserAgent(
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+    );
+    setMatchMedia(false);
+    setLocationSearch('');
+    (window as unknown as { ChravelNative: { isNative: boolean } }).ChravelNative = {
+      isNative: true,
+    };
+
+    expect(hasConfirmedNativeShell()).toBe(false);
+    expect(isInstalledAppSticky()).toBe(true);
+    expect(hasConfirmedNativeShell()).toBe(true);
+  });
+
+  it('stays installed via the sticky marker even after the live bridge signal disappears', () => {
+    // Simulates the exact App Store 2.1(a) regression: `window.ChravelNative` is
+    // injected late by native code and is gone again by the time of a later boot
+    // (or never arrived in time on this particular reload) — a fresh
+    // `isInstalledApp()` check would misdetect and re-mount MarketingApp.
+    confirmNativeShell();
+
+    setUserAgent(
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+    );
+    setMatchMedia(false);
+    setLocationSearch('');
+
+    expect(isInstalledApp()).toBe(false);
+    expect(isInstalledAppSticky()).toBe(true);
+  });
+
+  it('does not confirm a native shell for an ordinary anonymous browser visit', () => {
+    setUserAgent(
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+    );
+    setMatchMedia(false);
+    setLocationSearch('');
+
+    expect(isInstalledAppSticky()).toBe(false);
+    expect(hasConfirmedNativeShell()).toBe(false);
+  });
+
+  it('does not persist the sticky marker for a standalone PWA (no injection race to guard against)', () => {
+    // A PWA install shares localStorage with an ordinary browser tab on the same
+    // origin/profile (unlike a native WebView's isolated data store), so persisting
+    // here would let one PWA visit permanently misclassify a later plain-browser visit.
+    setUserAgent(
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+    );
+    setMatchMedia(true);
+    setLocationSearch('');
+
+    expect(isStandalonePWA()).toBe(true);
+    expect(isInstalledAppSticky()).toBe(true);
+    expect(hasConfirmedNativeShell()).toBe(false);
   });
 
   it('resolves native billing platform without falling back to web checkout', () => {

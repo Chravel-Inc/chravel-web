@@ -3,8 +3,21 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { FullPageLanding } from '@/components/landing/FullPageLanding';
 import { AuthProvider, useOptionalAuth } from '@/hooks/useAuth';
 import { AuthModal } from '@/components/AuthModal';
-import { isInstalledApp } from '@/utils/platformDetection';
+import { isInstalledAppSticky } from '@/utils/platformDetection';
 import { markAppBooted } from '@/utils/chunkRecovery';
+
+// How long we keep polling for a late `window.ChravelNative` bridge injection
+// before giving up. Native shells that inject the bridge via a post-navigation
+// call (rather than a document-start user script) can lose the boot-time race
+// in `main.tsx`, stranding the user on the marketing shell — see
+// `isInstalledAppSticky()` for the persisted-marker half of this fix. Generous
+// timeout because a cold boot under chunk-loading contention (the exact
+// condition that makes injection arrive late) is also the condition most
+// likely to delay a `setTimeout` firing on schedule — checked against a
+// wall-clock deadline below, not a tick count, so backgrounding/throttling
+// can't silently extend how long this actually runs.
+const NATIVE_SHELL_POLL_INTERVAL_MS = 150;
+const NATIVE_SHELL_POLL_TIMEOUT_MS = 8000;
 
 const BlogIndex = lazy(() => import('@/pages/BlogIndex'));
 const BlogPost = lazy(() => import('@/pages/BlogPost'));
@@ -38,7 +51,13 @@ function PostAuthBoot() {
 
 /**
  * Safety net: if an installed/native shell ever mounts MarketingApp (stale SW,
- * deep link race), jump to /auth so main.tsx boots the full App router.
+ * deep link race, or a `window.ChravelNative` bridge that injects after this
+ * shell has already rendered), jump to /auth so main.tsx boots the full App
+ * router on next load. Polls rather than checking once, since the native
+ * bridge can be injected well after our first render — a one-shot check at
+ * mount only catches the (rare) case where it beat us there. Persists the
+ * sticky marker the moment it detects native so every later boot in this
+ * WebView instance skips MarketingApp entirely instead of re-losing the race.
  * Respects the `?marketing=1` / `/home` / `/index` preview override.
  */
 function InstalledShellEscape() {
@@ -48,9 +67,24 @@ function InstalledShellEscape() {
       window.location.pathname === '/home' ||
       window.location.pathname === '/index';
     if (forcedMarketing) return;
-    if (isInstalledApp()) {
-      window.location.replace('/auth');
-    }
+
+    const deadline = Date.now() + NATIVE_SHELL_POLL_TIMEOUT_MS;
+    let timer: number;
+
+    const check = () => {
+      // isInstalledAppSticky() persists the marker itself the moment live
+      // detection succeeds — nothing else needs to write it here.
+      if (isInstalledAppSticky()) {
+        window.location.replace('/auth');
+        return;
+      }
+      if (Date.now() < deadline) {
+        timer = window.setTimeout(check, NATIVE_SHELL_POLL_INTERVAL_MS);
+      }
+    };
+
+    timer = window.setTimeout(check, NATIVE_SHELL_POLL_INTERVAL_MS);
+    return () => window.clearTimeout(timer);
   }, []);
   return null;
 }
@@ -62,7 +96,7 @@ export default function MarketingApp() {
     (window.location.search.includes('marketing=1') ||
       window.location.pathname === '/home' ||
       window.location.pathname === '/index');
-  const installed = !forcedMarketing && isInstalledApp();
+  const installed = !forcedMarketing && isInstalledAppSticky();
 
   // The marketing shell mounted — its chunk loaded successfully. Clear the one-shot
   // chunk-recovery guard so a later, independent stale-chunk error can recover too.
@@ -92,6 +126,7 @@ export default function MarketingApp() {
     <BrowserRouter>
       <AuthProvider>
         <PostAuthBoot />
+        <InstalledShellEscape />
         <Suspense fallback={fallback}>
           <main data-marketing="true">
             <Routes>

@@ -10,7 +10,7 @@ import { getMissingSupabaseEnvVars } from '@/integrations/supabase/config';
 import { telemetry } from '@/telemetry/service';
 import { isLovablePreview } from './utils/env';
 import { hasAuthStorageMarker, shouldUseMarketingBootstrap } from './lib/bootstrapShell';
-import { isChravelNativeShell, isInstalledApp } from './utils/platformDetection';
+import { isChravelNativeShell, isInstalledAppSticky } from './utils/platformDetection';
 import { installChunkErrorRecovery, claimOneShotReload } from '@/utils/chunkRecovery';
 import { warmRouteChunksForPath } from './lib/routeChunks';
 import { getSafeStorage, safeGetItem, safeSetItem } from '@/utils/safeStorage';
@@ -74,7 +74,7 @@ const shouldUseMarketingSplit =
     marketingSplitEnabled: import.meta.env.VITE_MARKETING_SPLIT !== '0',
     pathname: window.location.pathname,
     hasAuthMarker: hasAuthMarkerOnBoot,
-    isInstalledApp: isInstalledApp(),
+    isInstalledApp: isInstalledAppSticky(),
     forceMarketing:
       window.location.search.includes('marketing=1') ||
       window.location.pathname === '/home' ||
