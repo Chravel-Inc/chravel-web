@@ -1,0 +1,31 @@
+persona_id,name,segment,mode,platform,group_size,primary_pain,loved_most,hated_most,likelihood_to_use,willingness_to_pay,best_sku,top_requested_feature,biggest_churn_risk,activation,invite,day7_retention,paid_conversion,nps
+1,Serena Vale,Girls luxury trip planner,Regular,iOS,8,Aesthetic cohesion + restaurant curation,Places + AI concierge,Export branding + guest wall,7,$15-30/mo,Explorer,Branded PDF export,Dead export button,6,5,5,5,-10
+2,Dana Whitfield,Youth soccer team mom,Regular,iOS,11,Schedule changes unseen,Polls + calendar,Invite signup wall,6,Trip Pass $30-40,Trip Pass,Read-only guest schedule,Two-chat problem,6,4,5,2,-5
+3,Keisha Morgan,AAU volleyball parent coordinator,Regular,mixed,14,Multi-city tournament logistics,Calendar + Smart Import,Multi-city mental model,6,Trip Pass,Trip Pass,Multi-city itinerary view,Smart Import paywall,6,4,5,3,0
+4,Mia Torres,Bachelorette maid of honor,Regular,iOS,12,Decision paralysis in group chat,Polls + places,Media cap + Venmo split,7,Trip Pass $39.99,Trip Pass,Polls,Can't reach Trip Pass in-app,7,5,4,4,-5
+5,Brad Olsen,Guys golf birthday trip,Regular,Android,8,Tee times + dinner splits,Polls + payments,Too many tabs,6,$5-15/mo,Explorer,Simple expense split,Payments trust,6,5,4,3,5
+6,Priya & James Chen,Destination wedding couple,Events,mixed,85,Guest comms fragmentation,Events RSVP + broadcasts,Attendee cap label scare,6,Trip Pass $74.99,90-day Pass,Guest broadcasts,False attendee cap copy,6,4,5,5,-5
+7,Robert Ellison,Family reunion planner,Regular,Desktop-first,22,Older relatives can't use apps,Calendar clarity,Account required for everyone,5,Free only,Free,Printable schedule,Invite friction for elders,5,3,4,1,-15
+8,Tyler Brooks,College spring break planner,Regular,iOS,10,Budget tracking in chat,Chat + polls,Onboarding length,7,Free only,Free,Polls,Price sensitivity,7,6,3,1,10
+9,Camille Dubois,Couples group (4 couples),Regular,iOS,8,Fair cost splitting,Payments summary,Subscription framing,6,Per-trip,Trip Pass,Who-owes-whom,iOS purchase dead-end,6,5,5,3,0
+10,Jordan Kim,Solo friend-trip organizer,Regular,mixed,6,Chasing RSVPs,Tasks + concierge,Invite buried in menu,7,Trip Pass,Trip Pass,AI concierge,Empty chat on join,7,4,5,3,-5
+11,Dana Okafor,NFL travel logistics,Pro,Desktop-first,60,Day sheet + role comms,Role channels,Stubbed per-diem/rooming,5,Team $99+/mo,Pro Growth,Targeted broadcasts,Hollow Pro tabs,6,7,3,2,-35
+12,Marcus Webb,NBA travel operations,Pro,Desktop-first,55,Bus call acknowledgments,Sports role defaults,Broadcast targeting,5,Enterprise,Pro Growth,Per-person ack roster,mailto checkout,6,7,3,2,-30
+13,Coach Elena Ruiz,Duke basketball travel coord,Pro,mixed,25,NCAA compliance visibility,Roster + roles,Compliance tab stub,6,Team plan,Pro Starter,Role permissions,Compliance placeholder,6,6,4,3,-20
+14,Pat Sullivan,HS athletic director,Pro,Desktop-first,120,Multiple teams same weekend,Pro trip categories,No multi-trip dashboard,5,Enterprise,Enterprise,Multi-team ops view,Scale + notifications,5,5,3,2,-25
+15,Riley Park,Touring comedian tour manager,Pro,iOS,12,Venue changes night-of,Calendar + broadcasts,No day sheet view,6,$49-99/mo,Pro Starter,Mobile day sheet,Offline failures,6,6,4,3,-15
+16,Devon Hayes,Music artist tour manager (25-city),Pro,mixed,45,Multi-city basecamps,Basecamp per city,Settlement stub,5,$99+/mo,Pro Growth,Multi-basecamp,Demo vs real gap,5,6,3,2,-40
+17,Sofia Marchetti,Film shoot production coord,Pro,Desktop-first,80,Call sheet distribution,Role channels,No call sheet export,5,Client-billable,Pro Growth,Call sheet / day sheet,Scale notifications,5,6,3,3,-20
+18,Alex Rivera,Corporate 150-person offsite,Events,Desktop-first,150,Agenda + reimbursement,Events + polls,No reimbursement mode,5,One-off pass $99-199,Event pass,Agenda distribution,Org can't own trip,5,6,3,2,-25
+19,Claire Nguyen,Executive assistant (confidential travel),Pro,Desktop-first,8,Privacy + discretion,Role-gated channels,Unsigned media URLs,6,Enterprise,Enterprise,Private channels,Security gaps,6,5,4,2,-15
+20,Helena Cross,Travel concierge company,Pro,Desktop-first,6,Multi-client itineraries,Smart Import,No white-label/client workspaces,6,White-label plan,Enterprise,Client workspaces,No multi-tenant,6,5,5,4,0
+21,Vanessa Ortiz,Wedding planner (multi-vendor),Events,mixed,200,Vendor + guest coordination,Tasks + calendar,No vendor role type,6,Client-billable,Event pass,Vendor task board,Guest signup wall,6,5,5,4,5
+22,Dr. Alan Pierce,1000-person conference organizer,Events,Desktop-first,1000,Broadcast reliability at scale,Events module exists,Notification fanout risk,4,Enterprise,Enterprise,Reliable broadcasts,Scale failure,4,5,2,2,-30
+23,Zoe Martinez,Music festival group lead,Regular,iOS,15,Lodging + meetup points,Places + chat,Festival schedule import,7,Trip Pass,Trip Pass,Smart Import links,Import paywall,7,6,4,3,5
+24,Chris Delaney,Run club race weekend,Regular,Android,18,Weekly repeat trips,Calendar,No recurring trip template,5,Free only,Free,Duplicate trip,3-trip cap,5,5,4,1,-20
+25,Jake Morrison,Fraternity rush chair,Events,iOS,140,Daily event chaos,Invite + calendar,No per-trip mute,7,Chapter expense,Season pass,Broadcasts,Notification firehose,7,8,3,1,-10
+26,Pastor David Greene,Church nonprofit group trip,Regular,mixed,35,Volunteer coordination,Tasks + calendar,Payments complexity,5,Free/donation,Free,Volunteer tasks,Tech literacy gap,5,3,4,1,0
+27,Ms. Linda Park,School field trip coordinator,Regular,Desktop-first,28,Parent permission + chaperones,Tasks + calendar,Youth privacy concerns,5,School budget,Team plan,Chaperone roles,Privacy + COPPA fears,5,4,4,2,-5
+28,Mike Santoro,Price-sensitive bachelor party,Regular,Android,14,Cost transparency,Polls + payments,Any subscription CTA,6,Free only,Free,Expense tracking,Upgrade prompts,6,5,3,1,-5
+29,Isabelle Fontaine,Luxury travel advisor,Pro,Desktop-first,4,Client-facing polish,Places + concierge,No white-label export,6,Client-billable,White-label,Branded client PDF,Export branding,6,5,6,5,10
+30,Amara Osei,International group organizer,Regular,mixed,12,Timezones + multilingual,Timezone on trip create,No i18n,6,$15-30/mo,Explorer,Timezone-aware calendar,US-centric copy,6,5,5,4,5
