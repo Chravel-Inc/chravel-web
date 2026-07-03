@@ -1,5 +1,6 @@
 import React from 'react';
 import '@/styles/marketingFonts';
+import { useForceDarkTheme } from '@/hooks/useForceDarkTheme';
 import { Button } from '@/components/ui/button';
 import {
   ArrowRight,
@@ -20,6 +21,8 @@ import { Link } from 'react-router-dom';
 import channelsPro from '@/assets/app-screenshots/channels-pro.png';
 
 export const ForTeams = () => {
+  // Marketing surface — dark-only, matching the homepage.
+  useForceDarkTheme();
   const benefits = [
     {
       icon: <Shield size={32} className="text-primary" />,

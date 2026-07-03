@@ -1,5 +1,6 @@
 import React, { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import { MotionConfig } from 'framer-motion';
+import { useForceDarkTheme } from '@/hooks/useForceDarkTheme';
 import { FullPageLandingSection } from './FullPageLandingSection';
 import { StickyLandingNav } from './StickyLandingNav';
 import { MobileLandingNav } from './MobileLandingNav';
@@ -114,16 +115,8 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp, onAu
     setLandingScrollEl(node);
   }, []);
 
-  // Marketing landing is dark-only. Force-remove the user's `light` theme class
-  // while mounted so global light-mode token remaps don't bleed into the page.
-  useEffect(() => {
-    const root = document.documentElement;
-    const wasLight = root.classList.contains('light');
-    if (wasLight) root.classList.remove('light');
-    return () => {
-      if (wasLight) root.classList.add('light');
-    };
-  }, []);
+  // Marketing landing is dark-only — shared with the other marketing routes.
+  useForceDarkTheme();
 
   // Prefetch below-the-fold section chunks during idle time.
   useEffect(() => {
