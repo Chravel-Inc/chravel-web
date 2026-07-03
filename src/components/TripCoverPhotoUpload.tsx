@@ -67,13 +67,13 @@ export const TripCoverPhotoUpload = ({
     if (generateDisabled) return;
     const result = await generateAiCover();
     if (result.ok) {
-      // Persist through the caller's onPhotoUploaded so local state stays in sync
-      // with the server-side write the edge function already made.
       await onPhotoUploaded(result.publicUrl).catch(() => false);
       setUploadSuccess(true);
       setTimeout(() => setUploadSuccess(false), 2000);
       toast.success('AI cover photo generated!');
-    } else if (result.code === 'upgrade_required') {
+      return;
+    }
+    if (result.code === 'upgrade_required') {
       toast.error('Upgrade to Frequent Chraveler to generate cover photos.');
     } else if (result.code === 'quota_exceeded') {
       toast.error(`You've used all ${aiCap} AI covers this month.`);
