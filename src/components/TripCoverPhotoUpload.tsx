@@ -35,6 +35,13 @@ export const TripCoverPhotoUpload = ({
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
   const { upload: uploadCoverPhoto } = useCoverPhotoUpload();
+  const {
+    generate: generateAiCover,
+    isGenerating,
+    remainingThisMonth,
+    cap: aiCap,
+    isEligible: isFrequentChraveler,
+  } = useGenerateCoverPhoto(tripId);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [showCropModal, setShowCropModal] = useState(false);
@@ -42,6 +49,38 @@ export const TripCoverPhotoUpload = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedImageSrc, setSelectedImageSrc] = useState<string>('');
   const [hasImageError, setHasImageError] = useState(false);
+
+  const canGenerate = !!user && !isDemoMode && isFrequentChraveler;
+  const outOfQuota = canGenerate && remainingThisMonth !== null && remainingThisMonth <= 0;
+  const generateDisabled = !user || isDemoMode || !isFrequentChraveler || outOfQuota || isGenerating || isUploading || isDeleting;
+  const generateTitle = !user
+    ? 'Sign in to generate cover photos'
+    : isDemoMode
+    ? 'AI cover generation is disabled in demo mode'
+    : !isFrequentChraveler
+    ? 'Upgrade to Frequent Chraveler to generate AI cover photos'
+    : outOfQuota
+    ? `You've used all ${aiCap} AI covers this month`
+    : `Generate an AI cover photo (${remainingThisMonth ?? aiCap} of ${aiCap} left this month)`;
+
+  const handleGenerateAi = useCallback(async () => {
+    if (generateDisabled) return;
+    const result = await generateAiCover();
+    if (result.ok) {
+      // Persist through the caller's onPhotoUploaded so local state stays in sync
+      // with the server-side write the edge function already made.
+      await onPhotoUploaded(result.publicUrl).catch(() => false);
+      setUploadSuccess(true);
+      setTimeout(() => setUploadSuccess(false), 2000);
+      toast.success('AI cover photo generated!');
+    } else if (result.code === 'upgrade_required') {
+      toast.error('Upgrade to Frequent Chraveler to generate cover photos.');
+    } else if (result.code === 'quota_exceeded') {
+      toast.error(`You've used all ${aiCap} AI covers this month.`);
+    } else {
+      toast.error(result.error || 'Cover generation failed.');
+    }
+  }, [generateDisabled, generateAiCover, onPhotoUploaded, aiCap]);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
