@@ -892,8 +892,29 @@
 .light .dark-section .bg-white\/10 {
   background-color: rgba(255, 255, 255, 0.1);
 }
+.light .dark-section .bg-white\/5 {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+.light .dark-section .bg-white\/20 {
+  background-color: rgba(255, 255, 255, 0.2);
+}
 .light .dark-section .border-white\/10 {
   border-color: rgba(255, 255, 255, 0.1);
+}
+.light .dark-section .border-white\/20 {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+.light .dark-section .hover\:text-white:hover {
+  color: white;
+}
+.light .dark-section .text-white\/60 {
+  color: rgba(255, 255, 255, 0.6);
+}
+.light .dark-section .hover\:bg-white\/10:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+.light .dark-section .hover\:bg-white\/20:hover {
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 @layer base {
