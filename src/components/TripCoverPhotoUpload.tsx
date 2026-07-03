@@ -263,7 +263,7 @@ export const TripCoverPhotoUpload = ({
               <span className="text-sm font-medium">View Full Photo</span>
             </button>
             {/* Edit controls row */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap justify-center">
               <button
                 onClick={handleAdjustPosition}
                 disabled={isUploading || isDeleting}
@@ -280,7 +280,31 @@ export const TripCoverPhotoUpload = ({
                 <Camera size={16} />
                 <span className="text-sm font-medium">Change Photo</span>
               </div>
+              <button
+                type="button"
+                onClick={handleGenerateAi}
+                disabled={generateDisabled}
+                title={generateTitle}
+                className="cursor-pointer bg-gradient-to-r from-amber-500/40 to-yellow-400/40 backdrop-blur-sm border border-amber-300/50 rounded-xl px-4 py-2 flex items-center gap-2 text-white hover:from-amber-500/60 hover:to-yellow-400/60 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {isGenerating ? (
+                  <>
+                    <div className="w-4 h-4 animate-spin gold-gradient-spinner" />
+                    <span className="text-sm font-medium">Generating…</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={16} />
+                    <span className="text-sm font-medium">Generate with AI</span>
+                  </>
+                )}
+              </button>
             </div>
+            {canGenerate && remainingThisMonth !== null && (
+              <p className="text-xs text-white/70">
+                {remainingThisMonth} of {aiCap} AI covers left this month
+              </p>
+            )}
             {/* Delete button */}
             {onPhotoRemoved && (
               <button
