@@ -40,6 +40,7 @@ import { useTripVariant } from '../contexts/TripVariantContext';
 import { useFeatureToggle } from '../hooks/useFeatureToggle';
 import { useSuperAdmin } from '../hooks/useSuperAdmin';
 import { usePrefetchTrip } from '../hooks/usePrefetchTrip';
+import { getInitialTripTabFromSearch } from '@/lib/tripTabNavigation';
 import { useViewportAnchoredHeight } from '../hooks/useViewportAnchoredHeight';
 import { CalendarSkeleton, PlacesSkeleton, ChatSkeleton } from './loading';
 import { TripPreferences as TripPreferencesType } from '../types/consumer';
@@ -115,6 +116,17 @@ export const TripTabs = ({
   useEffect(() => {
     setActiveTab(parentActiveTab || 'chat');
   }, [parentActiveTab]);
+
+  // Honor ?tab= deep links from notifications on desktop (mobile reads this in MobileTripDetail).
+  useEffect(() => {
+    const urlTab = getInitialTripTabFromSearch(window.location.search);
+    if (urlTab === 'chat' || urlTab === parentActiveTab) return;
+    parentOnTabChange(urlTab);
+    setActiveTab(urlTab);
+    setVisitedTabs(prev => new Set([...prev, urlTab]));
+    // Run once on mount — parent state defaults to chat until URL is applied.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ⚡ Pre-mount Tier 2 tabs after first paint settles. Uses requestIdleCallback
   // (or setTimeout fallback) at ~800ms so Tier 1 + active tab finish hydrating

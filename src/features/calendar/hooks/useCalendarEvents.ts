@@ -165,6 +165,11 @@ export const useCalendarEvents = (tripId?: string) => {
         queryClient.setQueryData(tripKeys.calendar(tripId), context.previousEvents);
       }
     },
+    onSettled: () => {
+      if (tripId) {
+        queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
+      }
+    },
   });
 
   // API compatible with original hook
