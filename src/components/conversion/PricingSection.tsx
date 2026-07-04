@@ -95,7 +95,7 @@ const consumerTiers: PricingTier[] = [
       'Unlimited PDF Recap exports',
       'ICS calendar export',
       'Smart Import (Calendar, Agenda, Line-up from URL)',
-      'Locataware AI recommendations',
+      'Location-aware AI recommendations',
       'Search past trips and memories',
     ],
     cta: 'Upgrade to Explorer',
