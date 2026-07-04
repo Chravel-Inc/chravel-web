@@ -35,8 +35,8 @@ export const USE_CASE_IMAGES: Record<string, UseCaseImage> = {
       'The weekend runs itself when every guest already knows where to be — and every photo lands in one shared album.',
   },
   'group-travel-planning-app': {
-    src: disneyFamilyCruise,
-    alt: 'A group cruise ship sailing through turquoise Caribbean waters',
+    src: groupCruiseDeckAerial,
+    alt: 'Friends relaxing together on a cruise ship pool deck with the ship and ocean in the background',
     caption: 'One trip workspace, zero “wait, where are we meeting?” texts.',
   },
   'family-organization-app': {
