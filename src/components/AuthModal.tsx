@@ -187,7 +187,7 @@ export const AuthModal = ({
           setResetEmailSent(false);
           setError('');
         }}
-        className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4"
+        className="flex items-center gap-2 text-muted-foreground hover:text-foreground dark:text-gray-400 dark:hover:text-white transition-colors mb-4"
       >
         <ArrowLeft size={16} />
         <span className="text-sm">Back to Sign In</span>
@@ -195,7 +195,7 @@ export const AuthModal = ({
 
       {resetEmailSent ? (
         <div className="text-center space-y-4">
-          <div className="p-4 bg-green-500/20 border border-green-500/50 rounded-xl text-green-200">
+          <div className="p-4 bg-green-500/20 border border-green-500/50 rounded-xl text-green-700 dark:text-green-200">
             Check your email for a password reset link
           </div>
           <button
@@ -203,7 +203,7 @@ export const AuthModal = ({
               setMode('signin');
               setResetEmailSent(false);
             }}
-            className="text-primary hover:text-gold-light transition-colors"
+            className="text-primary hover:text-gold-dark dark:hover:text-gold-light transition-colors"
           >
             Return to Sign In
           </button>
@@ -211,11 +211,13 @@ export const AuthModal = ({
       ) : (
         <form onSubmit={handleResetPassword} className="space-y-4">
           <div>
-            <label className="block text-white text-sm font-medium mb-2">Email</label>
+            <label className="block text-foreground dark:text-white text-sm font-medium mb-2">
+              Email
+            </label>
             <div className="relative">
               <Mail
                 size={20}
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground dark:text-gray-400"
               />
               <input
                 type="email"
@@ -225,7 +227,7 @@ export const AuthModal = ({
                 required
                 autoFocus
                 autoComplete="email"
-                className="w-full bg-white/10 border border-white/20 rounded-xl pl-10 pr-4 py-3 text-base text-white placeholder-white/60 focus:outline-none focus:border-primary"
+                className="w-full bg-input dark:bg-white/10 border border-border dark:border-white/20 rounded-xl pl-10 pr-4 py-3 text-base text-foreground dark:text-white placeholder:text-muted-foreground dark:placeholder-white/60 focus:outline-none focus:border-primary"
               />
             </div>
           </div>
@@ -248,7 +250,9 @@ export const AuthModal = ({
         <>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-white text-sm font-medium mb-2">First Name</label>
+              <label className="block text-foreground dark:text-white text-sm font-medium mb-2">
+                First Name
+              </label>
               <input
                 type="text"
                 value={firstName}
@@ -258,11 +262,13 @@ export const AuthModal = ({
                 autoComplete="given-name"
                 inputMode="text"
                 enterKeyHint="next"
-                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-base text-white placeholder-white/60 focus:outline-none focus:border-primary min-h-[48px]"
+                className="w-full bg-input dark:bg-white/10 border border-border dark:border-white/20 rounded-xl px-4 py-3 text-base text-foreground dark:text-white placeholder:text-muted-foreground dark:placeholder-white/60 focus:outline-none focus:border-primary min-h-[48px]"
               />
             </div>
             <div>
-              <label className="block text-white text-sm font-medium mb-2">Last Name</label>
+              <label className="block text-foreground dark:text-white text-sm font-medium mb-2">
+                Last Name
+              </label>
               <input
                 type="text"
                 value={lastName}
@@ -272,7 +278,7 @@ export const AuthModal = ({
                 autoComplete="family-name"
                 inputMode="text"
                 enterKeyHint="next"
-                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-base text-white placeholder-white/60 focus:outline-none focus:border-primary min-h-[48px]"
+                className="w-full bg-input dark:bg-white/10 border border-border dark:border-white/20 rounded-xl px-4 py-3 text-base text-foreground dark:text-white placeholder:text-muted-foreground dark:placeholder-white/60 focus:outline-none focus:border-primary min-h-[48px]"
               />
             </div>
           </div>
@@ -280,11 +286,13 @@ export const AuthModal = ({
       )}
 
       <div>
-        <label className="block text-white text-sm font-medium mb-2">Email</label>
+        <label className="block text-foreground dark:text-white text-sm font-medium mb-2">
+          Email
+        </label>
         <div className="relative">
           <Mail
             size={20}
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground dark:text-gray-400"
           />
           <input
             type="email"
@@ -296,13 +304,15 @@ export const AuthModal = ({
             autoComplete="email"
             inputMode="email"
             enterKeyHint="next"
-            className="w-full bg-white/10 border border-white/20 rounded-xl pl-10 pr-4 py-3 text-base text-white placeholder-white/60 focus:outline-none focus:border-primary min-h-[48px]"
+            className="w-full bg-input dark:bg-white/10 border border-border dark:border-white/20 rounded-xl pl-10 pr-4 py-3 text-base text-foreground dark:text-white placeholder:text-muted-foreground dark:placeholder-white/60 focus:outline-none focus:border-primary min-h-[48px]"
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-white text-sm font-medium mb-2">Password</label>
+        <label className="block text-foreground dark:text-white text-sm font-medium mb-2">
+          Password
+        </label>
         <div className="relative">
           <input
             type={showPassword ? 'text' : 'password'}
@@ -312,12 +322,12 @@ export const AuthModal = ({
             required
             autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
             enterKeyHint={mode === 'signup' ? 'done' : 'go'}
-            className="w-full bg-white/10 border border-white/20 rounded-xl pl-4 pr-10 py-3 text-base text-white placeholder-white/60 focus:outline-none focus:border-primary min-h-[48px]"
+            className="w-full bg-input dark:bg-white/10 border border-border dark:border-white/20 rounded-xl pl-4 pr-10 py-3 text-base text-foreground dark:text-white placeholder:text-muted-foreground dark:placeholder-white/60 focus:outline-none focus:border-primary min-h-[48px]"
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground dark:text-gray-400 dark:hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
           >
             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
@@ -330,7 +340,7 @@ export const AuthModal = ({
                 setMode('forgot');
                 setError('');
               }}
-              className="text-xs text-primary hover:text-gold-light transition-colors"
+              className="text-xs text-primary hover:text-gold-dark dark:hover:text-gold-light transition-colors"
             >
               Forgot password?
             </button>
@@ -353,13 +363,13 @@ export const AuthModal = ({
       </button>
 
       {mode === 'signup' && (
-        <p className="text-center text-xs text-white/50 pt-1">
+        <p className="text-center text-xs text-muted-foreground dark:text-white/50 pt-1">
           By creating an account, you agree to our{' '}
           <a
             href="/terms"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-primary hover:text-gold-light underline"
+            className="text-primary hover:text-gold-dark dark:hover:text-gold-light underline"
           >
             Terms of Service
           </a>{' '}
@@ -368,7 +378,7 @@ export const AuthModal = ({
             href="/privacy"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-primary hover:text-gold-light underline"
+            className="text-primary hover:text-gold-dark dark:hover:text-gold-light underline"
           >
             Privacy Policy
           </a>
@@ -390,7 +400,7 @@ export const AuthModal = ({
     >
       {/* Full-viewport scrim: underlying routes (e.g. JoinTrip hero badge) must not read as a second logo */}
       <div
-        className="absolute inset-0 bg-slate-950 pointer-events-auto"
+        className="absolute inset-0 bg-background dark:bg-slate-950 pointer-events-auto"
         aria-hidden
         data-testid="auth-modal-scrim"
       />
@@ -400,19 +410,19 @@ export const AuthModal = ({
           className="w-full max-w-md pointer-events-auto"
           onClick={event => event.stopPropagation()}
         >
-          <div className="dark-section bg-slate-950/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-3xl p-6 sm:p-8 animate-scale-in max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem))] overflow-y-auto">
+          <div className="no-text-shadow bg-card/95 dark:bg-slate-950/95 backdrop-blur-xl border border-border dark:border-white/10 shadow-enterprise-lg dark:shadow-2xl rounded-3xl p-6 sm:p-8 animate-scale-in max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem))] overflow-y-auto">
             <div className="flex flex-col items-center mb-2" data-testid="auth-modal-logo" />
 
             <div className="relative flex items-center justify-center mb-6 min-h-[2.5rem]">
               <h2
                 id="auth-modal-heading"
-                className="text-3xl font-display font-normal tracking-tight text-white text-center px-10"
+                className="text-3xl font-display font-normal tracking-tight text-foreground dark:text-white text-center px-10"
               >
                 {authHeading}
               </h2>
               <button
                 onClick={requestDismiss}
-                className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg"
+                className="absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground dark:text-gray-400 dark:hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg"
                 aria-label="Close"
                 type="button"
               >
@@ -423,10 +433,10 @@ export const AuthModal = ({
             {success && (
               <div
                 data-auth-message
-                className="mb-4 p-4 bg-green-500/20 border border-green-500/50 rounded-xl text-green-200 text-sm animate-fade-in"
+                className="mb-4 p-4 bg-green-500/20 border border-green-500/50 rounded-xl text-green-700 dark:text-green-200 text-sm animate-fade-in"
               >
                 <p className="font-medium mb-1">✓ {success}</p>
-                <p className="text-xs text-green-300/80 mt-1">
+                <p className="text-xs text-green-700/80 dark:text-green-300/80 mt-1">
                   You can close this and sign in once confirmed.
                 </p>
               </div>
@@ -435,11 +445,11 @@ export const AuthModal = ({
             {error && (
               <div
                 data-auth-message
-                className="mb-4 p-4 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-sm animate-fade-in"
+                className="mb-4 p-4 bg-red-500/20 border border-red-500/50 rounded-xl text-red-700 dark:text-red-200 text-sm animate-fade-in"
               >
                 <p className="font-medium mb-1">{error}</p>
                 {error.includes('email') && (
-                  <p className="text-xs text-red-300/80 mt-1">
+                  <p className="text-xs text-red-700/80 dark:text-red-300/80 mt-1">
                     Check your email for a confirmation link
                   </p>
                 )}
@@ -449,7 +459,7 @@ export const AuthModal = ({
             {/* Tab Navigation - Only show for signin/signup */}
             {mode !== 'forgot' && (
               <div
-                className="flex rounded-xl bg-black/35 border border-white/10 p-1 mb-6 gap-1"
+                className="flex rounded-xl bg-secondary dark:bg-black/35 border border-border dark:border-white/10 p-1 mb-6 gap-1"
                 role="tablist"
                 aria-label="Sign in or create account"
               >
@@ -461,8 +471,10 @@ export const AuthModal = ({
                     setMode('signin');
                     setError('');
                   }}
-                  className={`flex-1 min-h-[44px] rounded-lg text-sm font-semibold tracking-wide transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-light/80 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
-                    mode === 'signin' ? 'bg-gold-metallic' : 'text-gray-400 hover:text-white'
+                  className={`flex-1 min-h-[44px] rounded-lg text-sm font-semibold tracking-wide transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-light/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:focus-visible:ring-offset-slate-950 ${
+                    mode === 'signin'
+                      ? 'bg-gold-metallic'
+                      : 'text-muted-foreground hover:text-foreground dark:text-gray-400 dark:hover:text-white'
                   }`}
                 >
                   Sign in
@@ -475,8 +487,10 @@ export const AuthModal = ({
                     setMode('signup');
                     setError('');
                   }}
-                  className={`flex-1 min-h-[44px] rounded-lg text-sm font-semibold tracking-wide transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-light/80 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
-                    mode === 'signup' ? 'bg-gold-metallic' : 'text-gray-400 hover:text-white'
+                  className={`flex-1 min-h-[44px] rounded-lg text-sm font-semibold tracking-wide transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-light/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:focus-visible:ring-offset-slate-950 ${
+                    mode === 'signup'
+                      ? 'bg-gold-metallic'
+                      : 'text-muted-foreground hover:text-foreground dark:text-gray-400 dark:hover:text-white'
                   }`}
                 >
                   Sign up
@@ -513,7 +527,7 @@ export const AuthModal = ({
                       // If no error, browser will redirect to Google
                     }}
                     disabled={isLoading || googleLoading || appleLoading || awaitingAuth}
-                    className="w-full flex items-center justify-center gap-2 bg-white/12 hover:bg-white/18 border border-white/15 text-white font-medium py-3 rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-all disabled:opacity-50 min-h-[48px]"
+                    className="w-full flex items-center justify-center gap-2 bg-secondary hover:bg-surface-2 dark:bg-white/12 dark:hover:bg-white/18 border border-border dark:border-white/15 text-foreground dark:text-white font-medium py-3 rounded-xl shadow-sm dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-all disabled:opacity-50 min-h-[48px]"
                   >
                     {googleLoading ? (
                       <div className="w-5 h-5 animate-spin gold-gradient-spinner" />
@@ -564,7 +578,7 @@ export const AuthModal = ({
                       // If no error, browser will redirect to Apple
                     }}
                     disabled={isLoading || appleLoading || googleLoading || awaitingAuth}
-                    className="w-full flex items-center justify-center gap-2 bg-white/12 hover:bg-white/18 border border-white/15 text-white font-medium py-3 rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-all disabled:opacity-50 min-h-[48px]"
+                    className="w-full flex items-center justify-center gap-2 bg-secondary hover:bg-surface-2 dark:bg-white/12 dark:hover:bg-white/18 border border-border dark:border-white/15 text-foreground dark:text-white font-medium py-3 rounded-xl shadow-sm dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-all disabled:opacity-50 min-h-[48px]"
                   >
                     {appleLoading ? (
                       <div className="w-5 h-5 animate-spin gold-gradient-spinner" />
@@ -585,9 +599,11 @@ export const AuthModal = ({
 
                 {/* Divider */}
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="flex-1 h-px bg-white/20" />
-                  <span className="text-xs text-gray-400 uppercase tracking-wider">or</span>
-                  <div className="flex-1 h-px bg-white/20" />
+                  <div className="flex-1 h-px bg-border dark:bg-white/20" />
+                  <span className="text-xs text-muted-foreground dark:text-gray-400 uppercase tracking-wider">
+                    or
+                  </span>
+                  <div className="flex-1 h-px bg-border dark:bg-white/20" />
                 </div>
                 {renderEmailForm()}
               </>

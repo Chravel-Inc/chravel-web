@@ -162,7 +162,9 @@ describe('AuthModal', () => {
 
       await waitFor(() => {
         const scrim = screen.getByTestId('auth-modal-scrim');
-        expect(scrim).toHaveClass('bg-slate-950');
+        // Theme-aware scrim: opaque token background in light, pinned slate in dark.
+        expect(scrim).toHaveClass('bg-background');
+        expect(scrim).toHaveClass('dark:bg-slate-950');
         expect(scrim).not.toHaveClass('bg-slate-950/85');
         expect(screen.getAllByText('ChravelApp')).toHaveLength(1);
       });
