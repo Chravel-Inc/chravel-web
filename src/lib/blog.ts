@@ -1273,6 +1273,112 @@ export const BLOG_POSTS: BlogPost[] = [
     },
   },
   {
+    slug: 'spring-break-planning-college-and-family-chravelapp',
+    title:
+      'How to Plan Spring Break in ChravelApp: For College Groups, Spring Break Companies, and Families',
+    description:
+      'A detailed guide to running spring break in ChravelApp — for college friends coordinating flights and hotels, spring break companies delivering pre-planned packages, and families whose kids are coming home from different colleges.',
+    h1: 'How to plan spring break in ChravelApp: college groups, spring break companies, and families',
+    excerpt:
+      'Spring break isn’t booked in one place — flights, hotels, packages, and villas come from a dozen sites. Here’s how college friends, spring break companies, and multi-college families all bring the trip together in one ChravelApp workspace.',
+    datePublished: '2025-05-15',
+    author: BLOG_AUTHOR,
+    tags: ['Spring Break', 'Students', 'Families', 'Group Travel'],
+    sections: [
+      {
+        paragraphs: [
+          'Spring break is one of the most fragmented trips of the year. Flights get booked on three different airlines. Hotels come from Booking, Expedia, Airbnb, VRBO, or a spring break package operator. Some people paid upfront, some are Venmoing later, and half the group is still deciding whether they’re even coming. By the time the trip arrives, the “plan” lives across a group chat, four screenshots, two PDFs, and one very confused Notes app.',
+          'ChravelApp doesn’t replace where you book — it’s the layer on top. Wherever the flights, hotels, and packages came from, spring break lives in one shared workspace: itinerary, base camps, tasks, payments, photos, and updates in a single place the whole group actually opens.',
+        ],
+      },
+      {
+        heading: 'For college groups: bring a spring break booked across ten sites into one trip',
+        paragraphs: [
+          'Twelve friends decide on Cabo, Miami, Punta Cana, or Nassau. One person books the flights on Delta, three others use Southwest, two are flying in from a different city on Spirit. The hotel is on Expedia, but four of you added an extra night on Airbnb. Somebody found a day pass to a beach club on a spring break site. Nobody knows the full picture.',
+          'Create the trip in ChravelApp, invite everyone, and drop each piece where it belongs: flights and check-in times on the shared Calendar, the hotel and any Airbnbs pinned as Base Camps, confirmations and boarding pass PDFs uploaded as Attachments so nobody is digging through their email at the airport. Use Polls to lock in the debated stuff — which club night, which day trip, which restaurant for the last dinner — instead of scrolling back through 800 messages.',
+          'Payments stop being awkward. Track who paid for the villa deposit, the boat day, and the group Uber, and let the app do the split instead of one person acting as the group accountant. When plans change — flight delay, hotel room shuffle, meeting spot moved — a single Broadcast reaches everyone at once, so nobody shows up at last night’s address.',
+        ],
+        link: {
+          label: 'See how ChravelApp works for group trips',
+          to: '/group-travel-planning-app',
+        },
+      },
+      {
+        heading: 'For spring break companies: deliver a pre-planned trip, not a PDF',
+        paragraphs: [
+          'If you run a spring break company — packaged trips to Cancun, Cabo, Punta Cana, Nassau, Panama City Beach, South Padre — the sale is the easy part. The hard part is what happens between the deposit and the departure date, when hundreds of college students are asking the same questions in DMs: which hotel am I in, what time is the welcome party, where do I meet the bus, is the boat day included, when do I pay the rest.',
+          'Instead of answering that in Instagram DMs and long email chains, deliver every package as a pre-built ChravelApp trip. Preload the hotel and meeting points as Base Camps, put the welcome party, day parties, boat days, club nights, and departure transfers on the Calendar, attach the itinerary, receipts, and any waivers, and add pre-trip Tasks like passport reminders, final payment dates, and packing notes. When a student books, you invite them into a trip that already looks and feels planned — the same way a premium tour operator would deliver it.',
+          'From there, you run the trip in one channel. Broadcast schedule changes to the whole group at once. Post the daily lineup so students don’t have to hunt for it. Assign staff and reps as coordinators with roles that let them post updates without touching the master itinerary. The result is fewer support messages, fewer no-shows at meeting points, and a trip that actually looks like the product you sold.',
+        ],
+        link: {
+          label: 'See how ChravelApp works for events and packaged trips',
+          to: '/use-cases/conference-event-management-app',
+        },
+      },
+      {
+        heading: 'For spring break companies: a workflow you can repeat every week',
+        paragraphs: [
+          'Once you build one package trip, the shape repeats. For every departure week you can:',
+        ],
+        list: [
+          'Duplicate the base itinerary and update dates, hotel, and flights.',
+          'Preload Base Camps: the resort, the club venues, the beach club, the departure meeting point.',
+          'Load the Calendar: welcome night, day parties, excursions, transfers, checkout.',
+          'Attach the full itinerary, waivers, receipts, and any wristband or QR code details.',
+          'Assign staff and reps with roles so they can broadcast updates without editing core details.',
+          'Invite students by email or link as they book, so their trip is “ready” the moment they join.',
+        ],
+      },
+      {
+        heading: 'For families: one spring break, kids coming from different colleges',
+        paragraphs: [
+          'Family spring break isn’t what it used to be. One kid is flying in from college on the East Coast, another from a school out west, a younger sibling is still in high school and flying with a parent, and everyone is meeting at a resort in Florida, the Caribbean, or Mexico. Nobody is on the same flight. Nobody is arriving on the same day. And the family group text — half iMessage, half green bubbles — is not the right tool to keep four sets of travel details straight.',
+          'Create a family trip in ChravelApp and invite everyone, including college-age kids who are used to running their own logistics. Each person adds their own flights to the Calendar so parents can see who lands when without asking. Pin the resort, the airport pickup point, and any excursions as Base Camps. Use Tasks for the practical stuff — passports, rental car pickup, dinner reservations — assigned to the person actually responsible. Use Polls for the group decisions: which night is the family dinner, which day is the boat, do we do the resort excursion or a local one.',
+          'Payments stay clean, too. If a parent floated the villa or the boat day, the split is tracked in one place instead of turning into an awkward text later. When the trip is done, the shared Media album is one place for the photos — not scattered across four AirDrops and three Instagram stories.',
+        ],
+      },
+      {
+        heading: 'Why one workspace beats five apps',
+        paragraphs: [
+          'Spring break will always be booked across a dozen sites. That is fine. What breaks the trip is trying to run it across a dozen apps once everyone lands. ChravelApp sits on top of wherever you booked and gives the group — students, spring break company staff, or a family with kids coming home from different schools — a single trip they can all open and trust.',
+          'It works on the web and as an installable app on iPhone and Android, so nobody is left out because of what they have in their pocket. And the whole trip lives in one place the group actually keeps coming back to, from the day the first flight is booked to the last photo posted after they get home.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Do we have to book our spring break through ChravelApp?',
+        a: 'No. ChravelApp doesn’t sell flights, hotels, or packages. You book wherever you already do — airlines, Booking, Expedia, Airbnb, VRBO, or a spring break company — and use ChravelApp to bring the trip together in one shared workspace.',
+      },
+      {
+        q: 'We’re a spring break company. Can we deliver our packages as pre-planned trips?',
+        a: 'Yes. You can build a package trip once — hotel, base camps, calendar, itinerary, attachments, tasks — and invite each student into a trip that already looks fully planned when they join.',
+      },
+      {
+        q: 'Our family is meeting up from different cities and different colleges. Does this help?',
+        a: 'Yes. Everyone can add their own flights to the shared calendar, see who arrives when, share one set of base camps and reservations, split payments, and post to one family photo album — without needing a giant group text.',
+      },
+      {
+        q: 'Does everyone in the group need an iPhone?',
+        a: 'No. ChravelApp runs on the web and as an installable app on iOS and Android, so the whole group is covered — including the shared photo album and payments.',
+      },
+    ],
+    related: [
+      { label: 'ChravelApp for group trips', to: '/group-travel-planning-app' },
+      { label: 'ChravelApp for events and packaged trips', to: '/use-cases/conference-event-management-app' },
+      { label: 'All ChravelApp use cases', to: '/use-cases' },
+    ],
+    cta: {
+      heading: 'Bring your spring break into one trip',
+      subtext:
+        'Wherever you booked the flights, hotels, and packages, put spring break in one shared workspace — itinerary, base camps, tasks, payments, and photos in a single place.',
+      primaryLabel: 'Start a spring break trip',
+      primaryTo: '/auth',
+      secondaryLabel: 'See ChravelApp for group trips',
+      secondaryTo: '/group-travel-planning-app',
+    },
+  },
+  {
     slug: 'run-multi-day-conference-without-paper-agenda',
     title: 'How to Run a Multi-Day Conference Without a Paper Agenda',
     description:
