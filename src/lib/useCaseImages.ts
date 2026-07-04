@@ -45,8 +45,8 @@ export const USE_CASE_IMAGES: Record<string, UseCaseImage> = {
     caption: 'Every practice, carpool, and game day in the family hub — not on the fridge.',
   },
   'sports-team-travel-coordination': {
-    src: roseBowl,
-    alt: 'A packed college football stadium on game day',
+    src: iuMemorialStadium,
+    alt: 'Aerial view of Indiana Memorial Stadium packed with a crimson-clad crowd on game day',
     caption: 'Game day works when travel day did — rosters, buses, and schedules in one place.',
   },
   'music-tour-coordination': {
