@@ -218,7 +218,7 @@ const valuePropItems = [
     description: 'Get early access to our latest features and updates before they roll wide',
   },
   {
-    icon: <Users size={20} />,
+    icon: <PartyPopper size={20} />,
     title: 'Plan your next trip, season, or wedding',
     description:
       'Plan your next family trip, sports season, or wedding weekend without ever leaving one app.',
