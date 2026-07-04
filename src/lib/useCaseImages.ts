@@ -6,7 +6,7 @@
  */
 import conciergeAtlantisPoolside from '@/assets/trip-covers/concierge-atlantis-poolside.jpg';
 import baliWedding from '@/assets/trip-covers/bali-destination-wedding.webp';
-import disneyFamilyCruise from '@/assets/trip-covers/disney-family-cruise.webp';
+import groupCruiseDeckAerial from '@/assets/trip-covers/group-cruise-deck-aerial.jpg';
 import youthSoccerFamily from '@/assets/trip-covers/youth-soccer-family.jpg';
 import coachellaFestival from '@/assets/trip-covers/coachella-festival.webp';
 import conferenceBallroom from '@/assets/trip-covers/conference-ballroom-stage.jpg';
