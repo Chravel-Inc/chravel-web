@@ -56,8 +56,8 @@ export const USE_CASE_IMAGES: Record<string, UseCaseImage> = {
       'Fifty cities, one source of truth — the show hits its cues because the crew hit theirs.',
   },
   'conference-event-management-app': {
-    src: tokyoSkyline,
-    alt: 'A glowing city skyline at night, home to a major conference',
+    src: conferenceBallroom,
+    alt: 'A keynote speaker on stage in front of a massive audience in a Las Vegas conference ballroom',
     caption:
       'A live agenda that survives the room swap — organizers, staff, and attendees in sync.',
   },
@@ -67,9 +67,9 @@ export const USE_CASE_IMAGES: Record<string, UseCaseImage> = {
     caption: 'The regulars always know the tee time — no plane ticket required.',
   },
   'church-group-trip-coordination': {
-    src: yellowstoneGroup,
-    alt: 'A group hiking together through a national park',
-    caption: 'Lead the trip, not the group chat — rosters, forms, and families all covered.',
+    src: faithCommunityBuild,
+    alt: 'Volunteers in hard hats framing a house together on a community service build',
+    caption: 'Lead the mission, not the group chat — rosters, forms, and families all covered.',
   },
   'business-travel-coordination': {
     src: aspenCorporate,
