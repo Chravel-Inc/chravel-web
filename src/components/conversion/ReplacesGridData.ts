@@ -4,10 +4,10 @@ import {
   CalendarDays,
   Camera,
   CreditCard,
+  Headphones,
   ListChecks,
   MapPin,
   MessageCircle,
-  Sparkles,
 } from 'lucide-react';
 
 export interface AppItem {
