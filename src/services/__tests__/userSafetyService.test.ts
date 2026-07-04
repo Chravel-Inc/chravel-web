@@ -52,7 +52,7 @@ describe('getBlockedUserProfiles', () => {
     expect(result).toEqual([
       { id: 'u1', displayName: 'Alice', avatarUrl: 'a.png' }, // resolved_display_name preferred
       { id: 'u2', displayName: 'Bob', avatarUrl: null }, // display_name fallback
-      { id: 'u3', displayName: 'Chravel user', avatarUrl: null }, // missing profile → generic
+      { id: 'u3', displayName: 'ChravelApp user', avatarUrl: null }, // missing profile → generic
     ]);
   });
 

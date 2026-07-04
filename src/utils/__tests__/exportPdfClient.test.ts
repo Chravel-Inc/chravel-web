@@ -353,7 +353,7 @@ describe('PDF Export Client Helpers', () => {
       expect(doc._texts).not.toContain('The Group Chat Travel App');
 
       // Modest single-line attribution remains
-      expect(doc._texts).toContain('Made with Chravel');
+      expect(doc._texts).toContain('Made with ChravelApp');
 
       // Trip name is the heading and the PDF metadata title
       expect(doc._texts).toContain('Smith Wedding Weekend');
@@ -371,7 +371,7 @@ describe('PDF Export Client Helpers', () => {
 
       const doc = getLatestMockDoc();
       expect(doc._texts).toContain('Prepared by Atelier Travel');
-      expect(doc._texts).not.toContain('Made with Chravel');
+      expect(doc._texts).not.toContain('Made with ChravelApp');
     });
   });
 
