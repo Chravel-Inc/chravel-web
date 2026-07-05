@@ -382,15 +382,6 @@ export const ForTeams = () => {
                     className="text-gold-primary mt-1 shrink-0"
                     aria-hidden="true"
                   />
-                  <span>SLA guarantees</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check
-                    size={16}
-                    strokeWidth={2}
-                    className="text-gold-primary mt-1 shrink-0"
-                    aria-hidden="true"
-                  />
                   <span>White-label options</span>
                 </li>
               </ul>
