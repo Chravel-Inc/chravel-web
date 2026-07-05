@@ -58,7 +58,7 @@ export const AIConciergeChat = ({
   const { basecamp: globalBasecamp } = useBasecamp();
   const { user: authUser } = useAuth();
   const conciergeQueryClient = useQueryClient();
-  const { usage, getUsageStatus, refreshUsage, isLimitedPlan, userPlan } =
+  const { usage, getUsageStatus, refreshUsage, isLimitedPlan, userPlan, isFreeUser } =
     useConciergeUsage(tripId);
   // Free-tier "taste": 1 Smart Import per trip before the paywall fires.
   const { canUseFreeImport: canUseSmartImportTaste } = useSmartImportTaste(tripId);
@@ -71,7 +71,14 @@ export const AIConciergeChat = ({
     isRejecting: isRejectingPendingAction,
   } = usePendingActions(tripId);
   const loadedPreferences = useAIConciergePreferences();
-  const effectivePreferences = preferences ?? loadedPreferences;
+  // Grounding the Concierge in saved preferences is a premium-only capability. The
+  // server (lovable-concierge) is the authoritative gate; we mirror it here so free
+  // users don't even transmit their preferences. `isFreeUser` mirrors the server's
+  // isPaidUser (same entitlement resolution + super-admin awareness).
+  const isPremiumPreferencesUser = !isFreeUser;
+  const effectivePreferences = isPremiumPreferencesUser
+    ? (preferences ?? loadedPreferences)
+    : undefined;
 
   const handleNavigateToPlaces = useCallback(() => {
     if (onTabChange) onTabChange('places');
@@ -443,6 +450,13 @@ export const AIConciergeChat = ({
               <div className="mt-2 text-xs text-amber-400 bg-amber-500/10 rounded px-2.5 py-1 inline-block">
                 Group-aware — knows your trip, your members, and writes back to shared state.
               </div>
+              {isPremiumPreferencesUser && (
+                <div className="mt-2">
+                  <span className="inline-flex px-2.5 py-1 bg-gold-primary/10 text-gold-primary text-xs font-medium rounded-full border border-gold-primary/20">
+                    ✦ Preferences considered · Premium
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         )}
