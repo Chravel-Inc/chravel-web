@@ -362,6 +362,50 @@ describe('AuthProvider', () => {
     expect(mockSupabaseClient.auth.signUp).toHaveBeenCalled();
   });
 
+  it('surfaces a retriable error instead of hanging forever when signInWithPassword never settles', async () => {
+    const { result } = renderHook(() => useAuth(), { wrapper: createWrapper() });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    // Simulates a stalled network/proxy: the Supabase call never resolves or rejects.
+    mockSupabaseClient.auth.signInWithPassword.mockReturnValue(new Promise(() => {}));
+
+    vi.useFakeTimers();
+    try {
+      let signInResult: { error?: string } | undefined;
+      const pending = act(async () => {
+        signInResult = await result.current.signIn('test@example.com', 'password123');
+      });
+      await vi.advanceTimersByTimeAsync(15_000);
+      await pending;
+
+      expect(signInResult?.error).toMatch(/taking longer than expected/i);
+      expect(result.current.isLoading).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('surfaces a retriable error instead of hanging forever when signInWithOAuth (Google) never settles', async () => {
+    const { result } = renderHook(() => useAuth(), { wrapper: createWrapper() });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    mockSupabaseClient.auth.signInWithOAuth.mockReturnValue(new Promise(() => {}));
+
+    vi.useFakeTimers();
+    try {
+      let oauthResult: { error?: string } | undefined;
+      const pending = act(async () => {
+        oauthResult = await result.current.signInWithGoogle();
+      });
+      await vi.advanceTimersByTimeAsync(15_000);
+      await pending;
+
+      expect(oauthResult?.error).toMatch(/taking longer than expected/i);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('uses default OAuth redirect in browser (no skipBrowserRedirect)', async () => {
     mockIsInstalledApp.mockReturnValue(false);
     mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({

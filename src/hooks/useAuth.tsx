@@ -45,6 +45,16 @@ import { isFatalAuthRefreshError } from './auth/sessionRefreshPolicy';
 
 const TRIPS_QUERY_KEY = 'trips';
 
+/**
+ * `supabase.auth.signInWithPassword`/`signInWithOAuth` have no inherent deadline — a stalled
+ * network request (proxy, DNS, sandbox) leaves the caller `await`ing forever with the submit
+ * button stuck disabled and no error shown. This bounds the wait (via the shared `withTimeout`
+ * race helper); a late real response still completes normally and the `onAuthStateChange`
+ * listener picks up a session if one lands.
+ */
+const AUTH_NETWORK_TIMEOUT_MS = 15000;
+const AUTH_CALL_TIMED_OUT = Symbol('auth-call-timed-out');
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -804,10 +814,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         setIsLoading(true);
 
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+        const result = await withTimeout(
+          supabase.auth.signInWithPassword({ email, password }),
+          AUTH_NETWORK_TIMEOUT_MS,
+          AUTH_CALL_TIMED_OUT,
+        );
+        if (result === AUTH_CALL_TIMED_OUT) {
+          logAuthEvent('login_failure', { method: 'email', errorReason: 'timeout' });
+          setIsLoading(false);
+          return {
+            error:
+              'Sign in is taking longer than expected. Please check your connection and try again.',
+          };
+        }
+        const { data, error } = result;
 
         if (error) {
           if (import.meta.env.DEV) {
@@ -859,19 +879,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const returnTo = getOAuthReturnTo(returnToOverride);
         const redirectUrl = getOAuthRedirectUrl(returnTo);
 
-        const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo: redirectUrl,
-            // In Capacitor / PWA / webview, default redirect opens the system browser and strands the shell.
-            skipBrowserRedirect: installed,
-            // Force account picker so users don't accidentally sign in with the wrong Google account,
-            // which could create a duplicate profile if the email differs from their email/password account.
-            // NOTE: Enable "Automatic Linking" in Supabase Dashboard (Auth > Providers) to prevent
-            // duplicate auth.users entries when the same email is used across providers.
-            queryParams: { prompt: 'select_account' },
-          },
-        });
+        const oauthResult = await withTimeout(
+          supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+              redirectTo: redirectUrl,
+              // In Capacitor / PWA / webview, default redirect opens the system browser and strands the shell.
+              skipBrowserRedirect: installed,
+              // Force account picker so users don't accidentally sign in with the wrong Google account,
+              // which could create a duplicate profile if the email differs from their email/password account.
+              // NOTE: Enable "Automatic Linking" in Supabase Dashboard (Auth > Providers) to prevent
+              // duplicate auth.users entries when the same email is used across providers.
+              queryParams: { prompt: 'select_account' },
+            },
+          }),
+          AUTH_NETWORK_TIMEOUT_MS,
+          AUTH_CALL_TIMED_OUT,
+        );
+        if (oauthResult === AUTH_CALL_TIMED_OUT) {
+          logAuthEvent('login_failure', { method: 'google', errorReason: 'timeout' });
+          return {
+            error: 'Google sign-in is taking longer than expected. Please try again.',
+          };
+        }
+        const { data, error } = oauthResult;
 
         if (error) {
           if (import.meta.env.DEV) {
@@ -968,6 +999,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 'Your ChravelApp app needs an update to sign in with Apple. Please update from the App Store, or sign in with email.',
             };
           }
+          if (reason === 'timeout') {
+            return {
+              error:
+                'Sign in with Apple is taking longer than expected. Please try again, or sign in with email.',
+            };
+          }
           return {
             error: "Sign in with Apple didn't complete. Please try again, or sign in with email.",
           };
@@ -978,13 +1015,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const returnTo = getOAuthReturnTo(returnToOverride);
         const redirectUrl = getOAuthRedirectUrl(returnTo);
 
-        const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: 'apple',
-          options: {
-            redirectTo: redirectUrl,
-            skipBrowserRedirect: installed,
-          },
-        });
+        const oauthResult = await withTimeout(
+          supabase.auth.signInWithOAuth({
+            provider: 'apple',
+            options: {
+              redirectTo: redirectUrl,
+              skipBrowserRedirect: installed,
+            },
+          }),
+          AUTH_NETWORK_TIMEOUT_MS,
+          AUTH_CALL_TIMED_OUT,
+        );
+        if (oauthResult === AUTH_CALL_TIMED_OUT) {
+          logAuthEvent('login_failure', { method: 'apple', errorReason: 'timeout' });
+          return {
+            error: 'Sign in with Apple is taking longer than expected. Please try again.',
+          };
+        }
+        const { data, error } = oauthResult;
 
         if (error) {
           if (import.meta.env.DEV) {

@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import React from 'react';
 import { AuthModal } from '../AuthModal';
 import { AuthProvider } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import * as platformDetection from '@/utils/platformDetection';
 
 // Mock the supabase client
@@ -250,6 +251,53 @@ describe('AuthModal', () => {
 
       expect(screen.getByRole('button', { name: /^apple$/i })).toBeInTheDocument();
       expect(screen.queryByText(/To stay inside the app/i)).not.toBeInTheDocument();
+    });
+
+    it('clears a stuck Apple sign-in spinner when the modal is closed and reopened, and ignores the stale attempt if it resolves later', async () => {
+      // Simulates the OAuth call not settling immediately (e.g. the native bridge/redirect
+      // hangs) — with no reset-on-reopen, the button would otherwise stay disabled forever.
+      // Kept resolvable (rather than a promise that never settles) so this test doesn't leave
+      // a dangling handler running after it completes.
+      let resolveOAuth: (value: { data: { provider: 'apple'; url: null }; error: null }) => void;
+      vi.mocked(supabase.auth.signInWithOAuth).mockReturnValue(
+        new Promise(resolve => {
+          resolveOAuth = resolve;
+        }),
+      );
+
+      const { rerender } = render(<AuthModal isOpen={true} onClose={mockOnClose} />, {
+        wrapper: createTestWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /^apple$/i })).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /^apple$/i }));
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /redirecting/i })).toBeDisabled();
+      });
+
+      // Close and reopen — without resetting appleLoading on a genuine open transition, this
+      // button stays stuck disabled/spinning indefinitely since the modal returns null rather
+      // than unmounting, so its local state survives the close/reopen cycle.
+      rerender(<AuthModal isOpen={false} onClose={mockOnClose} />);
+      rerender(<AuthModal isOpen={true} onClose={mockOnClose} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /^apple$/i })).toBeEnabled();
+      });
+
+      // The abandoned first attempt is still pending. Let it resolve now and confirm the
+      // reopen's bumped attempt id causes this stale result to be discarded rather than
+      // clobbering the freshly-reset button/error state.
+      await act(async () => {
+        resolveOAuth({ data: { provider: 'apple', url: null }, error: null });
+      });
+
+      expect(screen.getByRole('button', { name: /^apple$/i })).toBeEnabled();
+      expect(screen.queryByText(/taking longer than expected/i)).not.toBeInTheDocument();
     });
   });
 });

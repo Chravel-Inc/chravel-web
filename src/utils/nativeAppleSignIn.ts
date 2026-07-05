@@ -15,6 +15,8 @@
  *     nonce must be passed to `signInWithIdToken`.
  */
 
+import { withTimeout } from '@/hooks/auth/authHelpers';
+
 export interface NativeAppleCredential {
   identityToken: string;
   rawNonce: string;
@@ -25,6 +27,18 @@ export interface NativeAppleCredential {
 }
 
 type NativeAppleSignInFn = () => Promise<NativeAppleCredential>;
+
+/**
+ * Neither the native ASAuthorizationController promise nor the Supabase id-token exchange has an
+ * inherent deadline — if the chravel-mobile shell's delegate never fires (missing entitlement,
+ * torn-down view, shell bug) or the network call to Supabase stalls, `await`ing it directly hangs
+ * the sign-in UI forever with no error and no recovery (App Store rejection risk). This bounds
+ * how long we wait before treating either step as a definitive failure.
+ */
+const NATIVE_APPLE_SIGN_IN_TIMEOUT_MS = 20000;
+
+/** Sentinel resolved by the timeout race so a timeout is distinguishable from any real outcome. */
+const TIMED_OUT = Symbol('native-apple-sign-in-timed-out');
 
 interface ChravelNativeAppleBridge {
   signInWithApple?: NativeAppleSignInFn;
@@ -48,11 +62,14 @@ export interface SupabaseIdTokenAuth {
  *   - `bridge-missing`        — the shell did not inject `signInWithApple` (older build).
  *   - `bridge-threw`          — the native ASAuthorization sheet errored or was canceled.
  *   - `incomplete-credential` — the sheet resolved without an identityToken / rawNonce.
+ *   - `timeout`               — the native promise never settled within
+ *     `NATIVE_APPLE_SIGN_IN_TIMEOUT_MS` (e.g. a stuck/misconfigured native delegate).
  */
 export type NativeAppleUnhandledReason =
   | 'bridge-missing'
   | 'bridge-threw'
-  | 'incomplete-credential';
+  | 'incomplete-credential'
+  | 'timeout';
 
 export interface NativeAppleSignInOutcome {
   /** True when the native bridge handled the attempt (a definitive success or error). */
@@ -103,7 +120,14 @@ export async function attemptNativeAppleSignIn(
 
   let credential: NativeAppleCredential;
   try {
-    credential = await nativeSignIn();
+    const outcome = await withTimeout(nativeSignIn(), NATIVE_APPLE_SIGN_IN_TIMEOUT_MS, TIMED_OUT);
+    if (outcome === TIMED_OUT) {
+      if (import.meta.env.DEV) {
+        console.warn('[Auth] Native Apple bridge timed out');
+      }
+      return { handled: false, unhandledReason: 'timeout' };
+    }
+    credential = outcome;
   } catch (err) {
     // The native sheet errored or was canceled. Surface the cause so the caller can log it;
     // on non-iOS surfaces it falls back to web OAuth, on iOS it shows a retriable error.
@@ -117,14 +141,24 @@ export async function attemptNativeAppleSignIn(
     return { handled: false, unhandledReason: 'incomplete-credential' };
   }
 
-  const { error } = await auth.signInWithIdToken({
-    provider: 'apple',
-    token: credential.identityToken,
-    nonce: credential.rawNonce,
-  });
+  const idTokenResult = await withTimeout(
+    auth.signInWithIdToken({
+      provider: 'apple',
+      token: credential.identityToken,
+      nonce: credential.rawNonce,
+    }),
+    NATIVE_APPLE_SIGN_IN_TIMEOUT_MS,
+    TIMED_OUT,
+  );
+  if (idTokenResult === TIMED_OUT) {
+    if (import.meta.env.DEV) {
+      console.warn('[Auth] signInWithIdToken timed out');
+    }
+    return { handled: false, unhandledReason: 'timeout' };
+  }
 
-  if (error) {
-    return { handled: true, error: error.message };
+  if (idTokenResult.error) {
+    return { handled: true, error: idTokenResult.error.message };
   }
 
   return { handled: true, authorizationCode: credential.authorizationCode };

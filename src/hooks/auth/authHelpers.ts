@@ -1,12 +1,22 @@
 import { isInstalledApp } from '@/utils/platformDetection';
 import type { AuthUser } from './types';
 
-/** Race a promise against a timeout, resolving the fallback if it elapses. */
-export const withTimeout = <T>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> => {
-  return Promise.race([
-    promise,
-    new Promise<T>(resolve => setTimeout(() => resolve(fallback), timeoutMs)),
-  ]);
+/**
+ * Race a promise against a timeout, resolving `fallback` if it elapses. `fallback` may be a
+ * distinct type/sentinel from `T` (e.g. a unique symbol) so callers can distinguish "timed out"
+ * from any real resolved value. Always clears the timer once the race settles, whichever side
+ * wins, so a fast-resolving `promise` never leaves a dangling timeout behind.
+ */
+export const withTimeout = <T, F = T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  fallback: F,
+): Promise<T | F> => {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeoutPromise = new Promise<F>(resolve => {
+    timer = setTimeout(() => resolve(fallback), timeoutMs);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer));
 };
 
 /**

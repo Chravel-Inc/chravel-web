@@ -197,7 +197,7 @@ Notifications alert users to:
 
 1. **iPad:** The app is fully functional on iPad (iPhone-optimized layout scaled to iPad). All flows — including **Sign in with Apple** and **account deletion** — work on both iPhone and iPad.
 
-2. **Apple Sign In:** Works on both iPhone and iPad. If using Sign in with Apple, the user can choose to hide their email; the app handles the private-relay address gracefully.
+2. **Apple Sign In:** Authenticates via the native Sign in with Apple sheet (no browser hand-off) on both iPhone and iPad. If the user hides their email, the app handles the private-relay address gracefully. If the native sheet doesn't complete within a few seconds, the app surfaces a clear, retriable error rather than leaving the screen unresponsive — the user can try again or sign in with email.
 
 3. **Offline limitations:** While cached content is viewable offline, real-time features (chat, AI) require internet.
 

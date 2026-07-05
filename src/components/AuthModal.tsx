@@ -44,6 +44,11 @@ export const AuthModal = ({
   // Track when we're waiting for auth state to update after successful sign-in
   const [awaitingAuth, setAwaitingAuth] = useState(false);
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Identifies the current Apple/Google sign-in attempt so a stale attempt's eventual
+  // resolution (after the user closed/reopened the modal and possibly retried) can't
+  // clobber a newer attempt's loading/error state.
+  const oauthAttemptRef = useRef(0);
+  const wasOpenRef = useRef(false);
 
   const requestDismiss = () => {
     if (awaitingAuth) return;
@@ -69,12 +74,29 @@ export const AuthModal = ({
   }, [isOpen, awaitingAuth, onClose]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      wasOpenRef.current = false;
+      return;
+    }
+    const justOpened = !wasOpenRef.current;
+    wasOpenRef.current = true;
     setMode(initialMode ?? 'signin');
     setError('');
     setSuccess('');
     setResetEmailSent(false);
     setAwaitingAuth(false);
+    // Only on an actual close→open transition (not on every `initialMode` change while
+    // already open, e.g. a caller flipping between signin/signup): without this, a prior
+    // sign-in attempt that hung/timed out (bridge never resolving, or the OAuth redirect
+    // never landing) leaves the Apple/Google button permanently stuck disabled with a
+    // spinner, since this modal returns `null` rather than unmounting when closed and its
+    // local state survives close/reopen. Bumping the attempt id also lets that stale
+    // attempt's eventual resolution be ignored instead of clobbering a fresh one.
+    if (justOpened) {
+      oauthAttemptRef.current += 1;
+      setGoogleLoading(false);
+      setAppleLoading(false);
+    }
   }, [isOpen, initialMode]);
 
   // Close modal immediately if user is already authenticated when modal opens
@@ -493,6 +515,7 @@ export const AuthModal = ({
                   <button
                     type="button"
                     onClick={async () => {
+                      const attemptId = ++oauthAttemptRef.current;
                       setGoogleLoading(true);
                       setError('');
                       if (mode === 'signup') {
@@ -501,6 +524,9 @@ export const AuthModal = ({
                         authEvents.loginStarted('google');
                       }
                       const result = await signInWithGoogle(oauthReturnTo);
+                      // A closed/reopened (or retried) modal bumps oauthAttemptRef — ignore this
+                      // now-stale attempt's result rather than clobbering a newer one's state.
+                      if (attemptId !== oauthAttemptRef.current) return;
                       if (result.error) {
                         if (mode === 'signup') {
                           authEvents.signupFailed('google', result.error);
@@ -544,6 +570,7 @@ export const AuthModal = ({
                   <button
                     type="button"
                     onClick={async () => {
+                      const attemptId = ++oauthAttemptRef.current;
                       setAppleLoading(true);
                       setError('');
                       if (mode === 'signup') {
@@ -552,6 +579,9 @@ export const AuthModal = ({
                         authEvents.loginStarted('apple');
                       }
                       const result = await signInWithApple(oauthReturnTo);
+                      // A closed/reopened (or retried) modal bumps oauthAttemptRef — ignore this
+                      // now-stale attempt's result rather than clobbering a newer one's state.
+                      if (attemptId !== oauthAttemptRef.current) return;
                       if (result.error) {
                         if (mode === 'signup') {
                           authEvents.signupFailed('apple', result.error);

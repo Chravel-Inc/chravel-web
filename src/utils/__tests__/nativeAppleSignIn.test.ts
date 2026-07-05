@@ -81,6 +81,28 @@ describe('attemptNativeAppleSignIn', () => {
     expect(outcome).toEqual({ handled: false, unhandledReason: 'incomplete-credential' });
     expect(signInWithIdToken).not.toHaveBeenCalled();
   });
+
+  it('reports timeout instead of hanging forever when the native bridge promise never settles', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      // Simulates a stuck ASAuthorizationController delegate on the native side: the bridge
+      // function returns a promise that never resolves or rejects.
+      setBridge(vi.fn().mockReturnValue(new Promise(() => {})));
+      const signInWithIdToken = vi.fn();
+
+      const outcomePromise = attemptNativeAppleSignIn({
+        signInWithIdToken,
+      } as SupabaseIdTokenAuth);
+      await vi.advanceTimersByTimeAsync(20_000);
+      const outcome = await outcomePromise;
+
+      expect(outcome).toEqual({ handled: false, unhandledReason: 'timeout' });
+      expect(signInWithIdToken).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe('isLikelyUserCancellation', () => {
