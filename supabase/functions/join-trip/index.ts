@@ -546,7 +546,11 @@ serve(async req => {
         logStep('Consumer trip: Notifying all members', { count: recipientIds.length });
       }
 
-      // Create notifications for all recipients
+      // Create notifications for all recipients. fanout_event_key is a GENERATED
+      // column from metadata->>'fanout_event_key'; the identity key (trip+requester,
+      // not request id) keeps a cancel→re-request cycle from re-notifying everyone —
+      // the unique index (user_id, type, fanout_event_key) rejects the duplicate.
+      const fanoutEventKey = `join_request:${invite.trip_id}:${user.id}`;
       const notificationPromises = recipientIds.map(recipientId =>
         supabaseClient.from('notifications').insert({
           user_id: recipientId,
@@ -560,13 +564,25 @@ serve(async req => {
             requester_id: user.id,
             requester_name: requesterName,
             request_id: joinRequestId,
+            fanout_event_key: fanoutEventKey,
           },
         }),
       );
 
       const notificationResults = await Promise.allSettled(notificationPromises);
-      const successCount = notificationResults.filter(r => r.status === 'fulfilled').length;
-      logStep('Notifications created', { total: recipientIds.length, success: successCount });
+      // 23505 = unique violation on the fanout key: recipient was already notified
+      // about this requester+trip — dedupe, not failure.
+      const successCount = notificationResults.filter(
+        r => r.status === 'fulfilled' && !r.value.error,
+      ).length;
+      const dedupedCount = notificationResults.filter(
+        r => r.status === 'fulfilled' && r.value.error?.code === '23505',
+      ).length;
+      logStep('Notifications created', {
+        total: recipientIds.length,
+        success: successCount,
+        deduped: dedupedCount,
+      });
 
       return successResponse(
         {
