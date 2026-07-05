@@ -327,16 +327,8 @@ export const ForTeams = () => {
                   />
                   <span>Advanced integrations</span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <Check
-                    size={16}
-                    strokeWidth={2}
-                    className="text-gold-primary mt-1 shrink-0"
-                    aria-hidden="true"
-                  />
-                  <span>Analytics dashboard</span>
-                </li>
               </ul>
+
             </div>
 
             {/* Enterprise */}
@@ -382,15 +374,6 @@ export const ForTeams = () => {
                     aria-hidden="true"
                   />
                   <span>Dedicated success manager</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check
-                    size={16}
-                    strokeWidth={2}
-                    className="text-gold-primary mt-1 shrink-0"
-                    aria-hidden="true"
-                  />
-                  <span>SLA guarantees</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <Check

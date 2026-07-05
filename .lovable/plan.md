@@ -1,29 +1,23 @@
-## Restore leave_trip function and trip_members status/left_at columns
+## Verification: Concierge multi-language
 
-Two February migrations never landed in production, so `supabase.rpc('leave_trip', ...)` in `useTripMembersQuery.ts` has been failing. This plan applies the exact SQL provided by the user as a new timestamped migration.
+Confirmed in code + project memory (`features/ai-concierge/multilingual-behavior`):
+- `src/features/concierge/hooks/useConciergeLanguagePreference.ts` defaults to `'auto'`, which instructs Concierge to reply in the language of the user's most recent message.
+- Users can also force a specific language via the Concierge Language Picker.
+- Behavior is wired for both text and voice modes.
 
-### Steps
+So "Multi-language support" is truthful to keep as a Growth Pro bullet (even though the underlying capability is universal).
 
-1. **Create migration** `supabase/migrations/20260705020000_restore_leave_trip_membership_status.sql` via the `supabase--migration` tool with the SQL below.
-2. Once approved and applied, Supabase auto-regenerates `src/integrations/supabase/types.ts` to include `trip_members.status` and `trip_members.left_at`.
-3. No client code changes — `useTripMembersQuery.ts` already calls `leave_trip` correctly.
+## Copy changes — `src/pages/ForTeams.tsx`
 
-### Migration SQL (exact, as provided)
+Growth Pro card (lines ~330-338):
+- Remove the "Analytics dashboard" `<li>` entirely.
+- Leave "Advanced integrations" as-is (no "coming soon" / future language, per your Apple-review caution).
+- Keep "Multi-language support".
 
-- Adds `status TEXT NOT NULL DEFAULT 'active'` and `left_at TIMESTAMPTZ` to `public.trip_members` (idempotent via `IF NOT EXISTS`).
-- Creates `public.is_active_trip_member(uuid, text)` SECURITY DEFINER helper.
-- Replaces the `"Users can view their trips"` SELECT policy on `public.trips` with one that uses `is_active_trip_member` (behavior-preserving for existing members since backfill defaults to `'active'`).
-- Creates `public.leave_trip(text)` SECURITY DEFINER function that: marks the caller `status='left'`, archives the trip if no active members remain, and promotes the oldest remaining member to admin if the creator leaves.
-- `GRANT EXECUTE ON FUNCTION public.leave_trip(text) TO authenticated`.
+Enterprise card (lines ~386-394):
+- Remove the "SLA guarantees" `<li>` entirely.
 
-### Safety
+No other files touched. No logic, styling, or business-rule changes.
 
-- Additive only. Only replacement is the `trips` SELECT policy, whose new form is equivalent for all current members (default `'active'`).
-- Does not touch the `trips` UPDATE policy or `trip_admins` policy fixed later in `20260603120000` (no RLS-recursion regression).
-- No file deletions or renames.
-
-### Verification after apply
-
-- `types.ts` should include `status` and `left_at` on `trip_members`.
-- CI `check-schema-drift.ts` (referencing `src/pages/TripPreview.tsx:50`) should pass.
-- Smoke: an authenticated user calling `leave_trip` no longer errors; row is soft-deleted (`status='left'`, `left_at=now()`), and trip is archived if they were the last active member.
+## Out of scope
+- `UpgradeModal.tsx` still references "enterprise-grade SLA guarantees" in prose. Not in the 14th (Choose Your Plan) section you flagged. Say the word if you want that scrubbed too.
