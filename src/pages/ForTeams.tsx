@@ -327,15 +327,8 @@ export const ForTeams = () => {
                   />
                   <span>Advanced integrations</span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <Check
-                    size={16}
-                    strokeWidth={2}
-                    className="text-gold-primary mt-1 shrink-0"
-                    aria-hidden="true"
-                  />
-                  <span>Analytics dashboard</span>
-                </li>
+              </ul>
+
               </ul>
             </div>
 
