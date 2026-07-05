@@ -125,21 +125,11 @@ const LovableConciergeSchema = z.object({
     )
     .max(4, 'Maximum 4 attachments')
     .optional(),
-  // 🆕 Accept preferences from client as fallback
-  preferences: z
-    .object({
-      dietary: z.array(z.string()).optional(),
-      vibe: z.array(z.string()).optional(),
-      accessibility: z.array(z.string()).optional(),
-      business: z.array(z.string()).optional(),
-      entertainment: z.array(z.string()).optional(),
-      lifestyle: z.array(z.string()).optional(),
-      budgetMin: z.number().optional(),
-      budgetMax: z.number().optional(),
-      budgetUnit: z.enum(['experience', 'day', 'person', 'trip']).optional(),
-      timePreference: z.string().optional(),
-    })
-    .optional(),
+  // NOTE: Client-supplied preferences are intentionally NOT accepted here. Preference
+  // grounding is premium-only and resolves authoritatively server-side from the DB
+  // (TripContextBuilder, gated on isPaidUser); trusting client input would let a free
+  // user forge premium behavior. Any `preferences` key an older/cached client still
+  // sends is silently stripped by this (non-strict) schema.
   chatHistory: z
     .array(
       z.object({
@@ -1037,13 +1027,6 @@ serve(async req => {
         !!comprehensiveContext?.userPreferences,
       );
     }
-
-    // NOTE: We intentionally do NOT apply client-passed `validatedData.preferences`
-    // here. Grounding the concierge in saved preferences is a premium-only capability,
-    // and preferences resolve authoritatively (DB, server-gated on isPaidUser) inside
-    // TripContextBuilder. Trusting client-supplied preferences would let a free user
-    // forge premium behavior by putting preferences in the request body. The field is
-    // still accepted by the request schema for backward compatibility but is ignored.
 
     const ragContext = ragResult?.context || '';
     const ragMeta = ragResult?.ragMeta || { attempted: false, hit: false, ragMs: 0, skipped: null };

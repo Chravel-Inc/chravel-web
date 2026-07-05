@@ -8,7 +8,6 @@ import { ChatMessages } from '@/features/chat/components/ChatMessages';
 import { AiChatInput } from '@/features/chat/components/AiChatInput';
 import { useConciergeUsage } from '../hooks/useConciergeUsage';
 import { useAuth } from '@/hooks/useAuth';
-import { useAIConciergePreferences } from '../hooks/useAIConciergePreferences';
 import { toast } from 'sonner';
 import { CTA_BUTTON, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 import { useSaveToTripPlaces } from '@/hooks/useSaveToTripPlaces';
@@ -50,7 +49,6 @@ export type { ChatMessage } from '@/features/concierge/types';
 export const AIConciergeChat = ({
   tripId,
   basecamp,
-  preferences,
   isDemoMode = false,
   isActive = true,
   onTabChange,
@@ -70,15 +68,12 @@ export const AIConciergeChat = ({
     isConfirming: isConfirmingPendingAction,
     isRejecting: isRejectingPendingAction,
   } = usePendingActions(tripId);
-  const loadedPreferences = useAIConciergePreferences();
-  // Grounding the Concierge in saved preferences is a premium-only capability. The
-  // server (lovable-concierge) is the authoritative gate; we mirror it here so free
-  // users don't even transmit their preferences. `isFreeUser` mirrors the server's
-  // isPaidUser (same entitlement resolution + super-admin awareness).
+  // Grounding the Concierge in saved preferences is a premium-only capability,
+  // enforced authoritatively server-side (lovable-concierge resolves preferences from
+  // the DB, gated on isPaidUser). The client no longer sends preferences at all; this
+  // flag only drives the "Preferences considered" badge. `isFreeUser` mirrors the
+  // server's isPaidUser (same entitlement resolution + super-admin awareness).
   const isPremiumPreferencesUser = !isFreeUser;
-  const effectivePreferences = isPremiumPreferencesUser
-    ? (preferences ?? loadedPreferences)
-    : undefined;
 
   const handleNavigateToPlaces = useCallback(() => {
     if (onTabChange) onTabChange('places');
@@ -274,7 +269,6 @@ export const AIConciergeChat = ({
     buildLimitReachedMessage,
     basecamp,
     globalBasecamp,
-    effectivePreferences,
     attachedImages,
     attachedDocuments,
     attachmentIntent,
