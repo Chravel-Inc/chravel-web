@@ -779,12 +779,12 @@ serve(async req => {
         : Promise.resolve({ usagePlan: 'free' as const, tripQueryLimit: 3 }),
       isFeatureEnabled('concierge_premium_preferences', true),
     ]);
-    // Super admins are treated as paid everywhere else (client badge + useConciergeUsage),
-    // but resolveUsagePlanForUser doesn't know about them — mirror that here so the client
-    // "Preferences considered" badge matches actual server grounding (and admins can dogfood).
-    const isPaidUser =
-      planResolution.usagePlan !== 'free' ||
-      (!serverDemoMode && isSuperAdminEmail(user?.email ?? null));
+    // Super admins are treated as paid everywhere else (client badge + useConciergeUsage
+    // maps them to frequent_chraveler), but resolveUsagePlanForUser doesn't know about
+    // them. Mirror that here so the client badge matches server grounding, admins can
+    // dogfood, and (below) they aren't capped at the free trip-query limit.
+    const isSuperAdminCaller = !serverDemoMode && isSuperAdminEmail(user?.email ?? null);
+    const isPaidUser = planResolution.usagePlan !== 'free' || isSuperAdminCaller;
     // Preference grounding is premium-only AND kill-switchable at runtime.
     const preferenceGroundingEnabled = isPaidUser && premiumPreferencesEnabled;
 
@@ -994,6 +994,14 @@ serve(async req => {
     // Usage limits
     usagePlan = planResolution.usagePlan;
     tripQueryLimit = planResolution.tripQueryLimit;
+
+    // Super admins (internal) bypass concierge usage limits — the client already treats
+    // them as frequent_chraveler (unlimited); mirror it so the edge limiter doesn't cap
+    // an admin at the free 3-asks/trip while the UI shows unlimited.
+    if (isSuperAdminCaller) {
+      usagePlan = 'frequent_chraveler';
+      tripQueryLimit = null;
+    }
 
     if (!serverDemoMode && user) {
       const tokenBudgetResult = await checkMonthlyTokenBudget(supabase, user.id, usagePlan);
