@@ -547,10 +547,14 @@ serve(async req => {
       }
 
       // Create notifications for all recipients. fanout_event_key is a GENERATED
-      // column from metadata->>'fanout_event_key'; the identity key (trip+requester,
-      // not request id) keeps a cancel→re-request cycle from re-notifying everyone —
-      // the unique index (user_id, type, fanout_event_key) rejects the duplicate.
-      const fanoutEventKey = `join_request:${invite.trip_id}:${user.id}`;
+      // column from metadata->>'fanout_event_key'. Scoped to this specific request
+      // row (not trip+requester) so the unique index (user_id, type,
+      // fanout_event_key) only dedupes accidental repeat notification attempts for
+      // the SAME request event — a later legitimate request (after cancel, or
+      // after a rejection's cooldown expires) gets a new joinRequestId and still
+      // notifies. A trip+requester-scoped key would silently swallow that
+      // legitimate re-request's notifications forever.
+      const fanoutEventKey = `join_request:${joinRequestId}`;
       const notificationPromises = recipientIds.map(recipientId =>
         supabaseClient.from('notifications').insert({
           user_id: recipientId,
@@ -571,7 +575,7 @@ serve(async req => {
 
       const notificationResults = await Promise.allSettled(notificationPromises);
       // 23505 = unique violation on the fanout key: recipient was already notified
-      // about this requester+trip — dedupe, not failure.
+      // about this specific request — dedupe, not failure.
       const successCount = notificationResults.filter(
         r => r.status === 'fulfilled' && !r.value.error,
       ).length;

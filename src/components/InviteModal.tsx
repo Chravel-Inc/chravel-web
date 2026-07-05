@@ -14,7 +14,6 @@ interface InviteModalProps {
   tripName: string;
   tripId?: string;
   proTripId?: string;
-  tripType?: 'consumer' | 'pro' | 'event';
 }
 
 export type UsageLimitPreset = 'off' | '10' | '25' | '50' | 'custom';

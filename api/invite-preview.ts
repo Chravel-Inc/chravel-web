@@ -45,6 +45,7 @@ export default async function handler(request: Request): Promise<Response> {
 
   const safeCode = encodeURIComponent(code);
   const userAgent = request.headers.get('User-Agent');
+  const joinUrl = `https://chravel.app/join/${safeCode}`;
 
   if (!isLikelyHtmlCrawler(userAgent)) {
     try {
@@ -62,9 +63,35 @@ export default async function handler(request: Request): Promise<Response> {
         });
       }
     } catch {
-      // Fall through to the crawler/OG path — degraded, but its CTA link still
-      // gives humans a way into the app.
+      // fall through to the degraded browser response below
     }
+
+    // The SPA shell is unavailable. Do NOT fall through to the crawler/OG
+    // response below — its meta-refresh targets this same URL and would loop
+    // a real browser through this rewrite forever. Serve a static page with a
+    // manual link instead; the user has to click, but never gets stuck.
+    return new Response(
+      `<!DOCTYPE html>
+<html>
+<head>
+  <title>Trip Invite - ChravelApp</title>
+  <meta name="robots" content="noindex, nofollow">
+</head>
+<body>
+  <h1>You're Invited to a Trip!</h1>
+  <p>Something went wrong loading the app. Tap below to continue.</p>
+  <a href="${joinUrl}">Open Invite</a>
+</body>
+</html>`,
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'no-store',
+          Vary: 'User-Agent',
+        },
+      },
+    );
   }
 
   try {
@@ -84,11 +111,18 @@ export default async function handler(request: Request): Promise<Response> {
 
     const body = await upstream.text();
 
+    // Preserve the upstream Cache-Control (e.g. no-store on a 404/410 for an
+    // invalid or revoked invite) instead of unconditionally applying the
+    // happy-path cache policy, which would let the CDN serve a stale negative
+    // result for up to 5 minutes.
+    const cacheControl =
+      upstream.headers.get('cache-control') || 'public, max-age=60, s-maxage=300';
+
     return new Response(body, {
       status: upstream.status,
       headers: {
         'Content-Type': 'text/html; charset=utf-8',
-        'Cache-Control': 'public, max-age=60, s-maxage=300',
+        'Cache-Control': cacheControl,
         Vary: 'User-Agent',
       },
     });
@@ -108,12 +142,16 @@ export default async function handler(request: Request): Promise<Response> {
 <body>
   <h1>You're Invited to a Trip!</h1>
   <p>Open this link in ChravelApp to join.</p>
-  <a href="https://chravel.app/join/${safeCode}">Join Trip</a>
+  <a href="${joinUrl}">Join Trip</a>
 </body>
 </html>`,
       {
         status: 500,
-        headers: { 'Content-Type': 'text/html; charset=utf-8', Vary: 'User-Agent' },
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'no-store',
+          Vary: 'User-Agent',
+        },
       },
     );
   }

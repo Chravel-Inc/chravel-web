@@ -441,7 +441,6 @@ export const EventCard = ({
         onClose={() => setShowInviteModal(false)}
         tripName={event.title}
         tripId={event.id}
-        tripType="event"
       />
 
       <LazyTripExportModal
