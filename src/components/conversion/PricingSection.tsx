@@ -179,8 +179,8 @@ const proTiers: PricingTier[] = [
 const valuePropItems = [
   {
     icon: <Heart size={20} />,
-    title: 'Trips can easily exceed $1,000',
-    description: 'Your memories are worth more than a Trip Pass',
+    title: 'Trips can easily exceed thousands of dollars.',
+    description: 'Organizing your memories are worth more than a Trip Pass',
   },
   {
     icon: <Camera size={20} />,
