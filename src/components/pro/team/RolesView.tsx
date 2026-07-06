@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Users, AlertTriangle, UserPlus, Clock, Cog, LayoutGrid, Network } from 'lucide-react';
+import { Users, AlertTriangle, UserPlus, Clock, Cog, LayoutGrid, Network, ShieldCheck } from 'lucide-react';
 import { ProParticipant, TeamTripContext } from '../../../types/pro';
 import { ProTripCategory, getCategoryConfig } from '../../../types/proCategories';
 import { TeamOnboardingBanner } from '../TeamOnboardingBanner';
