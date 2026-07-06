@@ -113,6 +113,9 @@ export const TripSettings = ({
   const tabs = [
     { id: 'users', label: 'Members', icon: Users },
     { id: 'general', label: 'General', icon: Settings },
+    ...(showTravelCompanyTab && coordinatorRoleEnabled
+      ? [{ id: 'travel-company', label: 'Travel Company', icon: Building2 }]
+      : []),
     ...(showEventLogTab ? [{ id: 'activity', label: 'Activity', icon: Activity }] : []),
     ...(showEventLogTab ? [{ id: 'eventlog', label: 'Event Log', icon: ScrollText }] : []),
     { id: 'danger', label: 'Danger Zone', icon: Trash2 },
