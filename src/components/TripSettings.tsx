@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Settings, Users, Trash2, X, ScrollText, Activity } from 'lucide-react';
+import { Settings, Users, Trash2, X, ScrollText, Activity, Building2 } from 'lucide-react';
 import { TripUserManagement } from './TripUserManagement';
 import { getConsistentAvatar } from '../utils/avatarUtils';
 import { EventLogDrawer } from './trip/EventLogDrawer';
-import { isConsumerTrip } from '@/utils/tripTierDetector';
+import { isConsumerTrip, isProTrip } from '@/utils/tripTierDetector';
 import { TripActivitySettings } from './settings/TripActivitySettings';
+import { TravelCompanySection } from './pro/settings/TravelCompanySection';
+import { useFeatureFlag } from '@/lib/featureFlags';
 
 interface TripUser {
   id: string;
@@ -39,13 +41,15 @@ export const TripSettings = ({
   currentUserId,
 }: TripSettingsProps) => {
   const [activeTab, setActiveTab] = useState<
-    'users' | 'general' | 'activity' | 'danger' | 'eventlog'
+    'users' | 'general' | 'activity' | 'danger' | 'eventlog' | 'travel-company'
   >('users');
   const [tripCategory, setTripCategory] = useState('Business Travel');
   const [customCategory, setCustomCategory] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [showEventLog, setShowEventLog] = useState(false);
   const showEventLogTab = isConsumerTrip(tripId);
+  const showTravelCompanyTab = isProTrip(tripId);
+  const coordinatorRoleEnabled = useFeatureFlag('pro_coordinator_role', false);
 
   // Mock users data - this would come from your backend
   const [users, setUsers] = useState<TripUser[]>([
@@ -109,6 +113,9 @@ export const TripSettings = ({
   const tabs = [
     { id: 'users', label: 'Members', icon: Users },
     { id: 'general', label: 'General', icon: Settings },
+    ...(showTravelCompanyTab && coordinatorRoleEnabled
+      ? [{ id: 'travel-company', label: 'Travel Company', icon: Building2 }]
+      : []),
     ...(showEventLogTab ? [{ id: 'activity', label: 'Activity', icon: Activity }] : []),
     ...(showEventLogTab ? [{ id: 'eventlog', label: 'Event Log', icon: ScrollText }] : []),
     { id: 'danger', label: 'Danger Zone', icon: Trash2 },
@@ -228,6 +235,13 @@ export const TripSettings = ({
                 </div>
               </div>
             )}
+
+            {activeTab === 'travel-company' && showTravelCompanyTab && (
+              <div className="bg-white/5 backdrop-blur-md border border-white/15 rounded-2xl p-6">
+                <TravelCompanySection tripId={tripId} />
+              </div>
+            )}
+
 
             {activeTab === 'activity' && showEventLogTab && (
               <div className="bg-white/5 backdrop-blur-md border border-white/15 rounded-2xl p-6">

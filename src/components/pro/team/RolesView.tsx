@@ -97,9 +97,13 @@ export const RolesView = ({
     return map;
   }, [assignments]);
 
-  // Create a set of admin user IDs
+  // Create a set of full-admin user IDs and a separate set for coordinator-scope admins,
+  // so the roster can render distinct pills.
   const adminUserIds = useMemo(() => {
-    return new Set(admins.map(admin => admin.user_id));
+    return new Set(admins.filter(a => a.admin_scope === 'full').map(a => a.user_id));
+  }, [admins]);
+  const coordinatorUserIds = useMemo(() => {
+    return new Set(admins.filter(a => a.admin_scope === 'coordinator').map(a => a.user_id));
   }, [admins]);
 
   // Super admins are never in read-only mode
@@ -387,14 +391,18 @@ export const RolesView = ({
               // Fall back to member.id when userId is absent (e.g., demo/mock data stores user ID in id)
               const memberUserId = member.userId || member.id;
               const isAdminMember = memberUserId ? adminUserIds.has(memberUserId) : false;
+              const isCoordinatorMember = memberUserId
+                ? coordinatorUserIds.has(memberUserId)
+                : false;
               const assignedRoles = memberUserId ? memberRolesMap.get(memberUserId) || [] : [];
 
-              // Combine roles: admin first, then assigned roles sorted alphabetically
-              const allRolePills: { name: string; isAdmin: boolean }[] = [];
+              // Combine roles: admin/coordinator first, then assigned roles sorted alphabetically
+              const allRolePills: { name: string; isAdmin: boolean; isCoordinator?: boolean }[] = [];
 
-              // Add admin pill if applicable
               if (isAdminMember) {
                 allRolePills.push({ name: 'admin', isAdmin: true });
+              } else if (isCoordinatorMember) {
+                allRolePills.push({ name: 'coordinator', isAdmin: false, isCoordinator: true });
               }
 
               // Add assigned roles (sorted alphabetically, case-insensitive)
@@ -448,11 +456,13 @@ export const RolesView = ({
                           <span
                             key={`${pill.name}-${index}`}
                             role="status"
-                            aria-label={`Role: ${pill.name}${pill.isAdmin ? ' (admin)' : ''}`}
+                            aria-label={`Role: ${pill.name}${pill.isAdmin ? ' (admin)' : pill.isCoordinator ? ' (coordinator)' : ''}`}
                             className={`${
                               pill.isAdmin
                                 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                                : getRoleColorClass(pill.name, category)
+                                : pill.isCoordinator
+                                  ? 'bg-amber-400/10 text-amber-200 border border-amber-400/40'
+                                  : getRoleColorClass(pill.name, category)
                             } px-1.5 py-0.5 rounded text-xs font-medium`}
                           >
                             {pill.name}
