@@ -6,22 +6,32 @@ import { useDemoMode } from './useDemoMode';
 import { useAuth } from './useAuth';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
 
+export type AdminScope = 'full' | 'coordinator';
+
 export interface TripAdmin {
   id: string;
   trip_id: string;
   user_id: string;
   granted_by?: string;
   granted_at: string;
+  admin_scope: AdminScope;
   permissions: {
     can_manage_roles: boolean;
     can_manage_channels: boolean;
     can_designate_admins: boolean;
+    can_manage_shared_calendar: boolean;
+    can_manage_shared_tasks: boolean;
+    can_manage_shared_places: boolean;
+    can_manage_shared_files: boolean;
+    can_manage_shared_links: boolean;
+    can_invite_members: boolean;
   };
   profile?: {
     display_name: string;
     avatar_url?: string;
   };
 }
+
 
 interface UseTripAdminsProps {
   tripId: string;
