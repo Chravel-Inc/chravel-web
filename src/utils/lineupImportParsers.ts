@@ -332,7 +332,7 @@ function getLineupFileFormat(file: File): LineupSourceFormat {
 }
 
 /** Main file router: ICS, CSV, Excel, PDF, Image */
-export async function parseLineupFile(file: File): Promise<LineupParseResult> {
+export async function parseLineupFile(file: File, tripId?: string): Promise<LineupParseResult> {
   const format = getLineupFileFormat(file);
   switch (format) {
     case 'ics':
@@ -343,8 +343,8 @@ export async function parseLineupFile(file: File): Promise<LineupParseResult> {
       return parseExcelLineup(file);
     case 'pdf':
     case 'image':
-      return parseLineupFileAI(file);
+      return parseLineupFileAI(file, tripId);
     default:
-      return parseLineupFileAI(file);
+      return parseLineupFileAI(file, tripId);
   }
 }
