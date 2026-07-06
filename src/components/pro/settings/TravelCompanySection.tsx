@@ -120,11 +120,17 @@ export const TravelCompanySection: React.FC<TravelCompanySectionProps> = ({ trip
     return m;
   }, [admins]);
 
+  const coordinatorCount = useMemo(
+    () => admins.filter(a => a.admin_scope === 'coordinator').length,
+    [admins],
+  );
+
   const isCurrentUserOrgMember = useMemo(
     () => !!user && orgMembers.some(m => m.user_id === user.id),
     [orgMembers, user],
   );
   const currentUserAdmin = user ? adminByUserId.get(user.id) : undefined;
+
 
   const handleLinkOrg = async () => {
     if (!selectValue || selectValue === linkedOrgId) return;
