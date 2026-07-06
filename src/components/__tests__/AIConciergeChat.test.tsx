@@ -193,7 +193,7 @@ describe('AIConciergeChat', () => {
 
       expect(screen.getByLabelText(/search trip/i)).toBeInTheDocument();
       expect(screen.getByTestId('ai-concierge-header')).toHaveTextContent(
-        'Concierge | Chravel Agent',
+        'Concierge Chravel Agent',
       );
       expect(screen.queryByText(/Concierge AI/i)).not.toBeInTheDocument();
       expect(screen.getByLabelText(/attach files to concierge/i)).toBeInTheDocument();

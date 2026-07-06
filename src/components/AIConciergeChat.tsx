@@ -363,7 +363,7 @@ export const AIConciergeChat = ({
               className="min-w-0 truncate text-center text-base font-semibold leading-tight text-white sm:text-lg"
               data-testid="ai-concierge-header"
             >
-              Concierge | Chravel Agent
+              Concierge Chravel Agent
             </h3>
             <button
               type="button"
