@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Settings, Users, Trash2, X, ScrollText, Activity } from 'lucide-react';
+import { Settings, Users, Trash2, X, ScrollText, Activity, Building2 } from 'lucide-react';
 import { TripUserManagement } from './TripUserManagement';
 import { getConsistentAvatar } from '../utils/avatarUtils';
 import { EventLogDrawer } from './trip/EventLogDrawer';
-import { isConsumerTrip } from '@/utils/tripTierDetector';
+import { isConsumerTrip, isProTrip } from '@/utils/tripTierDetector';
 import { TripActivitySettings } from './settings/TripActivitySettings';
+import { TravelCompanySection } from './pro/settings/TravelCompanySection';
+import { useFeatureFlag } from '@/lib/featureFlags';
 
 interface TripUser {
   id: string;
