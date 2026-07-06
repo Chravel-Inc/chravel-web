@@ -13,6 +13,11 @@ function getPrefix(eventId: string): string {
   return `${eventId}/agenda-files`;
 }
 
+function getUploadPrefix(eventId: string, userId: string): string {
+  // Storage RLS requires `${eventId}/${auth.uid()}/...` on INSERT.
+  return `${eventId}/${userId}/agenda-files`;
+}
+
 /**
  * Parse the original filename from the storage key format:
  *   {uuid}--{encodeURIComponent(originalName)}
