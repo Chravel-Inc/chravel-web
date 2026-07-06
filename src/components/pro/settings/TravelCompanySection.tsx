@@ -73,16 +73,20 @@ export const TravelCompanySection: React.FC<TravelCompanySectionProps> = ({ trip
     let cancelled = false;
     if (!linkedOrgId) {
       setOrgMembers([]);
+      setMembersLoading(false);
       return;
     }
+    setMembersLoading(true);
     (async () => {
       const { data: members } = await supabase
         .from('organization_members')
         .select('user_id, role')
         .eq('organization_id', linkedOrgId)
         .eq('status', 'active');
-      if (cancelled || !members?.length) {
+      if (cancelled) return;
+      if (!members?.length) {
         setOrgMembers([]);
+        setMembersLoading(false);
         return;
       }
       const userIds = members.map(m => m.user_id);
@@ -101,12 +105,14 @@ export const TravelCompanySection: React.FC<TravelCompanySectionProps> = ({ trip
         setOrgMembers(
           members.map(m => ({ user_id: m.user_id, role: m.role, profile: map.get(m.user_id) })),
         );
+        setMembersLoading(false);
       }
     })();
     return () => {
       cancelled = true;
     };
   }, [linkedOrgId]);
+
 
   const adminByUserId = useMemo(() => {
     const m = new Map<string, (typeof admins)[number]>();
