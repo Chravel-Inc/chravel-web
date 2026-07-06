@@ -250,10 +250,16 @@ const _faqItems = [
       'All data is encrypted in transit and at rest. Row-level security ensures you only see trips you belong to. High Privacy mode adds end-to-end encryption for messages. Your trips are private unless you choose to share them.',
   },
   {
+    question: 'Who pays for Pro — the concierge / planner or the client?',
+    answer:
+      'Either — or both. (1) A concierge company, wedding planner, tour manager, or corporate assistant can hold the Pro plan; every client trip they run uses their Pro Trip and Coordinator seats, and clients invited as Full Members join for free. (2) A couple, organization, or family office can hold Pro themselves for their own weekend/tour/retreat and invite outside help as **Coordinators** at no extra seat cost. (3) Both can pay independently — a frequent traveler’s personal subscription and their concierge’s Pro plan don’t conflict. Billing follows whoever created the Pro Trip.',
+  },
+  {
     question: 'Do all trip members need to pay?',
     answer:
-      'No! Only the trip creator or organization admin pays. All invited members join for free. For ChravelApp Pro, the admin pays and can assign seats to team members — ideal for organizations, sports teams, and tour management.',
+      'No. Only the trip creator or organization admin pays. Invited members join for free, and Coordinators (outside planners, concierges, assistants) don’t need their own paid seat when they help run a Pro Trip.',
   },
+
   {
     question: "What's included with the free Pro Trip and events?",
     answer:
