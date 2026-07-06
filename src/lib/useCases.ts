@@ -166,52 +166,54 @@ export const USE_CASES: Array<UseCaseSummary | UseCaseDetail> = [
     status: 'published',
     cardTitle: 'Weddings',
     cardTagline:
-      'Keep guests, the wedding party, photos, dress codes, and weekend events in one shared hub.',
+      'Run the whole weekend as a Pro Trip — separate channels for each family, wedding party, and vendors; a shared photo album; and a coordinator seat for your planner.',
     cardCtaLabel: 'See ChravelApp for weddings',
     seo: {
-      title: 'Wedding Guest Coordination App | Plan the Whole Weekend with ChravelApp',
+      title: 'Wedding Planning App with Coordinator Access | ChravelApp',
       description:
-        'ChravelApp keeps wedding guests, the wedding party, schedules, dress codes, locations, and a shared photo album in one place — so everyone knows where to be, what to wear, and where to upload photos.',
+        'ChravelApp runs a wedding weekend as one Pro Trip: separate channels for the bride’s family, groom’s family, wedding party, and vendors; a shared photo album; and a Coordinator seat that lets your planner manage logistics without reading your family chats.',
     },
-    h1: 'The wedding guest coordination app for the whole weekend',
+    h1: 'Run the whole wedding weekend — with channels, a shared photo album, and coordinator access for your planner',
     intro:
-      'A wedding isn’t one event anymore — it’s a weekend. ChravelApp gives the couple, the wedding party, and every guest one shared place for the schedule, dress codes, locations, tasks, and photos.',
+      'A wedding isn’t one event anymore — it’s a weekend with a dozen side conversations. ChravelApp lets the couple run the whole thing as a Pro Trip: separate channels for the bride’s family, groom’s family, wedding party, and vendors; a shared calendar, tasks, and photo album; and a Coordinator seat for the wedding planner so they can manage the logistics without living inside your family threads.',
     body: [
-      'Weddings are full weekends now: welcome drinks, the rehearsal dinner, ceremony call times, shuttle pickups, the afterparty, brunch, dress codes, hotel blocks, family obligations, and a dozen side chats. The couple has a website, the planner has a timeline, the wedding party has a group chat, and guests still ask where to be, what to wear, and when to arrive.',
-      'ChravelApp turns the weekend into one shared hub. Add every event to the Calendar, pin the hotel as a Base Camp alongside the ceremony and reception venues, and upload the schedule, menus, and dress-code references as Attachments. Save the rehearsal spot, the brunch place, and nearby coffee in Explorer, and create Tasks for the wedding party. Instead of digging through an old flyer or scrolling a thread, everyone checks one place.',
+      'Weddings are full weekends now: welcome drinks, the rehearsal dinner, ceremony call times, shuttle pickups, the afterparty, brunch, dress codes, hotel blocks, family obligations, and a dozen side chats. The couple has a website, the planner has a timeline, the wedding party has a group chat, the caterer has an email thread, and guests still ask where to be, what to wear, and when to arrive.',
+      'ChravelApp runs the weekend as one **Pro Trip** with role-based channels — so you can have a bride-family channel, a groom-family channel, a wedding-party channel, a vendors channel (caterer, florist, photographer, DJ), and the full-guests channel — all inside the same hub. Every audience gets the messages that matter to them and none of the ones that don’t. Add every event to the Calendar, pin the hotel and venues as Base Camps, upload the schedule and lookbooks as Attachments, save nearby spots in Places, and assign wedding-party Tasks.',
       'The shared photo album is one of the strongest reasons to run a wedding on ChravelApp. Guests take hundreds of photos across the weekend, but they get trapped across iPhones, Android phones, and private camera rolls. ChravelApp’s shared Media album gives everyone one place to upload, on any device — so the couple sees candid moments without waiting on the photographer, and nobody has to text pictures one at a time.',
-      'It works for the wedding party too. The couple, planner, and party can use Tasks for attire deadlines, speeches, welcome-bag prep, and day-of responsibilities, and a single Broadcast to push an update when a time or location changes. For destination weddings it earns its keep twice over — guests aren’t just attending a ceremony, they’re traveling, switching hotels, and following a multi-day itinerary.',
-      'Replace scattered WhatsApp threads, lost links, and repeated questions with one shared wedding hub. Everyone gets the schedule, the dress code, the locations, and the photo album in their pocket.',
+      'The Pro Trip layer unlocks a real answer to the classic wedding question: *how does our planner help without reading everything?* Invite the planner as a **Coordinator** and they can manage the shared Calendar, Tasks, Places, Files, and Links across the whole weekend — but they can’t open the bride-family channel, they can’t see the couple’s private photo uploads, and they can’t read the AI Concierge questions the couple is asking about their own honeymoon. The boundary is enforced by Postgres row-level security in the database, not just hidden in the UI.',
+      'For destination weddings it earns its keep twice over — guests aren’t just attending a ceremony, they’re traveling, switching hotels, and following a multi-day itinerary. Replace scattered WhatsApp threads, lost links, and repeated questions with one shared wedding hub. Everyone gets the schedule, the dress code, the locations, and the photo album in their pocket.',
     ],
     featureMap: [
+      { pain: 'Bride’s side, groom’s side, and vendors need separate threads', solution: 'Pro Trip channels per audience' },
+      { pain: 'Your planner needs logistics access without reading family chats', solution: 'Coordinator Access' },
       { pain: 'Guests lose track of weekend events', solution: 'Shared Calendar' },
-      {
-        pain: '“What’s the dress code?” asked on repeat',
-        solution: 'Attachments (lookbooks & notes)',
-      },
-      {
-        pain: 'Guests ask the same logistics questions',
-        solution: 'Broadcasts + centralized details',
-      },
+      { pain: '“What’s the dress code?” asked on repeat', solution: 'Attachments (lookbooks & notes)' },
+      { pain: 'Guests ask the same logistics questions', solution: 'Broadcasts + centralized details' },
       { pain: 'The wedding party needs accountability', solution: 'Tasks' },
-      { pain: 'Ceremony, reception, and hotel are scattered', solution: 'Base Camps + Explorer' },
+      { pain: 'Ceremony, reception, and hotel are scattered', solution: 'Base Camps + Places' },
       { pain: 'Guest photos trapped across phones', solution: 'Shared Media album' },
-      {
-        pain: 'Destination guests juggling travel',
-        solution: 'Calendar + Attachments + locations',
-      },
+      { pain: 'Destination guests juggling travel', solution: 'Calendar + Attachments + locations' },
     ],
     workflow: {
       heading: 'Set up your wedding weekend',
       steps: [
-        'Create the trip and invite guests — or just the wedding party.',
-        'Add every event — welcome drinks, ceremony, reception, brunch — to the Calendar.',
-        'Pin the hotel as a Base Camp, add the ceremony and reception venues, and drop nearby spots in Explorer.',
-        'Upload the schedule and dress-code or lookbook references as Attachments, and assign wedding-party Tasks.',
+        'Create the wedding as a **Pro Trip** so you get role-based channels.',
+        'Add channels for the bride’s family, groom’s family, wedding party, vendors, and full guest list — each audience gets only what they need.',
+        'Add every event — welcome drinks, ceremony, reception, brunch — to the Calendar; pin the hotel and venues as Base Camps and drop nearby spots in Places.',
+        'Upload the schedule, menus, and dress-code lookbooks as Attachments, and assign wedding-party Tasks.',
+        'Invite your wedding planner as a **Coordinator** — they can manage the itinerary, tasks, places, files, and links without reading your family channels or seeing your private photos.',
         'Turn on the shared Media album so every guest uploads photos to one place, on any device.',
       ],
     },
     faq: [
+      {
+        q: 'Can our wedding planner see our family chat?',
+        a: 'Not unless you explicitly invite them into that channel. As a Coordinator they can manage the shared calendar, tasks, places, files, and links, but they cannot read the bride-family or groom-family channel, cannot view the couple’s private photos, and cannot see the AI Concierge questions the couple is asking. The boundary is enforced at the database.',
+      },
+      {
+        q: 'Do we really need the Pro plan for a wedding?',
+        a: 'For anything more than a small ceremony, yes — Pro Trips are what unlock role-based channels (bride’s family / groom’s family / wedding party / vendors), Coordinator access for your planner, and larger guest capacity.',
+      },
       {
         q: 'Can guests upload photos from both iPhone and Android?',
         a: 'Yes. The shared Media album works on the web and on iOS and Android, so every guest uploads to the same place regardless of device.',
@@ -222,11 +224,11 @@ export const USE_CASES: Array<UseCaseSummary | UseCaseDetail> = [
       },
       {
         q: 'Can we keep the wedding party separate from all guests?',
-        a: 'Yes. You control who is on the trip and their roles, so the wedding party can coordinate tasks separately from the full guest list.',
+        a: 'Yes — that’s exactly what channels are for. The wedding party gets its own channel; the full guest list gets its own; families get theirs.',
       },
       {
         q: 'Is this a replacement for our wedding website?',
-        a: 'It complements it. The website tells the story; ChravelApp is the live, in-pocket hub for schedule changes, locations, dress code, tasks, and the shared photo album.',
+        a: 'It complements it. The website tells the story publicly; ChravelApp is the live, in-pocket hub for schedule changes, locations, dress code, tasks, channels, and the shared photo album.',
       },
       {
         q: 'Does it work for destination weddings?',
@@ -236,13 +238,14 @@ export const USE_CASES: Array<UseCaseSummary | UseCaseDetail> = [
     cta: {
       heading: 'Make the whole wedding weekend easier',
       subtext:
-        'Put the schedule, locations, dress codes, tasks, and a shared photo album in one wedding hub — then invite the guests.',
+        'Run the weekend as a Pro Trip with channels per audience, a shared photo album, and a coordinator seat for your planner.',
       primaryLabel: 'Create a wedding trip',
       primaryTo: '/auth',
       secondaryLabel: 'Browse all use cases',
       secondaryTo: '/use-cases',
     },
   },
+
   {
     slug: 'group-travel-planning-app',
     status: 'published',
