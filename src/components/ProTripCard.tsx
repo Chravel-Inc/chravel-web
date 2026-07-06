@@ -517,7 +517,6 @@ export const ProTripCard = ({
         onClose={() => setShowInviteModal(false)}
         tripName={trip.title}
         proTripId={trip.id}
-        tripType="pro"
       />
 
       <ShareTripModal

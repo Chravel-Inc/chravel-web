@@ -785,7 +785,6 @@ export const TripHeader = ({
         onClose={() => setShowInvite(false)}
         tripName={trip.title}
         tripId={trip.id.toString()}
-        tripType={trip.trip_type || 'consumer'}
       />
 
       <CollaboratorsModal
