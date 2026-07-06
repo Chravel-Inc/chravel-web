@@ -51,10 +51,17 @@ async function fetchTripAdmins(
         user_id: userId,
         granted_by: userId,
         granted_at: new Date().toISOString(),
+        admin_scope: 'full',
         permissions: {
           can_manage_roles: true,
           can_manage_channels: true,
           can_designate_admins: true,
+          can_manage_shared_calendar: true,
+          can_manage_shared_tasks: true,
+          can_manage_shared_places: true,
+          can_manage_shared_files: true,
+          can_manage_shared_links: true,
+          can_invite_members: true,
         },
         profile: {
           display_name: 'Demo User',
@@ -80,7 +87,17 @@ async function fetchTripAdmins(
         .eq('user_id', admin.user_id)
         .single();
 
-      const permissions = admin.permissions as Record<string, boolean> | null;
+      const permissions = admin.permissions as Record<string, unknown> | null;
+      const scope: AdminScope =
+        (permissions?.admin_scope as AdminScope | undefined) === 'coordinator'
+          ? 'coordinator'
+          : 'full';
+      const boolCap = (key: string, fallback: boolean): boolean => {
+        const v = permissions?.[key];
+        return typeof v === 'boolean' ? v : fallback;
+      };
+      // Full admins default to true across capabilities (backward compat with legacy rows).
+      const fullDefault = scope === 'full';
 
       return {
         id: admin.id,
@@ -88,10 +105,18 @@ async function fetchTripAdmins(
         user_id: admin.user_id,
         granted_by: admin.granted_by ?? undefined,
         granted_at: admin.granted_at ?? new Date().toISOString(),
+        admin_scope: scope,
         permissions: {
-          can_manage_roles: permissions?.can_manage_roles ?? false,
-          can_manage_channels: permissions?.can_manage_channels ?? false,
-          can_designate_admins: permissions?.can_designate_admins ?? false,
+          can_manage_roles: scope === 'full' && boolCap('can_manage_roles', fullDefault),
+          can_manage_channels: scope === 'full' && boolCap('can_manage_channels', fullDefault),
+          can_designate_admins: scope === 'full' && boolCap('can_designate_admins', false),
+          can_manage_shared_calendar: boolCap('can_manage_shared_calendar', true),
+          can_manage_shared_tasks: boolCap('can_manage_shared_tasks', true),
+          can_manage_shared_places: boolCap('can_manage_shared_places', true),
+          can_manage_shared_files: boolCap('can_manage_shared_files', true),
+          can_manage_shared_links: boolCap('can_manage_shared_links', true),
+          can_invite_members:
+            scope === 'full' ? boolCap('can_invite_members', true) : boolCap('can_invite_members', false),
         },
         profile: profile
           ? {
@@ -102,6 +127,7 @@ async function fetchTripAdmins(
       };
     }),
   );
+
 
   return adminsWithProfiles;
 }
