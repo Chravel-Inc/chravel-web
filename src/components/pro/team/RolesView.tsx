@@ -229,6 +229,18 @@ export const RolesView = ({
               <Clock className="w-4 h-4 mr-1.5 shrink-0" />
               Requests
             </Button>
+            {coordinatorRoleEnabled && tripId && (
+              <Button
+                onClick={() => setShowCoordinatorDialog(true)}
+                variant="outline"
+                size="sm"
+                className="rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors min-h-[42px] px-4 text-xs whitespace-nowrap"
+                title="Grant logistics-only access to an outside organizer"
+              >
+                <ShieldCheck className="w-4 h-4 mr-1.5 shrink-0" />
+                Coordinator
+              </Button>
+            )}
           </div>
         )}
 
