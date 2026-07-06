@@ -153,7 +153,14 @@ export function useEventLineupFiles({ eventId, enabled = true }: UseEventLineupF
       }
 
       setIsUploading(true);
-      const prefix = getPrefix(eventId);
+      const { data: authData } = await supabase.auth.getUser();
+      const uploaderId = authData?.user?.id;
+      if (!uploaderId) {
+        setUploadError('You must be signed in to upload files.');
+        setIsUploading(false);
+        return false;
+      }
+      const prefix = getUploadPrefix(eventId, uploaderId);
       let hadError = false;
 
       for (const file of newFiles) {
