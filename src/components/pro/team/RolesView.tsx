@@ -551,6 +551,15 @@ export const RolesView = ({
           />
         </>
       )}
+
+      {tripId && coordinatorRoleEnabled && (
+        <CoordinatorInviteDialog
+          open={showCoordinatorDialog}
+          onOpenChange={setShowCoordinatorDialog}
+          tripId={tripId}
+          roster={roster}
+        />
+      )}
     </div>
   );
 };
