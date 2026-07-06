@@ -689,6 +689,14 @@ export const AIConciergeChat = ({
                 ? (files: File[]) => handleFilesSelected(files)
                 : undefined
             }
+            onRejectedFiles={(files: File[]) =>
+              toast.error('Some files could not be attached', {
+                description: files
+                  .slice(0, 3)
+                  .map(file => file.name)
+                  .join(', '),
+              })
+            }
             onRemoveDocument={
               UPLOAD_ENABLED
                 ? idx => setAttachedDocuments(prev => prev.filter((_, i) => i !== idx))
