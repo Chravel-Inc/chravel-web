@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useCallback, lazy, Suspense, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Search, ImagePlus } from 'lucide-react';
@@ -17,7 +17,7 @@ import { sanitizeConciergeContent } from '@/lib/sanitizeConciergeContent';
 import { usePendingActions } from '@/hooks/usePendingActions';
 import {
   ALLOWED_DOCUMENT_TYPES,
-  ALLOWED_IMAGE_TYPES as _ALLOWED_IMAGE_TYPES,
+  ALLOWED_IMAGE_TYPES,
   ALL_ACCEPTED_TYPES,
   MAX_DOCUMENT_SIZE_BYTES as _MAX_DOCUMENT_SIZE_BYTES,
   MAX_IMAGE_SIZE_BYTES as _MAX_IMAGE_SIZE_BYTES,
@@ -38,6 +38,23 @@ import { useConversationModePreference } from '@/features/concierge/hooks/useCon
 import { useFeatureFlag } from '@/lib/featureFlags';
 
 import type { ChatMessage } from '@/features/concierge/types';
+
+const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif']);
+const DOCUMENT_EXTENSIONS = new Set(['.pdf', '.ics', '.csv', '.xls', '.xlsx']);
+
+function getFileExtension(file: File): string {
+  const name = file.name.toLowerCase();
+  const dot = name.lastIndexOf('.');
+  return dot >= 0 ? name.slice(dot) : '';
+}
+
+function isConciergeImageFile(file: File): boolean {
+  return ALLOWED_IMAGE_TYPES.has(file.type) || IMAGE_EXTENSIONS.has(getFileExtension(file));
+}
+
+function isConciergeDocumentFile(file: File): boolean {
+  return ALLOWED_DOCUMENT_TYPES.has(file.type) || DOCUMENT_EXTENSIONS.has(getFileExtension(file));
+}
 
 // Lazy: only loads when an upgrade moment actually fires (limit hit / chip tap).
 const PlusUpsellModal = lazy(() =>
@@ -190,6 +207,7 @@ export const AIConciergeChat = ({
   }, [ttsError, ttsPlaybackState]);
 
   const [searchOpen, setSearchOpen] = useState(false);
+  const uploadInputId = useId();
   const handleSendMessageRef = useRef<(messageOverride?: string) => Promise<void>>(async () =>
     Promise.resolve(),
   );
@@ -286,7 +304,7 @@ export const AIConciergeChat = ({
   const conversationModeEffective = conversationModeFlag && conversationModeUserPref && !isDemoMode;
   // Bidirectional realtime voice — when enabled it becomes the primary left-of-input
   // control, superseding the turn-based conversation mic. (In-box mic stays dictation.)
-  const realtimeVoiceEnabled = useFeatureFlag('concierge_realtime_voice', false) && !isDemoMode;
+  const realtimeVoiceEnabled = useFeatureFlag('concierge_realtime_voice', true) && !isDemoMode;
 
   const buildSpeechForMessage = useCallback((msg: ChatMessage) => {
     if (msg.type !== 'assistant' || !msg.content) return '';
@@ -347,35 +365,33 @@ export const AIConciergeChat = ({
         ref={chatWindowRef}
         className="relative rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col flex-1"
       >
-        {/* Header — title row + controls row */}
-        <div className="border-b border-white/10 bg-black/30 px-3 py-2 flex-shrink-0">
-          {/* Row 1: Title */}
-          <h3
-            className="text-lg font-semibold text-white text-center truncate leading-tight"
-            data-testid="ai-concierge-header"
-          >
-            Concierge AI | ChravelApp Agent
-          </h3>
-          {/* Row 2: Search | Upload — evenly spaced */}
-          <div className="flex items-center justify-between mt-2">
+        {/* Header — single-row trip controls */}
+        <div className="relative z-20 border-b border-white/10 bg-black/30 px-3 py-2 flex-shrink-0">
+          <div className="grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2">
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
               className={CTA_BUTTON}
-              aria-label="Search concierge"
+              aria-label="Search trip"
+              title="Search trip"
             >
               <Search size={CTA_ICON_SIZE} className="text-white" />
             </button>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
+            <h3
+              className="min-w-0 truncate text-center text-base font-semibold leading-tight text-white sm:text-lg"
+              data-testid="ai-concierge-header"
+            >
+              Concierge Chravel Agent
+            </h3>
+            <label
+              htmlFor={uploadInputId}
               data-testid="header-upload-btn"
-              className={CTA_BUTTON}
-              aria-label="Attach images"
-              title="Attach images"
+              className={`${CTA_BUTTON} cursor-pointer`}
+              aria-label="Attach files to Concierge"
+              title="Attach files to Concierge"
             >
               <ImagePlus size={CTA_ICON_SIZE} className="text-white" />
-            </button>
+            </label>
           </div>
         </div>
 
@@ -396,20 +412,16 @@ export const AIConciergeChat = ({
 
         {/* Hidden file input for header upload button */}
         <input
+          id={uploadInputId}
           ref={fileInputRef}
           type="file"
           accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,application/pdf,text/calendar,.ics,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           multiple
-          className="hidden"
+          className="sr-only"
           onChange={e => {
             const files = Array.from(e.target.files || []);
-            const images = files.filter(f => f.type.startsWith('image/'));
-            const docs = files.filter(
-              f =>
-                ALLOWED_DOCUMENT_TYPES.has(f.type) ||
-                f.name.endsWith('.ics') ||
-                f.name.endsWith('.csv'),
-            );
+            const images = files.filter(isConciergeImageFile);
+            const docs = files.filter(isConciergeDocumentFile);
             if (images.length > 0) setAttachedImages(prev => [...prev, ...images].slice(0, 4));
             if (docs.length > 0) setAttachedDocuments(prev => [...prev, ...docs].slice(0, 4));
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -505,7 +517,7 @@ export const AIConciergeChat = ({
 
         {/* Input area — sticky bottom with inline voice banner above input */}
         <div
-          className="chat-composer z-10 bg-black/30 px-3 pt-2 flex-shrink-0"
+          className="chat-composer relative z-20 bg-black/30 px-3 pt-2 flex-shrink-0"
           style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)' }}
         >
           {/* Usage meter — only for plans with a finite per-trip ask limit */}
@@ -616,6 +628,7 @@ export const AIConciergeChat = ({
                 // Primary left control: full bidirectional realtime voice.
                 <RealtimeVoiceButton
                   tripId={tripId}
+                  disabled={usage?.isLimitReached ?? false}
                   containerRef={chatWindowRef}
                   // Stop the turn-based hands-free mic before opening a realtime session
                   // so the two never contend for the microphone.

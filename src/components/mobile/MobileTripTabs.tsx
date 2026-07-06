@@ -639,7 +639,7 @@ export const MobileTripTabs = ({
         style={{
           height:
             'calc(var(--visual-viewport-height, 100dvh) - var(--mobile-header-h, 73px) - var(--mobile-tabs-h, 52px))',
-          WebkitOverflowScrolling: 'touch',
+          WebkitOverflowScrolling: INTERNAL_SCROLL_TABS.includes(activeTab) ? undefined : 'touch',
         }}
       >
         {tabs

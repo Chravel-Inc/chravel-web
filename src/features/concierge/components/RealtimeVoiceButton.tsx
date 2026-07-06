@@ -4,7 +4,7 @@
  * Self-contained so the (complex) AIConciergeChat only needs a one-line mount. Gated
  * behind the `concierge_realtime_voice` kill switch — renders nothing when disabled.
  */
-import { type RefObject, useCallback } from 'react';
+import { type RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import { AudioLines } from 'lucide-react';
 import { useFeatureFlag } from '@/lib/featureFlags';
 import { cn } from '@/lib/utils';
@@ -19,6 +19,44 @@ interface RealtimeVoiceButtonProps {
   onSessionStart?: () => void;
   /** Confine the voice overlay to this element (the chat window) instead of the viewport. */
   containerRef?: RefObject<HTMLElement | null>;
+  /** Block starting a new voice session while preserving visible affordance. */
+  disabled?: boolean;
+}
+
+interface RealtimeVoiceSessionProps {
+  tripId: string;
+  containerRef?: RefObject<HTMLElement | null>;
+  onEnd: () => void;
+}
+
+function RealtimeVoiceSession({ tripId, containerRef, onEnd }: RealtimeVoiceSessionProps) {
+  const voice = useRealtimeVoice();
+  const startedRef = useRef(false);
+
+  useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+    void voice.start(tripId);
+  }, [tripId, voice]);
+
+  const handleEnd = useCallback(() => {
+    voice.stop();
+    onEnd();
+  }, [voice, onEnd]);
+
+  if (!voice.isActive) return null;
+
+  return (
+    <RealtimeVoiceOverlay
+      phase={voice.phase}
+      turns={voice.turns}
+      isCapturing={voice.isCapturing}
+      isPlaying={voice.isPlaying}
+      errorMessage={voice.errorMessage}
+      onEnd={handleEnd}
+      containerRef={containerRef}
+    />
+  );
 }
 
 export function RealtimeVoiceButton({
@@ -26,15 +64,20 @@ export function RealtimeVoiceButton({
   className,
   onSessionStart,
   containerRef,
+  disabled = false,
 }: RealtimeVoiceButtonProps) {
-  const enabled = useFeatureFlag('concierge_realtime_voice', false);
-  const voice = useRealtimeVoice();
+  const enabled = useFeatureFlag('concierge_realtime_voice', true);
+  const [sessionRequested, setSessionRequested] = useState(false);
 
   const handleStart = useCallback(() => {
-    if (!tripId) return;
+    if (!tripId || disabled || sessionRequested) return;
     onSessionStart?.();
-    void voice.start(tripId);
-  }, [tripId, onSessionStart, voice]);
+    setSessionRequested(true);
+  }, [tripId, disabled, sessionRequested, onSessionStart]);
+
+  const handleEnd = useCallback(() => {
+    setSessionRequested(false);
+  }, []);
 
   if (!enabled) return null;
 
@@ -43,7 +86,7 @@ export function RealtimeVoiceButton({
       <button
         type="button"
         onClick={handleStart}
-        disabled={voice.isActive}
+        disabled={sessionRequested || disabled}
         aria-label="Start voice conversation"
         title="Talk to your concierge"
         className={cn(CTA_BUTTON, className)}
@@ -51,16 +94,8 @@ export function RealtimeVoiceButton({
         <AudioLines size={CTA_ICON_SIZE} className="text-white" />
       </button>
 
-      {voice.isActive && (
-        <RealtimeVoiceOverlay
-          phase={voice.phase}
-          turns={voice.turns}
-          isCapturing={voice.isCapturing}
-          isPlaying={voice.isPlaying}
-          errorMessage={voice.errorMessage}
-          onEnd={voice.stop}
-          containerRef={containerRef}
-        />
+      {sessionRequested && (
+        <RealtimeVoiceSession tripId={tripId} containerRef={containerRef} onEnd={handleEnd} />
       )}
     </>
   );

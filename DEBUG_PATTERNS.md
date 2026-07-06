@@ -477,3 +477,21 @@ Known security anti-patterns discovered during audits. Reference this before int
 **Required Tests:** Unauthenticated denied, authenticated non-member denied, member/owner allowed, caller-supplied mismatched IDs/paths ignored or rejected.
 **Regression Surfaces:** Message parsing, broadcast reactions, scheduled messages, advertiser asset uploads, search-index population, and any new service-role edge function.
 **Fixed in:** `supabase/functions/message-parser/index.ts`, `broadcasts-react`, `message-scheduler`, `populate-search-index`, `image-upload` (June 2026 P0 hardening)
+
+## 5. iOS Momentum Scroll Wrapper Freezes Internal Chat/Concierge Controls
+
+**Symptom:** Mobile controls are visible but search/upload/waveform/text input taps appear dead inside Chat or Concierge.
+**Risk:** HIGH — core mobile interaction surface becomes unusable with no JS error.
+**Root Cause:** An outer fixed-shell content pane uses `-webkit-overflow-scrolling: touch` around an internal-scroll tab. iOS/WKWebView can stale-hit-test composited momentum-scroll layers, so taps land on the wrapper instead of buttons/inputs.
+**How to Confirm:** In DevTools/device QA, `document.elementFromPoint(x, y)` at a visible control returns a tab/content wrapper or stale overlay instead of the button/input. Check `MobileTripTabs` for internal-scroll tabs (`chat`, `concierge`) inheriting WebKit momentum scrolling from a parent pane.
+**Smallest Safe Fix:** Only apply `WebkitOverflowScrolling: 'touch'` to page-scroll tabs; keep Chat/Concierge parent panes non-momentum and let their internal message lists own scrolling.
+**Required Tests:** Assert Concierge active content pane has no `-webkit-overflow-scrolling`, while page-scroll tabs retain it.
+**Regression Surfaces:** MobileTripTabs, fixed `.mobile-trip-shell`, chat/concierge composers, iOS keyboard handling.
+**Fixed in:** `src/components/mobile/MobileTripTabs.tsx` (July 2026 Concierge controls follow-up)
+
+## 2026-07-06 — Lazy-mount browser realtime clients behind user gestures
+
+- **Symptom:** Mobile Concierge can appear fully frozen: header buttons, composer input, tab rail, and console interactions do not respond after opening the Concierge surface.
+- **Root cause pattern:** A visible CTA was made default-on, but its component eagerly mounted a realtime/audio hook during normal render. That hook constructs browser realtime/audio SDK state before the user taps anything, so any SDK/WebKit/gateway issue can block unrelated touch targets and make the UI look like a hit-testing regression.
+- **Fix pattern:** Keep the CTA visible, but split the control from the realtime session. The outer button must not call the heavy realtime hook. Lazy-mount the session component only after an explicit tap, then clean it up on end/unmount.
+- **Regression guard:** Unit-test that rendering the waveform control does not call the realtime hook until the button is clicked, and that disabled starts do not mount the session.

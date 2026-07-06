@@ -167,4 +167,40 @@ describe('MobileTripTabs tab navigation', () => {
     // touch-action: manipulation keeps taps instant and unambiguous.
     expect(scroller!.style.touchAction).toBe('manipulation');
   });
+
+  it('does not wrap Concierge in a WebKit momentum-scroll content layer', () => {
+    const { container } = render(
+      <MobileTripTabs
+        activeTab="concierge"
+        onTabChange={vi.fn()}
+        tripId="trip-1"
+        basecamp={{ name: 'Hotel', address: 'Tokyo' }}
+        variant="consumer"
+      />,
+    );
+
+    const contentPane = container.querySelector(
+      '[style*="--visual-viewport-height"]',
+    ) as HTMLElement | null;
+    expect(contentPane).toBeTruthy();
+    expect(contentPane!.style.getPropertyValue('-webkit-overflow-scrolling')).toBe('');
+  });
+
+  it('keeps WebKit momentum scrolling for page-scroll tabs', () => {
+    const { container } = render(
+      <MobileTripTabs
+        activeTab="payments"
+        onTabChange={vi.fn()}
+        tripId="trip-1"
+        basecamp={{ name: 'Hotel', address: 'Tokyo' }}
+        variant="consumer"
+      />,
+    );
+
+    const contentPane = container.querySelector(
+      '[style*="--visual-viewport-height"]',
+    ) as HTMLElement | null;
+    expect(contentPane).toBeTruthy();
+    expect(contentPane!.style.getPropertyValue('-webkit-overflow-scrolling')).toBe('touch');
+  });
 });
