@@ -114,3 +114,8 @@
 - Repaired the Concierge panel controls locally: collapsed the two-line header into a single 44px-control row, retitled it to "Concierge Chravel Agent", and made the header search/upload affordances explicit trip search + Concierge attachment controls.
 - Promoted the existing bidirectional realtime voice path to the default composer-left waveform control (still kill-switchable by the feature flag) and preserved the dictation mic inside the input as a secondary text-entry affordance.
 - Verification: typecheck, lint:check, and build pass; targeted AIConciergeChat vitest remains blocked by the known suite hang after startup in this environment.
+
+2026-07-07 — Mobile chat search escape repair
+- Fixed the chat message search overlay escape path so tapping outside the dialog or the visible 44px "Back to chat" control closes search, preventing the mobile search modal from trapping users.
+- Replaced dark-only overlay text/icon classes with semantic card/foreground/muted tokens so the search header, close affordance, empty state, and results stay visible in light mode.
+- Added regression coverage for the accessible mobile back control; typecheck and targeted ESLint pass. Full chat-search Vitest command timed out in this environment without reporting test results, and repo-wide lint remains blocked by a pre-existing prefer-const error in `src/utils/calendarImportParsers.ts`.
