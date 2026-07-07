@@ -201,21 +201,21 @@ export const ConciergeSearchModal = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showClose={false}
-        className="bg-neutral-900 border-white/10 text-white max-w-md sm:max-w-lg p-0 gap-0 overflow-hidden"
+        className="!bg-neutral-900 border-white/10 text-white max-w-md sm:max-w-lg p-0 gap-0 overflow-hidden"
       >
-        <DialogHeader className="p-4 pb-2 border-b border-white/5 bg-black/40">
+        <DialogHeader className="p-4 pb-2 border-b border-white/10 !bg-neutral-900">
           <DialogTitle className="text-white text-base sr-only">Search Concierge</DialogTitle>
           <div className="relative">
             <Search
               size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gold-primary"
             />
             <input
               autoFocus
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Search across trip..."
-              className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-8 py-2.5 text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-all"
+              className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-8 py-2.5 text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-gold-primary/50 transition-all"
             />
             {query && (
               <button
