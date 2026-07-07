@@ -8,14 +8,14 @@ import {
   Check,
   Users,
   Shield,
-  Zap,
-  BarChart3,
+  TrendingUp,
+  CalendarDays,
   Phone,
   Trophy,
   Mic2,
   Building2,
   Tent,
-  GraduationCap,
+  Headphones,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import channelsPro from '@/assets/app-screenshots/channels-pro.png';
