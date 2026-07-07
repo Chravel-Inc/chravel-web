@@ -126,7 +126,7 @@ export const ConciergeSearchModal = ({
   const getIcon = (type: ContentType) => {
     switch (type) {
       case 'concierge':
-        return <Wand2 size={14} className="text-emerald-400" />;
+        return <Search size={14} className="text-gold-primary" />;
       case 'messages':
         return <Search size={14} className="text-sky-400" />;
       case 'calendar':
