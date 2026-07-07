@@ -48,7 +48,7 @@ export function RealtimeVoiceButton({
     }
     if (disabled) {
       toast.error('Voice unavailable', {
-        description: 'You\'ve hit your Concierge limit. Upgrade to keep asking.',
+        description: "You've hit your Concierge limit. Upgrade to keep asking.",
       });
       return;
     }
@@ -94,6 +94,8 @@ export function RealtimeVoiceButton({
           isCapturing={voice.isCapturing}
           isPlaying={voice.isPlaying}
           errorMessage={voice.errorMessage}
+          micPermission={voice.micPermission}
+          isRecording={voice.isRecording}
           latestUserText={voice.latestUserText}
           latestAssistantText={voice.latestAssistantText}
           onEnd={voice.stop}

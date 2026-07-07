@@ -7,14 +7,16 @@
  *   - User transcript BELOW the line (what you said)
  * Both transcripts stay readable so a missed/quiet response can always be read.
  *
- * Uses semantic theme tokens so the overlay adapts to light and dark mode instead
- * of hardcoding a dark palette.
+ * Uses semantic theme tokens plus a theme-aware wave palette so the overlay adapts to
+ * light and dark mode instead of hardcoding a dark palette.
  */
 import { type RefObject, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Mic, X } from 'lucide-react';
+import { Mic, MicOff, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTheme } from '@/hooks/useTheme';
 import type {
+  MicPermissionState,
   RealtimeTranscriptTurn,
   RealtimeVoicePhase,
 } from '@/features/concierge/hooks/useRealtimeVoice';
@@ -25,6 +27,10 @@ interface RealtimeVoiceOverlayProps {
   isCapturing: boolean;
   isPlaying: boolean;
   errorMessage: string | null;
+  /** Live mic permission, for a clear "blocked" affordance distinct from generic errors. */
+  micPermission?: MicPermissionState;
+  /** True while the mic is actively capturing (drives the recording indicator). */
+  isRecording?: boolean;
   /** Latest in-progress user utterance (may not yet be a committed message). */
   latestUserText?: string;
   /** Latest in-progress assistant reply (may not yet be a committed message). */
@@ -62,22 +68,34 @@ function sinePath(
   return `M${segments.join(' L')}`;
 }
 
-function GoldWave({ intensity }: { intensity: number }) {
+// Wave stroke palettes. On dark surfaces the bright golds glow; on light surfaces those
+// same near-white/pale golds wash out, so light mode uses deeper, more saturated golds
+// that keep contrast against the light background.
+const DARK_WAVE_STROKES = ['#feeaa5', '#e8af48', '#c49746'] as const;
+const LIGHT_WAVE_STROKES = ['#d9a63a', '#c08420', '#9a6a12'] as const;
+
+function GoldWave({ intensity, isDark }: { intensity: number; isDark: boolean }) {
   const width = 2000;
   const midY = 100;
   const wavelength = 1000;
+  const strokes = isDark ? DARK_WAVE_STROKES : LIGHT_WAVE_STROKES;
   const paths = useMemo(
     () => [
-      { d: sinePath(width, midY, 26, wavelength, 0), stroke: '#feeaa5', opacity: 0.55, w: 2 },
+      { d: sinePath(width, midY, 26, wavelength, 0), stroke: strokes[0], opacity: 0.55, w: 2 },
       {
         d: sinePath(width, midY, 34, wavelength, Math.PI / 2),
-        stroke: '#e8af48',
+        stroke: strokes[1],
         opacity: 0.8,
         w: 2.5,
       },
-      { d: sinePath(width, midY, 30, wavelength, Math.PI), stroke: '#c49746', opacity: 0.95, w: 3 },
+      {
+        d: sinePath(width, midY, 30, wavelength, Math.PI),
+        stroke: strokes[2],
+        opacity: 0.95,
+        w: 3,
+      },
     ],
-    [],
+    [strokes],
   );
 
   return (
@@ -87,7 +105,11 @@ function GoldWave({ intensity }: { intensity: number }) {
       preserveAspectRatio="none"
       height={160}
       aria-hidden="true"
-      style={{ filter: 'drop-shadow(0 0 10px rgba(196,151,70,0.35))' }}
+      style={{
+        filter: isDark
+          ? 'drop-shadow(0 0 10px rgba(196,151,70,0.35))'
+          : 'drop-shadow(0 0 6px rgba(154,106,18,0.25))',
+      }}
     >
       <g
         style={{
@@ -120,11 +142,14 @@ export function RealtimeVoiceOverlay({
   isCapturing,
   isPlaying,
   errorMessage,
+  micPermission = 'unknown',
+  isRecording = false,
   latestUserText,
   latestAssistantText,
   onEnd,
   containerRef,
 }: RealtimeVoiceOverlayProps) {
+  const { isDarkMode } = useTheme();
   const assistantTurns = turns.filter(t => t.role === 'assistant');
   const userTurns = turns.filter(t => t.role === 'user');
 
@@ -146,6 +171,13 @@ export function RealtimeVoiceOverlay({
   }, [onEnd]);
 
   const target = containerRef?.current ?? null;
+
+  // Mic is blocked at the OS/browser level — surface this distinctly from a transient error.
+  const micBlocked = micPermission === 'denied';
+  // While "Listening", the mic must actually be capturing — if not, the session looks ready
+  // but is deaf, so flag it. Scoped to the listening phase only: during 'speaking' the SDK
+  // routinely reports capture off while the assistant plays audio, which is not a fault.
+  const micStalled = phase === 'listening' && !isRecording;
 
   // Determine what to render above/below the wave.
   const hasAssistantTurns = assistantTurns.length > 0;
@@ -178,30 +210,57 @@ export function RealtimeVoiceOverlay({
             }
       }
     >
-      {/* Header: status + close */}
+      {/* Header: status + mic/recording indicator + close */}
       <div className="flex items-center justify-between px-5">
-        <div
-          className={cn(
-            'inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium border',
-            phase === 'error'
-              ? 'bg-destructive/15 text-destructive border-destructive/30'
-              : 'bg-gold-primary/15 text-gold-primary border-gold-primary/30',
-          )}
-        >
-          <span
+        <div className="flex items-center gap-2">
+          <div
             className={cn(
-              'h-2 w-2 rounded-full',
-              phase === 'speaking'
-                ? 'bg-gold-primary animate-pulse'
-                : phase === 'listening'
-                  ? 'bg-emerald-500 animate-pulse'
-                  : phase === 'error'
-                    ? 'bg-destructive'
-                    : 'bg-gold-primary',
+              'inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium border',
+              phase === 'error'
+                ? 'bg-destructive/15 text-destructive border-destructive/30'
+                : 'bg-gold-primary/15 text-gold-primary border-gold-primary/30',
             )}
-          />
-          {PHASE_LABEL[phase]}
+          >
+            <span
+              className={cn(
+                'h-2 w-2 rounded-full',
+                phase === 'speaking'
+                  ? 'bg-gold-primary animate-pulse'
+                  : phase === 'listening'
+                    ? 'bg-emerald-500 animate-pulse'
+                    : phase === 'error'
+                      ? 'bg-destructive'
+                      : 'bg-gold-primary',
+              )}
+            />
+            {PHASE_LABEL[phase]}
+          </div>
+
+          {/* Mic / recording indicator — makes "capturing active vs. failing" unambiguous. */}
+          {micBlocked ? (
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full border border-destructive/30 bg-destructive/15 px-3 py-1.5 text-xs font-medium text-destructive"
+              aria-label="Microphone blocked"
+            >
+              <MicOff className="h-3.5 w-3.5" /> Mic blocked
+            </span>
+          ) : isRecording ? (
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-3 py-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400"
+              aria-label="Microphone recording"
+            >
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" /> Recording
+            </span>
+          ) : micStalled ? (
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/15 px-3 py-1.5 text-xs font-medium text-amber-600 dark:text-amber-400"
+              aria-label="Microphone not capturing"
+            >
+              <MicOff className="h-3.5 w-3.5" /> Mic not capturing
+            </span>
+          ) : null}
         </div>
+
         <button
           type="button"
           onClick={onEnd}
@@ -247,7 +306,7 @@ export function RealtimeVoiceOverlay({
 
       {/* The gold wave line */}
       <div className="relative shrink-0 px-2">
-        <GoldWave intensity={intensity} />
+        <GoldWave intensity={intensity} isDark={isDarkMode} />
       </div>
 
       {/* User transcript — BELOW the line */}
@@ -257,9 +316,17 @@ export function RealtimeVoiceOverlay({
       >
         <div className="w-full max-w-2xl space-y-2">
           {!hasUserTurns && !liveUser ? (
-            <p className="inline-flex items-center gap-2 text-muted-foreground text-sm">
-              <Mic className="h-4 w-4" /> Your words appear here
-            </p>
+            // Mic-blocked guidance lives in the footer (with actionable steps) + the header
+            // badge, so here we only cover the healthy states to avoid triplicate copy.
+            isRecording && !micBlocked ? (
+              <p className="inline-flex items-center gap-2 text-muted-foreground text-sm">
+                <Mic className="h-4 w-4 text-emerald-500" /> Listening — start speaking…
+              </p>
+            ) : (
+              <p className="inline-flex items-center gap-2 text-muted-foreground text-sm">
+                <Mic className="h-4 w-4" /> Your words appear here
+              </p>
+            )
           ) : (
             <>
               {userTurns.slice(-4, -1).map(turn => (
@@ -272,10 +339,7 @@ export function RealtimeVoiceOverlay({
                 const text = liveUser || last?.text || '';
                 if (!text) return null;
                 return (
-                  <p
-                    key={last?.id ?? 'live-user'}
-                    className="text-foreground text-lg font-medium"
-                  >
+                  <p key={last?.id ?? 'live-user'} className="text-foreground text-lg font-medium">
                     {text}
                   </p>
                 );
@@ -287,6 +351,13 @@ export function RealtimeVoiceOverlay({
 
       {/* Error + end control */}
       <div className="shrink-0 px-6 pt-2 flex flex-col items-center gap-3">
+        {micBlocked && phase !== 'error' && (
+          <p className="inline-flex items-center gap-2 text-destructive text-sm text-center max-w-md">
+            <MicOff className="h-4 w-4 shrink-0" />
+            Microphone access is blocked. Enable it in your browser or device settings, then try
+            again.
+          </p>
+        )}
         {errorMessage && phase === 'error' && (
           <p className="text-destructive text-sm text-center max-w-md">{errorMessage}</p>
         )}

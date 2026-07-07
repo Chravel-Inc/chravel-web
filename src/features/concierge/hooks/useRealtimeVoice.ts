@@ -32,8 +32,16 @@ import {
   preflightRealtimeSetup,
   type RealtimeSessionConfigResponse,
 } from '../lib/realtimeVoiceClient';
+import { useRealtimeDictationCaptions } from './useRealtimeDictationCaptions';
 
 export type RealtimeVoicePhase = 'idle' | 'connecting' | 'listening' | 'speaking' | 'error';
+
+/**
+ * Microphone permission as reported by the Permissions API (where available) and refined
+ * by the actual getUserMedia result. 'unknown' means we could not determine it (e.g. Safari
+ * doesn't expose `microphone` to the Permissions API) — treat it as "not yet blocked".
+ */
+export type MicPermissionState = 'unknown' | 'prompt' | 'granted' | 'denied';
 
 export interface RealtimeTranscriptTurn {
   id: string;
@@ -47,6 +55,14 @@ export interface UseRealtimeVoiceResult {
   isCapturing: boolean;
   isPlaying: boolean;
   errorMessage: string | null;
+  /** Live microphone permission state, for a clear "mic blocked" affordance. */
+  micPermission: MicPermissionState;
+  /**
+   * True while the session is connected and the mic should be capturing. Lets the UI show
+   * a distinct "capturing" indicator (vs. connected-but-not-capturing) so a silently failing
+   * mic is visible rather than looking like an idle "Listening" state.
+   */
+  isRecording: boolean;
   /** Full ordered transcript (user + assistant) for rendering above/below the line. */
   turns: RealtimeTranscriptTurn[];
   latestUserText: string;
@@ -83,7 +99,6 @@ function extractMessageText(message: { parts?: unknown }): string {
         const t = typeof p.type === 'string' ? (p.type as string) : 'unknown';
         if (!_loggedUnknownPartTypes.has(t)) {
           _loggedUnknownPartTypes.add(t);
-          // eslint-disable-next-line no-console
           console.debug('[realtime-voice] unknown message part type', t, p);
         }
       }
@@ -112,6 +127,18 @@ export function useRealtimeVoice(): UseRealtimeVoiceResult {
   const [sessionConfig, setSessionConfig] = useState<RealtimeSessionConfigResponse | null>(null);
   const [starting, setStarting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [micPermission, setMicPermission] = useState<MicPermissionState>('unknown');
+
+  // Live word-by-word captions of what the user is saying (the realtime SDK only delivers
+  // the user's transcript once the utterance finishes, so this fills the gap while speaking).
+  // Destructure the stable callbacks up front: the hook returns a fresh object every render
+  // (its caption/listening state changes constantly), so anything depending on `captions`
+  // itself would be recreated each render — including `stop`, whose reference is used as the
+  // unmount effect's cleanup, which would then tear the session down on every re-render.
+  const captions = useRealtimeDictationCaptions();
+  const captionsStart = captions.start;
+  const captionsStop = captions.stop;
+  const captionsReset = captions.reset;
 
   const tripIdRef = useRef<string | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -126,6 +153,35 @@ export function useRealtimeVoice(): UseRealtimeVoiceResult {
   // The realtime model object is pure on the client (getWebSocketConfig / parse /
   // serialize); the ephemeral client secret carries auth. Create it once.
   const model = useMemo(() => gateway.experimental_realtime(DEFAULT_REALTIME_VOICE_MODEL), []);
+
+  // Probe the microphone permission up front (where the Permissions API supports it) and
+  // keep it live, so the overlay can show a clear "mic blocked" state before/without having
+  // to hit a getUserMedia failure. Safari doesn't expose `microphone` here — that rejects
+  // and we simply stay 'unknown' until start() resolves it from the getUserMedia result.
+  useEffect(() => {
+    const permissions = typeof navigator !== 'undefined' ? navigator.permissions : undefined;
+    if (!permissions?.query) return;
+    let status: PermissionStatus | null = null;
+    let cancelled = false;
+    const handleChange = () => {
+      if (status) setMicPermission(status.state as MicPermissionState);
+    };
+    permissions
+      .query({ name: 'microphone' as PermissionName })
+      .then(result => {
+        if (cancelled) return;
+        status = result;
+        setMicPermission(result.state as MicPermissionState);
+        result.addEventListener('change', handleChange);
+      })
+      .catch(() => {
+        /* Permissions API doesn't support `microphone` here (e.g. Safari) — stay 'unknown'. */
+      });
+    return () => {
+      cancelled = true;
+      status?.removeEventListener('change', handleChange);
+    };
+  }, []);
 
   const onToolCall = useCallback(
     async ({ toolCall }: { toolCall: { toolCallId: string; toolName: string; args: unknown } }) => {
@@ -271,6 +327,7 @@ export function useRealtimeVoice(): UseRealtimeVoiceResult {
           );
         }
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        setMicPermission('granted');
         streamRef.current = stream;
         tripIdRef.current = tripId;
         // Setup URL (auth + model) and session config (voice + instructions + tools) are
@@ -295,6 +352,9 @@ export function useRealtimeVoice(): UseRealtimeVoiceResult {
         setSessionConfig(config);
       } catch (err) {
         intendActiveRef.current = false;
+        if (err instanceof DOMException && err.name === 'NotAllowedError') {
+          setMicPermission('denied');
+        }
         cleanupStream();
         tripIdRef.current = null;
         setErrorMessage(errorToMessage(err));
@@ -320,6 +380,8 @@ export function useRealtimeVoice(): UseRealtimeVoiceResult {
       /* already disconnected */
     }
     cleanupStream();
+    captionsStop();
+    captionsReset();
     pendingConnectRef.current = false;
     startingRef.current = false;
     setStarting(false);
@@ -329,7 +391,7 @@ export function useRealtimeVoice(): UseRealtimeVoiceResult {
     // can never be dismissed after a failed start.
     setErrorMessage(null);
     tripIdRef.current = null;
-  }, [cleanupStream, clearReconnectTimer]);
+  }, [cleanupStream, clearReconnectTimer, captionsStop, captionsReset]);
 
   // Tear down on unmount so a stray socket/mic never outlives the screen.
   useEffect(() => stop, [stop]);
@@ -365,7 +427,7 @@ export function useRealtimeVoice(): UseRealtimeVoiceResult {
       .filter(turn => turn.text.length > 0);
   }, [realtime.messages]);
 
-  const latestUserText = useMemo(
+  const committedUserText = useMemo(
     () => [...turns].reverse().find(turn => turn.role === 'user')?.text ?? '',
     [turns],
   );
@@ -374,12 +436,56 @@ export function useRealtimeVoice(): UseRealtimeVoiceResult {
     [turns],
   );
 
+  // Prefer the live caption (word-by-word, updates as you speak) over the committed turn,
+  // but only while the assistant is NOT speaking: during playback the mic can pick up the
+  // assistant's own voice from the speakers, which the caption recognizer would otherwise
+  // render as if the user said it. When the authoritative transcript lands we reset the
+  // caption (below), so this cleanly falls back to the committed text between utterances.
+  const latestUserText = (!realtime.isPlaying && captions.caption) || committedUserText;
+
+  // Run live captions only while the socket is actually connected.
+  useEffect(() => {
+    if (realtime.status === 'connected') captionsStart();
+    else captionsStop();
+  }, [realtime.status, captionsStart, captionsStop]);
+
+  // When the realtime session commits a new user turn, clear the live caption so the next
+  // utterance starts fresh (and we don't show the previous sentence stacked on the new one).
+  const committedUserTurnCount = useMemo(
+    () => turns.filter(turn => turn.role === 'user').length,
+    [turns],
+  );
+  const prevCommittedUserTurnCountRef = useRef(0);
+  useEffect(() => {
+    if (committedUserTurnCount > prevCommittedUserTurnCountRef.current) {
+      prevCommittedUserTurnCountRef.current = committedUserTurnCount;
+      captionsReset();
+    }
+  }, [committedUserTurnCount, captionsReset]);
+
+  // Clear the caption on the *rising* edge of playback (assistant starts speaking), so the
+  // just-finished utterance doesn't linger and any echo captured off the speakers starts
+  // fresh. We deliberately do NOT reset on the falling edge: a user who barges in while the
+  // assistant is talking accumulates words during playback (hidden by the !isPlaying gate
+  // below), and those must survive to show the moment the assistant goes quiet.
+  const prevIsPlayingRef = useRef(false);
+  useEffect(() => {
+    if (realtime.isPlaying && !prevIsPlayingRef.current) {
+      captionsReset();
+    }
+    prevIsPlayingRef.current = realtime.isPlaying;
+  }, [realtime.isPlaying, captionsReset]);
+
+  const isRecording = realtime.status === 'connected' && realtime.isCapturing;
+
   return {
     phase,
     isActive: phase !== 'idle',
     isCapturing: realtime.isCapturing,
     isPlaying: realtime.isPlaying,
     errorMessage,
+    micPermission,
+    isRecording,
     turns,
     latestUserText,
     latestAssistantText,
