@@ -31,18 +31,18 @@ export const ForTeams = () => {
         'Cut coordination time by 70% and eliminate tool sprawl across your organization',
     },
     {
-      icon: <Users size={32} className="text-accent" />,
+      icon: <TrendingUp size={32} className="text-accent" />,
       title: 'Scale Team Coordination',
       description: 'From 10 to 100+ team members, ChravelApp handles complex logistics seamlessly',
     },
     {
-      icon: <BarChart3 size={32} className="text-primary" />,
+      icon: <Users size={32} className="text-primary" />,
       title: 'Seat & Member Management',
       description:
         'Admin-controlled seats, invite approvals, and bulk role assignment for traveling parties of any size',
     },
     {
-      icon: <Zap size={32} className="text-accent" />,
+      icon: <CalendarDays size={32} className="text-accent" />,
       title: 'Calendar Sync & Smart Import',
       description:
         'Google Calendar sync plus AI-powered import of schedules and reservations from emails, PDFs, and links — with more integrations on the way',
