@@ -2,7 +2,6 @@ import React, { useState, useMemo, useCallback } from 'react';
 import {
   Search,
   X,
-  Wand2,
   Calendar,
   CheckSquare,
   BarChart2,
@@ -127,7 +126,7 @@ export const ConciergeSearchModal = ({
   const getIcon = (type: ContentType) => {
     switch (type) {
       case 'concierge':
-        return <Wand2 size={14} className="text-emerald-400" />;
+        return <Search size={14} className="text-gold-primary" />;
       case 'messages':
         return <Search size={14} className="text-sky-400" />;
       case 'calendar':
@@ -202,21 +201,21 @@ export const ConciergeSearchModal = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showClose={false}
-        className="bg-neutral-900 border-white/10 text-white max-w-md sm:max-w-lg p-0 gap-0 overflow-hidden"
+        className="!bg-neutral-900 border-white/10 text-white max-w-md sm:max-w-lg p-0 gap-0 overflow-hidden"
       >
-        <DialogHeader className="p-4 pb-2 border-b border-white/5 bg-black/40">
+        <DialogHeader className="p-4 pb-2 border-b border-white/10 !bg-neutral-900">
           <DialogTitle className="text-white text-base sr-only">Search Concierge</DialogTitle>
           <div className="relative">
             <Search
               size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gold-primary"
             />
             <input
               autoFocus
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Search across trip..."
-              className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-8 py-2.5 text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-all"
+              className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-8 py-2.5 text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-gold-primary/50 transition-all"
             />
             {query && (
               <button
@@ -316,8 +315,8 @@ export const ConciergeSearchModal = ({
 
           {!query && (
             <div className="py-16 text-center px-6">
-              <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-500/20">
-                <Wand2 className="text-emerald-400" size={24} />
+              <div className="w-16 h-16 bg-gold-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-gold-primary/30">
+                <Search className="text-gold-primary" size={24} />
               </div>
               <h3 className="text-white font-medium mb-1">Trip Search</h3>
               <p className="text-sm text-neutral-500 max-w-xs mx-auto mb-6">
