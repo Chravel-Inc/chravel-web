@@ -112,7 +112,7 @@ export const ConciergeSearchModal = ({
       );
       return parts.map((part, i) =>
         part.toLowerCase() === q.toLowerCase() ? (
-          <mark key={i} className="bg-emerald-500/30 text-white rounded px-0.5">
+          <mark key={i} className="bg-gold-primary/30 text-foreground rounded px-0.5">
             {part}
           </mark>
         ) : (
