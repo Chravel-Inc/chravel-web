@@ -74,10 +74,10 @@ export const ForTeams = () => {
         'Professional event planners running conferences, festivals, and large-scale gatherings',
     },
     {
-      icon: <GraduationCap size={28} strokeWidth={1.25} className="text-primary" />,
-      title: 'Greek Life & Chapters',
+      icon: <Headphones size={28} strokeWidth={1.25} className="text-primary" />,
+      title: 'Travel Concierge',
       description:
-        'Fraternities, sororities, and alumni chapters coordinating rush, formals, retreats, and philanthropy',
+        'White-glove trip planners and concierges coordinating client itineraries, reservations, and logistics across multiple parties',
     },
   ];
 
