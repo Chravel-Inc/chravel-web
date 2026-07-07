@@ -23,48 +23,16 @@
  * mic slot and can break the primary audio session (see `useWebSpeechVoice` header notes).
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  IS_IOS,
+  accumulateFinalText,
+  getSpeechRecognitionCtor,
+  type SpeechRecognitionErrorEvent,
+  type SpeechRecognitionEvent,
+  type SpeechRecognitionInstance,
+} from '@/lib/webSpeech';
 
-// Minimal shape of the Web Speech API surface we use — lib.dom doesn't type it.
-interface SpeechRecognitionResultLike {
-  readonly isFinal: boolean;
-  readonly [index: number]: { readonly transcript: string };
-}
-interface SpeechRecognitionEventLike extends Event {
-  readonly resultIndex: number;
-  readonly results: {
-    readonly length: number;
-    readonly [index: number]: SpeechRecognitionResultLike;
-  };
-}
-interface SpeechRecognitionErrorEventLike extends Event {
-  readonly error: string;
-}
-interface SpeechRecognitionLike extends EventTarget {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  maxAlternatives: number;
-  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
-  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-  abort: () => void;
-}
-type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
-
-const SpeechRecognitionClass: SpeechRecognitionCtor | null =
-  typeof window !== 'undefined'
-    ? (((window as unknown as Record<string, unknown>).SpeechRecognition as
-        | SpeechRecognitionCtor
-        | undefined) ??
-      ((window as unknown as Record<string, unknown>).webkitSpeechRecognition as
-        | SpeechRecognitionCtor
-        | undefined) ??
-      null)
-    : null;
-
-const IS_IOS = typeof navigator !== 'undefined' && /iP(hone|ad|od)/.test(navigator.userAgent);
+const SpeechRecognitionClass = getSpeechRecognitionCtor();
 
 export interface UseRealtimeDictationCaptionsResult {
   /** True when live captions can run in this browser (feature-detected, non-iOS). */
@@ -86,7 +54,7 @@ export function useRealtimeDictationCaptions(): UseRealtimeDictationCaptionsResu
   const [caption, setCaption] = useState('');
   const [listening, setListening] = useState(false);
 
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const activeRef = useRef(false);
   // Pending relaunch timer (onend / synchronous-start retry). Tracked so stop() can cancel
   // it — otherwise a stale timer firing after a quick stop→start could spawn a second,
@@ -140,7 +108,7 @@ export function useRealtimeDictationCaptions(): UseRealtimeDictationCaptionsResu
     const launch = () => {
       relaunchTimerRef.current = null;
       if (!activeRef.current || !SpeechRecognitionClass) return;
-      let recognition: SpeechRecognitionLike;
+      let recognition: SpeechRecognitionInstance;
       try {
         recognition = new SpeechRecognitionClass();
       } catch {
@@ -152,15 +120,13 @@ export function useRealtimeDictationCaptions(): UseRealtimeDictationCaptionsResu
       recognition.lang = (typeof navigator !== 'undefined' && navigator.language) || 'en-US';
       recognition.maxAlternatives = 1;
 
-      recognition.onresult = (event: SpeechRecognitionEventLike) => {
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
         if (!activeRef.current) return;
         let interim = '';
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const result = event.results[i];
           if (result.isFinal) {
-            const prev = finalTextRef.current;
-            const sep = prev && !prev.endsWith(' ') ? ' ' : '';
-            finalTextRef.current = prev + sep + result[0].transcript;
+            finalTextRef.current = accumulateFinalText(finalTextRef.current, result[0].transcript);
           } else {
             interim += result[0].transcript;
           }
@@ -170,7 +136,7 @@ export function useRealtimeDictationCaptions(): UseRealtimeDictationCaptionsResu
         setCaption(composed);
       };
 
-      recognition.onerror = (event: SpeechRecognitionErrorEventLike) => {
+      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
         // Permission problems are terminal — stop looping. Everything else (no-speech,
         // network blips, aborted) is transient and onend will relaunch while active.
         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
