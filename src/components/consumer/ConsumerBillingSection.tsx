@@ -177,6 +177,48 @@ export const ConsumerBillingSection = () => {
     await upgradeToTier(consumerTier, cycle);
   };
 
+  const handleTripPassPurchase = async (passTier: 'explorer' | 'frequent-chraveler') => {
+    setPurchasingPass(passTier);
+    try {
+      if (isNativeIOS) {
+        const result = await purchaseTripPass(passTier);
+        handlePurchaseResult(result, {
+          successMessage: 'Trip Pass activated!',
+          successDescription: 'Your premium features are unlocking for this trip window.',
+          onRetry: () => void handleTripPassPurchase(passTier),
+          context: `trippass/${passTier}`,
+        });
+        if (result.success) await checkSubscription();
+        return;
+      }
+
+      const passId = passTier === 'explorer' ? 'pass-explorer-45' : 'pass-frequent-90';
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Please sign in to purchase a Trip Pass');
+        return;
+      }
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { tier: passId, purchase_type: 'pass', platform: 'web' },
+      });
+      if (error) throw error;
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      } else {
+        toast.error('Failed to start Trip Pass checkout.');
+      }
+    } catch (err) {
+      toast.error(
+        `Failed to start checkout: ${err instanceof Error ? err.message : 'Unknown error'}`,
+      );
+      console.error(err);
+    } finally {
+      setPurchasingPass(null);
+    }
+  };
+
   const plans = {
     free: {
       name: 'Free',
