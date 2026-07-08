@@ -670,6 +670,44 @@ export const ConsumerBillingSection = () => {
   );
 };
 
+const tripPasses = [
+  {
+    tier: 'explorer' as const,
+    name: 'Explorer Trip Pass',
+    priceLabel: TRIP_PASS_DISPLAY.explorer.price,
+    durationDays: TRIP_PASS_DISPLAY.explorer.durationDays,
+    icon: Ticket,
+    description: 'All Explorer premium features for a single trip window.',
+    features: [
+      'Unlimited saved trips + restore archived',
+      '25 AI Concierge queries per user per trip',
+      'Unlimited photos, videos & extended storage',
+      'Up to 10 payment splits per trip',
+      'Unlimited PDF trip exports',
+      'Smart Import (Calendar, Agenda, Line-up from URL)',
+      'Location-aware AI recommendations',
+    ],
+  },
+  {
+    tier: 'frequent-chraveler' as const,
+    name: 'Frequent Chraveler Trip Pass',
+    priceLabel: TRIP_PASS_DISPLAY['frequent-chraveler'].price,
+    durationDays: TRIP_PASS_DISPLAY['frequent-chraveler'].durationDays,
+    icon: Ticket,
+    description:
+      'All Frequent Chraveler premium features for multi-city trips — best for longer travel.',
+    features: [
+      'Everything in Explorer Trip Pass',
+      'Unlimited AI Concierge queries',
+      'Unlimited storage & payment splits',
+      'Voice Concierge, PDF export & calendar sync',
+      'Create a ChravelApp Pro trip (50-seat limit)',
+      'Role-based channels on Pro trips',
+      'Early feature access',
+    ],
+  },
+];
+
 const proPlans = {
   'pro-starter': {
     name: 'Starter Pro',
