@@ -95,6 +95,11 @@ export const TYPE_TO_CATEGORY_MAP: Record<string, NotificationCategory> = {
   payment_request: 'payments',
   payment_split: 'payments',
   payment_alert: 'payments',
+  // Billing/subscription events emitted by stripe-webhook (Trip Pass activation,
+  // subscription status changes, cancellations, refunds). Routed to the
+  // 'payments' category so they respect the user's billing preference toggle
+  // instead of bypassing category gating entirely.
+  subscription: 'payments',
 
   tasks: 'tasks',
   task: 'tasks',
