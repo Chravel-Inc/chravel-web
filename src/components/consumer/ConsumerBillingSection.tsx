@@ -582,8 +582,8 @@ export const ConsumerBillingSection = () => {
         </p>
         {isNativeIOS && (
           <p className="text-xs text-muted-foreground mb-3">
-            Pro plans are also purchasable in-app via Apple. Enterprise+ requires Sales — visit
-            chravel.app.
+            Pro plans are purchasable in-app via Apple. Enterprise pricing is custom — please visit
+            chravel.app to contact Sales.
           </p>
         )}
 
