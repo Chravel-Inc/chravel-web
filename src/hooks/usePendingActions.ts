@@ -552,6 +552,9 @@ export function usePendingActions(tripId: string, options: UsePendingActionsOpti
         default:
           assertNeverToolName(toolName as never);
       }
+
+      // Drop the confirmed row from the pending-actions list immediately.
+      queryClient.invalidateQueries({ queryKey });
     },
     onError: (error: Error) => {
       // Suppress the noisy toast for the deliberate double-tap guard.

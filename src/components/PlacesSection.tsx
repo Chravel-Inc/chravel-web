@@ -46,13 +46,15 @@ export const PlacesSection = ({
   const effectiveUserId = getEffectiveUserId(user?.id);
 
   const handleRefresh = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: tripBasecampKeys.trip(tripId) });
-    await queryClient.invalidateQueries({
-      queryKey: personalBasecampKeys.tripUser(tripId, effectiveUserId),
-    });
-    await queryClient.invalidateQueries({ queryKey: ['tripBaseCamps', tripId] });
-    await queryClient.invalidateQueries({ queryKey: ['personalBaseCamps', tripId] });
-    await queryClient.invalidateQueries({ queryKey: tripKeys.places(tripId) });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: tripBasecampKeys.trip(tripId) }),
+      queryClient.invalidateQueries({
+        queryKey: personalBasecampKeys.tripUser(tripId, effectiveUserId),
+      }),
+      queryClient.invalidateQueries({ queryKey: ['tripBaseCamps', tripId] }),
+      queryClient.invalidateQueries({ queryKey: ['personalBaseCamps', tripId] }),
+      queryClient.invalidateQueries({ queryKey: tripKeys.places(tripId) }),
+    ]);
   }, [queryClient, tripId, effectiveUserId]);
 
   const { isRefreshing, pullDistance } = usePullToRefresh({

@@ -219,135 +219,155 @@ export async function getExportData(
       };
     }
 
-    // Fetch calendar events if requested
+    const sectionJobs: Promise<void>[] = [];
+
     if (sections.includes('calendar')) {
-      const { data: events } = await supabase
-        .from('trip_events')
-        .select('title, start_time, end_time, location, description')
-        .eq('trip_id', tripId)
-        .order('start_time', { ascending: true })
-        .limit(1000);
+      sectionJobs.push(
+        (async () => {
+          const { data: events } = await supabase
+            .from('trip_events')
+            .select('title, start_time, end_time, location, description')
+            .eq('trip_id', tripId)
+            .order('start_time', { ascending: true })
+            .limit(1000);
 
-      result.calendar = events || [];
+          result.calendar = events || [];
+        })(),
+      );
     }
 
-    // Fetch payments if requested
     if (sections.includes('payments')) {
-      const { data: payments } = await supabase
-        .from('trip_payment_messages')
-        .select('description, amount, currency, split_count, is_settled, created_at')
-        .eq('trip_id', tripId)
-        .order('created_at', { ascending: false })
-        .limit(500);
+      sectionJobs.push(
+        (async () => {
+          const { data: payments } = await supabase
+            .from('trip_payment_messages')
+            .select('description, amount, currency, split_count, is_settled, created_at')
+            .eq('trip_id', tripId)
+            .order('created_at', { ascending: false })
+            .limit(500);
 
-      if (payments && payments.length > 0) {
-        const total = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-        result.payments = {
-          items: payments,
-          total,
-          currency: payments[0]?.currency || 'USD',
-        };
-      }
+          if (payments && payments.length > 0) {
+            const total = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+            result.payments = {
+              items: payments,
+              total,
+              currency: payments[0]?.currency || 'USD',
+            };
+          }
+        })(),
+      );
     }
 
-    // Fetch polls if requested
     if (sections.includes('polls')) {
-      const { data: polls } = await supabase
-        .from('trip_polls')
-        .select('question, options, total_votes, status')
-        .eq('trip_id', tripId)
-        .order('created_at', { ascending: false })
-        .limit(200);
+      sectionJobs.push(
+        (async () => {
+          const { data: polls } = await supabase
+            .from('trip_polls')
+            .select('question, options, total_votes, status')
+            .eq('trip_id', tripId)
+            .order('created_at', { ascending: false })
+            .limit(200);
 
-      result.polls = polls || [];
+          result.polls = polls || [];
+        })(),
+      );
     }
 
-    // Fetch tasks if requested
     if (sections.includes('tasks')) {
-      const { data: tasks } = await supabase
-        .from('trip_tasks')
-        .select('title, description, completed')
-        .eq('trip_id', tripId)
-        .order('created_at', { ascending: false })
-        .limit(200);
+      sectionJobs.push(
+        (async () => {
+          const { data: tasks } = await supabase
+            .from('trip_tasks')
+            .select('title, description, completed')
+            .eq('trip_id', tripId)
+            .order('created_at', { ascending: false })
+            .limit(200);
 
-      result.tasks =
-        tasks?.map(t => ({
-          title: t.title,
-          description: t.description || undefined,
-          completed: t.completed,
-        })) || [];
+          result.tasks =
+            tasks?.map(t => ({
+              title: t.title,
+              description: t.description || undefined,
+              completed: t.completed,
+            })) || [];
+        })(),
+      );
     }
 
     // Fetch places/links if requested
     if (sections.includes('places')) {
-      const placesData: Array<{ name: string; url: string; description?: string; votes: number }> =
-        [];
+      sectionJobs.push(
+        (async () => {
+          const placesData: Array<{
+            name: string;
+            url: string;
+            description?: string;
+            votes: number;
+          }> = [];
 
-      // 1. Fetch Trip Basecamp from trips table
-      const { data: tripBasecamp } = await supabase
-        .from('trips')
-        .select('basecamp_name, basecamp_address')
-        .eq('id', tripId)
-        .single();
+          const { data: tripBasecamp } = await supabase
+            .from('trips')
+            .select('basecamp_name, basecamp_address')
+            .eq('id', tripId)
+            .single();
 
-      if (tripBasecamp?.basecamp_address) {
-        placesData.push({
-          name: `📍 Trip Base Camp: ${tripBasecamp.basecamp_name || 'Main Location'}`,
-          url: `https://maps.google.com/?q=${encodeURIComponent(tripBasecamp.basecamp_address)}`,
-          description: tripBasecamp.basecamp_address,
-          votes: 0,
-        });
-      }
+          if (tripBasecamp?.basecamp_address) {
+            placesData.push({
+              name: `📍 Trip Base Camp: ${tripBasecamp.basecamp_name || 'Main Location'}`,
+              url: `https://maps.google.com/?q=${encodeURIComponent(tripBasecamp.basecamp_address)}`,
+              description: tripBasecamp.basecamp_address,
+              votes: 0,
+            });
+          }
 
-      // 2. Fetch Personal Basecamp for current user
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        const { data: personalBasecamp } = await supabase
-          .from('trip_personal_basecamps')
-          .select('name, address')
-          .eq('trip_id', tripId)
-          .eq('user_id', user.id)
-          .maybeSingle();
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          if (user) {
+            const { data: personalBasecamp } = await supabase
+              .from('trip_personal_basecamps')
+              .select('name, address')
+              .eq('trip_id', tripId)
+              .eq('user_id', user.id)
+              .maybeSingle();
 
-        if (personalBasecamp?.address) {
-          placesData.push({
-            name: `🏠 Personal Base Camp: ${personalBasecamp.name || 'My Location'}`,
-            url: `https://maps.google.com/?q=${encodeURIComponent(personalBasecamp.address)}`,
-            description: `${personalBasecamp.address} (Private)`,
-            votes: 0,
-          });
-        }
-      }
+            if (personalBasecamp?.address) {
+              placesData.push({
+                name: `🏠 Personal Base Camp: ${personalBasecamp.name || 'My Location'}`,
+                url: `https://maps.google.com/?q=${encodeURIComponent(personalBasecamp.address)}`,
+                description: `${personalBasecamp.address} (Private)`,
+                votes: 0,
+              });
+            }
+          }
 
-      // 3. Fetch Trip Links
-      const { data: links } = await supabase
-        .from('trip_links')
-        .select('title, url, description, category, votes')
-        .eq('trip_id', tripId)
-        .order('votes', { ascending: false })
-        .limit(200);
+          const { data: links } = await supabase
+            .from('trip_links')
+            .select('title, url, description, category, votes')
+            .eq('trip_id', tripId)
+            .order('votes', { ascending: false })
+            .limit(200);
 
-      if (links) {
-        placesData.push(
-          ...links.map(link => ({
-            name: link.title,
-            url: link.url,
-            description: link.category
-              ? `[${link.category}] ${link.description || ''}`
-              : link.description || undefined,
-            votes: link.votes || 0,
-          })),
-        );
-      }
+          if (links) {
+            placesData.push(
+              ...links.map(link => ({
+                name: link.title,
+                url: link.url,
+                description: link.category
+                  ? `[${link.category}] ${link.description || ''}`
+                  : link.description || undefined,
+                votes: link.votes || 0,
+              })),
+            );
+          }
 
-      result.places = placesData;
+          result.places = placesData;
+        })(),
+      );
     }
 
-    // Fetch roster if requested
     if (sections.includes('roster')) {
+      sectionJobs.push(
+        (async () => {
       const { data: members } = await supabase
         .from('trip_members')
         .select(
@@ -388,10 +408,13 @@ export async function getExportData(
             role: m.role || 'member',
           };
         }) || [];
+        })(),
+      );
     }
 
-    // Fetch broadcasts if requested
     if (sections.includes('broadcasts')) {
+      sectionJobs.push(
+        (async () => {
       const { data: broadcasts } = await supabase
         .from('broadcasts')
         .select(
@@ -420,11 +443,14 @@ export async function getExportData(
             (b.profiles as { display_name: string | null } | null)?.display_name || 'Team Member',
           read_count: 0,
         }));
-      }
+          }
+        })(),
+      );
     }
 
-    // Fetch attachments if requested
     if (sections.includes('attachments')) {
+      sectionJobs.push(
+        (async () => {
       // Fetch files and artifact enrichments in parallel
       const [filesResult, artifactsResult] = await Promise.all([
         supabase
@@ -506,17 +532,20 @@ export async function getExportData(
 
       (result as unknown).attachments = attachments;
       result.attachments =
-        files?.map(f => ({
+        filesResult.data?.map(f => ({
           name: f.name,
           type: f.file_type,
           uploaded_at: f.created_at,
           uploaded_by:
             (f.profiles as { display_name: string | null } | null)?.display_name || 'Unknown',
         })) || [];
+        })(),
+      );
     }
 
-    // Fetch agenda items if requested (event-specific)
     if (sections.includes('agenda')) {
+      sectionJobs.push(
+        (async () => {
       const { data: agendaItems } = await supabase
         .from('event_agenda_items')
         .select('title, session_date, start_time, end_time, location, track, speakers')
@@ -534,10 +563,13 @@ export async function getExportData(
           track: item.track || undefined,
           speakers: item.speakers || undefined,
         })) || [];
+        })(),
+      );
     }
 
-    // Fetch lineup if requested (event-specific — derived from agenda speakers)
     if (sections.includes('lineup')) {
+      sectionJobs.push(
+        (async () => {
       const { data: agendaItems } = await supabase
         .from('event_agenda_items')
         .select('speakers, track')
@@ -558,7 +590,11 @@ export async function getExportData(
       });
 
       result.lineup = Array.from(speakerMap.values());
+        })(),
+      );
     }
+
+    await Promise.all(sectionJobs);
 
     return result;
   } catch (error) {
