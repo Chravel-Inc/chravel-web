@@ -419,35 +419,78 @@ export const ConsumerBillingSection = () => {
         </div>
       </div>
 
-      {/* One-time Trip Pass — alternative to recurring subscriptions */}
-      {!isSubscribed && !isSuperAdmin && (
-        <div className="bg-gradient-to-br from-gold-primary/10 to-gold-primary/5 border border-gold-primary/30 rounded-xl p-4">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="flex items-start gap-3 flex-1 min-w-[220px]">
-              <div className="w-10 h-10 rounded-full bg-gold-primary/20 text-gold-primary flex items-center justify-center flex-shrink-0">
-                <Ticket size={20} />
-              </div>
-              <div>
-                <h4 className="text-base font-semibold text-white mb-1">One-time Trip Pass</h4>
-                <p className="text-sm text-gray-300">
-                  Full premium for one trip — no recurring charge. Explorer{' '}
-                  {TRIP_PASS_DISPLAY.explorer.price} ({TRIP_PASS_DISPLAY.explorer.durationDays}{' '}
-                  days) · Frequent Chraveler {TRIP_PASS_DISPLAY['frequent-chraveler'].price} (
-                  {TRIP_PASS_DISPLAY['frequent-chraveler'].durationDays} days).
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => setTripPassOpen(true)}
-              className="min-h-[42px] bg-gradient-to-r from-gold-primary to-gold-mid hover:from-gold-mid hover:to-gold-primary text-black px-5 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Get a Trip Pass
-            </button>
-          </div>
+      {/* Trip Passes (one-time, per-trip premium) */}
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+        <h4 className="text-base font-semibold text-white mb-1">Trip Passes (One-time)</h4>
+        <p className="text-sm text-gray-400 mb-3">
+          Unlock full premium for a single trip window — no recurring charge. Available on iOS via
+          Apple In-App Purchase and on web via Stripe.
+        </p>
+        <div className="space-y-3">
+          {tripPasses.map(pass => {
+            const PassIcon = pass.icon;
+            const isBusy = purchasingPass === pass.tier;
+            return (
+              <Collapsible
+                key={pass.tier}
+                open={expandedTripPass === pass.tier}
+                onOpenChange={() =>
+                  setExpandedTripPass(expandedTripPass === pass.tier ? null : pass.tier)
+                }
+              >
+                <CollapsibleTrigger className="w-full">
+                  <div className="border border-gold-primary/30 bg-gold-primary/5 rounded-lg p-3 transition-colors hover:bg-gold-primary/10">
+                    <div className="flex items-center justify-between">
+                      <div className="text-left flex items-center gap-3">
+                        <PassIcon size={20} className="text-gold-primary" />
+                        <div>
+                          <h5 className="font-semibold text-white">{pass.name}</h5>
+                          <div className="text-lg font-bold text-white">
+                            {pass.priceLabel}{' '}
+                            <span className="text-sm font-normal text-gray-400">
+                              · {pass.durationDays} days
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-gray-400">
+                        {expandedTripPass === pass.tier ? '−' : '+'}
+                      </div>
+                    </div>
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2">
+                  <div className="bg-white/5 rounded-lg p-3 ml-4">
+                    <p className="text-sm text-gray-300 mb-2">{pass.description}</p>
+                    <h6 className="font-medium text-white mb-2">What's included:</h6>
+                    <ul className="space-y-1.5 text-sm text-gray-300">
+                      {pass.features.map((feature, index) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <div className="w-1.5 h-1.5 bg-gold-primary rounded-full mt-2 flex-shrink-0"></div>
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                    <button
+                      onClick={() => handleTripPassPurchase(pass.tier)}
+                      disabled={isBusy || purchasingPass !== null}
+                      className="mt-4 bg-gradient-to-r from-gold-primary to-gold-mid hover:from-gold-mid hover:to-gold-primary text-black px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+                    >
+                      {isBusy
+                        ? 'Processing...'
+                        : isNativeIOS
+                          ? `Purchase with Apple — ${pass.name}`
+                          : `Buy ${pass.name} — ${pass.priceLabel}`}
+                    </button>
+                    <p className="text-xs text-gray-500 mt-2">One-time charge. No auto-renewal.</p>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          })}
         </div>
-      )}
+      </div>
 
-      <TripPassModal open={tripPassOpen} onOpenChange={setTripPassOpen} />
 
       {/* Available Plans */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
