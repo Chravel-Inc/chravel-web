@@ -106,10 +106,10 @@ export default function UseCasePage() {
 
         {/* Article body — lede paragraph runs larger, reporting style */}
         <div className="space-y-5">
-          {lede && <p className="text-lg md:text-xl leading-relaxed text-white/85">{lede}</p>}
+          {lede && <p className="text-lg md:text-xl leading-relaxed text-white/85">{renderInlineMarkdown(lede)}</p>}
           {bodyRest.map((paragraph, i) => (
             <p key={i} className="text-base md:text-lg leading-relaxed text-white/75">
-              {paragraph}
+              {renderInlineMarkdown(paragraph)}
             </p>
           ))}
         </div>
