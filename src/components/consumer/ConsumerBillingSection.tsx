@@ -11,8 +11,8 @@ import { detectNativeBillingPlatform, isNativeWebView } from '@/utils/platformDe
 import {
   purchaseConsumerSubscription,
   purchaseProSubscription,
+  purchaseTripPass,
 } from '@/integrations/revenuecat/revenuecatClient';
-import { TripPassModal } from '../conversion/TripPassModal';
 import { RestorePurchasesButton } from '../billing/RestorePurchasesButton';
 import { handlePurchaseResult } from '@/integrations/revenuecat/revenuecatClient';
 
