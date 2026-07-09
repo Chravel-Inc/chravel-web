@@ -28,6 +28,26 @@ class SystemMessageService {
   private BATCH_DELAY_MS = 30000; // 30 second batching window for uploads
   private TRIP_TYPE_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
   private tripTypeCache: Map<string, CachedTripType> = new Map();
+  // Short-lived dedupe set to prevent double inline posts from React StrictMode
+  // double-invokes, network retries, or duplicate onSuccess callbacks.
+  private DEDUPE_TTL_MS = 60 * 1000;
+  private dedupeKeys: Map<string, number> = new Map();
+
+  private isDuplicateDedupeKey(key?: string): boolean {
+    if (!key) return false;
+    const now = Date.now();
+    // GC expired entries opportunistically
+    if (this.dedupeKeys.size > 200) {
+      for (const [k, expiresAt] of this.dedupeKeys) {
+        if (expiresAt <= now) this.dedupeKeys.delete(k);
+      }
+    }
+    const existing = this.dedupeKeys.get(key);
+    if (existing && existing > now) return true;
+    this.dedupeKeys.set(key, now + this.DEDUPE_TTL_MS);
+    return false;
+  }
+
 
   /**
    * Resolve a trip's tier with a short-lived cache. Returns 'consumer' for
