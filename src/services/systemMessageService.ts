@@ -265,11 +265,8 @@ class SystemMessageService {
       tripId,
       'poll_created',
       `${actorName} created a poll: "${question}"`,
-      {
-        actorName,
-        pollId,
-        pollQuestion: question,
-      },
+      { actorName, pollId, pollQuestion: question },
+      `poll_created:${tripId}:${pollId}`,
     );
   }
 
@@ -281,11 +278,13 @@ class SystemMessageService {
   ): Promise<boolean> {
     const body = winningOption ? `Poll closed - "${winningOption}" won` : `A poll was closed`;
 
-    return this.createSystemMessage(tripId, 'poll_closed', body, {
-      actorName,
-      pollId,
-      winningOption,
-    });
+    return this.createSystemMessage(
+      tripId,
+      'poll_closed',
+      body,
+      { actorName, pollId, winningOption },
+      `poll_closed:${tripId}:${pollId}`,
+    );
   }
 
   async taskCreated(
@@ -298,11 +297,8 @@ class SystemMessageService {
       tripId,
       'task_created',
       `${actorName} added a task: "${taskTitle}"`,
-      {
-        actorName,
-        taskId,
-        taskTitle,
-      },
+      { actorName, taskId, taskTitle },
+      `task_created:${tripId}:${taskId}`,
     );
   }
 
@@ -316,11 +312,8 @@ class SystemMessageService {
       tripId,
       'task_completed',
       `${actorName} completed: "${taskTitle}"`,
-      {
-        actorName,
-        taskId,
-        taskTitle,
-      },
+      { actorName, taskId, taskTitle },
+      `task_completed:${tripId}:${taskId}`,
     );
   }
 
@@ -334,11 +327,8 @@ class SystemMessageService {
       tripId,
       'calendar_item_added',
       `${actorName} added "${eventTitle}" to the calendar`,
-      {
-        actorName,
-        eventId,
-        eventTitle,
-      },
+      { actorName, eventId, eventTitle },
+      `calendar_added:${tripId}:${eventId}`,
     );
   }
 
@@ -359,13 +349,8 @@ class SystemMessageService {
       tripId,
       'payment_recorded',
       `${actorName} added an expense: ${description} (${formattedAmount})`,
-      {
-        actorName,
-        paymentId,
-        amount,
-        currency,
-        description,
-      },
+      { actorName, paymentId, amount, currency, description },
+      `payment_recorded:${tripId}:${paymentId}`,
     );
   }
 
@@ -379,13 +364,11 @@ class SystemMessageService {
       tripId,
       'payment_settled',
       `${description} was marked as settled`,
-      {
-        actorName,
-        paymentId,
-        description,
-      },
+      { actorName, paymentId, description },
+      `payment_settled:${tripId}:${paymentId}`,
     );
   }
+
 
   /** Test/debug only — clears the trip-type cache. */
   _clearTripTypeCache(): void {
