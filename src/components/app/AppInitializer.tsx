@@ -4,7 +4,7 @@ import { useDemoMode } from '@/hooks/useDemoMode';
 import { useAuth } from '@/hooks/useAuth';
 import { useStreamClient } from '@/hooks/stream/useStreamClient';
 import { useAppBadge } from '@/hooks/useAppBadge';
-import { useAutoPushRegistration } from '@/hooks/useAutoPushRegistration';
+import { usePushAutoRegister } from '@/hooks/usePushAutoRegister';
 
 /**
  * AppInitializer - Runs API health checks on app startup
@@ -26,8 +26,11 @@ export const AppInitializer = ({ children }: { children: React.ReactNode }) => {
   // realtime badge reconciliation keeps working on /trip/:id and elsewhere.
   useAppBadge();
 
-  // Register APNs/FCM (native) or Web Push when push_enabled but this device has no token.
-  useAutoPushRegistration();
+  // Silently (re)register the current device's push token on app start when the
+  // OS permission is already granted. Self-guards on hydrated auth + non-demo,
+  // so tokens refresh on every login instead of only when the Settings toggle
+  // is flipped. Never triggers a new permission prompt.
+  usePushAutoRegister();
 
   // CSP violation monitoring with error safety
   useEffect(() => {
