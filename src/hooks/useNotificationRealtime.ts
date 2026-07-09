@@ -9,7 +9,7 @@
  * - Logout cleanup: clears Zustand store when user becomes null
  */
 
-import { useEffect, useCallback, useRef, useMemo } from 'react';
+import { useEffect, useCallback, useRef, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useDemoMode } from './useDemoMode';
@@ -18,9 +18,11 @@ import { formatDistanceToNow } from 'date-fns';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { NotificationCacheItem } from '@/lib/query/realtimeCache';
 import {
+  appendOlderNotifications,
   applyNotificationPatch,
   clearOptimisticMutation,
   markNotificationReadOptimistic,
+  oldestCreatedAtCursor,
 } from '@/lib/query/realtimeCache';
 import {
   parseNotificationIngestionRow,
@@ -29,6 +31,10 @@ import {
 
 const NOTIFICATION_COLUMNS =
   'id, type, title, message, is_read, is_visible, metadata, trip_id, created_at';
+
+// Page size for the inbox feed. The initial fetch loads one page; `loadMore` fetches
+// older rows using created_at as the cursor.
+const PAGE_SIZE = 20;
 
 type NotificationEntity = Omit<NotificationCacheItem, 'timestampMs' | 'optimisticMutationId'>;
 
@@ -53,6 +59,9 @@ export function mapRowToNotification(row: Record<string, unknown>): Notification
     isRead: parsedRow.is_read,
     isHighPriority: parsedRow.type === 'broadcast',
     data: metadata,
+    // Stable pagination cursor — preserved through realtime patches (onUpdate spreads the
+    // existing item), so the oldest loaded created_at can always be derived from the cache.
+    createdAt: parsedRow.created_at,
   };
 }
 
@@ -154,6 +163,11 @@ export function useNotificationRealtime() {
   // Track whether initial fetch has completed to avoid double-fetch on SUBSCRIBED
   const initialFetchDone = useRef(false);
 
+  // Pagination state for the "Load more" affordance. `hasMore` starts true and is
+  // corrected by the initial fetch (a short first page means there is nothing older).
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
   const fetchNotifications = useCallback(async (): Promise<NotificationCacheItem[]> => {
     if (!user) return [];
 
@@ -163,7 +177,7 @@ export function useNotificationRealtime() {
       .eq('user_id', user.id)
       .eq('is_visible', true)
       .order('created_at', { ascending: false })
-      .limit(20);
+      .limit(PAGE_SIZE);
 
     if (error) {
       if (import.meta.env.DEV) {
@@ -179,6 +193,8 @@ export function useNotificationRealtime() {
           (item): item is NonNullable<ReturnType<typeof mapRowToNotification>> => item !== null,
         )
         .map(item => ({ ...item, timestampMs: Date.now() }));
+      // A full page implies there may be older rows to page into.
+      setHasMore(data.length >= PAGE_SIZE);
       return mapped;
     }
 
@@ -324,6 +340,60 @@ export function useNotificationRealtime() {
     [user, queryClient, bumpBadgeDirty],
   );
 
+  // Fetch the next page of OLDER notifications and append them to the same flat cache
+  // array the realtime handlers patch. We keep the array shape (rather than converting to
+  // useInfiniteQuery) so onInsert/onUpdate/markAsRead/deleteNotification keep working
+  // unchanged. Cursor = oldest loaded created_at; merge is id-deduped so a row that also
+  // arrives via realtime is never doubled. Unread count is a separate DB COUNT
+  // (fetchUnreadCount) over ALL rows, so paging in older rows never affects it.
+  const loadMore = useCallback(async () => {
+    if (!user || isDemoMode || isLoadingMore) return;
+
+    const current =
+      queryClient.getQueryData<NotificationCacheItem[]>(['notifications', user.id]) ?? [];
+    const oldestCreatedAt = oldestCreatedAtCursor(current);
+
+    // No cursor means nothing is loaded yet; the initial query owns the first page.
+    if (!oldestCreatedAt) return;
+
+    setIsLoadingMore(true);
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select(NOTIFICATION_COLUMNS)
+        .eq('user_id', user.id)
+        .eq('is_visible', true)
+        .lt('created_at', oldestCreatedAt)
+        .order('created_at', { ascending: false })
+        .limit(PAGE_SIZE);
+
+      if (error) {
+        if (import.meta.env.DEV) {
+          console.error('[useNotificationRealtime] Error loading more notifications:', error);
+        }
+        return;
+      }
+
+      const rows = data ?? [];
+      // Short page => the feed is exhausted.
+      if (rows.length < PAGE_SIZE) setHasMore(false);
+      if (rows.length === 0) return;
+
+      const mapped = rows
+        .map(row => mapRowToNotification(row as Record<string, unknown>))
+        .filter(
+          (item): item is NonNullable<ReturnType<typeof mapRowToNotification>> => item !== null,
+        )
+        .map(item => ({ ...item, timestampMs: Date.now() }));
+
+      queryClient.setQueryData<NotificationCacheItem[]>(['notifications', user.id], old =>
+        appendOlderNotifications(old ?? [], mapped),
+      );
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [user, isDemoMode, isLoadingMore, queryClient]);
+
   const notificationsQuery = useQuery({
     queryKey: ['notifications', user?.id],
     enabled: Boolean(user && !isDemoMode),
@@ -342,5 +412,8 @@ export function useNotificationRealtime() {
     markAllAsRead,
     clearAll,
     deleteNotification,
+    loadMore,
+    hasMore,
+    isLoadingMore,
   };
 }

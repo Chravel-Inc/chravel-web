@@ -18,6 +18,7 @@ export const EnterpriseNotificationsSection = () => {
   const [notificationSettings, setNotificationSettings] = useState<Record<string, boolean>>({
     broadcasts: true,
     chat: false,
+    mentions: true,
     calendar: true,
     payments: true,
     tasks: true,
@@ -51,6 +52,7 @@ export const EnterpriseNotificationsSection = () => {
         setNotificationSettings({
           broadcasts: prefs.broadcasts ?? true,
           chat: prefs.chat_messages ?? false,
+          mentions: prefs.mentions ?? true,
           calendar: prefs.calendar_events ?? true,
           payments: prefs.payments ?? true,
           tasks: prefs.tasks ?? true,
@@ -88,6 +90,7 @@ export const EnterpriseNotificationsSection = () => {
     const keyMap: Record<string, keyof NotificationPreferences> = {
       broadcasts: 'broadcasts',
       chat: 'chat_messages',
+      mentions: 'mentions',
       calendar: 'calendar_events',
       payments: 'payments',
       tasks: 'tasks',

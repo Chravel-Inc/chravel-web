@@ -85,4 +85,24 @@ describe('ConsumerNotificationsSection loading hydration', () => {
       broadcasts: true,
     });
   });
+
+  it('renders a Mentions toggle and persists opt-out to the `mentions` column', async () => {
+    // No stored value => the row falls back to its default (on).
+    mocks.getNotificationPreferences.mockResolvedValue({ push_enabled: true });
+
+    renderSection();
+
+    await waitFor(() => expect(screen.getByText('Mentions')).toBeInTheDocument());
+
+    // Row order: broadcasts, trip chat, mentions, ... — the mentions switch is the third.
+    const mentionsToggle = screen.getAllByRole('switch')[2];
+    await waitFor(() => expect(mentionsToggle).not.toBeDisabled());
+    expect(mentionsToggle).toHaveAttribute('aria-checked', 'true');
+
+    await userEvent.click(mentionsToggle);
+
+    expect(mocks.updateNotificationPreferences).toHaveBeenCalledWith('user-1', {
+      mentions: false,
+    });
+  });
 });

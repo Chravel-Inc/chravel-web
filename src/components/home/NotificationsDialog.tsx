@@ -269,8 +269,17 @@ export const NotificationsDialog = ({ open, onOpenChange }: NotificationsDialogP
     setJoinRequestResolutions(readStoredJoinResolutions());
   }, [open]);
 
-  const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll, deleteNotification } =
-    useNotificationRealtime();
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+    clearAll,
+    deleteNotification,
+    loadMore,
+    hasMore,
+    isLoadingMore,
+  } = useNotificationRealtime();
 
   const persistJoinResolution = useCallback(
     (notificationId: string, resolution: JoinRequestUiResolution) => {
@@ -714,6 +723,21 @@ export const NotificationsDialog = ({ open, onOpenChange }: NotificationsDialogP
                 </div>
               );
             })
+          )}
+
+          {!isDemoMode && displayNotifications.length > 0 && hasMore && (
+            <div className="p-3 flex justify-center">
+              <button
+                type="button"
+                onClick={() => {
+                  void loadMore();
+                }}
+                disabled={isLoadingMore}
+                className="text-sm text-primary hover:text-primary/80 hover:bg-primary/10 transition-colors font-medium px-4 py-2 rounded-lg disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isLoadingMore ? 'Loading…' : 'Load more'}
+              </button>
+            </div>
           )}
         </div>
       </DialogContent>

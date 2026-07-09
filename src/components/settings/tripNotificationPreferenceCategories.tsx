@@ -3,6 +3,7 @@ import {
   Bell,
   Radio,
   MessageCircle,
+  AtSign,
   Calendar,
   DollarSign,
   CheckSquare,
@@ -41,6 +42,13 @@ export function getTripNotificationPreferenceCategories(options: {
       label: 'Trip chat',
       description: 'Push for every new message in your trips (optional; off by default)',
       icon: <MessageCircle size={16} className="text-blue-400" />,
+    },
+    {
+      key: 'mentions',
+      dbKey: 'mentions',
+      label: 'Mentions',
+      description: 'When someone @mentions you in trip chat',
+      icon: <AtSign size={16} className="text-blue-400" />,
     },
     {
       key: 'calendar',
