@@ -47,7 +47,16 @@ export function useAutoPushRegistration(): void {
           return;
         }
 
-        if (isWebPushSupported && !isSubscribed) {
+        // Never trigger a browser permission prompt from a mount/effect —
+        // only re-subscribe when the user has already granted permission via
+        // an explicit gesture in Settings. 'default'/'denied' → no-op.
+        if (
+          isWebPushSupported &&
+          !isSubscribed &&
+          typeof window !== 'undefined' &&
+          'Notification' in window &&
+          Notification.permission === 'granted'
+        ) {
           attemptedRef.current = true;
           await subscribeWebPush();
         }
