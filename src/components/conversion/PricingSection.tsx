@@ -276,9 +276,9 @@ const _faqItems = [
       "Unlike your current stack where texts don't know what's in your emails, and your spreadsheet doesn't know what's in your group chat—ChravelApp's 8 tabs are fully interconnected. Your AI concierge can search your calendar, polls, and outstanding tasks, and more. One context-aware trip brain instead of 8 disconnected apps.",
   },
   {
-    question: 'What is a Trip Pass?',
+    question: 'Why buy a Trip Pass instead of subscribing monthly?',
     answer:
-      'A Trip Pass gives you full premium access for a fixed window — 45 days (Explorer) or 90 days (Frequent Chraveler). Perfect for one-off trips without a monthly commitment. Your exports and trip data stay forever, even after the pass expires. If you travel often, Annual is the better deal.',
+      "Trip Passes are one-time purchases — no auto-renew, no cancel reminders, no card kept on file after checkout. Buy once, use it for the whole trip window (45 or 90 days), and you're done. Perfect for people who take a few trips a year and don't want a subscription running in the background. Your exports and trip data stay forever, even after the pass expires. If you travel every month, a monthly or annual subscription is the better deal.",
   },
 ];
 
