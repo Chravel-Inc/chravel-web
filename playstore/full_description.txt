@@ -21,8 +21,11 @@ Privacy and account controls:
 - Authenticated access to collaborative trip content
 - Support and policy pages available at chravel.app
 
-Subscription notes:
-- Some features require a paid plan
-- Subscription management depends on platform billing capabilities
+Subscription information:
+- Consumer plans: Explorer ($9.99/month or $99/year) and Frequent Chraveler ($19.99/month or $199/year).
+- Team plans: Starter Pro ($49/month) and Growth Pro ($99/month). Enterprise pricing is available on request.
+- Subscriptions renew automatically at the same price each billing period unless cancelled at least 24 hours before the renewal date.
+- Manage or cancel anytime in your device's subscription settings (Play Store account > Payments and subscriptions > Subscriptions) or in Chravel under Settings > Billing.
+- No refunds for unused portions of a billing period, except where required by law.
 
 Chravel is a travel coordination app. It is not a booking marketplace or online travel agency.

@@ -66,7 +66,7 @@ SCREENSHOTS = [
         "raw": "06-maps-places.png",
         "out": "06-discover.png",
         "verb": "DISCOVER",
-        "desc": "AMAZING PLACES",
+        "desc": "PLACES NEARBY",
         "bg": "#0D1117",
     },
     {
@@ -112,7 +112,7 @@ IPAD_SCREENSHOTS = [
         "raw": "04-maps-places.png",
         "out": "04-discover.png",
         "verb": "DISCOVER",
-        "desc": "AMAZING PLACES",
+        "desc": "PLACES NEARBY",
         "bg": "#0D1117",
     },
 ]

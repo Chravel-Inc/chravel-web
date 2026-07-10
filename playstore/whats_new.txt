@@ -1,0 +1,8 @@
+What's new in this release:
+
+- [Feature 1: brief description]
+- [Feature 2: brief description]
+- [Bug fix 1: brief description]
+- Performance improvements and stability fixes
+
+Thank you for using Chravel. We read every piece of feedback at support@chravel.app.
