@@ -16,22 +16,28 @@ This session found and fixed one genuine **P1 security defect that was live in p
 hardening pass (the AI `createNotification` tool was silently non-functional). Neither App Store
 approval nor the green build gate had surfaced either.
 
-> **Update (fixes landed):** Both RLS migrations (`20260710160000` + `20260710161000`) have been
-> **applied to production** and verified — a repo-wide `pg_policies` sweep now returns **0**
-> status-agnostic trip-scoped policies (was 24 across reads+writes), and all 211 active members
-> still pass. The deferred Smart-Import binding (IMP-1) is now **fixed**. The remaining
-> code fixes (edge functions) are committed and deploy via the repo's `deploy-functions.yml`
-> CI on merge to `main`. Supabase security advisor scan after the migrations: **0 ERROR**, only
-> baseline GraphQL-discoverability WARNs (row access still gated by the now-fixed RLS).
+> **Update (fixes landed — implementation pass):** All four RLS migrations
+> (`20260710160000`, `20260710161000`, `20260710162000`, `20260710163000`) have been **applied to
+> production** and verified. The former-member leak was **larger than first reported**: beyond the
+> `is_trip_member()` helper class, a full-schema sweep found a second class of ~55 policies gating
+> on an **inline `EXISTS (SELECT 1 FROM trip_members …)`** with no status predicate. Both classes
+> are now closed — a repo-wide sweep across BOTH returns **0** status-agnostic membership policies,
+> and all 211 active members still pass. Additional fixes implemented this pass: **F2** (AI tools
+> that advertise "requires confirmation" now enforce the gate), **D3** (dead `send-push` footguns
+> hardened), **B2** (event-agenda optimistic-concurrency `version` column + RPC, applied), and
+> **IMP-1** (Smart-Import URL binding). Edge-function code fixes deploy via `deploy-functions.yml`
+> CI on merge to `main`. Supabase security advisor after the migrations: **0 ERROR**, only baseline
+> GraphQL-discoverability WARNs (row access still gated by the now-fixed RLS).
 
 | Metric | Count |
 |---|---|
 | P0 (release blocker) found | 0 |
 | P1 (critical) found / fixed | 2 / 2 |
-| P2 (major) found / fixed | 3 / 3 |
-| P3 (minor) found / fixed | 5 / 4 (1 deferred with plan) |
-| Cross-trip / cross-tenant leak | 0 (former-member leak closed) |
-| Known data-loss defect | 0 (offline duplicate-replay closed) |
+| P2 (major) found / fixed | 4 / 4 (SEC-2, REG-1, error-boundary, agenda concurrency) |
+| P3 (minor) found / fixed | 6 / 6 (mint, webhook, prompt-tag, IMP-1, AI-confirm, send-push) |
+| RLS former-member policies fixed | 24 (helper) + ~55 (inline EXISTS) = ~79, verified 0 remaining |
+| Cross-trip / cross-tenant leak | 0 (former-member leak fully closed, both classes) |
+| Known data-loss defect | 0 (offline duplicate-replay + agenda LWW closed) |
 
 **Why not "READY":** the remaining conditions are **verification gaps this environment
 cannot close**, not known defects:
@@ -117,31 +123,31 @@ is **not present** in prod.
 
 | ID | Pri | Feature | Root cause | Fix | Status |
 |---|---|---|---|---|---|
-| SEC-1 | P1 | Membership | Status-agnostic `is_trip_member` in 24 trip-scoped read+write policies (full-schema sweep) | Migrations `20260710160000` + `20260710161000` | **Fixed — APPLIED to prod** |
+| SEC-1 | P1 | Membership | Status-agnostic `is_trip_member` helper in 24 trip-scoped read+write policies | Migrations `20260710160000` + `20260710161000` | **Fixed — APPLIED to prod** |
+| SEC-3 | P1 | Membership | Second class: ~55 policies gate on inline `EXISTS trip_members` with no status filter (chat/task/poll/file/link reads+writes, event agenda/tasks/lineup/QA, broadcasts, payment messages, roles, invites) | Migration `20260710162000` (add active-status filter to every trip_members EXISTS) | **Fixed — APPLIED to prod**, repo-wide sweep = 0 |
 | SEC-2 | P2 | Concierge access | `lovable-concierge` membership gate ignored status | Active-status filter | Fixed (deploys on merge) |
 | REG-1 | P2 | Notifications | `createNotification` user-JWT insert blocked by RLS (no INSERT policy); unvalidated `targetUserIds` | Delegate to `create-notification` (server + client paths) | Fixed (deploys on merge) |
 | DL-1 | P1 | Offline sync | Non-atomic status lock → duplicate task/calendar creates on overlapping drains | Atomic `claimOperation` CAS + in-flight guard | Fixed + test |
+| DL-2 | P2 | Event agenda | Blind UPDATE with no version guard → concurrent organizer edits silently overwrite (B2) | `version` column + `update_agenda_item_with_version` RPC (applied) + client wiring + test | **Fixed — APPLIED to prod** |
 | UX-1 | P1 | Push | No OS-tap handler → no deep-link | `NativePushRouter` | Fixed |
+| AI-2 | P2 | AI safety | 5 tools advertise "requires confirmation" but auto-execute (F2) | `CONFIRMATION_REQUIRED_MUTATION_ALLOWLIST` + gate + test | Fixed (deploys on merge) |
 | HARD-1 | P3 | Voice | Mint rate limiter failed open | Fail closed | Fixed (deploys on merge) |
 | HARD-2 | P3 | Payments | Webhook idempotency insert error fell through | Fail closed (500) | Fixed (deploys on merge) |
 | HARD-3 | P3 | AI | Prompt rules missed `<untrusted_context>` | Extended | Fixed (deploys on merge) |
 | HARD-4 | P2 | Resilience | No per-route error isolation | Keyed boundary | Fixed |
+| HARD-5 | P3 | Push | Dead `send-push` sandbox-APNs default + Web Push stub false failures (D3) | Default APNs to production; stub returns no false failures | Fixed (deploys on merge) |
 | IMP-1 | P3 | Smart Import | `fileUrl` not bound to stored file row | Same-storage-object pathname check | **Fixed** (deploys on merge) |
 
 ---
 
 ## 6. Intentionally Deferred (with follow-up plan)
 
-**IMP-1 — `file-ai-parser` should bind the fetched URL to the stored file row.**
-Why deferred: the client passes a URL to fetch; if it's a short-lived **signed** storage URL it
-will not equal the persisted `trip_files.file_url`, so strict equality would break the Smart
-Import happy path (a critical "record creation" flow). Impact is P3: SSRF is already blocked
-(`validateExternalUrlBeforeFetch`) and results stay within the caller's own trip.
-Follow-up prompt: *"In `supabase/functions/file-ai-parser/index.ts`, determine how the client
-derives `fileUrl` from `trip_files` (signed URL vs stored `file_url`). If signed, verify the URL's
-storage object path matches the file row's `storage_path`/`file_url` path prefix; if stored,
-require equality. Add a test for a mismatched `fileUrl` + valid `fileId` being rejected. Do not
-break the signed-URL happy path."*
+**None outstanding in-repo.** IMP-1 (originally deferred) was implemented this pass:
+`file-ai-parser` now requires the submitted `fileUrl` to reference the same storage object as the
+row's stored `file_url` (compared by pathname, so a signed vs unsigned URL for the same file still
+matches; rows without a stored URL keep the SSRF-validated fallback), preserving the signed-URL
+happy path. The only remaining items are **out-of-repo verification** (see §8/§11): the
+`chravel-mobile` iOS FCM-token registration, and device/concurrency/voice end-to-end runs.
 
 ---
 
@@ -163,8 +169,10 @@ break the signed-URL happy path."*
 
 ## 8. External-Service Runbook (actions requiring privileged access)
 
-1. **Apply RLS migrations to production — ✅ DONE this session.** Migrations `20260710160000` and
-   `20260710161000` were applied directly to the ChravelApp project (`jmjiyekmxwsxkfnqwyaa`).
+1. **Apply RLS migrations to production — ✅ DONE this session.** All four migrations
+   (`20260710160000`, `20260710161000`, `20260710162000` former-member leak both classes, and
+   `20260710163000` agenda `version` column + RPC) were applied directly to the ChravelApp project
+   (`jmjiyekmxwsxkfnqwyaa`).
    Verified: the repo-wide sweep
    `SELECT count(*) FROM pg_policies WHERE (qual LIKE '%is_trip_member(%' OR with_check LIKE '%is_trip_member(%') AND coalesce(qual,'') NOT LIKE '%is_active%' AND coalesce(with_check,'') NOT LIKE '%is_active%'`
    returns **0**. Note: the direct apply recorded these under generated version stamps
