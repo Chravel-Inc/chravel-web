@@ -270,9 +270,9 @@ if (jsonOut) {
 }
 
 const c = (n, s) => `\x1b[${n}m${s}\x1b[0m`;
-console.log(c(1, '\nIAP Parity Check (code ↔ RevenueCat ↔ ASC)\n'));
+console.log(c(1, '\nIAP Parity Check (code ↔ RevenueCat ↔ ASC ↔ Google Play)\n'));
 if (errors.length === 0) {
-  console.log(c(32, '  ✓ All Apple IDs, entitlements, prices, and ASC snapshot are in sync.\n'));
+  console.log(c(32, '  ✓ All Apple/Google IDs, entitlements, prices, and store snapshots are in sync.\n'));
   process.exit(0);
 }
 console.log(c(31, `  ✗ ${errors.length} parity error(s):\n`));
