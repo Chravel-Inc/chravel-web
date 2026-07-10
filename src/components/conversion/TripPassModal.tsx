@@ -127,8 +127,8 @@ export const TripPassModal: React.FC<TripPassModalProps> = ({ open, onOpenChange
             Trip Pass
           </DialogTitle>
           <DialogDescription className="text-center text-base">
-            Full premium features for one trip — planning through post-trip. No commitment. Keep
-            your exports forever.
+            One-time purchase. Full premium features for the whole trip window — no auto-renew, no
+            card kept on file. Your exports stay forever.
           </DialogDescription>
         </DialogHeader>
 
