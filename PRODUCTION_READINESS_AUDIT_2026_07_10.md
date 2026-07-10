@@ -12,9 +12,17 @@
 **Decision: CONDITIONALLY READY AFTER LISTED ACTIONS.**
 
 This session found and fixed one genuine **P1 security defect that was live in production**
-(former-member RLS read/write leak across ~12 policies) and one **P2 feature regression**
-introduced by the prior hardening pass (the AI `createNotification` tool was silently
-non-functional). Neither App Store approval nor the green build gate had surfaced either.
+(former-member RLS read/write leak) and one **P2 feature regression** introduced by the prior
+hardening pass (the AI `createNotification` tool was silently non-functional). Neither App Store
+approval nor the green build gate had surfaced either.
+
+> **Update (fixes landed):** Both RLS migrations (`20260710160000` + `20260710161000`) have been
+> **applied to production** and verified — a repo-wide `pg_policies` sweep now returns **0**
+> status-agnostic trip-scoped policies (was 24 across reads+writes), and all 211 active members
+> still pass. The deferred Smart-Import binding (IMP-1) is now **fixed**. The remaining
+> code fixes (edge functions) are committed and deploy via the repo's `deploy-functions.yml`
+> CI on merge to `main`. Supabase security advisor scan after the migrations: **0 ERROR**, only
+> baseline GraphQL-discoverability WARNs (row access still gated by the now-fixed RLS).
 
 | Metric | Count |
 |---|---|
@@ -109,16 +117,16 @@ is **not present** in prod.
 
 | ID | Pri | Feature | Root cause | Fix | Status |
 |---|---|---|---|---|---|
-| SEC-1 | P1 | Membership | Status-agnostic `is_trip_member` in ~12 trip-scoped policies | Migration `20260710160000` | Fixed (pending deploy) |
-| SEC-2 | P2 | Concierge access | `lovable-concierge` membership gate ignored status | Active-status filter | Fixed |
-| REG-1 | P2 | Notifications | `createNotification` user-JWT insert blocked by RLS (no INSERT policy); unvalidated `targetUserIds` | Delegate to `create-notification` (server + client paths) | Fixed |
+| SEC-1 | P1 | Membership | Status-agnostic `is_trip_member` in 24 trip-scoped read+write policies (full-schema sweep) | Migrations `20260710160000` + `20260710161000` | **Fixed — APPLIED to prod** |
+| SEC-2 | P2 | Concierge access | `lovable-concierge` membership gate ignored status | Active-status filter | Fixed (deploys on merge) |
+| REG-1 | P2 | Notifications | `createNotification` user-JWT insert blocked by RLS (no INSERT policy); unvalidated `targetUserIds` | Delegate to `create-notification` (server + client paths) | Fixed (deploys on merge) |
 | DL-1 | P1 | Offline sync | Non-atomic status lock → duplicate task/calendar creates on overlapping drains | Atomic `claimOperation` CAS + in-flight guard | Fixed + test |
 | UX-1 | P1 | Push | No OS-tap handler → no deep-link | `NativePushRouter` | Fixed |
-| HARD-1 | P3 | Voice | Mint rate limiter failed open | Fail closed | Fixed |
-| HARD-2 | P3 | Payments | Webhook idempotency insert error fell through | Fail closed (500) | Fixed |
-| HARD-3 | P3 | AI | Prompt rules missed `<untrusted_context>` | Extended | Fixed |
+| HARD-1 | P3 | Voice | Mint rate limiter failed open | Fail closed | Fixed (deploys on merge) |
+| HARD-2 | P3 | Payments | Webhook idempotency insert error fell through | Fail closed (500) | Fixed (deploys on merge) |
+| HARD-3 | P3 | AI | Prompt rules missed `<untrusted_context>` | Extended | Fixed (deploys on merge) |
 | HARD-4 | P2 | Resilience | No per-route error isolation | Keyed boundary | Fixed |
-| IMP-1 | P3 | Smart Import | `fileUrl` not bound to stored file row | Deferred (§6) | Open |
+| IMP-1 | P3 | Smart Import | `fileUrl` not bound to stored file row | Same-storage-object pathname check | **Fixed** (deploys on merge) |
 
 ---
 
@@ -155,17 +163,23 @@ break the signed-URL happy path."*
 
 ## 8. External-Service Runbook (actions requiring privileged access)
 
-1. **Apply RLS migration to production (REQUIRED).** Service: Supabase. Path: `supabase db push`
-   (or CI migration job) against staging first, then prod. Value: the migration file above. No
-   redeploy of edge functions needed for this. Validation: after apply, run
-   `SELECT tablename, policyname FROM pg_policies WHERE qual LIKE '%is_trip_member(%' AND qual NOT LIKE '%is_active%'`
-   — expect **0 rows** on trip-scoped tables. Rollback: policies are `DROP/CREATE`; to revert,
-   re-create the prior policies with `is_trip_member` (not recommended — reopens the leak).
-2. **Deploy changed edge functions.** Service: Supabase Edge Functions. Deploy
-   `functionExecutor`-consumers (`execute-concierge-tool`, `lovable-concierge`),
-   `mint-realtime-token`, `revenuecat-webhook`, `stripe-webhook`. Validation: send a test
-   concierge "notify the trip" as an organizer → notification delivered; as a non-organizer →
-   graceful "organizers only" message.
+1. **Apply RLS migrations to production — ✅ DONE this session.** Migrations `20260710160000` and
+   `20260710161000` were applied directly to the ChravelApp project (`jmjiyekmxwsxkfnqwyaa`).
+   Verified: the repo-wide sweep
+   `SELECT count(*) FROM pg_policies WHERE (qual LIKE '%is_trip_member(%' OR with_check LIKE '%is_trip_member(%') AND coalesce(qual,'') NOT LIKE '%is_active%' AND coalesce(with_check,'') NOT LIKE '%is_active%'`
+   returns **0**. Supabase tracks migrations by version, so CI will not re-run the matching
+   committed files on merge. Rollback: `DROP/CREATE` policies; reverting reopens the leak (not
+   recommended).
+2. **Deploy changed edge functions — automatic on merge to `main`.** `.github/workflows/deploy-functions.yml`
+   deploys on push to `main` when `supabase/functions/**` changes (Supabase CLI bundles all shared
+   deps). Affected: `execute-concierge-tool` + `lovable-concierge` + `realtime-voice-session` (via
+   `functionExecutor`), `mint-realtime-token`, `revenuecat-webhook`, `stripe-webhook`,
+   `file-ai-parser`. Manual MCP deploy was intentionally NOT used — these are critical-path
+   functions and CLI bundling is the safe path. Validation post-deploy: organizer concierge
+   "notify the trip" → delivered; non-organizer → graceful message; Stripe/RC test webhook still
+   idempotent. Ordering note: applying the migrations before the edge deploy is safe — no former
+   members exist (211/211 active), so no active member loses access and the old edge functions
+   keep their prior behavior until deploy (no regression).
 3. **iOS FCM token verification (CROSS-REPO, unresolved).** The live push path routes iOS tokens
    through FCM V1 (`dispatch-notification-deliveries`), so the `chravel-mobile` shell must
    register **Firebase FCM** tokens on iOS, not raw APNs tokens. Confirm in `chravel-mobile`;
