@@ -35,3 +35,8 @@
 2026-06-07 — Trips QA follow-up responsive breakpoint hardening
 - Tightened the Trips responsive CSS after QA review: landscape/mobile-tablet grids now use two columns through 1024px without the previous short-height-only gap, 1024px mobile-shell views retain bottom nav padding, and the CSS override no longer needs `!important`.
 - Targeted TripGrid test, lint:check, typecheck, and build pass. Real screenshot capture is still blocked: Playwright/Puppeteer browser downloads return 403 and Ubuntu's Chromium package is a snap stub with no running snapd.
+
+2026-07-11 — Invite link stale settings guard
+- Fixed PR #705 follow-up where invite settings could diverge from the active link after regeneration was decoupled from settings toggles.
+- Added applied-settings tracking to block copy/share when expiry or max-use settings are pending, surfaced a regenerate warning in the invite modal, and covered the no-auto-insert-until-regenerate behavior with a hook test.
+- Verification: targeted useInviteLink test, typecheck, and lint:check pass after npm install restored missing package dependencies; merge preflight still cannot fetch origin/main in this environment.

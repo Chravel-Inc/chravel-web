@@ -16,6 +16,12 @@ interface UseInviteLinkProps {
   proTripId?: string;
 }
 
+interface AppliedInviteSettings {
+  requireApproval: boolean;
+  expireIn7Days: boolean;
+  maxUses: number | null;
+}
+
 interface InviteLinkResult {
   copied: boolean;
   inviteLink: string;
@@ -23,6 +29,7 @@ interface InviteLinkResult {
   isDemoMode: boolean;
   error: string | null;
   expiresAt: string | null;
+  hasUnappliedSettings: boolean;
   regenerateInviteToken: () => Promise<void>;
   retryGenerate: () => Promise<void>;
   resendInvite: (recipientEmail?: string, recipientPhone?: string) => Promise<boolean>;
@@ -32,6 +39,20 @@ interface InviteLinkResult {
 }
 
 // UUID validation regex
+const normalizeMaxUses = (maxUses: number | null | undefined): number | null =>
+  typeof maxUses === 'number' && Number.isInteger(maxUses) && maxUses > 0 ? maxUses : null;
+
+const getSettingsKey = ({
+  requireApproval,
+  expireIn7Days,
+  maxUses,
+}: AppliedInviteSettings): string =>
+  JSON.stringify({
+    requireApproval,
+    expireIn7Days,
+    maxUses,
+  });
+
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Generate a short branded invite code (e.g., "chravel7x9k2m")
@@ -109,6 +130,7 @@ export const useInviteLink = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
+  const [appliedSettings, setAppliedSettings] = useState<AppliedInviteSettings | null>(null);
   const { isDemoMode } = useDemoMode();
   const lastGeneratedKeyRef = useRef<string | null>(null);
 
@@ -117,6 +139,7 @@ export const useInviteLink = ({
   useEffect(() => {
     if (!isOpen) {
       lastGeneratedKeyRef.current = null;
+      setAppliedSettings(null);
       return;
     }
     const generationKey = `${proTripId || tripId || ''}:${isDemoMode}`;
@@ -194,8 +217,7 @@ export const useInviteLink = ({
 
       // Only persist max_uses when a valid positive limit is set; omit the
       // column entirely when the limit is off so the invite stays unlimited.
-      const normalizedMaxUses: number | null =
-        typeof maxUses === 'number' && Number.isInteger(maxUses) && maxUses > 0 ? maxUses : null;
+      const normalizedMaxUses = normalizeMaxUses(maxUses);
 
       const inviteData = {
         trip_id: tripIdValue,
@@ -255,6 +277,7 @@ export const useInviteLink = ({
       const demoInviteCode = `demo-${actualTripId}-${Date.now().toString(36)}`;
       setInviteLink(buildInviteLink(demoInviteCode));
       setExpiresAt(null);
+      setAppliedSettings({ requireApproval, expireIn7Days, maxUses: normalizeMaxUses(maxUses) });
       setLoading(false);
       toast.success('Demo invite link created!');
       return;
@@ -304,6 +327,7 @@ export const useInviteLink = ({
 
     // Use branded unfurl domain for rich OG previews
     setInviteLink(buildInviteLink(inviteCode));
+    setAppliedSettings({ requireApproval, expireIn7Days, maxUses: normalizeMaxUses(maxUses) });
     setLoading(false);
     toast.success('Invite link created!');
   };
@@ -374,8 +398,26 @@ export const useInviteLink = ({
     }
   };
 
+  const currentSettings: AppliedInviteSettings = {
+    requireApproval,
+    expireIn7Days,
+    maxUses: normalizeMaxUses(maxUses),
+  };
+  const hasUnappliedSettings =
+    !!inviteLink &&
+    appliedSettings !== null &&
+    getSettingsKey(appliedSettings) !== getSettingsKey(currentSettings);
+
+  const warnUnappliedSettings = () => {
+    toast.error('Regenerate the invite link to apply these settings before sharing.');
+  };
+
   const handleCopyLink = async () => {
     if (!inviteLink) return;
+    if (hasUnappliedSettings) {
+      warnUnappliedSettings();
+      return;
+    }
 
     try {
       await navigator.clipboard.writeText(inviteLink);
@@ -390,6 +432,10 @@ export const useInviteLink = ({
 
   const handleShare = async () => {
     if (!inviteLink) return;
+    if (hasUnappliedSettings) {
+      warnUnappliedSettings();
+      return;
+    }
 
     if (navigator.share) {
       try {
@@ -408,6 +454,10 @@ export const useInviteLink = ({
 
   const handleEmailInvite = () => {
     if (!inviteLink) return;
+    if (hasUnappliedSettings) {
+      warnUnappliedSettings();
+      return;
+    }
 
     const subject = encodeURIComponent(`Join my trip: ${tripName}`);
     const body = encodeURIComponent(
@@ -432,6 +482,7 @@ export const useInviteLink = ({
     isDemoMode,
     error,
     expiresAt,
+    hasUnappliedSettings,
     regenerateInviteToken,
     retryGenerate,
     resendInvite,

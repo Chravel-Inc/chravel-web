@@ -4,7 +4,8 @@
  * (so the database default/null semantics stay untouched).
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { toast } from 'sonner';
 import { useInviteLink } from '../useInviteLink';
 
 const insertMock = vi.fn();
@@ -119,5 +120,52 @@ describe('useInviteLink max_uses persistence', () => {
 
     const payload = await getInsertedInvite();
     expect(payload).not.toHaveProperty('max_uses');
+  });
+
+  it('marks settings as unapplied without inserting a new invite until regenerate', async () => {
+    const clipboardWriteText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, {
+      clipboard: { writeText: clipboardWriteText },
+    });
+
+    const { result, rerender } = renderHook(
+      ({ expireIn7Days, maxUses }: { expireIn7Days: boolean; maxUses: number | null }) =>
+        useInviteLink({
+          isOpen: true,
+          tripName: 'Test Trip',
+          requireApproval: true,
+          expireIn7Days,
+          maxUses,
+          tripId: VALID_TRIP_ID,
+        }),
+      { initialProps: { expireIn7Days: false, maxUses: null } },
+    );
+
+    await waitFor(() => expect(insertMock).toHaveBeenCalledTimes(1));
+    expect(result.current.hasUnappliedSettings).toBe(false);
+
+    rerender({ expireIn7Days: true, maxUses: 10 });
+
+    await waitFor(() => expect(result.current.hasUnappliedSettings).toBe(true));
+    expect(insertMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await result.current.handleCopyLink();
+    });
+
+    expect(clipboardWriteText).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith(
+      'Regenerate the invite link to apply these settings before sharing.',
+    );
+
+    await act(async () => {
+      await result.current.regenerateInviteToken();
+    });
+
+    await waitFor(() => expect(insertMock).toHaveBeenCalledTimes(2));
+    expect(result.current.hasUnappliedSettings).toBe(false);
+    const regeneratedPayload = (insertMock.mock.calls[1][0] as Array<Record<string, unknown>>)[0];
+    expect(regeneratedPayload.max_uses).toBe(10);
+    expect(regeneratedPayload.expires_at).toEqual(expect.any(String));
   });
 });

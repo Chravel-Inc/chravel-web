@@ -20,6 +20,7 @@ interface InviteLinkSectionProps {
   isDemoMode?: boolean;
   error?: string | null;
   expiresAt?: string | null;
+  hasUnappliedSettings?: boolean;
   onCopyLink: () => void;
   onRegenerate: () => void;
   onRetry?: () => void;
@@ -35,6 +36,7 @@ export const InviteLinkSection = ({
   isDemoMode = false,
   error = null,
   expiresAt = null,
+  hasUnappliedSettings = false,
   onCopyLink,
   onRegenerate,
   onRetry,
@@ -59,7 +61,7 @@ export const InviteLinkSection = ({
   };
 
   const handleNativeShare = async () => {
-    if (!inviteLink) return;
+    if (!inviteLink || hasUnappliedSettings) return;
 
     setIsSharing(true);
     try {
@@ -127,9 +129,15 @@ export const InviteLinkSection = ({
         <Button
           ref={initialActionRef}
           onClick={onCopyLink}
-          disabled={loading || !inviteLink}
+          disabled={loading || !inviteLink || hasUnappliedSettings}
           size="sm"
-          aria-label={copied ? 'Link copied to clipboard' : 'Copy invite link to clipboard'}
+          aria-label={
+            hasUnappliedSettings
+              ? 'Regenerate invite link to apply settings before copying'
+              : copied
+                ? 'Link copied to clipboard'
+                : 'Copy invite link to clipboard'
+          }
           className={`${
             copied
               ? 'bg-primary text-primary-foreground border-primary/40 hover:bg-primary/90'
@@ -161,7 +169,7 @@ export const InviteLinkSection = ({
         {canNativeShare && (
           <Button
             onClick={handleNativeShare}
-            disabled={loading || !inviteLink || isSharing}
+            disabled={loading || !inviteLink || isSharing || hasUnappliedSettings}
             size="sm"
             aria-label="Share invite link via Messages, Email, and more"
             className="bg-muted text-foreground border border-border hover:bg-muted/80 shadow-none px-3 min-h-[44px] disabled:bg-muted disabled:text-muted-foreground disabled:border-border/70"
@@ -175,6 +183,19 @@ export const InviteLinkSection = ({
           </Button>
         )}
       </div>
+
+      {hasUnappliedSettings && inviteLink && !error && (
+        <div
+          className="mt-2 flex items-start gap-2 text-xs text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-lg px-2 py-1.5"
+          role="alert"
+        >
+          <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+          <span>
+            Settings changed. Regenerate the invite link before copying or sharing so expiry and
+            usage limits match what guests receive.
+          </span>
+        </div>
+      )}
 
       {/* Success feedback after copy */}
       {copied && (

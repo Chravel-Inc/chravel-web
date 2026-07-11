@@ -7,6 +7,10 @@
 
 ## Data Flow & State
 
+### Track applied settings when draft controls no longer auto-save
+If UI controls are intentionally decoupled from persistence/regeneration for performance, store the applied snapshot for the active artifact and block/share-gate stale drafts until the user applies them.
+
+
 ### Always distinguish Loading, Not Found, and Empty states
 Never let a fetch-in-progress fall through to a Not Found or Empty render path. Zero-tolerance regression in Chravel.
 
