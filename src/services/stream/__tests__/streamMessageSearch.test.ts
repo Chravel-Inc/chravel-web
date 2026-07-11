@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  fetchTripBroadcastHistory,
   searchMessagesAcrossTripChannels,
   searchTripChannelMessages,
 } from '../streamMessageSearch';
@@ -72,6 +73,40 @@ describe('streamMessageSearch', () => {
         threadParentId: undefined,
       },
     ]);
+  });
+
+  it('fetches broadcast history with a server-side message_type filter', async () => {
+    const channelSearch = vi.fn().mockResolvedValue({
+      results: [
+        { message: { id: 'b-2', text: 'newer broadcast', message_type: 'broadcast' } },
+        { message: { id: 'b-1', text: 'older broadcast', message_type: 'broadcast' } },
+      ],
+    });
+    const channel = vi.fn().mockReturnValue({ search: channelSearch });
+    getStreamClientMock.mockReturnValue({ userID: 'stream-user', channel });
+
+    const results = await fetchTripBroadcastHistory({ tripId: 'trip-1', limit: 50 });
+
+    expect(channel).toHaveBeenCalledWith('chravel-trip', 'trip-trip-1');
+    expect(channelSearch).toHaveBeenCalledWith(
+      { message_type: { $eq: 'broadcast' } },
+      { limit: 50, sort: [{ created_at: -1 }] },
+    );
+    expect(results.map(m => m.id)).toEqual(['b-2', 'b-1']);
+  });
+
+  it('returns [] when broadcast history fetch fails (graceful fallback to window filter)', async () => {
+    const channelSearch = vi.fn().mockRejectedValue(new Error('custom-field filter unsupported'));
+    const channel = vi.fn().mockReturnValue({ search: channelSearch });
+    getStreamClientMock.mockReturnValue({ userID: 'stream-user', channel });
+
+    await expect(fetchTripBroadcastHistory({ tripId: 'trip-1' })).resolves.toEqual([]);
+  });
+
+  it('returns [] for broadcast history when stream client is disconnected', async () => {
+    getStreamClientMock.mockReturnValue(null);
+
+    await expect(fetchTripBroadcastHistory({ tripId: 'trip-1' })).resolves.toEqual([]);
   });
 
   it('enforces aggregated multi-channel result limits', async () => {

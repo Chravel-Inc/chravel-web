@@ -7,6 +7,7 @@ import type { Channel } from 'stream-chat';
 import { demoModeService } from '@/services/demoModeService';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useChatComposer } from '../hooks/useChatComposer';
+import { useBroadcastHistory } from '../hooks/useBroadcastHistory';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { useOfflineStatus } from '@/hooks/useOfflineStatus';
 import { ChatInput } from './ChatInput';
@@ -832,12 +833,41 @@ export const TripChat = React.memo(
 
     const filteredMessages = filterMessages(messagesToShow as any);
 
+    // Broadcasts tab: the live timeline is a bounded window, so broadcasts older
+    // than it are missing from filteredMessages. Fetch the channel's broadcast
+    // history from Stream while the tab is active and merge in anything the
+    // window doesn't already have (live entries win — they carry fresh
+    // reactions/pins). Empty history (fetch failed / none) changes nothing.
+    const broadcastHistory = useBroadcastHistory(
+      resolvedTripId,
+      messageFilter === 'broadcasts' && !demoMode.isDemoMode && !shouldSkipLiveChat,
+    );
+    const broadcastHistoryModels = useMemo(() => {
+      if (broadcastHistory.length === 0) return [];
+      return buildStreamMessageViewModels({
+        messages: broadcastHistory,
+        tripMembers,
+        currentUserId: user?.id,
+      });
+    }, [broadcastHistory, tripMembers, user?.id]);
+    const filteredWithBroadcastHistory = useMemo(() => {
+      if (messageFilter !== 'broadcasts' || broadcastHistoryModels.length === 0) {
+        return filteredMessages;
+      }
+      const liveIds = new Set(filteredMessages.map((m: any) => m.id));
+      const older = broadcastHistoryModels.filter(m => !liveIds.has(m.id));
+      if (older.length === 0) return filteredMessages;
+      return [...older, ...filteredMessages].sort(
+        (a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
+    }, [messageFilter, broadcastHistoryModels, filteredMessages]);
+
     const visibleMessages = useMemo(() => {
-      if (blockedUserIds.length === 0) return filteredMessages;
-      return filteredMessages.filter(
+      if (blockedUserIds.length === 0) return filteredWithBroadcastHistory;
+      return filteredWithBroadcastHistory.filter(
         (msg: any) => !msg.sender?.id || !blockedUserIds.includes(msg.sender.id),
       );
-    }, [filteredMessages, blockedUserIds]);
+    }, [filteredWithBroadcastHistory, blockedUserIds]);
 
     const messagesWithFailed = useMemo(() => {
       if (failedMessages.length === 0) return visibleMessages;
