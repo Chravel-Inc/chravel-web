@@ -20,6 +20,7 @@ interface InviteLinkSectionProps {
   isDemoMode?: boolean;
   error?: string | null;
   expiresAt?: string | null;
+  hasStaleSettings?: boolean;
   onCopyLink: () => void;
   onRegenerate: () => void;
   onRetry?: () => void;
@@ -35,6 +36,7 @@ export const InviteLinkSection = ({
   isDemoMode = false,
   error = null,
   expiresAt = null,
+  hasStaleSettings = false,
   onCopyLink,
   onRegenerate,
   onRetry,
@@ -102,6 +104,16 @@ export const InviteLinkSection = ({
         </button>
       </div>
 
+      {hasStaleSettings && inviteLink && !loading && (
+        <div
+          className="mb-2 flex items-center gap-2 text-xs text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2"
+          role="alert"
+        >
+          <AlertTriangle size={14} className="shrink-0" />
+          <span>Settings changed — tap Regenerate to apply them to this link before sharing.</span>
+        </div>
+      )}
+
       {/* Error state with retry */}
       {error && !loading && !inviteLink && (
         <div
@@ -127,7 +139,7 @@ export const InviteLinkSection = ({
         <Button
           ref={initialActionRef}
           onClick={onCopyLink}
-          disabled={loading || !inviteLink}
+          disabled={loading || !inviteLink || hasStaleSettings}
           size="sm"
           aria-label={copied ? 'Link copied to clipboard' : 'Copy invite link to clipboard'}
           className={`${
@@ -161,7 +173,7 @@ export const InviteLinkSection = ({
         {canNativeShare && (
           <Button
             onClick={handleNativeShare}
-            disabled={loading || !inviteLink || isSharing}
+            disabled={loading || !inviteLink || isSharing || hasStaleSettings}
             size="sm"
             aria-label="Share invite link via Messages, Email, and more"
             className="bg-muted text-foreground border border-border hover:bg-muted/80 shadow-none px-3 min-h-[44px] disabled:bg-muted disabled:text-muted-foreground disabled:border-border/70"

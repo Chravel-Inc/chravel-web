@@ -72,4 +72,21 @@ describe('InviteLinkSection', () => {
     fireEvent.click(screen.getByText('Copy'));
     expect(onCopyLink).toHaveBeenCalledTimes(1);
   });
+
+  it('shows stale-settings banner and disables copy when settings changed', () => {
+    const onCopyLink = vi.fn();
+    render(
+      <InviteLinkSection
+        {...defaultProps}
+        inviteLink="https://p.chravel.app/j/chravel7x9k2m"
+        hasStaleSettings
+        onCopyLink={onCopyLink}
+      />,
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/Regenerate to apply/i);
+    expect(screen.getByText('Copy')).toBeDisabled();
+    fireEvent.click(screen.getByText('Copy'));
+    expect(onCopyLink).not.toHaveBeenCalled();
+  });
 });

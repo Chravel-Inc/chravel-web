@@ -1,8 +1,14 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { extractInviteCodeFromLink, isDemoInviteCode } from '@/lib/inviteLinkUtils';
+import {
+  type AppliedInviteSettings,
+  areInviteSettingsEqual,
+  buildAppliedInviteSettings,
+  normalizeInviteMaxUses,
+} from '@/lib/inviteLinkSettings';
 import { buildInviteLink } from '@/lib/unfurlConfig';
 
 interface UseInviteLinkProps {
@@ -23,6 +29,8 @@ interface InviteLinkResult {
   isDemoMode: boolean;
   error: string | null;
   expiresAt: string | null;
+  hasStaleSettings: boolean;
+  appliedMaxUses: number | null;
   regenerateInviteToken: () => Promise<void>;
   retryGenerate: () => Promise<void>;
   resendInvite: (recipientEmail?: string, recipientPhone?: string) => Promise<boolean>;
@@ -109,14 +117,31 @@ export const useInviteLink = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
+  const [appliedSettings, setAppliedSettings] = useState<AppliedInviteSettings | null>(null);
   const { isDemoMode } = useDemoMode();
   const lastGeneratedKeyRef = useRef<string | null>(null);
+
+  const currentSettings = useMemo(
+    () => buildAppliedInviteSettings(requireApproval, expireIn7Days, maxUses),
+    [requireApproval, expireIn7Days, maxUses],
+  );
+
+  const hasStaleSettings = Boolean(
+    inviteLink && appliedSettings && !areInviteSettingsEqual(appliedSettings, currentSettings),
+  );
+
+  const blockShareIfStale = useCallback((): boolean => {
+    if (!hasStaleSettings) return false;
+    toast.error('Settings changed — tap Regenerate to apply them before sharing.');
+    return true;
+  }, [hasStaleSettings]);
 
   // Generate invite link when modal opens or trip changes — not when settings toggle.
   // Users apply new approval/expiry/max-use settings via "Regenerate link".
   useEffect(() => {
     if (!isOpen) {
       lastGeneratedKeyRef.current = null;
+      setAppliedSettings(null);
       return;
     }
     const generationKey = `${proTripId || tripId || ''}:${isDemoMode}`;
@@ -194,8 +219,7 @@ export const useInviteLink = ({
 
       // Only persist max_uses when a valid positive limit is set; omit the
       // column entirely when the limit is off so the invite stays unlimited.
-      const normalizedMaxUses: number | null =
-        typeof maxUses === 'number' && Number.isInteger(maxUses) && maxUses > 0 ? maxUses : null;
+      const normalizedMaxUses = normalizeInviteMaxUses(maxUses);
 
       const inviteData = {
         trip_id: tripIdValue,
@@ -234,6 +258,10 @@ export const useInviteLink = ({
     }
   };
 
+  const markSettingsApplied = useCallback(() => {
+    setAppliedSettings(buildAppliedInviteSettings(requireApproval, expireIn7Days, maxUses));
+  }, [requireApproval, expireIn7Days, maxUses]);
+
   const generateTripLink = async () => {
     setLoading(true);
     setError(null);
@@ -255,6 +283,7 @@ export const useInviteLink = ({
       const demoInviteCode = `demo-${actualTripId}-${Date.now().toString(36)}`;
       setInviteLink(buildInviteLink(demoInviteCode));
       setExpiresAt(null);
+      markSettingsApplied();
       setLoading(false);
       toast.success('Demo invite link created!');
       return;
@@ -304,6 +333,7 @@ export const useInviteLink = ({
 
     // Use branded unfurl domain for rich OG previews
     setInviteLink(buildInviteLink(inviteCode));
+    markSettingsApplied();
     setLoading(false);
     toast.success('Invite link created!');
   };
@@ -340,6 +370,7 @@ export const useInviteLink = ({
       toast.error('No invite link available. Please generate one first.');
       return false;
     }
+    if (blockShareIfStale()) return false;
 
     setLoading(true);
     try {
@@ -376,6 +407,7 @@ export const useInviteLink = ({
 
   const handleCopyLink = async () => {
     if (!inviteLink) return;
+    if (blockShareIfStale()) return;
 
     try {
       await navigator.clipboard.writeText(inviteLink);
@@ -390,6 +422,7 @@ export const useInviteLink = ({
 
   const handleShare = async () => {
     if (!inviteLink) return;
+    if (blockShareIfStale()) return;
 
     if (navigator.share) {
       try {
@@ -408,6 +441,7 @@ export const useInviteLink = ({
 
   const handleEmailInvite = () => {
     if (!inviteLink) return;
+    if (blockShareIfStale()) return;
 
     const subject = encodeURIComponent(`Join my trip: ${tripName}`);
     const body = encodeURIComponent(
@@ -432,6 +466,8 @@ export const useInviteLink = ({
     isDemoMode,
     error,
     expiresAt,
+    hasStaleSettings,
+    appliedMaxUses: appliedSettings?.maxUses ?? null,
     regenerateInviteToken,
     retryGenerate,
     resendInvite,

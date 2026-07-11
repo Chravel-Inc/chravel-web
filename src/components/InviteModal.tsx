@@ -50,8 +50,7 @@ export const InviteModal = ({
   // The share card / trip preview handles virality; the join boundary handles trust.
   const [requireApproval, setRequireApproval] = React.useState(true);
   const [expireIn7Days, setExpireIn7Days] = React.useState(false);
-  // Optional usage limit. Presets apply immediately; custom values are
-  // committed on blur/Enter so each keystroke doesn't mint a new invite.
+  // Usage limits and expiry apply to the active link only after Regenerate.
   const [usageLimitPreset, setUsageLimitPreset] = React.useState<UsageLimitPreset>('off');
   const [customUsageLimit, setCustomUsageLimit] = React.useState('');
   const [committedCustomUsageLimit, setCommittedCustomUsageLimit] = React.useState('');
@@ -67,6 +66,8 @@ export const InviteModal = ({
     isDemoMode,
     error,
     expiresAt,
+    hasStaleSettings,
+    appliedMaxUses,
     regenerateInviteToken,
     retryGenerate,
     handleCopyLink,
@@ -131,11 +132,15 @@ export const InviteModal = ({
         />
       )}
       <p className="text-xs text-gray-500">
-        {maxUses !== null
-          ? `Link stops working after ${maxUses} ${maxUses === 1 ? 'person joins' : 'people join'}.`
-          : usageLimitPreset === 'custom'
-            ? 'Enter how many people can use this link, then press Enter.'
-            : 'Anyone with the link can use it until it expires or is turned off.'}
+        {hasStaleSettings
+          ? 'Tap Regenerate above to apply your updated settings to this link.'
+          : maxUses !== null
+            ? appliedMaxUses === maxUses
+              ? `This link stops working after ${maxUses} ${maxUses === 1 ? 'person joins' : 'people join'}.`
+              : `After Regenerate, this link will stop working after ${maxUses} ${maxUses === 1 ? 'person joins' : 'people join'}.`
+            : usageLimitPreset === 'custom'
+              ? 'Enter how many people can use this link, then Regenerate to apply.'
+              : 'Anyone with the link can use it until it expires or is turned off. Change limits below, then Regenerate.'}
       </p>
     </div>
   );
@@ -152,6 +157,7 @@ export const InviteModal = ({
         isDemoMode={isDemoMode}
         error={error}
         expiresAt={expiresAt}
+        hasStaleSettings={hasStaleSettings}
         onCopyLink={handleCopyLink}
         onRegenerate={regenerateInviteToken}
         onRetry={retryGenerate}
@@ -210,6 +216,7 @@ export const InviteModal = ({
               isDemoMode={isDemoMode}
               error={error}
               expiresAt={expiresAt}
+              hasStaleSettings={hasStaleSettings}
               onCopyLink={handleCopyLink}
               onRegenerate={regenerateInviteToken}
               onRetry={retryGenerate}
