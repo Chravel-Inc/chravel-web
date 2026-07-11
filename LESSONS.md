@@ -491,3 +491,9 @@ If a visible primary control is meant to work by default, do not gate its mounte
 
 ### Realtime voice unmount cleanup must not depend on stop identity
 `useEffect(() => stop, [stop])` aborts a freshly started session when caption helpers change `stop`'s reference across renders. Use a `stopRef` + empty-deps unmount cleanup, and lazy-mount `useRealtimeVoice` only after the waveform tap. *Evidence: July 2026 Concierge waveform no-op fix.*
+
+### Meta CSP and vercel.json CSP must both allow AI Gateway hosts
+When production serves a meta CSP (and may omit the HTTP CSP header), `index.html` `connect-src` must include `https://ai-gateway.vercel.sh` and `wss://ai-gateway.vercel.sh` or realtime voice WebSockets fail after mint. Align meta with `vercel.json` whenever gateway hosts change. *Evidence: July 2026 Concierge recovery — live chravel.app meta CSP lacked AI Gateway while vercel.json already listed it.*
+
+### Prove TestFlight web asset provenance before rewriting Concierge controls
+July 9 Search/isActive + realtime lazy-mount fixes were already on `main` and in production `mrex8prk` chunks. Multi-control dead UI on a screenshot matching that chrome is often deployment drift (`chravel-mobile` remote vs bundled) or CSP — not a reason to re-implement working handlers. *Evidence: production chunk markers `header-search-btn` / `mint-realtime-token` present before recovery branch.*
