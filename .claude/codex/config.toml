@@ -1,0 +1,18 @@
+# Chravel · Codex CLI defaults (managed by the Claude Code integration)
+#
+# This file is the source of truth for Codex defaults. The wrapper
+# (.claude/scripts/codex-agent.sh) copies it to ~/.codex/config.toml on first
+# run so the setup is reproducible in fresh, ephemeral containers.
+#
+# Default model: GPT-5.6 Sol — the flagship tier of OpenAI's GPT-5.6 family.
+# Swap per-invocation with `--model`:
+#   gpt-5.6-sol    flagship   ($5 / $30 per 1M tok) — hardest tasks (DEFAULT)
+#   gpt-5.6-terra  balanced   ($2.50 / $15 per 1M tok) — everyday work
+#   gpt-5.6-luna   volume     ($1 / $6 per 1M tok) — cheap / high-volume
+model = "gpt-5.6-sol"
+
+# Non-interactive automation defaults. The wrapper additionally forces bypass
+# mode for write tasks because this environment is already externally sandboxed
+# (Codex's own landlock/seccomp sandbox does not nest reliably inside it).
+approval_policy = "never"
+sandbox_mode = "workspace-write"
