@@ -85,7 +85,10 @@ export const ChannelChatView = ({
   const isDemoChannel = isDemoChannelTripId(channel.tripId);
 
   const useStreamTransport = !isDemoChannel;
-  const streamProChannel = useStreamProChannel(useStreamTransport ? channel.id : null);
+  const streamProChannel = useStreamProChannel(
+    useStreamTransport ? channel.id : null,
+    channel.tripId,
+  );
 
   // Handle user leaving the channel/role (self-service)
   const handleLeaveChannel = async () => {
