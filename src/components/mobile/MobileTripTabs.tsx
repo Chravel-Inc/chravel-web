@@ -599,6 +599,7 @@ export const MobileTripTabs = ({
                 data-tab={tab.id}
                 data-active={isActive ? 'true' : 'false'}
                 onClick={() => handleTabPress(tab.id, enabled)}
+                onTouchStart={() => enabled && handleTabHover(tab.id)}
                 onMouseEnter={() => enabled && handleTabHover(tab.id)}
                 onFocus={() => enabled && handleTabHover(tab.id)}
                 className={`

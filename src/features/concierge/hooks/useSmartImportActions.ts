@@ -55,10 +55,12 @@ export function useSmartImportActions({ tripId, userId, setMessages, queryClient
             result: { imported: result.imported, failed: result.failed },
           },
         }));
-        if (result.imported > 0)
+        if (result.imported > 0) {
+          queryClient.invalidateQueries({ queryKey: ['calendarEvents', tripId] });
           toast.success(
             `Added ${result.imported} event${result.imported !== 1 ? 's' : ''} to Calendar`,
           );
+        }
         if (result.failed > 0)
           toast.error(`${result.failed} event${result.failed !== 1 ? 's' : ''} failed to import`);
       } catch {
@@ -69,7 +71,7 @@ export function useSmartImportActions({ tripId, userId, setMessages, queryClient
         toast.error('Failed to import events. Please try again.');
       }
     },
-    [tripId],
+    [tripId, queryClient],
   );
 
   const handleSmartImportDismiss = useCallback(

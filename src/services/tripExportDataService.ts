@@ -219,183 +219,208 @@ export async function getExportData(
       };
     }
 
-    // Fetch calendar events if requested
+    // Fetch independent sections in parallel to reduce export wall-clock time.
+    const sectionFetches: Promise<void>[] = [];
+
     if (sections.includes('calendar')) {
-      const { data: events } = await supabase
-        .from('trip_events')
-        .select('title, start_time, end_time, location, description')
-        .eq('trip_id', tripId)
-        .order('start_time', { ascending: true })
-        .limit(1000);
+      sectionFetches.push(
+        (async () => {
+          const { data: events } = await supabase
+            .from('trip_events')
+            .select('title, start_time, end_time, location, description')
+            .eq('trip_id', tripId)
+            .order('start_time', { ascending: true })
+            .limit(1000);
 
-      result.calendar = events || [];
+          result.calendar = events || [];
+        })(),
+      );
     }
 
-    // Fetch payments if requested
     if (sections.includes('payments')) {
-      const { data: payments } = await supabase
-        .from('trip_payment_messages')
-        .select('description, amount, currency, split_count, is_settled, created_at')
-        .eq('trip_id', tripId)
-        .order('created_at', { ascending: false })
-        .limit(500);
+      sectionFetches.push(
+        (async () => {
+          const { data: payments } = await supabase
+            .from('trip_payment_messages')
+            .select('description, amount, currency, split_count, is_settled, created_at')
+            .eq('trip_id', tripId)
+            .order('created_at', { ascending: false })
+            .limit(500);
 
-      if (payments && payments.length > 0) {
-        const total = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-        result.payments = {
-          items: payments,
-          total,
-          currency: payments[0]?.currency || 'USD',
-        };
-      }
+          if (payments && payments.length > 0) {
+            const total = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+            result.payments = {
+              items: payments,
+              total,
+              currency: payments[0]?.currency || 'USD',
+            };
+          }
+        })(),
+      );
     }
 
-    // Fetch polls if requested
     if (sections.includes('polls')) {
-      const { data: polls } = await supabase
-        .from('trip_polls')
-        .select('question, options, total_votes, status')
-        .eq('trip_id', tripId)
-        .order('created_at', { ascending: false })
-        .limit(200);
+      sectionFetches.push(
+        (async () => {
+          const { data: polls } = await supabase
+            .from('trip_polls')
+            .select('question, options, total_votes, status')
+            .eq('trip_id', tripId)
+            .order('created_at', { ascending: false })
+            .limit(200);
 
-      result.polls = polls || [];
+          result.polls = polls || [];
+        })(),
+      );
     }
 
-    // Fetch tasks if requested
     if (sections.includes('tasks')) {
-      const { data: tasks } = await supabase
-        .from('trip_tasks')
-        .select('title, description, completed')
-        .eq('trip_id', tripId)
-        .order('created_at', { ascending: false })
-        .limit(200);
+      sectionFetches.push(
+        (async () => {
+          const { data: tasks } = await supabase
+            .from('trip_tasks')
+            .select('title, description, completed')
+            .eq('trip_id', tripId)
+            .order('created_at', { ascending: false })
+            .limit(200);
 
-      result.tasks =
-        tasks?.map(t => ({
-          title: t.title,
-          description: t.description || undefined,
-          completed: t.completed,
-        })) || [];
+          result.tasks =
+            tasks?.map(t => ({
+              title: t.title,
+              description: t.description || undefined,
+              completed: t.completed,
+            })) || [];
+        })(),
+      );
     }
 
-    // Fetch places/links if requested
     if (sections.includes('places')) {
-      const placesData: Array<{ name: string; url: string; description?: string; votes: number }> =
-        [];
+      sectionFetches.push(
+        (async () => {
+          const placesData: Array<{
+            name: string;
+            url: string;
+            description?: string;
+            votes: number;
+          }> = [];
 
-      // 1. Fetch Trip Basecamp from trips table
-      const { data: tripBasecamp } = await supabase
-        .from('trips')
-        .select('basecamp_name, basecamp_address')
-        .eq('id', tripId)
-        .single();
+          const [tripBasecampResult, linksResult, authResult] = await Promise.all([
+            supabase
+              .from('trips')
+              .select('basecamp_name, basecamp_address')
+              .eq('id', tripId)
+              .single(),
+            supabase
+              .from('trip_links')
+              .select('title, url, description, category, votes')
+              .eq('trip_id', tripId)
+              .order('votes', { ascending: false })
+              .limit(200),
+            supabase.auth.getUser(),
+          ]);
 
-      if (tripBasecamp?.basecamp_address) {
-        placesData.push({
-          name: `📍 Trip Base Camp: ${tripBasecamp.basecamp_name || 'Main Location'}`,
-          url: `https://maps.google.com/?q=${encodeURIComponent(tripBasecamp.basecamp_address)}`,
-          description: tripBasecamp.basecamp_address,
-          votes: 0,
-        });
-      }
+          const tripBasecamp = tripBasecampResult.data;
+          if (tripBasecamp?.basecamp_address) {
+            placesData.push({
+              name: `📍 Trip Base Camp: ${tripBasecamp.basecamp_name || 'Main Location'}`,
+              url: `https://maps.google.com/?q=${encodeURIComponent(tripBasecamp.basecamp_address)}`,
+              description: tripBasecamp.basecamp_address,
+              votes: 0,
+            });
+          }
 
-      // 2. Fetch Personal Basecamp for current user
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        const { data: personalBasecamp } = await supabase
-          .from('trip_personal_basecamps')
-          .select('name, address')
-          .eq('trip_id', tripId)
-          .eq('user_id', user.id)
-          .maybeSingle();
+          const user = authResult.data.user;
+          if (user) {
+            const { data: personalBasecamp } = await supabase
+              .from('trip_personal_basecamps')
+              .select('name, address')
+              .eq('trip_id', tripId)
+              .eq('user_id', user.id)
+              .maybeSingle();
 
-        if (personalBasecamp?.address) {
-          placesData.push({
-            name: `🏠 Personal Base Camp: ${personalBasecamp.name || 'My Location'}`,
-            url: `https://maps.google.com/?q=${encodeURIComponent(personalBasecamp.address)}`,
-            description: `${personalBasecamp.address} (Private)`,
-            votes: 0,
-          });
-        }
-      }
+            if (personalBasecamp?.address) {
+              placesData.push({
+                name: `🏠 Personal Base Camp: ${personalBasecamp.name || 'My Location'}`,
+                url: `https://maps.google.com/?q=${encodeURIComponent(personalBasecamp.address)}`,
+                description: `${personalBasecamp.address} (Private)`,
+                votes: 0,
+              });
+            }
+          }
 
-      // 3. Fetch Trip Links
-      const { data: links } = await supabase
-        .from('trip_links')
-        .select('title, url, description, category, votes')
-        .eq('trip_id', tripId)
-        .order('votes', { ascending: false })
-        .limit(200);
+          const links = linksResult.data;
+          if (links) {
+            placesData.push(
+              ...links.map(link => ({
+                name: link.title,
+                url: link.url,
+                description: link.category
+                  ? `[${link.category}] ${link.description || ''}`
+                  : link.description || undefined,
+                votes: link.votes || 0,
+              })),
+            );
+          }
 
-      if (links) {
-        placesData.push(
-          ...links.map(link => ({
-            name: link.title,
-            url: link.url,
-            description: link.category
-              ? `[${link.category}] ${link.description || ''}`
-              : link.description || undefined,
-            votes: link.votes || 0,
-          })),
-        );
-      }
-
-      result.places = placesData;
+          result.places = placesData;
+        })(),
+      );
     }
 
-    // Fetch roster if requested
     if (sections.includes('roster')) {
-      const { data: members } = await supabase
-        .from('trip_members')
-        .select(
-          `
+      sectionFetches.push(
+        (async () => {
+          const { data: members } = await supabase
+            .from('trip_members')
+            .select(
+              `
           role,
           user_id
         `,
-        )
-        .eq('trip_id', tripId)
-        .limit(200);
+            )
+            .eq('trip_id', tripId)
+            .limit(200);
 
-      const memberIds = (members || []).map(m => m.user_id);
-      let profilesMap = new Map<
-        string,
-        {
-          user_id: string;
-          display_name: string | null;
-          resolved_display_name: string | null;
-          avatar_url: string | null;
-        }
-      >();
+          const memberIds = (members || []).map(m => m.user_id);
+          let profilesMap = new Map<
+            string,
+            {
+              user_id: string;
+              display_name: string | null;
+              resolved_display_name: string | null;
+              avatar_url: string | null;
+            }
+          >();
 
-      if (memberIds.length) {
-        const { data: profiles } = await supabase
-          .from('profiles_public')
-          .select('user_id, display_name, resolved_display_name, avatar_url')
-          .in('user_id', memberIds)
-          .limit(200);
+          if (memberIds.length) {
+            const { data: profiles } = await supabase
+              .from('profiles_public')
+              .select('user_id, display_name, resolved_display_name, avatar_url')
+              .in('user_id', memberIds)
+              .limit(200);
 
-        profilesMap = new Map((profiles || []).map(p => [p.user_id, p]));
-      }
+            profilesMap = new Map((profiles || []).map(p => [p.user_id, p]));
+          }
 
-      result.roster =
-        members?.map(m => {
-          const profile = profilesMap.get(m.user_id);
-          return {
-            name: profile?.resolved_display_name || profile?.display_name || 'Unknown',
-            role: m.role || 'member',
-          };
-        }) || [];
+          result.roster =
+            members?.map(m => {
+              const profile = profilesMap.get(m.user_id);
+              return {
+                name: profile?.resolved_display_name || profile?.display_name || 'Unknown',
+                role: m.role || 'member',
+              };
+            }) || [];
+        })(),
+      );
     }
 
-    // Fetch broadcasts if requested
     if (sections.includes('broadcasts')) {
-      const { data: broadcasts } = await supabase
-        .from('broadcasts')
-        .select(
-          `
+      sectionFetches.push(
+        (async () => {
+          const { data: broadcasts } = await supabase
+            .from('broadcasts')
+            .select(
+              `
           message,
           priority,
           created_at,
@@ -405,32 +430,35 @@ export async function getExportData(
             display_name
           )
         `,
-        )
-        .eq('trip_id', tripId)
-        .eq('is_sent', true)
-        .order('created_at', { ascending: true })
-        .limit(200);
+            )
+            .eq('trip_id', tripId)
+            .eq('is_sent', true)
+            .order('created_at', { ascending: true })
+            .limit(200);
 
-      if (broadcasts && broadcasts.length > 0) {
-        result.broadcasts = broadcasts.map(b => ({
-          message: b.message,
-          priority: b.priority || 'fyi',
-          timestamp: b.created_at,
-          sender:
-            (b.profiles as { display_name: string | null } | null)?.display_name || 'Team Member',
-          read_count: 0,
-        }));
-      }
+          if (broadcasts && broadcasts.length > 0) {
+            result.broadcasts = broadcasts.map(b => ({
+              message: b.message,
+              priority: b.priority || 'fyi',
+              timestamp: b.created_at,
+              sender:
+                (b.profiles as { display_name: string | null } | null)?.display_name ||
+                'Team Member',
+              read_count: 0,
+            }));
+          }
+        })(),
+      );
     }
 
-    // Fetch attachments if requested
     if (sections.includes('attachments')) {
-      // Fetch files and artifact enrichments in parallel
-      const [filesResult, artifactsResult] = await Promise.all([
-        supabase
-          .from('trip_files')
-          .select(
-            `
+      sectionFetches.push(
+        (async () => {
+          const [filesResult, artifactsResult] = await Promise.all([
+            supabase
+              .from('trip_files')
+              .select(
+                `
             id,
             name,
             file_type,
@@ -440,125 +468,124 @@ export async function getExportData(
               display_name
             )
           `,
-          )
-          .eq('trip_id', tripId)
-          .order('created_at', { ascending: false })
-          .limit(500),
-        supabase
-          .from('trip_artifacts')
-          .select('file_name, artifact_type, ai_summary, artifact_type_confidence')
-          .eq('trip_id', tripId)
-          .in('embedding_status', ['completed', 'skipped'])
-          .gt('artifact_type_confidence', 0.5),
-      ]);
+              )
+              .eq('trip_id', tripId)
+              .order('created_at', { ascending: false })
+              .limit(500),
+            supabase
+              .from('trip_artifacts')
+              .select('file_name, artifact_type, ai_summary, artifact_type_confidence')
+              .eq('trip_id', tripId)
+              .in('embedding_status', ['completed', 'skipped'])
+              .gt('artifact_type_confidence', 0.5),
+          ]);
 
-      // Build enrichment lookup (graceful: empty map on failure)
-      const enrichmentMap = new Map<string, { category: string; summary: string }>();
-      const artifactCategoryLabels: Record<string, string> = {
-        flight: 'Flight',
-        hotel: 'Hotel Booking',
-        restaurant_reservation: 'Restaurant Reservation',
-        event_ticket: 'Event Ticket',
-        itinerary: 'Itinerary',
-        schedule: 'Schedule',
-        place_recommendation: 'Place Recommendation',
-        payment_proof: 'Payment Receipt',
-        roster: 'Roster',
-        credential: 'Credential',
-        generic_document: 'Document',
-        generic_image: 'Photo',
-      };
-
-      if (artifactsResult.data && !artifactsResult.error) {
-        for (const artifact of artifactsResult.data) {
-          if (!artifact.file_name) continue;
-          const key = (artifact.file_name as string).toLowerCase().trim();
-          if (enrichmentMap.has(key)) continue;
-          const label = artifactCategoryLabels[artifact.artifact_type as string];
-          if (!label) continue;
-          enrichmentMap.set(key, {
-            category: label,
-            summary: (artifact.ai_summary as string) || '',
-          });
-        }
-      }
-
-      const attachments =
-        filesResult.data?.map(f => {
-          const fileName = f.name || 'Unknown file';
-          const enrichment = enrichmentMap.get((fileName as string).toLowerCase().trim());
-          return {
-            name: fileName,
-            type: f.file_type,
-            uploaded_at: f.created_at,
-            uploaded_by: (f.profiles as unknown)?.display_name || 'Unknown',
-            artifact_category: enrichment?.category,
-            artifact_summary: enrichment?.summary || undefined,
+          const enrichmentMap = new Map<string, { category: string; summary: string }>();
+          const artifactCategoryLabels: Record<string, string> = {
+            flight: 'Flight',
+            hotel: 'Hotel Booking',
+            restaurant_reservation: 'Restaurant Reservation',
+            event_ticket: 'Event Ticket',
+            itinerary: 'Itinerary',
+            schedule: 'Schedule',
+            place_recommendation: 'Place Recommendation',
+            payment_proof: 'Payment Receipt',
+            roster: 'Roster',
+            credential: 'Credential',
+            generic_document: 'Document',
+            generic_image: 'Photo',
           };
-        }) || [];
 
-      // Sort: enriched (classified) attachments first, then by original order
-      attachments.sort((a, b) => {
-        const aEnriched = a.artifact_category ? 0 : 1;
-        const bEnriched = b.artifact_category ? 0 : 1;
-        return aEnriched - bEnriched;
-      });
-
-      (result as unknown).attachments = attachments;
-      result.attachments =
-        files?.map(f => ({
-          name: f.name,
-          type: f.file_type,
-          uploaded_at: f.created_at,
-          uploaded_by:
-            (f.profiles as { display_name: string | null } | null)?.display_name || 'Unknown',
-        })) || [];
-    }
-
-    // Fetch agenda items if requested (event-specific)
-    if (sections.includes('agenda')) {
-      const { data: agendaItems } = await supabase
-        .from('event_agenda_items')
-        .select('title, session_date, start_time, end_time, location, track, speakers')
-        .eq('event_id', tripId)
-        .order('start_time', { ascending: true })
-        .limit(500);
-
-      result.agenda =
-        agendaItems?.map(item => ({
-          title: item.title,
-          session_date: (item as { session_date?: string }).session_date || undefined,
-          start_time: item.start_time || undefined,
-          end_time: item.end_time || undefined,
-          location: item.location || undefined,
-          track: item.track || undefined,
-          speakers: item.speakers || undefined,
-        })) || [];
-    }
-
-    // Fetch lineup if requested (event-specific — derived from agenda speakers)
-    if (sections.includes('lineup')) {
-      const { data: agendaItems } = await supabase
-        .from('event_agenda_items')
-        .select('speakers, track')
-        .eq('event_id', tripId)
-        .limit(500);
-
-      // Deduplicate speakers across all agenda items
-      const speakerMap = new Map<string, { name: string; type?: string }>();
-      (agendaItems || []).forEach(item => {
-        (item.speakers || []).forEach((speaker: string) => {
-          if (!speakerMap.has(speaker)) {
-            speakerMap.set(speaker, {
-              name: speaker,
-              type: item.track || undefined,
-            });
+          if (artifactsResult.data && !artifactsResult.error) {
+            for (const artifact of artifactsResult.data) {
+              if (!artifact.file_name) continue;
+              const key = (artifact.file_name as string).toLowerCase().trim();
+              if (enrichmentMap.has(key)) continue;
+              const label = artifactCategoryLabels[artifact.artifact_type as string];
+              if (!label) continue;
+              enrichmentMap.set(key, {
+                category: label,
+                summary: (artifact.ai_summary as string) || '',
+              });
+            }
           }
-        });
-      });
 
-      result.lineup = Array.from(speakerMap.values());
+          const attachments =
+            filesResult.data?.map(f => {
+              const fileName = f.name || 'Unknown file';
+              const enrichment = enrichmentMap.get((fileName as string).toLowerCase().trim());
+              return {
+                name: fileName,
+                type: f.file_type,
+                uploaded_at: f.created_at,
+                uploaded_by: (f.profiles as unknown)?.display_name || 'Unknown',
+                artifact_category: enrichment?.category,
+                artifact_summary: enrichment?.summary || undefined,
+              };
+            }) || [];
+
+          attachments.sort((a, b) => {
+            const aEnriched = a.artifact_category ? 0 : 1;
+            const bEnriched = b.artifact_category ? 0 : 1;
+            return aEnriched - bEnriched;
+          });
+
+          result.attachments = attachments;
+        })(),
+      );
     }
+
+    if (sections.includes('agenda')) {
+      sectionFetches.push(
+        (async () => {
+          const { data: agendaItems } = await supabase
+            .from('event_agenda_items')
+            .select('title, session_date, start_time, end_time, location, track, speakers')
+            .eq('event_id', tripId)
+            .order('start_time', { ascending: true })
+            .limit(500);
+
+          result.agenda =
+            agendaItems?.map(item => ({
+              title: item.title,
+              session_date: (item as { session_date?: string }).session_date || undefined,
+              start_time: item.start_time || undefined,
+              end_time: item.end_time || undefined,
+              location: item.location || undefined,
+              track: item.track || undefined,
+              speakers: item.speakers || undefined,
+            })) || [];
+        })(),
+      );
+    }
+
+    if (sections.includes('lineup')) {
+      sectionFetches.push(
+        (async () => {
+          const { data: agendaItems } = await supabase
+            .from('event_agenda_items')
+            .select('speakers, track')
+            .eq('event_id', tripId)
+            .limit(500);
+
+          const speakerMap = new Map<string, { name: string; type?: string }>();
+          (agendaItems || []).forEach(item => {
+            (item.speakers || []).forEach((speaker: string) => {
+              if (!speakerMap.has(speaker)) {
+                speakerMap.set(speaker, {
+                  name: speaker,
+                  type: item.track || undefined,
+                });
+              }
+            });
+          });
+
+          result.lineup = Array.from(speakerMap.values());
+        })(),
+      );
+    }
+
+    await Promise.all(sectionFetches);
 
     return result;
   } catch (error) {
