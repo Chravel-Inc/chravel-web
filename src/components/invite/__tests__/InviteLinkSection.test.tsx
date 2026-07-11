@@ -85,8 +85,9 @@ describe('InviteLinkSection', () => {
     );
 
     expect(screen.getByRole('alert')).toHaveTextContent(/Regenerate to apply/i);
-    expect(screen.getByText('Copy')).toBeDisabled();
-    fireEvent.click(screen.getByText('Copy'));
+    const copyButton = screen.getByRole('button', { name: /copy invite link/i });
+    expect(copyButton).toBeDisabled();
+    fireEvent.click(copyButton);
     expect(onCopyLink).not.toHaveBeenCalled();
   });
 });
