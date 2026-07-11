@@ -31,6 +31,7 @@ interface VirtualizedMessageContainerProps {
   autoScroll?: boolean;
   restoreScroll?: boolean;
   scrollKey?: string;
+  scrollContainerRef?: React.MutableRefObject<HTMLDivElement | null>;
 }
 
 type RowItem =
@@ -52,6 +53,7 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
   autoScroll = true,
   restoreScroll = true,
   scrollKey = 'chat-scroll',
+  scrollContainerRef,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -65,6 +67,16 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
   );
   const localHasMore = visibleStartIndex > 0;
   const visibleMessages = messages.slice(visibleStartIndex);
+
+  const setContainerNode = useCallback(
+    (node: HTMLDivElement | null) => {
+      containerRef.current = node;
+      if (scrollContainerRef) {
+        scrollContainerRef.current = node;
+      }
+    },
+    [scrollContainerRef],
+  );
 
   const TWO_MINUTES_MS = 2 * 60 * 1000;
 
@@ -98,6 +110,15 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
     getScrollElement: () => containerRef.current,
     estimateSize: index => (rows[index]?.type === 'date' ? DATE_ROW_HEIGHT : ROW_HEIGHT_ESTIMATE),
     overscan: 5,
+    // Key the measurement cache by item identity, not index: when a filter
+    // (e.g. chat → Broadcasts) shrinks the list, surviving rows shift index
+    // without remounting and would otherwise inherit another row's cached
+    // height, stacking bubbles on top of each other.
+    getItemKey: index => {
+      const row = rows[index];
+      if (!row) return index;
+      return row.type === 'date' ? `date-${row.date.getTime()}` : row.message.id;
+    },
   });
 
   const virtualItems = virtualizer.getVirtualItems();
@@ -221,7 +242,7 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
   return (
     <div className="relative flex-1 flex flex-col min-h-0">
       <div
-        ref={containerRef}
+        ref={setContainerNode}
         onScroll={handleScroll}
         className={`flex-1 overflow-y-auto scroll-smooth ${className}`}
         style={{ WebkitOverflowScrolling: 'touch', ...style }}

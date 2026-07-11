@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { ChevronLeft, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hapticService } from '@/services/hapticService';
@@ -36,11 +36,27 @@ export const NativeLargeTitle = ({
   const [scrollY, setScrollY] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Track scroll position
+  // Coalesce scroll updates to one state write per frame. Writing on every native
+  // scroll event re-rendered the collapsing-title transform per pixel, which competes
+  // with iOS momentum and reads as jitter/vibration. We always render the *latest*
+  // scroll position seen within the frame so the header settles on the final value.
+  const rafRef = useRef<number | null>(null);
+  const latestScrollTopRef = useRef(0);
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLDivElement;
-    setScrollY(target.scrollTop);
+    latestScrollTopRef.current = (e.target as HTMLDivElement).scrollTop;
+    if (rafRef.current !== null) return;
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      setScrollY(latestScrollTopRef.current);
+    });
   }, []);
+
+  useEffect(
+    () => () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    },
+    [],
+  );
 
   // Calculate header collapse progress (0 = expanded, 1 = collapsed)
   const collapseProgress = Math.min(scrollY / 60, 1);

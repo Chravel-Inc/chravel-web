@@ -89,11 +89,14 @@ import { shouldShowOnboarding, capturePendingDestination } from '../utils/onboar
 // in their own lazy chunk instead of riding along in the Index bundle.
 import { useChaosSurveyStore } from '../features/onboarding/hooks/useChaosSurveyStore';
 import { useFeatureFlagStatus } from '../lib/featureFlags';
+import { clearPendingInviteCode, getPendingInviteCode } from '../lib/pendingInviteStorage';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../components/mobile/PullToRefreshIndicator';
 import { clearDataCaches } from '../utils/pwaCacheUtils';
-import { isInstalledApp } from '../utils/platformDetection';
+import { isInstalledApp, isNativeAuthSurface } from '../utils/platformDetection';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { BootHydrationFallback } from '../components/home/DashboardSkeleton';
+import { performanceService } from '../services/performanceService';
 import { X } from 'lucide-react';
 import { getSettingsRouteIntent } from '../utils/settingsRouteParams';
 
@@ -157,6 +160,14 @@ const AuthIndex = () => {
     isDemoMode,
   });
 
+  // Boot timeline: dashboard reached with a resolved authenticated session.
+  // markBootPhase records only the first occurrence, so re-renders are free.
+  useEffect(() => {
+    if (!authLoading && user) {
+      performanceService.markBootPhase('dashboard_rendered');
+    }
+  }, [authLoading, user]);
+
   // Choose-your-own-adventure onboarding: a choice screen offers (1) the Trip Chaos
   // survey → personalized tour, (2) the demo tour, or (3) straight to the dashboard.
   // Gated by a Supabase kill switch (defaults OFF so a flag-fetch failure falls back
@@ -195,8 +206,7 @@ const AuthIndex = () => {
     const pendingDest = getPendingDestination();
     if (pendingDest) {
       clearPendingDestination();
-      // Also clear the original invite code storage
-      sessionStorage.removeItem('chravel_pending_invite_code');
+      clearPendingInviteCode();
       navigate(pendingDest, { replace: true });
     }
     // Otherwise stay on dashboard (default)
@@ -748,7 +758,7 @@ const AuthIndex = () => {
   useEffect(() => {
     if (!user) return;
 
-    const pendingInviteCode = sessionStorage.getItem('chravel_pending_invite_code');
+    const pendingInviteCode = getPendingInviteCode();
     if (pendingInviteCode) {
       const destination = `/join/${pendingInviteCode}`;
 
@@ -758,7 +768,7 @@ const AuthIndex = () => {
         // Don't remove the invite code yet - onboarding will handle cleanup
       } else {
         // User has completed onboarding - navigate immediately
-        sessionStorage.removeItem('chravel_pending_invite_code');
+        clearPendingInviteCode();
         navigate(destination, { replace: true });
       }
     }
@@ -782,17 +792,16 @@ const AuthIndex = () => {
   // MRKTING toggle: Show marketing page only for unauthenticated BROWSER users.
   // Gate on authLoading to prevent marketing page flash during session hydration.
   if (demoView === 'off' && !user) {
-    // Auth is still hydrating — show neutral loading state on all platforms
+    // Auth is still hydrating — BootHydrationFallback paints the dashboard
+    // skeleton when the device looks authenticated, else a neutral spinner.
     if (authLoading) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-background">
-          <LoadingSpinner size="lg" />
-        </div>
-      );
+      return <BootHydrationFallback />;
     }
 
-    // Installed app (PWA standalone or native webview) — show auth gate, not marketing
-    if (isInstalledApp()) {
+    // Only real native shells / installed PWA jump straight to the auth gate.
+    // Generic iOS WKWebViews (Instagram/Facebook in-app browsers, embedded
+    // previews) fall through to the marketing landing.
+    if (isNativeAuthSurface()) {
       return (
         <div className="min-h-screen bg-background">
           <Suspense fallback={null}>
@@ -802,9 +811,11 @@ const AuthIndex = () => {
       );
     }
 
-    // Browser — show marketing landing page (unchanged behavior)
+    // Browser — show marketing landing page (unchanged behavior).
+    // data-marketing scopes the editorial Fraunces typography (src/index.css)
+    // to this landing surface, matching the MarketingApp bootstrap path.
     return (
-      <div className="min-h-screen min-h-mobile-screen bg-background font-outfit">
+      <div className="min-h-screen min-h-mobile-screen bg-background" data-marketing="true">
         <Suspense fallback={<div className="min-h-screen bg-background" />}>
           <FullPageLanding onSignUp={() => setIsAuthModalOpen(true)} />
           <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
@@ -1036,7 +1047,7 @@ const AuthIndex = () => {
           />
           <NativeTabBarSpacer />
 
-          {/* Trip type switcher (Instagram-style) - now includes Chravel Recs */}
+          {/* Trip type switcher (Instagram-style) - now includes ChravelApp Recs */}
           <NativeTripTypeSwitcher
             isOpen={showTripTypeSwitcher}
             onClose={() => setShowTripTypeSwitcher(false)}
@@ -1231,7 +1242,7 @@ const AuthIndex = () => {
         />
         <NativeTabBarSpacer />
 
-        {/* Trip type switcher (Instagram-style) - now includes Chravel Recs */}
+        {/* Trip type switcher (Instagram-style) - now includes ChravelApp Recs */}
         <NativeTripTypeSwitcher
           isOpen={showTripTypeSwitcher}
           onClose={() => setShowTripTypeSwitcher(false)}
@@ -1456,7 +1467,7 @@ const AuthIndex = () => {
       />
       <NativeTabBarSpacer />
 
-      {/* Trip type switcher (Instagram-style) - now includes Chravel Recs */}
+      {/* Trip type switcher (Instagram-style) - now includes ChravelApp Recs */}
       <NativeTripTypeSwitcher
         isOpen={showTripTypeSwitcher}
         onClose={() => setShowTripTypeSwitcher(false)}
@@ -1486,21 +1497,22 @@ const UnauthIndex = ({
 }) => {
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | null>(null);
   if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
+    return <BootHydrationFallback />;
   }
 
   if (isInstalled) {
     return <Navigate to="/auth?mode=signin&returnTo=%2F" replace />;
   }
 
+  // data-marketing scopes the editorial Fraunces typography (src/index.css)
+  // to this landing surface, matching the MarketingApp bootstrap path.
   return (
-    <div className="min-h-screen min-h-mobile-screen bg-background font-outfit">
+    <div className="min-h-screen min-h-mobile-screen bg-background" data-marketing="true">
       <Suspense fallback={<div className="min-h-screen bg-background" />}>
-        <FullPageLanding onSignUp={() => setAuthMode('signup')} />
+        <FullPageLanding
+          onSignUp={() => setAuthMode('signup')}
+          onAuthRequired={() => setAuthMode('signin')}
+        />
         {authMode && (
           <Suspense fallback={null}>
             <AuthModal isOpen initialMode={authMode} onClose={() => setAuthMode(null)} />
@@ -1512,10 +1524,15 @@ const UnauthIndex = ({
 };
 
 const Index = () => {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, session, isLoading: authLoading, isHydrated } = useAuth();
   const { demoView } = useDemoMode();
   if (demoView === 'off' && !user) {
-    return <UnauthIndex authLoading={authLoading} isInstalled={isInstalledApp()} />;
+    // Session can exist while profile enrichment is still running — never flash the
+    // sign-in modal during that window (common on mobile resume / cold start).
+    if (!isHydrated || authLoading || session) {
+      return <BootHydrationFallback />;
+    }
+    return <UnauthIndex authLoading={authLoading} isInstalled={isNativeAuthSurface()} />;
   }
 
   return <AuthIndex />;

@@ -179,7 +179,7 @@ export const SeatManagement = () => {
         </h3>
         <Button
           onClick={() => setShowInviteModal(true)}
-          className="bg-glass-orange hover:bg-glass-orange/80 min-h-[44px]"
+          className="bg-primary hover:bg-primary/80 min-h-[44px]"
           disabled={currentOrg.seats_used >= currentOrg.seat_limit}
           aria-label={
             currentOrg.seats_used >= currentOrg.seat_limit
@@ -226,13 +226,13 @@ export const SeatManagement = () => {
               {Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Skeleton className="w-10 h-10 rounded-full bg-white/10" />
+                    <Skeleton className="w-10 h-10 rounded-full" />
                     <div>
-                      <Skeleton className="h-5 w-32 bg-white/10 mb-1" />
-                      <Skeleton className="h-4 w-20 bg-white/10" />
+                      <Skeleton className="h-5 w-32 mb-1" />
+                      <Skeleton className="h-4 w-20" />
                     </div>
                   </div>
-                  <Skeleton className="h-8 w-20 bg-white/10 rounded-lg" />
+                  <Skeleton className="h-8 w-20 rounded-lg" />
                 </div>
               ))}
             </div>
@@ -245,7 +245,7 @@ export const SeatManagement = () => {
               </p>
               <Button
                 onClick={() => setShowInviteModal(true)}
-                className="bg-glass-orange hover:bg-glass-orange/80 min-h-[44px]"
+                className="bg-primary hover:bg-primary/80 min-h-[44px]"
                 aria-label="Invite your first team member"
               >
                 <UserPlus size={16} className="mr-2" />
@@ -269,8 +269,8 @@ export const SeatManagement = () => {
                         className="w-10 h-10 rounded-full"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-glass-orange/20 flex items-center justify-center">
-                        <UserIcon size={20} className="text-glass-orange" />
+                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                        <UserIcon size={20} className="text-primary" />
                       </div>
                     )}
                     <div>

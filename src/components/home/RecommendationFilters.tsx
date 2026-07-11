@@ -11,7 +11,11 @@ import {
   Search,
   X,
   Bookmark,
+  Martini,
+  Trophy,
+  Landmark,
 } from 'lucide-react';
+import { recommendationCategoryFilters } from '@/data/recommendations/categories';
 
 interface RecommendationFiltersProps {
   activeFilter: string;
@@ -23,15 +27,28 @@ interface RecommendationFiltersProps {
   onSearchChange?: (query: string) => void;
 }
 
+const categoryIcons = {
+  hotel: Hotel,
+  restaurant: UtensilsCrossed,
+  activity: MapPin,
+  tour: Camera,
+  experience: Star,
+  transportation: Car,
+  nightlife: Martini,
+  sports: Trophy,
+  landmarks: Landmark,
+} satisfies Record<
+  (typeof recommendationCategoryFilters)[number]['id'],
+  React.ComponentType<{ className?: string }>
+>;
+
 const filters = [
   { id: 'all', label: 'All', icon: Star },
   { id: 'saved', label: 'Saved', icon: Bookmark },
-  { id: 'hotel', label: 'Hotels', icon: Hotel },
-  { id: 'restaurant', label: 'Dining', icon: UtensilsCrossed },
-  { id: 'activity', label: 'Activities', icon: MapPin },
-  { id: 'tour', label: 'Tours', icon: Camera },
-  { id: 'experience', label: 'Experiences', icon: Star },
-  { id: 'transportation', label: 'Transportation', icon: Car },
+  ...recommendationCategoryFilters.map(filter => ({
+    ...filter,
+    icon: categoryIcons[filter.id],
+  })),
 ];
 
 export const RecommendationFilters = ({
@@ -72,7 +89,8 @@ export const RecommendationFilters = ({
                     ? // Gold border + translucent gold fill is the selected signal.
                       // Text stays WHITE so the label is always legible on the dark UI.
                       'border-gold-primary bg-gold-primary/15 text-white hover:bg-gold-primary/25 hover:text-white'
-                    : 'border-border/50 hover:border-accent/50'
+                    : // Keep text WHITE in idle + hover on dark UI; only the border tints gold on hover.
+                      'border-border/50 text-white hover:border-gold-primary/60 hover:bg-gold-primary/10 hover:text-white'
                 }`}
                 onClick={() => onFilterChange(filter.id)}
               >

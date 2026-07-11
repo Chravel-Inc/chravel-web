@@ -65,6 +65,7 @@ interface Trip {
   dateRange: string;
   participants: Participant[];
   coverPhoto?: string;
+  coverDisplayMode?: 'cover' | 'contain';
   placesCount?: number;
   peopleCount?: number;
   created_by?: string;
@@ -173,7 +174,7 @@ export const TripCard = ({
   const actionButtonClass = cn(
     buttonVariants({ variant: 'ghost', size: 'sm' }),
     // Ghost applies hover:text-accent-foreground (black in theme); keep labels white on tap/hover (mobile + desktop).
-    'min-h-[44px] bg-gray-800/50 text-white border border-white/15 hover:bg-gray-700/50 hover:border-white/30 hover:text-white active:text-white focus-visible:text-white disabled:opacity-50 disabled:cursor-not-allowed md:text-sm text-xs px-2 md:px-3 py-2.5 md:py-3 rounded-lg md:rounded-xl',
+    'min-h-[44px] bg-white/5 text-white border border-white/10 hover:bg-white/10 hover:border-primary/30 hover:text-white active:text-white focus-visible:text-white disabled:opacity-50 disabled:cursor-not-allowed md:text-sm text-xs px-2 md:px-3 py-2.5 md:py-3 rounded-xl',
   );
   const secondaryActionButtonClass = cn(
     actionButtonClass,
@@ -440,10 +441,11 @@ export const TripCard = ({
   const daysUntil = isConsumer ? gamificationService.getDaysUntilTrip(trip.id.toString()) : 0;
   const momentum = isConsumer ? gamificationService.getTripMomentum(trip.id.toString()) : 'cold';
   const demoCoverFallback = isDemoMode ? getDemoTripCoverFallback(trip.id) : undefined;
+  const coverFit = trip.coverDisplayMode === 'contain' ? 'contain' : 'cover';
 
   return (
     <div
-      className="group w-full min-w-0 bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/15 hover:border-white/30 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl shadow-black/30"
+      className="group w-full min-w-0 bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/15 hover:border-primary/25 rounded-2xl overflow-hidden transition-all duration-300 motion-safe:hover:-translate-y-1 shadow-enterprise hover:shadow-enterprise-md"
       onMouseEnter={handlePrefetch}
       onFocus={handlePrefetch}
       onTouchStart={handlePrefetch}
@@ -458,7 +460,8 @@ export const TripCard = ({
             fallbackSrc={demoCoverFallback}
             lazy={!priority}
             priority={priority}
-            fit="cover"
+            fit={coverFit}
+            showBlurBackdrop={coverFit === 'contain'}
             className="absolute inset-0 opacity-80"
           />
         )}
@@ -469,7 +472,7 @@ export const TripCard = ({
               <div className="flex-1">
                 <h3
                   title={trip.title}
-                  className="text-base md:text-lg tablet:text-xl font-bold text-white transition-all duration-300 line-clamp-2 md:line-clamp-1 md:truncate"
+                  className="text-base md:text-lg tablet:text-xl font-bold tracking-tight text-white transition-all duration-300 line-clamp-2 md:line-clamp-1 md:truncate"
                 >
                   {trip.title}
                 </h3>
@@ -495,10 +498,7 @@ export const TripCard = ({
                       </Badge>
                     )}
                     {daysUntil > 0 && daysUntil <= 7 && (
-                      <Badge
-                        variant="secondary"
-                        className="bg-gold-primary/20 text-gold-light border-gold-primary/30 animate-pulse"
-                      >
+                      <Badge variant="gold" className="shadow-ring-glow">
                         {daysUntil} {daysUntil === 1 ? 'day' : 'days'} left
                       </Badge>
                     )}

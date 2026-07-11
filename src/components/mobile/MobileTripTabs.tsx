@@ -6,7 +6,7 @@ import {
   BarChart3,
   Camera,
   MapPin,
-  Sparkles,
+  Headset,
   CreditCard,
   Lock,
   Users,
@@ -172,6 +172,13 @@ export const MobileTripTabs = ({
   // Tier 3 (media) stays lazy until visited.
   const TIER_1_TABS: readonly string[] = ['chat', 'calendar', 'concierge'];
   const TIER_2_TABS: readonly string[] = ['tasks', 'polls', 'places', 'payments'];
+
+  // Tabs that own an internal scroll area + a pinned composer (message list scrolls
+  // inside the tab; the composer is a fixed bottom sibling). These must NOT be wrapped
+  // in a scroll container — on iOS WKWebView a momentum-scroll wrapper rubber-bands the
+  // whole tab (composer included) before the input is even focused, and the page's
+  // bg-black shows through underneath. Content tabs keep page scroll on the wrapper.
+  const INTERNAL_SCROLL_TABS: readonly string[] = ['chat', 'concierge'];
   const [visitedTabs, setVisitedTabs] = useState<Set<string>>(
     () => new Set([activeTab, ...TIER_1_TABS]),
   );
@@ -260,7 +267,7 @@ export const MobileTripTabs = ({
     const baseTabs = [
       { id: 'chat', label: 'Chat', icon: MessageCircle, enabled: features.showChat },
       { id: 'calendar', label: 'Calendar', icon: Calendar, enabled: features.showCalendar },
-      { id: 'concierge', label: 'Concierge', icon: Sparkles, enabled: features.showConcierge },
+      { id: 'concierge', label: 'Concierge', icon: Headset, enabled: features.showConcierge },
       { id: 'media', label: 'Media', icon: Camera, enabled: features.showMedia },
       { id: 'payments', label: 'Payments', icon: CreditCard, enabled: features.showPayments },
       { id: 'places', label: 'Places', icon: MapPin, enabled: features.showPlaces },
@@ -333,7 +340,7 @@ export const MobileTripTabs = ({
         });
         return;
       }
-      await hapticService.light();
+      void hapticService.light();
       onTabChange(tabId);
     },
     [onTabChange, variant],
@@ -509,6 +516,9 @@ export const MobileTripTabs = ({
               tripId={tripId}
               basecamp={basecamp}
               isDemoMode={isDemoMode}
+              // Must recompute when activeTab changes — a stale false value makes
+              // Concierge immediately close Search (and cancel conversation mode).
+              isActive={activeTab === tabId}
               onTabChange={onTabChange}
             />
           );
@@ -540,6 +550,7 @@ export const MobileTripTabs = ({
       handleLineupUpdate,
       isLoadingRoster,
       onTabChange,
+      activeTab,
     ],
   );
 
@@ -567,8 +578,17 @@ export const MobileTripTabs = ({
           style={{
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
-            scrollSnapType: 'x mandatory',
-            WebkitOverflowScrolling: 'touch',
+            // ⚠️ iOS tap-reliability — do NOT add `scrollSnapType: 'x mandatory'` or
+            // `WebkitOverflowScrolling: 'touch'` here. This row lives inside the
+            // position:fixed `.mobile-trip-shell`. On iOS WKWebView, a momentum-scroll
+            // compositor layer (made worse by a mandatory snap with no real snap
+            // targets — the buttons' old `scroll-snap-align-start` class doesn't exist)
+            // leaves the hit-test rects of horizontally scrolled-in tabs stale, so
+            // Media → Tasks silently stop responding to taps while Chat/Calendar/
+            // Concierge (visible at rest) keep working. Plain overflow scrolling
+            // hit-tests correctly; `touch-action: manipulation` drops the 300ms delay.
+            touchAction: 'manipulation',
+            overscrollBehaviorX: 'contain',
           }}
         >
           {tabs.map(tab => {
@@ -590,7 +610,7 @@ export const MobileTripTabs = ({
                   rounded-lg font-medium text-sm
                   transition-all duration-200
                   flex-shrink-0
-                  scroll-snap-align-start
+                  touch-manipulation
                   ${enabled ? 'active:scale-95' : variant === 'event' ? '' : 'cursor-not-allowed'}
                   ${
                     isActive && enabled
@@ -599,7 +619,7 @@ export const MobileTripTabs = ({
                         ? 'accent-ring-idle text-muted-foreground hover:bg-muted/70 hover:text-foreground'
                         : variant === 'event'
                           ? 'accent-ring-idle text-muted-foreground'
-                          : 'bg-white/5 text-gray-500 opacity-40 grayscale cursor-not-allowed'
+                          : 'bg-white/5 text-ink-3 opacity-40 grayscale cursor-not-allowed'
                   }
                 `}
               >
@@ -612,8 +632,22 @@ export const MobileTripTabs = ({
         </div>
       </div>
 
-      {/* Tab Content — flex-1 fills remaining shell height (header/demo bar/tab rail already reserved). */}
-      <div ref={contentRef} className="bg-background flex flex-col min-h-0 flex-1 overflow-hidden">
+      {/* Tab Content - bounded height ensures tab rail stays visible regardless of parent layout.
+          Height tracks --visual-viewport-height (set by useKeyboardHandler) so when the iOS
+          keyboard opens the content area shrinks to the visible viewport. This keeps the pinned
+          composer (the bottom flex child of internal-scroll tabs) sitting directly above the
+          keyboard and lets only the message list scroll — native iMessage/WhatsApp behavior —
+          instead of WebKit scrolling the whole webview to reveal the focused input. Falls back to
+          100dvh when no keyboard is open. */}
+      <div
+        ref={contentRef}
+        className="bg-background flex flex-col min-h-0 flex-1 overflow-hidden"
+        style={{
+          height:
+            'calc(var(--visual-viewport-height, 100dvh) - var(--mobile-header-h, 73px) - var(--mobile-tabs-h, 52px))',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
         {tabs
           .filter(t => variant === 'event' || t.enabled !== false)
           .map(tab => {
@@ -627,7 +661,8 @@ export const MobileTripTabs = ({
             // updates visitedTabs AFTER the first render, causing the tab to not mount
             if (!hasBeenVisited && !isActive) return null;
 
-            const scrollContained = isActive && FIXED_BOTTOM_COMPOSER_TABS.has(tab.id);
+            const ownsInternalScroll = INTERNAL_SCROLL_TABS.includes(tab.id);
+            const scrollContained = isActive && ownsInternalScroll;
 
             return (
               <div
@@ -638,14 +673,22 @@ export const MobileTripTabs = ({
                   display: isActive ? 'flex' : 'none',
                   flexDirection: 'column',
                   minHeight: 0,
-                  // Chat/concierge pin a bottom composer — never let the tab panel scroll.
-                  overflowY: isActive && !scrollContained ? 'auto' : 'hidden',
+                  overflowY: scrollContained ? 'hidden' : isActive ? 'auto' : 'hidden',
                   overflowX: 'hidden',
                   overscrollBehaviorX: 'none',
                   overscrollBehaviorY: scrollContained ? 'none' : undefined,
-                  WebkitOverflowScrolling: isActive && !scrollContained ? 'touch' : undefined,
+                  WebkitOverflowScrolling: ownsInternalScroll
+                    ? undefined
+                    : isActive
+                      ? 'touch'
+                      : undefined,
+                  // Pre-mounted inactive panes must never intercept hits while display:none
+                  // is inconsistently applied in some WKWebView transforms.
+                  pointerEvents: isActive ? 'auto' : 'none',
                 }}
                 className={isActive ? 'h-full flex-1 relative' : ''}
+                aria-hidden={!isActive}
+                data-testid={isActive ? `mobile-tab-pane-${tab.id}` : undefined}
               >
                 {/* ⚡ Per-tab error boundary: errors stay on failing tab, no bounce-back */}
                 <div

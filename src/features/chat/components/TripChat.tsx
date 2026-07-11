@@ -7,7 +7,6 @@ import type { Channel } from 'stream-chat';
 import { demoModeService } from '@/services/demoModeService';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useChatComposer } from '../hooks/useChatComposer';
-import { useKeyboardHandler } from '@/hooks/useKeyboardHandler';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { useOfflineStatus } from '@/hooks/useOfflineStatus';
 import { ChatInput } from './ChatInput';
@@ -42,7 +41,7 @@ import { useTripChatMode } from '@/hooks/useTripChatMode';
 import { useLinkPreviews } from '../hooks/useLinkPreviews';
 import { useLinkPreviewActivation } from '../hooks/useLinkPreviewActivation';
 import { useBlockedUsers, useReportContent } from '@/hooks/useUserSafety';
-import { getStreamClient } from '@/services/stream/streamClient';
+import { getStreamApiKey, getStreamClient } from '@/services/stream/streamClient';
 import { derivePinnedMessages } from '../utils/pinnedMessages';
 import { extractQuotedReferenceFromStreamMessage } from '@/services/stream/streamMessagePayload';
 import { messageEvents } from '@/telemetry/events';
@@ -128,6 +127,7 @@ export const TripChat = React.memo(
 
     const [showSearchOverlay, setShowSearchOverlay] = useState(false);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
+    const messageScrollRef = useRef<HTMLDivElement>(null);
     const [failedMessages, setFailedMessages] = useState<
       Array<{
         id: string;
@@ -203,6 +203,7 @@ export const TripChat = React.memo(
     }, [chatError, resolvedTripId]);
 
     const { isRefreshing, pullDistance } = usePullToRefresh({
+      scrollContainerRef: messageScrollRef,
       onRefresh: async () => {
         if (resolvedTripId) {
           if (reload) {
@@ -481,16 +482,18 @@ export const TripChat = React.memo(
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const _containerRef = useRef<HTMLDivElement>(null);
 
-    // Handle keyboard visibility for better UX
-    const { isKeyboardVisible: _isKeyboardVisible } = useKeyboardHandler({
-      preventZoom: true,
-      adjustViewport: true,
-      onShow: () => {
+    // Scroll latest messages into view when the iOS keyboard opens (page shell owns viewport vars).
+    useEffect(() => {
+      const handleViewportResize = () => {
+        if (!document.body.classList.contains('keyboard-visible')) return;
         setTimeout(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         }, 300);
-      },
-    });
+      };
+
+      window.visualViewport?.addEventListener('resize', handleViewportResize);
+      return () => window.visualViewport?.removeEventListener('resize', handleViewportResize);
+    }, []);
 
     // Swipe gestures for mobile navigation
     const swipeRef = useRef<HTMLDivElement>(null);
@@ -1065,7 +1068,7 @@ export const TripChat = React.memo(
     );
 
     return (
-      <div className="chat-screen flex flex-col h-full min-h-0 overflow-hidden">
+      <div className="relative flex flex-col h-full min-h-0 overflow-hidden">
         <PullToRefreshIndicator
           isRefreshing={isRefreshing}
           pullDistance={pullDistance}
@@ -1129,20 +1132,29 @@ export const TripChat = React.memo(
                 {chatError && !isLoading ? (
                   <div className="flex-1 flex items-center justify-center p-6">
                     <div className="text-center space-y-3">
-                      <p className="text-sm text-muted-foreground">Something went wrong in Chat</p>
-                      <p className="text-xs text-muted-foreground">{NON_CRITICAL_CHAT_NOTE}</p>
-                      <button
-                        onClick={() => {
-                          toast.error('Chat needs a refresh', {
-                            description:
-                              'Please retry. If this persists, pull to refresh or reopen the trip.',
-                          });
-                          reload?.();
-                        }}
-                        className="text-sm text-primary underline hover:no-underline"
-                      >
-                        Retry
-                      </button>
+                      {getStreamApiKey() || chatError.message.includes('Timed out') ? (
+                        <>
+                          <p className="text-sm text-muted-foreground">
+                            Something went wrong in Chat
+                          </p>
+                          <p className="text-xs text-muted-foreground">{NON_CRITICAL_CHAT_NOTE}</p>
+                          <button
+                            onClick={() => {
+                              reload?.();
+                            }}
+                            className="text-sm text-primary underline hover:no-underline"
+                          >
+                            Retry
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm text-muted-foreground">Chat is initializing…</p>
+                          <p className="text-xs text-muted-foreground">
+                            Hang tight — connecting to the messaging service.
+                          </p>
+                        </>
+                      )}
                     </div>
                   </div>
                 ) : isLoading ? (
@@ -1182,6 +1194,7 @@ export const TripChat = React.memo(
                         autoScroll={true}
                         restoreScroll={true}
                         scrollKey={`chat-scroll-${resolvedTripId}`}
+                        scrollContainerRef={messageScrollRef}
                       />
                     </FeatureErrorBoundary>
                   </>

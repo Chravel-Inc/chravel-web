@@ -229,7 +229,7 @@ export const PLUS_STORAGE_QUOTA_MB = 50000; // 50GB
 
 // Feature availability
 export const FEATURE_ACCESS = {
-  AI_CONCIERGE: 'free', // 10 queries per trip
+  AI_CONCIERGE: 'free', // 3 queries per trip
   AI_QUERIES_EXPLORER: 25, // 25 queries per trip
   AI_QUERIES_UNLIMITED: 'frequent-chraveler',
   UNLIMITED_STORAGE: 'explorer', // Both paid tiers

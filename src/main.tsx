@@ -12,7 +12,19 @@ import { isLovablePreview } from './utils/env';
 import { hasAuthStorageMarker, shouldUseMarketingBootstrap } from './lib/bootstrapShell';
 import { isChravelNativeShell, isInstalledApp } from './utils/platformDetection';
 import { installChunkErrorRecovery, claimOneShotReload } from '@/utils/chunkRecovery';
+import { warmRouteChunksForPath } from './lib/routeChunks';
+import { getSafeStorage, safeGetItem, safeSetItem } from '@/utils/safeStorage';
+import '@fontsource/fraunces/400.css';
+import '@fontsource/fraunces/400-italic.css';
 import './index.css';
+
+// Boot-timeline anchor: raw mark (not performanceService) so the entry chunk
+// stays lean. performanceService reads it back when reporting `boot_timeline`.
+try {
+  performance.mark('chravel-boot:entry');
+} catch {
+  // ignore — older embedded WebViews without performance.mark
+}
 
 // ── Startup env validation ──────────────────────────────────────────────────
 // Supabase config is required at runtime. Accept either the modern
@@ -25,27 +37,14 @@ const hasRequiredSupabaseEnv = missingEnvVars.length === 0;
 const App = hasRequiredSupabaseEnv ? lazy(() => import('./App.tsx')) : null;
 const MarketingApp = hasRequiredSupabaseEnv ? lazy(() => import('./MarketingApp.tsx')) : null;
 
-// Kick off the AuthPage chunk in parallel with App.tsx when the cold-start route
-// is /auth. Without this, AuthPage waits behind App.tsx parse + AuthProvider mount
-// before its own chunk request even leaves the device — adding a serial round trip
-// to the slowest part of the cold-start path inside the native WebView shell.
-if (
-  hasRequiredSupabaseEnv &&
-  typeof window !== 'undefined' &&
-  window.location.pathname.startsWith('/auth')
-) {
-  void import('./pages/AuthPage');
+// Kick off route-critical chunks in parallel with App.tsx. The manifest in
+// routeChunks.ts shares its import() loaders with App.tsx's lazy() routes, so
+// the warmed chunk can never drift from the chunk the router actually renders.
+if (hasRequiredSupabaseEnv && typeof window !== 'undefined') {
+  warmRouteChunksForPath(window.location.pathname);
 }
 
 // ── Imperative init (runs after all imports are resolved) ──────────────────
-
-const safeLocalStorageGet = (key: string): string | null => {
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-};
 
 const safeCookieIncludes = (needle: string): boolean => {
   try {
@@ -55,11 +54,13 @@ const safeCookieIncludes = (needle: string): boolean => {
   }
 };
 
+// getSafeStorage: merely referencing `localStorage` throws in cookie-blocked
+// browsers — at module scope that would black-screen the app before boot.
 const hasAuthMarkerOnBoot =
   typeof window !== 'undefined' &&
   hasAuthStorageMarker({
-    localStorage,
-    sessionStorage,
+    localStorage: getSafeStorage('local'),
+    sessionStorage: getSafeStorage('session'),
     cookieIncludes: safeCookieIncludes,
   });
 
@@ -74,7 +75,26 @@ const shouldUseMarketingSplit =
     pathname: window.location.pathname,
     hasAuthMarker: hasAuthMarkerOnBoot,
     isInstalledApp: isInstalledApp(),
+    forceMarketing:
+      window.location.search.includes('marketing=1') ||
+      window.location.pathname === '/home' ||
+      window.location.pathname === '/index',
   });
+
+// Warm the cold-start route's page chunk in parallel with the App.tsx chunk —
+// same trick as the /auth warm-up above. Without this the page chunk is a
+// serial network hop AFTER App.tsx parses (index.html → entry → App → page),
+// which is the dominant cold-start cost in the native shell where no service
+// worker caches chunks. Vite dedupes the import promise, so the lazy() route
+// in App.tsx resolves instantly from the in-flight request.
+if (hasRequiredSupabaseEnv && typeof window !== 'undefined') {
+  const bootPath = window.location.pathname;
+  if (bootPath === '/' && !shouldUseMarketingSplit) {
+    void import('./pages/Index');
+  } else if (bootPath.startsWith('/trip/')) {
+    void import('./pages/TripDetail');
+  }
+}
 const safeLocalStorageSet = (key: string, value: string): void => {
   try {
     localStorage.setItem(key, value);
@@ -120,8 +140,12 @@ const isPublicAnonymousBootstrapRoute = (): boolean => {
     path.startsWith('/demo') ||
     path.startsWith('/healthz');
 
-  const likelyAuthenticated = Boolean(safeLocalStorageGet('chravel-auth-session'));
-  return isPublicRoute && !likelyAuthenticated;
+  // Same boot-time heuristic as the marketing split: a persisted auth *marker*
+  // (bootstrapShell.AUTH_STORAGE_MARKERS) means "likely authenticated" — it is
+  // NOT a verified session, just enough signal to decide whether a version-bust
+  // reload is worth paying a second cold load. Canonical session checks live in
+  // useAuth, after hydration.
+  return isPublicRoute && !hasAuthMarkerOnBoot;
 };
 
 // Native shell handles its own caching and lifecycle — service workers add startup
@@ -177,7 +201,7 @@ try {
 }
 
 // Initialize theme
-const theme = safeLocalStorageGet('theme');
+const theme = safeGetItem('local', 'theme');
 if (theme === 'light') {
   document.documentElement.classList.add('light');
 }
@@ -189,11 +213,11 @@ if (isLovablePreview()) {
   // Version-based cache busting: clear caches when app version changes
   const STORED_VERSION_KEY = 'chravel_host_version';
   const currentVersion = (import.meta.env.VITE_APP_VERSION as string) || '0';
-  const storedVersion = safeLocalStorageGet(STORED_VERSION_KEY);
+  const storedVersion = safeGetItem('local', STORED_VERSION_KEY);
 
   if (storedVersion !== null && storedVersion !== currentVersion) {
     clearAllCaches();
-    safeLocalStorageSet(STORED_VERSION_KEY, currentVersion);
+    safeSetItem('local', STORED_VERSION_KEY, currentVersion);
 
     // One-shot guard: if storage can't persist the new version (restricted WebView),
     // storedVersion stays stale and this would reload-loop into a blank screen.
@@ -203,7 +227,7 @@ if (isLovablePreview()) {
     // Tradeoff: on public anonymous routes we accept a potentially stale auth session snapshot
     // to avoid paying a second cold load on landing after cache/version invalidation.
   } else {
-    safeLocalStorageSet(STORED_VERSION_KEY, currentVersion);
+    safeSetItem('local', STORED_VERSION_KEY, currentVersion);
   }
 }
 
@@ -263,13 +287,7 @@ createRoot(document.getElementById('root')!).render(
         ) : (
           <TripVariantProvider variant="consumer">
             <BasecampProvider>
-              <Suspense
-                fallback={
-                  <div className="app-suspense-fallback min-h-screen flex items-center justify-center bg-background">
-                    <div className="app-suspense-spinner app-suspense-spin w-12 h-12 animate-spin gold-gradient-spinner" />
-                  </div>
-                }
-              >
+              <Suspense fallback={<div className="app-suspense-fallback" />}>
                 <App />
               </Suspense>
             </BasecampProvider>

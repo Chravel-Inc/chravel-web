@@ -10,12 +10,12 @@ import {
   Trash2,
   FileDown,
   Share2,
+  ArrowUpDown,
 } from 'lucide-react';
 import { CardStatItem } from './ui/CardStatItem';
 import { CalendarGlyph } from './ui/CalendarGlyph';
 import { useShallow } from 'zustand/react/shallow';
 import { EventData } from '../types/events';
-import { useTripVariant } from '../contexts/TripVariantContext';
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
 import { DeleteTripConfirmDialog } from './DeleteTripConfirmDialog';
 import { InviteModal } from './InviteModal';
@@ -35,7 +35,7 @@ import { useDemoTripMembersStore } from '../store/demoTripMembersStore';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { getProTripColor } from '../utils/proTripColors';
 import { getDemoTripCoverFallback } from '@/data/demoTripCoverFallbacks';
-import { buildCoverBackgroundImage } from '@/utils/coverImageStyle';
+import { OptimizedImage } from './OptimizedImage';
 import { getExportData } from '../services/tripExportDataService';
 import { orderExportSections } from '../utils/exportSectionOrder';
 import { ExportSection } from '../types/tripExport';
@@ -59,6 +59,9 @@ interface EventCardProps {
   onArchiveSuccess?: () => void;
   onHideSuccess?: () => void;
   onDeleteSuccess?: () => void;
+  reorderMode?: boolean;
+  onMoveTrip?: () => void;
+  onExitMoveMode?: () => void;
 }
 
 export const EventCard = ({
@@ -66,23 +69,27 @@ export const EventCard = ({
   onArchiveSuccess,
   onHideSuccess,
   onDeleteSuccess,
+  reorderMode = false,
+  onMoveTrip,
+  onExitMoveMode,
 }: EventCardProps) => {
   const navigate = useNavigate();
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
-  const { accentColors } = useTripVariant();
   const { isDemoMode } = useDemoMode();
   const { deleteTrip, isDeleting } = useDeleteTrip();
 
   // Get color for this event - uses saved color if available, otherwise deterministic fallback
   const eventColor = getProTripColor(event.id, event.card_color);
   const demoCoverFallback = isDemoMode ? getDemoTripCoverFallback(event.id) : undefined;
+  const coverFit = event.coverDisplayMode === 'contain' ? 'contain' : 'cover';
 
   // Get added members from the demo store - use stable empty array reference with shallow comparison
   const eventIdStr = event.id.toString();
@@ -103,7 +110,23 @@ export const EventCard = ({
     return formatPeopleCount(baseCount + addedDemoMembers.length);
   }, [event, addedDemoMembers]);
 
+  const handleMoveModeCardClick = useCallback(
+    (eventClick: React.MouseEvent<HTMLDivElement>) => {
+      if (!reorderMode) return;
+      eventClick.preventDefault();
+      eventClick.stopPropagation();
+      setIsMenuOpen(false);
+      onExitMoveMode?.();
+    },
+    [reorderMode, onExitMoveMode],
+  );
+
   const handleViewEvent = () => {
+    if (reorderMode) {
+      setIsMenuOpen(false);
+      onExitMoveMode?.();
+      return;
+    }
     navigate(`/event/${event.id}`);
   };
 
@@ -219,7 +242,7 @@ export const EventCard = ({
   const actionButtonClass = cn(
     buttonVariants({ variant: 'ghost', size: 'sm' }),
     // Match TripCard/ProTripCard: ghost hover text would be accent-foreground (black) on glass CTAs.
-    'bg-black/30 hover:bg-black/40 text-white border border-white/20 hover:border-white/30 hover:text-white active:text-white focus-visible:text-white md:min-h-[44px] md:text-sm text-xs px-3 py-2.5 md:py-3 rounded-lg md:rounded-xl',
+    'bg-black/30 hover:bg-black/40 text-white border border-white/20 hover:border-primary/30 hover:text-white active:text-white focus-visible:text-white md:min-h-[44px] md:text-sm text-xs px-3 py-2.5 md:py-3 rounded-xl',
   );
 
   // Build share trip data for ShareTripModal
@@ -236,19 +259,25 @@ export const EventCard = ({
   return (
     <div
       className={cn(
-        'bg-gradient-to-br backdrop-blur-xl border border-white/15 hover:border-white/30 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 shadow-black/30 hover:scale-[1.02] hover:shadow-2xl relative group',
+        'bg-gradient-to-br backdrop-blur-xl border border-white/15 hover:border-primary/25 rounded-2xl overflow-hidden transition-all duration-300 shadow-enterprise motion-safe:hover:-translate-y-1 hover:shadow-enterprise-md relative group',
         eventColor.cardGradient,
       )}
+      onClickCapture={handleMoveModeCardClick}
     >
       {/* Header */}
       <div
-        className={`on-media relative h-48 bg-gradient-to-br from-${accentColors.primary}/20 to-${accentColors.secondary}/20 p-6`}
+        className={`on-media relative h-48 bg-gradient-to-br from-gold-primary/20 to-gold-mid/20 p-6`}
       >
         {/* Cover photo overlay if available */}
         {event.coverPhoto ? (
-          <div
-            className="absolute inset-0 bg-cover bg-center opacity-25"
-            style={buildCoverBackgroundImage(event.coverPhoto, demoCoverFallback)}
+          <OptimizedImage
+            src={event.coverPhoto}
+            alt={`${event.title} cover`}
+            fallbackSrc={demoCoverFallback}
+            lazy
+            fit={coverFit}
+            showBlurBackdrop={coverFit === 'contain'}
+            className={`absolute inset-0 ${coverFit === 'contain' ? 'opacity-80' : 'opacity-25'}`}
           />
         ) : null}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
@@ -282,16 +311,34 @@ export const EventCard = ({
           </div>
 
           {/* Menu Button */}
-          <DropdownMenu>
+          <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <DropdownMenuTrigger asChild>
-              <button className="text-white/60 hover:text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-xl shrink-0">
+              <button
+                className="text-white/60 hover:text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-xl shrink-0 min-h-11 min-w-11 inline-flex items-center justify-center"
+                aria-label="Event actions"
+              >
                 <MoreHorizontal size={16} />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-background border-border">
+              {onMoveTrip && (
+                <>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onMoveTrip();
+                    }}
+                    className="text-muted-foreground hover:text-foreground min-h-11"
+                  >
+                    <ArrowUpDown className="mr-2 h-4 w-4" />
+                    Move Trip
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
               <DropdownMenuItem
                 onClick={() => setShowArchiveDialog(true)}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground min-h-11"
               >
                 <Archive className="mr-2 h-4 w-4" />
                 Archive Event
@@ -394,7 +441,6 @@ export const EventCard = ({
         onClose={() => setShowInviteModal(false)}
         tripName={event.title}
         tripId={event.id}
-        tripType="event"
       />
 
       <LazyTripExportModal

@@ -261,6 +261,8 @@ export const useConciergeUsage = (tripId: string, userId?: string) => {
   }, [refetch]);
 
   const incrementUsageOnSuccess = useCallback(async (): Promise<IncrementUsageResult> => {
+    // Server-side increment in lovable-concierge is the source of truth after a
+    // successful response. Keep this helper for legacy callers/tests only.
     if (!tripId || !targetUserId) {
       return {
         used: 0,

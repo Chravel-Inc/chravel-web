@@ -1,15 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { User, Upload, Phone, LogOut } from 'lucide-react';
+import { User, Upload, Phone, LogOut, Trash2 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { supabase } from '../../integrations/supabase/client';
 import { useToast } from '../../hooks/use-toast';
 import { getConsistentAvatar } from '../../utils/avatarUtils';
+import { useNavigate } from 'react-router-dom';
+import { DeleteAccountDialog } from './DeleteAccountDialog';
 
 export const ConsumerProfileSection = () => {
   const { user, updateProfile, signOut } = useAuth();
   const { isDemoMode: _isDemoMode, showDemoContent } = useDemoMode();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Local state for form fields
@@ -18,6 +21,7 @@ export const ConsumerProfileSection = () => {
   const [phone, setPhone] = useState(user?.phone || '');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // Initialize state when user loads
   useEffect(() => {
@@ -212,25 +216,15 @@ export const ConsumerProfileSection = () => {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-3 mb-3">
-        <div className="w-12 h-12 bg-gradient-to-r from-glass-orange to-glass-yellow rounded-xl flex items-center justify-center">
-          <User size={24} className="text-white" />
-        </div>
-        <div>
-          <h3 className="text-2xl font-bold text-white">Profile Settings</h3>
-          <p className="text-gray-400">Manage your personal profile and preferences</p>
-        </div>
-      </div>
-
       {/* Profile Photo */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-3">
         <h4 className="text-base font-semibold text-white mb-2">Profile Photo</h4>
         <div className="flex flex-col items-center gap-4">
-          <div className="w-20 h-20 bg-gradient-to-r from-glass-orange to-glass-yellow rounded-full flex items-center justify-center overflow-hidden">
+          <div className="w-20 h-20 bg-gradient-to-r from-gold-primary to-gold-mid rounded-full flex items-center justify-center overflow-hidden">
             {currentUser.avatar ? (
               <img src={currentUser.avatar} alt="Profile" className="w-full h-full object-cover" />
             ) : (
-              <User size={24} className="text-white" />
+              <User size={24} className="text-primary-foreground" />
             )}
           </div>
           <input
@@ -272,7 +266,7 @@ export const ConsumerProfileSection = () => {
               aria-label="Real name"
               value={realName}
               onChange={e => setRealName(e.target.value)}
-              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary/50"
               placeholder="Enter your real name"
             />
             <p className="text-xs text-gray-500 mt-1">
@@ -296,7 +290,7 @@ export const ConsumerProfileSection = () => {
               aria-label="Display name"
               value={displayName}
               onChange={e => setDisplayName(e.target.value)}
-              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary/50"
               placeholder="Nickname or role (e.g., Tour Manager, Security)"
             />
             <p className="text-xs text-gray-500 mt-1">
@@ -313,7 +307,7 @@ export const ConsumerProfileSection = () => {
               aria-label="Phone number"
               value={phone}
               onChange={e => setPhone(e.target.value)}
-              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary/50"
               placeholder="+1 (555) 123-4567"
             />
             <p className="text-xs text-gray-500 mt-1">
@@ -328,7 +322,7 @@ export const ConsumerProfileSection = () => {
             onClick={handleSave}
             disabled={isSaving || (!user && !showDemoContent)}
             aria-label="Save profile changes"
-            className="bg-glass-orange hover:bg-glass-orange/80 text-white font-medium px-6 py-2 min-h-[44px] rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-primary hover:bg-primary/80 text-primary-foreground font-medium px-6 py-2 min-h-[44px] rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSaving ? (
               <>
@@ -342,17 +336,23 @@ export const ConsumerProfileSection = () => {
         </div>
       </div>
 
-      {/* Sign Out Section */}
+      {/* Account actions — email shown in SettingsMenu header */}
       {user && (
         <div className="bg-white/5 border border-white/10 rounded-xl p-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="text-base font-semibold text-white">Account</h4>
-              <p className="text-sm text-gray-400">Signed in as {user.email}</p>
-            </div>
+          <h4 className="text-base font-semibold text-white mb-3">Account</h4>
+          <div className="flex gap-2">
             <button
+              type="button"
+              onClick={() => setShowDeleteDialog(true)}
+              className="flex-1 min-w-0 bg-destructive hover:bg-destructive/80 text-destructive-foreground font-medium px-4 py-2 min-h-[44px] rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
+            >
+              <Trash2 size={16} />
+              Delete Account
+            </button>
+            <button
+              type="button"
               onClick={() => signOut()}
-              className="flex items-center gap-2 bg-destructive/10 hover:bg-destructive/20 border border-destructive/30 text-destructive px-4 py-2 rounded-lg transition-colors"
+              className="flex-1 min-w-0 bg-destructive hover:bg-destructive/80 text-destructive-foreground font-medium px-4 py-2 min-h-[44px] rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
             >
               <LogOut size={16} />
               Sign Out
@@ -360,6 +360,7 @@ export const ConsumerProfileSection = () => {
           </div>
         </div>
       )}
+      <DeleteAccountDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog} />
     </div>
   );
 };

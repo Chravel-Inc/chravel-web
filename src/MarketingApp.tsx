@@ -1,10 +1,16 @@
-import { Suspense, useEffect, useMemo, useState } from 'react';
-import { BrowserRouter } from 'react-router-dom';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import '@/styles/marketingFonts';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { FullPageLanding } from '@/components/landing/FullPageLanding';
 import { AuthProvider, useOptionalAuth } from '@/hooks/useAuth';
 import { AuthModal } from '@/components/AuthModal';
 import { isInstalledApp } from '@/utils/platformDetection';
 import { markAppBooted } from '@/utils/chunkRecovery';
+
+const BlogIndex = lazy(() => import('@/pages/BlogIndex'));
+const BlogPost = lazy(() => import('@/pages/BlogPost'));
+const UseCasesHub = lazy(() => import('@/pages/UseCasesHub'));
+const UseCasePage = lazy(() => import('@/pages/UseCasePage'));
 
 /**
  * After a successful sign-in inside the lightweight marketing shell, force a
@@ -19,9 +25,13 @@ function PostAuthBoot() {
   const isLoading = auth?.isLoading ?? true;
 
   useEffect(() => {
-    if (!isLoading && user) {
-      window.location.assign('/');
-    }
+    if (isLoading || !user) return;
+    // Respect the `?marketing=1` / `/home` preview override — don't bounce a logged-in
+    // viewer out of the marketing landing when they're explicitly previewing it.
+    const forcedMarketing =
+      window.location.search.includes('marketing=1') || window.location.pathname === '/home';
+    if (forcedMarketing) return;
+    window.location.assign('/');
   }, [user, isLoading]);
 
   return null;
@@ -30,9 +40,15 @@ function PostAuthBoot() {
 /**
  * Safety net: if an installed/native shell ever mounts MarketingApp (stale SW,
  * deep link race), jump to /auth so main.tsx boots the full App router.
+ * Respects the `?marketing=1` / `/home` / `/index` preview override.
  */
 function InstalledShellEscape() {
   useEffect(() => {
+    const forcedMarketing =
+      window.location.search.includes('marketing=1') ||
+      window.location.pathname === '/home' ||
+      window.location.pathname === '/index';
+    if (forcedMarketing) return;
     if (isInstalledApp()) {
       window.location.replace('/auth');
     }
@@ -42,7 +58,12 @@ function InstalledShellEscape() {
 
 export default function MarketingApp() {
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | null>(null);
-  const installed = isInstalledApp();
+  const forcedMarketing =
+    typeof window !== 'undefined' &&
+    (window.location.search.includes('marketing=1') ||
+      window.location.pathname === '/home' ||
+      window.location.pathname === '/index');
+  const installed = !forcedMarketing && isInstalledApp();
 
   // The marketing shell mounted — its chunk loaded successfully. Clear the one-shot
   // chunk-recovery guard so a later, independent stale-chunk error can recover too.
@@ -73,7 +94,42 @@ export default function MarketingApp() {
       <AuthProvider>
         <PostAuthBoot />
         <Suspense fallback={fallback}>
-          <FullPageLanding onSignUp={() => setAuthMode('signup')} />
+          <main data-marketing="true">
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  <FullPageLanding
+                    onSignUp={() => setAuthMode('signup')}
+                    onAuthRequired={() => setAuthMode('signin')}
+                  />
+                }
+              />
+              <Route
+                path="/home"
+                element={
+                  <FullPageLanding
+                    onSignUp={() => setAuthMode('signup')}
+                    onAuthRequired={() => setAuthMode('signin')}
+                  />
+                }
+              />
+              <Route
+                path="/index"
+                element={
+                  <FullPageLanding
+                    onSignUp={() => setAuthMode('signup')}
+                    onAuthRequired={() => setAuthMode('signin')}
+                  />
+                }
+              />
+              <Route path="/blog" element={<BlogIndex />} />
+              <Route path="/blog/:slug" element={<BlogPost />} />
+              <Route path="/use-cases" element={<UseCasesHub />} />
+              <Route path="/use-cases/:slug" element={<UseCasePage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </main>
           {authMode && (
             <AuthModal isOpen initialMode={authMode} onClose={() => setAuthMode(null)} />
           )}

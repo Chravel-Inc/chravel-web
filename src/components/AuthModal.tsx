@@ -13,8 +13,10 @@ interface AuthModalProps {
    */
   initialMode?: 'signin' | 'signup';
   /**
-   * Optional post-auth destination for OAuth providers. Invite flows use this to
-   * return directly to the join route after Google/Apple complete the redirect.
+   * Optional post-auth destination. Invite flows use this to return directly to
+   * the join route after Google/Apple complete the redirect, and it also seeds
+   * the email-confirmation redirect for email signups started on routes (like
+   * /join/:token) that carry no ?returnTo= query.
    */
   oauthReturnTo?: string;
   onAuthSuccess?: () => void;
@@ -45,9 +47,28 @@ export const AuthModal = ({
   const [awaitingAuth, setAwaitingAuth] = useState(false);
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  const requestDismiss = () => {
+    if (awaitingAuth) return;
+    onClose();
+  };
+
   useEffect(() => {
     setIsPortalReady(true);
   }, []);
+
+  useEffect(() => {
+    if (!isOpen || awaitingAuth) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, awaitingAuth, onClose]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -93,7 +114,7 @@ export const AuthModal = ({
   if (!isOpen || !isPortalReady) return null;
 
   const authHeading =
-    mode === 'forgot' ? 'Reset Password' : mode === 'signup' ? 'Create Account' : 'Welcome Back';
+    mode === 'forgot' ? 'Reset Password' : mode === 'signup' ? 'Create Account' : 'ChravelApp';
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,7 +124,7 @@ export const AuthModal = ({
       let result;
       if (mode === 'signup') {
         authEvents.signupStarted('email');
-        result = await signUp(email, password, firstName, lastName);
+        result = await signUp(email, password, firstName, lastName, oauthReturnTo);
       } else {
         authEvents.loginStarted('email');
         result = await signIn(email, password);
@@ -184,7 +205,7 @@ export const AuthModal = ({
               setMode('signin');
               setResetEmailSent(false);
             }}
-            className="text-glass-orange hover:text-glass-yellow transition-colors"
+            className="text-primary hover:text-gold-light transition-colors"
           >
             Return to Sign In
           </button>
@@ -206,7 +227,7 @@ export const AuthModal = ({
                 required
                 autoFocus
                 autoComplete="email"
-                className="w-full bg-white/10 border border-white/20 rounded-xl pl-10 pr-4 py-3 text-base text-white placeholder-white/60 focus:outline-none focus:border-glass-orange"
+                className="w-full bg-white/10 border border-white/20 rounded-xl pl-10 pr-4 py-3 text-base text-white placeholder-white/60 focus:outline-none focus:border-primary"
               />
             </div>
           </div>
@@ -214,7 +235,7 @@ export const AuthModal = ({
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-gradient-to-r from-glass-orange to-glass-yellow text-white font-medium py-3 rounded-xl hover:scale-105 active:scale-95 transition-transform disabled:opacity-50 min-h-[44px]"
+            className="w-full bg-gold-metallic font-semibold py-3 rounded-xl hover:scale-[1.02] active:scale-95 transition-transform disabled:opacity-50 min-h-[44px]"
           >
             {isLoading ? 'Sending...' : 'Send Reset Link'}
           </button>
@@ -239,7 +260,7 @@ export const AuthModal = ({
                 autoComplete="given-name"
                 inputMode="text"
                 enterKeyHint="next"
-                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-base text-white placeholder-white/60 focus:outline-none focus:border-glass-orange min-h-[48px]"
+                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-base text-white placeholder-white/60 focus:outline-none focus:border-primary min-h-[48px]"
               />
             </div>
             <div>
@@ -253,7 +274,7 @@ export const AuthModal = ({
                 autoComplete="family-name"
                 inputMode="text"
                 enterKeyHint="next"
-                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-base text-white placeholder-white/60 focus:outline-none focus:border-glass-orange min-h-[48px]"
+                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-base text-white placeholder-white/60 focus:outline-none focus:border-primary min-h-[48px]"
               />
             </div>
           </div>
@@ -277,7 +298,7 @@ export const AuthModal = ({
             autoComplete="email"
             inputMode="email"
             enterKeyHint="next"
-            className="w-full bg-white/10 border border-white/20 rounded-xl pl-10 pr-4 py-3 text-base text-white placeholder-white/60 focus:outline-none focus:border-glass-orange min-h-[48px]"
+            className="w-full bg-white/10 border border-white/20 rounded-xl pl-10 pr-4 py-3 text-base text-white placeholder-white/60 focus:outline-none focus:border-primary min-h-[48px]"
           />
         </div>
       </div>
@@ -293,7 +314,7 @@ export const AuthModal = ({
             required
             autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
             enterKeyHint={mode === 'signup' ? 'done' : 'go'}
-            className="w-full bg-white/10 border border-white/20 rounded-xl pl-4 pr-10 py-3 text-base text-white placeholder-white/60 focus:outline-none focus:border-glass-orange min-h-[48px]"
+            className="w-full bg-white/10 border border-white/20 rounded-xl pl-4 pr-10 py-3 text-base text-white placeholder-white/60 focus:outline-none focus:border-primary min-h-[48px]"
           />
           <button
             type="button"
@@ -311,7 +332,7 @@ export const AuthModal = ({
                 setMode('forgot');
                 setError('');
               }}
-              className="text-xs text-glass-orange hover:text-glass-yellow transition-colors"
+              className="text-xs text-primary hover:text-gold-light transition-colors"
             >
               Forgot password?
             </button>
@@ -322,7 +343,7 @@ export const AuthModal = ({
       <button
         type="submit"
         disabled={isLoading || awaitingAuth}
-        className="w-full bg-gradient-to-r from-glass-orange to-glass-yellow text-white font-medium py-3 rounded-xl hover:scale-105 active:scale-95 transition-transform disabled:opacity-50 min-h-[44px]"
+        className="w-full bg-gold-metallic font-semibold tracking-wide py-3 rounded-xl hover:scale-[1.02] active:scale-95 transition-transform disabled:opacity-50 min-h-[44px]"
       >
         {awaitingAuth
           ? 'Signing you in...'
@@ -340,7 +361,7 @@ export const AuthModal = ({
             href="/terms"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-glass-orange hover:text-glass-yellow underline"
+            className="text-primary hover:text-gold-light underline"
           >
             Terms of Service
           </a>{' '}
@@ -349,7 +370,7 @@ export const AuthModal = ({
             href="/privacy"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-glass-orange hover:text-glass-yellow underline"
+            className="text-primary hover:text-gold-light underline"
           >
             Privacy Policy
           </a>
@@ -362,8 +383,12 @@ export const AuthModal = ({
   return createPortal(
     <div
       data-testid="auth-modal-backdrop"
+      data-marketing="true"
       className="fixed inset-0 z-[100] animate-fade-in"
-      role="presentation"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="auth-modal-heading"
+      onClick={requestDismiss}
     >
       {/* Full-viewport scrim: underlying routes (e.g. JoinTrip hero badge) must not read as a second logo */}
       <div
@@ -372,20 +397,23 @@ export const AuthModal = ({
         data-testid="auth-modal-scrim"
       />
       <div className="relative flex min-h-full w-full items-center justify-center p-4 sm:p-6 pointer-events-none">
-        <div data-testid="auth-modal-content" className="w-full max-w-md pointer-events-auto">
-          <div className="bg-slate-950/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-3xl p-6 sm:p-8 animate-scale-in max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem))] overflow-y-auto">
-            <div className="flex flex-col items-center mb-5">
-              <span
-                className="text-3xl font-bold text-gradient-gold select-none"
-                data-testid="auth-modal-logo"
-              >
-                ChravelApp
-              </span>
-            </div>
+        <div
+          data-testid="auth-modal-content"
+          className="w-full max-w-md pointer-events-auto"
+          onClick={event => event.stopPropagation()}
+        >
+          <div className="dark-section bg-slate-950/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-3xl p-6 sm:p-8 animate-scale-in max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem))] overflow-y-auto">
+            <div className="flex flex-col items-center mb-2" data-testid="auth-modal-logo" />
+
             <div className="relative flex items-center justify-center mb-6 min-h-[2.5rem]">
-              <h2 className="text-2xl font-bold text-white text-center px-10">{authHeading}</h2>
+              <h2
+                id="auth-modal-heading"
+                className="text-3xl font-display font-normal tracking-tight text-white text-center px-10"
+              >
+                {authHeading}
+              </h2>
               <button
-                onClick={onClose}
+                onClick={requestDismiss}
                 className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg"
                 aria-label="Close"
                 type="button"
@@ -435,10 +463,8 @@ export const AuthModal = ({
                     setMode('signin');
                     setError('');
                   }}
-                  className={`flex-1 min-h-[44px] rounded-lg text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-light/80 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
-                    mode === 'signin'
-                      ? 'bg-gradient-to-r from-glass-orange to-glass-yellow text-white shadow-md'
-                      : 'text-gray-400 hover:text-white'
+                  className={`flex-1 min-h-[44px] rounded-lg text-sm font-semibold tracking-wide transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-light/80 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
+                    mode === 'signin' ? 'bg-gold-metallic' : 'text-gray-400 hover:text-white'
                   }`}
                 >
                   Sign in
@@ -451,10 +477,8 @@ export const AuthModal = ({
                     setMode('signup');
                     setError('');
                   }}
-                  className={`flex-1 min-h-[44px] rounded-lg text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-light/80 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
-                    mode === 'signup'
-                      ? 'bg-gradient-to-r from-glass-orange to-glass-yellow text-white shadow-md'
-                      : 'text-gray-400 hover:text-white'
+                  className={`flex-1 min-h-[44px] rounded-lg text-sm font-semibold tracking-wide transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-light/80 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
+                    mode === 'signup' ? 'bg-gold-metallic' : 'text-gray-400 hover:text-white'
                   }`}
                 >
                   Sign up

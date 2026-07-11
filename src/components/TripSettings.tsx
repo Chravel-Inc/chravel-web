@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Settings, Users, Trash2, X, ScrollText, Activity } from 'lucide-react';
+import { Settings, Users, Trash2, X, ScrollText, Activity, Building2 } from 'lucide-react';
 import { TripUserManagement } from './TripUserManagement';
 import { getConsistentAvatar } from '../utils/avatarUtils';
 import { EventLogDrawer } from './trip/EventLogDrawer';
-import { isConsumerTrip } from '@/utils/tripTierDetector';
+import { isConsumerTrip, isProTrip } from '@/utils/tripTierDetector';
 import { TripActivitySettings } from './settings/TripActivitySettings';
+import { TravelCompanySection } from './pro/settings/TravelCompanySection';
+import { useFeatureFlag } from '@/lib/featureFlags';
 
 interface TripUser {
   id: string;
@@ -39,13 +41,15 @@ export const TripSettings = ({
   currentUserId,
 }: TripSettingsProps) => {
   const [activeTab, setActiveTab] = useState<
-    'users' | 'general' | 'activity' | 'danger' | 'eventlog'
+    'users' | 'general' | 'activity' | 'danger' | 'eventlog' | 'travel-company'
   >('users');
   const [tripCategory, setTripCategory] = useState('Business Travel');
   const [customCategory, setCustomCategory] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [showEventLog, setShowEventLog] = useState(false);
   const showEventLogTab = isConsumerTrip(tripId);
+  const showTravelCompanyTab = isProTrip(tripId);
+  const coordinatorRoleEnabled = useFeatureFlag('pro_coordinator_role', false);
 
   // Mock users data - this would come from your backend
   const [users, setUsers] = useState<TripUser[]>([
@@ -109,6 +113,9 @@ export const TripSettings = ({
   const tabs = [
     { id: 'users', label: 'Members', icon: Users },
     { id: 'general', label: 'General', icon: Settings },
+    ...(showTravelCompanyTab && coordinatorRoleEnabled
+      ? [{ id: 'travel-company', label: 'Travel Company', icon: Building2 }]
+      : []),
     ...(showEventLogTab ? [{ id: 'activity', label: 'Activity', icon: Activity }] : []),
     ...(showEventLogTab ? [{ id: 'eventlog', label: 'Event Log', icon: ScrollText }] : []),
     { id: 'danger', label: 'Danger Zone', icon: Trash2 },
@@ -138,7 +145,7 @@ export const TripSettings = ({
                   onClick={() => setActiveTab(tab.id as any)}
                   className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-colors min-h-[44px] ${
                     activeTab === tab.id
-                      ? 'bg-glass-orange/20 text-glass-orange border border-glass-orange/30'
+                      ? 'bg-primary/20 text-primary border border-primary/30'
                       : 'text-gray-300 hover:text-white hover:bg-white/10'
                   }`}
                 >
@@ -176,7 +183,7 @@ export const TripSettings = ({
                   <select
                     value={showCustomInput ? 'Other' : tripCategory}
                     onChange={e => handleCategoryChange(e.target.value)}
-                    className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-glass-orange/50 focus:border-glass-orange/50"
+                    className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50"
                   >
                     {TRIP_CATEGORIES.map(category => (
                       <option key={category} value={category}>
@@ -192,14 +199,14 @@ export const TripSettings = ({
                         value={customCategory}
                         onChange={e => setCustomCategory(e.target.value)}
                         placeholder="Enter custom category..."
-                        className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-glass-orange/50 focus:border-glass-orange/50"
+                        className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50"
                       />
                     </div>
                   )}
 
                   <button
                     onClick={handleSaveCategory}
-                    className="mt-3 bg-glass-orange hover:bg-glass-orange/80 text-white px-6 py-2 rounded-xl transition-colors font-medium"
+                    className="mt-3 bg-primary hover:bg-primary/80 text-primary-foreground px-6 py-2 rounded-xl transition-colors font-medium"
                   >
                     Save Category
                   </button>
@@ -211,7 +218,7 @@ export const TripSettings = ({
                   <input
                     type="text"
                     defaultValue={tripName}
-                    className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-glass-orange/50 focus:border-glass-orange/50"
+                    className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50"
                   />
                 </div>
 
@@ -223,11 +230,18 @@ export const TripSettings = ({
                   <textarea
                     rows={4}
                     placeholder="Describe your trip..."
-                    className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-glass-orange/50 focus:border-glass-orange/50 resize-none"
+                    className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 resize-none"
                   />
                 </div>
               </div>
             )}
+
+            {activeTab === 'travel-company' && showTravelCompanyTab && (
+              <div className="bg-white/5 backdrop-blur-md border border-white/15 rounded-2xl p-6">
+                <TravelCompanySection tripId={tripId} />
+              </div>
+            )}
+
 
             {activeTab === 'activity' && showEventLogTab && (
               <div className="bg-white/5 backdrop-blur-md border border-white/15 rounded-2xl p-6">
@@ -241,7 +255,7 @@ export const TripSettings = ({
                 <p className="text-gray-400 mb-6">View system events and activity for this trip.</p>
                 <button
                   onClick={() => setShowEventLog(true)}
-                  className="inline-flex items-center gap-2 min-h-[44px] bg-glass-orange hover:bg-glass-orange/80 text-white px-6 py-3 rounded-xl transition-colors font-medium"
+                  className="inline-flex items-center gap-2 min-h-[44px] bg-primary hover:bg-primary/80 text-primary-foreground px-6 py-3 rounded-xl transition-colors font-medium"
                 >
                   <ScrollText size={18} />
                   Open Event Log

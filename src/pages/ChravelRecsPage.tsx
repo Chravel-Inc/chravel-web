@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Compass, Bookmark, TrendingUp, MapPin, Search, X, Sparkles } from 'lucide-react';
+import { Compass, Bookmark, TrendingUp, MapPin, Search, X, Star } from 'lucide-react';
 import { SavedRecommendations } from '@/components/SavedRecommendations';
 import { RecommendationCard } from '@/components/RecommendationCard';
 import { useRecommendations } from '@/hooks/useRecommendations';
@@ -9,6 +9,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { recommendationCategoryFilters } from '@/data/recommendations/categories';
 
 export const ChravelRecsPage = () => {
   const [activeFilter, setActiveFilter] = useState('all');
@@ -64,12 +65,12 @@ export const ChravelRecsPage = () => {
       <div className="p-4 sm:p-6 border-b border-border">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-2">
           <Compass size={32} className="text-primary shrink-0" />
-          <h1 className="text-2xl sm:text-3xl font-bold">Chravel Recs</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">ChravelApp Recs</h1>
           <Badge
             variant="outline"
             className="gap-1 border-gold-primary/40 bg-gold-primary/10 text-gold-primary text-xs font-medium"
           >
-            <Sparkles className="h-3 w-3" />
+            <Star className="h-3 w-3" />
             Admin Preview · Mock Data
           </Badge>
         </div>
@@ -127,28 +128,15 @@ export const ChravelRecsPage = () => {
 
           <Tabs value={activeFilter} onValueChange={setActiveFilter} className="w-full">
             <ScrollArea className="w-full mb-6 md:mb-0">
-              <TabsList className="inline-flex w-auto md:grid md:w-full md:grid-cols-7 mb-6">
+              <TabsList className="inline-flex w-auto mb-6">
                 <TabsTrigger value="all" className="whitespace-nowrap">
                   All
                 </TabsTrigger>
-                <TabsTrigger value="hotel" className="whitespace-nowrap">
-                  Hotels
-                </TabsTrigger>
-                <TabsTrigger value="restaurant" className="whitespace-nowrap">
-                  Dining
-                </TabsTrigger>
-                <TabsTrigger value="activity" className="whitespace-nowrap">
-                  Activities
-                </TabsTrigger>
-                <TabsTrigger value="tour" className="whitespace-nowrap">
-                  Tours
-                </TabsTrigger>
-                <TabsTrigger value="experience" className="whitespace-nowrap">
-                  Experiences
-                </TabsTrigger>
-                <TabsTrigger value="transportation" className="whitespace-nowrap">
-                  Transport
-                </TabsTrigger>
+                {recommendationCategoryFilters.map(filter => (
+                  <TabsTrigger key={filter.id} value={filter.id} className="whitespace-nowrap">
+                    {filter.label}
+                  </TabsTrigger>
+                ))}
               </TabsList>
               <ScrollBar orientation="horizontal" className="md:hidden" />
             </ScrollArea>

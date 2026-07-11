@@ -16,10 +16,10 @@ const OrgsHubSkeleton = () => (
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <Skeleton className="h-9 w-48 bg-white/10 mb-2" />
-            <Skeleton className="h-5 w-64 bg-white/10" />
+            <Skeleton className="h-9 w-48 mb-2" />
+            <Skeleton className="h-5 w-64" />
           </div>
-          <Skeleton className="h-10 w-44 bg-white/10 rounded-lg" />
+          <Skeleton className="h-10 w-44 rounded-lg" />
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -28,21 +28,21 @@ const OrgsHubSkeleton = () => (
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <Skeleton className="w-12 h-12 rounded-xl bg-white/10" />
+                  <Skeleton className="w-12 h-12 rounded-xl" />
                   <div>
-                    <Skeleton className="h-5 w-32 bg-white/10 mb-1" />
-                    <Skeleton className="h-4 w-20 bg-white/10" />
+                    <Skeleton className="h-5 w-32 mb-1" />
+                    <Skeleton className="h-4 w-20" />
                   </div>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <Skeleton className="h-10 w-full bg-white/10 mb-4" />
-              <Skeleton className="h-2 w-full bg-white/10 mb-2 rounded-full" />
-              <Skeleton className="h-4 w-24 bg-white/10" />
+              <Skeleton className="h-10 w-full mb-4" />
+              <Skeleton className="h-2 w-full mb-2 rounded-full" />
+              <Skeleton className="h-4 w-24" />
               <div className="mt-4 pt-4 border-t border-white/10 flex gap-2">
-                <Skeleton className="h-9 flex-1 bg-white/10 rounded-lg" />
-                <Skeleton className="h-9 flex-1 bg-white/10 rounded-lg" />
+                <Skeleton className="h-9 flex-1 rounded-lg" />
+                <Skeleton className="h-9 flex-1 rounded-lg" />
               </div>
             </CardContent>
           </Card>
@@ -76,7 +76,7 @@ export const OrganizationsHub = () => {
           <p className="text-gray-400 mb-6">{error.message}</p>
           <Button
             onClick={fetchUserOrganizations}
-            className="bg-glass-orange hover:bg-glass-orange/80 min-h-[44px]"
+            className="bg-primary hover:bg-primary/80 min-h-[44px]"
             aria-label="Retry loading organizations"
           >
             <RefreshCw size={16} className="mr-2" />
@@ -99,7 +99,7 @@ export const OrganizationsHub = () => {
             </div>
             <Button
               onClick={() => setShowCreateModal(true)}
-              className="bg-glass-orange hover:bg-glass-orange/80 min-h-[44px]"
+              className="bg-primary hover:bg-primary/80 min-h-[44px]"
               aria-label="Create a new organization"
             >
               <Plus size={16} className="mr-2" />
@@ -119,7 +119,7 @@ export const OrganizationsHub = () => {
               </p>
               <Button
                 onClick={() => setShowCreateModal(true)}
-                className="bg-glass-orange hover:bg-glass-orange/80 min-h-[44px]"
+                className="bg-primary hover:bg-primary/80 min-h-[44px]"
                 aria-label="Create your first organization"
               >
                 <Plus size={16} className="mr-2" />
@@ -151,11 +151,11 @@ export const OrganizationsHub = () => {
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-gradient-to-r from-glass-orange to-glass-yellow rounded-xl flex items-center justify-center">
-                          <Building size={24} className="text-white" />
+                        <div className="w-12 h-12 bg-gradient-to-r from-gold-primary to-gold-mid rounded-xl flex items-center justify-center">
+                          <Building size={24} className="text-primary-foreground" />
                         </div>
                         <div>
-                          <CardTitle className="text-white group-hover:text-glass-orange transition-colors">
+                          <CardTitle className="text-white group-hover:text-primary transition-colors">
                             {org.display_name}
                           </CardTitle>
                           <p className="text-sm text-gray-400">{org.name}</p>
@@ -163,7 +163,7 @@ export const OrganizationsHub = () => {
                       </div>
                       <ChevronRight
                         size={20}
-                        className="text-gray-500 group-hover:text-glass-orange transition-colors"
+                        className="text-gray-500 group-hover:text-primary transition-colors"
                       />
                     </div>
                   </CardHeader>
@@ -214,7 +214,7 @@ export const OrganizationsHub = () => {
                         aria-label={`Seat usage: ${org.seats_used} of ${org.seat_limit}`}
                       >
                         <div
-                          className="bg-glass-orange h-2 rounded-full transition-all"
+                          className="bg-primary h-2 rounded-full transition-all"
                           style={{ width: `${seatUsage}%` }}
                         />
                       </div>

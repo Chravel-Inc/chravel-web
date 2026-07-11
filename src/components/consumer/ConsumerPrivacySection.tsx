@@ -119,7 +119,7 @@ function AccountSecuritySection({
               <div className="text-white font-medium">Change Password</div>
               <div className="text-sm text-gray-400">Update your account password</div>
             </div>
-            <div className="text-glass-orange">&rarr;</div>
+            <div className="text-primary">&rarr;</div>
           </button>
         ) : (
           <form onSubmit={handleChangePassword} className="space-y-3">
@@ -137,7 +137,7 @@ function AccountSecuritySection({
                 required
                 autoComplete="current-password"
                 autoFocus
-                className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+                className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
             <div>
@@ -148,7 +148,7 @@ function AccountSecuritySection({
                 onChange={e => setNewPassword(e.target.value)}
                 required
                 autoComplete="new-password"
-                className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+                className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
             <div>
@@ -159,7 +159,7 @@ function AccountSecuritySection({
                 onChange={e => setConfirmPassword(e.target.value)}
                 required
                 autoComplete="new-password"
-                className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+                className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -184,29 +184,13 @@ function AccountSecuritySection({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-1 px-4 py-2 bg-gradient-to-r from-glass-orange to-glass-yellow text-white rounded-lg hover:scale-105 active:scale-95 transition-transform disabled:opacity-50"
+                className="flex-1 px-4 py-2 bg-gradient-to-r from-gold-primary to-gold-mid text-primary-foreground rounded-lg hover:scale-105 active:scale-95 transition-transform disabled:opacity-50"
               >
                 {isSubmitting ? 'Updating...' : 'Update Password'}
               </button>
             </div>
           </form>
         )}
-        <div className="w-full flex items-center justify-between p-3 bg-white/5 rounded-lg opacity-50 cursor-not-allowed">
-          <div className="text-left">
-            <div className="text-white font-medium">Two-Factor Authentication</div>
-            <div className="text-sm text-gray-400">
-              Add an extra layer of security to your account
-            </div>
-          </div>
-          <div className="text-xs text-gray-500 bg-white/10 px-2 py-1 rounded">Coming Soon</div>
-        </div>
-        <div className="w-full flex items-center justify-between p-3 bg-white/5 rounded-lg opacity-50 cursor-not-allowed">
-          <div className="text-left">
-            <div className="text-white font-medium">Login History</div>
-            <div className="text-sm text-gray-400">View recent login activity</div>
-          </div>
-          <div className="text-xs text-gray-500 bg-white/10 px-2 py-1 rounded">Coming Soon</div>
-        </div>
       </div>
     </div>
   );
@@ -294,8 +278,6 @@ export const ConsumerPrivacySection = () => {
 
   return (
     <div className="space-y-3">
-      <h3 className="text-2xl font-bold text-white">Privacy & Security</h3>
-
       {/* Display Name Privacy */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
         <h4 className="text-base font-semibold text-white mb-3">Display Name Settings</h4>
@@ -308,7 +290,7 @@ export const ConsumerPrivacySection = () => {
             <button
               onClick={() => handleToggle('useRealName')}
               className={`relative w-12 h-6 rounded-full transition-colors ${
-                settings.useRealName ? 'bg-glass-orange' : 'bg-gray-600'
+                settings.useRealName ? 'bg-primary' : 'bg-gray-600'
               }`}
             >
               <div
@@ -326,7 +308,7 @@ export const ConsumerPrivacySection = () => {
             <button
               onClick={() => handleToggle('useDisplayNameOnly')}
               className={`relative w-12 h-6 rounded-full transition-colors ${
-                settings.useDisplayNameOnly ? 'bg-glass-orange' : 'bg-gray-600'
+                settings.useDisplayNameOnly ? 'bg-primary' : 'bg-gray-600'
               }`}
             >
               <div

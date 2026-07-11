@@ -7,7 +7,7 @@ import {
   ClipboardList,
   Lock,
   MapPin,
-  Sparkles,
+  Headset,
   DollarSign,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
@@ -40,8 +40,8 @@ import { useTripVariant } from '../contexts/TripVariantContext';
 import { useFeatureToggle } from '../hooks/useFeatureToggle';
 import { useSuperAdmin } from '../hooks/useSuperAdmin';
 import { usePrefetchTrip } from '../hooks/usePrefetchTrip';
+import { useViewportAnchoredHeight } from '../hooks/useViewportAnchoredHeight';
 import { CalendarSkeleton, PlacesSkeleton, ChatSkeleton } from './loading';
-import { TripPreferences as TripPreferencesType } from '../types/consumer';
 
 interface TripTabsProps {
   activeTab: string;
@@ -49,7 +49,6 @@ interface TripTabsProps {
   tripId?: string;
   tripName?: string;
   basecamp?: { name: string; address: string };
-  tripPreferences?: TripPreferencesType;
   showPlaces?: boolean;
   showConcierge?: boolean;
   isDemoMode?: boolean;
@@ -65,7 +64,6 @@ export const TripTabs = ({
   tripId = '1',
   tripName,
   basecamp,
-  tripPreferences,
   showPlaces = false,
   showConcierge = false,
   isDemoMode = false,
@@ -77,6 +75,10 @@ export const TripTabs = ({
   const features = useFeatureToggle(tripData || {});
   const { isSuperAdmin } = useSuperAdmin();
   const { prefetchTab, prefetchAdjacentTabs, prefetchPriorityTabs } = usePrefetchTrip();
+  // Desktop: size the tab panel from its measured top edge so its bottom never
+  // passes the fold (the header above is variable-height; a hardcoded
+  // `calc(100vh-240px)` + min-h floor clipped the concierge composer).
+  const { ref: panelRef, height: panelHeight } = useViewportAnchoredHeight<HTMLDivElement>();
 
   // ⚡ PERFORMANCE: Track visited (mounted) tabs. Seeded with Tier 1 so chat,
   // calendar, and concierge are warm immediately. Tier 2 is added at idle.
@@ -165,7 +167,7 @@ export const TripTabs = ({
       icon: Calendar,
       enabled: isSuperAdmin || features.showCalendar,
     },
-    { id: 'concierge', label: 'Concierge', icon: Sparkles, enabled: isSuperAdmin || showConcierge },
+    { id: 'concierge', label: 'Concierge', icon: Headset, enabled: isSuperAdmin || showConcierge },
     { id: 'media', label: 'Media', icon: Camera, enabled: isSuperAdmin || features.showMedia },
     { id: 'payments', label: 'Payments', icon: DollarSign, enabled: true },
     { id: 'places', label: 'Places', icon: MapPin, enabled: isSuperAdmin || showPlaces },
@@ -267,8 +269,12 @@ export const TripTabs = ({
               <AIConciergeChat
                 tripId={tripId}
                 basecamp={basecamp}
-                preferences={tripPreferences}
                 isDemoMode={isDemoMode}
+                isActive={activeTab === tabId}
+                onTabChange={tab => {
+                  setActiveTab(tab);
+                  parentOnTabChange(tab);
+                }}
               />
             </FeatureErrorBoundary>
           );
@@ -280,7 +286,7 @@ export const TripTabs = ({
           );
       }
     },
-    [tripId, tripName, basecamp, tripPreferences, isDemoMode],
+    [tripId, tripName, basecamp, isDemoMode, activeTab, parentOnTabChange],
   );
 
   // ⚡ PERFORMANCE: Prefetch tab data on hover
@@ -324,8 +330,8 @@ export const TripTabs = ({
                         isActive && enabled
                           ? 'accent-ring-active text-white'
                           : enabled
-                            ? 'accent-ring-idle text-gray-300 hover:text-white'
-                            : 'bg-white/5 text-gray-500 cursor-not-allowed opacity-40 grayscale'
+                            ? 'accent-ring-idle text-ink-2 hover:text-white'
+                            : 'bg-white/5 text-ink-3 cursor-not-allowed opacity-40 grayscale'
                       }
                       ${enabled ? 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent' : 'pointer-events-none'}
                     `}
@@ -349,7 +355,13 @@ export const TripTabs = ({
       </div>
 
       {/* ⚡ PERFORMANCE: Keep visited tabs mounted for instant switching */}
-      <div className="overflow-y-auto native-scroll pb-24 sm:pb-4 h-auto min-h-0 max-h-none md:h-[calc(100vh-240px)] md:max-h-[1000px] md:min-h-[600px]">
+      {/* Classes are the pre-measure fallback; the measured inline height replaces
+          them on desktop so the panel bottom always stays above the fold. */}
+      <div
+        ref={panelRef}
+        className="overflow-y-auto native-scroll pb-24 sm:pb-4 h-auto min-h-0 max-h-none md:h-[calc(100dvh-260px)] md:max-h-[1000px] md:min-h-[420px]"
+        style={panelHeight !== undefined ? { height: panelHeight, minHeight: 0 } : undefined}
+      >
         {tabs
           .filter(t => t.enabled !== false)
           .map(tab => {

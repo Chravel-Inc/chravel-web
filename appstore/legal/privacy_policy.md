@@ -117,7 +117,7 @@ If Chravel is involved in a merger, acquisition, or sale of assets, your informa
 
 ## Data Retention
 
-- **Account Data:** Retained while your account is active, deleted within 30 days of account deletion request
+- **Account Data:** Retained while your account is active; deleted immediately when you confirm account deletion in the app (no grace period). Anonymized backups may persist for up to 30 days before being overwritten.
 - **Trip Data:** Retained while trip exists; archived trips retained for 1 year after archiving
 - **Chat Messages:** Retained while trip exists
 - **Media Files:** Retained while associated with a trip; deleted when trip is deleted
@@ -135,7 +135,7 @@ You can update your profile information at any time in the app.
 You can request account deletion via Settings > Account > Delete Account. This will:
 - Delete your profile and account data
 - Remove you from all trips
-- Delete your uploaded media (within 30 days)
+- Delete your uploaded media immediately
 
 ### Opt-Out Options
 - **Push Notifications:** Manage in device settings or app Settings > Notifications

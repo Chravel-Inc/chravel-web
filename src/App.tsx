@@ -2,7 +2,8 @@ import React, { lazy, useEffect } from 'react';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { persistOptions } from '@/lib/queryPersister';
 import { queryClient } from '@/lib/queryClient';
 import {
   BrowserRouter,
@@ -19,6 +20,7 @@ import { ConsumerSubscriptionProvider } from './hooks/useConsumerSubscription';
 import { MobileAppLayout } from './components/mobile/MobileAppLayout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { LazyRoute } from './components/LazyRoute';
+import { BootHydrationFallback } from './components/home/DashboardSkeleton';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { InternalAdminRoute } from './components/InternalAdminRoute';
 import { performanceService } from './services/performanceService';
@@ -39,6 +41,7 @@ import {
 } from '@/utils/chunkRecovery';
 import { safeReload } from '@/utils/safeReload';
 import { retryImport } from '@/lib/retryImport';
+import { importAuthPage } from '@/lib/routeChunks';
 import { getPublicSeoRoute, SEO_LANDING_CONTENT } from '@/lib/seo';
 import { syncRobotsAndCanonical } from '@/components/seo/SeoHead';
 
@@ -55,6 +58,8 @@ const InviteSlugRedirect = lazy(() => retryImport(() => import('./pages/InviteSl
 const ProfilePage = lazy(() => retryImport(() => import('./pages/ProfilePage')));
 const SettingsPage = lazy(() => retryImport(() => import('./pages/SettingsPage')));
 const ArchivePage = lazy(() => retryImport(() => import('./pages/ArchivePage')));
+const DevBillingPreview = lazy(() => retryImport(() => import('./pages/DevBillingPreview')));
+const SubscriptionStatus = lazy(() => retryImport(() => import('./pages/SubscriptionStatus')));
 const AdminDashboard = lazy(() =>
   retryImport(() =>
     import('./pages/AdminDashboard').then(module => ({ default: module.AdminDashboard })),
@@ -93,6 +98,7 @@ const Healthz = lazy(() => retryImport(() => import('./pages/Healthz')));
 const PrivacyPolicy = lazy(() => retryImport(() => import('./pages/PrivacyPolicy')));
 const SupportPage = lazy(() => retryImport(() => import('./pages/SupportPage')));
 const TermsOfService = lazy(() => retryImport(() => import('./pages/TermsOfService')));
+const OAuthConsent = lazy(() => retryImport(() => import('./pages/OAuthConsent')));
 const DeleteAccountPage = lazy(() => retryImport(() => import('./pages/DeleteAccountPage')));
 const GmailCallbackPage = lazy(() =>
   retryImport(() =>
@@ -101,9 +107,15 @@ const GmailCallbackPage = lazy(() =>
 );
 const DemoEntry = lazy(() => retryImport(() => import('./pages/DemoEntry')));
 const TripPreview = lazy(() => retryImport(() => import('./pages/TripPreview')));
-const AuthPage = lazy(() => retryImport(() => import('./pages/AuthPage')));
+// Shares its import() loader with main.tsx's boot warm-up via routeChunks.ts.
+const AuthPage = lazy(() => retryImport(importAuthPage));
+const AuthCallbackPage = lazy(() => retryImport(() => import('./pages/AuthCallbackPage')));
 const ResetPasswordPage = lazy(() => retryImport(() => import('./pages/ResetPasswordPage')));
 const SeoLandingPage = lazy(() => retryImport(() => import('./pages/SeoLandingPage')));
+const UseCasesHub = lazy(() => retryImport(() => import('./pages/UseCasesHub')));
+const UseCasePage = lazy(() => retryImport(() => import('./pages/UseCasePage')));
+const BlogIndex = lazy(() => retryImport(() => import('./pages/BlogIndex')));
+const BlogPost = lazy(() => retryImport(() => import('./pages/BlogPost')));
 const DeviceTestMatrix = lazy(() => retryImport(() => import('./pages/DeviceTestMatrix')));
 // AdminMigrateDemoImages removed - migration complete, images now in Supabase Storage
 
@@ -199,6 +211,7 @@ const App = () => {
   // (The app-icon badge is reconciled in AppInitializer via useAppBadge, not here.)
   useEffect(() => {
     markAppBooted();
+    performanceService.markBootPhase('app_mounted');
   }, []);
 
   // Track app initialization performance
@@ -294,7 +307,10 @@ const App = () => {
           </linearGradient>
         </defs>
       </svg>
-      <QueryClientProvider client={queryClient}>
+      {/* PersistQueryClientProvider restores the allowlisted IDB cache before
+          queries run (warm starts paint last-known data instantly), then acts
+          as a normal QueryClientProvider. Safety model in queryPersister.ts. */}
+      <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
         <AuthProvider>
           <ConsumerSubscriptionProvider>
             <AppInitializer>
@@ -313,7 +329,7 @@ const App = () => {
                       <Route
                         path="/"
                         element={
-                          <LazyRoute>
+                          <LazyRoute fallback={<BootHydrationFallback />}>
                             <Index />
                           </LazyRoute>
                         }
@@ -327,9 +343,17 @@ const App = () => {
                         }
                       />
                       <Route
-                        path="/trip/:tripId"
+                        path="/.lovable/oauth/consent"
                         element={
                           <LazyRoute>
+                            <OAuthConsent />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/trip/:tripId"
+                        element={
+                          <LazyRoute fallback={<BootHydrationFallback variant="trip" />}>
                             <TripDetail />
                           </LazyRoute>
                         }
@@ -378,7 +402,7 @@ const App = () => {
                         path="/auth-callback"
                         element={
                           <LazyRoute>
-                            <AuthPage />
+                            <AuthCallbackPage />
                           </LazyRoute>
                         }
                       />
@@ -545,6 +569,70 @@ const App = () => {
                         }
                       />
                       <Route
+                        path="/group-travel-planning-app"
+                        element={
+                          <LazyRoute>
+                            {(() => {
+                              const config = getPublicSeoRoute('/group-travel-planning-app');
+                              if (!config) return null;
+                              return (
+                                <SeoLandingPage
+                                  config={config}
+                                  h1={SEO_LANDING_CONTENT['/group-travel-planning-app'].h1}
+                                  intro={SEO_LANDING_CONTENT['/group-travel-planning-app'].intro}
+                                  faq={[
+                                    {
+                                      q: 'How is ChravelApp different from Wanderlog or TripIt?',
+                                      a: 'Wanderlog and TripIt focus on itinerary storage. ChravelApp adds a real group chat, polls, tasks, shared places, and split payments — so coordination and conversation live in the same place.',
+                                    },
+                                    {
+                                      q: 'Is there a free plan for group travel planning?',
+                                      a: 'Yes. ChravelApp is free for small groups, with paid tiers for larger trips, pro touring teams, and events.',
+                                    },
+                                    {
+                                      q: 'Does it work on iPhone, Android, and web?',
+                                      a: 'Yes — ChravelApp runs as a web app and an installable PWA on iOS and Android, with full feature parity for group trip planning.',
+                                    },
+                                  ]}
+                                />
+                              );
+                            })()}
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/use-cases"
+                        element={
+                          <LazyRoute>
+                            <UseCasesHub />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/use-cases/:slug"
+                        element={
+                          <LazyRoute>
+                            <UseCasePage />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/blog"
+                        element={
+                          <LazyRoute>
+                            <BlogIndex />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/blog/:slug"
+                        element={
+                          <LazyRoute>
+                            <BlogPost />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
                         path="/teams"
                         element={
                           <LazyRoute>
@@ -643,6 +731,24 @@ const App = () => {
                         }
                       />
                       <Route
+                        path="/dev/billing-preview"
+                        element={
+                          <LazyRoute>
+                            <DevBillingPreview />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/settings/subscription"
+                        element={
+                          <ProtectedRoute>
+                            <LazyRoute>
+                              <SubscriptionStatus />
+                            </LazyRoute>
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
                         path="/admin/scheduled-messages"
                         element={
                           <LazyRoute>
@@ -715,7 +821,7 @@ const App = () => {
             </AppInitializer>
           </ConsumerSubscriptionProvider>
         </AuthProvider>
-      </QueryClientProvider>
+      </PersistQueryClientProvider>
     </ErrorBoundary>
   );
 };

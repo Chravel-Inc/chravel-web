@@ -9,6 +9,7 @@ import {
   disconnectGmailAccount,
   GmailAccount,
 } from '../api/gmailAuth';
+import { useFeatureFlag } from '@/lib/featureFlags';
 
 const MAX_ACCOUNTS = 5;
 
@@ -53,6 +54,11 @@ function relativeDate(iso: string | null): string | null {
 }
 
 export const SmartImportSettings = () => {
+  // Kill switch — Gmail OAuth is gated behind Google CASA Tier 2 verification.
+  // Default false: render nothing until the flag is explicitly flipped on.
+  // See docs/gmail-smart-import.md for the re-enablement runbook.
+  const gmailEnabled = useFeatureFlag('gmail_smart_import', false);
+
   const [accounts, setAccounts] = useState<GmailAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
@@ -60,8 +66,13 @@ export const SmartImportSettings = () => {
   const [reconnectBannerDismissed, setReconnectBannerDismissed] = useState(false);
 
   useEffect(() => {
+    if (!gmailEnabled) return;
     loadAccounts();
-  }, []);
+  }, [gmailEnabled]);
+
+  if (!gmailEnabled) {
+    return null;
+  }
 
   const loadAccounts = async () => {
     try {
@@ -116,7 +127,7 @@ export const SmartImportSettings = () => {
             on any trip to scan your connected inboxes for matching reservations.
           </span>
           <span className="block">
-            Chravel uses AI to find and parse flights, hotels, dining, events, train tickets, and
+            ChravelApp uses AI to find and parse flights, hotels, dining, events, train tickets, and
             private charter confirmations. We only request read-only access — you can disconnect
             anytime.
           </span>
@@ -154,7 +165,7 @@ export const SmartImportSettings = () => {
                 <strong>Smart Import</strong> to scan your inbox for matching reservations.
               </p>
               <p className="text-sm text-muted-foreground mb-4">
-                Chravel's AI detects flights, hotels, dining, events, train tickets, private
+                ChravelApp's AI detects flights, hotels, dining, events, train tickets, private
                 charters, glamping bookings, and more. You can connect up to {MAX_ACCOUNTS}{' '}
                 accounts.
               </p>
@@ -170,7 +181,7 @@ export const SmartImportSettings = () => {
                 ) : (
                   <GoogleLogo className="h-4 w-4" />
                 )}
-                Connect Gmail
+                Connect Gmail (Beta)
               </Button>
             </div>
           </div>

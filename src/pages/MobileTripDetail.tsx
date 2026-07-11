@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, MoreVertical, Info, LogIn, Users, UserPlus } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Info, LogIn, Users } from 'lucide-react';
 import { MobileTripTabs } from '../components/mobile/MobileTripTabs';
 import { MobileErrorBoundary } from '../components/mobile/MobileErrorBoundary';
 import { MobileTripInfoDrawer } from '../components/mobile/MobileTripInfoDrawer';
@@ -28,6 +28,7 @@ import { buildTripPreviewLink } from '@/lib/unfurlConfig';
 import { useQueryClient } from '@tanstack/react-query';
 import { tripKeys } from '@/lib/queryKeys';
 import { usePendingActions } from '../hooks/usePendingActions';
+import { TripRealtimeHubMount } from '@/components/trip/TripRealtimeHubMount';
 
 export const MobileTripDetail = () => {
   const { tripId } = useParams();
@@ -329,7 +330,10 @@ export const MobileTripDetail = () => {
   if (loading || isAuthLoading) {
     return (
       <MobileErrorBoundary>
-        <div className="flex flex-col h-[100dvh] bg-black overflow-hidden" aria-hidden="true">
+        <div
+          className="mobile-trip-shell flex flex-col h-[100dvh] bg-black overflow-hidden"
+          aria-hidden="true"
+        >
           {/* Skeleton Header */}
           <div className="flex-shrink-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/[0.06] mobile-safe-header">
             <div className="px-4 py-2">
@@ -550,7 +554,8 @@ export const MobileTripDetail = () => {
 
   return (
     <MobileErrorBoundary>
-      <div className="flex flex-col h-[100dvh] bg-black overflow-hidden">
+      <TripRealtimeHubMount tripId={tripId} />
+      <div className="mobile-trip-shell flex flex-col h-[100dvh] bg-black overflow-hidden">
         {/* Mobile Header - Fixed flex item (not sticky) for reliable iOS PWA visibility */}
         <div
           ref={headerRef}
@@ -591,21 +596,8 @@ export const MobileTripDetail = () => {
                 </div>
               </div>
 
-              {/* Invite (primary) + Options */}
+              {/* Options */}
               <div className="flex-shrink-0 flex items-center gap-0.5">
-                <button
-                  onClick={() => {
-                    hapticService.light();
-                    setShowInviteModal(true);
-                  }}
-                  data-testid="mobile-invite-cta"
-                  className="flex items-center gap-1 min-h-[40px] px-2.5 rounded-full bg-gold-primary hover:bg-gold-mid text-black text-sm font-semibold active:scale-95 transition-transform touch-manipulation"
-                  style={{ touchAction: 'manipulation' }}
-                  aria-label="Invite people to this trip"
-                >
-                  <UserPlus size={16} />
-                  <span>Invite</span>
-                </button>
                 <button
                   onClick={() => {
                     hapticService.light();

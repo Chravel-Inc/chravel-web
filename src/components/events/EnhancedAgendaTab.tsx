@@ -12,7 +12,7 @@ import {
   User,
   X,
   Edit2,
-  Sparkles,
+  Wand2,
   Eye,
   Image,
   AlertCircle,
@@ -243,7 +243,10 @@ export const EnhancedAgendaTab = ({
   const smartImportPaywall = getFeaturePaywallConfig('smart_import_event_agenda');
 
   return (
-    <div className="relative p-4 md:p-6 space-y-4 md:space-y-6">
+    // Own the vertical scroll (like the Tasks/Polls tabs) so the full agenda is reachable
+    // inside MobileTripTabs' flex-column wrapper. flex-1/min-h-0 are inert on the desktop
+    // block render path (EventDetailContent), leaving a single outer scrollbar there.
+    <div className="relative flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 md:p-6 space-y-4 md:space-y-6 mobile-safe-scroll">
       {(isRefreshing || pullDistance > 0) && (
         <PullToRefreshIndicator
           isRefreshing={isRefreshing}
@@ -298,7 +301,7 @@ export const EnhancedAgendaTab = ({
                 variant="outline"
                 className="flex-1 sm:flex-none border-primary/30 text-primary"
               >
-                <Sparkles size={16} className="mr-2" />
+                <Wand2 size={16} className="mr-2" />
                 Smart Import
               </Button>
             ) : (

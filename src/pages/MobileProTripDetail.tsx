@@ -31,6 +31,7 @@ import { demoModeService } from '../services/demoModeService';
 import { toast } from 'sonner';
 import { buildTripPreviewLink } from '@/lib/unfurlConfig';
 import { usePendingActions } from '../hooks/usePendingActions';
+import { TripRealtimeHubMount } from '@/components/trip/TripRealtimeHubMount';
 
 export const MobileProTripDetail = () => {
   const { proTripId } = useParams();
@@ -433,7 +434,8 @@ export const MobileProTripDetail = () => {
 
   return (
     <MobileErrorBoundary>
-      <div className="flex flex-col h-[100dvh] bg-black overflow-hidden">
+      <TripRealtimeHubMount tripId={proTripId} />
+      <div className="mobile-trip-shell flex flex-col h-[100dvh] bg-black overflow-hidden">
         {/* Mobile Header - Fixed flex item (not sticky) for reliable iOS PWA visibility */}
         <div
           ref={headerRef}
@@ -554,7 +556,6 @@ export const MobileProTripDetail = () => {
           onClose={() => setShowInviteModal(false)}
           tripName={tripData?.title || 'Pro Trip'}
           proTripId={proTripId}
-          tripType="pro"
         />
 
         {/* Delete Trip Confirm Dialog */}

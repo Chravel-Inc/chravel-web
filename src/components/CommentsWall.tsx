@@ -79,7 +79,10 @@ export const CommentsWall = ({ tripId, permissions }: CommentsWallProps) => {
         : TRIP_PARITY_COL_START.tasks;
 
   return (
-    <div className="relative p-4 space-y-3">
+    // Own the vertical scroll (like the Tasks tab) so long content — e.g. the full
+    // Create Poll form — is reachable. `mobile-safe-scroll` adds bottom padding so the
+    // final element (the Create Poll button) clears the fixed bottom nav / safe area.
+    <div className="relative flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-4 space-y-3 mobile-safe-scroll">
       {(isRefreshing || pullDistance > 0) && (
         <PullToRefreshIndicator
           isRefreshing={isRefreshing}

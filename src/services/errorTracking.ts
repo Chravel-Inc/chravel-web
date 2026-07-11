@@ -19,7 +19,57 @@
  * }
  * ```
  */
-import * as Sentry from '@sentry/react';
+// Type-only import — erased at build time. The SDK itself is dynamically
+// imported in init() so @sentry/react stays out of the App critical path
+// (it was statically pulled in by App.tsx and useAuth.tsx).
+import type * as SentryTypes from '@sentry/react';
+
+type SentryModule = typeof SentryTypes;
+
+// Errors thrown before the Sentry chunk resolves are buffered (bounded) and
+// flushed in order once it loads, so early boot failures are not lost.
+const MAX_PENDING_EVENTS = 20;
+
+// Redact PII before events leave the browser (CWE-359 — exposure to a subprocessor).
+const EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+const redactPii = (value: unknown): unknown =>
+  typeof value === 'string' ? value.replace(EMAIL_RE, '[redacted-email]') : value;
+
+/**
+ * Sentry `beforeSend` scrubber. Restricts user context to a non-PII id, redacts
+ * email-like substrings in messages/exceptions, and strips cookies/auth headers.
+ * Typed as `any` because @sentry/react is a type-only import here and the Event
+ * shape is broad; scrubbing is best-effort and must never throw (that would drop
+ * the event entirely).
+ */
+function scrubSentryEvent(event: any): any {
+  try {
+    if (event?.user) {
+      event.user = event.user.id ? { id: event.user.id } : undefined;
+    }
+    if (typeof event?.message === 'string') {
+      event.message = redactPii(event.message);
+    }
+    const values = event?.exception?.values;
+    if (Array.isArray(values)) {
+      for (const v of values) {
+        if (v && typeof v.value === 'string') v.value = redactPii(v.value);
+      }
+    }
+    if (event?.request) {
+      delete event.request.cookies;
+      const headers = event.request.headers;
+      if (headers) {
+        for (const k of ['Authorization', 'authorization', 'Cookie', 'cookie']) {
+          delete headers[k];
+        }
+      }
+    }
+  } catch {
+    // never let scrubbing throw
+  }
+  return event;
+}
 
 export interface ErrorContext {
   userId?: string;
@@ -40,8 +90,16 @@ class ErrorTrackingService {
   private breadcrumbs: BreadcrumbData[] = [];
   private maxBreadcrumbs = 50;
   private initialized = false;
+  /** DSN configured — Sentry chunk is loading or loaded; buffer until `sentry` is set. */
   private sentryEnabled = false;
+  /** Loaded SDK module; null while the dynamic import is in flight. */
+  private sentry: SentryModule | null = null;
   private userId: string | null = null;
+  /**
+   * Operations issued before the Sentry chunk resolved, replayed in original
+   * order on load (single bounded queue — setUser/capture/etc. all share it).
+   */
+  private pendingOps: Array<(sentry: SentryModule) => void> = [];
 
   /**
    * Initialize error tracking service.
@@ -49,26 +107,71 @@ class ErrorTrackingService {
    */
   init(config?: { userId?: string; environment?: string }) {
     if (this.initialized) return;
+    this.initialized = true;
 
     if (config?.userId) {
       this.userId = config.userId;
     }
 
     const dsn = import.meta.env.VITE_SENTRY_DSN;
-    if (dsn) {
-      Sentry.init({
-        dsn,
-        environment: config?.environment || import.meta.env.MODE || 'production',
-        // Sample 100% of errors, 20% of transactions in production
-        tracesSampleRate: import.meta.env.PROD ? 0.2 : 1.0,
-        // Only send errors in production/staging
-        enabled: import.meta.env.PROD || import.meta.env.VITE_SENTRY_FORCE_ENABLE === 'true',
-        integrations: [Sentry.browserTracingIntegration()],
+    if (!dsn) return;
+
+    this.sentryEnabled = true;
+    const environment = config?.environment || import.meta.env.MODE || 'production';
+
+    void import('@sentry/react')
+      .then(Sentry => {
+        Sentry.init({
+          dsn,
+          environment,
+          // Do not attach IP/cookies/headers automatically, and scrub PII from every
+          // event before it is sent (privacy — CWE-359).
+          sendDefaultPii: false,
+          beforeSend: scrubSentryEvent,
+          // Sample 100% of errors, 20% of transactions in production
+          tracesSampleRate: import.meta.env.PROD ? 0.2 : 1.0,
+          // Only send errors in production/staging
+          enabled: import.meta.env.PROD || import.meta.env.VITE_SENTRY_FORCE_ENABLE === 'true',
+          integrations: [Sentry.browserTracingIntegration()],
+        });
+        this.sentry = Sentry;
+        this.flushPending();
+      })
+      .catch(err => {
+        this.sentryEnabled = false;
+        this.pendingOps = [];
+        console.warn('[ErrorTracking] Failed to load Sentry SDK:', err);
       });
-      this.sentryEnabled = true;
+  }
+
+  /** Run now if the SDK is loaded, else queue (bounded) for the load flush. */
+  private enqueueOrRun(op: (sentry: SentryModule) => void): void {
+    if (this.sentry) {
+      op(this.sentry);
+      return;
+    }
+    if (this.sentryEnabled && this.pendingOps.length < MAX_PENDING_EVENTS) {
+      this.pendingOps.push(op);
+    }
+  }
+
+  /** Replay everything captured while the SDK chunk was loading, in order. */
+  private flushPending(): void {
+    if (!this.sentry) return;
+
+    // Breadcrumbs first so buffered exceptions carry their context
+    for (const breadcrumb of this.breadcrumbs) {
+      this.sentry.addBreadcrumb({
+        category: breadcrumb.category,
+        message: breadcrumb.message,
+        level: breadcrumb.level as SentryTypes.SeverityLevel,
+        data: breadcrumb.data,
+      });
     }
 
-    this.initialized = true;
+    for (const op of this.pendingOps.splice(0)) {
+      op(this.sentry);
+    }
   }
 
   /**
@@ -76,10 +179,7 @@ class ErrorTrackingService {
    */
   setUser(userId: string, userData?: Record<string, unknown>) {
     this.userId = userId;
-
-    if (this.sentryEnabled) {
-      Sentry.setUser({ id: userId, ...userData });
-    }
+    this.enqueueOrRun(sentry => sentry.setUser({ id: userId, ...userData }));
   }
 
   /**
@@ -87,10 +187,7 @@ class ErrorTrackingService {
    */
   clearUser() {
     this.userId = null;
-
-    if (this.sentryEnabled) {
-      Sentry.setUser(null);
-    }
+    this.enqueueOrRun(sentry => sentry.setUser(null));
   }
 
   /**
@@ -107,13 +204,13 @@ class ErrorTrackingService {
       });
     }
 
-    if (this.sentryEnabled) {
-      Sentry.captureException(errorObj, {
+    this.enqueueOrRun(sentry =>
+      sentry.captureException(errorObj, {
         contexts: {
           custom: context as Record<string, unknown>,
         },
-      });
-    }
+      }),
+    );
 
     return errorObj;
   }
@@ -126,14 +223,14 @@ class ErrorTrackingService {
     level: 'info' | 'warning' | 'error' = 'info',
     context?: ErrorContext,
   ) {
-    if (this.sentryEnabled) {
-      Sentry.captureMessage(message, {
-        level: level as Sentry.SeverityLevel,
+    this.enqueueOrRun(sentry =>
+      sentry.captureMessage(message, {
+        level: level as SentryTypes.SeverityLevel,
         contexts: {
           custom: context as Record<string, unknown>,
         },
-      });
-    }
+      }),
+    );
   }
 
   /**
@@ -153,11 +250,13 @@ class ErrorTrackingService {
       this.breadcrumbs = this.breadcrumbs.slice(-this.maxBreadcrumbs);
     }
 
-    if (this.sentryEnabled) {
-      Sentry.addBreadcrumb({
+    // Pre-load breadcrumbs aren't queued separately: the local ring buffer is
+    // replayed into Sentry by flushPending() when the SDK resolves.
+    if (this.sentry) {
+      this.sentry.addBreadcrumb({
         category: breadcrumb.category,
         message: breadcrumb.message,
-        level: breadcrumb.level as Sentry.SeverityLevel,
+        level: breadcrumb.level as SentryTypes.SeverityLevel,
         data: breadcrumb.data,
       });
     }

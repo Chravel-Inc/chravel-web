@@ -18,6 +18,20 @@ describe('ChatSearchOverlay search behavior', () => {
     vi.clearAllMocks();
   });
 
+  it('keeps an accessible 44px back control to exit search on mobile', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+
+    render(<ChatSearchOverlay tripId="trip-1" onClose={onClose} onResultSelect={vi.fn()} />);
+
+    const backButton = screen.getByRole('button', { name: 'Back to chat' });
+    expect(backButton).toHaveClass('min-h-11');
+
+    await user.click(backButton);
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('parses filter query and renders both message and broadcast results', async () => {
     const user = userEvent.setup();
     const parsedQuery = {

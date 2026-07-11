@@ -4,6 +4,12 @@ import { SUBSCRIPTION_TIERS } from '../types/pro';
 import { useIsMobile } from '../hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
 import { SUBSCRIPTION_TIER_MAP } from '@/constants/stripe';
+import {
+  detectNativeBillingPlatform,
+  isIOSNativeShell,
+  isNativeWebView,
+} from '@/utils/platformDetection';
+import { purchaseProSubscription } from '@/integrations/revenuecat/revenuecatClient';
 import { toast } from 'sonner';
 
 interface ProUpgradeModalProps {
@@ -20,11 +26,40 @@ export const ProUpgradeModal = ({ isOpen, onClose }: ProUpgradeModalProps) => {
 
   if (!isOpen) return null;
 
+  const iosNative = isIOSNativeShell();
+
   const handleStartFreeTrial = async (tier: string) => {
     setIsLoading(true);
     try {
+      const tierKey = SUBSCRIPTION_TIER_MAP[tier as keyof typeof SUBSCRIPTION_TIER_MAP];
+
+      // iOS native shell — Apple IAP via RevenueCat (Guideline 3.1.1)
+      if (iosNative) {
+        // Enterprise tiers require a sales conversation; Starter/Growth are monthly IAPs.
+        if (tierKey === 'pro-enterprise') {
+          toast.info('Contact sales for Enterprise+ pricing.');
+          return;
+        }
+        const proTier = (tierKey as 'pro-starter' | 'pro-growth') || 'pro-starter';
+        const result = await purchaseProSubscription(proTier, 'monthly');
+        if (result.success) {
+          toast.success('ChravelApp Pro activated!');
+          onClose();
+        } else if (result.errorCode === 'CANCELLED') {
+          // silent
+        } else if (!result.supported) {
+          toast.error('In-app purchases are not available on this device.');
+        } else {
+          toast.error(result.error || 'Failed to start purchase.');
+        }
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { tier: SUBSCRIPTION_TIER_MAP[tier as keyof typeof SUBSCRIPTION_TIER_MAP] },
+        body: {
+          tier: tierKey,
+          platform: detectNativeBillingPlatform(navigator.userAgent || '', isNativeWebView()),
+        },
       });
 
       if (error) throw error;
@@ -55,9 +90,9 @@ export const ProUpgradeModal = ({ isOpen, onClose }: ProUpgradeModalProps) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="modal-backdrop z-50 flex items-center justify-center p-4">
       <div
-        className={`bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl shadow-2xl ${
+        className={`bg-card/95 backdrop-blur-xl border border-white/10 rounded-3xl shadow-enterprise-lg ${
           isMobile
             ? 'w-full h-full overflow-y-auto p-4'
             : 'p-8 max-w-6xl w-full max-h-[90vh] overflow-y-auto'
@@ -66,15 +101,15 @@ export const ProUpgradeModal = ({ isOpen, onClose }: ProUpgradeModalProps) => {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div
-              className={`bg-gradient-to-r from-glass-orange to-glass-yellow rounded-2xl flex items-center justify-center ${
+              className={`bg-gradient-to-r from-gold-primary to-gold-mid rounded-2xl flex items-center justify-center ${
                 isMobile ? 'w-10 h-10' : 'w-12 h-12'
               }`}
             >
-              <Crown size={isMobile ? 20 : 24} className="text-white" />
+              <Crown size={isMobile ? 20 : 24} className="text-primary-foreground" />
             </div>
             <div>
               <h2 className={`font-bold text-white ${isMobile ? 'text-xl' : 'text-3xl'}`}>
-                Upgrade to Chravel Pro
+                Upgrade to ChravelApp Pro
               </h2>
               <p className={`text-gray-400 ${isMobile ? 'text-sm' : ''}`}>
                 Enterprise software for professional trip management
@@ -87,11 +122,11 @@ export const ProUpgradeModal = ({ isOpen, onClose }: ProUpgradeModalProps) => {
         </div>
 
         {/* Enterprise SaaS Benefits */}
-        <div className="bg-gradient-to-r from-glass-orange/10 to-glass-yellow/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 sm:p-6 mb-6">
+        <div className="bg-gradient-to-r from-gold-primary/10 to-gold-mid/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 sm:p-6 mb-6">
           <h3
             className={`font-bold text-white mb-4 flex items-center gap-2 ${isMobile ? 'text-lg' : 'text-xl'}`}
           >
-            <Building size={isMobile ? 20 : 24} className="text-glass-orange" />
+            <Building size={isMobile ? 20 : 24} className="text-primary" />
             Enterprise Software as a Service
           </h3>
           <div
@@ -156,7 +191,7 @@ export const ProUpgradeModal = ({ isOpen, onClose }: ProUpgradeModalProps) => {
               <ul className="space-y-2 text-sm text-gray-300">
                 {tier.features.slice(0, isMobile ? 3 : 4).map((feature, index) => (
                   <li key={index} className="flex items-start gap-2">
-                    <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                    <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                     {feature}
                   </li>
                 ))}
@@ -178,7 +213,7 @@ export const ProUpgradeModal = ({ isOpen, onClose }: ProUpgradeModalProps) => {
           <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2'}`}>
             {SUBSCRIPTION_TIERS[selectedTier].features.map((feature, index) => (
               <div key={index} className="flex items-start gap-3">
-                <Shield size={16} className="text-glass-orange mt-0.5 flex-shrink-0" />
+                <Shield size={16} className="text-primary mt-0.5 flex-shrink-0" />
                 <span className="text-gray-300 text-sm">{feature}</span>
               </div>
             ))}
@@ -187,18 +222,22 @@ export const ProUpgradeModal = ({ isOpen, onClose }: ProUpgradeModalProps) => {
 
         {/* CTA Section */}
         <div className="text-center">
-          <div className="text-sm text-glass-yellow mb-4">
-            14-day free trial • No credit card required • Cancel anytime
+          <div className="text-sm text-gold-light mb-4">
+            {iosNative
+              ? 'Subscribe with Apple — billed through your App Store account.'
+              : '14-day free trial • No credit card required • Cancel anytime'}
           </div>
           <div className={`flex justify-center ${isMobile ? '' : ''}`}>
             <button
               onClick={() => handleStartFreeTrial(selectedTier)}
               disabled={isLoading}
-              className="px-8 py-3 bg-gradient-to-r from-glass-orange to-glass-yellow hover:from-glass-orange/80 hover:to-glass-yellow/80 text-white font-medium rounded-2xl transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-8 py-3 bg-gradient-to-r from-gold-primary to-gold-mid hover:from-gold-mid hover:to-gold-primary text-primary-foreground font-medium rounded-2xl transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading
                 ? 'Processing...'
-                : `Start Free Trial - ${SUBSCRIPTION_TIERS[selectedTier].name}`}
+                : iosNative
+                  ? `Subscribe with Apple - ${SUBSCRIPTION_TIERS[selectedTier].name}`
+                  : `Start Free Trial - ${SUBSCRIPTION_TIERS[selectedTier].name}`}
             </button>
           </div>
         </div>

@@ -37,4 +37,18 @@ describe('useStreamClient', () => {
     expect(result.current.isConnected).toBe(false);
     expect(result.current.error).toBe('Stream connection unavailable. Chat may be degraded.');
   });
+
+  it('attempts connection when the Stream key is resolved by stream-token at runtime', async () => {
+    getStreamApiKeyMock.mockReturnValue(null);
+    connectStreamClientMock.mockResolvedValue({ userID: 'user-1' });
+
+    const { result } = renderHook(() => useStreamClient());
+
+    await waitFor(() => {
+      expect(result.current.isConnected).toBe(true);
+    });
+
+    expect(connectStreamClientMock).toHaveBeenCalledTimes(1);
+    expect(result.current.error).toBeNull();
+  });
 });

@@ -39,7 +39,7 @@ import { openOrDownloadBlob } from '../utils/download';
 import { orderExportSections } from '../utils/exportSectionOrder';
 import type { ExportSection } from '../types/tripExport';
 import { getDemoTripCoverFallback } from '@/data/demoTripCoverFallbacks';
-import { buildCoverBackgroundImage } from '@/utils/coverImageStyle';
+import { OptimizedImage } from './OptimizedImage';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -88,6 +88,7 @@ export const ProTripCard = ({
   // Get color for this trip - uses saved color if available, otherwise deterministic fallback
   const tripColor = getProTripColor(trip.id, (trip as any).card_color);
   const coverPhoto = (trip as { coverPhoto?: string }).coverPhoto;
+  const coverFit = trip.coverDisplayMode === 'contain' ? 'contain' : 'cover';
   const demoCoverFallback = isDemoMode ? getDemoTripCoverFallback(trip.id) : undefined;
 
   // Get added members from the demo store
@@ -307,11 +308,11 @@ export const ProTripCard = ({
   // Share trip data structure
 
   const cardShellClass =
-    'group w-full min-w-0 bg-gradient-to-br backdrop-blur-xl border border-white/15 hover:border-white/30 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl shadow-black/30 relative';
+    'group w-full min-w-0 bg-gradient-to-br backdrop-blur-xl border border-white/15 hover:border-primary/25 rounded-2xl overflow-hidden transition-all duration-300 motion-safe:hover:-translate-y-1 shadow-enterprise hover:shadow-enterprise-md relative';
   const actionButtonClass = cn(
     buttonVariants({ variant: 'ghost', size: 'sm' }),
     // Ghost applies hover:text-accent-foreground (black); keep CTA labels white when pressed/hovered.
-    'min-h-[44px] bg-black/30 hover:bg-black/40 text-white border border-white/20 hover:border-white/30 hover:text-white active:text-white focus-visible:text-white disabled:opacity-50 disabled:cursor-not-allowed md:text-sm text-xs px-2 md:px-3 py-2.5 md:py-3 rounded-lg md:rounded-xl',
+    'min-h-[44px] bg-black/30 hover:bg-black/40 text-white border border-white/20 hover:border-primary/30 hover:text-white active:text-white focus-visible:text-white disabled:opacity-50 disabled:cursor-not-allowed md:text-sm text-xs px-2 md:px-3 py-2.5 md:py-3 rounded-xl',
   );
 
   const shareTrip = {
@@ -333,9 +334,14 @@ export const ProTripCard = ({
       <div className="trips-card-hero relative bg-white/30 dark:bg-black/40">
         {/* Cover photo overlay if available */}
         {coverPhoto && (
-          <div
-            className="absolute inset-0 bg-cover bg-center opacity-25"
-            style={buildCoverBackgroundImage(coverPhoto, demoCoverFallback)}
+          <OptimizedImage
+            src={coverPhoto}
+            alt={`${trip.title} cover`}
+            fallbackSrc={demoCoverFallback}
+            lazy
+            fit={coverFit}
+            showBlurBackdrop={coverFit === 'contain'}
+            className={`absolute inset-0 ${coverFit === 'contain' ? 'opacity-80' : 'opacity-25'}`}
           />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-white/50 via-transparent to-transparent dark:from-black/70 dark:via-black/30 dark:to-transparent" />
@@ -511,7 +517,6 @@ export const ProTripCard = ({
         onClose={() => setShowInviteModal(false)}
         tripName={trip.title}
         proTripId={trip.id}
-        tripType="pro"
       />
 
       <ShareTripModal

@@ -192,6 +192,18 @@ export interface PerformanceEvents {
     message_count: number;
     duration_ms: number;
   };
+  /** Cold-start phase timeline; all values are ms since timeOrigin. */
+  boot_timeline: {
+    entry_ms: number | null;
+    app_mounted_ms: number | null;
+    auth_hydrated_ms: number | null;
+    dashboard_rendered_ms: number | null;
+    lcp_ms: number | null;
+    fcp_ms: number | null;
+    network_type: string | null;
+    native_shell: boolean;
+    installed_app: boolean;
+  };
   page_view: {
     page: string;
     trip_id?: string;

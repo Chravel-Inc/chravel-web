@@ -40,3 +40,98 @@
 2026-06-07 — Trips QA follow-up responsive breakpoint hardening
 - Tightened the Trips responsive CSS after QA review: landscape/mobile-tablet grids now use two columns through 1024px without the previous short-height-only gap, 1024px mobile-shell views retain bottom nav padding, and the CSS override no longer needs `!important`.
 - Targeted TripGrid test, lint:check, typecheck, and build pass. Real screenshot capture is still blocked: Playwright/Puppeteer browser downloads return 403 and Ubuntu's Chromium package is a snap stub with no running snapd.
+
+2026-06-13 — Recs nightlife sports landmarks expansion
+- Added Nightlife, Sports, and Landmarks recommendation categories to the existing mock Recs feed with organic cards, official outbound links, and no promoted/discount claims.
+- Kept category filtering on the existing horizontally scrollable pill row and added regression coverage for unique IDs, organic disclosure behavior, and requested LA/global content.
+- Verification: typecheck, targeted recommendation tests, lint:check, and build pass; full test run still has unrelated pre-existing failures in AuthModal, Apple client secret, Supabase config, and tool-result contract suites.
+
+2026-06-13 — Recs generated image assets follow-up
+- Replaced remote/generated-placeholder URLs for the newly added Sports, Nightlife, and Landmarks mock recommendation cards with 26 bundled PNG assets in src/assets/recommendations.
+- Added regression coverage that curated new-category cards use local non-HTTP image imports so cards render without external image dependency.
+- Verified typecheck, targeted recommendation tests, lint:check, and production build; merge preflight still blocked by origin/main fetch in this environment.
+
+2026-06-13 — Recs image asset diffability follow-up
+- Replaced the 26 generated Recs PNG assets with generated SVG assets so the cards still render local mock artwork without binary-file diffs blocking branch update tooling.
+- Tightened recommendation category tests to assert new curated images resolve to SVG imports, preserving non-HTTP local asset behavior while avoiding binary assets in the PR diff.
+
+2026-06-13 — Recs no-asset image follow-up
+- Removed the generated recommendation image files entirely and moved mock artwork to inline SVG data URIs generated from TypeScript config, eliminating binary/image-file diffs from the branch.
+- Kept every new Recs card on a local non-HTTP image string and tightened tests to require data:image/svg+xml outputs for the curated categories.
+
+2026-06-14 — Recs merge-blocking parity fixes
+- Fixed the Travel Recs feed hook so organic mock categories (Nightlife, Sports, Landmarks) render on the primary consumer surface instead of being dropped by the sponsored-only gate.
+- Added shared recommendation category filter metadata and reused it in both home Recs pills and the admin Chravel Recs tab list so category UI stays in parity.
+- Added regression coverage for the location-filtered Travel Recs hook and category filter metadata parity.
+
+2026-06-15 — Android 15 Play Console edge-to-edge release gate
+- Diagnosed the Play Console 1.0.0 warning as native Android artifact behavior from React Native/Material callsites, not current web source code.
+- Added an Android 15 edge-to-edge QA gate that fails Android release checks when the native `android/` project is missing and scans native sources for status/nav bar color writes, deprecated cutout modes, and legacy system UI flags when present.
+- Added a mobile runbook for the native fixes, dependency-upgrade targets, and Android 15 manual verification matrix before Play promotion.
+
+2026-06-17 — App Store rejection remediation: account deletion discoverability + iPad Apple OAuth
+- Classified June 17, 2026 App Review issues: in-app account deletion and Sign in with Apple need code/review-proof hardening; background audio and privacy tracking declarations require native/App Store Connect changes outside this web repo.
+- Added a visible Delete Account action directly to the signed-in Profile → Account row, routing to the existing actionable General Settings deletion flow; preserved the existing Native Settings deletion row and account-deletion RPC/backend path.
+- Switched installed-app OAuth browser presentation from iPad popover to fullscreen for Apple/Google external auth sessions to reduce iPad no-op/popover presentation risk.
+- Verified targeted tests, typecheck, lint:check (baseline warnings), build; merge preflight still cannot fetch origin/main in this environment.
+
+2026-06-18 — Mobile chat shell document-scroll lock
+- Diagnosed the continued iOS chat composer drift as a second root cause after the visual-viewport sizing fix: the mobile trip shell still lived in normal document flow, so iOS could rubber-band/scroll the entire webview and move the composer instead of limiting scroll to the message list.
+- Pinned `.mobile-trip-shell` to the viewport with visual-viewport height and no shell overscroll, preserving the existing internal chat/concierge scroll ownership and keeping the composer as a bottom flex sibling.
+- Added visualViewport `scroll` listener coverage so CSS viewport vars stay synchronized during iOS keyboard settle animations; targeted keyboard/MobileTripTabs tests, typecheck, lint:check, and build pass. Merge preflight remains blocked by origin/main fetch in this environment.
+
+2026-06-21 — Messages search Stream full-text regression fix
+- Diagnosed Messages search miss for chat text like "join this trip": Stream helper passed `{ text: query }` as message-filter conditions, not the SDK full-text query string, so regular message body terms could be missed.
+- Switched single-trip and universal Stream message search to `channel.search(query, options)` and added regression coverage that searching `join` returns `join this trip`.
+- Targeted Stream message search test passes; lint:check passes with existing warning baseline; typecheck remains blocked by pre-existing duplicate object literal keys in `src/components/landing/sections/UseCasesSection.tsx`.
+
+2026-06-22 — Invite links demo-mode bleed fix
+- Audited real trip invite generation, branded invite preview, join redemption, and demo-mode branches after reports that real-user invite links could resolve to demo trips.
+- Root cause: `useInviteLink` trusted the global demo-mode flag before checking the trip identity, so a signed-in user with stale app-preview demo state could generate `demo-{uuid}-{timestamp}` links instead of persisted `trip_invites` rows.
+- Fixed invite generation so only non-UUID demo trip IDs use demo links; UUID trips always create database-backed invite codes even if demo mode is still active. Added regression coverage for real UUID invites under active demo mode.
+
+2026-06-22 — Subscription permission marketing parity
+- Aligned the billing entitlement source of truth with the marketing pricing grid: Explorer now grants unlimited saved/active consumer trips, Frequent Chraveler grants role-based channels/roles, and tier comments reflect Free 10 / Explorer 25 AI query limits.
+- Tightened Smart Import server defaults to match the product-facing free taste/unlimited paid framing: Free defaults to 1 import, Explorer and Frequent Chraveler default to unlimited.
+- Added pricing/permission parity tests covering Explorer and Frequent Chraveler grants; targeted entitlement tests, typecheck, lint:check, and build pass. Merge preflight remains blocked by origin/main fetch in this environment.
+
+2026-06-22 — Free AI query limit reduction
+- Chose 3 free AI Concierge queries per user per trip (instead of 5 or a pooled lifetime cap) to give a quick taste while bounding abuse from users creating multiple free trips.
+- Updated client and edge-function permission maps, pricing/FAQ/settings/upsell copy, usage meter test data, and product-ground-truth docs from Free=10 to Free=3 while keeping Explorer=25 and Frequent Chraveler=unlimited.
+- Added/updated parity coverage so `FEATURE_LIMITS.ai_concierge.free`, `FREEMIUM_LIMITS.free.aiQueriesPerTrip`, and the shared concierge trip-limit helper agree. Targeted billing/limit tests, typecheck, lint:check, and build pass; AIConciergeChat usage-meter suite still hangs in this environment after startup and was killed.
+
+2026-06-25 — Payment method deep-link hardening
+- Replaced single payment CTA generation with canonical per-method deep-link targets for Venmo, Cash App, PayPal, Zelle copy-first, and iOS-only Apple Cash while preserving manual mark-as-paid settlement.
+- Wired balance rows to recipient `user_payment_methods` handles via `availablePaymentMethods`, highlighting the preferred method but showing all saved recipient rails.
+- Added a Capacitor-aware payment opener that uses native App/Browser plugins when present and web fallback without adding dependencies; targeted deep-link tests, typecheck, lint:check, and build pass. Merge preflight still cannot fetch origin/main in this environment.
+
+2026-06-30 — App Store review root-cause routing
+- Classified the June 30 App Review rejection as a split fix: `Chravel-Inc/chravel-mobile` native shell owns the iPad Sign in with Apple bridge and App Store Connect/RevenueCat owns submitted IAP products, while `Chravel-Inc/chravel-web` owns the stable bridge contract and product ID references.
+- Added `docs/app-store-june-30-2026-remediation.md` with the product IDs, native bridge requirements, QA checklist, and App Review reply template.
+- Marked `BILLING_FLAGS.APPLE_IAP_ENABLED` true to align `Chravel-Inc/chravel-web`'s billing source of truth with the current iOS-native RevenueCat paywall behavior and added a regression test so future changes do not silently disable IAP for review builds.
+
+2026-07-02 — Premium light-mode token repair
+- Replaced the previous gray light-mode foundation with warm-white semantic tokens, dark high-contrast primary CTAs, refined gold accents, warm sidebar/payment/chat surfaces, and PWA safe-area background parity.
+- Polished shared Card/Input/Radix Toast/Sonner primitives so borders, shadows, inputs, and toast surfaces read as native premium light-mode UI while preserving existing dark-mode tokens and theme persistence behavior.
+- Added a light-theme token regression test covering WCAG AA contrast pairings and warm bright surface requirements. Verification: targeted token test, typecheck, lint:check, and build pass; screenshot capture was attempted but Playwright browser installation remains blocked by CDN 403 in this environment.
+
+2026-07-06 — Mobile Concierge controls repair
+- Repaired the Concierge panel controls locally: collapsed the two-line header into a single 44px-control row, retitled it to "Concierge Chravel Agent", and made the header search/upload affordances explicit trip search + Concierge attachment controls.
+- Promoted the existing bidirectional realtime voice path to the default composer-left waveform control (still kill-switchable by the feature flag) and preserved the dictation mic inside the input as a secondary text-entry affordance.
+- Verification: typecheck, lint:check, and build pass; targeted AIConciergeChat vitest remains blocked by the known suite hang after startup in this environment.
+
+2026-07-07 — Mobile chat search escape repair
+- Fixed the chat message search overlay escape path so tapping outside the dialog or the visible 44px "Back to chat" control closes search, preventing the mobile search modal from trapping users.
+- Replaced dark-only overlay text/icon classes with semantic card/foreground/muted tokens so the search header, close affordance, empty state, and results stay visible in light mode.
+- Added regression coverage for the accessible mobile back control; typecheck and targeted ESLint pass. Full chat-search Vitest command timed out in this environment without reporting test results, and repo-wide lint remains blocked by a pre-existing prefer-const error in `src/utils/calendarImportParsers.ts`.
+
+2026-07-09 — Concierge Search/voice/upload/dictation/overflow repair
+- Root cause for dead Search: MobileTripTabs renderTabContent omitted activeTab from useCallback deps, so Concierge stayed isActive=false and immediately closed Search.
+- Hardened upload via label htmlFor + sr-only input; enlarged in-field dictation hit target and stopped focus-before-STT; lazy-mounted realtime voice + stopRef unmount cleanup so waveform taps start sessions.
+- Contained Concierge message/card overflow with min-w-0/max-w clamps. Verification: typecheck, lint:check (0 errors), build pass; RealtimeVoiceButton + MessageRenderer overflow tests pass; AIConciergeChat/MobileTripTabs suites still OOM in this environment.
+
+2026-07-11 — Concierge controls recovery (provenance-first)
+- Provenance: local main `b5df5ae` and production `chravel.app` (`build-version=mrex8prk`) already contain July 9 Concierge control fixes; TestFlight identity remains a human/chravel-mobile check.
+- Fixed residual realtime blocker: meta CSP in `index.html` now allows `https://ai-gateway.vercel.sh` + `wss://ai-gateway.vercel.sh` (aligned with vercel.json).
+- Hardened composer hit-testing (isolate/z stacking, inactive tab `pointerEvents:none`), Ask-anything placeholder, clearer disabled Send, and stop dictation before realtime mic.
+- Docs: `docs/CONCIERGE_CONTROLS_RECOVERY_2026-07-11.md`. Physical iPhone TestFlight QA remains the DoD gate.

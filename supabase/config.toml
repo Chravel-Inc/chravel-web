@@ -121,8 +121,6 @@ verify_jwt = false
 [functions.livekit-token]
 verify_jwt = false
 
-[functions.concierge-tts]
-verify_jwt = false
 
 [functions.batch-generate-embeddings]
 verify_jwt = false
@@ -145,7 +143,8 @@ verify_jwt = true
 [functions.create-default-channels]
 verify_jwt = true
 
-[functions.create-openai-realtime-session]
+
+[functions.mint-realtime-token]
 verify_jwt = false
 
 [functions.seo-dashboard]

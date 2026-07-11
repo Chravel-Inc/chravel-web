@@ -32,7 +32,7 @@ export const REVENUECAT_ENTITLEMENTS = {
     import.meta.env.VITE_REVENUECAT_FREQUENT_CHRAVELER_ENTITLEMENT_ID ||
     'chravel_frequent_chraveler',
 
-  // Pro tiers (for future use - B2B uses web checkout, not RevenueCat)
+  // Pro tiers (web uses Stripe; iOS exposes Starter/Growth monthly through RevenueCat)
   proStarter: 'chravel_pro_starter',
   proGrowth: 'chravel_pro_growth',
   proEnterprise: 'chravel_pro_enterprise',
@@ -44,6 +44,13 @@ export const REVENUECAT_ENTITLEMENTS = {
  *
  * PLACEHOLDER: Update after creating products in App Store Connect
  * See: src/billing/config.ts for Apple product ID format (com.chravel.*.monthly/annual)
+ *
+ * Trip Pass products MUST be created as **non-renewing subscriptions** (iOS) /
+ * **one-time products** (Android) in the store consoles, then attached in the
+ * RevenueCat dashboard to the matching consumer entitlement
+ * (`chravel_explorer` / `chravel_frequent_chraveler`) with a 45-day / 90-day
+ * grant window. Without those store + dashboard entries,
+ * `purchaseTripPass()` will fail with "Trip Pass product … not found".
  */
 export const REVENUECAT_PRODUCTS = {
   // Explorer tier - $9.99/month, $99/year (subscription)
@@ -55,9 +62,73 @@ export const REVENUECAT_PRODUCTS = {
   frequentChravelerAnnual: 'com.chravel.frequentchraveler.annual',
 
   // Trip Passes (one-time, primary consumer offering)
-  explorerPass45: 'com.chravel.explorer.pass45',
-  frequentChravelerPass90: 'com.chravel.frequentchraveler.pass90',
+  explorerPass45: 'com.chravel.trippass.explorer',
+  frequentChravelerPass90: 'com.chravel.trippass.frequent',
+
+  // Pro tiers — Starter/Growth monthly are exposed on iOS via RevenueCat.
+  // Enterprise remains contact-sales; annual Pro IAPs are not part of the 2.0(60) submission.
+  proStarterMonthly: 'com.chravel.pro.starter.monthly',
+  proGrowthMonthly: 'com.chravel.pro.growth.monthly',
 } as const;
+
+/** Regex for App Store Trip Pass SKUs (non-renewing IAP). */
+export const TRIP_PASS_PRODUCT_ID_RE = /trippass|\.pass\d+/i;
+
+export type RevenueCatPurchaseType = 'subscription' | 'pass';
+
+export function isTripPassProductId(productId: string | null | undefined): boolean {
+  if (!productId) return false;
+  return TRIP_PASS_PRODUCT_ID_RE.test(productId);
+}
+
+export function resolvePurchaseTypeForProductId(
+  productId: string | null | undefined,
+): RevenueCatPurchaseType {
+  return isTripPassProductId(productId) ? 'pass' : 'subscription';
+}
+
+/**
+ * Single source of truth for which RevenueCat / App Store Connect product IDs
+ * MUST exist for iOS purchases to function. Used at runtime by
+ * `assertIosProductIdsConfigured()` to surface configuration drift early
+ * (App Store Connect product missing, RevenueCat dashboard not attached, etc.)
+ * instead of producing a confusing "Product … not found in RevenueCat offerings"
+ * error deep inside the purchase flow.
+ */
+export const REQUIRED_IOS_PRODUCT_IDS = [
+  REVENUECAT_PRODUCTS.explorerMonthly,
+  REVENUECAT_PRODUCTS.explorerAnnual,
+  REVENUECAT_PRODUCTS.frequentChravelerMonthly,
+  REVENUECAT_PRODUCTS.frequentChravelerAnnual,
+  REVENUECAT_PRODUCTS.explorerPass45,
+  REVENUECAT_PRODUCTS.frequentChravelerPass90,
+  REVENUECAT_PRODUCTS.proStarterMonthly,
+  REVENUECAT_PRODUCTS.proGrowthMonthly,
+] as const;
+
+export interface ProductIdAssertion {
+  ok: boolean;
+  missing: string[];
+  blank: string[];
+}
+
+/**
+ * Validate the static REQUIRED_IOS_PRODUCT_IDS list. This guards against an
+ * empty / mistyped / undefined entry in REVENUECAT_PRODUCTS. It does NOT call
+ * the RevenueCat SDK — that happens in `assertIosOfferingsContainRequiredProducts`
+ * after `configureRevenueCat`.
+ */
+export function assertIosProductIdsConfigured(): ProductIdAssertion {
+  const blank: string[] = [];
+  const seen = new Set<string>();
+  for (const id of REQUIRED_IOS_PRODUCT_IDS) {
+    if (!id || typeof id !== 'string' || id.trim() === '') {
+      blank.push(String(id));
+    }
+    seen.add(id);
+  }
+  return { ok: blank.length === 0, missing: [], blank };
+}
 
 /**
  * Pricing display (for UI)

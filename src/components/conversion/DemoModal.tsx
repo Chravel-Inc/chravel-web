@@ -38,8 +38,8 @@ export const DemoModal = ({ isOpen, onClose, demoType = 'pro' }: DemoModalProps)
 
   const getDemoDescription = () => {
     return demoType === 'events'
-      ? 'See how Chravel Events can streamline your event management workflow'
-      : "Discover how Chravel Pro can transform your team's travel coordination";
+      ? 'See how ChravelApp Events can streamline your event management workflow'
+      : "Discover how ChravelApp Pro can transform your team's travel coordination";
   };
 
   const getUseCaseOptions = () => {
@@ -64,7 +64,7 @@ export const DemoModal = ({ isOpen, onClose, demoType = 'pro' }: DemoModalProps)
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="modal-backdrop z-50 flex items-center justify-center p-4">
       <div className="bg-card border border-border rounded-2xl shadow-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <div>

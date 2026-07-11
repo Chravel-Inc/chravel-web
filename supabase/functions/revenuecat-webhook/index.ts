@@ -1,7 +1,11 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { requireSecrets } from '../_shared/validateSecrets.ts';
-import { USER_ENTITLEMENT_CONFLICT_TARGET } from '../_shared/entitlementUpsert.ts';
+import {
+  USER_ENTITLEMENT_CONFLICT_TARGET,
+  resolvePurchaseTypeForProductId,
+  type RevenueCatPurchaseType,
+} from '../_shared/entitlementUpsert.ts';
 import {
   SUBSCRIPTION_EVENTS,
   deriveEntitlementFromEvent,
@@ -13,6 +17,23 @@ import {
 interface RevenueCatWebhookPayload {
   event: RevenueCatEvent;
   api_version: string;
+}
+
+/**
+ * Constant-time comparison of the shared webhook secret to avoid leaking it via a
+ * timing side-channel (CWE-208). RevenueCat authenticates webhooks with a verbatim
+ * Authorization header (no body HMAC), so a timing-safe compare is the correct
+ * hardening here. Runs O(len(expected)) work regardless of length mismatch.
+ */
+function timingSafeEqualStr(received: string, expected: string): boolean {
+  const enc = new TextEncoder();
+  const a = enc.encode(received);
+  const b = enc.encode(expected);
+  let mismatch = a.length === b.length ? 0 : 1;
+  for (let i = 0; i < b.length; i++) {
+    mismatch |= (a[i] ?? 0) ^ b[i];
+  }
+  return mismatch === 0;
 }
 
 serve(async req => {
@@ -31,7 +52,7 @@ serve(async req => {
   // RevenueCat authentication: dashboard-configured Authorization header sent verbatim.
   // Docs: https://www.revenuecat.com/docs/integrations/webhooks/overview#security
   const authHeader = req.headers.get('Authorization');
-  if (!authHeader || authHeader !== REVENUECAT_WEBHOOK_SECRET) {
+  if (!authHeader || !timingSafeEqualStr(authHeader, REVENUECAT_WEBHOOK_SECRET)) {
     console.error('[rc-webhook] Invalid or missing Authorization header');
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   }
@@ -102,6 +123,7 @@ serve(async req => {
   };
 
   const { plan, status, currentPeriodEnd } = deriveEntitlementFromEvent(event);
+  const purchaseType: RevenueCatPurchaseType = resolvePurchaseTypeForProductId(event.product_id);
 
   // Read the current entitlement once: used for both the reorder guard and the
   // no-op content-diff check.
@@ -110,7 +132,7 @@ serve(async req => {
     .select('plan, status, current_period_end')
     .eq('user_id', userId)
     .eq('source', 'revenuecat')
-    .eq('purchase_type', 'subscription')
+    .eq('purchase_type', purchaseType)
     .maybeSingle();
 
   // Reorder guard: a late/replayed EXPIRATION must not revoke access that a newer
@@ -145,7 +167,7 @@ serve(async req => {
       source: 'revenuecat',
       plan,
       status,
-      purchase_type: 'subscription',
+      purchase_type: purchaseType,
       current_period_end: currentPeriodEnd,
       entitlements: event.entitlement_ids || [],
       revenuecat_customer_id: event.app_user_id,

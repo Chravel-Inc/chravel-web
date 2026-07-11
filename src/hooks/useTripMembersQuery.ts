@@ -3,9 +3,10 @@
  *
  * Uses parallel data fetching and proper caching for instant UI rendering.
  * Falls back to demo mode data when appropriate.
+ * Rosters above 50 members load via paginated list_trip_members RPC.
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect } from 'react';
 import { tripService } from '@/services/tripService';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,6 +21,8 @@ import {
   reportStreamMembershipSyncFailure,
   syncRemoveMemberFromTripChannels,
 } from '@/services/stream/streamMembershipCoordinator';
+import { PAGINATED_ROSTER_THRESHOLD, ROSTER_PAGE_SIZE } from '@/lib/tripMemberLimits';
+
 export interface TripMember {
   id: string;
   name: string;
@@ -74,7 +77,6 @@ const getMockFallbackMembers = (tripId: string): TripMember[] => {
  * Fetch trip data and members in PARALLEL for faster loading
  */
 async function fetchTripMembersData(tripId: string, isDemoMode: boolean): Promise<TripMembersData> {
-  // Fast path for demo mode with numeric IDs
   if (isDemoMode && isDemoTrip(tripId)) {
     const mockMembers = getMockFallbackMembers(tripId);
     return {
@@ -85,10 +87,8 @@ async function fetchTripMembersData(tripId: string, isDemoMode: boolean): Promis
   }
 
   try {
-    // Use canonical source: getTripMembersWithCreator guarantees creator is always in the list
     const { members, creatorId } = await tripService.getTripMembersWithCreator(tripId);
 
-    // Map to TripMember format (members already have id, name, avatar, isCreator)
     const formattedMembers: TripMember[] = members.map(m => ({
       id: m.id,
       name: m.name,
@@ -103,38 +103,133 @@ async function fetchTripMembersData(tripId: string, isDemoMode: boolean): Promis
       hadError: false,
     };
   } catch (error) {
-    // Log in all envs so prod breakage (RLS, network) is visible
     console.error('[useTripMembersQuery] Failed to fetch members:', error);
     return { members: [], creatorId: null, hadError: true };
   }
 }
 
-export const useTripMembersQuery = (tripId?: string) => {
+export interface UseTripMembersQueryOptions {
+  /** When roster is paginated, filters via list_trip_members RPC (server-side). */
+  rosterSearch?: string;
+}
+
+export const useTripMembersQuery = (tripId?: string, options?: UseTripMembersQueryOptions) => {
   const queryClient = useQueryClient();
   const { isDemoMode } = useDemoMode();
   const { user } = useAuth();
 
-  // Track demo store changes
   const demoAddedMembersCount = useDemoTripMembersStore(state =>
     tripId ? state.addedMembers[tripId]?.length || 0 : 0,
   );
   const membersQueryKey = tripKeys.membersWithRevision(tripId || '', demoAddedMembersCount);
+  const rosterSearch = options?.rosterSearch?.trim() ?? '';
 
-  // Main query with caching
-  const { data, isLoading, refetch } = useQuery({
+  const { data: tripMeta, isLoading: metaLoading } = useQuery({
+    queryKey: tripKeys.memberMeta(tripId || ''),
+    queryFn: () => tripService.getTripMemberMeta(tripId!),
+    enabled: !!tripId && !isDemoMode,
+    staleTime: QUERY_CACHE_CONFIG.members.staleTime,
+    gcTime: QUERY_CACHE_CONFIG.members.gcTime,
+  });
+
+  const usePaginatedRoster = (tripMeta?.memberCount ?? 0) > PAGINATED_ROSTER_THRESHOLD;
+  const useServerSearch = usePaginatedRoster && rosterSearch.length > 0;
+  const metaReady = tripMeta !== undefined || !tripId || isDemoMode;
+
+  const serverSearchQuery = useQuery({
+    queryKey: tripKeys.membersSearch(tripId || '', rosterSearch),
+    queryFn: () =>
+      tripService.listTripMembersPage(tripId!, {
+        search: rosterSearch,
+        offset: 0,
+        limit: 100,
+      }),
+    enabled: !!tripId && metaReady && useServerSearch && !isDemoMode,
+    staleTime: QUERY_CACHE_CONFIG.members.staleTime,
+    gcTime: QUERY_CACHE_CONFIG.members.gcTime,
+  });
+
+  const standardQuery = useQuery({
     queryKey: membersQueryKey,
     queryFn: () => fetchTripMembersData(tripId!, isDemoMode),
-    enabled: !!tripId,
+    enabled: !!tripId && metaReady && (!usePaginatedRoster || isDemoMode),
     staleTime: QUERY_CACHE_CONFIG.members.staleTime,
     gcTime: QUERY_CACHE_CONFIG.members.gcTime,
     refetchOnWindowFocus: QUERY_CACHE_CONFIG.members.refetchOnWindowFocus,
   });
 
-  const tripMembers = data?.members || [];
-  const tripCreatorId = data?.creatorId || null;
-  const hadMembersError = data?.hadError ?? false;
+  const paginatedQuery = useInfiniteQuery({
+    queryKey: tripKeys.membersPaginated(tripId || ''),
+    queryFn: ({ pageParam = 0 }) =>
+      tripService.listTripMembersPage(tripId!, {
+        offset: pageParam,
+        limit: ROSTER_PAGE_SIZE,
+      }),
+    initialPageParam: 0,
+    getNextPageParam: lastPage => {
+      const nextOffset = lastPage.offset + lastPage.members.length;
+      return nextOffset < lastPage.total_count ? nextOffset : undefined;
+    },
+    enabled: !!tripId && metaReady && usePaginatedRoster && !isDemoMode && !useServerSearch,
+    staleTime: QUERY_CACHE_CONFIG.members.staleTime,
+    gcTime: QUERY_CACHE_CONFIG.members.gcTime,
+    refetchOnWindowFocus: QUERY_CACHE_CONFIG.members.refetchOnWindowFocus,
+  });
 
-  // Realtime: invalidate members when trip_members changes (add/remove/leave)
+  useEffect(() => {
+    if (!usePaginatedRoster || isDemoMode || useServerSearch) return;
+    if (paginatedQuery.hasNextPage && !paginatedQuery.isFetchingNextPage) {
+      void paginatedQuery.fetchNextPage();
+    }
+  }, [
+    usePaginatedRoster,
+    isDemoMode,
+    useServerSearch,
+    paginatedQuery.hasNextPage,
+    paginatedQuery.isFetchingNextPage,
+    paginatedQuery.fetchNextPage,
+    paginatedQuery.dataUpdatedAt,
+  ]);
+
+  const paginatedMembers = paginatedQuery.data?.pages.flatMap(page => page.members) ?? [];
+  const serverSearchMembers = serverSearchQuery.data?.members ?? [];
+  const tripCreatorId = useServerSearch
+    ? (serverSearchQuery.data?.creatorId ?? tripMeta?.creatorId ?? null)
+    : usePaginatedRoster
+      ? (paginatedQuery.data?.pages[0]?.creatorId ?? tripMeta?.creatorId ?? null)
+      : (standardQuery.data?.creatorId ?? null);
+  const tripMembers = useServerSearch
+    ? serverSearchMembers
+    : usePaginatedRoster
+      ? paginatedMembers
+      : (standardQuery.data?.members ?? []);
+  const memberTotalCount = useServerSearch
+    ? (serverSearchQuery.data?.total_count ?? 0)
+    : (tripMeta?.memberCount ?? tripMembers.length);
+  const hadMembersError = useServerSearch
+    ? serverSearchQuery.isError
+    : usePaginatedRoster
+      ? paginatedQuery.isError
+      : (standardQuery.data?.hadError ?? false);
+  const isLoading = useServerSearch
+    ? metaLoading || serverSearchQuery.isLoading
+    : usePaginatedRoster
+      ? metaLoading || paginatedQuery.isLoading
+      : standardQuery.isLoading;
+  const isSearchingMembers = useServerSearch && serverSearchQuery.isFetching;
+
+  const refetch = useCallback(async () => {
+    if (useServerSearch) {
+      await serverSearchQuery.refetch();
+      return;
+    }
+    if (usePaginatedRoster) {
+      await paginatedQuery.refetch();
+      return;
+    }
+    await standardQuery.refetch();
+  }, [usePaginatedRoster, useServerSearch, serverSearchQuery, paginatedQuery, standardQuery]);
+
   useEffect(() => {
     if (!tripId || isDemoMode) return;
 
@@ -145,6 +240,9 @@ export const useTripMembersQuery = (tripId?: string) => {
         { event: '*', schema: 'public', table: 'trip_members', filter: `trip_id=eq.${tripId}` },
         () => {
           queryClient.invalidateQueries({ queryKey: tripKeys.members(tripId) });
+          queryClient.invalidateQueries({ queryKey: tripKeys.memberMeta(tripId) });
+          queryClient.invalidateQueries({ queryKey: tripKeys.membersPaginated(tripId) });
+          queryClient.invalidateQueries({ queryKey: tripKeys.membersSearchAll(tripId) });
         },
       )
       .subscribe();
@@ -154,7 +252,6 @@ export const useTripMembersQuery = (tripId?: string) => {
     };
   }, [tripId, isDemoMode, queryClient]);
 
-  // Check if current user can remove members
   const canRemoveMembers = useCallback(async (): Promise<boolean> => {
     if (!tripId || !user?.id) return false;
     if (tripCreatorId === user.id) return true;
@@ -169,13 +266,11 @@ export const useTripMembersQuery = (tripId?: string) => {
     return !!adminData;
   }, [tripId, user?.id, tripCreatorId]);
 
-  // Remove member mutation with optimistic update (uses secured RPC)
   const removeMemberMutation = useMutation({
     mutationFn: async (userId: string) => {
       if (!tripId) throw new Error('No trip selected');
       if (userId === tripCreatorId) throw new Error('Cannot remove trip creator');
 
-      // Use secured RPC that validates auth.uid() server-side
       const { data, error } = await (supabase.rpc as any)('remove_trip_member_safe', {
         p_trip_id: tripId,
         p_user_id_to_remove: userId,
@@ -183,7 +278,6 @@ export const useTripMembersQuery = (tripId?: string) => {
 
       if (error) throw error;
 
-      // RPC returns { success, message } rows
       const result = Array.isArray(data) ? data[0] : data;
       if (result && !result.success) {
         throw new Error(result.message || 'Failed to remove member');
@@ -218,16 +312,17 @@ export const useTripMembersQuery = (tripId?: string) => {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: tripKeys.members(tripId!) });
+      queryClient.invalidateQueries({ queryKey: tripKeys.memberMeta(tripId!) });
+      queryClient.invalidateQueries({ queryKey: tripKeys.membersPaginated(tripId!) });
+      queryClient.invalidateQueries({ queryKey: tripKeys.membersSearchAll(tripId!) });
     },
   });
 
-  // Leave trip mutation (uses leave_trip RPC: soft-delete, admin transfer, archive)
   const leaveTripMutation = useMutation({
     mutationFn: async (_tripName: string) => {
       if (!tripId || !user?.id) throw new Error('Must be logged in');
       if (isDemoMode) return true;
 
-      // leave_trip RPC exists in DB but may not be in generated Supabase types
       const { data, error } = await (supabase.rpc as any)('leave_trip', {
         _trip_id: tripId,
       });
@@ -240,7 +335,6 @@ export const useTripMembersQuery = (tripId?: string) => {
       } | null;
       if (!result?.success) throw new Error(result?.message || 'Failed to leave trip');
 
-      // Notify primary admin (creator if active, else promoted admin) - RPC returns notify_user_id
       const notifyUserId = result.notify_user_id ?? tripCreatorId;
       if (notifyUserId && notifyUserId !== user.id) {
         const { data: profileData } = await supabase
@@ -278,6 +372,9 @@ export const useTripMembersQuery = (tripId?: string) => {
         });
       }
       queryClient.invalidateQueries({ queryKey: tripKeys.members(tripId!) });
+      queryClient.invalidateQueries({ queryKey: tripKeys.memberMeta(tripId!) });
+      queryClient.invalidateQueries({ queryKey: tripKeys.membersPaginated(tripId!) });
+      queryClient.invalidateQueries({ queryKey: tripKeys.membersSearchAll(tripId!) });
     },
     onError: () => {
       toast.error('Failed to leave trip');
@@ -293,5 +390,11 @@ export const useTripMembersQuery = (tripId?: string) => {
     removeMember: (userId: string) => removeMemberMutation.mutateAsync(userId),
     leaveTrip: (tripName: string) => leaveTripMutation.mutateAsync(tripName),
     refreshMembers: refetch,
+    isPaginatedRoster: usePaginatedRoster,
+    memberTotalCount,
+    isSearchingMembers,
+    hasMoreMembers: paginatedQuery.hasNextPage ?? false,
+    isFetchingMoreMembers: paginatedQuery.isFetchingNextPage,
+    fetchMoreMembers: paginatedQuery.fetchNextPage,
   };
 };

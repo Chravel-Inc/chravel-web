@@ -14,6 +14,14 @@ export interface ResolvedSupabaseConfig {
 const isNonEmpty = (value: string | undefined): value is string =>
   typeof value === 'string' && value.trim().length > 0;
 
+/**
+ * localStorage key supabase-js persists the auth session under (configured via
+ * `auth.storageKey` in client.ts). Single source of truth for everything that
+ * reads the persisted session outside the client (e.g. queryPersister's
+ * owner-scoping) — do NOT hardcode 'chravel-auth-session' elsewhere.
+ */
+export const SUPABASE_AUTH_STORAGE_KEY = 'chravel-auth-session';
+
 // Hardcoded fallback for the known Chravel Supabase project.
 // These are publishable/anon credentials — safe to embed in client code.
 // They ensure the production bundle never crashes at module-load time even

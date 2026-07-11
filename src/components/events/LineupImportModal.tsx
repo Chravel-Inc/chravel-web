@@ -27,7 +27,7 @@ import {
   Calendar,
   Globe,
   Type,
-  Sparkles,
+  Wand2,
   Link,
   X,
   AlertTriangle,
@@ -108,10 +108,10 @@ export const LineupImportModal: React.FC<LineupImportModalProps> = ({
     async (file: File) => {
       setParsingSource('file');
       setState('parsing');
-      const result = await parseLineupFile(file);
+      const result = await parseLineupFile(file, tripId);
       processParseResult(result);
     },
-    [processParseResult],
+    [processParseResult, tripId],
   );
 
   const { getRootProps, getInputProps, isDragActive } = useSmartImportDropzone({
@@ -317,7 +317,7 @@ export const LineupImportModal: React.FC<LineupImportModalProps> = ({
                     disabled={!pasteText.trim()}
                     className="w-full min-h-[44px]"
                   >
-                    <Sparkles className="w-4 h-4 mr-2" />
+                    <Wand2 className="w-4 h-4 mr-2" />
                     Extract Names with AI
                   </Button>
                 </div>

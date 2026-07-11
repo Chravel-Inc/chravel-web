@@ -11,12 +11,12 @@ import {
   Trash2,
   FileDown,
   Share2,
+  ArrowUpDown,
 } from 'lucide-react';
 import { CardStatItem } from './ui/CardStatItem';
 import { CalendarGlyph } from './ui/CalendarGlyph';
 import { useIsMobile } from '../hooks/use-mobile';
 import { EventData } from '../types/events';
-import { useTripVariant } from '../contexts/TripVariantContext';
 import {
   calculatePeopleCount,
   calculateDaysCount,
@@ -38,11 +38,12 @@ import { getExportData } from '../services/tripExportDataService';
 import { orderExportSections } from '../utils/exportSectionOrder';
 import { ExportSection } from '../types/tripExport';
 import { getDemoTripCoverFallback } from '@/data/demoTripCoverFallbacks';
-import { buildCoverBackgroundImage } from '@/utils/coverImageStyle';
+import { OptimizedImage } from './OptimizedImage';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 
@@ -52,6 +53,9 @@ interface MobileEventCardProps {
   onArchiveSuccess?: () => void;
   onHideSuccess?: () => void;
   onDeleteSuccess?: () => void;
+  reorderMode?: boolean;
+  onMoveTrip?: () => void;
+  onExitMoveMode?: () => void;
 }
 
 export const MobileEventCard = ({
@@ -59,15 +63,18 @@ export const MobileEventCard = ({
   onArchiveSuccess,
   onHideSuccess,
   onDeleteSuccess,
+  reorderMode = false,
+  onMoveTrip,
+  onExitMoveMode,
 }: MobileEventCardProps) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const { accentColors } = useTripVariant();
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const { toast } = useToast();
   const { user } = useAuth();
@@ -77,8 +84,26 @@ export const MobileEventCard = ({
   // Get color for this event - uses saved color if available, otherwise deterministic fallback
   const eventColor = getProTripColor(event.id, event.card_color);
   const demoCoverFallback = isDemoMode ? getDemoTripCoverFallback(event.id) : undefined;
+  const coverFit = event.coverDisplayMode === 'contain' ? 'contain' : 'cover';
+  const eventTags = Array.isArray(event.tags) ? event.tags : [];
+
+  const handleMoveModeCardClick = useCallback(
+    (eventClick: React.MouseEvent<HTMLDivElement>) => {
+      if (!reorderMode) return;
+      eventClick.preventDefault();
+      eventClick.stopPropagation();
+      setIsMenuOpen(false);
+      onExitMoveMode?.();
+    },
+    [reorderMode, onExitMoveMode],
+  );
 
   const handleViewEvent = () => {
+    if (reorderMode) {
+      setIsMenuOpen(false);
+      onExitMoveMode?.();
+      return;
+    }
     navigate(`/event/${event.id}`);
   };
 
@@ -206,17 +231,23 @@ export const MobileEventCard = ({
 
   return (
     <div
-      className={`bg-gradient-to-br ${eventColor.cardGradient} backdrop-blur-xl border border-white/20 rounded-2xl overflow-hidden transition-all duration-300 shadow-lg hover:scale-[1.02] group relative`}
+      className={`bg-gradient-to-br ${eventColor.cardGradient} backdrop-blur-xl border border-white/20 rounded-2xl overflow-hidden transition-all duration-300 shadow-enterprise motion-safe:hover:-translate-y-1 group relative`}
+      onClickCapture={handleMoveModeCardClick}
     >
       {/* Mobile Header */}
       <div
-        className={`on-media relative h-36 bg-gradient-to-br from-${accentColors.primary}/10 to-${accentColors.secondary}/10 p-4`}
+        className={`on-media relative h-36 bg-gradient-to-br from-gold-primary/10 to-gold-mid/10 p-4`}
       >
         {/* Cover photo overlay if available */}
         {event.coverPhoto ? (
-          <div
-            className="absolute inset-0 bg-cover bg-center opacity-15"
-            style={buildCoverBackgroundImage(event.coverPhoto, demoCoverFallback)}
+          <OptimizedImage
+            src={event.coverPhoto}
+            alt={`${event.title} cover`}
+            fallbackSrc={demoCoverFallback}
+            lazy
+            fit={coverFit}
+            showBlurBackdrop={coverFit === 'contain'}
+            className={`absolute inset-0 ${coverFit === 'contain' ? 'opacity-80' : 'opacity-15'}`}
           />
         ) : null}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
@@ -241,24 +272,42 @@ export const MobileEventCard = ({
           </div>
 
           {/* Menu Button */}
-          <DropdownMenu>
+          <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <DropdownMenuTrigger asChild>
-              <button className="text-white/60 hover:text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-xl shrink-0">
+              <button
+                className="text-white/60 hover:text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-xl shrink-0 min-h-11 min-w-11 inline-flex items-center justify-center"
+                aria-label="Event actions"
+              >
                 <MoreHorizontal size={16} />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-background border-border">
-              <DropdownMenuItem onClick={() => setShowArchiveDialog(true)}>
+              {onMoveTrip && (
+                <>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onMoveTrip();
+                    }}
+                    className="min-h-11"
+                  >
+                    <ArrowUpDown className="mr-2 h-4 w-4" />
+                    Move Trip
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
+              <DropdownMenuItem onClick={() => setShowArchiveDialog(true)} className="min-h-11">
                 <Archive className="mr-2 h-4 w-4" />
                 Archive
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleHideEvent}>
+              <DropdownMenuItem onClick={handleHideEvent} className="min-h-11">
                 <EyeOff className="mr-2 h-4 w-4" />
                 Hide
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setShowDeleteDialog(true)}
-                className="text-destructive"
+                className="text-destructive min-h-11"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete for me
@@ -293,22 +342,24 @@ export const MobileEventCard = ({
           />
         </div>
 
-        {/* Tags */}
-        <div className="flex flex-wrap gap-1 mb-4">
-          {event.tags.slice(0, 2).map((tag, index) => (
-            <span
-              key={index}
-              className="bg-white/10 backdrop-blur-sm px-2 py-1 rounded-md text-xs text-white"
-            >
-              {tag}
-            </span>
-          ))}
-          {event.tags.length > 2 && (
-            <span className="bg-white/10 backdrop-blur-sm px-2 py-1 rounded-md text-xs text-white">
-              +{event.tags.length - 2}
-            </span>
-          )}
-        </div>
+        {/* Tags — optional; real/partial event payloads may omit tags at runtime */}
+        {eventTags.length > 0 ? (
+          <div className="flex flex-wrap gap-1 mb-4">
+            {eventTags.slice(0, 2).map((tag, index) => (
+              <span
+                key={index}
+                className="bg-white/10 backdrop-blur-sm px-2 py-1 rounded-md text-xs text-white"
+              >
+                {tag}
+              </span>
+            ))}
+            {eventTags.length > 2 ? (
+              <span className="bg-white/10 backdrop-blur-sm px-2 py-1 rounded-md text-xs text-white">
+                +{eventTags.length - 2}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
 
         {/* Organizer Display */}
         <div className="mb-4">
@@ -373,7 +424,6 @@ export const MobileEventCard = ({
         onClose={() => setShowInviteModal(false)}
         tripName={event.title}
         tripId={event.id}
-        tripType="event"
       />
 
       <LazyTripExportModal

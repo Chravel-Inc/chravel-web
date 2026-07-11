@@ -59,7 +59,7 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({
               onClick={() =>
                 window.open((resolvedMediaUrl ?? message.media_url) as string, '_blank')
               }
-              className="absolute top-2 right-2 bg-black/50 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute top-2 right-2 bg-black/50 text-white p-2 rounded-lg opacity-100 lg:opacity-0 lg:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
               aria-label="View full size"
             >
               <Maximize2 size={16} />
@@ -186,7 +186,7 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({
         isOwnMessage ? 'justify-end' : 'justify-start',
       )}
     >
-      {/* CA Avatar for assistant messages — Concierge AI / Chravel Agent */}
+      {/* CA Avatar for assistant messages — Concierge AI / ChravelApp Agent */}
       {!isOwnMessage && (
         <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-emerald-500 flex items-center justify-center flex-shrink-0">
           <span className="text-xs text-white font-medium">CA</span>
@@ -195,7 +195,9 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({
 
       <div
         className={cn(
-          'flex min-w-0 max-w-[78%] flex-col',
+          // Cap bubble width inside the chat rail; min-w-0 lets long markdown wrap
+          // instead of expanding past the Concierge window.
+          'flex min-w-0 w-full max-w-[min(100%,28rem)] flex-col sm:max-w-[78%]',
           isOwnMessage ? 'items-end' : 'items-start',
         )}
       >

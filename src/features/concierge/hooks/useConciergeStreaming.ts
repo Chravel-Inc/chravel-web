@@ -1,4 +1,3 @@
-import { toast } from 'sonner';
 import { type QueryClient } from '@tanstack/react-query';
 import {
   invokeConciergeStream,
@@ -10,8 +9,8 @@ import {
   type StreamBulkDeletePreviewEvent,
 } from '@/services/conciergeGateway';
 import type { HotelResult } from '@/features/chat/components/HotelResultCards';
-import type { TripPreferences } from '@/types/consumer';
 import { supabase } from '@/integrations/supabase/client';
+import { useConciergeLanguagePreference } from '@/features/concierge/hooks/useConciergeLanguagePreference';
 import { getConciergeInvalidationKeys, isConciergeWriteAction } from '@/lib/conciergeInvalidation';
 import { sanitizeConciergeContent } from '@/lib/sanitizeConciergeContent';
 import { conciergeCacheService } from '@/services/conciergeCacheService';
@@ -48,11 +47,11 @@ interface Params {
   streamAbortRef: React.MutableRefObject<(() => void) | null>;
   setIsTyping: React.Dispatch<React.SetStateAction<boolean>>;
   setAiStatus: React.Dispatch<React.SetStateAction<string>>;
-  incrementUsageOnSuccess: () => Promise<{ incremented: boolean }>;
+  isLimitReached: boolean;
+  refreshUsage: () => Promise<unknown>;
   buildLimitReachedMessage: () => ChatMessage;
   basecamp?: { name?: string; address: string };
   globalBasecamp?: { name?: string; address: string };
-  effectivePreferences?: TripPreferences;
   attachedImages: File[];
   attachedDocuments: File[];
   attachmentIntent: AttachmentIntent;
@@ -77,11 +76,11 @@ export function useConciergeStreaming(params: Params) {
     streamAbortRef,
     setIsTyping,
     setAiStatus,
-    incrementUsageOnSuccess,
+    isLimitReached,
+    refreshUsage,
     buildLimitReachedMessage,
     basecamp,
     globalBasecamp,
-    effectivePreferences,
     attachedImages,
     attachedDocuments,
     attachmentIntent,
@@ -89,7 +88,12 @@ export function useConciergeStreaming(params: Params) {
     queryClient: conciergeQueryClient,
   } = params;
 
-  const handleSendMessage = async (messageOverride?: string) => {
+  const { isoCode: replyLanguage } = useConciergeLanguagePreference();
+
+  const handleSendMessage = async (
+    messageOverride?: string,
+    opts?: { conversationSessionId?: string },
+  ) => {
     const typedMessage =
       typeof messageOverride === 'string' ? messageOverride.trim() : inputMessage.trim();
     const selectedImages = UPLOAD_ENABLED ? [...attachedImages] : [];
@@ -155,20 +159,9 @@ export function useConciergeStreaming(params: Params) {
     setAiStatus('thinking');
 
     if (isLimitedPlan && !isDemoMode) {
-      // Atomically check AND increment usage via a single DB RPC call.
-      // A full text conversation counts as one query.
-      let incrementResult;
-      try {
-        incrementResult = await incrementUsageOnSuccess();
-      } catch {
-        toast.error('Unable to verify Concierge allowance. Please try again.');
-        setMessages(prev => prev.filter(m => m.id !== userMessage.id));
-        setIsTyping(false);
-        return;
-      }
-
-      if (!incrementResult.incremented) {
-        // Limit reached — reply with an inline assistant CTA instead of blocking.
+      // Usage is incremented server-side after a successful concierge response.
+      // Client-side pre-check avoids showing a user message that will be rejected.
+      if (isLimitReached) {
         setMessages(prev => [...prev, buildLimitReachedMessage()]);
         setIsTyping(false);
         return;
@@ -224,7 +217,7 @@ export function useConciergeStreaming(params: Params) {
       const requestBody = {
         message: currentInput,
         tripId,
-        preferences: effectivePreferences,
+        ...(replyLanguage ? { replyLanguage } : {}),
         chatHistory,
         attachments,
         isDemoMode,
@@ -234,6 +227,9 @@ export function useConciergeStreaming(params: Params) {
           maxTokens: 4096,
         },
         ...(hasAnyAttachments && !typedMessage ? { attachmentIntent } : {}),
+        ...(opts?.conversationSessionId
+          ? { conversation_session_id: opts.conversationSessionId }
+          : {}),
       };
 
       // === STREAMING PATH ===
@@ -835,6 +831,9 @@ export function useConciergeStreaming(params: Params) {
               streamAbortRef.current = null;
               if (!isMounted.current) return;
               setIsTyping(false);
+              if (isLimitedPlan && !isDemoMode) {
+                void refreshUsage();
+              }
               if (!receivedAnyChunk) {
                 setMessages(prev => {
                   // Check if cards/actions were already attached by tool calls

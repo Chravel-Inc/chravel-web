@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Users, AlertTriangle, UserPlus, Clock, Cog, LayoutGrid, Network } from 'lucide-react';
+import { Users, AlertTriangle, UserPlus, Clock, Cog, LayoutGrid, Network, ShieldCheck } from 'lucide-react';
 import { ProParticipant, TeamTripContext } from '../../../types/pro';
 import { ProTripCategory, getCategoryConfig } from '../../../types/proCategories';
 import { TeamOnboardingBanner } from '../TeamOnboardingBanner';
@@ -15,11 +15,13 @@ import { useSuperAdmin } from '../../../hooks/useSuperAdmin';
 import { useIsMobile } from '../../../hooks/use-mobile';
 import { JoinRequestsDialog } from '../admin/JoinRequestsDialog';
 import { RoleManagerDialog } from '../admin/RoleManagerDialog';
+import { CoordinatorInviteDialog } from '../admin/CoordinatorInviteDialog';
 import { TeamOrgChart } from '../TeamOrgChart';
 import { VirtualizedRosterGrid } from './VirtualizedRosterGrid';
 import { TripRole } from '../../../types/roleChannels';
 import { useRoleAssignments } from '../../../hooks/useRoleAssignments';
 import { useTripAdmins } from '../../../hooks/useTripAdmins';
+import { useFeatureFlag } from '../../../lib/featureFlags';
 
 interface RolesViewProps {
   roster: ProParticipant[];
@@ -68,6 +70,8 @@ export const RolesView = ({
   const [showRequestsDialog, setShowRequestsDialog] = useState(false);
   const [showRoleManagerDialog, setShowRoleManagerDialog] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'orgchart'>('grid');
+  const [showCoordinatorDialog, setShowCoordinatorDialog] = useState(false);
+  const coordinatorRoleEnabled = useFeatureFlag('pro_coordinator_role', false);
 
   // Fetch role assignments and admins to display role pills per member
   const { assignments } = useRoleAssignments({ tripId: tripId || '', enabled: !!tripId });
@@ -93,9 +97,13 @@ export const RolesView = ({
     return map;
   }, [assignments]);
 
-  // Create a set of admin user IDs
+  // Create a set of full-admin user IDs and a separate set for coordinator-scope admins,
+  // so the roster can render distinct pills.
   const adminUserIds = useMemo(() => {
-    return new Set(admins.map(admin => admin.user_id));
+    return new Set(admins.filter(a => a.admin_scope === 'full').map(a => a.user_id));
+  }, [admins]);
+  const coordinatorUserIds = useMemo(() => {
+    return new Set(admins.filter(a => a.admin_scope === 'coordinator').map(a => a.user_id));
   }, [admins]);
 
   // Super admins are never in read-only mode
@@ -225,6 +233,18 @@ export const RolesView = ({
               <Clock className="w-4 h-4 mr-1.5 shrink-0" />
               Requests
             </Button>
+            {coordinatorRoleEnabled && tripId && (
+              <Button
+                onClick={() => setShowCoordinatorDialog(true)}
+                variant="outline"
+                size="sm"
+                className="rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors min-h-[42px] px-4 text-xs whitespace-nowrap"
+                title="Grant logistics-only access to an outside organizer"
+              >
+                <ShieldCheck className="w-4 h-4 mr-1.5 shrink-0" />
+                Coordinator
+              </Button>
+            )}
           </div>
         )}
 
@@ -371,14 +391,18 @@ export const RolesView = ({
               // Fall back to member.id when userId is absent (e.g., demo/mock data stores user ID in id)
               const memberUserId = member.userId || member.id;
               const isAdminMember = memberUserId ? adminUserIds.has(memberUserId) : false;
+              const isCoordinatorMember = memberUserId
+                ? coordinatorUserIds.has(memberUserId)
+                : false;
               const assignedRoles = memberUserId ? memberRolesMap.get(memberUserId) || [] : [];
 
-              // Combine roles: admin first, then assigned roles sorted alphabetically
-              const allRolePills: { name: string; isAdmin: boolean }[] = [];
+              // Combine roles: admin/coordinator first, then assigned roles sorted alphabetically
+              const allRolePills: { name: string; isAdmin: boolean; isCoordinator?: boolean }[] = [];
 
-              // Add admin pill if applicable
               if (isAdminMember) {
                 allRolePills.push({ name: 'admin', isAdmin: true });
+              } else if (isCoordinatorMember) {
+                allRolePills.push({ name: 'coordinator', isAdmin: false, isCoordinator: true });
               }
 
               // Add assigned roles (sorted alphabetically, case-insensitive)
@@ -432,11 +456,13 @@ export const RolesView = ({
                           <span
                             key={`${pill.name}-${index}`}
                             role="status"
-                            aria-label={`Role: ${pill.name}${pill.isAdmin ? ' (admin)' : ''}`}
+                            aria-label={`Role: ${pill.name}${pill.isAdmin ? ' (admin)' : pill.isCoordinator ? ' (coordinator)' : ''}`}
                             className={`${
                               pill.isAdmin
                                 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                                : getRoleColorClass(pill.name, category)
+                                : pill.isCoordinator
+                                  ? 'bg-amber-400/10 text-amber-200 border border-amber-400/40'
+                                  : getRoleColorClass(pill.name, category)
                             } px-1.5 py-0.5 rounded text-xs font-medium`}
                           >
                             {pill.name}
@@ -534,6 +560,15 @@ export const RolesView = ({
             tripCreatorId={tripCreatorId}
           />
         </>
+      )}
+
+      {tripId && coordinatorRoleEnabled && (
+        <CoordinatorInviteDialog
+          open={showCoordinatorDialog}
+          onOpenChange={setShowCoordinatorDialog}
+          tripId={tripId}
+          roster={roster}
+        />
       )}
     </div>
   );

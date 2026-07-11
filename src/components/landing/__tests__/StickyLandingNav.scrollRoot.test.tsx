@@ -3,8 +3,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent, screen, act } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 
+const mockUseOptionalAuth = vi.fn(() => ({ user: null as { id: string; email: string } | null }));
+
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({ user: null }),
+  useOptionalAuth: () => mockUseOptionalAuth(),
 }));
 
 vi.mock('@/components/HeaderAuthButton', () => ({
@@ -18,7 +21,7 @@ function LandingScrollHarness() {
 
   return (
     <BrowserRouter>
-      <StickyLandingNav onSignUp={() => {}} scrollRoot={scrollRoot} />
+      <StickyLandingNav onAuthRequired={() => {}} scrollRoot={scrollRoot} />
       <div
         ref={setScrollRoot}
         data-testid="landing-scroll"
@@ -38,6 +41,31 @@ function LandingScrollHarness() {
 describe('StickyLandingNav scrollRoot', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseOptionalAuth.mockReturnValue({ user: null });
+  });
+
+  it('hides the log in control when a session exists', () => {
+    mockUseOptionalAuth.mockReturnValue({
+      user: { id: 'user-1', email: 'traveler@chravelapp.com' },
+    });
+
+    render(
+      <BrowserRouter>
+        <StickyLandingNav onAuthRequired={() => {}} scrollRoot={undefined} />
+      </BrowserRouter>,
+    );
+
+    expect(screen.queryByTestId('mock-header-auth')).not.toBeInTheDocument();
+  });
+
+  it('shows the log in control when signed out', () => {
+    render(
+      <BrowserRouter>
+        <StickyLandingNav onAuthRequired={() => {}} scrollRoot={undefined} />
+      </BrowserRouter>,
+    );
+
+    expect(screen.getByTestId('mock-header-auth')).toBeInTheDocument();
   });
 
   it('reacts to nested scroll container (not window)', () => {

@@ -4,18 +4,22 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import React from 'react';
 import { AuthProvider, useAuth } from '../useAuth';
-import { isInstalledApp } from '@/utils/platformDetection';
+import { isInstalledApp, isChravelNativeIOS } from '@/utils/platformDetection';
 import { openInstalledAuthBrowser } from '@/utils/installedAuthBrowser';
 
 vi.mock('@/utils/platformDetection', () => ({
   isInstalledApp: vi.fn(() => false),
+  isChravelNativeIOS: vi.fn(() => false),
+  isCapacitorNativeShell: vi.fn(() => false),
+  isChravelNativeShell: vi.fn(() => false),
 }));
 
 vi.mock('@/utils/installedAuthBrowser', () => ({
-  openInstalledAuthBrowser: vi.fn().mockResolvedValue(undefined),
+  openInstalledAuthBrowser: vi.fn().mockResolvedValue({ strategy: 'native-bridge' }),
 }));
 
 const mockIsInstalledApp = vi.mocked(isInstalledApp);
+const mockIsChravelNativeIOS = vi.mocked(isChravelNativeIOS);
 const mockOpenInstalledAuthBrowser = vi.mocked(openInstalledAuthBrowser);
 
 // Mock user and session data
@@ -80,6 +84,7 @@ const { mockSupabaseClient } = vi.hoisted(() => {
         signUp: vi.fn(),
         signOut: vi.fn().mockResolvedValue({ error: null }),
         signInWithOAuth: vi.fn(),
+        signInWithIdToken: vi.fn().mockResolvedValue({ error: null }),
         signInWithOtp: vi.fn(),
         refreshSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
         resetPasswordForEmail: vi.fn(),
@@ -87,6 +92,9 @@ const { mockSupabaseClient } = vi.hoisted(() => {
         onAuthStateChange: vi.fn(() => ({
           data: { subscription: { unsubscribe: vi.fn() } },
         })),
+      },
+      functions: {
+        invoke: vi.fn().mockResolvedValue({ data: null, error: null }),
       },
       channel: vi.fn(() => ({
         on: vi.fn().mockReturnThis(),
@@ -152,6 +160,8 @@ describe('AuthProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockIsInstalledApp.mockReturnValue(false);
+    mockIsChravelNativeIOS.mockReturnValue(false);
+    delete (window as unknown as { ChravelNative?: unknown }).ChravelNative;
     // Reset auth mocks to default state
     mockSupabaseClient.auth.getSession.mockResolvedValue({
       data: { session: null },
@@ -219,6 +229,30 @@ describe('AuthProvider', () => {
     expect(result.current.authState).toBe('authenticated');
   });
 
+  it('does not sign out on transient refresh failures during bootstrap', async () => {
+    const expiredSession = {
+      ...mockSession,
+      access_token: 'bad.token.payload',
+    };
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
+      data: { session: expiredSession },
+      error: null,
+    });
+    mockSupabaseClient.auth.refreshSession.mockResolvedValue({
+      data: { session: null },
+      error: { message: 'Failed to fetch', name: 'AuthRetryableFetchError' },
+    });
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(mockSupabaseClient.auth.refreshSession).toHaveBeenCalled();
+    expect(mockSupabaseClient.auth.signOut).not.toHaveBeenCalled();
+    expect(result.current.user?.id).toBe(mockUser.id);
+    expect(result.current.authState).toBe('authenticated');
+  });
   it('handles logout race by ending in signed-out state', async () => {
     let authListener: ((event: string, session: any) => void) | undefined;
     (mockSupabaseClient.auth.onAuthStateChange as any).mockImplementation((cb: any) => {
@@ -434,6 +468,102 @@ describe('AuthProvider', () => {
     expect(mockOpenInstalledAuthBrowser).toHaveBeenCalledWith(
       'https://appleid.apple.com/auth/authorize',
     );
+  });
+
+  it('iOS-native Apple uses the native sheet exclusively (signInWithIdToken, no browser OAuth)', async () => {
+    mockIsChravelNativeIOS.mockReturnValue(true);
+    mockIsInstalledApp.mockReturnValue(true);
+    const nativeSignIn = vi.fn().mockResolvedValue({
+      identityToken: 'id-token',
+      rawNonce: 'raw-nonce',
+      authorizationCode: 'auth-code',
+    });
+    (window as unknown as { ChravelNative: Record<string, unknown> }).ChravelNative = {
+      platform: 'ios',
+      isNative: true,
+      signInWithApple: nativeSignIn,
+    };
+    mockSupabaseClient.auth.signInWithIdToken.mockResolvedValue({ error: null });
+
+    const { result } = renderHook(() => useAuth(), { wrapper: createWrapper() });
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { timeout: 3000 });
+
+    let outcome: { error?: string } | undefined;
+    await act(async () => {
+      outcome = await result.current.signInWithApple();
+    });
+
+    expect(outcome).toEqual({});
+    expect(nativeSignIn).toHaveBeenCalledTimes(1);
+    expect(mockSupabaseClient.auth.signInWithIdToken).toHaveBeenCalledWith({
+      provider: 'apple',
+      token: 'id-token',
+      nonce: 'raw-nonce',
+    });
+    // CRITICAL (App Store 2.1a): no browser OAuth round-trip on iOS native.
+    expect(mockSupabaseClient.auth.signInWithOAuth).not.toHaveBeenCalled();
+    expect(mockOpenInstalledAuthBrowser).not.toHaveBeenCalled();
+    // The one-time authorization code is forwarded fire-and-forget to store-apple-token
+    // (deferred via setTimeout) so account deletion can revoke the Apple grant (5.1.1(v)).
+    await waitFor(() =>
+      expect(mockSupabaseClient.functions.invoke).toHaveBeenCalledWith('store-apple-token', {
+        body: { authorizationCode: 'auth-code' },
+      }),
+    );
+  });
+
+  it('iOS-native Apple shows a retriable error and never falls through to PKCE when the native sheet throws', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    mockIsChravelNativeIOS.mockReturnValue(true);
+    mockIsInstalledApp.mockReturnValue(true);
+    (window as unknown as { ChravelNative: Record<string, unknown> }).ChravelNative = {
+      platform: 'ios',
+      isNative: true,
+      signInWithApple: vi.fn().mockRejectedValue(new Error('The user canceled the request.')),
+    };
+
+    const { result } = renderHook(() => useAuth(), { wrapper: createWrapper() });
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { timeout: 3000 });
+
+    let outcome: { error?: string } | undefined;
+    await act(async () => {
+      outcome = await result.current.signInWithApple();
+    });
+
+    expect(outcome?.error).toMatch(/didn't complete/i);
+    // No browser fallback — the user is never sent to the "exchange external code" page.
+    expect(mockSupabaseClient.auth.signInWithOAuth).not.toHaveBeenCalled();
+    expect(mockSupabaseClient.auth.signInWithIdToken).not.toHaveBeenCalled();
+    expect(mockOpenInstalledAuthBrowser).not.toHaveBeenCalled();
+    // Restore console here: beforeEach uses clearAllMocks (not restoreAllMocks), so a
+    // spyOn implementation would otherwise leak into later tests.
+    consoleErrorSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
+  });
+
+  it('iOS-native Apple asks the user to update when the native bridge is missing (no PKCE fallback)', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockIsChravelNativeIOS.mockReturnValue(true);
+    mockIsInstalledApp.mockReturnValue(true);
+    // platform === 'ios' but the older shell did not inject signInWithApple.
+    (window as unknown as { ChravelNative: Record<string, unknown> }).ChravelNative = {
+      platform: 'ios',
+      isNative: true,
+    };
+
+    const { result } = renderHook(() => useAuth(), { wrapper: createWrapper() });
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { timeout: 3000 });
+
+    let outcome: { error?: string } | undefined;
+    await act(async () => {
+      outcome = await result.current.signInWithApple();
+    });
+
+    expect(outcome?.error).toMatch(/update from the App Store/i);
+    expect(mockSupabaseClient.auth.signInWithOAuth).not.toHaveBeenCalled();
+    expect(mockOpenInstalledAuthBrowser).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
   });
 
   it('returns null from fetchUserProfile on non-PGRST116 errors without retrying with a narrower select', async () => {
