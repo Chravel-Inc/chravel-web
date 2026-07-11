@@ -509,3 +509,14 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Smallest safe fix:** `stopRef` + empty-deps unmount cleanup; lazy-mount voice session after tap.
 - **Required tests:** RealtimeVoiceButton lazy-mount start test.
 - **Fixed in:** `useRealtimeVoice.ts`, `RealtimeVoiceButton.tsx` (July 2026)
+
+## Realtime voice connects then WS fails under meta CSP
+- **Status:** confirmed
+- **Subsystem:** realtime voice / CSP / Vercel AI Gateway
+- **Bug class:** policy drift between `index.html` meta CSP and `vercel.json` header CSP
+- **Symptom:** Waveform opens / mint may succeed, but browser blocks `wss://ai-gateway.vercel.sh` (and related HTTPS). Controls otherwise look present.
+- **Root cause:** Live `chravel.app` was observed serving meta CSP only (no HTTP CSP header). Meta `connect-src` listed Lovable gateway but omitted `https://ai-gateway.vercel.sh` and `wss://ai-gateway.vercel.sh` even though `vercel.json` already allowed them. Multiple CSPs intersect — the stricter meta blocked the session.
+- **Smallest safe fix:** Keep meta and header CSP in lockstep; add both AI Gateway hosts to `index.html` `connect-src`.
+- **Required tests:** Document provenance + manual WS check; do not rewrite July 9 control fixes.
+- **Fixed in:** `index.html` (July 2026 recovery)
+- **Also check:** TestFlight may still be stale if `chravel-mobile` bundles frozen `dist` instead of loading `https://chravel.app`.

@@ -260,7 +260,7 @@ export const AIConciergeChat = ({
     queryClient: conciergeQueryClient,
   });
 
-  const { convoVoiceState, handleConvoToggle } = useConciergeVoice({
+  const { convoVoiceState, handleConvoToggle, stopDictation } = useConciergeVoice({
     inputMessage,
     setInputMessage,
   });
@@ -581,7 +581,7 @@ export const AIConciergeChat = ({
         {/* Chat area */}
         <div
           ref={chatScrollRef}
-          className="flex-1 overflow-y-auto overflow-x-hidden p-4 chat-scroll-container native-scroll min-h-0 min-w-0"
+          className="relative z-0 flex-1 overflow-y-auto overflow-x-hidden p-4 chat-scroll-container native-scroll min-h-0 min-w-0"
         >
           {/* "Picked up where you left off" divider — shown once when server history hydrates */}
           {historyLoadedFromServer && messages.length > 0 && (
@@ -627,9 +627,14 @@ export const AIConciergeChat = ({
         </div>
 
         {/* Input area — sticky bottom with inline voice banner above input */}
+        {/*
+          Composer is a flex sibling of the scroll rail (not absolutely positioned over it).
+          Keep z-20 + isolate so long markdown / sticky widgets cannot steal composer hits.
+        */}
         <div
-          className="chat-composer relative z-20 bg-black/30 px-3 pt-2 flex-shrink-0"
+          className="chat-composer relative z-20 isolate bg-black/30 px-3 pt-2 flex-shrink-0"
           style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)' }}
+          data-testid="concierge-composer-rail"
         >
           {/* Usage meter — only for plans with a finite per-trip ask limit */}
           {!isDemoMode && usage && usage.limit !== null && (
@@ -745,9 +750,10 @@ export const AIConciergeChat = ({
                   tripId={tripId}
                   disabled={usage?.isLimitReached ?? false}
                   containerRef={chatWindowRef}
-                  // Stop the turn-based hands-free mic before opening a realtime session
-                  // so the two never contend for the microphone.
+                  // Stop turn-based conversation mic AND in-field dictation before
+                  // opening a realtime session so nothing contends for the microphone.
                   onSessionStart={() => {
+                    stopDictation();
                     if (conversation.active) conversation.toggle();
                   }}
                 />
