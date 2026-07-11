@@ -127,6 +127,7 @@ export const TripChat = React.memo(
 
     const [showSearchOverlay, setShowSearchOverlay] = useState(false);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
+    const messageScrollRef = useRef<HTMLDivElement>(null);
     const [failedMessages, setFailedMessages] = useState<
       Array<{
         id: string;
@@ -202,6 +203,7 @@ export const TripChat = React.memo(
     }, [chatError, resolvedTripId]);
 
     const { isRefreshing, pullDistance } = usePullToRefresh({
+      scrollContainerRef: messageScrollRef,
       onRefresh: async () => {
         if (resolvedTripId) {
           if (reload) {
@@ -1066,7 +1068,7 @@ export const TripChat = React.memo(
     );
 
     return (
-      <div className="flex flex-col h-full">
+      <div className="relative flex flex-col h-full min-h-0 overflow-hidden">
         <PullToRefreshIndicator
           isRefreshing={isRefreshing}
           pullDistance={pullDistance}
@@ -1192,6 +1194,7 @@ export const TripChat = React.memo(
                         autoScroll={true}
                         restoreScroll={true}
                         scrollKey={`chat-scroll-${resolvedTripId}`}
+                        scrollContainerRef={messageScrollRef}
                       />
                     </FeatureErrorBoundary>
                   </>
