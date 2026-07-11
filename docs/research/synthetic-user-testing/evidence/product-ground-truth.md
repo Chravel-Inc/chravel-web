@@ -80,7 +80,7 @@ indicator, "Couldn't Load Trip", concierge status chips including Limited/Degrad
 |                                 | Free              | Explorer $9.99/mo · $99/yr | Frequent Chraveler $19.99/mo · $199/yr | Pro Starter $49/mo | Growth $99/mo | Enterprise custom |
 | ------------------------------- | ----------------- | -------------------------- | -------------------------------------- | ------------------ | ------------- | ----------------- |
 | Trips                           | **3 active**      | ∞                          | ∞                                      | ∞                  | ∞             | ∞                 |
-| AI queries                      | **10 /user/trip** | 25 /user/trip              | ∞                                      | ∞                  | ∞             | ∞                 |
+| AI queries                      | **3 /user/trip**  | 25 /user/trip              | ∞                                      | ∞                  | ∞             | ∞                 |
 | Storage                         | **500 MB**        | 50 GB                      | ∞                                      | ∞                  | ∞             | ∞                 |
 | Payment splits                  | 3 /trip           | 10 /trip                   | ∞                                      | ∞                  | ∞             | ∞                 |
 | Events                          | 3 lifetime        | 3 lifetime                 | ∞ (100 attendees)                      | ∞ (100)            | ∞ (200)       | ∞                 |
@@ -100,7 +100,7 @@ indicator, "Couldn't Load Trip", concierge status chips including Limited/Degrad
 - **`APPLE_IAP_ENABLED = false`** → on iOS, consumer subscription says "Subscribe on web" (App Store
   rule 3.1.1 means the app cannot even link out for digital goods without entitlement). Subscription
   management on iOS routes to Apple settings.
-- ⚠️ **Limit-copy drift to verify per surface:** some UI copy reads "10 AI queries/month", "100 MB",
+- ⚠️ **Limit-copy drift to verify per surface:** some UI copy may still drift across archived/non-runtime docs (for example stale AI-query or storage claims),
   "5 trips" while the billing config says 10/user/trip, 500 MB, 3 trips. If a persona's flow touches a
   limit string, check the actual component and report drift as a finding.
 

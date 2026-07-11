@@ -41,7 +41,7 @@ import { useTripChatMode } from '@/hooks/useTripChatMode';
 import { useLinkPreviews } from '../hooks/useLinkPreviews';
 import { useLinkPreviewActivation } from '../hooks/useLinkPreviewActivation';
 import { useBlockedUsers, useReportContent } from '@/hooks/useUserSafety';
-import { getStreamClient } from '@/services/stream/streamClient';
+import { getStreamApiKey, getStreamClient } from '@/services/stream/streamClient';
 import { derivePinnedMessages } from '../utils/pinnedMessages';
 import { extractQuotedReferenceFromStreamMessage } from '@/services/stream/streamMessagePayload';
 import { messageEvents } from '@/telemetry/events';
@@ -1132,20 +1132,29 @@ export const TripChat = React.memo(
                 {chatError && !isLoading ? (
                   <div className="flex-1 flex items-center justify-center p-6">
                     <div className="text-center space-y-3">
-                      <p className="text-sm text-muted-foreground">Something went wrong in Chat</p>
-                      <p className="text-xs text-muted-foreground">{NON_CRITICAL_CHAT_NOTE}</p>
-                      <button
-                        onClick={() => {
-                          toast.error('Chat needs a refresh', {
-                            description:
-                              'Please retry. If this persists, pull to refresh or reopen the trip.',
-                          });
-                          reload?.();
-                        }}
-                        className="text-sm text-primary underline hover:no-underline"
-                      >
-                        Retry
-                      </button>
+                      {getStreamApiKey() || chatError.message.includes('Timed out') ? (
+                        <>
+                          <p className="text-sm text-muted-foreground">
+                            Something went wrong in Chat
+                          </p>
+                          <p className="text-xs text-muted-foreground">{NON_CRITICAL_CHAT_NOTE}</p>
+                          <button
+                            onClick={() => {
+                              reload?.();
+                            }}
+                            className="text-sm text-primary underline hover:no-underline"
+                          >
+                            Retry
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm text-muted-foreground">Chat is initializing…</p>
+                          <p className="text-xs text-muted-foreground">
+                            Hang tight — connecting to the messaging service.
+                          </p>
+                        </>
+                      )}
                     </div>
                   </div>
                 ) : isLoading ? (

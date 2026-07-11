@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -195,6 +195,33 @@ export function usePendingRequestTripCards(isDemoMode = false) {
     },
     staleTime: 60_000,
   });
+
+  // Keep the Home "Requests" cards live: approvals/rejections (UPDATE), cancels
+  // from another device (DELETE), and new requests (INSERT) on the user's own
+  // rows invalidate the card query instead of waiting out the 60s staleTime.
+  useEffect(() => {
+    if (isDemoMode || !user?.id) return;
+
+    const channel = supabase
+      .channel(`pending_request_cards:${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'trip_join_requests',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          void invalidatePendingRequestState(queryClient);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isDemoMode, user?.id, queryClient]);
 
   const cancelPendingRequest = useCallback(
     async (requestId: string): Promise<{ success: boolean; message?: string }> => {

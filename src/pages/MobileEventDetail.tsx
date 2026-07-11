@@ -501,7 +501,6 @@ export const MobileEventDetail = () => {
           onClose={() => setShowInviteModal(false)}
           tripName={eventData?.title || 'Event'}
           tripId={eventId}
-          tripType="event"
         />
 
         {/* Delete Trip Confirm Dialog */}

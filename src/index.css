@@ -160,7 +160,7 @@
     /* Light theme: match app shell so safe-area “gutters” are not near-black */
     html.light,
     html.light body {
-      background-color: hsl(0 0% 80%);
+      background-color: hsl(42 55% 98%);
     }
 
     #root {
@@ -300,9 +300,18 @@
     }
   }
 
-  /* Smooth scrolling */
+  /* Default to the dark color-scheme so native form controls (date/time pickers,
+     select menus, scrollbars) paint light-on-dark instead of dark-on-dark. The
+     light theme (html.light) overrides it below.
+     NOTE: global `scroll-behavior: smooth` was removed — on iOS it fights momentum
+     and programmatic scrolls (focus-into-view, keyboard, scrollIntoView), producing
+     the scroll "vibration" users reported. Opt into smooth scrolling per-element. */
   html {
-    scroll-behavior: smooth;
+    color-scheme: dark;
+  }
+
+  html.light {
+    color-scheme: light;
   }
 
   :root {
@@ -440,70 +449,94 @@
   }
 
   .light {
-    /* Soft gray light palette (intentionally tighter, lower-contrast than white UIs) */
-    --background: 0 0% 80%;
-    --foreground: 0 0% 0%; /* Pure black text */
+    /* Premium light palette — "ivory & ink".
+       One warm family end-to-end: ivory paper (hue 42), faintly warm
+       near-white cards, and warm espresso ink (hue 30) — never the old
+       cool navy (hue 220), which read as mismatched cold ink on warm
+       paper. Gold stays the brand accent: #c49746 fills with black text,
+       and a deepened gold (36 60% 34%) for text/icons that must pass AA
+       on cream. Elevation model: the page is ivory, cards float one step
+       BRIGHTER with borders doing the edge work; surfaces 2→4 step
+       progressively DEEPER for insets/inputs/hover (a single consistent
+       ladder — no more tan drift at the bottom). */
+    --background: 42 55% 98%;
+    --foreground: 30 16% 11%;
 
-    --card: 0 0% 91%;
-    --card-foreground: 0 0% 0%; /* Black text on cards */
+    --card: 44 60% 99%;
+    --card-foreground: 30 16% 11%;
 
-    --popover: 0 0% 93%;
-    --popover-foreground: 0 0% 0%; /* Black text on popovers */
+    --popover: 44 60% 99%;
+    --popover-foreground: 30 16% 11%;
 
-    --secondary: 0 0% 88%;
-    --secondary-foreground: 0 0% 10%;
+    /* Gold is the brand primary in BOTH themes (black ink on gold fill,
+       per the accent design system) — light mode no longer demotes it. */
+    --primary: 37 55% 52%;
+    --primary-foreground: 0 0% 0%;
 
-    --muted: 0 0% 86%;
-    --muted-foreground: 0 0% 40%;
+    --secondary: 40 45% 94%;
+    --secondary-foreground: 30 16% 13%;
 
-    --border: 0 0% 84%;
-    --input: 0 0% 94%; /* Inputs sit above card for separation */
+    --muted: 40 45% 95%;
+    --muted-foreground: 30 10% 32%;
 
-    /* Sidebar - Inverted */
-    --sidebar-background: 0 0% 82%;
-    --sidebar-foreground: 0 0% 10%;
-    --sidebar-primary: 37 55% 52%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 88%;
-    --sidebar-accent-foreground: 0 0% 10%;
-    --sidebar-border: 0 0% 83%;
-    --sidebar-ring: 37 55% 52%;
+    /* Deepened gold for text/icon accents — #c49746 itself is ~2.9:1 on
+       cream; this cut (~#8a6a2a) passes AA for UI text and icons. */
+    --accent: 36 60% 34%;
+    --accent-foreground: 42 55% 98%;
+
+    --destructive: 0 72% 42%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 38 26% 81%;
+    --input: 42 40% 96%; /* Inputs sit above warm app canvas with clear definition. */
+
+    /* Sidebar - premium light shell */
+    --sidebar-background: 42 50% 96%;
+    --sidebar-foreground: 30 16% 13%;
+    --sidebar-primary: 30 16% 11%;
+    --sidebar-primary-foreground: 42 55% 98%;
+    --sidebar-accent: 40 40% 92%;
+    --sidebar-accent-foreground: 30 16% 13%;
+    --sidebar-border: 38 26% 81%;
+    --sidebar-ring: 36 60% 36%;
 
     /* Payment Colors - Inverted for Light Mode */
     --payment-primary: 37 55% 52%;
     --payment-primary-foreground: 0 0% 0%;
-    --payment-background: 0 0% 82%;
-    --payment-background-light: 0 0% 90%;
-    --payment-border: 0 0% 84%;
-    --payment-text: 0 0% 10%;
+    --payment-background: 42 50% 96%;
+    --payment-background-light: 42 55% 98%;
+    --payment-border: 38 26% 81%;
+    --payment-text: 30 16% 10%;
 
-    /* Slightly darker gold for focus ring visibility on light backgrounds */
-    --ring: 37 55% 42%;
+    /* Deepened gold focus ring for visibility on light backgrounds */
+    --ring: 36 60% 36%;
 
     /* Glass-slate tokens — light mode */
-    --glass-slate-bg: 0 0% 80%;
-    --glass-slate-card: 0 0% 91%;
-    --glass-slate-border: 0 0% 84%;
+    --glass-slate-bg: 42 55% 98%;
+    --glass-slate-card: 44 60% 99%;
+    --glass-slate-border: 38 26% 81%;
 
     /* Chat contrast tokens — light mode */
-    --chat-bubble-other: 0 0% 75%;
-    --chat-bubble-other-foreground: 0 0% 8%;
-    --chat-meta: 0 0% 10% / 0.8;
+    --chat-bubble-other: 40 40% 92%;
+    --chat-bubble-other-foreground: 30 16% 11%;
+    --chat-meta: 30 12% 14% / 0.8;
 
-    /* Surface / ink scale — light mode (matches prior shim values) */
-    --surface-0: 0 0% 96%;
-    --surface-1: 0 0% 92%;
-    --surface-2: 0 0% 88%;
-    --surface-3: 0 0% 84%;
-    --surface-4: 0 0% 80%;
-    --overlay-strong: 0 0% 0% / 0.25;
-    --overlay-soft: 0 0% 0% / 0.1;
-    --ink-1: 0 0% 10%;
-    --ink-2: 0 0% 32%;
-    --ink-3: 0 0% 45%;
+    /* Surface / ink scale — light mode.
+       0 = ivory page · 1 = card (brighter, border-defined) ·
+       2→4 = progressively deeper warm insets (panels, inputs, hover). */
+    --surface-0: 42 55% 98%;
+    --surface-1: 44 60% 99%;
+    --surface-2: 42 48% 95.5%;
+    --surface-3: 40 40% 93%;
+    --surface-4: 38 32% 89%;
+    --overlay-strong: 30 20% 10% / 0.4;
+    --overlay-soft: 30 20% 10% / 0.12;
+    --ink-1: 30 16% 11%;
+    --ink-2: 30 10% 30%;
+    --ink-3: 28 8% 42%;
     --ink-on-accent: 0 0% 100%;
-    --hairline-strong: 0 0% 0% / 0.15;
-    --hairline-soft: 0 0% 0% / 0.08;
+    --hairline-strong: 30 30% 12% / 0.15;
+    --hairline-soft: 30 30% 12% / 0.08;
   }
 }
 
@@ -588,10 +621,17 @@
 .light .bg-slate-700,
 .light .bg-neutral-700,
 .light .bg-zinc-700,
-.light .bg-white\/5,
 .light .bg-black\/40,
 .light .bg-black\/70 {
   background-color: hsl(var(--surface-2));
+}
+
+/* Glass panels stay TRANSLUCENT in light mode — one coherent warm-tint
+   ladder (4.5% → 8% → 15% ink) instead of the old mix of opaque cream
+   (white/5) next to near-invisible fills (white/10). Backdrop-blur on
+   these panels keeps doing real work. */
+.light .bg-white\/5 {
+  background-color: hsl(30 30% 12% / 0.045);
 }
 
 .light .bg-gray-800\/50,
@@ -722,8 +762,34 @@
 /* ─── PWA standalone background ───────────────────────────── */
 @media (display-mode: standalone) {
   .light body {
-    background-color: hsl(var(--surface-4));
+    background-color: hsl(var(--background));
   }
+}
+
+/* --- Gold TEXT on ivory needs the deepened cut (--accent, ~4.8:1);
+   raw #c49746 text is ~2.9:1 there. Gold FILLS keep the true brand gold
+   with black ink, which passes on its own. --- */
+.light .text-primary,
+.light .hover\:text-primary:hover,
+.light .text-gold-primary {
+  color: hsl(var(--accent));
+}
+
+/* --- Gold glows (tuned for black; a 30-40% gold halo is invisible haze
+   on ivory). Light mode swaps them for a soft warm DROP shadow so gold
+   CTAs keep their lift. --- */
+.light .shadow-gold-glow,
+.light .shadow-primary-glow,
+.light .shadow-accent-glow,
+.light .accent-fill-gold {
+  box-shadow:
+    0 10px 24px -12px rgba(122, 87, 31, 0.45),
+    0 2px 6px rgba(122, 87, 31, 0.16);
+}
+.light .accent-fill-gold:hover {
+  box-shadow:
+    0 14px 30px -12px rgba(122, 87, 31, 0.5),
+    0 3px 8px rgba(122, 87, 31, 0.2);
 }
 
 /* --- Enterprise shadows (too heavy for light backgrounds) --- */
@@ -826,8 +892,29 @@
 .light .dark-section .bg-white\/10 {
   background-color: rgba(255, 255, 255, 0.1);
 }
+.light .dark-section .bg-white\/5 {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+.light .dark-section .bg-white\/20 {
+  background-color: rgba(255, 255, 255, 0.2);
+}
 .light .dark-section .border-white\/10 {
   border-color: rgba(255, 255, 255, 0.1);
+}
+.light .dark-section .border-white\/20 {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+.light .dark-section .hover\:text-white:hover {
+  color: white;
+}
+.light .dark-section .text-white\/60 {
+  color: rgba(255, 255, 255, 0.6);
+}
+.light .dark-section .hover\:bg-white\/10:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+.light .dark-section .hover\:bg-white\/20:hover {
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 @layer base {
@@ -945,6 +1032,28 @@
 }
 
 /* iOS Keyboard Handling */
+.mobile-trip-shell {
+  /*
+   * Native-chat invariant: trip detail screens own the viewport. The document
+   * must never become the scroll container, or iOS will rubber-band the entire
+   * webview and drag the composer with it before/while the keyboard opens.
+   */
+  position: fixed;
+  /*
+   * Track visualViewport.offsetTop (set by useKeyboardHandler) so the fixed shell
+   * follows the visible region when iOS scrolls the visual viewport to reveal a
+   * focused input. This keeps the bottom-pinned composer sitting directly on the
+   * keyboard instead of floating up with a dead gap below it.
+   */
+  top: var(--visual-viewport-offset-top, 0px);
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: var(--visual-viewport-height, 100dvh);
+  max-height: var(--visual-viewport-height, 100dvh);
+  overscroll-behavior: none;
+}
+
 .keyboard-visible {
   /* Legacy fallback — mobile shells use --visual-viewport-height directly. */
   height: calc(100vh - var(--keyboard-height, 0px));
@@ -953,6 +1062,50 @@
 .keyboard-visible .mobile-trip-shell {
   height: var(--visual-viewport-height, 100dvh);
   max-height: var(--visual-viewport-height, 100dvh);
+}
+
+/*
+ * Trip/Event recap export modal panel.
+ *
+ * The panel is a flex column (header / scrollable body / footer). For the
+ * footer actions (Cancel + Create Recap/PDF) to stay pinned and the body to
+ * scroll, the panel MUST have a bounded height. Older iOS Capacitor WebViews
+ * don't honor `svh`/`dvh`, so a `calc(100svh - …)` cap is dropped as invalid,
+ * the panel grows to full content height, and the footer slides off-screen
+ * with nothing scrollable.
+ *
+ * `100vh` is the universal fallback. The dynamic/keyboard-aware value is gated
+ * behind `@supports` rather than a second `max-height` declaration, because a
+ * `var(…, 100dvh)` that resolves to an unsupported unit is "invalid at
+ * computed-value time" and resets max-height to its initial `none` (it does
+ * NOT cascade back to the earlier `100vh`). The `@supports` gate guarantees
+ * the enhanced value only applies where `dvh` actually works.
+ */
+.trip-export-modal-panel {
+  max-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+}
+
+@supports (height: 100dvh) {
+  .trip-export-modal-panel {
+    /* Keyboard-aware dynamic viewport — same var the mobile shell uses. */
+    max-height: calc(
+      var(--visual-viewport-height, 100dvh) - env(safe-area-inset-top, 0px) -
+        env(safe-area-inset-bottom, 0px)
+    );
+  }
+}
+
+@media (min-width: 640px) {
+  /* Centered desktop dialog keeps a ~2rem gutter top + bottom. */
+  .trip-export-modal-panel {
+    max-height: calc(100vh - 2rem);
+  }
+
+  @supports (height: 100dvh) {
+    .trip-export-modal-panel {
+      max-height: calc(var(--visual-viewport-height, 100dvh) - 2rem);
+    }
+  }
 }
 
 .keyboard-visible .chat-composer-tray,
@@ -1023,6 +1176,26 @@
   100% {
     transform: scale(2.2);
     opacity: 0;
+  }
+}
+
+/* Realtime voice: seamless horizontal drift of the gold wave (viewBox tile = 1000). */
+@keyframes realtime-wave-drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-1000px);
+  }
+}
+
+.realtime-wave-drift {
+  animation: realtime-wave-drift 7s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .realtime-wave-drift {
+    animation: none;
   }
 }
 
@@ -1424,6 +1597,40 @@
     transform: translateZ(0);
   }
 
+  /* Premium metallic gold surface — buttons, active tabs, primary CTAs */
+  .bg-gold-metallic {
+    background-image: linear-gradient(
+      135deg,
+      #533517 0%,
+      #8a6326 18%,
+      #c49746 42%,
+      #feeaa5 62%,
+      #c49746 82%,
+      #7a571f 100%
+    );
+    background-size: 200% 200%;
+    background-position: 0% 50%;
+    color: #1a1208;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 234, 165, 0.55),
+      inset 0 -1px 0 rgba(83, 53, 23, 0.55),
+      0 6px 18px -8px rgba(196, 151, 70, 0.55);
+    transition:
+      background-position 600ms ease,
+      transform 200ms ease,
+      box-shadow 200ms ease;
+  }
+  .bg-gold-metallic:hover {
+    background-position: 100% 50%;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 234, 165, 0.7),
+      inset 0 -1px 0 rgba(83, 53, 23, 0.55),
+      0 10px 24px -8px rgba(196, 151, 70, 0.7);
+  }
+  .bg-gold-metallic:disabled {
+    box-shadow: none;
+  }
+
   /* Hide scrollbars while maintaining scroll functionality */
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
@@ -1744,4 +1951,115 @@
 .light .rounded-2xl.backdrop-blur-xl {
   -webkit-transform: translateZ(0);
   isolation: isolate;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   MARKETING TYPOGRAPHY — editorial display serif for landing surfaces only.
+   Scoped to [data-marketing] so the authenticated app shell is untouched.
+   Recipe: "Pure weight contrast" — Fraunces (single 400 weight) for
+   H1/H2, Inter for body/UI. Hierarchy via type-family contrast + tracking,
+   not color tricks. Heading shadows are preserved by the inline styles on
+   each section component.
+   ───────────────────────────────────────────────────────────────────────── */
+[data-marketing] {
+  /* Hanken Grotesk is the marketing body sans (Inter is the app-shell
+     fallback where the marketing fonts aren't loaded). */
+  font-family: 'Hanken Grotesk', 'Inter', system-ui, sans-serif;
+  font-feature-settings: 'kern', 'liga';
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* .no-display-serif opts a heading out (e.g. sans headings inside gold chips
+   / conversion surfaces where serif 400 reads too light). */
+[data-marketing] h1:not(.no-display-serif),
+[data-marketing] h2:not(.no-display-serif) {
+  /* Fraunces Variable carries the high-optical-size (opsz) display cut —
+     the luxury look; static Fraunces 400 is the app-shell fallback. */
+  font-family:
+    'Fraunces Variable', 'Fraunces', Georgia, Cambria, 'Times New Roman', serif !important;
+  font-weight: 400 !important;
+  font-optical-sizing: auto;
+  font-variation-settings:
+    'SOFT' 0,
+    'WONK' 0;
+  letter-spacing: -0.022em;
+  line-height: 1.04;
+  font-synthesis-weight: none;
+}
+
+/* Fraunces italic carries the emotional accents — let <em> inside marketing
+   headlines render as the real italic cut, not synthesized. */
+[data-marketing] h1 em,
+[data-marketing] h2 em {
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* Ledes / subheads under marketing headings: lighter Inter at a generous
+   measure reads as editorial calm next to the serif headline. Opt-in via
+   .marketing-lede — the previous bare `h1 + p / h2 + p` sibling selector
+   also restyled pricing chips, blog bylines, and article body copy. */
+[data-marketing] .marketing-lede {
+  font-weight: 300;
+  letter-spacing: 0.005em;
+  max-width: 64ch;
+}
+
+/* H3 / card titles stay sans for utility, but with tighter tracking so the
+   serif/sans pairing reads intentional rather than mixed. */
+[data-marketing] h3 {
+  letter-spacing: -0.012em;
+  font-feature-settings: 'ss01', 'cv11', 'kern', 'liga';
+}
+
+/* Eyebrow / kicker — uppercase sans, wide tracking. Targets explicit
+   .marketing-eyebrow opt-in plus the existing tracking-[0.32em] pattern
+   used by the hero chip, so we don't touch components that have already
+   styled their eyebrow inline. */
+[data-marketing] .marketing-eyebrow {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+  font-size: 0.72rem;
+}
+
+/* Buttons inside marketing get a touch of tracking — Stripe/Linear move. */
+[data-marketing] button,
+[data-marketing] a[role='button'],
+[data-marketing] .btn {
+  letter-spacing: 0.005em;
+}
+
+/* Marketing legibility: subtle text shadow so white copy reads cleanly over
+   the cinematic black-and-gold photo backgrounds. Layered shadow = soft halo
+   plus a tight contact shadow for crispness on any background luminance. */
+[data-marketing] h1,
+[data-marketing] h2,
+[data-marketing] h3,
+[data-marketing] h4 {
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.55),
+    0 4px 18px rgba(0, 0, 0, 0.45);
+}
+
+[data-marketing] p,
+[data-marketing] li,
+[data-marketing] blockquote {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+}
+
+/* Opt-out: cards / pills with their own surface treatment don't need shadows. */
+[data-marketing] .no-text-shadow,
+[data-marketing] .no-text-shadow * {
+  text-shadow: none;
+}
+
+/* Reduced motion: marketing entrance fades render instantly. Framer Motion
+   reveals are already gated per-component via useReducedMotion(). */
+@media (prefers-reduced-motion: reduce) {
+  [data-marketing] .animate-fade-in {
+    animation: none;
+  }
 }

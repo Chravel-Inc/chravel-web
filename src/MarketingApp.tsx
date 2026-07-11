@@ -1,10 +1,16 @@
-import { Suspense, useEffect, useMemo, useState } from 'react';
-import { BrowserRouter } from 'react-router-dom';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import '@/styles/marketingFonts';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { FullPageLanding } from '@/components/landing/FullPageLanding';
 import { AuthProvider, useOptionalAuth } from '@/hooks/useAuth';
 import { AuthModal } from '@/components/AuthModal';
 import { isInstalledApp } from '@/utils/platformDetection';
 import { markAppBooted } from '@/utils/chunkRecovery';
+
+const BlogIndex = lazy(() => import('@/pages/BlogIndex'));
+const BlogPost = lazy(() => import('@/pages/BlogPost'));
+const UseCasesHub = lazy(() => import('@/pages/UseCasesHub'));
+const UseCasePage = lazy(() => import('@/pages/UseCasePage'));
 
 /**
  * After a successful sign-in inside the lightweight marketing shell, force a
@@ -88,8 +94,41 @@ export default function MarketingApp() {
       <AuthProvider>
         <PostAuthBoot />
         <Suspense fallback={fallback}>
-          <main>
-            <FullPageLanding onSignUp={() => setAuthMode('signup')} />
+          <main data-marketing="true">
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  <FullPageLanding
+                    onSignUp={() => setAuthMode('signup')}
+                    onAuthRequired={() => setAuthMode('signin')}
+                  />
+                }
+              />
+              <Route
+                path="/home"
+                element={
+                  <FullPageLanding
+                    onSignUp={() => setAuthMode('signup')}
+                    onAuthRequired={() => setAuthMode('signin')}
+                  />
+                }
+              />
+              <Route
+                path="/index"
+                element={
+                  <FullPageLanding
+                    onSignUp={() => setAuthMode('signup')}
+                    onAuthRequired={() => setAuthMode('signin')}
+                  />
+                }
+              />
+              <Route path="/blog" element={<BlogIndex />} />
+              <Route path="/blog/:slug" element={<BlogPost />} />
+              <Route path="/use-cases" element={<UseCasesHub />} />
+              <Route path="/use-cases/:slug" element={<UseCasePage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
           </main>
           {authMode && (
             <AuthModal isOpen initialMode={authMode} onClose={() => setAuthMode(null)} />

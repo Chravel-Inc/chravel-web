@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { ArrowRight } from 'lucide-react';
 import { Button } from '../../ui/button';
 
 // Real-product-walkthrough video built from fresh demo-mode UI captures.
@@ -10,15 +11,64 @@ import { Button } from '../../ui/button';
 const HERO_VIDEO_SRC = '/videos/chravel-homepage-demo-60.mp4';
 const HERO_VIDEO_POSTER = '/videos/chravel-homepage-demo-60-poster.jpg';
 
+/** The proof strip under the demo — the six P's, rendered as an editorial index. */
+const HERO_PROOF_ITEMS = ['Plans', 'Photos', 'Places', 'Polls', 'PDFs', 'Payments'];
+
 interface HeroSectionProps {
   onSignUp: () => void;
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
   const [videoFailed, setVideoFailed] = useState(false);
+  const [autoplayBlocked, setAutoplayBlocked] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   // Hero demo is muted + decorative — always autoplay regardless of
   // prefers-reduced-motion. Fallback to poster only on real load error.
   const showVideo = !videoFailed;
+
+  // Explicitly invoke play() so we can observe autoplay-policy rejections
+  // (the <video autoplay> attribute swallows them silently). Desktop Chrome
+  // and the Lovable preview iframe (no allow="autoplay") commonly block
+  // muted autoplay; mobile Safari/Chrome are more permissive.
+  const attemptPlay = useCallback(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    const p = el.play();
+    if (p && typeof p.then === 'function') {
+      p.then(() => setAutoplayBlocked(false)).catch(() => setAutoplayBlocked(true));
+    }
+  }, []);
+
+  // Trigger first play attempt when the hero is actually visible (handles
+  // tab-switch and slow first-paint where the autoplay heuristic already
+  // decided). Fall back to immediate attempt if IO is unavailable.
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el || videoFailed) return;
+    if (typeof IntersectionObserver === 'undefined') {
+      attemptPlay();
+      return;
+    }
+    const io = new IntersectionObserver(
+      entries => {
+        if (entries.some(e => e.isIntersecting)) attemptPlay();
+      },
+      { threshold: 0.1 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [attemptPlay, videoFailed]);
+
+  const handleManualPlay = () => {
+    setAutoplayBlocked(false);
+    attemptPlay();
+  };
+
+  const scrollToHowItWorks = () => {
+    document
+      .getElementById('section-features')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   return (
     <div
@@ -41,7 +91,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           onClick={onSignUp}
           className="text-xs px-3 py-1 accent-fill-gold backdrop-blur-md font-semibold h-7"
         >
-          Login or Signup
+          Get Started
         </Button>
       </div>
 
@@ -69,27 +119,35 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           style={{ animationDelay: '0.05s' }}
         >
           <div
-            className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight tracking-tight"
-            style={{
-              textShadow:
-                '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4), 0 0 32px rgba(196,151,70,0.22)',
-            }}
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-[0.02em] text-gradient-gold"
             aria-hidden="true"
           >
             ChravelApp
           </div>
         </div>
 
-        {/* Pain-First Headline — primary H1 for the page */}
+        {/* Descriptor tagline — reveals how Chat + Travel + App combine into ChravelApp.
+            Gold letters (CH, RAVEL, APP) spell the wordmark; italics via Fraunces. */}
         <div className="w-full flex items-center justify-center px-2 tablet:px-4 mb-3 tablet:mb-4">
           <h1
-            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-[1.05] tracking-tight animate-fade-in text-center w-full"
+            className="text-3xl sm:text-4xl md:text-[2.75rem] lg:text-5xl font-bold text-white leading-[1.04] tracking-tight animate-fade-in text-center w-full"
             style={{
               textShadow:
                 '0 2px 8px rgba(0,0,0,0.6), 0 4px 18px rgba(0,0,0,0.45), 0 0 44px rgba(196,151,70,0.28)',
             }}
+            aria-label="The Group Chat Travel App"
           >
-            The Group Chat Travel App
+            <span aria-hidden="true">
+              The&nbsp;Group&nbsp;
+              <span className="whitespace-nowrap">
+                <em className="text-gradient-gold">Ch</em>
+                at&nbsp;
+                <em>
+                  T<span className="text-gradient-gold">ravel</span>
+                </em>{' '}
+                <em className="text-gradient-gold">App</em>
+              </span>
+            </span>
           </h1>
         </div>
 
@@ -100,92 +158,145 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           aria-hidden="true"
         />
 
-        {/* New Subtitle */}
+        {/* Subtitle */}
         <p
-          className="text-sm sm:text-base md:text-lg lg:text-xl text-white/95 font-medium max-w-3xl mx-auto mb-3 tablet:mb-4 animate-fade-in"
+          className="text-sm sm:text-base md:text-lg lg:text-xl text-white/90 font-display max-w-2xl mx-auto mb-4 tablet:mb-5 animate-fade-in"
           style={{
             animationDelay: '0.1s',
             textShadow: '0 2px 6px rgba(0,0,0,0.55), 0 4px 12px rgba(0,0,0,0.35)',
           }}
         >
-          Built for group planning. All your trip's important info. In one place.
+          Built for group plans: Your important info synced across web &amp; mobile.
         </p>
+
+        {/* CTA group — primary conversion action + soft product-tour path */}
+        <div
+          className="flex flex-wrap items-center justify-center gap-3 animate-fade-in"
+          style={{ animationDelay: '0.14s' }}
+        >
+          <Button
+            onClick={onSignUp}
+            className="accent-fill-gold h-12 rounded-full px-8 text-base font-semibold tracking-wide backdrop-blur-md transition-transform duration-200 hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+          >
+            Get Started — It's Free
+          </Button>
+          <button
+            type="button"
+            onClick={scrollToHowItWorks}
+            className="group inline-flex h-12 items-center gap-2 rounded-full border border-white/20 bg-white/[0.04] px-6 text-base font-medium text-white/90 backdrop-blur-md transition-colors duration-200 hover:border-[#c49746]/60 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c49746]"
+          >
+            See How It Works
+            <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0" />
+          </button>
+        </div>
       </div>
 
-      {/* Demo Preview Image - fills the middle space */}
-      <div className="flex-1 flex flex-col items-center justify-center py-2 tablet:py-3">
+      {/* Demo Preview - fills the middle space */}
+      <div className="flex-1 flex flex-col items-center justify-center py-3 tablet:py-4">
         <div
           className="w-full max-w-6xl mx-auto px-2 animate-fade-in"
           style={{ animationDelay: '0.1s' }}
         >
-          <div className="relative rounded-xl overflow-hidden shadow-2xl shadow-black/40 border border-white/10 aspect-video bg-[#070B1A]">
-            {showVideo ? (
-              <video
-                className="w-full h-full object-cover object-bottom scale-[1.08] origin-bottom"
-                // src directly on <video> (not a <source> child) so a missing
-                // file fires onError here and the poster fallback engages.
-                src={HERO_VIDEO_SRC}
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="metadata"
-                poster={HERO_VIDEO_POSTER}
-                aria-label="ChravelApp trip dashboard product demo"
-                onError={() => setVideoFailed(true)}
-              />
-            ) : (
-              <img
-                src={HERO_VIDEO_POSTER}
-                alt="ChravelApp trips dashboard preview"
-                className="w-full h-full object-cover object-bottom scale-[1.08] origin-bottom"
-                fetchPriority="high"
-                decoding="async"
-              />
-            )}
-            {/* Subtle overlay to blend edges */}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#070B1A]/30 via-transparent to-transparent pointer-events-none" />
+          {/* Premium frame: gold hairline ring + soft ambient glow behind the demo */}
+          <div className="relative">
+            <div
+              className="absolute -inset-6 sm:-inset-10 pointer-events-none"
+              style={{
+                background:
+                  'radial-gradient(ellipse 70% 60% at 50% 50%, rgba(196,151,70,0.14) 0%, rgba(196,151,70,0) 70%)',
+              }}
+              aria-hidden="true"
+            />
+            <div className="relative rounded-2xl p-px bg-gradient-to-b from-[#c49746]/45 via-white/10 to-white/5">
+              <div className="relative rounded-[calc(1rem-1px)] overflow-hidden shadow-2xl shadow-black/50 aspect-video bg-[#070B1A]">
+                {showVideo ? (
+                  <>
+                    <video
+                      ref={videoRef}
+                      className="w-full h-full object-cover object-bottom scale-[1.08] origin-bottom"
+                      // src directly on <video> (not a <source> child) so a missing
+                      // file fires onError here and the poster fallback engages.
+                      src={HERO_VIDEO_SRC}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      preload="metadata"
+                      poster={HERO_VIDEO_POSTER}
+                      aria-label="ChravelApp trip dashboard product demo"
+                      onError={() => setVideoFailed(true)}
+                      onCanPlay={() => {
+                        // Retry once if our initial play() lost the race with metadata.
+                        if (autoplayBlocked) attemptPlay();
+                      }}
+                      onPlaying={() => setAutoplayBlocked(false)}
+                    />
+                    {autoplayBlocked && (
+                      <button
+                        type="button"
+                        onClick={handleManualPlay}
+                        aria-label="Play product demo video"
+                        className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-[1px] group focus:outline-none focus:ring-2 focus:ring-[#c49746]"
+                      >
+                        <span className="flex items-center justify-center w-20 h-20 rounded-full bg-black/55 border border-white/30 group-hover:scale-105 transition-transform">
+                          <svg
+                            viewBox="0 0 24 24"
+                            className="w-9 h-9 ml-1 fill-white"
+                            aria-hidden="true"
+                          >
+                            <path d="M8 5v14l11-7z" />
+                          </svg>
+                        </span>
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <img
+                    src={HERO_VIDEO_POSTER}
+                    alt="ChravelApp trips dashboard preview"
+                    className="w-full h-full object-cover object-bottom scale-[1.08] origin-bottom"
+                    decoding="async"
+                    {...({ fetchpriority: 'high' } as React.ImgHTMLAttributes<HTMLImageElement>)}
+                  />
+                )}
+                {/* Subtle overlay to blend edges */}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#070B1A]/30 via-transparent to-transparent pointer-events-none" />
+              </div>
+            </div>
           </div>
         </div>
-
-        {/* Mobile CTA - centered below preview */}
-        <Button
-          onClick={onSignUp}
-          className="mt-4 px-6 py-3 accent-fill-gold backdrop-blur-md rounded-xl text-base font-semibold animate-fade-in lg:hidden"
-          style={{ animationDelay: '0.2s' }}
-        >
-          Login or Signup
-        </Button>
       </div>
 
-      {/* Bottom Section: Hero copy */}
-      <div className="flex-shrink-0 flex flex-col items-center">
-        {/* Secondary tagline */}
+      {/* Bottom Section: proof strip — the six P's as an editorial index */}
+      <div
+        className="flex-shrink-0 flex flex-col items-center animate-fade-in"
+        style={{ animationDelay: '0.15s' }}
+      >
+        <p className="sr-only">
+          Plans, Photos, Places, Polls, PDFs, &amp; Payments — Privately Processed
+        </p>
         <div
-          className="inline-block animate-fade-in"
-          style={{
-            animationDelay: '0.1s',
-          }}
+          className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 sm:gap-x-4 max-w-4xl"
+          aria-hidden="true"
         >
-          <h3
-            className="text-xl sm:text-2xl md:text-3xl lg:text-3xl font-bold leading-tight text-white"
-            style={{
-              textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
-            }}
-          >
-            {"\n"}
-          </h3>
+          {HERO_PROOF_ITEMS.map((item, index) => (
+            <React.Fragment key={item}>
+              {index > 0 && <span className="inline-block h-1 w-1 rounded-full bg-[#c49746]/80" />}
+              <span
+                className="text-sm sm:text-base md:text-lg font-semibold tracking-wide text-white"
+                style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6)' }}
+              >
+                {item}
+              </span>
+            </React.Fragment>
+          ))}
         </div>
-
-        {/* Subheadline */}
         <p
-          className="text-base sm:text-lg md:text-xl lg:text-2xl text-white font-bold max-w-4xl animate-fade-in mt-3 tablet:mt-4"
-          style={{
-            animationDelay: '0.15s',
-            textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
-          }}
+          className="mt-2 text-xs sm:text-sm font-medium uppercase tracking-[0.28em] text-[#feeaa5]/90"
+          style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}
+          aria-hidden="true"
         >
-          Plans, Photos, Places, & Payments — one Private Place for each specific trip.
+          Privately Processed
         </p>
       </div>
     </div>

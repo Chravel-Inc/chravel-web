@@ -10,6 +10,32 @@ interface PullToRefreshOptions {
 }
 
 /**
+ * Walk up from the touch target to the nearest vertically-scrollable ancestor.
+ *
+ * The mobile trip tabs scroll inside nested containers, NOT the document — so
+ * `window.scrollY` is always 0 there. Gating pull-to-refresh on `window.scrollY`
+ * armed the gesture on every touch and `preventDefault()`-ed downward swipes,
+ * hijacking normal scrolling (content fought the finger / "scrolled the opposite
+ * direction"). Resolving the actual scroll container lets us arm the gesture only
+ * when that container is genuinely at its top.
+ *
+ * Returns the scrollable element, or null when the document itself is the scroller.
+ */
+const findScrollableAncestor = (start: EventTarget | null): HTMLElement | null => {
+  let node = start instanceof Element ? start : null;
+  while (node && node !== document.body && node !== document.documentElement) {
+    if (node instanceof HTMLElement && node.scrollHeight > node.clientHeight) {
+      const overflowY = getComputedStyle(node).overflowY;
+      if (overflowY === 'auto' || overflowY === 'scroll') {
+        return node;
+      }
+    }
+    node = node.parentElement;
+  }
+  return null;
+};
+
+/**
  * Pull-to-refresh gesture hook.
  *
  * Gesture state lives in refs so the event listeners are registered once
@@ -42,18 +68,18 @@ export const usePullToRefresh = ({
     scrollContainerRefRef.current = scrollContainerRef;
   }, [scrollContainerRef]);
 
-  const isAtScrollTop = () => {
-    const container = scrollContainerRefRef.current?.current;
+  const isAtScrollTop = (target: EventTarget | null) => {
+    const container = scrollContainerRefRef.current?.current ?? findScrollableAncestor(target);
     if (container) {
       return container.scrollTop <= 0;
     }
-    return (window.scrollY || document.documentElement.scrollTop) === 0;
+    return (window.scrollY || document.documentElement.scrollTop) <= 0;
   };
 
   useEffect(() => {
     const handleTouchStart = (e: TouchEvent) => {
       if (isRefreshingRef.current) return;
-      if (isAtScrollTop()) {
+      if (isAtScrollTop(e.target)) {
         startYRef.current = e.touches[0].clientY;
         isPullingRef.current = true;
       }

@@ -89,6 +89,36 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_cover_generations: {
+        Row: {
+          cost_estimate_cents: number | null
+          created_at: string
+          id: string
+          model: string
+          period_month: string
+          trip_id: string
+          user_id: string
+        }
+        Insert: {
+          cost_estimate_cents?: number | null
+          created_at?: string
+          id?: string
+          model?: string
+          period_month?: string
+          trip_id: string
+          user_id: string
+        }
+        Update: {
+          cost_estimate_cents?: number | null
+          created_at?: string
+          id?: string
+          model?: string
+          period_month?: string
+          trip_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_queries: {
         Row: {
           created_at: string | null
@@ -620,6 +650,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      concierge_conversation_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          session_id: string
+          trip_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          session_id: string
+          trip_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          session_id?: string
+          trip_id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       concierge_usage: {
         Row: {
@@ -2397,6 +2451,8 @@ export type Database = {
           app_role: string | null
           avatar_url: string | null
           bio: string | null
+          concierge_reply_language: string | null
+          concierge_voice: string | null
           created_at: string
           deletion_requested_at: string | null
           deletion_scheduled_for: string | null
@@ -2431,6 +2487,8 @@ export type Database = {
           app_role?: string | null
           avatar_url?: string | null
           bio?: string | null
+          concierge_reply_language?: string | null
+          concierge_voice?: string | null
           created_at?: string
           deletion_requested_at?: string | null
           deletion_scheduled_for?: string | null
@@ -2465,6 +2523,8 @@ export type Database = {
           app_role?: string | null
           avatar_url?: string | null
           bio?: string | null
+          concierge_reply_language?: string | null
+          concierge_voice?: string | null
           created_at?: string
           deletion_requested_at?: string | null
           deletion_scheduled_for?: string | null
@@ -3856,7 +3916,10 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          left_at: string | null
+          notifications_muted: boolean
           role: string
+          status: string
           trip_id: string
           updated_at: string
           user_id: string
@@ -3864,7 +3927,10 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          left_at?: string | null
+          notifications_muted?: boolean
           role?: string
+          status?: string
           trip_id: string
           updated_at?: string
           user_id: string
@@ -3872,7 +3938,10 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          left_at?: string | null
+          notifications_muted?: boolean
           role?: string
+          status?: string
           trip_id?: string
           updated_at?: string
           user_id?: string
@@ -5161,6 +5230,10 @@ export type Database = {
         Args: { _channel_id: string; _user_id: string }
         Returns: boolean
       }
+      can_edit_trip_cover: {
+        Args: { _trip_id: string; _user_id: string }
+        Returns: boolean
+      }
       cancel_account_deletion: { Args: never; Returns: Json }
       check_and_increment_smart_import_usage: {
         Args: { p_limit: number; p_trip_id: string; p_user_id: string }
@@ -5235,6 +5308,23 @@ export type Database = {
           _user_id: string
         }
         Returns: string
+      }
+      create_notification_for_trip_members: {
+        Args: {
+          p_actor_user_id: string
+          p_deep_link?: string
+          p_entity_id: string
+          p_entity_type: string
+          p_event_key?: string
+          p_message?: string
+          p_metadata?: Json
+          p_notification_type: string
+          p_preference_key: string
+          p_priority?: string
+          p_title?: string
+          p_trip_id: string
+        }
+        Returns: number
       }
       create_payment_with_splits: {
         Args: {
@@ -5320,6 +5410,7 @@ export type Database = {
           user_local_start: string
         }[]
       }
+      get_trip_admin_permissions: { Args: { p_trip_id: string }; Returns: Json }
       get_user_primary_role: {
         Args: { _trip_id: string; _user_id: string }
         Returns: string
@@ -5344,11 +5435,15 @@ export type Database = {
         }[]
       }
       grant_super_admin: {
-        Args: { _email: string; _note?: string }
+        Args: { reason?: string; target_email: string }
         Returns: undefined
       }
       has_admin_permission: {
         Args: { _permission: string; _trip_id: string; _user_id: string }
+        Returns: boolean
+      }
+      has_coordinator_capability: {
+        Args: { _capability: string; _trip_id: string; _user_id: string }
         Returns: boolean
       }
       has_role: {
@@ -5394,6 +5489,14 @@ export type Database = {
         }[]
       }
       increment_sms_counter: { Args: { p_user_id: string }; Returns: undefined }
+      is_active_trip_member: {
+        Args: { _trip_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_full_trip_admin: {
+        Args: { _trip_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_org_admin: {
         Args: { _org_id: string; _user_id: string }
         Returns: boolean
@@ -5411,6 +5514,10 @@ export type Database = {
         Args: { target_user_id: string; viewer_id: string }
         Returns: boolean
       }
+      is_trip_coordinator: {
+        Args: { _trip_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_trip_creator: {
         Args: { _trip_id: string; _user_id: string }
         Returns: boolean
@@ -5420,6 +5527,11 @@ export type Database = {
         Returns: boolean
       }
       is_user_sms_entitled: { Args: { p_user_id: string }; Returns: boolean }
+      leave_trip: { Args: { _trip_id: string }; Returns: Json }
+      leave_trip_role: {
+        Args: { _role_id: string; _trip_id: string }
+        Returns: Json
+      }
       list_applied_migrations: {
         Args: never
         Returns: {
@@ -5473,10 +5585,12 @@ export type Database = {
           source_type: string
         }[]
       }
-      promote_to_admin: {
-        Args: { _target_user_id: string; _trip_id: string }
-        Returns: Json
-      }
+      promote_to_admin:
+        | { Args: { _target_user_id: string; _trip_id: string }; Returns: Json }
+        | {
+            Args: { _scope?: string; _target_user_id: string; _trip_id: string }
+            Returns: Json
+          }
       reclaim_org_seat: {
         Args: { _org_id: string; _seat_key: string }
         Returns: {
@@ -5519,6 +5633,14 @@ export type Database = {
           p_user_ids: string[]
         }
         Returns: undefined
+      }
+      set_admin_scope: {
+        Args: { _scope: string; _target_user_id: string; _trip_id: string }
+        Returns: Json
+      }
+      set_trip_notifications_muted: {
+        Args: { p_muted: boolean; p_trip_id: string }
+        Returns: Json
       }
       should_send_notification: {
         Args: {

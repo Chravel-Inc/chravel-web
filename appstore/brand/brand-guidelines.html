@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chravel — Brand Guidelines</title>
+    <style>
+      :root {
+        --bg: #0a0a0a;
+        --bg-warm: #1a1207;
+        --bg-cool: #0d1117;
+        --bg-rich: #170d06;
+        --gold: #c49746;
+        --gold-glow: #e8af48;
+        --white: #fff;
+        --gray: #9ca3af;
+        --line: #2a2a2a;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--white);
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrap {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 64px 28px 120px;
+      }
+      header h1 {
+        font-size: 64px;
+        letter-spacing: -1px;
+        margin: 0;
+        color: var(--gold);
+      }
+      header p {
+        color: var(--gray);
+        font-size: 20px;
+        margin: 6px 0 0;
+      }
+      header .pitch {
+        color: var(--white);
+        font-size: 24px;
+        margin-top: 18px;
+        font-weight: 600;
+      }
+      h2 {
+        font-size: 14px;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        color: var(--gold);
+        margin: 72px 0 20px;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 10px;
+      }
+      section p {
+        color: #d6d6d6;
+        max-width: 70ch;
+      }
+      .lockup {
+        border: 2px solid var(--gold);
+        border-radius: 20px;
+        padding: 28px;
+        text-align: center;
+        background: #000;
+      }
+      .lockup img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 10px;
+      }
+      .lockup .cap {
+        color: var(--gray);
+        font-size: 13px;
+        margin-top: 14px;
+      }
+      .swatches {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+      }
+      .sw {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      .sw .chip {
+        height: 96px;
+      }
+      .sw .meta {
+        padding: 12px 14px;
+      }
+      .sw .name {
+        font-weight: 600;
+        font-size: 15px;
+      }
+      .sw .hex {
+        color: var(--gray);
+        font-size: 13px;
+        font-family: ui-monospace, Menlo, monospace;
+      }
+      .sw .use {
+        color: var(--gray);
+        font-size: 12px;
+        margin-top: 6px;
+      }
+      .type-row {
+        margin: 10px 0;
+      }
+      .t-head {
+        font-size: 44px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+      }
+      .t-desc {
+        font-size: 30px;
+        font-weight: 700;
+        color: var(--gold);
+      }
+      .t-body {
+        font-size: 18px;
+        color: var(--gray);
+      }
+      .cols {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 28px;
+      }
+      ul {
+        margin: 8px 0 0;
+        padding-left: 22px;
+      }
+      li {
+        margin: 6px 0;
+        color: #d6d6d6;
+      }
+      .do li::marker {
+        color: var(--gold-glow);
+      }
+      .dont li::marker {
+        color: var(--gray);
+      }
+      .taglines {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 8px;
+      }
+      .tag {
+        border: 1px solid var(--gold);
+        color: var(--gold);
+        border-radius: 999px;
+        padding: 8px 18px;
+        font-size: 15px;
+      }
+      .cta {
+        display: inline-block;
+        background: var(--gold);
+        color: #0a0a0a;
+        font-weight: 700;
+        border-radius: 12px;
+        padding: 12px 22px;
+        text-decoration: none;
+        margin-top: 6px;
+      }
+      footer {
+        margin-top: 80px;
+        color: var(--gray);
+        font-size: 13px;
+        border-top: 1px solid var(--line);
+        padding-top: 24px;
+      }
+      code {
+        background: #161616;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 1px 6px;
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 13px;
+        color: var(--gold-glow);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Chravel</h1>
+        <p>Brand Guidelines · premium dark / gold</p>
+        <p class="pitch">Travel together, organized.</p>
+      </header>
+
+      <section>
+        <h2>The mark, explained</h2>
+        <div class="lockup">
+          <img src="logo-primary.png" alt="Chravel primary logo lockup" />
+          <div class="cap">
+            Primary lockup — gold mark on near-black (#0A0A0A). Use this as the default.
+          </div>
+        </div>
+        <p>
+          The globe ringed with trip-coordination icons (chat, calendar, places, transport, media)
+          says the whole story in one glance: a group, a destination, and every moving part held in
+          one place. Gold is the through-line — warmth and premium confidence against a calm
+          near-black field.
+        </p>
+      </section>
+
+      <section>
+        <h2>Color system</h2>
+        <div class="swatches">
+          <div class="sw">
+            <div
+              class="chip"
+              style="background: #0a0a0a; border-bottom: 1px solid var(--line)"
+            ></div>
+            <div class="meta">
+              <div class="name">Near-black</div>
+              <div class="hex">#0A0A0A</div>
+              <div class="use">Primary background. Dark-first, always.</div>
+            </div>
+          </div>
+          <div class="sw">
+            <div class="chip" style="background: #1a1207"></div>
+            <div class="meta">
+              <div class="name">Warm dark</div>
+              <div class="hex">#1A1207</div>
+              <div class="use">Warm surface variant.</div>
+            </div>
+          </div>
+          <div class="sw">
+            <div class="chip" style="background: #0d1117"></div>
+            <div class="meta">
+              <div class="name">Cool dark</div>
+              <div class="hex">#0D1117</div>
+              <div class="use">Cool surface variant.</div>
+            </div>
+          </div>
+          <div class="sw">
+            <div class="chip" style="background: #170d06"></div>
+            <div class="meta">
+              <div class="name">Rich dark</div>
+              <div class="hex">#170D06</div>
+              <div class="use">Rich surface variant.</div>
+            </div>
+          </div>
+          <div class="sw">
+            <div class="chip" style="background: #c49746"></div>
+            <div class="meta">
+              <div class="name">Gold</div>
+              <div class="hex">#c49746</div>
+              <div class="use">Primary brand. CTAs + marks. Sparingly.</div>
+            </div>
+          </div>
+          <div class="sw">
+            <div class="chip" style="background: #e8af48"></div>
+            <div class="meta">
+              <div class="name">Gold glow</div>
+              <div class="hex">#e8af48</div>
+              <div class="use">Highlight / hover / glow.</div>
+            </div>
+          </div>
+          <div class="sw">
+            <div class="chip" style="background: #ffffff"></div>
+            <div class="meta">
+              <div class="name">White</div>
+              <div class="hex">#FFFFFF</div>
+              <div class="use">Headlines + primary text.</div>
+            </div>
+          </div>
+          <div class="sw">
+            <div class="chip" style="background: #9ca3af"></div>
+            <div class="meta">
+              <div class="name">Gray</div>
+              <div class="hex">#9CA3AF</div>
+              <div class="use">Secondary / supporting text.</div>
+            </div>
+          </div>
+        </div>
+        <p>
+          <strong>Rule:</strong> gold is reserved for primary CTAs and brand elements — never a full
+          background, never on bright surfaces. Tailwind mapping: <code>bg-black</code> /
+          <code>bg-gray-950</code> surfaces, <code>text-amber-400</code> /
+          <code>bg-amber-500</code> gold, <code>text-white</code> headlines.
+        </p>
+      </section>
+
+      <section>
+        <h2>Type system</h2>
+        <div class="type-row t-head">Headline — Bold, white, tight.</div>
+        <div class="type-row t-desc">Descriptor — gold, supporting the verb.</div>
+        <div class="type-row t-body">Body — regular, gray, calm and spacious.</div>
+        <p>
+          The App Store / marketing pattern is a one-word white <em>action verb</em> + a gold
+          descriptor (e.g. <strong>PLAN</strong> —
+          <span style="color: var(--gold)">your next adventure</span>). Headlines tight and bold;
+          body relaxed and quiet.
+        </p>
+      </section>
+
+      <section>
+        <h2>Verbal identity</h2>
+        <p>
+          <strong>One-liner:</strong> Plan trips, chat with your group, split expenses, get an AI
+          travel concierge, and keep your itinerary, map, and memories in one shared place.
+        </p>
+        <div class="taglines">
+          <span class="tag">Travel together, organized.</span>
+          <span class="tag">Less chaos. More coordination.</span>
+          <span class="tag">Your whole trip, in one place.</span>
+          <span class="tag">Group travel, handled.</span>
+        </div>
+        <div class="cols" style="margin-top: 24px">
+          <div class="do">
+            <strong>Voice — do</strong>
+            <ul>
+              <li>Short, declarative, benefit-first.</li>
+              <li>Action verbs; calm confidence.</li>
+              <li>Sound like a well-traveled friend who has the logistics handled.</li>
+            </ul>
+          </div>
+          <div class="dont">
+            <strong>Voice — don't</strong>
+            <ul>
+              <li>No exclamation spam.</li>
+              <li>No loud / gimmicky hype.</li>
+              <li>No gold on bright backgrounds.</li>
+            </ul>
+          </div>
+        </div>
+        <p style="margin-top: 24px"><a class="cta" href="#">Download Chravel</a></p>
+      </section>
+
+      <footer>
+        Source of truth: <code>.claude/skills/chravel-design-language/SKILL.md</code> · Generated
+        companions: <code>palette.png</code>, <code>brand-sheet.png</code> via
+        <code>appstore/scripts/generate_brand_kit.py</code> · AI-generation prompt:
+        <code>appstore/PIKA_FOUNDER_KIT.md</code> (Build-a-Brand).
+      </footer>
+    </div>
+  </body>
+</html>

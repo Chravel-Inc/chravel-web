@@ -9,7 +9,6 @@ import {
   MapPin,
   Mic,
   RefreshCcw,
-  Settings as SettingsIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -203,7 +202,7 @@ export const ConsumerPermissionsSection = () => {
       toast({
         title: 'Unable to open Settings',
         description:
-          'Open the Settings app on your device, find Chravel, and adjust permissions there.',
+          'Open the Settings app on your device, find ChravelApp, and adjust permissions there.',
       });
     }
   }, [toast]);
@@ -234,7 +233,7 @@ export const ConsumerPermissionsSection = () => {
           toast({
             title: 'Permission denied',
             description: isInstalledApp()
-              ? 'Enable this permission in your device Settings for Chravel.'
+              ? 'Enable this permission in your device Settings for ChravelApp.'
               : 'You can enable it in your browser or device settings.',
             variant: 'destructive',
             action: isInstalledApp() ? (
@@ -256,7 +255,7 @@ export const ConsumerPermissionsSection = () => {
         toast({
           title: 'Not enabled',
           description: isInstalledApp()
-            ? 'If you changed your mind, try again or enable it in Settings for Chravel.'
+            ? 'If you changed your mind, try again or enable it in Settings for ChravelApp.'
             : 'If you changed your mind, try again or enable it in your browser settings.',
           action: isInstalledApp() ? (
             <ToastAction
@@ -300,7 +299,7 @@ export const ConsumerPermissionsSection = () => {
       toast({
         title: 'Revoke in Settings',
         description:
-          'To turn off this permission, open your device Settings, choose Chravel, and toggle it off there.',
+          'To turn off this permission, open your device Settings, choose ChravelApp, and toggle it off there.',
         action: canOpenSettings ? (
           <ToastAction altText="Open Settings" onClick={() => void handleOpenSettings()}>
             Open Settings
@@ -315,10 +314,6 @@ export const ConsumerPermissionsSection = () => {
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-2xl font-bold text-white flex items-center gap-2">
-            <SettingsIcon size={22} className="text-primary" />
-            Permissions Center
-          </h3>
           <p className="text-sm text-gray-400 mt-1">
             We only ask for permissions when you use a feature. You can review and update access
             here anytime.

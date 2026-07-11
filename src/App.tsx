@@ -58,6 +58,8 @@ const InviteSlugRedirect = lazy(() => retryImport(() => import('./pages/InviteSl
 const ProfilePage = lazy(() => retryImport(() => import('./pages/ProfilePage')));
 const SettingsPage = lazy(() => retryImport(() => import('./pages/SettingsPage')));
 const ArchivePage = lazy(() => retryImport(() => import('./pages/ArchivePage')));
+const DevBillingPreview = lazy(() => retryImport(() => import('./pages/DevBillingPreview')));
+const SubscriptionStatus = lazy(() => retryImport(() => import('./pages/SubscriptionStatus')));
 const AdminDashboard = lazy(() =>
   retryImport(() =>
     import('./pages/AdminDashboard').then(module => ({ default: module.AdminDashboard })),
@@ -96,6 +98,7 @@ const Healthz = lazy(() => retryImport(() => import('./pages/Healthz')));
 const PrivacyPolicy = lazy(() => retryImport(() => import('./pages/PrivacyPolicy')));
 const SupportPage = lazy(() => retryImport(() => import('./pages/SupportPage')));
 const TermsOfService = lazy(() => retryImport(() => import('./pages/TermsOfService')));
+const OAuthConsent = lazy(() => retryImport(() => import('./pages/OAuthConsent')));
 const DeleteAccountPage = lazy(() => retryImport(() => import('./pages/DeleteAccountPage')));
 const GmailCallbackPage = lazy(() =>
   retryImport(() =>
@@ -106,8 +109,13 @@ const DemoEntry = lazy(() => retryImport(() => import('./pages/DemoEntry')));
 const TripPreview = lazy(() => retryImport(() => import('./pages/TripPreview')));
 // Shares its import() loader with main.tsx's boot warm-up via routeChunks.ts.
 const AuthPage = lazy(() => retryImport(importAuthPage));
+const AuthCallbackPage = lazy(() => retryImport(() => import('./pages/AuthCallbackPage')));
 const ResetPasswordPage = lazy(() => retryImport(() => import('./pages/ResetPasswordPage')));
 const SeoLandingPage = lazy(() => retryImport(() => import('./pages/SeoLandingPage')));
+const UseCasesHub = lazy(() => retryImport(() => import('./pages/UseCasesHub')));
+const UseCasePage = lazy(() => retryImport(() => import('./pages/UseCasePage')));
+const BlogIndex = lazy(() => retryImport(() => import('./pages/BlogIndex')));
+const BlogPost = lazy(() => retryImport(() => import('./pages/BlogPost')));
 const DeviceTestMatrix = lazy(() => retryImport(() => import('./pages/DeviceTestMatrix')));
 // AdminMigrateDemoImages removed - migration complete, images now in Supabase Storage
 
@@ -335,6 +343,14 @@ const App = () => {
                         }
                       />
                       <Route
+                        path="/.lovable/oauth/consent"
+                        element={
+                          <LazyRoute>
+                            <OAuthConsent />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
                         path="/trip/:tripId"
                         element={
                           <LazyRoute fallback={<BootHydrationFallback variant="trip" />}>
@@ -386,7 +402,7 @@ const App = () => {
                         path="/auth-callback"
                         element={
                           <LazyRoute>
-                            <AuthPage />
+                            <AuthCallbackPage />
                           </LazyRoute>
                         }
                       />
@@ -566,21 +582,53 @@ const App = () => {
                                   intro={SEO_LANDING_CONTENT['/group-travel-planning-app'].intro}
                                   faq={[
                                     {
-                                      q: 'How is Chravel different from Wanderlog or TripIt?',
-                                      a: 'Wanderlog and TripIt focus on itinerary storage. Chravel adds a real group chat, polls, tasks, shared places, and split payments — so coordination and conversation live in the same place.',
+                                      q: 'How is ChravelApp different from Wanderlog or TripIt?',
+                                      a: 'Wanderlog and TripIt focus on itinerary storage. ChravelApp adds a real group chat, polls, tasks, shared places, and split payments — so coordination and conversation live in the same place.',
                                     },
                                     {
                                       q: 'Is there a free plan for group travel planning?',
-                                      a: 'Yes. Chravel is free for small groups, with paid tiers for larger trips, pro touring teams, and events.',
+                                      a: 'Yes. ChravelApp is free for small groups, with paid tiers for larger trips, pro touring teams, and events.',
                                     },
                                     {
                                       q: 'Does it work on iPhone, Android, and web?',
-                                      a: 'Yes — Chravel runs as a web app and an installable PWA on iOS and Android, with full feature parity for group trip planning.',
+                                      a: 'Yes — ChravelApp runs as a web app and an installable PWA on iOS and Android, with full feature parity for group trip planning.',
                                     },
                                   ]}
                                 />
                               );
                             })()}
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/use-cases"
+                        element={
+                          <LazyRoute>
+                            <UseCasesHub />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/use-cases/:slug"
+                        element={
+                          <LazyRoute>
+                            <UseCasePage />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/blog"
+                        element={
+                          <LazyRoute>
+                            <BlogIndex />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/blog/:slug"
+                        element={
+                          <LazyRoute>
+                            <BlogPost />
                           </LazyRoute>
                         }
                       />
@@ -680,6 +728,24 @@ const App = () => {
                               <ArchivePage />
                             </ProtectedRoute>
                           </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/dev/billing-preview"
+                        element={
+                          <LazyRoute>
+                            <DevBillingPreview />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/settings/subscription"
+                        element={
+                          <ProtectedRoute>
+                            <LazyRoute>
+                              <SubscriptionStatus />
+                            </LazyRoute>
+                          </ProtectedRoute>
                         }
                       />
                       <Route

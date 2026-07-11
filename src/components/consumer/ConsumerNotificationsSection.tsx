@@ -22,7 +22,7 @@ export const ConsumerNotificationsSection = () => {
   const { user } = useAuth();
   const { preferences, updatePreferences, isUpdating } = useGlobalSystemMessagePreferences();
   const { toast } = useToast();
-  const { isNative: isNativePush } = useNativePush();
+  const { isNative: isNativePush, isRegistered: isNativePushRegistered } = useNativePush();
   const { requiresHomeScreen: webPushRequiresHomeScreen, iosUnsupported: webPushIosUnsupported } =
     useWebPush();
   const { showDemoContent } = useDemoMode();
@@ -190,9 +190,9 @@ export const ConsumerNotificationsSection = () => {
           }
           if (webPushRequiresHomeScreen) {
             toast({
-              title: 'Add Chravel to your Home Screen',
+              title: 'Add ChravelApp to your Home Screen',
               description:
-                'On iPhone, tap Share → Add to Home Screen, then open Chravel from there to enable push.',
+                'On iPhone, tap Share → Add to Home Screen, then open ChravelApp from there to enable push.',
             });
             return;
           }
@@ -288,11 +288,6 @@ export const ConsumerNotificationsSection = () => {
 
   return (
     <div className="space-y-3">
-      <h3 className="text-2xl font-bold text-white flex items-center gap-2">
-        <Bell size={24} className="text-primary" />
-        Notification Preferences
-      </h3>
-
       {/* App Notification Categories */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
         <h4 className="text-base font-semibold text-white mb-3">App Notifications</h4>
@@ -303,6 +298,19 @@ export const ConsumerNotificationsSection = () => {
           Broadcasts and pins use the first toggle. Trip chat is separate so you can follow every
           message or keep chat silent.
         </p>
+
+        {notificationSettings.push &&
+          isNativePush &&
+          !isNativePushRegistered &&
+          !isUpdatingPush && (
+            <p
+              className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200"
+              data-testid="native-push-registration-hint"
+            >
+              Push is enabled in your account but this iPhone is not registered yet. Open Delivery
+              Methods below and toggle Push Notifications ON to allow alerts on this device.
+            </p>
+          )}
 
         <div className="space-y-3" data-testid="trip-notification-preference-rows">
           {notificationCategories.map(category => (

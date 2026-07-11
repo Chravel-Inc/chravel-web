@@ -1,13 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { Crown, Globe, Building, TrendingUp, Shield } from 'lucide-react';
+import { Crown, Globe, Building, TrendingUp, Shield, Ticket } from 'lucide-react';
 import { useConsumerSubscription } from '../../hooks/useConsumerSubscription';
 import { CONSUMER_PRICING } from '../../types/consumer';
-import { CONSUMER_PRICE_DISPLAY } from '@/billing/pricingDisplay';
+import { CONSUMER_PRICE_DISPLAY, TRIP_PASS_DISPLAY } from '@/billing/pricingDisplay';
 import { BILLING_PRODUCTS } from '@/billing/config';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { detectNativeBillingPlatform, isNativeWebView } from '@/utils/platformDetection';
+import {
+  purchaseConsumerSubscription,
+  purchaseProSubscription,
+  purchaseTripPass,
+} from '@/integrations/revenuecat/revenuecatClient';
+import { RestorePurchasesButton } from '../billing/RestorePurchasesButton';
+import { handlePurchaseResult } from '@/integrations/revenuecat/revenuecatClient';
 
 // App Store 3.1.1: inside the iOS app, consumers must not be steered to an external
 // web checkout or the Stripe-hosted billing portal for digital subscriptions. Manage/
@@ -28,6 +35,8 @@ export const ConsumerBillingSection = () => {
   const [expandedPlan, setExpandedPlan] = useState<string | null>(tier);
   const [expandedProPlan, setExpandedProPlan] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
+  const [expandedTripPass, setExpandedTripPass] = useState<string | null>(null);
+  const [purchasingPass, setPurchasingPass] = useState<string | null>(null);
 
   useEffect(() => {
     void checkSubscription();
@@ -37,12 +46,13 @@ export const ConsumerBillingSection = () => {
       typeof navigator !== 'undefined' ? navigator.userAgent : '',
       isNativeWebView(),
     ) === 'ios';
-  // Consumer (Explorer / Frequent Chraveler) digital subscriptions are IAP-only on iOS;
-  // Pro/Enterprise (B2B) checkout stays on Stripe per the reader-rule exception.
-  const blockConsumerCheckoutOnIOS = isNativeIOS;
+  // Manage / cancel of an existing subscription still routes to Apple's native
+  // subscription settings on iOS (required), but new purchases now go through
+  // Apple IAP via RevenueCat instead of being blocked.
+  const useAppleManagementOnIOS = isNativeIOS;
 
   const handleManageSubscription = async () => {
-    if (blockConsumerCheckoutOnIOS) {
+    if (useAppleManagementOnIOS) {
       // Route to Apple's native subscription management, not the external Stripe portal.
       window.location.assign(IOS_SUBSCRIPTIONS_URL);
       return;
@@ -74,7 +84,7 @@ export const ConsumerBillingSection = () => {
   };
 
   const handleCancelSubscription = async () => {
-    if (blockConsumerCheckoutOnIOS) {
+    if (useAppleManagementOnIOS) {
       // Apple requires cancellation of digital subscriptions via iOS settings, not a web portal.
       window.location.assign(IOS_SUBSCRIPTIONS_URL);
       return;
@@ -110,6 +120,25 @@ export const ConsumerBillingSection = () => {
   };
 
   const handleUpgradeToProPlan = async (planKey: string) => {
+    if (planKey === 'pro-enterprise') {
+      window.location.href = 'mailto:billing@chravelapp.com?subject=Enterprise%20Inquiry';
+      return;
+    }
+
+    // iOS native shell — Apple IAP via RevenueCat (Guideline 3.1.1)
+    if (isNativeIOS) {
+      const tier = planKey as 'pro-starter' | 'pro-growth';
+      const attempt = () => purchaseProSubscription(tier, 'monthly');
+      const result = await attempt();
+      handlePurchaseResult(result, {
+        successMessage: 'ChravelApp Pro activated!',
+        successDescription: 'Your Pro features are unlocking now.',
+        onRetry: () => void handleUpgradeToProPlan(planKey),
+        context: tier,
+      });
+      if (result.success) await checkSubscription();
+      return;
+    }
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { tier: planKey },
@@ -130,6 +159,66 @@ export const ConsumerBillingSection = () => {
     }
   };
 
+  const handleConsumerUpgrade = async (
+    consumerTier: 'explorer' | 'frequent-chraveler',
+    cycle: 'monthly' | 'annual',
+  ) => {
+    if (isNativeIOS) {
+      const result = await purchaseConsumerSubscription(consumerTier, cycle);
+      handlePurchaseResult(result, {
+        successMessage: 'Subscription activated!',
+        successDescription: 'Your premium features are unlocking now.',
+        onRetry: () => void handleConsumerUpgrade(consumerTier, cycle),
+        context: `${consumerTier}/${cycle}`,
+      });
+      if (result.success) await checkSubscription();
+      return;
+    }
+    await upgradeToTier(consumerTier, cycle);
+  };
+
+  const handleTripPassPurchase = async (passTier: 'explorer' | 'frequent-chraveler') => {
+    setPurchasingPass(passTier);
+    try {
+      if (isNativeIOS) {
+        const result = await purchaseTripPass(passTier);
+        handlePurchaseResult(result, {
+          successMessage: 'Trip Pass activated!',
+          successDescription: 'Your premium features are unlocking for this trip window.',
+          onRetry: () => void handleTripPassPurchase(passTier),
+          context: `trippass/${passTier}`,
+        });
+        if (result.success) await checkSubscription();
+        return;
+      }
+
+      const passId = passTier === 'explorer' ? 'pass-explorer-45' : 'pass-frequent-90';
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Please sign in to purchase a Trip Pass');
+        return;
+      }
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { tier: passId, purchase_type: 'pass', platform: 'web' },
+      });
+      if (error) throw error;
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      } else {
+        toast.error('Failed to start Trip Pass checkout.');
+      }
+    } catch (err) {
+      toast.error(
+        `Failed to start checkout: ${err instanceof Error ? err.message : 'Unknown error'}`,
+      );
+      console.error(err);
+    } finally {
+      setPurchasingPass(null);
+    }
+  };
+
   const plans = {
     free: {
       name: 'Free',
@@ -143,7 +232,7 @@ export const ConsumerBillingSection = () => {
         'Photo & video sharing',
         'Basic itinerary planning',
         'Expense tracking',
-        'AI Trip Assistant (10 queries per user per trip)',
+        'AI Trip Assistant (3 queries per user per trip)',
         '1 PDF export per trip',
         'ICS calendar download',
       ],
@@ -176,7 +265,7 @@ export const ConsumerBillingSection = () => {
         'Smart Import (Calendar, Agenda, Line-up from URL, paste, or file)',
         'Calendar sync (Google, Apple, Outlook)',
         'PDF trip export',
-        'Create 1 Chravel Pro trip per month (50-seat limit)',
+        'Create 1 ChravelApp Pro trip per month (50-seat limit)',
         'Role-based channels on Pro trips',
         'Custom trip categories & tagging',
         'Early feature access',
@@ -186,15 +275,23 @@ export const ConsumerBillingSection = () => {
 
   return (
     <div className="space-y-3">
-      <h3 className="text-2xl font-bold text-white">Subscriptions</h3>
-
-      {blockConsumerCheckoutOnIOS && (
-        <div className="rounded-xl p-4 bg-blue-500/10 border border-blue-500/30">
-          <h4 className="text-white font-semibold mb-1">iOS Billing Update</h4>
-          <p className="text-sm text-blue-200">
-            Consumer subscriptions are temporarily unavailable in this iOS build while Apple In-App
-            Purchase is finalized.
-          </p>
+      <a
+        href="/settings/subscription"
+        className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] px-4 py-3 text-sm text-white transition-colors"
+      >
+        <span className="font-medium">View subscription status</span>
+        <span className="text-white/50">Plan · renewal · payment →</span>
+      </a>
+      {useAppleManagementOnIOS && (
+        <div className="rounded-xl p-4 bg-blue-500/10 border border-blue-500/30 space-y-3">
+          <div>
+            <h4 className="text-white font-semibold mb-1">iOS Billing</h4>
+            <p className="text-sm text-blue-200">
+              Purchases are processed by Apple In-App Purchase. Manage or cancel from Settings →
+              [your name] → Subscriptions.
+            </p>
+          </div>
+          <RestorePurchasesButton variant="block" onRestored={checkSubscription} />
         </div>
       )}
 
@@ -246,15 +343,11 @@ export const ConsumerBillingSection = () => {
 
         {!isSubscribed && (
           <button
-            onClick={() => upgradeToTier('explorer', billingCycle)}
-            disabled={isLoading || blockConsumerCheckoutOnIOS}
+            onClick={() => handleConsumerUpgrade('explorer', billingCycle)}
+            disabled={isLoading}
             className="bg-gradient-to-r from-gold-primary to-gold-mid hover:from-gold-mid hover:to-gold-primary text-black px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
           >
-            {blockConsumerCheckoutOnIOS
-              ? 'Unavailable on iOS'
-              : isLoading
-                ? 'Processing...'
-                : 'View Upgrade Options'}
+            {isLoading ? 'Processing...' : 'View Upgrade Options'}
           </button>
         )}
 
@@ -326,6 +419,79 @@ export const ConsumerBillingSection = () => {
         </div>
       </div>
 
+      {/* Trip Passes (one-time, per-trip premium) */}
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+        <h4 className="text-base font-semibold text-white mb-1">Trip Passes (One-time)</h4>
+        <p className="text-sm text-gray-400 mb-3">
+          Unlock full premium for a single trip window — no recurring charge. Available on iOS via
+          Apple In-App Purchase and on web via Stripe.
+        </p>
+        <div className="space-y-3">
+          {tripPasses.map(pass => {
+            const PassIcon = pass.icon;
+            const isBusy = purchasingPass === pass.tier;
+            return (
+              <Collapsible
+                key={pass.tier}
+                open={expandedTripPass === pass.tier}
+                onOpenChange={() =>
+                  setExpandedTripPass(expandedTripPass === pass.tier ? null : pass.tier)
+                }
+              >
+                <CollapsibleTrigger className="w-full">
+                  <div className="border border-gold-primary/30 bg-gold-primary/5 rounded-lg p-3 transition-colors hover:bg-gold-primary/10">
+                    <div className="flex items-center justify-between">
+                      <div className="text-left flex items-center gap-3">
+                        <PassIcon size={20} className="text-gold-primary" />
+                        <div>
+                          <h5 className="font-semibold text-white">{pass.name}</h5>
+                          <div className="text-lg font-bold text-white">
+                            {pass.priceLabel}{' '}
+                            <span className="text-sm font-normal text-gray-400">
+                              · {pass.durationDays} days
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-gray-400">
+                        {expandedTripPass === pass.tier ? '−' : '+'}
+                      </div>
+                    </div>
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2">
+                  <div className="bg-white/5 rounded-lg p-3 ml-4">
+                    <p className="text-sm text-gray-300 mb-2">{pass.description}</p>
+                    <h6 className="font-medium text-white mb-2">What's included:</h6>
+                    <ul className="space-y-1.5 text-sm text-gray-300">
+                      {pass.features.map((feature, index) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <div className="w-1.5 h-1.5 bg-gold-primary rounded-full mt-2 flex-shrink-0"></div>
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                    <button
+                      onClick={() => handleTripPassPurchase(pass.tier)}
+                      disabled={isBusy || purchasingPass !== null}
+                      className="mt-4 bg-gradient-to-r from-gold-primary to-gold-mid hover:from-gold-mid hover:to-gold-primary text-black px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+                    >
+                      {isBusy
+                        ? 'Processing...'
+                        : isNativeIOS
+                          ? `Purchase with Apple — ${pass.name}`
+                          : `Buy ${pass.name} — ${pass.priceLabel}`}
+                    </button>
+                    <p className="text-xs text-gray-500 mt-2">One-time charge. No auto-renewal.</p>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          })}
+        </div>
+      </div>
+
+
       {/* Available Plans */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
         <h4 className="text-base font-semibold text-white mb-3">Available Plans</h4>
@@ -382,18 +548,18 @@ export const ConsumerBillingSection = () => {
                     {key !== 'free' && key !== tier && (
                       <button
                         onClick={() =>
-                          upgradeToTier(key as 'explorer' | 'frequent-chraveler', billingCycle)
+                          handleConsumerUpgrade(
+                            key as 'explorer' | 'frequent-chraveler',
+                            billingCycle,
+                          )
                         }
-                        disabled={
-                          isLoading ||
-                          (isNativeIOS && (key === 'explorer' || key === 'frequent-chraveler'))
-                        }
+                        disabled={isLoading}
                         className="mt-4 bg-gradient-to-r from-gold-primary to-gold-mid hover:from-gold-mid hover:to-gold-primary text-black px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
                       >
-                        {isNativeIOS && (key === 'explorer' || key === 'frequent-chraveler')
-                          ? 'Unavailable on iOS'
-                          : isLoading
-                            ? 'Processing...'
+                        {isLoading
+                          ? 'Processing...'
+                          : isNativeIOS
+                            ? `Subscribe with Apple — ${plan.name}`
                             : `Upgrade to ${plan.name}`}
                       </button>
                     )}
@@ -414,9 +580,17 @@ export const ConsumerBillingSection = () => {
           For teams, sports organizations, tours, and enterprises. Pro subscribers get all Frequent
           Chraveler benefits included.
         </p>
+        {isNativeIOS && (
+          <p className="text-xs text-muted-foreground mb-3">
+            Pro plans are purchasable in-app via Apple. Enterprise pricing is custom — please visit
+            chravel.app to contact Sales.
+          </p>
+        )}
 
         <div className="space-y-3">
-          {Object.entries(proPlans).map(([key, plan]) => {
+          {Object.entries(proPlans)
+            .filter(([key]) => !(isNativeIOS && key === 'pro-enterprise'))
+            .map(([key, plan]) => {
             const PlanIcon = plan.icon;
             const isCurrentProPlan = isSuperAdmin && key === proTier;
             return (
@@ -444,7 +618,7 @@ export const ConsumerBillingSection = () => {
                             {plan.name}
                           </h5>
                           <div className="text-xl font-bold text-foreground">
-                            ${plan.price}/month
+                            {typeof plan.price === 'number' ? `$${plan.price}/month` : plan.price}
                           </div>
                         </div>
                       </div>
@@ -476,7 +650,13 @@ export const ConsumerBillingSection = () => {
                         disabled={isLoading}
                         className="mt-4 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
                       >
-                        {isLoading ? 'Processing...' : `Upgrade to ${plan.name}`}
+                        {isLoading
+                          ? 'Processing...'
+                          : key === 'pro-enterprise'
+                            ? 'Contact Sales'
+                            : isNativeIOS
+                            ? `Subscribe with Apple — ${plan.name}`
+                            : `Upgrade to ${plan.name}`}
                       </button>
                     )}
                   </div>
@@ -489,6 +669,47 @@ export const ConsumerBillingSection = () => {
     </div>
   );
 };
+
+const tripPasses = [
+  {
+    tier: 'explorer' as const,
+    name: 'Explorer Trip Pass',
+    priceLabel: TRIP_PASS_DISPLAY.explorer.price,
+    durationDays: TRIP_PASS_DISPLAY.explorer.durationDays,
+    icon: Ticket,
+    description:
+      'One trip, done. All Explorer premium features for a single trip window — no auto-renew.',
+    features: [
+      'One-time purchase — no subscription',
+      'Unlimited saved trips + restore archived',
+      '25 AI Concierge queries per user per trip',
+      'Unlimited photos, videos & extended storage',
+      'Up to 10 payment splits per trip',
+      'Unlimited PDF trip exports',
+      'Smart Import (Calendar, Agenda, Line-up from URL)',
+      'Location-aware AI recommendations',
+    ],
+  },
+  {
+    tier: 'frequent-chraveler' as const,
+    name: 'Frequent Chraveler Trip Pass',
+    priceLabel: TRIP_PASS_DISPLAY['frequent-chraveler'].price,
+    durationDays: TRIP_PASS_DISPLAY['frequent-chraveler'].durationDays,
+    icon: Ticket,
+    description:
+      'Double the window, more features, best value per day. Full Frequent Chraveler for a season of trips.',
+    features: [
+      'One-time purchase — no subscription',
+      'Everything in Explorer Trip Pass',
+      'Unlimited AI Concierge queries',
+      'Unlimited storage & payment splits',
+      'Voice Concierge, PDF export & calendar sync',
+      'Create a ChravelApp Pro trip (50-seat limit)',
+      'Role-based channels on Pro trips',
+      'Early feature access',
+    ],
+  },
+];
 
 const proPlans = {
   'pro-starter': {
@@ -523,7 +744,7 @@ const proPlans = {
   },
   'pro-enterprise': {
     name: 'Enterprise',
-    price: 199,
+    price: 'Custom',
     icon: Shield,
     features: [
       'Up to 250 team members',

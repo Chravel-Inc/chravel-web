@@ -3,9 +3,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Check, Globe, Crown, Clock } from 'lucide-react';
+import { Check, Globe, Crown, Clock, Ticket } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { detectNativeBillingPlatform, isNativeWebView } from '@/utils/platformDetection';
+import {
+  detectNativeBillingPlatform,
+  isIOSNativeShell,
+  isNativeWebView,
+} from '@/utils/platformDetection';
+import { purchaseTripPass, handlePurchaseResult } from '@/integrations/revenuecat/revenuecatClient';
 import { toast } from 'sonner';
 import { CONSUMER_PRICE_DISPLAY, TRIP_PASS_DISPLAY } from '@/billing/pricingDisplay';
 
@@ -22,8 +27,9 @@ const passes = [
     duration: `${TRIP_PASS_DISPLAY.explorer.durationDays} days`,
     price: TRIP_PASS_DISPLAY.explorer.price,
     icon: <Globe size={24} />,
-    description: 'Full Explorer features for one trip window',
+    description: 'One trip, done — no subscription, no cancel reminders.',
     features: [
+      'One-time purchase — no auto-renew',
       'Unlimited saved trips + restore archived',
       '25 AI queries per user per trip',
       'Unlimited PDF exports',
@@ -32,7 +38,7 @@ const passes = [
       'Location-aware AI recommendations',
       'Search past trips and memories',
     ],
-    nudge: `Annual Explorer (${CONSUMER_PRICE_DISPLAY.explorer.annual}/yr) pays for itself after ~3 trips`,
+    nudge: `Travel monthly? Annual Explorer (${CONSUMER_PRICE_DISPLAY.explorer.annual}/yr) pays for itself after ~3 trips.`,
   },
   {
     id: 'pass-frequent-90',
@@ -41,8 +47,9 @@ const passes = [
     duration: `${TRIP_PASS_DISPLAY['frequent-chraveler'].durationDays} days`,
     price: TRIP_PASS_DISPLAY['frequent-chraveler'].price,
     icon: <Crown size={24} />,
-    description: 'Full Frequent Chraveler features for multi-city trips',
+    description: 'Double the window, more features, best value per day.',
     features: [
+      'One-time purchase — no auto-renew',
       'Everything in Explorer Trip Pass',
       'Unlimited AI queries (24/7 concierge)',
       'Smart Import (Calendar, Agenda, Line-up from URL, paste, or file)',
@@ -50,22 +57,40 @@ const passes = [
       'Custom trip categories',
       'Early feature access',
     ],
-    nudge: `Annual Frequent (${CONSUMER_PRICE_DISPLAY['frequent-chraveler'].annual}/yr) pays for itself after ~3 trips`,
+    nudge: `Travel monthly? Annual Frequent (${CONSUMER_PRICE_DISPLAY['frequent-chraveler'].annual}/yr) pays for itself after ~3 trips.`,
   },
 ];
 
 export const TripPassModal: React.FC<TripPassModalProps> = ({ open, onOpenChange }) => {
   const [loading, setLoading] = useState<string | null>(null);
+  const iosNative = isIOSNativeShell();
 
   const handlePurchase = async (passId: string) => {
     setLoading(passId);
     try {
+      // iOS native shell — Apple IAP via RevenueCat (Guideline 3.1.1)
+      if (iosNative) {
+        const tier: 'explorer' | 'frequent-chraveler' =
+          passId === 'pass-explorer-45' ? 'explorer' : 'frequent-chraveler';
+        const result = await purchaseTripPass(tier);
+        handlePurchaseResult(result, {
+          successMessage: 'Trip Pass activated!',
+          successDescription: 'Premium features are unlocking now.',
+          onRetry: () => void handlePurchase(passId),
+          context: `trippass/${tier}`,
+        });
+        if (result.success) {
+          onOpenChange(false);
+        }
+        return;
+      }
+
+      // Web / Android web shell — Stripe Checkout
       const {
         data: { session },
       } = await supabase.auth.getSession();
       if (!session) {
         toast.error('Please sign in to purchase a Trip Pass');
-        setLoading(null);
         return;
       }
 
@@ -97,10 +122,13 @@ export const TripPassModal: React.FC<TripPassModalProps> = ({ open, onOpenChange
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-center">🎫 Trip Pass</DialogTitle>
+          <DialogTitle className="flex items-center justify-center gap-2 text-2xl font-bold text-center">
+            <Ticket size={22} className="text-gold-primary" aria-hidden="true" />
+            Trip Pass
+          </DialogTitle>
           <DialogDescription className="text-center text-base">
-            Full premium features for one trip — planning through post-trip. No commitment. Keep
-            your exports forever.
+            One-time purchase. Full premium features for the whole trip window — no auto-renew, no
+            card kept on file. Your exports stay forever.
           </DialogDescription>
         </DialogHeader>
 
@@ -145,7 +173,7 @@ export const TripPassModal: React.FC<TripPassModalProps> = ({ open, onOpenChange
                   {loading === pass.id ? (
                     <div className="h-4 w-4 mr-2 animate-spin gold-gradient-spinner" />
                   ) : null}
-                  Get Trip Pass
+                  {iosNative ? 'Buy with Apple' : 'Get Trip Pass'}
                 </Button>
                 <p className="text-xs text-muted-foreground text-center">{pass.nudge}</p>
               </CardFooter>

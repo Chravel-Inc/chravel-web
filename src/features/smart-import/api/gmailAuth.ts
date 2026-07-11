@@ -74,7 +74,33 @@ export const fetchGmailAccounts = async (): Promise<GmailAccount[]> => {
 
 export const connectGmailAccount = async (): Promise<string> => {
   const redirectUri = resolveGmailOAuthRedirectUri();
+  if (import.meta.env.DEV && redirectUri) {
+    // Heads-up: the backend allowlists redirect URIs via GOOGLE_REDIRECT_URI +
+    // GOOGLE_ADDITIONAL_REDIRECT_URIS. If this origin isn't registered there
+    // (and in Google Cloud), the backend silently falls back to the default,
+    // and OAuth completes on the wrong origin.
+    console.info('[gmail-auth] requesting redirect_uri =', redirectUri);
+  }
   try {
+    // Ensure the user has a fresh, non-expired session before invoking the
+    // edge function. Without this, a stale local JWT causes the function's
+    // auth.getUser() call to fail with 401 "Unauthorized" — the most common
+    // cause of "Failed to initiate connection" errors after preview idle.
+    const { data: sessionData } = await supabase.auth.getSession();
+    const session = sessionData?.session;
+    if (!session) {
+      throw new Error('You need to be signed in to connect a Gmail account.');
+    }
+    const expiresAtMs = session.expires_at ? session.expires_at * 1000 : 0;
+    if (!expiresAtMs || expiresAtMs - Date.now() < 60_000) {
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        throw new Error(
+          'Your session expired. Please sign out and back in, then try connecting Gmail again.',
+        );
+      }
+    }
+
     const { data, error } = await supabase.functions.invoke('gmail-auth/connect', {
       method: 'POST',
       body: redirectUri ? { redirectUri } : undefined,
@@ -89,6 +115,8 @@ export const connectGmailAccount = async (): Promise<string> => {
     if (import.meta.env.DEV) {
       console.error('Error initiating Gmail connect:', error);
     }
+    // Surface the edge function's specific message verbatim (e.g.
+    // "GOOGLE_CLIENT_ID secret is not set.") so the Settings UI can show it.
     const message = await extractFunctionErrorMessage(
       error,
       'Failed to initiate Gmail connection. Check OAuth setup and secrets.',

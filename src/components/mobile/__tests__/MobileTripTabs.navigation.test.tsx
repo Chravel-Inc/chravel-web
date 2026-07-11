@@ -49,7 +49,18 @@ vi.mock('../MobileTripTasks', () => ({ MobileTripTasks: () => <div>Tasks tab</di
 vi.mock('../../CommentsWall', () => ({ CommentsWall: () => <div>Polls tab</div> }));
 vi.mock('../MobileUnifiedMediaHub', () => ({ MobileUnifiedMediaHub: () => <div>Media tab</div> }));
 vi.mock('../../PlacesSection', () => ({ PlacesSection: () => <div>Places tab</div> }));
-vi.mock('../../AIConciergeChat', () => ({ AIConciergeChat: () => <div>Concierge tab</div> }));
+const conciergePropsSpy = vi.hoisted(() => ({ last: null as { isActive?: boolean } | null }));
+
+vi.mock('../../AIConciergeChat', () => ({
+  AIConciergeChat: (props: { isActive?: boolean }) => {
+    conciergePropsSpy.last = { isActive: props.isActive };
+    return (
+      <div data-testid="concierge-tab" data-active={String(props.isActive)}>
+        Concierge tab
+      </div>
+    );
+  },
+}));
 vi.mock('../MobileTripPayments', () => ({ MobileTripPayments: () => <div>Payments tab</div> }));
 vi.mock('../../events/EnhancedAgendaTab', () => ({
   EnhancedAgendaTab: () => <div>Agenda tab</div>,
@@ -74,6 +85,7 @@ import { MobileTripTabs } from '../MobileTripTabs';
 describe('MobileTripTabs tab navigation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    conciergePropsSpy.last = null;
     Element.prototype.scrollIntoView = vi.fn();
   });
 
@@ -98,6 +110,37 @@ describe('MobileTripTabs tab navigation', () => {
     expect(style.overscrollBehaviorY).toBe('none');
   });
 
+  it('passes a live isActive=true to Concierge while that tab is selected', async () => {
+    // Regression: renderTabContent omitted activeTab from useCallback deps, so
+    // Concierge stayed isActive=false after the first visit and Search auto-closed.
+    const { rerender } = render(
+      <MobileTripTabs
+        activeTab="chat"
+        onTabChange={vi.fn()}
+        tripId="trip-1"
+        basecamp={{ name: 'Hotel', address: 'Tokyo' }}
+        variant="pro"
+        tripData={{ enabled_features: ['chat', 'calendar', 'concierge', 'media', 'payments'] }}
+      />,
+    );
+
+    expect(conciergePropsSpy.last).toBeNull();
+
+    rerender(
+      <MobileTripTabs
+        activeTab="concierge"
+        onTabChange={vi.fn()}
+        tripId="trip-1"
+        basecamp={{ name: 'Hotel', address: 'Tokyo' }}
+        variant="pro"
+        tripData={{ enabled_features: ['chat', 'calendar', 'concierge', 'media', 'payments'] }}
+      />,
+    );
+
+    expect(await screen.findByTestId('concierge-tab')).toHaveAttribute('data-active', 'true');
+    expect(conciergePropsSpy.last?.isActive).toBe(true);
+  });
+
   it('lets users leave Concierge for Payments without the content pane taking horizontal gestures', async () => {
     const onTabChange = vi.fn();
 
@@ -120,5 +163,72 @@ describe('MobileTripTabs tab navigation', () => {
 
     const activePanel = container.querySelector('[style*="overflow-x: hidden"]');
     expect(activePanel).toBeTruthy();
+  });
+
+  it('sizes the tab-content pane to the visual viewport so the pinned composer stays above the iOS keyboard', () => {
+    // Regression: the content height must track --visual-viewport-height (set by
+    // useKeyboardHandler when the keyboard opens), not a fixed 100dvh. Otherwise the
+    // composer is pushed below the shrunk shell and WebKit scrolls the whole webview.
+    const { container } = render(
+      <MobileTripTabs
+        activeTab="chat"
+        onTabChange={vi.fn()}
+        tripId="trip-1"
+        basecamp={{ name: 'Hotel', address: 'Tokyo' }}
+        variant="consumer"
+      />,
+    );
+
+    const contentPane = container.querySelector('[style*="--visual-viewport-height"]');
+    expect(contentPane).toBeTruthy();
+    expect((contentPane as HTMLElement).style.height).toContain('--visual-viewport-height');
+    // Falls back to 100dvh when no keyboard is open.
+    expect((contentPane as HTMLElement).style.height).toContain('100dvh');
+  });
+
+  it('activates tabs beyond the first three (regression: scrolled-in tabs went dead on iOS)', async () => {
+    // On iOS WKWebView the tab row used to carry `scroll-snap-type: x mandatory`
+    // (with a non-existent `scroll-snap-align-start` child class → no real snap
+    // targets) plus `-webkit-overflow-scrolling: touch`, nested inside the
+    // position:fixed `.mobile-trip-shell`. That left tabs scrolled into view
+    // (Media…Tasks) unable to receive taps while Chat/Calendar/Concierge — visible
+    // at rest — kept working. Every tab's activation path must stay intact.
+    const onTabChange = vi.fn();
+
+    render(
+      <MobileTripTabs
+        activeTab="chat"
+        onTabChange={onTabChange}
+        tripId="trip-1"
+        basecamp={{ name: 'Hotel', address: 'Tokyo' }}
+        variant="pro"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /media/i }));
+    await waitFor(() => expect(onTabChange).toHaveBeenCalledWith('media'));
+
+    fireEvent.click(screen.getByRole('button', { name: /tasks/i }));
+    await waitFor(() => expect(onTabChange).toHaveBeenCalledWith('tasks'));
+  });
+
+  it('does not arm the iOS-hostile momentum-scroll + mandatory-snap combo on the tab row', () => {
+    const { container } = render(
+      <MobileTripTabs
+        activeTab="chat"
+        onTabChange={vi.fn()}
+        tripId="trip-1"
+        basecamp={{ name: 'Hotel', address: 'Tokyo' }}
+        variant="pro"
+      />,
+    );
+
+    const scroller = container.querySelector('.scrollbar-hide') as HTMLElement | null;
+    expect(scroller).toBeTruthy();
+    // These two together broke tap hit-testing for scrolled-in tabs on WKWebView.
+    expect(scroller!.style.scrollSnapType).toBe('');
+    expect(scroller!.style.getPropertyValue('-webkit-overflow-scrolling')).toBe('');
+    // touch-action: manipulation keeps taps instant and unambiguous.
+    expect(scroller!.style.touchAction).toBe('manipulation');
   });
 });

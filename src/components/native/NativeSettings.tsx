@@ -21,12 +21,24 @@ import {
   Info,
   Calendar,
   Trash2,
+  Ticket,
 } from 'lucide-react';
 import { hapticService } from '@/services/hapticService';
 import { NativeList, NativeListSection, NativeListItem, NativeToggleItem } from './NativeList';
 import { NativeLargeTitle } from './NativeLargeTitle';
-import { getPlatform } from '@/integrations/revenuecat/revenuecatClient';
+import {
+  getPlatform,
+  purchaseTripPass,
+  restoreAndSyncEntitlements,
+  handlePurchaseResult,
+} from '@/integrations/revenuecat/revenuecatClient';
+import { useAuth } from '@/hooks/useAuth';
+import { RefreshCw } from 'lucide-react';
+
 import { useNotificationPreferences } from '@/hooks/useNotificationPreferences';
+import { usePushPreferenceToggle } from '@/hooks/usePushPreferenceToggle';
+import { TRIP_PASS_DISPLAY } from '@/billing/pricingDisplay';
+import { toast } from 'sonner';
 
 interface NativeSettingsProps {
   user?: {
@@ -57,13 +69,14 @@ export const NativeSettings = ({
   const [buildNumber, setBuildNumber] = useState<string>('1');
 
   const { preferences, updatePreference } = useNotificationPreferences();
+  const { applyPushEnabled } = usePushPreferenceToggle();
   const navigate = useNavigate();
 
   const handleDeleteAccount = useCallback(async () => {
     await hapticService.warning();
     // Route to the actionable in-app deletion surface — the General Settings
     // section (ConsumerGeneralSettings → Account Management → Delete Account,
-    // which runs request_account_deletion with password re-auth). We navigate
+    // which calls the delete-account edge function with password re-auth for email users only).
     // to the real `?openSettings=settings` deep link rather than delegating an
     // opaque nav key, so the destination is guaranteed and never resolves to
     // the public `/delete-account` *informational* page (Guideline 5.1.1).
@@ -105,7 +118,61 @@ export const NativeSettings = ({
     [onNavigate],
   );
 
+  const [tripPassLoading, setTripPassLoading] = useState<'explorer' | 'frequent-chraveler' | null>(
+    null,
+  );
+
+  const { user: authUser } = useAuth();
+  const [restoreLoading, setRestoreLoading] = useState(false);
+
+  const handlePurchaseTripPass = useCallback(async (tier: 'explorer' | 'frequent-chraveler') => {
+    await hapticService.light();
+    setTripPassLoading(tier);
+    try {
+      const result = await purchaseTripPass(tier);
+      if (result.success) await hapticService.success();
+      handlePurchaseResult(result, {
+        successMessage: 'Trip Pass activated!',
+        successDescription: 'Premium features are unlocking now.',
+        onRetry: () => void handlePurchaseTripPass(tier),
+        context: `trip-pass:${tier}`,
+      });
+    } finally {
+      setTripPassLoading(null);
+    }
+  }, []);
+
+  const handleRestorePurchases = useCallback(async () => {
+    if (!authUser?.id) {
+      toast.error('Please sign in before restoring purchases.');
+      return;
+    }
+    await hapticService.light();
+    setRestoreLoading(true);
+    try {
+      const result = await restoreAndSyncEntitlements(authUser.id);
+      if (result.success && result.data) {
+        await hapticService.success();
+        const tier = result.data.plan.tier;
+        toast.success('Purchases restored', {
+          description:
+            tier === 'free'
+              ? 'No active purchases were found on this Apple ID.'
+              : `Your ${tier.replace('-', ' ')} entitlement is now active.`,
+        });
+      } else {
+        handlePurchaseResult(
+          { ...result, success: false },
+          { onRetry: handleRestorePurchases, context: 'restore' },
+        );
+      }
+    } finally {
+      setRestoreLoading(false);
+    }
+  }, [authUser?.id]);
+
   const isPro = subscriptionTier !== 'free';
+  const showTripPasses = !isPro && platform !== 'web';
 
   return (
     <>
@@ -133,7 +200,14 @@ export const NativeSettings = ({
           </NativeListSection>
 
           {/* Subscription Section */}
-          <NativeListSection header="Subscription">
+          <NativeListSection
+            header="Subscription"
+            footer={
+              showTripPasses
+                ? 'Trip Pass gives you full premium for one trip — no recurring charge. Restore Purchases re-applies passes you already bought.'
+                : undefined
+            }
+          >
             <NativeListItem
               icon={<Crown size={18} />}
               label={isPro ? 'ChravelApp Pro' : 'Free Plan'}
@@ -144,6 +218,49 @@ export const NativeSettings = ({
               showChevron
               onPress={isPro ? () => handleNavigate('subscription') : handleUpgrade}
             />
+            {showTripPasses && (
+              <>
+                <NativeListItem
+                  icon={<Ticket size={18} />}
+                  label="Explorer Trip Pass"
+                  sublabel={`${TRIP_PASS_DISPLAY.explorer.price} · ${TRIP_PASS_DISPLAY.explorer.durationDays} days`}
+                  value={
+                    tripPassLoading === 'explorer' ? (
+                      <span className="text-gray-400">…</span>
+                    ) : undefined
+                  }
+                  onPress={
+                    tripPassLoading ? undefined : () => void handlePurchaseTripPass('explorer')
+                  }
+                />
+                <NativeListItem
+                  icon={<Ticket size={18} />}
+                  label="Frequent Chraveler Trip Pass"
+                  sublabel={`${TRIP_PASS_DISPLAY['frequent-chraveler'].price} · ${TRIP_PASS_DISPLAY['frequent-chraveler'].durationDays} days`}
+                  value={
+                    tripPassLoading === 'frequent-chraveler' ? (
+                      <span className="text-gray-400">…</span>
+                    ) : undefined
+                  }
+                  onPress={
+                    tripPassLoading
+                      ? undefined
+                      : () => void handlePurchaseTripPass('frequent-chraveler')
+                  }
+                />
+              </>
+            )}
+            {platform !== 'web' && (
+              <NativeListItem
+                icon={
+                  <RefreshCw size={18} className={restoreLoading ? 'animate-spin' : undefined} />
+                }
+                label="Restore Purchases"
+                sublabel="Re-apply subscriptions or Trip Passes from this Apple ID"
+                value={restoreLoading ? <span className="text-gray-400">…</span> : undefined}
+                onPress={restoreLoading ? undefined : () => void handleRestorePurchases()}
+              />
+            )}
           </NativeListSection>
 
           {/* Notifications Section */}
@@ -155,7 +272,18 @@ export const NativeSettings = ({
               icon={<Bell size={18} />}
               label="Push Notifications"
               checked={preferences.push_enabled}
-              onChange={checked => void updatePreference('push_enabled', checked)}
+              onChange={checked => {
+                void (async () => {
+                  const result = await applyPushEnabled(checked);
+                  if (result === 'ok' || result === 'unsupported') {
+                    await updatePreference('push_enabled', checked);
+                    return;
+                  }
+                  if (result === 'permission_denied') {
+                    toast.error('Allow notifications in iOS Settings to enable push.');
+                  }
+                })();
+              }}
             />
             <NativeToggleItem
               icon={<Mail size={18} />}
@@ -211,7 +339,7 @@ export const NativeSettings = ({
             <NativeToggleItem
               icon={<Shield size={18} />}
               label="Analytics"
-              sublabel="Help improve Chravel"
+              sublabel="Help improve ChravelApp"
               checked={analyticsEnabled}
               onChange={setAnalyticsEnabled}
             />
@@ -246,7 +374,7 @@ export const NativeSettings = ({
             />
             <NativeListItem
               icon={<Star size={18} />}
-              label="Rate Chravel"
+              label="Rate ChravelApp"
               sublabel={platform === 'ios' ? 'App Store' : 'Play Store'}
               showChevron
               onPress={() => handleNavigate('rate')}
@@ -290,13 +418,13 @@ export const NativeSettings = ({
           </NativeListSection>
 
           {/* Account — opens the actionable in-app deletion flow
-              (request_account_deletion RPC + password re-auth, 30-day grace)
+              (delete-account edge function + optional password re-auth for email users)
               that lives in ConsumerGeneralSettings. Required for App Store
               Guideline 5.1.1 (in-app account deletion). */}
           {user && (
             <NativeListSection
               header="Account"
-              footer="Deleting your account schedules permanent removal of your data after a 30-day grace period."
+              footer="Deleting your account permanently removes your data immediately. This cannot be undone."
             >
               <NativeListItem
                 icon={<Trash2 size={18} />}

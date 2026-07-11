@@ -17,7 +17,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import {
   connectStreamClient,
-  getStreamApiKey,
   getStreamClient,
   onStreamClientConnected,
   onStreamClientConnectionStatusChange,
@@ -35,6 +34,7 @@ import {
   reportStreamCanaryIncident,
 } from '@/services/stream/streamCanary';
 import { sortMessagesWithCanonicalOrdering } from './messageEventModel';
+import { capPrependedMessages, capRetainedMessages } from '@/lib/chatMessageRetention';
 
 const PAGE_SIZE = 30;
 type StreamSendPayload = Parameters<Channel['sendMessage']>[0];
@@ -326,7 +326,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       if (nextMessages.length === 0) return prev;
       const byId = new Map(prev.map(message => [message.id, message]));
       for (const message of nextMessages) byId.set(message.id, message);
-      return sortMessagesWithCanonicalOrdering(Array.from(byId.values()));
+      return capRetainedMessages(sortMessagesWithCanonicalOrdering(Array.from(byId.values())));
     });
   }, []);
 
@@ -423,7 +423,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     return () => {
       cancelled = true;
     };
-  }, [isEnabled, tripId, streamClientReady]);
+  }, [isEnabled, tripId, streamClientReady, reloadSeed]);
 
   useEffect(() => {
     if (!isEnabled || !tripId) return;
@@ -432,12 +432,6 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
 
     const timer = window.setTimeout(() => {
       if (streamClientReady || getStreamClient()?.userID) return;
-
-      if (!getStreamApiKey()) {
-        setError(new Error('Stream chat is not configured'));
-        setIsLoading(false);
-        return;
-      }
 
       setError(new Error('Timed out waiting for chat connection'));
       setIsLoading(false);
@@ -757,7 +751,16 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
   ]);
 
   const reload = useCallback(async () => {
-    if (!tripId || !isEnabled || !channelRef.current) return;
+    if (!tripId || !isEnabled) return;
+
+    if (!channelRef.current) {
+      setError(null);
+      setIsLoading(true);
+      setStreamClientReady(Boolean(getStreamClient()?.userID));
+      setReloadSeed(prev => prev + 1);
+      return;
+    }
+
     const channel = channelRef.current;
 
     try {
@@ -808,7 +811,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         existingIndex >= 0
           ? prev.map(existing => (existing.id === message.id ? message : existing))
           : [...prev, message];
-      return sortMessagesWithCanonicalOrdering(next);
+      return capRetainedMessages(sortMessagesWithCanonicalOrdering(next));
     });
   }, []);
 
@@ -850,33 +853,24 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
     };
 
     const handleReaction = (event: Event) => {
-      // Stream mutates channel.state.messages in place on reaction events.
-      // Re-cloning the array forces React to re-render.
-      const freshMessages = channelRef.current?.state.messages || channel.state.messages;
-      if (freshMessages.length > 0 || messagesRef.current.length === 0) {
-        setMessages([...freshMessages] as unknown as MessageResponse[]);
-        // (cast via unknown to bridge LocalMessage <-> MessageResponse drift)
+      const affectedMessageId = event.message?.id;
+      if (!affectedMessageId) return;
+
+      const freshMessages = (channelRef.current?.state.messages ||
+        channel.state.messages) as unknown as MessageResponse[];
+      const freshMessage = freshMessages.find(message => message.id === affectedMessageId);
+      if (!freshMessage) {
+        ownReactionTypesByMessageRef.current.delete(affectedMessageId);
+        return;
       }
 
-      // Keep toggleReaction's per-message own-reaction tracker in sync with
-      // authoritative server state. Without this, a reaction change from
-      // another session (or after a server-side correction) leaves the local
-      // cache stale and the next tap sends a duplicate add or misses a delete.
-      const affectedMessageId = event.message?.id;
-      if (affectedMessageId) {
-        const freshMessage = (freshMessages as unknown as MessageResponse[]).find(
-          m => m.id === affectedMessageId,
-        );
-        if (freshMessage) {
-          const nextTypes = new Set<string>();
-          for (const reaction of freshMessage.own_reactions ?? []) {
-            if (reaction?.type) nextTypes.add(reaction.type);
-          }
-          ownReactionTypesByMessageRef.current.set(affectedMessageId, nextTypes);
-        } else {
-          ownReactionTypesByMessageRef.current.delete(affectedMessageId);
-        }
+      upsertMessageInState(freshMessage);
+
+      const nextTypes = new Set<string>();
+      for (const reaction of freshMessage.own_reactions ?? []) {
+        if (reaction?.type) nextTypes.add(reaction.type);
       }
+      ownReactionTypesByMessageRef.current.set(affectedMessageId, nextTypes);
     };
 
     channel.on('message.new', handleNewMessage);
@@ -1141,7 +1135,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       const olderMessages = (result.messages || []) as MessageResponse[];
 
       if (olderMessages.length > 0) {
-        setMessages(prev => [...olderMessages, ...prev]);
+        setMessages(prev => capPrependedMessages(olderMessages, prev));
         setHasMore(olderMessages.length === PAGE_SIZE);
       } else {
         setHasMore(false);

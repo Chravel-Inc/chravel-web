@@ -18,7 +18,17 @@ import {
   FileText,
   MapPin,
   TrendingUp,
+  Ticket,
+  Clock,
+  PartyPopper,
 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import {
+  detectNativeBillingPlatform,
+  isIOSNativeShell,
+  isNativeWebView,
+} from '@/utils/platformDetection';
+import { toast } from 'sonner';
 // Pricing/tier data from the central source of truth (billing/config.ts).
 import { SUBSCRIPTION_TIERS } from '@/types/pro';
 import { CONSUMER_PRICE_DISPLAY, TRIP_PASS_DISPLAY } from '@/billing/pricingDisplay';
@@ -62,11 +72,9 @@ const consumerTiers: PricingTier[] = [
       'Shared Group Calendar Sync',
       'Payment tracking',
       'Polls & group decisions',
-      'AI Trip Assistant (10 queries per user per trip)',
-      '1 PDF export per trip (sample it!)',
+      'AI Trip Assistant (3 queries per user per trip)',
+      '1 PDF export per trip (sample it)',
       'Save up to 3 active trips',
-      '🎁 1 free Pro trip to try',
-      'Up to 3 events (upgrade to Frequent Chraveler for unlimited)',
     ],
     cta: 'Start First Trip Free',
     category: 'consumer',
@@ -84,7 +92,7 @@ const consumerTiers: PricingTier[] = [
       'Everything in Free',
       'Unlimited saved trips + restore archived',
       '25 AI queries per user per trip',
-      'Unlimited PDF exports',
+      'Unlimited PDF Recap exports',
       'ICS calendar export',
       'Smart Import (Calendar, Agenda, Line-up from URL)',
       'Location-aware AI recommendations',
@@ -108,7 +116,7 @@ const consumerTiers: PricingTier[] = [
       'Everything in Explorer',
       'Unlimited AI queries (24/7 concierge)',
       'Smart Import (Calendar, Agenda, Line-up from URL, paste, or file)',
-      'One-click PDF trip exports',
+      'Unlimited PDF Recap trip exports',
       'Role-based channels & Pro features',
       'Custom trip categories',
       'Early feature access',
@@ -127,11 +135,10 @@ const proTiers: PricingTier[] = [
     id: 'starter-pro',
     name: SUBSCRIPTION_TIERS.starter.name,
     price: `$${SUBSCRIPTION_TIERS.starter.price}`,
-    description: 'Perfect for small touring acts, AAU teams, local clubs',
+    description:
+      'Small touring acts, AAU teams, wedding planners, and boutique concierges. Invite coordinators & clients at no extra seat cost.',
     icon: <Building size={24} />,
-    features: SUBSCRIPTION_TIERS.starter.features.map(f =>
-      f.includes('Events') ? `🎉 ${f}` : f.includes('free') ? `🎁 ${f}` : f,
-    ),
+    features: [...SUBSCRIPTION_TIERS.starter.features],
     cta: 'Start 14-Day Trial',
     category: 'pro',
     enterprise: true,
@@ -143,11 +150,10 @@ const proTiers: PricingTier[] = [
     id: 'growth-pro',
     name: SUBSCRIPTION_TIERS.growing.name,
     price: `$${SUBSCRIPTION_TIERS.growing.price}`,
-    description: 'For college teams, mid-size productions, corporate groups',
+    description:
+      'College teams, mid-size productions, corporate groups, and multi-client concierge companies. Full role-based channels + Coordinator Access.',
     icon: <TrendingUp size={24} />,
-    features: SUBSCRIPTION_TIERS.growing.features.map(f =>
-      f.includes('Events') ? `🎉 ${f}` : f.includes('free') ? `🎁 ${f}` : f,
-    ),
+    features: [...SUBSCRIPTION_TIERS.growing.features],
     cta: 'Start 14-Day Trial',
     popular: true,
     category: 'pro',
@@ -161,11 +167,10 @@ const proTiers: PricingTier[] = [
     id: 'enterprise',
     name: SUBSCRIPTION_TIERS.enterprise.name,
     price: 'Custom Pricing',
-    description: 'For professional leagues, major tours, Fortune 500',
+    description:
+      'Pro leagues, major tours, luxury travel concierge networks, Fortune 500. Volume Pro Trips, dedicated onboarding, contract terms.',
     icon: <Shield size={24} />,
-    features: SUBSCRIPTION_TIERS.enterprise.features.map(f =>
-      f.includes('Events') ? `🎉 ${f}` : f.includes('free') ? `🎁 ${f}` : f,
-    ),
+    features: [...SUBSCRIPTION_TIERS.enterprise.features],
     cta: 'Contact Sales',
     category: 'pro',
     enterprise: true,
@@ -174,11 +179,12 @@ const proTiers: PricingTier[] = [
   },
 ];
 
+
 const valuePropItems = [
   {
     icon: <Heart size={20} />,
-    title: 'Trips can easily exceed $1,000',
-    description: 'Your memories are worth more than a Trip Pass',
+    title: 'Trips can easily exceed thousands of dollars.',
+    description: 'Organizing your memories are worth more than a Trip Pass',
   },
   {
     icon: <Camera size={20} />,
@@ -207,7 +213,7 @@ const valuePropItems = [
   },
   {
     icon: <FileText size={20} />,
-    title: 'Professional PDF exports',
+    title: 'Professional PDF Recap exports',
     description: 'Share beautiful itineraries with one click',
   },
   {
@@ -216,7 +222,7 @@ const valuePropItems = [
     description: 'Get early access to our latest features and updates before they roll wide',
   },
   {
-    icon: <Users size={20} />,
+    icon: <PartyPopper size={20} />,
     title: 'Plan your next trip, season, or wedding',
     description:
       'Plan your next family trip, sports season, or wedding weekend without ever leaving one app.',
@@ -232,7 +238,7 @@ const _faqItems = [
   {
     question: 'How do AI queries work on each plan?',
     answer:
-      'Free users get 10 AI queries per user per trip. Explorer gets 25 AI queries per user per trip. Frequent Chraveler gets unlimited AI queries. A counter shows how many you have left. Each new trip starts fresh with your full query limit. Voice input to the AI concierge counts as a single query.',
+      'Free users get 3 AI queries per user per trip. Explorer gets 25 AI queries per user per trip. Frequent Chraveler gets unlimited AI queries. A counter shows how many you have left. Each new trip starts fresh with your full query limit. Voice input to the AI concierge counts as a single query.',
   },
   {
     question: 'Can I change plans anytime?',
@@ -244,10 +250,16 @@ const _faqItems = [
       'All data is encrypted in transit and at rest. Row-level security ensures you only see trips you belong to. High Privacy mode adds end-to-end encryption for messages. Your trips are private unless you choose to share them.',
   },
   {
+    question: 'Who pays for Pro — the concierge / planner or the client?',
+    answer:
+      'Either — or both. (1) A concierge company, wedding planner, tour manager, or corporate assistant can hold the Pro plan; every client trip they run uses their Pro Trip and Coordinator seats, and clients invited as Full Members join for free. (2) A couple, organization, or family office can hold Pro themselves for their own weekend/tour/retreat and invite outside help as **Coordinators** at no extra seat cost. (3) Both can pay independently — a frequent traveler’s personal subscription and their concierge’s Pro plan don’t conflict. Billing follows whoever created the Pro Trip.',
+  },
+  {
     question: 'Do all trip members need to pay?',
     answer:
-      'No! Only the trip creator or organization admin pays. All invited members join for free. For ChravelApp Pro, the admin pays and can assign seats to team members — ideal for organizations, sports teams, and tour management.',
+      'No. Only the trip creator or organization admin pays. Invited members join for free, and Coordinators (outside planners, concierges, assistants) don’t need their own paid seat when they help run a Pro Trip.',
   },
+
   {
     question: "What's included with the free Pro Trip and events?",
     answer:
@@ -264,9 +276,9 @@ const _faqItems = [
       "Unlike your current stack where texts don't know what's in your emails, and your spreadsheet doesn't know what's in your group chat—ChravelApp's 8 tabs are fully interconnected. Your AI concierge can search your calendar, polls, and outstanding tasks, and more. One context-aware trip brain instead of 8 disconnected apps.",
   },
   {
-    question: 'What is a Trip Pass?',
+    question: 'Why buy a Trip Pass instead of subscribing monthly?',
     answer:
-      'A Trip Pass gives you full premium access for a fixed window — 45 days (Explorer) or 90 days (Frequent Chraveler). Perfect for one-off trips without a monthly commitment. Your exports and trip data stay forever, even after the pass expires. If you travel often, Annual is the better deal.',
+      "Trip Passes are one-time purchases — no auto-renew, no cancel reminders, no card kept on file after checkout. Buy once, use it for the whole trip window (45 or 90 days), and you're done. Perfect for people who take a few trips a year and don't want a subscription running in the background. Your exports and trip data stay forever, even after the pass expires. If you travel every month, a monthly or annual subscription is the better deal.",
   },
 ];
 
@@ -296,9 +308,103 @@ const _testimonials = [
 
 export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
-  const [activeTab, setActiveTab] = useState<'consumer' | 'pro'>('consumer');
+  const [activeTab, setActiveTab] = useState<'consumer' | 'pro' | 'pass'>('consumer');
   const [_openFaq, _setOpenFaq] = useState<number | null>(null);
   const [tripPassOpen, setTripPassOpen] = useState(false);
+  const [passLoading, setPassLoading] = useState<string | null>(null);
+
+  const iosNative = isIOSNativeShell();
+
+  const handlePassPurchase = async (passId: string) => {
+    setPassLoading(passId);
+    try {
+      if (iosNative) {
+        const { purchaseTripPass } = await import('@/integrations/revenuecat/revenuecatClient');
+        const tier: 'explorer' | 'frequent-chraveler' =
+          passId === 'pass-explorer-45' ? 'explorer' : 'frequent-chraveler';
+        const result = await purchaseTripPass(tier);
+        if (result.success) {
+          toast.success('Trip Pass activated!');
+        } else if (result.errorCode === 'CANCELLED') {
+          // silent
+        } else if (!result.supported) {
+          toast.error('In-app purchases are not available on this device.');
+        } else {
+          toast.error(result.error || 'Failed to purchase Trip Pass.');
+        }
+        return;
+      }
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Please sign in to purchase a Trip Pass');
+        if (onSignUp) onSignUp();
+        return;
+      }
+      const billingPlatform =
+        typeof navigator === 'undefined'
+          ? 'web'
+          : detectNativeBillingPlatform(navigator.userAgent || '', isNativeWebView());
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { tier: passId, purchase_type: 'pass', platform: billingPlatform },
+      });
+      if (error) throw error;
+      if (data?.url) window.open(data.url, '_blank');
+    } catch (err) {
+      console.error('Trip Pass checkout error:', err);
+      toast.error('Failed to start checkout. Please try again.');
+    } finally {
+      setPassLoading(null);
+    }
+  };
+
+  const tripPassTiers: PricingTier[] = [
+    {
+      id: 'pass-explorer-45',
+      name: 'Explorer Trip Pass',
+      price: TRIP_PASS_DISPLAY.explorer.price,
+      description: `One trip, done. ${TRIP_PASS_DISPLAY.explorer.durationDays} days of Explorer features — no subscription, no cancel reminders, no card kept on file.`,
+      icon: <Globe size={24} />,
+      features: [
+        `${TRIP_PASS_DISPLAY.explorer.durationDays}-day access window`,
+        'One-time purchase — no auto-renew',
+        'Unlimited saved trips + restore archived',
+        '25 AI queries per user per trip',
+        'More PDF Recap exports',
+        'Smart Import (Calendar, Agenda, Line-up from URL)',
+        'ICS calendar export',
+        'Preference-aware AI recommendations',
+      ],
+      cta: passLoading === 'pass-explorer-45' ? 'Starting checkout…' : 'Get Explorer Pass',
+      category: 'consumer',
+      badge: 'One-time · No renewal',
+      ctaAction: () => handlePassPurchase('pass-explorer-45'),
+    },
+    {
+      id: 'pass-frequent-90',
+      name: 'Frequent Chraveler Trip Pass',
+      price: TRIP_PASS_DISPLAY['frequent-chraveler'].price,
+      description: `${TRIP_PASS_DISPLAY['frequent-chraveler'].durationDays} days of the full Frequent Chraveler experience. Double the window, more features, less than double the price of the Explorer pass.`,
+      icon: <Crown size={24} />,
+      features: [
+        `${TRIP_PASS_DISPLAY['frequent-chraveler'].durationDays}-day access window (best value per day)`,
+        'One-time purchase — no auto-renew',
+        'Everything in Explorer Trip Pass',
+        'Unlimited AI queries (24/7 concierge)',
+        'Smart Import (URL, paste, or file)',
+        'Role-based channels & Pro features',
+        'Custom trip categories',
+        'Early feature access',
+      ],
+      cta: passLoading === 'pass-frequent-90' ? 'Starting checkout…' : 'Get Frequent Pass',
+      category: 'consumer',
+      popular: true,
+      badge: 'Best value · Multi-city',
+      ctaAction: () => handlePassPurchase('pass-frequent-90'),
+    },
+  ];
 
   const handlePlanSelect = (planId: string, tier?: PricingTier) => {
     // If tier has custom action, use it
@@ -319,6 +425,8 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
         return consumerTiers;
       case 'pro':
         return proTiers;
+      case 'pass':
+        return tripPassTiers;
       default:
         return consumerTiers;
     }
@@ -339,26 +447,25 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
 
   return (
     <div className="w-full space-y-16">
-      {/* Header with Value Prop - High contrast with background */}
-      <div className="text-center space-y-6">
-        <div className="inline-block accent-fill-gold px-6 py-4 rounded-lg max-w-3xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-black mb-2">
-            Start free. Upgrade when your trip gets serious.
-          </h2>
-          <p className="text-sm sm:text-base md:text-lg text-black font-bold leading-relaxed break-words">
-            Don't lose receipts, links, or the final plan.{' '}
-            <span className="text-black/80 font-bold">
-              Free works forever—upgrade only when you need more.
-            </span>
-          </p>
-        </div>
-
+      {/* Header with Value Prop */}
+      <div className="text-center">
         {/* Why Upgrade Section */}
         {activeTab === 'consumer' && (
           <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-2xl p-5 tablet:p-8 max-w-5xl mx-auto">
-            <h3 className="text-xl sm:text-2xl tablet:text-3xl font-bold text-foreground mb-4 tablet:mb-6">
+            <h3 className="text-xl sm:text-2xl tablet:text-3xl font-bold text-foreground mb-3">
               Why Upgrade?
             </h3>
+            <p className="text-base sm:text-lg tablet:text-xl font-semibold text-white">
+              Start free. Upgrade when you're ready for relief.
+            </p>
+            <p className="text-sm sm:text-base text-white/70 mt-1 max-w-2xl mx-auto">
+              Don't lose receipts, links, or the final plan. Free works forever—upgrade only when
+              you need more.
+            </p>
+            <div
+              className="mx-auto my-4 h-px w-16 bg-gradient-to-r from-transparent via-[#c49746] to-transparent"
+              aria-hidden="true"
+            />
             <div className="grid grid-cols-1 tablet:grid-cols-2 lg:grid-cols-3 gap-3 tablet:gap-4">
               {valuePropItems.map((item, index) => (
                 <div key={index} className="text-left">
@@ -383,12 +490,13 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
           </div>
         )}
 
-        {/* Category Tabs - Only 2 tabs now: Chravel Plus and Chravel Pro */}
+        {/* Category Tabs */}
         <div className="flex justify-center">
-          <div className="bg-card/50 rounded-lg p-1 flex gap-1">
+          <div className="bg-card/50 rounded-lg p-1 flex gap-1 flex-wrap">
             {[
               { id: 'consumer', label: 'ChravelApp Plus', icon: <Users size={16} /> },
               { id: 'pro', label: 'ChravelApp Pro', icon: <Building size={16} /> },
+              { id: 'pass', label: 'Trip Passes', icon: <Ticket size={16} /> },
             ].map(tab => (
               <button
                 key={tab.id}
@@ -432,22 +540,24 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
               Annual
             </span>
             {billingCycle === 'annual' && (
-              <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-xs">
+              <Badge
+                variant="secondary"
+                className="border border-gold-primary/40 bg-gold-primary/10 text-gold-light text-xs"
+              >
                 Save 17%
               </Badge>
             )}
           </div>
         )}
 
-        {/* Trip Pass CTA */}
-        {activeTab === 'consumer' && (
-          <div className="text-center">
-            <button
-              onClick={() => setTripPassOpen(true)}
-              className="text-sm text-primary hover:text-primary/80 underline underline-offset-4 transition-colors"
-            >
-              🎫 Only need ChravelApp for a trip or two? Get a Trip Pass.
-            </button>
+        {/* Trip Pass helper note */}
+        {activeTab === 'pass' && (
+          <div className="text-center max-w-2xl mx-auto">
+            <p className="text-sm text-muted-foreground inline-flex items-center justify-center gap-1.5">
+              <Clock size={14} className="text-primary" />
+              One-time purchase. Full premium features for a fixed window. Your exports stay
+              forever.
+            </p>
           </div>
         )}
       </div>
@@ -457,13 +567,15 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
         className={`grid gap-4 tablet:gap-6 max-w-7xl mx-auto px-2 ${
           activeTab === 'consumer'
             ? 'grid-cols-1 lg:grid-cols-3'
-            : 'grid-cols-1 tablet:grid-cols-2 lg:grid-cols-3'
+            : activeTab === 'pass'
+              ? 'grid-cols-1 md:grid-cols-2 max-w-4xl'
+              : 'grid-cols-1 tablet:grid-cols-2 lg:grid-cols-3'
         }`}
       >
         {getCurrentTiers().map(tier => (
           <div key={tier.id}>
             <Card
-              className={`relative backdrop-blur-sm border transition-all hover:scale-105 hover:shadow-lg min-h-[480px] flex flex-col ${
+              className={`relative backdrop-blur-sm border transition-all motion-safe:hover:-translate-y-1 hover:shadow-gold-glow min-h-[480px] flex flex-col ${
                 tier.popular || tier.recommended
                   ? 'bg-card/80 border-gold-primary/50 shadow-lg ring-1 ring-gold-primary/20'
                   : tier.enterprise
@@ -544,7 +656,7 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
                   )}
 
                   {tier.savings && billingCycle === 'annual' && (
-                    <div className="text-sm text-green-400 font-medium break-words whitespace-normal text-center">
+                    <div className="text-sm text-gold-light font-medium break-words whitespace-normal text-center">
                       {tier.savings}
                     </div>
                   )}
@@ -565,7 +677,7 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
                 <ul className="space-y-2.5 tablet:space-y-3">
                   {tier.features.map((feature, index) => (
                     <li key={index} className="flex items-start gap-2.5">
-                      <Check size={16} className="text-green-400 mt-0.5 flex-shrink-0" />
+                      <Check size={16} className="text-gold-primary mt-0.5 flex-shrink-0" />
                       <span className="text-base font-semibold text-foreground break-words">
                         {feature}
                       </span>

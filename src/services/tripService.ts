@@ -327,7 +327,7 @@ export const tripService = {
       }
 
       const TRIP_LIST_COLUMNS =
-        'id, name, description, start_date, end_date, destination, trip_type, created_at, updated_at, cover_image_url, created_by, is_archived, card_color, organizer_display_name';
+        'id, name, description, start_date, end_date, destination, trip_type, created_at, updated_at, cover_image_url, cover_display_mode, created_by, is_archived, card_color, organizer_display_name';
       let query = supabase
         .from('trips')
         .select(TRIP_LIST_COLUMNS)
@@ -817,6 +817,90 @@ export const tripService = {
       console.log('[tripService.getTripMembersWithCreator] Returning', members.length, 'members');
     }
     return { members, creatorId };
+  },
+
+  async getTripMemberMeta(
+    tripId: string,
+  ): Promise<{ memberCount: number; creatorId: string | null }> {
+    const { data, error } = await supabase
+      .from('trips')
+      .select('member_count, created_by')
+      .eq('id', tripId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`Failed to load trip member metadata: ${error.message}`);
+    }
+
+    return {
+      memberCount: data?.member_count ?? 0,
+      creatorId: data?.created_by ?? null,
+    };
+  },
+
+  async listTripMembersPage(
+    tripId: string,
+    options: { search?: string; limit?: number; offset?: number } = {},
+  ): Promise<{
+    members: Array<{
+      id: string;
+      name: string;
+      avatar?: string;
+      isCreator?: boolean;
+      role?: string;
+    }>;
+    total_count: number;
+    limit: number;
+    offset: number;
+    creatorId: string | null;
+  }> {
+    const [{ data: rpcData, error: rpcError }, meta] = await Promise.all([
+      (
+        supabase.rpc as unknown as (
+          fn: string,
+          args: Record<string, unknown>,
+        ) => Promise<{ data: unknown; error: { message: string } | null }>
+      )('list_trip_members', {
+        p_trip_id: tripId,
+        p_search: options.search ?? null,
+        p_limit: options.limit ?? 50,
+        p_offset: options.offset ?? 0,
+      }),
+      this.getTripMemberMeta(tripId),
+    ]);
+
+    if (rpcError) {
+      throw new Error(`Failed to load trip members page: ${rpcError.message}`);
+    }
+
+    const payload = rpcData as {
+      members?: Array<{
+        user_id: string;
+        role?: string;
+        display_name?: string;
+        avatar_url?: string | null;
+      }>;
+      total_count?: number;
+      limit?: number;
+      offset?: number;
+    } | null;
+
+    const creatorId = meta.creatorId;
+    const members = (payload?.members ?? []).map(member => ({
+      id: member.user_id,
+      name: member.display_name || FORMER_MEMBER_LABEL,
+      avatar: member.avatar_url ?? undefined,
+      isCreator: member.user_id === creatorId,
+      role: member.role || 'member',
+    }));
+
+    return {
+      members,
+      total_count: payload?.total_count ?? members.length,
+      limit: payload?.limit ?? options.limit ?? 50,
+      offset: payload?.offset ?? options.offset ?? 0,
+      creatorId,
+    };
   },
 
   async addTripMember(tripId: string, userId: string, role: string = 'member'): Promise<boolean> {

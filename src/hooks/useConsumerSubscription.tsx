@@ -2,6 +2,7 @@ import { useState, useEffect, createContext, useContext, useCallback } from 'rea
 import { ConsumerSubscription } from '../types/consumer';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { ENTITLEMENTS_UPDATED_EVENT } from '@/integrations/revenuecat/revenuecatClient';
 import { openExternalUrl } from '@/platform/navigation';
 import { detectNativeBillingPlatform, isNativeWebView } from '@/utils/platformDetection';
 import { toast } from 'sonner';
@@ -150,6 +151,17 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
   useEffect(() => {
     if (!user) return;
 
+    const onEntitlementsUpdated = () => {
+      void checkSubscriptionWithStaleGuard('manual', true);
+    };
+
+    window.addEventListener(ENTITLEMENTS_UPDATED_EVENT, onEntitlementsUpdated);
+    return () => window.removeEventListener(ENTITLEMENTS_UPDATED_EVENT, onEntitlementsUpdated);
+  }, [user, checkSubscriptionWithStaleGuard]);
+
+  useEffect(() => {
+    if (!user) return;
+
     const params = new URLSearchParams(window.location.search);
     if (params.get('checkout') === 'success') {
       void checkSubscriptionWithStaleGuard('post_checkout_return', true);
@@ -206,9 +218,19 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
   const isSuperAdmin = user?.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase());
 
   const currentTier = isSuperAdmin ? 'frequent-chraveler' : subscription?.tier || 'free';
-  const isPlus = isSuperAdmin || (subscription?.status === 'active' && currentTier !== 'free');
-  const isSubscribed =
-    isSuperAdmin || (subscription?.status === 'active' && currentTier !== 'free');
+  // Mirror the canonical hasEffectiveAccess policy on the mapped consumer-subscription
+  // vocabulary: active and trial keep access, and a cancelled subscription keeps access
+  // until its paid period actually ends (past_due already maps to 'active' upstream).
+  // Previously this required status === 'active', so trialing and canceled-in-period
+  // subscribers were shown as non-premium even though the server still grants them access.
+  const hasActivePaidStatus =
+    subscription?.status === 'active' ||
+    subscription?.status === 'trial' ||
+    (subscription?.status === 'cancelled' &&
+      !!subscription?.subscriptionEndsAt &&
+      new Date(subscription.subscriptionEndsAt) > new Date());
+  const isPlus = isSuperAdmin || (hasActivePaidStatus && currentTier !== 'free');
+  const isSubscribed = isPlus;
   const canCreateProTrip = isSuperAdmin || currentTier === 'frequent-chraveler';
   const proTripQuota = isSuperAdmin ? -1 : currentTier === 'frequent-chraveler' ? 1 : 0; // -1 = unlimited for super admins
 

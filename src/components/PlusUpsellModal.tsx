@@ -164,7 +164,7 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
                 <li>• Basic group chat</li>
                 <li>• Shared calendar (manual)</li>
                 <li>• Photo & video sharing</li>
-                <li>• 10 AI queries per user per trip</li>
+                <li>• 3 AI queries per user per trip</li>
                 <li>• 1 free PDF export per trip</li>
                 <li>• ICS calendar download</li>
               </ul>
@@ -188,7 +188,7 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
                   <li>• Everything in Explorer</li>
                   <li>• Unlimited AI queries</li>
                   <li>• Calendar sync & PDF export</li>
-                  <li>• 1 Chravel Pro trip/month</li>
+                  <li>• 1 ChravelApp Pro trip/month</li>
                   <li>• Role-based channels</li>
                   <li>• Early feature access</li>
                 </ul>

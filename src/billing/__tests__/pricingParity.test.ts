@@ -16,9 +16,14 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { BILLING_PRODUCTS, TRIP_PASS_PRODUCTS } from '@/billing/config';
+import { BILLING_FLAGS, BILLING_PRODUCTS, TRIP_PASS_PRODUCTS } from '@/billing/config';
 import { CONSUMER_PLANS, PRO_PLANS, TRIP_PASS_PLANS, STRIPE_PRODUCTS } from '@/constants/stripe';
-import { REVENUECAT_PRICING, ENTITLEMENT_TO_TIER } from '@/constants/revenuecat';
+import {
+  REVENUECAT_PRICING,
+  ENTITLEMENT_TO_TIER,
+  REVENUECAT_PRODUCTS,
+  isTripPassProductId,
+} from '@/constants/revenuecat';
 import { FREEMIUM_LIMITS } from '@/utils/featureTiers';
 import { FEATURE_LIMITS } from '@/billing/entitlements';
 import { CONSUMER_PRICING } from '@/types/consumer';
@@ -29,6 +34,12 @@ const dollarsToCents = (usd: number): number => Math.round(usd * 100);
 
 // Mirror of formatUsd in pricingDisplay (whole -> "$99", fractional -> "$9.99")
 const formatExpected = (n: number): string => (Number.isInteger(n) ? `$${n}` : `$${n.toFixed(2)}`);
+
+describe('iOS App Store billing guard', () => {
+  it('keeps Apple IAP enabled for iOS review builds', () => {
+    expect(BILLING_FLAGS.APPLE_IAP_ENABLED).toBe(true);
+  });
+});
 
 describe('pricing parity — constants/stripe.ts mirrors billing/config.ts', () => {
   it('consumer Explorer matches (product IDs, price IDs, amounts)', () => {
@@ -98,6 +109,7 @@ describe('pricing parity — constants/stripe.ts mirrors billing/config.ts', () 
     expect(explorerPassLegacy.price_id).toBe(explorerPass.stripePriceId);
     expect(explorerPassLegacy.amount).toBe(dollarsToCents(explorerPass.price));
     expect(explorerPassLegacy.durationDays).toBe(explorerPass.durationDays);
+    expect(explorerPass.appleProductId).toBe('com.chravel.trippass.explorer');
 
     const fcPass = TRIP_PASS_PRODUCTS['pass-frequent-90'];
     const fcPassLegacy = TRIP_PASS_PLANS['pass-frequent-90'];
@@ -105,6 +117,7 @@ describe('pricing parity — constants/stripe.ts mirrors billing/config.ts', () 
     expect(fcPassLegacy.price_id).toBe(fcPass.stripePriceId);
     expect(fcPassLegacy.amount).toBe(dollarsToCents(fcPass.price));
     expect(fcPassLegacy.durationDays).toBe(fcPass.durationDays);
+    expect(fcPass.appleProductId).toBe('com.chravel.trippass.frequent');
   });
 });
 
@@ -122,6 +135,12 @@ describe('pricing parity — constants/revenuecat.ts mirrors billing/config.ts',
     expect(REVENUECAT_PRICING.frequentChraveler.annual).toBe(
       BILLING_PRODUCTS['consumer-frequent-chraveler'].priceAnnual,
     );
+  });
+
+  it('RevenueCat trip-pass product IDs match billing/config Trip Pass appleProductId', () => {
+    expect(REVENUECAT_PRODUCTS.explorerPass45).toBe('com.chravel.trippass.explorer');
+    expect(REVENUECAT_PRODUCTS.frequentChravelerPass90).toBe('com.chravel.trippass.frequent');
+    expect(isTripPassProductId(REVENUECAT_PRODUCTS.explorerPass45)).toBe(true);
   });
 
   it('RevenueCat trip-pass pricing matches Stripe trip-pass pricing', () => {
@@ -148,6 +167,14 @@ describe('pricing parity — constants/revenuecat.ts mirrors billing/config.ts',
 });
 
 describe('limit parity — FEATURE_LIMITS aligns with FREEMIUM_LIMITS storage', () => {
+  it('ai_concierge caps match marketed per-trip limits', () => {
+    expect(FEATURE_LIMITS.ai_concierge.free).toBe(FREEMIUM_LIMITS.free.aiQueriesPerTrip);
+    expect(FEATURE_LIMITS.ai_concierge.free).toBe(3);
+    expect(FEATURE_LIMITS.ai_concierge.explorer).toBe(FREEMIUM_LIMITS.explorer.aiQueriesPerTrip);
+    expect(FEATURE_LIMITS.ai_concierge.explorer).toBe(25);
+    expect(FEATURE_LIMITS.ai_concierge['frequent-chraveler']).toBe(-1);
+  });
+
   it('media_upload caps match the enforced storage caps (MB)', () => {
     expect(FEATURE_LIMITS.media_upload.free).toBe(FREEMIUM_LIMITS.free.storageAccountMB);
     expect(FEATURE_LIMITS.media_upload.explorer).toBe(FREEMIUM_LIMITS.explorer.storageAccountMB);
@@ -211,6 +238,41 @@ describe('pricing parity — secondary numeric tables derive from billing/config
     expect(CONSUMER_PRICE_DISPLAY.explorer.annualPerMonth).toBe(
       `$${(BILLING_PRODUCTS['consumer-explorer'].priceAnnual! / 12).toFixed(2)}`,
     );
+  });
+});
+
+describe('marketing plan permissions parity', () => {
+  it('Explorer grants unlimited saved trips and standard planning exports', () => {
+    const explorer = BILLING_PRODUCTS['consumer-explorer'];
+    expect(explorer.entitlements).toEqual(
+      expect.arrayContaining([
+        'ai_queries_extended',
+        'trips_unlimited',
+        'pdf_export',
+        'calendar_sync',
+      ]),
+    );
+    expect(explorer.entitlements).not.toContain('trips_extended');
+    expect(FEATURE_LIMITS.trip_creation.explorer).toBe(FREEMIUM_LIMITS.explorer.activeTripsLimit);
+    expect(FEATURE_LIMITS.ai_concierge.explorer).toBe(FREEMIUM_LIMITS.explorer.aiQueriesPerTrip);
+  });
+
+  it('Frequent Chraveler grants unlimited consumer usage plus role-based channels', () => {
+    const frequent = BILLING_PRODUCTS['consumer-frequent-chraveler'];
+    expect(frequent.entitlements).toEqual(
+      expect.arrayContaining([
+        'ai_queries_unlimited',
+        'trips_unlimited',
+        'pdf_export',
+        'calendar_sync',
+        'channels_enabled',
+        'roles_enabled',
+      ]),
+    );
+    expect(FEATURE_LIMITS.ai_concierge['frequent-chraveler']).toBe(-1);
+    expect(FEATURE_LIMITS.trip_creation['frequent-chraveler']).toBe(-1);
+    expect(FEATURE_LIMITS.channels['frequent-chraveler']).toBe(-1);
+    expect(FEATURE_LIMITS.roles['frequent-chraveler']).toBe(-1);
   });
 });
 

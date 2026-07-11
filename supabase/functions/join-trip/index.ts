@@ -19,6 +19,11 @@ const JOIN_TRIP_RATE_LIMIT_WINDOW_SECONDS = 60;
 const MAX_INVITE_CODE_LENGTH = 128;
 const MAX_REQUEST_CONTENT_LENGTH_BYTES = 4 * 1024;
 
+type TripMemberAccessRow = {
+  id: string;
+  status?: string | null;
+};
+
 /**
  * Error codes for join-trip failures.
  * These map to the InviteErrorCode type in the frontend for targeted CTAs.
@@ -60,6 +65,45 @@ function errorResponse(
 
 function successResponse(data: Record<string, unknown>, corsHeaders: HeadersInit): Response {
   return createJsonResponse({ success: true, ...data }, 200, corsHeaders);
+}
+
+function isMissingTripMemberStatusError(error: { message?: string } | null): boolean {
+  const message = error?.message ?? '';
+  return message.includes('status') && message.includes('trip_members');
+}
+
+async function fetchTripMemberAccessRow(
+  supabaseClient: ReturnType<typeof createClient>,
+  tripId: string,
+  userId: string,
+): Promise<TripMemberAccessRow | null> {
+  const statusQuery = await supabaseClient
+    .from('trip_members')
+    .select('id, status')
+    .eq('trip_id', tripId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (!statusQuery.error) {
+    return statusQuery.data as TripMemberAccessRow | null;
+  }
+
+  if (!isMissingTripMemberStatusError(statusQuery.error)) {
+    throw statusQuery.error;
+  }
+
+  const fallbackQuery = await supabaseClient
+    .from('trip_members')
+    .select('id')
+    .eq('trip_id', tripId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (fallbackQuery.error) {
+    throw fallbackQuery.error;
+  }
+
+  return fallbackQuery.data as TripMemberAccessRow | null;
 }
 
 serve(async req => {
@@ -203,15 +247,17 @@ serve(async req => {
       );
     }
 
-    // Check if user is already an active member (exclude status=left for re-join)
-    const { data: existingMember } = await supabaseClient
-      .from('trip_members')
-      .select('id')
-      .eq('trip_id', invite.trip_id)
-      .eq('user_id', user.id)
-      .maybeSingle();
+    // Check if user is already an active member. Left/inactive rows must fall back
+    // through the request flow so approval can reactivate membership cleanly.
+    const existingMember = await fetchTripMemberAccessRow(supabaseClient, invite.trip_id, user.id);
 
-    if (existingMember) {
+    const isActiveMember =
+      !!existingMember &&
+      (existingMember.status === null ||
+        existingMember.status === undefined ||
+        existingMember.status === 'active');
+
+    if (isActiveMember) {
       logStep('User already a member', { tripId: invite.trip_id });
 
       // Get trip details for redirect
@@ -261,6 +307,24 @@ serve(async req => {
       );
     }
 
+    // Check if trip is at member capacity before accepting join requests
+    const { data: atCapacity, error: capacityError } = await supabaseClient.rpc(
+      'is_trip_at_member_capacity',
+      { p_trip_id: invite.trip_id },
+    );
+
+    if (capacityError) {
+      logStep('WARNING: member capacity check failed', { error: capacityError.message });
+    } else if (atCapacity === true) {
+      logStep('ERROR: Trip at member capacity', { tripId: invite.trip_id });
+      return errorResponse(
+        'This trip has reached its member limit. Ask the organizer to upgrade their plan or remove members.',
+        403,
+        corsHeaders,
+        'TRIP_FULL',
+      );
+    }
+
     logStep('Trip found', { tripName: trip.name, tripType: trip.trip_type });
 
     // SECURITY: All trip types require approval for join requests.
@@ -302,6 +366,14 @@ serve(async req => {
 
       logStep('Requester profile captured', { requesterName, requesterEmail });
 
+      // Shared "episode" timestamp: reused-row paths below (rejected→pending,
+      // approved→pending) UPDATE the same trip_join_requests.id rather than
+      // inserting a fresh row, so joinRequestId alone is not a safe fanout key —
+      // it would collide with whatever notification key was used the first time
+      // this id was pending. Folding this timestamp into the key gives each
+      // pending episode its own identity even when the row id repeats.
+      const requestEpisodeAt = new Date().toISOString();
+
       // Check if user has an existing request for this trip
       const { data: existingRequest } = await supabaseClient
         .from('trip_join_requests')
@@ -342,7 +414,7 @@ serve(async req => {
             .from('trip_join_requests')
             .update({
               status: 'pending',
-              requested_at: new Date().toISOString(),
+              requested_at: requestEpisodeAt,
               resolved_at: null,
               resolved_by: null,
               invite_code: normalizedInviteCode,
@@ -374,7 +446,7 @@ serve(async req => {
             .from('trip_join_requests')
             .update({
               status: 'pending',
-              requested_at: new Date().toISOString(),
+              requested_at: requestEpisodeAt,
               resolved_at: null,
               resolved_by: null,
               invite_code: normalizedInviteCode,
@@ -439,21 +511,6 @@ serve(async req => {
 
         joinRequestId = joinRequest?.id;
         logStep('Join request created successfully', { requestId: joinRequestId });
-
-        // Increment current_uses on the invite with optimistic concurrency
-        const currentUses = invite.current_uses ?? 0;
-        const { error: incrementError } = await supabaseClient
-          .from('trip_invites')
-          .update({ current_uses: currentUses + 1 })
-          .eq('code', normalizedInviteCode)
-          .eq('current_uses', currentUses); // optimistic lock
-
-        if (incrementError) {
-          // Non-fatal: log but don't fail the join request
-          logStep('WARNING: Failed to increment current_uses', { error: incrementError.message });
-        } else {
-          logStep('Incremented current_uses', { from: currentUses, to: currentUses + 1 });
-        }
       }
 
       // Note: requesterName and requesterEmail were already captured above
@@ -480,11 +537,16 @@ serve(async req => {
         // Consumer trips (My Trips): Notify ALL current trip members
         const { data: members } = await supabaseClient
           .from('trip_members')
-          .select('user_id')
+          .select('user_id, status')
           .eq('trip_id', invite.trip_id);
 
         if (members && members.length > 0) {
-          recipientIds = members.map(m => m.user_id);
+          recipientIds = members
+            .filter(
+              member =>
+                member.status === null || member.status === undefined || member.status === 'active',
+            )
+            .map(member => member.user_id);
         } else {
           // Fallback to just creator if no members found
           recipientIds = [trip.created_by];
@@ -492,7 +554,17 @@ serve(async req => {
         logStep('Consumer trip: Notifying all members', { count: recipientIds.length });
       }
 
-      // Create notifications for all recipients
+      // Create notifications for all recipients. fanout_event_key is a GENERATED
+      // column from metadata->>'fanout_event_key'. Scoped to this pending episode
+      // (request row id + the timestamp it most recently became pending), not
+      // just the row id: rejected→pending and approved→pending both UPDATE the
+      // same existing row rather than inserting a new one, so the id alone would
+      // collide with whatever notification key was used the first time this row
+      // was pending — silently swallowing the exact re-request notification the
+      // 24h cooldown (or leave-then-rejoin) flow is supposed to deliver. A fresh
+      // insert also gets a fresh id, so this still dedupes accidental repeat
+      // attempts within the same request event without blocking later ones.
+      const fanoutEventKey = `join_request:${joinRequestId}:${requestEpisodeAt}`;
       const notificationPromises = recipientIds.map(recipientId =>
         supabaseClient.from('notifications').insert({
           user_id: recipientId,
@@ -506,13 +578,25 @@ serve(async req => {
             requester_id: user.id,
             requester_name: requesterName,
             request_id: joinRequestId,
+            fanout_event_key: fanoutEventKey,
           },
         }),
       );
 
       const notificationResults = await Promise.allSettled(notificationPromises);
-      const successCount = notificationResults.filter(r => r.status === 'fulfilled').length;
-      logStep('Notifications created', { total: recipientIds.length, success: successCount });
+      // 23505 = unique violation on the fanout key: recipient was already notified
+      // about this specific request — dedupe, not failure.
+      const successCount = notificationResults.filter(
+        r => r.status === 'fulfilled' && !r.value.error,
+      ).length;
+      const dedupedCount = notificationResults.filter(
+        r => r.status === 'fulfilled' && r.value.error?.code === '23505',
+      ).length;
+      logStep('Notifications created', {
+        total: recipientIds.length,
+        success: successCount,
+        deduped: dedupedCount,
+      });
 
       return successResponse(
         {

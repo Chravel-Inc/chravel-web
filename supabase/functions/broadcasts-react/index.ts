@@ -19,8 +19,8 @@ serve(async req => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Missing authorization header');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return createErrorResponse('Authentication required', 401);
     }
 
     // Get user from auth token
@@ -31,7 +31,7 @@ serve(async req => {
     } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      throw new Error('Invalid authentication token');
+      return createErrorResponse('Authentication required', 401);
     }
 
     const { broadcast_id, reaction_type } = await req.json();
@@ -42,6 +42,28 @@ serve(async req => {
 
     if (!['coming', 'wait', 'cant'].includes(reaction_type)) {
       throw new Error('Invalid reaction_type. Must be: coming, wait, or cant');
+    }
+
+    const { data: broadcast, error: broadcastError } = await supabase
+      .from('broadcasts')
+      .select('id, trip_id')
+      .eq('id', broadcast_id)
+      .maybeSingle();
+
+    if (broadcastError || !broadcast) {
+      return createErrorResponse('Broadcast not found', 404);
+    }
+
+    const { data: membership } = await supabase
+      .from('trip_members')
+      .select('id')
+      .eq('trip_id', broadcast.trip_id)
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .maybeSingle();
+
+    if (!membership) {
+      return createErrorResponse('Broadcast not found', 404);
     }
 
     // Get user profile for reaction info
@@ -105,8 +127,7 @@ serve(async req => {
     );
   } catch (error) {
     console.error('Error in broadcasts-react function:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    return new Response(JSON.stringify({ error: 'Unexpected error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

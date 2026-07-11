@@ -2,7 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="/chravel-pwa-icon.png" type="image/png" />
+    <link rel="icon" href="/favicon.ico?v=goldc1" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icon-32.png?v=goldc1" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icon-16.png?v=goldc1" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="google-site-verification" content="_vGHVoZzxpDpMwNdaDifY4wMzQS38I1AwrvK2MM15cA" />
     <!-- Cache-Control headers handled by hosting (vercel.json). Hashed asset filenames make caching safe. -->
@@ -15,7 +17,7 @@
     <!-- Security Headers -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://*.supabase.co https://*.googleapis.com https://maps.googleapis.com https://maps.gstatic.com https://js.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://r2cdn.perplexity.ai; img-src 'self' data: blob: https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://maps.gstatic.com https://maps.googleapis.com https://*.ggpht.com https://*.stream-io-cdn.com; media-src 'self' blob: data: https://*.supabase.co https://*.stream-io-cdn.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.stream-io-api.com wss://*.stream-io-api.com https://maps.googleapis.com https://generativelanguage.googleapis.com wss://generativelanguage.googleapis.com https://ai.gateway.lovable.dev https://api.stripe.com; worker-src 'self' blob:; frame-src 'self' https://*.google.com https://google.com https://maps.google.com https://www.google.com https://*.googleapis.com https://*.gstatic.com https://js.stripe.com https://checkout.stripe.com; child-src 'self' https://*.google.com https://google.com https://maps.google.com https://www.google.com https://*.googleapis.com https://*.gstatic.com https://js.stripe.com https://checkout.stripe.com; base-uri 'self'; form-action 'self';"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://*.supabase.co https://*.googleapis.com https://maps.googleapis.com https://maps.gstatic.com https://js.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://r2cdn.perplexity.ai; img-src 'self' data: blob: https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://maps.gstatic.com https://maps.googleapis.com https://*.ggpht.com https://*.stream-io-cdn.com; media-src 'self' blob: data: https://*.supabase.co https://*.stream-io-cdn.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.stream-io-api.com wss://*.stream-io-api.com https://maps.googleapis.com https://generativelanguage.googleapis.com wss://generativelanguage.googleapis.com https://ai.gateway.lovable.dev https://ai-gateway.vercel.sh wss://ai-gateway.vercel.sh https://api.stripe.com; worker-src 'self' blob:; frame-src 'self' https://*.google.com https://google.com https://maps.google.com https://www.google.com https://*.googleapis.com https://*.gstatic.com https://js.stripe.com https://checkout.stripe.com; child-src 'self' https://*.google.com https://google.com https://maps.google.com https://www.google.com https://*.googleapis.com https://*.gstatic.com https://js.stripe.com https://checkout.stripe.com; base-uri 'self'; form-action 'self';"
     />
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
     <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
@@ -31,9 +33,8 @@
     <meta name="mobile-web-app-capable" content="yes" />
 
     <!-- iOS App Icons -->
-    <link rel="apple-touch-icon" href="/chravel-pwa-icon.png" />
-    <link rel="apple-touch-icon" sizes="152x152" href="/chravel-pwa-icon.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/chravel-pwa-icon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=goldc1" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=goldc1" />
 
     <!-- Theme colors -->
     <meta name="theme-color" content="#c49746" />
@@ -46,7 +47,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-touch-fullscreen" content="yes" />
 
-    <meta name="description" content="Chravel is the group chat travel app — coordinate itineraries, chat, places, polls, tasks, and payments for friends, families, teams, and events in one shared workspace." />
+    <meta
+      name="description"
+      content="Chravel is the group chat travel app — coordinate itineraries, chat, places, polls, tasks, and payments for friends, families, teams, and events in one shared workspace."
+    />
 
     <link rel="preconnect" href="https://jmjiyekmxwsxkfnqwyaa.supabase.co" crossorigin />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -59,7 +63,6 @@
       }
     </style>
 
-
     <meta property="og:site_name" content="ChravelApp" />
     <meta property="og:image" content="https://chravel.app/chravelapp-social-20251219.png" />
     <meta name="twitter:image" content="https://chravel.app/chravelapp-social-20251219.png" />
@@ -67,8 +70,14 @@
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Chravel — The Group Chat Travel App" />
     <meta name="twitter:title" content="Chravel — The Group Chat Travel App" />
-    <meta property="og:description" content="Coordinate group trips, events, and team travel with shared chat, itineraries, places, polls, tasks, and payments — all in one app." />
-    <meta name="twitter:description" content="Coordinate group trips, events, and team travel with shared chat, itineraries, places, polls, tasks, and payments — all in one app." />
+    <meta
+      property="og:description"
+      content="Coordinate group trips, events, and team travel with shared chat, itineraries, places, polls, tasks, and payments — all in one app."
+    />
+    <meta
+      name="twitter:description"
+      content="Coordinate group trips, events, and team travel with shared chat, itineraries, places, polls, tasks, and payments — all in one app."
+    />
   </head>
   <body>
     <!-- Static splash: paints with the HTML, before any JS downloads or parses.

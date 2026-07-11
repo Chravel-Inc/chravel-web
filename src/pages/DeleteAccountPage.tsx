@@ -16,8 +16,8 @@ export default function DeleteAccountPage() {
         <div className="prose prose-invert max-w-none">
           <h1 className="text-4xl font-bold mb-4">Delete Your Account</h1>
           <p className="text-muted-foreground mb-8">
-            We're sorry to see you go. Here's how to delete your Chravel account and what happens to
-            your data.
+            We're sorry to see you go. Here's how to delete your ChravelApp account and what happens
+            to your data.
           </p>
 
           <section className="mb-8">
@@ -36,8 +36,13 @@ export default function DeleteAccountPage() {
               <li>
                 Tap <strong>"Delete Account"</strong>
               </li>
-              <li>Confirm your identity by re-entering your password</li>
-              <li>Confirm the deletion</li>
+              <li>
+                Confirm the deletion by typing <strong>DELETE</strong>
+              </li>
+              <li>
+                If you signed up with email and password, re-enter your password to verify your
+                identity
+              </li>
             </ol>
           </section>
 
@@ -82,13 +87,12 @@ export default function DeleteAccountPage() {
           <section className="mb-8">
             <div className="flex items-center gap-3 mb-4">
               <Clock className="h-6 w-6 text-primary" />
-              <h2 className="text-2xl font-semibold m-0">30-Day Cancellation Window</h2>
+              <h2 className="text-2xl font-semibold m-0">Immediate Deletion</h2>
             </div>
             <p className="text-foreground/90">
-              After requesting deletion, your account enters a <strong>30-day grace period</strong>.
-              During this time, you can cancel the deletion by signing back in and choosing to
-              restore your account. After 30 days, the deletion is{' '}
-              <strong>permanent and irreversible</strong>.
+              Account deletion is processed <strong>immediately</strong> after you confirm. You will
+              be signed out and your account data will be permanently removed. This action is{' '}
+              <strong>irreversible</strong>.
             </p>
           </section>
 

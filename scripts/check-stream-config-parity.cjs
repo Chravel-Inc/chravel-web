@@ -64,11 +64,18 @@ requireValue('Frontend VITE_SUPABASE_URL', frontend.supabaseUrl);
 requireValue('Frontend VITE_SUPABASE_ANON_KEY', frontend.supabaseAnonKey);
 requireValue('Supabase STREAM_API_SECRET', supabase.streamApiSecret);
 
-compareEqual(
-  'Frontend VITE_STREAM_API_KEY matches Supabase STREAM_API_KEY',
-  frontend.streamApiKey,
-  supabase.streamApiKey,
-);
+if (present(frontend.streamApiKey.value)) {
+  compareEqual(
+    'Frontend VITE_STREAM_API_KEY matches Supabase STREAM_API_KEY',
+    frontend.streamApiKey,
+    supabase.streamApiKey,
+  );
+} else {
+  requireValue('Supabase STREAM_API_KEY', supabase.streamApiKey);
+  warn.push(
+    'Frontend VITE_STREAM_API_KEY is absent; client will resolve the public Stream key from stream-token at runtime.',
+  );
+}
 compareEqual(
   'Supabase STREAM_WEBHOOK_SECRET matches Stream Dashboard webhook secret',
   supabase.streamWebhookSecret,

@@ -6,6 +6,7 @@ import { supabase } from '../../integrations/supabase/client';
 import { useToast } from '../../hooks/use-toast';
 import { getConsistentAvatar } from '../../utils/avatarUtils';
 import { useNavigate } from 'react-router-dom';
+import { DeleteAccountDialog } from './DeleteAccountDialog';
 
 export const ConsumerProfileSection = () => {
   const { user, updateProfile, signOut } = useAuth();
@@ -20,6 +21,7 @@ export const ConsumerProfileSection = () => {
   const [phone, setPhone] = useState(user?.phone || '');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // Initialize state when user loads
   useEffect(() => {
@@ -214,16 +216,6 @@ export const ConsumerProfileSection = () => {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-3 mb-3">
-        <div className="w-12 h-12 bg-gradient-to-r from-gold-primary to-gold-mid rounded-xl flex items-center justify-center">
-          <User size={24} className="text-primary-foreground" />
-        </div>
-        <div>
-          <h3 className="text-2xl font-bold text-white">Profile Settings</h3>
-          <p className="text-gray-400">Manage your personal profile and preferences</p>
-        </div>
-      </div>
-
       {/* Profile Photo */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-3">
         <h4 className="text-base font-semibold text-white mb-2">Profile Photo</h4>
@@ -344,33 +336,31 @@ export const ConsumerProfileSection = () => {
         </div>
       </div>
 
-      {/* Sign Out Section */}
+      {/* Account actions — email shown in SettingsMenu header */}
       {user && (
         <div className="bg-white/5 border border-white/10 rounded-xl p-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="text-base font-semibold text-white">Account</h4>
-              <p className="text-sm text-gray-400">Signed in as {user.email}</p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <button
-                onClick={() => navigate('/settings', { state: { section: 'settings' } })}
-                className="flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 px-4 py-2 min-h-[44px] rounded-lg transition-colors"
-              >
-                <Trash2 size={16} />
-                Delete Account
-              </button>
-              <button
-                onClick={() => signOut()}
-                className="flex items-center justify-center gap-2 bg-destructive/10 hover:bg-destructive/20 border border-destructive/30 text-destructive px-4 py-2 min-h-[44px] rounded-lg transition-colors"
-              >
-                <LogOut size={16} />
-                Sign Out
-              </button>
-            </div>
+          <h4 className="text-base font-semibold text-white mb-3">Account</h4>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setShowDeleteDialog(true)}
+              className="flex-1 min-w-0 bg-destructive hover:bg-destructive/80 text-destructive-foreground font-medium px-4 py-2 min-h-[44px] rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
+            >
+              <Trash2 size={16} />
+              Delete Account
+            </button>
+            <button
+              type="button"
+              onClick={() => signOut()}
+              className="flex-1 min-w-0 bg-destructive hover:bg-destructive/80 text-destructive-foreground font-medium px-4 py-2 min-h-[44px] rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
+            >
+              <LogOut size={16} />
+              Sign Out
+            </button>
           </div>
         </div>
       )}
+      <DeleteAccountDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog} />
     </div>
   );
 };

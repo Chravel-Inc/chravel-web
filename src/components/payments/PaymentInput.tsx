@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { DollarSign, Users, CheckSquare, Wand2, Check } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { DollarSign, Users, CheckSquare, Wand2, Check, Search, Loader2 } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Button } from '../ui/button';
@@ -17,6 +17,7 @@ import { CurrencySelector } from './CurrencySelector';
 import { useFeatureFlag } from '@/lib/featureFlags';
 import { usePaymentAttachmentDraft } from '@/features/payments/hooks/usePaymentAttachmentDraft';
 import { PaymentAttachmentPicker } from '@/features/payments/components/PaymentAttachmentPicker';
+import { LARGE_LIST_THRESHOLDS } from '@/lib/largeListThresholds';
 
 interface PaymentInputProps {
   /**
@@ -37,6 +38,15 @@ interface PaymentInputProps {
   isVisible: boolean;
   tripId: string;
   /**
+   * When true, member search is server-driven (list_trip_members RPC).
+   * Parent should pass debounced search via memberSearchQuery / onMemberSearchChange.
+   */
+  isPaginatedRoster?: boolean;
+  memberSearchQuery?: string;
+  onMemberSearchChange?: (query: string) => void;
+  memberTotalCount?: number;
+  isSearchingMembers?: boolean;
+  /**
    * Whether to offer the optional attachment picker. Off for surfaces that don't persist a
    * payment id we can attach to (e.g. chat payment mode). Defaults to true.
    */
@@ -48,6 +58,11 @@ export const PaymentInput = ({
   tripMembers,
   isVisible,
   tripId,
+  isPaginatedRoster = false,
+  memberSearchQuery = '',
+  onMemberSearchChange,
+  memberTotalCount,
+  isSearchingMembers = false,
   enableAttachments = true,
 }: PaymentInputProps) => {
   const { user } = useAuth();
@@ -80,6 +95,30 @@ export const PaymentInput = ({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [localMemberSearchQuery, setLocalMemberSearchQuery] = useState('');
+  const isControlledMemberSearch = onMemberSearchChange !== undefined;
+  const effectiveMemberSearchQuery = isControlledMemberSearch
+    ? memberSearchQuery
+    : localMemberSearchQuery;
+  const handleMemberSearchChange = (query: string) => {
+    if (isControlledMemberSearch) {
+      onMemberSearchChange?.(query);
+      return;
+    }
+    setLocalMemberSearchQuery(query);
+  };
+
+  const filteredTripMembers = useMemo(() => {
+    if (isPaginatedRoster) return tripMembers;
+    const normalized = effectiveMemberSearchQuery.trim().toLowerCase();
+    if (!normalized) return tripMembers;
+    return tripMembers.filter(member => member.name.toLowerCase().includes(normalized));
+  }, [effectiveMemberSearchQuery, isPaginatedRoster, tripMembers]);
+
+  const showMemberSearch =
+    isPaginatedRoster || tripMembers.length >= LARGE_LIST_THRESHOLDS.paymentPickerSearchMinCount;
+  const resolvedMemberTotalCount = memberTotalCount ?? tripMembers.length;
+  const hasActiveMemberSearch = effectiveMemberSearchQuery.trim().length > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -279,10 +318,54 @@ export const PaymentInput = ({
                 type="button"
                 onClick={selectAllParticipants}
                 className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors font-medium"
+                aria-label={
+                  allParticipantsSelected
+                    ? hasActiveMemberSearch
+                      ? 'Deselect all shown members'
+                      : 'Deselect all trip members'
+                    : hasActiveMemberSearch
+                      ? 'Select all shown members'
+                      : 'Select all trip members'
+                }
               >
-                {allParticipantsSelected ? 'Deselect All' : 'Select All'}
+                {allParticipantsSelected
+                  ? 'Deselect All'
+                  : hasActiveMemberSearch
+                    ? 'Select All Shown'
+                    : 'Select All Trip Members'}
               </button>
             </div>
+
+            {showMemberSearch && (
+              <div className="relative mb-3">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={effectiveMemberSearchQuery}
+                  onChange={event => handleMemberSearchChange(event.target.value)}
+                  placeholder="Search members to split with…"
+                  className="pl-9 pr-9"
+                  aria-label="Search trip members"
+                />
+                {isSearchingMembers && (
+                  <Loader2
+                    className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground"
+                    aria-hidden
+                  />
+                )}
+              </div>
+            )}
+
+            {selectedParticipants.length > 0 && (
+              <p className="text-xs text-muted-foreground mb-2">
+                {selectedParticipants.length} of {resolvedMemberTotalCount} members selected
+              </p>
+            )}
+
+            {showMemberSearch && hasActiveMemberSearch && (
+              <p className="text-xs text-muted-foreground mb-2">
+                Showing {filteredTripMembers.length} of {resolvedMemberTotalCount}
+              </p>
+            )}
 
             {/* Auto-suggestions badge */}
             {autoSuggestions.length > 0 && !isDemoMode && (
@@ -307,16 +390,21 @@ export const PaymentInput = ({
             )}
 
             <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
-              {tripMembers.map(member => {
-                const isSelected = selectedParticipants.includes(member.id);
-                return (
-                  <button
-                    key={member.id}
-                    type="button"
-                    onClick={() => toggleParticipant(member.id)}
-                    aria-label={`${isSelected ? 'Remove' : 'Add'} ${member.name} from split`}
-                    aria-pressed={isSelected}
-                    className={`
+              {tripMembers.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-2">No trip members found.</p>
+              ) : filteredTripMembers.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-2">No members match your search.</p>
+              ) : (
+                filteredTripMembers.map(member => {
+                  const isSelected = selectedParticipants.includes(member.id);
+                  return (
+                    <button
+                      key={member.id}
+                      type="button"
+                      onClick={() => toggleParticipant(member.id)}
+                      aria-label={`${isSelected ? 'Remove' : 'Add'} ${member.name} from split`}
+                      aria-pressed={isSelected}
+                      className={`
                       inline-flex items-center gap-2 rounded-lg px-3 py-3 min-h-[44px] cursor-pointer transition-all w-auto shrink-0
                       ${
                         isSelected
@@ -324,10 +412,10 @@ export const PaymentInput = ({
                           : 'bg-glass-slate-bg/50 hover:bg-muted/60 border-2 border-transparent'
                       }
                     `}
-                  >
-                    {/* Checkmark indicator */}
-                    <div
-                      className={`
+                    >
+                      {/* Checkmark indicator */}
+                      <div
+                        className={`
                       w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all
                       ${
                         isSelected
@@ -335,24 +423,25 @@ export const PaymentInput = ({
                           : 'bg-muted border border-border'
                       }
                     `}
-                    >
-                      {isSelected && <Check size={12} strokeWidth={3} />}
-                    </div>
-                    {member.avatar && (
-                      <img
-                        src={member.avatar}
-                        alt={member.name}
-                        className="w-6 h-6 rounded-full object-cover shrink-0"
-                      />
-                    )}
-                    <span
-                      className={`text-sm whitespace-nowrap ${isSelected ? 'text-foreground font-medium' : 'text-muted-foreground'}`}
-                    >
-                      {member.name}
-                    </span>
-                  </button>
-                );
-              })}
+                      >
+                        {isSelected && <Check size={12} strokeWidth={3} />}
+                      </div>
+                      {member.avatar && (
+                        <img
+                          src={member.avatar}
+                          alt={member.name}
+                          className="w-6 h-6 rounded-full object-cover shrink-0"
+                        />
+                      )}
+                      <span
+                        className={`text-sm whitespace-nowrap ${isSelected ? 'text-foreground font-medium' : 'text-muted-foreground'}`}
+                      >
+                        {member.name}
+                      </span>
+                    </button>
+                  );
+                })
+              )}
             </div>
           </div>
 

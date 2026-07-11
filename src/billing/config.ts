@@ -53,7 +53,7 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
     priceAnnual: 99,
     entitlements: [
       'ai_queries_extended',
-      'trips_extended',
+      'trips_unlimited',
       'storage_extended',
       'payments_extended',
       'pdf_export',
@@ -84,6 +84,8 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
       'voice_concierge',
       'pro_trip_creation',
       'events_create',
+      'channels_enabled',
+      'roles_enabled',
       // Attendee-cap entitlements are NOT enforced anywhere yet (no join-path
       // check produces a "trip full" error). Pricing copy must not advertise
       // numeric attendee caps until enforcement exists.
@@ -102,7 +104,8 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
     stripeProductId: 'prod_U73Vlcl4lqgsb4',
     stripePriceIdMonthly: 'price_1T8pOe47wCAQ57MmkShIK75i',
     stripePriceIdAnnual: 'price_1T8pOe47wCAQ57MmkShIK75i', // Pro plans monthly only
-    requiresIAPOnIOS: false, // B2B exception
+    appleProductIdMonthly: 'com.chravel.pro.starter.monthly',
+    requiresIAPOnIOS: false, // B2B exception; iOS still offers optional IAP for review parity
     priceMonthly: 49,
     priceAnnual: 490,
     entitlements: [
@@ -125,6 +128,7 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
     stripeProductId: 'prod_U73VPX6TlClQ7J',
     stripePriceIdMonthly: 'price_1T8pOf47wCAQ57Mm5k8uVQrW',
     stripePriceIdAnnual: 'price_1T8pOf47wCAQ57Mm5k8uVQrW', // Pro plans monthly only
+    appleProductIdMonthly: 'com.chravel.pro.growth.monthly',
     requiresIAPOnIOS: false,
     priceMonthly: 99,
     priceAnnual: 990,
@@ -186,6 +190,10 @@ export interface TripPassConfig {
   name: string;
   stripeProductId: string;
   stripePriceId: string;
+  /** App Store Connect / RevenueCat product identifier (non-renewing IAP). */
+  appleProductId: string;
+  /** Google Play Console / RevenueCat product identifier (managed in-app product). */
+  googleProductId: string;
   durationDays: number;
   tier: SubscriptionTier;
   price: number;
@@ -197,6 +205,8 @@ export const TRIP_PASS_PRODUCTS: Record<string, TripPassConfig> = {
     name: 'Explorer Trip Pass (45 days)',
     stripeProductId: 'prod_U73WaALe9yjrAR',
     stripePriceId: 'price_1T8pP047wCAQ57Mm6sfNTg2w',
+    appleProductId: 'com.chravel.trippass.explorer',
+    googleProductId: 'com.chravel.trippass.explorer',
     durationDays: 45,
     tier: 'explorer',
     price: 39.99,
@@ -206,6 +216,8 @@ export const TRIP_PASS_PRODUCTS: Record<string, TripPassConfig> = {
     name: 'Frequent Chraveler Trip Pass (90 days)',
     stripeProductId: 'prod_U73W99ebeJvbLB',
     stripePriceId: 'price_1T8pP047wCAQ57Mm2DOch99F',
+    appleProductId: 'com.chravel.trippass.frequent',
+    googleProductId: 'com.chravel.trippass.frequent',
     durationDays: 90,
     tier: 'frequent-chraveler',
     price: 74.99,
@@ -240,10 +252,12 @@ export const FREE_ENTITLEMENTS: EntitlementId[] = [
  */
 export const BILLING_FLAGS = {
   /**
-   * Set to true when Apple IAP is fully implemented.
-   * When false, iOS users will see "Subscribe on web" prompt.
+   * Apple IAP must stay enabled for iOS-native review builds. The iOS paywall
+   * surfaces call RevenueCat directly; disabling this flag or reintroducing
+   * web checkout references in native iOS builds risks App Review 2.1(b)/3.1.1
+   * rejection when subscriptions are visible in the binary.
    */
-  APPLE_IAP_ENABLED: false,
+  APPLE_IAP_ENABLED: true,
 
   /**
    * Set to true when Google Play Billing is implemented.

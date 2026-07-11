@@ -46,6 +46,7 @@ import { gmailAcceptedCandidatesToSmartParseResult } from '@/features/calendar/u
 import { normalizeCalendarCategory } from '@/constants/calendarCategories';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { useDeferredPaidAccess } from '@/hooks/useDeferredPaidAccess';
+import { useFeatureFlag } from '@/lib/featureFlags';
 import { useNavigate } from 'react-router-dom';
 
 interface CalendarImportModalProps {
@@ -64,15 +65,17 @@ interface CalendarImportModalProps {
 
 type ImportState = 'idle' | 'parsing' | 'preview' | 'importing' | 'complete' | 'review_gmail';
 
-const FORMAT_BADGES = [
-  { label: 'ICS', icon: Calendar },
-  { label: 'CSV', icon: FileSpreadsheet },
-  { label: 'Excel', icon: FileSpreadsheet },
-  { label: 'PDF', icon: FileText },
-  { label: 'Image', icon: Image },
-  { label: 'URL', icon: Globe },
-  { label: 'Gmail', icon: Mail },
-];
+const buildFormatBadges = (includeGmail: boolean) => {
+  const base = [
+    { label: 'ICS', icon: Calendar },
+    { label: 'CSV', icon: FileSpreadsheet },
+    { label: 'Excel', icon: FileSpreadsheet },
+    { label: 'PDF', icon: FileText },
+    { label: 'Image', icon: Image },
+    { label: 'URL', icon: Globe },
+  ];
+  return includeGmail ? [...base, { label: 'Gmail', icon: Mail }] : base;
+};
 
 const IMPORT_CONTROL_CLASS =
   'h-12 min-h-[48px] rounded-xl border-amber-500/60 hover:bg-amber-400 hover:text-black hover:border-amber-400';
@@ -100,12 +103,15 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { tier, subscription, isSuperAdmin } = useConsumerSubscription();
-  const canUseGmailSmartImport = useDeferredPaidAccess({
+  const gmailFlagEnabled = useFeatureFlag('gmail_smart_import', false);
+  const hasPaidAccess = useDeferredPaidAccess({
     tier,
     status: subscription?.status,
     isSuperAdmin,
     active: isOpen,
   });
+  const canUseGmailSmartImport = gmailFlagEnabled && hasPaidAccess;
+  const formatBadges = buildFormatBadges(gmailFlagEnabled);
   const { onDragOverCapture, onDropCapture } = useModalFileDropGuard({ enabled: isOpen });
 
   const processParseResult = useCallback(
@@ -371,7 +377,7 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
 
                 {/* Format badges */}
                 <div className="flex flex-wrap justify-center gap-1.5 mb-4">
-                  {FORMAT_BADGES.map(({ label, icon: Icon }) => (
+                  {formatBadges.map(({ label, icon: Icon }) => (
                     <span
                       key={label}
                       className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground"
@@ -430,53 +436,55 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
                 </div>
               </div>
 
-              <div
-                className="rounded-xl border border-border/60 bg-muted/20 px-3 py-3 mb-1"
-                onClick={e => e.stopPropagation()}
-                onKeyDown={e => e.stopPropagation()}
-              >
-                <p className="text-xs text-muted-foreground mb-2 text-center flex items-center justify-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 shrink-0" aria-hidden />
-                  or scan Gmail for reservations
-                </p>
-                {canUseGmailSmartImport ? (
-                  <SmartImportGmail
-                    tripId={tripId}
-                    onImportStarted={() => {
-                      setParsingSource('gmail');
-                      setState('parsing');
-                    }}
-                    onImportComplete={candidates => {
-                      setGmailCandidates(candidates);
-                      setState('review_gmail');
-                    }}
-                    onImportError={() => setState('idle')}
-                  />
-                ) : (
-                  <div className="text-center text-sm text-muted-foreground px-2 pb-2 space-y-2">
-                    <p>Gmail scanning is available on Explorer and above.</p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="min-h-[44px]"
-                      type="button"
-                      onClick={async () => {
-                        const { getFeaturePaywallConfig } =
-                          await import('@/components/subscription/featurePaywall');
-                        const paywall = getFeaturePaywallConfig('smart_import_calendar');
-                        navigate(
-                          `${paywall.destination.pathname}${paywall.destination.search}`,
-                          paywall.destination.state
-                            ? { state: paywall.destination.state }
-                            : undefined,
-                        );
+              {gmailFlagEnabled && (
+                <div
+                  className="rounded-xl border border-border/60 bg-muted/20 px-3 py-3 mb-1"
+                  onClick={e => e.stopPropagation()}
+                  onKeyDown={e => e.stopPropagation()}
+                >
+                  <p className="text-xs text-muted-foreground mb-2 text-center flex items-center justify-center gap-1.5">
+                    <Mail className="w-3.5 h-3.5 shrink-0" aria-hidden />
+                    or scan Gmail for reservations
+                  </p>
+                  {canUseGmailSmartImport ? (
+                    <SmartImportGmail
+                      tripId={tripId}
+                      onImportStarted={() => {
+                        setParsingSource('gmail');
+                        setState('parsing');
                       }}
-                    >
-                      View plans
-                    </Button>
-                  </div>
-                )}
-              </div>
+                      onImportComplete={candidates => {
+                        setGmailCandidates(candidates);
+                        setState('review_gmail');
+                      }}
+                      onImportError={() => setState('idle')}
+                    />
+                  ) : (
+                    <div className="text-center text-sm text-muted-foreground px-2 pb-2 space-y-2">
+                      <p>Gmail scanning is available on Explorer and above.</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="min-h-[44px]"
+                        type="button"
+                        onClick={async () => {
+                          const { getFeaturePaywallConfig } =
+                            await import('@/components/subscription/featurePaywall');
+                          const paywall = getFeaturePaywallConfig('smart_import_calendar');
+                          navigate(
+                            `${paywall.destination.pathname}${paywall.destination.search}`,
+                            paywall.destination.state
+                              ? { state: paywall.destination.state }
+                              : undefined,
+                          );
+                        }}
+                      >
+                        View plans
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Paste schedule toggle */}
               <div className="flex items-center gap-3 px-1">
