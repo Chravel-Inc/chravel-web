@@ -100,33 +100,63 @@ export const usePrefetchTrip = () => {
           break;
 
         case 'chat':
-          queryClient.prefetchQuery({
-            queryKey: tripKeys.chat(tripId),
-            queryFn: async () => {
-              const { data } = await supabase
-                .from('trip_chat_messages')
-                .select('*')
-                .eq('trip_id', tripId)
-                .eq('is_deleted', false)
-                .order('created_at', { ascending: false })
-                .limit(15);
-              return (data || []).reverse();
-            },
-            staleTime: QUERY_CACHE_CONFIG.chat.staleTime,
-          });
+          // Stream-backed chat — chunk preload only; legacy Supabase prefetch wasted RTT.
           break;
 
         case 'tasks':
           queryClient.prefetchQuery({
             queryKey: tripKeys.tasks(tripId, false),
             queryFn: async () => {
-              const { data } = await supabase
+              const { data: tasks, error } = await supabase
                 .from('trip_tasks')
-                .select('*, task_status(*), creator:creator_id(id, display_name, avatar_url)')
+                .select(
+                  `
+                  *,
+                  task_status(*),
+                  creator:creator_id (
+                    id,
+                    display_name,
+                    avatar_url
+                  )
+                `,
+                )
                 .eq('trip_id', tripId)
                 .order('created_at', { ascending: false })
                 .limit(50);
-              return data || [];
+
+              if (error) throw error;
+              if (!tasks?.length) return [];
+
+              // Match useTripTasks transform so prefetched cache is immediately usable.
+              return tasks.map(task => {
+                const creator = task.creator as {
+                  display_name?: string;
+                  avatar_url?: string;
+                } | null;
+                const taskStatusRows = (task.task_status || []) as Array<{
+                  task_id: string;
+                  user_id: string;
+                  completed: boolean;
+                  completed_at?: string;
+                }>;
+                return {
+                  id: task.id,
+                  trip_id: task.trip_id,
+                  creator_id: task.creator_id,
+                  title: task.title,
+                  description: task.description,
+                  due_at: task.due_at,
+                  is_poll: task.is_poll,
+                  created_at: task.created_at,
+                  updated_at: task.updated_at,
+                  creator: {
+                    id: task.creator_id,
+                    name: creator?.display_name || 'Former Member',
+                    avatar: creator?.avatar_url,
+                  },
+                  task_status: taskStatusRows,
+                };
+              });
             },
             staleTime: QUERY_CACHE_CONFIG.tasks.staleTime,
           });
