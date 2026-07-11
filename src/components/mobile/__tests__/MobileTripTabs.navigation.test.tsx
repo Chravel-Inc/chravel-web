@@ -110,6 +110,13 @@ describe('MobileTripTabs tab navigation', () => {
     expect(style.overscrollBehaviorY).toBe('none');
   });
 
+  it('keeps concierge tab panel scroll-contained so its composer stays pinned', async () => {
+    render(
+      <MobileTripTabs
+        activeTab="concierge"
+        onTabChange={vi.fn()}
+        tripId="trip-1"
+        basecamp={{ name: 'Hotel', address: 'Tokyo' }}
   it('passes a live isActive=true to Concierge while that tab is selected', async () => {
     // Regression: renderTabContent omitted activeTab from useCallback deps, so
     // Concierge stayed isActive=false after the first visit and Search auto-closed.
@@ -124,6 +131,15 @@ describe('MobileTripTabs tab navigation', () => {
       />,
     );
 
+    expect(await screen.findByText('Concierge tab')).toBeInTheDocument();
+
+    const conciergePanel = document.querySelector('[data-tab-panel="concierge"]');
+    expect(conciergePanel).toBeTruthy();
+    expect(conciergePanel?.getAttribute('data-scroll-contained')).toBe('true');
+
+    const style = (conciergePanel as HTMLElement).style;
+    expect(style.overflowY).toBe('hidden');
+    expect(style.overscrollBehaviorY).toBe('none');
     expect(conciergePropsSpy.last).toBeNull();
 
     rerender(

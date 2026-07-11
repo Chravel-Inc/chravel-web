@@ -32,6 +32,9 @@ import { EventTabKey, resolveEventTabsForRole } from '@/lib/eventTabs';
 import { useEventTabSettings } from '@/hooks/useEventTabSettings';
 import { retryImport } from '@/lib/retryImport';
 
+/** Tabs that pin a bottom composer — parent panel must not scroll (only inner message list). */
+const FIXED_BOTTOM_COMPOSER_TABS = new Set(['chat', 'concierge']);
+
 // ⚡ PERFORMANCE: Lazy load all tab components for code splitting
 // retryImport handles stale-chunk failures with exponential backoff
 const TripChat = lazy(() =>
@@ -566,7 +569,7 @@ export const MobileTripTabs = ({
   }, [activeTab, isEventAdmin, onTabChange, tabs, variant]);
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+    <div className="flex flex-col flex-1 min-h-0">
       {/* Horizontal Scrollable Tab Bar - Fixed flex item, always visible */}
       <div className="flex-shrink-0 z-40 bg-black/95 backdrop-blur-md border-b border-white/10">
         <div
