@@ -1,3 +1,10 @@
+2026-07-11 — Concierge App Store waveform → dictation
+- Waveform left control now mounts VoiceButton → useConciergeVoice Web Speech dictation; removed duplicate in-field mic from AiChatInput.
+- Gated RealtimeVoiceButton behind concierge_realtime_voice (client default false + migration applied; flag disabled in ChravelApp prod). Realtime/Gateway code retained for experimental re-enable.
+- Repaired pre-existing MobileTripTabs.navigation.test.tsx syntax mash that blocked typecheck/lint on main.
+- Verification: focused Concierge controls + AiChatInput + RealtimeVoiceButton tests pass; typecheck, lint:check (--quiet), and build pass.
+
+
 2026-07-11 — PR # mobile composer follow-up
 - Added Concierge scroll-containment regression coverage alongside Chat so both fixed-bottom composer tabs assert hidden parent overflow and no parent overscroll.
 - Rechecked the original layout fix after installing missing dependencies; targeted MobileTripTabs test, lint:check, typecheck, and build pass.

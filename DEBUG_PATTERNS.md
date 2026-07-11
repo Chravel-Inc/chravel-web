@@ -501,14 +501,15 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Fixed in:** `MobileTripTabs.tsx`, `AIConciergeChat.tsx` (July 2026)
 
 ## Concierge waveform tap starts then silently dies
-- **Status:** confirmed
+- **Status:** mitigated (App Store path)
 - **Subsystem:** realtime voice / useRealtimeVoice
-- **Bug class:** effect teardown race on callback identity
+- **Bug class:** effect teardown race on callback identity (+ product instability)
 - **Symptom:** Waveform button click appears to do nothing; no overlay or brief flash.
-- **Root cause:** Unmount cleanup `useEffect(() => stop, [stop])` re-ran when caption helpers changed `stop` identity, aborting the session; always-mounted hook amplified the race.
-- **Smallest safe fix:** `stopRef` + empty-deps unmount cleanup; lazy-mount voice session after tap.
-- **Required tests:** RealtimeVoiceButton lazy-mount start test.
-- **Fixed in:** `useRealtimeVoice.ts`, `RealtimeVoiceButton.tsx` (July 2026)
+- **Root cause:** Unmount cleanup `useEffect(() => stop, [stop])` re-ran when caption helpers changed `stop` identity, aborting the session; always-mounted hook amplified the race. Repeated LiveKit/Gateway fixes still left realtime too flaky for App Store first impression.
+- **Smallest safe fix (launch):** Waveform mounts `VoiceButton` → Web Speech dictation; remove in-field duplicate mic; gate `RealtimeVoiceButton` behind `concierge_realtime_voice` (default OFF). Keep realtime code for experimental re-enable.
+- **Prior fix (retained):** `stopRef` + empty-deps unmount cleanup; lazy-mount voice session after tap.
+- **Required tests:** AIConciergeChat.controls asserts waveform → `handleConvoToggle`; realtime only when flag on; RealtimeVoiceButton lazy-mount test retained.
+- **Fixed in:** `AIConciergeChat.tsx`, `AiChatInput.tsx`, `VoiceButton.tsx`, migration `20260711210646_disable_realtime_voice_for_app_store.sql` (July 2026)
 
 ## Realtime voice connects then WS fails under meta CSP
 - **Status:** confirmed
