@@ -1,6 +1,10 @@
 /**
  * RealtimeVoiceButton — activation control + overlay for bidirectional realtime voice.
  *
+ * EXPERIMENTAL — not the App Store launch path. App Store Concierge uses waveform
+ * dictation (`VoiceButton`) instead. This component stays in the repo for future
+ * re-enable via `concierge_realtime_voice` (default OFF).
+ *
  * Self-contained so the (complex) AIConciergeChat only needs a one-line mount. The
  * `concierge_realtime_voice` kill switch is checked by the parent (AIConciergeChat)
  * so this component never renders when the flag is off — do NOT double-check it here

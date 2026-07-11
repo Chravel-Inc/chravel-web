@@ -32,8 +32,8 @@ import { useConciergeVoice } from '@/features/concierge/hooks/useConciergeVoice'
 import { useConciergeStreaming } from '@/features/concierge/hooks/useConciergeStreaming';
 import { useSmartImportTaste } from '@/features/smart-import/hooks/useSmartImportTaste';
 import { useConciergeConversationMode } from '@/features/concierge/hooks/useConciergeConversationMode';
-import { ConciergeConversationMic } from '@/features/concierge/components/ConciergeConversationMic';
 import { RealtimeVoiceButton } from '@/features/concierge/components/RealtimeVoiceButton';
+import { VoiceButton } from '@/features/chat/components/VoiceButton';
 import { useConversationModePreference } from '@/features/concierge/hooks/useConversationModePreference';
 import { useFeatureFlag, useFeatureFlagStatus } from '@/lib/featureFlags';
 
@@ -400,11 +400,12 @@ export const AIConciergeChat = ({
   const conversationModeFlag = useFeatureFlag('concierge_conversation_mode', true);
   const { enabled: conversationModeUserPref } = useConversationModePreference();
   const conversationModeEffective = conversationModeFlag && conversationModeUserPref && !isDemoMode;
-  // Bidirectional realtime voice — when enabled it becomes the primary left-of-input
-  // control, superseding the turn-based conversation mic. (In-box mic stays dictation.)
+  // Experimental bidirectional realtime voice — NOT the App Store launch path.
+  // Default OFF; only mounts when feature_flags.concierge_realtime_voice is re-enabled
+  // for internal/experimental testing. Launch UX: waveform → text dictation.
   const { enabled: realtimeVoiceFlagEnabled, isPending: realtimeVoiceFlagPending } =
-    useFeatureFlagStatus('concierge_realtime_voice', true);
-  const realtimeVoiceEnabled = realtimeVoiceFlagEnabled && !isDemoMode;
+    useFeatureFlagStatus('concierge_realtime_voice', false);
+  const experimentalRealtimeVoiceEnabled = realtimeVoiceFlagEnabled && !isDemoMode;
 
   const buildSpeechForMessage = useCallback((msg: ChatMessage) => {
     if (msg.type !== 'assistant' || !msg.content) return '';
@@ -701,9 +702,8 @@ export const AIConciergeChat = ({
                 </select>
               </div>
             )}
-          {/* Conversation Mode is enabled in Settings → AI Concierge → Conversation Mode.
-              The mic now lives inside the composer row (see `leftAccessory` below) so it
-              no longer consumes vertical chat space. */}
+          {/* Waveform left control: App Store path = text dictation via VoiceButton.
+              Experimental realtime voice only mounts when concierge_realtime_voice is on. */}
           <AiChatInput
             inputMessage={inputMessage}
             onInputChange={setInputMessage}
@@ -741,35 +741,27 @@ export const AIConciergeChat = ({
             }
             acceptedFileTypes={ALL_ACCEPTED_TYPES}
             convoVoiceState={convoVoiceState}
-            onConvoToggle={handleConvoToggle}
             isVoiceEligible={true}
             leftAccessory={
-              realtimeVoiceFlagPending ? undefined : realtimeVoiceEnabled ? (
-                // Primary left control: full bidirectional realtime voice.
+              realtimeVoiceFlagPending ? undefined : experimentalRealtimeVoiceEnabled ? (
+                // Experimental only — not App Store default. Kept for future re-enable.
                 <RealtimeVoiceButton
                   tripId={tripId}
                   disabled={usage?.isLimitReached ?? false}
                   containerRef={chatWindowRef}
-                  // Stop turn-based conversation mic AND in-field dictation before
-                  // opening a realtime session so nothing contends for the microphone.
                   onSessionStart={() => {
                     stopDictation();
                     if (conversation.active) conversation.toggle();
                   }}
                 />
-              ) : conversationModeEffective && conversation.isSupported ? (
-                // Fallback while realtime voice is dark-launched: turn-based conversation mic.
-                <ConciergeConversationMic
-                  active={conversation.active}
-                  state={conversation.state}
-                  onToggle={conversation.toggle}
-                  // Keep the mic tappable while a conversation is active so it can always
-                  // be stopped — even if the usage limit flips to reached mid-session (the
-                  // old Stop pill was never gated by the limit). Only block *starting* a
-                  // new hands-free session when the user is out of quota.
-                  disabled={!conversation.active && (usage?.isLimitReached ?? false)}
+              ) : (
+                // App Store launch path: waveform triggers Web Speech dictation.
+                <VoiceButton
+                  voiceState={convoVoiceState}
+                  isEligible={true}
+                  onToggle={handleConvoToggle}
                 />
-              ) : undefined
+              )
             }
             onQuickAction={
               UPLOAD_ENABLED && (attachedImages.length > 0 || attachedDocuments.length > 0)

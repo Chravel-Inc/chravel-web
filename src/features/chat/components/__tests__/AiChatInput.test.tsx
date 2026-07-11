@@ -20,9 +20,9 @@ describe('AiChatInput composer contracts', () => {
     expect(source).toMatch(/const sendDisabled = !canSend \|\| isTyping \|\| disabled/);
   });
 
-  it('keeps dictation mic gesture from focusing the textarea before STT', () => {
-    expect(source).toMatch(/data-testid="concierge-dictation-btn"/);
-    expect(source).toMatch(/onPointerDown=/);
-    expect(source).toMatch(/Prevent the textarea from focusing before the click handler runs/);
+  it('does not render a duplicate in-field dictation mic (waveform owns dictation)', () => {
+    expect(source).not.toMatch(/data-testid="concierge-dictation-btn"/);
+    expect(source).not.toMatch(/from 'lucide-react'.*Mic|,\s*Mic\s*[,}]/);
+    expect(source).toMatch(/no in-field mic/i);
   });
 });

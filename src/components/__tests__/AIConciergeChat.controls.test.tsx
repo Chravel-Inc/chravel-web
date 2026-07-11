@@ -15,9 +15,19 @@ const conciergeSearchState = vi.hoisted(() => ({
   isLoading: false,
 }));
 
+const conciergeVoiceMock = vi.hoisted(() => ({
+  handleConvoToggle: vi.fn(),
+  stopDictation: vi.fn(),
+  convoVoiceState: 'idle' as const,
+}));
+
 const realtimeVoiceMock = vi.hoisted(() => ({
   start: vi.fn().mockResolvedValue(undefined),
   stop: vi.fn(),
+}));
+
+const featureFlagState = vi.hoisted(() => ({
+  realtimeVoiceEnabled: false,
 }));
 
 const fileInputRef = vi.hoisted(() => ({ current: null as HTMLInputElement | null }));
@@ -140,9 +150,9 @@ vi.mock('@/features/concierge/hooks/useSmartImportActions', () => ({
 
 vi.mock('@/features/concierge/hooks/useConciergeVoice', () => ({
   useConciergeVoice: () => ({
-    convoVoiceState: 'idle',
-    handleConvoToggle: vi.fn(),
-    stopDictation: vi.fn(),
+    convoVoiceState: conciergeVoiceMock.convoVoiceState,
+    handleConvoToggle: conciergeVoiceMock.handleConvoToggle,
+    stopDictation: conciergeVoiceMock.stopDictation,
   }),
 }));
 
@@ -171,8 +181,14 @@ vi.mock('@/features/concierge/hooks/useConversationModePreference', () => ({
 }));
 
 vi.mock('@/lib/featureFlags', () => ({
-  useFeatureFlag: () => true,
-  useFeatureFlagStatus: () => ({ enabled: true, isPending: false }),
+  useFeatureFlag: (key: string, defaultValue = true) => {
+    if (key === 'concierge_realtime_voice') return featureFlagState.realtimeVoiceEnabled;
+    return defaultValue;
+  },
+  useFeatureFlagStatus: (key: string, defaultValue = true) => ({
+    enabled: key === 'concierge_realtime_voice' ? featureFlagState.realtimeVoiceEnabled : defaultValue,
+    isPending: false,
+  }),
 }));
 
 vi.mock('@/hooks/useUniversalSearch', () => ({
@@ -216,6 +232,7 @@ describe('AIConciergeChat controls (lean)', () => {
     vi.clearAllMocks();
     conciergeSearchState.results = [];
     conciergeSearchState.isLoading = false;
+    featureFlagState.realtimeVoiceEnabled = false;
     realtimeVoiceMock.start.mockResolvedValue(undefined);
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -269,10 +286,46 @@ describe('AIConciergeChat controls (lean)', () => {
     expect(screen.getByTestId('header-upload-btn').getAttribute('for')).toBe(input.id);
   });
 
-  it('lazy-mounts realtime voice and starts the session from the waveform button', async () => {
+  it('toggles text dictation from the waveform button (App Store launch path)', () => {
     renderChat();
 
+    expect(screen.queryByTestId('realtime-voice-button')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('concierge-dictation-btn')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('realtime-voice-overlay')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('concierge-waveform-dictation-btn'));
+    expect(conciergeVoiceMock.handleConvoToggle).toHaveBeenCalledTimes(1);
     expect(realtimeVoiceMock.start).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('realtime-voice-overlay')).not.toBeInTheDocument();
+  });
+
+  it('keeps Search, Attach, waveform Dictate, and Send available together', () => {
+    renderChat();
+
+    expect(screen.getByTestId('header-search-btn')).toBeInTheDocument();
+    expect(screen.getByTestId('header-upload-btn')).toBeInTheDocument();
+    expect(screen.getByTestId('concierge-waveform-dictation-btn')).toBeInTheDocument();
+    expect(screen.getByTestId('concierge-send-btn')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('header-search-btn'));
+    expect(screen.getByPlaceholderText(/search across trip/i)).toBeInTheDocument();
+  });
+
+  it('never shows the realtime overlay while concierge_realtime_voice is off', () => {
+    featureFlagState.realtimeVoiceEnabled = false;
+    renderChat();
+
+    fireEvent.click(screen.getByTestId('concierge-waveform-dictation-btn'));
+    expect(screen.queryByTestId('realtime-voice-overlay')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('realtime-voice-button')).not.toBeInTheDocument();
+    expect(realtimeVoiceMock.start).not.toHaveBeenCalled();
+  });
+
+  it('keeps experimental realtime voice behind the feature flag', async () => {
+    featureFlagState.realtimeVoiceEnabled = true;
+    renderChat();
+
+    expect(screen.queryByTestId('concierge-waveform-dictation-btn')).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId('realtime-voice-button'));
 
     await waitFor(() => {

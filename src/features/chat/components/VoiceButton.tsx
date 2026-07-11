@@ -19,7 +19,8 @@ interface VoiceButtonProps {
 
 /**
  * Waveform button — dedicated to one-shot dictation only.
- * Tap to start/stop Web Speech API dictation.
+ * Tap to start/stop Web Speech API dictation into the text field.
+ * App Store launch path: Concierge composer left control (not bidirectional realtime).
  */
 export const VoiceButton = ({
   voiceState,
@@ -54,9 +55,9 @@ export const VoiceButton = ({
 
   const getTooltip = () => {
     if (!isEligible) return 'Voice — Upgrade to use';
-    if (isActive) return 'Stop listening';
+    if (isActive) return 'Stop dictation';
     if (voiceState === 'error') return 'Tap to retry';
-    return 'Tap to dictate';
+    return 'Dictate a message';
   };
 
   return (
@@ -66,9 +67,16 @@ export const VoiceButton = ({
           <button
             type="button"
             onClick={handleClick}
+            onPointerDown={e => {
+              // Prevent the textarea from focusing before SpeechRecognition.start() —
+              // focusing the field on iOS can cancel the recognition session mid-gesture.
+              e.preventDefault();
+            }}
             className={`relative ${small ? 'size-6 min-w-[24px] sm:size-10 sm:min-w-[40px]' : 'size-11'} rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 shrink-0 select-none touch-manipulation ${getStyle()}`}
             aria-label={getTooltip()}
             aria-pressed={isActive}
+            title={getTooltip()}
+            data-testid="concierge-waveform-dictation-btn"
           >
             {/* Animated pulse rings when dictating */}
             {isActive && !isConnecting && (

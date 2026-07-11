@@ -117,15 +117,6 @@ describe('MobileTripTabs tab navigation', () => {
         onTabChange={vi.fn()}
         tripId="trip-1"
         basecamp={{ name: 'Hotel', address: 'Tokyo' }}
-  it('passes a live isActive=true to Concierge while that tab is selected', async () => {
-    // Regression: renderTabContent omitted activeTab from useCallback deps, so
-    // Concierge stayed isActive=false after the first visit and Search auto-closed.
-    const { rerender } = render(
-      <MobileTripTabs
-        activeTab="chat"
-        onTabChange={vi.fn()}
-        tripId="trip-1"
-        basecamp={{ name: 'Hotel', address: 'Tokyo' }}
         variant="pro"
         tripData={{ enabled_features: ['chat', 'calendar', 'concierge', 'media', 'payments'] }}
       />,
@@ -140,7 +131,25 @@ describe('MobileTripTabs tab navigation', () => {
     const style = (conciergePanel as HTMLElement).style;
     expect(style.overflowY).toBe('hidden');
     expect(style.overscrollBehaviorY).toBe('none');
-    expect(conciergePropsSpy.last).toBeNull();
+  });
+
+  it('passes a live isActive=true to Concierge while that tab is selected', async () => {
+    // Regression: renderTabContent omitted activeTab from useCallback deps, so
+    // Concierge stayed isActive=false after the first visit and Search auto-closed.
+    const { rerender } = render(
+      <MobileTripTabs
+        activeTab="chat"
+        onTabChange={vi.fn()}
+        tripId="trip-1"
+        basecamp={{ name: 'Hotel', address: 'Tokyo' }}
+        variant="pro"
+        tripData={{ enabled_features: ['chat', 'calendar', 'concierge', 'media', 'payments'] }}
+      />,
+    );
+
+    expect(await screen.findByText('Chat tab')).toBeInTheDocument();
+    // Concierge may stay mounted for keep-alive while inactive.
+    expect(conciergePropsSpy.last?.isActive).not.toBe(true);
 
     rerender(
       <MobileTripTabs
