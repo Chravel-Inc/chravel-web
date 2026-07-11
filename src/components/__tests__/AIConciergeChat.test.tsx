@@ -31,6 +31,10 @@ const realtimeVoiceMock = vi.hoisted(() => ({
   stop: vi.fn(),
 }));
 
+const featureFlagState = vi.hoisted(() => ({
+  realtimeVoiceEnabled: false,
+}));
+
 // Mock dependencies
 vi.mock('../../integrations/supabase/client', () => ({
   SUPABASE_PROJECT_URL: 'https://test.supabase.co',
@@ -164,8 +168,14 @@ vi.mock('@/hooks/useUniversalSearch', () => ({
 }));
 
 vi.mock('@/lib/featureFlags', () => ({
-  useFeatureFlag: () => true,
-  useFeatureFlagStatus: () => ({ enabled: true, isPending: false }),
+  useFeatureFlag: (key: string, defaultValue = true) => {
+    if (key === 'concierge_realtime_voice') return featureFlagState.realtimeVoiceEnabled;
+    return defaultValue;
+  },
+  useFeatureFlagStatus: (key: string, defaultValue = true) => ({
+    enabled: key === 'concierge_realtime_voice' ? featureFlagState.realtimeVoiceEnabled : defaultValue,
+    isPending: false,
+  }),
 }));
 
 describe('AIConciergeChat', () => {
@@ -179,6 +189,7 @@ describe('AIConciergeChat', () => {
     conciergeHistoryState.error = null;
     conciergeSearchState.results = [];
     conciergeSearchState.isLoading = false;
+    featureFlagState.realtimeVoiceEnabled = false;
     realtimeVoiceMock.start.mockClear();
     realtimeVoiceMock.stop.mockClear();
     queryClient = new QueryClient({
@@ -294,22 +305,22 @@ describe('AIConciergeChat', () => {
       expect(screen.queryByPlaceholderText(/search across trip/i)).not.toBeInTheDocument();
     });
 
-    it('renders the full realtime voice CTA as the composer left control by default', () => {
+    it('renders the waveform dictation CTA as the composer left control by default', () => {
       renderWithProviders(<AIConciergeChat tripId="test-trip" />);
 
-      expect(screen.getByRole('button', { name: /start voice conversation/i })).toBeInTheDocument();
+      expect(screen.getByTestId('concierge-waveform-dictation-btn')).toBeInTheDocument();
       expect(screen.getByLabelText(/dictate a message/i)).toBeInTheDocument();
-      expect(screen.getByTestId('concierge-dictation-btn')).toBeInTheDocument();
+      expect(screen.queryByTestId('concierge-dictation-btn')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('realtime-voice-button')).not.toBeInTheDocument();
     });
 
-    it('starts the realtime voice session from the waveform button', async () => {
+    it('does not start realtime voice from the waveform button on the App Store path', () => {
       renderWithProviders(<AIConciergeChat tripId="test-trip" />);
 
-      fireEvent.click(screen.getByRole('button', { name: /start voice conversation/i }));
+      fireEvent.click(screen.getByTestId('concierge-waveform-dictation-btn'));
 
-      await waitFor(() => {
-        expect(realtimeVoiceMock.start).toHaveBeenCalledWith('test-trip');
-      });
+      expect(realtimeVoiceMock.start).not.toHaveBeenCalled();
+      expect(screen.queryByRole('button', { name: /start voice conversation/i })).not.toBeInTheDocument();
     });
 
     it('removes legacy status pills from header', () => {

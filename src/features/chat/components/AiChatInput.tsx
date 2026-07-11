@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Send, X, CalendarPlus, Bookmark, ListChecks, Upload, Mic } from 'lucide-react';
+import { Send, X, CalendarPlus, Bookmark, ListChecks, Upload } from 'lucide-react';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { CTA_BUTTON, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 
@@ -10,14 +10,10 @@ interface AiChatInputProps {
   onKeyPress: (e: React.KeyboardEvent) => void;
   isTyping: boolean;
   disabled?: boolean;
-  /** Dictation state for waveform button */
+  /** Dictation state — drives Listening placeholder when waveform dictation is active */
   convoVoiceState?: VoiceState;
-  /** Tap: toggle dictation on/off */
-  onConvoToggle?: () => void;
-  /** Whether voice features are available */
+  /** Whether voice/dictation features are available (listening UI) */
   isVoiceEligible?: boolean;
-  /** Upgrade prompt for ineligible users */
-  onVoiceUpgrade?: () => void;
   /** Multimodal: callback when user selects images */
   onImageAttach?: (files: File[]) => void;
   /** Multimodal: currently attached image previews */
@@ -39,9 +35,8 @@ interface AiChatInputProps {
   /** Accepted MIME types for file drop/paste (images + documents) */
   acceptedFileTypes?: Set<string>;
   /**
-   * Optional control rendered to the LEFT of the textarea, immediately after the
-   * dictation button. The concierge uses this to host the hands-free Conversation
-   * Mode mic so it sits in the composer row instead of taking up chat space above.
+   * Primary left-of-field control. Concierge App Store path mounts the waveform
+   * dictation button here — no duplicate in-field mic.
    */
   leftAccessory?: React.ReactNode;
 }
@@ -54,9 +49,7 @@ export const AiChatInput = ({
   isTyping,
   disabled = false,
   convoVoiceState = 'idle',
-  onConvoToggle,
   isVoiceEligible = false,
-  onVoiceUpgrade,
   onImageAttach: _onImageAttach,
   attachedImages = [],
   onRemoveImage,
@@ -193,13 +186,7 @@ export const AiChatInput = ({
     void onSendMessage();
   };
 
-  const handleConvoToggle = useCallback(() => {
-    // Do not steal focus into the textarea before SpeechRecognition.start() —
-    // focusing the field on iOS can cancel the recognition session mid-gesture.
-    onConvoToggle?.();
-  }, [onConvoToggle]);
-
-  // Derived conversation active state (dictation only now)
+  // Dictation active state — driven by the leftAccessory waveform button
   const isConvoActive =
     isVoiceEligible && convoVoiceState !== 'idle' && convoVoiceState !== 'error';
 
@@ -304,38 +291,11 @@ export const AiChatInput = ({
       )}
 
       <div className="chat-composer flex flex-nowrap items-center gap-2 sm:gap-3 min-w-0">
-        {/* Prominent left control — bidirectional voice concierge (or flag-off fallback). */}
+        {/* Primary left control — waveform dictation (App Store path). */}
         {leftAccessory}
 
-        {/* Input container, with a subtle in-field dictation mic. */}
+        {/* Text field — no in-field mic; dictation lives on leftAccessory only. */}
         <div className="relative flex-1 min-w-0 rounded-full">
-          {/* Subtle dictation mic — lives INSIDE the field so it doesn't break the
-              search / upload / send button symmetry. Tap to dictate (one-shot STT). */}
-          {onConvoToggle && (
-            <button
-              type="button"
-              onClick={e => {
-                // Keep the gesture on the button — don't let the textarea steal focus first
-                // on iOS, which can cancel SpeechRecognition.start() in the same tick.
-                e.preventDefault();
-                e.stopPropagation();
-                if (isVoiceEligible) handleConvoToggle();
-                else onVoiceUpgrade?.();
-              }}
-              onPointerDown={e => {
-                // Prevent the textarea from focusing before the click handler runs.
-                e.preventDefault();
-              }}
-              aria-label={isConvoActive ? 'Stop dictation' : 'Dictate a message'}
-              title="Dictate"
-              data-testid="concierge-dictation-btn"
-              className={`absolute left-2 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full touch-manipulation transition-colors ${
-                isConvoActive ? 'text-primary animate-pulse' : 'text-white/50 hover:text-white/80'
-              }`}
-            >
-              <Mic size={18} />
-            </button>
-          )}
           <textarea
             ref={textareaRef}
             value={inputMessage}
@@ -350,7 +310,7 @@ export const AiChatInput = ({
                 ? 'Dictation in progress. Speak to add text.'
                 : 'Message your AI Concierge'
             }
-            className={`w-full bg-white/5 border rounded-2xl py-3 pr-4 ${onConvoToggle ? 'pl-14' : 'pl-4'} text-white placeholder-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 backdrop-blur-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
+            className={`w-full bg-white/5 border rounded-2xl py-3 pl-4 pr-4 text-white placeholder-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 backdrop-blur-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
               isConvoActive ? 'border-primary/30 bg-primary/5' : 'border-white/10'
             }`}
           />
