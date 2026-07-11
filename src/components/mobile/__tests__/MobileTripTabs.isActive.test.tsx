@@ -26,4 +26,9 @@ describe('MobileTripTabs Concierge isActive contract', () => {
     const deps = renderTabContentMatch![1];
     expect(deps).toMatch(/\bactiveTab\b/);
   });
+
+  it('disables pointer events on inactive pre-mounted tab panes', () => {
+    const source = readFileSync(resolve(__dirname, '../MobileTripTabs.tsx'), 'utf8');
+    expect(source).toMatch(/pointerEvents:\s*isActive\s*\?\s*'auto'\s*:\s*'none'/);
+  });
 });

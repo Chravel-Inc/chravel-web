@@ -142,6 +142,7 @@ vi.mock('@/features/concierge/hooks/useConciergeVoice', () => ({
   useConciergeVoice: () => ({
     convoVoiceState: 'idle',
     handleConvoToggle: vi.fn(),
+    stopDictation: vi.fn(),
   }),
 }));
 
@@ -278,5 +279,17 @@ describe('AIConciergeChat controls (lean)', () => {
       expect(realtimeVoiceMock.start).toHaveBeenCalledWith('test-trip');
     });
     expect(screen.getByTestId('realtime-voice-overlay')).toBeInTheDocument();
+  });
+
+  it('keeps the composer rail above the message scroller stacking context', () => {
+    renderChat();
+    const rail = screen.getByTestId('concierge-composer-rail');
+    expect(rail.className).toMatch(/z-20/);
+    expect(rail.className).toMatch(/isolate/);
+  });
+
+  it('shows an ask-anything placeholder so the textarea is not a blank dead region', () => {
+    renderChat();
+    expect(screen.getByPlaceholderText(/ask anything about this trip/i)).toBeInTheDocument();
   });
 });

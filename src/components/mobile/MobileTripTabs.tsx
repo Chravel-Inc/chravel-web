@@ -566,7 +566,7 @@ export const MobileTripTabs = ({
   }, [activeTab, isEventAdmin, onTabChange, tabs, variant]);
 
   return (
-    <>
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       {/* Horizontal Scrollable Tab Bar - Fixed flex item, always visible */}
       <div className="flex-shrink-0 z-40 bg-black/95 backdrop-blur-md border-b border-white/10">
         <div
@@ -659,24 +659,33 @@ export const MobileTripTabs = ({
             if (!hasBeenVisited && !isActive) return null;
 
             const ownsInternalScroll = INTERNAL_SCROLL_TABS.includes(tab.id);
+            const scrollContained = isActive && ownsInternalScroll;
 
             return (
               <div
                 key={tab.id}
+                data-tab-panel={tab.id}
+                data-scroll-contained={scrollContained ? 'true' : 'false'}
                 style={{
                   display: isActive ? 'flex' : 'none',
                   flexDirection: 'column',
                   minHeight: 0,
-                  overflowY: ownsInternalScroll ? 'hidden' : isActive ? 'auto' : 'hidden',
+                  overflowY: scrollContained ? 'hidden' : isActive ? 'auto' : 'hidden',
                   overflowX: 'hidden',
                   overscrollBehaviorX: 'none',
+                  overscrollBehaviorY: scrollContained ? 'none' : undefined,
                   WebkitOverflowScrolling: ownsInternalScroll
                     ? undefined
                     : isActive
                       ? 'touch'
                       : undefined,
+                  // Pre-mounted inactive panes must never intercept hits while display:none
+                  // is inconsistently applied in some WKWebView transforms.
+                  pointerEvents: isActive ? 'auto' : 'none',
                 }}
                 className={isActive ? 'h-full flex-1 relative' : ''}
+                aria-hidden={!isActive}
+                data-testid={isActive ? `mobile-tab-pane-${tab.id}` : undefined}
               >
                 {/* ⚡ Per-tab error boundary: errors stay on failing tab, no bounce-back */}
                 <div
@@ -707,6 +716,6 @@ export const MobileTripTabs = ({
       </div>
 
       <DisabledTabDialog open={showDisabledTabDialog} onOpenChange={setShowDisabledTabDialog} />
-    </>
+    </div>
   );
 };

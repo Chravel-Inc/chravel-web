@@ -30,7 +30,7 @@ export function useConciergeVoice({ inputMessage, setInputMessage }: Params) {
   );
 
   const { bcp47 } = useConciergeLanguagePreference();
-  const { voiceState, toggleVoice, userTranscript, errorMessage } = useWebSpeechVoice(
+  const { voiceState, toggleVoice, stopVoice, userTranscript, errorMessage } = useWebSpeechVoice(
     handleTranscript,
     undefined,
     bcp47 ?? undefined,
@@ -61,7 +61,16 @@ export function useConciergeVoice({ inputMessage, setInputMessage }: Params) {
   const convoVoiceState: VoiceState = ENABLED ? voiceState : 'idle';
 
   const handleConvoToggle = useCallback(() => {
-    if (!ENABLED) return;
+    if (!ENABLED) {
+      try {
+        toast.error('Dictation is unavailable', {
+          description: 'Voice input is turned off in this build.',
+        });
+      } catch {
+        /* toast unavailable in tests */
+      }
+      return;
+    }
 
     if (voiceState === 'idle' || voiceState === 'error') {
       dictationBaseRef.current = inputMessageRef.current;
@@ -70,8 +79,15 @@ export function useConciergeVoice({ inputMessage, setInputMessage }: Params) {
     toggleVoice();
   }, [toggleVoice, voiceState]);
 
+  // Stop in-field dictation so it never contends with realtime voice for the mic.
+  const stopDictation = useCallback(() => {
+    if (voiceState === 'idle') return;
+    stopVoice();
+  }, [stopVoice, voiceState]);
+
   return {
     convoVoiceState,
     handleConvoToggle,
+    stopDictation,
   };
 }

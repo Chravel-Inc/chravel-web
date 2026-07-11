@@ -206,10 +206,14 @@ export const AiChatInput = ({
   // Dynamic placeholder based on active mode
   const getPlaceholder = () => {
     if (isConvoActive) return 'Listening\u2026';
-    return '';
+    // Subtle affordance so the pill never looks like a dead black gutter on mobile.
+    return 'Ask anything about this trip\u2026';
   };
 
   const hasAttachments = attachedImages.length > 0 || attachedDocuments.length > 0;
+  const canSend =
+    Boolean(inputMessage.trim()) || attachedImages.length > 0 || attachedDocuments.length > 0;
+  const sendDisabled = !canSend || isTyping || disabled;
 
   return (
     <div
@@ -358,18 +362,21 @@ export const AiChatInput = ({
           )}
         </div>
 
-        {/* Send button — persistent gold rim; disabled state via opacity */}
+        {/* Send button — gold rim; disabled opacity makes empty/unavailable state obvious */}
         <button
           type="button"
           onClick={handleSendClick}
-          disabled={
-            (!inputMessage.trim() &&
-              attachedImages.length === 0 &&
-              attachedDocuments.length === 0) ||
-            isTyping ||
-            disabled
-          }
+          disabled={sendDisabled}
           aria-label="Send message"
+          aria-disabled={sendDisabled}
+          title={
+            sendDisabled
+              ? isTyping
+                ? 'Sending\u2026'
+                : 'Type a message or attach a file to send'
+              : 'Send message'
+          }
+          data-testid="concierge-send-btn"
           className={CTA_BUTTON}
         >
           <Send size={CTA_ICON_SIZE} />
