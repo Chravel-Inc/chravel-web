@@ -98,6 +98,28 @@ describe('MobileTripTabs tab navigation', () => {
     expect(style.overscrollBehaviorY).toBe('none');
   });
 
+  it('keeps concierge tab panel scroll-contained so its composer stays pinned', async () => {
+    render(
+      <MobileTripTabs
+        activeTab="concierge"
+        onTabChange={vi.fn()}
+        tripId="trip-1"
+        basecamp={{ name: 'Hotel', address: 'Tokyo' }}
+        tripData={{ enabled_features: ['chat', 'calendar', 'concierge', 'media', 'payments'] }}
+      />,
+    );
+
+    expect(await screen.findByText('Concierge tab')).toBeInTheDocument();
+
+    const conciergePanel = document.querySelector('[data-tab-panel="concierge"]');
+    expect(conciergePanel).toBeTruthy();
+    expect(conciergePanel?.getAttribute('data-scroll-contained')).toBe('true');
+
+    const style = (conciergePanel as HTMLElement).style;
+    expect(style.overflowY).toBe('hidden');
+    expect(style.overscrollBehaviorY).toBe('none');
+  });
+
   it('lets users leave Concierge for Payments without the content pane taking horizontal gestures', async () => {
     const onTabChange = vi.fn();
 

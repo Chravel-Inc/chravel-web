@@ -1,3 +1,8 @@
+2026-07-11 — PR # mobile composer follow-up
+- Added Concierge scroll-containment regression coverage alongside Chat so both fixed-bottom composer tabs assert hidden parent overflow and no parent overscroll.
+- Rechecked the original layout fix after installing missing dependencies; targeted MobileTripTabs test, lint:check, typecheck, and build pass.
+- Merge preflight against added `origin/main` fetched successfully but failed because this checkout history has no common ancestor with that remote; no semantic conflicts exist in the local PR branch.
+
 
 2026-05-28 — Atlas health score remediation kickoff
 - Created `docs/atlas-health-score-remediation.md` with AHS-01..AHS-19 task definitions so each Atlas issue has a complete DoD + verification plan.
