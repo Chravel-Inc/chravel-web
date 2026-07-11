@@ -675,8 +675,13 @@ export const MobileTripTabs = ({
                     : isActive
                       ? 'touch'
                       : undefined,
+                  // Pre-mounted inactive panes must never intercept hits while display:none
+                  // is inconsistently applied in some WKWebView transforms.
+                  pointerEvents: isActive ? 'auto' : 'none',
                 }}
                 className={isActive ? 'h-full flex-1 relative' : ''}
+                aria-hidden={!isActive}
+                data-testid={isActive ? `mobile-tab-pane-${tab.id}` : undefined}
               >
                 {/* ⚡ Per-tab error boundary: errors stay on failing tab, no bounce-back */}
                 <div

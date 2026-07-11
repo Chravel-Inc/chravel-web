@@ -124,3 +124,9 @@
 - Root cause for dead Search: MobileTripTabs renderTabContent omitted activeTab from useCallback deps, so Concierge stayed isActive=false and immediately closed Search.
 - Hardened upload via label htmlFor + sr-only input; enlarged in-field dictation hit target and stopped focus-before-STT; lazy-mounted realtime voice + stopRef unmount cleanup so waveform taps start sessions.
 - Contained Concierge message/card overflow with min-w-0/max-w clamps. Verification: typecheck, lint:check (0 errors), build pass; RealtimeVoiceButton + MessageRenderer overflow tests pass; AIConciergeChat/MobileTripTabs suites still OOM in this environment.
+
+2026-07-11 — Concierge controls recovery (provenance-first)
+- Provenance: local main `b5df5ae` and production `chravel.app` (`build-version=mrex8prk`) already contain July 9 Concierge control fixes; TestFlight identity remains a human/chravel-mobile check.
+- Fixed residual realtime blocker: meta CSP in `index.html` now allows `https://ai-gateway.vercel.sh` + `wss://ai-gateway.vercel.sh` (aligned with vercel.json).
+- Hardened composer hit-testing (isolate/z stacking, inactive tab `pointerEvents:none`), Ask-anything placeholder, clearer disabled Send, and stop dictation before realtime mic.
+- Docs: `docs/CONCIERGE_CONTROLS_RECOVERY_2026-07-11.md`. Physical iPhone TestFlight QA remains the DoD gate.
