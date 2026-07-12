@@ -31,12 +31,19 @@ interface ChatSearchOverlayProps {
   demoMessages?: MockMessage[];
 }
 
+// Module-level constant so the default keeps a stable identity. An inline
+// `demoMessages = []` default minted a NEW array every render; it is a dep of
+// the debounced-search effect, whose empty-query branch sets fresh [] state —
+// re-render → new default [] → effect re-runs → infinite render loop whenever
+// the prop was omitted (this is what hung the vitest suite).
+const NO_DEMO_MESSAGES: MockMessage[] = [];
+
 export const ChatSearchOverlay = ({
   tripId,
   onClose,
   onResultSelect,
   isDemoMode = false,
-  demoMessages = [],
+  demoMessages = NO_DEMO_MESSAGES,
 }: ChatSearchOverlayProps) => {
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -56,8 +63,10 @@ export const ChatSearchOverlay = ({
   // Debounced search
   useEffect(() => {
     if (!query.trim()) {
-      setMessages([]);
-      setBroadcasts([]);
+      // Preserve state identity when already empty — an unconditional fresh []
+      // here re-renders and can feed an effect-rerun cycle.
+      setMessages(prev => (prev.length === 0 ? prev : []));
+      setBroadcasts(prev => (prev.length === 0 ? prev : []));
       return;
     }
 
@@ -139,11 +148,15 @@ export const ChatSearchOverlay = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keyboard handler; deps would cause excessive re-registration
   }, [selectedIndex, totalResults]);
 
-  // Auto-scroll to selected result
+  // Auto-scroll to selected result. Guard the method: environments without
+  // scrollIntoView (jsdom; nonstandard webviews) would otherwise throw inside
+  // the effect, and a throwing effect unmounts the entire overlay tree.
   useEffect(() => {
     if (resultsRef.current && totalResults > 0) {
       const selectedElement = resultsRef.current.querySelector(`[data-index="${selectedIndex}"]`);
-      selectedElement?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      if (selectedElement && typeof selectedElement.scrollIntoView === 'function') {
+        selectedElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
     }
   }, [selectedIndex, totalResults]);
 

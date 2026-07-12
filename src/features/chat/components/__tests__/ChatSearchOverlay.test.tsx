@@ -76,7 +76,7 @@ describe('ChatSearchOverlay search behavior', () => {
       expect(searchChatContentWithFilters).toHaveBeenCalledWith('trip-1', parsedQuery);
     });
 
-    expect(screen.getByText('Messages')).toBeInTheDocument();
+    expect(await screen.findByText('Messages')).toBeInTheDocument();
     expect(screen.getByText('Broadcasts')).toBeInTheDocument();
     expect(screen.getByText('Practice starts at 7')).toBeInTheDocument();
     expect(screen.getByText('Broadcast: Practice moved to field 2')).toBeInTheDocument();
@@ -120,7 +120,7 @@ describe('ChatSearchOverlay search behavior', () => {
       expect(searchChatContentWithFilters).toHaveBeenCalledWith('trip-2', parsedQuery);
     });
 
-    await user.click(screen.getByText('Meeting moved to 3 PM'));
+    await user.click(await screen.findByText('Meeting moved to 3 PM'));
     expect(onResultSelect).toHaveBeenCalledWith({ id: 'msg-2', type: 'message' });
   });
 });
