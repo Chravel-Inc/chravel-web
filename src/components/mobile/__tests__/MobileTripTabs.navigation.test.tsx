@@ -124,7 +124,11 @@ describe('MobileTripTabs tab navigation', () => {
       />,
     );
 
-    expect(conciergePropsSpy.last).toBeNull();
+    // Concierge is a Tier-1 tab: pre-mounted warm on first render (the
+    // "click away and back" perf fix) — the lazy chunk resolves async, so wait
+    // for it. It MUST be inactive until its tab is actually selected.
+    expect(await screen.findByTestId('concierge-tab')).toHaveAttribute('data-active', 'false');
+    expect(conciergePropsSpy.last?.isActive).toBe(false);
 
     rerender(
       <MobileTripTabs

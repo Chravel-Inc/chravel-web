@@ -101,13 +101,23 @@ interface MobileTripTabsProps {
   isLoadingRoster?: boolean;
 }
 
+// Stable default identities. An inline `participants = []` default mints a NEW
+// array on every render; it feeds the localParticipants sync effect (deps:
+// [participants]) whose setState re-renders this component, which re-mints the
+// default — a self-sustaining synchronous render loop that froze every tab
+// switch on surfaces that omit the prop (consumer MobileTripDetail and
+// MobileEventDetail). Mount survives only because the first effect run passes
+// the same reference captured by useState (Object.is bail-out).
+const NO_PARTICIPANTS: Array<{ id: string; name: string; role?: string }> = [];
+const NO_TRIP_DATA = {};
+
 export const MobileTripTabs = ({
   activeTab,
   onTabChange,
   tripId,
   basecamp,
   variant = 'consumer',
-  participants = [],
+  participants = NO_PARTICIPANTS,
   tripData,
   eventData,
   category,
@@ -119,7 +129,7 @@ export const MobileTripTabs = ({
   const { prefetchTab, prefetchAdjacentTabs, prefetchPriorityTabs } = usePrefetchTrip();
   const contentRef = useRef<HTMLDivElement>(null);
   const tabsContainerRef = useRef<HTMLDivElement>(null);
-  const features = useFeatureToggle(tripData || {});
+  const features = useFeatureToggle(tripData || NO_TRIP_DATA);
 
   // Role assignment hooks for Pro trips Team tab
   const { assignRole } = useRoleAssignments({
