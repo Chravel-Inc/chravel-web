@@ -2,11 +2,21 @@
  * Chat Search Service
  * Provides safe search across Messages and Broadcasts ONLY
  * CRITICAL: Never accesses channels, channel_messages, or channel_members
+ *
+ * Broadcasts are sourced from Stream (message_type='broadcast' on the trip
+ * channel) — the same transport the chat's Broadcasts tab renders — NOT from
+ * the legacy `broadcasts` table. The table previously fed this search, which
+ * made search results diverge from what the tabs displayed. The table remains
+ * write-only from chat's perspective pending full retirement (see migration
+ * 20260712010000_deprecate_broadcasts_table.sql for the two-phase plan).
  */
 import { supabase } from '@/integrations/supabase/client';
 import { getStreamClient } from '@/services/stream/streamClient';
 import { CHANNEL_TYPE_TRIP, tripChannelId } from '@/services/stream/streamChannelFactory';
-import { searchTripChannelMessages } from '@/services/stream/streamMessageSearch';
+import {
+  fetchTripBroadcastHistory,
+  searchTripChannelMessages,
+} from '@/services/stream/streamMessageSearch';
 import type { ParsedMessageSearchQuery } from '@/lib/parseMessageSearchQuery';
 
 export interface MessageSearchResult {
@@ -112,7 +122,30 @@ export async function searchTripMessages(
 }
 
 /**
- * Search broadcasts - NEVER accesses channel data
+ * Load broadcast messages from Stream and map to the search result shape.
+ * Stream user ids ARE Supabase user ids (stream-token upserts users by
+ * auth id), so created_by remains filterable against trip members, and the
+ * sender name rides along on the message — no profiles round-trip needed.
+ */
+async function fetchStreamBroadcastResults(
+  tripId: string,
+  limit: number,
+): Promise<BroadcastSearchResult[]> {
+  const messages = await fetchTripBroadcastHistory({ tripId, limit });
+  return messages.map(message => ({
+    id: message.id,
+    message: message.text || '',
+    created_by: message.user?.id || '',
+    created_by_name: message.user?.name || message.user?.id || 'Unknown',
+    priority: (message as { priority?: string }).priority ?? null,
+    created_at:
+      typeof message.created_at === 'string' ? message.created_at : new Date().toISOString(),
+    type: 'broadcast' as const,
+  }));
+}
+
+/**
+ * Search broadcasts - sourced from Stream, matching what the Broadcasts tab shows
  */
 export async function searchBroadcasts(
   tripId: string,
@@ -121,50 +154,9 @@ export async function searchBroadcasts(
 ): Promise<BroadcastSearchResult[]> {
   if (!query.trim()) return [];
 
-  const { data, error } = await supabase
-    .from('broadcasts')
-    .select(
-      `
-      id,
-      message,
-      created_by,
-      priority,
-      created_at
-    `,
-    )
-    .eq('trip_id', tripId)
-    .eq('is_sent', true)
-    .ilike('message', `%${query}%`)
-    .order('created_at', { ascending: false })
-    .limit(limit);
-
-  if (error) {
-    console.error('Failed to search broadcasts:', error);
-    return [];
-  }
-
-  // Fetch creator names from profiles (use public view for co-member data)
-  const creatorIds = [...new Set(data?.map(b => b.created_by) || [])];
-  const { data: profiles } = await supabase
-    .from('profiles_public')
-    .select('user_id, display_name, resolved_display_name, first_name, last_name')
-    .in('user_id', creatorIds);
-
-  const profileMap = new Map(
-    (profiles || []).map(p => [
-      p.user_id,
-      p.resolved_display_name ||
-        p.display_name ||
-        `${p.first_name || ''} ${p.last_name || ''}`.trim() ||
-        'Unknown',
-    ]),
-  );
-
-  return (data || []).map(broadcast => ({
-    ...broadcast,
-    created_by_name: profileMap.get(broadcast.created_by) || 'Unknown',
-    type: 'broadcast' as const,
-  }));
+  const broadcasts = await fetchStreamBroadcastResults(tripId, limit);
+  const normalizedQuery = query.trim().toLowerCase();
+  return broadcasts.filter(b => b.message.toLowerCase().includes(normalizedQuery));
 }
 
 /**
@@ -234,26 +226,12 @@ async function searchBroadcastsWithFilters(
 
   if (!hasAnyFilter && !allowEmptyContent) return [];
 
-  let query = supabase
-    .from('broadcasts')
-    .select('id, message, created_by, priority, created_at')
-    .eq('trip_id', tripId)
-    .eq('is_sent', true)
-    .order('created_at', { ascending: false })
-    .limit(limit);
+  let results = await fetchStreamBroadcastResults(tripId, limit);
 
   if (parsed.text.trim()) {
-    query = query.ilike('message', `%${parsed.text}%`);
+    const normalizedText = parsed.text.trim().toLowerCase();
+    results = results.filter(b => b.message.toLowerCase().includes(normalizedText));
   }
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error('Failed to search broadcasts:', error);
-    return [];
-  }
-
-  let results = data || [];
 
   if (parsed.sender) {
     const senderIds = await resolveSenderNameToIds(tripId, parsed.sender);
@@ -261,27 +239,7 @@ async function searchBroadcastsWithFilters(
     results = results.filter(b => senderIds.includes(b.created_by));
   }
 
-  const creatorIds = [...new Set(results.map(b => b.created_by))];
-  const { data: profiles } = await supabase
-    .from('profiles_public')
-    .select('user_id, display_name, resolved_display_name, first_name, last_name')
-    .in('user_id', creatorIds);
-
-  const profileMap = new Map(
-    (profiles || []).map(p => [
-      p.user_id,
-      p.resolved_display_name ||
-        p.display_name ||
-        `${p.first_name || ''} ${p.last_name || ''}`.trim() ||
-        'Unknown',
-    ]),
-  );
-
-  return results.map(broadcast => ({
-    ...broadcast,
-    created_by_name: profileMap.get(broadcast.created_by) || 'Unknown',
-    type: 'broadcast' as const,
-  }));
+  return results;
 }
 
 /**

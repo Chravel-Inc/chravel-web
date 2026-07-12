@@ -10,6 +10,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 
 const searchTripChannelMessagesMock = vi.hoisted(() => vi.fn());
+const fetchTripBroadcastHistoryMock = vi.hoisted(() => vi.fn());
 
 const createChainMock = (resolvedValue: { data: unknown; error: unknown }) => {
   const promise = Promise.resolve(resolvedValue);
@@ -49,6 +50,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 
 vi.mock('@/services/stream/streamMessageSearch', () => ({
   searchTripChannelMessages: (...args: unknown[]) => searchTripChannelMessagesMock(...args),
+  fetchTripBroadcastHistory: (...args: unknown[]) => fetchTripBroadcastHistoryMock(...args),
 }));
 
 describe('chatSearchService', () => {
@@ -57,6 +59,7 @@ describe('chatSearchService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     searchTripChannelMessagesMock.mockResolvedValue([]);
+    fetchTripBroadcastHistoryMock.mockResolvedValue([]);
   });
 
   describe('resolveSenderNameToIds', () => {
@@ -118,20 +121,6 @@ describe('chatSearchService', () => {
         },
       ]);
 
-      (supabase.from as ReturnType<typeof vi.fn>)
-        .mockReturnValueOnce(
-          createChainMock({
-            data: [],
-            error: null,
-          }),
-        )
-        .mockReturnValueOnce(
-          createChainMock({
-            data: [],
-            error: null,
-          }),
-        );
-
       const result = await searchChatContentWithFilters(tripId, {
         text: 'hello',
       });
@@ -139,32 +128,60 @@ describe('chatSearchService', () => {
       expect(result.messages[0].content).toBe('hello');
     });
 
-    it('returns only broadcasts when isBroadcastOnly', async () => {
+    it('returns only broadcasts when isBroadcastOnly (sourced from Stream)', async () => {
+      fetchTripBroadcastHistoryMock.mockResolvedValue([
+        {
+          id: 'b1',
+          text: 'Announcement',
+          user: { id: 'u1', name: 'Coach' },
+          priority: 'normal',
+          created_at: '2026-01-15T00:00:00.000Z',
+          message_type: 'broadcast',
+        },
+      ]);
+
+      const result = await searchChatContentWithFilters(tripId, {
+        text: '',
+        isBroadcastOnly: true,
+      });
+      expect(fetchTripBroadcastHistoryMock).toHaveBeenCalledWith({ tripId, limit: 50 });
+      expect(result.messages).toHaveLength(0);
+      expect(result.broadcasts).toHaveLength(1);
+      expect(result.broadcasts[0]).toMatchObject({
+        id: 'b1',
+        message: 'Announcement',
+        created_by: 'u1',
+        created_by_name: 'Coach',
+        priority: 'normal',
+        type: 'broadcast',
+      });
+    });
+
+    it('filters Stream broadcasts by sender', async () => {
+      fetchTripBroadcastHistoryMock.mockResolvedValue([
+        {
+          id: 'b1',
+          text: 'From coach',
+          user: { id: 'u1', name: 'Coach Mike' },
+          created_at: '2026-01-15T00:00:00.000Z',
+        },
+        {
+          id: 'b2',
+          text: 'From someone else',
+          user: { id: 'u2', name: 'Alice' },
+          created_at: '2026-01-16T00:00:00.000Z',
+        },
+      ]);
+      // resolveSenderNameToIds: trip_members then profiles_public
       (supabase.from as ReturnType<typeof vi.fn>)
         .mockReturnValueOnce(
-          createChainMock({
-            data: [
-              {
-                id: 'b1',
-                message: 'Announcement',
-                created_by: 'u1',
-                priority: 'normal',
-                created_at: '2026-01-15',
-              },
-            ],
-            error: null,
-          }),
+          createChainMock({ data: [{ user_id: 'u1' }, { user_id: 'u2' }], error: null }),
         )
         .mockReturnValueOnce(
           createChainMock({
             data: [
-              {
-                user_id: 'u1',
-                resolved_display_name: 'Coach',
-                display_name: null,
-                first_name: null,
-                last_name: null,
-              },
+              { user_id: 'u1', resolved_display_name: 'Coach Mike' },
+              { user_id: 'u2', resolved_display_name: 'Alice' },
             ],
             error: null,
           }),
@@ -172,11 +189,11 @@ describe('chatSearchService', () => {
 
       const result = await searchChatContentWithFilters(tripId, {
         text: '',
+        sender: 'Coach',
         isBroadcastOnly: true,
       });
-      expect(result.messages).toHaveLength(0);
       expect(result.broadcasts).toHaveLength(1);
-      expect(result.broadcasts[0].message).toBe('Announcement');
+      expect(result.broadcasts[0].id).toBe('b1');
     });
   });
 
@@ -195,39 +212,26 @@ describe('chatSearchService', () => {
         },
       ]);
 
-      (supabase.from as ReturnType<typeof vi.fn>)
-        .mockReturnValueOnce(
-          createChainMock({
-            data: [
-              {
-                id: 'b1',
-                message: 'test',
-                created_by: 'u1',
-                priority: null,
-                created_at: '2026-01-01',
-              },
-            ],
-            error: null,
-          }),
-        )
-        .mockReturnValueOnce(
-          createChainMock({
-            data: [
-              {
-                user_id: 'u1',
-                resolved_display_name: 'A',
-                display_name: null,
-                first_name: null,
-                last_name: null,
-              },
-            ],
-            error: null,
-          }),
-        );
+      fetchTripBroadcastHistoryMock.mockResolvedValue([
+        {
+          id: 'b1',
+          text: 'test announcement',
+          user: { id: 'u1', name: 'A' },
+          created_at: '2026-01-01T00:00:00.000Z',
+        },
+        {
+          id: 'b2',
+          text: 'unrelated broadcast',
+          user: { id: 'u1', name: 'A' },
+          created_at: '2026-01-02T00:00:00.000Z',
+        },
+      ]);
 
       const result = await searchChatContent(tripId, 'test');
       expect(result.messages).toHaveLength(1);
+      // Text filter applies client-side over the Stream broadcast history.
       expect(result.broadcasts).toHaveLength(1);
+      expect(result.broadcasts[0].id).toBe('b1');
     });
   });
 });
