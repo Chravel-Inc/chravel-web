@@ -45,6 +45,7 @@ import { useBlockedUsers, useReportContent } from '@/hooks/useUserSafety';
 import { getStreamApiKey, getStreamClient } from '@/services/stream/streamClient';
 import { derivePinnedMessages } from '../utils/pinnedMessages';
 import { extractQuotedReferenceFromStreamMessage } from '@/services/stream/streamMessagePayload';
+import { searchTripChannelMessages } from '@/services/stream/streamMessageSearch';
 import { messageEvents } from '@/telemetry/events';
 import { shouldUseLegacyChatSync } from '@/services/stream/streamTransportGuards';
 import { tripKeys } from '@/lib/queryKeys';
@@ -129,6 +130,10 @@ export const TripChat = React.memo(
     const [showSearchOverlay, setShowSearchOverlay] = useState(false);
     const [chatSearchQuery, setChatSearchQuery] = useState('');
     const [activeSearchResultIndex, setActiveSearchResultIndex] = useState(0);
+    const [serverSearchResults, setServerSearchResults] = useState<
+      Array<{ id: string; type: 'message' | 'broadcast'; openThread?: boolean; source: 'stream' }>
+    >([]);
+    const [isServerSearching, setIsServerSearching] = useState(false);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
     const messageScrollRef = useRef<HTMLDivElement>(null);
     const [failedMessages, setFailedMessages] = useState<
@@ -189,6 +194,7 @@ export const TripChat = React.memo(
       sendMessageAsync: sendTripMessage,
       isCreating: isSendingMessage,
       loadMore: loadMoreMessages,
+      loadAroundMessage,
       hasMore,
       isLoadingMore,
       toggleReaction,
@@ -1019,9 +1025,9 @@ export const TripChat = React.memo(
           setMessageFilter('all');
         }
 
-        window.setTimeout(() => {
+        const scrollElementIntoView = () => {
           const targetElement = document.querySelector(`[data-message-id="${targetId}"]`);
-          if (!(targetElement instanceof HTMLElement)) return;
+          if (!(targetElement instanceof HTMLElement)) return false;
 
           targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
           targetElement.classList.add('search-highlight-flash');
@@ -1030,12 +1036,23 @@ export const TripChat = React.memo(
           if (openThread) {
             handleActivateThread(targetId, 'notification_deeplink');
           }
+          return true;
+        };
+
+        window.setTimeout(() => {
+          if (scrollElementIntoView()) return;
+          if (!loadAroundMessage) return;
+
+          void loadAroundMessage(targetId).then(found => {
+            if (!found) return;
+            window.setTimeout(scrollElementIntoView, 50);
+          });
         }, 100);
       },
-      [handleActivateThread, messageFilter, setMessageFilter],
+      [handleActivateThread, loadAroundMessage, messageFilter, setMessageFilter],
     );
 
-    const chatSearchResults = useMemo(() => {
+    const localChatSearchResults = useMemo(() => {
       const query = chatSearchQuery.trim().toLowerCase();
       if (!query) return [];
       const sourceMessages = demoMode.isDemoMode ? demoMessages : liveFormattedMessages;
@@ -1048,8 +1065,58 @@ export const TripChat = React.memo(
         .map(message => ({
           id: String((message as any).id),
           type: (message as any).isBroadcast ? ('broadcast' as const) : ('message' as const),
+          openThread: false,
+          source: 'local' as const,
         }));
     }, [chatSearchQuery, demoMessages, demoMode.isDemoMode, liveFormattedMessages]);
+
+    useEffect(() => {
+      const query = chatSearchQuery.trim();
+      if (!query || demoMode.isDemoMode || shouldSkipLiveChat || !resolvedTripId) {
+        setServerSearchResults([]);
+        setIsServerSearching(false);
+        return;
+      }
+
+      let cancelled = false;
+      setIsServerSearching(true);
+      const timer = window.setTimeout(() => {
+        void searchTripChannelMessages({ tripId: resolvedTripId, query, limit: 25 }).then(
+          results => {
+            if (cancelled) return;
+            setServerSearchResults(
+              results.map(result => {
+                const targetId = result.threadParentId || result.messageId;
+                const isBroadcast =
+                  result.messageType === 'broadcast' || result.privacyMode === 'broadcast';
+                return {
+                  id: targetId,
+                  type: isBroadcast ? ('broadcast' as const) : ('message' as const),
+                  openThread: Boolean(result.threadParentId),
+                  source: 'stream' as const,
+                };
+              }),
+            );
+            setIsServerSearching(false);
+          },
+        );
+      }, 300);
+
+      return () => {
+        cancelled = true;
+        window.clearTimeout(timer);
+      };
+    }, [chatSearchQuery, demoMode.isDemoMode, resolvedTripId, shouldSkipLiveChat]);
+
+    const chatSearchResults = useMemo(() => {
+      const seen = new Set<string>();
+      return [...localChatSearchResults, ...serverSearchResults].filter(result => {
+        const key = `${result.type}:${result.id}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }, [localChatSearchResults, serverSearchResults]);
 
     const jumpToSearchResult = useCallback(
       (direction: 'current' | 'next' | 'previous' = 'current') => {
@@ -1221,9 +1288,11 @@ export const TripChat = React.memo(
                 />
                 {chatSearchQuery && (
                   <span className="text-xs text-muted-foreground whitespace-nowrap">
-                    {chatSearchResults.length > 0
-                      ? `${activeSearchResultIndex + 1}/${chatSearchResults.length}`
-                      : '0 results'}
+                    {isServerSearching
+                      ? 'Searching…'
+                      : chatSearchResults.length > 0
+                        ? `${activeSearchResultIndex + 1}/${chatSearchResults.length}`
+                        : '0 results'}
                   </span>
                 )}
                 {chatSearchQuery && chatSearchResults.length > 0 && (

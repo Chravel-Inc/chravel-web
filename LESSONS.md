@@ -511,3 +511,6 @@ July 9 Search/isActive + realtime lazy-mount fixes were already on `main` and in
 
 ### Preserve custom Stream attachment fields through both send and view-model adapters
 Stream custom attachment metadata such as voice-note waveform/duration/transcript must be explicitly forwarded in payload normalization and hydrated back into message view models; otherwise realtime-confirmed messages lose rich playback UI after refresh.
+
+### Inline chat search needs a two-phase result source
+For responsive UX, search the loaded message window synchronously, then merge debounced Stream `channel.search(query)` results by message ID and hydrate off-window selections with `channel.query({ messages: { id_around } })` before scrolling. This avoids the "0 results" lie when history is older than the retained timeline window.

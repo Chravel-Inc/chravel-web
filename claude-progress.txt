@@ -159,3 +159,9 @@
 - Preserved Stream attachment metadata for voice notes (audio type, waveform, duration, optional transcript) so sent notes render with waveform/transcript after realtime hydration; upload progress continues through the shared attachment upload path.
 - Added optional browser SpeechRecognition capture for voice-note transcripts behind a composer toggle; edit/delete controls continue to use Stream client mutations for own messages and voice-note bubbles.
 - Verification: focused Stream payload/view-model tests, typecheck, production build pass; full lint remains blocked by pre-existing e2e no-empty-pattern error; screenshot capture attempted but blocked by missing Playwright browser executable.
+
+2026-07-13 — Trip chat inline Stream history search follow-up
+- Extended the inline trip chat search bar beyond loaded-window filtering: local matches still appear instantly, then authenticated Stream search hydrates server-history results and dedupes them into the same previous/next controls.
+- Added `loadAroundMessage` to the Stream trip chat hook so selecting an off-window search hit queries Stream around that message ID, merges the returned page without duplicates, and then reuses the existing scroll/highlight behavior.
+- Preserved demo mode as local-only and kept the full search overlay shortcut intact.
+- Verification: Stream search service, TripChat render path, and useStreamTripChat send/hydration tests pass; typecheck and build pass; full lint still blocked by pre-existing e2e no-empty-pattern error; screenshot remains blocked by missing Playwright browser executable.
