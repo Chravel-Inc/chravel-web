@@ -68,7 +68,10 @@ export const useFeatureToggle = (config: FeatureConfig) => {
       showPlaces: enabledFeatures.includes('places'),
       showPolls: enabledFeatures.includes('polls'),
       showTasks: enabledFeatures.includes('tasks'),
-      showTeam: config.trip_type === 'pro' ? enabledFeatures.includes('team') || true : false,
+      // Team is intrinsic to pro trips (roster/roles), independent of the
+      // enabled_features list — both default feature lists predate 'team' and
+      // omit it, so gating on includes('team') would hide Team for real trips.
+      showTeam: config.trip_type === 'pro',
       showAdmin: enabledFeatures.includes('admin'),
       showAgenda: enabledFeatures.includes('agenda'),
       showLineup: enabledFeatures.includes('lineup'),

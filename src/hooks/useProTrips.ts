@@ -3,6 +3,7 @@ import { archiveService } from '@/services/archiveService';
 import { useAuth } from './useAuth';
 import { useDemoMode } from './useDemoMode';
 import { ProTripData } from '@/types/pro';
+import { normalizeLegacyCategory } from '@/types/proCategories';
 import { supabase } from '@/integrations/supabase/client';
 import { proTripMockData } from '@/data/proTripMockData';
 
@@ -24,7 +25,13 @@ function mapSupabaseTripToProTripData(trip: Record<string, unknown>): ProTripDat
     dateRange,
     coverPhoto: trip.cover_image_url as string | undefined,
     card_color: trip.card_color as string | undefined,
-    proTripCategory: trip.pro_trip_category as ProTripData['proTripCategory'],
+    // Category lives in the categories JSONB ({type:'pro_category', value}) —
+    // there is no pro_trip_category column (mirrors convertSupabaseTripToProTrip).
+    proTripCategory: normalizeLegacyCategory(
+      (trip.categories as Array<{ type: string; value: string }> | undefined)?.find(
+        c => c.type === 'pro_category',
+      )?.value,
+    ),
     tags: (trip.tags as string[]) || [],
     participants: [],
     budget: { total: 0, spent: 0, categories: [] },
