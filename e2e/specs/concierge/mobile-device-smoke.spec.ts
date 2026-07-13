@@ -133,18 +133,18 @@ async function loginViaBrowser(page: Page, email: string): Promise<boolean> {
 }
 
 const test = base.extend<{ testAuth: { email: string; session: string; userId: string } | null }>({
-  testAuth: async (_fixtures, provide) => {
+  testAuth: async ({}, use) => {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      await provide(null);
+      await use(null);
       return;
     }
     const email = `qa-concierge-smoke-${Date.now()}@test.chravel.com`;
     try {
       const auth = await signUpTestUser(email);
-      await provide(auth ? { email, ...auth } : null);
+      await use(auth ? { email, ...auth } : null);
     } catch (err) {
       console.warn('[CONCIERGE-SMOKE] testAuth setup failed:', err);
-      await provide(null);
+      await use(null);
     }
   },
 });

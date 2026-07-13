@@ -33,54 +33,82 @@ const requiredSteps = [
 // Authenticated fixture suites require SUPABASE_SERVICE_ROLE_KEY. When the key is
 // absent, run demo/UI smoke coverage so the gate still exercises the surface
 // without silently skipping launch-critical authenticated paths when secrets exist.
-const releaseGatePlaywrightSpecs = [
-  [
-    'playwright:auth',
-    hasServiceRole
-      ? ['e2e/specs/auth/full-auth.spec.ts', 'e2e/specs/auth/auth-smoke.spec.ts']
-      : ['e2e/specs/auth/auth-smoke.spec.ts'],
-  ],
-  [
-    'playwright:trip-creation',
-    hasServiceRole
-      ? ['e2e/specs/trips/trip-crud.spec.ts', 'e2e/trip-creation.spec.ts']
-      : ['e2e/trip-creation.spec.ts'],
-  ],
-  ['playwright:invite-join', ['e2e/invite-links.spec.ts', 'e2e/trip-flow.spec.ts']],
-  ['playwright:payments', ['e2e/specs/payments']],
-  [
-    'playwright:concierge',
-    ['e2e/specs/chat/messaging.spec.ts', 'e2e/specs/concierge/mobile-device-smoke.spec.ts'],
-  ],
-  ['playwright:events', ['e2e/specs/events/event-recap-export.spec.ts']],
-  ['playwright:pro-trips', ['e2e/specs/pro', 'e2e/specs/chat/messaging.spec.ts']],
-  ['playwright:media', ['e2e/specs/media']],
-];
 
 function existingTargets(targets) {
   return targets.filter(target => fs.existsSync(path.join(repoRoot, target)));
 }
 
+function playwrightStep(label, targets, extraArgs = []) {
+  const existing = existingTargets(targets);
+  if (existing.length === 0) {
+    return [
+      [
+        `${label}:coverage-missing`,
+        [
+          'node',
+          [
+            '-e',
+            `console.error(${JSON.stringify(`Missing App Store release-gate Playwright coverage for ${label.replace('playwright:', '')}. Add a spec under: ${targets.join(', ')}`)}); process.exit(1);`,
+          ],
+        ],
+      ],
+    ];
+  }
+  return [[label, ['npx', ['playwright', 'test', ...existing, ...extraArgs, '--project=chromium']]]];
+}
+
 const steps = [
   ...requiredSteps,
-  ...releaseGatePlaywrightSpecs.flatMap(([label, targets]) => {
-    const existing = existingTargets(targets);
-    if (existing.length === 0) {
-      return [
+  ...playwrightStep(
+    'playwright:auth',
+    hasServiceRole
+      ? ['e2e/specs/auth/full-auth.spec.ts', 'e2e/specs/auth/auth-smoke.spec.ts']
+      : ['e2e/specs/auth/auth-smoke.spec.ts'],
+  ),
+  ...playwrightStep(
+    'playwright:trip-creation',
+    hasServiceRole
+      ? ['e2e/specs/trips/trip-crud.spec.ts', 'e2e/trip-creation.spec.ts']
+      : ['e2e/trip-creation.spec.ts'],
+  ),
+  ...playwrightStep('playwright:invite-join', [
+    'e2e/invite-links.spec.ts',
+    'e2e/trip-flow.spec.ts',
+  ]),
+  ...playwrightStep('playwright:payments', ['e2e/specs/payments']),
+  ...(hasServiceRole
+    ? playwrightStep('playwright:concierge', [
+        'e2e/specs/chat/messaging.spec.ts',
+        'e2e/specs/concierge/mobile-device-smoke.spec.ts',
+      ])
+    : [
+        ...playwrightStep(
+          'playwright:concierge-chat-smoke',
+          ['e2e/specs/chat/messaging.spec.ts'],
+          ['-g', 'CHAT-SMOKE'],
+        ),
         [
-          `${label}:coverage-missing`,
+          'playwright:concierge-device-smoke',
           [
-            'node',
+            'npx',
             [
-              '-e',
-              `console.error(${JSON.stringify(`Missing App Store release-gate Playwright coverage for ${label.replace('playwright:', '')}. Add a spec under: ${targets.join(', ')}`)}); process.exit(1);`,
+              'playwright',
+              'test',
+              'e2e/specs/concierge/mobile-device-smoke.spec.ts',
+              '--project=Mobile Chrome',
+              '--workers=1',
+              '-g',
+              'demo mobile controls|pending tool cards',
             ],
           ],
         ],
-      ];
-    }
-    return [[label, ['npx', ['playwright', 'test', ...existing, '--project=chromium']]]];
-  }),
+      ]),
+  ...playwrightStep('playwright:events', ['e2e/specs/events/event-recap-export.spec.ts']),
+  ...playwrightStep(
+    'playwright:pro-trips',
+    hasServiceRole ? ['e2e/specs/pro', 'e2e/specs/chat/messaging.spec.ts'] : ['e2e/specs/pro'],
+  ),
+  ...playwrightStep('playwright:media', ['e2e/specs/media']),
 ];
 
 if (includeScreenshots) {
@@ -102,6 +130,8 @@ function buildGateEnv() {
     env.SUPABASE_ANON_KEY = env.VITE_SUPABASE_ANON_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY;
   }
   env.CHRAVEL_E2E_RELEASE_GATE = releaseGate ? '1' : env.CHRAVEL_E2E_RELEASE_GATE;
+  // Concierge device smoke projects are gated behind PLAYWRIGHT_MOBILE_SMOKE.
+  env.PLAYWRIGHT_MOBILE_SMOKE = env.PLAYWRIGHT_MOBILE_SMOKE || '1';
   return env;
 }
 
