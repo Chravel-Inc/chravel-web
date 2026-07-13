@@ -1,3 +1,9 @@
+2026-07-13 — Payments UX delight (mobile parity + receipts + deeplinks)
+- Deep-dive: trip P2P payments already had equal splits, creator settle checkboxes, create-time attachments, and desktop Venmo/PayPal deeplinks — but mobile create skipped chat system messages, preferred methods were non-clickable badges on outstanding cards, mobile lacked PersonBalanceCard, and push fanout targeted missing `trip_payments` table.
+- Fixed: shared `paymentActivityMessages` for mobile+desktop chat announce; `PaymentMethodPayButtons` deeplinks on outstanding cards + PersonBalanceCard; post-create `PaymentAttachmentAddControl`; paid progress bar; mobile "Who owes whom"; migration retargeting notify trigger + applecash CHECK (applied to ChravelApp prod).
+- Tests: PaymentMethodPayButtons + paymentActivityMessages; typecheck/lint/build pass.
+- Branch: cursor/payments-ux-delight-3561
+
 2026-07-13 — Mobile calendar Day/Month UX (marketing parity)
 - Redesigned MobileGroupCalendar: Day|Month segmented tabs, agenda-first Day view with event cards, height-capped mini calendar (max ~42%/48%, never flex-grows when empty).
 - Month view is distinct: compact month overview + selected-day agenda + “Open Day view”.

@@ -363,10 +363,22 @@ export const paymentService = {
 
   // Payment Settlement — uses pessimistic locking RPC to prevent double-credit race conditions
   async settlePayment(splitId: string, settlementMethod: string): Promise<boolean> {
+    const result = await this.settlePaymentWithMeta(splitId, settlementMethod);
+    return result.success;
+  },
+
+  /**
+   * Settle a split and return whether the parent payment is now fully settled.
+   * Used by OutstandingPayments to fire the chat "settled" system message once.
+   */
+  async settlePaymentWithMeta(
+    splitId: string,
+    settlementMethod: string,
+  ): Promise<{ success: boolean; allSettled: boolean }> {
     try {
       const { data: authData } = await supabase.auth.getUser();
       const userId = authData?.user?.id;
-      if (!userId) return false;
+      if (!userId) return { success: false, allSettled: false };
 
       const { data, error } = await (supabase.rpc as any)('settle_payment_split', {
         p_split_id: splitId,
@@ -377,21 +389,28 @@ export const paymentService = {
       if (error) {
         if (import.meta.env.DEV)
           console.error('[paymentService] settle_payment_split RPC error:', error);
-        return false;
+        return { success: false, allSettled: false };
       }
 
       // RPC returns { success, error?, all_settled? }
-      const payload = (data ?? {}) as { success?: boolean; error?: string };
+      const payload = (data ?? {}) as {
+        success?: boolean;
+        error?: string;
+        all_settled?: boolean;
+      };
       if (!payload.success) {
         // A concurrent caller already settled it — the desired end state holds,
         // so report idempotent success instead of a user-facing failure.
-        return payload.error === 'ALREADY_SETTLED';
+        return {
+          success: payload.error === 'ALREADY_SETTLED',
+          allSettled: Boolean(payload.all_settled),
+        };
       }
 
-      return true;
+      return { success: true, allSettled: Boolean(payload.all_settled) };
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error settling payment:', error);
-      return false;
+      return { success: false, allSettled: false };
     }
   },
 

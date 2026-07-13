@@ -16,14 +16,10 @@ import {
   buildPaymentMessage,
 } from '@/lib/paymentCacheUtils';
 import { normalizePaymentMessages, toAppPayment } from '@/lib/adapters/paymentAdapter';
-import { systemMessageService } from '@/services/systemMessageService';
-
-const resolveActorName = (
-  user: { displayName?: string | null; email?: string | null } | null | undefined,
-): string => {
-  if (!user) return 'Someone';
-  return user.displayName || user.email?.split('@')[0] || 'Someone';
-};
+import {
+  notifyPaymentRecordedInChat,
+  resolvePaymentActorName,
+} from '@/lib/paymentActivityMessages';
 
 class CreatePaymentMutationError extends Error {
   public readonly code: string;
@@ -284,10 +280,11 @@ export const usePayments = (tripId?: string) => {
       // Inline chat activity so members see the payment request in the chat
       // stream without having to open the Payments tab. Fire-and-forget; a
       // failure here must never bubble back to the payment mutation.
+      // Shared helper keeps mobile CreatePaymentModal on the same path.
       if (tripId && !demoActive) {
-        void systemMessageService.paymentRecorded(
+        notifyPaymentRecordedInChat(
           tripId,
-          resolveActorName(user),
+          resolvePaymentActorName(user),
           paymentId,
           paymentData.amount,
           paymentData.currency,

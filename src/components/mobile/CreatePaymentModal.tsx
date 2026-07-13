@@ -16,6 +16,11 @@ import { useFeatureFlag } from '@/lib/featureFlags';
 import { usePaymentAttachmentDraft } from '@/features/payments/hooks/usePaymentAttachmentDraft';
 import { PaymentAttachmentPicker } from '@/features/payments/components/PaymentAttachmentPicker';
 import { LARGE_LIST_THRESHOLDS } from '@/lib/largeListThresholds';
+import {
+  notifyPaymentRecordedInChat,
+  resolvePaymentActorName,
+} from '@/lib/paymentActivityMessages';
+import { useAuth } from '@/hooks/useAuth';
 
 interface CreatePaymentModalProps {
   isOpen: boolean;
@@ -62,6 +67,7 @@ export const CreatePaymentModal = ({
 }: CreatePaymentModalProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
   const attachmentsEnabled = useFeatureFlag('payment_attachments', true);
   const attachmentDraft = usePaymentAttachmentDraft();
 
@@ -165,6 +171,17 @@ export const CreatePaymentModal = ({
           isSettled: false,
         };
 
+        // Parity with desktop usePayments: announce the expense in chat so
+        // members see it without opening the Payments tab.
+        notifyPaymentRecordedInChat(
+          tripId,
+          resolvePaymentActorName(user),
+          result.paymentId,
+          paymentData.amount,
+          paymentData.currency,
+          paymentData.description,
+        );
+
         // Attach staged proof/context AFTER the payment exists. The draft hook handles per-item
         // failures, cache invalidation, and clearing itself; failures never block the payment.
         if (showAttachments && attachmentDraft.count > 0) {
@@ -196,7 +213,9 @@ export const CreatePaymentModal = ({
         });
       }
     } catch (error) {
-      console.error('Failed to create payment:', error);
+      if (import.meta.env.DEV) {
+        console.error('Failed to create payment:', error);
+      }
       toast({
         title: 'Error',
         description: 'Failed to create payment. Please try again.',

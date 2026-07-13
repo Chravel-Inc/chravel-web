@@ -164,3 +164,12 @@
 - **Suggested tests:** Mock useFeatureFlag per key; assert mosaic stacks and voice falls back to file link; pointer lock/send on VoiceRecordButton.
 - **Priority:** medium
 - **Provenance:** July 2026 iMessage chat audit + deferred polish (`cursor/imessage-chat-audit-ff9d`)
+
+## Payment settlement dual-path + post-create attachments E2E
+- **Area:** `OutstandingPayments.tsx`, `PersonBalanceCard.tsx` / `SettlePaymentDialog.tsx`, `PaymentAttachmentAddControl.tsx`
+- **Why this gap matters:** Outstanding checkboxes settle via `settle_payment_split` (direct credit), while balance-card "Mark as Paid" uses pending→confirm. Unit tests cover dialogs and deeplink buttons, but no integration test asserts both paths leave the same ledger state or that post-create receipt upload appears on the card + Media tab.
+- **Missing coverage:** (1) Creator marks debtor paid via checkbox → parent `is_settled` + chat `payment_settled`. (2) Debtor Mark as Paid → pending → creditor Confirm. (3) Add receipt after create → `payment_attachments` row + Media index.
+- **Failure mode if untested:** Dual settlement UX can drift again; receipt upload can succeed in storage but never link to the payment card.
+- **Suggested tests:** Vitest hook/service with mocked settle RPC payloads (`all_settled`); Playwright smoke on authenticated trip Payments tab.
+- **Priority:** medium-high
+- **Provenance:** July 2026 payments UX delight (`cursor/payments-ux-delight-3561`)

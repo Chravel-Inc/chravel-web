@@ -530,3 +530,6 @@ July 9 Search/isActive + realtime lazy-mount fixes were already on `main` and in
 
 ### Launch-critical E2E fixtures need an explicit release-gate mode
 Local Playwright runs can skip authenticated setup when staging secrets or confirmation-free auth are unavailable, but CI/App Store QA must fail instead of reporting green with skipped launch-critical coverage. Centralize the mode flag (`CHRAVEL_E2E_RELEASE_GATE=1`) and throw fixture-step errors (`[E2E fixture step failed: auth|trip creation|membership|pro trip creation] ...`) from shared fixtures so failures identify the broken setup step. *Evidence: July 2026 chat messaging E2E release-gate hardening.*
+
+### Trip payment UX must share one create path across mobile and desktop
+Desktop `usePayments.createPaymentMessage` fired Stream `payment_recorded` chat activity; mobile `CreatePaymentModal` called `paymentService` directly and skipped it. Prefer a shared helper (`paymentActivityMessages`) invoked from every create entry point, and put preferred-method deeplinks on both Outstanding cards and mobile balance breakdown — not only desktop `PersonBalanceCard`. *Evidence: July 2026 payments UX delight — mobile create had no chat announcement; Pay via badges were non-interactive until `PaymentMethodPayButtons`.*
