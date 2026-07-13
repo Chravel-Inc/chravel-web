@@ -8,6 +8,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const repoRoot = path.resolve(__dirname, '..', '..');
+const releaseGate = process.env.CHRAVEL_APPSTORE_RELEASE_GATE === '1';
+const includeScreenshots = process.env.CHRAVEL_APPSTORE_INCLUDE_SCREENSHOTS === '1';
+const parsedTimeout = Number(process.env.CHRAVEL_APPSTORE_STEP_TIMEOUT_MS || 15 * 60 * 1000);
+const DEFAULT_STEP_TIMEOUT_MS = Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : 15 * 60 * 1000;
 
 const requiredSteps = [
   ['validate-env', ['npm', ['run', 'validate-env']]],
@@ -64,6 +68,10 @@ const steps = [
   }),
 ];
 
+if (includeScreenshots) {
+  steps.push(['screenshots:appstore:all', ['npm', ['run', 'screenshots:appstore:all']]]);
+}
+
 function formatDuration(ms) {
   const seconds = Math.round(ms / 1000);
   const minutes = Math.floor(seconds / 60);
@@ -76,6 +84,10 @@ const results = [];
 
 console.log('🚦 Chravel App Store release gate starting');
 console.log(`Steps: ${steps.length}`);
+console.log(`Per-step timeout: ${formatDuration(DEFAULT_STEP_TIMEOUT_MS)}`);
+if (releaseGate) {
+  console.log('CHRAVEL_APPSTORE_RELEASE_GATE=1 → Concierge device smoke uses fail-closed skips');
+}
 console.log('');
 
 for (const [label, [command, args]] of steps) {
@@ -85,14 +97,31 @@ for (const [label, [command, args]] of steps) {
 
   const result = spawnSync(command, args, {
     cwd: repoRoot,
-    env: process.env,
+    env: {
+      ...process.env,
+      CHRAVEL_E2E_RELEASE_GATE: releaseGate ? '1' : process.env.CHRAVEL_E2E_RELEASE_GATE,
+    },
     stdio: 'inherit',
     shell: process.platform === 'win32',
+    timeout: DEFAULT_STEP_TIMEOUT_MS,
   });
 
   const durationMs = Date.now() - stepStartedAt;
-  const exitCode = typeof result.status === 'number' ? result.status : 1;
-  results.push({ label, command: [command, ...args].join(' '), durationMs, exitCode });
+  const timedOut = result.error?.code === 'ETIMEDOUT';
+  const exitCode = timedOut ? 124 : typeof result.status === 'number' ? result.status : 1;
+  results.push({
+    label,
+    command: [command, ...args].join(' '),
+    durationMs,
+    exitCode,
+    timedOut,
+  });
+
+  if (timedOut) {
+    console.error(
+      `⏱️  ${label} exceeded ${formatDuration(DEFAULT_STEP_TIMEOUT_MS)} timeout.`,
+    );
+  }
 
   if (exitCode !== 0) {
     console.error(`✖ ${label} failed after ${formatDuration(durationMs)} (exit ${exitCode})`);
@@ -112,7 +141,10 @@ console.log('App Store release gate summary');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 for (const result of results) {
   const icon = result.exitCode === 0 ? '✅' : '❌';
-  console.log(`${icon} ${result.label} — ${formatDuration(result.durationMs)} — ${result.command}`);
+  const timeoutNote = result.timedOut ? ' (timeout)' : '';
+  console.log(
+    `${icon} ${result.label} — ${formatDuration(result.durationMs)}${timeoutNote} — ${result.command}`,
+  );
 }
 const notRun = steps.slice(results.length);
 for (const [label] of notRun) {
