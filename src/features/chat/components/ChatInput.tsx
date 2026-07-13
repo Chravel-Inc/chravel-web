@@ -545,7 +545,9 @@ export const ChatInput = ({
                     ? 'ogg'
                     : 'webm';
                 const filename = `voice-note-${Date.now()}.${ext}`;
-                const file = new File([result.blob], filename, {
+                // `File` from lucide-react is imported at the top and shadows the DOM
+                // constructor here — use the global explicitly.
+                const file = new globalThis.File([result.blob], filename, {
                   type: result.mimeType || 'audio/webm',
                 });
                 const dt = new DataTransfer();
