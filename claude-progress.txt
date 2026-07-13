@@ -1,3 +1,9 @@
+2026-07-13 — App Store launch QA gate kickoff
+- Added a repo-owned `qa:appstore-release` gate that sequences env validation, guardrails, permission drift, IAP parity/validation, lint, typecheck, full Vitest, build, mobile perf, chat readiness, optional E2E smoke/device checks, and optional App Store screenshots with per-step timeout protection.
+- Added App Store release-gate docs and a feature-to-test matrix covering auth, trips, invites, chat, calendar, polls, tasks, payments, media, basecamp, Explore/Recs, cover photos, Concierge, pro trips, events, notifications, PWA/mobile, billing, and compliance.
+- Hardened Concierge mobile-device smoke skips so release-gate mode fails on missing demo/auth/trip prerequisites instead of silently skipping; repaired stale chat-readiness matrix coverage after ThreadView removal; regenerated stale permission matrices.
+- Verification: guardrails, permission drift, IAP parity/validation, lint:check, typecheck, build, mobile perf, chat readiness, and 12 focused feature suites passed. Full `npm run test:run` still hangs in this environment and is now bounded by gate timeout; Playwright browser install remains blocked by CDN 403.
+
 2026-07-12 — Concierge launch audit + send CTA parity
 - Kept Concierge Send visually aligned with Search/Upload/waveform by preserving gold-ring CTA chrome when the composer is empty; empty sends are now blocked in handlers + aria-disabled instead of DOM-disabled opacity.
 - Audited Concierge tool coverage and language routing: registry exposes 74 text tools plus voice parity overrides, write tools are covered by executor/invalidation/pending-action tests, and prompt assembly enforces same-message language matching with optional user-selected override.
