@@ -36,10 +36,20 @@ interface VirtualizedMessageContainerProps {
 
 type RowItem =
   | { type: 'date'; date: Date }
-  | { type: 'message'; message: ChatMessageLike; index: number; showSenderInfo: boolean };
+  | { type: 'time-gap'; date: Date; key: string }
+  | {
+      type: 'message';
+      message: ChatMessageLike;
+      index: number;
+      showSenderInfo: boolean;
+      isLastInGroup: boolean;
+    };
 
 const ROW_HEIGHT_ESTIMATE = 72;
 const DATE_ROW_HEIGHT = 40;
+const TIME_GAP_ROW_HEIGHT = 28;
+const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
+
 
 export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerProps> = ({
   messages,
