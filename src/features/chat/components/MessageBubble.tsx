@@ -319,6 +319,17 @@ export const MessageBubble = memo(
           )}
 
           {nonImages.map((attachment, index) => {
+            if (attachment.url && isAudioAttachment(attachment)) {
+              return (
+                <VoiceNotePlayer
+                  key={`audio-${index}`}
+                  src={attachment.url}
+                  waveform={attachment.waveform}
+                  durationMs={attachment.durationMs}
+                  isOwn={isOwnMessage}
+                />
+              );
+            }
             if (attachment.type === 'file' && attachment.url) {
               return (
                 <a
