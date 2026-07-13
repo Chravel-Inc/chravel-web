@@ -89,8 +89,9 @@ export const ReadReceipts: React.FC<ReadReceiptsProps> = ({
       </div>
 
       {/* If no other users read it yet but readCount > 0 (meaning maybe only current user read it? unlikely but possible in edge cases) */}
-      {otherReaders.length === 0 && readCount > 0 && (
-        <div className="flex items-center gap-1 text-blue-500 text-xs">
+      {/* Gold double-tick when the message has been read */}
+      {readCount > 0 && (
+        <div className="flex items-center gap-1 text-primary text-xs">
           <CheckCheck size={12} />
         </div>
       )}
