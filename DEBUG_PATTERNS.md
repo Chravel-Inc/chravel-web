@@ -590,3 +590,12 @@ Known security anti-patterns discovered during audits. Reference this before int
 **Regression Surfaces:** Any new migration joining to trips/trip_events.
 **Fixed in:** `supabase/migrations/20260713160000_calendar_import_batches.sql`
 
+## MobileTripTabs `participants = []` default render loop (regression)
+- **Status:** fixed (again)
+- **Subsystem:** mobile trip shell (`MobileTripTabs`)
+- **Bug class:** unstable default prop identity → effect setState loop
+- **Symptom:** Vitest unit shards hang / OOM (`MobileTripTabs.navigation.test.tsx` allocates to heap limit); CI Unit Tests Shard times out at 20m; consumer tab switches can freeze.
+- **Root cause:** Inline `participants = []` (and `tripData || {}`) mint new identities every render. The `localParticipants` sync effect depends on `participants` and calls `setLocalParticipants`, re-rendering forever. Previously fixed in `0dd88ee43` with `NO_PARTICIPANTS` / `NO_TRIP_DATA`, then lost on `main`.
+- **Smallest safe fix:** Module-level stable defaults; return previous `visitedTabs` Set when unchanged; keep transition hang-detector tests.
+- **Required tests:** `MobileTripTabs.transition.test.tsx` + navigation suite must finish in seconds, not OOM.
+- **Fixed in:** `MobileTripTabs.tsx` (July 2026 restore)
