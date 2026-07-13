@@ -609,3 +609,24 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Smallest safe fix:** Replace bare http(s)/www URLs with `a link to {domain}`; keep markdown labels; never speak query strings.
 - **Required tests:** `src/lib/__tests__/buildSpeechText.test.ts`
 - **Fixed in:** `src/lib/buildSpeechText.ts` (July 2026)
+
+## Poll Comment Counts Across Separate Query Clients
+
+**Symptom:** Comment count badge stays at 0 after posting a reply in unit tests (or briefly in UI).
+**Risk:** LOW — UI recovers on refetch; tests flake if two renderHooks use separate QueryClients.
+**Root Cause:** `invalidateQueries` only notifies observers on the same QueryClient; counts rendered from a different client never refetch.
+**How to Confirm:** Two `renderHook` wrappers each create their own `QueryClient`.
+**Smallest Safe Fix:** Share one QueryClient across hooks under test; in app, always use the app-wide client.
+**Required Tests:** `usePollComments` demo add + counts after shared client mount.
+**Regression Surfaces:** Any dual-hook poll comment/count tests.
+**Fixed in:** `src/hooks/__tests__/usePollComments.test.tsx` (July 2026)
+
+## Direct trip_polls UPDATE Cannot Append After options_locked_at
+
+**Symptom:** “Suggest option” fails or silently no-ops once anyone has voted.
+**Risk:** MEDIUM — product feature broken for the common post-first-vote case.
+**Root Cause:** Client UPDATE of `options` is blocked/frozen after `options_locked_at`; append needs append-only SECURITY DEFINER RPC with membership checks.
+**How to Confirm:** Vote once, then try updating `options` via client vs `append_poll_option`.
+**Smallest Safe Fix:** `append_poll_option(p_poll_id, p_option_text, p_current_version)` + `poll_suggest_option` kill switch; invalidate `tripKeys.polls`.
+**Required Tests:** `Poll.facepile-suggest` UI + `pollStorageService.appendOption` demo path.
+**Fixed in:** `20260713170000_append_poll_option.sql` / `useTripPolls.suggestOption` (July 2026)
