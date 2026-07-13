@@ -121,6 +121,10 @@ Voice model string drifts silently; assert it equals the canonical literal in CI
 
 ---
 
+
+### Release gates must bound long-running suites with explicit timeouts
+Full-suite Vitest can hang without reporting failures; release gates should fail closed with a configurable timeout and require focused follow-up instead of running indefinitely. Evidence: App Store QA gate timed out `npm run test:run` at 180s on 2026-07-13 while focused feature suites passed.
+
 ## Auth, Permissions, Payments
 
 ### Permission model varies by trip type: consumer open · pro role-based · event organizer-only

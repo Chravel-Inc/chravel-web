@@ -1,3 +1,8 @@
+2026-07-13 — App Store launch QA gate kickoff
+- Added a repo-owned `qa:appstore-release` gate that sequences env validation, guardrails, permission drift, IAP parity/validation, lint, typecheck, full Vitest, build, mobile perf, chat readiness, optional E2E smoke/device checks, and optional App Store screenshots with per-step timeout protection.
+- Added App Store release-gate docs and a feature-to-test matrix covering auth, trips, invites, chat, calendar, polls, tasks, payments, media, basecamp, Explore/Recs, cover photos, Concierge, pro trips, events, notifications, PWA/mobile, billing, and compliance.
+- Hardened Concierge mobile-device smoke skips so release-gate mode fails on missing demo/auth/trip prerequisites instead of silently skipping; repaired stale chat-readiness matrix coverage after ThreadView removal; regenerated stale permission matrices.
+- Verification: guardrails, permission drift, IAP parity/validation, lint:check, typecheck, build, mobile perf, chat readiness, and 12 focused feature suites passed. Full `npm run test:run` still hangs in this environment and is now bounded by gate timeout; Playwright browser install remains blocked by CDN 403.
 2026-07-13 — iMessage deferred polish: tails, unread divider, flags, voice bucket
 - Implemented remaining Holy Grail deferred items: bubble tails on last-in-group, sticky date overlay, New Messages unread divider (captured once per open), 3-minute grouping window, chat_* feature-flag kill switches, swipe-up-to-lock voice recording, Places mini-cards, video duration badge + GIF in-view autoplay, and dedicated trip-voice-notes storage bucket with membership RLS.
 - Migration applied to ChravelApp prod via Supabase MCP; voice uploads now use signed URLs from trip-voice-notes.
