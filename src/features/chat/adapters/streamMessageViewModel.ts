@@ -37,9 +37,13 @@ export type StreamViewAttachment = {
   waveform?: number[];
 };
 
-const AUDIO_EXT_RE = /\.(mp3|wav|m4a|ogg|oga|webm|opus|aac|caf)(\?|$)/i;
+// .webm is intentionally omitted: it is ambiguous (audio or video). Classify webm via
+// explicit type/mime only so video/webm never becomes VoiceNotePlayer.
+const AUDIO_EXT_RE = /\.(mp3|wav|m4a|ogg|oga|opus|aac|caf)(\?|$)/i;
 
 function isAudioStreamAttachment(attachment: StreamAttachment): boolean {
+  if (attachment.type === 'video') return false;
+  if (attachment.mime_type?.startsWith('video/')) return false;
   if (attachment.type === 'audio') return true;
   if (attachment.mime_type?.startsWith('audio/')) return true;
   const url = attachment.asset_url || attachment.url || attachment.image_url;

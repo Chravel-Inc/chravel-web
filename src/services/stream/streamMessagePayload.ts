@@ -85,16 +85,29 @@ const normalizeAttachment = (attachment: unknown): UnknownRecord | null => {
   return normalized;
 };
 
+function attachmentAssetUrl(attachment: UnknownRecord): string | null {
+  const assetUrl = typeof attachment.asset_url === 'string' ? attachment.asset_url : null;
+  const url = typeof attachment.url === 'string' ? attachment.url : null;
+  return assetUrl || url;
+}
+
 function buildAttachments(input: BuildTripStreamPayloadInput): UnknownRecord[] {
   const normalized = (input.attachments || [])
     .map(normalizeAttachment)
     .filter((value): value is UnknownRecord => Boolean(value));
 
+  // Callers often pass both mediaUrl (legacy single-media field) and attachments[].
+  // Skip mediaUrl when that URL is already represented so mosaics/voice notes stay 1:1.
   if (input.mediaUrl) {
-    normalized.push({
-      type: input.mediaType || 'file',
-      asset_url: input.mediaUrl,
-    });
+    const alreadyPresent = normalized.some(
+      attachment => attachmentAssetUrl(attachment) === input.mediaUrl,
+    );
+    if (!alreadyPresent) {
+      normalized.push({
+        type: input.mediaType || 'file',
+        asset_url: input.mediaUrl,
+      });
+    }
   }
 
   if (input.linkPreview?.url) {

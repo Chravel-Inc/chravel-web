@@ -34,8 +34,11 @@ import { PlaceMiniCard, isPlaceLinkUrl } from './PlaceMiniCard';
 import { VideoThumb, GifAutoplayImage } from './VideoThumb';
 import { useFeatureFlag } from '@/lib/featureFlags';
 
-const AUDIO_EXT_RE = /\.(mp3|wav|m4a|ogg|oga|webm|opus|aac|caf)(\?|$)/i;
+// .webm omitted — ambiguous audio/video; require explicit type/mime for webm.
+const AUDIO_EXT_RE = /\.(mp3|wav|m4a|ogg|oga|opus|aac|caf)(\?|$)/i;
 const isAudioAttachment = (att: { type: string; url?: string; mimeType?: string }) => {
+  if (att.type === 'video') return false;
+  if (att.mimeType?.startsWith('video/')) return false;
   if (att.type === 'audio') return true;
   if (att.mimeType?.startsWith('audio/')) return true;
   return !!att.url && AUDIO_EXT_RE.test(att.url);

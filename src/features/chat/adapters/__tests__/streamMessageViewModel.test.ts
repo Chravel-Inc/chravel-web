@@ -117,6 +117,53 @@ describe('buildStreamMessageViewModels', () => {
     });
   });
 
+  it('does not classify video/webm as audio from extension alone', () => {
+    const results = buildStreamMessageViewModels({
+      messages: [
+        baseMessage({
+          text: '',
+          attachments: [
+            {
+              type: 'video',
+              asset_url: 'https://cdn/clip.webm',
+              mime_type: 'video/webm',
+            },
+          ] as unknown as MessageResponse['attachments'],
+        }),
+      ],
+      tripMembers: members,
+    });
+
+    expect(results[0].mediaType).toBe('video');
+    expect(results[0].attachments?.[0]).toMatchObject({
+      type: 'video',
+      url: 'https://cdn/clip.webm',
+      mimeType: 'video/webm',
+    });
+  });
+
+  it('still maps audio/webm voice notes via mime when type is file', () => {
+    const results = buildStreamMessageViewModels({
+      messages: [
+        baseMessage({
+          text: '',
+          attachments: [
+            {
+              type: 'file',
+              asset_url: 'https://cdn/voice.webm',
+              mime_type: 'audio/webm',
+              duration_ms: 2100,
+            },
+          ] as unknown as MessageResponse['attachments'],
+        }),
+      ],
+      tripMembers: members,
+    });
+
+    expect(results[0].mediaType).toBe('audio');
+    expect(results[0].attachments?.[0]?.type).toBe('audio');
+  });
+
   it('normalizes Stream file attachments to document mediaType with downloadable url', () => {
     const results = buildStreamMessageViewModels({
       messages: [

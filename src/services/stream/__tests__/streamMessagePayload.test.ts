@@ -97,6 +97,54 @@ describe('buildTripStreamMessagePayload', () => {
     ]);
   });
 
+  it('does not duplicate mediaUrl when it is already in attachments[]', () => {
+    const urls = [
+      'https://cdn.example/a.jpg',
+      'https://cdn.example/b.jpg',
+      'https://cdn.example/c.jpg',
+    ];
+    const result = buildTripStreamMessagePayload({
+      content: '',
+      mediaType: 'image',
+      mediaUrl: urls[0],
+      attachments: urls.map(url => ({ type: 'image', url })),
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.payload.attachments).toHaveLength(3);
+    expect(result.payload.attachments?.map(a => (a as { asset_url: string }).asset_url)).toEqual(
+      urls,
+    );
+  });
+
+  it('does not duplicate voice mediaUrl when attachments already include it', () => {
+    const voiceUrl = 'https://cdn.example/voice.webm';
+    const result = buildTripStreamMessagePayload({
+      content: '',
+      mediaType: 'audio',
+      mediaUrl: voiceUrl,
+      attachments: [
+        {
+          type: 'audio',
+          url: voiceUrl,
+          mime_type: 'audio/webm',
+          duration_ms: 1500,
+          waveform: [0.2, 0.6],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.payload.attachments).toHaveLength(1);
+    expect(result.payload.attachments?.[0]).toMatchObject({
+      type: 'audio',
+      asset_url: voiceUrl,
+      mime_type: 'audio/webm',
+    });
+  });
+
   it('rejects content over 4000 chars', () => {
     const result = buildTripStreamMessagePayload({ content: 'x'.repeat(4001) });
     expect(result).toEqual({ ok: false, error: 'content_too_long' });
