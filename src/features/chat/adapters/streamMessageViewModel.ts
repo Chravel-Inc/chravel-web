@@ -86,8 +86,7 @@ function mapStreamAttachments(attachments: StreamAttachment[]): StreamViewAttach
 
       return {
         type,
-        ref_id:
-          (typeof attachment.ref_id === 'string' && attachment.ref_id) || `att-${index}`,
+        ref_id: (typeof attachment.ref_id === 'string' && attachment.ref_id) || `att-${index}`,
         url,
         mimeType: attachment.mime_type,
         durationMs: attachment.duration_ms,

@@ -76,7 +76,8 @@ export const VoiceRecordButton: React.FC<VoiceRecordButtonProps> = ({
       setDragX(deltaX);
       setDragY(deltaY);
 
-      const canceling = Math.abs(deltaX) >= CANCEL_THRESHOLD_PX && Math.abs(deltaX) >= Math.abs(deltaY);
+      const canceling =
+        Math.abs(deltaX) >= CANCEL_THRESHOLD_PX && Math.abs(deltaX) >= Math.abs(deltaY);
       const locking = Math.abs(deltaY) >= LOCK_THRESHOLD_PX && Math.abs(deltaY) > Math.abs(deltaX);
       willCancelRef.current = canceling;
       willLockRef.current = locking && !canceling;
@@ -164,9 +165,7 @@ export const VoiceRecordButton: React.FC<VoiceRecordButtonProps> = ({
             !isLocked && 'pointer-events-none',
           )}
           style={{
-            transform: isLocked
-              ? undefined
-              : `translate(${dragX}px, ${dragY}px)`,
+            transform: isLocked ? undefined : `translate(${dragX}px, ${dragY}px)`,
           }}
         >
           <span

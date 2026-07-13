@@ -107,8 +107,7 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
   const entranceInitializedRef = useRef(false);
   const [enteringMessageIds, setEnteringMessageIds] = useState<Set<string>>(() => new Set());
   const prefersReducedMotion =
-    typeof window !== 'undefined' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   useEffect(() => {
     if (!entranceInitializedRef.current) {
@@ -246,8 +245,7 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
         latestDate = new Date(row.message.created_at || row.message.createdAt || 0);
       }
     }
-    const nextTs =
-      latestDate && !Number.isNaN(latestDate.getTime()) ? latestDate.getTime() : null;
+    const nextTs = latestDate && !Number.isNaN(latestDate.getTime()) ? latestDate.getTime() : null;
     setStickyDate(prev => {
       const prevTs = prev ? prev.getTime() : null;
       if (prevTs === nextTs) return prev;
@@ -444,7 +442,11 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
                   data-unread-divider="true"
                   style={wrapperStyle}
                 >
-                  <div className="flex items-center gap-3 py-2" role="separator" aria-label="New messages">
+                  <div
+                    className="flex items-center gap-3 py-2"
+                    role="separator"
+                    aria-label="New messages"
+                  >
                     <div className="flex-1 h-px bg-primary/40" />
                     <span className="text-[10px] uppercase tracking-wider text-primary font-semibold whitespace-nowrap">
                       New Messages
@@ -472,12 +474,7 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
                 }
                 style={wrapperStyle}
               >
-                {renderMessage(
-                  row.message,
-                  row.index,
-                  row.showSenderInfo,
-                  row.isLastInGroup,
-                )}
+                {renderMessage(row.message, row.index, row.showSenderInfo, row.isLastInGroup)}
               </div>
             );
           })}

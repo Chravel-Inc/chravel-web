@@ -11,11 +11,7 @@ interface BubbleTailProps {
  * Own = gold-tinted right notch; other = surface-tinted left notch.
  */
 export const BubbleTail: React.FC<BubbleTailProps> = ({ isOwn, isBroadcast = false }) => {
-  const fillClass = isBroadcast
-    ? 'fill-[#B91C1C]'
-    : isOwn
-      ? 'fill-chat-own'
-      : 'fill-chat-other';
+  const fillClass = isBroadcast ? 'fill-[#B91C1C]' : isOwn ? 'fill-chat-own' : 'fill-chat-other';
 
   return (
     <svg
