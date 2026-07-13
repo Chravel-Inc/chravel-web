@@ -112,6 +112,7 @@ export const ChatInput = ({
   const {
     shareLink,
     shareMultipleFiles,
+    shareVoiceNote,
     isUploading: isShareUploading,
     uploadProgress,
     parsedContent,
@@ -531,8 +532,8 @@ export const ChatInput = ({
 
 
           {/* Send Button OR hold-to-record Mic Button — Mic appears when input is empty
-              (iMessage-style). Recorded audio is uploaded through the existing document
-              upload path so no backend/schema changes are needed. */}
+              (iMessage-style). Recorded audio uploads as a typed Stream audio attachment
+              (mime/duration/waveform preserved) via shareVoiceNote. */}
           {inputMessage.trim().length === 0 && !isShareUploading && !disableFileUpload ? (
             <VoiceRecordButton
               disabled={isTyping}
@@ -550,9 +551,10 @@ export const ChatInput = ({
                 const file = new globalThis.File([result.blob], filename, {
                   type: result.mimeType || 'audio/webm',
                 });
-                const dt = new DataTransfer();
-                dt.items.add(file);
-                await shareMultipleFiles(dt.files, 'document');
+                await shareVoiceNote(file, {
+                  durationMs: result.durationMs,
+                  waveform: result.waveform,
+                });
               }}
             />
           ) : (

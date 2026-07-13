@@ -68,7 +68,7 @@ export interface MessageBubbleProps {
     googleMapsWidgetContextToken?: string;
   };
   // 🆕 Rich media support
-  mediaType?: 'image' | 'video' | 'document' | null;
+  mediaType?: 'image' | 'video' | 'document' | 'audio' | 'file' | null;
   mediaUrl?: string | null;
   linkPreview?: {
     url: string;
@@ -204,9 +204,11 @@ export const MessageBubble = memo(
       setLightboxOpen(true);
     };
 
-    // Render media content based on type
+    // Render media content based on type.
+    // When Stream mapped a full attachments[] list, mosaic / voice / file rows own media
+    // so we skip the single-media path to avoid double-rendering the first attachment.
     const renderMediaContent = () => {
-      if (!hasMedia) return null;
+      if (!hasMedia || hasAttachments) return null;
 
       switch (mediaType) {
         case 'image':
@@ -245,6 +247,15 @@ export const MessageBubble = memo(
           );
 
         case 'document':
+        case 'file':
+          // Audio disguised as a document/file (voice notes via share path) — prefer player.
+          if (mediaUrl && isAudioAttachment({ type: 'file', url: mediaUrl })) {
+            return (
+              <div className="mt-2">
+                <VoiceNotePlayer src={(resolvedMediaUrl ?? mediaUrl) as string} isOwn={isOwnMessage} />
+              </div>
+            );
+          }
           return (
             <a
               href={mediaUrl}
@@ -257,6 +268,25 @@ export const MessageBubble = memo(
               <Download size={14} className="text-gray-400" />
             </a>
           );
+
+        case 'audio':
+          if (!mediaUrl) return null;
+          // Prefer attachment metadata (waveform/duration) when Stream mapped it.
+          {
+            const audioAttachment = attachments?.find(
+              a => a.url === mediaUrl || a.type === 'audio',
+            );
+            return (
+              <div className="mt-2">
+                <VoiceNotePlayer
+                  src={(resolvedMediaUrl ?? mediaUrl) as string}
+                  waveform={audioAttachment?.waveform}
+                  durationMs={audioAttachment?.durationMs}
+                  isOwn={isOwnMessage}
+                />
+              </div>
+            );
+          }
 
         default:
           return null;
@@ -869,10 +899,12 @@ export const MessageBubble = memo(
               </div>
             )}
 
-            {/* Read Receipts */}
-            {isOwnMessage && readStatuses && readStatuses.length > 0 && (
+            {/* Read Receipts — own messages show Delivered (empty) → gold ticks (read).
+                Parent used to gate on readStatuses.length > 0, which made the Delivered
+                branch in ReadReceipts unreachable. */}
+            {isOwnMessage && status !== 'sending' && status !== 'failed' && (
               <ReadReceipts
-                readStatuses={readStatuses}
+                readStatuses={readStatuses || []}
                 totalRecipients={tripMembers?.length ? tripMembers.length - 1 : 0}
                 currentUserId={currentUserId}
                 tripMembers={tripMembers}

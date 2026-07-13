@@ -8,6 +8,7 @@ vi.mock('@/hooks/useShareAsset', () => ({
   useShareAsset: () => ({
     shareLink: vi.fn(),
     shareMultipleFiles: vi.fn(),
+    shareVoiceNote: vi.fn(),
     isUploading: false,
     uploadProgress: {},
     parsedContent: null,

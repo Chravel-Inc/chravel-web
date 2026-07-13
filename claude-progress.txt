@@ -1,3 +1,8 @@
+2026-07-13 — iMessage chat polish Stream-sync audit + fixes
+- Audited Lovable Phases 1–4 against Stream architecture before publish; found grouping, mosaic, voice notes, and Delivered receipts were presentation-only and broken on the live Stream path.
+- Fixed Stream VM attachment mapping (incl. audio metadata), sender.id grouping, multi-image batch send, shareVoiceNote typed attachments, Delivered receipt mount, and entrance animation recycle noise.
+- Verification: focused streamMessageViewModel / grouping / ReadReceipts / payload / ChatInput / MessageBubble tests pass; typecheck pass; merge preflight clean vs origin/main.
+
 2026-07-12 — Concierge launch audit + send CTA parity
 - Kept Concierge Send visually aligned with Search/Upload/waveform by preserving gold-ring CTA chrome when the composer is empty; empty sends are now blocked in handlers + aria-disabled instead of DOM-disabled opacity.
 - Audited Concierge tool coverage and language routing: registry exposes 74 text tools plus voice parity overrides, write tools are covered by executor/invalidation/pending-action tests, and prompt assembly enforces same-message language matching with optional user-selected override.

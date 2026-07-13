@@ -12,6 +12,13 @@ interface ChatMessageLike {
   createdAt?: string;
   sender_id?: string;
   user_id?: string;
+  /** Stream view models expose the sender as a nested object, not sender_id. */
+  sender?: { id?: string };
+}
+
+/** Resolve sender identity across Stream view models and legacy shapes. */
+function resolveSenderId(message: ChatMessageLike): string | null {
+  return message.sender_id || message.user_id || message.sender?.id || null;
 }
 
 interface VirtualizedMessageContainerProps {
@@ -78,6 +85,46 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
   const localHasMore = visibleStartIndex > 0;
   const visibleMessages = messages.slice(visibleStartIndex);
 
+  // Entrance animation only for messages that arrive after the initial mount.
+  // Applying animate-in to every virtualized row remount re-fires on scroll recycle.
+  const seenMessageIdsRef = useRef<Set<string>>(new Set());
+  const entranceInitializedRef = useRef(false);
+  const [enteringMessageIds, setEnteringMessageIds] = useState<Set<string>>(() => new Set());
+  const prefersReducedMotion =
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  useEffect(() => {
+    if (!entranceInitializedRef.current) {
+      messages.forEach(message => seenMessageIdsRef.current.add(message.id));
+      entranceInitializedRef.current = true;
+      return;
+    }
+
+    const newlyArrived = messages.filter(message => !seenMessageIdsRef.current.has(message.id));
+    if (newlyArrived.length === 0) return;
+
+    newlyArrived.forEach(message => seenMessageIdsRef.current.add(message.id));
+    if (prefersReducedMotion) return;
+
+    const newIds = newlyArrived.map(message => message.id);
+    setEnteringMessageIds(prev => {
+      const next = new Set(prev);
+      newIds.forEach(id => next.add(id));
+      return next;
+    });
+
+    const timer = window.setTimeout(() => {
+      setEnteringMessageIds(prev => {
+        const next = new Set(prev);
+        newIds.forEach(id => next.delete(id));
+        return next;
+      });
+    }, 220);
+
+    return () => window.clearTimeout(timer);
+  }, [messages, prefersReducedMotion]);
+
   const setContainerNode = useCallback(
     (node: HTMLDivElement | null) => {
       containerRef.current = node;
@@ -112,9 +159,10 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
           key: `gap-${message.id}`,
         });
       }
-      // Collapse sender info if same sender within 2-minute window (message grouping)
-      const senderId = message.sender_id || message.user_id;
-      const prevSenderId = prevMessage ? prevMessage.sender_id || prevMessage.user_id : null;
+      // Collapse sender info if same sender within 2-minute window (message grouping).
+      // Stream view models use sender.id — legacy rows may use sender_id/user_id.
+      const senderId = resolveSenderId(message);
+      const prevSenderId = prevMessage ? resolveSenderId(prevMessage) : null;
       const withinWindow = prevDate
         ? currentDate.getTime() - prevDate.getTime() < TWO_MINUTES_MS
         : false;
@@ -129,9 +177,7 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
       const nextDate = nextMessage
         ? new Date(nextMessage.created_at || nextMessage.createdAt || 0)
         : null;
-      const nextSenderId = nextMessage
-        ? nextMessage.sender_id || nextMessage.user_id
-        : null;
+      const nextSenderId = nextMessage ? resolveSenderId(nextMessage) : null;
       const nextWithinWindow = nextDate
         ? nextDate.getTime() - currentDate.getTime() < TWO_MINUTES_MS
         : false;
@@ -362,16 +408,22 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
               );
             }
             // Tighter spacing between grouped bubbles (same sender, <2min),
-            // normal spacing at the end of a group. Subtle fade-in on mount
-            // keeps new bubbles feeling alive without a heavy animation.
+            // normal spacing at the end of a group. Entrance animation only
+            // for newly arrived ids (not on virtualizer recycle remounts).
             const spacingClass = row.isLastInGroup ? 'pb-2.5' : 'pb-0.5';
+            const shouldAnimateEntrance = enteringMessageIds.has(row.message.id);
             return (
               <div
                 key={row.message.id}
                 ref={virtualizer.measureElement}
                 data-index={virtualRow.index}
                 data-last-in-group={row.isLastInGroup ? 'true' : 'false'}
-                className={`${spacingClass} animate-in fade-in slide-in-from-bottom-1 duration-200`}
+                data-show-sender-info={row.showSenderInfo ? 'true' : 'false'}
+                className={
+                  shouldAnimateEntrance
+                    ? `${spacingClass} animate-in fade-in slide-in-from-bottom-1 duration-200`
+                    : spacingClass
+                }
                 style={wrapperStyle}
               >
                 {renderMessage(row.message, row.index, row.showSenderInfo)}

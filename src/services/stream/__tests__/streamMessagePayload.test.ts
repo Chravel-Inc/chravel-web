@@ -67,6 +67,36 @@ describe('buildTripStreamMessagePayload', () => {
     ]);
   });
 
+  it('preserves voice-note metadata on audio attachments', () => {
+    const result = buildTripStreamMessagePayload({
+      content: '',
+      attachments: [
+        {
+          type: 'audio',
+          url: 'https://cdn.example/voice.webm',
+          mime_type: 'audio/webm',
+          duration_ms: 3200,
+          waveform: [0.1, 0.4, 0.9],
+          ref_id: 'file-1',
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.payload.attachments).toEqual([
+      {
+        type: 'audio',
+        asset_url: 'https://cdn.example/voice.webm',
+        title: undefined,
+        mime_type: 'audio/webm',
+        duration_ms: 3200,
+        waveform: [0.1, 0.4, 0.9],
+        ref_id: 'file-1',
+      },
+    ]);
+  });
+
   it('rejects content over 4000 chars', () => {
     const result = buildTripStreamMessagePayload({ content: 'x'.repeat(4001) });
     expect(result).toEqual({ ok: false, error: 'content_too_long' });

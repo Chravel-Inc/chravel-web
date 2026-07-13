@@ -155,3 +155,12 @@
 - **Suggested tests:** Vitest for the hook with `@tanstack/react-query` test client + mocked `supabase`. Playwright E2E using a fresh authenticated test user and a small fixture image, asserting card rendering on `/dashboard`, `/dashboard/pro`, `/dashboard/events`.
 - **Priority:** high
 - **Provenance:** May 2026 cover photo upload definitive fix (branch `claude/fix-cover-photo-upload-RodMM`)
+
+## iMessage chat polish — mosaic / voice / receipt render paths
+- **Area:** `MessageBubble.tsx`, `VoiceNotePlayer.tsx`, `useShareAsset.ts`
+- **Why this gap matters:** Adapter unit tests now cover Stream→VM attachment mapping, but there is still no RTL test that a multi-image VM renders the mosaic grid, or that an audio attachment mounts `VoiceNotePlayer` instead of a file link.
+- **Missing coverage:** MessageBubble mosaic layout for 1/2/3/4 images + overflow; voice attachment → player; own-message Delivered mount when `readStatuses=[]`.
+- **Failure mode if untested:** Adapter could map correctly while bubble UI regresses to stacked links / missing player.
+- **Suggested tests:** MessageBubble RTL with fixture attachments; assert grid columns / VoiceNotePlayer aria-label / Delivered text.
+- **Priority:** medium
+- **Provenance:** July 2026 iMessage chat audit (`cursor/imessage-chat-audit-ff9d`)

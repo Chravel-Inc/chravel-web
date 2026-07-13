@@ -64,11 +64,25 @@ const normalizeAttachment = (attachment: unknown): UnknownRecord | null => {
 
   if (!assetUrl) return null;
 
-  return {
+  const normalized: UnknownRecord = {
     type,
     asset_url: assetUrl,
     title: typeof row.title === 'string' ? row.title : undefined,
   };
+
+  // Preserve voice-note metadata so receivers can render waveform/duration.
+  if (typeof row.mime_type === 'string') normalized.mime_type = row.mime_type;
+  if (typeof row.mimeType === 'string' && !normalized.mime_type) {
+    normalized.mime_type = row.mimeType;
+  }
+  if (typeof row.duration_ms === 'number') normalized.duration_ms = row.duration_ms;
+  if (typeof row.durationMs === 'number' && normalized.duration_ms === undefined) {
+    normalized.duration_ms = row.durationMs;
+  }
+  if (Array.isArray(row.waveform)) normalized.waveform = row.waveform;
+  if (typeof row.ref_id === 'string') normalized.ref_id = row.ref_id;
+
+  return normalized;
 };
 
 function buildAttachments(input: BuildTripStreamPayloadInput): UnknownRecord[] {
