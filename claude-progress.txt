@@ -160,6 +160,10 @@
 - Hardened composer hit-testing (isolate/z stacking, inactive tab `pointerEvents:none`), Ask-anything placeholder, clearer disabled Send, and stop dictation before realtime mic.
 - Docs: `docs/CONCIERGE_CONTROLS_RECOVERY_2026-07-11.md`. Physical iPhone TestFlight QA remains the DoD gate.
 
+2026-07-13 — App Store launch coverage matrix
+- Added `docs/qa/appstore-feature-test-matrix.md` as a single QA launch-coverage source for App Store/TestFlight readiness across auth, trips, invites, chat, calendar, polls, tasks, payments, media, basecamp, Recs/Places, Concierge, Pro, Events, cover photos, notifications, PWA/offline, and iOS/Capacitor compliance.
+- Kept the change documentation-only; no demo mock data, app runtime code, Supabase schema, or native project files changed.
+- Verification: merge preflight attempted before edits but failed to fetch `origin/main` in this environment; markdown format check and final merge preflight run after edits.
 2026-07-13 — E2E release-gate fixture failures
 - Split chat messaging E2E setup into local-tolerant vs release-gate mode via CHRAVEL_E2E_RELEASE_GATE=1, preserving documented local skips while making launch-critical fixture failures throw explicit step errors.
 - Added shared E2E mode helpers under e2e/fixtures and tightened auth/trip fixture failures for auth, trip creation, membership, and pro trip creation.
