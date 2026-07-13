@@ -84,7 +84,9 @@ export function streamMessageToChravel(msg: MessageResponse, tripId: string): Ch
         url,
         mimeType: typeof attachment.mime_type === 'string' ? attachment.mime_type : undefined,
         durationMs: typeof attachment.duration_ms === 'number' ? attachment.duration_ms : undefined,
-        waveform: Array.isArray(attachment.waveform) ? (attachment.waveform as number[]) : undefined,
+        waveform: Array.isArray(attachment.waveform)
+          ? (attachment.waveform as number[])
+          : undefined,
       });
     }
 

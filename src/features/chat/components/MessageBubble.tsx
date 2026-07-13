@@ -258,12 +258,7 @@ export const MessageBubble = memo(
         }
 
         case 'video':
-          return (
-            <VideoThumb
-              src={(resolvedMediaUrl ?? mediaUrl) as string}
-              className="mt-2"
-            />
-          );
+          return <VideoThumb src={(resolvedMediaUrl ?? mediaUrl) as string} className="mt-2" />;
 
         case 'document':
         case 'file':
@@ -271,7 +266,10 @@ export const MessageBubble = memo(
           if (mediaUrl && isAudioAttachment({ type: 'file', url: mediaUrl })) {
             return (
               <div className="mt-2">
-                <VoiceNotePlayer src={(resolvedMediaUrl ?? mediaUrl) as string} isOwn={isOwnMessage} />
+                <VoiceNotePlayer
+                  src={(resolvedMediaUrl ?? mediaUrl) as string}
+                  isOwn={isOwnMessage}
+                />
               </div>
             );
           }
@@ -355,9 +353,7 @@ export const MessageBubble = memo(
                 const isLastVisible = index === visibleImages.length - 1;
                 const showOverflow = mosaicEnabled && overflow > 0 && isLastVisible;
                 const spanClass =
-                  mosaicEnabled && visibleImages.length === 3 && index === 0
-                    ? 'row-span-2'
-                    : '';
+                  mosaicEnabled && visibleImages.length === 3 && index === 0 ? 'row-span-2' : '';
                 const isGif = /\.gif(\?|$)/i.test(attachment.url || '');
                 return (
                   <button
@@ -882,31 +878,31 @@ export const MessageBubble = memo(
             {reactionsEnabled &&
               reactions &&
               Object.keys(reactions).some(k => reactions[k].count > 0) && (
-              <div
-                className={cn(
-                  'flex flex-wrap gap-1 -mt-2.5 z-10 relative',
-                  isOwnMessage ? 'justify-end pr-1' : 'justify-start pl-1',
-                )}
-              >
-                {Object.entries(reactions)
-                  .filter(([, data]) => data.count > 0)
-                  .map(([reactionType, data]) => (
-                    <button
-                      key={reactionType}
-                      onClick={() => onReaction(id, reactionType)}
-                      className={cn(
-                        'flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[11px] leading-none transition-colors shadow-sm ring-1 ring-background',
-                        data.userReacted
-                          ? 'bg-primary/25 border border-primary/50 text-primary'
-                          : 'bg-muted border border-border/60 text-foreground/80 hover:bg-muted/80',
-                      )}
-                    >
-                      <span>{REACTION_EMOJI_MAP[reactionType] || reactionType}</span>
-                      <span className="font-medium">{data.count}</span>
-                    </button>
-                  ))}
-              </div>
-            )}
+                <div
+                  className={cn(
+                    'flex flex-wrap gap-1 -mt-2.5 z-10 relative',
+                    isOwnMessage ? 'justify-end pr-1' : 'justify-start pl-1',
+                  )}
+                >
+                  {Object.entries(reactions)
+                    .filter(([, data]) => data.count > 0)
+                    .map(([reactionType, data]) => (
+                      <button
+                        key={reactionType}
+                        onClick={() => onReaction(id, reactionType)}
+                        className={cn(
+                          'flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[11px] leading-none transition-colors shadow-sm ring-1 ring-background',
+                          data.userReacted
+                            ? 'bg-primary/25 border border-primary/50 text-primary'
+                            : 'bg-muted border border-border/60 text-foreground/80 hover:bg-muted/80',
+                        )}
+                      >
+                        <span>{REACTION_EMOJI_MAP[reactionType] || reactionType}</span>
+                        <span className="font-medium">{data.count}</span>
+                      </button>
+                    ))}
+                </div>
+              )}
 
             {/* Reaction picker — side attached to message to avoid hover handoff to adjacent rows */}
             {reactionsEnabled && showReactions && (
