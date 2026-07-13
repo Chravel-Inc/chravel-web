@@ -164,6 +164,8 @@ export const usePayments = (tripId?: string) => {
       splitCount: number;
       splitParticipants: string[];
       paymentMethods: string[];
+      splitType?: 'equal' | 'custom' | 'percentage';
+      customAmounts?: Record<string, number>;
     }): Promise<{ paymentId: string }> => {
       if (!tripId) {
         throw new CreatePaymentMutationError('VALIDATION_FAILED', 'Trip ID is missing.');
@@ -269,6 +271,8 @@ export const usePayments = (tripId?: string) => {
     splitCount: number;
     splitParticipants: string[];
     paymentMethods: string[];
+    splitType?: 'equal' | 'custom' | 'percentage';
+    customAmounts?: Record<string, number>;
   }): Promise<{
     success: boolean;
     paymentId?: string;

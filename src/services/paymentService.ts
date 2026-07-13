@@ -6,8 +6,13 @@ import { isDemoTrip } from '@/utils/demoUtils';
 import { toAppPayment } from '@/lib/adapters/paymentAdapter';
 import { FEATURE_LIMITS } from '@/billing/entitlements';
 import { resolveEffectiveTier } from './entitlementService';
-import { distributeEqualSplitCents } from '@/lib/splitAmountUtils';
+import { distributeEqualSplitCents, validateCustomAmountMap } from '@/lib/splitAmountUtils';
 
+/**
+ * Payment service — trip P2P create/settle paths.
+ * createPaymentMessage accepts optional customAmounts for uneven splits; equal
+ * path unchanged (omits p_custom_amounts). Server re-validates sum === total.
+ */
 /** Typed error code returned when the per-trip payment split cap is hit. */
 export const SPLIT_LIMIT_ERROR_CODE = 'SPLIT_LIMIT_REACHED';
 
@@ -174,6 +179,10 @@ export const paymentService = {
       splitCount: number;
       splitParticipants: string[];
       paymentMethods: string[];
+      /** equal (default) | custom | percentage — percentage is resolved to dollars client-side */
+      splitType?: 'equal' | 'custom' | 'percentage';
+      /** Per-participant dollar amounts; required when splitType is custom/percentage */
+      customAmounts?: Record<string, number>;
     },
   ): Promise<{ success: boolean; paymentId?: string; error?: { code: string; message: string } }> {
     try {
@@ -220,6 +229,28 @@ export const paymentService = {
         };
       }
 
+      const splitType = paymentData.splitType ?? 'equal';
+      const useCustomAmounts =
+        splitType !== 'equal' &&
+        !!paymentData.customAmounts &&
+        Object.keys(paymentData.customAmounts).length > 0;
+
+      // Custom/percentage: form already resolved dollars; validate sum before RPC so
+      // settlement ledger rows cannot be inserted with a mismatched total.
+      if (useCustomAmounts) {
+        const check = validateCustomAmountMap(
+          paymentData.amount,
+          paymentData.splitParticipants,
+          paymentData.customAmounts ?? {},
+        );
+        if (check.ok === false) {
+          return {
+            success: false,
+            error: { code: 'VALIDATION_FAILED', message: check.error },
+          };
+        }
+      }
+
       // Enforce the advertised per-trip split cap (Free = 3 / Explorer = 10).
       // Unlimited tiers skip the check entirely; lookup failures fail open.
       const splitLimit = await checkPaymentSplitLimit(tripId, userId);
@@ -237,8 +268,10 @@ export const paymentService = {
         };
       }
 
-      // Use enhanced v2 function with audit trail and transaction safety
-      const { data: paymentId, error } = await supabase.rpc('create_payment_with_splits_v2', {
+      // Use enhanced v2 function with audit trail and transaction safety.
+      // Equal splits omit p_custom_amounts (NULL → server equal path).
+      // Custom/percentage pass the resolved dollar map.
+      const rpcArgs: Record<string, unknown> = {
         p_trip_id: tripId,
         p_amount: paymentData.amount,
         p_currency: paymentData.currency,
@@ -247,7 +280,15 @@ export const paymentService = {
         p_split_participants: paymentData.splitParticipants,
         p_payment_methods: paymentData.paymentMethods,
         p_created_by: userId,
-      });
+      };
+      if (useCustomAmounts) {
+        rpcArgs.p_custom_amounts = paymentData.customAmounts;
+      }
+
+      const { data: paymentId, error } = await supabase.rpc(
+        'create_payment_with_splits_v2',
+        rpcArgs as never,
+      );
 
       if (error) {
         if (import.meta.env.DEV) console.error('[paymentService] RPC error:', error);

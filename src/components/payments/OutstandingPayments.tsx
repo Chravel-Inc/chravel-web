@@ -479,7 +479,14 @@ export const OutstandingPayments = ({
                       {formatCurrency(payment.amount, payment.currency)}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {formatCurrency(payment.amount / payment.splitCount, payment.currency)} each
+                      {(() => {
+                        const shares = payment.splits.map(s => s.amount_owed);
+                        const uniform =
+                          shares.length > 0 && shares.every(s => Math.abs(s - shares[0]) < 0.005);
+                        return uniform
+                          ? `${formatCurrency(shares[0] ?? payment.amount / payment.splitCount, payment.currency)} each`
+                          : 'Custom split';
+                      })()}
                     </p>
                   </div>
                 </div>

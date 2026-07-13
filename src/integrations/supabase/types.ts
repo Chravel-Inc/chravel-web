@@ -5347,6 +5347,7 @@ export type Database = {
           p_amount: number
           p_created_by: string
           p_currency: string
+          p_custom_amounts?: Json
           p_description: string
           p_payment_methods: Json
           p_split_count: number

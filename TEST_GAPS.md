@@ -173,3 +173,12 @@
 - **Suggested tests:** Vitest hook/service with mocked settle RPC payloads (`all_settled`); Playwright smoke on authenticated trip Payments tab.
 - **Priority:** medium-high
 - **Provenance:** July 2026 payments UX delight (`cursor/payments-ux-delight-3561`)
+
+## Custom/percentage split create → ledger E2E
+- **Area:** `create_payment_with_splits_v2`, `PaymentInput.tsx`, `CreatePaymentModal.tsx`
+- **Why this gap matters:** Unit tests cover amount math + form validation; no authenticated E2E asserts custom/% create writes the expected `payment_splits.amount_owed` rows and Outstanding shows “Custom split”.
+- **Missing coverage:** Playwright create with Custom 70/30 and % 75/25; assert per-debtor amounts on Outstanding card.
+- **Failure mode if untested:** Client/server cent rounding drift could reject valid creates or insert skewed shares.
+- **Suggested tests:** Authenticated payments smoke with SERVICE_ROLE fixture trip.
+- **Priority:** medium
+- **Provenance:** July 2026 custom split implementation
