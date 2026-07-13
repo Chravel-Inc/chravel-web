@@ -28,6 +28,9 @@ vi.mock('@/hooks/useFeatureToggle', () => ({
 }));
 vi.mock('@/contexts/TripVariantContext', () => ({ useTripVariant: () => ({ accentColors: {} }) }));
 vi.mock('@/hooks/useDemoMode', () => ({ useDemoMode: () => ({ isDemoMode: false }) }));
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({ user: { id: 'user-1', proRole: 'staff', permissions: ['read'] } }),
+}));
 vi.mock('@/hooks/usePrefetchTrip', () => ({
   usePrefetchTrip: () => ({
     prefetchTab: vi.fn(),

@@ -200,7 +200,7 @@ export const RolesView = ({
         {/* Row 1: Team Label + Stats + Admin Badge */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Users className="text-amber-400" size={20} />
+            <Users className="text-gold-mid" size={20} />
             <h2 className="text-lg font-bold text-white">{teamLabel}</h2>
             <span className="text-gray-400 text-sm">{roster.length} members</span>
           </div>
@@ -217,7 +217,7 @@ export const RolesView = ({
               disabled={adminLoading || isLoadingRoles}
               variant="outline"
               size="sm"
-              className="rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors min-h-[42px] px-4 text-xs whitespace-nowrap"
+              className="rounded-full bg-black/40 hover:bg-black/60 hover:text-gold-mid hover:border-gold-primary/50 text-white border-white/20 transition-colors min-h-[42px] px-4 text-xs whitespace-nowrap"
             >
               <UserPlus className="w-4 h-4 mr-1.5 shrink-0" />
               Create Role
@@ -226,7 +226,7 @@ export const RolesView = ({
               onClick={() => setShowRoleManagerDialog(true)}
               variant="outline"
               size="sm"
-              className="rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors min-h-[42px] px-4 text-xs whitespace-nowrap"
+              className="rounded-full bg-black/40 hover:bg-black/60 hover:text-gold-mid hover:border-gold-primary/50 text-white border-white/20 transition-colors min-h-[42px] px-4 text-xs whitespace-nowrap"
               title="Manage roles, assignments, and admins"
             >
               <Cog className="w-4 h-4 mr-1.5 shrink-0" />
@@ -236,7 +236,7 @@ export const RolesView = ({
               onClick={() => setShowRequestsDialog(true)}
               variant="outline"
               size="sm"
-              className="rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors min-h-[42px] px-4 text-xs whitespace-nowrap"
+              className="rounded-full bg-black/40 hover:bg-black/60 hover:text-gold-mid hover:border-gold-primary/50 text-white border-white/20 transition-colors min-h-[42px] px-4 text-xs whitespace-nowrap"
               title="View join requests"
             >
               <Clock className="w-4 h-4 mr-1.5 shrink-0" />
@@ -247,7 +247,7 @@ export const RolesView = ({
                 onClick={() => setShowCoordinatorDialog(true)}
                 variant="outline"
                 size="sm"
-                className="rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors min-h-[42px] px-4 text-xs whitespace-nowrap"
+                className="rounded-full bg-black/40 hover:bg-black/60 hover:text-gold-mid hover:border-gold-primary/50 text-white border-white/20 transition-colors min-h-[42px] px-4 text-xs whitespace-nowrap"
                 title="Grant logistics-only access to an outside organizer"
               >
                 <ShieldCheck className="w-4 h-4 mr-1.5 shrink-0" />
@@ -337,7 +337,7 @@ export const RolesView = ({
                       aria-pressed={selectedRole === role}
                       className={`flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-full text-xs font-medium transition-all duration-200 ${
                         selectedRole === role
-                          ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/30 scale-105'
+                          ? 'bg-gold-primary text-black shadow-lg shadow-gold-primary/30 scale-105'
                           : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 hover:scale-[1.02] border border-gray-600'
                       }`}
                     >
@@ -355,8 +355,8 @@ export const RolesView = ({
 
         {/* Manual Role Input Notice for Corporate & Business */}
         {availableRoles.length === 0 && (
-          <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
-            <p className="text-amber-400/80 text-sm">
+          <div className="bg-gold-primary/10 border border-gold-primary/20 rounded-lg p-3">
+            <p className="text-gold-mid/80 text-sm">
               Team members can have custom titles entered manually.{' '}
               {isAdmin && 'Use the "Create Role" button above to add new roles.'}
             </p>
@@ -450,7 +450,7 @@ export const RolesView = ({
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <QuickContactMenu member={member}>
-                        <h3 className="text-white text-sm font-medium truncate cursor-pointer hover:text-amber-400 transition-colors leading-tight">
+                        <h3 className="text-white text-sm font-medium truncate cursor-pointer hover:text-gold-mid transition-colors leading-tight">
                           {member.name}
                         </h3>
                       </QuickContactMenu>
@@ -469,9 +469,9 @@ export const RolesView = ({
                             aria-label={`Role: ${pill.name}${pill.isAdmin ? ' (admin)' : pill.isCoordinator ? ' (coordinator)' : ''}`}
                             className={`${
                               pill.isAdmin
-                                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                ? 'bg-gold-primary/20 text-gold-light border border-gold-primary/30'
                                 : pill.isCoordinator
-                                  ? 'bg-amber-400/10 text-amber-200 border border-amber-400/40'
+                                  ? 'bg-gold-mid/10 text-gold-light border border-gold-mid/40'
                                   : getRoleColorClass(pill.name, category)
                             } px-1.5 py-0.5 rounded text-xs font-medium`}
                           >
@@ -521,7 +521,7 @@ export const RolesView = ({
                   variant="outline"
                   size="sm"
                   onClick={() => setSelectedRole('all')}
-                  className="text-amber-400 border-amber-500/30 hover:bg-amber-500/10"
+                  className="text-gold-mid border-gold-primary/30 hover:bg-gold-primary/10"
                 >
                   Show all members
                 </Button>
