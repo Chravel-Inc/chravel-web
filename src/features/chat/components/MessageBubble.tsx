@@ -28,6 +28,14 @@ import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
 import { hapticService } from '@/services/hapticService';
 import { getMentionClassName, MENTION_REGEX } from './messageMentions';
 import { ModerationAction } from '@/services/moderationService';
+import { VoiceNotePlayer } from './VoiceNotePlayer';
+
+const AUDIO_EXT_RE = /\.(mp3|wav|m4a|ogg|oga|webm|opus|aac|caf)(\?|$)/i;
+const isAudioAttachment = (att: { type: string; url?: string; mimeType?: string }) => {
+  if (att.type === 'audio') return true;
+  if (att.mimeType?.startsWith('audio/')) return true;
+  return !!att.url && AUDIO_EXT_RE.test(att.url);
+};
 
 export interface MessageBubbleProps {
   id: string;
@@ -70,9 +78,13 @@ export interface MessageBubbleProps {
     domain?: string;
   } | null;
   attachments?: Array<{
-    type: 'image' | 'video' | 'file' | 'link';
+    type: 'image' | 'video' | 'file' | 'link' | 'audio';
     ref_id: string;
     url?: string;
+    /** Optional metadata for audio attachments (voice notes). */
+    mimeType?: string;
+    durationMs?: number;
+    waveform?: number[];
   }>;
   // 🆕 Gallery support - all images in chat for navigation
   allChatImages?: { url: string; caption?: string }[];
@@ -307,6 +319,17 @@ export const MessageBubble = memo(
           )}
 
           {nonImages.map((attachment, index) => {
+            if (attachment.url && isAudioAttachment(attachment)) {
+              return (
+                <VoiceNotePlayer
+                  key={`audio-${index}`}
+                  src={attachment.url}
+                  waveform={attachment.waveform}
+                  durationMs={attachment.durationMs}
+                  isOwn={isOwnMessage}
+                />
+              );
+            }
             if (attachment.type === 'file' && attachment.url) {
               return (
                 <a

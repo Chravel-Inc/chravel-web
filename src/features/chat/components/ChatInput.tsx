@@ -31,6 +31,8 @@ const CTA_ICON_CHAT = 'w-3.5 h-3.5 sm:w-[18px] sm:h-[18px]';
 const CTA_BUTTON_CHAT = `size-6 min-w-[24px] sm:size-10 sm:min-w-[40px] rounded-full flex items-center justify-center shrink-0 select-none touch-manipulation ${CTA_GRADIENT} ${CTA_INTERACTIVE} ${CTA_DISABLED}`;
 import { hapticService as haptics } from '@/services/hapticService';
 import { MentionPicker, TripMember, filterMentionMembers } from './MentionPicker';
+import { VoiceRecordButton } from './VoiceRecordButton';
+import type { VoiceRecordingResult } from '../hooks/useVoiceRecorder';
 
 
 interface ChatInputProps {
@@ -528,25 +530,51 @@ export const ChatInput = ({
 
 
 
-          {/* Send Button — persistent gold rim; broadcast mode keeps orange gradient */}
-          <button
-            data-testid="chat-send-btn"
-            onClick={handleSend}
-            disabled={(!inputMessage.trim() && !isShareUploading) || isTyping}
-            className={
-              isBroadcastMode
-                ? cn(
-                    'size-6 min-w-[24px] sm:size-10 sm:min-w-[40px] rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-[#B91C1C] to-[#991B1B] hover:opacity-90 shrink-0 select-none touch-manipulation',
-                  )
-                : CTA_BUTTON_CHAT
-            }
-          >
-            {isTyping ? (
-              <div className={`${CTA_ICON_CHAT} animate-spin gold-gradient-spinner`} />
-            ) : (
-              <Send className={`${CTA_ICON_CHAT} text-white`} />
-            )}
-          </button>
+          {/* Send Button OR hold-to-record Mic Button — Mic appears when input is empty
+              (iMessage-style). Recorded audio is uploaded through the existing document
+              upload path so no backend/schema changes are needed. */}
+          {inputMessage.trim().length === 0 && !isShareUploading && !disableFileUpload ? (
+            <VoiceRecordButton
+              disabled={isTyping}
+              buttonClassName={CTA_BUTTON_CHAT}
+              iconClassName={`${CTA_ICON_CHAT} text-white`}
+              onRecorded={async (result: VoiceRecordingResult) => {
+                const ext = result.mimeType.includes('mp4')
+                  ? 'm4a'
+                  : result.mimeType.includes('ogg')
+                    ? 'ogg'
+                    : 'webm';
+                const filename = `voice-note-${Date.now()}.${ext}`;
+                // `File` from lucide-react is imported at the top and shadows the DOM
+                // constructor here — use the global explicitly.
+                const file = new globalThis.File([result.blob], filename, {
+                  type: result.mimeType || 'audio/webm',
+                });
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                await shareMultipleFiles(dt.files, 'document');
+              }}
+            />
+          ) : (
+            <button
+              data-testid="chat-send-btn"
+              onClick={handleSend}
+              disabled={(!inputMessage.trim() && !isShareUploading) || isTyping}
+              className={
+                isBroadcastMode
+                  ? cn(
+                      'size-6 min-w-[24px] sm:size-10 sm:min-w-[40px] rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-[#B91C1C] to-[#991B1B] hover:opacity-90 shrink-0 select-none touch-manipulation',
+                    )
+                  : CTA_BUTTON_CHAT
+              }
+            >
+              {isTyping ? (
+                <div className={`${CTA_ICON_CHAT} animate-spin gold-gradient-spinner`} />
+              ) : (
+                <Send className={`${CTA_ICON_CHAT} text-white`} />
+              )}
+            </button>
+          )}
 
           {/* Hidden file input */}
           <input ref={fileInputRef} type="file" className="hidden" multiple />
