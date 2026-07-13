@@ -70,9 +70,13 @@ export interface MessageBubbleProps {
     domain?: string;
   } | null;
   attachments?: Array<{
-    type: 'image' | 'video' | 'file' | 'link';
+    type: 'image' | 'video' | 'file' | 'link' | 'audio';
     ref_id: string;
     url?: string;
+    /** Optional metadata for audio attachments (voice notes). */
+    mimeType?: string;
+    durationMs?: number;
+    waveform?: number[];
   }>;
   // 🆕 Gallery support - all images in chat for navigation
   allChatImages?: { url: string; caption?: string }[];
