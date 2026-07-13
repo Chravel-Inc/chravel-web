@@ -22,10 +22,7 @@ export function findFirstUnreadMessageId(params: {
 
   for (const message of messages) {
     const senderId =
-      message.sender?.userId ||
-      message.sender?.id ||
-      message.user_id ||
-      message.user?.id;
+      message.sender?.userId || message.sender?.id || message.user_id || message.user?.id;
     if (!senderId || senderId === currentUserId) continue;
 
     const createdAt = new Date(message.createdAt || message.created_at || 0);

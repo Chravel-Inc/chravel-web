@@ -7,7 +7,9 @@ vi.mock('@/services/chatSearchService', () => ({
 }));
 
 vi.mock('@/lib/parseMessageSearchQuery', () => ({
-  parseMessageSearchQuery: vi.fn().mockReturnValue({ text: '', sender: null, isBroadcastOnly: false }),
+  parseMessageSearchQuery: vi
+    .fn()
+    .mockReturnValue({ text: '', sender: null, isBroadcastOnly: false }),
 }));
 
 describe('ChatSearchOverlay mount stability', () => {
