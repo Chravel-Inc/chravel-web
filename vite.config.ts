@@ -2,6 +2,7 @@ import { defineConfig, Plugin } from 'vite';
 import react from '@vitejs/plugin-react-swc';
 import path from 'path';
 import { componentTagger } from 'lovable-tagger';
+import { mcpPlugin } from '@lovable.dev/mcp-js/stacks/supabase/vite';
 
 // Generate build version timestamp
 const buildVersion = Date.now().toString(36);
@@ -47,8 +48,6 @@ const VENDOR_CHUNKS: Record<string, string[]> = {
   pdf: ['jspdf', 'jspdf-autotable', 'html2canvas'],
   // exceljs (~950 KB) — only needed when importing a spreadsheet, lazy-loaded
   exceljs: ['exceljs'],
-  // RevenueCat web billing SDK (808 KB) — only needed when user hits paywall
-  'revenuecat-web': ['@revenuecat/purchases-js'],
 };
 
 const PACKAGE_TO_CHUNK = new Map<string, string>();
@@ -75,9 +74,13 @@ export default defineConfig(({ mode }) => ({
     host: '0.0.0.0',
     port: 8080,
   },
-  plugins: [react(), buildVersionPlugin(), mode === 'development' && componentTagger()].filter(
-    Boolean,
-  ),
+  plugins: [
+    react(),
+    buildVersionPlugin(),
+    mcpPlugin(),
+    mode === 'development' && componentTagger(),
+  ].filter(Boolean),
+
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -136,6 +139,14 @@ export default defineConfig(({ mode }) => ({
     sourcemap: mode !== 'production',
     // Asset inlining threshold
     assetsInlineLimit: 4096,
+  },
+  // Strip developer console noise from production bundles only.
+  // `console.log/debug/info` return undefined and their result is always unused,
+  // so esbuild's minifier drops these pure-annotated calls — while `console.error`
+  // and `console.warn` (used for Sentry/error reporting) are intentionally kept.
+  // Dev builds are unaffected, so logs remain visible during local development.
+  esbuild: {
+    pure: mode === 'production' ? ['console.log', 'console.debug', 'console.info'] : [],
   },
   // Optimize dependencies
   optimizeDeps: {

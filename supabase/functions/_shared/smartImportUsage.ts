@@ -19,8 +19,8 @@ export interface SmartImportUsageBlocked {
 export type SmartImportUsageResult = SmartImportUsageAllowed | SmartImportUsageBlocked;
 
 const SMART_IMPORT_LIMITS_BY_PLAN: Record<string, number | null> = {
-  free: Number(Deno.env.get('SMART_IMPORT_FREE_LIMIT') || 10),
-  explorer: Number(Deno.env.get('SMART_IMPORT_EXPLORER_LIMIT') || 50),
+  free: Number(Deno.env.get('SMART_IMPORT_FREE_LIMIT') || 1),
+  explorer: null,
   frequent_chraveler: null,
 };
 

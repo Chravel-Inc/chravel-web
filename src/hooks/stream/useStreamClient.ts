@@ -9,11 +9,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import {
-  connectStreamClient,
-  disconnectStreamClient,
-  getStreamApiKey,
-} from '@/services/stream/streamClient';
+import { connectStreamClient, disconnectStreamClient } from '@/services/stream/streamClient';
 
 interface UseStreamClientResult {
   isConnected: boolean;
@@ -30,7 +26,7 @@ export function useStreamClient(): UseStreamClientResult {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!getStreamApiKey() || !isAuthenticated || !user) {
+    if (!isAuthenticated || !user) {
       return;
     }
 

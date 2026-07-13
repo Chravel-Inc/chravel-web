@@ -31,12 +31,17 @@ interface ChatSearchOverlayProps {
   demoMessages?: MockMessage[];
 }
 
+// Stable default — inline `= []` creates a new array every render and, combined with
+// the search effect's demoMessages dependency + setState on empty query, infinite-loops
+// (hangs Vitest / freezes the search overlay).
+const EMPTY_DEMO_MESSAGES: MockMessage[] = [];
+
 export const ChatSearchOverlay = ({
   tripId,
   onClose,
   onResultSelect,
   isDemoMode = false,
-  demoMessages = [],
+  demoMessages = EMPTY_DEMO_MESSAGES,
 }: ChatSearchOverlayProps) => {
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -56,8 +61,10 @@ export const ChatSearchOverlay = ({
   // Debounced search
   useEffect(() => {
     if (!query.trim()) {
-      setMessages([]);
-      setBroadcasts([]);
+      // Avoid setState([]) on every effect run — new [] !== previous [] and would
+      // re-render forever when demoMessages (or other deps) are unstable.
+      setMessages(prev => (prev.length === 0 ? prev : []));
+      setBroadcasts(prev => (prev.length === 0 ? prev : []));
       return;
     }
 
@@ -143,7 +150,8 @@ export const ChatSearchOverlay = ({
   useEffect(() => {
     if (resultsRef.current && totalResults > 0) {
       const selectedElement = resultsRef.current.querySelector(`[data-index="${selectedIndex}"]`);
-      selectedElement?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      // jsdom does not implement scrollIntoView; guard so search UI stays mounted in tests.
+      selectedElement?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
     }
   }, [selectedIndex, totalResults]);
 
@@ -200,15 +208,19 @@ export const ChatSearchOverlay = ({
       style={{
         paddingTop: 'max(5rem, calc(env(safe-area-inset-top, 0px) + 1.5rem))',
       }}
+      onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl bg-neutral-900 rounded-2xl shadow-2xl border border-white/10 overflow-hidden animate-scale-in"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Search messages"
+        className="w-full max-w-2xl bg-card text-card-foreground rounded-2xl shadow-2xl border border-border overflow-hidden animate-scale-in"
         onClick={e => e.stopPropagation()}
         onPointerDown={e => e.stopPropagation()}
       >
         {/* Search Input */}
-        <div className="flex items-center gap-3 p-4 border-b border-white/10">
-          <Search className="w-5 h-5 text-white/50 shrink-0" aria-hidden />
+        <div className="flex items-center gap-3 p-3 sm:p-4 border-b border-border">
+          <Search className="w-5 h-5 text-muted-foreground shrink-0" aria-hidden />
           <div className="relative min-w-0 flex-1">
             <input
               ref={inputRef}
@@ -221,47 +233,54 @@ export const ChatSearchOverlay = ({
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Search messages"
-              className="w-full min-w-0 bg-transparent text-white placeholder:text-white/50 outline-none text-base pr-8 chat-search-input"
+              className="w-full min-w-0 bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-base pr-11 chat-search-input"
             />
             {query && (
               <button
+                type="button"
+                aria-label="Clear message search"
                 onClick={() => setQuery('')}
-                className="absolute right-0 top-1/2 -translate-y-1/2 p-1 hover:bg-white/10 rounded-full transition-colors"
+                className="absolute right-0 top-1/2 flex min-h-11 min-w-11 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
-                <X className="w-4 h-4 text-white/70" />
+                <X className="w-4 h-4" />
               </button>
             )}
           </div>
           <button
+            type="button"
+            aria-label="Back to chat"
             onClick={onClose}
-            className="p-1.5 hover:bg-white/10 rounded-lg transition-colors ml-2"
+            className="ml-1 inline-flex min-h-11 shrink-0 items-center gap-1 rounded-full border border-border px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
           >
-            <X className="w-5 h-5 text-white/70" />
+            <X className="w-5 h-5" />
+            <span className="hidden sm:inline">Back</span>
           </button>
         </div>
 
         {/* Results */}
         <div ref={resultsRef} className="max-h-[60vh] overflow-y-auto scrollbar-hide">
-          {isSearching && <div className="p-8 text-center text-white/50">Searching...</div>}
+          {isSearching && <div className="p-8 text-center text-muted-foreground">Searching...</div>}
 
           {!isSearching && totalResults === 0 && query && (
-            <div className="p-8 text-center text-white/50">No results found for "{query}"</div>
+            <div className="p-8 text-center text-muted-foreground">
+              No results found for "{query}"
+            </div>
           )}
 
           {!isSearching && totalResults === 0 && !query && (
-            <div className="p-8 text-center text-white/50 space-y-2">
+            <div className="p-8 text-center text-muted-foreground space-y-2">
               <p>Search messages</p>
-              <p className="text-xs text-white/40">Filters: from:Name · broadcast</p>
+              <p className="text-xs text-muted-foreground/80">Filters: from:Name · broadcast</p>
             </div>
           )}
 
           {/* Messages Section */}
           {messages.length > 0 && (
-            <div className="border-b border-white/10">
-              <div className="px-4 py-2 bg-white/5 flex items-center gap-2">
+            <div className="border-b border-border">
+              <div className="px-4 py-2 bg-muted/60 flex items-center gap-2">
                 <MessageCircle className="w-4 h-4 text-blue-400" />
-                <span className="text-sm font-medium text-white/70">Messages</span>
-                <span className="text-xs text-white/50">({messages.length})</span>
+                <span className="text-sm font-medium text-foreground/80">Messages</span>
+                <span className="text-xs text-muted-foreground">({messages.length})</span>
               </div>
               {messages.map((message, index) => (
                 <button
@@ -269,17 +288,19 @@ export const ChatSearchOverlay = ({
                   data-index={index}
                   onClick={() => handleResultClick(index)}
                   className={cn(
-                    'w-full text-left px-4 py-3 hover:bg-white/5 transition-colors border-b border-white/5',
+                    'w-full text-left px-4 py-3 hover:bg-muted/60 transition-colors border-b border-border',
                     selectedIndex === index && 'bg-blue-500/20',
                   )}
                 >
                   <div className="flex items-start justify-between gap-2 mb-1">
-                    <span className="text-sm font-medium text-white">{message.author_name}</span>
-                    <span className="text-xs text-white/50">
+                    <span className="text-sm font-medium text-foreground">
+                      {message.author_name}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
                       {format(new Date(message.created_at), 'MMM d, h:mm a')}
                     </span>
                   </div>
-                  <p className="text-sm text-white/70 line-clamp-2">
+                  <p className="text-sm text-muted-foreground line-clamp-2">
                     {getSnippet(message.content, 120)}
                   </p>
                   {message.parent_message_id && (
@@ -293,10 +314,10 @@ export const ChatSearchOverlay = ({
           {/* Broadcasts Section */}
           {broadcasts.length > 0 && (
             <div>
-              <div className="px-4 py-2 bg-white/5 flex items-center gap-2">
+              <div className="px-4 py-2 bg-muted/60 flex items-center gap-2">
                 <Megaphone className="w-4 h-4 text-[#B91C1C]" />
-                <span className="text-sm font-medium text-white/70">Broadcasts</span>
-                <span className="text-xs text-white/50">({broadcasts.length})</span>
+                <span className="text-sm font-medium text-foreground/80">Broadcasts</span>
+                <span className="text-xs text-muted-foreground">({broadcasts.length})</span>
               </div>
               {broadcasts.map((broadcast, index) => {
                 const globalIndex = messages.length + index;
@@ -306,22 +327,22 @@ export const ChatSearchOverlay = ({
                     data-index={globalIndex}
                     onClick={() => handleResultClick(globalIndex)}
                     className={cn(
-                      'w-full text-left px-4 py-3 hover:bg-white/5 transition-colors border-b border-white/5',
+                      'w-full text-left px-4 py-3 hover:bg-muted/60 transition-colors border-b border-border',
                       selectedIndex === globalIndex && 'bg-[#B91C1C]/20',
                     )}
                   >
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-white">
+                        <span className="text-sm font-medium text-foreground">
                           {broadcast.created_by_name}
                         </span>
                         {getPriorityBadge(broadcast.priority)}
                       </div>
-                      <span className="text-xs text-white/50">
+                      <span className="text-xs text-muted-foreground">
                         {format(new Date(broadcast.created_at), 'MMM d, h:mm a')}
                       </span>
                     </div>
-                    <p className="text-sm text-white/70 line-clamp-2">
+                    <p className="text-sm text-muted-foreground line-clamp-2">
                       {getSnippet(broadcast.message, 120)}
                     </p>
                   </button>
@@ -333,7 +354,7 @@ export const ChatSearchOverlay = ({
 
         {/* Footer hint */}
         {totalResults > 0 && (
-          <div className="px-4 py-2 bg-white/5 border-t border-white/10 flex items-center justify-center gap-4 text-xs text-white/50">
+          <div className="px-4 py-2 bg-muted/60 border-t border-border flex items-center justify-center gap-4 text-xs text-muted-foreground">
             <span>↑↓ Navigate</span>
             <span>↵ Select</span>
             <span>Esc Close</span>

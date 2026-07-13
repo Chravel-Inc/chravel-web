@@ -2,27 +2,27 @@ import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { HeaderAuthButton } from '../HeaderAuthButton';
 import { Link } from 'react-router-dom';
+import { useOptionalAuth } from '@/hooks/useAuth';
 
 interface NavSection {
   id: string;
   label: string;
 }
 
+// Must match the `section-*` DOM ids rendered by FullPageLanding, in page order.
 const sections: NavSection[] = [
   { id: 'hero', label: 'Home' },
-  { id: 'features', label: 'Features' },
-  { id: 'how', label: 'How It Works' },
-  { id: 'ai', label: 'AI' },
-  { id: 'use-cases', label: 'Use Cases' },
-  { id: 'storage', label: 'Storage' },
-  { id: 'proof', label: 'Reviews' },
   { id: 'replaces', label: 'Compare' },
-  { id: 'faq', label: 'FAQ' },
+  { id: 'features', label: 'How It Works' },
+  { id: 'use-cases', label: 'Use Cases' },
+  { id: 'ai', label: 'AI' },
   { id: 'pricing', label: 'Pricing' },
+  { id: 'faq', label: 'FAQ' },
+  { id: 'journal', label: 'Journal' },
 ];
 
 interface StickyLandingNavProps {
-  onSignUp: () => void;
+  onAuthRequired: () => void;
   /**
    * Scroll container for landing: pass the `overflow-y-auto` element so nav/progress work.
    * - `undefined`: listen on `window` (legacy / document scroll).
@@ -32,13 +32,14 @@ interface StickyLandingNavProps {
 }
 
 export const StickyLandingNav: React.FC<StickyLandingNavProps> = ({
-  onSignUp: _onSignUp,
+  onAuthRequired,
   scrollRoot,
 }) => {
   const [activeSection, setActiveSection] = useState('hero');
   const [isVisible, setIsVisible] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const user = null;
+  const auth = useOptionalAuth();
+  const user = auth?.user ?? null;
 
   useEffect(() => {
     if (scrollRoot === null) return;
@@ -145,8 +146,14 @@ export const StickyLandingNav: React.FC<StickyLandingNavProps> = ({
         {/* Logo */}
         <div className="text-xl font-bold text-gradient-gold">ChravelApp</div>
 
-        {/* For Teams Link (Desktop) */}
-        <div className="hidden lg:flex items-center">
+        {/* Page Links (Desktop) */}
+        <div className="hidden lg:flex items-center gap-1">
+          <Link
+            to="/blog"
+            className="text-sm font-medium text-foreground hover:text-primary transition-colors px-4 py-2 rounded-md hover:bg-accent/10"
+          >
+            Blog
+          </Link>
           <Link
             to="/teams"
             className="text-sm font-medium text-foreground hover:text-primary transition-colors px-4 py-2 rounded-md hover:bg-accent/10"
@@ -163,27 +170,41 @@ export const StickyLandingNav: React.FC<StickyLandingNavProps> = ({
               onClick={() => scrollToSection(section.id)}
               className={cn(
                 'group relative h-2 rounded-full transition-all duration-300',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                 activeSection === section.id
                   ? 'w-8 bg-primary'
                   : 'w-2 bg-muted hover:bg-muted-foreground',
               )}
               aria-label={`Go to ${section.label}`}
             >
-              {/* Tooltip on hover */}
-              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-xs whitespace-nowrap bg-background/90 px-2 py-1 rounded pointer-events-none">
+              {/* Tooltip on hover / keyboard focus */}
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity text-xs whitespace-nowrap bg-background/90 px-2 py-1 rounded pointer-events-none">
                 {section.label}
               </span>
             </button>
           ))}
         </div>
 
-        {/* Active Section Name (Desktop) */}
-        <div className="hidden lg:block text-sm text-foreground font-medium min-w-[100px] text-center">
-          {sections.find(s => s.id === activeSection)?.label || 'Home'}
+        {/* Page Links (Right, Desktop) */}
+        <div className="hidden lg:flex items-center gap-1">
+          <Link
+            to="/"
+            className="text-sm font-medium text-foreground hover:text-primary transition-colors px-4 py-2 rounded-md hover:bg-accent/10"
+          >
+            Home
+          </Link>
+          <Link
+            to="/use-cases"
+            className="text-sm font-medium text-foreground hover:text-primary transition-colors px-4 py-2 rounded-md hover:bg-accent/10"
+          >
+            Use Cases
+          </Link>
         </div>
 
         {/* Right: Log In for non-authenticated users */}
-        <div className="flex items-center gap-2">{!user && <HeaderAuthButton />}</div>
+        <div className="flex items-center gap-2">
+          {!user && <HeaderAuthButton onLoginClick={onAuthRequired} />}
+        </div>
       </div>
     </nav>
   );

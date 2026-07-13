@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Send, X, CalendarPlus, Bookmark, ListChecks, Upload } from 'lucide-react';
-import { VoiceButton } from './VoiceButton';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { CTA_BUTTON, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 
@@ -11,14 +10,10 @@ interface AiChatInputProps {
   onKeyPress: (e: React.KeyboardEvent) => void;
   isTyping: boolean;
   disabled?: boolean;
-  /** Dictation state for waveform button */
+  /** Dictation state — drives Listening placeholder when waveform dictation is active */
   convoVoiceState?: VoiceState;
-  /** Tap: toggle dictation on/off */
-  onConvoToggle?: () => void;
-  /** Whether voice features are available */
+  /** Whether voice/dictation features are available (listening UI) */
   isVoiceEligible?: boolean;
-  /** Upgrade prompt for ineligible users */
-  onVoiceUpgrade?: () => void;
   /** Multimodal: callback when user selects images */
   onImageAttach?: (files: File[]) => void;
   /** Multimodal: currently attached image previews */
@@ -29,16 +24,21 @@ interface AiChatInputProps {
   showImageAttach?: boolean;
   /** Callback when a Smart Import quick action chip is tapped */
   onQuickAction?: (action: string) => void;
-  /** Whether Gemini Live is currently active (for textarea styling) */
-  isLiveActive?: boolean;
   /** Callback when user drops or selects document files (PDF, ICS, CSV) */
   onDocumentAttach?: (files: File[]) => void;
+  /** Callback when user drops or pastes unsupported files */
+  onRejectedFiles?: (files: File[]) => void;
   /** Currently attached document files */
   attachedDocuments?: File[];
   /** Remove an attached document by index */
   onRemoveDocument?: (index: number) => void;
   /** Accepted MIME types for file drop/paste (images + documents) */
   acceptedFileTypes?: Set<string>;
+  /**
+   * Primary left-of-field control. Concierge App Store path mounts the waveform
+   * dictation button here — no duplicate in-field mic.
+   */
+  leftAccessory?: React.ReactNode;
 }
 
 export const AiChatInput = ({
@@ -49,23 +49,23 @@ export const AiChatInput = ({
   isTyping,
   disabled = false,
   convoVoiceState = 'idle',
-  onConvoToggle,
   isVoiceEligible = false,
-  onVoiceUpgrade,
   onImageAttach: _onImageAttach,
   attachedImages = [],
   onRemoveImage,
   showImageAttach: _showImageAttach = false,
   onQuickAction,
-  isLiveActive = false,
   onDocumentAttach,
+  onRejectedFiles,
   attachedDocuments = [],
   onRemoveDocument,
   acceptedFileTypes,
+  leftAccessory,
 }: AiChatInputProps) => {
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [isDragActive, setIsDragActive] = useState(false);
   const dropZoneRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dragCounterRef = useRef(0);
 
   useEffect(() => {
@@ -81,24 +81,29 @@ export const AiChatInput = ({
     (files: File[]) => {
       const images: File[] = [];
       const documents: File[] = [];
+      const rejected: File[] = [];
       for (const file of files) {
-        if (file.type.startsWith('image/')) {
+        const lowerName = file.name.toLowerCase();
+        if (file.type.startsWith('image/') || /\.(jpe?g|png|gif|webp|heic|heif)$/.test(lowerName)) {
           images.push(file);
         } else if (
           acceptedFileTypes?.has(file.type) ||
-          file.name.endsWith('.pdf') ||
-          file.name.endsWith('.ics') ||
-          file.name.endsWith('.csv') ||
-          file.name.endsWith('.xlsx') ||
-          file.name.endsWith('.xls')
+          lowerName.endsWith('.pdf') ||
+          lowerName.endsWith('.ics') ||
+          lowerName.endsWith('.csv') ||
+          lowerName.endsWith('.xlsx') ||
+          lowerName.endsWith('.xls')
         ) {
           documents.push(file);
+        } else {
+          rejected.push(file);
         }
       }
       if (images.length > 0) _onImageAttach?.(images);
       if (documents.length > 0) onDocumentAttach?.(documents);
+      if (rejected.length > 0) onRejectedFiles?.(rejected);
     },
-    [_onImageAttach, onDocumentAttach, acceptedFileTypes],
+    [_onImageAttach, onDocumentAttach, onRejectedFiles, acceptedFileTypes],
   );
 
   // ── Drag-and-drop handlers ────────────────────────────────────────────
@@ -167,10 +172,26 @@ export const AiChatInput = ({
     [classifyFiles],
   );
 
+  // Dictation active state — driven by the leftAccessory waveform button
+  const isConvoActive =
+    isVoiceEligible && convoVoiceState !== 'idle' && convoVoiceState !== 'error';
+
+  // Dynamic placeholder based on active mode
+  const getPlaceholder = () => {
+    if (isConvoActive) return 'Listening\u2026';
+    // Subtle affordance so the pill never looks like a dead black gutter on mobile.
+    return 'Ask anything about this trip\u2026';
+  };
+
+  const hasAttachments = attachedImages.length > 0 || attachedDocuments.length > 0;
+  const canSend = Boolean(inputMessage.trim()) || hasAttachments;
+  const sendBlocked = !canSend || isTyping || disabled;
+  const sendDomDisabled = isTyping || disabled;
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      void onSendMessage();
+      if (!sendBlocked) void onSendMessage();
     } else {
       onKeyPress(e);
     }
@@ -178,21 +199,9 @@ export const AiChatInput = ({
 
   const handleSendClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
+    if (sendBlocked) return;
     void onSendMessage();
   };
-
-  // Derived conversation active state (dictation only now)
-  const isConvoActive =
-    isVoiceEligible && convoVoiceState !== 'idle' && convoVoiceState !== 'error';
-
-  // Dynamic placeholder based on active mode
-  const getPlaceholder = () => {
-    if (isConvoActive) return 'Listening\u2026';
-    if (isLiveActive) return 'Live conversation active\u2026';
-    return '';
-  };
-
-  const hasAttachments = attachedImages.length > 0 || attachedDocuments.length > 0;
 
   return (
     <div
@@ -283,19 +292,13 @@ export const AiChatInput = ({
       )}
 
       <div className="chat-composer flex flex-nowrap items-center gap-2 sm:gap-3 min-w-0">
-        {/* Waveform / Dictation button */}
-        {onConvoToggle && (
-          <VoiceButton
-            voiceState={convoVoiceState}
-            isEligible={isVoiceEligible}
-            onToggle={onConvoToggle}
-            onUpgrade={onVoiceUpgrade}
-          />
-        )}
+        {/* Primary left control — waveform dictation (App Store path). */}
+        {leftAccessory}
 
-        {/* Input container — clean, no embedded Live button */}
+        {/* Text field — no in-field mic; dictation lives on leftAccessory only. */}
         <div className="relative flex-1 min-w-0 rounded-full">
           <textarea
+            ref={textareaRef}
             value={inputMessage}
             onChange={e => onInputChange(e.target.value)}
             onKeyPress={handleKeyPress}
@@ -306,16 +309,10 @@ export const AiChatInput = ({
             aria-label={
               isConvoActive
                 ? 'Dictation in progress. Speak to add text.'
-                : isLiveActive
-                  ? 'Live voice conversation active'
-                  : 'Message your AI Concierge'
+                : 'Message your AI Concierge'
             }
-            className={`w-full bg-white/5 border rounded-2xl px-4 py-3 text-white placeholder-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 backdrop-blur-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
-              isConvoActive
-                ? 'border-primary/30 bg-primary/5'
-                : isLiveActive
-                  ? 'border-[#c49746]/30 bg-[#c49746]/5'
-                  : 'border-white/10'
+            className={`w-full bg-white/5 border rounded-2xl py-3 pl-4 pr-4 text-white placeholder-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 backdrop-blur-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
+              isConvoActive ? 'border-primary/30 bg-primary/5' : 'border-white/10'
             }`}
           />
           {/* Dictation active indicator for screen readers */}
@@ -326,18 +323,25 @@ export const AiChatInput = ({
           )}
         </div>
 
-        {/* Send button — persistent gold rim; disabled state via opacity */}
+        {/*
+          Send keeps the same gold-ring CTA chrome as Search / Upload / Dictation
+          even when the composer is empty. Empty taps are a no-op via handleSendClick,
+          while aria-disabled still tells assistive tech that nothing can be sent yet.
+        */}
         <button
           type="button"
           onClick={handleSendClick}
-          disabled={
-            (!inputMessage.trim() &&
-              attachedImages.length === 0 &&
-              attachedDocuments.length === 0) ||
-            isTyping ||
-            disabled
-          }
+          disabled={sendDomDisabled}
           aria-label="Send message"
+          aria-disabled={sendBlocked}
+          title={
+            sendBlocked
+              ? isTyping
+                ? 'Sending\u2026'
+                : 'Type a message or attach a file to send'
+              : 'Send message'
+          }
+          data-testid="concierge-send-btn"
           className={CTA_BUTTON}
         >
           <Send size={CTA_ICON_SIZE} />

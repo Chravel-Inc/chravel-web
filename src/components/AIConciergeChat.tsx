@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useCallback, lazy, Suspense, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Search, ImagePlus } from 'lucide-react';
@@ -8,7 +8,6 @@ import { ChatMessages } from '@/features/chat/components/ChatMessages';
 import { AiChatInput } from '@/features/chat/components/AiChatInput';
 import { useConciergeUsage } from '../hooks/useConciergeUsage';
 import { useAuth } from '@/hooks/useAuth';
-import { useAIConciergePreferences } from '../hooks/useAIConciergePreferences';
 import { toast } from 'sonner';
 import { CTA_BUTTON, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 import { useSaveToTripPlaces } from '@/hooks/useSaveToTripPlaces';
@@ -18,7 +17,7 @@ import { sanitizeConciergeContent } from '@/lib/sanitizeConciergeContent';
 import { usePendingActions } from '@/hooks/usePendingActions';
 import {
   ALLOWED_DOCUMENT_TYPES,
-  ALLOWED_IMAGE_TYPES as _ALLOWED_IMAGE_TYPES,
+  ALLOWED_IMAGE_TYPES,
   ALL_ACCEPTED_TYPES,
   MAX_DOCUMENT_SIZE_BYTES as _MAX_DOCUMENT_SIZE_BYTES,
   MAX_IMAGE_SIZE_BYTES as _MAX_IMAGE_SIZE_BYTES,
@@ -32,25 +31,111 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useConciergeVoice } from '@/features/concierge/hooks/useConciergeVoice';
 import { useConciergeStreaming } from '@/features/concierge/hooks/useConciergeStreaming';
 import { useSmartImportTaste } from '@/features/smart-import/hooks/useSmartImportTaste';
+import { useConciergeConversationMode } from '@/features/concierge/hooks/useConciergeConversationMode';
+import { RealtimeVoiceButton } from '@/features/concierge/components/RealtimeVoiceButton';
+import { VoiceButton } from '@/features/chat/components/VoiceButton';
+import { useConversationModePreference } from '@/features/concierge/hooks/useConversationModePreference';
+import { useFeatureFlag, useFeatureFlagStatus } from '@/lib/featureFlags';
+
+import type { ChatMessage } from '@/features/concierge/types';
+import type { UniversalSearchResult } from '@/services/universalSearchService';
 
 // Lazy: only loads when an upgrade moment actually fires (limit hit / chip tap).
 const PlusUpsellModal = lazy(() =>
   import('./PlusUpsellModal').then(m => ({ default: m.PlusUpsellModal })),
 );
 
+const SEARCH_FOCUS_EVENT = 'chravel:trip-search-focus';
+
+const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif']);
+const DOCUMENT_EXTENSIONS = new Set(['.pdf', '.ics', '.csv', '.xls', '.xlsx']);
+
+function getFileExtension(file: File): string {
+  const name = file.name.toLowerCase();
+  const dot = name.lastIndexOf('.');
+  return dot >= 0 ? name.slice(dot) : '';
+}
+
+function isConciergeImageFile(file: File): boolean {
+  return ALLOWED_IMAGE_TYPES.has(file.type) || IMAGE_EXTENSIONS.has(getFileExtension(file));
+}
+
+function isConciergeDocumentFile(file: File): boolean {
+  return ALLOWED_DOCUMENT_TYPES.has(file.type) || DOCUMENT_EXTENSIONS.has(getFileExtension(file));
+}
+
+function getSearchResultTab(result: UniversalSearchResult): string {
+  const metadataTab = result.metadata?.tab;
+  if (typeof metadataTab === 'string' && metadataTab.trim()) return metadataTab;
+  switch (result.contentType) {
+    case 'messages':
+      return 'chat';
+    case 'calendar':
+      return 'calendar';
+    case 'task':
+      return 'tasks';
+    case 'poll':
+      return 'polls';
+    case 'payment':
+      return 'payments';
+    case 'place':
+    case 'link':
+      return 'places';
+    case 'media':
+    case 'artifact':
+      return 'media';
+    case 'concierge':
+      return 'concierge';
+    default:
+      return 'chat';
+  }
+}
+
+function dispatchSearchFocus(result: UniversalSearchResult) {
+  const anchor =
+    typeof result.metadata?.anchor === 'string'
+      ? result.metadata.anchor
+      : result.deepLink.split('#')[1];
+  if (anchor) window.history.replaceState(window.history.state, '', `#${anchor}`);
+  window.dispatchEvent(new CustomEvent(SEARCH_FOCUS_EVENT, { detail: result }));
+  const candidateIds = [anchor, `msg-${result.id}`, result.id]
+    .filter((value): value is string => typeof value === 'string' && value.length > 0)
+    .flatMap(value => [
+      value,
+      value.replace(/^chat-message-/, ''),
+      value.replace(/^concierge-message-/, ''),
+    ]);
+  const focus = (attempt = 0) => {
+    const target = candidateIds
+      .map(
+        value =>
+          document.getElementById(value) ?? document.querySelector(`[data-message-id="${value}"]`),
+      )
+      .find((el): el is HTMLElement => el instanceof HTMLElement);
+    if (!target && attempt < 8) {
+      window.setTimeout(() => focus(attempt + 1), 160);
+      return;
+    }
+    target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    target?.classList.add('ring-2', 'ring-gold-primary/60');
+    window.setTimeout(() => target?.classList.remove('ring-2', 'ring-gold-primary/60'), 1800);
+  };
+  window.setTimeout(() => focus(), 180);
+}
+
 export type { ChatMessage } from '@/features/concierge/types';
 
 export const AIConciergeChat = ({
   tripId,
   basecamp,
-  preferences,
   isDemoMode = false,
+  isActive = true,
   onTabChange,
 }: AIConciergeChatProps) => {
   const { basecamp: globalBasecamp } = useBasecamp();
   const { user: authUser } = useAuth();
   const conciergeQueryClient = useQueryClient();
-  const { usage, getUsageStatus, incrementUsageOnSuccess, isLimitedPlan, userPlan } =
+  const { usage, getUsageStatus, refreshUsage, isLimitedPlan, userPlan, isFreeUser } =
     useConciergeUsage(tripId);
   // Free-tier "taste": 1 Smart Import per trip before the paywall fires.
   const { canUseFreeImport: canUseSmartImportTaste } = useSmartImportTaste(tripId);
@@ -62,8 +147,12 @@ export const AIConciergeChat = ({
     isConfirming: isConfirmingPendingAction,
     isRejecting: isRejectingPendingAction,
   } = usePendingActions(tripId);
-  const loadedPreferences = useAIConciergePreferences();
-  const effectivePreferences = preferences ?? loadedPreferences;
+  // Grounding the Concierge in saved preferences is a premium-only capability,
+  // enforced authoritatively server-side (lovable-concierge resolves preferences from
+  // the DB, gated on isPaidUser). The client no longer sends preferences at all; this
+  // flag only drives the "Preferences considered" badge. `isFreeUser` mirrors the
+  // server's isPaidUser (same entitlement resolution + super-admin awareness).
+  const isPremiumPreferencesUser = !isFreeUser;
 
   const handleNavigateToPlaces = useCallback(() => {
     if (onTabChange) onTabChange('places');
@@ -121,6 +210,42 @@ export const AIConciergeChat = ({
     clearAttachments,
   } = useConciergeAttachments();
 
+  const handleFilesSelected = useCallback(
+    (files: File[]) => {
+      if (!UPLOAD_ENABLED || files.length === 0) return;
+
+      const images: File[] = [];
+      const documents: File[] = [];
+      const rejected: string[] = [];
+
+      files.forEach(file => {
+        if (isConciergeImageFile(file)) {
+          if (file.size > _MAX_IMAGE_SIZE_BYTES) rejected.push(file.name);
+          else images.push(file);
+          return;
+        }
+        if (isConciergeDocumentFile(file)) {
+          if (file.size > _MAX_DOCUMENT_SIZE_BYTES) rejected.push(file.name);
+          else documents.push(file);
+          return;
+        }
+        rejected.push(file.name);
+      });
+
+      if (images.length > 0) setAttachedImages(prev => [...prev, ...images].slice(0, 4));
+      if (documents.length > 0) setAttachedDocuments(prev => [...prev, ...documents].slice(0, 4));
+      if (rejected.length > 0) {
+        toast.error('Some files could not be attached', {
+          description: rejected.slice(0, 3).join(', '),
+        });
+      }
+      if (images.length > 4 || documents.length > 4) {
+        toast.info('Attachment limit is 4 images and 4 files per Concierge message.');
+      }
+    },
+    [setAttachedDocuments, setAttachedImages],
+  );
+
   const {
     smartImportStates,
     bulkDeleteStates,
@@ -135,7 +260,8 @@ export const AIConciergeChat = ({
     queryClient: conciergeQueryClient,
   });
 
-  const { convoVoiceState, handleConvoToggle } = useConciergeVoice({
+  const { convoVoiceState, handleConvoToggle, stopDictation } = useConciergeVoice({
+    inputMessage,
     setInputMessage,
   });
 
@@ -179,9 +305,13 @@ export const AIConciergeChat = ({
   }, [ttsError, ttsPlaybackState]);
 
   const [searchOpen, setSearchOpen] = useState(false);
+  const uploadInputId = useId();
   const handleSendMessageRef = useRef<(messageOverride?: string) => Promise<void>>(async () =>
     Promise.resolve(),
   );
+  // The chat-window card — the realtime voice overlay confines itself to this element
+  // instead of taking over the whole viewport.
+  const chatWindowRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when new messages or typing indicator
   // Uses RAF batching + bottom-proximity stickiness to prevent iOS vibration bug
@@ -250,11 +380,11 @@ export const AIConciergeChat = ({
     streamAbortRef,
     setIsTyping,
     setAiStatus,
-    incrementUsageOnSuccess,
+    isLimitReached: usage?.isLimitReached ?? false,
+    refreshUsage,
     buildLimitReachedMessage,
     basecamp,
     globalBasecamp,
-    effectivePreferences,
     attachedImages,
     attachedDocuments,
     attachmentIntent,
@@ -266,6 +396,65 @@ export const AIConciergeChat = ({
     handleSendMessageRef.current = handleSendMessage;
   }, [handleSendMessage]);
 
+  // ── Hands-free conversation mode ─────────────────────────────────────
+  const conversationModeFlag = useFeatureFlag('concierge_conversation_mode', true);
+  const { enabled: conversationModeUserPref } = useConversationModePreference();
+  const conversationModeEffective = conversationModeFlag && conversationModeUserPref && !isDemoMode;
+  // Experimental bidirectional realtime voice — NOT the App Store launch path.
+  // Default OFF; only mounts when feature_flags.concierge_realtime_voice is re-enabled
+  // for internal/experimental testing. Launch UX: waveform → text dictation.
+  const { enabled: realtimeVoiceFlagEnabled, isPending: realtimeVoiceFlagPending } =
+    useFeatureFlagStatus('concierge_realtime_voice', false);
+  const experimentalRealtimeVoiceEnabled = realtimeVoiceFlagEnabled && !isDemoMode;
+
+  const buildSpeechForMessage = useCallback((msg: ChatMessage) => {
+    if (msg.type !== 'assistant' || !msg.content) return '';
+    const clean = sanitizeConciergeContent(msg.content);
+    if (!clean) return '';
+    return buildSpeechText({
+      displayText: clean,
+      hotels: msg.functionCallHotels,
+      places: msg.functionCallPlaces,
+      flights: msg.functionCallFlights?.map(f => ({
+        origin: f.origin,
+        destination: f.destination,
+        airline: f.airline,
+        price: f.price,
+        stops: f.stops,
+        durationMinutes: f.durationMinutes,
+      })),
+    });
+  }, []);
+
+  const conversation = useConciergeConversationMode({
+    enabled: conversationModeEffective,
+    messages,
+    isTyping,
+    handleSendMessage,
+    ttsPlay: ttsPlayRaw,
+    ttsStop,
+    ttsPlaybackState,
+    buildSpeechText: buildSpeechForMessage,
+    onError: msg => toast.error(msg),
+    onCancelStream: () => {
+      try {
+        streamAbortRef.current?.();
+      } catch {
+        /* ignore */
+      }
+      streamAbortRef.current = null;
+      setIsTyping(false);
+    },
+  });
+
+  // Only tear down Search / conversation when the Concierge tab actually leaves.
+  // Do not depend on searchOpen — that would re-run on open and fight the modal.
+  useEffect(() => {
+    if (isActive) return;
+    if (conversation.active) conversation.cancel();
+    setSearchOpen(false);
+  }, [conversation.active, conversation.cancel, isActive]);
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -275,36 +464,64 @@ export const AIConciergeChat = ({
 
   return (
     <div className="flex flex-col overflow-hidden flex-1 min-h-0 min-w-0 h-full">
-      <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col flex-1">
-        {/* Header — title row + controls row */}
-        <div className="border-b border-white/10 bg-black/30 px-3 py-2 flex-shrink-0">
-          {/* Row 1: Title */}
-          <h3
-            className="text-lg font-semibold text-white text-center truncate leading-tight"
-            data-testid="ai-concierge-header"
-          >
-            Concierge AI | Chravel Agent
-          </h3>
-          {/* Row 2: Search | Upload — evenly spaced */}
-          <div className="flex items-center justify-between mt-2">
+      <div
+        ref={chatWindowRef}
+        className="relative rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col flex-1"
+      >
+        {/* Header — single-row trip controls */}
+        <div className="relative z-20 border-b border-white/10 bg-black/30 px-3 py-2 flex-shrink-0">
+          <div className="grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2">
             <button
               type="button"
+              onPointerDown={event => {
+                // Mobile WebView/Safari can drop the synthetic click if a later layout
+                // change steals focus. Open on the trusted pointer gesture so Search
+                // cannot feel dead. Mouse clicks still get the normal idempotent click.
+                if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+                  setSearchOpen(true);
+                }
+              }}
               onClick={() => setSearchOpen(true)}
-              className={CTA_BUTTON}
-              aria-label="Search concierge"
+              className={`${CTA_BUTTON} relative z-30 pointer-events-auto`}
+              aria-label="Search trip"
+              title="Search trip"
+              data-testid="header-search-btn"
             >
-              <Search size={CTA_ICON_SIZE} className="text-white" />
+              <Search size={CTA_ICON_SIZE} className="text-white pointer-events-none" />
             </button>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
+            <h3
+              className="min-w-0 truncate text-center text-base font-semibold leading-tight text-white sm:text-lg"
+              data-testid="ai-concierge-header"
+            >
+              Concierge Chravel Agent
+            </h3>
+            {/*
+              Keep the file input as a real, transparent tap target inside the button.
+              iOS Safari / WKWebView can ignore synthetic .click() and sometimes miss
+              label-only activation when the input is visually hidden elsewhere.
+            */}
+            <label
+              htmlFor={uploadInputId}
               data-testid="header-upload-btn"
-              className={CTA_BUTTON}
-              aria-label="Attach images"
-              title="Attach images"
+              className={`${CTA_BUTTON} relative z-30 cursor-pointer overflow-hidden pointer-events-auto`}
+              aria-label="Attach files to Concierge"
+              title="Attach files to Concierge"
             >
-              <ImagePlus size={CTA_ICON_SIZE} className="text-white" />
-            </button>
+              <ImagePlus size={CTA_ICON_SIZE} className="text-white pointer-events-none" />
+              <input
+                id={uploadInputId}
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,application/pdf,text/calendar,.ics,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                multiple
+                className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                aria-label="Attach files to Concierge"
+                onChange={e => {
+                  handleFilesSelected(Array.from(e.target.files || []));
+                  if (fileInputRef.current) fileInputRef.current.value = '';
+                }}
+              />
+            </label>
           </div>
         </div>
 
@@ -313,35 +530,14 @@ export const AIConciergeChat = ({
           open={searchOpen}
           onOpenChange={setSearchOpen}
           tripId={tripId}
-          onNavigate={(tab, id) => {
+          onNavigate={result => {
+            const tab = getSearchResultTab(result);
             if (tab === 'concierge' || tab === 'ai-chat') {
-              const el = document.getElementById(`msg-${id}`);
-              el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              dispatchSearchFocus(result);
             } else if (onTabChange) {
               onTabChange(tab);
+              window.setTimeout(() => dispatchSearchFocus(result), 120);
             }
-          }}
-        />
-
-        {/* Hidden file input for header upload button */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,application/pdf,text/calendar,.ics,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-          multiple
-          className="hidden"
-          onChange={e => {
-            const files = Array.from(e.target.files || []);
-            const images = files.filter(f => f.type.startsWith('image/'));
-            const docs = files.filter(
-              f =>
-                ALLOWED_DOCUMENT_TYPES.has(f.type) ||
-                f.name.endsWith('.ics') ||
-                f.name.endsWith('.csv'),
-            );
-            if (images.length > 0) setAttachedImages(prev => [...prev, ...images].slice(0, 4));
-            if (docs.length > 0) setAttachedDocuments(prev => [...prev, ...docs].slice(0, 4));
-            if (fileInputRef.current) fileInputRef.current.value = '';
           }}
         />
 
@@ -373,6 +569,13 @@ export const AIConciergeChat = ({
               <div className="mt-2 text-xs text-amber-400 bg-amber-500/10 rounded px-2.5 py-1 inline-block">
                 Group-aware — knows your trip, your members, and writes back to shared state.
               </div>
+              {isPremiumPreferencesUser && (
+                <div className="mt-2">
+                  <span className="inline-flex px-2.5 py-1 bg-gold-primary/10 text-gold-primary text-xs font-medium rounded-full border border-gold-primary/20">
+                    ✦ Preferences considered · Premium
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -380,7 +583,7 @@ export const AIConciergeChat = ({
         {/* Chat area */}
         <div
           ref={chatScrollRef}
-          className="flex-1 overflow-y-auto overflow-x-hidden p-4 chat-scroll-container native-scroll min-h-0 min-w-0"
+          className="relative z-0 flex-1 overflow-y-auto overflow-x-hidden p-4 chat-scroll-container native-scroll min-h-0 min-w-0"
         >
           {/* "Picked up where you left off" divider — shown once when server history hydrates */}
           {historyLoadedFromServer && messages.length > 0 && (
@@ -426,9 +629,14 @@ export const AIConciergeChat = ({
         </div>
 
         {/* Input area — sticky bottom with inline voice banner above input */}
+        {/*
+          Composer is a flex sibling of the scroll rail (not absolutely positioned over it).
+          Keep z-20 + isolate so long markdown / sticky widgets cannot steal composer hits.
+        */}
         <div
-          className="chat-composer z-10 bg-black/30 px-3 pt-2 flex-shrink-0"
+          className="chat-composer relative z-20 isolate bg-black/30 px-3 pt-2 flex-shrink-0"
           style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)' }}
+          data-testid="concierge-composer-rail"
         >
           {/* Usage meter — only for plans with a finite per-trip ask limit */}
           {!isDemoMode && usage && usage.limit !== null && (
@@ -495,6 +703,8 @@ export const AIConciergeChat = ({
                 </select>
               </div>
             )}
+          {/* Waveform left control: App Store path = text dictation via VoiceButton.
+              Experimental realtime voice only mounts when concierge_realtime_voice is on. */}
           <AiChatInput
             inputMessage={inputMessage}
             onInputChange={setInputMessage}
@@ -506,9 +716,7 @@ export const AIConciergeChat = ({
             showImageAttach={UPLOAD_ENABLED}
             attachedImages={UPLOAD_ENABLED ? attachedImages : []}
             onImageAttach={
-              UPLOAD_ENABLED
-                ? (files: File[]) => setAttachedImages(prev => [...prev, ...files].slice(0, 4))
-                : undefined
+              UPLOAD_ENABLED ? (files: File[]) => handleFilesSelected(files) : undefined
             }
             onRemoveImage={
               UPLOAD_ENABLED
@@ -517,9 +725,15 @@ export const AIConciergeChat = ({
             }
             attachedDocuments={UPLOAD_ENABLED ? attachedDocuments : []}
             onDocumentAttach={
-              UPLOAD_ENABLED
-                ? (files: File[]) => setAttachedDocuments(prev => [...prev, ...files].slice(0, 4))
-                : undefined
+              UPLOAD_ENABLED ? (files: File[]) => handleFilesSelected(files) : undefined
+            }
+            onRejectedFiles={(files: File[]) =>
+              toast.error('Some files could not be attached', {
+                description: files
+                  .slice(0, 3)
+                  .map(file => file.name)
+                  .join(', '),
+              })
             }
             onRemoveDocument={
               UPLOAD_ENABLED
@@ -528,8 +742,28 @@ export const AIConciergeChat = ({
             }
             acceptedFileTypes={ALL_ACCEPTED_TYPES}
             convoVoiceState={convoVoiceState}
-            onConvoToggle={handleConvoToggle}
             isVoiceEligible={true}
+            leftAccessory={
+              realtimeVoiceFlagPending ? undefined : experimentalRealtimeVoiceEnabled ? (
+                // Experimental only — not App Store default. Kept for future re-enable.
+                <RealtimeVoiceButton
+                  tripId={tripId}
+                  disabled={usage?.isLimitReached ?? false}
+                  containerRef={chatWindowRef}
+                  onSessionStart={() => {
+                    stopDictation();
+                    if (conversation.active) conversation.toggle();
+                  }}
+                />
+              ) : (
+                // App Store launch path: waveform triggers Web Speech dictation.
+                <VoiceButton
+                  voiceState={convoVoiceState}
+                  isEligible={true}
+                  onToggle={handleConvoToggle}
+                />
+              )
+            }
             onQuickAction={
               UPLOAD_ENABLED && (attachedImages.length > 0 || attachedDocuments.length > 0)
                 ? (action: string) => {

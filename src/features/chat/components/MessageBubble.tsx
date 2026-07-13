@@ -28,6 +28,21 @@ import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
 import { hapticService } from '@/services/hapticService';
 import { getMentionClassName, MENTION_REGEX } from './messageMentions';
 import { ModerationAction } from '@/services/moderationService';
+import { VoiceNotePlayer } from './VoiceNotePlayer';
+import { BubbleTail } from './BubbleTail';
+import { PlaceMiniCard, isPlaceLinkUrl } from './PlaceMiniCard';
+import { VideoThumb, GifAutoplayImage } from './VideoThumb';
+import { useFeatureFlag } from '@/lib/featureFlags';
+
+// .webm omitted — ambiguous audio/video; require explicit type/mime for webm.
+const AUDIO_EXT_RE = /\.(mp3|wav|m4a|ogg|oga|opus|aac|caf)(\?|$)/i;
+const isAudioAttachment = (att: { type: string; url?: string; mimeType?: string }) => {
+  if (att.type === 'video') return false;
+  if (att.mimeType?.startsWith('video/')) return false;
+  if (att.type === 'audio') return true;
+  if (att.mimeType?.startsWith('audio/')) return true;
+  return !!att.url && AUDIO_EXT_RE.test(att.url);
+};
 
 export interface MessageBubbleProps {
   id: string;
@@ -59,8 +74,10 @@ export interface MessageBubbleProps {
     googleMapsWidget?: string;
     googleMapsWidgetContextToken?: string;
   };
+  /** Last bubble in a consecutive same-sender group — shows the iMessage tail. */
+  isLastInGroup?: boolean;
   // 🆕 Rich media support
-  mediaType?: 'image' | 'video' | 'document' | null;
+  mediaType?: 'image' | 'video' | 'document' | 'audio' | 'file' | null;
   mediaUrl?: string | null;
   linkPreview?: {
     url: string;
@@ -70,9 +87,13 @@ export interface MessageBubbleProps {
     domain?: string;
   } | null;
   attachments?: Array<{
-    type: 'image' | 'video' | 'file' | 'link';
+    type: 'image' | 'video' | 'file' | 'link' | 'audio';
     ref_id: string;
     url?: string;
+    /** Optional metadata for audio attachments (voice notes). */
+    mimeType?: string;
+    durationMs?: number;
+    waveform?: number[];
   }>;
   // 🆕 Gallery support - all images in chat for navigation
   allChatImages?: { url: string; caption?: string }[];
@@ -138,6 +159,7 @@ export const MessageBubble = memo(
     onOpenThread,
     grounding,
     showSenderInfo = true,
+    isLastInGroup = true,
     mediaType,
     mediaUrl,
     linkPreview,
@@ -176,6 +198,10 @@ export const MessageBubble = memo(
     const swipeIsActive = useRef(false);
     const swipeHapticFired = useRef(false);
     const isMobilePortrait = useMobilePortrait();
+    const reactionsEnabled = useFeatureFlag('chat_reactions_v2', true);
+    const swipeReplyEnabled = useFeatureFlag('chat_swipe_reply', true);
+    const mosaicEnabled = useFeatureFlag('chat_media_mosaic', true);
+    const voiceNotesEnabled = useFeatureFlag('chat_voice_notes', true);
 
     // Check for media content
     const hasMedia = mediaType && mediaUrl;
@@ -192,23 +218,36 @@ export const MessageBubble = memo(
       setLightboxOpen(true);
     };
 
-    // Render media content based on type
+    // Render media content based on type.
+    // When Stream mapped a full attachments[] list, mosaic / voice / file rows own media
+    // so we skip the single-media path to avoid double-rendering the first attachment.
     const renderMediaContent = () => {
-      if (!hasMedia) return null;
+      if (!hasMedia || hasAttachments) return null;
 
       switch (mediaType) {
-        case 'image':
+        case 'image': {
+          const imageSrc = (resolvedMediaUrl ?? mediaUrl) as string;
+          const isGif = /\.gif(\?|$)/i.test(imageSrc);
           return (
             <div className="mt-2 relative group">
-              <img
-                src={resolvedMediaUrl ?? mediaUrl}
-                alt="Shared image"
-                className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-95 transition-opacity"
-                style={{ maxHeight: '300px' }}
-                onClick={() => handleImageClick((resolvedMediaUrl ?? mediaUrl) as string)}
-              />
+              {isGif ? (
+                <GifAutoplayImage
+                  src={imageSrc}
+                  alt="Shared GIF"
+                  className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-95 transition-opacity"
+                  onClick={() => handleImageClick(imageSrc)}
+                />
+              ) : (
+                <img
+                  src={imageSrc}
+                  alt="Shared image"
+                  className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-95 transition-opacity"
+                  style={{ maxHeight: '300px' }}
+                  onClick={() => handleImageClick(imageSrc)}
+                />
+              )}
               <button
-                onClick={() => handleImageClick((resolvedMediaUrl ?? mediaUrl) as string)}
+                onClick={() => handleImageClick(imageSrc)}
                 className="absolute top-2 right-2 bg-black/50 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
                 aria-label="View full size"
               >
@@ -216,23 +255,26 @@ export const MessageBubble = memo(
               </button>
             </div>
           );
+        }
 
         case 'video':
           return (
-            <div className="mt-2 relative">
-              <video
-                src={resolvedMediaUrl ?? mediaUrl}
-                controls
-                playsInline
-                className="rounded-lg max-w-full h-auto"
-                style={{ maxHeight: '300px' }}
-              >
-                Your browser does not support the video tag.
-              </video>
-            </div>
+            <VideoThumb
+              src={(resolvedMediaUrl ?? mediaUrl) as string}
+              className="mt-2"
+            />
           );
 
         case 'document':
+        case 'file':
+          // Audio disguised as a document/file (voice notes via share path) — prefer player.
+          if (mediaUrl && isAudioAttachment({ type: 'file', url: mediaUrl })) {
+            return (
+              <div className="mt-2">
+                <VoiceNotePlayer src={(resolvedMediaUrl ?? mediaUrl) as string} isOwn={isOwnMessage} />
+              </div>
+            );
+          }
           return (
             <a
               href={mediaUrl}
@@ -246,50 +288,144 @@ export const MessageBubble = memo(
             </a>
           );
 
+        case 'audio':
+          if (!mediaUrl) return null;
+          if (!voiceNotesEnabled) {
+            return (
+              <a
+                href={mediaUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-lg transition-colors"
+              >
+                <FileText size={16} className="text-gray-400" />
+                <span className="text-sm truncate flex-1">Voice note</span>
+                <Download size={14} className="text-gray-400" />
+              </a>
+            );
+          }
+          // Prefer attachment metadata (waveform/duration) when Stream mapped it.
+          {
+            const audioAttachment = attachments?.find(
+              a => a.url === mediaUrl || a.type === 'audio',
+            );
+            return (
+              <div className="mt-2">
+                <VoiceNotePlayer
+                  src={(resolvedMediaUrl ?? mediaUrl) as string}
+                  waveform={audioAttachment?.waveform}
+                  durationMs={audioAttachment?.durationMs}
+                  isOwn={isOwnMessage}
+                />
+              </div>
+            );
+          }
+
         default:
           return null;
       }
     };
 
-    // Render file attachments
+    // Render file attachments — iMessage-style image mosaic + stacked non-image files
     const renderFileAttachments = () => {
       if (!hasAttachments) return null;
 
+      const images = attachments.filter(a => a.type === 'image' && a.url);
+      const nonImages = attachments.filter(a => a.type !== 'image');
+      const visibleImages = images.slice(0, 4);
+      const overflow = images.length - visibleImages.length;
+
+      // Mosaic layout when flag is on; otherwise stack images vertically.
+      const mosaicClass = !mosaicEnabled
+        ? 'grid-cols-1'
+        : visibleImages.length === 1
+          ? 'grid-cols-1'
+          : visibleImages.length === 2
+            ? 'grid-cols-2'
+            : 'grid-cols-2 grid-rows-2';
+
       return (
         <div className="mt-2 space-y-2">
-          {attachments.map((attachment, index) => {
-            if (attachment.type === 'image' && attachment.url) {
-              return (
-                <div key={index} className="relative group">
-                  <img
-                    src={attachment.url}
-                    alt={`Attachment ${index + 1}`}
-                    className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-95 transition-opacity"
-                    style={{ maxHeight: '300px' }}
-                    onClick={() => handleImageClick(attachment.url!)}
-                  />
+          {visibleImages.length > 0 && (
+            <div
+              className={`grid gap-0.5 rounded-2xl overflow-hidden ${mosaicClass}`}
+              style={{ maxWidth: mosaicEnabled ? '320px' : '280px' }}
+            >
+              {visibleImages.map((attachment, index) => {
+                const isLastVisible = index === visibleImages.length - 1;
+                const showOverflow = mosaicEnabled && overflow > 0 && isLastVisible;
+                const spanClass =
+                  mosaicEnabled && visibleImages.length === 3 && index === 0
+                    ? 'row-span-2'
+                    : '';
+                const isGif = /\.gif(\?|$)/i.test(attachment.url || '');
+                return (
                   <button
+                    key={index}
+                    type="button"
                     onClick={() => handleImageClick(attachment.url!)}
-                    className="absolute top-2 right-2 bg-black/50 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                    aria-label="View full size"
+                    className={`relative group overflow-hidden bg-muted focus:outline-none focus:ring-2 focus:ring-primary ${spanClass}`}
+                    aria-label={`View image ${index + 1}${showOverflow ? ` and ${overflow} more` : ''}`}
                   >
-                    <Maximize2 size={16} />
+                    <img
+                      src={attachment.url}
+                      alt={`Attachment ${index + 1}`}
+                      className={cn(
+                        'w-full h-full object-cover hover:opacity-95 transition-opacity',
+                        mosaicEnabled ? 'aspect-square' : 'max-h-[280px]',
+                      )}
+                      loading={isGif ? 'eager' : 'lazy'}
+                    />
+                    {showOverflow && (
+                      <div className="absolute inset-0 bg-black/55 flex items-center justify-center text-white text-xl font-semibold">
+                        +{overflow}
+                      </div>
+                    )}
                   </button>
-                </div>
+                );
+              })}
+            </div>
+          )}
+
+          {nonImages.map((attachment, index) => {
+            if (attachment.url && isAudioAttachment(attachment)) {
+              if (!voiceNotesEnabled) {
+                return (
+                  <a
+                    key={`audio-file-${index}`}
+                    href={attachment.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 bg-muted hover:bg-muted/70 px-3 py-2 rounded-lg transition-colors border border-border/50"
+                  >
+                    <FileText size={16} className="text-muted-foreground" />
+                    <span className="text-sm truncate flex-1">Voice note</span>
+                    <Download size={14} className="text-muted-foreground" />
+                  </a>
+                );
+              }
+              return (
+                <VoiceNotePlayer
+                  key={`audio-${index}`}
+                  src={attachment.url}
+                  waveform={attachment.waveform}
+                  durationMs={attachment.durationMs}
+                  isOwn={isOwnMessage}
+                />
               );
             }
             if (attachment.type === 'file' && attachment.url) {
               return (
                 <a
-                  key={index}
+                  key={`file-${index}`}
                   href={attachment.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-lg transition-colors"
+                  className="flex items-center gap-2 bg-muted hover:bg-muted/70 px-3 py-2 rounded-lg transition-colors border border-border/50"
                 >
-                  <FileText size={16} className="text-gray-400" />
+                  <FileText size={16} className="text-muted-foreground" />
                   <span className="text-sm truncate flex-1">{text || 'File attachment'}</span>
-                  <Download size={14} className="text-gray-400" />
+                  <Download size={14} className="text-muted-foreground" />
                 </a>
               );
             }
@@ -299,39 +435,59 @@ export const MessageBubble = memo(
       );
     };
 
-    // Render link preview
+    // Render link preview — place mini-card for Maps/Places URLs, else polished link card
     const renderLinkPreview = () => {
       if (!hasLinkPreview) return null;
 
       const preview = linkPreview;
+      const previewUrl = preview.url || text;
+      if (isPlaceLinkUrl(previewUrl) || isPlaceLinkUrl(preview.domain)) {
+        return (
+          <PlaceMiniCard
+            name={preview.title || preview.domain || 'Place'}
+            url={previewUrl}
+            image={preview.image}
+            subtitle={preview.description || preview.domain}
+          />
+        );
+      }
+
       return (
         <a
-          href={preview.url || text}
+          href={previewUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-2 block bg-gray-800 hover:bg-gray-700 rounded-lg overflow-hidden transition-colors"
+          className="mt-2 block bg-muted/60 hover:bg-muted rounded-2xl overflow-hidden transition-colors border border-border/50"
+          style={{ maxWidth: '320px' }}
         >
           {preview.image && !linkImgError && (
             <img
               src={preview.image}
               alt={preview.title || 'Link preview'}
-              className="w-full h-32 object-cover"
+              className="w-full h-40 object-cover"
+              loading="lazy"
               onError={() => setLinkImgError(true)}
             />
           )}
           <div className="p-3">
             <div className="flex items-start gap-2">
-              <Link size={14} className="text-gray-400 mt-0.5 flex-shrink-0" />
+              <Link size={14} className="text-muted-foreground mt-0.5 flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-medium text-white truncate">
+                <h4 className="text-sm font-semibold text-foreground truncate">
                   {preview.title || preview.domain || 'Link'}
                 </h4>
                 {preview.description && (
-                  <p className="text-xs text-gray-400 mt-1 line-clamp-2">{preview.description}</p>
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                    {preview.description}
+                  </p>
                 )}
-                {preview.domain && <p className="text-xs text-gray-500 mt-1">{preview.domain}</p>}
+                {preview.domain && (
+                  <p className="text-[11px] text-muted-foreground/80 mt-1 uppercase tracking-wide">
+                    {preview.domain}
+                  </p>
+                )}
               </div>
-              <ExternalLink size={14} className="text-gray-400 flex-shrink-0" />
+              <ExternalLink size={14} className="text-muted-foreground flex-shrink-0" />
             </div>
           </div>
         </a>
@@ -396,6 +552,7 @@ export const MessageBubble = memo(
 
     const longPressHandlers = useLongPress({
       onLongPress: () => {
+        if (!reactionsEnabled) return;
         setShowReactions(true);
         // Auto-hide after 5 seconds on mobile long-press
         if (hideReactionsTimerRef.current) clearTimeout(hideReactionsTimerRef.current);
@@ -408,18 +565,18 @@ export const MessageBubble = memo(
     const SWIPE_THRESHOLD = 60;
     const handleTouchStart = useCallback(
       (e: React.TouchEvent) => {
-        if (!isMobilePortrait || !onReply) return;
+        if (!swipeReplyEnabled || !isMobilePortrait || !onReply) return;
         swipeTouchStartX.current = e.touches[0].clientX;
         swipeTouchStartY.current = e.touches[0].clientY;
         swipeIsActive.current = false;
         swipeHapticFired.current = false;
       },
-      [isMobilePortrait, onReply],
+      [swipeReplyEnabled, isMobilePortrait, onReply],
     );
 
     const handleTouchMove = useCallback(
       (e: React.TouchEvent) => {
-        if (!isMobilePortrait || !onReply) return;
+        if (!swipeReplyEnabled || !isMobilePortrait || !onReply) return;
         const dx = e.touches[0].clientX - swipeTouchStartX.current;
         const dy = e.touches[0].clientY - swipeTouchStartY.current;
         // Only activate for dominant rightward swipes
@@ -438,7 +595,7 @@ export const MessageBubble = memo(
         }
         setSwipeThresholdMet(met);
       },
-      [isMobilePortrait, onReply],
+      [swipeReplyEnabled, isMobilePortrait, onReply],
     );
 
     const handleTouchEnd = useCallback(() => {
@@ -586,7 +743,7 @@ export const MessageBubble = memo(
             </div>
             <div
               className={cn(
-                'px-3 py-2 md:px-4 md:py-2.5 rounded-2xl break-words',
+                'relative px-3 py-2 md:px-4 md:py-2.5 rounded-2xl break-words',
                 'text-sm md:text-base',
                 isOwnMessage && !isBroadcast
                   ? 'bg-chat-own text-chat-own-foreground'
@@ -599,8 +756,14 @@ export const MessageBubble = memo(
                 status === 'sending' && 'opacity-80',
                 // Adjust styling for media-only messages
                 (hasMedia || hasLinkPreview) && !text && 'p-1 bg-transparent',
+                // Soften the corner that hosts the tail (iMessage notch).
+                isLastInGroup && isOwnMessage && 'rounded-br-md',
+                isLastInGroup && !isOwnMessage && 'rounded-bl-md',
               )}
             >
+              {isLastInGroup && !((hasMedia || hasLinkPreview) && !text) && (
+                <BubbleTail isOwn={isOwnMessage} isBroadcast={isBroadcast} />
+              )}
               {/* Inline Reply Quote */}
               {replyTo && (
                 <div
@@ -715,12 +878,14 @@ export const MessageBubble = memo(
               </div>
             )}
 
-            {/* Persistent reaction badges — always visible when count > 0 */}
-            {reactions && Object.keys(reactions).some(k => reactions[k].count > 0) && (
+            {/* Persistent reaction chips — attached to bubble corner iMessage-style */}
+            {reactionsEnabled &&
+              reactions &&
+              Object.keys(reactions).some(k => reactions[k].count > 0) && (
               <div
                 className={cn(
-                  'flex flex-wrap gap-1 mt-1',
-                  isOwnMessage ? 'justify-end' : 'justify-start',
+                  'flex flex-wrap gap-1 -mt-2.5 z-10 relative',
+                  isOwnMessage ? 'justify-end pr-1' : 'justify-start pl-1',
                 )}
               >
                 {Object.entries(reactions)
@@ -730,21 +895,21 @@ export const MessageBubble = memo(
                       key={reactionType}
                       onClick={() => onReaction(id, reactionType)}
                       className={cn(
-                        'flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs transition-colors',
+                        'flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[11px] leading-none transition-colors shadow-sm ring-1 ring-background',
                         data.userReacted
-                          ? 'bg-primary/20 border border-primary/40 text-primary'
-                          : 'bg-muted/60 border border-white/10 text-white/70 hover:bg-muted/80',
+                          ? 'bg-primary/25 border border-primary/50 text-primary'
+                          : 'bg-muted border border-border/60 text-foreground/80 hover:bg-muted/80',
                       )}
                     >
                       <span>{REACTION_EMOJI_MAP[reactionType] || reactionType}</span>
-                      <span>{data.count}</span>
+                      <span className="font-medium">{data.count}</span>
                     </button>
                   ))}
               </div>
             )}
 
             {/* Reaction picker — side attached to message to avoid hover handoff to adjacent rows */}
-            {showReactions && (
+            {reactionsEnabled && showReactions && (
               <div
                 className={cn(
                   'absolute top-0 z-20',
@@ -809,10 +974,12 @@ export const MessageBubble = memo(
               </div>
             )}
 
-            {/* Read Receipts */}
-            {isOwnMessage && readStatuses && readStatuses.length > 0 && (
+            {/* Read Receipts — own messages show Delivered (empty) → gold ticks (read).
+                Parent used to gate on readStatuses.length > 0, which made the Delivered
+                branch in ReadReceipts unreachable. */}
+            {isOwnMessage && status !== 'sending' && status !== 'failed' && (
               <ReadReceipts
-                readStatuses={readStatuses}
+                readStatuses={readStatuses || []}
                 totalRecipients={tripMembers?.length ? tripMembers.length - 1 : 0}
                 currentUserId={currentUserId}
                 tripMembers={tripMembers}

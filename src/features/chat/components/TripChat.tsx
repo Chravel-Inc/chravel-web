@@ -7,12 +7,13 @@ import type { Channel } from 'stream-chat';
 import { demoModeService } from '@/services/demoModeService';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useChatComposer } from '../hooks/useChatComposer';
-import { useKeyboardHandler } from '@/hooks/useKeyboardHandler';
+import { useBroadcastHistory, usePinnedHistory } from '../hooks/useBroadcastHistory';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { useOfflineStatus } from '@/hooks/useOfflineStatus';
 import { ChatInput } from './ChatInput';
 import { InlineReplyComponent } from './InlineReplyComponent';
 import { VirtualizedMessageContainer } from './VirtualizedMessageContainer';
+import { findFirstUnreadMessageId } from '../utils/findFirstUnreadMessageId';
 import { MessageItem } from './MessageItem';
 import { MessageSkeleton } from '@/components/mobile/SkeletonLoader';
 import { getMockAvatar } from '@/utils/mockAvatars';
@@ -42,7 +43,7 @@ import { useTripChatMode } from '@/hooks/useTripChatMode';
 import { useLinkPreviews } from '../hooks/useLinkPreviews';
 import { useLinkPreviewActivation } from '../hooks/useLinkPreviewActivation';
 import { useBlockedUsers, useReportContent } from '@/hooks/useUserSafety';
-import { getStreamClient } from '@/services/stream/streamClient';
+import { getStreamApiKey, getStreamClient } from '@/services/stream/streamClient';
 import { derivePinnedMessages } from '../utils/pinnedMessages';
 import { extractQuotedReferenceFromStreamMessage } from '@/services/stream/streamMessagePayload';
 import { messageEvents } from '@/telemetry/events';
@@ -128,6 +129,7 @@ export const TripChat = React.memo(
 
     const [showSearchOverlay, setShowSearchOverlay] = useState(false);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
+    const messageScrollRef = useRef<HTMLDivElement>(null);
     const [failedMessages, setFailedMessages] = useState<
       Array<{
         id: string;
@@ -203,6 +205,7 @@ export const TripChat = React.memo(
     }, [chatError, resolvedTripId]);
 
     const { isRefreshing, pullDistance } = usePullToRefresh({
+      scrollContainerRef: messageScrollRef,
       onRefresh: async () => {
         if (resolvedTripId) {
           if (reload) {
@@ -240,6 +243,11 @@ export const TripChat = React.memo(
       chatModeUserRole === 'owner';
     const canManagePins =
       isUserAdmin || chatModeUserRole === 'moderator' || chatModeUserRole === 'mod';
+    // Broadcast composing follows the trip-type permission model: consumer trips
+    // are open to all members; pro/event trips gate announcements to
+    // admins/organizers/owners. UI-layer gate — ChatInput hides the toggle and
+    // strips the flag at send time.
+    const canSendBroadcast = (!isPro && !isEvent) || isUserAdmin;
 
     // Role channels for pro trips
     const {
@@ -481,16 +489,18 @@ export const TripChat = React.memo(
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const _containerRef = useRef<HTMLDivElement>(null);
 
-    // Handle keyboard visibility for better UX
-    const { isKeyboardVisible: _isKeyboardVisible } = useKeyboardHandler({
-      preventZoom: true,
-      adjustViewport: true,
-      onShow: () => {
+    // Scroll latest messages into view when the iOS keyboard opens (page shell owns viewport vars).
+    useEffect(() => {
+      const handleViewportResize = () => {
+        if (!document.body.classList.contains('keyboard-visible')) return;
         setTimeout(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         }, 300);
-      },
-    });
+      };
+
+      window.visualViewport?.addEventListener('resize', handleViewportResize);
+      return () => window.visualViewport?.removeEventListener('resize', handleViewportResize);
+    }, []);
 
     // Swipe gestures for mobile navigation
     const swipeRef = useRef<HTMLDivElement>(null);
@@ -535,6 +545,38 @@ export const TripChat = React.memo(
       streamActiveChannel?.state?.read,
       user?.id,
     ]);
+
+    // Capture first unread once per chat open for the "New Messages" divider.
+    // Clears on unmount via component lifecycle — not updated as the user reads.
+    const [firstUnreadMessageId, setFirstUnreadMessageId] = useState<string | null>(null);
+    const unreadDividerCapturedRef = useRef(false);
+    useEffect(() => {
+      if (unreadDividerCapturedRef.current) return;
+      if (demoMode.isDemoMode) {
+        unreadDividerCapturedRef.current = true;
+        setFirstUnreadMessageId(null);
+        return;
+      }
+      if (!user?.id || liveFormattedMessages.length === 0) return;
+      // Wait for channel read state to settle when Stream is active.
+      if (!streamActiveChannel) return;
+
+      const lastRead = streamActiveChannel.state?.read?.[user.id]?.last_read;
+      unreadDividerCapturedRef.current = true;
+      setFirstUnreadMessageId(
+        findFirstUnreadMessageId({
+          messages: liveFormattedMessages,
+          currentUserId: user.id,
+          lastRead,
+        }),
+      );
+    }, [demoMode.isDemoMode, liveFormattedMessages, streamActiveChannel, user?.id]);
+
+    // Reset divider capture when switching trips.
+    useEffect(() => {
+      unreadDividerCapturedRef.current = false;
+      setFirstUnreadMessageId(null);
+    }, [resolvedTripId]);
 
     const handleSendMessage = async (
       isBroadcast = false,
@@ -831,12 +873,63 @@ export const TripChat = React.memo(
 
     const filteredMessages = filterMessages(messagesToShow as any);
 
+    // Broadcasts tab: the live timeline is a bounded window, so broadcasts older
+    // than it are missing from filteredMessages. Fetch the channel's broadcast
+    // history from Stream while the tab is active and merge in anything the
+    // window doesn't already have (live entries win — they carry fresh
+    // reactions/pins). Empty history (fetch failed / none) changes nothing.
+    const broadcastHistory = useBroadcastHistory(
+      resolvedTripId,
+      messageFilter === 'broadcasts' && !demoMode.isDemoMode && !shouldSkipLiveChat,
+    );
+    const broadcastHistoryModels = useMemo(() => {
+      if (broadcastHistory.length === 0) return [];
+      return buildStreamMessageViewModels({
+        messages: broadcastHistory,
+        tripMembers,
+        currentUserId: user?.id,
+      });
+    }, [broadcastHistory, tripMembers, user?.id]);
+    // Pinned tab: same off-window gap — fetch pins via Stream's native
+    // pinned-messages endpoint while the tab is active.
+    const pinnedHistory = usePinnedHistory(
+      resolvedTripId,
+      messageFilter === 'pinned' && !demoMode.isDemoMode && !shouldSkipLiveChat,
+    );
+    const pinnedHistoryModels = useMemo(() => {
+      if (pinnedHistory.length === 0) return [];
+      return buildStreamMessageViewModels({
+        messages: pinnedHistory,
+        tripMembers,
+        currentUserId: user?.id,
+      });
+    }, [pinnedHistory, tripMembers, user?.id]);
+
+    const filteredWithBroadcastHistory = useMemo(() => {
+      // Pinned merge: derivePinnedMessages dedupes by id with LATER entries
+      // winning and drops ids a later snapshot marks unpinned — so listing
+      // history first means fresh live state (reactions, just-unpinned)
+      // always overrides the fetched snapshot.
+      if (messageFilter === 'pinned' && pinnedHistoryModels.length > 0) {
+        return derivePinnedMessages([...pinnedHistoryModels, ...filteredMessages] as any);
+      }
+      if (messageFilter !== 'broadcasts' || broadcastHistoryModels.length === 0) {
+        return filteredMessages;
+      }
+      const liveIds = new Set(filteredMessages.map((m: any) => m.id));
+      const older = broadcastHistoryModels.filter(m => !liveIds.has(m.id));
+      if (older.length === 0) return filteredMessages;
+      return [...older, ...filteredMessages].sort(
+        (a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
+    }, [messageFilter, broadcastHistoryModels, pinnedHistoryModels, filteredMessages]);
+
     const visibleMessages = useMemo(() => {
-      if (blockedUserIds.length === 0) return filteredMessages;
-      return filteredMessages.filter(
+      if (blockedUserIds.length === 0) return filteredWithBroadcastHistory;
+      return filteredWithBroadcastHistory.filter(
         (msg: any) => !msg.sender?.id || !blockedUserIds.includes(msg.sender.id),
       );
-    }, [filteredMessages, blockedUserIds]);
+    }, [filteredWithBroadcastHistory, blockedUserIds]);
 
     const messagesWithFailed = useMemo(() => {
       if (failedMessages.length === 0) return visibleMessages;
@@ -907,8 +1000,10 @@ export const TripChat = React.memo(
     }, [messagesWithPreviewFallbacks]);
 
     const pinnedMessages = useMemo(
-      () => derivePinnedMessages(liveFormattedMessages as any),
-      [liveFormattedMessages],
+      // History first so live snapshots win (and live unpins delete stale
+      // history entries — derivePinnedMessages handles both).
+      () => derivePinnedMessages([...pinnedHistoryModels, ...liveFormattedMessages] as any),
+      [pinnedHistoryModels, liveFormattedMessages],
     );
     const readStatusesByMessage = useMemo(() => {
       try {
@@ -999,7 +1094,7 @@ export const TripChat = React.memo(
     }, [messageFilter]);
 
     const renderMessage = useCallback(
-      (message: any, _index: number, showSenderInfo: boolean) => (
+      (message: any, _index: number, showSenderInfo: boolean, isLastInGroup = true) => (
         <div data-message-id={message.id}>
           <MessageItem
             message={message}
@@ -1016,6 +1111,7 @@ export const TripChat = React.memo(
             tripMembers={tripMembers}
             readStatuses={message.readStatuses || readStatusesByMessage[message.id] || []}
             showSenderInfo={showSenderInfo}
+            isLastInGroup={isLastInGroup}
             reactionUserNamesById={reactionUserNamesById}
             isAdmin={isUserAdmin}
             canDeleteOwnMessage={canDeleteOwnMessage}
@@ -1065,7 +1161,7 @@ export const TripChat = React.memo(
     );
 
     return (
-      <div className="flex flex-col h-full">
+      <div className="relative flex flex-col h-full min-h-0 overflow-hidden">
         <PullToRefreshIndicator
           isRefreshing={isRefreshing}
           pullDistance={pullDistance}
@@ -1094,7 +1190,7 @@ export const TripChat = React.memo(
         )}
 
         {/* Chat Container - Messages with Integrated Filter Tabs */}
-        <div className="flex-1 flex flex-col min-h-0" data-chat-container>
+        <div className="chat-body flex-1 flex flex-col min-h-0 overflow-hidden" data-chat-container>
           <div
             ref={messagesContainerRef}
             className="rounded-2xl border border-border/60 bg-card/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col relative min-h-0"
@@ -1126,31 +1222,61 @@ export const TripChat = React.memo(
               />
             ) : (
               <>
-                {chatError && !isLoading ? (
+                {/* Only replace the whole timeline with an error/initializing card when
+                    there is NO loaded history to show. If history is already on screen,
+                    a transient error must NOT blank it — surface a slim retry banner
+                    above the preserved messages instead (see the banner below). */}
+                {chatError && !isLoading && messagesToShow.length === 0 ? (
                   <div className="flex-1 flex items-center justify-center p-6">
                     <div className="text-center space-y-3">
-                      <p className="text-sm text-muted-foreground">Something went wrong in Chat</p>
-                      <p className="text-xs text-muted-foreground">{NON_CRITICAL_CHAT_NOTE}</p>
-                      <button
-                        onClick={() => {
-                          toast.error('Chat needs a refresh', {
-                            description:
-                              'Please retry. If this persists, pull to refresh or reopen the trip.',
-                          });
-                          reload?.();
-                        }}
-                        className="text-sm text-primary underline hover:no-underline"
-                      >
-                        Retry
-                      </button>
+                      {getStreamApiKey() || chatError.message.includes('Timed out') ? (
+                        <>
+                          <p className="text-sm text-muted-foreground">
+                            Something went wrong in Chat
+                          </p>
+                          <p className="text-xs text-muted-foreground">{NON_CRITICAL_CHAT_NOTE}</p>
+                          <button
+                            onClick={() => {
+                              reload?.();
+                            }}
+                            className="text-sm text-primary underline hover:no-underline"
+                          >
+                            Retry
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm text-muted-foreground">Chat is initializing…</p>
+                          <p className="text-xs text-muted-foreground">
+                            Hang tight — connecting to the messaging service.
+                          </p>
+                        </>
+                      )}
                     </div>
                   </div>
-                ) : isLoading ? (
+                ) : isLoading && messagesToShow.length === 0 ? (
                   <div className="flex-1 overflow-y-auto p-4">
                     <MessageSkeleton />
                   </div>
                 ) : (
                   <>
+                    {/* Non-blocking retry banner: history stays visible under a transient
+                        error / reconnect instead of being replaced by a full-screen card. */}
+                    {chatError && messagesToShow.length > 0 && (
+                      <div className="mx-3 mt-3 mb-1 flex items-center justify-between gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+                        <p className="text-xs text-amber-100">
+                          Reconnecting to chat — showing your recent messages.
+                        </p>
+                        <button
+                          onClick={() => {
+                            reload?.();
+                          }}
+                          className="flex-shrink-0 text-xs font-medium text-amber-200 underline hover:no-underline"
+                        >
+                          Retry
+                        </button>
+                      </div>
+                    )}
                     {messageFilter === 'pinned' && pinnedMessages.length > 0 && (
                       <div className="mx-3 mt-3 mb-1 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2">
                         <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-amber-200">
@@ -1182,6 +1308,8 @@ export const TripChat = React.memo(
                         autoScroll={true}
                         restoreScroll={true}
                         scrollKey={`chat-scroll-${resolvedTripId}`}
+                        scrollContainerRef={messageScrollRef}
+                        firstUnreadMessageId={firstUnreadMessageId}
                       />
                     </FeatureErrorBoundary>
                   </>
@@ -1215,8 +1343,11 @@ export const TripChat = React.memo(
         {/* Persistent Chat Input - Hidden when in Channels mode or user cannot post */}
         {messageFilter !== 'channels' && canPostToChat && (
           <div
-            className="chat-input-persistent w-full flex-shrink-0"
-            style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)' }}
+            className="chat-composer-tray chat-input-persistent w-full flex-shrink-0 bg-background"
+            style={{
+              paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)',
+              touchAction: 'manipulation',
+            }}
           >
             <div className="w-full">
               <ChatInput
@@ -1233,6 +1364,7 @@ export const TripChat = React.memo(
                 disableFileUpload={!canUploadMedia}
                 safeAreaBottom={false}
                 onTypingChange={handleTypingChange}
+                canSendBroadcast={canSendBroadcast}
               />
             </div>
           </div>

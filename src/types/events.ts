@@ -87,6 +87,8 @@ export interface EventAgendaItem {
   location?: string;
   track?: string;
   speakers?: string[];
+  /** Optimistic-concurrency version; bumped by update_agenda_item_with_version. */
+  version?: number;
 }
 
 // Task for attendees
@@ -131,7 +133,7 @@ export interface EventData {
   // 🆕 Event feature toggles (organizer controls)
   chatEnabled?: boolean; // Default: true
   pollsEnabled?: boolean; // Default: true
-  conciergeEnabled?: boolean; // Default: false (Chravel+ only)
+  conciergeEnabled?: boolean; // Default: false (ChravelApp+ only)
   mediaUploadEnabled?: boolean; // Default: true
   mediaUploadPermissions?: 'everyone' | 'organizers' | 'cohosts'; // Default: 'everyone'
   pdfScheduleUrl?: string;

@@ -9,6 +9,7 @@ export type PermissionRole =
   | 'pro_admin'
   | 'pro_editor'
   | 'pro_viewer'
+  | 'pro_coordinator'
   | 'event_organizer'
   | 'event_attendee';
 export type PermissionRule = Record<PermissionAction, boolean>;
@@ -118,6 +119,38 @@ export const PERMISSION_MATRIX: PermissionMatrix = {
       read: true,
       write: true,
       delete: false,
+      admin: false,
+    },
+  },
+  pro_coordinator: {
+    tasks: {
+      read: true,
+      write: true,
+      delete: true,
+      admin: false,
+    },
+    polls: {
+      read: true,
+      write: true,
+      delete: false,
+      admin: false,
+    },
+    calendar: {
+      read: true,
+      write: true,
+      delete: true,
+      admin: false,
+    },
+    basecamp: {
+      read: true,
+      write: false,
+      delete: false,
+      admin: false,
+    },
+    links: {
+      read: true,
+      write: true,
+      delete: true,
       admin: false,
     },
   },

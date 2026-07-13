@@ -6,7 +6,7 @@ import {
   BarChart3,
   Camera,
   MapPin,
-  Sparkles,
+  Headset,
   CreditCard,
   Lock,
   Users,
@@ -31,6 +31,9 @@ import { DisabledTabDialog } from '../events/DisabledTabDialog';
 import { EventTabKey, resolveEventTabsForRole } from '@/lib/eventTabs';
 import { useEventTabSettings } from '@/hooks/useEventTabSettings';
 import { retryImport } from '@/lib/retryImport';
+
+/** Tabs that pin a bottom composer — parent panel must not scroll (only inner message list). */
+const FIXED_BOTTOM_COMPOSER_TABS = new Set(['chat', 'concierge']);
 
 // ⚡ PERFORMANCE: Lazy load all tab components for code splitting
 // retryImport handles stale-chunk failures with exponential backoff
@@ -264,7 +267,7 @@ export const MobileTripTabs = ({
     const baseTabs = [
       { id: 'chat', label: 'Chat', icon: MessageCircle, enabled: features.showChat },
       { id: 'calendar', label: 'Calendar', icon: Calendar, enabled: features.showCalendar },
-      { id: 'concierge', label: 'Concierge', icon: Sparkles, enabled: features.showConcierge },
+      { id: 'concierge', label: 'Concierge', icon: Headset, enabled: features.showConcierge },
       { id: 'media', label: 'Media', icon: Camera, enabled: features.showMedia },
       { id: 'payments', label: 'Payments', icon: CreditCard, enabled: features.showPayments },
       { id: 'places', label: 'Places', icon: MapPin, enabled: features.showPlaces },
@@ -337,7 +340,7 @@ export const MobileTripTabs = ({
         });
         return;
       }
-      await hapticService.light();
+      void hapticService.light();
       onTabChange(tabId);
     },
     [onTabChange, variant],
@@ -513,6 +516,9 @@ export const MobileTripTabs = ({
               tripId={tripId}
               basecamp={basecamp}
               isDemoMode={isDemoMode}
+              // Must recompute when activeTab changes — a stale false value makes
+              // Concierge immediately close Search (and cancel conversation mode).
+              isActive={activeTab === tabId}
               onTabChange={onTabChange}
             />
           );
@@ -544,6 +550,7 @@ export const MobileTripTabs = ({
       handleLineupUpdate,
       isLoadingRoster,
       onTabChange,
+      activeTab,
     ],
   );
 
@@ -562,7 +569,7 @@ export const MobileTripTabs = ({
   }, [activeTab, isEventAdmin, onTabChange, tabs, variant]);
 
   return (
-    <>
+    <div className="flex flex-col flex-1 min-h-0">
       {/* Horizontal Scrollable Tab Bar - Fixed flex item, always visible */}
       <div className="flex-shrink-0 z-40 bg-black/95 backdrop-blur-md border-b border-white/10">
         <div
@@ -571,8 +578,17 @@ export const MobileTripTabs = ({
           style={{
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
-            scrollSnapType: 'x mandatory',
-            WebkitOverflowScrolling: 'touch',
+            // ⚠️ iOS tap-reliability — do NOT add `scrollSnapType: 'x mandatory'` or
+            // `WebkitOverflowScrolling: 'touch'` here. This row lives inside the
+            // position:fixed `.mobile-trip-shell`. On iOS WKWebView, a momentum-scroll
+            // compositor layer (made worse by a mandatory snap with no real snap
+            // targets — the buttons' old `scroll-snap-align-start` class doesn't exist)
+            // leaves the hit-test rects of horizontally scrolled-in tabs stale, so
+            // Media → Tasks silently stop responding to taps while Chat/Calendar/
+            // Concierge (visible at rest) keep working. Plain overflow scrolling
+            // hit-tests correctly; `touch-action: manipulation` drops the 300ms delay.
+            touchAction: 'manipulation',
+            overscrollBehaviorX: 'contain',
           }}
         >
           {tabs.map(tab => {
@@ -595,7 +611,7 @@ export const MobileTripTabs = ({
                   rounded-lg font-medium text-sm
                   transition-all duration-200
                   flex-shrink-0
-                  scroll-snap-align-start
+                  touch-manipulation
                   ${enabled ? 'active:scale-95' : variant === 'event' ? '' : 'cursor-not-allowed'}
                   ${
                     isActive && enabled
@@ -617,12 +633,19 @@ export const MobileTripTabs = ({
         </div>
       </div>
 
-      {/* Tab Content - bounded height ensures tab rail stays visible regardless of parent layout */}
+      {/* Tab Content - bounded height ensures tab rail stays visible regardless of parent layout.
+          Height tracks --visual-viewport-height (set by useKeyboardHandler) so when the iOS
+          keyboard opens the content area shrinks to the visible viewport. This keeps the pinned
+          composer (the bottom flex child of internal-scroll tabs) sitting directly above the
+          keyboard and lets only the message list scroll — native iMessage/WhatsApp behavior —
+          instead of WebKit scrolling the whole webview to reveal the focused input. Falls back to
+          100dvh when no keyboard is open. */}
       <div
         ref={contentRef}
         className="bg-background flex flex-col min-h-0 flex-1 overflow-hidden"
         style={{
-          height: 'calc(100dvh - var(--mobile-header-h, 73px) - var(--mobile-tabs-h, 52px))',
+          height:
+            'calc(var(--visual-viewport-height, 100dvh) - var(--mobile-header-h, 73px) - var(--mobile-tabs-h, 52px))',
           WebkitOverflowScrolling: 'touch',
         }}
       >
@@ -640,24 +663,33 @@ export const MobileTripTabs = ({
             if (!hasBeenVisited && !isActive) return null;
 
             const ownsInternalScroll = INTERNAL_SCROLL_TABS.includes(tab.id);
+            const scrollContained = isActive && ownsInternalScroll;
 
             return (
               <div
                 key={tab.id}
+                data-tab-panel={tab.id}
+                data-scroll-contained={scrollContained ? 'true' : 'false'}
                 style={{
                   display: isActive ? 'flex' : 'none',
                   flexDirection: 'column',
                   minHeight: 0,
-                  overflowY: ownsInternalScroll ? 'hidden' : isActive ? 'auto' : 'hidden',
+                  overflowY: scrollContained ? 'hidden' : isActive ? 'auto' : 'hidden',
                   overflowX: 'hidden',
                   overscrollBehaviorX: 'none',
+                  overscrollBehaviorY: scrollContained ? 'none' : undefined,
                   WebkitOverflowScrolling: ownsInternalScroll
                     ? undefined
                     : isActive
                       ? 'touch'
                       : undefined,
+                  // Pre-mounted inactive panes must never intercept hits while display:none
+                  // is inconsistently applied in some WKWebView transforms.
+                  pointerEvents: isActive ? 'auto' : 'none',
                 }}
                 className={isActive ? 'h-full flex-1 relative' : ''}
+                aria-hidden={!isActive}
+                data-testid={isActive ? `mobile-tab-pane-${tab.id}` : undefined}
               >
                 {/* ⚡ Per-tab error boundary: errors stay on failing tab, no bounce-back */}
                 <div
@@ -688,6 +720,6 @@ export const MobileTripTabs = ({
       </div>
 
       <DisabledTabDialog open={showDisabledTabDialog} onOpenChange={setShowDisabledTabDialog} />
-    </>
+    </div>
   );
 };

@@ -22,7 +22,7 @@ import {
   AlertTriangle,
   Image,
   Type,
-  Sparkles,
+  Wand2,
   Globe,
   Link,
   User,
@@ -97,7 +97,7 @@ function getFormatLabel(format: AgendaParseResult['sourceFormat']): string {
 export const AgendaImportModal: React.FC<AgendaImportModalProps> = ({
   isOpen,
   onClose,
-  eventId: _eventId,
+  eventId,
   existingSessions = [],
   onImportSessions,
   onBulkImportSessions,
@@ -138,10 +138,10 @@ export const AgendaImportModal: React.FC<AgendaImportModalProps> = ({
     async (file: File) => {
       setParsingSource('file');
       setState('parsing');
-      const result = await parseAgendaFile(file);
+      const result = await parseAgendaFile(file, eventId);
       processParseResult(result);
     },
-    [processParseResult],
+    [processParseResult, eventId],
   );
 
   const { getRootProps, getInputProps, isDragActive } = useSmartImportDropzone({
@@ -381,7 +381,7 @@ export const AgendaImportModal: React.FC<AgendaImportModalProps> = ({
                     disabled={!pasteText.trim()}
                     className="w-full min-h-[44px]"
                   >
-                    <Sparkles className="w-4 h-4 mr-2" />
+                    <Wand2 className="w-4 h-4 mr-2" />
                     Extract Sessions with AI
                   </Button>
                 </div>
@@ -561,7 +561,7 @@ export const AgendaImportModal: React.FC<AgendaImportModalProps> = ({
                 }
                 className="min-h-[44px]"
               >
-                <Sparkles className="w-4 h-4 mr-2" />
+                <Wand2 className="w-4 h-4 mr-2" />
                 Import {parseResult.sessions.filter((_, i) => !duplicateIndices.has(i)).length}{' '}
                 Session
                 {parseResult.sessions.filter((_, i) => !duplicateIndices.has(i)).length !== 1

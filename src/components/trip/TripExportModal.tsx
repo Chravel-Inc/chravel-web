@@ -1,9 +1,12 @@
-import React, { useRef, useState } from 'react';
-import { X, Download, FileText, Crown, Gift, Sparkles, Check } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
+import { X, Download, FileText, Crown, Check } from 'lucide-react';
 import { ExportSection } from '@/types/tripExport';
 import { isConsumerTrip } from '@/utils/tripTierDetector';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { usePdfExportUsage } from '@/hooks/usePdfExportUsage';
+import { useVisualViewportHeight } from '@/hooks/useVisualViewportHeight';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Badge } from '@/components/ui/badge';
 import { CONSUMER_PRICE_DISPLAY } from '@/billing/pricingDisplay';
 
@@ -60,6 +63,15 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const isMobile = useIsMobile();
+  const visualViewportHeight = useVisualViewportHeight(isOpen && isMobile);
+
+  // Notify free users who have used up their free export — replaces the old persistent banner
+  useEffect(() => {
+    if (isOpen && !isPaidUser && !canExport) {
+      toast.info("You've used your free export for this trip. Upgrade for unlimited recaps.");
+    }
+  }, [isOpen, isPaidUser, canExport]);
 
   const toggleSection = (sectionId: ExportSection) => {
     setSelectedSections(prev =>
@@ -114,20 +126,19 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
   // Free users: 1 export per trip, Paid users: unlimited
   const hasAccess = hasExportAccess;
   const _usageStatus = getUsageStatus();
-  const showFreeExportBanner = !isPaidUser && canExport;
   const showUpgradePrompt = !isPaidUser && !canExport;
 
   const headerTitle = isEvent ? 'Create Event Recap' : 'Create Trip Recap';
 
+  const panelMaxHeight =
+    isMobile && visualViewportHeight != null ? `${visualViewportHeight}px` : undefined;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 backdrop-blur-sm max-sm:pb-[env(safe-area-inset-bottom,0px)] sm:items-center sm:p-2">
+    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-hidden bg-black/50 p-0 backdrop-blur-sm sm:items-center sm:p-2">
       <div
         data-testid="trip-export-modal-panel"
-        className="flex max-h-[100svh] min-h-0 w-full max-w-md flex-col overflow-hidden rounded-t-2xl border border-gray-700 bg-gray-900 shadow-2xl md:max-w-xl sm:max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-2rem)] sm:rounded-xl"
-        style={{
-          maxHeight:
-            'calc(100svh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))',
-        }}
+        className="trip-export-modal-panel grid min-h-0 w-full max-w-md grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-t-2xl border border-gray-700 bg-gray-900 shadow-2xl md:max-w-xl max-h-[100dvh] sm:max-h-[calc(100dvh-2rem)] sm:rounded-xl"
+        style={panelMaxHeight ? { maxHeight: panelMaxHeight } : undefined}
       >
         {/* Header — safe top inset without stacking extra padding on top of large notches */}
         <div className="flex flex-shrink-0 items-center justify-between border-b border-gray-700/50 px-3 pb-2 pt-[max(8px,calc(env(safe-area-inset-top,0px)+6px))]">
@@ -149,12 +160,12 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
         {/* Content */}
         <div
           data-testid="trip-export-modal-scroll"
-          className="min-h-0 min-w-0 flex-1 overflow-y-auto px-3 pt-1.5"
-          style={{
-            paddingBottom: hasAccess
-              ? '8px'
-              : 'max(16px, calc(env(safe-area-inset-bottom, 0px) + 16px))',
-          }}
+          className="min-h-0 min-w-0 overflow-y-auto px-3 pt-1.5 pb-2"
+          style={
+            hasAccess
+              ? undefined
+              : { paddingBottom: 'max(16px, calc(env(safe-area-inset-bottom, 0px) + 16px))' }
+          }
         >
           {/* Upgrade prompt when free export is used */}
           {showUpgradePrompt ? (
@@ -195,25 +206,6 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
             </div>
           ) : (
             <>
-              {/* Free export banner for free users */}
-              {showFreeExportBanner && (
-                <div className="bg-gradient-to-r from-green-900/40 to-emerald-900/40 border border-green-500/30 rounded-lg py-1.5 px-2.5 mb-3 md:mb-4">
-                  <div className="flex items-center gap-2">
-                    <Gift size={12} className="text-green-400" />
-                    <div className="flex-1">
-                      <span className="text-green-300 text-[11px] font-medium">1 Free Export</span>
-                      <span className="text-green-400/70 text-[10px] ml-1">per trip</span>
-                    </div>
-                    <Badge
-                      variant="secondary"
-                      className="bg-green-500/20 text-green-300 text-[9px] py-0 px-1.5 h-5"
-                    >
-                      Sample it!
-                    </Badge>
-                  </div>
-                </div>
-              )}
-
               {/* Unlimited badge for paid users */}
               {isPaidUser && (
                 <div className="flex items-center gap-2 mb-3 md:mb-4">
@@ -221,27 +213,22 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
                     variant="secondary"
                     className="bg-[#c49746]/20 text-[#feeaa5] text-[10px] border border-[#c49746]/30"
                   >
-                    <Sparkles size={10} className="mr-1 text-[#e8af48]" />
+                    <Crown size={10} className="mr-1 text-[#e8af48]" />
                     Unlimited Exports
                   </Badge>
                 </div>
               )}
 
-              <div className="mb-2 md:mb-3">
-                <h3 className="text-white font-semibold text-sm mb-1">
-                  {isEvent ? 'Event' : 'Trip'}: {tripName}
-                </h3>
-                <p className="text-gray-400 text-xs">Select sections to include in your recap</p>
-              </div>
+              <p className="text-gray-400 text-xs mb-2 md:mb-3">Select sections to include</p>
 
               {/* Section Selection */}
-              <div className="grid grid-cols-2 gap-2 mb-2 md:mb-3">
+              <div className="grid grid-cols-2 gap-1.5 mb-2 md:mb-3 md:gap-2">
                 {sections.map(section => {
                   const isSelected = selectedSections.includes(section.id);
                   return (
                     <label
                       key={section.id}
-                      className={`group flex items-center gap-2 py-1.5 px-2.5 rounded-lg border transition-all min-h-[40px] cursor-pointer focus-within:outline-none focus-within:ring-2 focus-within:ring-[#e8af48]/80 focus-within:ring-offset-2 focus-within:ring-offset-gray-900 ${
+                      className={`group flex items-center gap-2 rounded-lg border px-2 py-1.5 transition-all min-h-[36px] cursor-pointer focus-within:outline-none focus-within:ring-2 focus-within:ring-[#e8af48]/80 focus-within:ring-offset-2 focus-within:ring-offset-gray-900 md:min-h-[40px] md:px-2.5 ${
                         isSelected
                           ? 'bg-[#c49746]/20 border-[#c49746]/70 hover:border-[#e8af48] hover:bg-[#c49746]/25'
                           : 'bg-gray-800/60 border-gray-700/60 hover:border-gray-500 hover:bg-gray-800/90'
@@ -281,48 +268,46 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
               <div aria-live="assertive" aria-atomic="true" className="sr-only" role="status">
                 {error ? `Export error: ${error}` : ''}
               </div>
-
-              {/* Info Banner */}
-              <div className="bg-[#c49746]/10 border border-[#c49746]/25 rounded-lg p-2">
-                <p className="text-gray-300 text-xs">
-                  <span className="text-[#c49746]">🔒</span> Emails and phone numbers hidden. Chat
-                  and AI history never included.
-                </p>
-              </div>
             </>
           )}
         </div>
 
-        {/* Footer - Always visible with safe area padding for PWA/mobile */}
+        {/* Footer — privacy note + actions stay pinned below the scroll region */}
         {hasAccess && (
           <div
-            className="flex items-center justify-end gap-2 px-3 py-2 border-t border-gray-700 flex-shrink-0 bg-gray-900"
+            data-testid="trip-export-modal-footer"
+            className="flex flex-shrink-0 flex-col border-t border-gray-700 bg-gray-900"
             style={{ paddingBottom: 'max(8px, calc(env(safe-area-inset-bottom, 0px) + 8px))' }}
           >
-            <button
-              onClick={onClose}
-              disabled={isExporting}
-              className="px-4 py-2 text-sm rounded-lg text-gray-300 hover:text-white transition-colors disabled:opacity-50 min-h-[44px]"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleExport}
-              disabled={isExporting || selectedSections.length === 0}
-              className="bg-gradient-to-r from-[#e8af48] via-[#c49746] to-[#a07a32] hover:from-[#f0b850] hover:via-[#d4a74f] hover:to-[#b08a3e] text-black font-semibold px-4 py-2 text-sm rounded-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] shadow-[0_0_12px_rgba(196,151,70,0.3)] hover:shadow-[0_0_16px_rgba(196,151,70,0.45)]"
-            >
-              {isExporting ? (
-                <>
-                  <div className="h-4 w-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Download size={16} />
-                  Create Recap
-                </>
-              )}
-            </button>
+            <p className="px-3 pt-2 text-[10px] leading-snug text-gray-400">
+              <span className="text-[#c49746]">🔒</span> Emails and phone numbers hidden.
+            </p>
+            <div className="flex items-center justify-end gap-2 px-3 py-2">
+              <button
+                onClick={onClose}
+                disabled={isExporting}
+                className="px-4 py-2 text-sm rounded-lg text-gray-300 hover:text-white transition-colors disabled:opacity-50 min-h-[44px]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleExport}
+                disabled={isExporting || selectedSections.length === 0}
+                className="bg-gradient-to-r from-[#e8af48] via-[#c49746] to-[#a07a32] hover:from-[#f0b850] hover:via-[#d4a74f] hover:to-[#b08a3e] text-black font-semibold px-4 py-2 text-sm rounded-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] shadow-[0_0_12px_rgba(196,151,70,0.3)] hover:shadow-[0_0_16px_rgba(196,151,70,0.45)]"
+              >
+                {isExporting ? (
+                  <>
+                    <div className="h-4 w-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Download size={16} />
+                    Create Recap
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         )}
       </div>

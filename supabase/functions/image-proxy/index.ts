@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createOptionsResponse, createErrorResponse } from '../_shared/securityHeaders.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { requireAuth } from '../_shared/requireAuth.ts';
 
 const GOOGLE_MAPS_API_KEY = Deno.env.get('GOOGLE_MAPS_API_KEY');
 const IMAGE_PROXY_MAX_BYTES = Number(Deno.env.get('IMAGE_PROXY_MAX_BYTES') || 7_000_000);
@@ -72,6 +73,10 @@ async function fetchToImageResponse(
 serve(async req => {
   if (req.method === 'OPTIONS') return createOptionsResponse(req);
   if (req.method !== 'GET') return createErrorResponse('Method not allowed', 405, req);
+
+  // Require authentication to prevent open-relay / Google Maps quota abuse.
+  const auth = await requireAuth(req, getCorsHeaders(req));
+  if (auth.error) return auth.response;
 
   const url = new URL(req.url);
   const placePhotoName = url.searchParams.get('placePhotoName');

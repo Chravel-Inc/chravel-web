@@ -20,6 +20,12 @@ export const useKeyboardHandler = (options: KeyboardHandlerOptions = {}) => {
     initialViewportHeight.current = window.visualViewport?.height || window.innerHeight;
     const keyboardVisibleRef = { current: false };
 
+    const clearViewportVars = () => {
+      document.documentElement.style.removeProperty('--keyboard-height');
+      document.documentElement.style.removeProperty('--visual-viewport-height');
+      document.documentElement.style.removeProperty('--visual-viewport-offset-top');
+    };
+
     const handleViewportChange = () => {
       if (!window.visualViewport) return;
 
@@ -29,6 +35,23 @@ export const useKeyboardHandler = (options: KeyboardHandlerOptions = {}) => {
       // Keyboard is considered visible if viewport height decreased by more than 150px
       const nextVisible = heightDifference > 150;
 
+      if (options.adjustViewport) {
+        document.documentElement.style.setProperty(
+          '--visual-viewport-height',
+          `${currentHeight}px`,
+        );
+        // iOS scrolls the *visual* viewport (offsetTop > 0) to reveal a focused
+        // input, but the *layout* viewport — and our position:fixed shell — stays
+        // pinned at y=0. Without compensating, the bottom-pinned composer floats
+        // up by offsetTop, leaving a dead gap between the field and the keyboard.
+        // Tracking offsetTop lets the shell follow the visible region so the
+        // composer sits directly on the keyboard (iMessage/WhatsApp behavior).
+        document.documentElement.style.setProperty(
+          '--visual-viewport-offset-top',
+          `${window.visualViewport.offsetTop || 0}px`,
+        );
+      }
+
       if (nextVisible !== keyboardVisibleRef.current) {
         keyboardVisibleRef.current = nextVisible;
         setIsKeyboardVisible(nextVisible);
@@ -37,7 +60,6 @@ export const useKeyboardHandler = (options: KeyboardHandlerOptions = {}) => {
           document.body.classList.add('keyboard-visible');
           options.onShow?.();
 
-          // Adjust viewport for iOS keyboard
           if (options.adjustViewport) {
             document.documentElement.style.setProperty(
               '--keyboard-height',
@@ -49,9 +71,12 @@ export const useKeyboardHandler = (options: KeyboardHandlerOptions = {}) => {
           options.onHide?.();
 
           if (options.adjustViewport) {
-            document.documentElement.style.removeProperty('--keyboard-height');
+            clearViewportVars();
           }
         }
+      } else if (nextVisible && options.adjustViewport) {
+        // Keep keyboard height in sync while the keyboard animates.
+        document.documentElement.style.setProperty('--keyboard-height', `${heightDifference}px`);
       }
     };
 
@@ -72,11 +97,19 @@ export const useKeyboardHandler = (options: KeyboardHandlerOptions = {}) => {
           target.addEventListener('blur', handleBlur);
         }
 
-        // Scroll input into view on iOS
+        // Pinned chat composers already sit above the keyboard — centering them
+        // creates a large dead zone between the tray and the iOS keyboard.
+        const isFixedBottomComposer = Boolean(
+          target.closest('.chat-composer-tray, .chat-composer, [data-fixed-composer="true"]'),
+        );
+        if (isFixedBottomComposer) {
+          return;
+        }
+
         setTimeout(() => {
           target.scrollIntoView({
             behavior: 'smooth',
-            block: 'center',
+            block: 'nearest',
           });
         }, 300);
       }
@@ -85,18 +118,22 @@ export const useKeyboardHandler = (options: KeyboardHandlerOptions = {}) => {
     // Add event listeners
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', handleViewportChange);
+      window.visualViewport.addEventListener('scroll', handleViewportChange);
     }
     document.addEventListener('focusin', handleFocusIn);
 
     return () => {
       if (window.visualViewport) {
         window.visualViewport.removeEventListener('resize', handleViewportChange);
+        window.visualViewport.removeEventListener('scroll', handleViewportChange);
       }
       document.removeEventListener('focusin', handleFocusIn);
 
-      // Cleanup
-      document.body.classList.remove('keyboard-visible');
-      document.documentElement.style.removeProperty('--keyboard-height');
+      // Only the page-level handler (adjustViewport: true) owns global keyboard state.
+      if (options.adjustViewport && keyboardVisibleRef.current) {
+        document.body.classList.remove('keyboard-visible');
+        clearViewportVars();
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- options properties are already destructured in deps
   }, [isMobile, options.preventZoom, options.adjustViewport, options.onShow, options.onHide]);

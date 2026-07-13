@@ -191,22 +191,6 @@ function AccountSecuritySection({
             </div>
           </form>
         )}
-        <div className="w-full flex items-center justify-between p-3 bg-white/5 rounded-lg opacity-50 cursor-not-allowed">
-          <div className="text-left">
-            <div className="text-white font-medium">Two-Factor Authentication</div>
-            <div className="text-sm text-gray-400">
-              Add an extra layer of security to your account
-            </div>
-          </div>
-          <div className="text-xs text-gray-500 bg-white/10 px-2 py-1 rounded">Coming Soon</div>
-        </div>
-        <div className="w-full flex items-center justify-between p-3 bg-white/5 rounded-lg opacity-50 cursor-not-allowed">
-          <div className="text-left">
-            <div className="text-white font-medium">Login History</div>
-            <div className="text-sm text-gray-400">View recent login activity</div>
-          </div>
-          <div className="text-xs text-gray-500 bg-white/10 px-2 py-1 rounded">Coming Soon</div>
-        </div>
       </div>
     </div>
   );
@@ -294,8 +278,6 @@ export const ConsumerPrivacySection = () => {
 
   return (
     <div className="space-y-3">
-      <h3 className="text-2xl font-bold text-white">Privacy & Security</h3>
-
       {/* Display Name Privacy */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
         <h4 className="text-base font-semibold text-white mb-3">Display Name Settings</h4>

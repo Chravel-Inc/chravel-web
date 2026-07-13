@@ -14,8 +14,8 @@ describe('inviteLinkSettings', () => {
   });
 
   it('detects when current settings differ from applied settings', () => {
-    const applied = buildAppliedInviteSettings(true, false, null);
-    const current = buildAppliedInviteSettings(true, true, 10);
+    const applied = buildAppliedInviteSettings(false, null);
+    const current = buildAppliedInviteSettings(true, 10);
 
     expect(areInviteSettingsEqual(applied, applied)).toBe(true);
     expect(areInviteSettingsEqual(applied, current)).toBe(false);

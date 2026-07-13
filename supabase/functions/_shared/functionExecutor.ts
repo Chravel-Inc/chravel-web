@@ -1,5 +1,6 @@
 import { withCircuitBreaker } from './circuitBreaker.ts';
 import { normalizeGeminiModel } from './gemini.ts';
+import { assertAiToolPermission } from './tripPermissionGuard.ts';
 
 const GOOGLE_MAPS_API_KEY = Deno.env.get('GOOGLE_MAPS_API_KEY');
 const GOOGLE_CUSTOM_SEARCH_CX = Deno.env.get('GOOGLE_CUSTOM_SEARCH_CX');
@@ -86,6 +87,13 @@ async function _executeImpl(
   userId?: string,
   locationContext?: LocationContext | null,
 ): Promise<any> {
+  try {
+    await assertAiToolPermission(supabase, userId, tripId, functionName);
+  } catch (permErr) {
+    const message = permErr instanceof Error ? permErr.message : 'PERMISSION_DENIED';
+    return { error: message };
+  }
+
   switch (functionName) {
     case 'addToCalendar': {
       const { title, datetime, endDatetime, location, notes } = args;
@@ -437,6 +445,31 @@ async function _executeImpl(
         return { error: 'Google Maps API key not configured' };
       }
 
+      // Google Places (New) returns a COARSE, local-market-relative price tier enum —
+      // not a nightly rate. We surface it so the model can disclose the tier and honor
+      // the HARD BUDGET CONSTRAINT, and (opt-in) filter by it. It is NOT dollar-accurate.
+      const PRICE_LEVEL_ORDER = [
+        'PRICE_LEVEL_FREE',
+        'PRICE_LEVEL_INEXPENSIVE',
+        'PRICE_LEVEL_MODERATE',
+        'PRICE_LEVEL_EXPENSIVE',
+        'PRICE_LEVEL_VERY_EXPENSIVE',
+      ];
+      const priceLevelToTier = (level: string | null | undefined): number | null => {
+        const idx = level ? PRICE_LEVEL_ORDER.indexOf(level) : -1;
+        return idx >= 0 ? idx : null;
+      };
+      // Optional coarse budget ceiling (1=$ … 4=$$$$). When the model supplies it from
+      // the user's budget, constrain the search server-side (and drop over-tier results
+      // post-fetch). Results with no price tier are KEPT — Google omits it for many
+      // lodgings, and dropping them would hide valid in-budget options.
+      const maxTier =
+        args.maxPriceLevel != null && Number.isFinite(Number(args.maxPriceLevel))
+          ? Math.min(4, Math.max(1, Math.round(Number(args.maxPriceLevel))))
+          : null;
+      const allowedPriceLevels =
+        maxTier != null ? PRICE_LEVEL_ORDER.slice(0, maxTier + 1) : undefined;
+
       // Enrich query to target lodging
       const hotelQuery =
         query && String(query).toLowerCase().includes('hotel')
@@ -472,6 +505,8 @@ async function _executeImpl(
                 ? { circle: { center: { latitude: finalLat, longitude: finalLng }, radius: 10000 } }
                 : undefined,
             maxResultCount: 5,
+            // Server-side coarse budget filter (only when a ceiling was supplied).
+            ...(allowedPriceLevels ? { priceLevels: allowedPriceLevels } : {}),
           }),
           signal: AbortSignal.timeout(8_000),
         }),
@@ -484,51 +519,68 @@ async function _executeImpl(
       }
 
       const placesData = await placesResponse.json();
-      const hotels = (placesData.places || []).map((p: any) => {
-        // Extract amenities from place types
-        const amenityMap: Record<string, string> = {
-          swimming_pool: 'Pool',
-          fitness_center: 'Fitness',
-          spa: 'Spa',
-          restaurant: 'Restaurant',
-          bar: 'Bar',
-          parking: 'Parking',
-          free_parking: 'Free Parking',
-          wifi: 'WiFi',
-        };
-        const amenities = (p.types || [])
-          .filter((t: string) => amenityMap[t])
-          .map((t: string) => amenityMap[t])
-          .slice(0, 4);
+      const hotels = (placesData.places || [])
+        .map((p: any) => {
+          // Extract amenities from place types
+          const amenityMap: Record<string, string> = {
+            swimming_pool: 'Pool',
+            fitness_center: 'Fitness',
+            spa: 'Spa',
+            restaurant: 'Restaurant',
+            bar: 'Bar',
+            parking: 'Parking',
+            free_parking: 'Free Parking',
+            wifi: 'WiFi',
+          };
+          const amenities = (p.types || [])
+            .filter((t: string) => amenityMap[t])
+            .map((t: string) => amenityMap[t])
+            .slice(0, 4);
 
-        return {
-          id: p.id || null,
-          provider: 'Google Maps',
-          title: p.displayName?.text || 'Unknown Hotel',
-          subtitle: p.formattedAddress || null,
-          badges: amenities.length > 0 ? amenities : undefined,
-          price: null, // Google Places doesn't return hotel pricing
-          dates:
-            checkIn || checkOut ? { check_in: checkIn || null, check_out: checkOut || null } : null,
-          location: {
-            city: null,
-            region: null,
-            country: null,
-          },
-          details: {
-            rating: p.rating || null,
-            reviews_count: p.userRatingCount || null,
-            refundable: null,
-            amenities,
-          },
-          deep_links: {
-            primary: p.googleMapsUri || null,
-            secondary: p.websiteUri || null,
-          },
-        };
-      });
+          // Coarse price tier (0-4) + $-symbol label. Google returns no nightly rate.
+          const priceTier = priceLevelToTier(p.priceLevel);
+          const priceLabel = priceTier && priceTier > 0 ? '$'.repeat(priceTier) : null;
 
-      return { success: true, hotels };
+          return {
+            id: p.id || null,
+            provider: 'Google Maps',
+            title: p.displayName?.text || 'Unknown Hotel',
+            subtitle: p.formattedAddress || null,
+            badges: amenities.length > 0 ? amenities : undefined,
+            price: null, // Google Places returns no nightly rate — only the coarse tier below.
+            dates:
+              checkIn || checkOut
+                ? { check_in: checkIn || null, check_out: checkOut || null }
+                : null,
+            location: {
+              city: null,
+              region: null,
+              country: null,
+            },
+            details: {
+              rating: p.rating || null,
+              reviews_count: p.userRatingCount || null,
+              refundable: null,
+              amenities,
+              // Coarse, local-market-relative price tier ($ = inexpensive … $$$$ = very
+              // expensive). Disclose this next to the recommendation to honor the budget.
+              price_tier: priceTier,
+              price_label: priceLabel,
+            },
+            deep_links: {
+              primary: p.googleMapsUri || null,
+              secondary: p.websiteUri || null,
+            },
+          };
+        })
+        // Post-fetch safety net for the coarse budget ceiling. Keep hotels with an
+        // unknown tier (null) — Google omits it for many lodgings.
+        .filter(
+          (h: any) =>
+            maxTier == null || h.details.price_tier == null || h.details.price_tier <= maxTier,
+        );
+
+      return { success: true, hotels, budgetTierCeiling: maxTier };
     }
 
     case 'getHotelDetails': {
@@ -2207,31 +2259,13 @@ async function _executeImpl(
     // ========== NOTIFICATION TOOL ==========
 
     case 'createNotification': {
-      const { title, message, targetUserIds, type } = args;
+      const { title, message } = args;
       const notifTitle = String(title || '').trim();
       const notifMessage = String(message || '').trim();
       if (!notifTitle || !notifMessage) {
         return { error: 'Both title and message are required' };
       }
       if (!userId) return { error: 'Authentication required to send notifications' };
-
-      // Resolve recipient list up-front so we can store it in the pending payload.
-      let userIds: string[] = [];
-      if (Array.isArray(targetUserIds) && targetUserIds.length > 0) {
-        userIds = targetUserIds.map(String);
-      } else {
-        const { data: members } = await supabase
-          .from('trip_members')
-          .select('user_id')
-          .eq('trip_id', tripId);
-        userIds = (members || []).map((m: { user_id: string }) => m.user_id);
-      }
-
-      if (userIds.length === 0) {
-        return { error: 'No target users found' };
-      }
-
-      const safeType = String(type || 'concierge');
 
       // Audit + recoverable confirm row -- same shape as addExpense / createBroadcast.
       const { data: pending, error: pendingError } = await supabase
@@ -2243,8 +2277,6 @@ async function _executeImpl(
           payload: {
             title: notifTitle,
             message: notifMessage,
-            type: safeType,
-            target_user_ids: userIds,
             created_by: userId,
             trip_id: tripId,
           },
@@ -2254,24 +2286,33 @@ async function _executeImpl(
         .single();
       if (pendingError) throw pendingError;
 
-      const notifications = userIds.map((uid: string) => ({
-        user_id: uid,
-        trip_id: tripId,
-        title: notifTitle,
-        message: notifMessage,
-        type: safeType,
-        metadata: { source: 'ai_concierge', created_by: userId },
-      }));
-
+      // Deliver through the canonical create-notification edge function. That path runs
+      // the fan-out under the service role AFTER re-verifying (with the caller's JWT) that
+      // the requester is a trip organizer/admin, scopes recipients to real trip members
+      // (excluding the requester), and applies category preference + quiet-hours gating.
+      // A direct insert here is wrong on two counts: notifications rows target OTHER users
+      // (correctly denied by the notifications RLS to the executor's user-JWT client), and
+      // the previous code trusted a client/model-supplied targetUserIds list with no
+      // membership check. Concierge announcements map to the 'broadcasts' category
+      // (organizer-authored, respects the recipient's broadcast preference toggle).
       let promoted = false;
-      const { error: insertErr } = await supabase.from('notifications').insert(notifications);
-      if (!insertErr) {
+      const { error: deliverErr } = await supabase.functions.invoke('create-notification', {
+        body: {
+          tripId,
+          type: 'broadcasts',
+          title: notifTitle,
+          message: notifMessage,
+          metadata: { source: 'ai_concierge', created_by: userId },
+          excludeUserId: userId,
+        },
+      });
+      if (!deliverErr) {
         promoted = true;
         await markPendingConfirmed(supabase, pending.id, userId);
       } else {
         console.warn(
-          '[Tool] createNotification fast-path failed, falling back:',
-          insertErr.message,
+          '[Tool] createNotification delivery failed (left pending):',
+          deliverErr.message,
         );
       }
 
@@ -2280,11 +2321,10 @@ async function _executeImpl(
         pending: !promoted,
         promoted,
         pendingActionId: pending.id,
-        recipientCount: userIds.length,
         actionType: 'create_notification',
         message: promoted
-          ? `Notification sent to ${userIds.length} member(s): "${notifTitle}"`
-          : `I'd like to notify ${userIds.length} member(s): "${notifTitle}". Please confirm in the trip chat.`,
+          ? `Notification sent to the trip: "${notifTitle}"`
+          : `I couldn't send that notification — trip-wide announcements are limited to organizers. It needs confirmation in the trip chat.`,
       };
     }
 

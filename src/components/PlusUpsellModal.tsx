@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Sparkles, MessageCircle, Settings, Zap, Camera, Globe, Ticket } from 'lucide-react';
+import { X, Crown, MessageCircle, Settings, Zap, Camera, Globe, Ticket } from 'lucide-react';
 import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
 import { CONSUMER_PRICING } from '../types/consumer';
 import { TripPassModal } from './conversion/TripPassModal';
@@ -55,7 +55,7 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
                 <Globe size={20} className="text-primary-foreground sm:w-6 sm:h-6" />
               )}
               {selectedTier === 'frequent-chraveler' && (
-                <Sparkles size={20} className="text-primary-foreground sm:w-6 sm:h-6" />
+                <Crown size={20} className="text-primary-foreground sm:w-6 sm:h-6" />
               )}
             </div>
             <div className="min-w-0">
@@ -99,7 +99,7 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
         <div className="grid md:grid-cols-2 gap-6 mb-8">
           <div className="bg-gradient-to-br from-primary/10 to-primary/10 border border-primary/20 rounded-2xl p-6">
             <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary/80 rounded-xl flex items-center justify-center mb-4">
-              <Sparkles size={24} className="text-white" />
+              <Crown size={24} className="text-white" />
             </div>
             <h3 className="text-lg font-bold text-white mb-2">Concierge</h3>
             <p className="text-gray-300 text-sm">
@@ -164,7 +164,7 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
                 <li>• Basic group chat</li>
                 <li>• Shared calendar (manual)</li>
                 <li>• Photo & video sharing</li>
-                <li>• 10 AI queries per user per trip</li>
+                <li>• 3 AI queries per user per trip</li>
                 <li>• 1 free PDF export per trip</li>
                 <li>• ICS calendar download</li>
               </ul>
@@ -188,7 +188,7 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
                   <li>• Everything in Explorer</li>
                   <li>• Unlimited AI queries</li>
                   <li>• Calendar sync & PDF export</li>
-                  <li>• 1 Chravel Pro trip/month</li>
+                  <li>• 1 ChravelApp Pro trip/month</li>
                   <li>• Role-based channels</li>
                   <li>• Early feature access</li>
                 </ul>

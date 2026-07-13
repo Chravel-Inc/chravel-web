@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
+import { Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface SurveyResultScreenProps {
@@ -70,8 +70,8 @@ export const SurveyResultScreen = ({ chaosScore, onShowDemo }: SurveyResultScree
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.55 }}
       >
-        You&apos;re not bad at planning. Your tools are scattered. Chravel keeps the whole trip in
-        one place.
+        You&apos;re not bad at planning. Your tools are scattered. ChravelApp keeps the whole trip
+        in one place.
       </motion.p>
 
       <motion.div
@@ -81,7 +81,7 @@ export const SurveyResultScreen = ({ chaosScore, onShowDemo }: SurveyResultScree
         transition={{ delay: 0.7 }}
       >
         <Button size="lg" className="w-full" onClick={onShowDemo}>
-          <Sparkles className="w-4 h-4 mr-2" />
+          <Play className="w-4 h-4 mr-2" />
           Show me the demo
         </Button>
       </motion.div>

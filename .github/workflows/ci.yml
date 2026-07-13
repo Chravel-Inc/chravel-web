@@ -19,6 +19,11 @@ permissions:
 env:
   CI: true
   NODE_VERSION: '20.19.0'
+  # Heavy Concierge / MobileTripTabs specs allocate well past Node's default ~2GB
+  # heap on jsdom+forks workers (local cloud agents OOM even at 8–12GB when the
+  # full suite mounts). Give CI shards headroom so Search/isActive + waveform
+  # regressions can finish instead of dying mid-import.
+  NODE_OPTIONS: '--max-old-space-size=8192'
   VITE_SUPABASE_URL: 'https://ci-placeholder.supabase.co'
   VITE_SUPABASE_ANON_KEY: 'sb_publishable_ci_placeholder'
   VITE_GOOGLE_MAPS_API_KEY: 'STUB_MAPS_KEY_CI'
@@ -73,10 +78,18 @@ jobs:
       - name: Lint migration files
         run: npx tsx scripts/lint-migrations.ts
 
-  unit-tests:
-    name: Unit Tests (Vitest)
+  # The Vitest suite (~290 files × jsdom + coverage) outgrew a single 30-min job.
+  # Split it across parallel shards so each finishes well under the timeout; a
+  # downstream gate job re-exposes the original "Unit Tests (Vitest)" status name
+  # so branch protection stays satisfied and only goes green when every shard does.
+  unit-tests-shard:
+    name: Unit Tests Shard
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
 
     steps:
       - name: Checkout code
@@ -92,8 +105,8 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --fund=false
 
-      - name: Run unit tests with coverage
-        run: npm run test:run:ci
+      - name: Run unit tests with coverage (shard ${{ matrix.shard }}/4)
+        run: npm run test:run:ci -- --shard=${{ matrix.shard }}/4
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v5
@@ -102,9 +115,30 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/lcov.info
+          flags: unit-shard-${{ matrix.shard }}
           fail_ci_if_error: false
           disable_search: false
           verbose: true
+
+  # Stable required-check name. Aggregates the shard matrix into one status so
+  # branch protection can keep requiring "Unit Tests (Vitest)" unchanged.
+  unit-tests:
+    name: Unit Tests (Vitest)
+    runs-on: ubuntu-24.04
+    needs: unit-tests-shard
+    if: always()
+    timeout-minutes: 5
+
+    steps:
+      - name: Verify all shards passed
+        run: |
+          result="${{ needs.unit-tests-shard.result }}"
+          echo "Vitest shard matrix result: $result"
+          if [ "$result" != "success" ]; then
+            echo "::error::One or more Vitest shards failed or were cancelled."
+            exit 1
+          fi
+          echo "All Vitest shards passed."
 
   build:
     name: Build Web App
@@ -216,6 +250,7 @@ jobs:
       - name: Run full E2E tests
         run: npm run test:e2e
         env:
+          CHRAVEL_E2E_RELEASE_GATE: '1'
           PLAYWRIGHT_TEST_BASE_URL: 'http://localhost:8080'
           PLAYWRIGHT_SKIP_BUILD: '1'
 

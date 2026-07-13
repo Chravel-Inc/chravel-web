@@ -4,6 +4,7 @@ import { CalendarDays, MapPin, Lock, RotateCcw, Eye, EyeOff } from 'lucide-react
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { useSubscription } from '@/hooks/useSubscription';
+import { OptimizedImage } from '../OptimizedImage';
 
 interface ArchivedTrip {
   id: string;
@@ -14,6 +15,7 @@ interface ArchivedTrip {
   trip_type: 'consumer' | 'pro' | 'event';
   is_hidden?: boolean;
   cover_image_url?: string;
+  cover_display_mode?: 'cover' | 'contain';
 }
 
 interface ArchivedTripCardProps {
@@ -99,6 +101,8 @@ export const ArchivedTripCard = ({
     onUnhide?.(trip.id);
   };
 
+  const coverFit = trip.cover_display_mode === 'contain' ? 'contain' : 'cover';
+
   return (
     <div
       className={`relative group rounded-2xl overflow-hidden transition-all duration-300 border ${
@@ -121,9 +125,13 @@ export const ArchivedTripCard = ({
       {/* Cover Image */}
       <div className="relative h-32 bg-gradient-to-br from-gray-700/50 to-gray-800/50">
         {trip.cover_image_url && (
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url('${trip.cover_image_url}')` }}
+          <OptimizedImage
+            src={trip.cover_image_url}
+            alt={`${trip.name} cover`}
+            lazy
+            fit={coverFit}
+            showBlurBackdrop={coverFit === 'contain'}
+            className="absolute inset-0"
           />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />

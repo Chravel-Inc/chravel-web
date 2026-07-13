@@ -11,14 +11,16 @@ import {
   SUPABASE_PROJECT_URL,
   SUPABASE_PUBLIC_ANON_KEY,
 } from '@/integrations/supabase/client';
+import {
+  useConciergeVoicePreference,
+  DEFAULT_CONCIERGE_VOICE,
+} from '@/features/concierge/hooks/useConciergeVoicePreference';
+import { streamPcmSpeech } from '@/features/concierge/lib/streamConciergeTts';
 
 export type TTSPlaybackState = 'idle' | 'loading' | 'playing' | 'error';
 
-const DEFAULT_VOICE = 'Charon';
 const RETRYABLE_FETCH_ERROR = 'Failed to fetch';
-const CONCIERGE_VOICE_STYLE = 'warm, calm, concise premium travel concierge voice';
-const USE_GEMINI_TTS = (import.meta.env.VITE_CONCIERGE_TTS_ENABLED ?? 'true') === 'true';
-const TTS_URL = `${SUPABASE_PROJECT_URL}/functions/v1/${USE_GEMINI_TTS ? 'gemini-tts' : 'concierge-tts'}`;
+const TTS_URL = `${SUPABASE_PROJECT_URL}/functions/v1/concierge-voice-tts`;
 
 const toReadablePlaybackError = (err: unknown): string => {
   if (!(err instanceof Error)) return 'TTS playback failed';
@@ -98,19 +100,13 @@ async function fetchSentenceAudio(
   tripId?: string,
   messageId?: string,
 ): Promise<{ blobUrl: string; usedFallback: boolean }> {
-  const body = USE_GEMINI_TTS
-    ? {
-        text: sentence,
-        voiceName: voiceId,
-        style: CONCIERGE_VOICE_STYLE,
-        tripId,
-        messageId,
-      }
-    : {
-        speech_text: sentence,
-        voice_id: voiceId,
-        output_format: 'mp3',
-      };
+  const body = {
+    text: sentence,
+    voice: voiceId,
+    format: 'mp3',
+    tripId,
+    messageId,
+  };
 
   const response = await fetch(TTS_URL, {
     method: 'POST',
@@ -148,6 +144,7 @@ export function useConciergeReadAloud(
   options: UseConciergeReadAloudOptions = {},
 ): UseConciergeReadAloudReturn {
   const { voiceId: voiceIdProp, tripId } = options;
+  const { voice: preferredVoice } = useConciergeVoicePreference();
 
   const [playbackState, setPlaybackState] = useState<TTSPlaybackState>('idle');
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
@@ -240,18 +237,56 @@ export function useConciergeReadAloud(
           throw new Error('Not authenticated. Please sign in to use voice.');
         }
 
-        const resolvedVoiceId = voiceIdProp || DEFAULT_VOICE;
+        const resolvedVoiceId = voiceIdProp || preferredVoice || DEFAULT_CONCIERGE_VOICE;
         const sentences = splitIntoSentences(speechText);
 
+        // Attempt SSE PCM streaming for the FIRST sentence so playback can
+        // begin while the audio is still being generated. On any failure we
+        // fall back to the original blob-based first-sentence fetch.
+        let firstStreamed = false;
+        try {
+          const stream = streamPcmSpeech({
+            url: TTS_URL,
+            accessToken,
+            apikey: SUPABASE_PUBLIC_ANON_KEY,
+            signal: abortController.signal,
+            body: {
+              text: sentences[0],
+              voice: resolvedVoiceId,
+              tripId,
+              messageId,
+            },
+            onPlaybackStart: () => setPlaybackState('playing'),
+            onMeta: ({ usedFallbackVoice: fb }) => {
+              if (fb) setUsedFallbackVoice(true);
+            },
+          });
+          // Track the streaming stop so the hook's stop() interrupts it.
+          const prevAudio = audioRef.current;
+          audioRef.current = {
+            pause: stream.stop,
+            removeAttribute: () => {},
+            load: () => {},
+          } as unknown as HTMLAudioElement;
+          await stream.done;
+          audioRef.current = prevAudio;
+          firstStreamed = true;
+        } catch (streamErr) {
+          if (abortController.signal.aborted) return;
+          console.warn('[concierge-tts] streaming first chunk failed; falling back', streamErr);
+        }
+
         // Fire first AND second sentence fetches in parallel for overlap
-        const firstPromise = fetchSentenceAudio(
-          sentences[0],
-          resolvedVoiceId,
-          accessToken,
-          abortController.signal,
-          tripId,
-          messageId,
-        );
+        const firstPromise = firstStreamed
+          ? null
+          : fetchSentenceAudio(
+              sentences[0],
+              resolvedVoiceId,
+              accessToken,
+              abortController.signal,
+              tripId,
+              messageId,
+            );
 
         // Start pre-fetching sentence 2 immediately (overlaps with sentence 1 fetch)
         const secondPromise =
@@ -281,14 +316,33 @@ export function useConciergeReadAloud(
           );
         }
 
-        // Wait for first sentence
-        const first = await firstPromise;
-        if (abortController.signal.aborted) return;
+        // Wait for first sentence (skipped when SSE streaming already played it)
+        if (firstPromise) {
+          const first = await firstPromise;
+          if (abortController.signal.aborted) return;
 
-        blobUrlsRef.current.push(first.blobUrl);
-        if (first.usedFallback) setUsedFallbackVoice(true);
+          blobUrlsRef.current.push(first.blobUrl);
+          if (first.usedFallback) setUsedFallbackVoice(true);
 
-        // Play a sentence and wait for it to finish
+          // Play a sentence and wait for it to finish
+          const playAudio = async (blobUrl: string, index: number) => {
+            if (abortController.signal.aborted) return;
+            const audio = new Audio(blobUrl);
+            audioRef.current = audio;
+            return new Promise<void>((resolve, reject) => {
+              audio.onended = () => resolve();
+              audio.onerror = () => reject(new Error('Audio playback failed'));
+              if (index === 0) setPlaybackState('playing');
+              audio.play().catch(reject);
+            });
+          };
+
+          // Play first sentence immediately
+          await playAudio(first.blobUrl, 0);
+          if (abortController.signal.aborted) return;
+        }
+
+        // Helper for non-first sentences.
         const playAudio = async (blobUrl: string, index: number) => {
           if (abortController.signal.aborted) return;
           const audio = new Audio(blobUrl);
@@ -300,10 +354,6 @@ export function useConciergeReadAloud(
             audio.play().catch(reject);
           });
         };
-
-        // Play first sentence immediately
-        await playAudio(first.blobUrl, 0);
-        if (abortController.signal.aborted) return;
 
         // Play second sentence (already fetching in parallel)
         if (secondPromise) {
@@ -340,7 +390,7 @@ export function useConciergeReadAloud(
         cleanup();
       }
     },
-    [voiceIdProp, tripId, stop, cleanup],
+    [voiceIdProp, preferredVoice, tripId, stop, cleanup],
   );
 
   useEffect(() => {

@@ -212,14 +212,21 @@ serve(async req => {
         await resolveWebhookFailure(supabaseClient, event.id);
         return createSecureResponse({ received: true, duplicate: true, eventType: event.type });
       }
-      // Any other DB error — log and continue (don't silently drop real events)
-      console.warn('[STRIPE-WEBHOOK] Idempotency insert failed:', idempotencyError.message);
+      // Any other DB error — fail CLOSED. Processing without a durable idempotency
+      // marker means a concurrent redelivery could double-apply the billing change.
+      // Record the failure and return 500 so Stripe retries; a retried event is safe,
+      // a double-processed billing event is not.
+      console.error(
+        '[STRIPE-WEBHOOK] Idempotency insert failed — failing closed:',
+        idempotencyError.message,
+      );
       await upsertWebhookFailure(supabaseClient, {
         eventId: event.id,
         eventType: event.type,
         failureStage: 'idempotency_insert',
         errorMessage: idempotencyError.message,
       });
+      return createSecureResponse({ error: 'Idempotency check unavailable, retry' }, 500);
     }
 
     // Handle different event types
@@ -520,6 +527,99 @@ async function handleSubscriptionUpdated(
     entitlementPlan: transition.plan,
     seatCount,
   });
+
+  if (tier.startsWith('pro-')) {
+    await syncOrganizationSeatLimitsFromProSubscription(supabase, {
+      userId,
+      tier,
+      customerId,
+      subscriptionId: subscription.id,
+    });
+  }
+}
+
+const PRO_TIER_SEAT_LIMITS: Record<string, number> = {
+  'pro-starter': 50,
+  'pro-growth': 100,
+  'pro-enterprise': 250,
+};
+
+async function syncOrganizationSeatLimitsFromProSubscription(
+  supabase: ReturnType<typeof createClient>,
+  params: {
+    userId: string;
+    tier: string;
+    customerId: string;
+    subscriptionId: string;
+  },
+): Promise<void> {
+  const seatLimit = PRO_TIER_SEAT_LIMITS[params.tier];
+  if (!seatLimit) return;
+
+  const orgIds = new Set<string>();
+
+  const { data: billingRows } = await supabase
+    .from('organization_billing')
+    .select('organization_id')
+    .or(
+      `stripe_customer_id.eq.${params.customerId},stripe_subscription_id.eq.${params.subscriptionId}`,
+    );
+
+  billingRows?.forEach((row: { organization_id: string }) => orgIds.add(row.organization_id));
+
+  const { data: subscriptionLinks } = await supabase
+    .from('organization_subscription_links')
+    .select('organization_id')
+    .eq('provider_subscription_id', params.subscriptionId);
+
+  subscriptionLinks?.forEach((row: { organization_id: string }) => orgIds.add(row.organization_id));
+
+  const { data: ownedOrgs } = await supabase
+    .from('organization_members')
+    .select('organization_id')
+    .eq('user_id', params.userId)
+    .eq('role', 'owner');
+
+  ownedOrgs?.forEach((row: { organization_id: string }) => orgIds.add(row.organization_id));
+
+  for (const organizationId of orgIds) {
+    const { data: orgRow, error: readError } = await supabase
+      .from('organizations')
+      .select('seats_used')
+      .eq('id', organizationId)
+      .maybeSingle();
+
+    if (readError || !orgRow) {
+      logStep('Org seat_limit sync skipped — org not found', { organizationId, readError });
+      continue;
+    }
+
+    if (orgRow.seats_used > seatLimit) {
+      logStep('Org seat_limit sync skipped — seats_used exceeds plan limit', {
+        organizationId,
+        seatsUsed: orgRow.seats_used,
+        seatLimit,
+      });
+      continue;
+    }
+
+    const { error: updateError } = await supabase
+      .from('organizations')
+      .update({ seat_limit: seatLimit, updated_at: new Date().toISOString() })
+      .eq('id', organizationId);
+
+    if (updateError) {
+      logError('STRIPE_WEBHOOK', updateError);
+      logStep('Failed to sync organization seat_limit', { organizationId, seatLimit });
+      continue;
+    }
+
+    logStep('Synced organization seat_limit from Pro subscription', {
+      organizationId,
+      seatLimit,
+      tier: params.tier,
+    });
+  }
 }
 
 function getNotificationTitle(status: string): string {

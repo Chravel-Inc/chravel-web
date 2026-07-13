@@ -1,483 +1,249 @@
 import React from 'react';
 
 interface GoldAccentOverlayProps {
-  variant?: 'hero' | 'waves' | 'triangles' | 'diamonds' | 'circles' | 'mesh' | 'aurora' | 'footer';
+  variant?: 'hero' | 'waves' | 'terraces' | 'diamonds' | 'circles' | 'mesh' | 'aurora' | 'none';
 }
 
+/**
+ * Unified luxury backdrop system — crisp black canvas, metallic gold line-work.
+ *
+ * One shared visual grammar across every section: a soft multi-stop gold
+ * tint (pure CSS radial-gradients — NO blur filters, which caused the old
+ * blurry/grainy smudge), plus three families of crisp gradient hairlines:
+ *
+ *   1. primary   — 1.25px feature lines at 0.24–0.38 opacity. The visible
+ *                  "real line" that gives each section its structure.
+ *   2. echo      — 0.75px siblings offset from the primaries, opacity
+ *                  stepping down 0.20 → 0.10. Reads as engraved depth.
+ *   3. structure — 0.5px straight rules / lattice at 0.06–0.10. The faint
+ *                  drafting grid that makes the composition feel intentional.
+ *
+ * Sections differ only in composition (meridian arcs, strata, terraces,
+ * facets, orbits, fan rays, aurora bands) and tint hue, so the marketing
+ * site reads as ONE object — a Rolls-Royce brochure, not a collage of
+ * unrelated geometric wallpapers.
+ *
+ * Peak stroke alpha stays ≤ 0.38 on hairline weights and every text block
+ * sits on near-black fields, so white overlay copy remains WCAG-AA.
+ */
+
+type Stroke = { d: string; opacity: number };
+
+type VariantConfig = {
+  /** Two stacked radial tints: main gold pool + per-section hue accent. */
+  tint: {
+    x: number; // % of width for the main gold pool
+    y: number; // % of height
+    x2: number; // secondary accent position
+    y2: number;
+    rgb: string; // secondary accent hue — the per-section differentiator
+  };
+  primary: Stroke[];
+  echo: Stroke[];
+  structure: Stroke[];
+};
+
+const CONFIGS: Record<
+  Exclude<GoldAccentOverlayProps['variant'], 'none' | undefined>,
+  VariantConfig
+> = {
+  // Golden-ratio meridian arcs sweeping toward the top-right light source.
+  hero: {
+    tint: { x: 82, y: 12, x2: 20, y2: 85, rgb: '232,175,72' },
+    primary: [
+      { d: 'M -40 700 C 380 620, 720 540, 1080 460 S 1480 280, 1520 200', opacity: 0.36 },
+      { d: 'M -40 770 C 400 690, 740 610, 1100 530 S 1490 350, 1530 270', opacity: 0.3 },
+    ],
+    echo: [
+      { d: 'M -40 630 C 360 550, 700 470, 1060 390 S 1470 210, 1510 130', opacity: 0.2 },
+      { d: 'M -40 840 C 420 765, 760 685, 1120 605 S 1500 425, 1540 345', opacity: 0.16 },
+      { d: 'M -40 905 C 430 835, 770 760, 1130 680 S 1505 500, 1545 420', opacity: 0.12 },
+    ],
+    structure: [
+      { d: 'M -40 560 L 1480 560', opacity: 0.06 },
+      { d: 'M -40 118 L 1480 118', opacity: 0.07 },
+    ],
+  },
+
+  // Layered sine strata — slow tidal contours.
+  waves: {
+    tint: { x: 18, y: 70, x2: 75, y2: 25, rgb: '196,151,70' },
+    primary: [
+      { d: 'M -40 430 C 320 370, 620 490, 900 430 S 1300 330, 1520 290', opacity: 0.34 },
+      { d: 'M -40 520 C 330 460, 630 580, 910 520 S 1310 420, 1520 380', opacity: 0.28 },
+    ],
+    echo: [
+      { d: 'M -40 340 C 320 280, 620 400, 900 340 S 1300 240, 1520 200', opacity: 0.2 },
+      { d: 'M -40 610 C 335 550, 635 670, 915 610 S 1315 510, 1520 470', opacity: 0.17 },
+      { d: 'M -40 700 C 340 640, 640 760, 920 700 S 1320 600, 1520 560', opacity: 0.13 },
+      { d: 'M -40 250 C 315 195, 615 310, 895 250 S 1295 155, 1520 115', opacity: 0.1 },
+    ],
+    structure: [{ d: 'M -40 800 L 1480 780', opacity: 0.08 }],
+  },
+
+  // Terraced horizon — converging drafting rules with frame posts.
+  terraces: {
+    tint: { x: 50, y: 10, x2: 12, y2: 80, rgb: '226,205,150' },
+    primary: [
+      { d: 'M -40 330 L 1480 250', opacity: 0.34 },
+      { d: 'M -40 450 L 1480 395', opacity: 0.28 },
+    ],
+    echo: [
+      { d: 'M -40 570 L 1480 540', opacity: 0.2 },
+      { d: 'M -40 690 L 1480 678', opacity: 0.15 },
+      { d: 'M -40 810 L 1480 812', opacity: 0.11 },
+      { d: 'M -40 215 L 1480 112', opacity: 0.12 },
+    ],
+    structure: [
+      { d: 'M 180 -40 L 180 940', opacity: 0.07 },
+      { d: 'M 1262 -40 L 1262 940', opacity: 0.07 },
+    ],
+  },
+
+  // Faceted lattice — two crossing diagonal families.
+  diamonds: {
+    tint: { x: 24, y: 22, x2: 80, y2: 75, rgb: '196,151,70' },
+    primary: [
+      { d: 'M 1520 -40 C 1180 260, 900 420, 640 560 S 220 780, -40 860', opacity: 0.34 },
+      { d: 'M -40 -20 C 300 220, 620 380, 900 520 S 1330 760, 1520 830', opacity: 0.28 },
+    ],
+    echo: [
+      { d: 'M 1520 60 C 1200 340, 940 500, 680 640 S 260 860, -40 940', opacity: 0.18 },
+      { d: 'M 1520 -140 C 1160 180, 880 340, 620 480 S 200 700, -40 780', opacity: 0.14 },
+      { d: 'M -40 -120 C 320 120, 640 280, 920 420 S 1350 660, 1540 730', opacity: 0.16 },
+    ],
+    structure: [
+      { d: 'M 200 -40 L 1480 640', opacity: 0.07 },
+      { d: 'M -40 180 L 1240 940', opacity: 0.06 },
+      { d: 'M 520 -40 L 1520 500', opacity: 0.06 },
+    ],
+  },
+
+  // Orbital rings around an off-canvas focus on the right.
+  circles: {
+    tint: { x: 80, y: 66, x2: 25, y2: 20, rgb: '232,175,72' },
+    primary: [
+      { d: 'M 1560 940 A 380 380 0 0 1 1180 560 A 380 380 0 0 1 1560 180', opacity: 0.34 },
+      { d: 'M 1560 1080 A 520 520 0 0 1 1040 560 A 520 520 0 0 1 1560 40', opacity: 0.26 },
+    ],
+    echo: [
+      { d: 'M 1560 860 A 300 300 0 0 1 1260 560 A 300 300 0 0 1 1560 260', opacity: 0.18 },
+      { d: 'M 1560 1010 A 450 450 0 0 1 1110 560 A 450 450 0 0 1 1560 110', opacity: 0.14 },
+      { d: 'M 1560 1240 A 680 680 0 0 1 880 560 A 680 680 0 0 1 1560 -120', opacity: 0.11 },
+    ],
+    structure: [
+      { d: 'M 1090 560 A 90 90 0 0 1 1270 560 A 90 90 0 0 1 1090 560', opacity: 0.1 },
+      { d: 'M -40 820 L 1480 820', opacity: 0.06 },
+    ],
+  },
+
+  // Radial ledger — fan rays from a vanishing point past the top-right corner.
+  mesh: {
+    tint: { x: 86, y: 16, x2: 30, y2: 80, rgb: '205,170,110' },
+    primary: [
+      { d: 'M 1600 -100 L -40 520', opacity: 0.32 },
+      { d: 'M 1600 -100 L -40 760', opacity: 0.26 },
+    ],
+    echo: [
+      { d: 'M 1600 -100 L -40 300', opacity: 0.18 },
+      { d: 'M 1600 -100 L -40 640', opacity: 0.15 },
+      { d: 'M 1600 -100 L 200 940', opacity: 0.13 },
+      { d: 'M 1600 -100 L 640 940', opacity: 0.1 },
+    ],
+    structure: [
+      { d: 'M -40 640 C 380 560, 800 620, 1180 520 S 1440 420, 1520 380', opacity: 0.09 },
+      { d: 'M -40 760 C 400 685, 820 745, 1200 645 S 1450 545, 1530 505', opacity: 0.06 },
+    ],
+  },
+
+  // Aurora bands — the quietest variant; long shallow arcs only.
+  aurora: {
+    tint: { x: 50, y: 50, x2: 85, y2: 15, rgb: '180,150,95' },
+    primary: [
+      { d: 'M -40 290 C 380 250, 720 370, 1080 310 S 1440 190, 1520 170', opacity: 0.24 },
+      { d: 'M -40 380 C 390 340, 730 460, 1090 400 S 1450 280, 1530 260', opacity: 0.19 },
+    ],
+    echo: [
+      { d: 'M -40 610 C 380 570, 720 690, 1080 630 S 1440 510, 1520 490', opacity: 0.14 },
+      { d: 'M -40 700 C 385 660, 725 780, 1085 720 S 1445 600, 1525 580', opacity: 0.1 },
+      { d: 'M -40 200 C 375 160, 715 280, 1075 220 S 1435 100, 1515 80', opacity: 0.09 },
+    ],
+    structure: [{ d: 'M -40 830 L 1480 812', opacity: 0.06 }],
+  },
+};
+
+const LINE_FAMILIES: Array<{
+  key: 'primary' | 'echo' | 'structure';
+  strokeWidth: number;
+  gradient: 'line' | 'line-soft';
+}> = [
+  { key: 'structure', strokeWidth: 0.5, gradient: 'line-soft' },
+  { key: 'echo', strokeWidth: 0.75, gradient: 'line-soft' },
+  { key: 'primary', strokeWidth: 1.25, gradient: 'line' },
+];
+
 export const GoldAccentOverlay: React.FC<GoldAccentOverlayProps> = ({ variant = 'waves' }) => {
-  // Hero - curved sweeps and glowing orbs (prominent)
-  if (variant === 'hero') {
-    return (
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {/* Top curved sweep - filled shape */}
-        <svg
-          className="absolute top-0 left-0 w-full h-64 md:h-80"
-          viewBox="0 0 1440 250"
-          preserveAspectRatio="none"
-          fill="none"
-        >
-          <defs>
-            <linearGradient id="heroGoldTop" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#c49746" stopOpacity="0.6" />
-              <stop offset="50%" stopColor="#c49746" stopOpacity="0.4" />
-              <stop offset="100%" stopColor="#c49746" stopOpacity="0.1" />
-            </linearGradient>
-          </defs>
-          <path
-            d="M0,0 C360,150 720,100 1080,130 C1260,145 1380,80 1440,0 L1440,0 L0,0 Z"
-            fill="url(#heroGoldTop)"
-          />
-        </svg>
-        {/* Right side curved accent */}
-        <svg
-          className="absolute top-10 right-0 w-80 h-[500px] md:w-[450px] md:h-[600px]"
-          viewBox="0 0 350 600"
-          preserveAspectRatio="none"
-          fill="none"
-        >
-          <defs>
-            <linearGradient id="heroGoldRight" x1="100%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#c49746" stopOpacity="0.5" />
-              <stop offset="60%" stopColor="#c49746" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="#c49746" stopOpacity="0.05" />
-            </linearGradient>
-          </defs>
-          <path
-            d="M350,0 Q220,120 300,250 Q380,380 280,480 Q200,560 350,600 L350,0 Z"
-            fill="url(#heroGoldRight)"
-          />
-        </svg>
-        {/* Prominent glow orbs */}
-        <div
-          className="absolute top-16 left-1/4 w-80 h-80 rounded-full blur-2xl opacity-30"
-          style={{ background: 'radial-gradient(circle, #c49746 0%, transparent 60%)' }}
-        />
-        <div
-          className="absolute top-40 right-1/4 w-64 h-64 rounded-full blur-2xl opacity-25"
-          style={{ background: 'radial-gradient(circle, #c49746 0%, transparent 60%)' }}
-        />
-        <div
-          className="absolute top-20 right-10 w-48 h-48 rounded-full blur-xl opacity-35"
-          style={{ background: 'radial-gradient(circle, #c49746 0%, transparent 65%)' }}
-        />
-      </div>
-    );
-  }
+  const uid = React.useId().replace(/:/g, '');
+  const key = (variant === 'none' ? 'waves' : variant) as keyof typeof CONFIGS;
+  const cfg = CONFIGS[key];
 
-  // Waves - flowing horizontal waves with filled shapes
-  if (variant === 'waves') {
-    return (
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <svg
-          className="absolute top-1/4 left-0 w-full h-80 opacity-50"
-          viewBox="0 0 1440 300"
-          preserveAspectRatio="none"
-          fill="none"
-        >
-          <defs>
-            <linearGradient id="waveFill1" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#c49746" stopOpacity="0.05" />
-              <stop offset="50%" stopColor="#c49746" stopOpacity="0.25" />
-              <stop offset="100%" stopColor="#c49746" stopOpacity="0.05" />
-            </linearGradient>
-            <linearGradient id="waveStroke1" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#c49746" stopOpacity="0.1" />
-              <stop offset="50%" stopColor="#c49746" stopOpacity="0.7" />
-              <stop offset="100%" stopColor="#c49746" stopOpacity="0.1" />
-            </linearGradient>
-          </defs>
-          {/* Filled wave shape */}
-          <path
-            d="M0,150 Q360,80 720,150 T1440,150 L1440,220 Q1080,280 720,220 T0,220 Z"
-            fill="url(#waveFill1)"
-          />
-          {/* Top wave stroke */}
-          <path
-            d="M0,120 Q360,50 720,120 T1440,120"
-            stroke="url(#waveStroke1)"
-            strokeWidth="5"
-            fill="none"
-          />
-          {/* Middle wave stroke */}
-          <path
-            d="M0,160 Q360,100 720,160 T1440,160"
-            stroke="url(#waveStroke1)"
-            strokeWidth="4"
-            fill="none"
-            opacity="0.7"
-          />
-          {/* Bottom wave stroke */}
-          <path
-            d="M0,200 Q360,150 720,200 T1440,200"
-            stroke="url(#waveStroke1)"
-            strokeWidth="3"
-            fill="none"
-            opacity="0.5"
-          />
-        </svg>
-        {/* Glow orbs */}
-        <div
-          className="absolute bottom-20 left-10 w-64 h-64 rounded-full blur-2xl opacity-25"
-          style={{ background: 'radial-gradient(circle, #c49746 0%, transparent 60%)' }}
-        />
-        <div
-          className="absolute top-1/3 right-20 w-48 h-48 rounded-full blur-2xl opacity-20"
-          style={{ background: 'radial-gradient(circle, #c49746 0%, transparent 60%)' }}
-        />
-      </div>
-    );
-  }
+  if (variant === 'none') return null;
 
-  // Triangles - bold geometric triangle patterns
-  if (variant === 'triangles') {
-    return (
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <svg
-          className="absolute top-0 right-0 w-full h-full opacity-45"
-          viewBox="0 0 1440 900"
-          preserveAspectRatio="none"
-          fill="none"
-        >
-          <defs>
-            <linearGradient id="triGold1" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#c49746" stopOpacity="0.6" />
-              <stop offset="100%" stopColor="#c49746" stopOpacity="0.1" />
-            </linearGradient>
-            <linearGradient id="triGold2" x1="100%" y1="100%" x2="0%" y2="0%">
-              <stop offset="0%" stopColor="#c49746" stopOpacity="0.5" />
-              <stop offset="100%" stopColor="#c49746" stopOpacity="0.1" />
-            </linearGradient>
-          </defs>
-          {/* Large top-right triangle */}
-          <polygon points="1100,0 1440,0 1440,300" fill="url(#triGold1)" />
-          {/* Secondary top-right triangle */}
-          <polygon points="1000,0 1440,0 1440,180 1200,0" fill="url(#triGold1)" opacity="0.6" />
-          {/* Bottom-left triangles */}
-          <polygon points="0,600 0,900 300,900" fill="url(#triGold2)" />
-          <polygon points="0,700 0,900 180,900" fill="url(#triGold2)" opacity="0.7" />
-          {/* Accent triangles */}
-          <polygon points="100,100 180,180 100,180" fill="url(#triGold1)" opacity="0.4" />
-          <polygon points="1300,700 1380,780 1300,780" fill="url(#triGold2)" opacity="0.5" />
-        </svg>
-        {/* Glow accents */}
-        <div
-          className="absolute top-20 right-40 w-56 h-56 rounded-full blur-2xl opacity-30"
-          style={{ background: 'radial-gradient(circle, #c49746 0%, transparent 60%)' }}
-        />
-        <div
-          className="absolute bottom-32 left-20 w-48 h-48 rounded-full blur-2xl opacity-25"
-          style={{ background: 'radial-gradient(circle, #c49746 0%, transparent 60%)' }}
-        />
-      </div>
-    );
-  }
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+      {/* Tint — multi-stop CSS radial-gradients give the soft falloff that
+          blur(40px) used to fake, but stay perfectly crisp at any DPR. */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: `radial-gradient(120% 90% at ${cfg.tint.x}% ${cfg.tint.y}%, rgba(196,151,70,0.10) 0%, rgba(196,151,70,0.05) 30%, rgba(196,151,70,0.018) 55%, transparent 78%), radial-gradient(90% 70% at ${cfg.tint.x2}% ${cfg.tint.y2}%, rgba(${cfg.tint.rgb},0.05) 0%, transparent 65%)`,
+        }}
+      />
 
-  // Diamonds - larger scattered diamond shapes with glows
-  if (variant === 'diamonds') {
-    return (
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <svg
-          className="absolute inset-0 w-full h-full opacity-50"
-          viewBox="0 0 1440 900"
-          preserveAspectRatio="none"
-          fill="none"
-        >
-          <defs>
-            <radialGradient id="diamondGlow1" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#c49746" stopOpacity="0.7" />
-              <stop offset="60%" stopColor="#c49746" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="#c49746" stopOpacity="0" />
-            </radialGradient>
-            <linearGradient id="diamondFill" x1="50%" y1="0%" x2="50%" y2="100%">
-              <stop offset="0%" stopColor="#c49746" stopOpacity="0.8" />
-              <stop offset="100%" stopColor="#c49746" stopOpacity="0.3" />
-            </linearGradient>
-          </defs>
-          {/* Large diamonds with glow halos */}
-          <circle cx="120" cy="220" r="80" fill="url(#diamondGlow1)" opacity="0.4" />
-          <polygon points="120,160 180,220 120,280 60,220" fill="url(#diamondFill)" />
+      {/* Line-work — three crisp hairline families. SVG carries geometry
+          only; no filters (they caused the old grainy/fuzzy look). */}
+      <svg
+        className="absolute inset-0 w-full h-full"
+        viewBox="0 0 1440 900"
+        preserveAspectRatio="none"
+        fill="none"
+      >
+        <defs>
+          <linearGradient id={`${uid}-line`} x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#c49746" stopOpacity="0" />
+            <stop offset="30%" stopColor="#e8af48" stopOpacity="1" />
+            <stop offset="58%" stopColor="#feeaa5" stopOpacity="1" />
+            <stop offset="100%" stopColor="#c49746" stopOpacity="0" />
+          </linearGradient>
+          <linearGradient id={`${uid}-line-soft`} x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#c49746" stopOpacity="0" />
+            <stop offset="30%" stopColor="#e8af48" stopOpacity="0.6" />
+            <stop offset="58%" stopColor="#feeaa5" stopOpacity="0.6" />
+            <stop offset="100%" stopColor="#c49746" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {LINE_FAMILIES.map(family =>
+          cfg[family.key].map((stroke, i) => (
+            <path
+              key={`${family.key}-${i}`}
+              d={stroke.d}
+              stroke={`url(#${uid}-${family.gradient})`}
+              strokeWidth={family.strokeWidth}
+              opacity={stroke.opacity}
+              vectorEffect="non-scaling-stroke"
+            />
+          )),
+        )}
+      </svg>
 
-          <circle cx="1320" cy="150" r="100" fill="url(#diamondGlow1)" opacity="0.35" />
-          <polygon
-            points="1320,80 1400,150 1320,220 1240,150"
-            fill="url(#diamondFill)"
-            opacity="0.9"
-          />
-
-          <circle cx="250" cy="680" r="90" fill="url(#diamondGlow1)" opacity="0.3" />
-          <polygon
-            points="250,610 330,680 250,750 170,680"
-            fill="url(#diamondFill)"
-            opacity="0.7"
-          />
-
-          <circle cx="1150" cy="550" r="70" fill="url(#diamondGlow1)" opacity="0.35" />
-          <polygon
-            points="1150,490 1210,550 1150,610 1090,550"
-            fill="url(#diamondFill)"
-            opacity="0.8"
-          />
-
-          {/* Small accent diamonds */}
-          <polygon points="700,80 740,120 700,160 660,120" fill="url(#diamondFill)" opacity="0.5" />
-          <polygon
-            points="900,750 930,780 900,810 870,780"
-            fill="url(#diamondFill)"
-            opacity="0.4"
-          />
-        </svg>
-        {/* Additional glow orbs */}
-        <div
-          className="absolute top-32 left-1/4 w-56 h-56 rounded-full blur-2xl opacity-25"
-          style={{ background: 'radial-gradient(circle, #c49746 0%, transparent 60%)' }}
-        />
-        <div
-          className="absolute bottom-40 right-1/4 w-72 h-72 rounded-full blur-2xl opacity-20"
-          style={{ background: 'radial-gradient(circle, #c49746 0%, transparent 60%)' }}
-        />
-      </div>
-    );
-  }
-
-  // Circles - floating bubble orbs with strong gradients
-  if (variant === 'circles') {
-    return (
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <svg
-          className="absolute inset-0 w-full h-full opacity-45"
-          viewBox="0 0 1440 900"
-          preserveAspectRatio="none"
-          fill="none"
-        >
-          <defs>
-            <radialGradient id="bubbleGold1" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#c49746" stopOpacity="0.6" />
-              <stop offset="60%" stopColor="#c49746" stopOpacity="0.2" />
-              <stop offset="100%" stopColor="#c49746" stopOpacity="0" />
-            </radialGradient>
-            <radialGradient id="bubbleGold2" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#c49746" stopOpacity="0.55" />
-              <stop offset="60%" stopColor="#c49746" stopOpacity="0.15" />
-              <stop offset="100%" stopColor="#c49746" stopOpacity="0" />
-            </radialGradient>
-            <radialGradient id="bubbleGold3" cx="30%" cy="30%" r="70%">
-              <stop offset="0%" stopColor="#c49746" stopOpacity="0.7" />
-              <stop offset="50%" stopColor="#c49746" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="#c49746" stopOpacity="0" />
-            </radialGradient>
-          </defs>
-          {/* Large floating circles */}
-          <circle cx="180" cy="180" r="120" fill="url(#bubbleGold1)" />
-          <circle cx="1280" cy="220" r="160" fill="url(#bubbleGold2)" />
-          <circle cx="220" cy="720" r="100" fill="url(#bubbleGold3)" />
-          <circle cx="1180" cy="650" r="140" fill="url(#bubbleGold1)" />
-          {/* Medium circles */}
-          <circle cx="720" cy="120" r="70" fill="url(#bubbleGold2)" opacity="0.7" />
-          <circle cx="600" cy="800" r="80" fill="url(#bubbleGold1)" opacity="0.6" />
-          {/* Small accent circles */}
-          <circle cx="400" cy="350" r="40" fill="url(#bubbleGold3)" opacity="0.5" />
-          <circle cx="1050" cy="400" r="50" fill="url(#bubbleGold2)" opacity="0.5" />
-          <circle cx="850" cy="500" r="35" fill="url(#bubbleGold1)" opacity="0.4" />
-        </svg>
-        {/* Background glow */}
-        <div
-          className="absolute top-1/2 left-16 w-80 h-80 rounded-full blur-2xl opacity-20"
-          style={{ background: 'radial-gradient(circle, #c49746 0%, transparent 60%)' }}
-        />
-        <div
-          className="absolute top-1/4 right-20 w-64 h-64 rounded-full blur-2xl opacity-25"
-          style={{ background: 'radial-gradient(circle, #c49746 0%, transparent 60%)' }}
-        />
-      </div>
-    );
-  }
-
-  // Mesh - interconnected grid lines with intersection glows
-  if (variant === 'mesh') {
-    return (
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <svg
-          className="absolute inset-0 w-full h-full opacity-35"
-          viewBox="0 0 1440 900"
-          preserveAspectRatio="none"
-          fill="none"
-        >
-          <defs>
-            <linearGradient id="meshLine1" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#c49746" stopOpacity="0.1" />
-              <stop offset="30%" stopColor="#c49746" stopOpacity="0.6" />
-              <stop offset="70%" stopColor="#c49746" stopOpacity="0.6" />
-              <stop offset="100%" stopColor="#c49746" stopOpacity="0.1" />
-            </linearGradient>
-            <linearGradient id="meshLine2" x1="100%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#c49746" stopOpacity="0.1" />
-              <stop offset="40%" stopColor="#c49746" stopOpacity="0.5" />
-              <stop offset="60%" stopColor="#c49746" stopOpacity="0.5" />
-              <stop offset="100%" stopColor="#c49746" stopOpacity="0.1" />
-            </linearGradient>
-            <radialGradient id="meshGlow" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#c49746" stopOpacity="0.6" />
-              <stop offset="100%" stopColor="#c49746" stopOpacity="0" />
-            </radialGradient>
-          </defs>
-          {/* Diagonal grid lines */}
-          <line x1="0" y1="150" x2="1440" y2="450" stroke="url(#meshLine1)" strokeWidth="3" />
-          <line
-            x1="0"
-            y1="350"
-            x2="1440"
-            y2="650"
-            stroke="url(#meshLine1)"
-            strokeWidth="2.5"
-            opacity="0.7"
-          />
-          <line x1="0" y1="550" x2="1440" y2="250" stroke="url(#meshLine2)" strokeWidth="3" />
-          <line
-            x1="0"
-            y1="750"
-            x2="1440"
-            y2="450"
-            stroke="url(#meshLine2)"
-            strokeWidth="2.5"
-            opacity="0.7"
-          />
-          {/* Vertical accent lines */}
-          <line
-            x1="300"
-            y1="0"
-            x2="450"
-            y2="900"
-            stroke="url(#meshLine1)"
-            strokeWidth="2"
-            opacity="0.5"
-          />
-          <line
-            x1="1100"
-            y1="0"
-            x2="1250"
-            y2="900"
-            stroke="url(#meshLine2)"
-            strokeWidth="2"
-            opacity="0.5"
-          />
-          {/* Intersection glows */}
-          <circle cx="520" cy="350" r="30" fill="url(#meshGlow)" />
-          <circle cx="920" cy="450" r="25" fill="url(#meshGlow)" opacity="0.8" />
-          <circle cx="380" cy="550" r="20" fill="url(#meshGlow)" opacity="0.6" />
-          <circle cx="1060" cy="350" r="22" fill="url(#meshGlow)" opacity="0.7" />
-        </svg>
-        {/* Background glows */}
-        <div
-          className="absolute -top-20 right-1/4 w-96 h-96 rounded-full blur-2xl opacity-20"
-          style={{ background: 'radial-gradient(circle, #c49746 0%, transparent 60%)' }}
-        />
-        <div
-          className="absolute bottom-20 left-1/3 w-72 h-72 rounded-full blur-2xl opacity-18"
-          style={{ background: 'radial-gradient(circle, #c49746 0%, transparent 60%)' }}
-        />
-      </div>
-    );
-  }
-
-  // Aurora - flowing aurora bands with thick strokes
-  if (variant === 'aurora') {
-    return (
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <svg
-          className="absolute inset-0 w-full h-full opacity-55"
-          viewBox="0 0 1440 900"
-          preserveAspectRatio="none"
-          fill="none"
-        >
-          <defs>
-            <linearGradient id="auroraGold1" x1="0%" y1="50%" x2="100%" y2="50%">
-              <stop offset="0%" stopColor="#c49746" stopOpacity="0.05" />
-              <stop offset="25%" stopColor="#c49746" stopOpacity="0.5" />
-              <stop offset="50%" stopColor="#c49746" stopOpacity="0.6" />
-              <stop offset="75%" stopColor="#c49746" stopOpacity="0.5" />
-              <stop offset="100%" stopColor="#c49746" stopOpacity="0.05" />
-            </linearGradient>
-            <linearGradient id="auroraGold2" x1="0%" y1="50%" x2="100%" y2="50%">
-              <stop offset="0%" stopColor="#c49746" stopOpacity="0.05" />
-              <stop offset="30%" stopColor="#c49746" stopOpacity="0.4" />
-              <stop offset="70%" stopColor="#c49746" stopOpacity="0.4" />
-              <stop offset="100%" stopColor="#c49746" stopOpacity="0.05" />
-            </linearGradient>
-          </defs>
-          {/* Main aurora band */}
-          <path
-            d="M0,280 Q300,180 600,300 Q900,420 1200,280 Q1350,200 1440,250"
-            stroke="url(#auroraGold1)"
-            strokeWidth="80"
-            fill="none"
-            strokeLinecap="round"
-          />
-          {/* Secondary aurora band */}
-          <path
-            d="M0,520 Q250,620 500,480 Q750,340 1000,500 Q1200,620 1440,540"
-            stroke="url(#auroraGold2)"
-            strokeWidth="60"
-            fill="none"
-            opacity="0.7"
-            strokeLinecap="round"
-          />
-          {/* Tertiary subtle band */}
-          <path
-            d="M0,700 Q400,780 720,680 Q1000,580 1440,720"
-            stroke="url(#auroraGold1)"
-            strokeWidth="40"
-            fill="none"
-            opacity="0.4"
-            strokeLinecap="round"
-          />
-        </svg>
-        {/* Prominent glow orbs */}
-        <div
-          className="absolute top-1/4 right-16 w-96 h-96 rounded-full blur-2xl opacity-25"
-          style={{ background: 'radial-gradient(circle, #c49746 0%, transparent 60%)' }}
-        />
-        <div
-          className="absolute bottom-1/4 left-20 w-80 h-80 rounded-full blur-2xl opacity-20"
-          style={{ background: 'radial-gradient(circle, #c49746 0%, transparent 60%)' }}
-        />
-      </div>
-    );
-  }
-
-  // Footer variant - bold bottom sweep
-  if (variant === 'footer') {
-    return (
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <svg
-          className="absolute bottom-0 left-0 w-full h-48"
-          viewBox="0 0 1440 150"
-          preserveAspectRatio="none"
-          fill="none"
-        >
-          <defs>
-            <linearGradient id="footerGold" x1="0%" y1="100%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#c49746" stopOpacity="0.5" />
-              <stop offset="50%" stopColor="#c49746" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="#c49746" stopOpacity="0.1" />
-            </linearGradient>
-          </defs>
-          <path
-            d="M0,150 C360,60 720,100 1080,70 C1260,55 1380,90 1440,150 L1440,150 L0,150 Z"
-            fill="url(#footerGold)"
-          />
-        </svg>
-        {/* Glow accents */}
-        <div
-          className="absolute top-20 left-1/4 w-64 h-64 rounded-full blur-2xl opacity-20"
-          style={{ background: 'radial-gradient(circle, #c49746 0%, transparent 60%)' }}
-        />
-        <div
-          className="absolute top-10 right-1/3 w-48 h-48 rounded-full blur-2xl opacity-18"
-          style={{ background: 'radial-gradient(circle, #c49746 0%, transparent 60%)' }}
-        />
-      </div>
-    );
-  }
-
-  return null;
+      {/* Edge vignette — anchors the frame, keeps center airy */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse at center, rgba(0,0,0,0) 62%, rgba(0,0,0,0.28) 100%)',
+        }}
+      />
+    </div>
+  );
 };

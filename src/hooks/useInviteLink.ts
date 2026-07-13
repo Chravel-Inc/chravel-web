@@ -14,7 +14,6 @@ import { buildInviteLink } from '@/lib/unfurlConfig';
 interface UseInviteLinkProps {
   isOpen: boolean;
   tripName: string;
-  requireApproval: boolean;
   expireIn7Days: boolean;
   /** Maximum number of joins for the invite. null/undefined = unlimited. */
   maxUses?: number | null;
@@ -41,6 +40,8 @@ interface InviteLinkResult {
 
 // UUID validation regex
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const isRealTripId = (tripIdValue: string): boolean => UUID_REGEX.test(tripIdValue);
 
 // Generate a short branded invite code (e.g., "chravel7x9k2m")
 // Uses crypto.getRandomValues() for cryptographically secure randomness
@@ -106,7 +107,6 @@ const generateUniqueCode = async (maxAttempts = 5): Promise<string> => {
 export const useInviteLink = ({
   isOpen,
   tripName,
-  requireApproval,
   expireIn7Days,
   maxUses,
   tripId,
@@ -122,8 +122,8 @@ export const useInviteLink = ({
   const lastGeneratedKeyRef = useRef<string | null>(null);
 
   const currentSettings = useMemo(
-    () => buildAppliedInviteSettings(requireApproval, expireIn7Days, maxUses),
-    [requireApproval, expireIn7Days, maxUses],
+    () => buildAppliedInviteSettings(expireIn7Days, maxUses),
+    [expireIn7Days, maxUses],
   );
 
   const hasStaleSettings = Boolean(
@@ -227,7 +227,9 @@ export const useInviteLink = ({
         created_by: user.id,
         is_active: true,
         current_uses: 0,
-        require_approval: requireApproval,
+        // Backend join policy is approval-only. Persist that canonical behavior even if
+        // legacy UI state still surfaces a toggle.
+        require_approval: true,
         expires_at: expireIn7Days
           ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
           : null,
@@ -259,14 +261,12 @@ export const useInviteLink = ({
   };
 
   const markSettingsApplied = useCallback(() => {
-    setAppliedSettings(buildAppliedInviteSettings(requireApproval, expireIn7Days, maxUses));
-  }, [requireApproval, expireIn7Days, maxUses]);
+    setAppliedSettings(buildAppliedInviteSettings(expireIn7Days, maxUses));
+  }, [expireIn7Days, maxUses]);
 
   const generateTripLink = async () => {
     setLoading(true);
     setError(null);
-    // Always use branded chravel.app URL for invite links
-    const _baseUrl = 'https://chravel.app';
     const actualTripId = proTripId || tripId;
 
     if (!actualTripId) {
@@ -277,9 +277,11 @@ export const useInviteLink = ({
       return;
     }
 
-    // DEMO MODE: Generate demonstration link without database
+    // DEMO MODE: Generate demonstration links only for non-production demo trip IDs.
+    // A signed-in user can still have the demo flag in localStorage after viewing
+    // the app preview; UUID trips must always create DB-backed invites.
     // Use branded unfurl domain for rich OG previews
-    if (isDemoMode) {
+    if (isDemoMode && !isRealTripId(actualTripId)) {
       const demoInviteCode = `demo-${actualTripId}-${Date.now().toString(36)}`;
       setInviteLink(buildInviteLink(demoInviteCode));
       setExpiresAt(null);
@@ -292,7 +294,7 @@ export const useInviteLink = ({
     // AUTHENTICATED MODE: Validate and create real invite
 
     // Check if trip ID is a valid UUID (real trips have UUIDs, demo trips have mock IDs)
-    if (!UUID_REGEX.test(actualTripId)) {
+    if (!isRealTripId(actualTripId)) {
       if (import.meta.env.DEV)
         console.error('[InviteLink] Invalid trip ID format (not UUID):', actualTripId);
       const msg =
@@ -457,7 +459,7 @@ export const useInviteLink = ({
     setError(null);
     await generateTripLink();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- generateTripLink uses stable state setters
-  }, [isOpen, requireApproval, expireIn7Days, maxUses, tripId, proTripId, isDemoMode]);
+  }, [isOpen, expireIn7Days, maxUses, tripId, proTripId, isDemoMode]);
 
   return {
     copied,

@@ -21,9 +21,9 @@ interface MockUsage {
 
 const usageState = vi.hoisted(() => ({
   usage: {
-    used: 3,
-    limit: 10,
-    remaining: 7,
+    used: 1,
+    limit: 3,
+    remaining: 2,
     isLimitReached: false,
     plan: 'free',
   } as MockUsage,
@@ -134,9 +134,9 @@ describe('AIConciergeChat usage meter', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     usageState.usage = {
-      used: 3,
-      limit: 10,
-      remaining: 7,
+      used: 1,
+      limit: 3,
+      remaining: 2,
       isLimitReached: false,
       plan: 'free',
     };
@@ -156,7 +156,7 @@ describe('AIConciergeChat usage meter', () => {
 
     const chip = screen.getByTestId('concierge-usage-chip');
     expect(chip).toBeInTheDocument();
-    expect(chip).toHaveTextContent('7/10 free asks');
+    expect(chip).toHaveTextContent('2/3 free asks');
   });
 
   it('labels explorer usage without the "free" qualifier', () => {
@@ -197,18 +197,18 @@ describe('AIConciergeChat usage meter', () => {
   });
 
   it('shows an in-place upgrade CTA when the limit is reached', () => {
-    usageState.usage = { used: 10, limit: 10, remaining: 0, isLimitReached: true, plan: 'free' };
+    usageState.usage = { used: 3, limit: 3, remaining: 0, isLimitReached: true, plan: 'free' };
 
     renderChat();
 
-    expect(screen.getByTestId('concierge-usage-chip')).toHaveTextContent('0/10 free asks');
+    expect(screen.getByTestId('concierge-usage-chip')).toHaveTextContent('0/3 free asks');
     const cta = screen.getByTestId('concierge-limit-upgrade-cta');
     expect(cta).toBeInTheDocument();
     expect(cta.tagName).toBe('BUTTON');
   });
 
   it('opens the upgrade modal (not /settings) from the limit CTA', async () => {
-    usageState.usage = { used: 10, limit: 10, remaining: 0, isLimitReached: true, plan: 'free' };
+    usageState.usage = { used: 3, limit: 3, remaining: 0, isLimitReached: true, plan: 'free' };
 
     renderChat();
 

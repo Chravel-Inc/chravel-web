@@ -18,7 +18,7 @@ describe('openInstalledAuthBrowser', () => {
 
     expect(open).toHaveBeenCalledWith({
       url: 'https://oauth.example/start',
-      presentationStyle: 'popover',
+      presentationStyle: 'fullscreen',
     });
   });
 
@@ -53,8 +53,25 @@ describe('openInstalledAuthBrowser', () => {
     const assign = vi.fn();
     vi.stubGlobal('location', { ...window.location, assign });
 
-    await openInstalledAuthBrowser('https://oauth.example/start');
+    const result = await openInstalledAuthBrowser('https://oauth.example/start');
 
     expect(assign).toHaveBeenCalledWith('https://oauth.example/start');
+    expect(result).toEqual({ strategy: 'web-redirect' });
+  });
+
+  it('refuses location.assign when native shell is detected but openOAuthUrl bridge is missing', async () => {
+    const assign = vi.fn();
+    vi.stubGlobal('location', { ...window.location, assign });
+    (window as unknown as { ChravelNative: { isNative: boolean } }).ChravelNative = {
+      isNative: true,
+    };
+
+    const result = await openInstalledAuthBrowser('https://oauth.example/start');
+
+    expect(assign).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      strategy: 'native-shell-missing-bridge',
+      url: 'https://oauth.example/start',
+    });
   });
 });

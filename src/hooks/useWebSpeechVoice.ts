@@ -10,6 +10,14 @@
  *  5. Cleanup: visibility change, unmount, and rapid toggles are all handled.
  */
 import { useState, useRef, useCallback, useEffect } from 'react';
+import {
+  IS_IOS,
+  accumulateFinalText,
+  getSpeechRecognitionCtor,
+  type SpeechRecognitionErrorEvent,
+  type SpeechRecognitionEvent,
+  type SpeechRecognitionInstance,
+} from '@/lib/webSpeech';
 
 export type VoiceState = 'idle' | 'connecting' | 'listening' | 'thinking' | 'speaking' | 'error';
 
@@ -44,52 +52,12 @@ export interface UseGeminiVoiceReturn {
   clearSessionState: () => void;
 }
 
-// ---------- Web Speech API types ----------
-// The Web Speech API is not fully standardized in TypeScript's lib.dom.
-// These interfaces cover the subset we use, avoiding `any` throughout.
-interface SpeechRecognitionResult {
-  readonly isFinal: boolean;
-  readonly length: number;
-  readonly [index: number]: { readonly transcript: string; readonly confidence: number };
-}
-
-interface SpeechRecognitionResultList {
-  readonly length: number;
-  readonly [index: number]: SpeechRecognitionResult;
-}
-
-interface SpeechRecognitionEvent extends Event {
-  readonly results: SpeechRecognitionResultList;
-  readonly resultIndex: number;
-}
-
-interface SpeechRecognitionErrorEvent extends Event {
-  readonly error: string;
-  readonly message: string;
-}
-
-interface SpeechRecognitionInstance extends EventTarget {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  maxAlternatives: number;
-  onaudiostart: (() => void) | null;
-  onstart: (() => void) | null;
-  onresult: ((event: SpeechRecognitionEvent) => void) | null;
-  onnomatch: (() => void) | null;
-  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-  abort: () => void;
-}
-
-interface SpeechRecognitionConstructor {
-  new (): SpeechRecognitionInstance;
-}
+// Web Speech API types, feature detection, and the iOS check live in the shared
+// `@/lib/webSpeech` module (imported above) so this hook and the realtime caption hook
+// stay in sync. This hook keeps its own dictate-and-send policy on top of that plumbing.
 
 // ---------- Platform detection ----------
-const isIOS = typeof navigator !== 'undefined' && /iP(hone|ad|od)/.test(navigator.userAgent);
+const isIOS = IS_IOS;
 
 const isIOSPWA =
   isIOS &&
@@ -101,16 +69,7 @@ const isFirefox = typeof navigator !== 'undefined' && /Firefox\/\d+/.test(naviga
 const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
 
 // ---------- Browser support ----------
-const SpeechRecognitionClass: SpeechRecognitionConstructor | null =
-  typeof window !== 'undefined'
-    ? (((window as unknown as Record<string, unknown>).SpeechRecognition as
-        | SpeechRecognitionConstructor
-        | undefined) ??
-      ((window as unknown as Record<string, unknown>).webkitSpeechRecognition as
-        | SpeechRecognitionConstructor
-        | undefined) ??
-      null)
-    : null;
+const SpeechRecognitionClass = getSpeechRecognitionCtor();
 
 // iOS Safari caps continuous recognition at ~60s and fires onend on every pause.
 // We auto-restart up to this many times per session to keep dictation alive.
@@ -274,9 +233,10 @@ export function useWebSpeechVoice(
 
       // Only append NEW final text
       if (finalText) {
-        const prev = accumulatedTranscriptRef.current;
-        const separator = prev && !prev.endsWith(' ') ? ' ' : '';
-        accumulatedTranscriptRef.current = prev + separator + finalText;
+        accumulatedTranscriptRef.current = accumulateFinalText(
+          accumulatedTranscriptRef.current,
+          finalText,
+        );
       }
 
       // Show the user what we have so far

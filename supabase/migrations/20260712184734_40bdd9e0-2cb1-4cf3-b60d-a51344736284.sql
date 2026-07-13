@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Public access to trip cover images for social sharing" ON storage.objects;

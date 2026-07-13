@@ -75,7 +75,6 @@ describe('useInviteLink stale settings', () => {
         useInviteLink({
           isOpen: true,
           tripName: 'Test Trip',
-          requireApproval: true,
           expireIn7Days,
           maxUses,
           tripId: VALID_TRIP_ID,
@@ -112,7 +111,6 @@ describe('useInviteLink stale settings', () => {
         useInviteLink({
           isOpen: true,
           tripName: 'Test Trip',
-          requireApproval: true,
           expireIn7Days,
           maxUses: null,
           tripId: VALID_TRIP_ID,

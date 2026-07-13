@@ -378,6 +378,18 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Fixed in:** April 2026 trip invite bootstrap hardening.
 - **Confidence:** high
 
+## Shared invite link (`/j/:code`) unfurled generically and hard-loading `/join/:code` looped forever
+- **Status:** fixed
+- **Subsystem:** invite link OG preview proxy (`api/invite-preview.ts`, `vercel.json` rewrites)
+- **Bug class:** missing rewrite + crawler/browser response conflation
+- **Symptom:** Links shared from the app (`buildInviteLink` emits `/j/{code}`) unfurled with the generic branded card in Slack/iMessage instead of per-trip metadata, because only `/join/:code` had a Vercel rewrite. Separately, a real browser hard-loading `/join/:code` never reached the SPA: the OG HTML's `<meta http-equiv="refresh">` target was the same rewritten URL, so it bounced through the rewrite forever.
+- **Root cause:** One handler served the same OG HTML (designed for crawlers, with an auto-refresh) to every user agent. Any URL shape that both (a) has an OG-preview rewrite and (b) meta-refreshes to a URL matching that same rewrite will loop for humans.
+- **Smallest safe fix:** Branch on User-Agent (`isLikelyHtmlCrawler`) in the proxy: crawlers get the proxied OG HTML, browsers get the SPA shell (`index.html`) fetched directly so React Router renders the real page at that URL. Add the missing `/j/:code` rewrite. Critically, the degraded fallback for the browser branch (SPA fetch fails/non-ok) must NOT fall through to the crawler HTML — that reintroduces the identical loop on a rarer path. Give it its own static, non-refreshing fallback.
+- **Regression risks:** `Vary: User-Agent` is required on every branch or the CDN can serve a cached OG response to a browser (or vice versa) — treat this as one response contract, not two independent code paths that happen to share a file.
+- **Related files:** `api/invite-preview.ts`, `vercel.json`, `unfurl/crawlerDetection.ts`, `src/__tests__/invite-preview-api.test.ts`
+- **Fixed in:** July 2026 invite flow audit.
+- **Confidence:** high
+
 ## 5. Stream ReadChannel Permission Denial for Existing Trip Members
 
 **Symptom:** Messages tab shows raw Stream error `GetOrCreateChannel failed ... ReadChannel` with retry loop.
@@ -443,3 +455,79 @@ Known security anti-patterns discovered during audits. Reference this before int
 **Required Tests:** `src/lib/__tests__/bootstrapShell.test.ts` — installed + anonymous `/` must not use marketing shell.
 **Regression Surfaces:** Any change to `main.tsx` cold-start routing or `VITE_MARKETING_SPLIT`.
 **Fixed in:** `src/lib/bootstrapShell.ts`, `src/main.tsx`, `src/MarketingApp.tsx` (June 2026)
+
+## iOS chat composer moves with entire webview
+- **Status:** confirmed
+- **Subsystem:** mobile trip chat / concierge layout
+- **Bug class:** iOS visual viewport + document scroll ownership
+- **Symptom:** Message list scroll or keyboard focus drags the whole chat screen/composer instead of keeping the composer pinned like iMessage/WhatsApp.
+- **Likely root cause:** The chat pane may size to the visual viewport, but if `.mobile-trip-shell` remains in normal document flow, WebKit can still make the page/body the scroll container during rubber-band or keyboard reveal.
+- **Smallest safe fix:** Make the mobile trip shell own the viewport (`position: fixed; inset: 0; height: var(--visual-viewport-height, 100dvh); overflow-hidden`) and keep chat/concierge as internal-scroll tabs only.
+- **Required tests:** Verify `useKeyboardHandler` updates viewport vars on both `visualViewport.resize` and `visualViewport.scroll`; verify mobile tab content continues to size from `--visual-viewport-height`.
+- **Regression risks:** Applying fixed-shell behavior too broadly can break non-trip pages; scope the class to mobile trip detail shells only.
+- **Fixed in:** `src/index.css`, `src/hooks/useKeyboardHandler.ts` (June 2026 follow-up after PR #721)
+
+## iOS chat composer floats above keyboard with a dead gap
+- **Status:** confirmed
+- **Subsystem:** mobile trip chat / concierge layout
+- **Bug class:** iOS visual viewport offsetTop not compensated
+- **Symptom:** Tapping the chat input opens the keyboard, but the text field floats up toward the top with empty space between the field and the keyboard (instead of sitting directly on the keyboard like iMessage/WhatsApp).
+- **Root cause:** `.mobile-trip-shell` is `position: fixed` and sizes to `--visual-viewport-height`, but iOS scrolls the *visual* viewport (`visualViewport.offsetTop > 0`) to reveal the focused input while the *layout* viewport — and the fixed shell — stays pinned at y=0. The bottom-pinned composer ends up `offsetTop` px above the keyboard.
+- **Smallest safe fix:** Track `visualViewport.offsetTop` into `--visual-viewport-offset-top` (in `useKeyboardHandler`, alongside `--visual-viewport-height`) and apply it as the shell's `top` so the fixed shell follows the visible region. Clear the var on keyboard hide.
+- **Required tests:** Verify `useKeyboardHandler` sets `--visual-viewport-offset-top` from `visualViewport.offsetTop` on resize/scroll and clears it on hide (`src/hooks/__tests__/useKeyboardHandler.test.tsx`).
+- **Fixed in:** `src/index.css`, `src/hooks/useKeyboardHandler.ts` (June 2026 follow-up after PR #722)
+
+---
+
+## Service-Role Edge Functions Need an Authz Gate Before Every Write
+
+**Symptom:** Edge function authenticates weakly (or not at all), then uses `SUPABASE_SERVICE_ROLE_KEY` to write rows or storage objects from caller-supplied IDs/paths.
+**Risk:** CRITICAL — BOLA/IDOR, tenant data poisoning, destructive jobs, or cross-tenant storage writes because service role bypasses RLS.
+**Root Cause:** Treating a valid bearer token, route param, or request body `trip_id`/`broadcast_id`/`folder` as authorization instead of loading the target object server-side and checking active membership/ownership.
+**How to Confirm:** Search service-role edge functions for request-body `trip_id`, `broadcast_id`, `folder`, or cron-like work before `auth.getUser`, `verifyCronAuth`, and active membership/owner checks.
+**Smallest Safe Fix:** Authenticate first, load the canonical target record server-side, check active membership/ownership/admin permission, derive storage paths server-side, and return 404 for unauthorized private objects.
+**Required Tests:** Unauthenticated denied, authenticated non-member denied, member/owner allowed, caller-supplied mismatched IDs/paths ignored or rejected.
+**Regression Surfaces:** Message parsing, broadcast reactions, scheduled messages, advertiser asset uploads, search-index population, and any new service-role edge function.
+**Fixed in:** `supabase/functions/message-parser/index.ts`, `broadcasts-react`, `message-scheduler`, `populate-search-index`, `image-upload` (June 2026 P0 hardening)
+
+## Concierge Search button appears dead on mobile
+- **Status:** confirmed
+- **Subsystem:** mobile Concierge / MobileTripTabs
+- **Bug class:** stale useCallback closure over activeTab
+- **Symptom:** Tapping Search does nothing (modal never stays open); upload may still work.
+- **Root cause:** `renderTabContent` used `activeTab` for `isActive={activeTab === tabId}` but omitted `activeTab` from deps, so Concierge kept `isActive=false` and its inactive effect closed Search on open.
+- **Smallest safe fix:** Add `activeTab` to the callback deps; keep the inactive teardown effect independent of `searchOpen`.
+- **Required tests:** MobileTripTabs asserts Concierge receives `isActive=true` when selected; AIConciergeChat keeps Search open while active and closes when inactive.
+- **Fixed in:** `MobileTripTabs.tsx`, `AIConciergeChat.tsx` (July 2026)
+
+## Concierge waveform tap starts then silently dies
+- **Status:** mitigated (App Store path)
+- **Subsystem:** realtime voice / useRealtimeVoice
+- **Bug class:** effect teardown race on callback identity (+ product instability)
+- **Symptom:** Waveform button click appears to do nothing; no overlay or brief flash.
+- **Root cause:** Unmount cleanup `useEffect(() => stop, [stop])` re-ran when caption helpers changed `stop` identity, aborting the session; always-mounted hook amplified the race. Repeated LiveKit/Gateway fixes still left realtime too flaky for App Store first impression.
+- **Smallest safe fix (launch):** Waveform mounts `VoiceButton` → Web Speech dictation; remove in-field duplicate mic; gate `RealtimeVoiceButton` behind `concierge_realtime_voice` (default OFF). Keep realtime code for experimental re-enable.
+- **Prior fix (retained):** `stopRef` + empty-deps unmount cleanup; lazy-mount voice session after tap.
+- **Required tests:** AIConciergeChat.controls asserts waveform → `handleConvoToggle`; realtime only when flag on; RealtimeVoiceButton lazy-mount test retained.
+- **Fixed in:** `AIConciergeChat.tsx`, `AiChatInput.tsx`, `VoiceButton.tsx`, migration `20260711210646_disable_realtime_voice_for_app_store.sql` (July 2026)
+
+## Realtime voice connects then WS fails under meta CSP
+- **Status:** confirmed
+- **Subsystem:** realtime voice / CSP / Vercel AI Gateway
+- **Bug class:** policy drift between `index.html` meta CSP and `vercel.json` header CSP
+- **Symptom:** Waveform opens / mint may succeed, but browser blocks `wss://ai-gateway.vercel.sh` (and related HTTPS). Controls otherwise look present.
+- **Root cause:** Live `chravel.app` was observed serving meta CSP only (no HTTP CSP header). Meta `connect-src` listed Lovable gateway but omitted `https://ai-gateway.vercel.sh` and `wss://ai-gateway.vercel.sh` even though `vercel.json` already allowed them. Multiple CSPs intersect — the stricter meta blocked the session.
+- **Smallest safe fix:** Keep meta and header CSP in lockstep; add both AI Gateway hosts to `index.html` `connect-src`.
+- **Required tests:** Document provenance + manual WS check; do not rewrite July 9 control fixes.
+- **Fixed in:** `index.html` (July 2026 recovery)
+- **Also check:** TestFlight may still be stale if `chravel-mobile` bundles frozen `dist` instead of loading `https://chravel.app`.
+
+## Stream chat iMessage polish: attachments + grouping silently no-op
+- **Status:** fixed
+- **Subsystem:** chat / Stream adapters / VirtualizedMessageContainer
+- **Bug class:** field-name / adapter shortlist mismatch
+- **Symptom:** Lovable Phase 1–4 UI looked correct in isolation, but live Stream chat never grouped bubbles (always showSenderInfo), mosaics never formed (one image max / separate messages), voice notes rendered as filename text or nothing, and "Delivered" ticks never appeared.
+- **Root cause:** (1) `buildStreamMessageViewModels` collapsed Stream `attachments` to first `mediaType`/`mediaUrl` only. (2) Grouping read `sender_id`/`user_id` while Stream VMs expose `sender.id`. (3) `shareMultipleFiles` posted one message per image. (4) Voice notes uploaded as plain `file` without mime/duration/waveform. (5) `MessageBubble` only mounted `ReadReceipts` when `readStatuses.length > 0`, making Delivered unreachable.
+- **Smallest safe fix:** Map full attachments (incl. audio metadata) in the Stream VM; resolve sender via `sender.id`; batch multi-image sends; `shareVoiceNote` with typed audio attachment; mount receipts for all sent own messages; skip single-media path when attachments exist.
+- **Required tests:** streamMessageViewModel mosaic/audio/document mapping; VirtualizedMessageContainer grouping on `sender.id`; ReadReceipts Delivered vs gold; streamMessagePayload voice metadata preserve.
+- **Fixed in:** `streamMessageViewModel.ts`, `VirtualizedMessageContainer.tsx`, `useShareAsset.ts`, `MessageBubble.tsx`, `ChatInput.tsx`, `streamMessagePayload.ts` (July 2026)

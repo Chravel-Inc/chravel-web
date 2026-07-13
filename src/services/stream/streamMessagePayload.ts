@@ -64,23 +64,50 @@ const normalizeAttachment = (attachment: unknown): UnknownRecord | null => {
 
   if (!assetUrl) return null;
 
-  return {
+  const normalized: UnknownRecord = {
     type,
     asset_url: assetUrl,
     title: typeof row.title === 'string' ? row.title : undefined,
   };
+
+  // Preserve voice-note metadata so receivers can render waveform/duration.
+  if (typeof row.mime_type === 'string') normalized.mime_type = row.mime_type;
+  if (typeof row.mimeType === 'string' && !normalized.mime_type) {
+    normalized.mime_type = row.mimeType;
+  }
+  if (typeof row.duration_ms === 'number') normalized.duration_ms = row.duration_ms;
+  if (typeof row.durationMs === 'number' && normalized.duration_ms === undefined) {
+    normalized.duration_ms = row.durationMs;
+  }
+  if (Array.isArray(row.waveform)) normalized.waveform = row.waveform;
+  if (typeof row.ref_id === 'string') normalized.ref_id = row.ref_id;
+
+  return normalized;
 };
+
+function attachmentAssetUrl(attachment: UnknownRecord): string | null {
+  const assetUrl = typeof attachment.asset_url === 'string' ? attachment.asset_url : null;
+  const url = typeof attachment.url === 'string' ? attachment.url : null;
+  return assetUrl || url;
+}
 
 function buildAttachments(input: BuildTripStreamPayloadInput): UnknownRecord[] {
   const normalized = (input.attachments || [])
     .map(normalizeAttachment)
     .filter((value): value is UnknownRecord => Boolean(value));
 
+  // Callers often pass both mediaUrl (legacy single-media field) and attachments[].
+  // Skip mediaUrl when that URL is already represented so mosaics/voice notes stay 1:1.
   if (input.mediaUrl) {
-    normalized.push({
-      type: input.mediaType || 'file',
-      asset_url: input.mediaUrl,
-    });
+    const alreadyPresent = normalized.some(
+      attachment => attachmentAssetUrl(attachment) === input.mediaUrl,
+    );
+    if (!alreadyPresent) {
+      normalized.push({
+        type: input.mediaType || 'file',
+        asset_url: input.mediaUrl,
+      });
+    }
   }
 
   if (input.linkPreview?.url) {
@@ -101,8 +128,16 @@ export function buildTripStreamMessagePayload(
 ): BuildTripStreamPayloadResult | BuildTripStreamPayloadError {
   const normalizedContent = input.content.trim();
 
-  if (!normalizedContent) return { ok: false, error: 'empty_content' };
   if (normalizedContent.length > 4000) return { ok: false, error: 'content_too_long' };
+
+  // Build attachments FIRST: a photo/video/document (or a link preview) can be sent with no
+  // caption. Previously empty content was rejected before attachments were considered, so
+  // caption-less media uploaded to storage but never posted a chat message and the user saw
+  // a misleading "connection unavailable" error. Only reject when there is nothing to send.
+  const attachments = buildAttachments(input);
+  if (!normalizedContent && attachments.length === 0) {
+    return { ok: false, error: 'empty_content' };
+  }
 
   const payload: Record<string, unknown> = {
     text: normalizedContent,
@@ -132,7 +167,6 @@ export function buildTripStreamMessagePayload(
     payload.idempotency_key = input.idempotencyKey;
   }
 
-  const attachments = buildAttachments(input);
   if (attachments.length > 0) {
     payload.attachments = attachments;
   }

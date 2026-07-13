@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, cleanup } from '@testing-library/react';
 import { AIConciergeChat } from '../AIConciergeChat';
 import { conciergeCacheService } from '../../services/conciergeCacheService';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -19,6 +19,20 @@ const conciergeHistoryState = vi.hoisted(() => ({
   data: [] as unknown[],
   isLoading: false,
   error: null as unknown,
+}));
+
+const conciergeSearchState = vi.hoisted(() => ({
+  results: [] as unknown[],
+  isLoading: false,
+}));
+
+const realtimeVoiceMock = vi.hoisted(() => ({
+  start: vi.fn(),
+  stop: vi.fn(),
+}));
+
+const featureFlagState = vi.hoisted(() => ({
+  realtimeVoiceEnabled: false,
 }));
 
 // Mock dependencies
@@ -66,21 +80,21 @@ vi.mock('../../hooks/useConciergeUsage', () => ({
   useConciergeUsage: () => ({
     usage: {
       used: 5,
-      limit: 10,
-      remaining: 5,
+      limit: 25,
+      remaining: 20,
       isLimitReached: false,
       plan: 'explorer',
     },
     refreshUsage: vi.fn().mockResolvedValue({
       used: 5,
-      limit: 10,
-      remaining: 5,
+      limit: 25,
+      remaining: 20,
       isLimitReached: false,
       plan: 'explorer',
     }),
     getUsageStatus: () => ({
       status: 'ok',
-      message: '5/10 Asks',
+      message: '20/25 Asks',
       color: 'text-green-500',
     }),
     incrementUsageOnSuccess: vi.fn(),
@@ -134,6 +148,37 @@ vi.mock('../../contexts/BasecampContext', () => ({
   }),
 }));
 
+vi.mock('@/features/concierge/hooks/useRealtimeVoice', () => ({
+  useRealtimeVoice: () => ({
+    phase: 'idle',
+    isActive: false,
+    isCapturing: false,
+    isPlaying: false,
+    errorMessage: null,
+    turns: [],
+    latestUserText: '',
+    latestAssistantText: '',
+    start: realtimeVoiceMock.start,
+    stop: realtimeVoiceMock.stop,
+  }),
+}));
+
+vi.mock('@/hooks/useUniversalSearch', () => ({
+  useUniversalSearch: () => conciergeSearchState,
+}));
+
+vi.mock('@/lib/featureFlags', () => ({
+  useFeatureFlag: (key: string, defaultValue = true) => {
+    if (key === 'concierge_realtime_voice') return featureFlagState.realtimeVoiceEnabled;
+    return defaultValue;
+  },
+  useFeatureFlagStatus: (key: string, defaultValue = true) => ({
+    enabled:
+      key === 'concierge_realtime_voice' ? featureFlagState.realtimeVoiceEnabled : defaultValue,
+    isPending: false,
+  }),
+}));
+
 describe('AIConciergeChat', () => {
   let queryClient: QueryClient;
 
@@ -143,6 +188,11 @@ describe('AIConciergeChat', () => {
     conciergeHistoryState.data = [];
     conciergeHistoryState.isLoading = false;
     conciergeHistoryState.error = null;
+    conciergeSearchState.results = [];
+    conciergeSearchState.isLoading = false;
+    featureFlagState.realtimeVoiceEnabled = false;
+    realtimeVoiceMock.start.mockClear();
+    realtimeVoiceMock.stop.mockClear();
     queryClient = new QueryClient({
       defaultOptions: {
         queries: {
@@ -153,6 +203,14 @@ describe('AIConciergeChat', () => {
   });
 
   afterEach(() => {
+    // Unmount the component tree first so effect cleanups (status-watchdog
+    // timers) run, then drop every query in the client. TanStack Query schedules
+    // a gcTime timer (default 5 min) for each query the concierge hooks activate;
+    // left pending, those timers keep the vitest forks worker's event loop alive
+    // long past any teardown window and surface as the intermittent
+    // "Timeout terminating forks worker for AIConciergeChat.test.tsx" flake.
+    cleanup();
+    queryClient.clear();
     vi.restoreAllMocks();
   });
 
@@ -161,19 +219,110 @@ describe('AIConciergeChat', () => {
   };
 
   describe('Header Simplification', () => {
-    it('always renders the dictation microphone button in the input area', async () => {
+    it('renders the Concierge controls in one mobile-safe header row', async () => {
       renderWithProviders(<AIConciergeChat tripId="test-trip" />);
 
-      // The microphone button has been moved to the input area, so it should not appear in the header
-      await waitFor(() => {
-        expect(screen.getByLabelText(/tap to dictate/i)).toBeInTheDocument();
-      });
+      expect(screen.getByLabelText(/search trip/i)).toBeInTheDocument();
+      expect(screen.getByTestId('ai-concierge-header')).toHaveTextContent(
+        'Concierge Chravel Agent',
+      );
+      expect(screen.queryByText(/Concierge AI/i)).not.toBeInTheDocument();
+      expect(screen.getByLabelText(/attach files to concierge/i)).toBeInTheDocument();
     });
 
-    it('does not render the live voice CTA when duplex live voice is disabled (default)', () => {
+    it('opens trip search from the header search button', () => {
       renderWithProviders(<AIConciergeChat tripId="test-trip" />);
+
+      fireEvent.click(screen.getByLabelText(/search trip/i));
+
+      expect(screen.getByPlaceholderText(/search across trip/i)).toBeInTheDocument();
+    });
+
+    it('navigates to the selected search result tab', () => {
+      const onTabChange = vi.fn();
+      conciergeSearchState.results = [
+        {
+          id: 'task-1',
+          contentType: 'task',
+          tripId: 'test-trip',
+          tripName: 'Trip',
+          title: 'Pack sunscreen',
+          snippet: 'Beach day task',
+          matchScore: 0.9,
+          deepLink: '/trip/test-trip#task-task-1',
+        },
+      ];
+
+      renderWithProviders(<AIConciergeChat tripId="test-trip" onTabChange={onTabChange} />);
+
+      fireEvent.click(screen.getByLabelText(/search trip/i));
+      fireEvent.click(screen.getByText(/Pack sunscreen/i));
+
+      expect(onTabChange).toHaveBeenCalledWith('tasks');
+    });
+
+    it('stages files selected from the header upload button', () => {
+      renderWithProviders(<AIConciergeChat tripId="test-trip" />);
+
+      const file = new File(['reservation'], 'hotel.pdf', { type: 'application/pdf' });
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+      expect(input).toBeTruthy();
+      // Label association is required for reliable iOS/WKWebView file-picker activation.
+      expect(input.id).toBeTruthy();
+      const uploadLabel = screen.getByTestId('header-upload-btn');
+      expect(uploadLabel.getAttribute('for')).toBe(input.id);
+      fireEvent.change(input, { target: { files: [file] } });
+
+      expect(screen.getByText('hotel.pdf')).toBeInTheDocument();
+    });
+
+    it('keeps Search open while the Concierge tab remains active', () => {
+      const { rerender } = renderWithProviders(<AIConciergeChat tripId="test-trip" isActive />);
+
+      fireEvent.click(screen.getByLabelText(/search trip/i));
+      expect(screen.getByPlaceholderText(/search across trip/i)).toBeInTheDocument();
+
+      // Re-render with isActive still true must not auto-close Search.
+      rerender(
+        <QueryClientProvider client={queryClient}>
+          <AIConciergeChat tripId="test-trip" isActive />
+        </QueryClientProvider>,
+      );
+      expect(screen.getByPlaceholderText(/search across trip/i)).toBeInTheDocument();
+    });
+
+    it('closes Search when the Concierge tab becomes inactive', () => {
+      const { rerender } = renderWithProviders(<AIConciergeChat tripId="test-trip" isActive />);
+
+      fireEvent.click(screen.getByLabelText(/search trip/i));
+      expect(screen.getByPlaceholderText(/search across trip/i)).toBeInTheDocument();
+
+      rerender(
+        <QueryClientProvider client={queryClient}>
+          <AIConciergeChat tripId="test-trip" isActive={false} />
+        </QueryClientProvider>,
+      );
+
+      expect(screen.queryByPlaceholderText(/search across trip/i)).not.toBeInTheDocument();
+    });
+
+    it('renders the waveform dictation CTA as the composer left control by default', () => {
+      renderWithProviders(<AIConciergeChat tripId="test-trip" />);
+
+      expect(screen.getByTestId('concierge-waveform-dictation-btn')).toBeInTheDocument();
+      expect(screen.getByLabelText(/dictate a message/i)).toBeInTheDocument();
+      expect(screen.queryByTestId('concierge-dictation-btn')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('realtime-voice-button')).not.toBeInTheDocument();
+    });
+
+    it('does not start realtime voice from the waveform button on the App Store path', () => {
+      renderWithProviders(<AIConciergeChat tripId="test-trip" />);
+
+      fireEvent.click(screen.getByTestId('concierge-waveform-dictation-btn'));
+
+      expect(realtimeVoiceMock.start).not.toHaveBeenCalled();
       expect(
-        screen.queryByRole('switch', { name: /start live voice session/i }),
+        screen.queryByRole('button', { name: /start voice conversation/i }),
       ).not.toBeInTheDocument();
     });
 

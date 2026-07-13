@@ -39,7 +39,7 @@ import { openOrDownloadBlob } from '../utils/download';
 import { orderExportSections } from '../utils/exportSectionOrder';
 import type { ExportSection } from '../types/tripExport';
 import { getDemoTripCoverFallback } from '@/data/demoTripCoverFallbacks';
-import { buildCoverBackgroundImage } from '@/utils/coverImageStyle';
+import { OptimizedImage } from './OptimizedImage';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -88,6 +88,7 @@ export const ProTripCard = ({
   // Get color for this trip - uses saved color if available, otherwise deterministic fallback
   const tripColor = getProTripColor(trip.id, (trip as any).card_color);
   const coverPhoto = (trip as { coverPhoto?: string }).coverPhoto;
+  const coverFit = trip.coverDisplayMode === 'contain' ? 'contain' : 'cover';
   const demoCoverFallback = isDemoMode ? getDemoTripCoverFallback(trip.id) : undefined;
 
   // Get added members from the demo store
@@ -333,9 +334,14 @@ export const ProTripCard = ({
       <div className="trips-card-hero relative bg-white/30 dark:bg-black/40">
         {/* Cover photo overlay if available */}
         {coverPhoto && (
-          <div
-            className="absolute inset-0 bg-cover bg-center opacity-25"
-            style={buildCoverBackgroundImage(coverPhoto, demoCoverFallback)}
+          <OptimizedImage
+            src={coverPhoto}
+            alt={`${trip.title} cover`}
+            fallbackSrc={demoCoverFallback}
+            lazy
+            fit={coverFit}
+            showBlurBackdrop={coverFit === 'contain'}
+            className={`absolute inset-0 ${coverFit === 'contain' ? 'opacity-80' : 'opacity-25'}`}
           />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-white/50 via-transparent to-transparent dark:from-black/70 dark:via-black/30 dark:to-transparent" />
@@ -511,7 +517,6 @@ export const ProTripCard = ({
         onClose={() => setShowInviteModal(false)}
         tripName={trip.title}
         proTripId={trip.id}
-        tripType="pro"
       />
 
       <ShareTripModal

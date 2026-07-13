@@ -54,6 +54,9 @@ Message loss between disconnect and reconnect is the most common chat bug — ba
 - Read-receipt and reaction hooks must no-op when the channel is unavailable.
 - Unread badge splits must not override Stream's total unread when history is partial.
 - Keep Stream channel state and role-channel state as separate identifiers in mixed UIs.
+- Presentation features that need `attachments[]` (mosaic, voice notes) must map the full Stream attachment list in `streamMessageViewModel` — collapsing to first `mediaUrl` silently kills multi-media UX.
+- Message grouping must resolve sender via `sender.id` (Stream view models), not only legacy `sender_id`/`user_id`.
+- Sticky overlays over virtualized lists must compare derived values by primitive (timestamp/id) before setState — `setState(new Date(sameTs))` infinite-loops because Date identity changes every render.
 
 ### Keep shared chat mutations (pin/unpin, edit, delete) inside the shared hook, not UI surfaces
 Trips/Pro Trips/Events should all call the same `togglePin` from `useStreamTripChat` — UI components should never run their own client-level Stream mutations.
@@ -118,6 +121,10 @@ Voice model string drifts silently; assert it equals the canonical literal in CI
 
 ---
 
+
+### Release gates must bound long-running suites with explicit timeouts
+Full-suite Vitest can hang without reporting failures; release gates should fail closed with a configurable timeout and require focused follow-up instead of running indefinitely. Evidence: App Store QA gate timed out `npm run test:run` at 180s on 2026-07-13 while focused feature suites passed.
+
 ## Auth, Permissions, Payments
 
 ### Permission model varies by trip type: consumer open · pro role-based · event organizer-only
@@ -132,6 +139,9 @@ If you write `if (isMockId)` to enable a feature, you've disabled it for product
 ### Installed-app OAuth requires in-app browser tab + Universal Link callback
 Web flow re-opens the app via Universal Link; the AASA must list every short path used in production.
 
+### Native Sign in with Apple (id-token) beats the browser OAuth round-trip on iOS/iPad
+The SFSafariViewController + Universal-Link OAuth round-trip can strand iPad users after they authenticate (App Review 2.1(a) "did not proceed to next page"). When the native shell exposes `window.ChravelNative.signInWithApple()` (native ASAuthorization → `{ identityToken, rawNonce, authorizationCode }`), authenticate via `supabase.auth.signInWithIdToken({ provider:'apple', token, nonce: rawNonce })` — pass the RAW unhashed nonce (the shell sends `SHA256(nonce)` to Apple). Keep the web OAuth flow as the byte-for-byte fallback: the helper returns `{ handled:false }` when the bridge is absent, throws, or returns an incomplete credential. *Evidence: `src/utils/nativeAppleSignIn.ts`; PR #746.*
+
 ### OAuth callbacks should preserve same-origin session context via signed redirect state
 Don't trust the redirect URI off the query string — sign it into state and verify server-side.
 
@@ -140,6 +150,9 @@ Logged-in ≠ authorized.
 
 ### Keep founder/super-admin bypass identity in one shared module across edge functions
 Drift between edge functions creates inconsistent privilege grants.
+
+### Apple token revocation (5.1.1(v)) differs by sign-in path
+Web OAuth puts a `provider_refresh_token` on the session only on the INITIAL `SIGNED_IN` (capture it then). Native id-token sign-in carries no refresh token — only a one-time `authorizationCode`; `captureAppleRefreshToken` no-ops for native users, so forward the code to `store-apple-token` for a server-side exchange (which needs the Apple `.p8` client secret). Account deletion must revoke the grant regardless of which path the user signed in through. *Evidence: `src/hooks/auth/captureAppleToken.ts`; PR #746.*
 
 ### Enforce payment SDK boundary: RevenueCat for iOS, Stripe for web
 Subscription checks should branch on platform; mixing creates double-charge / mismatched entitlement risk.
@@ -192,6 +205,12 @@ A UI-only kill switch leaves the service path callable.
 
 ### Keep OG proxy rewrites on share entry paths only
 Don't rewrite SPA destination paths — preview metadata leaks into the live app.
+
+### Scope idempotency/dedupe keys to the specific event row, not a broader identity
+A dedupe key on `trip_id:user_id` for join-request notifications silently swallowed every future notification once one request had ever been made — including the exact re-request a 24h rejection cooldown is designed to allow. Key on the request/event's own id instead; that still dedupes accidental repeat-insert attempts for the *same* event without blocking legitimate new ones. *Evidence: July 2026 invite flow audit, `supabase/functions/join-trip/index.ts` fanout_event_key.*
+
+### A proxy must forward the upstream's Cache-Control, not apply a blanket policy
+When a proxy edge function sets its own `Cache-Control` unconditionally, it can override an upstream's deliberate `no-store` on error/negative responses (expired/revoked/not-found), letting the CDN cache a stale negative result. Read `upstream.headers.get('cache-control')` and only fall back to a default when absent. *Evidence: July 2026 invite flow audit, `api/invite-preview.ts`.*
 
 ### OG/share proxy endpoints must fail over to HTML redirect pages when upstream returns JSON
 Crawlers expect HTML; a JSON 500 prevents Universal Link interception.
@@ -320,7 +339,10 @@ Edge function CI does not cover LiveKit / external agents; ship them through a d
 Build can pass while `validate` (lint:budget + format:check + schema-drift + env coverage) catches the real blockers.
 
 ### Prettier `format:check` runs repo-wide in CI; the auto-format workflow only touches PR-modified files
-Inherited unformatted files in `main` fail Static Checks on every new PR until manually formatted. *Evidence: PR #585.*
+Inherited unformatted files in `main` fail Static Checks on every new PR until manually formatted — even files the PR never touched. Reproduce with `npm run format:check`, fix with `prettier --write` using the repo's pinned version (so output matches CI), and land it as a separate `chore:` commit; expect touching those shared files to widen Cross-PR File Overlap with other open PRs. *Evidence: PR #585; PR #746 inherited 21 unformatted files byte-identical to `main` (proved via `git diff origin/main`).*
+
+### "Unit Tests (Vitest)" is an aggregate gate — a red shard is usually a forks-worker teardown flake, not an assertion
+The aggregate job only rolls up the shard matrix (`result="failure"` → exit 1); open the specific shard log to diagnose. `[vitest-pool]: Timeout terminating forks worker for <file>` printed AFTER the coverage table means the tests passed and the pool failed to tear a worker down in time — a flake a re-run clears, not a real failure. The Codecov "Token required - not valid tokenless upload" line is a separate non-failing `if: always()` step. *Evidence: PR #746 — shard 4 flaked on `AIConciergeChat.test.tsx`, passed on re-run.*
 
 ### Split flaky E2E from required PR gates and reuse build artifacts
 E2E should be advisory or scheduled, not blocking.
@@ -433,3 +455,66 @@ Overlapping `vitest run` invocations (and stray `pkill -f vitest`) produce misle
 When `useIsMobile()` intentionally includes tablets / mobile webviews up to 1024px, landscape phones like 844×390 remain on the mobile branch and will not receive desktop Tailwind grid classes. For Trips-style card grids, add a CSS orientation media query on a stable grid class instead of branching in React; this preserves mobile-specific wrappers such as swipe rows while still using landscape width efficiently. Also pair fixed bottom tab bars with content-level `padding-bottom: calc(tab-bar-height + env(safe-area-inset-bottom) + buffer)` because a spacer rendered after content does not always protect the last card's in-card actions during short landscape scrolls.
 ### Mobile reorder entry should be explicit, not long-press-only
 Long-press drag activation on iOS/webview conflicts with scroll, context gestures, and exit discoverability. Prefer a visible card/menu action that enters a scoped reorder mode, disables competing swipe/action surfaces while active, and provides a tap/Done exit path with persistence rollback on save failure. Evidence: Trips dashboard Move Trip flow now uses overflow-menu entry plus existing `dashboard_card_order` persistence instead of wrapper-level long-press activation.
+
+### Play Console native warnings require the artifact-producing native source
+When Google Play reports Android framework/library callsites, first verify the checked-out repo contains the native project that produced the AAB; otherwise add a release gate/runbook rather than making web-only changes that cannot affect the artifact.
+
+### App Review compliance paths must be directly discoverable, not merely present
+For account deletion, having a backend/RPC and a nested settings flow is insufficient if reviewers cannot find it quickly; expose the action from the obvious signed-in account/profile row and keep it routed to the same canonical deletion flow. *Evidence: June 17, 2026 App Review 5.1.1(v) remediation added Profile → Account → Delete Account as a direct entry point while preserving ConsumerGeneralSettings as the single deletion flow.*
+
+### App Store rejection fixes for the native shell live in chravel-mobile, not chravel-web
+`chravel-web` is only the WebView payload; the iOS binary, `Info.plist` (`UIBackgroundModes` — e.g. background-audio under Guideline 2.5.4), entitlements, and Associated Domains live in the separate `chravel-mobile` Expo/EAS repo. chravel-web owns only the AASA file (`public/.well-known/apple-app-site-association`), the Supabase OAuth flow, and the `window.ChravelNative` bridge contract (`src/utils/nativeBridge.ts`). Before "fixing" an App Store rejection here, confirm which repo owns the artifact — most native-config rejections cannot be resolved from chravel-web and need a chravel-mobile change plus an App Store Connect reply. *Evidence: June 2026 2.5.4 + 2.1(a) rejection; PR #746 shipped the web half (native id-token path), native config deferred to chravel-mobile.*
+
+### Stream message search text must use the SDK query string path
+`channel.search('term', options)` triggers Stream full-text search; `channel.search({ text: 'term' }, options)` is a message-filter path and can miss normal chat body text like “join this trip”.
+
+### Demo mode flags must not override real entity identity
+When a flow has both a demo-mode flag and a production UUID/entity ID, classify the entity first; stale local demo state must never route real-user writes or share links into mock/demo paths.
+
+### Subscription marketing copy must be enforced by entitlement parity tests
+When pricing cards advertise limits or role/channel access, assert those claims against `BILLING_PRODUCTS`, `FEATURE_LIMITS`, and `FREEMIUM_LIMITS` together so display copy cannot drift from actual gates.
+
+### AI quota copy must be changed in both client and edge limit maps
+Concierge query caps are duplicated across UI copy, client helpers, and Supabase edge usage policy; changing a free/paid quota requires grep-driven updates plus parity tests for `FEATURE_LIMITS`, `FREEMIUM_LIMITS`, and `CONCIERGE_TRIP_QUERY_LIMITS`.
+
+## Design System & Theme
+
+### Fix light-mode regressions at semantic tokens before screen-level patches
+When light mode feels muddy across many surfaces, repair `background/card/popover/surface/ink/input/border/ring` tokens and shared primitives first; one-off page colors multiply inconsistencies and miss PWA safe-area/toast/modal surfaces.
+### Landing scroll reveals: use positive rootMargin + idle chunk prefetch, never negative-margin whileInView on full-viewport sections
+`whileInView` with negative viewport margins (`margin: '-40px'`) on the marketing landing left fast scrollers (PgDn / nav-dot jumps) staring at fully blank pre-reveal sections — on the black theme this reads as a full-screen gap between sections. Fix pattern: positive bottom rootMargin (`'0px 0px 25% 0px'`) so reveals start before entry, plus `requestIdleCallback` prefetch of all lazy section chunks in `FullPageLanding` so Suspense's `min-h-screen` SectionLoader never appears mid-scroll. *Evidence: July 2026 homepage redesign — video review flagged a viewport-height black gap at the features/use-cases seam; both fixes together eliminated it.*
+
+### [data-marketing] typography must be opt-in classes, not bare element/sibling selectors
+A bare `[data-marketing] h2 + p { font-weight: 300; margin: auto; max-width: 64ch }` rule leaked into every marketing-shell surface: pricing gold chips (bold black-on-gold subline dropped to weight 300) and blog articles (byline + first paragraph of each section restyled/centered). Marketing landing typography treatments should use opt-in classes (`.marketing-lede`, `.no-display-serif`, `.no-text-shadow`) because `MarketingApp` wraps /blog and /use-cases in the same `data-marketing` scope as the landing. *Evidence: July 2026 homepage redesign semantic review findings 1–2.*
+
+### computer-use mobile QA: confirm device emulation actually applied before trusting results
+A computer-use pass reported "hamburger menu missing at 390px" because DevTools device toolbar wasn't actually active — the screenshots were still 1440px desktop rendering. Before acting on mobile QA findings, verify the screenshot content is genuinely narrow/single-column (or have the agent confirm the Dimensions bar reads the target size). *Evidence: July 2026 homepage redesign QA — retest with confirmed iPhone 12 Pro emulation showed the `lg:hidden` hamburger working correctly.*
+
+### Kill-switch defaults must match product-critical shipped controls
+If a visible primary control is meant to work by default, do not gate its mounted handler behind a `false` feature-flag fallback; use the flag only as a remote kill switch so missing flag rows do not turn production UI into a no-op.
+
+### Concierge Search auto-closes when isActive is stale from tab render deps
+`renderTabContent` that computes `isActive={activeTab === tabId}` must list `activeTab` in its `useCallback` deps. Omitting it freezes Concierge at `isActive=false` after first visit, and the inactive effect immediately closes Search / cancels conversation mode — Search looks dead. *Evidence: July 2026 Concierge controls repair; MobileTripTabs.navigation regression asserts live isActive=true.*
+
+### Realtime voice unmount cleanup must not depend on stop identity
+`useEffect(() => stop, [stop])` aborts a freshly started session when caption helpers change `stop`'s reference across renders. Use a `stopRef` + empty-deps unmount cleanup, and lazy-mount `useRealtimeVoice` only after the waveform tap. *Evidence: July 2026 Concierge waveform no-op fix.*
+
+### App Store Concierge: waveform dictation beats unstable realtime as default
+When a prominent control (waveform) starts bidirectional realtime voice that remains flaky across LiveKit/Gateway iterations, ship Web Speech dictation on that control for launch and keep realtime behind `concierge_realtime_voice` (default OFF). Also remove duplicate in-field mics so Search / Attach / Dictate / Send is one clear mental model. *Evidence: July 2026 App Store simplification — PR waveform→dictation; flag disabled in prod.*
+
+### Chat tabs that filter the in-memory timeline silently lose off-window history
+The Broadcasts and Pinned tabs derived content by filtering the live Stream window (30 loaded / 250 retained), so anything older vanished from the tab while the unread badge (computed elsewhere) still counted it. Fix pattern: on tab activation, fetch tab-specific history server-side (`channel.search({message_type:{$eq:'broadcast'}})`, `channel.getPinnedMessages`) and merge under the live window with live-wins dedupe; always degrade to the window filter on fetch failure. Also keep every classifier for the same concept on ONE predicate — `isBroadcast` used `message_type` only while the badge also matched `privacy_mode`, which is exactly how "badge shows 3, tab shows empty" happens. *Evidence: July 2026 Stream chat hardening — user screenshots of empty Broadcasts tab with nonzero badge on a PRO trip.*
+
+### Full-screen error cards must never replace already-loaded chat history
+TripChat swapped the whole timeline for a "Something went wrong" card whenever `chatError` was set — even when 250 messages were already hydrated, making users think their chats were deleted. Gate terminal error/loading UI on `messages.length === 0`; with history present, render a slim retry banner above the preserved list. *Evidence: July 2026 chat-tabs fix; TripChat.renderPath regression test "keeps loaded history visible behind a retry banner".*
+
+### pg_cron service-role bearer via app.settings GUC is silently broken if never provisioned
+Every cron job here builds `Authorization: Bearer ' || current_setting('app.settings.service_role_key', true)`, but that GUC was never set at database/role/vault level — so the header is empty, verifyCronAuth 401s, and jobs fail forever with zero user-visible signal (dispatch-notification-deliveries: 2880/2880 failures over 2 days; one job also had `... || '"}'::jsonb` binding the cast to the bare literal → JSON parse error). Before scheduling any cron that calls an edge function, verify the GUC actually resolves (`SELECT current_setting('app.settings.service_role_key', true)`) and check `cron.job_run_details` for the pattern you're copying. *Evidence: July 2026 prod audit SQL against cron.job_run_details.*
+### Meta CSP and vercel.json CSP must both allow AI Gateway hosts
+When production serves a meta CSP (and may omit the HTTP CSP header), `index.html` `connect-src` must include `https://ai-gateway.vercel.sh` and `wss://ai-gateway.vercel.sh` or realtime voice WebSockets fail after mint. Align meta with `vercel.json` whenever gateway hosts change. *Evidence: July 2026 Concierge recovery — live chravel.app meta CSP lacked AI Gateway while vercel.json already listed it.*
+
+### Prove TestFlight web asset provenance before rewriting Concierge controls
+July 9 Search/isActive + realtime lazy-mount fixes were already on `main` and in production `mrex8prk` chunks. Multi-control dead UI on a screenshot matching that chrome is often deployment drift (`chravel-mobile` remote vs bundled) or CSP — not a reason to re-implement working handlers. *Evidence: production chunk markers `header-search-btn` / `mint-realtime-token` present before recovery branch.*
+
+### Launch-critical E2E fixtures need an explicit release-gate mode
+Local Playwright runs can skip authenticated setup when staging secrets or confirmation-free auth are unavailable, but CI/App Store QA must fail instead of reporting green with skipped launch-critical coverage. Centralize the mode flag (`CHRAVEL_E2E_RELEASE_GATE=1`) and throw fixture-step errors (`[E2E fixture step failed: auth|trip creation|membership|pro trip creation] ...`) from shared fixtures so failures identify the broken setup step. *Evidence: July 2026 chat messaging E2E release-gate hardening.*

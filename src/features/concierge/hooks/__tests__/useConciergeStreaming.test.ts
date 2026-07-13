@@ -41,14 +41,14 @@ function createBaseParams(overrides: Partial<Parameters<typeof useConciergeStrea
     streamAbortRef: { current: null },
     setIsTyping: vi.fn(),
     setAiStatus: vi.fn(),
-    incrementUsageOnSuccess: vi.fn(async () => ({ incremented: true })),
+    isLimitReached: false,
+    refreshUsage: vi.fn(async () => undefined),
     buildLimitReachedMessage: vi.fn(() => ({
       id: 'limit',
       type: 'assistant' as const,
       content: 'limit',
       timestamp: new Date().toISOString(),
     })),
-    effectivePreferences: undefined,
     attachedImages: [],
     attachedDocuments: [],
     attachmentIntent: 'smart_import',
@@ -180,6 +180,59 @@ describe('useConciergeStreaming', () => {
     expect(setAiStatus).toHaveBeenCalledWith('timeout');
     expect(setIsTyping).toHaveBeenCalledWith(false);
     expect(abort).toHaveBeenCalled();
+  });
+
+  it('does not call the stream when the per-trip limit is already reached', async () => {
+    const refreshUsage = vi.fn(async () => undefined);
+    const buildLimitReachedMessage = vi.fn(() => ({
+      id: 'limit',
+      type: 'assistant' as const,
+      content: 'limit',
+      timestamp: new Date().toISOString(),
+    }));
+    const { params, getMessages } = createBaseParams({
+      isLimitedPlan: true,
+      isLimitReached: true,
+      refreshUsage,
+      buildLimitReachedMessage,
+    });
+
+    const { result } = renderHook(() => useConciergeStreaming(params));
+
+    await act(async () => {
+      await result.current.handleSendMessage();
+    });
+
+    expect(invokeConciergeStreamMock).not.toHaveBeenCalled();
+    expect(refreshUsage).not.toHaveBeenCalled();
+    expect(buildLimitReachedMessage).toHaveBeenCalledTimes(1);
+    expect(getMessages().some(msg => msg.id === 'limit')).toBe(true);
+  });
+
+  it('refreshes usage after a completed stream for limited plans', async () => {
+    let callbacks: ConciergeStreamCallbacks | null = null;
+    invokeConciergeStreamMock.mockImplementation((_, cb: ConciergeStreamCallbacks) => {
+      callbacks = cb;
+      return { abort: vi.fn() };
+    });
+
+    const refreshUsage = vi.fn(async () => undefined);
+    const { params } = createBaseParams({
+      isLimitedPlan: true,
+      refreshUsage,
+    });
+
+    const { result } = renderHook(() => useConciergeStreaming(params));
+
+    await act(async () => {
+      await result.current.handleSendMessage();
+    });
+
+    await act(async () => {
+      callbacks?.onDone();
+    });
+
+    expect(refreshUsage).toHaveBeenCalledTimes(1);
   });
 
   it('does not replace flight-card-only responses with an error fallback on stream done', async () => {

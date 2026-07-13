@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MoreVertical, Info } from 'lucide-react';
 import { MobileTripTabs } from '../components/mobile/MobileTripTabs';
 import { MobileErrorBoundary } from '../components/mobile/MobileErrorBoundary';
+import { toStableTripId } from '../utils/tripId';
 import { MobileTripInfoDrawer } from '../components/mobile/MobileTripInfoDrawer';
 import { MobileHeaderOptionsSheet } from '../components/mobile/MobileHeaderOptionsSheet';
 import { DemoTripBar } from '../components/demo/DemoTripBar';
@@ -31,6 +32,7 @@ import { demoModeService } from '../services/demoModeService';
 import { toast } from 'sonner';
 import { buildTripPreviewLink } from '@/lib/unfurlConfig';
 import { usePendingActions } from '../hooks/usePendingActions';
+import { TripRealtimeHubMount } from '@/components/trip/TripRealtimeHubMount';
 
 export const MobileProTripDetail = () => {
   const { proTripId } = useParams();
@@ -408,7 +410,11 @@ export const MobileProTripDetail = () => {
   }
 
   const trip = {
-    id: parseInt(tripData.id) || 0, // Fallback for numeric ID
+    // Trip IDs are UUIDs. The old `parseInt(tripData.id) || 0` yielded 0 for a UUID and
+    // corrupted the id passed to the Trip Details drawer's TripHeader — its child hooks
+    // (useTripMembers, cover upload, join requests) then queried trip_id "0" and showed
+    // "0 members" / broke cover upload for every pro trip. Keep the real string id.
+    id: toStableTripId(tripData.id),
     title: tripData.title,
     location: tripData.location,
     dateRange: tripData.dateRange,
@@ -433,7 +439,8 @@ export const MobileProTripDetail = () => {
 
   return (
     <MobileErrorBoundary>
-      <div className="flex flex-col h-[100dvh] bg-black overflow-hidden">
+      <TripRealtimeHubMount tripId={proTripId} />
+      <div className="mobile-trip-shell flex flex-col h-[100dvh] bg-black overflow-hidden">
         {/* Mobile Header - Fixed flex item (not sticky) for reliable iOS PWA visibility */}
         <div
           ref={headerRef}
@@ -554,7 +561,6 @@ export const MobileProTripDetail = () => {
           onClose={() => setShowInviteModal(false)}
           tripName={tripData?.title || 'Pro Trip'}
           proTripId={proTripId}
-          tripType="pro"
         />
 
         {/* Delete Trip Confirm Dialog */}

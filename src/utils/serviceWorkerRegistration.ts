@@ -1,4 +1,41 @@
 import { isLovablePreview } from '@/utils/env';
+import { safeReload } from '@/utils/safeReload';
+
+// A controllerchange this soon after boot is treated as the tail end of the current
+// navigation (deploy landed between loads); later ones are mid-session updates.
+export const UPDATE_TAKEOVER_RELOAD_WINDOW_MS = 30_000;
+
+/**
+ * Collapse the post-deploy double reload.
+ *
+ * sw.js uses skipWaiting()+clientsClaim(), so the first navigation after a deploy
+ * still paints the OLD precached shell; the new worker installs and takes control a
+ * few seconds later (`controllerchange`) but nothing re-renders — the user has to
+ * reload a second time (or notice the useSwUpdate toast) to actually get new code.
+ * When that takeover happens right after boot, finish the job with one automatic
+ * reload. First-time installs are skipped (an uncontrolled page came straight from
+ * the network and is already current), as are takeovers outside the boot window
+ * (a mid-session deploy must not yank the page — the toast owns that UX).
+ */
+export const installUpdateTakeoverReload = ({
+  reload = () => void safeReload(),
+  now = () => Date.now(),
+  windowMs = UPDATE_TAKEOVER_RELOAD_WINDOW_MS,
+}: {
+  reload?: () => void;
+  now?: () => number;
+  windowMs?: number;
+} = {}): void => {
+  const bootAt = now();
+  const wasControlledAtBoot = navigator.serviceWorker.controller !== null;
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!wasControlledAtBoot || reloaded) return;
+    if (now() - bootAt > windowMs) return;
+    reloaded = true;
+    reload();
+  });
+};
 
 export const registerServiceWorker = async () => {
   // Don't register SW in Lovable preview environment
@@ -28,6 +65,7 @@ export const registerServiceWorker = async () => {
 
   // Production SW registration
   if ('serviceWorker' in navigator) {
+    installUpdateTakeoverReload();
     try {
       // Derive buildId from env (Render's git commit or VITE_BUILD_ID)
       const buildId =

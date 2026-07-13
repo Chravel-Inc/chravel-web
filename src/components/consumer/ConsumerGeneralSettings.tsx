@@ -1,24 +1,12 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Sun, Moon } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+
 import { toast } from '@/hooks/use-toast';
-import { useDemoMode } from '@/hooks/useDemoMode';
-import { logAuthEvent } from '@/utils/authTelemetry';
 import { useTheme } from '@/hooks/useTheme';
 import { Switch } from '@/components/ui/switch';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { SmartImportSettings } from '@/features/smart-import/components/SmartImportSettings';
 import { BlockedUsersList } from './BlockedUsersList';
+import { DeleteAccountDialog } from './DeleteAccountDialog';
 
 const APP_PREFS_KEY = 'chravel_app_preferences';
 
@@ -47,128 +35,13 @@ function saveAppPreferences(prefs: AppPreferences): void {
 }
 
 export const ConsumerGeneralSettings = () => {
-  const { user, signOut } = useAuth();
-  const { showDemoContent } = useDemoMode();
   const { isDarkMode, toggleTheme } = useTheme();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [confirmText, setConfirmText] = useState('');
-  const [reAuthPassword, setReAuthPassword] = useState('');
-  const [reAuthError, setReAuthError] = useState('');
-  const [deletionScheduledFor, setDeletionScheduledFor] = useState<string | null>(null);
-  const [isCancelling, setIsCancelling] = useState(false);
   const [appPrefs, setAppPrefs] = useState<AppPreferences>(loadAppPreferences);
   const [cacheClearSuccess, setCacheClearSuccess] = useState(false);
 
-  // Check if account deletion is already scheduled
-  useEffect(() => {
-    if (!user || showDemoContent) return;
-    let cancelled = false;
-
-    supabase
-      .rpc('get_account_deletion_status' as never)
-      .then(({ data, error }: { data: unknown; error: unknown }) => {
-        if (cancelled || error) return;
-        const result = data as {
-          pending_deletion?: boolean;
-          scheduled_for?: string;
-          // Legacy shape fallback
-          status?: string;
-          deletion_scheduled_for?: string;
-        } | null;
-        if (result?.pending_deletion && result?.scheduled_for) {
-          setDeletionScheduledFor(result.scheduled_for);
-        } else if (result?.status === 'scheduled' && result?.deletion_scheduled_for) {
-          // Legacy shape fallback
-          setDeletionScheduledFor(result.deletion_scheduled_for);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user, showDemoContent]);
-
-  const handleCancelDeletion = useCallback(async () => {
-    setIsCancelling(true);
-    try {
-      const { error } = await supabase.rpc('cancel_account_deletion' as never);
-      if (error) {
-        toast({
-          title: 'Error',
-          description: 'Failed to cancel deletion. Please contact support.',
-          variant: 'destructive',
-        });
-        return;
-      }
-      logAuthEvent('account_deletion_cancelled');
-      setDeletionScheduledFor(null);
-      toast({
-        title: 'Deletion Cancelled',
-        description: 'Your account deletion has been cancelled. Your account will remain active.',
-      });
-    } catch (err) {
-      toast({
-        title: 'Error',
-        description: 'Failed to cancel deletion. Please contact support at privacy@chravelapp.com',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsCancelling(false);
-    }
-  }, []);
-
-  const handleDeleteAccount = useCallback(async () => {
-    if (confirmText !== 'DELETE' || !reAuthPassword) return;
-    setIsDeleting(true);
-    setReAuthError('');
-    try {
-      // Re-authenticate before scheduling deletion
-      if (user?.email) {
-        const { error: authErr } = await supabase.auth.signInWithPassword({
-          email: user.email,
-          password: reAuthPassword,
-        });
-        if (authErr) {
-          setReAuthError('Incorrect password. Please try again.');
-          setIsDeleting(false);
-          return;
-        }
-      }
-      const { data, error } = await supabase.rpc('request_account_deletion' as never);
-      if (error) {
-        toast({
-          title: 'Error',
-          description: 'Failed to schedule deletion. Please contact privacy@chravelapp.com',
-          variant: 'destructive',
-        });
-        return;
-      }
-      const scheduledFor = (data as { scheduled_for?: string } | null)?.scheduled_for;
-      if (scheduledFor) setDeletionScheduledFor(scheduledFor);
-      logAuthEvent('account_deletion_scheduled' as never);
-      toast({
-        title: 'Deletion scheduled',
-        description: 'Your account will be deleted in 30 days. You can cancel anytime.',
-      });
-      setShowDeleteDialog(false);
-      setConfirmText('');
-      setReAuthPassword('');
-    } catch (err) {
-      toast({
-        title: 'Error',
-        description: 'Failed to schedule deletion. Please contact privacy@chravelapp.com',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsDeleting(false);
-    }
-  }, [confirmText, reAuthPassword, user?.email]);
-
   return (
     <div className="space-y-3">
-      <h3 className="text-2xl font-bold text-white">General Settings</h3>
-
       {/* Appearance */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
         <h4 className="text-base font-semibold text-white mb-3">Appearance</h4>
@@ -314,33 +187,14 @@ export const ConsumerGeneralSettings = () => {
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
         <h4 className="text-base font-semibold text-white mb-3">Account Management</h4>
         <div className="space-y-3">
-          {deletionScheduledFor && (
-            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-              <div className="text-red-300 font-medium text-sm mb-1">
-                Account Deletion Scheduled
-              </div>
-              <div className="text-gray-400 text-xs mb-2">
-                Your account will be permanently deleted on{' '}
-                {new Date(deletionScheduledFor).toLocaleDateString()}. All data will be removed.
-              </div>
-              <button
-                onClick={handleCancelDeletion}
-                disabled={isCancelling}
-                className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
-              >
-                {isCancelling ? 'Cancelling...' : 'Cancel Deletion'}
-              </button>
-            </div>
-          )}
           <button
             onClick={() => setShowDeleteDialog(true)}
-            disabled={!!deletionScheduledFor}
-            className="w-full flex items-center justify-between p-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-between p-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-lg transition-colors"
           >
             <div className="text-left">
               <div className="text-red-400 font-medium">Delete Account</div>
               <div className="text-sm text-gray-400">
-                Permanently delete your account and all data
+                Permanently delete your account and all data immediately
               </div>
             </div>
             <div className="text-red-400">Delete</div>
@@ -372,76 +226,7 @@ export const ConsumerGeneralSettings = () => {
       </div>
 
       {/* Account Deletion Confirmation Dialog */}
-      <AlertDialog
-        open={showDeleteDialog}
-        onOpenChange={open => {
-          setShowDeleteDialog(open);
-          if (!open) {
-            setReAuthPassword('');
-            setReAuthError('');
-          }
-        }}
-      >
-        <AlertDialogContent className="bg-gray-900 border border-red-500/30">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-red-400">Delete Your Account?</AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-300 space-y-3">
-              <p>
-                Your account will be scheduled for deletion in <strong>30 days</strong>. After that,
-                the following will be permanently removed:
-              </p>
-              <ul className="list-disc list-inside text-sm space-y-1">
-                <li>Your profile and personal information</li>
-                <li>All trips you've created</li>
-                <li>Your messages and media uploads</li>
-                <li>Your subscription and payment history</li>
-              </ul>
-              <p className="text-sm text-gray-400">
-                You can cancel this within 30 days from Settings.
-              </p>
-              <p className="pt-2">
-                To confirm, type <strong>DELETE</strong> below:
-              </p>
-              <input
-                type="text"
-                value={confirmText}
-                onChange={e => setConfirmText(e.target.value.toUpperCase())}
-                placeholder="Type DELETE to confirm"
-                className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/50"
-                disabled={isDeleting}
-              />
-              <p className="pt-2">Enter your password to verify your identity:</p>
-              <input
-                type="password"
-                value={reAuthPassword}
-                onChange={e => {
-                  setReAuthPassword(e.target.value);
-                  setReAuthError('');
-                }}
-                placeholder="Enter your password"
-                className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/50"
-                disabled={isDeleting}
-              />
-              {reAuthError && <p className="text-red-400 text-sm">{reAuthError}</p>}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              disabled={isDeleting}
-              className="bg-gray-700 text-white hover:bg-gray-600"
-            >
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteAccount}
-              disabled={confirmText !== 'DELETE' || !reAuthPassword || isDeleting}
-              className="bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
-            >
-              {isDeleting ? 'Submitting...' : 'Schedule Account Deletion'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteAccountDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog} />
     </div>
   );
 };

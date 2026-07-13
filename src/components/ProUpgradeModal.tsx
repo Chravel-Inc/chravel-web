@@ -4,6 +4,12 @@ import { SUBSCRIPTION_TIERS } from '../types/pro';
 import { useIsMobile } from '../hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
 import { SUBSCRIPTION_TIER_MAP } from '@/constants/stripe';
+import {
+  detectNativeBillingPlatform,
+  isIOSNativeShell,
+  isNativeWebView,
+} from '@/utils/platformDetection';
+import { purchaseProSubscription } from '@/integrations/revenuecat/revenuecatClient';
 import { toast } from 'sonner';
 
 interface ProUpgradeModalProps {
@@ -20,11 +26,40 @@ export const ProUpgradeModal = ({ isOpen, onClose }: ProUpgradeModalProps) => {
 
   if (!isOpen) return null;
 
+  const iosNative = isIOSNativeShell();
+
   const handleStartFreeTrial = async (tier: string) => {
     setIsLoading(true);
     try {
+      const tierKey = SUBSCRIPTION_TIER_MAP[tier as keyof typeof SUBSCRIPTION_TIER_MAP];
+
+      // iOS native shell — Apple IAP via RevenueCat (Guideline 3.1.1)
+      if (iosNative) {
+        // Enterprise tiers require a sales conversation; Starter/Growth are monthly IAPs.
+        if (tierKey === 'pro-enterprise') {
+          toast.info('Contact sales for Enterprise+ pricing.');
+          return;
+        }
+        const proTier = (tierKey as 'pro-starter' | 'pro-growth') || 'pro-starter';
+        const result = await purchaseProSubscription(proTier, 'monthly');
+        if (result.success) {
+          toast.success('ChravelApp Pro activated!');
+          onClose();
+        } else if (result.errorCode === 'CANCELLED') {
+          // silent
+        } else if (!result.supported) {
+          toast.error('In-app purchases are not available on this device.');
+        } else {
+          toast.error(result.error || 'Failed to start purchase.');
+        }
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { tier: SUBSCRIPTION_TIER_MAP[tier as keyof typeof SUBSCRIPTION_TIER_MAP] },
+        body: {
+          tier: tierKey,
+          platform: detectNativeBillingPlatform(navigator.userAgent || '', isNativeWebView()),
+        },
       });
 
       if (error) throw error;
@@ -74,7 +109,7 @@ export const ProUpgradeModal = ({ isOpen, onClose }: ProUpgradeModalProps) => {
             </div>
             <div>
               <h2 className={`font-bold text-white ${isMobile ? 'text-xl' : 'text-3xl'}`}>
-                Upgrade to Chravel Pro
+                Upgrade to ChravelApp Pro
               </h2>
               <p className={`text-gray-400 ${isMobile ? 'text-sm' : ''}`}>
                 Enterprise software for professional trip management
@@ -188,7 +223,9 @@ export const ProUpgradeModal = ({ isOpen, onClose }: ProUpgradeModalProps) => {
         {/* CTA Section */}
         <div className="text-center">
           <div className="text-sm text-gold-light mb-4">
-            14-day free trial • No credit card required • Cancel anytime
+            {iosNative
+              ? 'Subscribe with Apple — billed through your App Store account.'
+              : '14-day free trial • No credit card required • Cancel anytime'}
           </div>
           <div className={`flex justify-center ${isMobile ? '' : ''}`}>
             <button
@@ -198,7 +235,9 @@ export const ProUpgradeModal = ({ isOpen, onClose }: ProUpgradeModalProps) => {
             >
               {isLoading
                 ? 'Processing...'
-                : `Start Free Trial - ${SUBSCRIPTION_TIERS[selectedTier].name}`}
+                : iosNative
+                  ? `Subscribe with Apple - ${SUBSCRIPTION_TIERS[selectedTier].name}`
+                  : `Start Free Trial - ${SUBSCRIPTION_TIERS[selectedTier].name}`}
             </button>
           </div>
         </div>
