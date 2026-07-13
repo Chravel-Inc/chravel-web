@@ -86,9 +86,10 @@ This checklist ensures all environment variables, secrets, API keys, and configu
 
 **✅ Checklist:**
 - [ ] Lovable API account created
-- [ ] `LOVABLE_API_KEY` added to Supabase Edge Functions secrets
-- [ ] Gemini API enabled in Google Cloud Console
+- [ ] `LOVABLE_API_KEY` added to Supabase Edge Functions secrets (required for Concierge read-aloud TTS)
+- [ ] Gemini API enabled in Google Cloud Console / AI Studio
 - [ ] `GEMINI_API_KEY` added to Supabase Edge Functions secrets
+- [ ] Confirmed `concierge-voice-tts` deployed and returns audio (see `docs/ACTIVE/CONCIERGE_READ_ALOUD_TTS.md`)
 - [ ] Rate limits configured
 - [ ] Usage monitoring enabled
 
