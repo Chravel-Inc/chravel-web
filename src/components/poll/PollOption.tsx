@@ -1,5 +1,6 @@
 import React from 'react';
 import { PollOption as PollOptionType } from './types';
+import { Check } from 'lucide-react';
 
 interface PollOptionProps {
   option: PollOptionType;
@@ -9,6 +10,7 @@ interface PollOptionProps {
   onVote: (optionId: string) => void;
   disabled?: boolean;
   isMultiple?: boolean;
+  isLeading?: boolean;
 }
 
 export const PollOption = ({
@@ -20,78 +22,93 @@ export const PollOption = ({
   disabled = false,
   isMultiple = false,
   isLeading = false,
-}: PollOptionProps & { isLeading?: boolean }) => {
+}: PollOptionProps) => {
   const percentage = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
   const isVoted = Array.isArray(userVote) ? userVote.includes(option.id) : userVote === option.id;
   const isSelected = selectedOptions.includes(option.id);
+  const interactive = !disabled || isMultiple;
 
   return (
     <button
       onClick={() => onVote(option.id)}
       disabled={disabled && !isMultiple}
-      className={`w-full text-left space-y-1.5 p-2.5 min-h-[44px] rounded-lg transition-colors ${
-        !disabled || isMultiple ? 'cursor-pointer hover:bg-white/5' : 'cursor-default'
-      } ${isSelected ? 'bg-white/5 ring-1 ring-primary/40' : ''} ${isVoted ? 'bg-primary/5' : ''}`}
+      className={[
+        'relative w-full text-left overflow-hidden rounded-xl min-h-[48px] transition-colors',
+        'border border-white/10',
+        interactive
+          ? 'cursor-pointer hover:border-primary/30 hover:bg-white/[0.04]'
+          : 'cursor-default',
+        isSelected ? 'border-primary/50 bg-primary/5' : '',
+        isVoted ? 'border-primary/40 bg-primary/[0.07]' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
       aria-label={`Vote for "${option.text}" — ${option.votes} vote${option.votes !== 1 ? 's' : ''} (${percentage.toFixed(0)}%)${isVoted ? ', you voted for this' : ''}${isLeading ? ', currently leading' : ''}`}
       aria-pressed={isVoted || isSelected}
       role="option"
       aria-selected={isVoted || isSelected}
     >
-      {/* Option text and vote count */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          {isMultiple && (
+      {/* Fill bar behind content — gold system, not blue/orange */}
+      <div
+        className="absolute inset-y-0 left-0 transition-all duration-500 ease-out"
+        style={{ width: `${Math.max(percentage, 0)}%` }}
+        aria-hidden="true"
+      >
+        <div
+          className={[
+            'h-full w-full',
+            isVoted || isLeading
+              ? 'bg-gradient-to-r from-primary/35 via-primary/20 to-transparent'
+              : 'bg-white/[0.06]',
+          ].join(' ')}
+        />
+      </div>
+
+      <div className="relative z-[1] flex items-center justify-between gap-3 px-3.5 py-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          {isMultiple ? (
             <div
-              className={`w-5 h-5 rounded border flex-shrink-0 flex items-center justify-center ${
-                isSelected || isVoted ? 'bg-primary border-primary' : 'border-muted-foreground/50'
-              }`}
+              className={[
+                'w-5 h-5 rounded-md border flex-shrink-0 flex items-center justify-center',
+                isSelected || isVoted
+                  ? 'bg-primary border-primary text-primary-foreground'
+                  : 'border-muted-foreground/40',
+              ].join(' ')}
               aria-hidden="true"
             >
-              {(isSelected || isVoted) && (
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                  <path
-                    d="M2 5L4 7L8 3"
-                    stroke="white"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              )}
+              {(isSelected || isVoted) && <Check size={12} strokeWidth={3} />}
             </div>
+          ) : (
+            <div
+              className={[
+                'w-4 h-4 rounded-full border flex-shrink-0',
+                isVoted
+                  ? 'border-primary bg-primary shadow-ring-glow'
+                  : 'border-muted-foreground/40',
+              ].join(' ')}
+              aria-hidden="true"
+            />
           )}
           <span
-            className={`text-sm font-medium truncate ${isVoted ? 'text-primary' : 'text-white'}`}
+            className={`text-sm font-medium truncate ${isVoted ? 'text-gold-light' : 'text-foreground'}`}
           >
             {option.text}
           </span>
           {isLeading && totalVotes > 0 && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 flex-shrink-0">
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/15 text-gold-light border border-primary/25 flex-shrink-0">
               Leading
             </span>
           )}
+          {isVoted && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary flex-shrink-0">
+              Yours
+            </span>
+          )}
         </div>
-        <span className="text-xs text-muted-foreground whitespace-nowrap">
-          {option.votes} vote{option.votes !== 1 ? 's' : ''} ({percentage.toFixed(0)}%)
+        <span className="text-xs tabular-nums text-muted-foreground whitespace-nowrap">
+          {option.votes}
+          <span className="text-ink-3 ml-1">({percentage.toFixed(0)}%)</span>
         </span>
-      </div>
-
-      {/* Progress bar - always visible with blue-to-orange gradient */}
-      <div
-        className="w-full bg-muted/30 rounded-full h-2"
-        role="progressbar"
-        aria-valuenow={percentage}
-        aria-valuemin={0}
-        aria-valuemax={100}
-      >
-        <div
-          className={`h-2 rounded-full transition-all duration-500 ${
-            isLeading && totalVotes > 0
-              ? 'bg-gradient-to-r from-green-500 to-emerald-400'
-              : 'bg-gradient-to-r from-blue-500 via-blue-400 to-orange-500'
-          }`}
-          style={{ width: `${Math.max(percentage, 0)}%` }}
-        />
       </div>
     </button>
   );

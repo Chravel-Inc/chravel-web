@@ -7,12 +7,15 @@ import { Poll } from './poll/Poll';
 import { CreatePollForm, PollSettings } from './poll/CreatePollForm';
 import { PollsEmptyState } from './polls/PollsEmptyState';
 import { useTripPolls } from '@/hooks/useTripPolls';
+import { useTripPollCommentCounts } from '@/hooks/usePollComments';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { toast } from 'sonner';
 
 const POLL_CARD_STACK_CLASS = 'space-y-3';
-const POLL_CARD_SHELL_CLASS = 'bg-white/5 border border-white/10 rounded-xl p-4 space-y-3';
+const POLL_CARD_SHELL_CLASS = 'bg-white/[0.04] border border-white/10 rounded-2xl p-4 space-y-3';
+
+export type PollListFilter = 'all' | 'active' | 'closed';
 
 interface PollPermissions {
   canView: boolean;
@@ -29,6 +32,13 @@ interface PollComponentProps {
   hideCreateButton?: boolean;
   permissions?: PollPermissions;
   autoShowCreateOnEmpty?: boolean;
+  filter?: PollListFilter;
+}
+
+function isPollClosedForVoting(poll: PollType): boolean {
+  if (poll.status === 'closed') return true;
+  if (!poll.deadline_at) return false;
+  return new Date(poll.deadline_at).getTime() <= Date.now();
 }
 
 export const PollComponent = ({
@@ -38,11 +48,10 @@ export const PollComponent = ({
   hideCreateButton = false,
   permissions,
   autoShowCreateOnEmpty = false,
+  filter = 'all',
 }: PollComponentProps) => {
   const { isDemoMode } = useDemoMode();
 
-  // Default permissions for non-Event trips (full access)
-  // In demo mode, all permissions are enabled
   const effectivePermissions: PollPermissions = isDemoMode
     ? { canView: true, canVote: true, canCreate: true, canClose: true, canDelete: true }
     : (permissions ?? {
@@ -53,7 +62,6 @@ export const PollComponent = ({
         canDelete: true,
       });
 
-  // Use controlled state if provided, otherwise use internal state
   const isControlled =
     controlledShowCreatePoll !== undefined && onShowCreatePollChange !== undefined;
   const [internalShowCreatePoll, setInternalShowCreatePoll] = React.useState(false);
@@ -76,10 +84,10 @@ export const PollComponent = ({
     isClosing,
     isDeleting,
   } = useTripPolls(tripId);
+  const { data: commentCounts = {} } = useTripPollCommentCounts(tripId);
 
   const userId = user?.id;
 
-  // On mobile empty state, auto-show the create form inline
   const hasAutoShown = React.useRef(false);
   useEffect(() => {
     if (
@@ -133,6 +141,16 @@ export const PollComponent = ({
       };
     });
   }, [polls, userId]);
+
+  const visiblePolls = useMemo(() => {
+    if (filter === 'all') return formattedPolls;
+    if (filter === 'active') {
+      return formattedPolls.filter(
+        poll => poll.status === 'active' && !isPollClosedForVoting(poll),
+      );
+    }
+    return formattedPolls.filter(poll => poll.status === 'closed' || isPollClosedForVoting(poll));
+  }, [formattedPolls, filter]);
 
   const handleVote = async (pollId: string, optionIds: string | string[]) => {
     const poll = formattedPolls.find(p => p.id === pollId);
@@ -204,21 +222,21 @@ export const PollComponent = ({
     }
   };
 
-  const isPollClosedForVoting = (poll: PollType) => {
-    if (poll.status === 'closed') return true;
-    if (!poll.deadline_at) return false;
-    return new Date(poll.deadline_at).getTime() <= Date.now();
-  };
-
   const handleExportPoll = (pollId: string) => {
     const poll = formattedPolls.find(p => p.id === pollId);
     if (!poll) return;
 
-    // Create CSV content
-    const csvLines = [
+    const escapeCsv = (value: string): string => {
+      if (/[",\n]/.test(value)) {
+        return `"${value.replace(/"/g, '""')}"`;
+      }
+      return value;
+    };
+
+    const csvLines: string[][] = [
       ['Poll Question', poll.question],
       ['Total Votes', poll.totalVotes.toString()],
-      ['Status', poll.status],
+      ['Status', poll.status ?? 'active'],
       [],
       ['Option', 'Votes', 'Percentage', ...(poll.is_anonymous ? [] : ['Voters'])],
     ];
@@ -230,13 +248,13 @@ export const PollComponent = ({
         option.text,
         option.votes.toString(),
         `${percentage}%`,
-        ...(poll.is_anonymous ? [] : [option.voters?.join(', ') || '']),
+        ...(poll.is_anonymous ? [] : [option.voters?.join('; ') || '']),
       ];
       csvLines.push(row);
     });
 
-    const csvContent = csvLines.map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const csvContent = csvLines.map(row => row.map(escapeCsv).join(',')).join('\n');
+    const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -251,7 +269,6 @@ export const PollComponent = ({
 
   return (
     <div className={POLL_CARD_STACK_CLASS}>
-      {/* Show create button only if not hidden, user can create, and not showing form */}
       {!hideCreateButton && effectivePermissions.canCreate && !showCreatePoll && (
         <Button
           onClick={() => setShowCreatePoll(true)}
@@ -278,9 +295,9 @@ export const PollComponent = ({
             <div key={i} className={POLL_CARD_SHELL_CLASS}>
               <Skeleton className="h-5 rounded w-3/4" />
               <div className="space-y-2">
-                <Skeleton className="h-10 bg-muted/30" />
-                <Skeleton className="h-10 bg-muted/30" />
-                <Skeleton className="h-10 bg-muted/30 w-5/6" />
+                <Skeleton className="h-12 bg-muted/30 rounded-xl" />
+                <Skeleton className="h-12 bg-muted/30 rounded-xl" />
+                <Skeleton className="h-12 bg-muted/30 rounded-xl w-5/6" />
               </div>
               <Skeleton className="h-3 rounded bg-muted/30 w-1/4" />
             </div>
@@ -288,17 +305,26 @@ export const PollComponent = ({
         </div>
       ) : formattedPolls.length === 0 && !showCreatePoll ? (
         <PollsEmptyState containerClassName={POLL_CARD_SHELL_CLASS} />
+      ) : visiblePolls.length === 0 ? (
+        <div className={`${POLL_CARD_SHELL_CLASS} text-center`}>
+          <p className="text-sm text-muted-foreground">
+            {filter === 'active' ? 'No open polls right now.' : 'No closed polls yet.'}
+          </p>
+        </div>
       ) : (
-        formattedPolls.map(poll => (
+        visiblePolls.map(poll => (
           <Poll
             key={poll.id}
             poll={poll}
+            tripId={tripId}
+            commentCount={commentCounts[poll.id] ?? 0}
             onVote={effectivePermissions.canVote ? handleVote : undefined}
             onRemoveVote={handleRemoveVote}
             onClose={effectivePermissions.canClose ? handleClosePoll : undefined}
             onDelete={effectivePermissions.canDelete ? handleDeletePoll : undefined}
             onExport={handleExportPoll}
             disabled={isPollClosedForVoting(poll) || !userId || !effectivePermissions.canVote}
+            canComment={effectivePermissions.canVote}
             isVoting={isVoting}
             isRemovingVote={isRemovingVote}
             isClosing={isClosing}

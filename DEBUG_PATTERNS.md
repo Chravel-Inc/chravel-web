@@ -577,3 +577,15 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Smallest safe fix:** Module-level stable defaults; return previous `visitedTabs` Set when unchanged; keep transition hang-detector tests.
 - **Required tests:** `MobileTripTabs.transition.test.tsx` + navigation suite must finish in seconds, not OOM.
 - **Fixed in:** `MobileTripTabs.tsx` (July 2026 restore)
+
+
+## Poll Comment Counts Across Separate Query Clients
+
+**Symptom:** Comment count badge stays at 0 after posting a reply in unit tests (or briefly in UI).
+**Risk:** LOW — UI recovers on refetch; tests flake if two renderHooks use separate QueryClients.
+**Root Cause:** `invalidateQueries` only notifies observers on the same QueryClient; counts rendered from a different client never refetch.
+**How to Confirm:** Two `renderHook` wrappers each create their own `QueryClient`.
+**Smallest Safe Fix:** Share one QueryClient across hooks under test; in app, always use the app-wide client.
+**Required Tests:** `usePollComments` demo add + counts after shared client mount.
+**Regression Surfaces:** Any dual-hook poll comment/count tests.
+**Fixed in:** `src/hooks/__tests__/usePollComments.test.tsx` (July 2026)

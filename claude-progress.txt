@@ -1,3 +1,10 @@
+2026-07-13 — Polls UX polish + per-poll discussion wall
+- Deep-dived polls (CommentsWall → PollComponent → Poll/PollOption/CreatePollForm + useTripPolls).
+- Shipped poll_comments table (RLS + realtime + poll_comments kill switch), usePollComments hook, Reply wall under each poll card.
+- UX polish: gold option fills, All/Open/Closed filter, delete confirm, “You voted” chip, safer optional onVote, CSV escaping, UTC deadline ISO.
+- Demo comments use parallel localStorage — mockPolls untouched. Tests: Poll.comments + usePollComments green; typecheck/lint/build pass.
+- Branch: cursor/polls-ux-comments-wall-65ec
+
 2026-07-13 — Mobile calendar Day/Month UX (marketing parity)
 - Redesigned MobileGroupCalendar: Day|Month segmented tabs, agenda-first Day view with event cards, height-capped mini calendar (max ~42%/48%, never flex-grows when empty).
 - Month view is distinct: compact month overview + selected-day agenda + “Open Day view”.

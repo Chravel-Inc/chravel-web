@@ -28,6 +28,10 @@ If two mutation paths invalidate the same keys, lift the key set to a shared hel
 ### Avoid default `[]` prop literals when callbacks/effects depend on that prop
 A new array identity each render triggers infinite effect loops; default via `useMemo` or hoist the constant.
 
+
+### Poll discussion lives beside the vote, not in chat
+Keep poll replies on the poll card (vote → reply). Parallel demo storage (`poll_comments_${tripId}`) so demo mode works without mutating sacred mockPolls.
+
 ### useEffect dependencies on array state cause O(N) re-execution storms
 Depend on `arr.length` or a derived primitive, not the array itself, unless deep-equal is required.
 
