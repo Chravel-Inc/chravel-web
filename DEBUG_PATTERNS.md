@@ -531,6 +531,16 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Smallest safe fix:** Map full attachments (incl. audio metadata) in the Stream VM; resolve sender via `sender.id`; batch multi-image sends; `shareVoiceNote` with typed audio attachment; mount receipts for all sent own messages; skip single-media path when attachments exist.
 - **Required tests:** streamMessageViewModel mosaic/audio/document mapping; VirtualizedMessageContainer grouping on `sender.id`; ReadReceipts Delivered vs gold; streamMessagePayload voice metadata preserve.
 - **Fixed in:** `streamMessageViewModel.ts`, `VirtualizedMessageContainer.tsx`, `useShareAsset.ts`, `MessageBubble.tsx`, `ChatInput.tsx`, `streamMessagePayload.ts` (July 2026)
+
+## Concierge Trip Search modal: no dismiss + frozen input
+- **Status:** fixed
+- **Subsystem:** Concierge / Trip Search (`ConciergeSearchModal`) + Chat search (`ChatSearchOverlay`)
+- **Bug class:** Radix Dialog focus trap + missing dismiss control + pointerdown-open race
+- **Symptom:** Trip Search opens from Concierge header Search with no X/Close; search field renders but rejects keystrokes on mobile (iOS WKWebView / Capacitor).
+- **Root Cause:** (1) `DialogContent showClose={false}` and the in-field X only cleared query text. (2) HTML `autoFocus` inside Radix Dialog is unreliable on iOS WKWebView when the field sits under trip-shell scroll/overflow ancestors. (3) Opening on touch `pointerdown` can land the completing `click` on the newly mounted backdrop and fight focus.
+- **Smallest Safe Fix:** Shared `BodyPortalOverlayShell` + `getTrustedOverlayOpenHandlers` / `useBodyPortalOverlayControls` — body portal at `z-[100]`, always-visible Close, ref focus, open-gesture backdrop guard. Wire Concierge + Chat Search CTAs through the same trusted open helpers (Upload stays in-DOM file input — no overlay race).
+- **Required Tests:** ConciergeSearchModal + ChatSearchOverlay backdrop guard; `bodyPortalOverlay` unit tests; MessageTypeBar + AIConciergeChat touch pointerdown open.
+- **Fixed in:** `BodyPortalOverlayShell.tsx`, `bodyPortalOverlay.ts`, `ConciergeSearchModal.tsx`, `ChatSearchOverlay.tsx`, `MessageTypeBar.tsx`, `AIConciergeChat.tsx` (July 2026)
 ### Vitest suite hangs with no failing tests (ChatSearchOverlay)
 - **Symptom:** `npm run test:run` never exits; last activity may be unrelated files; workers at high CPU.
 - **Root cause:** Component default prop `demoMessages = []` + `useEffect(..., [demoMessages])` + `setMessages([])` on empty query → infinite re-render.

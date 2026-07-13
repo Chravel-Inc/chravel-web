@@ -1,3 +1,11 @@
+2026-07-13 — Promote Trip Search follow-up: shared portal shell + CTA open gestures
+- Extracted BodyPortalOverlayShell / useBodyPortalOverlayControls / getTrustedOverlayOpenHandlers; Concierge + Chat Search both use them.
+- Chat MessageTypeBar Search now opens on trusted touch/pen pointerdown (parity with Concierge); Upload documented as in-DOM (no overlay race).
+- Tests: bodyPortalOverlay unit, ChatSearchOverlay backdrop guard, MessageTypeBar search open, existing Concierge/controls suites green.
+
+2026-07-13 — Concierge Trip Search: Close control + unfreeze input
+- Rewrote ConciergeSearchModal off Radix Dialog onto a body-portal overlay (ChatSearchOverlay pattern) with always-visible Close, ref focus, and open-gesture backdrop dismiss guard.
+- Regression tests cover typing, Close, Escape, and backdrop guard. Branch: cursor/fix-concierge-search-modal-3d6b.
 2026-07-13 — App Store gate unblock follow-up (post-#813)
 - Unblocked Vitest hang (ChatSearchOverlay infinite re-render) and made full `test:run` exit 0 (1898 pass) via pool teardown hardening.
 - Installed Playwright Chromium; added auth/payments/media/pro demo smokes; SERVICE_ROLE-aware gate selection; fixed CHAT-SMOKE send/concierge selectors; Concierge device-smoke fixture destructuring; event demo ID `netflix-joke-fest-2026`.
