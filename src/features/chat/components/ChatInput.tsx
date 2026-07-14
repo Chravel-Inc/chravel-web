@@ -323,7 +323,10 @@ export const ChatInput = ({
     }
   };
 
-  const handleFileUpload = async (type: 'image' | 'video' | 'document', capture?: 'environment' | 'user') => {
+  const handleFileUpload = async (
+    type: 'image' | 'video' | 'document',
+    capture?: 'environment' | 'user',
+  ) => {
     if (!fileInputRef.current) return;
 
     const accept = {
@@ -350,7 +353,6 @@ export const ChatInput = ({
     };
     fileInputRef.current.click();
   };
-
 
   // Drag and drop handlers with visual feedback
   const handleDragEnter = (e: React.DragEvent) => {
@@ -548,11 +550,8 @@ export const ChatInput = ({
                   </DropdownMenuItem>
                 </>
               )}
-
-
             </DropdownMenuContent>
           </DropdownMenu>
-
 
           {/* Mention Picker */}
           {showMentionPicker && tripMembers.length > 0 && (
@@ -585,12 +584,7 @@ export const ChatInput = ({
 
           {/* Mic (dictation) when empty; Send when text is present — mirrors Concierge composer. */}
           {inputMessage.trim().length === 0 && !isShareUploading ? (
-            <VoiceButton
-              voiceState={voiceState}
-              isEligible
-              onToggle={handleVoiceToggle}
-              small
-            />
+            <VoiceButton voiceState={voiceState} isEligible onToggle={handleVoiceToggle} small />
           ) : (
             <button
               data-testid="chat-send-btn"
@@ -611,9 +605,6 @@ export const ChatInput = ({
               )}
             </button>
           )}
-
-
-
 
           {/* Hidden file input */}
           <input ref={fileInputRef} type="file" className="hidden" multiple />

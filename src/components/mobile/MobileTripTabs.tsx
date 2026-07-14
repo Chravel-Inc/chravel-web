@@ -26,6 +26,8 @@ import { CalendarSkeleton, PlacesSkeleton, ChatSkeleton } from '../loading';
 import { LoadingSpinner } from '../LoadingSpinner';
 import { useRoleAssignments } from '../../hooks/useRoleAssignments';
 import { useTripRoles } from '../../hooks/useTripRoles';
+import { useAuth } from '../../hooks/useAuth';
+import { isReadOnlyTab } from '../pro/ProTabsConfig';
 import type { EventData } from '../../types/events';
 import { DisabledTabDialog } from '../events/DisabledTabDialog';
 import { EventTabKey, resolveEventTabsForRole } from '@/lib/eventTabs';
@@ -113,6 +115,7 @@ interface MobileTripTabsProps {
 // the same reference captured by useState (Object.is bail-out).
 const NO_PARTICIPANTS: Array<{ id: string; name: string; role?: string }> = [];
 const NO_TRIP_DATA = {};
+const DEFAULT_TEAM_PERMISSIONS = ['read'];
 
 export const MobileTripTabs = ({
   activeTab,
@@ -130,9 +133,19 @@ export const MobileTripTabs = ({
   const { accentColors: _accentColors } = useTripVariant();
   const { isDemoMode } = useDemoMode();
   const { prefetchTab, prefetchAdjacentTabs, prefetchPriorityTabs } = usePrefetchTrip();
+  const { user } = useAuth();
   const contentRef = useRef<HTMLDivElement>(null);
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const features = useFeatureToggle(tripData || NO_TRIP_DATA);
+
+  // Real role/permissions for the Team tab — mirrors desktop ProTabContent.
+  // These were previously hardcoded to admin/read-write, which showed
+  // role-management controls to every member (server RLS still blocked the
+  // writes, so members hit dead buttons instead of a read-only view).
+  // DEFAULT_TEAM_PERMISSIONS is a module constant: an inline [] default would
+  // be a fresh reference each render and defeat the renderTabContent memo.
+  const teamUserRole = user?.proRole || 'staff';
+  const teamPermissions = user?.permissions || DEFAULT_TEAM_PERMISSIONS;
 
   // Role assignment hooks for Pro trips Team tab
   const { assignRole } = useRoleAssignments({
@@ -493,8 +506,8 @@ export const MobileTripTabs = ({
                   credentialLevel: 'Guest' as const,
                   permissions: [],
                 }))}
-                userRole="admin"
-                isReadOnly={false}
+                userRole={teamUserRole}
+                isReadOnly={isReadOnlyTab('team', teamUserRole, teamPermissions, isDemoMode)}
                 category={
                   (category ||
                     tripData?.proTripCategory ||
@@ -568,6 +581,8 @@ export const MobileTripTabs = ({
       isLoadingRoster,
       onTabChange,
       activeTab,
+      teamUserRole,
+      teamPermissions,
     ],
   );
 

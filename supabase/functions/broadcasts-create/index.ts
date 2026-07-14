@@ -70,7 +70,47 @@ serve(async req => {
       .single();
 
     if (membershipError || !membership) {
-      throw new Error('User is not a member of this trip');
+      return createErrorResponse('User is not a member of this trip', 403);
+    }
+
+    // Trip-type broadcast policy (mirrors the client gate in TripChat):
+    // consumer trips are open to any active member; pro/event trips gate
+    // broadcasts to admins/organizers/owners, the trip creator, or a
+    // trip_admins row. This endpoint runs with the service role, so the
+    // check must live here — RLS is bypassed. NOTE: no first-party client
+    // calls this function today (UI broadcasts go through Stream; the
+    // concierge inserts into `broadcasts` with the caller's JWT), but it is
+    // deployed and callable, so it must enforce the same policy.
+    const { data: trip, error: tripError } = await supabase
+      .from('trips')
+      .select('trip_type, created_by')
+      .eq('id', trip_id)
+      .single();
+
+    if (tripError || !trip) {
+      return createErrorResponse('Trip not found', 404);
+    }
+
+    const tripType = trip.trip_type ?? 'consumer';
+    if (tripType === 'pro' || tripType === 'event') {
+      const elevatedRole = ['admin', 'organizer', 'owner'].includes(membership.role ?? '');
+      const isCreator = trip.created_by === user.id;
+      let isTripAdmin = false;
+      if (!elevatedRole && !isCreator) {
+        const { data: adminRow, error: adminError } = await supabase
+          .from('trip_admins')
+          .select('id')
+          .eq('trip_id', trip_id)
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (adminError) {
+          logError('BROADCAST_CREATE_ADMIN_CHECK', adminError, { userId: user.id, trip_id });
+        }
+        isTripAdmin = !!adminRow;
+      }
+      if (!elevatedRole && !isCreator && !isTripAdmin) {
+        return createErrorResponse('Only trip admins can send broadcasts on this trip', 403);
+      }
     }
 
     // Get user profile for sender info
