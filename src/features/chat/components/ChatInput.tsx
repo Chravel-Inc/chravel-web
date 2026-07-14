@@ -294,7 +294,7 @@ export const ChatInput = ({
     }
   };
 
-  const handleFileUpload = async (type: 'image' | 'video' | 'document') => {
+  const handleFileUpload = async (type: 'image' | 'video' | 'document', capture?: 'environment' | 'user') => {
     if (!fileInputRef.current) return;
 
     const accept = {
@@ -304,6 +304,11 @@ export const ChatInput = ({
     };
 
     fileInputRef.current.accept = accept[type];
+    if (capture) {
+      fileInputRef.current.setAttribute('capture', capture);
+    } else {
+      fileInputRef.current.removeAttribute('capture');
+    }
     fileInputRef.current.onchange = async e => {
       const files = (e.target as HTMLInputElement).files;
       if (files && files.length > 0) {
@@ -316,6 +321,7 @@ export const ChatInput = ({
     };
     fileInputRef.current.click();
   };
+
 
   // Drag and drop handlers with visual feedback
   const handleDragEnter = (e: React.DragEvent) => {
