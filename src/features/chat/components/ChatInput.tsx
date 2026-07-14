@@ -583,36 +583,13 @@ export const ChatInput = ({
             )}
           />
 
-          {/* Send Button OR hold-to-record Mic Button — Mic appears when input is empty
-              (iMessage-style). Recorded audio uploads as a typed Stream audio attachment
-              (mime/duration/waveform preserved) via shareVoiceNote. */}
-          {inputMessage.trim().length === 0 &&
-          !isShareUploading &&
-          !disableFileUpload &&
-          voiceNotesEnabled ? (
-            <VoiceRecordButton
-              disabled={isTyping}
-              enableTranscription={voiceTranscriptionEnabled}
-              buttonClassName={CTA_BUTTON_CHAT}
-              iconClassName={`${CTA_ICON_CHAT} text-white`}
-              onRecorded={async (result: VoiceRecordingResult) => {
-                const ext = result.mimeType.includes('mp4')
-                  ? 'm4a'
-                  : result.mimeType.includes('ogg')
-                    ? 'ogg'
-                    : 'webm';
-                const filename = `voice-note-${Date.now()}.${ext}`;
-                // `File` from lucide-react is imported at the top and shadows the DOM
-                // constructor here — use the global explicitly.
-                const file = new globalThis.File([result.blob], filename, {
-                  type: result.mimeType || 'audio/webm',
-                });
-                await shareVoiceNote(file, {
-                  durationMs: result.durationMs,
-                  waveform: result.waveform,
-                  transcript: result.transcript,
-                });
-              }}
+          {/* Mic (dictation) when empty; Send when text is present — mirrors Concierge composer. */}
+          {inputMessage.trim().length === 0 && !isShareUploading ? (
+            <VoiceButton
+              voiceState={voiceState}
+              isEligible
+              onToggle={handleVoiceToggle}
+              small
             />
           ) : (
             <button
