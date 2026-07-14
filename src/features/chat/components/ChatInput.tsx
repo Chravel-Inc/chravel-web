@@ -596,26 +596,8 @@ export const ChatInput = ({
             </button>
           )}
 
-          {inputMessage.trim().length === 0 && !isShareUploading && !disableFileUpload && (
-            <button
-              type="button"
-              aria-label={
-                voiceTranscriptionEnabled
-                  ? 'Turn off voice note transcription'
-                  : 'Turn on voice note transcription'
-              }
-              aria-pressed={voiceTranscriptionEnabled}
-              onClick={() => setVoiceTranscriptionEnabled(enabled => !enabled)}
-              className={cn(
-                'size-6 min-w-[24px] sm:size-10 sm:min-w-[40px] rounded-full flex items-center justify-center shrink-0 touch-manipulation border transition-colors',
-                voiceTranscriptionEnabled
-                  ? 'border-primary bg-primary/15 text-primary'
-                  : 'border-border text-muted-foreground hover:bg-muted',
-              )}
-            >
-              <Captions className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </button>
-          )}
+
+
 
           {/* Hidden file input */}
           <input ref={fileInputRef} type="file" className="hidden" multiple />
