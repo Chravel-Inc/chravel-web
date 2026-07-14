@@ -95,12 +95,12 @@ export const ChatInput = ({
   const [isPaymentMode, setIsPaymentMode] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [voiceTranscriptionEnabled, setVoiceTranscriptionEnabled] = useState(false);
   const [shareUrlInput, setShareUrlInput] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sendLockRef = useRef(false); // Ref-based double-tap guard (no re-render needed)
+  const dictationBaseRef = useRef('');
 
   // @-mention state
   const [showMentionPicker, setShowMentionPicker] = useState(false);
@@ -112,13 +112,44 @@ export const ChatInput = ({
   const {
     shareLink,
     shareMultipleFiles,
-    shareVoiceNote,
     isUploading: isShareUploading,
     uploadProgress,
     parsedContent,
     clearParsedContent,
   } = useShareAsset(tripId);
-  const voiceNotesEnabled = useFeatureFlag('chat_voice_notes', true);
+
+  // Dictation — mirrors Concierge waveform behavior. Finalized transcript is
+  // appended to the current input; user then hits Send. No voice-note upload.
+  const handleDictationTranscript = useCallback(
+    (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      const base = dictationBaseRef.current;
+      const separator = base && !base.endsWith(' ') ? ' ' : '';
+      dictationBaseRef.current = '';
+      onInputChange(base + separator + trimmed);
+    },
+    [onInputChange],
+  );
+  const { voiceState, toggleVoice, userTranscript } = useWebSpeechVoice(handleDictationTranscript);
+  const isDictating = voiceState === 'listening' || voiceState === 'connecting';
+
+  // Live interim transcript preview into the composer while dictating.
+  useEffect(() => {
+    if (!isDictating) return;
+    const interim = userTranscript.trim();
+    if (!interim) return;
+    const base = dictationBaseRef.current;
+    const separator = base && !base.endsWith(' ') ? ' ' : '';
+    onInputChange(base + separator + interim);
+  }, [isDictating, userTranscript, onInputChange]);
+
+  const handleVoiceToggle = useCallback(() => {
+    if (voiceState === 'idle' || voiceState === 'error') {
+      dictationBaseRef.current = inputMessage;
+    }
+    toggleVoice();
+  }, [voiceState, toggleVoice, inputMessage]);
 
   // Track typing status
   useEffect(() => {
