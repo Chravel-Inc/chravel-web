@@ -518,7 +518,7 @@ class ChannelService {
   private async applyMemberCounts(tripId: string, channels: TripChannel[]): Promise<void> {
     if (channels.length === 0) return;
 
-    const { data, error } = await (supabase.rpc as (fn: string, args: Record<string, unknown>) => Promise<{ data: Array<{ channel_id: string; member_count: number | string }> | null; error: { message: string } | null }>)(
+    const { data, error } = await (supabase.rpc as unknown as (fn: string, args: Record<string, unknown>) => Promise<{ data: Array<{ channel_id: string; member_count: number | string }> | null; error: { message: string } | null }>)(
       'get_channel_member_counts',
       { p_trip_id: tripId },
     );
