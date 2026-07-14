@@ -70,7 +70,7 @@ serve(async req => {
       .single();
 
     if (membershipError || !membership) {
-      throw new Error('User is not a member of this trip');
+      return createErrorResponse('User is not a member of this trip', 403);
     }
 
     // Trip-type broadcast policy (mirrors the client gate in TripChat):
