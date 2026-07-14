@@ -448,52 +448,33 @@ export const ChatInput = ({
               side="top"
               align="start"
               sideOffset={8}
-              className="w-52 p-1 bg-neutral-900/95 backdrop-blur-lg border border-neutral-800 rounded-xl shadow-lg animate-slide-in-right z-50"
+              className="w-56 p-1 bg-neutral-900/95 backdrop-blur-lg border border-neutral-800 rounded-xl shadow-lg animate-slide-in-right z-50"
             >
-              {/* Broadcast - Deep Crimson Styling. Hidden when the user may not
-                  compose broadcasts (pro/event trips gate to admins/organizers). */}
-              {canSendBroadcast && (
-                <DropdownMenuItem
-                  onClick={() => setIsBroadcastMode(!isBroadcastMode)}
-                  className="flex items-center gap-2 px-3 py-2 border border-[#B91C1C]/60 text-[#B91C1C] font-medium hover:bg-[#B91C1C] hover:text-white rounded-lg mb-1 cursor-pointer"
-                >
-                  <Megaphone className="w-4 h-4" />
-                  Broadcast
-                </DropdownMenuItem>
-              )}
+              {/* ATTACHMENTS section */}
+              <DropdownMenuLabel className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
+                Attachments
+              </DropdownMenuLabel>
 
-              {/* File — hidden when media uploads are restricted */}
-              {!disableFileUpload && (
-                <DropdownMenuItem
-                  onClick={() => handleFileUpload('document')}
-                  className="flex items-center gap-2 px-3 py-2 text-neutral-300 hover:bg-neutral-800 rounded-lg cursor-pointer"
-                >
-                  <FileText className="w-4 h-4" />
-                  File
-                </DropdownMenuItem>
-              )}
-
-              {/* Link */}
-              <DropdownMenuItem
-                onClick={() => setIsShareModalOpen(true)}
-                className="flex items-center gap-2 px-3 py-2 text-neutral-300 hover:bg-neutral-800 rounded-lg cursor-pointer"
-              >
-                <Link className="w-4 h-4" />
-                Link
-              </DropdownMenuItem>
-
-              {/* Photo — hidden when media uploads are restricted */}
               {!disableFileUpload && (
                 <DropdownMenuItem
                   onClick={() => handleFileUpload('image')}
                   className="flex items-center gap-2 px-3 py-2 text-neutral-300 hover:bg-neutral-800 rounded-lg cursor-pointer"
                 >
-                  <Camera className="w-4 h-4" />
-                  Photo
+                  <Image className="w-4 h-4" />
+                  Photo Library
                 </DropdownMenuItem>
               )}
 
-              {/* Video — hidden when media uploads are restricted */}
+              {!disableFileUpload && (
+                <DropdownMenuItem
+                  onClick={() => handleFileUpload('image', 'environment')}
+                  className="flex items-center gap-2 px-3 py-2 text-neutral-300 hover:bg-neutral-800 rounded-lg cursor-pointer"
+                >
+                  <Camera className="w-4 h-4" />
+                  Take Photo
+                </DropdownMenuItem>
+              )}
+
               {!disableFileUpload && (
                 <DropdownMenuItem
                   onClick={() => handleFileUpload('video')}
@@ -504,9 +485,48 @@ export const ChatInput = ({
                 </DropdownMenuItem>
               )}
 
-              {/* Transcribe voice notes toggle (moved out of composer row) */}
+              {!disableFileUpload && (
+                <DropdownMenuItem
+                  onClick={() => handleFileUpload('document')}
+                  className="flex items-center gap-2 px-3 py-2 text-neutral-300 hover:bg-neutral-800 rounded-lg cursor-pointer"
+                >
+                  <FileText className="w-4 h-4" />
+                  File / Document
+                </DropdownMenuItem>
+              )}
+
               <DropdownMenuItem
-                onClick={(e) => {
+                onClick={() => setIsShareModalOpen(true)}
+                className="flex items-center gap-2 px-3 py-2 text-neutral-300 hover:bg-neutral-800 rounded-lg cursor-pointer"
+              >
+                <Link className="w-4 h-4" />
+                Link
+              </DropdownMenuItem>
+
+              {/* COMPOSE section (broadcast) */}
+              {canSendBroadcast && (
+                <>
+                  <DropdownMenuSeparator className="my-1 bg-neutral-800" />
+                  <DropdownMenuLabel className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
+                    Compose
+                  </DropdownMenuLabel>
+                  <DropdownMenuItem
+                    onClick={() => setIsBroadcastMode(!isBroadcastMode)}
+                    className="flex items-center gap-2 px-3 py-2 border border-[#B91C1C]/60 text-[#B91C1C] font-medium hover:bg-[#B91C1C] hover:text-white rounded-lg cursor-pointer"
+                  >
+                    <Megaphone className="w-4 h-4" />
+                    Broadcast
+                  </DropdownMenuItem>
+                </>
+              )}
+
+              {/* PREFERENCES section */}
+              <DropdownMenuSeparator className="my-1 bg-neutral-800" />
+              <DropdownMenuLabel className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
+                Preferences
+              </DropdownMenuLabel>
+              <DropdownMenuItem
+                onSelect={(e) => {
                   e.preventDefault();
                   setVoiceTranscriptionEnabled(v => !v);
                 }}
@@ -523,6 +543,7 @@ export const ChatInput = ({
 
             </DropdownMenuContent>
           </DropdownMenu>
+
 
           {/* Mention Picker */}
           {showMentionPicker && tripMembers.length > 0 && (
