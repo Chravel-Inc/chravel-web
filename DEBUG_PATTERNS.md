@@ -568,6 +568,28 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Required tests:** layout suite Month tab click + Open Day view round-trip.
 - **Fixed in:** `MobileGroupCalendar.tsx` (July 2026)
 
+## Smart Import: Concierge browseWebsite SSRF bypass
+
+**Symptom:** Concierge `browseWebsite` could fetch private/internal hosts while scrape-schedule was SSRF-gated.
+**Risk:** HIGH — internal network probing via authenticated concierge tool path.
+**Root Cause:** `functionExecutor.ts` only checked `http(s)://` prefix; scrape-* used `validateExternalUrlBeforeFetch`.
+**How to Confirm:** Attempt browseWebsite against `https://127.0.0.1` or a public URL that redirects to a private IP; both should be rejected.
+**Smallest Safe Fix:** Call `validateExternalUrlBeforeFetch` before `fetch` in browseWebsite (force HTTPS) and set `redirect: 'error'` so validated hosts cannot redirect to internal networks.
+**Required Tests:** Edge/unit coverage that private hosts are blocked; keep scrape-schedule SSRF tests green.
+**Regression Surfaces:** Concierge URL browsing, reservation lookup helpers that recurse into browseWebsite.
+**Fixed in:** `supabase/functions/_shared/functionExecutor.ts` (2026-07-13 Smart Import hardening; redirect hardened in follow-up)
+
+## Smart Import: trips.id is TEXT, not UUID
+
+**Symptom:** Migration creating FK to `trips(id)` as UUID fails with incompatible types.
+**Risk:** MEDIUM — blocks import_batches / any new trip-scoped table.
+**Root Cause:** Core `trips.id` is `TEXT PRIMARY KEY` (legacy), while many newer tables default to UUID.
+**How to Confirm:** `CREATE TABLE ... trip_id UUID REFERENCES trips(id)` errors with uuid/text mismatch.
+**Smallest Safe Fix:** Use `trip_id TEXT NOT NULL REFERENCES public.trips(id)` for trip-scoped tables.
+**Required Tests:** Migration apply on ChravelApp; schema drift types use `string`.
+**Regression Surfaces:** Any new migration joining to trips/trip_events.
+**Fixed in:** `supabase/migrations/20260713160000_calendar_import_batches.sql`
+
 ## MobileTripTabs `participants = []` default render loop (regression)
 - **Status:** fixed (again)
 - **Subsystem:** mobile trip shell (`MobileTripTabs`)
@@ -588,3 +610,42 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Smallest safe fix:** Compare Stream **Channel object identity** across renders (not `channel.id` — the connected `Channel` lags `channel.id` by a render or two via `watch()`, since `useStreamProChannel` resets `activeChannel` to `null` before the new one resolves). On identity change, flush `previous.markRead()` before recording `current`; also flush on true unmount. This tolerates the null-transition step and never captures a stale reference because the ref is only ever updated as the *result* of comparing against the current render's value, not by a stray render-time write.
 - **Required tests:** mount a mock channel, rerender with a different mock channel object, assert the first channel's `markRead` fired exactly once and the second's did not.
 - **Fixed in:** `src/components/pro/channels/ChannelChatView.tsx` (July 2026 pro-trips hardening)
+## Concierge TTS: bare URL wipe leaves awkward spoken gaps
+- **Status:** fixed
+- **Subsystem:** Concierge read-aloud (`buildSpeechText` → `concierge-voice-tts`)
+- **Bug class:** speech-prep strips markup without a spoken substitute
+- **Symptom:** Assistant replies with raw https/www links sounded like broken sentences ("Details are here:  for the group") or TTS attempted to spell paths/query strings.
+- **Root cause:** `stripMarkdown` deleted bare `https?://` URLs entirely and ignored `www.*` hosts without a scheme. Markdown `[label](url)` already kept the label.
+- **Smallest safe fix:** Replace bare http(s)/www URLs with `a link to {domain}`; keep markdown labels; never speak query strings.
+- **Required tests:** `src/lib/__tests__/buildSpeechText.test.ts`
+- **Fixed in:** `src/lib/buildSpeechText.ts` (July 2026)
+## Payment push fanout targeted a non-existent `trip_payments` table
+- **Status:** fixed
+- **Subsystem:** trip P2P payments / notifications
+- **Bug class:** trigger table drift / dead notification path
+- **Symptom:** Creating a payment request never fans out push/in-app notifications to trip members (chat system message worked on desktop only).
+- **Root cause:** `trigger_notify_payment` was defined `AFTER INSERT ON public.trip_payments`, but live expenses write to `trip_payment_messages`. On ChravelApp prod `trip_payments` does not exist, so the trigger never fired. Mobile create also bypassed `usePayments.createPaymentMessage`, skipping the Stream `payment_recorded` system message.
+- **Smallest safe fix:** Rewrite `notify_on_payment` for `trip_payment_messages` columns (`created_by`, `description`, amount/currency), retarget the trigger, share `notifyPaymentRecordedInChat` between desktop + mobile create paths.
+- **Required tests:** `paymentActivityMessages.test.ts`; PaymentMethodPayButtons deeplink coverage.
+- **Fixed in:** `20260713180000_payment_notifications_and_applecash.sql`, `CreatePaymentModal.tsx`, `paymentActivityMessages.ts` (July 2026)
+
+## Poll Comment Counts Across Separate Query Clients
+
+**Symptom:** Comment count badge stays at 0 after posting a reply in unit tests (or briefly in UI).
+**Risk:** LOW — UI recovers on refetch; tests flake if two renderHooks use separate QueryClients.
+**Root Cause:** `invalidateQueries` only notifies observers on the same QueryClient; counts rendered from a different client never refetch.
+**How to Confirm:** Two `renderHook` wrappers each create their own `QueryClient`.
+**Smallest Safe Fix:** Share one QueryClient across hooks under test; in app, always use the app-wide client.
+**Required Tests:** `usePollComments` demo add + counts after shared client mount.
+**Regression Surfaces:** Any dual-hook poll comment/count tests.
+**Fixed in:** `src/hooks/__tests__/usePollComments.test.tsx` (July 2026)
+
+## Direct trip_polls UPDATE Cannot Append After options_locked_at
+
+**Symptom:** “Suggest option” fails or silently no-ops once anyone has voted.
+**Risk:** MEDIUM — product feature broken for the common post-first-vote case.
+**Root Cause:** Client UPDATE of `options` is blocked/frozen after `options_locked_at`; append needs append-only SECURITY DEFINER RPC with membership checks.
+**How to Confirm:** Vote once, then try updating `options` via client vs `append_poll_option`.
+**Smallest Safe Fix:** `append_poll_option(p_poll_id, p_option_text, p_current_version)` + `poll_suggest_option` kill switch; invalidate `tripKeys.polls`.
+**Required Tests:** `Poll.facepile-suggest` UI + `pollStorageService.appendOption` demo path.
+**Fixed in:** `20260713170000_append_poll_option.sql` / `useTripPolls.suggestOption` (July 2026)

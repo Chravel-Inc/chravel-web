@@ -16,8 +16,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+
 import { PaymentInput } from '@/components/payments/PaymentInput';
 import { useShareAsset } from '@/hooks/useShareAsset';
 import { ParsedContentSuggestions } from './ParsedContentSuggestions';
@@ -31,9 +34,8 @@ const CTA_ICON_CHAT = 'w-3.5 h-3.5 sm:w-[18px] sm:h-[18px]';
 const CTA_BUTTON_CHAT = `size-6 min-w-[24px] sm:size-10 sm:min-w-[40px] rounded-full flex items-center justify-center shrink-0 select-none touch-manipulation ${CTA_GRADIENT} ${CTA_INTERACTIVE} ${CTA_DISABLED}`;
 import { hapticService as haptics } from '@/services/hapticService';
 import { MentionPicker, TripMember, filterMentionMembers } from './MentionPicker';
-import { VoiceRecordButton } from './VoiceRecordButton';
-import type { VoiceRecordingResult } from '../hooks/useVoiceRecorder';
-import { useFeatureFlag } from '@/lib/featureFlags';
+import { VoiceButton } from './VoiceButton';
+import { useWebSpeechVoice } from '@/hooks/useWebSpeechVoice';
 
 interface ChatInputProps {
   inputMessage: string;
@@ -98,6 +100,7 @@ export const ChatInput = ({
   const dropZoneRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sendLockRef = useRef(false); // Ref-based double-tap guard (no re-render needed)
+  const dictationBaseRef = useRef('');
 
   // @-mention state
   const [showMentionPicker, setShowMentionPicker] = useState(false);
@@ -109,13 +112,44 @@ export const ChatInput = ({
   const {
     shareLink,
     shareMultipleFiles,
-    shareVoiceNote,
     isUploading: isShareUploading,
     uploadProgress,
     parsedContent,
     clearParsedContent,
   } = useShareAsset(tripId);
-  const voiceNotesEnabled = useFeatureFlag('chat_voice_notes', true);
+
+  // Dictation — mirrors Concierge waveform behavior. Finalized transcript is
+  // appended to the current input; user then hits Send. No voice-note upload.
+  const handleDictationTranscript = useCallback(
+    (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      const base = dictationBaseRef.current;
+      const separator = base && !base.endsWith(' ') ? ' ' : '';
+      dictationBaseRef.current = '';
+      onInputChange(base + separator + trimmed);
+    },
+    [onInputChange],
+  );
+  const { voiceState, toggleVoice, userTranscript } = useWebSpeechVoice(handleDictationTranscript);
+  const isDictating = voiceState === 'listening' || voiceState === 'connecting';
+
+  // Live interim transcript preview into the composer while dictating.
+  useEffect(() => {
+    if (!isDictating) return;
+    const interim = userTranscript.trim();
+    if (!interim) return;
+    const base = dictationBaseRef.current;
+    const separator = base && !base.endsWith(' ') ? ' ' : '';
+    onInputChange(base + separator + interim);
+  }, [isDictating, userTranscript, onInputChange]);
+
+  const handleVoiceToggle = useCallback(() => {
+    if (voiceState === 'idle' || voiceState === 'error') {
+      dictationBaseRef.current = inputMessage;
+    }
+    toggleVoice();
+  }, [voiceState, toggleVoice, inputMessage]);
 
   // Track typing status
   useEffect(() => {
@@ -289,7 +323,10 @@ export const ChatInput = ({
     }
   };
 
-  const handleFileUpload = async (type: 'image' | 'video' | 'document') => {
+  const handleFileUpload = async (
+    type: 'image' | 'video' | 'document',
+    capture?: 'environment' | 'user',
+  ) => {
     if (!fileInputRef.current) return;
 
     const accept = {
@@ -299,6 +336,11 @@ export const ChatInput = ({
     };
 
     fileInputRef.current.accept = accept[type];
+    if (capture) {
+      fileInputRef.current.setAttribute('capture', capture);
+    } else {
+      fileInputRef.current.removeAttribute('capture');
+    }
     fileInputRef.current.onchange = async e => {
       const files = (e.target as HTMLInputElement).files;
       if (files && files.length > 0) {
@@ -437,52 +479,33 @@ export const ChatInput = ({
               side="top"
               align="start"
               sideOffset={8}
-              className="w-52 p-1 bg-neutral-900/95 backdrop-blur-lg border border-neutral-800 rounded-xl shadow-lg animate-slide-in-right z-50"
+              className="w-56 p-1 bg-neutral-900/95 backdrop-blur-lg border border-neutral-800 rounded-xl shadow-lg animate-slide-in-right z-50"
             >
-              {/* Broadcast - Deep Crimson Styling. Hidden when the user may not
-                  compose broadcasts (pro/event trips gate to admins/organizers). */}
-              {canSendBroadcast && (
-                <DropdownMenuItem
-                  onClick={() => setIsBroadcastMode(!isBroadcastMode)}
-                  className="flex items-center gap-2 px-3 py-2 border border-[#B91C1C]/60 text-[#B91C1C] font-medium hover:bg-[#B91C1C] hover:text-white rounded-lg mb-1 cursor-pointer"
-                >
-                  <Megaphone className="w-4 h-4" />
-                  Broadcast
-                </DropdownMenuItem>
-              )}
+              {/* ATTACHMENTS section */}
+              <DropdownMenuLabel className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
+                Attachments
+              </DropdownMenuLabel>
 
-              {/* File — hidden when media uploads are restricted */}
-              {!disableFileUpload && (
-                <DropdownMenuItem
-                  onClick={() => handleFileUpload('document')}
-                  className="flex items-center gap-2 px-3 py-2 text-neutral-300 hover:bg-neutral-800 rounded-lg cursor-pointer"
-                >
-                  <FileText className="w-4 h-4" />
-                  File
-                </DropdownMenuItem>
-              )}
-
-              {/* Link */}
-              <DropdownMenuItem
-                onClick={() => setIsShareModalOpen(true)}
-                className="flex items-center gap-2 px-3 py-2 text-neutral-300 hover:bg-neutral-800 rounded-lg cursor-pointer"
-              >
-                <Link className="w-4 h-4" />
-                Link
-              </DropdownMenuItem>
-
-              {/* Photo — hidden when media uploads are restricted */}
               {!disableFileUpload && (
                 <DropdownMenuItem
                   onClick={() => handleFileUpload('image')}
                   className="flex items-center gap-2 px-3 py-2 text-neutral-300 hover:bg-neutral-800 rounded-lg cursor-pointer"
                 >
-                  <Camera className="w-4 h-4" />
-                  Photo
+                  <Image className="w-4 h-4" />
+                  Photo Library
                 </DropdownMenuItem>
               )}
 
-              {/* Video — hidden when media uploads are restricted */}
+              {!disableFileUpload && (
+                <DropdownMenuItem
+                  onClick={() => handleFileUpload('image', 'environment')}
+                  className="flex items-center gap-2 px-3 py-2 text-neutral-300 hover:bg-neutral-800 rounded-lg cursor-pointer"
+                >
+                  <Camera className="w-4 h-4" />
+                  Take Photo
+                </DropdownMenuItem>
+              )}
+
               {!disableFileUpload && (
                 <DropdownMenuItem
                   onClick={() => handleFileUpload('video')}
@@ -491,6 +514,41 @@ export const ChatInput = ({
                   <Video className="w-4 h-4" />
                   Video
                 </DropdownMenuItem>
+              )}
+
+              {!disableFileUpload && (
+                <DropdownMenuItem
+                  onClick={() => handleFileUpload('document')}
+                  className="flex items-center gap-2 px-3 py-2 text-neutral-300 hover:bg-neutral-800 rounded-lg cursor-pointer"
+                >
+                  <FileText className="w-4 h-4" />
+                  File / Document
+                </DropdownMenuItem>
+              )}
+
+              <DropdownMenuItem
+                onClick={() => setIsShareModalOpen(true)}
+                className="flex items-center gap-2 px-3 py-2 text-neutral-300 hover:bg-neutral-800 rounded-lg cursor-pointer"
+              >
+                <Link className="w-4 h-4" />
+                Link
+              </DropdownMenuItem>
+
+              {/* COMPOSE section (broadcast) */}
+              {canSendBroadcast && (
+                <>
+                  <DropdownMenuSeparator className="my-1 bg-neutral-800" />
+                  <DropdownMenuLabel className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
+                    Compose
+                  </DropdownMenuLabel>
+                  <DropdownMenuItem
+                    onClick={() => setIsBroadcastMode(!isBroadcastMode)}
+                    className="flex items-center gap-2 px-3 py-2 border border-[#B91C1C]/60 text-[#B91C1C] font-medium hover:bg-[#B91C1C] hover:text-white rounded-lg cursor-pointer"
+                  >
+                    <Megaphone className="w-4 h-4" />
+                    Broadcast
+                  </DropdownMenuItem>
+                </>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -524,35 +582,9 @@ export const ChatInput = ({
             )}
           />
 
-          {/* Send Button OR hold-to-record Mic Button — Mic appears when input is empty
-              (iMessage-style). Recorded audio uploads as a typed Stream audio attachment
-              (mime/duration/waveform preserved) via shareVoiceNote. */}
-          {inputMessage.trim().length === 0 &&
-          !isShareUploading &&
-          !disableFileUpload &&
-          voiceNotesEnabled ? (
-            <VoiceRecordButton
-              disabled={isTyping}
-              buttonClassName={CTA_BUTTON_CHAT}
-              iconClassName={`${CTA_ICON_CHAT} text-white`}
-              onRecorded={async (result: VoiceRecordingResult) => {
-                const ext = result.mimeType.includes('mp4')
-                  ? 'm4a'
-                  : result.mimeType.includes('ogg')
-                    ? 'ogg'
-                    : 'webm';
-                const filename = `voice-note-${Date.now()}.${ext}`;
-                // `File` from lucide-react is imported at the top and shadows the DOM
-                // constructor here — use the global explicitly.
-                const file = new globalThis.File([result.blob], filename, {
-                  type: result.mimeType || 'audio/webm',
-                });
-                await shareVoiceNote(file, {
-                  durationMs: result.durationMs,
-                  waveform: result.waveform,
-                });
-              }}
-            />
+          {/* Mic (dictation) when empty; Send when text is present — mirrors Concierge composer. */}
+          {inputMessage.trim().length === 0 && !isShareUploading ? (
+            <VoiceButton voiceState={voiceState} isEligible onToggle={handleVoiceToggle} small />
           ) : (
             <button
               data-testid="chat-send-btn"

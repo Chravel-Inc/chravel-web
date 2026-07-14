@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TripChat } from '../TripChat';
 
@@ -8,6 +8,8 @@ const mockSetReply = vi.fn();
 const mockVirtualizedMessageContainer = vi.fn();
 const mockMessageItem = vi.fn();
 const mockMessageTypeBar = vi.fn();
+
+const mockLoadAroundMessage = vi.fn();
 const mockTripTypeState = { isConsumer: true, isPro: false, isEvent: false };
 let mockMessageFilter: 'all' | 'broadcasts' | 'pinned' | 'channels' = 'all';
 const mockTripChatModeState = {
@@ -60,6 +62,7 @@ vi.mock('../../hooks/useTripChat', () => ({
     sendMessageAsync: vi.fn(),
     isCreating: false,
     loadMore: vi.fn(),
+    loadAroundMessage: mockLoadAroundMessage,
     hasMore: false,
     isLoadingMore: false,
     toggleReaction: vi.fn(),
@@ -174,6 +177,12 @@ vi.mock('@/components/ui/alert', () => ({
 vi.mock('@/services/demoModeService', () => ({ demoModeService: { getMessages: vi.fn() } }));
 vi.mock('@/services/hapticService', () => ({ hapticService: { light: vi.fn() } }));
 vi.mock('@/services/chatContentParser', () => ({ parseMessage: vi.fn() }));
+
+vi.mock('@/services/stream/streamMessageSearch', () => ({
+  fetchTripBroadcastHistory: vi.fn().mockResolvedValue([]),
+  fetchTripPinnedHistory: vi.fn().mockResolvedValue([]),
+}));
+
 vi.mock('@/services/stream/streamClient', () => ({
   getStreamClient: () => null,
   getStreamApiKey: () => 'test-stream-api-key',
@@ -222,6 +231,8 @@ describe('TripChat render path', () => {
     mockMessages = defaultMockMessages;
     mockIsMobile = false;
     Object.assign(mockTripTypeState, { isConsumer: true, isPro: false, isEvent: false });
+    mockLoadAroundMessage.mockResolvedValue(true);
+    HTMLElement.prototype.scrollIntoView = vi.fn();
   });
 
   const renderSubject = (props?: React.ComponentProps<typeof TripChat>) => {

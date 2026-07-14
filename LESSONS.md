@@ -28,6 +28,16 @@ If two mutation paths invalidate the same keys, lift the key set to a shared hel
 ### Avoid default `[]` prop literals when callbacks/effects depend on that prop
 A new array identity each render triggers infinite effect loops; default via `useMemo` or hoist the constant.
 
+
+### Poll discussion lives beside the vote, not in chat
+Keep poll replies on the poll card (vote → reply). Parallel demo storage (`poll_comments_${tripId}`) so demo mode works without mutating sacred mockPolls.
+
+### Poll option append after lock needs a SECURITY DEFINER RPC
+`options_locked_at` freezes client UPDATE of option text/votes; member-suggested options must go through `append_poll_option` (auth + membership + active + max 10 + duplicate check), not a direct options rewrite.
+
+### Cross-tab poll deep-links use sessionStorage + a window event
+Concierge/chat → Polls tab: stash intent (`pollDeepLink`), fire `POLL_DEEP_LINK_EVENT`, switch tab; CommentsWall consumes URL/`?pollId=`/`?createPoll=1` so mobile and desktop shells stay in sync without prop-drilling through every trip shell.
+
 ### useEffect dependencies on array state cause O(N) re-execution storms
 Depend on `arr.length` or a derived primitive, not the array itself, unless deep-equal is required.
 
@@ -523,6 +533,9 @@ If a visible primary control is meant to work by default, do not gate its mounte
 ### App Store Concierge: waveform dictation beats unstable realtime as default
 When a prominent control (waveform) starts bidirectional realtime voice that remains flaky across LiveKit/Gateway iterations, ship Web Speech dictation on that control for launch and keep realtime behind `concierge_realtime_voice` (default OFF). Also remove duplicate in-field mics so Search / Attach / Dictate / Send is one clear mental model. *Evidence: July 2026 App Store simplification — PR waveform→dictation; flag disabled in prod.*
 
+### Concierge read-aloud is a separate path from bidirectional realtime voice
+Per-reply speaker TTS (`TTSSpeakerButton` → `useConciergeReadAloud` → `concierge-voice-tts` → Lovable AI Gateway `openai/gpt-4o-mini-tts`) is independent of waveform dictation and `concierge_realtime_voice`. Do not gate the speaker button on the realtime flag. Voices come from settings (`ConciergeVoicePicker` / `profiles.concierge_voice`, 10 OpenAI voices, default coral). *Evidence: July 2026 read-aloud audit — function deployed; client/server voice catalogs match.*
+
 ### Chat tabs that filter the in-memory timeline silently lose off-window history
 The Broadcasts and Pinned tabs derived content by filtering the live Stream window (30 loaded / 250 retained), so anything older vanished from the tab while the unread badge (computed elsewhere) still counted it. Fix pattern: on tab activation, fetch tab-specific history server-side (`channel.search({message_type:{$eq:'broadcast'}})`, `channel.getPinnedMessages`) and merge under the live window with live-wins dedupe; always degrade to the window filter on fetch failure. Also keep every classifier for the same concept on ONE predicate — `isBroadcast` used `message_type` only while the badge also matched `privacy_mode`, which is exactly how "badge shows 3, tab shows empty" happens. *Evidence: July 2026 Stream chat hardening — user screenshots of empty Broadcasts tab with nonzero badge on a PRO trip.*
 
@@ -537,5 +550,19 @@ When production serves a meta CSP (and may omit the HTTP CSP header), `index.htm
 ### Prove TestFlight web asset provenance before rewriting Concierge controls
 July 9 Search/isActive + realtime lazy-mount fixes were already on `main` and in production `mrex8prk` chunks. Multi-control dead UI on a screenshot matching that chrome is often deployment drift (`chravel-mobile` remote vs bundled) or CSP — not a reason to re-implement working handlers. *Evidence: production chunk markers `header-search-btn` / `mint-realtime-token` present before recovery branch.*
 
+### Preserve custom Stream attachment fields through both send and view-model adapters
+Stream custom attachment metadata such as voice-note waveform/duration/transcript must be explicitly forwarded in payload normalization and hydrated back into message view models; otherwise realtime-confirmed messages lose rich playback UI after refresh.
+
+### Inline chat search needs a two-phase result source
+For responsive UX, search the loaded message window synchronously, then merge debounced Stream `channel.search(query)` results by message ID and hydrate off-window selections with `channel.query({ messages: { id_around } })` before scrolling. This avoids the "0 results" lie when history is older than the retained timeline window.
 ### Launch-critical E2E fixtures need an explicit release-gate mode
 Local Playwright runs can skip authenticated setup when staging secrets or confirmation-free auth are unavailable, but CI/App Store QA must fail instead of reporting green with skipped launch-critical coverage. Centralize the mode flag (`CHRAVEL_E2E_RELEASE_GATE=1`) and throw fixture-step errors (`[E2E fixture step failed: auth|trip creation|membership|pro trip creation] ...`) from shared fixtures so failures identify the broken setup step. *Evidence: July 2026 chat messaging E2E release-gate hardening.*
+
+### Trip payment UX must share one create path across mobile and desktop
+Desktop `usePayments.createPaymentMessage` fired Stream `payment_recorded` chat activity; mobile `CreatePaymentModal` called `paymentService` directly and skipped it. Prefer a shared helper (`paymentActivityMessages`) invoked from every create entry point, and put preferred-method deeplinks on both Outstanding cards and mobile balance breakdown — not only desktop `PersonBalanceCard`. *Evidence: July 2026 payments UX delight — mobile create had no chat announcement; Pay via badges were non-interactive until `PaymentMethodPayButtons`.*
+
+### Custom/percentage splits: resolve dollars client-side, validate cents server-side
+Keep `create_payment_with_splits_v2` on one uneven path (`p_custom_amounts` JSON object) instead of teaching Postgres about percentages. Client `resolveSplitAmounts` converts % → dollars with largest-remainder pennies; both client `validateCustomAmountMap` and the RPC require `ROUND(sum*100) === ROUND(total*100)`. Omit the arg for equal so the legacy equal path stays untouched. *Evidence: July 2026 custom split RPC + usePaymentSplits tests.*
+### Prefer `@`/`vs` over bare `at` for home/away schedule classification
+Bare `at` matches venue phrases ("Trivia Night at Joe's"). Use `@` and `vs`/`versus` title cues (or explicit labels) so unknown events stay importable instead of being silently filtered.
+

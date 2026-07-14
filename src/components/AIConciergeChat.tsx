@@ -166,7 +166,7 @@ export const AIConciergeChat = ({
     onNavigateToPlaces: handleNavigateToPlaces,
   });
 
-  // ── Google TTS ──────────────────────────────────────────────────────
+  // ── Read-aloud TTS (Lovable AI Gateway via concierge-voice-tts) ─────
   const {
     playbackState: ttsPlaybackState,
     playingMessageId: ttsPlayingMessageId,
@@ -595,6 +595,7 @@ export const AIConciergeChat = ({
               showMapWidgets={true}
               onDeleteMessage={handleDeleteMessage}
               onTabChange={onTabChange}
+              tripId={tripId}
               onSavePlace={savePlace}
               onSaveFlight={saveFlight}
               onSaveHotel={saveHotel}

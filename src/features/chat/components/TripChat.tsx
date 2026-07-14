@@ -14,6 +14,7 @@ import { ChatInput } from './ChatInput';
 import { InlineReplyComponent } from './InlineReplyComponent';
 import { VirtualizedMessageContainer } from './VirtualizedMessageContainer';
 import { findFirstUnreadMessageId } from '../utils/findFirstUnreadMessageId';
+
 import { MessageItem } from './MessageItem';
 import { MessageSkeleton } from '@/components/mobile/SkeletonLoader';
 import { getMockAvatar } from '@/utils/mockAvatars';
@@ -50,6 +51,7 @@ import { useBlockedUsers, useReportContent } from '@/hooks/useUserSafety';
 import { getStreamApiKey, getStreamClient } from '@/services/stream/streamClient';
 import { derivePinnedMessages } from '../utils/pinnedMessages';
 import { extractQuotedReferenceFromStreamMessage } from '@/services/stream/streamMessagePayload';
+
 import { messageEvents } from '@/telemetry/events';
 import { shouldUseLegacyChatSync } from '@/services/stream/streamTransportGuards';
 import { tripKeys } from '@/lib/queryKeys';
@@ -206,6 +208,7 @@ export const TripChat = React.memo(
       sendMessageAsync: sendTripMessage,
       isCreating: isSendingMessage,
       loadMore: loadMoreMessages,
+      loadAroundMessage,
       hasMore,
       isLoadingMore,
       toggleReaction,
@@ -750,22 +753,25 @@ export const TripChat = React.memo(
       toggleReaction,
     );
 
-    const handleOpenThread = (messageId: string) => {
-      const message =
-        liveFormattedMessages.find(m => m.id === messageId) ||
-        demoMessages.find(m => m.id === messageId);
-      if (!message) return;
+    const handleOpenThread = useCallback(
+      (messageId: string) => {
+        const message =
+          liveFormattedMessages.find(m => m.id === messageId) ||
+          demoMessages.find(m => m.id === messageId);
+        if (!message) return;
 
-      // For inline reply:
-      const content = (message as any).text || (message as any).content || '';
-      const authorName =
-        (message as any).sender?.name ||
-        (message as any).user?.name ||
-        (message as any).author_name ||
-        'User';
+        // For inline reply:
+        const content = (message as any).text || (message as any).content || '';
+        const authorName =
+          (message as any).sender?.name ||
+          (message as any).user?.name ||
+          (message as any).author_name ||
+          'User';
 
-      setReply(messageId, content, authorName);
-    };
+        setReply(messageId, content, authorName);
+      },
+      [demoMessages, liveFormattedMessages, setReply],
+    );
 
     // Inline replies: "open thread" now scrolls to the parent message in the
     // main timeline (replies render nested under it). No modal/drawer.
@@ -1095,9 +1101,9 @@ export const TripChat = React.memo(
           setMessageFilter('all');
         }
 
-        window.setTimeout(() => {
+        const scrollElementIntoView = () => {
           const targetElement = document.querySelector(`[data-message-id="${targetId}"]`);
-          if (!(targetElement instanceof HTMLElement)) return;
+          if (!(targetElement instanceof HTMLElement)) return false;
 
           targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
           targetElement.classList.add('search-highlight-flash');
@@ -1106,9 +1112,20 @@ export const TripChat = React.memo(
           if (openThread) {
             handleActivateThread(targetId, 'notification_deeplink');
           }
+          return true;
+        };
+
+        window.setTimeout(() => {
+          if (scrollElementIntoView()) return;
+          if (!loadAroundMessage) return;
+
+          void loadAroundMessage(targetId).then(found => {
+            if (!found) return;
+            window.setTimeout(scrollElementIntoView, 50);
+          });
         }, 100);
       },
-      [handleActivateThread, messageFilter],
+      [handleActivateThread, loadAroundMessage, messageFilter, setMessageFilter],
     );
 
     // Scroll to target message from notification click (when messages finish loading)
@@ -1127,7 +1144,7 @@ export const TripChat = React.memo(
       }, 300);
 
       return () => clearTimeout(timer);
-    }, [targetMessageId, isLoading, chatNavigationContext?.openThreadId]);
+    }, [targetMessageId, isLoading, chatNavigationContext?.openThreadId, scrollToMessage]);
 
     // Global keyboard shortcut for search (Ctrl+F or Cmd+F)
     useEffect(() => {
@@ -1156,6 +1173,7 @@ export const TripChat = React.memo(
             transportMode="stream"
             onRetry={handleRetryFailedMessage}
             systemMessagePrefs={systemMessagePrefs}
+            tripId={resolvedTripId}
             tripMembers={tripMembers}
             readStatuses={message.readStatuses || readStatusesByMessage[message.id] || []}
             showSenderInfo={showSenderInfo}

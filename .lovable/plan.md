@@ -1,64 +1,52 @@
+## Findings
 
-# Chat "Holy Grail" Upgrade — Phased Plan
+Looking at `src/features/chat/components/ChatInput.tsx`, all three items are already largely wired up — but the `+` menu items are unlabeled/ungrouped, which is probably why attachments don't feel discoverable.
 
-Bring trip chat to iMessage/WhatsApp quality inside Chravel's Luxury Dark brand (gold accents, DM Serif Display/Fira Sans, no purple gradients). Each phase ships independently, is behind no flag by default, and preserves existing send/broadcast/payment/mention/upload behavior.
+### 1. Mic ↔ Send toggle — already correct
+Line 550: the composer renders `VoiceRecordButton` when `inputMessage.trim().length === 0`, otherwise renders the Send button. Typing any character flips to Send; clearing flips back to Mic. No code change needed — I'll verify visually in the running preview after the menu changes and confirm in the delivery notes.
 
-## Phase 1 — Polish Pass (foundation)
-Perceived-quality jump with near-zero risk. Ships first.
+### 2. `+` menu — already contains attachments, needs clearer structure
+The dropdown already has: Broadcast, File, Link, Photo, Video, Transcribe voice notes. Problems:
+- No visual grouping, so "Photo/Video/File/Link" don't read as "attachments."
+- "Photo" uses a Camera icon but opens the photo library (confusing).
+- No dedicated "Take Photo" (camera capture) option on mobile.
+- Transcribe toggle sits at the bottom with no separator.
 
-- **Message grouping**: collapse consecutive messages from the same sender within a 3-minute window. Tighter vertical spacing between grouped bubbles (2px), normal spacing (12px) between senders.
-- **Bubble tails**: render a tail only on the *last* bubble in a group (SVG or CSS notch). Own = gold-tinted right tail; other = surface-tinted left tail. Avatar + sender name render only on the first bubble of the group (other side); own side stays avatar-less.
-- **Day separators**: sticky, centered pill ("Today", "Yesterday", "Mon, Nov 12") inserted when the calendar day changes between adjacent messages.
-- **Time gaps**: inline centered timestamp only when >15 min gap between messages; hover/tap to reveal exact time on any bubble.
-- **"New messages" divider**: single horizontal rule inserted at the first unread message when the chat opens; clears on next mount.
-- **Spring entrance**: new incoming/own bubbles animate in with a subtle scale-in (0.96→1) + fade over 180ms, transform-origin on the tail side. Respects `prefers-reduced-motion`.
-- **Typing indicator**: three-dot animated bubble on the receiving side using existing typing presence data. Auto-hides after 4s idle.
+## Changes (single file: `src/features/chat/components/ChatInput.tsx`)
 
-## Phase 2 — Interactions (reactions + reply)
-Wires the "Tapback" moment and quote-reply flow.
+1. **Restructure the `+` `DropdownMenuContent`** with `DropdownMenuLabel` section headers and `DropdownMenuSeparator` dividers:
+   ```
+   ATTACHMENTS
+     • Photo Library      (Image icon)   → handleFileUpload('image')
+     • Take Photo         (Camera icon)  → new: opens file input with capture="environment"
+     • Video              (Video icon)   → handleFileUpload('video')
+     • File / Document    (FileText)     → handleFileUpload('document')
+     • Link               (Link icon)    → opens existing share-link dialog
+   ─────────
+   COMPOSE
+     • Broadcast          (conditional, unchanged styling)
+   ─────────
+   PREFERENCES
+     • Transcribe voice notes  [On/Off]  (unchanged behavior)
+   ```
 
-- **Long-press / double-tap reaction bar**: floats above the pressed bubble with 6 quick emojis (❤️ 👍 👎 😂 ‼️ ❓) + "＋" for full picker. Reuses existing `message_reactions` table (schema already present). Own reactions toggle off on re-tap.
-- **Reaction chips**: rendered as a small pill *attached to the bubble corner* (iMessage style), showing emoji + count. Tap to see who reacted.
-- **Long-press action menu**: below the reaction bar — Reply, Copy, Forward (stub → follow-up), Delete (own only), Report (other only). Uses shadcn ContextMenu on desktop, custom sheet on mobile.
-- **Swipe-to-reply**: horizontal swipe on a bubble (right for received, left for own, ~60px threshold) reveals a reply arrow + haptic tick, releases into an inline "Replying to …" chip above the composer.
-- **Inline reply chip in bubble**: sent replies render a compact quoted preview (sender + one-line snippet) that scrolls to the original on tap.
-- **Read receipts + delivered ticks**: single check = sent, double = delivered, gold double = read. Only shown on *own* messages, only when the trip's privacy setting allows (respect existing `trip_privacy_configs`).
+2. **Add "Take Photo" flow**: extend `handleFileUpload` to accept an optional `capture` argument and set `fileInputRef.current.capture = 'environment'` before `.click()`; reset it afterward so library picks still work.
 
-## Phase 3 — Media & Links
-Makes shared content feel native.
+3. **Swap the "Photo" icon** from `Camera` → `Image` so the icon matches "photo library," freeing `Camera` for the new "Take Photo" item.
 
-- **Image mosaic**: 2–4 images sent together render in an iMessage-style grid (2-up, 3-up staircase, 4-up quad) inside a single bubble instead of stacked attachments. 5+ shows first 4 with "+N" overlay.
-- **Rich URL unfurls in-bubble**: pasted URLs generate a stacked preview card (image + title + domain) using the existing `unfurl` service. Card lives *inside* the bubble; failed unfurls fall back to plain link.
-- **Tappable link previews from Places tab**: internal `chravel://place/...` and Places links render a mini place card (photo + name + distance from Base Camp) — leverages existing Google Places integration.
-- **Video thumbs with duration badge**; GIFs autoplay muted on scroll into view.
+4. **Import** `DropdownMenuLabel` and `DropdownMenuSeparator` from `@/components/ui/dropdown-menu`.
 
-## Phase 4 — Voice Notes
-The WhatsApp "moat" feature.
+No changes outside this file. No business-logic changes — same handlers, same upload pipeline (`shareMultipleFiles`, `shareLink`), same broadcast gating (`canSendBroadcast`), same voice-notes flag gating.
 
-- **Hold-to-record button** on the *left* of the composer (replaces the mic-affordance gap). Live waveform draws as you speak; timer shows elapsed.
-- **Swipe-left-to-cancel** and **swipe-up-to-lock** (hands-free continue). Release to send, release-inside-cancel-zone to discard.
-- **Playback bubble**: static waveform (peaks sampled at record time), play/pause, scrubber, 1x/1.5x/2x speed toggle. Unplayed = gold accent, played = muted.
-- **Storage**: Supabase Storage bucket `trip-voice-notes` with RLS mirroring `trip-media`; message row references the object with `media_type = 'voice'` and `duration_ms` metadata.
-- **Auto-transcript (optional, gated)**: server-side transcription via existing AI stack behind `voice_note_transcripts` feature flag; displays under the waveform when ready.
+## Verification
 
-## Cross-cutting
+- Load a trip chat in the preview, open the `+` menu, confirm the three grouped sections render with dividers.
+- Tap Photo Library / Video / File → native picker opens with correct `accept`.
+- Tap Take Photo on mobile viewport → camera capture opens.
+- Tap Link → existing share-link dialog opens.
+- Type into the composer → right button flips from Mic to Send; clear the text → flips back.
+- Run `npm run typecheck` and the existing `ChatInput.test.tsx` suite.
 
-- **Brand fidelity**: all new surfaces use semantic tokens (`--gold`, `--surface`, `--foreground`) — no hardcoded colors, no purple. Own bubble = `hsl(var(--gold) / 0.18)` fill + gold text; other = `--muted` fill + `--foreground` text.
-- **Mobile-first**: 44px tap targets, `visualViewport`-aware composer, safe-area insets preserved. Reaction bar and swipe gestures tested in portrait + landscape.
-- **Demo mode**: mock messages get grouped/reactioned/replied purely at render time — no mock data mutation.
-- **Feature flags**: `chat_reactions_v2`, `chat_swipe_reply`, `chat_media_mosaic`, `chat_voice_notes` seeded on in migrations so we can kill any phase in 60s without redeploy.
-- **Tests**: unit tests for grouping/day-separator logic; RTL tests for reaction toggle + swipe-to-reply gesture; integration test per phase.
+## Regression risk
 
-## Technical Notes
-
-Files touched per phase (approximate):
-- **P1**: `src/features/chat/components/MessageList.tsx`, `MessageBubble.tsx` (new: `MessageGroup.tsx`, `DaySeparator.tsx`, `TypingBubble.tsx`), `src/features/chat/utils/groupMessages.ts` (new).
-- **P2**: `MessageBubble.tsx`, new `ReactionBar.tsx`, `MessageActionMenu.tsx`, `useSwipeToReply.ts`; hook into existing `message_reactions` table + realtime channel.
-- **P3**: new `MediaMosaic.tsx`, `InBubbleLinkCard.tsx`; extend `useLinkUnfurl` to inline mode.
-- **P4**: new `VoiceRecorder.tsx`, `VoicePlayer.tsx`, `useVoiceRecording.ts`; migration for `trip-voice-notes` bucket + RLS + `trip_chat_messages.duration_ms` column; feature flag row.
-
-No new heavy deps. Waveform via `MediaRecorder` + Web Audio API `AnalyserNode` (no wavesurfer.js unless needed). Reactions/swipe use existing gesture primitives — no framer-motion additions.
-
-## Shipping order
-
-P1 (this session) → P2 → P3 → P4. Each phase = own PR, own verification, independently revertible via its feature flag.
+LOW — additive menu items, one icon swap, and a small extension to `handleFileUpload` that defaults to the current behavior. No changes to send/broadcast/mention/voice-note logic.
