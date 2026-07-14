@@ -260,7 +260,7 @@ export const RolesView = ({
         <div
           className={`flex ${isMobile ? 'flex-col gap-3' : 'items-center justify-between gap-4'}`}
         >
-          <div className="flex items-center gap-2 shrink-0">
+          <div className={`flex items-center gap-2 ${isMobile ? 'justify-center' : 'shrink-0'}`}>
             <span className="text-xs text-ink-3">View:</span>
             <div className="flex rounded-xl bg-white/5 border border-white/10 p-0.5">
               <button
@@ -299,7 +299,7 @@ export const RolesView = ({
           ) : (
             (availableRoles.length > 0 || existingRoles.length > 0) && (
               <div
-                className={`flex ${isMobile ? 'overflow-x-auto scrollbar-hide' : 'flex-wrap justify-end'} gap-2 items-center`}
+                className={`flex flex-wrap gap-1.5 items-center ${isMobile ? 'justify-center' : 'justify-end'}`}
               >
                 {roles.map(role => {
                   // Count members assigned to this role from actual role assignments (memberRolesMap)
@@ -332,7 +332,7 @@ export const RolesView = ({
                       onClick={() => setSelectedRole(role)}
                       aria-label={`Filter by ${role === 'all' ? 'all roles' : `role ${role}`}${role !== 'all' ? `, ${memberCount} members` : ''}`}
                       aria-pressed={selectedRole === role}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-full text-xs font-medium transition-colors duration-200 ${
+                      className={`flex shrink-0 items-center gap-1 whitespace-nowrap px-2.5 py-1.5 min-h-[44px] rounded-full text-xs font-medium transition-colors duration-200 ${
                         selectedRole === role
                           ? 'bg-gold-primary text-black shadow-ring-glow'
                           : 'bg-white/5 text-ink-2 hover:bg-white/10 border border-white/10'
