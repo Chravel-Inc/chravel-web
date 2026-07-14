@@ -577,3 +577,14 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Smallest safe fix:** Module-level stable defaults; return previous `visitedTabs` Set when unchanged; keep transition hang-detector tests.
 - **Required tests:** `MobileTripTabs.transition.test.tsx` + navigation suite must finish in seconds, not OOM.
 - **Fixed in:** `MobileTripTabs.tsx` (July 2026 restore)
+
+## Sibling view swapped without a `key` shares a debounce keyed on a constant, dropping pending work
+- **Status:** fixed
+- **Subsystem:** pro channels (`ChannelChatView`, `useChatReadReceipts`)
+- **Bug class:** unkeyed component reuse + shared-state debounce keyed on an invariant
+- **Symptom:** Per-channel unread badges optimistically clear on open but silently reappear later; the server-side read marker was never actually written for the channel the user just left.
+- **Root cause:** `TripChat` renders `<ChannelChatView channel={roleActiveChannel} />` with no `key`, so switching channels updates props on the SAME component instance rather than remounting. `useChatReadReceipts`'s 1s debounced `markRead()` is keyed on `channel.tripId` — identical across every channel in a trip — so switching channels within that window rebinds the hook's effect to the new channel's `messages`/`activeChannel`, and the debounce's cleanup silently drops the still-pending `markRead()` for the channel just left.
+- **First fix attempt was also wrong:** captured the "current" Stream channel in a `useRef` mutated directly in the render body (`ref.current = streamProChannel.activeChannel`), then read `ref.current` in an unmount-style cleanup. This races: the mutation happens during the SAME render that swaps in the new channel, so by the time the cleanup runs during commit, `ref.current` already points at the NEW channel, not the outgoing one.
+- **Smallest safe fix:** Compare Stream **Channel object identity** across renders (not `channel.id` — the connected `Channel` lags `channel.id` by a render or two via `watch()`, since `useStreamProChannel` resets `activeChannel` to `null` before the new one resolves). On identity change, flush `previous.markRead()` before recording `current`; also flush on true unmount. This tolerates the null-transition step and never captures a stale reference because the ref is only ever updated as the *result* of comparing against the current render's value, not by a stray render-time write.
+- **Required tests:** mount a mock channel, rerender with a different mock channel object, assert the first channel's `markRead` fired exactly once and the second's did not.
+- **Fixed in:** `src/components/pro/channels/ChannelChatView.tsx` (July 2026 pro-trips hardening)

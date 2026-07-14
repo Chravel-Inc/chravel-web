@@ -41,6 +41,12 @@ Unfiltered Supabase realtime channels receive ALL global events — always speci
 ### Always backfill on realtime channel reconnect
 Supabase does not replay missed events. On `SUBSCRIBED`-after-initial and on app foreground, refetch the affected queries.
 
+### Debounced side effects keyed on a per-view constant race across unkeyed sibling swaps
+When one component renders a sibling view without a `key` (e.g. `<ChannelChatView channel={activeChannel} />`), switching the sibling's identity via a prop change reuses the same component instance and hook state. A debounced/timer-based side effect (`useChatReadReceipts`'s markRead) keyed on something constant across siblings (`tripId`, not `channelId`) will have its pending timer silently cancelled and replaced when the prop swaps mid-debounce — the effect never fires for the sibling that was just left. Detect this class by asking: "does this hook's dependency array include something that changes on EVERY sibling swap, or only something that's the same across all siblings in this list?" Fix by flushing on *identity change of the actual resource* (not a shared parent id) rather than relying on the debounce to complete before the swap. *Evidence: `ChannelChatView` per-channel unread badges — `src/components/pro/channels/ChannelChatView.tsx`, July 2026 pro-trips hardening.*
+
+### A ref mutated during render, then read in an unmount-style cleanup, races the very transition it's meant to observe
+`ref.current = value` written directly in the render body reflects the render's LATEST value by the time any effect cleanup for that same commit runs — so a cleanup meant to capture "the previous value before this render's change" instead sees the new one. If you need "the value from before this transition," compare identity across renders in a `useEffect` with that value in the dependency array (previous captured via a ref that's *only* updated at the end of the effect body, never during render), not a bare render-time assignment. *Evidence: initial ChannelChatView markRead-flush attempt captured the wrong (new) channel; fixed by comparing Stream Channel object identity inside a dependency-tracked effect instead.*
+
 ### Chat backfill is mandatory on websocket reconnect
 Message loss between disconnect and reconnect is the most common chat bug — backfill from server with deterministic dedupe.
 
@@ -343,6 +349,9 @@ Check the function's CORS allowlist before chasing SQL. Keep `_shared/cors.ts` a
 
 ### Standalone agents need their own deployment pipeline
 Edge function CI does not cover LiveKit / external agents; ship them through a dedicated workflow.
+
+### `npm ci` hanging near-silently on a clean web-session container means the corporate npm mirror is rejecting CONNECT, not a slow network
+`package-lock.json` pins some packages to a private mirror (`europe-west1-npm.pkg.dev/.../sandbox-npm-cache/...`) while most resolve to `registry.npmjs.org`. If the mirror host is blocked for the agent proxy (`curl "$HTTPS_PROXY/__agentproxy/status"` shows `recentRelayFailures` with `connect_rejected` / gateway 403 for that host), `npm ci` doesn't fail fast — it retries per-package for the configured `fetch-retries`/timeout and can sit for 10+ minutes with near-zero `/proc/<pid>/io` growth before eventually erroring. Diagnose by checking the *newest* `~/.npm/_logs/*.log` for `http fetch GET 403 ...pkg.dev...` lines, not just assuming npm is slow. Fix: extract the mirror-pinned `name@version` specs from `package-lock.json`'s `"resolved"` URLs, `npm cache add <spec> --registry=https://registry.npmjs.org/` for each (works because npm's package cache is keyed by name+version+integrity, not by source registry), then re-run `npm ci --prefer-offline` — it will resolve those specs from the warmed cache instead of the blocked mirror and complete in under a minute. *Evidence: `chravel-web` npm ci session, July 2026 — 87 mirror-pinned packages, install went from 10+ min hangs (2 killed) to 24s after cache pre-seed.*
 
 ### Treat `npm run validate` as the deployment gate when `npm run build` is green
 Build can pass while `validate` (lint:budget + format:check + schema-drift + env coverage) catches the real blockers.
