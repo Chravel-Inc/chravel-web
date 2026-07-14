@@ -494,6 +494,24 @@ export const ChatInput = ({
                   Video
                 </DropdownMenuItem>
               )}
+
+              {/* Transcribe voice notes toggle (moved out of composer row) */}
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.preventDefault();
+                  setVoiceTranscriptionEnabled(v => !v);
+                }}
+                className="flex items-center justify-between gap-2 px-3 py-2 text-neutral-300 hover:bg-neutral-800 rounded-lg cursor-pointer"
+              >
+                <span className="flex items-center gap-2">
+                  <Captions className="w-4 h-4" />
+                  Transcribe voice notes
+                </span>
+                <span className={cn('text-xs', voiceTranscriptionEnabled ? 'text-primary' : 'text-muted-foreground')}>
+                  {voiceTranscriptionEnabled ? 'On' : 'Off'}
+                </span>
+              </DropdownMenuItem>
+
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -578,26 +596,8 @@ export const ChatInput = ({
             </button>
           )}
 
-          {inputMessage.trim().length === 0 && !isShareUploading && !disableFileUpload && (
-            <button
-              type="button"
-              aria-label={
-                voiceTranscriptionEnabled
-                  ? 'Turn off voice note transcription'
-                  : 'Turn on voice note transcription'
-              }
-              aria-pressed={voiceTranscriptionEnabled}
-              onClick={() => setVoiceTranscriptionEnabled(enabled => !enabled)}
-              className={cn(
-                'size-6 min-w-[24px] sm:size-10 sm:min-w-[40px] rounded-full flex items-center justify-center shrink-0 touch-manipulation border transition-colors',
-                voiceTranscriptionEnabled
-                  ? 'border-primary bg-primary/15 text-primary'
-                  : 'border-border text-muted-foreground hover:bg-muted',
-              )}
-            >
-              <Captions className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </button>
-          )}
+
+
 
           {/* Hidden file input */}
           <input ref={fileInputRef} type="file" className="hidden" multiple />
