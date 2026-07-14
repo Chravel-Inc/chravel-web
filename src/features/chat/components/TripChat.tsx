@@ -140,6 +140,12 @@ export const TripChat = React.memo(
     const isMobileViewport = useIsMobile();
     const showChatSidebar = isPro && !isMobileViewport;
     const [channelSheetOpen, setChannelSheetOpen] = useState(false);
+    // Crossing into the desktop rail unmounts MobileChannelSheet without
+    // closing it — a later resize back to mobile would otherwise remount it
+    // already open. Reset eagerly so the sheet never appears unrequested.
+    useEffect(() => {
+      if (showChatSidebar) setChannelSheetOpen(false);
+    }, [showChatSidebar]);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
     const messageScrollRef = useRef<HTMLDivElement>(null);
     const [failedMessages, setFailedMessages] = useState<

@@ -27,8 +27,9 @@ vi.mock('@/features/chat/hooks/useLinkPreviews', () => ({
   useLinkPreviews: () => ({}),
 }));
 
+const useChatReadReceiptsMock = vi.fn();
 vi.mock('@/features/chat/hooks/useChatReadReceipts', () => ({
-  useChatReadReceipts: vi.fn(),
+  useChatReadReceipts: (...args: unknown[]) => useChatReadReceiptsMock(...args),
 }));
 
 // Parametrizable Stream transport mock — tests mutate streamProChannelMock.
@@ -141,6 +142,36 @@ describe('ChannelChatView hardening', () => {
     streamProChannelMock.isLoading = false;
     streamProChannelMock.sendMessage = vi.fn().mockResolvedValue(true);
     streamProChannelMock.activeChannel = null;
+  });
+
+  describe('read-state flush on channel switch', () => {
+    it('marks the outgoing channel read immediately when the channel prop changes', () => {
+      // ChannelChatView is not remounted on channel switch (TripChat renders
+      // it with no `key`) — useChatReadReceipts' debounce is keyed on
+      // channel.tripId, identical across every channel in a trip, so without
+      // an explicit flush the pending markRead for the outgoing channel is
+      // silently dropped when its cleanup reruns against the new channel.
+      const coachesMarkRead = vi.fn().mockResolvedValue(undefined);
+      const staffMarkRead = vi.fn().mockResolvedValue(undefined);
+
+      streamProChannelMock.activeChannel = { markRead: coachesMarkRead } as any;
+      const { rerender } = render(<ChannelChatView channel={makeChannel({ id: 'c1' })} />);
+      expect(coachesMarkRead).not.toHaveBeenCalled();
+
+      streamProChannelMock.activeChannel = { markRead: staffMarkRead } as any;
+      rerender(<ChannelChatView channel={makeChannel({ id: 'c2', channelName: 'Staff' })} />);
+
+      // Switching away from c1 flushes its read state exactly once.
+      expect(coachesMarkRead).toHaveBeenCalledTimes(1);
+      expect(staffMarkRead).not.toHaveBeenCalled();
+    });
+
+    it('does nothing on the initial mount (no prior channel to flush)', () => {
+      const markRead = vi.fn().mockResolvedValue(undefined);
+      streamProChannelMock.activeChannel = { markRead } as any;
+      render(<ChannelChatView channel={makeChannel()} />);
+      expect(markRead).not.toHaveBeenCalled();
+    });
   });
 
   describe('leave-role menu (C7)', () => {

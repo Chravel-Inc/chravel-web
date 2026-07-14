@@ -97,12 +97,15 @@ serve(async req => {
       const isCreator = trip.created_by === user.id;
       let isTripAdmin = false;
       if (!elevatedRole && !isCreator) {
-        const { data: adminRow } = await supabase
+        const { data: adminRow, error: adminError } = await supabase
           .from('trip_admins')
           .select('id')
           .eq('trip_id', trip_id)
           .eq('user_id', user.id)
           .maybeSingle();
+        if (adminError) {
+          logError('BROADCAST_CREATE_ADMIN_CHECK', adminError, { userId: user.id, trip_id });
+        }
         isTripAdmin = !!adminRow;
       }
       if (!elevatedRole && !isCreator && !isTripAdmin) {

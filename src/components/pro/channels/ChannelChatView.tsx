@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import type { MessageResponse } from 'stream-chat';
 import { TripChannel, ChannelMessage } from '../../../types/roleChannels';
 import { useToast } from '../../../hooks/use-toast';
@@ -110,6 +110,46 @@ export const ChannelChatView = ({
     useStreamTransport ? streamProChannel.messages : [],
     useStreamTransport ? streamProChannel.activeChannel : null,
   );
+
+  // Flush read state for the outgoing channel immediately when switching.
+  // ChannelChatView isn't remounted on channel change (TripChat renders it
+  // with no `key`), so useChatReadReceipts' 1s debounce is keyed off
+  // channel.tripId — identical across every channel in the trip. Switching
+  // channels within that window rebinds the hook to the new channel's
+  // messages/activeChannel and its cleanup silently drops the pending
+  // markRead for the channel just left, leaving it unread server-side
+  // forever (the badge only self-heals if the user reopens it).
+  //
+  // Triggered off Stream Channel *object identity*, not channel.id: the
+  // connected Channel only becomes available a render or two after channel.id
+  // changes (useStreamProChannel resets to null, then sets it once watch()
+  // resolves), so keying on channel.id alone can capture a stale/null
+  // reference. Identity changes exactly when a new channel connects,
+  // regardless of that timing.
+  const effectiveActiveChannel = useStreamTransport ? streamProChannel.activeChannel : null;
+  const previousActiveChannelRef = useRef<typeof effectiveActiveChannel>(null);
+  useEffect(() => {
+    const previous = previousActiveChannelRef.current;
+    if (
+      previous &&
+      previous !== effectiveActiveChannel &&
+      typeof previous.markRead === 'function'
+    ) {
+      previous.markRead().catch(() => {});
+    }
+    previousActiveChannelRef.current = effectiveActiveChannel;
+  }, [effectiveActiveChannel]);
+
+  // True unmount (leaving the channels view entirely) — flush whatever was
+  // last connected.
+  useEffect(() => {
+    return () => {
+      const current = previousActiveChannelRef.current;
+      if (current && typeof current.markRead === 'function') {
+        current.markRead().catch(() => {});
+      }
+    };
+  }, []);
 
   // Handle user leaving the channel/role (self-service)
   const handleLeaveChannel = async () => {
