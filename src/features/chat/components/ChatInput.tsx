@@ -494,6 +494,24 @@ export const ChatInput = ({
                   Video
                 </DropdownMenuItem>
               )}
+
+              {/* Transcribe voice notes toggle (moved out of composer row) */}
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.preventDefault();
+                  setVoiceTranscriptionEnabled(v => !v);
+                }}
+                className="flex items-center justify-between gap-2 px-3 py-2 text-neutral-300 hover:bg-neutral-800 rounded-lg cursor-pointer"
+              >
+                <span className="flex items-center gap-2">
+                  <Captions className="w-4 h-4" />
+                  Transcribe voice notes
+                </span>
+                <span className={cn('text-xs', voiceTranscriptionEnabled ? 'text-primary' : 'text-muted-foreground')}>
+                  {voiceTranscriptionEnabled ? 'On' : 'Off'}
+                </span>
+              </DropdownMenuItem>
+
             </DropdownMenuContent>
           </DropdownMenu>
 
