@@ -42,7 +42,7 @@
     "qa:tier0": "node scripts/qa/validate-tier0-gate.cjs",
     "qa:skip-policy": "node scripts/qa/check-skipped-tests.cjs",
     "qa:e2e-docs": "node scripts/qa/check-e2e-doc-drift.cjs",
-    "qa:guardrails": "npm run qa:tier0 && npm run qa:skip-policy && npm run qa:e2e-docs && npm run qa:store-query-ownership",
+    "qa:guardrails": "npm run qa:tier0 && npm run qa:skip-policy && npm run qa:e2e-docs && npm run qa:store-query-ownership && npm run qa:native-routing-guards",
     "qa:chat-production-readiness": "node scripts/qa/run-chat-production-readiness-gate.cjs",
     "ops:check-stream-parity": "node scripts/check-stream-config-parity.cjs",
     "qa:basecamps-casing": "node scripts/qa/check-basecamps-import-casing.cjs",
@@ -56,7 +56,8 @@
     "iap:validate": "node scripts/validate-iap-product-ids.mjs",
     "iap:validate:api": "node scripts/validate-iap-product-ids.mjs --source=api",
     "iap:parity": "node scripts/validate-iap-parity.mjs",
-    "qa:appstore-release": "node scripts/qa/appstore-release-gate.cjs"
+    "qa:appstore-release": "node scripts/qa/appstore-release-gate.cjs",
+    "qa:native-routing-guards": "node scripts/qa/check-native-routing-guards.cjs"
   },
   "overrides": {
     "@tanstack/query-async-storage-persister": {

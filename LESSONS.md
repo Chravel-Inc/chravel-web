@@ -588,3 +588,6 @@ Bare `at` matches venue phrases ("Trivia Night at Joe's"). Use `@` and `vs`/`ver
 
 ### Input-heavy mobile modals should be centered Dialogs, not bottom sheets
 `ResponsiveModal` defaults to a vaul bottom Drawer on mobile. Forms with text inputs fight iOS keyboard open/dismiss and `scrollIntoView`, leaving the sheet title at the bottom of the screen. Prefer `layout="centered"` + `.dialog-keyboard-stable` (visual-viewport centering) and skip document `scrollIntoView` for fields inside `[role="dialog"]`. *Evidence: July 2026 Create New Task modal keyboard dismiss bug.*
+
+### Native routing predicates need executable guardrails, not just documentation
+Keep OAuth-return matching, exact-or-dot-boundary host allowlists, and deferred-path precedence in one tested module; CI should reject new inline host `.endsWith()` checks and auth-return redefinitions. Evidence: 2026-07-15 Phase 1 hardening added `src/lib/nativeRoutingGuards.ts` plus `qa:native-routing-guards`.

@@ -77,6 +77,8 @@ Key files:
   supabase/functions/        → Edge functions
   capacitor.config.ts       → iOS wrapper config
   vercel.json               → Deployment config
+  DEFERRAL_DISCIPLINE.md   → Required deferral/follow-up response discipline
+  docs/anti-regression-hardening.md → Regression debugging invariants + pre-PR checklist
 ```
 
 > If you don't know where something lives — search. `rg "symbolName"`. Do not guess file paths or APIs.

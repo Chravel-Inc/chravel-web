@@ -1,3 +1,5 @@
+import { hostMatchesAllowlistedDomain } from '@/lib/nativeRoutingGuards';
+
 /**
  * Centralized environment detection utilities
  *
@@ -9,18 +11,12 @@
  * Detects if the app is running in any Lovable preview environment
  * Includes: lovable.app, *.lovable.app, lovableproject.com, *.lovableproject.com
  *
- * Uses exact hostname match or endsWith with a leading dot to prevent
- * substring bypass (e.g. notlovable.app would NOT match '.lovable.app').
+ * Uses the canonical exact-or-dot-boundary host guard to prevent substring bypass.
  */
 export function isLovablePreview(): boolean {
   if (typeof window === 'undefined') return false;
   const hostname = window.location.hostname;
-  return (
-    hostname === 'lovable.app' ||
-    hostname.endsWith('.lovable.app') ||
-    hostname === 'lovableproject.com' ||
-    hostname.endsWith('.lovableproject.com')
-  );
+  return hostMatchesAllowlistedDomain(hostname, ['lovable.app', 'lovableproject.com']);
 }
 
 /**
