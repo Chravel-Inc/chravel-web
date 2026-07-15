@@ -15,8 +15,13 @@ export const TaskCreateModal = ({ tripId, onClose, initialTask }: TaskCreateModa
   return (
     <ResponsiveModal
       open
-      onOpenChange={onClose}
+      onOpenChange={nextOpen => {
+        if (!nextOpen) onClose();
+      }}
       title={isEditMode ? 'Edit Task' : 'Create New Task'}
+      // Centered Dialog on mobile too — bottom sheet + iOS keyboard dismiss
+      // was yanking the title to the bottom of the screen.
+      layout="centered"
       dialogClassName="sm:max-w-md bg-glass-slate-card border-glass-slate-border"
     >
       <TaskCreateForm tripId={tripId} onClose={onClose} initialTask={initialTask} hideHeader />

@@ -576,3 +576,6 @@ Keep `create_payment_with_splits_v2` on one uneven path (`p_custom_amounts` JSON
 ### Prefer `@`/`vs` over bare `at` for home/away schedule classification
 Bare `at` matches venue phrases ("Trivia Night at Joe's"). Use `@` and `vs`/`versus` title cues (or explicit labels) so unknown events stay importable instead of being silently filtered.
 
+
+### Input-heavy mobile modals should be centered Dialogs, not bottom sheets
+`ResponsiveModal` defaults to a vaul bottom Drawer on mobile. Forms with text inputs fight iOS keyboard open/dismiss and `scrollIntoView`, leaving the sheet title at the bottom of the screen. Prefer `layout="centered"` + `.dialog-keyboard-stable` (visual-viewport centering) and skip document `scrollIntoView` for fields inside `[role="dialog"]`. *Evidence: July 2026 Create New Task modal keyboard dismiss bug.*

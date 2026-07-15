@@ -670,3 +670,12 @@ Known security anti-patterns discovered during audits. Reference this before int
 **Smallest Safe Fix:** Timeout the primary `trip_join_requests` select; batch profile enrichment once with soft-fail; use stored `requester_*` fields as fallback; expose `isError` + Retry in `JoinRequestsPanel`.
 **Required Tests:** `JoinRequestsPanel.error.test.tsx`; existing `useJoinRequests` RPC tests.
 **Fixed in:** `src/hooks/useJoinRequests.ts` / `JoinRequestsPanel.tsx` (July 2026)
+## Create New Task modal title jumps to bottom after iOS keyboard dismiss
+- **Status:** confirmed
+- **Subsystem:** mobile Tasks / ResponsiveModal
+- **Bug class:** bottom sheet + iOS keyboard / scrollIntoView fight
+- **Symptom:** Open Create New Task → focus a field → dismiss keyboard with the checkmark → modal title ends up at the bottom of the screen; refocusing a field only partially recovers.
+- **Root cause:** `TaskCreateModal` used `ResponsiveModal`’s mobile bottom Drawer (`vaul`, `fixed bottom-0`). Combined with `useKeyboardHandler`’s `scrollIntoView` on focus, keyboard hide left the sheet / scroll position stranded.
+- **Smallest safe fix:** `ResponsiveModal` `layout="centered"` for Create Task (always Dialog) + `.dialog-keyboard-stable` re-centers using `--visual-viewport-*`; skip `scrollIntoView` for fields inside dialogs/drawers.
+- **Required tests:** `TaskCreateModal.layout.test.tsx`; `useKeyboardHandler` dialog-focus skip test.
+- **Fixed in:** `responsive-modal.tsx`, `TaskCreateModal.tsx`, `useKeyboardHandler.ts`, `index.css` (July 2026)
