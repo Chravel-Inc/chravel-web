@@ -1,68 +1,45 @@
-import { Easing, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
+import {
+  Easing,
+  Img,
+  interpolate,
+  spring,
+  staticFile,
+  useCurrentFrame,
+  useVideoConfig,
+} from 'remotion';
 import { loadFont } from '@remotion/google-fonts/Inter';
 import { COLORS, SPRING } from '../../theme';
-import { ChatScreen } from '../mockscreens/ChatScreen';
-import { CalendarScreen } from '../mockscreens/CalendarScreen';
-import { ConciergeScreen } from '../mockscreens/ConciergeScreen';
-import { MediaScreen } from '../mockscreens/MediaScreen';
-import { PollsScreen } from '../mockscreens/PollsScreen';
-import { TasksScreen } from '../mockscreens/TasksScreen';
-import { PlacesScreen } from '../mockscreens/PlacesScreen';
-import { FilesNotesScreen } from './FilesNotesScreen';
 
 const { fontFamily } = loadFont('normal', {
   weights: ['600', '700'],
   subsets: ['latin'],
 });
 
+/**
+ * Real ChravelApp mobile captures from remotion/public/captures/mobile/
+ * (Playwright screenshots of the live demo UI — not mock DOM).
+ */
 export const CHRAVEL_TABS = [
-  { id: 'chat', label: 'Chat' },
-  { id: 'calendar', label: 'Calendar' },
-  { id: 'concierge', label: 'Concierge' },
-  { id: 'media', label: 'Media' },
-  { id: 'polls', label: 'Polls' },
-  { id: 'tasks', label: 'Tasks' },
-  { id: 'files', label: 'Files' },
-  { id: 'places', label: 'Places' },
+  { id: 'chat', label: 'Chat', src: 'captures/mobile/m-chat.png' },
+  { id: 'calendar', label: 'Calendar', src: 'captures/mobile/m-calendar.png' },
+  { id: 'concierge', label: 'Concierge', src: 'captures/mobile/m-concierge.png' },
+  { id: 'media', label: 'Media', src: 'captures/mobile/m-media.png' },
+  { id: 'polls', label: 'Polls', src: 'captures/mobile/m-polls.png' },
+  { id: 'tasks', label: 'Tasks', src: 'captures/mobile/m-tasks.png' },
+  { id: 'places', label: 'Places', src: 'captures/mobile/m-places.png' },
+  { id: 'payments', label: 'Payments', src: 'captures/mobile/m-payments.png' },
 ] as const;
 
-/** Frames each tab is held before the next swipe (smooth & fast) */
-export const CHRAVEL_HOLD_FRAMES = 26;
-/** Frames spent mid-swipe between tabs */
-export const CHRAVEL_SWIPE_FRAMES = 10;
+export const CHRAVEL_HOLD_FRAMES = 28;
+export const CHRAVEL_SWIPE_FRAMES = 12;
 export const CHRAVEL_CYCLE_FRAMES = CHRAVEL_HOLD_FRAMES + CHRAVEL_SWIPE_FRAMES;
 
 type ChravelSwipeContentProps = {
-  /** Global frame when this phone content becomes active */
   startFrame?: number;
-  /** When true, show a compact all-tabs overview instead of swiping */
   showOverview?: boolean;
 };
 
-const renderTab = (tabId: string, delay: number) => {
-  switch (tabId) {
-    case 'chat':
-      return <ChatScreen animationDelay={delay} />;
-    case 'calendar':
-      return <CalendarScreen animationDelay={delay} />;
-    case 'concierge':
-      return <ConciergeScreen animationDelay={delay} />;
-    case 'media':
-      return <MediaScreen animationDelay={delay} />;
-    case 'polls':
-      return <PollsScreen animationDelay={delay} />;
-    case 'tasks':
-      return <TasksScreen animationDelay={delay} />;
-    case 'files':
-      return <FilesNotesScreen animationDelay={delay} />;
-    case 'places':
-      return <PlacesScreen animationDelay={delay} />;
-    default:
-      return <ChatScreen animationDelay={delay} />;
-  }
-};
-
-/** Horizontal swipe through Chravel trip tabs — calm, effortless motion */
+/** Horizontal swipe through REAL Chravel trip tab screenshots */
 export const ChravelSwipeContent: React.FC<ChravelSwipeContentProps> = ({
   startFrame = 0,
   showOverview = false,
@@ -73,70 +50,87 @@ export const ChravelSwipeContent: React.FC<ChravelSwipeContentProps> = ({
 
   if (showOverview) {
     const entrance = spring({ frame: local, fps, config: SPRING.smooth });
+    // Finale: show the real trip dashboard as the "everything together" hub
     return (
       <div
         style={{
           width: '100%',
           height: '100%',
-          background: COLORS.background,
-          padding: 12,
+          background: '#000',
           opacity: interpolate(entrance, [0, 1], [0, 1]),
+          position: 'relative',
         }}
       >
+        <Img
+          src={staticFile('captures/mobile/m-dashboard.png')}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            objectPosition: '50% 0%',
+            display: 'block',
+          }}
+        />
+        {/* Soft overlay listing the connected tabs */}
         <div
           style={{
-            fontFamily,
-            fontSize: 12,
-            fontWeight: 700,
-            color: COLORS.white,
-            marginBottom: 4,
+            position: 'absolute',
+            left: 10,
+            right: 10,
+            bottom: 28,
+            background: 'rgba(0,0,0,0.72)',
+            border: `1px solid ${COLORS.gold}40`,
+            borderRadius: 14,
+            padding: '10px 10px 12px',
+            backdropFilter: 'blur(8px)',
           }}
         >
-          Bali Trip 🌴
-        </div>
-        <div
-          style={{
-            fontFamily,
-            fontSize: 9,
-            color: COLORS.gold,
-            marginBottom: 12,
-          }}
-        >
-          Everything in one hub
-        </div>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: 8,
-          }}
-        >
-          {CHRAVEL_TABS.map((tab, i) => {
-            const p = spring({
-              frame: local,
-              fps,
-              delay: 4 + i * 3,
-              config: SPRING.snappy,
-            });
-            return (
-              <div
-                key={tab.id}
-                style={{
-                  background: COLORS.surface,
-                  border: `1px solid ${COLORS.gold}30`,
-                  borderRadius: 10,
-                  padding: '10px 8px',
-                  textAlign: 'center',
-                  opacity: interpolate(p, [0, 1], [0, 1]),
-                  transform: `scale(${interpolate(p, [0, 1], [0.9, 1])})`,
-                }}
-              >
-                <div style={{ fontFamily, fontSize: 11, fontWeight: 700, color: COLORS.gold }}>
-                  {tab.label}
+          <div
+            style={{
+              fontFamily,
+              fontSize: 10,
+              fontWeight: 700,
+              color: COLORS.gold,
+              marginBottom: 8,
+              textAlign: 'center',
+            }}
+          >
+            All trip tools in one app
+          </div>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 1fr 1fr',
+              gap: 5,
+            }}
+          >
+            {CHRAVEL_TABS.map((tab, i) => {
+              const p = spring({
+                frame: local,
+                fps,
+                delay: 6 + i * 2,
+                config: SPRING.snappy,
+              });
+              return (
+                <div
+                  key={tab.id}
+                  style={{
+                    background: COLORS.surface,
+                    borderRadius: 8,
+                    padding: '6px 2px',
+                    textAlign: 'center',
+                    opacity: interpolate(p, [0, 1], [0, 1]),
+                    transform: `scale(${interpolate(p, [0, 1], [0.85, 1])})`,
+                    border: `1px solid ${COLORS.gold}28`,
+                  }}
+                >
+                  <div style={{ fontFamily, fontSize: 8, fontWeight: 700, color: COLORS.gold }}>
+                    {tab.label}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
     );
@@ -154,58 +148,38 @@ export const ChravelSwipeContent: React.FC<ChravelSwipeContentProps> = ({
       })
     : 0;
 
-  const fromIndex = cycleIndex;
-  const toIndex = Math.min(tabCount - 1, cycleIndex + (isSwiping ? 1 : 0));
-  const translateX = -(fromIndex + swipeProgress) * 100;
-
-  const activeLabelIndex = swipeProgress > 0.5 ? toIndex : fromIndex;
-  const labelPulse = spring({
-    frame: local - activeLabelIndex * CHRAVEL_CYCLE_FRAMES,
-    fps,
-    config: SPRING.snappy,
-  });
+  const translatePct = -((cycleIndex + swipeProgress) * (100 / tabCount));
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
-      {/* Floating tab chip so viewers instantly know the section */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 6,
-          left: '50%',
-          transform: `translateX(-50%) translateY(${interpolate(labelPulse, [0, 1], [-6, 0])}px)`,
-          zIndex: 20,
-          background: `${COLORS.surface}ee`,
-          border: `1px solid ${COLORS.gold}50`,
-          borderRadius: 12,
-          padding: '3px 10px',
-          opacity: interpolate(labelPulse, [0, 1], [0.4, 1]),
-          pointerEvents: 'none',
-        }}
-      >
-        <div style={{ fontFamily, fontSize: 9, fontWeight: 700, color: COLORS.gold }}>
-          {CHRAVEL_TABS[activeLabelIndex].label}
-        </div>
-      </div>
-
       <div
         style={{
           display: 'flex',
           width: `${tabCount * 100}%`,
           height: '100%',
-          transform: `translateX(${translateX / tabCount}%)`,
+          transform: `translateX(${translatePct}%)`,
         }}
       >
-        {CHRAVEL_TABS.map((tab, i) => (
+        {CHRAVEL_TABS.map(tab => (
           <div
             key={tab.id}
             style={{
               width: `${100 / tabCount}%`,
               height: '100%',
               flexShrink: 0,
+              background: '#000',
             }}
           >
-            {renderTab(tab.id, i * CHRAVEL_CYCLE_FRAMES)}
+            <Img
+              src={staticFile(tab.src)}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                objectPosition: '50% 0%',
+                display: 'block',
+              }}
+            />
           </div>
         ))}
       </div>
@@ -213,7 +187,6 @@ export const ChravelSwipeContent: React.FC<ChravelSwipeContentProps> = ({
   );
 };
 
-/** Derive which Chravel tab label is active at a given local frame */
 export function getChravelTabAtFrame(localFrame: number): string {
   const idx = Math.min(
     CHRAVEL_TABS.length - 1,

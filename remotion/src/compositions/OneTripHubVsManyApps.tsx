@@ -9,9 +9,9 @@ import {
 } from 'remotion';
 import { loadFont } from '@remotion/google-fonts/Inter';
 import { COLORS, FPS, SHADOWS, SPRING, TIMING } from '../theme';
-import { PhoneFrame } from '../components/PhoneFrame';
 import { TravelBackground } from '../components/TravelBackground';
 import { EndCard } from '../components/EndCard';
+import { RealisticPhoneShell } from '../components/comparison/RealisticPhoneShell';
 import {
   CHRAVEL_CYCLE_FRAMES,
   CHRAVEL_TABS,
@@ -70,12 +70,12 @@ export const OneTripHubVsManyApps: React.FC = () => {
       ? leftTabsDone
         ? 'All connected · Never leave the trip'
         : `Swiping → ${leftTabLabel}`
-      : 'Chat · Calendar · Concierge · Media · more';
+      : 'Real trip tabs · one workspace';
 
   // Pace callout: while left zips ahead, right is still switching
   const paceCalloutOpacity = interpolate(
     frame,
-    [COMPARE_START + 90, COMPARE_START + 110, COMPARE_START + 280, COMPARE_START + 310],
+    [COMPARE_START + 100, COMPARE_START + 120, COMPARE_START + 300, COMPARE_START + 330],
     [0, 1, 1, 0],
     { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
   );
@@ -189,14 +189,14 @@ export const OneTripHubVsManyApps: React.FC = () => {
         </div>
       </div>
 
-      {/* Phones stay fully visible — the comparison is the product */}
-      <PhoneFrame scale={0.88} x={-340} y={isFinale ? 8 : 36} delay={8} float={false}>
+      {/* Real Chravel UI (left) vs realistic iOS multi-app (right) */}
+      <RealisticPhoneShell scale={0.92} x={-350} y={isFinale ? 4 : 32} delay={8} glow="gold">
         <ChravelSwipeContent startFrame={COMPARE_START} showOverview={isFinale} />
-      </PhoneFrame>
+      </RealisticPhoneShell>
 
-      <PhoneFrame scale={0.88} x={340} y={isFinale ? 8 : 36} delay={14} float={false}>
+      <RealisticPhoneShell scale={0.92} x={350} y={isFinale ? 4 : 32} delay={14} glow="danger">
         <FragmentedPhoneContent startFrame={COMPARE_START} showScattered={isFinale} />
-      </PhoneFrame>
+      </RealisticPhoneShell>
 
       {/* Mid-video pacing proof callout */}
       {!isFinale && (

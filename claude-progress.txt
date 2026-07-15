@@ -1,3 +1,8 @@
+2026-07-15 — OneTripHub video: real Chravel UI + realistic iOS apps
+- Left phone now swipes real Playwright captures (captures/mobile/*) instead of mock DOM screens.
+- Right phone rebuilt as iOS home + Messages, Calendar, Photos, Files, Mail, Microsoft To Do.
+- Re-rendered public/videos/chravel-one-trip-hub-vs-many-apps.mp4. PR #829.
+
 2026-07-15 — OneTripHubVsManyApps product comparison video
 - Remotion composition: two iPhones side-by-side — Chravel swipeable trip hub vs close/scroll/open multi-app friction.
 - Finale: hub tab grid vs scattered app icons + taglines; EndCard close.
