@@ -192,7 +192,7 @@ function buildPush(input: NotificationContentInput): PushContent {
     case 'task_assigned':
       return {
         title: `New Task in ${trip}`,
-        body: `A new task was added in ${scoped}${ctx}. Open ChravelApp to review.`,
+        body: `A task was assigned to you in ${scoped}${ctx}. Open ChravelApp to review.`,
       };
     case 'task_completed':
       return {

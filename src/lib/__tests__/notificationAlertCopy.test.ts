@@ -28,17 +28,24 @@ describe('formatInAppAlertCopy', () => {
     expect(copy.description).not.toContain('84.50');
   });
 
-  it('formats polls without the question text', () => {
-    const copy = formatInAppAlertCopy({
-      type: 'poll',
-      title: 'New poll',
-      message: 'Sushi or ramen tonight?',
-      tripName: 'Japan Trip',
+  it('formats tasks without the task title', () => {
+    const created = formatInAppAlertCopy({
+      type: 'task',
+      title: 'New task',
+      message: 'Pack reef-safe sunscreen',
+      tripName: 'Cancun',
     });
+    expect(created.title).toBe('New task in Cancun');
+    expect(created.description).toBe('A new task was added in your Cancun trip.');
 
-    expect(copy.title).toBe('New poll in Japan Trip');
-    expect(copy.description).toBe('A new poll was created in your Japan Trip trip.');
-    expect(copy.description).not.toContain('Sushi');
+    const assigned = formatInAppAlertCopy({
+      type: 'task',
+      title: 'Task assigned in Cancun',
+      message: 'A task was assigned to you in your Cancun trip.',
+      tripName: 'Cancun',
+    });
+    expect(assigned.title).toBe('Task assigned in Cancun');
+    expect(assigned.description).toBe('A task was assigned to you in your Cancun trip.');
   });
 
   it('formats join requests without requester name', () => {

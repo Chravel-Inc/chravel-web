@@ -235,6 +235,9 @@ A dedupe key on `trip_id:user_id` for join-request notifications silently swallo
 ### In-app Alerts show DB title/message — keep that copy generic at fanout time
 Push/email can rewrite via `notificationContentBuilder`, but the Alerts panel renders `notifications.title` / `notifications.message` directly (via `mapRowToNotification`). If triggers write street addresses, payment amounts, poll questions, or requester names into those columns, users see sensitive/noisy copy in Alerts even when push is polished. Write trip-scoped generic strings at INSERT time, and normalize on read with `formatInAppAlertCopy` for legacy rows. *Evidence: July 2026 notifications deep-dive — basecamp body used `place_name`/`address`; payments used `description · amount`.*
 
+### Task-assignment notifications must target the assignee, not trip-member fanout
+`create_notification_for_trip_members(p_actor := assignee)` excludes the actor and notifies everyone else — the inverse of assignment semantics. Insert a single `notifications` row for `NEW.user_id`, gated by `should_send_notification(..., 'tasks')` + per-trip mute. Guard with a migration SQL regression test that forbids `create_notification_for_trip_members(` in the function body. *Evidence: July 2026 follow-up; original 20251105000000 used `ARRAY[NEW.user_id]`.*
+
 ### Native push tap routing must cover the same tabs as in-app Alerts clicks
 `NativePushRouter` historically only mapped calendar/poll/task/chat entity ids. Payment, broadcast, basecamp, and join taps landed on trip root with no `?tab=`. Mirror `categoryMap` type→tab aliases (and prefer `metadata.tab` when present) so OS push taps and Alerts clicks converge. *Evidence: July 2026 notifications deep-dive, `NativePushRouter.tsx`.*
 

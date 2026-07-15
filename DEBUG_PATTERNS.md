@@ -639,6 +639,16 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Required tests:** `notificationAlertCopy.test.ts`, `notificationContentBuilder.test.ts`, `useNotificationRealtime.mapRowToNotification.test.ts`, `NativePushRouter.tabs.test.ts`
 - **Fixed in:** `20260715210000_generic_trip_notification_alert_copy.sql`, `alertCopy.ts`, `contentBuilder.ts`, `join-trip/index.ts` (July 2026)
 
+## Task assignment notified everyone except the assignee
+- **Status:** fixed
+- **Subsystem:** tasks / notifications
+- **Bug class:** wrong fanout recipient (actor exclusion inverted)
+- **Symptom:** Assigning a task never alerted the assignee; other trip members received "Task assigned" Alerts instead.
+- **Root cause:** `notify_on_task_assignment` called `create_notification_for_trip_members` with `p_actor_user_id := NEW.user_id` (assignee). That helper excludes the actor and fans out to all other members.
+- **Smallest safe fix:** Insert one `notifications` row for `NEW.user_id` only; gate with `should_send_notification(..., 'tasks')` + per-trip mute; skip self-assignment.
+- **Required tests:** `supabase/functions/__tests__/taskAssignmentNotifyAssigneeOnly.test.ts`
+- **Fixed in:** `20260715214500_task_assignment_notify_assignee_only.sql` (July 2026)
+
 ## Poll Comment Counts Across Separate Query Clients
 
 **Symptom:** Comment count badge stays at 0 after posting a reply in unit tests (or briefly in UI).

@@ -120,7 +120,7 @@ export function formatInAppAlertCopy(input: AlertCopyInput): AlertCopy {
       if (isAssigned) {
         return {
           title: `Task assigned in ${trip}`,
-          description: `A task was assigned in ${scoped}.`,
+          description: `A task was assigned to you in ${scoped}.`,
         };
       }
       return {
