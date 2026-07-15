@@ -14,6 +14,8 @@
     "render:polls-tasks": "remotion render src/index.ts PollsAndTasks out/broll-polls-tasks.mp4",
     "render:tab-nav": "remotion render src/index.ts TabNavigationHero out/broll-tab-nav.mp4",
     "render:before-after": "remotion render src/index.ts BeforeAfterChaos out/broll-before-after.mp4",
+    "render:one-trip-hub": "remotion render src/index.ts OneTripHubVsManyApps out/one-trip-hub-vs-many-apps.mp4 --codec=h264 --crf=20",
+    "still:one-trip-hub": "remotion still src/index.ts OneTripHubVsManyApps out/one-trip-hub-vs-many-apps-poster.jpg --frame=120 --image-format=jpeg --jpeg-quality=85",
     "render:broll-overlay": "remotion render src/index.ts BRollOverlay out/broll-overlay.mp4",
     "render:all-broll": "npm run render:trip-creation && npm run render:calendar && npm run render:concierge && npm run render:payments && npm run render:media && npm run render:polls-tasks && npm run render:tab-nav && npm run render:before-after && npm run render:broll-overlay",
     "capture:frames": "node scripts/capture-demo-frames.mjs",

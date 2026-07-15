@@ -17,6 +17,7 @@ import {
   HOMEPAGE_PRODUCT_DEMO_60_DURATION,
 } from './compositions/HomepageProductDemo60';
 import { MobileAppDemo, MOBILE_DEMO_DURATION } from './compositions/MobileAppDemo';
+import { OneTripHubVsManyApps, ONE_TRIP_HUB_DURATION } from './compositions/OneTripHubVsManyApps';
 
 const FPS = 30;
 const WIDTH = 1920;
@@ -64,6 +65,16 @@ export const RemotionRoot = () => {
         fps={FPS}
         width={1080}
         height={1920}
+      />
+
+      {/* Side-by-side: Chravel one-hub vs fragmented multi-app trip planning */}
+      <Composition
+        id="OneTripHubVsManyApps"
+        component={OneTripHubVsManyApps}
+        durationInFrames={ONE_TRIP_HUB_DURATION}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
       />
 
       {/* Original launch video */}
