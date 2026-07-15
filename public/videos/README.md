@@ -40,5 +40,12 @@ To preview interactively: `cd remotion && npm run studio`.
 
 - `HomepageHeroDemo` / `HomepageHeroDemo60` — earlier Ken Burns slideshow cuts.
 - `MobileAppDemo` — 1080×1920 vertical cut for app-store/social.
+- `OneTripHubVsManyApps` — side-by-side iPhone comparison (Chravel one-hub vs fragmented multi-app). Output: `chravel-one-trip-hub-vs-many-apps.mp4` (+ poster).
+
+```bash
+cd remotion && npm run render:one-trip-hub && npm run still:one-trip-hub
+# copy to public if needed:
+cp out/one-trip-hub-vs-many-apps.mp4 ../public/videos/chravel-one-trip-hub-vs-many-apps.mp4
+```
 
 Render via the `render:*` scripts in `remotion/package.json`.
