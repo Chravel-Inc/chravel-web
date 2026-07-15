@@ -54,8 +54,8 @@ export const OneTripHubVsManyApps: React.FC = () => {
     config: SPRING.smooth,
   });
 
-  // Fade comparison UI slightly as finale text takes over
-  const compareFade = interpolate(frame, [FINALE_START - 12, FINALE_START + 8], [1, 0.35], {
+  // Soften top chrome during finale so phones + tagline stay the focus
+  const chromeFade = interpolate(frame, [FINALE_START - 10, FINALE_START + 6], [1, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -63,6 +63,14 @@ export const OneTripHubVsManyApps: React.FC = () => {
   const leftLocal = Math.max(0, frame - COMPARE_START);
   const leftTabLabel = getChravelTabAtFrame(leftLocal);
   const leftTabsDone = leftLocal >= CHRAVEL_TABS.length * CHRAVEL_CYCLE_FRAMES;
+
+  const leftSubtitle = isFinale
+    ? 'Everything in one hub'
+    : frame >= COMPARE_START
+      ? leftTabsDone
+        ? 'All connected · Never leave the trip'
+        : `Swiping → ${leftTabLabel}`
+      : 'Chat · Calendar · Concierge · Media · more';
 
   // Pace callout: while left zips ahead, right is still switching
   const paceCalloutOpacity = interpolate(
@@ -72,9 +80,10 @@ export const OneTripHubVsManyApps: React.FC = () => {
     { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
   );
 
-  const headlineOpacity = interpolate(frame, [0, 20], [0, 1], {
-    extrapolateRight: 'clamp',
-  });
+  const headlineOpacity =
+    interpolate(frame, [0, 20], [0, 1], {
+      extrapolateRight: 'clamp',
+    }) * chromeFade;
 
   return (
     <AbsoluteFill>
@@ -101,7 +110,7 @@ export const OneTripHubVsManyApps: React.FC = () => {
             left: 0,
             right: 0,
             textAlign: 'center',
-            opacity: headlineOpacity * compareFade,
+            opacity: headlineOpacity,
           }}
         >
           <div
@@ -118,7 +127,7 @@ export const OneTripHubVsManyApps: React.FC = () => {
         </div>
       )}
 
-      {/* Column labels */}
+      {/* Column labels — stay visible through finale */}
       <div
         style={{
           position: 'absolute',
@@ -128,7 +137,7 @@ export const OneTripHubVsManyApps: React.FC = () => {
           display: 'flex',
           justifyContent: 'center',
           gap: 280,
-          opacity: interpolate(labelIntro, [0, 1], [0, 1]) * compareFade,
+          opacity: interpolate(labelIntro, [0, 1], [0, 1]),
           transform: `translateY(${interpolate(labelIntro, [0, 1], [16, 0])}px)`,
         }}
       >
@@ -152,11 +161,7 @@ export const OneTripHubVsManyApps: React.FC = () => {
               marginTop: 6,
             }}
           >
-            {frame >= COMPARE_START && !isFinale
-              ? leftTabsDone
-                ? 'All connected · Never leave the trip'
-                : `Swiping → ${leftTabLabel}`
-              : 'Chat · Calendar · Concierge · Media · more'}
+            {leftSubtitle}
           </div>
         </div>
         <div style={{ width: 340, textAlign: 'center' }}>
@@ -179,21 +184,19 @@ export const OneTripHubVsManyApps: React.FC = () => {
               marginTop: 6,
             }}
           >
-            Close · Scroll · Open · Repeat
+            {isFinale ? 'Scattered across your phone' : 'Close · Scroll · Open · Repeat'}
           </div>
         </div>
       </div>
 
-      {/* Phones */}
-      <div style={{ opacity: compareFade }}>
-        <PhoneFrame scale={0.88} x={-340} y={40} delay={8} float={false}>
-          <ChravelSwipeContent startFrame={COMPARE_START} showOverview={isFinale} />
-        </PhoneFrame>
+      {/* Phones stay fully visible — the comparison is the product */}
+      <PhoneFrame scale={0.88} x={-340} y={isFinale ? 8 : 36} delay={8} float={false}>
+        <ChravelSwipeContent startFrame={COMPARE_START} showOverview={isFinale} />
+      </PhoneFrame>
 
-        <PhoneFrame scale={0.88} x={340} y={40} delay={14} float={false}>
-          <FragmentedPhoneContent startFrame={COMPARE_START} showScattered={isFinale} />
-        </PhoneFrame>
-      </div>
+      <PhoneFrame scale={0.88} x={340} y={isFinale ? 8 : 36} delay={14} float={false}>
+        <FragmentedPhoneContent startFrame={COMPARE_START} showScattered={isFinale} />
+      </PhoneFrame>
 
       {/* Mid-video pacing proof callout */}
       {!isFinale && (
