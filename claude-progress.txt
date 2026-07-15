@@ -330,3 +330,8 @@
 - Added a shared RevenueCat initialization promise keyed by user/platform/demo mode so duplicate configure calls coalesce and failed initialization resets for retry.
 - Added `identifyUser` and wired native auth bootstrap/auth-state paths to identify only after the shared configure promise resolves; customerInfo, offerings, purchase, restore, and logout await any active initialization before touching the native SDK.
 - Added RevenueCat init-race regression tests proving immediate identify and customerInfo calls wait for configure; focused RevenueCat + useAuth tests and typecheck pass.
+
+2026-07-15 — Phase 2 and systemic guardrail hardening
+- Added canonical client and edge trip-cover resolvers so trip cards, headers, share modals, invite previews, trip previews, and OG HTML all prefer assigned cover photos before falling back to the Chravel splash image.
+- Rebound the shared edge membership helper to `is_active_trip_member` and made file-upload use it before service-role writes, closing the former-member upload trust-boundary variant.
+- Kept Concierge history hydration out of eager trip-shell prefetch while still preloading the chunk, and added a systemic QA guard covering cover resolvers, edge active-membership enforcement, Concierge isolation, and primary Button design-token anchoring.

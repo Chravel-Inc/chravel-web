@@ -594,3 +594,6 @@ Keep OAuth-return matching, exact-or-dot-boundary host allowlists, and deferred-
 
 ### RevenueCat SDK calls must await the shared configure promise
 Native billing calls (`identifyUser`, customer info, offerings, purchase, restore, logout) should never race `configureRevenueCat`; keep one module-level initialization promise keyed by user/platform and await it from every SDK call path. Evidence: 2026-07-15 RevenueCat init-race hardening regression test.
+
+### Trip cover previews need one resolver across client and OG paths
+Cards, headers, share modals, and edge OG preview functions must all prefer the assigned `cover_image_url` before any splash/brand fallback. Keep client logic in `resolveTripCoverImageUrl` and edge logic in `resolveOgCoverImageUrl`; add a guardrail whenever another preview surface is added. Evidence: 2026-07-15 Phase 2 cover resolver hardening.

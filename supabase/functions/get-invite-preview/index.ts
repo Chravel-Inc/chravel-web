@@ -7,6 +7,7 @@ import {
   readJsonBody,
   redactSensitiveToken,
 } from '../_shared/security.ts';
+import { resolveOgCoverImageUrl } from '../_shared/ogUtils.ts';
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -271,7 +272,7 @@ serve(async (req): Promise<Response> => {
         destination: trip.destination,
         start_date: trip.start_date,
         end_date: trip.end_date,
-        cover_image_url: trip.cover_image_url,
+        cover_image_url: resolveOgCoverImageUrl(trip),
         trip_type: trip.trip_type,
         member_count: memberCount || 0,
       },

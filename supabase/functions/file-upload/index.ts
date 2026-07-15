@@ -9,6 +9,7 @@ import {
   isValidFileType,
   ALLOWED_FILE_TYPES,
 } from '../_shared/validation.ts';
+import { verifyTripMembership } from '../_shared/verifyTripMembership.ts';
 
 serve(async req => {
   const corsHeaders = getCorsHeaders(req);
@@ -21,8 +22,6 @@ serve(async req => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     // Authenticate user from JWT instead of trusting client-supplied userId
@@ -64,20 +63,19 @@ serve(async req => {
       });
     }
 
-    // Enforce trip membership using user-scoped client before service-role writes
-    const userScopedClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-      auth: { persistSession: false },
-    });
+    // Enforce active trip membership before service-role storage/metadata writes.
+    // The shared helper calls public.is_active_trip_member(), preventing removed
+    // members with stale trip_members rows from uploading files.
+    const membership = await verifyTripMembership(supabase, userId, tripId);
+    if (membership.error) {
+      console.error('[file-upload] Membership verification failed:', membership.error);
+      return new Response(JSON.stringify({ error: 'Failed to verify trip access' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
-    const { data: membership, error: membershipError } = await userScopedClient
-      .from('trip_members')
-      .select('id')
-      .eq('trip_id', tripId)
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (membershipError || !membership) {
+    if (!membership.isMember) {
       return new Response(
         JSON.stringify({ error: 'Forbidden - you must be a member of this trip' }),
         {

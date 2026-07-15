@@ -35,6 +35,7 @@ import { toast } from 'sonner';
 import { useCoverPhotoUpload } from '@/features/trips/hooks/useCoverPhotoUpload';
 import { getDemoTripCoverFallback } from '@/data/demoTripCoverFallbacks';
 import { isBlobOrDataUrl } from '@/utils/mediaUtils';
+import { resolveTripCoverImageUrl } from '@/lib/tripCoverResolver';
 
 // Stable empty array to prevent Zustand selector reference changes causing infinite re-renders
 const EMPTY_MEMBERS_ARRAY: Array<{
@@ -401,8 +402,12 @@ export const TripHeader = ({
   // immediately without racing a remote fetch (matches TripCard/ProTripCard/EventCard).
   const demoFallbackCover = isDemoMode ? getDemoTripCoverFallback(trip.id) : undefined;
   const displayCover =
-    coverFallbackSrc ?? (isDemoMode && demoFallbackCover ? demoFallbackCover : coverPhoto);
-  const hasCover = Boolean(coverPhoto || demoFallbackCover);
+    coverFallbackSrc ??
+    resolveTripCoverImageUrl(
+      { coverPhoto },
+      { fallbackUrl: isDemoMode ? demoFallbackCover : null },
+    );
+  const hasCover = Boolean(displayCover);
 
   const handleCropCancel = () => {
     setShowCropModal(false);

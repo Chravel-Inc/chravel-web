@@ -243,7 +243,10 @@ export const usePrefetchTrip = () => {
     (tripId: string) => {
       const deferHeavyPrefetch = shouldDeferHeavyPrefetch();
 
-      // Phase 1: preload tier-1 tabs immediately (concierge mounts on trip open).
+      // Phase 1: preload tier-1 chunks immediately. Concierge gets chunk-only
+      // treatment here: history hydration must stay behind an explicit tab visit
+      // so a slow/hanging Concierge fetch cannot contend with the trip shell or
+      // adjacent tab data on mount.
       preloadTabChunks(['chat', 'calendar', 'concierge', 'tasks', 'payments']);
 
       // Phase 1b: defer heavy/rare tab chunks to idle time.
@@ -256,7 +259,6 @@ export const usePrefetchTrip = () => {
       // Phase 2: immediate data prefetch for likely first interactions.
       prefetchTab(tripId, 'chat');
       setTimeout(() => prefetchTab(tripId, 'calendar'), 125);
-      setTimeout(() => prefetchTab(tripId, 'concierge'), 250);
 
       // Keep tasks eager only on normal networks.
       if (!deferHeavyPrefetch) {

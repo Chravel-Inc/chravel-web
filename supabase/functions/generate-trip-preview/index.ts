@@ -3,12 +3,11 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import {
   escapeHtml,
-  OG_FALLBACK_IMAGE,
   toLandscapeOgImage,
-  isValidImageUrl,
   DEMO_TRIPS,
   safeHexColor,
   getOgSecurityHeaders,
+  resolveOgCoverImageUrl,
 } from '../_shared/ogUtils.ts';
 import type { DemoTrip } from '../_shared/ogUtils.ts';
 import { checkRateLimit, getClientIp } from '../_shared/security.ts';
@@ -307,24 +306,12 @@ serve(async (req: Request): Promise<Response> => {
       : '';
     const dateRange = startDate && endDate ? `${startDate} - ${endDate}` : 'Dates TBD';
 
-    // Validate cover image URL to prevent non-image URLs (e.g. article pages)
-    // from being used as og:image, which causes crawlers to scrape the wrong page
-    if (trip.cover_image_url && !isValidImageUrl(trip.cover_image_url)) {
-      console.warn(
-        '[generate-trip-preview] Invalid cover image URL, using fallback:',
-        trip.cover_image_url,
-      );
-    }
-
     const tripData = {
       title: trip.name || 'Untitled Trip',
       location: trip.destination || 'Location TBD',
       dateRange,
       description: trip.description || 'An amazing adventure awaits!',
-      coverPhoto:
-        trip.cover_image_url && isValidImageUrl(trip.cover_image_url)
-          ? trip.cover_image_url
-          : OG_FALLBACK_IMAGE,
+      coverPhoto: resolveOgCoverImageUrl(trip),
       participantCount: participantCount || 1,
       tripType: trip.trip_type as 'consumer' | 'pro' | 'event' | undefined,
     };

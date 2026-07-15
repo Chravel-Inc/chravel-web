@@ -37,6 +37,22 @@ export const OG_FALLBACK_IMAGE = 'https://chravel.app/chravelapp-og-landscape.pn
 const DEMO_COVERS_BASE =
   'https://jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/trip-media/demo-covers';
 
+type CoverImageFields = {
+  cover_image_url?: string | null;
+  cover_photo_url?: string | null;
+  coverPhotoUrl?: string | null;
+  coverPhoto?: string | null;
+  hero_image?: string | null;
+  trip_cover?: string | null;
+  image_url?: string | null;
+};
+
+function hostMatchesAllowlistedDomain(hostname: string, allowlistedDomain: string): boolean {
+  const normalizedHost = hostname.toLowerCase();
+  const normalizedDomain = allowlistedDomain.toLowerCase();
+  return normalizedHost === normalizedDomain || normalizedHost.endsWith(`.${normalizedDomain}`);
+}
+
 /**
  * Transform a Supabase Storage URL to the image-render API for 1200x630 cropping.
  * Ensures og:image is always landscape so platforms show the stacked layout.
@@ -55,7 +71,7 @@ export function toLandscapeOgImage(url: string): string {
   // (e.g. attacker.com?q=images.unsplash.com would match a naive .includes() check).
   try {
     const parsed = new URL(url);
-    if (parsed.hostname === 'images.unsplash.com' || parsed.hostname.endsWith('.unsplash.com')) {
+    if (hostMatchesAllowlistedDomain(parsed.hostname, 'unsplash.com')) {
       parsed.searchParams.set('w', '1200');
       parsed.searchParams.set('h', '630');
       parsed.searchParams.set('fit', 'crop');
@@ -79,15 +95,48 @@ export function isValidImageUrl(url: string): boolean {
     if (parsed.protocol !== 'https:') return false;
     // Known image hosts are always valid
     // Use exact hostname match to prevent substring bypass attacks
-    if (parsed.hostname === 'unsplash.com' || parsed.hostname.endsWith('.unsplash.com'))
-      return true;
-    if (parsed.hostname === 'supabase.co' || parsed.hostname.endsWith('.supabase.co')) return true;
+    if (hostMatchesAllowlistedDomain(parsed.hostname, 'unsplash.com')) return true;
+    if (hostMatchesAllowlistedDomain(parsed.hostname, 'supabase.co')) return true;
     // Check for common image extensions in pathname
     if (/\.(jpe?g|png|gif|webp|avif|svg)(\?|$)/i.test(parsed.pathname)) return true;
     return false;
   } catch {
     return false;
   }
+}
+
+const normalizeCoverCandidate = (candidate: unknown): string | undefined => {
+  if (typeof candidate !== 'string') return undefined;
+  const trimmed = candidate.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+
+/**
+ * Canonical edge-side cover resolver for OG/share-preview HTML.
+ * Uses the actual assigned trip cover when present and valid; falls back to the
+ * Chravel landscape default only when no assigned cover exists or the assigned
+ * value is not a direct image URL.
+ */
+export function resolveOgCoverImageUrl(trip: CoverImageFields | null | undefined): string {
+  const assignedCover = trip
+    ? [
+        trip.cover_image_url,
+        trip.cover_photo_url,
+        trip.coverPhotoUrl,
+        trip.coverPhoto,
+        trip.hero_image,
+        trip.trip_cover,
+        trip.image_url,
+      ]
+        .map(normalizeCoverCandidate)
+        .find(Boolean)
+    : undefined;
+
+  if (assignedCover && isValidImageUrl(assignedCover)) {
+    return assignedCover;
+  }
+
+  return OG_FALLBACK_IMAGE;
 }
 
 // ---------------------------------------------------------------------------

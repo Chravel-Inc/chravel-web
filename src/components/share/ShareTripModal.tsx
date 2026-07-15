@@ -5,6 +5,7 @@ import { Button } from '../ui/button';
 import { Skeleton } from '../ui/skeleton';
 import { toast } from 'sonner';
 import { buildTripPreviewLink } from '@/lib/unfurlConfig';
+import { resolveTripCoverImageUrl } from '@/lib/tripCoverResolver';
 
 interface Participant {
   id: number | string;
@@ -33,6 +34,7 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
   const [isSharing, setIsSharing] = useState(false);
   const [coverImageLoaded, setCoverImageLoaded] = useState(false);
   const [coverImageError, setCoverImageError] = useState(false);
+  const resolvedCoverPhoto = resolveTripCoverImageUrl({ coverPhoto: trip.coverPhoto });
 
   // Check if native share is available (iOS, Android, some desktop browsers)
   const canNativeShare = typeof navigator !== 'undefined' && !!navigator.share;
@@ -52,7 +54,7 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
   useEffect(() => {
     setCoverImageLoaded(false);
     setCoverImageError(false);
-  }, [trip.coverPhoto]);
+  }, [resolvedCoverPhoto]);
 
   // Handle ESC key
   useEffect(() => {
@@ -121,7 +123,7 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
   const hasTitle = Boolean(trip.title);
   const hasLocation = Boolean(trip.location);
   const hasDateRange = Boolean(trip.dateRange);
-  const hasCoverPhoto = Boolean(trip.coverPhoto) && !coverImageError;
+  const hasCoverPhoto = Boolean(resolvedCoverPhoto) && !coverImageError;
 
   const modalContent = (
     <div
@@ -165,7 +167,7 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
               {hasCoverPhoto ? (
                 <>
                   <img
-                    src={trip.coverPhoto}
+                    src={resolvedCoverPhoto}
                     alt={`Cover photo for ${trip.title}`}
                     className={`w-full h-24 md:h-32 object-cover transition-opacity duration-300 ${coverImageLoaded ? 'opacity-100' : 'opacity-0'}`}
                     onLoad={() => setCoverImageLoaded(true)}
