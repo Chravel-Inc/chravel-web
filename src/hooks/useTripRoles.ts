@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { TripRole } from '@/types/roleChannels';
 import { useDemoMode } from './useDemoMode';
@@ -13,7 +14,53 @@ interface UseTripRolesProps {
   enabled?: boolean;
 }
 
-async function fetchTripRoles(tripId: string, isDemoMode: boolean): Promise<TripRole[]> {
+type TripRolesRealtimeEntry = {
+  refCount: number;
+  channel: RealtimeChannel;
+  listeners: Set<() => void>;
+};
+
+const tripRolesRealtimeByTrip = new Map<string, TripRolesRealtimeEntry>();
+
+function acquireTripRolesRealtime(tripId: string, onInvalidate: () => void): () => void {
+  let entry = tripRolesRealtimeByTrip.get(tripId);
+  if (!entry) {
+    const listeners = new Set<() => void>();
+    const channel = supabase
+      .channel(`trip_roles:${tripId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'trip_roles',
+          filter: `trip_id=eq.${tripId}`,
+        },
+        () => {
+          listeners.forEach(listener => listener());
+        },
+      )
+      .subscribe();
+    entry = { refCount: 0, channel, listeners };
+    tripRolesRealtimeByTrip.set(tripId, entry);
+  }
+
+  entry.refCount += 1;
+  entry.listeners.add(onInvalidate);
+
+  return () => {
+    const current = tripRolesRealtimeByTrip.get(tripId);
+    if (!current) return;
+    current.listeners.delete(onInvalidate);
+    current.refCount -= 1;
+    if (current.refCount <= 0) {
+      void supabase.removeChannel(current.channel);
+      tripRolesRealtimeByTrip.delete(tripId);
+    }
+  };
+}
+
+export async function fetchTripRoles(tripId: string, isDemoMode: boolean): Promise<TripRole[]> {
   if (isDemoMode) {
     const mockRoles = MockRolesService.getRolesForTrip(tripId);
     return mockRoles || [];
@@ -38,11 +85,13 @@ async function fetchTripRoles(tripId: string, isDemoMode: boolean): Promise<Trip
 
   const rolesWithCounts = await Promise.all(
     (data || []).map(async role => {
-      const { count } = await supabase
+      const { count, error: countError } = await supabase
         .from('user_trip_roles')
         .select('*', { count: 'exact', head: true })
         .eq('trip_id', tripId)
         .eq('role_id', role.id);
+
+      if (countError) throw countError;
 
       return {
         id: role.id,
@@ -65,24 +114,31 @@ async function fetchTripRoles(tripId: string, isDemoMode: boolean): Promise<Trip
 
 export const useTripRoles = ({ tripId, enabled = true }: UseTripRolesProps) => {
   const { isDemoMode } = useDemoMode();
-  const { user } = useAuth();
+  const { user, authState, isHydrated } = useAuth();
   const queryClient = useQueryClient();
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const authReady = isDemoMode || (isHydrated && authState === 'authenticated' && !!user?.id);
+  const queryEnabled = enabled && !!tripId && authReady;
+  const rolesQueryKey = tripKeys.tripRoles(tripId, isDemoMode);
 
   const {
     data: roles = [],
     isLoading,
+    isFetching,
     refetch,
     isError,
     error,
   } = useQuery({
-    queryKey: tripKeys.tripRoles(tripId),
+    queryKey: rolesQueryKey,
     queryFn: () => fetchTripRoles(tripId, isDemoMode),
-    enabled: enabled && !!tripId,
+    enabled: queryEnabled,
     staleTime: QUERY_CACHE_CONFIG.tripRoles.staleTime,
     gcTime: QUERY_CACHE_CONFIG.tripRoles.gcTime,
     refetchOnWindowFocus: QUERY_CACHE_CONFIG.tripRoles.refetchOnWindowFocus,
   });
+
+  const isInitialLoading = queryEnabled && isLoading && roles.length === 0;
 
   useEffect(() => {
     if (isError && error) {
@@ -90,34 +146,21 @@ export const useTripRoles = ({ tripId, enabled = true }: UseTripRolesProps) => {
     }
   }, [isError, error]);
 
-  // Subscribe to realtime updates (skip in demo mode)
+  // Ref-counted realtime invalidation — multiple Team-tab surfaces mount this hook;
+  // tearing down one instance must not remove the channel for the rest.
   useEffect(() => {
-    if (!enabled || !tripId || isDemoMode) return;
+    if (!queryEnabled || !tripId || isDemoMode) return;
 
-    const channel = supabase
-      .channel(`trip_roles:${tripId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'trip_roles',
-          filter: `trip_id=eq.${tripId}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: tripKeys.tripRoles(tripId) });
-        },
-      )
-      .subscribe();
+    const release = acquireTripRolesRealtime(tripId, () => {
+      queryClient.invalidateQueries({ queryKey: rolesQueryKey });
+    });
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [tripId, enabled, isDemoMode, queryClient]);
+    return release;
+  }, [tripId, queryEnabled, isDemoMode, queryClient, rolesQueryKey]);
 
   const promoteInvalidate = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: tripKeys.tripRoles(tripId) });
-  }, [tripId, queryClient]);
+    queryClient.invalidateQueries({ queryKey: rolesQueryKey });
+  }, [rolesQueryKey, queryClient]);
 
   const createRole = useCallback(
     async (
@@ -303,8 +346,11 @@ export const useTripRoles = ({ tripId, enabled = true }: UseTripRolesProps) => {
 
   return {
     roles,
-    isLoading,
+    isLoading: isInitialLoading,
+    isFetching,
     isProcessing,
+    isError,
+    error,
     createRole,
     updateRole,
     deleteRole,

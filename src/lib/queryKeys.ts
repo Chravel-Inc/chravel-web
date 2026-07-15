@@ -72,8 +72,14 @@ export const tripKeys = {
   // Pro-specific
   roster: (tripId: string) => ['tripRoster', tripId] as const,
   channels: (tripId: string) => ['tripChannels', tripId] as const,
-  tripAdmins: (tripId: string) => ['tripAdmins', tripId] as const,
-  tripRoles: (tripId: string) => ['tripRoles', tripId] as const,
+  tripAdmins: (tripId: string, isDemoMode?: boolean) =>
+    isDemoMode !== undefined
+      ? (['tripAdmins', tripId, isDemoMode] as const)
+      : (['tripAdmins', tripId] as const),
+  tripRoles: (tripId: string, isDemoMode?: boolean) =>
+    isDemoMode !== undefined
+      ? (['tripRoles', tripId, isDemoMode] as const)
+      : (['tripRoles', tripId] as const),
 
   // Event-specific
   agenda: (tripId: string) => ['eventAgenda', tripId] as const,

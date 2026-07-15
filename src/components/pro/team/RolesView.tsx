@@ -212,8 +212,9 @@ export const RolesView = ({
         {(canManageRoles || isSuperAdmin) && !effectiveIsReadOnly && (
           <div className="flex flex-wrap gap-2">
             <Button
+              type="button"
               onClick={onCreateRole}
-              disabled={adminLoading || isLoadingRoles}
+              disabled={adminLoading}
               variant="outline"
               size="sm"
               className={adminActionButtonClass}

@@ -144,7 +144,7 @@ export const useTripAdmins = ({ tripId, enabled = true }: UseTripAdminsProps) =>
     isError,
     error,
   } = useQuery({
-    queryKey: tripKeys.tripAdmins(tripId),
+    queryKey: tripKeys.tripAdmins(tripId, isDemoMode),
     queryFn: () => fetchTripAdmins(tripId, isDemoMode, user?.id),
     enabled: enabled && !!tripId,
     staleTime: QUERY_CACHE_CONFIG.tripAdmins.staleTime,
@@ -173,7 +173,7 @@ export const useTripAdmins = ({ tripId, enabled = true }: UseTripAdminsProps) =>
           filter: `trip_id=eq.${tripId}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: tripKeys.tripAdmins(tripId) });
+          queryClient.invalidateQueries({ queryKey: tripKeys.tripAdmins(tripId, isDemoMode) });
         },
       )
       .subscribe();
@@ -214,7 +214,7 @@ export const useTripAdmins = ({ tripId, enabled = true }: UseTripAdminsProps) =>
         if (!result.success) throw new Error(result.message);
 
         toast.success(successLabel);
-        await queryClient.invalidateQueries({ queryKey: tripKeys.tripAdmins(tripId) });
+        await queryClient.invalidateQueries({ queryKey: tripKeys.tripAdmins(tripId, isDemoMode) });
         return result;
       } finally {
         setIsProcessing(false);
@@ -245,7 +245,7 @@ export const useTripAdmins = ({ tripId, enabled = true }: UseTripAdminsProps) =>
         if (!result.success) throw new Error(result.message ?? 'Failed to update scope');
 
         toast.success(`Scope updated to ${scope}`);
-        await queryClient.invalidateQueries({ queryKey: tripKeys.tripAdmins(tripId) });
+        await queryClient.invalidateQueries({ queryKey: tripKeys.tripAdmins(tripId, isDemoMode) });
         return result;
       } finally {
         setIsProcessing(false);
@@ -274,7 +274,7 @@ export const useTripAdmins = ({ tripId, enabled = true }: UseTripAdminsProps) =>
         if (!result.success) throw new Error(result.message);
 
         toast.success('User demoted from admin');
-        await queryClient.invalidateQueries({ queryKey: tripKeys.tripAdmins(tripId) });
+        await queryClient.invalidateQueries({ queryKey: tripKeys.tripAdmins(tripId, isDemoMode) });
         return result;
       } finally {
         setIsProcessing(false);
