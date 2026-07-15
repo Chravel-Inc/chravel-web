@@ -120,6 +120,22 @@ const renderCalendar = () => {
 };
 
 describe('MobileGroupCalendar Day/Month layout', () => {
+  it('keeps Day, Month, Import, and Export in one symmetric control row without redundant New CTA', () => {
+    renderCalendar();
+
+    const dayButton = screen.getByTestId('calendar-view-day');
+    const controlRow = dayButton.closest('.grid');
+
+    expect(controlRow).not.toBeNull();
+    expect(controlRow?.className).toContain('grid-cols-4');
+    expect(
+      within(controlRow as HTMLElement).getByTestId('calendar-view-month'),
+    ).toBeInTheDocument();
+    expect(within(controlRow as HTMLElement).getByText('Import')).toBeInTheDocument();
+    expect(within(controlRow as HTMLElement).getByText('Export')).toBeInTheDocument();
+    expect(within(controlRow as HTMLElement).queryByText('New')).toBeNull();
+  });
+
   it('defaults to Day view with agenda cards and a height-capped mini calendar', () => {
     renderCalendar();
 

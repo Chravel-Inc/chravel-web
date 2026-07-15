@@ -1,3 +1,9 @@
+2026-07-15 — Mobile calendar controls cleanup
+- Collapsed mobile Calendar Day, Month, Import, and Export into one four-column control row; removed redundant top "New" CTA while preserving the existing floating/section add buttons.
+- Added layout regression coverage for the symmetric single-row controls.
+- Verification: focused MobileGroupCalendar layout test, typecheck, lint:check pass; screenshot attempt blocked by Playwright CDN 403.
+- Branch: work
+
 2026-07-13 — PR #814 merge conflicts + Cursor review fixes
 - Merged origin/main into codex/add-search-bar-to-trip-chat2026-07-13 and manually recomposed 6 conflicted chat/voice files (kept main lock/mosaic/snake_case contracts + branch transcript path).
 - Fixed Cursor review: first search result now scrolls via primed `current` jump; local search matches attachment transcripts (`matchChatSearchQuery` + tests).

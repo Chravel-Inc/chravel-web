@@ -549,13 +549,9 @@ export const MobileGroupCalendar = ({
         />
       ) : (
         <div className="flex min-h-0 flex-1 flex-col">
-          {/* Day / Month segmented control — makes the two modes unmistakably distinct */}
-          <div className="flex shrink-0 items-center gap-2 border-b border-white/10 px-4 py-2.5">
-            <div
-              role="tablist"
-              aria-label="Calendar view"
-              className="flex flex-1 rounded-full bg-white/5 p-1"
-            >
+          {/* Primary calendar controls — one compact row to preserve vertical calendar space */}
+          <div className="grid shrink-0 grid-cols-4 gap-2 border-b border-white/10 px-4 py-2.5">
+            <div role="tablist" aria-label="Calendar view" className="contents">
               <button
                 type="button"
                 role="tab"
@@ -563,10 +559,10 @@ export const MobileGroupCalendar = ({
                 data-testid="calendar-view-day"
                 onClick={() => setViewMode('list')}
                 className={[
-                  'flex min-h-[40px] flex-1 items-center justify-center gap-1.5 rounded-full text-sm font-semibold transition-all active:scale-[0.98]',
+                  'flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl px-2 text-xs font-semibold transition-all active:scale-[0.98]',
                   currentViewMode === 'list'
                     ? 'bg-primary/15 text-gold-light shadow-ring-glow ring-1 ring-primary/50'
-                    : 'text-gray-400 hover:text-white',
+                    : 'bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white',
                 ].join(' ')}
               >
                 <List size={14} />
@@ -579,10 +575,10 @@ export const MobileGroupCalendar = ({
                 data-testid="calendar-view-month"
                 onClick={() => setViewMode('grid')}
                 className={[
-                  'flex min-h-[40px] flex-1 items-center justify-center gap-1.5 rounded-full text-sm font-semibold transition-all active:scale-[0.98]',
+                  'flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl px-2 text-xs font-semibold transition-all active:scale-[0.98]',
                   currentViewMode === 'grid'
                     ? 'bg-primary/15 text-gold-light shadow-ring-glow ring-1 ring-primary/50'
-                    : 'text-gray-400 hover:text-white',
+                    : 'bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white',
                 ].join(' ')}
               >
                 <CalendarDays size={14} />
@@ -591,21 +587,8 @@ export const MobileGroupCalendar = ({
             </div>
             <button
               type="button"
-              onClick={handleAddEvent}
-              className="flex min-h-[44px] items-center gap-1 rounded-full bg-primary px-3.5 text-sm font-semibold text-primary-foreground transition-transform active:scale-95"
-              aria-label="Add event"
-            >
-              <Plus size={16} />
-              New
-            </button>
-          </div>
-
-          {/* Secondary actions */}
-          <div className="flex shrink-0 justify-center gap-2 border-b border-white/5 px-4 py-2">
-            <button
-              type="button"
               onClick={handleImport}
-              className="flex min-h-[40px] items-center gap-1.5 rounded-xl bg-white/5 px-3 text-xs text-gray-300 transition-colors hover:bg-white/10 active:scale-95"
+              className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-white/5 px-2 text-xs text-gray-300 transition-colors hover:bg-white/10 active:scale-95"
             >
               <Upload size={14} />
               Import
@@ -613,7 +596,7 @@ export const MobileGroupCalendar = ({
             <button
               type="button"
               onClick={handleExportClick}
-              className="flex min-h-[40px] items-center gap-1.5 rounded-xl bg-white/5 px-3 text-xs text-gray-300 transition-colors hover:bg-white/10 active:scale-95"
+              className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-white/5 px-2 text-xs text-gray-300 transition-colors hover:bg-white/10 active:scale-95"
             >
               <Download size={14} />
               Export
