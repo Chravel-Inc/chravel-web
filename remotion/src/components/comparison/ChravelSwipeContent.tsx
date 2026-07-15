@@ -16,21 +16,22 @@ const { fontFamily } = loadFont('normal', {
 });
 
 /**
- * Real ChravelApp mobile captures from remotion/public/captures/mobile/
- * (Playwright screenshots of the live demo UI — not mock DOM).
+ * Real ChravelApp mobile captures — core 8 trip tabs in product order.
+ * Chat → Calendar → Concierge → Media → Places → Polls → Tasks → Payments
  */
 export const CHRAVEL_TABS = [
   { id: 'chat', label: 'Chat', src: 'captures/mobile/m-chat.png' },
   { id: 'calendar', label: 'Calendar', src: 'captures/mobile/m-calendar.png' },
   { id: 'concierge', label: 'Concierge', src: 'captures/mobile/m-concierge.png' },
   { id: 'media', label: 'Media', src: 'captures/mobile/m-media.png' },
+  { id: 'places', label: 'Places', src: 'captures/mobile/m-places.png' },
   { id: 'polls', label: 'Polls', src: 'captures/mobile/m-polls.png' },
   { id: 'tasks', label: 'Tasks', src: 'captures/mobile/m-tasks.png' },
-  { id: 'places', label: 'Places', src: 'captures/mobile/m-places.png' },
   { id: 'payments', label: 'Payments', src: 'captures/mobile/m-payments.png' },
 ] as const;
 
-export const CHRAVEL_HOLD_FRAMES = 28;
+/** Hold long enough that each real tab is readable before the next swipe */
+export const CHRAVEL_HOLD_FRAMES = 34;
 export const CHRAVEL_SWIPE_FRAMES = 12;
 export const CHRAVEL_CYCLE_FRAMES = CHRAVEL_HOLD_FRAMES + CHRAVEL_SWIPE_FRAMES;
 

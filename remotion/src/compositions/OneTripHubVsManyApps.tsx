@@ -26,16 +26,16 @@ const { fontFamily } = loadFont('normal', {
 });
 
 /**
- * Timeline (30fps):
- *  0–45     Intro — labels + phones enter
- *  45–690    Side-by-side comparison (left fast, right slow)
- *  720–810  Final comparison frame + taglines
- *  810–900  End card
+ * Timeline (30fps, ~40s):
+ *  0-45        Intro — labels + phones enter
+ *  45-1000     Left swipes all 8 Chravel tabs; right cycles matching iOS apps
+ *  1000-1110   Final comparison frame + taglines
+ *  1110-1200   End card
  */
-export const ONE_TRIP_HUB_DURATION = 30 * FPS; // 900 frames / 30s
+export const ONE_TRIP_HUB_DURATION = 40 * FPS; // 1200 frames / 40s
 
 const COMPARE_START = 45;
-const FINALE_START = 720;
+const FINALE_START = 1000;
 const ENDCARD_START = ONE_TRIP_HUB_DURATION - TIMING.endCard;
 
 /** Product comparison: Chravel one-hub vs fragmented multi-app workflow */
@@ -72,10 +72,10 @@ export const OneTripHubVsManyApps: React.FC = () => {
         : `Swiping → ${leftTabLabel}`
       : 'Real trip tabs · one workspace';
 
-  // Pace callout: while left zips ahead, right is still switching
+  // Pace callout: left has already cleared several real tabs; right is still hunting apps
   const paceCalloutOpacity = interpolate(
     frame,
-    [COMPARE_START + 100, COMPARE_START + 120, COMPARE_START + 300, COMPARE_START + 330],
+    [COMPARE_START + 140, COMPARE_START + 165, COMPARE_START + 380, COMPARE_START + 410],
     [0, 1, 1, 0],
     { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
   );

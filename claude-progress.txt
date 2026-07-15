@@ -1,3 +1,8 @@
+2026-07-15 — OneTripHub video: 8-tab order + matching iOS apps
+- Left: Chat→Calendar→Concierge→Media→Places→Polls→Tasks→Payments via real captures.
+- Right: Messages, Calendar, ChatGPT, Photos (mock images), Files, Yelp, Notes, To Do, Venmo.
+- Extended to ~40s. PR #829.
+
 2026-07-15 — OneTripHub video: real Chravel UI + realistic iOS apps
 - Left phone now swipes real Playwright captures (captures/mobile/*) instead of mock DOM screens.
 - Right phone rebuilt as iOS home + Messages, Calendar, Photos, Files, Mail, Microsoft To Do.

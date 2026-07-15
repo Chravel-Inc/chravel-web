@@ -2,14 +2,17 @@ import { Easing, interpolate, spring, useCurrentFrame, useVideoConfig } from 're
 import { loadFont } from '@remotion/google-fonts/Inter';
 import { SPRING } from '../../theme';
 import {
+  AiChatAppScreen,
   CalendarAppScreen,
   FilesAppScreen,
   type HomeAppId,
   IosHomeScreen,
-  MailAppScreen,
   MessagesAppScreen,
   MicrosoftToDoScreen,
+  NotesAppScreen,
   PhotosAppScreen,
+  VenmoAppScreen,
+  YelpAppScreen,
   renderHomeIcon,
 } from './FragmentedAppScreens';
 
@@ -28,56 +31,103 @@ export type FragmentPhase =
 type PhaseSpan = { start: number; end: number; phase: FragmentPhase };
 
 /**
- * Friction-heavy timeline using real-looking iOS / Microsoft apps.
- * Intentionally slower than the left Chravel swipe pace.
+ * Maps each Chravel tab to a real iPhone app (+ Files extra):
+ *   Chat → Messages
+ *   Calendar → Calendar
+ *   Concierge → ChatGPT
+ *   Media → Photos
+ *   Places → Yelp
+ *   Polls → Notes
+ *   Tasks → Microsoft To Do
+ *   Payments → Venmo
+ *   (+ Files between Photos and Yelp)
+ *
+ * Intentionally slower than the left phone's 8-tab swipe.
  */
 export const FRAGMENT_PHASES: PhaseSpan[] = [
-  { start: 0, end: 42, phase: { kind: 'app', app: 'messages', label: 'Trip chat in Messages' } },
-  { start: 42, end: 60, phase: { kind: 'closing', from: 'messages', label: 'Swipe up to Home…' } },
+  // 1. Chat → Messages
+  { start: 0, end: 38, phase: { kind: 'app', app: 'messages', label: 'Trip chat in Messages' } },
+  { start: 38, end: 54, phase: { kind: 'closing', from: 'messages', label: 'Swipe up to Home…' } },
+  // 2. Calendar
   {
-    start: 60,
-    end: 100,
-    phase: { kind: 'home', target: 'calendar', label: 'Find Calendar…', scroll: 8 },
+    start: 54,
+    end: 90,
+    phase: { kind: 'home', target: 'calendar', label: 'Find Calendar…', scroll: 6 },
   },
-  { start: 100, end: 114, phase: { kind: 'opening', app: 'calendar', label: 'Open Calendar' } },
-  { start: 114, end: 156, phase: { kind: 'app', app: 'calendar', label: 'Apple Calendar' } },
+  { start: 90, end: 102, phase: { kind: 'opening', app: 'calendar', label: 'Open Calendar' } },
+  { start: 102, end: 140, phase: { kind: 'app', app: 'calendar', label: 'Apple Calendar' } },
   {
-    start: 156,
-    end: 174,
+    start: 140,
+    end: 156,
     phase: { kind: 'closing', from: 'calendar', label: 'Swipe up to Home…' },
   },
+  // 3. Concierge → ChatGPT
   {
-    start: 174,
-    end: 218,
-    phase: { kind: 'home', target: 'photos', label: 'Find Photos…', scroll: 18 },
+    start: 156,
+    end: 196,
+    phase: { kind: 'home', target: 'aichat', label: 'Find ChatGPT…', scroll: 14 },
   },
-  { start: 218, end: 232, phase: { kind: 'opening', app: 'photos', label: 'Open Photos' } },
-  { start: 232, end: 274, phase: { kind: 'app', app: 'photos', label: 'iCloud Photos' } },
-  { start: 274, end: 292, phase: { kind: 'closing', from: 'photos', label: 'Swipe up to Home…' } },
+  { start: 196, end: 208, phase: { kind: 'opening', app: 'aichat', label: 'Open ChatGPT' } },
+  { start: 208, end: 250, phase: { kind: 'app', app: 'aichat', label: 'AI with no trip context' } },
+  { start: 250, end: 266, phase: { kind: 'closing', from: 'aichat', label: 'Swipe up to Home…' } },
+  // 4. Media → Photos
   {
-    start: 292,
-    end: 336,
-    phase: { kind: 'home', target: 'files', label: 'Find Files…', scroll: 28 },
+    start: 266,
+    end: 304,
+    phase: { kind: 'home', target: 'photos', label: 'Find Photos…', scroll: 4 },
   },
-  { start: 336, end: 350, phase: { kind: 'opening', app: 'files', label: 'Open Files' } },
-  { start: 350, end: 392, phase: { kind: 'app', app: 'files', label: 'iCloud Drive / Files' } },
-  { start: 392, end: 410, phase: { kind: 'closing', from: 'files', label: 'Swipe up to Home…' } },
+  { start: 304, end: 316, phase: { kind: 'opening', app: 'photos', label: 'Open Photos' } },
+  { start: 316, end: 358, phase: { kind: 'app', app: 'photos', label: 'iCloud Photos' } },
+  { start: 358, end: 374, phase: { kind: 'closing', from: 'photos', label: 'Swipe up to Home…' } },
+  // Extra: Files
   {
-    start: 410,
-    end: 452,
-    phase: { kind: 'home', target: 'mail', label: 'Find Mail…', scroll: 36 },
+    start: 374,
+    end: 412,
+    phase: { kind: 'home', target: 'files', label: 'Find Files…', scroll: 10 },
   },
-  { start: 452, end: 466, phase: { kind: 'opening', app: 'mail', label: 'Open Mail' } },
-  { start: 466, end: 510, phase: { kind: 'app', app: 'mail', label: 'Hunt confirmation emails' } },
-  { start: 510, end: 528, phase: { kind: 'closing', from: 'mail', label: 'Swipe up to Home…' } },
+  { start: 412, end: 424, phase: { kind: 'opening', app: 'files', label: 'Open Files' } },
+  { start: 424, end: 462, phase: { kind: 'app', app: 'files', label: 'iCloud Drive / Files' } },
+  { start: 462, end: 478, phase: { kind: 'closing', from: 'files', label: 'Swipe up to Home…' } },
+  // 5. Places → Yelp
   {
-    start: 528,
-    end: 572,
-    phase: { kind: 'home', target: 'todo', label: 'Find Microsoft To Do…', scroll: 48 },
+    start: 478,
+    end: 518,
+    phase: { kind: 'home', target: 'yelp', label: 'Find Yelp…', scroll: 18 },
   },
-  { start: 572, end: 586, phase: { kind: 'opening', app: 'todo', label: 'Open Microsoft To Do' } },
-  { start: 586, end: 640, phase: { kind: 'app', app: 'todo', label: 'Tasks only you can see' } },
-  { start: 640, end: 690, phase: { kind: 'chaos', label: 'Still switching apps…' } },
+  { start: 518, end: 530, phase: { kind: 'opening', app: 'yelp', label: 'Open Yelp' } },
+  { start: 530, end: 572, phase: { kind: 'app', app: 'yelp', label: 'Yelp — places alone' } },
+  { start: 572, end: 588, phase: { kind: 'closing', from: 'yelp', label: 'Swipe up to Home…' } },
+  // 6. Polls → Notes
+  {
+    start: 588,
+    end: 626,
+    phase: { kind: 'home', target: 'notes', label: 'Find Notes…', scroll: 22 },
+  },
+  { start: 626, end: 638, phase: { kind: 'opening', app: 'notes', label: 'Open Notes' } },
+  { start: 638, end: 678, phase: { kind: 'app', app: 'notes', label: 'Notes — no group voting' } },
+  { start: 678, end: 694, phase: { kind: 'closing', from: 'notes', label: 'Swipe up to Home…' } },
+  // 7. Tasks → Microsoft To Do
+  {
+    start: 694,
+    end: 734,
+    phase: { kind: 'home', target: 'todo', label: 'Find Microsoft To Do…', scroll: 30 },
+  },
+  { start: 734, end: 746, phase: { kind: 'opening', app: 'todo', label: 'Open Microsoft To Do' } },
+  { start: 746, end: 788, phase: { kind: 'app', app: 'todo', label: 'Tasks only you can see' } },
+  { start: 788, end: 804, phase: { kind: 'closing', from: 'todo', label: 'Swipe up to Home…' } },
+  // 8. Payments → Venmo
+  {
+    start: 804,
+    end: 844,
+    phase: { kind: 'home', target: 'venmo', label: 'Find Venmo…', scroll: 36 },
+  },
+  { start: 844, end: 856, phase: { kind: 'opening', app: 'venmo', label: 'Open Venmo' } },
+  {
+    start: 856,
+    end: 900,
+    phase: { kind: 'app', app: 'venmo', label: 'Venmo — chase people one by one' },
+  },
+  { start: 900, end: 940, phase: { kind: 'chaos', label: 'Still switching apps…' } },
 ];
 
 export function getFragmentPhaseAt(localFrame: number): PhaseSpan {
@@ -95,28 +145,35 @@ const renderApp = (appId: string, delay: number) => {
       return <MessagesAppScreen delay={delay} />;
     case 'calendar':
       return <CalendarAppScreen delay={delay} />;
+    case 'aichat':
+      return <AiChatAppScreen delay={delay} />;
     case 'photos':
       return <PhotosAppScreen delay={delay} />;
     case 'files':
       return <FilesAppScreen delay={delay} />;
-    case 'mail':
-      return <MailAppScreen delay={delay} />;
+    case 'yelp':
+      return <YelpAppScreen delay={delay} />;
+    case 'notes':
+      return <NotesAppScreen delay={delay} />;
     case 'todo':
       return <MicrosoftToDoScreen delay={delay} />;
+    case 'venmo':
+      return <VenmoAppScreen delay={delay} />;
     default:
       return <MessagesAppScreen delay={delay} />;
   }
 };
 
 const SCATTERED: Array<{ id: HomeAppId; x: number; y: number; rot: number }> = [
-  { id: 'messages', x: 22, y: 70, rot: -14 },
+  { id: 'messages', x: 22, y: 68, rot: -14 },
   { id: 'calendar', x: 160, y: 48, rot: 9 },
-  { id: 'photos', x: 70, y: 155, rot: -7 },
-  { id: 'files', x: 175, y: 175, rot: 12 },
-  { id: 'mail', x: 28, y: 270, rot: -16 },
-  { id: 'todo', x: 150, y: 295, rot: 8 },
-  { id: 'notes', x: 95, y: 220, rot: -3 },
-  { id: 'maps', x: 200, y: 115, rot: 15 },
+  { id: 'aichat', x: 70, y: 145, rot: -7 },
+  { id: 'photos', x: 175, y: 160, rot: 12 },
+  { id: 'files', x: 28, y: 240, rot: -10 },
+  { id: 'yelp', x: 150, y: 255, rot: 8 },
+  { id: 'notes', x: 95, y: 330, rot: -4 },
+  { id: 'todo', x: 200, y: 310, rot: 14 },
+  { id: 'venmo', x: 55, y: 400, rot: -12 },
 ];
 
 const ScatteredIcons: React.FC<{ local: number }> = ({ local }) => {
@@ -167,7 +224,7 @@ const ScatteredIcons: React.FC<{ local: number }> = ({ local }) => {
               opacity: interpolate(p, [0, 1], [0, 1]),
             }}
           >
-            {renderHomeIcon(icon.id, { size: 48 })}
+            {renderHomeIcon(icon.id, { size: 46 })}
           </div>
         );
       })}
@@ -180,7 +237,6 @@ type FragmentedPhoneContentProps = {
   showScattered?: boolean;
 };
 
-/** Right phone: realistic iOS close → scroll → open friction */
 export const FragmentedPhoneContent: React.FC<FragmentedPhoneContentProps> = ({
   startFrame = 0,
   showScattered = false,
@@ -206,9 +262,6 @@ export const FragmentedPhoneContent: React.FC<FragmentedPhoneContentProps> = ({
       extrapolateRight: 'clamp',
       easing: Easing.in(Easing.cubic),
     });
-    const overlayScale = interpolate(close, [0, 1], [1, 0.52]);
-    const overlayY = interpolate(close, [0, 1], [0, 240]);
-    const overlayOpacity = interpolate(close, [0, 0.85, 1], [1, 0.45, 0]);
     content = (
       <>
         <div style={{ position: 'absolute', inset: 0 }}>
@@ -218,8 +271,8 @@ export const FragmentedPhoneContent: React.FC<FragmentedPhoneContentProps> = ({
           style={{
             position: 'absolute',
             inset: 0,
-            transform: `translateY(${overlayY}px) scale(${overlayScale})`,
-            opacity: overlayOpacity,
+            transform: `translateY(${interpolate(close, [0, 1], [0, 240])}px) scale(${interpolate(close, [0, 1], [1, 0.52])})`,
+            opacity: interpolate(close, [0, 0.85, 1], [1, 0.45, 0]),
             transformOrigin: 'center bottom',
             borderRadius: 20,
             overflow: 'hidden',
@@ -273,7 +326,6 @@ export const FragmentedPhoneContent: React.FC<FragmentedPhoneContentProps> = ({
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
       {content}
-
       <div
         style={{
           position: 'absolute',
