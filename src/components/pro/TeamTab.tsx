@@ -94,16 +94,14 @@ export const TeamTab = ({
       />
 
       {/* Dialogs */}
-      {tripId && (
-        <>
-          <CreateRoleDialog
-            open={createRoleOpen}
-            onOpenChange={setCreateRoleOpen}
-            tripId={tripId}
-            currentRoleCount={roles.length}
-            onRoleCreated={handleRoleCreated}
-          />
-        </>
+      {tripId && createRoleOpen && (
+        <CreateRoleDialog
+          open={createRoleOpen}
+          onOpenChange={setCreateRoleOpen}
+          tripId={tripId}
+          currentRoleCount={roles.length}
+          onRoleCreated={handleRoleCreated}
+        />
       )}
     </div>
   );

@@ -66,6 +66,7 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
     createRole,
     deleteRole,
     refetch: refetchRoles,
+    isError,
   } = useTripRoles({ tripId });
   const {
     assignments,
@@ -293,6 +294,26 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
         <div className="flex items-center gap-3">
           <div className="animate-spin h-5 w-5 gold-gradient-spinner" />
           <p className="text-sm text-muted-foreground">Loading roles...</p>
+        </div>
+      </Card>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Card className="p-6 bg-background/40 backdrop-blur-sm border-white/10">
+        <div className="text-center space-y-3">
+          <AlertTriangle className="w-8 h-8 text-amber-400 mx-auto" />
+          <p className="text-sm text-muted-foreground">Could not load roles for this trip.</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void refetchRoles()}
+            className="min-h-[44px]"
+          >
+            Retry
+          </Button>
         </div>
       </Card>
     );

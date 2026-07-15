@@ -89,7 +89,10 @@ export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
 }) => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  const { createRole, isProcessing } = useTripRoles({ tripId, enabled: !!tripId });
+  const { createRole, isProcessing } = useTripRoles({
+    tripId,
+    enabled: open && !!tripId,
+  });
   const [roleName, setRoleName] = useState('');
   const [description, setDescription] = useState('');
   const [permissionLevel, setPermissionLevel] = useState<PermissionLevel>('edit');
