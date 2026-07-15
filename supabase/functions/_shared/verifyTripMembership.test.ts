@@ -32,10 +32,10 @@ Deno.test('verifyTripMembership surfaces infra errors distinctly from not-a-memb
   assertEquals(res, { isMember: false, error: 'boom' });
 });
 
-Deno.test('verifyTripMembership calls is_trip_member with the expected args', async () => {
+Deno.test('verifyTripMembership calls is_active_trip_member with the expected args', async () => {
   const { client, calls } = fakeClient({ data: true, error: null });
   await verifyTripMembership(client, 'user-42', 'trip-99');
   assertEquals(calls.length, 1);
-  assertEquals(calls[0].fn, 'is_trip_member');
+  assertEquals(calls[0].fn, 'is_active_trip_member');
   assertEquals(calls[0].args, { _user_id: 'user-42', _trip_id: 'trip-99' });
 });

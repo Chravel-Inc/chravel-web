@@ -39,6 +39,7 @@ import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
 import { calculateDaysCount } from '../utils/tripStatsUtils';
 import { usePrefetchTrip } from '../hooks/usePrefetchTrip';
 import { getDemoTripCoverFallback } from '@/data/demoTripCoverFallbacks';
+import { resolveTripCoverImageUrl } from '@/lib/tripCoverResolver';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -441,6 +442,10 @@ export const TripCard = ({
   const daysUntil = isConsumer ? gamificationService.getDaysUntilTrip(trip.id.toString()) : 0;
   const momentum = isConsumer ? gamificationService.getTripMomentum(trip.id.toString()) : 'cold';
   const demoCoverFallback = isDemoMode ? getDemoTripCoverFallback(trip.id) : undefined;
+  const resolvedCoverPhoto = resolveTripCoverImageUrl(
+    { coverPhoto: trip.coverPhoto },
+    { fallbackUrl: demoCoverFallback },
+  );
   const coverFit = trip.coverDisplayMode === 'contain' ? 'contain' : 'cover';
 
   return (
@@ -453,9 +458,9 @@ export const TripCard = ({
     >
       {/* Trip Image/Header - Responsive with lazy loading */}
       <div className="trips-card-hero on-media dark-section relative bg-gradient-to-br from-gold-dark/20 via-gold-primary/10 to-transparent p-3 md:p-4 tablet:p-6">
-        {trip.coverPhoto && (
+        {resolvedCoverPhoto && (
           <OptimizedImage
-            src={trip.coverPhoto}
+            src={resolvedCoverPhoto}
             alt={`${trip.title} cover`}
             fallbackSrc={demoCoverFallback}
             lazy={!priority}
