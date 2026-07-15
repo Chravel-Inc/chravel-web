@@ -149,6 +149,28 @@ describe('useKeyboardHandler', () => {
     tray.remove();
   });
 
+  it('does not scroll dialog fields into view on focus (avoids modal jump on keyboard dismiss)', () => {
+    const scrollIntoView = vi.fn();
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+
+    renderHook(() => useKeyboardHandler({ adjustViewport: true }));
+
+    const dialog = document.createElement('div');
+    dialog.setAttribute('role', 'dialog');
+    dialog.className = 'dialog-keyboard-stable';
+    const input = document.createElement('input');
+    dialog.appendChild(input);
+    document.body.appendChild(dialog);
+
+    act(() => {
+      input.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+      vi.advanceTimersByTime(300);
+    });
+
+    expect(scrollIntoView).not.toHaveBeenCalled();
+    dialog.remove();
+  });
+
   it('uses nearest scroll alignment for non-composer inputs', () => {
     const scrollIntoView = vi.fn();
     HTMLElement.prototype.scrollIntoView = scrollIntoView;

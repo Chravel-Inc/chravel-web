@@ -106,6 +106,18 @@ export const useKeyboardHandler = (options: KeyboardHandlerOptions = {}) => {
           return;
         }
 
+        // Keyboard-stable / Radix dialogs and vaul drawers own their own scroll.
+        // scrollIntoView here scrolls the trip shell / document and leaves the
+        // modal title stranded at the bottom after the keyboard checkmark dismiss.
+        const isOverlayField = Boolean(
+          target.closest(
+            '.dialog-keyboard-stable, [role="dialog"], [data-vaul-drawer], [data-radix-dialog-content]',
+          ),
+        );
+        if (isOverlayField) {
+          return;
+        }
+
         setTimeout(() => {
           target.scrollIntoView({
             behavior: 'smooth',

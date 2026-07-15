@@ -1114,6 +1114,23 @@
   padding-bottom: 8px !important;
 }
 
+/*
+ * Centered dialogs with text inputs (e.g. Create New Task).
+ * Re-center inside the *visual* viewport so the panel stays mid-screen when the
+ * keyboard opens, and snaps back cleanly when the keyboard is dismissed —
+ * instead of a bottom sheet getting left at the bottom of the screen.
+ * Vars are owned by useKeyboardHandler (adjustViewport: true); fallbacks apply
+ * when the keyboard is hidden / vars cleared.
+ */
+.dialog-keyboard-stable {
+  top: calc(
+    var(--visual-viewport-offset-top, 0px) + (var(--visual-viewport-height, 100dvh) / 2)
+  ) !important;
+  max-height: calc(var(--visual-viewport-height, 100dvh) - 2rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 /* Calendar modal: replace browser time square with explicit clock affordance */
 .calendar-time-input {
   color-scheme: dark;
