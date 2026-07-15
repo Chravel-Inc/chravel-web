@@ -670,6 +670,26 @@ Known security anti-patterns discovered during audits. Reference this before int
 **Required Tests:** `Poll.facepile-suggest` UI + `pollStorageService.appendOption` demo path.
 **Fixed in:** `20260713170000_append_poll_option.sql` / `useTripPolls.suggestOption` (July 2026)
 
+## Pro Team tab Create Role greyed out + Manage Roles infinite spinner
+
+**Symptom:** On Pro trip Team tab, Create Role is disabled/greyed and does nothing; Manage Roles opens to a permanent "Loading roles..." spinner. Affects all Pro trips when roles fetch stalls.
+**Risk:** HIGH — admins cannot create or manage roles (core Pro team ops).
+**Root Cause:** (1) Create Role was `disabled={adminLoading || isLoadingRoles}`, so any hung roles/admin fetch left the button dead. (2) `fetchTripRoles` embedded `trip_channels!required_role_id` (evaluating `can_access_channel` RLS) plus N+1 count queries with no timeout — a stall kept TanStack `isLoading` true forever, which RoleManager rendered as an infinite spinner with no error/retry path.
+**How to Confirm:** Open a Pro trip Team tab as admin; note role-filter skeletons persist and Create Role is `disabled`; open Manage Roles and watch "Loading roles..." never clear. DB may still have `trip_roles` rows.
+**Smallest Safe Fix:** Fetch roles without the channel embed; batch counts; soft-fail channels; 12s timeout + retry:1; stop gating Create Role on loading; RoleManager error+Retry UI; treat `isError` as not-loading.
+**Required Tests:** `fetchTripRoles.test.ts`, `RolesView.createRole.test.tsx`, `RoleManager.error.test.tsx`.
+**Regression Surfaces:** RoleManager channel name display, Create Role at MAX_ROLES_PER_TRIP, demo MockRolesService path.
+**Fixed in:** `src/hooks/fetchTripRoles.ts` / `useTripRoles.ts` / `RolesView.tsx` / `RoleManager.tsx` (July 2026)
+
+## Pro Team tab Requests infinite "Loading requests..." spinner
+
+**Symptom:** Team → Requests sheet stuck on "Loading requests..." forever (same class as Manage Roles hang).
+**Risk:** HIGH — admins cannot review join requests.
+**Root Cause:** `useJoinRequests` did per-row `profiles_public` N+1 fetches with no timeout; a stalled profile read left `isLoading` true. Panel had no error/retry UI.
+**How to Confirm:** Open Requests on a Pro trip; spinner never clears even with 0 pending rows.
+**Smallest Safe Fix:** Timeout the primary `trip_join_requests` select; batch profile enrichment once with soft-fail; use stored `requester_*` fields as fallback; expose `isError` + Retry in `JoinRequestsPanel`.
+**Required Tests:** `JoinRequestsPanel.error.test.tsx`; existing `useJoinRequests` RPC tests.
+**Fixed in:** `src/hooks/useJoinRequests.ts` / `JoinRequestsPanel.tsx` (July 2026)
 ## Create New Task modal title jumps to bottom after iOS keyboard dismiss
 - **Status:** confirmed
 - **Subsystem:** mobile Tasks / ResponsiveModal

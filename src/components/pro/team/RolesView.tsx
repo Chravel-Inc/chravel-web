@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { Users, UserPlus, Clock, Cog, LayoutGrid, Network, ShieldCheck } from 'lucide-react';
+import { Users, LayoutGrid, Network, ShieldCheck } from 'lucide-react';
 import { ProParticipant, TeamTripContext } from '../../../types/pro';
 import { ProTripCategory, getCategoryConfig } from '../../../types/proCategories';
 import { TeamOnboardingBanner } from '../TeamOnboardingBanner';
 import { BulkRoleAssignmentModal } from '../BulkRoleAssignmentModal';
 import { RoleContactSheet } from '../RoleContactSheet';
-import { extractUniqueRoles } from '../../../utils/roleUtils';
+import { extractUniqueRoles, MAX_ROLES_PER_TRIP } from '../../../utils/roleUtils';
 import { Button } from '../../ui/button';
 import { useDemoMode } from '../../../hooks/useDemoMode';
 import { useSuperAdmin } from '../../../hooks/useSuperAdmin';
@@ -48,7 +48,7 @@ export const RolesView = ({
   canManageRoles = false,
   onCreateRole,
   isLoadingRoles = false,
-  adminLoading = false,
+  adminLoading: _adminLoading = false,
   isLoadingRoster = false,
   tripId,
   tripCreatorId,
@@ -166,9 +166,10 @@ export const RolesView = ({
   const isAdmin =
     isSuperAdmin || userRole === 'admin' || userRole === 'tour manager' || userRole === 'manager';
 
-  // Shared chrome for the admin action row — flex-1 fill on mobile so a lone
-  // trailing button never dangles alone with dead space beside it.
-  const adminActionButtonClass = `${isMobile ? 'flex-1 basis-[47%]' : ''} justify-center rounded-xl bg-black/60 hover:bg-white/10 hover:text-gold-light hover:border-primary/40 text-white border-white/20 transition-colors min-h-[42px] px-4 text-xs whitespace-nowrap`;
+  // Shared chrome for the admin action row — equal-width text pills on one
+  // row (no icons) so Create / Manage / Requests never wrap into an orphan
+  // full-width pill on mobile.
+  const adminActionButtonClass = `${isMobile ? 'flex-1 min-w-0' : ''} justify-center rounded-xl bg-black/60 hover:bg-white/10 hover:text-gold-light hover:border-primary/40 text-white border-white/20 transition-colors min-h-[42px] px-2 sm:px-3 text-xs whitespace-nowrap`;
 
   return (
     <div className="space-y-6">
@@ -190,35 +191,35 @@ export const RolesView = ({
 
       {/* Header with Stats and Admin Indicator */}
       <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 space-y-4">
-        {/* Team Label + Stats + Admin Badge */}
-        <div
-          className={`flex ${isMobile ? 'flex-col items-start gap-2' : 'items-center justify-between gap-3'}`}
-        >
-          <div className="flex items-center gap-2 min-w-0">
-            <Users className="text-gold-mid flex-shrink-0" size={20} />
-            <h2 className="text-lg font-bold text-white truncate">{teamLabel}</h2>
-            <span className="text-ink-3 text-sm flex-shrink-0">
-              {roster.length} {roster.length === 1 ? 'member' : 'members'}
-            </span>
+        {/* Symmetric header: Team | member count | Admin Access (or blank) */}
+        <div className="grid grid-cols-3 items-center gap-2" data-testid="team-header-row">
+          <h2 className="text-lg font-bold text-white truncate text-left min-w-0">{teamLabel}</h2>
+          <span className="text-ink-3 text-sm text-center tabular-nums whitespace-nowrap">
+            {roster.length} {roster.length === 1 ? 'member' : 'members'}
+          </span>
+          <div className="flex justify-end min-h-[24px] min-w-0">
+            {(canManageRoles || isSuperAdmin) && !effectiveIsReadOnly ? (
+              <span className="flex-shrink-0 text-[11px] font-medium text-gold-light bg-primary/10 border border-primary/25 rounded-full px-2.5 py-1">
+                Admin Access
+              </span>
+            ) : null}
           </div>
-          {(canManageRoles || isSuperAdmin) && !effectiveIsReadOnly && (
-            <span className="flex-shrink-0 text-[11px] font-medium text-gold-light bg-primary/10 border border-primary/25 rounded-full px-2.5 py-1">
-              Admin Access
-            </span>
-          )}
         </div>
 
-        {/* Admin action buttons — flex-1 fill on mobile so a lone trailing button never dangles alone */}
+        {/* Admin action buttons — single row of equal-width text pills */}
         {(canManageRoles || isSuperAdmin) && !effectiveIsReadOnly && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-nowrap gap-1.5">
             <Button
               onClick={onCreateRole}
-              disabled={adminLoading || isLoadingRoles}
+              // Visible only when canManageRoles is already true — do not gate on
+              // adminLoading or isLoadingRoles (both used to leave this greyed out
+              // forever when a roles/admin fetch hung). Cap is enforced here only
+              // after the list has loaded; CreateRoleDialog also validates on submit.
+              disabled={!isLoadingRoles && availableRoles.length >= MAX_ROLES_PER_TRIP}
               variant="outline"
               size="sm"
               className={adminActionButtonClass}
             >
-              <UserPlus className="w-4 h-4 mr-1.5 shrink-0" />
               Create Role
             </Button>
             <Button
@@ -228,7 +229,6 @@ export const RolesView = ({
               className={adminActionButtonClass}
               title="Manage roles, assignments, and admins"
             >
-              <Cog className="w-4 h-4 mr-1.5 shrink-0" />
               Manage Roles
             </Button>
             <Button
@@ -238,7 +238,6 @@ export const RolesView = ({
               className={adminActionButtonClass}
               title="View join requests"
             >
-              <Clock className="w-4 h-4 mr-1.5 shrink-0" />
               Requests
             </Button>
             {coordinatorRoleEnabled && tripId && (
@@ -249,7 +248,7 @@ export const RolesView = ({
                 className={adminActionButtonClass}
                 title="Grant logistics-only access to an outside organizer"
               >
-                <ShieldCheck className="w-4 h-4 mr-1.5 shrink-0" />
+                <ShieldCheck className="w-3.5 h-3.5 mr-1 shrink-0" />
                 Coordinator
               </Button>
             )}
