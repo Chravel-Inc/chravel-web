@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './dialog';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from './drawer';
 
@@ -13,12 +14,18 @@ interface ResponsiveModalProps {
   dialogClassName?: string;
   /** Additional className for drawer content */
   drawerClassName?: string;
+  /**
+   * `sheet` (default): bottom Drawer on mobile, Dialog on desktop.
+   * `centered`: always a centered Dialog — preferred for forms with text inputs
+   * where iOS keyboard open/dismiss must not yank a bottom sheet around.
+   */
+  layout?: 'sheet' | 'centered';
 }
 
 /**
- * ResponsiveModal renders a centered Dialog on desktop and a bottom Drawer on mobile.
- * This provides iOS-idiomatic bottom-sheet behavior on small screens while keeping
- * the standard modal pattern on larger viewports.
+ * ResponsiveModal renders a centered Dialog on desktop and a bottom Drawer on mobile
+ * (`layout="sheet"`). Use `layout="centered"` for input-heavy modals that must stay
+ * centered across keyboard show/hide (see `.dialog-keyboard-stable`).
  */
 export function ResponsiveModal({
   open,
@@ -28,10 +35,12 @@ export function ResponsiveModal({
   description,
   dialogClassName = 'sm:max-w-md',
   drawerClassName,
+  layout = 'sheet',
 }: ResponsiveModalProps) {
   const isMobile = useIsMobile();
+  const useSheet = layout === 'sheet' && isMobile;
 
-  if (isMobile) {
+  if (useSheet) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent className={drawerClassName}>
@@ -49,7 +58,12 @@ export function ResponsiveModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={dialogClassName}>
+      <DialogContent
+        className={cn(
+          layout === 'centered' && 'dialog-keyboard-stable w-[calc(100%-2rem)] rounded-2xl',
+          dialogClassName,
+        )}
+      >
         {(title || description) && (
           <DialogHeader>
             {title && <DialogTitle>{title}</DialogTitle>}
