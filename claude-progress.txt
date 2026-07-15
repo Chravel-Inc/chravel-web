@@ -9,6 +9,19 @@
 - Fix: resilient fetchTripRoles (no embed, batched counts, soft-fail channels, 12s timeout); Create Role no longer gated on list load; RoleManager error+Retry; camelCase channel display.
 - Verification: fetchTripRoles + RolesView + RoleManager tests, typecheck, lint:check, build pass.
 - Branch: cursor/fix-pro-team-roles-loading-3944
+2026-07-15 — Task assignment Alerts: assignee-only
+- notify_on_task_assignment was fanning out via create_notification_for_trip_members with actor=assignee (everyone else got the alert; assignee got none).
+- Fix: single INSERT for NEW.user_id, gated by tasks pref + mute; skip self-assign; generic "assigned to you" copy.
+- Migration applied on ChravelApp. Regression: taskAssignmentNotifyAssigneeOnly.test.ts.
+- Branch: cursor/notifications-alerts-copy-deepdive-773a
+
+2026-07-15 — Notifications/Alerts deep-dive + generic trip-scoped copy
+- Audited Settings toggles (My Trips / Pro / Events) → notification_preferences → DB fanout → Alerts + push.
+- Alerts were wired but showed entity-specific bodies (addresses, amounts, questions, names); push already used content builder.
+- Fixed: generic trip-scoped copy at fanout + formatInAppAlertCopy on read; pin→broadcasts map; NativePushRouter tabs; join-trip pref gate + generic copy.
+- Migration applied on ChravelApp. Tests: alertCopy/contentBuilder/categoryMap/mapRow/NativePushRouter + NotificationsDialog green; typecheck/lint:check pass.
+- Branch: cursor/notifications-alerts-copy-deepdive-773a
+
 2026-07-15 — Create New Task modal keyboard jump
 - Mobile Create New Task used ResponsiveModal bottom Drawer; iOS keyboard checkmark dismiss left the title at the bottom of the screen.
 - Fix: layout="centered" Dialog + dialog-keyboard-stable visual-viewport centering; skip scrollIntoView for dialog/drawer fields.

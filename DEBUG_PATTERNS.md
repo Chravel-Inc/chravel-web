@@ -629,6 +629,26 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Required tests:** `paymentActivityMessages.test.ts`; PaymentMethodPayButtons deeplink coverage.
 - **Fixed in:** `20260713180000_payment_notifications_and_applecash.sql`, `CreatePaymentModal.tsx`, `paymentActivityMessages.ts` (July 2026)
 
+## Alerts panel showed entity-specific copy while push was already generic
+- **Status:** fixed
+- **Subsystem:** notifications / Alerts / preference toggles
+- **Bug class:** dual-path copy divergence (DB row vs content builder rewrite)
+- **Symptom:** Settings toggles correctly fan out rows into Alerts, but bodies exposed addresses (`basecamp`), amounts (`payment`), poll questions, task titles, and requester names (`join_request`). Push/email looked polished because `dispatch-notification-deliveries` rewrites via `notificationContentBuilder`.
+- **Root cause:** Trigger producers wrote raw entity fields into `notifications.title`/`message`; Alerts render those columns. `type='pin'` was also missing from `categoryMap`, and `NativePushRouter` lacked payment/broadcast/basecamp/join tabs.
+- **Smallest safe fix:** (1) Recreate notify wrappers with trip-scoped generic copy; (2) `formatInAppAlertCopy` in `mapRowToNotification` for legacy rows; (3) map `pin` → broadcasts pref; (4) expand native push tabs; (5) join-trip generic copy + `join_requests` pref gate.
+- **Required tests:** `notificationAlertCopy.test.ts`, `notificationContentBuilder.test.ts`, `useNotificationRealtime.mapRowToNotification.test.ts`, `NativePushRouter.tabs.test.ts`
+- **Fixed in:** `20260715210000_generic_trip_notification_alert_copy.sql`, `alertCopy.ts`, `contentBuilder.ts`, `join-trip/index.ts` (July 2026)
+
+## Task assignment notified everyone except the assignee
+- **Status:** fixed
+- **Subsystem:** tasks / notifications
+- **Bug class:** wrong fanout recipient (actor exclusion inverted)
+- **Symptom:** Assigning a task never alerted the assignee; other trip members received "Task assigned" Alerts instead.
+- **Root cause:** `notify_on_task_assignment` called `create_notification_for_trip_members` with `p_actor_user_id := NEW.user_id` (assignee). That helper excludes the actor and fans out to all other members.
+- **Smallest safe fix:** Insert one `notifications` row for `NEW.user_id` only; gate with `should_send_notification(..., 'tasks')` + per-trip mute; skip self-assignment.
+- **Required tests:** `supabase/functions/__tests__/taskAssignmentNotifyAssigneeOnly.test.ts`
+- **Fixed in:** `20260715214500_task_assignment_notify_assignee_only.sql` (July 2026)
+
 ## Poll Comment Counts Across Separate Query Clients
 
 **Symptom:** Comment count badge stays at 0 after posting a reply in unit tests (or briefly in UI).
