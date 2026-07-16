@@ -18,6 +18,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { sendFcmV1, toFcmData } from '../_shared/fcmV1.ts';
+import { verifyTripMembership } from '../_shared/verifyTripMembership.ts';
 
 // Push notification payload types
 interface PushPayload {
@@ -342,17 +343,22 @@ Deno.serve(async req => {
     // Parse request
     const body: SendPushRequest = await req.json();
 
-    // Authorization: If sending to a trip, verify the caller is a trip member
+    // Authorization: trip-scoped push delivery is privileged because it can fan out
+    // to other users' device tokens. Require the verified caller to be an ACTIVE
+    // trip member via the shared RPC-backed helper before any service-role reads.
     if (body.tripId) {
-      const { data: membership, error: memberError } = await supabase
-        .from('trip_members')
-        .select('id')
-        .eq('trip_id', body.tripId)
-        .eq('user_id', callerUserId)
-        .maybeSingle();
-      if (memberError || !membership) {
+      const membership = await verifyTripMembership(supabase, callerUserId, body.tripId);
+      if (membership.error) {
+        console.error('[send-push] Failed to verify trip membership:', membership.error);
+        return new Response(JSON.stringify({ error: 'Failed to verify trip membership' }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (!membership.isMember) {
         return new Response(
-          JSON.stringify({ error: 'You must be a trip member to send notifications' }),
+          JSON.stringify({ error: 'You must be an active trip member to send notifications' }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         );
       }
@@ -373,19 +379,32 @@ Deno.serve(async req => {
       });
     }
 
-    // Resolve target user IDs
+    if (body.userIds?.length && !body.tripId) {
+      return new Response(JSON.stringify({ error: 'userIds targeting requires tripId scope' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Resolve target user IDs only from active members of the scoped trip. If the
+    // caller supplies userIds, intersect them with active trip membership instead
+    // of trusting arbitrary client-provided recipients.
     let targetUserIds: string[] = body.userIds || [];
 
-    if (body.tripId && !body.userIds?.length) {
-      // Fetch all trip members
-      const { data: members, error: membersError } = await supabase
+    if (body.tripId) {
+      const query = supabase
         .from('trip_members')
         .select('user_id')
-        .eq('trip_id', body.tripId);
+        .eq('trip_id', body.tripId)
+        .eq('status', 'active');
+
+      const { data: members, error: membersError } = body.userIds?.length
+        ? await query.in('user_id', body.userIds)
+        : await query;
 
       if (membersError) {
-        console.error('[send-push] Failed to fetch trip members:', membersError);
-        return new Response(JSON.stringify({ error: 'Failed to fetch trip members' }), {
+        console.error('[send-push] Failed to fetch active trip members:', membersError);
+        return new Response(JSON.stringify({ error: 'Failed to fetch active trip members' }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });

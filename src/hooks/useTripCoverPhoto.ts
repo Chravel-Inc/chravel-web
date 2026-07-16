@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { isBlobOrDataUrl } from '@/utils/mediaUtils';
 import { appendCoverCacheBust, normalizeTripCoverUrl } from '@/utils/tripCoverStorage';
 import { invalidateTripCoverQueries, updateTripCoverCache } from '@/lib/tripCoverInvalidation';
+import { urlHostMatchesAllowlistedDomain } from '@/lib/nativeRoutingGuards';
 import { useAuth } from './useAuth';
 import { useDemoMode } from './useDemoMode';
 import { demoModeService } from '@/services/demoModeService';
@@ -76,21 +77,12 @@ export const useTripCoverPhoto = (
 
     // Reject URLs that don't look like images (prevents webpage URLs being saved)
     if (!isDemoMode) {
-      // Use URL hostname check to prevent substring bypass (e.g. evil.com?q=unsplash.com)
-      const isKnownHost = (() => {
-        try {
-          const { hostname } = new URL(photoUrl);
-          return (
-            hostname === 'unsplash.com' ||
-            hostname.endsWith('.unsplash.com') ||
-            hostname === 'supabase.co' ||
-            hostname.endsWith('.supabase.co') ||
-            hostname.endsWith('.supabase.in')
-          );
-        } catch {
-          return false;
-        }
-      })();
+      // Use the canonical exact-or-dot-boundary host guard to prevent suffix bypasses.
+      const isKnownHost = urlHostMatchesAllowlistedDomain(photoUrl, [
+        'unsplash.com',
+        'supabase.co',
+        'supabase.in',
+      ]);
       const hasImageExt = /\.(jpe?g|png|gif|webp|avif|svg)(\?|$)/i.test(photoUrl);
       if (!isKnownHost && !hasImageExt) {
         console.warn('[useTripCoverPhoto] Rejecting non-image URL:', photoUrl);

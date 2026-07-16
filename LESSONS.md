@@ -588,3 +588,15 @@ Bare `at` matches venue phrases ("Trivia Night at Joe's"). Use `@` and `vs`/`ver
 
 ### Input-heavy mobile modals should be centered Dialogs, not bottom sheets
 `ResponsiveModal` defaults to a vaul bottom Drawer on mobile. Forms with text inputs fight iOS keyboard open/dismiss and `scrollIntoView`, leaving the sheet title at the bottom of the screen. Prefer `layout="centered"` + `.dialog-keyboard-stable` (visual-viewport centering) and skip document `scrollIntoView` for fields inside `[role="dialog"]`. *Evidence: July 2026 Create New Task modal keyboard dismiss bug.*
+
+### Native routing predicates need executable guardrails, not just documentation
+Keep OAuth-return matching, exact-or-dot-boundary host allowlists, and deferred-path precedence in one tested module; CI should reject new inline host `.endsWith()` checks and auth-return redefinitions. Evidence: 2026-07-15 Phase 1 hardening added `src/lib/nativeRoutingGuards.ts` plus `qa:native-routing-guards`.
+
+### RevenueCat SDK calls must await the shared configure promise
+Native billing calls (`identifyUser`, customer info, offerings, purchase, restore, logout) should never race `configureRevenueCat`; keep one module-level initialization promise keyed by user/platform and await it from every SDK call path. Evidence: 2026-07-15 RevenueCat init-race hardening regression test.
+
+### Trip cover previews need one resolver across client and OG paths
+Cards, headers, share modals, and edge OG preview functions must all prefer the assigned `cover_image_url` before any splash/brand fallback. Keep client logic in `resolveTripCoverImageUrl` and edge logic in `resolveOgCoverImageUrl`; add a guardrail whenever another preview surface is added. Evidence: 2026-07-15 Phase 2 cover resolver hardening.
+
+### Privileged edge fanout must derive scope from active membership, not client targets
+Push/RAG edge functions that use service-role clients must verify the JWT caller with the shared `verifyTripMembership`/`is_active_trip_member` path before any service-role read/write, and client-supplied `userIds` must be intersected with active trip members instead of trusted directly. Evidence: 2026-07-15 systemic deferred hardening closed send-push arbitrary-recipient fanout and ai-ingest row-presence membership drift.

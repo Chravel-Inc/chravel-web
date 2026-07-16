@@ -315,3 +315,28 @@
 - Split chat messaging E2E setup into local-tolerant vs release-gate mode via CHRAVEL_E2E_RELEASE_GATE=1, preserving documented local skips while making launch-critical fixture failures throw explicit step errors.
 - Added shared E2E mode helpers under e2e/fixtures and tightened auth/trip fixture failures for auth, trip creation, membership, and pro trip creation.
 - Wired CI full E2E and scheduled staging/App Store QA E2E to release-gate mode; verification reached Playwright browser execution but Chromium install remains blocked by CDN 403 in this environment.
+
+2026-07-15 — Anti-regression protocol routing doc
+- Added `docs/anti-regression-hardening.md` as the repo-owned checklist for regression triage layers, mandatory invariants, mobile/PWA layout questions, pre-PR verification, stop-investigate red flags, and CI gates.
+- Linked the new protocol from `AGENTS.md` so future agents can find it without bloating the root operating manual.
+- Documentation-only change; no app runtime, demo data, Supabase schema, or native code changed.
+
+2026-07-15 — Phase 1 native routing predicate hardening
+- Added `src/lib/nativeRoutingGuards.ts` as the single source for OAuth return-path detection, exact-or-dot-boundary host allowlist matching, and deferred-path precedence.
+- Replaced host allowlist reimplementations in image optimization, cover-photo URL validation, Healthz preview detection, and Lovable env detection; AuthCallback hash-flow detection now imports the canonical OAuth-return matcher.
+- Added focused regression tests for bare `/auth`, `/auth/v1/authorize/`, evilsupabase.co/notsupabase.co/chravel.app.evil.com, and notification deferred-path precedence; wired `qa:native-routing-guards` into `qa:guardrails`.
+
+2026-07-15 — Phase 4 RevenueCat init-race hardening
+- Added a shared RevenueCat initialization promise keyed by user/platform/demo mode so duplicate configure calls coalesce and failed initialization resets for retry.
+- Added `identifyUser` and wired native auth bootstrap/auth-state paths to identify only after the shared configure promise resolves; customerInfo, offerings, purchase, restore, and logout await any active initialization before touching the native SDK.
+- Added RevenueCat init-race regression tests proving immediate identify and customerInfo calls wait for configure; focused RevenueCat + useAuth tests and typecheck pass.
+
+2026-07-15 — Phase 2 and systemic guardrail hardening
+- Added canonical client and edge trip-cover resolvers so trip cards, headers, share modals, invite previews, trip previews, and OG HTML all prefer assigned cover photos before falling back to the Chravel splash image.
+- Rebound the shared edge membership helper to `is_active_trip_member` and made file-upload use it before service-role writes, closing the former-member upload trust-boundary variant.
+- Kept Concierge history hydration out of eager trip-shell prefetch while still preloading the chunk, and added a systemic QA guard covering cover resolvers, edge active-membership enforcement, Concierge isolation, and primary Button design-token anchoring.
+
+2026-07-15 — Deferred systemic hardening follow-up
+- Closed the remaining repo-owned Phase 5 trust-boundary gaps for send-push and ai-ingest: both now use the shared active-membership helper before service-role fanout/RAG reads, and send-push intersects requested recipients with active trip members instead of trusting arbitrary userIds.
+- Closed the Phase 7 Pro Team primary CTA drift by removing the hardcoded red button classes from TeamOnboardingBanner and keeping the default semantic Button token.
+- Expanded qa:systemic-hardening to fail if send-push loses trip-scoped active-member fanout, ai-ingest drops the shared helper, or the Pro Team CTA regresses to ad hoc hardcoded colors.

@@ -1,18 +1,10 @@
-/**
- * Check whether a URL's hostname matches a known image host.
- * Uses URL parsing and exact hostname comparison to prevent substring bypass attacks
- * (e.g. evil.com?q=unsplash.com would match a naive url.includes('unsplash.com') check).
- */
+import { urlHostMatchesAllowlistedDomain } from '@/lib/nativeRoutingGuards';
+
 function isKnownImageHost(url: string): { isUnsplash: boolean; isSupabase: boolean } {
-  try {
-    const { hostname } = new URL(url);
-    return {
-      isUnsplash: hostname === 'unsplash.com' || hostname.endsWith('.unsplash.com'),
-      isSupabase: hostname === 'supabase.co' || hostname.endsWith('.supabase.co'),
-    };
-  } catch {
-    return { isUnsplash: false, isSupabase: false };
-  }
+  return {
+    isUnsplash: urlHostMatchesAllowlistedDomain(url, ['unsplash.com']),
+    isSupabase: urlHostMatchesAllowlistedDomain(url, ['supabase.co']),
+  };
 }
 
 export const getOptimizedImageUrl = (url: string, width: number, quality: number = 80): string => {

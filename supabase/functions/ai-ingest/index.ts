@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { invokeEmbeddingModel } from '../_shared/gemini.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { verifyTripMembership } from '../_shared/verifyTripMembership.ts';
 
 interface IngestRequest {
   source: 'message' | 'poll' | 'broadcast' | 'file' | 'calendar' | 'link' | 'trip_batch';
@@ -55,17 +56,21 @@ serve(async req => {
 
     const { source, sourceId, tripId, content }: IngestRequest = await req.json();
 
-    // Membership precheck: caller must be a member of the trip before any service-role read/write.
-    // Mirrors file-ai-parser. Prevents service-role from bypassing RLS for non-members.
+    // Membership precheck: caller must be an ACTIVE member of the trip before any
+    // service-role read/write. Use the shared RPC-backed helper so ai-ingest cannot
+    // drift back to row-presence membership and leak RAG data to former members.
     if (tripId) {
-      const { data: membership, error: memErr } = await supabase
-        .from('trip_members')
-        .select('user_id')
-        .eq('trip_id', tripId)
-        .eq('user_id', auth.user!.id)
-        .maybeSingle();
-      if (memErr || !membership) {
-        return new Response(JSON.stringify({ error: 'Forbidden: not a trip member' }), {
+      const membership = await verifyTripMembership(supabase, auth.user!.id, tripId);
+      if (membership.error) {
+        console.error('Error verifying ai-ingest trip membership:', membership.error);
+        return new Response(JSON.stringify({ error: 'Failed to verify trip membership' }), {
+          status: 500,
+          headers: { ...headers, 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (!membership.isMember) {
+        return new Response(JSON.stringify({ error: 'Forbidden: not an active trip member' }), {
           status: 403,
           headers: { ...headers, 'Content-Type': 'application/json' },
         });

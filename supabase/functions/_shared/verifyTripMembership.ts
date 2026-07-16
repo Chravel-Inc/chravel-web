@@ -15,9 +15,10 @@ export interface TripMembershipResult {
 /**
  * Canonical trip-membership check for edge functions.
  *
- * Delegates to the SECURITY DEFINER `is_trip_member(_user_id uuid, _trip_id text)`
+ * Delegates to the SECURITY DEFINER `is_active_trip_member(_user_id uuid, _trip_id text)`
  * RPC so every caller shares one authoritative predicate instead of duplicating
- * `trip_members` selects (which drift apart and couple to the table layout).
+ * `trip_members` selects (which drift apart, couple to the table layout, and
+ * can accidentally treat former/removed members as active).
  *
  * `userId` MUST be a JWT-verified user id — verifying the caller's identity is
  * the caller's responsibility; this helper only answers "does that verified
@@ -29,7 +30,7 @@ export async function verifyTripMembership(
   userId: string,
   tripId: string,
 ): Promise<TripMembershipResult> {
-  const { data, error } = await adminClient.rpc('is_trip_member', {
+  const { data, error } = await adminClient.rpc('is_active_trip_member', {
     _user_id: userId,
     _trip_id: tripId,
   });

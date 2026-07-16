@@ -110,7 +110,7 @@ export const TeamOnboardingBanner = ({
 
           {/* Actions */}
           <div className="flex items-center gap-3 pt-2">
-            <Button onClick={onAssignRoles} className="bg-red-600 hover:bg-red-700 text-white">
+            <Button onClick={onAssignRoles}>
               <CheckCircle size={16} className="mr-2" />
               Start Assigning Roles
             </Button>

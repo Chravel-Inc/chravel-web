@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { hostMatchesAllowlistedDomain } from '@/lib/nativeRoutingGuards';
 
 export default function Healthz() {
   const buildId = import.meta.env.VITE_BUILD_ID ?? 'dev';
@@ -30,8 +31,7 @@ export default function Healthz() {
       const env = (import.meta as any)?.env ?? {};
       const isPreview =
         typeof window !== 'undefined' &&
-        (window.location.hostname === 'lovableproject.com' ||
-          window.location.hostname.endsWith('.lovableproject.com'));
+        hostMatchesAllowlistedDomain(window.location.hostname, ['lovableproject.com']);
 
       let sessionStatus = null;
       let dbReachable = false;

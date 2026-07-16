@@ -1,7 +1,7 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
 import { getCorsHeaders } from '../_shared/cors.ts';
-import { DEMO_TRIPS, getDemoTripType } from '../_shared/ogUtils.ts';
+import { DEMO_TRIPS, getDemoTripType, resolveOgCoverImageUrl } from '../_shared/ogUtils.ts';
 
 type TripPreview = {
   id: string;
@@ -181,7 +181,7 @@ serve(async (req): Promise<Response> => {
       destination: tripRow.destination,
       start_date: tripRow.start_date,
       end_date: tripRow.end_date,
-      cover_image_url: tripRow.cover_image_url,
+      cover_image_url: resolveOgCoverImageUrl(tripRow),
       trip_type: tripRow.trip_type,
       member_count: memberCount ?? 0,
       description: tripRow.description,

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { isNativeAuthReturnPath, WEB_AUTH_PATH } from '@/lib/nativeRoutingGuards';
 
 /**
  * Dedicated OAuth callback handler.
@@ -108,7 +109,8 @@ const AuthCallbackPage: React.FC = () => {
       const providerErrorDescription = searchParams.get('error_description');
       const hasError = Boolean(providerError);
       const hasHash =
-        typeof window !== 'undefined' && window.location.hash.includes('access_token');
+        typeof window !== 'undefined' &&
+        isNativeAuthReturnPath(`${WEB_AUTH_PATH}${window.location.hash}`);
       const hints = { hasCode, hasHash, hasError };
 
       try {
