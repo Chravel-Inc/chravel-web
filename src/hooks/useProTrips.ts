@@ -47,6 +47,7 @@ function mapSupabaseTripToProTripData(trip: Record<string, unknown>): ProTripDat
     sponsors: [],
     trip_type: 'pro',
     archived: trip.is_archived === true,
+    created_by: trip.created_by as string | undefined,
     enabled_features: (trip.enabled_features as string[]) || [
       'chat',
       'calendar',

@@ -2,40 +2,43 @@ import { supabase } from '@/integrations/supabase/client';
 
 type TripType = 'consumer' | 'pro' | 'event';
 
+export type LeaveTripResult = {
+  action: 'archived' | 'left';
+};
+
+type LeaveTripRpcResponse = {
+  success?: boolean;
+  message?: string;
+  archived?: boolean;
+};
+
+/**
+ * Remove the authenticated user from a trip via the canonical leave_trip RPC.
+ * Soft-deletes membership, transfers admin when the creator leaves with others
+ * remaining, and archives when the last member leaves.
+ */
+export const leaveTripForUser = async (tripId: string): Promise<LeaveTripResult> => {
+  const { data, error } = await supabase.rpc('leave_trip', { _trip_id: tripId });
+
+  if (error) {
+    if (import.meta.env.DEV) console.error('Failed to leave trip:', error);
+    throw error;
+  }
+
+  const result = data as LeaveTripRpcResponse | null;
+  if (!result?.success) {
+    throw new Error(result?.message || 'Failed to leave trip');
+  }
+
+  return { action: result.archived ? 'archived' : 'left' };
+};
+
 /**
  * Delete a trip "for me" - removes user's access to the trip without deleting it for others.
- * This removes the user from trip_members table. The trip itself persists for other members.
+ * Delegates to leave_trip so admin transfer + soft-delete semantics stay server-side.
  */
-export const deleteTripForMe = async (tripId: string, userId: string): Promise<void> => {
-  // Check if the user has a membership row before attempting deletion
-  const { data: membership, error: membershipError } = await supabase
-    .from('trip_members')
-    .select('id')
-    .eq('trip_id', tripId)
-    .eq('user_id', userId)
-    .maybeSingle();
-
-  if (membershipError) {
-    if (import.meta.env.DEV) console.error('Failed to check trip membership:', membershipError);
-    throw membershipError;
-  }
-
-  // If no membership exists, nothing to delete - return success
-  if (!membership) {
-    return;
-  }
-
-  // Remove user from trip_members
-  const { error: deleteError } = await supabase
-    .from('trip_members')
-    .delete()
-    .eq('trip_id', tripId)
-    .eq('user_id', userId);
-
-  if (deleteError) {
-    if (import.meta.env.DEV) console.error('Failed to delete trip membership:', deleteError);
-    throw deleteError;
-  }
+export const deleteTripForMe = async (tripId: string, _userId: string): Promise<void> => {
+  await leaveTripForUser(tripId);
 };
 
 // Hide a trip (privacy feature - separate from archive)

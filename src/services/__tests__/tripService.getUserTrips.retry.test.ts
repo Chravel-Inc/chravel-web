@@ -112,7 +112,7 @@ describe('tripService.getUserTrips member lookup compatibility retry', () => {
     vi.clearAllMocks();
   });
 
-  it('retries with the legacy status filter when the primary member lookup errors', async () => {
+  it('retries without the status filter when the primary member lookup errors', async () => {
     let tripsQueryCount = 0;
     let memberLookupCount = 0;
     const memberLookupChains: ChainableResponse<unknown>[] = [];
@@ -130,7 +130,7 @@ describe('tripService.getUserTrips member lookup compatibility retry', () => {
       if (table === 'trip_members') {
         memberLookupCount += 1;
         if (memberLookupCount === 1) {
-          // Primary lookup fails (status-column drift / transient error)
+          // Primary lookup fails when status column is absent / transient error
           const chain = createChainableMock({
             data: null,
             error: { message: 'column trip_members.status does not exist' },
@@ -139,13 +139,16 @@ describe('tripService.getUserTrips member lookup compatibility retry', () => {
           return chain;
         }
         if (memberLookupCount === 2) {
-          // Compatibility retry succeeds
+          // Compatibility retry succeeds without status filter
           const chain = createChainableMock({
             data: [{ trip_id: 'trip-member-1' }],
             error: null,
           });
           memberLookupChains.push(chain);
           return chain;
+        }
+        if (memberLookupCount === 3) {
+          return createChainableMock({ data: [], error: null });
         }
         // Subsequent batch member-count query
         return createChainableMock({
@@ -168,8 +171,9 @@ describe('tripService.getUserTrips member lookup compatibility retry', () => {
     expect(trips[0].id).toBe('trip-member-1');
     expect(trips[0].membership_status).toBe('member');
 
-    // The retry used the legacy active-membership filter
-    expect(memberLookupChains[1].or).toHaveBeenCalledWith('status.is.null,status.eq.active');
+    // The retry omitted the active-membership filter for legacy schemas
+    expect(memberLookupChains[0].or).toHaveBeenCalledWith('status.is.null,status.eq.active');
+    expect(memberLookupChains[1].or).not.toHaveBeenCalled();
 
     // The primary failure was reported, not swallowed silently
     expect(vi.mocked(errorTracking.captureException)).toHaveBeenCalledTimes(1);
@@ -235,7 +239,9 @@ describe('tripService.getUserTrips member lookup compatibility retry', () => {
           data:
             memberSelectTripIdCount === 1
               ? [{ trip_id: 'trip-member-1' }]
-              : [{ trip_id: 'trip-member-1', user_id: 'member-user' }],
+              : memberSelectTripIdCount === 2
+                ? []
+                : [{ trip_id: 'trip-member-1', user_id: 'member-user' }],
           error: null,
         });
         if (memberSelectTripIdCount === 1) {
@@ -255,8 +261,7 @@ describe('tripService.getUserTrips member lookup compatibility retry', () => {
 
     expect(trips).toHaveLength(1);
     expect(trips[0].membership_status).toBe('member');
-    // Primary path never applies the legacy status filter
-    expect(memberLookupChains[0].or).not.toHaveBeenCalled();
+    expect(memberLookupChains[0].or).toHaveBeenCalledWith('status.is.null,status.eq.active');
     expect(vi.mocked(errorTracking.captureException)).not.toHaveBeenCalled();
   });
 });

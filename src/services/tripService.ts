@@ -353,25 +353,23 @@ export const tripService = {
       }));
 
       // Fetch trips where user is an active member (not creator).
-      // Canonical schema: trip_members has no status column, so the primary
-      // lookup queries without one. Compatibility retry (DEBUG_PATTERNS.md
-      // "status-column drift"): if the primary lookup errors — transient
-      // failure or an environment where membership rows carry a status column
-      // and must be filtered to active — retry once with the legacy
-      // active-membership filter instead of silently dropping member trips.
-      // An approved member must always see their trip on the dashboard.
+      // Primary lookup filters to active memberships so left/removed rows do not
+      // resurrect trips in the dashboard after delete-for-me / leave.
+      // Compatibility retry: if the status column is absent in an older env,
+      // retry once without the filter instead of silently dropping member trips.
       let memberTrips: Array<{ trip_id: string }> | null = null;
 
       const primaryMemberResult = await supabase
         .from('trip_members')
         .select('trip_id')
         .eq('user_id', activeUserId)
+        .or('status.is.null,status.eq.active')
         .limit(1000);
 
       if (primaryMemberResult.error) {
         errorTracking.captureException(
           new Error(
-            `getUserTrips member lookup failed (retrying with legacy status filter): ${primaryMemberResult.error.message}`,
+            `getUserTrips member lookup failed (retrying without status filter): ${primaryMemberResult.error.message}`,
           ),
           { userId: activeUserId, context: 'tripService.getUserTrips.memberLookup' },
         );
@@ -380,7 +378,6 @@ export const tripService = {
           .from('trip_members')
           .select('trip_id')
           .eq('user_id', activeUserId)
-          .or('status.is.null,status.eq.active')
           .limit(1000);
 
         if (legacyMemberResult.error) {
@@ -432,8 +429,29 @@ export const tripService = {
 
       if (allTrips.length === 0) return [];
 
+      // Creators who leave via leave_trip keep created_by but get status=left.
+      // trips SELECT RLS still allows created_by reads, so exclude those here.
+      let leftOwnedTripIds: Set<string> | null = null;
+      const leftOwnedResult = await supabase
+        .from('trip_members')
+        .select('trip_id')
+        .eq('user_id', activeUserId)
+        .eq('status', 'left')
+        .limit(1000);
+
+      if (!leftOwnedResult.error && leftOwnedResult.data) {
+        leftOwnedTripIds = new Set(leftOwnedResult.data.map(row => row.trip_id));
+      }
+
+      const visibleTrips =
+        leftOwnedTripIds && leftOwnedTripIds.size > 0
+          ? allTrips.filter(trip => !leftOwnedTripIds!.has(trip.id))
+          : allTrips;
+
+      if (visibleTrips.length === 0) return [];
+
       // Batch-fetch member counts and places (calendar events with locations)
-      const tripIds = allTrips.map(t => t.id);
+      const tripIds = visibleTrips.map(t => t.id);
 
       const [membersResult, eventsResult] = await Promise.all([
         supabase.from('trip_members').select('trip_id, user_id').in('trip_id', tripIds).limit(5000),
@@ -477,7 +495,7 @@ export const tripService = {
 
       // Attach counts to trips in the format expected by tripConverter
       // Include trip creator in count if they're not already in trip_members
-      return allTrips.map(trip => {
+      return visibleTrips.map(trip => {
         let count = memberCountMap.get(trip.id) || 0;
         const memberSet = memberUserSets.get(trip.id);
         if (trip.created_by && (!memberSet || !memberSet.has(trip.created_by))) {
