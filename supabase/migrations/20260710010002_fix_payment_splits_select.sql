@@ -24,9 +24,9 @@ USING (
       AND tm.user_id = auth.uid()
     WHERE tpm.id = public.payment_splits.payment_message_id
       AND (
-        t.trip_type = 'consumer'
+        COALESCE(t.trip_type, 'consumer') = 'consumer'
         OR (
-          t.trip_type IN ('pro', 'event') AND (
+          COALESCE(t.trip_type, 'consumer') IN ('pro', 'event') AND (
             tpm.created_by = auth.uid()
             OR public.is_payment_debtor(tpm.id, auth.uid())
             OR EXISTS (

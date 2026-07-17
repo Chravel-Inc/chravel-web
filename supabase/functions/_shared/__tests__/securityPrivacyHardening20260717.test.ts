@@ -23,6 +23,7 @@ describe('2026-07-17 security/privacy hardening regressions', () => {
     );
     expect(migration).toContain("realtime.topic() LIKE 'trip_chat_messages:%'");
     expect(migration).toContain('CREATE OR REPLACE FUNCTION public.is_payment_debtor');
+    expect(migration).toContain("COALESCE(t.trip_type, 'consumer') = 'consumer'");
   });
 
   it('hardens send-push against arbitrary userId targeting', () => {

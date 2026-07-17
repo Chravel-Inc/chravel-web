@@ -369,9 +369,9 @@ CREATE POLICY "Trip members can view payment splits"
         AND (tm.status IS NULL OR tm.status = 'active')
       WHERE tpm.id = public.payment_splits.payment_message_id
         AND (
-          t.trip_type = 'consumer'
+          COALESCE(t.trip_type, 'consumer') = 'consumer'
           OR (
-            t.trip_type IN ('pro', 'event') AND (
+            COALESCE(t.trip_type, 'consumer') IN ('pro', 'event') AND (
               tpm.created_by = auth.uid()
               OR public.is_payment_debtor(tpm.id, auth.uid())
               OR EXISTS (

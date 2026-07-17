@@ -263,9 +263,9 @@ export function useDashboardJoinRequests(isDemoMode = false) {
 
     let hasCompletedInitialSubscribe = false;
 
-    // Filter to the caller's own outbound requests. Admin inbound updates for
-    // trips they manage still arrive via trip-scoped channels elsewhere; this
-    // avoids a global table watch (repo invariant: always filter realtime).
+    // Unfiltered table watch is intentional here: dashboard mixes outbound
+    // requests (user_id=self) and inbound admin rows (user_id=requester).
+    // RLS still scopes payloads; a user_id filter would miss inbound updates.
     const channel = supabase
       .channel(`dashboard_join_requests:${user.id}`)
       .on(
@@ -274,7 +274,6 @@ export function useDashboardJoinRequests(isDemoMode = false) {
           event: '*',
           schema: 'public',
           table: 'trip_join_requests',
-          filter: `user_id=eq.${user.id}`,
         },
         () => {
           fetchRequests();
