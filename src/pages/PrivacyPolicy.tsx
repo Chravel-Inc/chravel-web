@@ -272,7 +272,32 @@ export default function PrivacyPolicy() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">7. Data Retention</h2>
+            <h2 className="text-2xl font-semibold mb-4">7. California Residents (CCPA)</h2>
+            <p className="text-foreground/90 mb-4">
+              If you are a California resident, you have additional rights under the California
+              Consumer Privacy Act (CCPA), including the right to know what personal information we
+              collect, the right to delete personal information, the right to opt out of the sale or
+              sharing of personal information, and the right to non-discrimination for exercising
+              these rights.
+            </p>
+            <p className="text-foreground/90 mb-4">
+              <strong>We do not sell personal information.</strong> We also do not share personal
+              information for cross-context behavioral advertising in a way that constitutes a
+              &quot;sale&quot; or &quot;share&quot; under the CCPA.
+            </p>
+            <p className="text-foreground/90 mb-4">
+              You can exercise access and deletion rights in the app (Settings → export your data or
+              delete your account), or contact us at{' '}
+              <a href="mailto:privacy@chravelapp.com" className="underline">
+                privacy@chravelapp.com
+              </a>
+              . To opt out of analytics where available, contact the same address or use your device
+              / browser privacy controls.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-semibold mb-4">8. Data Retention</h2>
             <p className="text-foreground/90">
               We retain your information for as long as necessary to provide our services and comply
               with legal obligations. When you delete your account, we delete or anonymize your
@@ -282,7 +307,7 @@ export default function PrivacyPolicy() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">8. Children's Privacy</h2>
+            <h2 className="text-2xl font-semibold mb-4">9. Children's Privacy</h2>
             <p className="text-foreground/90">
               Our services are not intended for children under 13 years of age. We do not knowingly
               collect personal information from children under 13. If you believe we have collected
@@ -291,7 +316,7 @@ export default function PrivacyPolicy() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">9. International Data Transfers</h2>
+            <h2 className="text-2xl font-semibold mb-4">10. International Data Transfers</h2>
             <p className="text-foreground/90">
               Your information may be transferred to and processed in countries other than your
               country of residence. We ensure appropriate safeguards are in place to protect your
@@ -300,7 +325,7 @@ export default function PrivacyPolicy() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">10. Changes to This Policy</h2>
+            <h2 className="text-2xl font-semibold mb-4">11. Changes to This Policy</h2>
             <p className="text-foreground/90">
               We may update this privacy policy from time to time. We will notify you of any
               material changes by posting the new policy on this page and updating the "Last
@@ -309,7 +334,7 @@ export default function PrivacyPolicy() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">11. Contact Us</h2>
+            <h2 className="text-2xl font-semibold mb-4">12. Contact Us</h2>
             <p className="text-foreground/90 mb-4">
               If you have any questions about this privacy policy or our practices, please contact
               us at:
@@ -317,6 +342,9 @@ export default function PrivacyPolicy() {
             <ul className="list-none space-y-2 text-foreground/90">
               <li>
                 <strong>Email:</strong> support@chravelapp.com
+              </li>
+              <li>
+                <strong>Privacy:</strong> privacy@chravelapp.com
               </li>
               <li>
                 <strong>Mail:</strong> ChravelApp Privacy Team, 130 N Broadway STE 32415, Los

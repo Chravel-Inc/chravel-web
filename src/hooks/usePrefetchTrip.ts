@@ -65,7 +65,7 @@ export const usePrefetchTrip = () => {
 
       // ⚡ PRIORITY 1: Trip members (needed for UI rendering)
       queryClient.prefetchQuery({
-        queryKey: tripKeys.membersWithRevision(tripId, 0),
+        queryKey: tripKeys.membersWithRevision(tripId, 0, user?.id),
         queryFn: () => tripService.getTripMembersWithCreator(tripId),
         staleTime: QUERY_CACHE_CONFIG.members.staleTime,
       });

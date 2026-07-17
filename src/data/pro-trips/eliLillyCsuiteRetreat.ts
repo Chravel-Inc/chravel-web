@@ -286,7 +286,7 @@ export const eliLillyCsuiteRetreat: ProTripData = {
     {
       id: '9',
       name: 'David Ricks',
-      email: 'david.ricks@lilly.com',
+      email: 'david.ricks@example.com',
       avatar: getMockAvatar('David Ricks'),
       role: 'Executives',
       credentialLevel: 'AllAccess',
@@ -297,7 +297,7 @@ export const eliLillyCsuiteRetreat: ProTripData = {
     {
       id: '10',
       name: 'Anat Ashkenazi',
-      email: 'anat.ashkenazi@lilly.com',
+      email: 'anat.ashkenazi@example.com',
       avatar: getMockAvatar('Anat Ashkenazi'),
       role: 'Executives',
       credentialLevel: 'AllAccess',
@@ -308,7 +308,7 @@ export const eliLillyCsuiteRetreat: ProTripData = {
     {
       id: '11',
       name: 'Strategic Planner',
-      email: 'strategy@lilly.com',
+      email: 'strategy@example.com',
       avatar: getMockAvatar('Strategic Planner'),
       role: 'Coordinators',
       credentialLevel: 'Backstage',

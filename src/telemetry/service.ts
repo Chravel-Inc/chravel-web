@@ -36,9 +36,9 @@ const defaultConfig: TelemetryConfig = {
   debug: import.meta.env.DEV,
   performanceSampleRate: 0.1, // Sample 10% of performance events
   posthog: {
-    apiKey:
-      (import.meta.env.VITE_POSTHOG_API_KEY as string | undefined) ||
-      'phc_vVm8jyTKmHos7KrVBNY59kexLoeFdRZQzvqEmM83BCpp',
+    // Never hardcode project keys — require VITE_POSTHOG_API_KEY so keys can be
+    // rotated without a code change and forks don't inherit production analytics.
+    apiKey: (import.meta.env.VITE_POSTHOG_API_KEY as string | undefined) || '',
     apiHost:
       (import.meta.env.VITE_POSTHOG_HOST as string | undefined) || 'https://us.i.posthog.com',
   },

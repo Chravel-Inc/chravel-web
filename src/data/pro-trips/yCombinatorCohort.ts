@@ -159,7 +159,7 @@ export const yCombinatorCohort: ProTripData = {
     {
       id: '1',
       name: 'Darren Watkins Jr.',
-      email: 'darren@talent.com',
+      email: 'darren@example.com',
       avatar: getMockAvatar('Darren Watkins Jr.'),
       role: 'Talent',
       credentialLevel: 'AllAccess',
@@ -170,7 +170,7 @@ export const yCombinatorCohort: ProTripData = {
     {
       id: '2',
       name: 'Kai Cenat',
-      email: 'kai@talent.com',
+      email: 'kai@example.com',
       avatar: getMockAvatar('Kai Cenat'),
       role: 'Talent',
       credentialLevel: 'AllAccess',
@@ -181,7 +181,7 @@ export const yCombinatorCohort: ProTripData = {
     {
       id: '3',
       name: 'Adin Ross',
-      email: 'adin@talent.com',
+      email: 'adin@example.com',
       avatar: getMockAvatar('Adin Ross'),
       role: 'Talent',
       credentialLevel: 'AllAccess',
@@ -192,7 +192,7 @@ export const yCombinatorCohort: ProTripData = {
     {
       id: '4',
       name: 'Nicole Perez',
-      email: 'nicole@production.com',
+      email: 'nicole@example.com',
       avatar: getMockAvatar('Nicole Perez'),
       role: 'Production Manager',
       credentialLevel: 'AllAccess',
@@ -203,7 +203,7 @@ export const yCombinatorCohort: ProTripData = {
     {
       id: '5',
       name: 'Trevor Mills',
-      email: 'trevor@camera.com',
+      email: 'trevor@example.com',
       avatar: getMockAvatar('Trevor Mills'),
       role: 'Camera & Editing',
       credentialLevel: 'Backstage',
@@ -214,7 +214,7 @@ export const yCombinatorCohort: ProTripData = {
     {
       id: '6',
       name: 'Jamal Wright',
-      email: 'jamal@logistics.com',
+      email: 'jamal@example.com',
       avatar: getMockAvatar('Jamal Wright'),
       role: 'Logistics & Security',
       credentialLevel: 'Backstage',

@@ -263,6 +263,9 @@ export function useDashboardJoinRequests(isDemoMode = false) {
 
     let hasCompletedInitialSubscribe = false;
 
+    // Unfiltered table watch is intentional here: dashboard mixes outbound
+    // requests (user_id=self) and inbound admin rows (user_id=requester).
+    // RLS still scopes payloads; a user_id filter would miss inbound updates.
     const channel = supabase
       .channel(`dashboard_join_requests:${user.id}`)
       .on(

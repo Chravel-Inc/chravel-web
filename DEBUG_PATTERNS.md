@@ -709,3 +709,14 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Smallest safe fix:** `padding-left/right: env(safe-area-inset-*)` on `.mobile-trip-shell`; landscape density classes for pills/text scoped under `.mobile-trip-shell`; avoid double-counting with inner `safe-container` / `max(inset)` helpers.
 - **Required tests:** `mobileTripLandscape.layout.test.ts`; `MobileGroupCalendar.layout.test.tsx`; `PlacesSection.header.test.tsx`.
 - **Fixed in:** `index.css`, `MobileTripTabs.tsx`, `MobileGroupCalendar.tsx`, `PlacesSection.tsx`, `MobileUnifiedMediaHub.tsx`, `MobileTripTasks.tsx`, `CommentsWall.tsx` (July 2026)
+
+## Privileged SECURITY DEFINER RPCs Left Executable by anon/authenticated
+
+**Symptom:** Reviewers or attackers call `/rest/v1/rpc/<name>` and forge notifications, payments, calendar events, or read trip embeddings without membership.
+**Risk:** CRITICAL — BOLA / data exfiltration / spam fanout because SECURITY DEFINER bypasses caller RLS.
+**Root Cause:** PostgREST exposes public functions; REVOKE migrations drift or newer `notify_on_*` / helper RPCs are added without locking EXECUTE to service_role.
+**How to Confirm:** `SELECT proname, has_function_privilege('anon', oid, 'EXECUTE') FROM pg_proc WHERE proname IN ('create_notification','create_payment_with_splits','hybrid_search_trip_context');`
+**Smallest Safe Fix:** REVOKE ALL FROM PUBLIC/anon/authenticated; GRANT to service_role; for client RPCs bind `auth.uid()` + `is_active_trip_member` inside the function body.
+**Required Tests:** Anon EXECUTE false; authenticated non-member hybrid_search raises; legacy create_payment_with_splits not callable.
+**Fixed in:** `supabase/migrations/20260717180000_security_privacy_hardening_pass.sql` (July 2026)
+

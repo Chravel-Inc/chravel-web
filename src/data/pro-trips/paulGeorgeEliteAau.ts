@@ -174,7 +174,7 @@ export const paulGeorgeEliteAau: ProTripData = {
     {
       id: '101',
       name: 'Matt Barnes',
-      email: 'mbarnes@pgelite.com',
+      email: 'mbarnes@example.com',
       avatar: getMockAvatar('Matt Barnes'),
       role: 'Coaches',
       credentialLevel: 'AllAccess',
@@ -185,7 +185,7 @@ export const paulGeorgeEliteAau: ProTripData = {
     {
       id: '102',
       name: 'Brandon Lincoln',
-      email: 'blincoln@pgelite.com',
+      email: 'blincoln@example.com',
       avatar: getMockAvatar('Brandon Lincoln'),
       role: 'Directors',
       credentialLevel: 'AllAccess',
@@ -196,7 +196,7 @@ export const paulGeorgeEliteAau: ProTripData = {
     {
       id: '103',
       name: 'Byron Joseph',
-      email: 'bjoseph@pgelite.com',
+      email: 'bjoseph@example.com',
       avatar: getMockAvatar('Byron Joseph'),
       role: 'Directors',
       credentialLevel: 'AllAccess',
@@ -207,7 +207,7 @@ export const paulGeorgeEliteAau: ProTripData = {
     {
       id: '104',
       name: 'Jerald Dickson',
-      email: 'jdickson@pgelite.com',
+      email: 'jdickson@example.com',
       avatar: getMockAvatar('Jerald Dickson'),
       role: 'Staff',
       credentialLevel: 'Backstage',
@@ -218,7 +218,7 @@ export const paulGeorgeEliteAau: ProTripData = {
     {
       id: '105',
       name: 'Dave McClure',
-      email: 'dmcclure@pgelite.com',
+      email: 'dmcclure@example.com',
       avatar: getMockAvatar('Dave McClure'),
       role: 'Coaches',
       credentialLevel: 'AllAccess',
@@ -229,7 +229,7 @@ export const paulGeorgeEliteAau: ProTripData = {
     {
       id: '106',
       name: 'Travis Oscar',
-      email: 'toscar@pgelite.com',
+      email: 'toscar@example.com',
       avatar: getMockAvatar('Travis Oscar'),
       role: 'Coaches',
       credentialLevel: 'AllAccess',
@@ -240,7 +240,7 @@ export const paulGeorgeEliteAau: ProTripData = {
     {
       id: '107',
       name: 'Eddie Cruz',
-      email: 'ecruz@pgelite.com',
+      email: 'ecruz@example.com',
       avatar: getMockAvatar('Eddie Cruz'),
       role: 'Coaches',
       credentialLevel: 'AllAccess',
@@ -251,7 +251,7 @@ export const paulGeorgeEliteAau: ProTripData = {
     {
       id: '108',
       name: 'Carter Bryant',
-      email: 'cbryant@pgelite.com',
+      email: 'cbryant@example.com',
       avatar: getMockAvatar('Carter Bryant'),
       role: 'Players',
       credentialLevel: 'Backstage',
@@ -262,7 +262,7 @@ export const paulGeorgeEliteAau: ProTripData = {
     {
       id: '109',
       name: 'Jaden DePina',
-      email: 'jdepina@pgelite.com',
+      email: 'jdepina@example.com',
       avatar: getMockAvatar('Jaden DePina'),
       role: 'Players',
       credentialLevel: 'Backstage',
@@ -273,7 +273,7 @@ export const paulGeorgeEliteAau: ProTripData = {
     {
       id: '110',
       name: 'James Evans Jr.',
-      email: 'jevans@pgelite.com',
+      email: 'jevans@example.com',
       avatar: getMockAvatar('James Evans Jr.'),
       role: 'Players',
       credentialLevel: 'Backstage',
@@ -284,7 +284,7 @@ export const paulGeorgeEliteAau: ProTripData = {
     {
       id: '111',
       name: 'Ifiok Peter',
-      email: 'ipeter@pgelite.com',
+      email: 'ipeter@example.com',
       avatar: getMockAvatar('Ifiok Peter'),
       role: 'Players',
       credentialLevel: 'Backstage',

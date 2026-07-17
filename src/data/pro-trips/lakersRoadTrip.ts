@@ -189,7 +189,7 @@ export const lakersRoadTrip: ProTripData = {
     {
       id: '1',
       name: 'Luka Doncic',
-      email: 'ld@lakers.com',
+      email: 'ld@example.com',
       avatar: getMockAvatar('Luka Doncic'),
       role: 'Players',
       credentialLevel: 'AllAccess',
@@ -200,7 +200,7 @@ export const lakersRoadTrip: ProTripData = {
     {
       id: '2',
       name: 'Coach Johnson',
-      email: 'coach@lakers.com',
+      email: 'coach@example.com',
       avatar: getMockAvatar('Coach Johnson'),
       role: 'Coaches',
       credentialLevel: 'AllAccess',
@@ -211,7 +211,7 @@ export const lakersRoadTrip: ProTripData = {
     {
       id: '3',
       name: 'Team Manager',
-      email: 'manager@lakers.com',
+      email: 'manager@example.com',
       avatar: getMockAvatar('Team Manager'),
       role: 'PR/Marketing',
       credentialLevel: 'Backstage',

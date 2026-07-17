@@ -12,4 +12,18 @@ describe('tripKeys', () => {
       tripKeys.members('trip-1'),
     );
   });
+
+  it('scopes member revision keys by user when provided', () => {
+    expect(tripKeys.membersWithRevision('trip-1', 2, 'user-1')).toEqual([
+      'trip-members',
+      'trip-1',
+      'user-1',
+      2,
+    ]);
+    expect(tripKeys.membersForUser('trip-1', 'user-1')).toEqual([
+      'trip-members',
+      'trip-1',
+      'user-1',
+    ]);
+  });
 });

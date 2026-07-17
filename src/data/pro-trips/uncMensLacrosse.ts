@@ -162,7 +162,7 @@ export const uncMensLacrosse: ProTripData = {
     {
       id: '201',
       name: 'Joe Breschi',
-      email: 'breschi@unc.edu',
+      email: 'breschi@example.com',
       avatar: getMockAvatar('Joe Breschi'),
       role: 'Coaches',
       credentialLevel: 'AllAccess',
@@ -173,7 +173,7 @@ export const uncMensLacrosse: ProTripData = {
     {
       id: '202',
       name: 'Jon Thompson',
-      email: 'jthompson@unc.edu',
+      email: 'jthompson@example.com',
       avatar: getMockAvatar('Jon Thompson'),
       role: 'Coaches',
       credentialLevel: 'AllAccess',
@@ -184,7 +184,7 @@ export const uncMensLacrosse: ProTripData = {
     {
       id: '203',
       name: 'Dave Pietramala',
-      email: 'dpietramala@unc.edu',
+      email: 'dpietramala@example.com',
       avatar: getMockAvatar('Dave Pietramala'),
       role: 'Coaches',
       credentialLevel: 'AllAccess',
@@ -195,7 +195,7 @@ export const uncMensLacrosse: ProTripData = {
     {
       id: '204',
       name: 'Peter Murphy',
-      email: 'pmurphy@unc.edu',
+      email: 'pmurphy@example.com',
       avatar: getMockAvatar('Peter Murphy'),
       role: 'Coaches',
       credentialLevel: 'AllAccess',
@@ -206,7 +206,7 @@ export const uncMensLacrosse: ProTripData = {
     {
       id: '205',
       name: 'Michael Gianforcaro',
-      email: 'mgianforcaro@unc.edu',
+      email: 'mgianforcaro@example.com',
       avatar: getMockAvatar('Michael Gianforcaro'),
       role: 'Players',
       credentialLevel: 'Backstage',
@@ -217,7 +217,7 @@ export const uncMensLacrosse: ProTripData = {
     {
       id: '206',
       name: 'James Matan',
-      email: 'jmatan@unc.edu',
+      email: 'jmatan@example.com',
       avatar: getMockAvatar('James Matan'),
       role: 'Players',
       credentialLevel: 'Backstage',
@@ -228,7 +228,7 @@ export const uncMensLacrosse: ProTripData = {
     {
       id: '207',
       name: 'Owen Duffy',
-      email: 'oduffy@unc.edu',
+      email: 'oduffy@example.com',
       avatar: getMockAvatar('Owen Duffy'),
       role: 'Players',
       credentialLevel: 'Backstage',
@@ -239,7 +239,7 @@ export const uncMensLacrosse: ProTripData = {
     {
       id: '208',
       name: 'Antonio DeMarco',
-      email: 'ademarco@unc.edu',
+      email: 'ademarco@example.com',
       avatar: getMockAvatar('Antonio DeMarco'),
       role: 'Players',
       credentialLevel: 'Backstage',
@@ -250,7 +250,7 @@ export const uncMensLacrosse: ProTripData = {
     {
       id: '209',
       name: 'Cooper Frankenheimer',
-      email: 'cfrankenheimer@unc.edu',
+      email: 'cfrankenheimer@example.com',
       avatar: getMockAvatar('Cooper Frankenheimer'),
       role: 'Players',
       credentialLevel: 'Backstage',
@@ -261,7 +261,7 @@ export const uncMensLacrosse: ProTripData = {
     {
       id: '210',
       name: 'Dewey Egan',
-      email: 'degan@unc.edu',
+      email: 'degan@example.com',
       avatar: getMockAvatar('Dewey Egan'),
       role: 'Players',
       credentialLevel: 'Backstage',
@@ -272,7 +272,7 @@ export const uncMensLacrosse: ProTripData = {
     {
       id: '211',
       name: 'Tayden Bultman',
-      email: 'tbultman@unc.edu',
+      email: 'tbultman@example.com',
       avatar: getMockAvatar('Tayden Bultman'),
       role: 'Players',
       credentialLevel: 'Backstage',
@@ -283,7 +283,7 @@ export const uncMensLacrosse: ProTripData = {
     {
       id: '212',
       name: 'Kai Prohaszka',
-      email: 'kprohaszka@unc.edu',
+      email: 'kprohaszka@example.com',
       avatar: getMockAvatar('Kai Prohaszka'),
       role: 'Players',
       credentialLevel: 'Backstage',
@@ -294,7 +294,7 @@ export const uncMensLacrosse: ProTripData = {
     {
       id: '213',
       name: 'Nick Pietramala',
-      email: 'npietramala@unc.edu',
+      email: 'npietramala@example.com',
       avatar: getMockAvatar('Nick Pietramala'),
       role: 'Players',
       credentialLevel: 'Backstage',
@@ -305,7 +305,7 @@ export const uncMensLacrosse: ProTripData = {
     {
       id: '214',
       name: 'Dominic Pietramala',
-      email: 'dpietramala2@unc.edu',
+      email: 'dpietramala2@example.com',
       avatar: getMockAvatar('Dominic Pietramala'),
       role: 'Players',
       credentialLevel: 'Backstage',
@@ -316,7 +316,7 @@ export const uncMensLacrosse: ProTripData = {
     {
       id: '215',
       name: 'Hayden Downs',
-      email: 'hdowns@unc.edu',
+      email: 'hdowns@example.com',
       avatar: getMockAvatar('Hayden Downs'),
       role: 'Players',
       credentialLevel: 'Backstage',
@@ -327,7 +327,7 @@ export const uncMensLacrosse: ProTripData = {
     {
       id: '216',
       name: 'Colin Hannigan',
-      email: 'channigan@unc.edu',
+      email: 'channigan@example.com',
       avatar: getMockAvatar('Colin Hannigan'),
       role: 'Players',
       credentialLevel: 'Backstage',
