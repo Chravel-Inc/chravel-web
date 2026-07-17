@@ -45,6 +45,17 @@ describe('2026-07-17 security/privacy hardening regressions', () => {
     expect(bootstrap).not.toContain("Access-Control-Allow-Origin: '*'");
   });
 
+  it('includes trip_payment_messages need-to-know migration alongside splits hardening', () => {
+    const messages = read(
+      'supabase/migrations/20260717190000_trip_payment_messages_need_to_know.sql',
+    );
+    expect(messages).toContain("COALESCE(t.trip_type, 'consumer') = 'consumer'");
+    expect(messages).toContain(
+      'public.is_payment_debtor(public.trip_payment_messages.id, auth.uid())',
+    );
+    expect(messages).toContain('public.is_active_trip_member(auth.uid(), trip_id)');
+  });
+
   it('does not ship a hardcoded PostHog project key fallback', () => {
     const telemetry = read('src/telemetry/service.ts');
     expect(telemetry).not.toMatch(/phc_[A-Za-z0-9]+/);
