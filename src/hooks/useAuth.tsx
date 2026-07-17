@@ -1170,10 +1170,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const signOut = useCallback(async (): Promise<void> => {
-    // Clear demo mode if active
+    // Clear demo mode if active (also wipe demo session storage — setDemoView alone skips it)
     const demoModeStore = useDemoModeStore.getState();
     if (demoModeStore.isDemoMode || demoModeStore.demoView === 'app-preview') {
       demoModeStore.setDemoView('off');
+      const { demoModeService } = await import('@/services/demoModeService');
+      demoModeService.clearAllSessionState();
     }
 
     // Clear onboarding cache to prevent stale data polluting next account

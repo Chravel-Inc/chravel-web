@@ -1,22 +1,20 @@
 import 'https://deno.land/x/xhr@0.1.0/mod.ts';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { requireAuth } from '../_shared/requireAuth.ts';
 
 serve(async req => {
   const corsHeaders = getCorsHeaders(req);
-  const { createOptionsResponse, createErrorResponse, createSecureResponse } =
-    await import('../_shared/securityHeaders.ts');
+  const { createOptionsResponse } = await import('../_shared/securityHeaders.ts');
 
   if (req.method === 'OPTIONS') {
     return createOptionsResponse(req);
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-    );
+    // Paid Google Places proxy — require a valid user JWT (no service-role bypass).
+    const auth = await requireAuth(req, corsHeaders);
+    if (auth.response) return auth.response;
 
     const { action, query, placeId, location } = await req.json();
 

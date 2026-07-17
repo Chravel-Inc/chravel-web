@@ -173,15 +173,13 @@ export class ErrorBoundary extends Component<Props, State> {
               )}
             </div>
 
-            {this.state.error && (
+            {import.meta.env.DEV && this.state.error && (
               <details className="text-left text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg mt-4">
                 <summary className="cursor-pointer font-medium">Error Details</summary>
                 <p className="mt-2 break-words">{this.state.error.message}</p>
-                {import.meta.env.DEV && (
-                  <pre className="mt-2 whitespace-pre-wrap break-words text-xs opacity-70">
-                    {this.state.error.stack}
-                  </pre>
-                )}
+                <pre className="mt-2 whitespace-pre-wrap break-words text-xs opacity-70">
+                  {this.state.error.stack}
+                </pre>
               </details>
             )}
           </div>

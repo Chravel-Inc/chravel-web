@@ -18,6 +18,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { sendFcmV1, toFcmData } from '../_shared/fcmV1.ts';
+import { authorizeSharedTripPushTargets, authorizeTripPushTargets } from './authorizeTargets.ts';
 
 // Push notification payload types
 interface PushPayload {
@@ -342,22 +343,6 @@ Deno.serve(async req => {
     // Parse request
     const body: SendPushRequest = await req.json();
 
-    // Authorization: If sending to a trip, verify the caller is a trip member
-    if (body.tripId) {
-      const { data: membership, error: memberError } = await supabase
-        .from('trip_members')
-        .select('id')
-        .eq('trip_id', body.tripId)
-        .eq('user_id', callerUserId)
-        .maybeSingle();
-      if (memberError || !membership) {
-        return new Response(
-          JSON.stringify({ error: 'You must be a trip member to send notifications' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-        );
-      }
-    }
-
     // Validate request
     if (!body.notification?.title || !body.notification?.body) {
       return new Response(
@@ -373,15 +358,23 @@ Deno.serve(async req => {
       });
     }
 
-    // Resolve target user IDs
-    let targetUserIds: string[] = body.userIds || [];
+    // Resolve + authorize targets (never trust client userIds alone)
+    let targetUserIds: string[] = [];
 
-    if (body.tripId && !body.userIds?.length) {
-      // Fetch all trip members
+    if (body.tripId) {
+      const { data: membership, error: memberError } = await supabase
+        .from('trip_members')
+        .select('id')
+        .eq('trip_id', body.tripId)
+        .eq('user_id', callerUserId)
+        .or('status.is.null,status.eq.active')
+        .maybeSingle();
+
       const { data: members, error: membersError } = await supabase
         .from('trip_members')
         .select('user_id')
-        .eq('trip_id', body.tripId);
+        .eq('trip_id', body.tripId)
+        .or('status.is.null,status.eq.active');
 
       if (membersError) {
         console.error('[send-push] Failed to fetch trip members:', membersError);
@@ -391,12 +384,59 @@ Deno.serve(async req => {
         });
       }
 
-      targetUserIds = (members || []).map(m => m.user_id);
-    }
+      const decision = authorizeTripPushTargets({
+        callerUserId,
+        callerIsActiveMember: !memberError && !!membership,
+        tripMemberUserIds: (members || []).map(m => m.user_id),
+        requestedUserIds: body.userIds,
+        excludeUserId: body.excludeUserId,
+      });
 
-    // Exclude sender if specified
-    if (body.excludeUserId) {
-      targetUserIds = targetUserIds.filter(id => id !== body.excludeUserId);
+      if (!decision.ok) {
+        return new Response(JSON.stringify({ error: decision.error }), {
+          status: decision.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      targetUserIds = decision.targetUserIds;
+    } else {
+      const requestedUserIds = body.userIds || [];
+      const nonSelfTargets = requestedUserIds.filter(id => id !== callerUserId);
+
+      let sharedTripUserIds: string[] = [];
+      if (nonSelfTargets.length > 0) {
+        const { data: callerTrips } = await supabase
+          .from('trip_members')
+          .select('trip_id')
+          .eq('user_id', callerUserId)
+          .or('status.is.null,status.eq.active');
+
+        const callerTripIds = (callerTrips || []).map(t => t.trip_id);
+        if (callerTripIds.length > 0) {
+          const { data: sharedMembers } = await supabase
+            .from('trip_members')
+            .select('user_id')
+            .in('trip_id', callerTripIds)
+            .in('user_id', nonSelfTargets)
+            .or('status.is.null,status.eq.active');
+          sharedTripUserIds = (sharedMembers || []).map(m => m.user_id);
+        }
+      }
+
+      const decision = authorizeSharedTripPushTargets({
+        callerUserId,
+        requestedUserIds,
+        sharedTripUserIds,
+        excludeUserId: body.excludeUserId,
+      });
+
+      if (!decision.ok) {
+        return new Response(JSON.stringify({ error: decision.error }), {
+          status: decision.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      targetUserIds = decision.targetUserIds;
     }
 
     if (targetUserIds.length === 0) {

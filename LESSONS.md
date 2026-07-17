@@ -599,3 +599,7 @@ Native billing calls (`identifyUser`, customer info, offerings, purchase, restor
 
 ### Trip cover previews need one resolver across client and OG paths
 Cards, headers, share modals, and edge OG preview functions must all prefer the assigned `cover_image_url` before any splash/brand fallback. Keep client logic in `resolveTripCoverImageUrl` and edge logic in `resolveOgCoverImageUrl`; add a guardrail whenever another preview surface is added. Evidence: 2026-07-15 Phase 2 cover resolver hardening.
+
+### SECURITY DEFINER membership gates regress when later migrations recreate the function
+`hybrid_search_trip_context` had an `is_active_trip_member` check in Dec 2025, then a later recreate dropped it while leaving EXECUTE open to authenticated — any memberless caller with a trip UUID could read embeddings/KB. When recreating SECURITY DEFINER search/helpers, always re-assert auth.uid() + active membership in the same migration, and add a regression test that greps for the membership predicate. *Evidence: July 2026 live ACL audit — pg_get_functiondef showed no membership gate despite historical migrations.*
+

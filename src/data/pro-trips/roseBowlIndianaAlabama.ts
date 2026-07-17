@@ -194,7 +194,7 @@ export const roseBowlIndianaAlabama: ProTripData = {
     {
       id: '1',
       name: 'Curt Cignetti',
-      email: 'ccignetti@indiana.edu',
+      email: 'ccignetti@example.com',
       avatar: getMockAvatar('Curt Cignetti'),
       role: 'Coaches',
       credentialLevel: 'AllAccess',
@@ -205,7 +205,7 @@ export const roseBowlIndianaAlabama: ProTripData = {
     {
       id: '2',
       name: 'Fernando Mendoza',
-      email: 'fmendoza@indiana.edu',
+      email: 'fmendoza@example.com',
       avatar: getMockAvatar('Fernando Mendoza'),
       role: 'Players',
       credentialLevel: 'AllAccess',
@@ -216,7 +216,7 @@ export const roseBowlIndianaAlabama: ProTripData = {
     {
       id: '3',
       name: 'Elijah Sarratt',
-      email: 'esarratt@indiana.edu',
+      email: 'esarratt@example.com',
       avatar: getMockAvatar('Elijah Sarratt'),
       role: 'Players',
       credentialLevel: 'AllAccess',
@@ -227,7 +227,7 @@ export const roseBowlIndianaAlabama: ProTripData = {
     {
       id: '4',
       name: 'Charlie Becker',
-      email: 'cbecker@indiana.edu',
+      email: 'cbecker@example.com',
       avatar: getMockAvatar('Charlie Becker'),
       role: 'Players',
       credentialLevel: 'AllAccess',
@@ -238,7 +238,7 @@ export const roseBowlIndianaAlabama: ProTripData = {
     {
       id: '5',
       name: 'Kate Hoke',
-      email: 'khoke@indiana.edu',
+      email: 'khoke@example.com',
       avatar: getMockAvatar('Kate Hoke'),
       role: 'Medical Staff',
       credentialLevel: 'Backstage',

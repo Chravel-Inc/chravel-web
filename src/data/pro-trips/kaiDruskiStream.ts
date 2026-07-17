@@ -152,7 +152,7 @@ export const kaiDruskiStream: ProTripData = {
     {
       id: '1',
       name: 'Dana Schultz',
-      email: 'dana@amazonprime.com',
+      email: 'dana@example.com',
       avatar: getMockAvatar('Dana Schultz'),
       role: 'Executive Producer',
       credentialLevel: 'AllAccess',
@@ -163,7 +163,7 @@ export const kaiDruskiStream: ProTripData = {
     {
       id: '2',
       name: 'Ramon Alvarez',
-      email: 'ramon@amazonprime.com',
+      email: 'ramon@example.com',
       avatar: getMockAvatar('Ramon Alvarez'),
       role: 'Technical Director',
       credentialLevel: 'AllAccess',
@@ -174,7 +174,7 @@ export const kaiDruskiStream: ProTripData = {
     {
       id: '3',
       name: 'Sophie Chen',
-      email: 'sophie@amazonprime.com',
+      email: 'sophie@example.com',
       avatar: getMockAvatar('Sophie Chen'),
       role: 'Broadcast Ops',
       credentialLevel: 'Backstage',
@@ -185,7 +185,7 @@ export const kaiDruskiStream: ProTripData = {
     {
       id: '4',
       name: 'Luke Matthews',
-      email: 'luke@amazonprime.com',
+      email: 'luke@example.com',
       avatar: getMockAvatar('Luke Matthews'),
       role: 'Camera Lead',
       credentialLevel: 'Backstage',
@@ -196,7 +196,7 @@ export const kaiDruskiStream: ProTripData = {
     {
       id: '5',
       name: 'Priya Nair',
-      email: 'priya@amazonprime.com',
+      email: 'priya@example.com',
       avatar: getMockAvatar('Priya Nair'),
       role: 'Talent Coordination',
       credentialLevel: 'Backstage',

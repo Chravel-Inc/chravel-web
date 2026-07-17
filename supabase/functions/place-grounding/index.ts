@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { invokeChatModel, extractTextFromChatResponse } from '../_shared/gemini.ts';
+import { requireAuth } from '../_shared/requireAuth.ts';
 
 serve(async req => {
   const corsHeaders = getCorsHeaders(req);
@@ -10,6 +11,10 @@ serve(async req => {
   }
 
   try {
+    // Gemini/Maps grounding burns paid quota — require authenticated caller.
+    const auth = await requireAuth(req, corsHeaders);
+    if (auth.response) return auth.response;
+
     const { placeName, placeAddress, basecampLat, basecampLng } = await req.json();
     const parsedBasecampLat = Number(basecampLat);
     const parsedBasecampLng = Number(basecampLng);

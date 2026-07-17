@@ -1,3 +1,10 @@
+2026-07-17 — Security / privacy / CCPA hardening pass
+- Closed live gaps: privileged SECURITY DEFINER RPCs executable by anon; hybrid_search without membership; send-push IDOR; former-member storage/realtime/invite reads; over-broad payment_splits; demo PII emails; PostHog hardcoded key; CCPA section missing on /privacy.
+- Migration 20260717180000 applied to ChravelApp (part1 RPCs + part2 policies). Edge: send-push authz, venue-enricher/place-grounding requireAuth, bootstrap CORS allowlist.
+- Client: user-scoped members cache keys, no cross-account keepPreviousData, filtered realtime, ErrorBoundary prod sanitization, demo session clear on signOut.
+- Verification: authorizeTargets + securityPrivacyHardening + tripKeys tests ✅; typecheck ✅; lint:check 0 errors; build ✅; merge preflight clean.
+- Branch: cursor/security-privacy-hardening-7a2e
+
 2026-07-15 — Mobile trip landscape safe layout (pills / sections)
 - Landscape notch clipped trip tab pills and section content (calendar, Places Explore, etc.) because `.mobile-trip-shell` ignored horizontal safe-area.
 - Shell now pads left/right via `env(safe-area-inset-*)`; landscape density classes for tab/control/filter pills scoped under the shell; Places keeps `px-4 lg:px-0` for desktop.

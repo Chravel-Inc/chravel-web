@@ -133,7 +133,7 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
   // ⚡ PRIORITY 2: Members data - can render progressively
   // 🔑 CANONICAL: Same key as useTripMembersQuery so Trip Members + Payments share cache
   const membersQuery = useQuery({
-    queryKey: tripKeys.membersWithRevision(tripId!, demoAddedMembersCount),
+    queryKey: tripKeys.membersWithRevision(tripId!, demoAddedMembersCount, authUserId || undefined),
     queryFn: async () => {
       return await tripService.getTripMembersWithCreator(tripId!);
     },

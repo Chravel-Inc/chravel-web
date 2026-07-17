@@ -321,15 +321,24 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
     }
   }, [demoActive, refetchPayments]);
 
-  // Subscribe to profile updates — invalidate query cache for instant avatar/name refresh
+  // Subscribe to own profile updates only — never unfiltered profiles realtime.
   useEffect(() => {
-    if (!tripId || demoActive) return;
+    if (!tripId || demoActive || !user?.id) return;
 
     const channel = supabase
-      .channel(`mobile-payments-profiles-${tripId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
-        queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) });
-      })
+      .channel(`mobile-payments-profiles-${tripId}-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${user.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) });
+        },
+      )
       .subscribe();
 
     return () => {
@@ -337,7 +346,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
         // ignore
       });
     };
-  }, [tripId, demoActive, queryClient]);
+  }, [tripId, demoActive, queryClient, user?.id]);
 
   // Subscribe to payment changes — trip-scoped via trip_payment_messages only.
   // (payment_splits has no trip_id; settle flow updates trip_payment_messages too)

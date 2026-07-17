@@ -10,18 +10,15 @@
 // public.super_admins table (the runtime source of truth).
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { getCorsHeaders } from '../_shared/cors.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
-
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
+const json = (req: Request, body: unknown, status = 200) => {
+  const corsHeaders = getCorsHeaders(req);
+  return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+};
 
 function parseEmails(raw: string | undefined): string[] {
   if (!raw) return [];
@@ -29,15 +26,16 @@ function parseEmails(raw: string | undefined): string[] {
     new Set(
       raw
         .split(/[,\s]+/)
-        .map((e) => e.trim().toLowerCase())
-        .filter((e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)),
+        .map(e => e.trim().toLowerCase())
+        .filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)),
     ),
   );
 }
 
-Deno.serve(async (req) => {
+Deno.serve(async req => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
-  if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+  if (req.method !== 'POST') return json(req, { error: 'method_not_allowed' }, 405);
 
   const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
   const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -45,7 +43,7 @@ Deno.serve(async (req) => {
   const ROSTER_RAW = Deno.env.get('SUPER_ADMIN_BOOTSTRAP_EMAILS');
 
   if (!SUPABASE_URL || !SERVICE_ROLE || !ANON_KEY) {
-    return json({ error: 'missing_supabase_env' }, 500);
+    return json(req, { error: 'missing_supabase_env' }, 500);
   }
 
   // AuthZ: allow either service_role Bearer OR an authenticated existing super-admin.
@@ -66,24 +64,25 @@ Deno.serve(async (req) => {
     }
   }
 
-  if (!authorized) return json({ error: 'unauthorized' }, 401);
+  if (!authorized) return json(req, { error: 'unauthorized' }, 401);
 
   const emails = parseEmails(ROSTER_RAW);
   if (emails.length === 0) {
     return json(
+      req,
       { error: 'no_bootstrap_emails', hint: 'Set SUPER_ADMIN_BOOTSTRAP_EMAILS secret.' },
       400,
     );
   }
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
-  const rows = emails.map((email) => ({ email, note: 'bootstrap' }));
+  const rows = emails.map(email => ({ email, note: 'bootstrap' }));
   const { data, error } = await admin
     .from('super_admins')
     .upsert(rows, { onConflict: 'email', ignoreDuplicates: true })
     .select('email');
 
-  if (error) return json({ error: 'upsert_failed', detail: error.message }, 500);
+  if (error) return json(req, { error: 'upsert_failed', detail: error.message }, 500);
 
-  return json({ ok: true, seeded: emails.length, inserted: data?.length ?? 0 });
+  return json(req, { ok: true, seeded: emails.length, inserted: data?.length ?? 0 });
 });

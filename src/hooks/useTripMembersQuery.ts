@@ -121,7 +121,11 @@ export const useTripMembersQuery = (tripId?: string, options?: UseTripMembersQue
   const demoAddedMembersCount = useDemoTripMembersStore(state =>
     tripId ? state.addedMembers[tripId]?.length || 0 : 0,
   );
-  const membersQueryKey = tripKeys.membersWithRevision(tripId || '', demoAddedMembersCount);
+  const membersQueryKey = tripKeys.membersWithRevision(
+    tripId || '',
+    demoAddedMembersCount,
+    user?.id,
+  );
   const rosterSearch = options?.rosterSearch?.trim() ?? '';
 
   const { data: tripMeta, isLoading: metaLoading } = useQuery({

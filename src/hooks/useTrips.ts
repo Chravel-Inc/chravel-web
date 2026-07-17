@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tripService, Trip, CreateTripData } from '@/services/tripService';
 import { archiveService } from '@/services/archiveService';
 import { useAuth } from './useAuth';
@@ -27,8 +27,16 @@ export const useTrips = () => {
     },
     enabled: isDemoMode || !!user,
     staleTime: 1000 * 60 * 5,
-    // Show last-known trips instantly while refetch runs in background → no skeleton flash on revisit
-    placeholderData: keepPreviousData,
+    // Keep previous only when the same user/demo context is refetching.
+    // Cross-account keepPreviousData would flash another user's trips.
+    // No Trip Not Found / auth desync: enabled still gates on user|demo; key still includes user.id.
+    placeholderData: (previousData, previousQuery) => {
+      const previousKey = previousQuery?.queryKey;
+      if (!previousKey || previousKey[1] !== user?.id || previousKey[2] !== isDemoMode) {
+        return undefined;
+      }
+      return previousData;
+    },
   });
 
   const createTripMutation = useMutation({

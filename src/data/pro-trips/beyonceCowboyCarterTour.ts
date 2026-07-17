@@ -393,7 +393,7 @@ export const beyonceCowboyCarterTour: ProTripData = {
     {
       id: '4',
       name: 'Beyoncé',
-      email: 'beyonce@beyonce.com',
+      email: 'beyonce@example.com',
       avatar: getMockAvatar('Beyoncé'),
       role: 'Artists',
       credentialLevel: 'AllAccess',
@@ -404,7 +404,7 @@ export const beyonceCowboyCarterTour: ProTripData = {
     {
       id: '5',
       name: 'Tour Director',
-      email: 'director@tourmanagement.com',
+      email: 'director@example.com',
       avatar: getMockAvatar('Tour Director'),
       role: 'Tour Manager',
       credentialLevel: 'AllAccess',
@@ -415,7 +415,7 @@ export const beyonceCowboyCarterTour: ProTripData = {
     {
       id: '6',
       name: 'Production Manager',
-      email: 'production@tourteam.com',
+      email: 'production@example.com',
       avatar: getMockAvatar('Production Manager'),
       role: 'Tour Manager',
       credentialLevel: 'Backstage',
@@ -426,7 +426,7 @@ export const beyonceCowboyCarterTour: ProTripData = {
     {
       id: '7',
       name: 'Security Chief',
-      email: 'security@tourteam.com',
+      email: 'security@example.com',
       avatar: getMockAvatar('Security Chief'),
       role: 'Security',
       credentialLevel: 'AllAccess',
@@ -436,7 +436,7 @@ export const beyonceCowboyCarterTour: ProTripData = {
     {
       id: '8',
       name: 'Sound Engineer',
-      email: 'sound@tourteam.com',
+      email: 'sound@example.com',
       avatar: getMockAvatar('Sound Engineer'),
       role: 'Crew',
       credentialLevel: 'Backstage',

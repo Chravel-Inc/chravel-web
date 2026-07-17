@@ -277,7 +277,10 @@ const JoinTrip = () => {
 
   const fetchInvitePreview = async () => {
     if (import.meta.env.DEV) {
-      console.log('[JoinTrip] fetchInvitePreview called', { token });
+      console.log('[JoinTrip] fetchInvitePreview called', {
+        hasToken: Boolean(token),
+        tokenLength: token?.length ?? 0,
+      });
     }
 
     if (!token) {

@@ -18,13 +18,18 @@ export const tripKeys = {
   detail: (tripId: string) => ['trip', tripId] as const,
   detailForUser: (tripId: string, userId: string) => [...tripKeys.detail(tripId), userId] as const,
   members: (tripId: string) => ['trip-members', tripId] as const,
+  /** User-scoped members key — prevents cross-account cache reuse on shared devices. */
+  membersForUser: (tripId: string, userId: string) =>
+    [...tripKeys.members(tripId), userId] as const,
   memberMeta: (tripId: string) => ['trip-member-meta', tripId] as const,
   membersPaginated: (tripId: string) => ['trip-members', tripId, 'paginated'] as const,
   membersSearch: (tripId: string, search: string) =>
     [...tripKeys.members(tripId), 'search', search] as const,
   membersSearchAll: (tripId: string) => [...tripKeys.members(tripId), 'search'] as const,
-  membersWithRevision: (tripId: string, revision: number) =>
-    [...tripKeys.members(tripId), revision] as const,
+  membersWithRevision: (tripId: string, revision: number, userId?: string) =>
+    userId
+      ? ([...tripKeys.membersForUser(tripId, userId), revision] as const)
+      : ([...tripKeys.members(tripId), revision] as const),
 
   // Tab-specific data
   chat: (tripId: string) => ['tripChat', tripId] as const,
