@@ -9,6 +9,7 @@ import { adaptTripsDataToTripSchema } from '@/utils/schemaAdapters';
 import { FORMER_MEMBER_LABEL } from '@/lib/resolveDisplayName';
 import { formatLocalDate } from '@/utils/dateHelpers';
 import { resolveEffectiveTier } from './entitlementService';
+import { archiveTripForUser } from './archiveService';
 
 /**
  * Normalizes date input to YYYY-MM-DD format for database date columns
@@ -612,9 +613,8 @@ export const tripService = {
 
   async archiveTrip(tripId: string): Promise<boolean> {
     try {
-      const { error } = await supabase.from('trips').update({ is_archived: true }).eq('id', tripId);
-
-      return !error;
+      await archiveTripForUser(tripId);
+      return true;
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error archiving trip:', error);

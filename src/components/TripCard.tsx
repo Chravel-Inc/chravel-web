@@ -197,10 +197,13 @@ export const TripCard = ({
 
     // Authenticated mode: persist to database
     try {
-      await archiveTrip(trip.id.toString(), 'consumer');
+      const result = await archiveTrip(trip.id.toString(), 'consumer');
       toast({
-        title: 'Trip archived',
-        description: `"${trip.title}" has been archived. View it in the Archived tab.`,
+        title: result.action === 'archived' ? 'Trip archived' : 'Trip removed',
+        description:
+          result.action === 'archived'
+            ? `"${trip.title}" has been archived. View it in the Archived tab.`
+            : `"${trip.title}" has been removed from your account. Other members can still access it.`,
       });
       setShowArchiveDialog(false);
       onArchiveSuccess?.();

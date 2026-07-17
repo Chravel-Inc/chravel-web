@@ -131,10 +131,13 @@ export const ProTripCard = ({
 
   const handleArchiveTrip = async () => {
     try {
-      await archiveTrip(trip.id);
+      const result = await archiveTrip(trip.id);
       toast({
-        title: 'Professional trip archived',
-        description: `"${trip.title}" has been archived.`,
+        title: result.action === 'archived' ? 'Professional trip archived' : 'Trip removed',
+        description:
+          result.action === 'archived'
+            ? `"${trip.title}" has been archived.`
+            : `"${trip.title}" has been removed from your account. Other members can still access it.`,
       });
       setShowArchiveDialog(false);
       onArchiveSuccess?.();

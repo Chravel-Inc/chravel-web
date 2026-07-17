@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { removeMemberFromTripChannels } from './stream/streamMembershipSync';
 
 type TripType = 'consumer' | 'pro' | 'event';
 
@@ -6,7 +7,9 @@ export type LeaveTripResult = {
   action: 'archived' | 'left';
 };
 
-type LeaveTripRpcResponse = {
+export type ArchiveTripResult = LeaveTripResult;
+
+type TripRpcResponse = {
   success?: boolean;
   message?: string;
   archived?: boolean;
@@ -25,12 +28,47 @@ export const leaveTripForUser = async (tripId: string): Promise<LeaveTripResult>
     throw error;
   }
 
-  const result = data as LeaveTripRpcResponse | null;
+  const result = data as TripRpcResponse | null;
   if (!result?.success) {
     throw new Error(result?.message || 'Failed to leave trip');
   }
 
   return { action: result.archived ? 'archived' : 'left' };
+};
+
+/**
+ * Archive a trip from the card menu via the archive_trip RPC.
+ * When other members remain, semantics match leave_trip (removes caller only).
+ */
+export const archiveTripForUser = async (tripId: string): Promise<ArchiveTripResult> => {
+  const { data, error } = await supabase.rpc('archive_trip', { _trip_id: tripId });
+
+  if (error) {
+    if (import.meta.env.DEV) console.error('Failed to archive trip:', error);
+    throw error;
+  }
+
+  const result = data as TripRpcResponse | null;
+  if (!result?.success) {
+    throw new Error(result?.message || 'Failed to archive trip');
+  }
+
+  const archiveResult: ArchiveTripResult = {
+    action: result.archived ? 'archived' : 'left',
+  };
+
+  if (archiveResult.action === 'left') {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user?.id) {
+      removeMemberFromTripChannels(tripId, user.id).catch(() => {
+        // Non-fatal — membership is already committed in Supabase.
+      });
+    }
+  }
+
+  return archiveResult;
 };
 
 /**
@@ -119,25 +157,24 @@ export const getArchivedTripCount = async (
   return count || 0;
 };
 
-// Archive a trip
+// Archive a trip (card menu). Uses archive_trip RPC — not client UPDATE (RLS blocks is_archived).
 export const archiveTrip = async (
   tripId: string,
   _tripType: TripType,
   _userId?: string,
-): Promise<void> => {
-  const { error } = await supabase.from('trips').update({ is_archived: true }).eq('id', tripId);
+): Promise<ArchiveTripResult> => {
+  const result = await archiveTripForUser(tripId);
 
-  if (error) {
-    if (import.meta.env.DEV) console.error('Failed to archive trip:', error);
-    throw error;
+  if (result.action === 'archived') {
+    // Best-effort storage cleanup — don't block the archive action
+    cleanupTripStorage(tripId).catch(cleanupErr => {
+      if (import.meta.env.DEV) {
+        console.error('Storage cleanup failed for trip:', tripId, cleanupErr);
+      }
+    });
   }
 
-  // Best-effort storage cleanup — don't block the archive action
-  cleanupTripStorage(tripId).catch(cleanupErr => {
-    if (import.meta.env.DEV) {
-      console.error('Storage cleanup failed for trip:', tripId, cleanupErr);
-    }
-  });
+  return result;
 };
 
 // Restore (unarchive) a trip
@@ -251,11 +288,8 @@ export const bulkArchiveTrips = async (
   _tripType: TripType,
   _userId?: string,
 ): Promise<void> => {
-  const { error } = await supabase.from('trips').update({ is_archived: true }).in('id', tripIds);
-
-  if (error) {
-    if (import.meta.env.DEV) console.error('Failed to bulk archive trips:', error);
-    throw error;
+  for (const tripId of tripIds) {
+    await archiveTripForUser(tripId);
   }
 };
 
@@ -404,6 +438,8 @@ export const archiveService = {
   getHiddenTrips,
   getArchivedTripCount,
   archiveTrip,
+  archiveTripForUser,
+  leaveTripForUser,
   restoreTrip,
   isTripArchived,
   getArchivedTrips,
