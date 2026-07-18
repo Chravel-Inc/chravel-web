@@ -556,9 +556,8 @@ export const useTripPolls = (tripId: string) => {
       return { previous };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: tripKeys.polls(tripId, isDemoMode) });
       void haptics.medium();
-      // Removed noisy success toast
+      // Reconciliation happens in onSettled — avoid double refetch per vote.
     },
     onError: (error: Error, vars, context) => {
       // Keep optimistic update when offline (queued).
