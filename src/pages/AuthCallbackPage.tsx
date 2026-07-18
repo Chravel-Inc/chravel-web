@@ -205,7 +205,16 @@ const AuthCallbackPage: React.FC = () => {
             <p className="text-sm text-muted-foreground">{errorMessage}</p>
             <div className="flex flex-col gap-2 pt-2">
               <Button
-                onClick={() => navigate('/auth?mode=signin', { replace: true })}
+                onClick={async () => {
+                  // Wipe any half-exchanged PKCE state / partial session so the
+                  // "account exists but can't get in" dead end resets cleanly.
+                  try {
+                    await supabase.auth.signOut();
+                  } catch {
+                    // Ignore — best-effort cleanup before retry.
+                  }
+                  navigate('/auth?mode=signin', { replace: true });
+                }}
                 className="w-full"
               >
                 Sign in with email
