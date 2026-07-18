@@ -254,6 +254,13 @@ export const CreatePaymentModal = ({
           description,
           variant: 'destructive',
         });
+      } else {
+        optimisticallyRemovePayment(queryClient, tripId, optimisticId);
+        toast({
+          title: 'Error',
+          description: 'Failed to create payment. Please try again.',
+          variant: 'destructive',
+        });
       }
     } catch (error) {
       if (import.meta.env.DEV) {
