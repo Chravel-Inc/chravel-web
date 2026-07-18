@@ -102,6 +102,23 @@ export const AuthModal = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, awaitingAuth, onClose]);
 
+  // Clear stuck OAuth "Redirecting…" state when the user returns to this tab/WebView
+  // after dismissing the external auth session without completing sign-in.
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        clearOAuthLoading();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', handleVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', handleVisibility);
+    };
+  }, [isOpen]);
+
   useEffect(() => {
     if (!isOpen) return;
     setMode(initialMode ?? 'signin');
