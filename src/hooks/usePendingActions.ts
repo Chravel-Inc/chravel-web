@@ -539,7 +539,7 @@ export function usePendingActions(tripId: string, options: UsePendingActionsOpti
           break;
         case 'updateTripDetails':
           queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId), exact: false });
-          queryClient.invalidateQueries({ queryKey: tripKeys.all, exact: false });
+          queryClient.invalidateQueries({ queryKey: tripKeys.lists(), exact: false });
           break;
         case 'createBroadcast':
           queryClient.invalidateQueries({ queryKey: ['broadcasts', tripId], exact: false });

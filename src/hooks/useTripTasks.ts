@@ -1175,6 +1175,18 @@ export const useTripTasks = (
 
   // Delete task mutation - creator-only client guard (RLS enforced on backend)
   const deleteTaskMutation = useMutation({
+    onMutate: async (taskId: string) => {
+      if (isDemoMode || !user || !navigator.onLine) return undefined;
+
+      await queryClient.cancelQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
+      const previousTasks = queryClient.getQueryData<TripTask[]>(['tripTasks', tripId, isDemoMode]);
+
+      queryClient.setQueryData<TripTask[]>(['tripTasks', tripId, isDemoMode], old =>
+        (old || []).filter(task => task.id !== taskId),
+      );
+
+      return { previousTasks };
+    },
     mutationFn: async (taskId: string) => {
       // Permission guard: event/pro trip restrictions
       if (!permissions.canDeleteTask && !isDemoMode) {
@@ -1199,18 +1211,23 @@ export const useTripTasks = (
     },
     onSuccess: (_data: unknown, taskId: string) => {
       taskEvents.deleted(tripId, taskId);
-      queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
       toast({
         title: 'Task deleted',
         description: 'The task has been removed.',
       });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _taskId: string, context) => {
+      if (context?.previousTasks) {
+        queryClient.setQueryData(['tripTasks', tripId, isDemoMode], context.previousTasks);
+      }
       toast({
         title: 'Error',
         description: error.message || 'Failed to delete task.',
         variant: 'destructive',
       });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
     },
   });
 

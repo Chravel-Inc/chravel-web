@@ -101,21 +101,9 @@ export const usePrefetchTrip = () => {
           });
           break;
 
+        // Chat is Stream-backed (useStreamTripChat). Chunk preload above is enough;
+        // legacy trip_chat_messages prefetch wasted network on every trip open.
         case 'chat':
-          queryClient.prefetchQuery({
-            queryKey: tripKeys.chat(tripId),
-            queryFn: async () => {
-              const { data } = await supabase
-                .from('trip_chat_messages')
-                .select('*')
-                .eq('trip_id', tripId)
-                .eq('is_deleted', false)
-                .order('created_at', { ascending: false })
-                .limit(15);
-              return (data || []).reverse();
-            },
-            staleTime: QUERY_CACHE_CONFIG.chat.staleTime,
-          });
           break;
 
         case 'tasks':
@@ -142,7 +130,8 @@ export const usePrefetchTrip = () => {
                 .from('trip_polls')
                 .select('*')
                 .eq('trip_id', tripId)
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: false })
+                .limit(100);
 
               if (error) throw error;
               return data || [];

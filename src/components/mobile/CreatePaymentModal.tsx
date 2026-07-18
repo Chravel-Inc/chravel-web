@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { X, DollarSign, Users, Check, Search, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +23,12 @@ import {
 } from '@/lib/paymentActivityMessages';
 import { useAuth } from '@/hooks/useAuth';
 import { PaymentSplitAllocator } from '@/components/payments/PaymentSplitAllocator';
+import {
+  buildPaymentMessage,
+  optimisticallyAddPayment,
+  optimisticallyRemovePayment,
+  replaceOptimisticPaymentId,
+} from '@/lib/paymentCacheUtils';
 
 interface CreatePaymentModalProps {
   isOpen: boolean;
@@ -67,6 +74,7 @@ export const CreatePaymentModal = ({
   isSearchingMembers = false,
 }: CreatePaymentModalProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const { user } = useAuth();
   const attachmentsEnabled = useFeatureFlag('payment_attachments', true);
@@ -159,18 +167,39 @@ export const CreatePaymentModal = ({
         return;
       }
 
-      const result = await paymentService.createPaymentMessage(tripId, userId, {
-        amount: paymentData.amount,
-        currency: paymentData.currency,
-        description: paymentData.description,
-        splitCount: paymentData.splitCount,
-        splitParticipants: paymentData.splitParticipants,
-        paymentMethods: paymentData.paymentMethods,
-        splitType: paymentData.splitType,
-        customAmounts: paymentData.customAmounts,
-      });
+      const optimisticId = (() => {
+        try {
+          return `optimistic-payment-${crypto.randomUUID()}`;
+        } catch {
+          return `optimistic-payment-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        }
+      })();
+
+      optimisticallyAddPayment(
+        queryClient,
+        tripId,
+        buildPaymentMessage(optimisticId, tripId, userId, paymentData),
+      );
+
+      let result;
+      try {
+        result = await paymentService.createPaymentMessage(tripId, userId, {
+          amount: paymentData.amount,
+          currency: paymentData.currency,
+          description: paymentData.description,
+          splitCount: paymentData.splitCount,
+          splitParticipants: paymentData.splitParticipants,
+          paymentMethods: paymentData.paymentMethods,
+          splitType: paymentData.splitType,
+          customAmounts: paymentData.customAmounts,
+        });
+      } catch (error) {
+        optimisticallyRemovePayment(queryClient, tripId, optimisticId);
+        throw error;
+      }
 
       if (result.success && result.paymentId && userId) {
+        replaceOptimisticPaymentId(queryClient, tripId, optimisticId, result.paymentId);
         const newPayment = {
           id: result.paymentId,
           amount: paymentData.amount,
@@ -218,10 +247,18 @@ export const CreatePaymentModal = ({
           description: `${paymentData.description} - ${formatCurrency(paymentData.amount, paymentData.currency)}`,
         });
       } else if (result.error) {
+        optimisticallyRemovePayment(queryClient, tripId, optimisticId);
         const { title, description } = PaymentErrorHandler.getServiceErrorDisplay(result.error);
         toast({
           title,
           description,
+          variant: 'destructive',
+        });
+      } else {
+        optimisticallyRemovePayment(queryClient, tripId, optimisticId);
+        toast({
+          title: 'Error',
+          description: 'Failed to create payment. Please try again.',
           variant: 'destructive',
         });
       }
@@ -517,11 +554,7 @@ export const CreatePaymentModal = ({
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting || !isValid}
-                className="flex-1"
-              >
+              <Button type="submit" disabled={isSubmitting || !isValid} className="flex-1">
                 {isSubmitting ? 'Creating...' : 'Create Payment'}
               </Button>
             </div>
