@@ -5681,6 +5681,10 @@ export type Database = {
         Args: { _org_id: string; _user_id: string }
         Returns: boolean
       }
+      is_payment_debtor: {
+        Args: { _payment_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_super_admin: { Args: never; Returns: boolean }
       is_trip_admin: {
         Args: { _trip_id: string; _user_id: string }
