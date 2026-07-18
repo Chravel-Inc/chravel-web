@@ -1,66 +1,53 @@
-# Security Hardening Pass
+## Problem
 
-Goal: close the outstanding scanner findings, tighten trip-scoped storage buckets, and do a codebase-wide sweep for exposed customer data (PII, media, financial info, auth artifacts).
+The Google sign-in flow hangs on the account-picker screen for the tester on the iOS build (TestFlight). Two symptoms are consistent with the same root cause:
 
-## Phase 1 — Storage bucket hardening
+1. **"Choose an account" screen never dismisses** after tapping their Google account (screenshot #2 / #3).
+2. On an earlier attempt the button stayed on **"Redirecting…"** after they returned to the app (screenshot #1) — the session exchange never completed inside the WebView, so `AuthModal` never re-rendered as signed-in and email/password sign-in also fails because the app already holds a half-broken auth attempt.
 
-Audit every bucket in `storage.buckets` and its `storage.objects` policies. For each user-generated bucket (`trip-photos`, `trip-media`, `trip-files`, `avatars`, `chat-uploads`, `payment-attachments`, receipts, etc.):
+## Root cause (high confidence, needs one verification step)
 
-1. Confirm `public = false` unless the bucket is intentionally public (currently only `advertiser-assets` and `trip-covers` per security memory).
-2. Replace broad `SELECT`/`INSERT`/`UPDATE`/`DELETE` policies with membership-scoped policies keyed on the first path segment (trip_id) via `is_active_trip_member(auth.uid(), (storage.foldername(name))[1]::uuid)`.
-3. Remove orphaned/legacy policies that no longer match an existing bucket.
-4. Ensure UPDATE/DELETE are limited to the uploader (`owner = auth.uid()`) or a trip admin.
-5. Client code that renders these assets must switch any lingering `getPublicUrl` calls to `createSignedUrl` (short TTL) for private buckets.
+In `src/hooks/useAuth.tsx` (`signInWithGoogle`) the installed-app branch calls `openInstalledAuthBrowser(data.url)`. In `src/utils/installedAuthBrowser.ts` that helper **prefers `Capacitor.Plugins.Browser` first** (SFSafariViewController) and only falls back to `window.ChravelNative.openOAuthUrl` (ASWebAuthenticationSession) if Capacitor Browser is absent.
 
-## Phase 2 — Close open scanner findings
+- SFSafariViewController **does not auto-dismiss on a callback URL** and does not hand Universal Links back to the same app when the app opened it — Google redirects to `https://chravel.app/auth-callback?code=…`, that page renders **inside SFSafariViewController**, and the outer WebView (which owns the PKCE `code_verifier` in localStorage) never runs `exchangeCodeForSession`. Result: infinite spinner on the Google page.
+- The `redirectTo` for the native shell is currently `https://chravel.app/auth-callback` (`getOAuthRedirectUrl` in `src/hooks/auth/authHelpers.ts`) — a Universal Link, not the `chravel://auth-callback` custom scheme that ASWebAuthenticationSession needs to auto-close.
+- The earlier "Redirecting…" state on the modal confirms the button loading flag is never cleared because `signInWithOAuth` returned without a session and no callback ever fired.
 
-- **`trip_media_index_any_member_update_delete`** (warn): restrict UPDATE/DELETE on `trip_media_index` and `trip_link_index` to the row's uploader (`added_by = auth.uid()`) OR a trip admin via `has_trip_admin_role`.
-- **`update_policies_missing_with_check`** (warn): add mirrored `WITH CHECK` clauses to owner-scoped UPDATE policies on `trip_tasks`, `trip_files`, `trip_links`, `trip_polls`, `trip_payment_messages`, `broadcasts`, `receipts`, `trip_receipts`. Each `WITH CHECK` locks the immutable ownership + `trip_id` columns (same pattern already used on `payment_splits`).
+## Fix plan
 
-## Phase 3 — PII/sensitive-column sweep
+**1. Prefer the ASWebAuthenticationSession bridge over SFSafariViewController.**
+   - In `src/utils/installedAuthBrowser.ts`, reorder strategies: try `window.ChravelNative.openOAuthUrl` **first**, then Capacitor Browser, then web redirect. The native bridge closes automatically on the callback URL and hands the URL back to the WebView — this is exactly the flow the memory notes (`auth/pkce-flow-resilience`) call the reliable path.
+   - Leave the `native-shell-missing-bridge` guard in place so we surface an actionable "update your app" message if neither bridge is present.
 
-Query pg_catalog for tables containing potentially sensitive columns (`email`, `phone`, `address`, `dob`, `stripe_customer_id`, `apple_sub`, `push_token`, `payment_method`, `access_token`, `refresh_token`, `api_key`, `password`, `hash`). For each hit verify:
+**2. Use the custom-scheme callback when using the native bridge.**
+   - In `src/hooks/auth/authHelpers.ts` (`getOAuthRedirectUrl`), when `ChravelNative.isNative === true` **and** `ChravelNative.openOAuthUrl` is defined, return `chravel://auth-callback?…`. When only Capacitor Browser is present, keep `https://chravel.app/auth-callback` (Universal Link). Web path unchanged.
+   - The chravel-mobile shell already documents both contracts in `src/utils/nativeBridge.ts`; no shell change required if `openOAuthUrl` is present.
 
-- RLS is enabled + at least one policy scoped to `auth.uid()` (never `true`).
-- `anon` role has no `SELECT` grant unless the row is intentionally public.
-- The column isn't leaked through a view or a `SECURITY DEFINER` function without a caller check.
-- Client code doesn't select the column into unprivileged UIs (grep `select('*')` on these tables and narrow the projections).
+**3. Clear the AuthModal loading state on all return paths.**
+   - In `src/components/AuthModal.tsx`, ensure the Google button's `Redirecting…` state resets when `signInWithGoogle` resolves (success or error) **and** on `visibilitychange` back to the tab, so the user can retry if the OAuth window was dismissed without a session. Also disable duplicate-tap while pending.
 
-Targets already known to warrant a second look: `profiles`, `gmail_accounts`, `apple_auth_tokens`, `push_device_tokens`, `web_push_subscriptions`, `user_payment_methods`, `user_loyalty_programs`, `secure_storage`, `organization_billing`, `payment_attachments`, `receipts`.
+**4. Add a hard timeout + user-visible recovery in `AuthCallbackPage`.**
+   - It already fails fast after ~3s of polling. Extend the "Sign in with email" recovery button to also call `supabase.auth.signOut()` first, so a half-exchanged PKCE state (their "recognizes I've signed up but I can't get in" symptom) is wiped before they retry. This prevents the account-exists-but-no-session dead end.
 
-## Phase 4 — Edge function boundary check
+**5. One verification step before shipping.**
+   - Confirm with the chravel-mobile shell whether `window.ChravelNative.openOAuthUrl` is actually wired in the current TestFlight build. If it is **not** yet shipped, we need to (a) keep Capacitor Browser as fallback and (b) add a Capacitor `App.appUrlOpen` listener path that closes `Browser` and forwards the callback URL to the WebView. If `openOAuthUrl` is shipped, plan step 1+2 are sufficient.
 
-Grep `supabase/functions/**` for:
+## Files touched
 
-- Missing `requireAuth` / `getClaims` before privileged writes.
-- Service-role clients used without a prior membership check (must go through `verifyTripMembership`).
-- `Access-Control-Allow-Origin: *` on functions that touch user data (should use the shared allowlist).
-- Any `console.log` of tokens, emails, or bodies.
+- `src/utils/installedAuthBrowser.ts` — reorder strategies, prefer native bridge.
+- `src/hooks/auth/authHelpers.ts` — return `chravel://auth-callback` when the native OAuth bridge is present.
+- `src/hooks/useAuth.tsx` — no behavior change beyond the helpers above; verify error path returns clear the local loading state.
+- `src/components/AuthModal.tsx` — reset Google button loading state on resolve + on tab re-focus; guard against double-tap.
+- `src/pages/AuthCallbackPage.tsx` — sign out any partial session before the "Sign in with email" recovery button navigates away.
 
-Fix violations in-place; add regression guards under `scripts/qa/` where the pattern is repeatable.
+## Not in scope
 
-## Phase 5 — Client-side leakage sweep
+- No changes to Supabase provider config, CORS, RLS, or Google Cloud Console.
+- No change to the web (non-installed) Google flow — it works.
+- No touching of the AASA file or Universal Link setup.
 
-- `rg` for `localStorage.setItem` / `sessionStorage` writes of tokens, emails, or user IDs beyond the Supabase auth key.
-- Confirm no `service_role` key or admin allowlist ships in the bundle (guard already exists in `scripts/qa/check-no-hardcoded-admin-emails.cjs` — extend it to cover phone numbers and Stripe live keys).
-- Verify `profiles_public` view is used everywhere a non-owner reads profile data.
+## Validation
 
-## Verification
-
-- Re-run `security--run_security_scan` and `supabase--linter`; expect zero WARN/ERROR from the fixed IDs.
-- Run `npm run typecheck && npm run lint && npm run build`.
-- Add / update tests: `scripts/qa/check-systemic-hardening-guards.cjs` gets new assertions for the storage membership helper and the WITH CHECK pattern.
-- Manually confirm trip media still uploads/loads for a member; a non-member gets 403 on the signed URL request.
-- Call `security--manage_security_finding` (`mark_as_fixed`) for the two open findings once the migration lands, and update `security--update_memory` with what became intentionally public vs private.
-
-## Deliverables
-
-- One migration: `supabase/migrations/<ts>_security_hardening_storage_and_rls.sql`.
-- Client patches for any `getPublicUrl` → `createSignedUrl` swaps and narrowed `select()` projections.
-- Optional: new/extended CI guard scripts under `scripts/qa/`.
-- Security memory updated; findings marked fixed.
-
-## Out of scope (call out, don't silently defer)
-
-- Linter INFO items on unrelated tables (no policies but no data) — flagged for a follow-up prompt in the response footer if any remain after Phase 1.
-- Function `search_path` WARNs — will be addressed opportunistically only for functions this migration already touches; the rest ship as a follow-up.
+- Unit: extend `src/hooks/__tests__/useAuth.test.tsx` to assert `redirectTo` is `chravel://auth-callback` when `ChravelNative.openOAuthUrl` is present and `https://chravel.app/auth-callback` otherwise.
+- Unit: `src/pages/__tests__/AuthCallbackPage.test.tsx` — add a case that recovery button calls `signOut` before navigating to `/auth`.
+- Manual (TestFlight): tap Google → account picker → select account → auth session dismisses automatically → app lands signed-in on the returnTo route. Retry after cancel should re-open the picker without a stuck spinner.
