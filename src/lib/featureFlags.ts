@@ -98,27 +98,6 @@ export async function isFeatureFlagEnabled(
   return resolveFeatureFlagEnabled(data, defaultValue);
 }
 
-/**
- * Prefetch all feature flags into the query cache.
- * Call once at app startup for faster first reads.
- */
-export async function prefetchFeatureFlags(): Promise<void> {
-  // intentional: feature_flags table not yet in generated Supabase types
-  const { data, error } = await (supabase as any)
-    .from('feature_flags')
-    .select('key, enabled, rollout_percentage');
-
-  if (error || !data) return;
-
-  for (const flag of data as FeatureFlagRow[]) {
-    // Store in a way the individual hooks can find
-    // The hooks use ['feature-flag', key] as query key
-    // We can't directly set cache here without queryClient access,
-    // but the staleTime ensures the next hook call will use cached data
-    void flag;
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
