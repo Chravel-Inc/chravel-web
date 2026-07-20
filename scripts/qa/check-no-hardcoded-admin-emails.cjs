@@ -26,12 +26,15 @@ const IGNORE_GLOBS = [
 let failed = false;
 for (const email of DENYLIST) {
   const args = [
-    'rg', '-n', '--fixed-strings', email,
-    ...IGNORE_GLOBS.flatMap((g) => ['-g', g.slice(1) === g ? g : g]),
+    'rg',
+    '-n',
+    '--fixed-strings',
+    email,
+    ...IGNORE_GLOBS.flatMap(g => ['-g', g.slice(1) === g ? g : g]),
   ];
   try {
     const out = execSync(
-      `rg -n --fixed-strings ${JSON.stringify(email)} ${IGNORE_GLOBS.map((g) => `-g '${g}'`).join(' ')}`,
+      `rg -n --fixed-strings ${JSON.stringify(email)} ${IGNORE_GLOBS.map(g => `-g '${g}'`).join(' ')}`,
       { stdio: ['ignore', 'pipe', 'ignore'], encoding: 'utf8' },
     );
     if (out.trim()) {
@@ -49,7 +52,9 @@ for (const email of DENYLIST) {
 }
 
 if (failed) {
-  console.error('\nAdmin emails must live only in the SUPER_ADMIN_BOOTSTRAP_EMAILS secret and the public.super_admins DB table.');
+  console.error(
+    '\nAdmin emails must live only in the SUPER_ADMIN_BOOTSTRAP_EMAILS secret and the public.super_admins DB table.',
+  );
   console.error('See docs/ops/super-admin-bootstrap.md.\n');
   process.exit(1);
 }

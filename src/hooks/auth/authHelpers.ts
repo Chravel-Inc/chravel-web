@@ -50,9 +50,11 @@ export const getOAuthRedirectUrl = (returnTo: string | null): string => {
   // Google's account picker stays open indefinitely.
   const chravelNative =
     typeof window !== 'undefined'
-      ? (window as Window & {
-          ChravelNative?: { isNative?: boolean; openOAuthUrl?: (url: string) => unknown };
-        }).ChravelNative
+      ? (
+          window as Window & {
+            ChravelNative?: { isNative?: boolean; openOAuthUrl?: (url: string) => unknown };
+          }
+        ).ChravelNative
       : undefined;
 
   if (chravelNative?.isNative && typeof chravelNative.openOAuthUrl === 'function') {

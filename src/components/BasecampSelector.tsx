@@ -225,11 +225,7 @@ export const BasecampSelector = ({
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                className="flex-1"
-                disabled={isLoading}
-              >
+              <Button type="submit" className="flex-1" disabled={isLoading}>
                 {isLoading ? 'Saving...' : 'Save Basecamp'}
               </Button>
             </div>
