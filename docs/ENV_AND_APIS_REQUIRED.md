@@ -33,8 +33,6 @@ npm run validate-env -- --ios # iOS Capacitor build
 | **Venmo** | PayPal/Venmo | `VITE_VENMO_CLIENT_ID` | `src/services/paymentProcessors/venmoProcessor.ts:16` | Venmo Developer Portal | Y | Leave empty; Venmo option hidden |
 | **PostHog** | PostHog | `VITE_POSTHOG_API_KEY` | `src/telemetry/service.ts:36` | PostHog Dashboard | Y | Leave empty; telemetry disabled |
 | **Sentry** | Sentry | `VITE_SENTRY_DSN` | `src/telemetry/service.ts:42` | Sentry Dashboard | Y | Leave empty; error tracking disabled |
-| **GA** | Google | `VITE_GA_MEASUREMENT_ID` | `.env.production.example:67` | Google Analytics Dashboard | Y | Leave empty |
-| **Mixpanel** | Mixpanel | `VITE_MIXPANEL_TOKEN` | `.env.production.example:70` | Mixpanel Dashboard | Y | Leave empty |
 
 ### Feature Flags
 

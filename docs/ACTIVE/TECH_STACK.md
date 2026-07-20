@@ -35,7 +35,7 @@
 | PWA | Workbox-generated service worker + web manifest (installable) |
 | iOS | Native wrapper of the same web app; native builds ship from the separate `chravel-mobile` repository via Fastlane → TestFlight / App Store Connect (bundle id `com.chravel.app`) |
 | macOS | SwiftUI desktop shell (`macos/`) talking to the same Supabase backend |
-| Runtime pinning | Node ≥ 20 (`engines`), `.nvmrc` 22 |
+| Runtime pinning | Node 22, normalized across `engines` (≥22), `.nvmrc`, all CI workflows, and Render |
 
 No Python services, no GraphQL, no traditional application server.
 
@@ -44,7 +44,7 @@ No Python services, no GraphQL, no traditional application server.
 - **Vercel** — production frontend (`chravel.app`) + serverless preview/OG routes (`api/invite-preview.ts`, `api/trip-preview.ts`).
 - **Supabase** — managed Postgres, Auth, Realtime, Storage, and ~95 Deno edge functions (project ref `jmjiyekmxwsxkfnqwyaa`).
 - **Google Cloud** — project `the-travel-app-467106` (Maps Platform, Vision, TTS, Vertex service account for FCM, Gemini API).
-- **Render** — `chravel-unfurl` Docker service (OG link-preview proxy, `p.chravel.app`); a Cloudflare Worker exists as an alternate deploy target for the same code.
+- **Render** — `chravel-unfurl` Docker service serves `p.chravel.app` in production (confirmed 2026-07-20: DNS CNAMEs to `chravel-unfurl-s58a.onrender.com`, fronted by Render's Cloudflare CDN edge). A Cloudflare Worker build of the same code exists as a dormant portable alternate (`unfurl/wrangler.toml`) — it is **not** deployed.
 - **GitHub Pages** — internal codebase atlas only (no customer data).
 - **Domains** — `chravel.app` (product), `chravelapp.com` (marketing redirect), `cdn.chravel.app`, `p.chravel.app`.
 
@@ -123,8 +123,11 @@ No Python services, no GraphQL, no traditional application server.
 
 ## Appendix: Known Discrepancies (keep honest for audits)
 
-1. **Mixpanel and Google Analytics** appear in env templates (`VITE_MIXPANEL_TOKEN`, `VITE_GA_MEASUREMENT_ID`) but are **not wired** in the shipped app — do not list them as active vendors unless that changes.
-2. **Native mobile pipeline** lives in the separate `chravel-mobile` repo; `ios-release.yml` describes it as Expo/EAS while `CLAUDE.md` says Capacitor — confirm the current wrapper before stating it in an audit.
-3. **Node version drift:** `engines` ≥ 20, `.nvmrc` 22, CI 20.19.0, Render 22 — normalize when convenient.
-4. **Dual OG-unfurl targets** (Render Docker + Cloudflare Worker) exist for the same service — confirm which serves `p.chravel.app` in production.
-5. **Edge functions load dependencies from deno.land/esm.sh at runtime** — relevant to supply-chain questions; pinning is via versioned import URLs.
+1. **Native mobile pipeline** lives in the separate `chravel-mobile` repo; `ios-release.yml` describes it as Expo/EAS while `CLAUDE.md` says Capacitor — confirm the current wrapper before stating it in an audit.
+2. **Edge functions load dependencies from deno.land/esm.sh at runtime** — relevant to supply-chain questions; pinning is via versioned import URLs.
+
+Resolved 2026-07-20: Mixpanel and Google Analytics were never wired and their placeholders
+have been removed from the env templates and `scripts/validate-env.ts`; Node is normalized
+to 22 across `engines`, CI workflows, and Render; `p.chravel.app` is confirmed served by
+Render (DNS CNAME → `chravel-unfurl-s58a.onrender.com`), with the Cloudflare Worker as an
+undeployed alternate.
