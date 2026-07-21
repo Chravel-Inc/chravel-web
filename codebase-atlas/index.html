@@ -517,1830 +517,2100 @@
         <div class="foot" id="foot"></div>
       </main>
     </div>
-    <script id="atlas-data" type="application/json">
-      {
-        "meta": {
-          "app": "Chravel",
-          "tagline": "The AI-native operating system for group travel, touring, and events.",
-          "repo": "chravel-inc/chravel-web",
-          "branch": "claude/awesome-cori-jcmz3m",
-          "stack": [
-            "React 18 + Vite 5 (SWC) + TypeScript (strict OFF)",
-            "TanStack Query 5 (server state) + Zustand 5 (client state)",
-            "Tailwind 3 + shadcn/ui (Radix)",
-            "Supabase: Postgres + Auth + Realtime + Storage + ~96 Edge Functions (Deno)",
-            "Stripe (web) + RevenueCat (iOS) — never mixed",
-            "Gemini text via lovable-concierge (38 tools / 18 query classes) + Vertex AI Live voice",
-            "Stream Chat (GetStream) for messaging",
-            "Google Maps + Google Calendar",
-            "Capacitor 8 (web + PWA + iOS wrapper — NOT React Native)",
-            "Sentry + PostHog; Vercel (frontend) + Render (OG unfurl proxy)"
-          ],
-          "sources": [
-            "SYSTEM_MAP.md (subsystem topology, 2026-03-16)",
-            "tech_debt_report.md (debt inventory + bundle ROI)",
-            "knip_output.txt (dead-code scan)",
-            "CLAUDE.md, AUDIT_INDEX.md, DEBUG_PATTERNS.md, LESSONS.md, TEST_GAPS.md",
-            "eslint.config.js (encoded deprecation rules)",
-            "Static analysis: file counts, LOC ranking, import graph, live knip scan (2026-06-22 refresh)",
-            "AHS remediation commits through 2026-05-30 (export/import hardening, lazy chart/export boundaries, edge secret defaults)",
-            "App Store readiness pass through 2026-06-04 (UGC block UI, iOS billing steering, signup terms, dead-scaffold + dead AASA endpoint removal)"
-          ],
-          "stats": {
-            "Source files (.ts/.tsx)": 1180,
-            "React components": 354,
-            "Custom hooks": 152,
-            "Service modules": 140,
-            "Route pages": 39,
-            "Feature modules": 7,
-            "Test files": 352,
-            "Supabase edge functions": 97,
-            "DB migrations": 419
-          },
-          "generated": "2026-06-22",
-          "commit": "fd16b41",
-          "commitUrl": "https://github.com/chravel-inc/chravel-web/commit/fd16b41",
-          "metrics": {
-            "knip": {
-              "files": 210,
-              "deps": 0,
-              "devDeps": 0,
-              "exports": 386,
-              "types": 433
-            },
-            "bundle": [
-              {
-                "name": "exceljs",
-                "kb": 917,
-                "gzipKb": 265
-              },
-              {
-                "name": "pdf",
-                "kb": 610,
-                "gzipKb": 182
-              },
-              {
-                "name": "native",
-                "kb": 388,
-                "gzipKb": 80
-              },
-              {
-                "name": "charts",
-                "kb": 374,
-                "gzipKb": 103
-              },
-              {
-                "name": "stream-chat-B",
-                "kb": 303,
-                "gzipKb": 90
-              },
-              {
-                "name": "module",
-                "kb": 193,
-                "gzipKb": 64
-              },
-              {
-                "name": "SettingsMenu-CQu29H-K",
-                "kb": 183,
-                "gzipKb": 45
-              },
-              {
-                "name": "TripChat",
-                "kb": 175,
-                "gzipKb": 52
-              }
-            ],
-            "anyCount": 453,
-            "todoCount": 1
-          }
+    <script id="atlas-data" type="application/json">{
+  "meta": {
+    "app": "Chravel",
+    "tagline": "The AI-native operating system for group travel, touring, and events.",
+    "repo": "chravel-inc/chravel-web",
+    "branch": "claude/awesome-cori-jcmz3m",
+    "stack": [
+      "React 18 + Vite 5 (SWC) + TypeScript (strict OFF)",
+      "TanStack Query 5 (server state) + Zustand 5 (client state)",
+      "Tailwind 3 + shadcn/ui (Radix)",
+      "Supabase: Postgres + Auth + Realtime + Storage + ~96 Edge Functions (Deno)",
+      "Stripe (web) + RevenueCat (iOS) — never mixed",
+      "Gemini text via lovable-concierge (38 tools / 18 query classes) + Vertex AI Live voice",
+      "Stream Chat (GetStream) for messaging",
+      "Google Maps + Google Calendar",
+      "Capacitor 8 (web + PWA + iOS wrapper — NOT React Native)",
+      "Sentry + PostHog; Vercel (frontend) + Render (OG unfurl proxy)"
+    ],
+    "sources": [
+      "SYSTEM_MAP.md (subsystem topology, 2026-03-16)",
+      "tech_debt_report.md (debt inventory + bundle ROI)",
+      "knip_output.txt (dead-code scan)",
+      "CLAUDE.md, AUDIT_INDEX.md, DEBUG_PATTERNS.md, LESSONS.md, TEST_GAPS.md",
+      "eslint.config.js (encoded deprecation rules)",
+      "Static analysis: file counts, LOC ranking, import graph, live knip scan (2026-06-22 refresh)",
+      "AHS remediation commits through 2026-05-30 (export/import hardening, lazy chart/export boundaries, edge secret defaults)",
+      "App Store readiness pass through 2026-06-04 (UGC block UI, iOS billing steering, signup terms, dead-scaffold + dead AASA endpoint removal)"
+    ],
+    "stats": {
+      "Source files (.ts/.tsx)": 1180,
+      "React components": 354,
+      "Custom hooks": 152,
+      "Service modules": 140,
+      "Route pages": 39,
+      "Feature modules": 7,
+      "Test files": 352,
+      "Supabase edge functions": 97,
+      "DB migrations": 419
+    },
+    "generated": "2026-06-22",
+    "commit": "fd16b41",
+    "commitUrl": "https://github.com/chravel-inc/chravel-web/commit/fd16b41",
+    "metrics": {
+      "knip": {
+        "files": 210,
+        "deps": 0,
+        "devDeps": 0,
+        "exports": 386,
+        "types": 433
+      },
+      "bundle": [
+        {
+          "name": "exceljs",
+          "kb": 917,
+          "gzipKb": 265
         },
-        "scores": [
-          {
-            "key": "overall",
-            "label": "Overall Codebase Health",
-            "score": 75,
-            "rationale": "Mature, feature-complete product with strong repo memory, remediation tracking, and several recent hardening slices landed. Enterprise security/identity layer is now solid: immutable + hash-chained admin audit log, append-only security_audit_log, a DB-backed audited super_admins table, and a buyer-facing evidence packet (SECURITY_MODEL.md, ENTERPRISE_SECURITY_READINESS/AUDIT docs). Export privacy paths emit table-level manifests and hard-fail required omissions; trip PDF export membership policy is tested; file AI parsing short-circuits cached replays; Gmail imports distinguish completed/completed_partial/failed; chart and org-chart export dependencies are behind lazy/user-intent boundaries. Still pulled down by concentrated god files (Index, demoModeService, useTripTasks, useAuth, TripChat, useStreamTripChat), hundreds of production `any` usages, a large mock/demo data surface, and dead-code findings that require careful triage."
-          },
-          {
-            "key": "clarity",
-            "label": "Architecture Clarity",
-            "score": 76,
-            "rationale": "Feature-module convention (src/features/*), a single src/store/, and the new AHS-01..AHS-19 remediation registry make the critical path clearer. Recent extraction of chart panels, export manifest policy, trip export authorization policy, file-parser idempotency helpers, and Gmail terminal-status policy moved several rules out of long handlers/components. Clarity is still weakened by a 350+ component src/components/ surface, mock/demo data living near service code, and several 1k+ LOC route/hook/chat modules that still mix orchestration, data shaping, and UI."
-          },
-          {
-            "key": "maintainability",
-            "label": "Maintainability",
-            "score": 63,
-            "rationale": "Maintainability improved from focused policy extraction and tests: export-user-data manifest logic, export-trip authorization/default sections, file-ai-parser idempotency, and Gmail terminal status now live in small tested helpers. The main drag remains unchanged and has grown slightly: Index.tsx (~1.5k), demoModeService.ts (~1.3k), useTripTasks.ts (~1.3k), useAuth.tsx (~1.3k), TripChat.tsx (~1.3k), useStreamTripChat.ts, plus two newer 1k+ LOC entrants — src/lib/blog.ts (~1.5k, static blog-content registry) and src/utils/exportPdfClient.ts (~1.2k, jsPDF client export) — alongside generated Supabase types (5.8k) and large mock datasets. Production `any` usage has crept from ~390 to ~450 and the baseline ESLint warning count still adds daily DX drag."
-          },
-          {
-            "key": "scalability",
-            "label": "Scalability",
-            "score": 75,
-            "rationale": "Supabase + edge functions + RLS remain horizontally scalable, and recent client changes moved Recharts chart panels and html2canvas org-chart export behind lazy/user-intent boundaries. The bundle ceiling is still real: exceljs, pdf/jsPDF/html2canvas, native, stream-chat, and chart chunks remain large, and Stream/client boot plus spreadsheet import parsing still need tighter intent boundaries and CI budgets for mobile first-paint protection."
-          },
-          {
-            "key": "security",
-            "label": "Security / Posture",
-            "score": 87,
-            "rationale": "Security posture improved materially. Tenant/identity layer is now hardened end-to-end: admin_audit_logs is append-only (UPDATE/DELETE/TRUNCATE blocked for all roles incl. service_role) AND tamper-evident via a sha256 hash chain (prev_hash/event_hash ordered by a monotonic seq, with verify_admin_audit_chain()); security_audit_log is append-only and now actually written to (the _shared/security.ts logSecurityEvent helper previously inserted nonexistent columns and silently no-opped — fixed); super-admin access moved from a hardcoded email allowlist to a DB-backed super_admins table with grant/revoke functions and an audit trail; capability-token issuance (Stream/LiveKit) is audit-logged via a shared logSecurityEvent helper; trip-membership checks in edge functions are centralized in _shared/verifyTripMembership.ts (canonical is_trip_member RPC). Earlier slices still hold: export manifests fail closed, trip-export auth is tested, file-ai-parser is idempotent, Gmail terminal states persist. Buyer-facing evidence now exists (SECURITY_MODEL.md, docs/ENTERPRISE_SECURITY_READINESS.md, docs/ENTERPRISE_SECURITY_AUDIT_2026-06.md). Remaining risks: external WORM audit-log sink not yet built (in-DB tamper-evidence only), service-role seed functions, live Supabase integration coverage for role matrices, and continued RLS-drift vigilance."
-          },
-          {
-            "key": "tests",
-            "label": "Test Coverage Confidence",
-            "score": 62,
-            "rationale": "Test confidence improved with new focused Vitest coverage for edge-function secret defaults, export manifests, trip export authorization/default sections, file parser idempotency helpers, and Gmail import terminal status. Coverage remains broad but thin on the highest-risk live paths: chat reconnect/backfill, read-receipt write amplification, export/import live Supabase row-count/replay tests, calendar-sync idempotency, DB-level concurrency, and authenticated Stream/Gmail staging E2E."
-          },
-          {
-            "key": "deadcode",
-            "label": "Dead Code Risk (higher = worse)",
-            "score": 56,
-            "rationale": "Dead-code risk improved modestly: the App Store readiness pass removed dead scaffold and a dead AASA endpoint, the live knip scan now reports 0 unused dependencies (down from 8) and unused files fell from 285 to 210, and no new scratch cleanup scripts were introduced. But no large knip triage batch of unused exports/types has landed — knip still reports ~210 unused files, 386 unused exports, and 433 unused exported types, with many likely false positives from Vercel API routes, Remotion compositions, and scripts. claude-progress.txt is an intentional agent breadcrumb file, not a scratch artifact. Risk stays elevated until export/type findings are classified and deleted/kept in batches."
-          }
-        ],
-        "executive": {
-          "whatItDoes": "Chravel is a collaborative trip-planning and coordination platform. A group creates a trip, then chats, splits expenses, syncs calendars, uploads media, imports reservations from email/PDF, and asks an AI concierge to plan and book — across web, installable PWA, and an iOS app that wraps the same web code.",
-          "whoItServes": [
-            "Consumer travel groups (friends, family) — open, collaborative permissions",
-            "Pro / touring \u0026 business coordinators — role-based permissions",
-            "Large-event organizers (conferences, weddings, festivals) — organizer-controlled"
-          ],
-          "primaryFlows": [
-            "Sign up / log in (Supabase Auth, email + Google OAuth) and hydrate session",
-            "Create a trip, invite members, resolve role/tier",
-            "Group chat + channels + broadcasts (Stream + Supabase Realtime)",
-            "Split expenses / manage subscriptions (Stripe web, RevenueCat iOS)",
-            "Ask the AI Concierge to plan, recommend, or take actions (text + voice)",
-            "Sync Google Calendar; import reservations via Smart Import"
-          ],
-          "majorSystems": [
-            "Auth \u0026 Session",
-            "Trips \u0026 Membership",
-            "Unified Messaging",
-            "AI Concierge (text+voice)",
-            "Calendar \u0026 Events",
-            "Payments \u0026 Subscriptions",
-            "Smart Import",
-            "Media \u0026 Storage",
-            "Maps \u0026 Places",
-            "Notifications \u0026 Realtime",
-            "Organizations (B2B)",
-            "Permissions \u0026 Roles"
-          ],
-          "highestLeverage": [
-            "src/integrations/supabase/client.ts — the single data gateway every read/write flows through",
-            "src/hooks/useAuth.tsx — gates the entire critical path; a bug here cascades everywhere",
-            "src/services/* (140 modules) — the de-facto API layer between UI and Supabase",
-            "supabase RLS policies (756) — the real security boundary, not the client",
-            "is_super_admin() + super_admins table — server-side privilege source of truth (gates audit-log reads and internal-admin routes)",
-            "admin_audit_logs (append-only + hash-chained) — tamper-evident record of every privileged action",
-            "src/lib/queryKeys.ts — cache-invalidation contract for all server state"
-          ],
-          "topRisks": [
-            "Auth hydration race → 'Trip Not Found' flash (the #1 documented regression)",
-            "Chat message loss on WebSocket reconnect (no replay/backfill in some paths)",
-            "Client-side permission checks diverging from RLS (privilege-escalation surface)",
-            "God files (Index.tsx, useTripTasks, useAuth, TripChat) concentrate risk and merge conflicts",
-            "Bundle weight (exceljs/pdf/charts/native chunks) degrades mobile first paint"
-          ],
-          "topCleanups": [
-            "Triage the 210 knip-flagged unused files — delete confirmed-dead, label framework entry points (api/, remotion/, scripts/) as Future/Unclear",
-            "Delete confirmed-dead exports/types after manual verification (knip: 386 exports, 433 types)",
-            "Reduce ~450 `any` usages at Supabase boundaries by adopting generated Database types",
-            "Lazy-load heavy chunks (exceljs, pdf/jsPDF via exportPdfClient.ts, recharts/charts, native) per tech_debt_report",
-            "Split static content god files (src/lib/blog.ts ~1.5k, mock datasets) out of the logic bundle"
-          ],
-          "topMissing": [
-            "Tests for chat reconnect/backfill, read receipts, and integration idempotency (TEST_GAPS.md)",
-            "Strong typing at boundaries — ~450 `any` usages remain",
-            "State machine for Smart Import (partial-import rollback / UX surfacing)",
-            "Bundle/code-split discipline enforced in CI",
-            "A single canonical mock/demo-data boundary separate from live service code"
-          ]
+        {
+          "name": "pdf",
+          "kb": 610,
+          "gzipKb": 182
         },
-        "systemMap": [
-          {
-            "id": "auth",
-            "name": "Authentication \u0026 Session",
-            "color": "blue",
-            "risk": "Medium",
-            "quality": 72,
-            "purpose": "Session hydration, user identity, role resolution. Gates everything downstream.",
-            "keyFiles": ["src/hooks/useAuth.tsx", "src/integrations/supabase/client.ts"],
-            "deps": ["Supabase Auth"],
-            "upstream": "—",
-            "downstream": "All subsystems",
-            "actions": [
-              "Split useAuth.tsx (1,307 LOC) into session/identity/role hooks",
-              "Add explicit hydrated-before-fetch guard tests"
-            ],
-            "failureModes": "Hydration race → Trip Not Found flash; token refresh failure; demo/auth crossover"
-          },
-          {
-            "id": "trips",
-            "name": "Trip Management \u0026 Membership",
-            "color": "blue",
-            "risk": "Medium",
-            "quality": 78,
-            "purpose": "Trip CRUD, members, invites, archival. Trip context gates most features.",
-            "keyFiles": [
-              "src/hooks/useTrips.ts",
-              "src/hooks/useTripMembers.ts",
-              "src/services/tripService.ts"
-            ],
-            "deps": ["Supabase (trips, trip_members)"],
-            "upstream": "Auth",
-            "downstream": "Chat, Payments, Calendar, Media, Concierge",
-            "actions": [
-              "Ensure existence vs membership checks are distinct (RLS + hook)",
-              "Cover status/archival drift with tests"
-            ],
-            "failureModes": "Access without membership; status drift; invite expiry"
-          },
-          {
-            "id": "chat",
-            "name": "Unified Messaging (Chat / Channels / Broadcasts)",
-            "color": "orange",
-            "risk": "High",
-            "quality": 64,
-            "purpose": "Trip chat, role channels, broadcasts, threads, reactions, read receipts.",
-            "keyFiles": [
-              "src/features/chat/components/TripChat.tsx",
-              "src/hooks/stream/useStreamTripChat.ts",
-              "src/services/unifiedMessagingService.ts",
-              "src/services/channelService.ts"
-            ],
-            "deps": ["Stream Chat", "Supabase Realtime"],
-            "upstream": "Trips",
-            "downstream": "Notifications",
-            "actions": [
-              "Add reconnect backfill + tests",
-              "Decompose TripChat.tsx (1,262 LOC)",
-              "Honor eslint ban on legacy chatService in Stream surfaces"
-            ],
-            "failureModes": "Message loss on reconnect; read-receipt write amplification; reaction refetch storm"
-          },
-          {
-            "id": "concierge",
-            "name": "AI Concierge (Text + Voice)",
-            "color": "purple",
-            "risk": "High",
-            "quality": 58,
-            "purpose": "Gemini-powered assistant; text chat + Gemini Live voice; tool-calling that can mutate trip data.",
-            "keyFiles": [
-              "src/components/AIConciergeChat.tsx",
-              "src/hooks/useGeminiLive.ts",
-              "src/hooks/useVoiceToolHandler.ts",
-              "src/services/conciergeGateway.ts",
-              "src/features/concierge/hooks/useConciergeStreaming.ts"
-            ],
-            "deps": ["Gemini / Vertex AI Live"],
-            "upstream": "Trips",
-            "downstream": "Chat, Calendar, Payments (via pending actions)",
-            "actions": [
-              "Keep AIConciergeChat.tsx modular (now ~510 LOC, decomposed from ~2.5k)",
-              "Keep tool declarations single-source (toolRegistry.ts)",
-              "Route all writes through pending-actions buffer"
-            ],
-            "failureModes": "Prompt injection; tool-call hallucination writing shared state; voice WebSocket drop; audio stuck after session end"
-          },
-          {
-            "id": "calendar",
-            "name": "Calendar \u0026 Events",
-            "color": "green",
-            "risk": "Medium",
-            "quality": 76,
-            "purpose": "Google Calendar bi-directional sync, event CRUD, RSVP, reminders.",
-            "keyFiles": [
-              "src/features/calendar/",
-              "src/services/calendarService.ts",
-              "supabase/functions/calendar-sync/"
-            ],
-            "deps": ["Google Calendar API"],
-            "upstream": "Trips",
-            "downstream": "Notifications",
-            "actions": [
-              "Keep sync idempotent (dedupe by external event id)",
-              "Cover sync-token expiry + recurring edge cases"
-            ],
-            "failureModes": "Sync token expiry; bi-directional conflict; duplicate events from replay; timezone/recurring edge cases"
-          },
-          {
-            "id": "payments",
-            "name": "Payments \u0026 Subscriptions",
-            "color": "orange",
-            "risk": "High",
-            "quality": 70,
-            "purpose": "Consumer/Pro subscriptions, expense splitting, payment requests, balances.",
-            "keyFiles": [
-              "src/hooks/usePayments.ts",
-              "src/hooks/useConsumerSubscription.tsx",
-              "src/integrations/revenuecat/revenuecatClient.ts",
-              "src/services/paymentService.ts"
-            ],
-            "deps": ["RevenueCat (iOS)", "Stripe (web)"],
-            "upstream": "Auth, Trips",
-            "downstream": "Org billing",
-            "actions": [
-              "Never mix SDKs per platform",
-              "Validate entitlements server-side",
-              "Model splits as state machines with optimistic locking"
-            ],
-            "failureModes": "Webhook delivery failure; SDK mismatch per platform; cache drift; client-side billing bypass attempts"
-          },
-          {
-            "id": "import",
-            "name": "Smart Import (Gmail / PDF / Artifacts)",
-            "color": "orange",
-            "risk": "Medium",
-            "quality": 60,
-            "purpose": "AI-powered import of trip data from emails, PDFs, links.",
-            "keyFiles": [
-              "src/features/smart-import/",
-              "supabase/functions/gmail-import-worker/",
-              "supabase/functions/artifact-ingest/"
-            ],
-            "deps": ["Gmail API (OAuth)", "Gemini"],
-            "upstream": "Trips",
-            "downstream": "Calendar, Media",
-            "actions": [
-              "Persist partial state on failure (never drop parsed items)",
-              "Surface import state in UX",
-              "Treat imports as state machines"
-            ],
-            "failureModes": "OAuth refresh failure; parser ambiguity → duplicates; partial import with no rollback"
-          },
-          {
-            "id": "media",
-            "name": "Media Gallery \u0026 Storage",
-            "color": "green",
-            "risk": "Low",
-            "quality": 78,
-            "purpose": "Photo/video upload, compression, AI tagging, lightbox.",
-            "keyFiles": [
-              "src/services/mediaService.ts",
-              "src/services/mediaAITagging.ts",
-              "supabase/functions/image-upload/"
-            ],
-            "deps": ["Supabase Storage", "Gemini (tagging)"],
-            "upstream": "Trips",
-            "downstream": "Chat, Notifications",
-            "actions": [
-              "Server-side validation + signed URLs + cleanup triggers",
-              "Don't silently ignore tagging errors"
-            ],
-            "failureModes": "Upload timeout; quota exceeded; compression failure; tagging errors ignored"
-          },
-          {
-            "id": "maps",
-            "name": "Maps \u0026 Places",
-            "color": "green",
-            "risk": "Low",
-            "quality": 74,
-            "purpose": "Google Maps display, place search, autocomplete, location sharing.",
-            "keyFiles": [
-              "src/services/googleMapsService.ts",
-              "src/services/googlePlacesNew.ts",
-              "src/services/googlePlacesCache.ts"
-            ],
-            "deps": ["Google Maps JS API"],
-            "upstream": "Trips",
-            "downstream": "—",
-            "actions": [
-              "Single map instance per page",
-              "Debounce drag/zoom/bounds at 300ms",
-              "Clean up listeners on unmount"
-            ],
-            "failureModes": "Multiple map instances; key rate limiting; stale cache; listener leak"
-          },
-          {
-            "id": "notifications",
-            "name": "Notifications \u0026 Realtime",
-            "color": "green",
-            "risk": "Medium",
-            "quality": 75,
-            "purpose": "Push, email, SMS, in-app alerts, read receipts, badge counts.",
-            "keyFiles": [
-              "src/services/notificationService.ts",
-              "src/hooks/useNotificationRealtime.ts",
-              "src/native/push.ts"
-            ],
-            "deps": ["Supabase Realtime", "APNS", "Resend", "Twilio"],
-            "upstream": "All emitters",
-            "downstream": "Native shell",
-            "actions": [
-              "Filter realtime channels by trip_id",
-              "Preserve dual-path dedup pattern",
-              "Backfill badge counts on reconnect"
-            ],
-            "failureModes": "Dual-path duplicate generation; badge drift; multi-device read desync; quiet-hours bypass"
-          },
-          {
-            "id": "orgs",
-            "name": "Organizations \u0026 Teams (B2B)",
-            "color": "yellow",
-            "risk": "Medium",
-            "quality": 66,
-            "purpose": "Seat-based billing, team management, org admin dashboard.",
-            "keyFiles": ["src/pages/OrganizationDashboard.tsx"],
-            "deps": ["Stripe (seat billing)"],
-            "upstream": "Auth",
-            "downstream": "Payments",
-            "actions": ["Reconcile seat count with billing", "Clarify org↔trip role inheritance"],
-            "failureModes": "Seat billing desync; role inheritance ambiguity; separate invite flow"
-          },
-          {
-            "id": "permissions",
-            "name": "Permissions \u0026 Roles",
-            "color": "blue",
-            "risk": "High",
-            "quality": 80,
-            "purpose": "Role-based access across consumer/pro/event trip types.",
-            "keyFiles": [
-              "src/hooks/useMutationPermissions.ts",
-              "src/hooks/useRolePermissions.ts",
-              "src/hooks/useEventPermissions.ts"
-            ],
-            "deps": ["Supabase RLS"],
-            "upstream": "Auth, Trips",
-            "downstream": "Every mutation",
-            "actions": [
-              "Flow roles DB → RLS → hook → UI; never trust client claims",
-              "Check trip type before granting mutation access"
-            ],
-            "failureModes": "Client checks diverging from RLS; escalation via direct API; tier gate disabling features for real trips"
-          },
-          {
-            "id": "data",
-            "name": "Data Access Layer (Supabase client + services)",
-            "color": "blue",
-            "risk": "Medium",
-            "quality": 70,
-            "purpose": "Single Supabase gateway; 140 service modules act as the API layer between UI and DB.",
-            "keyFiles": [
-              "src/integrations/supabase/client.ts",
-              "src/integrations/supabase/types.ts (5,817 LOC, generated)",
-              "src/services/"
-            ],
-            "deps": ["Supabase"],
-            "upstream": "All hooks",
-            "downstream": "Postgres + RLS",
-            "actions": [
-              "Keep all Supabase access out of JSX",
-              "Separate mock/demo data from live services",
-              "Treat types.ts as generated-only"
-            ],
-            "failureModes": "Direct JSX calls bypassing the gateway; mock/live contamination in service layer"
-          },
-          {
-            "id": "state",
-            "name": "State Management",
-            "color": "blue",
-            "risk": "Medium",
-            "quality": 68,
-            "purpose": "TanStack Query (server) + Zustand (client) + Realtime + feature flags.",
-            "keyFiles": ["src/lib/queryKeys.ts", "src/store/", "src/lib/featureFlags.ts"],
-            "deps": ["TanStack Query", "Zustand"],
-            "upstream": "—",
-            "downstream": "All UI",
-            "actions": [
-              "Centralize invalidation footprints in queryKeys",
-              "Keep client state in the single src/store/ (the duplicate src/stores/ has been removed)"
-            ],
-            "failureModes": "Ad-hoc invalidation drift across query keys"
-          },
-          {
-            "id": "mobile",
-            "name": "Mobile / PWA / Native (Capacitor)",
-            "color": "purple",
-            "risk": "Medium",
-            "quality": 70,
-            "purpose": "Same web app wrapped via Capacitor 8 for iOS + installable PWA; platform-conditional code.",
-            "keyFiles": [
-              "src/platform/",
-              "src/native/",
-              "src/offline/",
-              "public/sw.js",
-              "scripts/build-sw.cjs"
-            ],
-            "deps": ["Capacitor 8", "Workbox"],
-            "upstream": "Web app",
-            "downstream": "App Store / device",
-            "actions": ["Keep web/PWA/native parity", "Lazy-load native plugins on web"],
-            "failureModes": "Native plugins eagerly imported on web; PWA/native layout drift"
-          },
-          {
-            "id": "backend",
-            "name": "Edge Functions \u0026 Migrations",
-            "color": "blue",
-            "risk": "Medium",
-            "quality": 72,
-            "purpose": "97 Deno edge functions (AI, webhooks, imports, notifications, auth-gated mutations) + 419 SQL migrations.",
-            "keyFiles": [
-              "supabase/functions/ (97 dirs)",
-              "supabase/functions/_shared/requireAuth.ts",
-              "supabase/migrations/ (419)"
-            ],
-            "deps": ["Supabase", "external APIs"],
-            "upstream": "Frontend + webhooks",
-            "downstream": "Postgres",
-            "actions": [
-              "requireSecrets() at startup",
-              "Two-phase destructive migrations",
-              "lint-migrations clean"
-            ],
-            "failureModes": "Missing-secret fail-open; webhook auth gaps; migration drift"
-          }
-        ],
-        "files": [
-          {
-            "path": "src/integrations/supabase/client.ts",
-            "badges": ["Core", "Database", "Well Designed"],
-            "color": "blue",
-            "plain": "The one doorway to the database and login. Every read and write goes through here.",
-            "tech": "Supabase singleton client; the only sanctioned data gateway (CLAUDE.md forbids Supabase calls in JSX).",
-            "exports": "supabase client",
-            "importedBy": "Nearly all hooks \u0026 services",
-            "risk": "High blast radius if changed",
-            "confidence": "High",
-            "action": "keep / protect with tests"
-          },
-          {
-            "path": "src/hooks/useAuth.tsx",
-            "badges": ["Core", "Auth", "Risky", "Needs Tests"],
-            "color": "orange",
-            "plain": "Controls who is logged in and what they can do. The most safety-critical file in the app.",
-            "tech": "1,307 LOC auth/session/role hook. Gates the entire critical path; hydration timing here causes the Trip-Not-Found flash.",
-            "exports": "useAuth, AuthProvider",
-            "importedBy": "App shell + every gated route",
-            "risk": "Highest — auth desync cascades",
-            "confidence": "High",
-            "action": "refactor (split) + add hydration tests"
-          },
-          {
-            "path": "src/components/AIConciergeChat.tsx",
-            "badges": ["Feature", "AI", "Well Designed"],
-            "color": "green",
-            "plain": "The AI assistant's chat screen. Recently slimmed down so it's far easier to change safely.",
-            "tech": "~510 LOC — decomposed from the ~2,500-LOC 'god component' that was tech_debt_report.md #1. That top maintainability risk is now resolved; logic extracted into hooks/sub-components.",
-            "exports": "AIConciergeChat",
-            "importedBy": "Concierge routes/panels",
-            "risk": "Low",
-            "confidence": "High",
-            "action": "keep modular — guard against re-accreting responsibilities"
-          },
-          {
-            "path": "src/features/chat/components/TripChat.tsx",
-            "badges": ["Feature", "UI", "Risky"],
-            "color": "orange",
-            "plain": "The trip chat screen. Big and re-renders more than it should.",
-            "tech": "1,262 LOC; tech_debt_report flags over-fetching/memoization. Stream-enabled surface (eslint bans legacy chatService import).",
-            "exports": "TripChat",
-            "importedBy": "Trip detail surfaces",
-            "risk": "Medium-High",
-            "confidence": "High",
-            "action": "refactor — split render fns \u0026 filter tabs"
-          },
-          {
-            "path": "src/hooks/stream/useStreamTripChat.ts",
-            "badges": ["Feature", "State", "Needs Tests"],
-            "color": "yellow",
-            "plain": "Wires the chat to the Stream messaging service.",
-            "tech": "1,202 LOC transport hook for Stream Chat; reconnect/backfill correctness is critical (TEST_GAPS.md).",
-            "exports": "useStreamTripChat",
-            "importedBy": "Chat components",
-            "risk": "Medium-High",
-            "confidence": "High",
-            "action": "add reconnect/backfill tests"
-          },
-          {
-            "path": "src/services/demoModeService.ts",
-            "badges": ["Utility", "Risky"],
-            "color": "orange",
-            "plain": "Generates fake 'demo' data. Risk of demo data leaking into real trips.",
-            "tech": "1,313 LOC; tech_debt_report flags unclear mock/live isolation. Demo-mode contamination is a zero-tolerance regression.",
-            "exports": "demo data builders",
-            "importedBy": "Demo flows + some services",
-            "risk": "High (contamination)",
-            "confidence": "High",
-            "action": "isolate behind a hard boundary; test no-leak invariant"
-          },
-          {
-            "path": "src/services/tripSpecificMockDataService.ts",
-            "badges": ["Utility", "Legacy"],
-            "color": "yellow",
-            "plain": "Large bank of trip mock data.",
-            "tech": "1,611 LOC of mock data inside the service layer (should not sit beside live services).",
-            "exports": "mock datasets",
-            "importedBy": "Demo/dev surfaces",
-            "risk": "Medium",
-            "confidence": "High",
-            "action": "move to src/mockData/, gate behind dev/demo flag"
-          },
-          {
-            "path": "src/integrations/supabase/types.ts",
-            "badges": ["Database", "Config"],
-            "color": "gray",
-            "plain": "Auto-generated description of the database shape.",
-            "tech": "5,817 LOC generated types. tech_debt_report warns it may contain manual edits/bloat.",
-            "exports": "Database types",
-            "importedBy": "Typed queries everywhere",
-            "risk": "Low (if generated-only)",
-            "confidence": "Medium",
-            "action": "verify generated-only; never hand-edit"
-          },
-          {
-            "path": "src/services/tripContextAggregator.ts",
-            "badges": ["Core", "Well Designed"],
-            "color": "green",
-            "plain": "The approved single source for assembling a trip's context for the AI.",
-            "tech": "Canonical replacement for the deprecated enhancedTripContextService (enforced via eslint no-restricted-imports).",
-            "exports": "TripContextAggregator",
-            "importedBy": "Concierge context builders",
-            "risk": "Low",
-            "confidence": "High",
-            "action": "keep — reference implementation"
-          },
-          {
-            "path": "src/services/enhancedTripContextService",
-            "badges": ["Legacy", "Suspected Dead"],
-            "color": "red",
-            "plain": "Old version of the trip-context builder, officially retired.",
-            "tech": "Deprecated; eslint blocks all import paths to it in favor of TripContextAggregator.",
-            "exports": "(deprecated)",
-            "importedBy": "Should be none",
-            "risk": "Low to remove (verify)",
-            "confidence": "High",
-            "action": "investigate then delete"
-          },
-          {
-            "path": "src/lib/queryKeys.ts",
-            "badges": ["Core", "State", "Well Designed"],
-            "color": "blue",
-            "plain": "Naming system for cached data so updates refresh the right screens.",
-            "tech": "TanStack Query cache-key factory; the invalidation contract for server state.",
-            "exports": "queryKeys",
-            "importedBy": "Query/mutation hooks",
-            "risk": "Medium blast radius",
-            "confidence": "High",
-            "action": "keep; route all invalidation through it"
-          },
-          {
-            "path": "src/pages/Index.tsx",
-            "badges": ["UI", "Risky"],
-            "color": "yellow",
-            "plain": "The landing/home page — heavy for a first screen.",
-            "tech": "1,529 LOC; tech_debt_report flags it as too heavy for first paint (~260K chunk).",
-            "exports": "Index page",
-            "importedBy": "Router",
-            "risk": "Medium (perf)",
-            "confidence": "High",
-            "action": "code-split / lazy sections"
-          },
-          {
-            "path": "src/lib/blog.ts",
-            "badges": ["Utility", "Config"],
-            "color": "gray",
-            "plain": "The marketing blog's content, stored as data — not real program logic.",
-            "tech": "1,475 LOC static BlogPost registry (source of truth for /blog and /blog/:slug). Data-heavy, low logic; large but inert. New entrant to the god-file list since the last refresh.",
-            "exports": "blog posts + types",
-            "importedBy": "Blog index/post pages",
-            "risk": "Low (static content)",
-            "confidence": "High",
-            "action": "consider per-post files or MDX so the logic bundle stays lean"
-          },
-          {
-            "path": "src/utils/exportPdfClient.ts",
-            "badges": ["Utility", "Risky"],
-            "color": "yellow",
-            "plain": "Generates trip PDFs in the browser when the server export isn't available.",
-            "tech": "1,152 LOC client-side jsPDF fallback (file-level eslint-disable for no-explicit-any). New 1k+ entrant; pulls jsPDF/autotable into the bundle — a lazy-load + decomposition candidate.",
-            "exports": "client PDF export helpers",
-            "importedBy": "Trip export surfaces",
-            "risk": "Medium (bundle weight + any usage)",
-            "confidence": "High",
-            "action": "lazy-load on export intent; split helpers; type the any surfaces"
-          },
-          {
-            "path": "patch_tripchat*.py / resolver3.js / output.md / claude-progress.txt",
-            "badges": ["Legacy"],
-            "color": "green",
-            "plain": "Stray helper/scratch files that used to sit in the project root — now removed.",
-            "tech": "Resolved: the Python patch scripts (in a declared 'No Python' repo) plus scratch JS/markdown at root have been deleted from the tree.",
-            "exports": "—",
-            "importedBy": "None",
-            "risk": "—",
-            "confidence": "High",
-            "action": "done — removed"
-          }
-        ],
-        "dependencies": {
-          "notes": "Coupling concentrates in three places: the Supabase client (imported almost everywhere — intentional gateway), the service layer (140 modules acting as the API), and a handful of god files. No formal cycle scan was run this session; treat cycle claims as Low confidence pending a madge/dpdm run.",
-          "hubs": [
-            {
-              "path": "src/integrations/supabase/client.ts",
-              "role": "Data gateway — highest fan-in (by design)"
-            },
-            {
-              "path": "src/lib/queryKeys.ts",
-              "role": "Cache-key hub for all server state"
-            },
-            {
-              "path": "src/integrations/supabase/types.ts",
-              "role": "Type hub for all typed queries"
-            }
-          ],
-          "orphansNote": "knip lists current knip 'unused files', but many are framework entry points it cannot resolve: Vercel api/*.ts, Remotion compositions under remotion/, and scripts/*. These are Future/Unclear, not confirmed dead. Verify per-file before any deletion.",
-          "godFileNotes": {
-            "src/mockData/polls.ts": "Large static mock dataset — dev/demo only, gate out of prod bundles",
-            "src/lib/blog.ts": "Static blog-content registry (1.5k LOC of data, not logic) — split per-post/MDX to keep the logic bundle lean",
-            "src/utils/exportPdfClient.ts": "Client-side jsPDF export fallback — lazy-load on export intent; decomposition + any-typing candidate",
-            "src/services/tripSpecificMockDataService.ts": "Giant mock dataset in service layer",
-            "src/pages/Index.tsx": "Heavy landing/route page — decomposition candidate",
-            "src/hooks/useAuth.tsx": "Auth + session + roles in one hook",
-            "src/services/demoModeService.ts": "Demo data generation, contamination risk",
-            "src/hooks/useTripTasks.ts": "Task logic concentration",
-            "src/features/chat/components/TripChat.tsx": "Chat screen doing too much",
-            "src/hooks/stream/useStreamTripChat.ts": "Stream transport + state"
-          },
-          "godFiles": [
-            {
-              "path": "src/integrations/supabase/types.ts",
-              "loc": 5818,
-              "why": "Generated types (5818 LOC) — keep generated-only, do not hand-edit"
-            },
-            {
-              "path": "src/mockData/polls.ts",
-              "loc": 3150,
-              "why": "Large static mock dataset — dev/demo only, gate out of prod bundles"
-            },
-            {
-              "path": "src/services/tripSpecificMockDataService.ts",
-              "loc": 1612,
-              "why": "Giant mock dataset in service layer"
-            },
-            {
-              "path": "src/pages/Index.tsx",
-              "loc": 1530,
-              "why": "Heavy landing/route page — decomposition candidate"
-            },
-            {
-              "path": "src/lib/blog.ts",
-              "loc": 1476,
-              "why": "Static blog-content registry (1.5k LOC of data, not logic) — split per-post/MDX to keep the logic bundle lean"
-            },
-            {
-              "path": "src/services/demoModeService.ts",
-              "loc": 1314,
-              "why": "Demo data generation, contamination risk"
-            },
-            {
-              "path": "src/hooks/useAuth.tsx",
-              "loc": 1308,
-              "why": "Auth + session + roles in one hook"
-            },
-            {
-              "path": "src/hooks/useTripTasks.ts",
-              "loc": 1288,
-              "why": "Task logic concentration"
-            },
-            {
-              "path": "src/features/chat/components/TripChat.tsx",
-              "loc": 1263,
-              "why": "Chat screen doing too much"
-            },
-            {
-              "path": "src/hooks/stream/useStreamTripChat.ts",
-              "loc": 1203,
-              "why": "Stream transport + state"
-            }
-          ]
+        {
+          "name": "native",
+          "kb": 388,
+          "gzipKb": 80
         },
-        "features": [
-          {
-            "name": "Trips \u0026 Membership",
-            "color": "blue",
-            "completeness": 92,
-            "plain": "Create trips, invite people, manage who's in.",
-            "screens": ["TripDetail / MobileTripDetail", "ProTripDetail", "EventDetail"],
-            "backend": [
-              "trips, trip_members tables",
-              "tripService",
-              "trip_membership_audit_events"
-            ],
-            "state": ["useTrips", "useTripMembers"],
-            "external": ["Supabase"],
-            "missingStates": ["invite-expiry edge cases"],
-            "risks": [],
-            "fixes": ["DONE: membership state machine + access-guard tests (existence != access)"]
-          },
-          {
-            "name": "Unified Messaging",
-            "color": "orange",
-            "completeness": 92,
-            "plain": "Group chat, channels, and broadcasts.",
-            "screens": ["TripChat", "channel views"],
-            "backend": ["Stream Chat", "trip_chat_messages", "Supabase Realtime"],
-            "state": ["useStreamTripChat", "unifiedMessagingService"],
-            "external": ["Stream (GetStream)"],
-            "missingStates": [],
-            "risks": [],
-            "fixes": [
-              "DONE: backfillMissedMessages on reconnect/visibility + reconnect tests; offline queue via Stream SDK + idempotency keys"
-            ]
-          },
-          {
-            "name": "AI Concierge",
-            "color": "purple",
-            "completeness": 90,
-            "plain": "AI helper that plans trips and can take actions, by text or voice.",
-            "screens": ["AIConciergeChat", "voice UI"],
-            "backend": ["conciergeGateway", "ai_queries", "Gemini/Vertex"],
-            "state": ["useConciergeStreaming", "useConciergeVoice", "useWebSpeechVoice"],
-            "external": ["Gemini", "Vertex AI Live"],
-            "missingStates": [
-              "full-duplex Gemini Live voice not yet client-wired (dictation path only)"
-            ],
-            "risks": ["prompt injection (mitigated: tool writes gated by pending-actions buffer)"],
-            "fixes": [
-              "DONE: pending-actions buffer covers every write tool (coverage test) + AIConciergeChat decomposed (~507 LOC) + dictation lifecycle cleanup; TODO: wire full-duplex voice over LiveKit"
-            ]
-          },
-          {
-            "name": "Payments \u0026 Subscriptions",
-            "color": "orange",
-            "completeness": 90,
-            "plain": "Subscriptions and splitting costs.",
-            "screens": ["billing/", "paywall"],
-            "backend": ["paymentService", "user_entitlements", "billing_webhook_ops_dashboard"],
-            "state": ["usePayments", "useConsumerSubscription"],
-            "external": ["Stripe (web)", "RevenueCat (iOS)"],
-            "missingStates": [],
-            "risks": ["platform SDK boundary (Stripe web / RevenueCat iOS) must not mix"],
-            "fixes": [
-              "DONE: server-side entitlement (user_entitlements source of truth) + ops-layer webhook failure surfacing (failures table + dashboard view + replay script); TODO: richer split state machine (pending/confirmed/settled per participant)"
-            ]
-          },
-          {
-            "name": "Calendar \u0026 Events",
-            "color": "green",
-            "completeness": 90,
-            "plain": "Shared calendar that syncs with Google.",
-            "screens": ["calendar/"],
-            "backend": ["calendarSyncService", "calendar_event_mappings", "trip_events"],
-            "state": ["calendar hooks"],
-            "external": ["Google Calendar"],
-            "missingStates": ["mount Google sync UI (reauth_required state ready, not yet wired)"],
-            "risks": [],
-            "fixes": [
-              "DONE: idempotent dedupe by immutable external-id correlation (calendar_event_mappings, tested) + sync-token-expiry reauth UX state"
-            ]
-          },
-          {
-            "name": "Smart Import",
-            "color": "orange",
-            "completeness": 90,
-            "plain": "Pulls reservations out of emails and PDFs automatically.",
-            "screens": ["smart-import/"],
-            "backend": ["gmail-import-worker", "gmail_import_artifacts", "durable checkpoints"],
-            "state": ["useArtifactIngest"],
-            "external": ["Gmail", "Gemini"],
-            "missingStates": ["progress-phase indicator on PDF/URL path (Gmail path done)"],
-            "risks": [],
-            "fixes": [
-              "DONE: checkpoint state machine + durable checkpoints + per-artifact apply_status (partial-state/rollback) + fingerprint dedupe + ImportPhaseIndicator progress UX (Gmail)"
-            ]
-          },
-          {
-            "name": "Media Gallery",
-            "color": "green",
-            "completeness": 90,
-            "plain": "Upload and view trip photos/videos.",
-            "screens": ["media/"],
-            "backend": ["mediaService", "image-upload edge fn", "Supabase Storage"],
-            "state": ["media hooks", "useStorageQuota"],
-            "external": ["Supabase Storage", "Gemini tagging"],
-            "missingStates": [],
-            "risks": ["Gemini auto-tagging is best-effort (failures are non-blocking)"],
-            "fixes": [
-              "DONE: orphan-variant cleanup function + quota-exceeded upload guard (blocks before silent failure, tested)"
-            ]
-          },
-          {
-            "name": "Notifications",
-            "color": "green",
-            "completeness": 92,
-            "plain": "Push, email, SMS, and in-app alerts.",
-            "screens": ["notifications/"],
-            "backend": ["notificationService", "notifications table", "notification_deliveries"],
-            "state": ["useNotificationRealtime", "notificationRealtimeStore"],
-            "external": ["APNS", "Resend", "Twilio"],
-            "missingStates": [],
-            "risks": [],
-            "fixes": [
-              "DONE: race-safe dedupe (stream_message_id unique index) + badge reconcile on reconnect; per-user channel scoping is correct for the global feed (documented in useNotificationRealtime)"
-            ]
-          }
-        ],
-        "flows": [
-          {
-            "name": "Sign up / Log in",
-            "steps": [
-              {
-                "layer": "Entry",
-                "detail": "Auth page → Supabase Auth (email / Google OAuth)"
-              },
-              {
-                "layer": "State",
-                "detail": "useAuth hydrates session + role"
-              },
-              {
-                "layer": "Guard",
-                "detail": "Routes wait for hydrated session before fetching"
-              }
-            ],
-            "failurePoints": ["Fetch fires before hydration → Trip Not Found flash"],
-            "risks": ["Token refresh failure", "demo/auth crossover"]
-          },
-          {
-            "name": "Open a trip",
-            "steps": [
-              {
-                "layer": "Entry",
-                "detail": "Route /trip/:id"
-              },
-              {
-                "layer": "Hook",
-                "detail": "useTrips / useTripMembers"
-              },
-              {
-                "layer": "Data",
-                "detail": "supabase client → trips + trip_members (RLS)"
-              },
-              {
-                "layer": "Render",
-                "detail": "TripDetail / MobileTripDetail"
-              }
-            ],
-            "failurePoints": ["Existence ≠ access: must check membership, not just row exists"],
-            "risks": ["RLS gap leaks data", "loading vs not-found conflation"]
-          },
-          {
-            "name": "Send a chat message",
-            "steps": [
-              {
-                "layer": "Entry",
-                "detail": "TripChat composer"
-              },
-              {
-                "layer": "Transport",
-                "detail": "useStreamTripChat → Stream channel.sendMessage"
-              },
-              {
-                "layer": "Realtime",
-                "detail": "Supabase Realtime for system messages, filtered by trip_id"
-              }
-            ],
-            "failurePoints": ["WebSocket reconnect without backfill loses messages"],
-            "risks": ["Read-receipt write amplification", "reaction refetch storm"]
-          },
-          {
-            "name": "AI Concierge action",
-            "steps": [
-              {
-                "layer": "Entry",
-                "detail": "AIConciergeChat / voice"
-              },
-              {
-                "layer": "Gateway",
-                "detail": "conciergeGateway selects tools via queryClassifier"
-              },
-              {
-                "layer": "Buffer",
-                "detail": "Writes go to trip_pending_actions (confirm card)"
-              },
-              {
-                "layer": "Commit",
-                "detail": "Confirm handler applies through normal mutation path"
-              }
-            ],
-            "failurePoints": [
-              "Missing confirm-handler case → confirm appears to work but writes nothing"
-            ],
-            "risks": ["Tool hallucination", "prompt injection", "5-file tool sync missed"]
-          },
-          {
-            "name": "Subscribe / pay",
-            "steps": [
-              {
-                "layer": "Entry",
-                "detail": "Paywall / billing"
-              },
-              {
-                "layer": "SDK",
-                "detail": "Stripe (web) OR RevenueCat (iOS) — never both"
-              },
-              {
-                "layer": "Webhook",
-                "detail": "Edge function updates user_subscriptions"
-              },
-              {
-                "layer": "Gate",
-                "detail": "Entitlement checked server-side"
-              }
-            ],
-            "failurePoints": ["Webhook delivery failure leaves state stale"],
-            "risks": ["Client-side billing bypass", "cache drift"]
-          },
-          {
-            "name": "Smart Import a reservation",
-            "steps": [
-              {
-                "layer": "Entry",
-                "detail": "Connect Gmail / upload PDF"
-              },
-              {
-                "layer": "Worker",
-                "detail": "gmail-import-worker / artifact-ingest"
-              },
-              {
-                "layer": "Parse",
-                "detail": "Gemini extracts structured items → artifacts"
-              },
-              {
-                "layer": "Apply",
-                "detail": "Items reviewed into trip"
-              }
-            ],
-            "failurePoints": ["Retry drops parsed items if partial state not persisted"],
-            "risks": ["Duplicate records from parser ambiguity", "OAuth refresh failure"]
-          }
-        ],
-        "backend": {
-          "summary": "~96 Deno edge functions handle AI, webhooks, imports, notifications, and auth-gated mutations; 378 SQL migrations define schema; 756 RLS policies are the real authorization boundary.",
-          "items": [
-            {
-              "name": "_shared/requireAuth.ts",
-              "purpose": "Auth guard imported by every function",
-              "auth": "Validates user JWT",
-              "risk": "Bypass if a function forgets to call it",
-              "confidence": "High"
-            },
-            {
-              "name": "_shared/validateSecrets.ts (requireSecrets)",
-              "purpose": "Fail-fast on missing secrets at startup",
-              "auth": "n/a",
-              "risk": "Fail-open documented for some guards (DEBUG_PATTERNS: CronGuard, capability token)",
-              "confidence": "High"
-            },
-            {
-              "name": "calendar-sync",
-              "purpose": "Bi-directional Google Calendar sync",
-              "auth": "User + Google OAuth",
-              "risk": "Non-idempotent replay → duplicate events",
-              "confidence": "High"
-            },
-            {
-              "name": "gmail-import-worker / artifact-ingest",
-              "purpose": "Smart Import parsing pipeline",
-              "auth": "User + Gmail OAuth",
-              "risk": "Partial import with no rollback",
-              "confidence": "High"
-            },
-            {
-              "name": "image-upload",
-              "purpose": "Media upload + processing",
-              "auth": "User",
-              "risk": "Validation/quota handling",
-              "confidence": "Medium"
-            },
-            {
-              "name": "Stripe / RevenueCat webhooks",
-              "purpose": "Subscription state source of truth",
-              "auth": "Signature verification",
-              "risk": "Delivery failure → stale entitlement",
-              "confidence": "High"
-            }
-          ]
+        {
+          "name": "charts",
+          "kb": 374,
+          "gzipKb": 103
         },
-        "integrations": [
-          {
-            "name": "Supabase",
-            "type": "core",
-            "color": "blue",
-            "configuredAt": "src/integrations/supabase/client.ts",
-            "usedAt": "All hooks/services + edge functions",
-            "envVars": [
-              "VITE_SUPABASE_URL",
-              "VITE_SUPABASE_ANON_KEY",
-              "SUPABASE_SERVICE_ROLE_KEY (edge)"
-            ],
-            "failureModes": "Total outage = app down (core infra)",
-            "hardening": "RLS on every table; never expose service-role key client-side"
-          },
-          {
-            "name": "Gemini / Vertex AI",
-            "type": "ai",
-            "color": "purple",
-            "configuredAt": "lovable-concierge + src/lib/geminiLive/",
-            "usedAt": "Concierge, Smart Import, media tagging",
-            "envVars": ["GEMINI_API_KEY", "VERTEX_* (voice)"],
-            "failureModes": "AI features unavailable",
-            "hardening": "Feature-flag kill switch; treat tool calls as untrusted (pending-actions buffer)"
-          },
-          {
-            "name": "Stream Chat (GetStream)",
-            "type": "messaging",
-            "color": "purple",
-            "configuredAt": "src/features/chat/, src/hooks/stream/",
-            "usedAt": "Trip chat, channels",
-            "envVars": ["VITE_STREAM_API_KEY", "STREAM_API_SECRET (edge token mint)"],
-            "failureModes": "Chat unavailable",
-            "hardening": "Mint tokens server-side only; never ship secret to client"
-          },
-          {
-            "name": "Stripe",
-            "type": "payments",
-            "color": "purple",
-            "configuredAt": "paymentService + webhooks",
-            "usedAt": "Web checkout, org seat billing",
-            "envVars": [
-              "STRIPE_SECRET_KEY",
-              "STRIPE_WEBHOOK_SECRET",
-              "VITE_STRIPE_PUBLISHABLE_KEY"
-            ],
-            "failureModes": "Web checkout down (RevenueCat iOS still works)",
-            "hardening": "Verify webhook signatures; validate amounts server-side"
-          },
-          {
-            "name": "RevenueCat",
-            "type": "payments",
-            "color": "purple",
-            "configuredAt": "src/integrations/revenuecat/revenuecatClient.ts",
-            "usedAt": "iOS subscriptions",
-            "envVars": ["REVENUECAT_API_KEY", "REVENUECAT_WEBHOOK_*"],
-            "failureModes": "iOS billing down (Stripe web still works)",
-            "hardening": "Never mix with Stripe per platform; server-side entitlement sync"
-          },
-          {
-            "name": "Google Maps / Places",
-            "type": "maps",
-            "color": "purple",
-            "configuredAt": "src/services/googleMapsService.ts",
-            "usedAt": "Maps, place search",
-            "envVars": ["VITE_GOOGLE_MAPS_API_KEY"],
-            "failureModes": "Map/search non-functional → empty state",
-            "hardening": "Restrict key by referrer; single map instance; cache places"
-          },
-          {
-            "name": "Google Calendar",
-            "type": "calendar",
-            "color": "purple",
-            "configuredAt": "calendar-sync edge fn",
-            "usedAt": "Calendar sync",
-            "envVars": ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET"],
-            "failureModes": "Sync pauses → local-only events",
-            "hardening": "Idempotent sync; handle token expiry"
-          },
-          {
-            "name": "Gmail API",
-            "type": "import",
-            "color": "purple",
-            "configuredAt": "gmail-import-worker",
-            "usedAt": "Smart Import",
-            "envVars": ["GMAIL_OAUTH_*"],
-            "failureModes": "Email import unavailable → manual entry",
-            "hardening": "Persist partial state; refresh tokens safely"
-          },
-          {
-            "name": "Resend / Twilio / APNS",
-            "type": "notifications",
-            "color": "purple",
-            "configuredAt": "notificationService + edge fns + src/native/push.ts",
-            "usedAt": "Email / SMS / iOS push",
-            "envVars": ["RESEND_API_KEY", "TWILIO_*", "APNS_*"],
-            "failureModes": "Channel-specific delivery failure (fallbacks exist)",
-            "hardening": "Dual-path dedup; respect quiet hours"
-          },
-          {
-            "name": "Sentry / PostHog",
-            "type": "observability",
-            "color": "purple",
-            "configuredAt": "src/telemetry/",
-            "usedAt": "Errors / analytics",
-            "envVars": ["VITE_SENTRY_DSN", "VITE_POSTHOG_KEY"],
-            "failureModes": "Silent monitoring/analytics loss",
-            "hardening": "Scrub PII; sample rates"
-          },
-          {
-            "name": "Capacitor 8",
-            "type": "native",
-            "color": "purple",
-            "configuredAt": "capacitor.config + src/native/ + src/platform/",
-            "usedAt": "iOS shell + PWA bridge",
-            "envVars": ["(build-time)"],
-            "failureModes": "Native plugin failure on device",
-            "hardening": "Lazy-load native plugins on web; parity tests"
-          },
-          {
-            "name": "Vercel / Render",
-            "type": "hosting",
-            "color": "blue",
-            "configuredAt": "vercel.json / render.yaml",
-            "usedAt": "Frontend / OG unfurl proxy",
-            "envVars": ["(platform-managed)"],
-            "failureModes": "Deploy/serve outage",
-            "hardening": "Rollback strategy; health checks"
-          }
-        ],
-        "deadCode": [
-          {
-            "path": "patch_tripchat.py, patch_tripchat2.py, patch_tripchat_import.py, patch_tripchat_receipts.py, patch_tripchat_receipts2.py",
-            "evidence": "Python scripts at repo root in a 'No Python' repo — verified removed from the tree.",
-            "confidence": "High",
-            "deletionRisk": "—",
-            "action": "done — removed"
-          },
-          {
-            "path": "resolver3.js, output.md, validation-report.json, plan_refactoring.md",
-            "evidence": "Scratch/output artifacts at root — verified removed from the tree. claude-progress.txt is now intentionally retained as agent breadcrumb memory.",
-            "confidence": "High",
-            "deletionRisk": "—",
-            "action": "done — removed"
-          },
-          {
-            "path": "src/services/enhancedTripContextService*",
-            "evidence": "Deprecated in favor of TripContextAggregator — verified removed from src/ (only a doc reference remains).",
-            "confidence": "High",
-            "deletionRisk": "—",
-            "action": "done — removed"
-          },
-          {
-            "path": "0 unused dependencies (knip clean, down from 8)",
-            "evidence": "Live knip scan (2026-06-22) reports no Unused dependencies / devDependencies section; the prior 8 deps + 1 devDep have been pruned.",
-            "confidence": "High",
-            "deletionRisk": "—",
-            "action": "done — dependency surface is clean; keep knip in CI to prevent regrowth"
-          },
-          {
-            "path": "386 unused exports / 433 unused exported types",
-            "evidence": "Live knip scan (2026-06-22). Many are intentional public surfaces or framework-resolved.",
-            "confidence": "Medium",
-            "deletionRisk": "Medium",
-            "action": "triage in batches; investigate manually"
-          },
-          {
-            "path": "210 'unused files' (knip)",
-            "evidence": "Live knip scan (2026-06-22), down from 285. Includes Vercel api/*.ts, Remotion compositions, scripts/* that knip can't resolve as entry points.",
-            "confidence": "Low (as a blanket claim)",
-            "deletionRisk": "High if deleted blindly",
-            "action": "Future/Unclear — verify each before acting"
-          }
-        ],
-        "quality": [
-          {
-            "module": "AI Concierge",
-            "score": 58,
-            "status": "Fragile",
-            "why": "Tool-calling can mutate shared state; voice lifecycle edge cases remain. The ~2,500-LOC god component has been decomposed (AIConciergeChat.tsx now ~510 LOC), reducing edit risk.",
-            "evidence": "AIConciergeChat.tsx (~510 LOC); SYSTEM_MAP #4; DEBUG_PATTERNS (voice tool silent fail).",
-            "fix": "Decompose component; enforce pending-actions buffer; single-source tool registry."
-          },
-          {
-            "module": "Messaging",
-            "score": 64,
-            "status": "Fragile",
-            "why": "Reconnect can lose messages; large components; write amplification.",
-            "evidence": "TripChat.tsx 1,262 LOC; TEST_GAPS chat reconnect; SYSTEM_MAP #3.",
-            "fix": "Backfill on reconnect + tests; decompose TripChat."
-          },
-          {
-            "module": "Auth \u0026 Session",
-            "score": 72,
-            "status": "Good",
-            "why": "Heavily guarded but oversized and timing-sensitive.",
-            "evidence": "useAuth.tsx 1,307 LOC; Trip-Not-Found flash pattern.",
-            "fix": "Split hook; add hydration-before-fetch tests."
-          },
-          {
-            "module": "Payments",
-            "score": 70,
-            "status": "Good",
-            "why": "Dual-SDK split is correct but webhook-state and bypass surfaces need vigilance.",
-            "evidence": "SYSTEM_MAP #6; chravel-payments skill.",
-            "fix": "Server-side entitlement checks; split state machine with optimistic locking."
-          },
-          {
-            "module": "Data layer / Services",
-            "score": 74,
-            "status": "Good",
-            "why": "Service gateway is cleaner in high-risk export/import paths after policy helper extraction, but demo/mock data and boundary `any` usage remain.",
-            "evidence": "export-user-data manifest.ts; export-trip authorization.ts; file-ai-parser idempotency.ts; gmail-import-worker importJobState.ts.",
-            "fix": "Continue helper extraction, hard mock/live boundary, type service edges."
-          },
-          {
-            "module": "Permissions \u0026 Roles",
-            "score": 83,
-            "status": "Good",
-            "why": "RLS-backed and recently hardened; trip PDF export membership policy is now tested, but seed functions and live role-matrix tests still need hardening.",
-            "evidence": "export-trip authorization tests; SYSTEM_MAP #12; LESSONS role propagation.",
-            "fix": "Add seed-function guards and live role-matrix integration tests."
-          },
-          {
-            "module": "Calendar / Media / Maps / Notifications",
-            "score": 76,
-            "status": "Good",
-            "why": "Stable, documented patterns; isolated failure modes with fallbacks.",
-            "evidence": "SYSTEM_MAP #5,#8,#9,#10.",
-            "fix": "Idempotency + cleanup tests; single map instance."
-          },
-          {
-            "module": "Build / Bundle",
-            "score": 70,
-            "status": "Improving",
-            "why": "Recharts dashboards and org-chart screenshot export are now behind lazy/user-intent boundaries; exceljs, pdf, native, and Stream chunks still need tighter intent boundaries and CI budgets.",
-            "evidence": "CampaignAnalytics chart panels, SeoTrendChart, TeamOrgChart dynamic html2canvas import; build bundle table.",
-            "fix": "Finish lazy-loading exceljs/pdf/native/Stream paths and add bundle-size CI gate."
-          }
-        ],
-        "missing": [
-          {
-            "area": "Chat reconnect/backfill tests",
-            "impact": "High user trust",
-            "priority": "Urgent",
-            "note": "TEST_GAPS.md — message loss is silent and unacceptable."
-          },
-          {
-            "area": "Boundary typing (remove ~450 `any`)",
-            "impact": "Maintainability + runtime safety",
-            "priority": "Important",
-            "note": "tech_debt_report #2; count has crept from ~390 to ~450 since last refresh."
-          },
-          {
-            "area": "Smart Import state machine",
-            "impact": "Data integrity",
-            "priority": "Important",
-            "note": "Partial: file parser sequential idempotency and Gmail completed_partial status landed; still needs DB concurrency/replay tests and calendar-sync idempotency."
-          },
-          {
-            "area": "Bundle/code-split CI gate",
-            "impact": "Mobile performance / conversion",
-            "priority": "Important",
-            "note": "Partial: Recharts chart panels and html2canvas export are lazy; exceljs/pdf/native/Stream and CI budget remain."
-          },
-          {
-            "area": "Mock/demo data boundary",
-            "impact": "Demo-mode contamination (zero-tolerance)",
-            "priority": "Urgent",
-            "note": "demoModeService + tripSpecificMockDataService sit beside live code."
-          },
-          {
-            "area": "Read-receipt amplification fix + tests",
-            "impact": "Scale / cost",
-            "priority": "Important",
-            "note": "DEBUG_PATTERNS N×M upserts."
-          },
-          {
-            "area": "Lint-warning burndown",
-            "impact": "DX / CI noise",
-            "priority": "Cosmetic",
-            "note": "~1,200 warnings (tech_debt_report #9)."
-          }
-        ],
-        "roadmap": [
-          {
-            "phase": "Phase 1 — Safe Cleanup",
-            "items": [
-              {
-                "desc": "[DONE] Stray root artifacts removed (patch_tripchat*.py, resolver3.js, output.md, claude-progress.txt)",
-                "files": "repo root",
-                "risk": "Very low",
-                "complexity": "S",
-                "benefit": "Clarity; removes 'No Python' contradiction",
-                "validation": "build gate green"
-              },
-              {
-                "desc": "[DONE] Unused dependencies pruned — live knip now reports 0 (down from 8 + 1 devDep)",
-                "files": "package.json",
-                "risk": "Low",
-                "complexity": "S",
-                "benefit": "Smaller install/audit surface; keep knip in CI to prevent regrowth",
-                "validation": "build + smoke"
-              },
-              {
-                "desc": "[DONE] enhancedTripContextService removed (TripContextAggregator is the path)",
-                "files": "src/services/",
-                "risk": "Low",
-                "complexity": "S",
-                "benefit": "Removes deprecated path",
-                "validation": "eslint + build"
-              }
-            ]
-          },
-          {
-            "phase": "Phase 2 — Consolidation",
-            "items": [
-              {
-                "desc": "[DONE] src/store/ and src/stores/ merged into a single src/store/",
-                "files": "src/store*, imports",
-                "risk": "Medium",
-                "complexity": "M",
-                "benefit": "One obvious home for client state",
-                "validation": "typecheck + tests"
-              },
-              {
-                "desc": "Move mock/demo data out of services into src/mockData/ behind a flag",
-                "files": "demoModeService.ts, tripSpecificMockDataService.ts",
-                "risk": "Medium",
-                "complexity": "M",
-                "benefit": "Eliminates contamination risk",
-                "validation": "no-leak invariant test"
-              },
-              {
-                "desc": "Triage knip unused exports/types in batches",
-                "files": "various",
-                "risk": "Medium",
-                "complexity": "L",
-                "benefit": "Real dead-code reduction",
-                "validation": "per-batch build + tests"
-              }
-            ]
-          },
-          {
-            "phase": "Phase 3 — Architecture Hardening",
-            "items": [
-              {
-                "desc": "Add chat reconnect backfill + tests",
-                "files": "useStreamTripChat.ts, chat services",
-                "risk": "Medium",
-                "complexity": "M",
-                "benefit": "Stops silent message loss",
-                "validation": "integration test simulating reconnect"
-              },
-              {
-                "desc": "Decompose remaining god files (Index.tsx, useTripTasks, useAuth, TripChat) — AIConciergeChat already done",
-                "files": "Index.tsx, useTripTasks.ts, useAuth.tsx, TripChat.tsx",
-                "risk": "High",
-                "complexity": "XL",
-                "benefit": "Maintainability + safer AI edits",
-                "validation": "behavior-preserving tests before/after"
-              },
-              {
-                "desc": "Type boundaries; remove `any` at service edges",
-                "files": "src/services/*",
-                "risk": "Medium",
-                "complexity": "L",
-                "benefit": "Runtime safety",
-                "validation": "typecheck + tests"
-              }
-            ]
-          },
-          {
-            "phase": "Phase 4 — Product / Scale Readiness",
-            "items": [
-              {
-                "desc": "[PARTIAL] Lazy-load heavy chunks (Recharts chart panels + html2canvas export done; exceljs/pdf/native/Stream remain)",
-                "files": "import sites + routes",
-                "risk": "Medium",
-                "complexity": "M",
-                "benefit": "Faster route shells on chart/export surfaces; remaining chunks still need mobile budget work",
-                "validation": "build + bundle diff + route smoke"
-              },
-              {
-                "desc": "Add bundle-size CI gate",
-                "files": "CI config",
-                "risk": "Low",
-                "complexity": "S",
-                "benefit": "Prevents perf regressions",
-                "validation": "CI fails on oversize"
-              },
-              {
-                "desc": "[PARTIAL] Smart Import idempotency + Gmail partial terminal status landed; full replay/concurrency suite remains",
-                "files": "smart-import + edge fns",
-                "risk": "Medium",
-                "complexity": "L",
-                "benefit": "Prevents sequential file-parser double-charge and makes mixed Gmail failures explicit",
-                "validation": "unit tests + future live replay/idempotency tests"
-              }
-            ]
-          }
-        ],
-        "glossary": [
-          {
-            "term": "Hook (React)",
-            "plain": "A reusable piece of screen logic (e.g. 'are we logged in?').",
-            "why": "Most Chravel behavior lives in hooks; a buggy shared hook breaks many screens at once."
-          },
-          {
-            "term": "Component",
-            "plain": "A visual building block of the UI.",
-            "why": "354 of them; oversized ones (god components) are slow to change and risky."
-          },
-          {
-            "term": "State",
-            "plain": "Data the app is currently holding (who's logged in, the open trip).",
-            "why": "Server state (TanStack Query) vs client state (Zustand) must not drift."
-          },
-          {
-            "term": "Edge function",
-            "plain": "Small backend program that runs on demand (AI, webhooks, imports).",
-            "why": "97 of them are where trust-sensitive work happens; each must check auth + secrets."
-          },
-          {
-            "term": "RLS (Row-Level Security)",
-            "plain": "Database rules deciding which rows a user may see/change.",
-            "why": "Chravel's real security boundary — 756 policies; the client cannot be trusted."
-          },
-          {
-            "term": "Realtime subscription",
-            "plain": "A live feed pushing new messages/notifications instantly.",
-            "why": "Must be filtered by trip and must replay missed data on reconnect, or messages are lost."
-          },
-          {
-            "term": "Webhook",
-            "plain": "A 'ping' from an outside service (e.g. Stripe) telling us something happened.",
-            "why": "Payment/subscription truth arrives by webhook; a missed one leaves billing state stale."
-          },
-          {
-            "term": "Migration",
-            "plain": "A versioned change to the database shape.",
-            "why": "419 of them; destructive ones need a two-phase plan to avoid data loss."
-          },
-          {
-            "term": "Bucket",
-            "plain": "Cloud folder for uploaded files (photos/videos).",
-            "why": "Media storage; needs validation, signed URLs, and cleanup."
-          },
-          {
-            "term": "Environment variable",
-            "plain": "A named setting/secret provided at runtime (API keys).",
-            "why": "Misconfigured/missing ones can fail open — a documented security risk here."
-          },
-          {
-            "term": "Dependency",
-            "plain": "An outside code package the app relies on.",
-            "why": "Unused ones bloat the bundle and the security-audit surface; knip flagged 8 earlier but now reports 0 unused deps."
-          },
-          {
-            "term": "Circular dependency",
-            "plain": "Two files that need each other to load.",
-            "why": "Causes subtle load-order bugs; worth scanning for in a follow-up."
-          },
-          {
-            "term": "Dead code",
-            "plain": "Code nothing uses anymore.",
-            "why": "Confuses humans and AI editors; safe to remove only after verification."
-          },
-          {
-            "term": "Refactor",
-            "plain": "Reorganizing code without changing what it does.",
-            "why": "How god files get tamed — must be proven behavior-preserving with tests."
-          }
-        ],
-        "costEstimate": {
-          "lens": "What it would realistically cost to rebuild Chravel from scratch today — the same feature surface and quality bar, on the same managed platforms (Supabase, Stream, Stripe/RevenueCat, Google, Gemini/Vertex), by a competent team using current AI coding tools. Calibrated against how Chravel was actually built (a small team shipped it in roughly a year), not a worst-case hand-coded estimate. For internal reference, not a sales quote.",
-          "methodology": "Bottom-up, then reality-checked. (1) Each major system is sized in engineering-hours for a competent team rebuilding a known spec — no product discovery, no pivots — using today’s AI coding tools. (2) Three effort bands: Conservative (lean, senior, heavy reuse, MVP-parity), Moderate (solid quality, tests on critical paths), High (enterprise rigor, broad tests, edge cases). (3) The whole table is calibrated to the actual build history — Chravel was shipped by a small team in roughly a year — so a known-spec rebuild lands in the same order of magnitude rather than the inflated multi-year figures naive estimators produce. (4) Hours convert to a schedule at ~6 productive hours/day, 5 days/week (30 hrs/week, ~1,500 hrs/year/dev). (5) Calendar time divides that effort across each vendor’s team size (freelancer = 1 dev solo, agency = 2 devs, high-end firm = 3 devs) with sub-linear efficiency (2 devs ≈ 1.8×, 3 devs ≈ 2.5×). (6) Cost = effort-hours × the vendor’s blended rate.",
-          "disclaimer": "Realistic modern rebuild of a known spec on the same managed platforms, using current AI tooling — integration work, not platform engineering. Calibrated to the product’s actual ~1-year build. Excludes ongoing SaaS/infra, app-store fees, and post-launch maintenance.",
-          "totals": {
-            "conservative": 1235,
-            "moderate": 1895,
-            "high": 2855
-          },
-          "model": {
-            "workdayHours": 8,
-            "productiveHoursPerDay": 6,
-            "daysPerWeek": 5,
-            "hoursPerWeekPerDev": 30,
-            "workingWeeksPerYear": 50,
-            "hoursPerYearPerDev": 1500,
-            "weeksPerMonth": 4.33,
-            "teamEfficiency": [
-              {
-                "devs": 1,
-                "factor": 1
-              },
-              {
-                "devs": 2,
-                "factor": 1.8
-              },
-              {
-                "devs": 3,
-                "factor": 2.5
-              }
-            ],
-            "patternNote": "Effort is engineering-hours. Calendar time assumes ~6 productive (heads-down) hours inside an 8-hour workday — the remainder goes to standups, code review, planning, and context-switching — 5 days/week (30 hrs/week, ~1,500 productive hrs/year/dev). Adding developers is sub-linear: 2 devs ≈ 1.8× and 3 devs ≈ 2.5× one developer's throughput after coordination overhead, so calendar time falls less than headcount rises."
-          },
-          "features": [
-            {
-              "area": "Foundation \u0026 design system",
-              "note": "Scaffold, routing, Tailwind + shadcn/Radix, app shell, CI/CD",
-              "conservative": 45,
-              "moderate": 70,
-              "high": 105
-            },
-            {
-              "area": "Auth \u0026 session",
-              "note": "Supabase Auth, Google OAuth, role/tier resolution, hydration guards",
-              "conservative": 40,
-              "moderate": 60,
-              "high": 90
-            },
-            {
-              "area": "Data layer \u0026 Supabase integration",
-              "note": "Client gateway, ~140 service modules, query-key cache contract, generated types",
-              "conservative": 60,
-              "moderate": 90,
-              "high": 135
-            },
-            {
-              "area": "Database schema \u0026 RLS",
-              "note": "Final schema, ~750 row-level-security policies as patterns, migrations",
-              "conservative": 80,
-              "moderate": 120,
-              "high": 180
-            },
-            {
-              "area": "Trips \u0026 membership",
-              "note": "CRUD, invites, 3 trip tiers (consumer/pro/event), archival",
-              "conservative": 60,
-              "moderate": 90,
-              "high": 135
-            },
-            {
-              "area": "Permissions \u0026 roles",
-              "note": "Per-trip-type permission matrix, RLS-backed",
-              "conservative": 35,
-              "moderate": 50,
-              "high": 75
-            },
-            {
-              "area": "Unified messaging / chat",
-              "note": "Stream Chat, channels, broadcasts, threads, reactions, read receipts, reconnect/backfill",
-              "conservative": 90,
-              "moderate": 140,
-              "high": 210
-            },
-            {
-              "area": "AI Concierge — text",
-              "note": "Gemini, ~38 tools, query classification, pending-actions write buffer",
-              "conservative": 80,
-              "moderate": 125,
-              "high": 190
-            },
-            {
-              "area": "AI Concierge — voice",
-              "note": "Vertex AI Live, audio session lifecycle",
-              "conservative": 45,
-              "moderate": 70,
-              "high": 105
-            },
-            {
-              "area": "Calendar \u0026 Google sync",
-              "note": "Bi-directional, idempotent, recurring events, RSVP",
-              "conservative": 55,
-              "moderate": 85,
-              "high": 130
-            },
-            {
-              "area": "Payments \u0026 subscriptions",
-              "note": "Stripe (web) + RevenueCat (iOS), webhooks, entitlements, expense splitting",
-              "conservative": 70,
-              "moderate": 110,
-              "high": 165
-            },
-            {
-              "area": "Smart Import",
-              "note": "Gmail OAuth, PDF/image parsing, Gemini extraction, checkpoint state machine",
-              "conservative": 65,
-              "moderate": 100,
-              "high": 150
-            },
-            {
-              "area": "Media gallery \u0026 storage",
-              "note": "Upload, compression, AI tagging, lightbox, quota",
-              "conservative": 40,
-              "moderate": 65,
-              "high": 100
-            },
-            {
-              "area": "Maps \u0026 places",
-              "note": "Google Maps, places search, autocomplete, caching",
-              "conservative": 35,
-              "moderate": 50,
-              "high": 75
-            },
-            {
-              "area": "Notifications \u0026 realtime",
-              "note": "Push/email/SMS (APNS/Resend/Twilio), dedup, badge counts",
-              "conservative": 50,
-              "moderate": 80,
-              "high": 120
-            },
-            {
-              "area": "Organizations \u0026 B2B",
-              "note": "Seat-based billing, team management, org admin dashboard",
-              "conservative": 45,
-              "moderate": 70,
-              "high": 105
-            },
-            {
-              "area": "Mobile / PWA / native",
-              "note": "Capacitor 8 iOS wrapper, offline, service worker, web/native parity",
-              "conservative": 70,
-              "moderate": 105,
-              "high": 160
-            },
-            {
-              "area": "Admin, security \u0026 audit",
-              "note": "Append-only + hash-chained audit logs, super-admin, secret validation",
-              "conservative": 45,
-              "moderate": 70,
-              "high": 105
-            },
-            {
-              "area": "Observability \u0026 feature flags",
-              "note": "Sentry, PostHog, runtime kill switches",
-              "conservative": 20,
-              "moderate": 30,
-              "high": 45
-            },
-            {
-              "area": "Testing",
-              "note": "Unit + integration across critical paths (~350 specs)",
-              "conservative": 90,
-              "moderate": 140,
-              "high": 210
-            },
-            {
-              "area": "Marketing site, blog \u0026 SEO",
-              "note": "Landing, blog content system, SEO",
-              "conservative": 35,
-              "moderate": 50,
-              "high": 75
-            },
-            {
-              "area": "Integration glue, QA \u0026 PM overhead",
-              "note": "Cross-feature wiring, bug-fixing, coordination",
-              "conservative": 80,
-              "moderate": 125,
-              "high": 190
-            }
-          ],
-          "vendors": [
-            {
-              "tier": "Freelancer off the street",
-              "team": 1,
-              "teamLabel": "solo, 1 dev",
-              "typicalBand": "conservative",
-              "rateLow": 40,
-              "rateHigh": 80,
-              "ratePoint": 60,
-              "blurb": "One developer working alone. Cheaper and less vetted; more management overhead, wider quality variance, and the longest calendar time."
-            },
-            {
-              "tier": "Established agency",
-              "team": 2,
-              "teamLabel": "2 dedicated devs",
-              "typicalBand": "moderate",
-              "rateLow": 100,
-              "rateHigh": 175,
-              "ratePoint": 135,
-              "headline": true,
-              "blurb": "Two dedicated devs (vetted senior + mid) with a PM — the most representative real-world option."
-            },
-            {
-              "tier": "High-end agency / specialist firm",
-              "team": 3,
-              "teamLabel": "3 simultaneous devs",
-              "typicalBand": "high",
-              "rateLow": 200,
-              "rateHigh": 350,
-              "ratePoint": 260,
-              "blurb": "Three simultaneous senior devs at a top-tier firm with strong process, guarantees, and the fastest delivery."
-            }
-          ],
-          "assumptions": [
-            "Assumes a competent team using today’s standard AI coding tools — the realistic 2026 default, not a hand-coded build.",
-            "Calibrated to reality: Chravel was actually built by a small team in roughly a year, so a known-spec rebuild is anchored to that order of magnitude.",
-            "Effort is engineering-hours; the schedule assumes ~6 productive (heads-down) hours inside an 8-hour workday, 5 days/week — 30 hrs/week, ~1,500 productive hrs/year per developer.",
-            "Team size by vendor: a freelancer works solo (1 dev), an established agency runs 2 dedicated devs, and a high-end firm runs 3 simultaneous devs.",
-            "Adding developers is sub-linear: 2 devs ≈ 1.8× and 3 devs ≈ 2.5× a solo developer’s pace after coordination overhead, so calendar time drops less than headcount rises.",
-            "US-market blended contractor rates (2026); offshore teams would be materially cheaper.",
-            "Rebuilding a known spec — no product discovery, design iteration, or pivots (those consumed much of the original calendar time and don’t recur).",
-            "Same managed platforms reused (Supabase, Stream, Stripe/RevenueCat, Google, Gemini) — you integrate them, you don’t rebuild auth servers, realtime, chat, or payment rails."
-          ],
-          "whyNotMore": [
-            "Calibrated to the actual build: this product was shipped by a small team in about a year, so the rebuild is anchored to reality, not a theoretical worst case.",
-            "Modern AI coding tools do a large share of the boilerplate, wiring, and test scaffolding — the 2026 baseline, not optional.",
-            "Recreating a known spec skips discovery, dead-ends, and pivots — much of the original calendar time never recurs.",
-            "Off-the-shelf platforms do the heavy lifting: no custom auth server, realtime engine, chat backend, or payment processor to build.",
-            "UI is assembled from shadcn/Radix + Tailwind primitives rather than hand-built components.",
-            "File count is not effort: many of the 1,180 source files are small, repetitive, AI-generatable hooks and components."
-          ],
-          "note": "A hand-coded build with no AI assistance would run roughly 1.7–2× these hours — a useful upper bound, but not today’s reality. Every input is adjustable in curated.json → costEstimate (per-system hours, rates, productive hours/day, team size, efficiency factors); all tables recompute. Rates are US-market blended (2026); offshore would be materially lower."
+        {
+          "name": "stream-chat-B",
+          "kb": 303,
+          "gzipKb": 90
+        },
+        {
+          "name": "module",
+          "kb": 193,
+          "gzipKb": 64
+        },
+        {
+          "name": "SettingsMenu-CQu29H-K",
+          "kb": 183,
+          "gzipKb": 45
+        },
+        {
+          "name": "TripChat",
+          "kb": 175,
+          "gzipKb": 52
         }
+      ],
+      "anyCount": 453,
+      "todoCount": 1
+    }
+  },
+  "scores": [
+    {
+      "key": "overall",
+      "label": "Overall Codebase Health",
+      "score": 75,
+      "rationale": "Mature, feature-complete product with strong repo memory, remediation tracking, and several recent hardening slices landed. Enterprise security/identity layer is now solid: immutable + hash-chained admin audit log, append-only security_audit_log, a DB-backed audited super_admins table, and a buyer-facing evidence packet (SECURITY_MODEL.md, ENTERPRISE_SECURITY_READINESS/AUDIT docs). Export privacy paths emit table-level manifests and hard-fail required omissions; trip PDF export membership policy is tested; file AI parsing short-circuits cached replays; Gmail imports distinguish completed/completed_partial/failed; chart and org-chart export dependencies are behind lazy/user-intent boundaries. Still pulled down by concentrated god files (Index, demoModeService, useTripTasks, useAuth, TripChat, useStreamTripChat), hundreds of production `any` usages, a large mock/demo data surface, and dead-code findings that require careful triage."
+    },
+    {
+      "key": "clarity",
+      "label": "Architecture Clarity",
+      "score": 76,
+      "rationale": "Feature-module convention (src/features/*), a single src/store/, and the new AHS-01..AHS-19 remediation registry make the critical path clearer. Recent extraction of chart panels, export manifest policy, trip export authorization policy, file-parser idempotency helpers, and Gmail terminal-status policy moved several rules out of long handlers/components. Clarity is still weakened by a 350+ component src/components/ surface, mock/demo data living near service code, and several 1k+ LOC route/hook/chat modules that still mix orchestration, data shaping, and UI."
+    },
+    {
+      "key": "maintainability",
+      "label": "Maintainability",
+      "score": 63,
+      "rationale": "Maintainability improved from focused policy extraction and tests: export-user-data manifest logic, export-trip authorization/default sections, file-ai-parser idempotency, and Gmail terminal status now live in small tested helpers. The main drag remains unchanged and has grown slightly: Index.tsx (~1.5k), demoModeService.ts (~1.3k), useTripTasks.ts (~1.3k), useAuth.tsx (~1.3k), TripChat.tsx (~1.3k), useStreamTripChat.ts, plus two newer 1k+ LOC entrants — src/lib/blog.ts (~1.5k, static blog-content registry) and src/utils/exportPdfClient.ts (~1.2k, jsPDF client export) — alongside generated Supabase types (5.8k) and large mock datasets. Production `any` usage has crept from ~390 to ~450 and the baseline ESLint warning count still adds daily DX drag."
+    },
+    {
+      "key": "scalability",
+      "label": "Scalability",
+      "score": 75,
+      "rationale": "Supabase + edge functions + RLS remain horizontally scalable, and recent client changes moved Recharts chart panels and html2canvas org-chart export behind lazy/user-intent boundaries. The bundle ceiling is still real: exceljs, pdf/jsPDF/html2canvas, native, stream-chat, and chart chunks remain large, and Stream/client boot plus spreadsheet import parsing still need tighter intent boundaries and CI budgets for mobile first-paint protection."
+    },
+    {
+      "key": "security",
+      "label": "Security / Posture",
+      "score": 87,
+      "rationale": "Security posture improved materially. Tenant/identity layer is now hardened end-to-end: admin_audit_logs is append-only (UPDATE/DELETE/TRUNCATE blocked for all roles incl. service_role) AND tamper-evident via a sha256 hash chain (prev_hash/event_hash ordered by a monotonic seq, with verify_admin_audit_chain()); security_audit_log is append-only and now actually written to (the _shared/security.ts logSecurityEvent helper previously inserted nonexistent columns and silently no-opped — fixed); super-admin access moved from a hardcoded email allowlist to a DB-backed super_admins table with grant/revoke functions and an audit trail; capability-token issuance (Stream/LiveKit) is audit-logged via a shared logSecurityEvent helper; trip-membership checks in edge functions are centralized in _shared/verifyTripMembership.ts (canonical is_trip_member RPC). Earlier slices still hold: export manifests fail closed, trip-export auth is tested, file-ai-parser is idempotent, Gmail terminal states persist. Buyer-facing evidence now exists (SECURITY_MODEL.md, docs/ENTERPRISE_SECURITY_READINESS.md, docs/ENTERPRISE_SECURITY_AUDIT_2026-06.md). Remaining risks: external WORM audit-log sink not yet built (in-DB tamper-evidence only), service-role seed functions, live Supabase integration coverage for role matrices, and continued RLS-drift vigilance."
+    },
+    {
+      "key": "tests",
+      "label": "Test Coverage Confidence",
+      "score": 62,
+      "rationale": "Test confidence improved with new focused Vitest coverage for edge-function secret defaults, export manifests, trip export authorization/default sections, file parser idempotency helpers, and Gmail import terminal status. Coverage remains broad but thin on the highest-risk live paths: chat reconnect/backfill, read-receipt write amplification, export/import live Supabase row-count/replay tests, calendar-sync idempotency, DB-level concurrency, and authenticated Stream/Gmail staging E2E."
+    },
+    {
+      "key": "deadcode",
+      "label": "Dead Code Risk (higher = worse)",
+      "score": 56,
+      "rationale": "Dead-code risk improved modestly: the App Store readiness pass removed dead scaffold and a dead AASA endpoint, the live knip scan now reports 0 unused dependencies (down from 8) and unused files fell from 285 to 210, and no new scratch cleanup scripts were introduced. But no large knip triage batch of unused exports/types has landed — knip still reports ~210 unused files, 386 unused exports, and 433 unused exported types, with many likely false positives from Vercel API routes, Remotion compositions, and scripts. claude-progress.txt is an intentional agent breadcrumb file, not a scratch artifact. Risk stays elevated until export/type findings are classified and deleted/kept in batches."
+    }
+  ],
+  "executive": {
+    "whatItDoes": "Chravel is a collaborative trip-planning and coordination platform. A group creates a trip, then chats, splits expenses, syncs calendars, uploads media, imports reservations from email/PDF, and asks an AI concierge to plan and book — across web, installable PWA, and an iOS app that wraps the same web code.",
+    "whoItServes": [
+      "Consumer travel groups (friends, family) — open, collaborative permissions",
+      "Pro / touring \u0026 business coordinators — role-based permissions",
+      "Large-event organizers (conferences, weddings, festivals) — organizer-controlled"
+    ],
+    "primaryFlows": [
+      "Sign up / log in (Supabase Auth, email + Google OAuth) and hydrate session",
+      "Create a trip, invite members, resolve role/tier",
+      "Group chat + channels + broadcasts (Stream + Supabase Realtime)",
+      "Split expenses / manage subscriptions (Stripe web, RevenueCat iOS)",
+      "Ask the AI Concierge to plan, recommend, or take actions (text + voice)",
+      "Sync Google Calendar; import reservations via Smart Import"
+    ],
+    "majorSystems": [
+      "Auth \u0026 Session",
+      "Trips \u0026 Membership",
+      "Unified Messaging",
+      "AI Concierge (text+voice)",
+      "Calendar \u0026 Events",
+      "Payments \u0026 Subscriptions",
+      "Smart Import",
+      "Media \u0026 Storage",
+      "Maps \u0026 Places",
+      "Notifications \u0026 Realtime",
+      "Organizations (B2B)",
+      "Permissions \u0026 Roles"
+    ],
+    "highestLeverage": [
+      "src/integrations/supabase/client.ts — the single data gateway every read/write flows through",
+      "src/hooks/useAuth.tsx — gates the entire critical path; a bug here cascades everywhere",
+      "src/services/* (140 modules) — the de-facto API layer between UI and Supabase",
+      "supabase RLS policies (756) — the real security boundary, not the client",
+      "is_super_admin() + super_admins table — server-side privilege source of truth (gates audit-log reads and internal-admin routes)",
+      "admin_audit_logs (append-only + hash-chained) — tamper-evident record of every privileged action",
+      "src/lib/queryKeys.ts — cache-invalidation contract for all server state"
+    ],
+    "topRisks": [
+      "Auth hydration race → 'Trip Not Found' flash (the #1 documented regression)",
+      "Chat message loss on WebSocket reconnect (no replay/backfill in some paths)",
+      "Client-side permission checks diverging from RLS (privilege-escalation surface)",
+      "God files (Index.tsx, useTripTasks, useAuth, TripChat) concentrate risk and merge conflicts",
+      "Bundle weight (exceljs/pdf/charts/native chunks) degrades mobile first paint"
+    ],
+    "topCleanups": [
+      "Triage the 210 knip-flagged unused files — delete confirmed-dead, label framework entry points (api/, remotion/, scripts/) as Future/Unclear",
+      "Delete confirmed-dead exports/types after manual verification (knip: 386 exports, 433 types)",
+      "Reduce ~450 `any` usages at Supabase boundaries by adopting generated Database types",
+      "Lazy-load heavy chunks (exceljs, pdf/jsPDF via exportPdfClient.ts, recharts/charts, native) per tech_debt_report",
+      "Split static content god files (src/lib/blog.ts ~1.5k, mock datasets) out of the logic bundle"
+    ],
+    "topMissing": [
+      "Tests for chat reconnect/backfill, read receipts, and integration idempotency (TEST_GAPS.md)",
+      "Strong typing at boundaries — ~450 `any` usages remain",
+      "State machine for Smart Import (partial-import rollback / UX surfacing)",
+      "Bundle/code-split discipline enforced in CI",
+      "A single canonical mock/demo-data boundary separate from live service code"
+    ]
+  },
+  "systemMap": [
+    {
+      "id": "auth",
+      "name": "Authentication \u0026 Session",
+      "color": "blue",
+      "risk": "Medium",
+      "quality": 72,
+      "purpose": "Session hydration, user identity, role resolution. Gates everything downstream.",
+      "keyFiles": [
+        "src/hooks/useAuth.tsx",
+        "src/integrations/supabase/client.ts"
+      ],
+      "deps": [
+        "Supabase Auth"
+      ],
+      "upstream": "—",
+      "downstream": "All subsystems",
+      "actions": [
+        "Split useAuth.tsx (1,307 LOC) into session/identity/role hooks",
+        "Add explicit hydrated-before-fetch guard tests"
+      ],
+      "failureModes": "Hydration race → Trip Not Found flash; token refresh failure; demo/auth crossover"
+    },
+    {
+      "id": "trips",
+      "name": "Trip Management \u0026 Membership",
+      "color": "blue",
+      "risk": "Medium",
+      "quality": 78,
+      "purpose": "Trip CRUD, members, invites, archival. Trip context gates most features.",
+      "keyFiles": [
+        "src/hooks/useTrips.ts",
+        "src/hooks/useTripMembers.ts",
+        "src/services/tripService.ts"
+      ],
+      "deps": [
+        "Supabase (trips, trip_members)"
+      ],
+      "upstream": "Auth",
+      "downstream": "Chat, Payments, Calendar, Media, Concierge",
+      "actions": [
+        "Ensure existence vs membership checks are distinct (RLS + hook)",
+        "Cover status/archival drift with tests"
+      ],
+      "failureModes": "Access without membership; status drift; invite expiry"
+    },
+    {
+      "id": "chat",
+      "name": "Unified Messaging (Chat / Channels / Broadcasts)",
+      "color": "orange",
+      "risk": "High",
+      "quality": 64,
+      "purpose": "Trip chat, role channels, broadcasts, threads, reactions, read receipts.",
+      "keyFiles": [
+        "src/features/chat/components/TripChat.tsx",
+        "src/hooks/stream/useStreamTripChat.ts",
+        "src/services/unifiedMessagingService.ts",
+        "src/services/channelService.ts"
+      ],
+      "deps": [
+        "Stream Chat",
+        "Supabase Realtime"
+      ],
+      "upstream": "Trips",
+      "downstream": "Notifications",
+      "actions": [
+        "Add reconnect backfill + tests",
+        "Decompose TripChat.tsx (1,262 LOC)",
+        "Honor eslint ban on legacy chatService in Stream surfaces"
+      ],
+      "failureModes": "Message loss on reconnect; read-receipt write amplification; reaction refetch storm"
+    },
+    {
+      "id": "concierge",
+      "name": "AI Concierge (Text + Voice)",
+      "color": "purple",
+      "risk": "High",
+      "quality": 58,
+      "purpose": "Gemini-powered assistant; text chat + Gemini Live voice; tool-calling that can mutate trip data.",
+      "keyFiles": [
+        "src/components/AIConciergeChat.tsx",
+        "src/hooks/useGeminiLive.ts",
+        "src/hooks/useVoiceToolHandler.ts",
+        "src/services/conciergeGateway.ts",
+        "src/features/concierge/hooks/useConciergeStreaming.ts"
+      ],
+      "deps": [
+        "Gemini / Vertex AI Live"
+      ],
+      "upstream": "Trips",
+      "downstream": "Chat, Calendar, Payments (via pending actions)",
+      "actions": [
+        "Keep AIConciergeChat.tsx modular (now ~510 LOC, decomposed from ~2.5k)",
+        "Keep tool declarations single-source (toolRegistry.ts)",
+        "Route all writes through pending-actions buffer"
+      ],
+      "failureModes": "Prompt injection; tool-call hallucination writing shared state; voice WebSocket drop; audio stuck after session end"
+    },
+    {
+      "id": "calendar",
+      "name": "Calendar \u0026 Events",
+      "color": "green",
+      "risk": "Medium",
+      "quality": 76,
+      "purpose": "Google Calendar bi-directional sync, event CRUD, RSVP, reminders.",
+      "keyFiles": [
+        "src/features/calendar/",
+        "src/services/calendarService.ts",
+        "supabase/functions/calendar-sync/"
+      ],
+      "deps": [
+        "Google Calendar API"
+      ],
+      "upstream": "Trips",
+      "downstream": "Notifications",
+      "actions": [
+        "Keep sync idempotent (dedupe by external event id)",
+        "Cover sync-token expiry + recurring edge cases"
+      ],
+      "failureModes": "Sync token expiry; bi-directional conflict; duplicate events from replay; timezone/recurring edge cases"
+    },
+    {
+      "id": "payments",
+      "name": "Payments \u0026 Subscriptions",
+      "color": "orange",
+      "risk": "High",
+      "quality": 70,
+      "purpose": "Consumer/Pro subscriptions, expense splitting, payment requests, balances.",
+      "keyFiles": [
+        "src/hooks/usePayments.ts",
+        "src/hooks/useConsumerSubscription.tsx",
+        "src/integrations/revenuecat/revenuecatClient.ts",
+        "src/services/paymentService.ts"
+      ],
+      "deps": [
+        "RevenueCat (iOS)",
+        "Stripe (web)"
+      ],
+      "upstream": "Auth, Trips",
+      "downstream": "Org billing",
+      "actions": [
+        "Never mix SDKs per platform",
+        "Validate entitlements server-side",
+        "Model splits as state machines with optimistic locking"
+      ],
+      "failureModes": "Webhook delivery failure; SDK mismatch per platform; cache drift; client-side billing bypass attempts"
+    },
+    {
+      "id": "import",
+      "name": "Smart Import (Gmail / PDF / Artifacts)",
+      "color": "orange",
+      "risk": "Medium",
+      "quality": 60,
+      "purpose": "AI-powered import of trip data from emails, PDFs, links.",
+      "keyFiles": [
+        "src/features/smart-import/",
+        "supabase/functions/gmail-import-worker/",
+        "supabase/functions/artifact-ingest/"
+      ],
+      "deps": [
+        "Gmail API (OAuth)",
+        "Gemini"
+      ],
+      "upstream": "Trips",
+      "downstream": "Calendar, Media",
+      "actions": [
+        "Persist partial state on failure (never drop parsed items)",
+        "Surface import state in UX",
+        "Treat imports as state machines"
+      ],
+      "failureModes": "OAuth refresh failure; parser ambiguity → duplicates; partial import with no rollback"
+    },
+    {
+      "id": "media",
+      "name": "Media Gallery \u0026 Storage",
+      "color": "green",
+      "risk": "Low",
+      "quality": 78,
+      "purpose": "Photo/video upload, compression, AI tagging, lightbox.",
+      "keyFiles": [
+        "src/services/mediaService.ts",
+        "src/services/mediaAITagging.ts",
+        "supabase/functions/image-upload/"
+      ],
+      "deps": [
+        "Supabase Storage",
+        "Gemini (tagging)"
+      ],
+      "upstream": "Trips",
+      "downstream": "Chat, Notifications",
+      "actions": [
+        "Server-side validation + signed URLs + cleanup triggers",
+        "Don't silently ignore tagging errors"
+      ],
+      "failureModes": "Upload timeout; quota exceeded; compression failure; tagging errors ignored"
+    },
+    {
+      "id": "maps",
+      "name": "Maps \u0026 Places",
+      "color": "green",
+      "risk": "Low",
+      "quality": 74,
+      "purpose": "Google Maps display, place search, autocomplete, location sharing.",
+      "keyFiles": [
+        "src/services/googleMapsService.ts",
+        "src/services/googlePlacesNew.ts",
+        "src/services/googlePlacesCache.ts"
+      ],
+      "deps": [
+        "Google Maps JS API"
+      ],
+      "upstream": "Trips",
+      "downstream": "—",
+      "actions": [
+        "Single map instance per page",
+        "Debounce drag/zoom/bounds at 300ms",
+        "Clean up listeners on unmount"
+      ],
+      "failureModes": "Multiple map instances; key rate limiting; stale cache; listener leak"
+    },
+    {
+      "id": "notifications",
+      "name": "Notifications \u0026 Realtime",
+      "color": "green",
+      "risk": "Medium",
+      "quality": 75,
+      "purpose": "Push, email, SMS, in-app alerts, read receipts, badge counts.",
+      "keyFiles": [
+        "src/services/notificationService.ts",
+        "src/hooks/useNotificationRealtime.ts",
+        "src/native/push.ts"
+      ],
+      "deps": [
+        "Supabase Realtime",
+        "APNS",
+        "Resend",
+        "Twilio"
+      ],
+      "upstream": "All emitters",
+      "downstream": "Native shell",
+      "actions": [
+        "Filter realtime channels by trip_id",
+        "Preserve dual-path dedup pattern",
+        "Backfill badge counts on reconnect"
+      ],
+      "failureModes": "Dual-path duplicate generation; badge drift; multi-device read desync; quiet-hours bypass"
+    },
+    {
+      "id": "orgs",
+      "name": "Organizations \u0026 Teams (B2B)",
+      "color": "yellow",
+      "risk": "Medium",
+      "quality": 66,
+      "purpose": "Seat-based billing, team management, org admin dashboard.",
+      "keyFiles": [
+        "src/pages/OrganizationDashboard.tsx"
+      ],
+      "deps": [
+        "Stripe (seat billing)"
+      ],
+      "upstream": "Auth",
+      "downstream": "Payments",
+      "actions": [
+        "Reconcile seat count with billing",
+        "Clarify org↔trip role inheritance"
+      ],
+      "failureModes": "Seat billing desync; role inheritance ambiguity; separate invite flow"
+    },
+    {
+      "id": "permissions",
+      "name": "Permissions \u0026 Roles",
+      "color": "blue",
+      "risk": "High",
+      "quality": 80,
+      "purpose": "Role-based access across consumer/pro/event trip types.",
+      "keyFiles": [
+        "src/hooks/useMutationPermissions.ts",
+        "src/hooks/useRolePermissions.ts",
+        "src/hooks/useEventPermissions.ts"
+      ],
+      "deps": [
+        "Supabase RLS"
+      ],
+      "upstream": "Auth, Trips",
+      "downstream": "Every mutation",
+      "actions": [
+        "Flow roles DB → RLS → hook → UI; never trust client claims",
+        "Check trip type before granting mutation access"
+      ],
+      "failureModes": "Client checks diverging from RLS; escalation via direct API; tier gate disabling features for real trips"
+    },
+    {
+      "id": "data",
+      "name": "Data Access Layer (Supabase client + services)",
+      "color": "blue",
+      "risk": "Medium",
+      "quality": 70,
+      "purpose": "Single Supabase gateway; 140 service modules act as the API layer between UI and DB.",
+      "keyFiles": [
+        "src/integrations/supabase/client.ts",
+        "src/integrations/supabase/types.ts (5,817 LOC, generated)",
+        "src/services/"
+      ],
+      "deps": [
+        "Supabase"
+      ],
+      "upstream": "All hooks",
+      "downstream": "Postgres + RLS",
+      "actions": [
+        "Keep all Supabase access out of JSX",
+        "Separate mock/demo data from live services",
+        "Treat types.ts as generated-only"
+      ],
+      "failureModes": "Direct JSX calls bypassing the gateway; mock/live contamination in service layer"
+    },
+    {
+      "id": "state",
+      "name": "State Management",
+      "color": "blue",
+      "risk": "Medium",
+      "quality": 68,
+      "purpose": "TanStack Query (server) + Zustand (client) + Realtime + feature flags.",
+      "keyFiles": [
+        "src/lib/queryKeys.ts",
+        "src/store/",
+        "src/lib/featureFlags.ts"
+      ],
+      "deps": [
+        "TanStack Query",
+        "Zustand"
+      ],
+      "upstream": "—",
+      "downstream": "All UI",
+      "actions": [
+        "Centralize invalidation footprints in queryKeys",
+        "Keep client state in the single src/store/ (the duplicate src/stores/ has been removed)"
+      ],
+      "failureModes": "Ad-hoc invalidation drift across query keys"
+    },
+    {
+      "id": "mobile",
+      "name": "Mobile / PWA / Native (Capacitor)",
+      "color": "purple",
+      "risk": "Medium",
+      "quality": 70,
+      "purpose": "Same web app wrapped via Capacitor 8 for iOS + installable PWA; platform-conditional code.",
+      "keyFiles": [
+        "src/platform/",
+        "src/native/",
+        "src/offline/",
+        "public/sw.js",
+        "scripts/build-sw.cjs"
+      ],
+      "deps": [
+        "Capacitor 8",
+        "Workbox"
+      ],
+      "upstream": "Web app",
+      "downstream": "App Store / device",
+      "actions": [
+        "Keep web/PWA/native parity",
+        "Lazy-load native plugins on web"
+      ],
+      "failureModes": "Native plugins eagerly imported on web; PWA/native layout drift"
+    },
+    {
+      "id": "backend",
+      "name": "Edge Functions \u0026 Migrations",
+      "color": "blue",
+      "risk": "Medium",
+      "quality": 72,
+      "purpose": "97 Deno edge functions (AI, webhooks, imports, notifications, auth-gated mutations) + 419 SQL migrations.",
+      "keyFiles": [
+        "supabase/functions/ (97 dirs)",
+        "supabase/functions/_shared/requireAuth.ts",
+        "supabase/migrations/ (419)"
+      ],
+      "deps": [
+        "Supabase",
+        "external APIs"
+      ],
+      "upstream": "Frontend + webhooks",
+      "downstream": "Postgres",
+      "actions": [
+        "requireSecrets() at startup",
+        "Two-phase destructive migrations",
+        "lint-migrations clean"
+      ],
+      "failureModes": "Missing-secret fail-open; webhook auth gaps; migration drift"
+    }
+  ],
+  "files": [
+    {
+      "path": "src/integrations/supabase/client.ts",
+      "badges": [
+        "Core",
+        "Database",
+        "Well Designed"
+      ],
+      "color": "blue",
+      "plain": "The one doorway to the database and login. Every read and write goes through here.",
+      "tech": "Supabase singleton client; the only sanctioned data gateway (CLAUDE.md forbids Supabase calls in JSX).",
+      "exports": "supabase client",
+      "importedBy": "Nearly all hooks \u0026 services",
+      "risk": "High blast radius if changed",
+      "confidence": "High",
+      "action": "keep / protect with tests"
+    },
+    {
+      "path": "src/hooks/useAuth.tsx",
+      "badges": [
+        "Core",
+        "Auth",
+        "Risky",
+        "Needs Tests"
+      ],
+      "color": "orange",
+      "plain": "Controls who is logged in and what they can do. The most safety-critical file in the app.",
+      "tech": "1,307 LOC auth/session/role hook. Gates the entire critical path; hydration timing here causes the Trip-Not-Found flash.",
+      "exports": "useAuth, AuthProvider",
+      "importedBy": "App shell + every gated route",
+      "risk": "Highest — auth desync cascades",
+      "confidence": "High",
+      "action": "refactor (split) + add hydration tests"
+    },
+    {
+      "path": "src/components/AIConciergeChat.tsx",
+      "badges": [
+        "Feature",
+        "AI",
+        "Well Designed"
+      ],
+      "color": "green",
+      "plain": "The AI assistant's chat screen. Recently slimmed down so it's far easier to change safely.",
+      "tech": "~510 LOC — decomposed from the ~2,500-LOC 'god component' that was tech_debt_report.md #1. That top maintainability risk is now resolved; logic extracted into hooks/sub-components.",
+      "exports": "AIConciergeChat",
+      "importedBy": "Concierge routes/panels",
+      "risk": "Low",
+      "confidence": "High",
+      "action": "keep modular — guard against re-accreting responsibilities"
+    },
+    {
+      "path": "src/features/chat/components/TripChat.tsx",
+      "badges": [
+        "Feature",
+        "UI",
+        "Risky"
+      ],
+      "color": "orange",
+      "plain": "The trip chat screen. Big and re-renders more than it should.",
+      "tech": "1,262 LOC; tech_debt_report flags over-fetching/memoization. Stream-enabled surface (eslint bans legacy chatService import).",
+      "exports": "TripChat",
+      "importedBy": "Trip detail surfaces",
+      "risk": "Medium-High",
+      "confidence": "High",
+      "action": "refactor — split render fns \u0026 filter tabs"
+    },
+    {
+      "path": "src/hooks/stream/useStreamTripChat.ts",
+      "badges": [
+        "Feature",
+        "State",
+        "Needs Tests"
+      ],
+      "color": "yellow",
+      "plain": "Wires the chat to the Stream messaging service.",
+      "tech": "1,202 LOC transport hook for Stream Chat; reconnect/backfill correctness is critical (TEST_GAPS.md).",
+      "exports": "useStreamTripChat",
+      "importedBy": "Chat components",
+      "risk": "Medium-High",
+      "confidence": "High",
+      "action": "add reconnect/backfill tests"
+    },
+    {
+      "path": "src/services/demoModeService.ts",
+      "badges": [
+        "Utility",
+        "Risky"
+      ],
+      "color": "orange",
+      "plain": "Generates fake 'demo' data. Risk of demo data leaking into real trips.",
+      "tech": "1,313 LOC; tech_debt_report flags unclear mock/live isolation. Demo-mode contamination is a zero-tolerance regression.",
+      "exports": "demo data builders",
+      "importedBy": "Demo flows + some services",
+      "risk": "High (contamination)",
+      "confidence": "High",
+      "action": "isolate behind a hard boundary; test no-leak invariant"
+    },
+    {
+      "path": "src/services/tripSpecificMockDataService.ts",
+      "badges": [
+        "Utility",
+        "Legacy"
+      ],
+      "color": "yellow",
+      "plain": "Large bank of trip mock data.",
+      "tech": "1,611 LOC of mock data inside the service layer (should not sit beside live services).",
+      "exports": "mock datasets",
+      "importedBy": "Demo/dev surfaces",
+      "risk": "Medium",
+      "confidence": "High",
+      "action": "move to src/mockData/, gate behind dev/demo flag"
+    },
+    {
+      "path": "src/integrations/supabase/types.ts",
+      "badges": [
+        "Database",
+        "Config"
+      ],
+      "color": "gray",
+      "plain": "Auto-generated description of the database shape.",
+      "tech": "5,817 LOC generated types. tech_debt_report warns it may contain manual edits/bloat.",
+      "exports": "Database types",
+      "importedBy": "Typed queries everywhere",
+      "risk": "Low (if generated-only)",
+      "confidence": "Medium",
+      "action": "verify generated-only; never hand-edit"
+    },
+    {
+      "path": "src/services/tripContextAggregator.ts",
+      "badges": [
+        "Core",
+        "Well Designed"
+      ],
+      "color": "green",
+      "plain": "The approved single source for assembling a trip's context for the AI.",
+      "tech": "Canonical replacement for the deprecated enhancedTripContextService (enforced via eslint no-restricted-imports).",
+      "exports": "TripContextAggregator",
+      "importedBy": "Concierge context builders",
+      "risk": "Low",
+      "confidence": "High",
+      "action": "keep — reference implementation"
+    },
+    {
+      "path": "src/services/enhancedTripContextService",
+      "badges": [
+        "Legacy",
+        "Suspected Dead"
+      ],
+      "color": "red",
+      "plain": "Old version of the trip-context builder, officially retired.",
+      "tech": "Deprecated; eslint blocks all import paths to it in favor of TripContextAggregator.",
+      "exports": "(deprecated)",
+      "importedBy": "Should be none",
+      "risk": "Low to remove (verify)",
+      "confidence": "High",
+      "action": "investigate then delete"
+    },
+    {
+      "path": "src/lib/queryKeys.ts",
+      "badges": [
+        "Core",
+        "State",
+        "Well Designed"
+      ],
+      "color": "blue",
+      "plain": "Naming system for cached data so updates refresh the right screens.",
+      "tech": "TanStack Query cache-key factory; the invalidation contract for server state.",
+      "exports": "queryKeys",
+      "importedBy": "Query/mutation hooks",
+      "risk": "Medium blast radius",
+      "confidence": "High",
+      "action": "keep; route all invalidation through it"
+    },
+    {
+      "path": "src/pages/Index.tsx",
+      "badges": [
+        "UI",
+        "Risky"
+      ],
+      "color": "yellow",
+      "plain": "The landing/home page — heavy for a first screen.",
+      "tech": "1,529 LOC; tech_debt_report flags it as too heavy for first paint (~260K chunk).",
+      "exports": "Index page",
+      "importedBy": "Router",
+      "risk": "Medium (perf)",
+      "confidence": "High",
+      "action": "code-split / lazy sections"
+    },
+    {
+      "path": "src/lib/blog.ts",
+      "badges": [
+        "Utility",
+        "Config"
+      ],
+      "color": "gray",
+      "plain": "The marketing blog's content, stored as data — not real program logic.",
+      "tech": "1,475 LOC static BlogPost registry (source of truth for /blog and /blog/:slug). Data-heavy, low logic; large but inert. New entrant to the god-file list since the last refresh.",
+      "exports": "blog posts + types",
+      "importedBy": "Blog index/post pages",
+      "risk": "Low (static content)",
+      "confidence": "High",
+      "action": "consider per-post files or MDX so the logic bundle stays lean"
+    },
+    {
+      "path": "src/utils/exportPdfClient.ts",
+      "badges": [
+        "Utility",
+        "Risky"
+      ],
+      "color": "yellow",
+      "plain": "Generates trip PDFs in the browser when the server export isn't available.",
+      "tech": "1,152 LOC client-side jsPDF fallback (file-level eslint-disable for no-explicit-any). New 1k+ entrant; pulls jsPDF/autotable into the bundle — a lazy-load + decomposition candidate.",
+      "exports": "client PDF export helpers",
+      "importedBy": "Trip export surfaces",
+      "risk": "Medium (bundle weight + any usage)",
+      "confidence": "High",
+      "action": "lazy-load on export intent; split helpers; type the any surfaces"
+    },
+    {
+      "path": "patch_tripchat*.py / resolver3.js / output.md / claude-progress.txt",
+      "badges": [
+        "Legacy"
+      ],
+      "color": "green",
+      "plain": "Stray helper/scratch files that used to sit in the project root — now removed.",
+      "tech": "Resolved: the Python patch scripts (in a declared 'No Python' repo) plus scratch JS/markdown at root have been deleted from the tree.",
+      "exports": "—",
+      "importedBy": "None",
+      "risk": "—",
+      "confidence": "High",
+      "action": "done — removed"
+    }
+  ],
+  "dependencies": {
+    "notes": "Coupling concentrates in three places: the Supabase client (imported almost everywhere — intentional gateway), the service layer (140 modules acting as the API), and a handful of god files. No formal cycle scan was run this session; treat cycle claims as Low confidence pending a madge/dpdm run.",
+    "hubs": [
+      {
+        "path": "src/integrations/supabase/client.ts",
+        "role": "Data gateway — highest fan-in (by design)"
+      },
+      {
+        "path": "src/lib/queryKeys.ts",
+        "role": "Cache-key hub for all server state"
+      },
+      {
+        "path": "src/integrations/supabase/types.ts",
+        "role": "Type hub for all typed queries"
       }
-    </script>
+    ],
+    "orphansNote": "knip lists current knip 'unused files', but many are framework entry points it cannot resolve: Vercel api/*.ts, Remotion compositions under remotion/, and scripts/*. These are Future/Unclear, not confirmed dead. Verify per-file before any deletion.",
+    "godFileNotes": {
+      "src/mockData/polls.ts": "Large static mock dataset — dev/demo only, gate out of prod bundles",
+      "src/lib/blog.ts": "Static blog-content registry (1.5k LOC of data, not logic) — split per-post/MDX to keep the logic bundle lean",
+      "src/utils/exportPdfClient.ts": "Client-side jsPDF export fallback — lazy-load on export intent; decomposition + any-typing candidate",
+      "src/services/tripSpecificMockDataService.ts": "Giant mock dataset in service layer",
+      "src/pages/Index.tsx": "Heavy landing/route page — decomposition candidate",
+      "src/hooks/useAuth.tsx": "Auth + session + roles in one hook",
+      "src/services/demoModeService.ts": "Demo data generation, contamination risk",
+      "src/hooks/useTripTasks.ts": "Task logic concentration",
+      "src/features/chat/components/TripChat.tsx": "Chat screen doing too much",
+      "src/hooks/stream/useStreamTripChat.ts": "Stream transport + state"
+    },
+    "godFiles": [
+      {
+        "path": "src/integrations/supabase/types.ts",
+        "loc": 5818,
+        "why": "Generated types (5818 LOC) — keep generated-only, do not hand-edit"
+      },
+      {
+        "path": "src/mockData/polls.ts",
+        "loc": 3150,
+        "why": "Large static mock dataset — dev/demo only, gate out of prod bundles"
+      },
+      {
+        "path": "src/services/tripSpecificMockDataService.ts",
+        "loc": 1612,
+        "why": "Giant mock dataset in service layer"
+      },
+      {
+        "path": "src/pages/Index.tsx",
+        "loc": 1530,
+        "why": "Heavy landing/route page — decomposition candidate"
+      },
+      {
+        "path": "src/lib/blog.ts",
+        "loc": 1476,
+        "why": "Static blog-content registry (1.5k LOC of data, not logic) — split per-post/MDX to keep the logic bundle lean"
+      },
+      {
+        "path": "src/services/demoModeService.ts",
+        "loc": 1314,
+        "why": "Demo data generation, contamination risk"
+      },
+      {
+        "path": "src/hooks/useAuth.tsx",
+        "loc": 1308,
+        "why": "Auth + session + roles in one hook"
+      },
+      {
+        "path": "src/hooks/useTripTasks.ts",
+        "loc": 1288,
+        "why": "Task logic concentration"
+      },
+      {
+        "path": "src/features/chat/components/TripChat.tsx",
+        "loc": 1263,
+        "why": "Chat screen doing too much"
+      },
+      {
+        "path": "src/hooks/stream/useStreamTripChat.ts",
+        "loc": 1203,
+        "why": "Stream transport + state"
+      }
+    ]
+  },
+  "features": [
+    {
+      "name": "Trips \u0026 Membership",
+      "color": "blue",
+      "completeness": 92,
+      "plain": "Create trips, invite people, manage who's in.",
+      "screens": [
+        "TripDetail / MobileTripDetail",
+        "ProTripDetail",
+        "EventDetail"
+      ],
+      "backend": [
+        "trips, trip_members tables",
+        "tripService",
+        "trip_membership_audit_events"
+      ],
+      "state": [
+        "useTrips",
+        "useTripMembers"
+      ],
+      "external": [
+        "Supabase"
+      ],
+      "missingStates": [
+        "invite-expiry edge cases"
+      ],
+      "risks": [],
+      "fixes": [
+        "DONE: membership state machine + access-guard tests (existence != access)"
+      ]
+    },
+    {
+      "name": "Unified Messaging",
+      "color": "orange",
+      "completeness": 92,
+      "plain": "Group chat, channels, and broadcasts.",
+      "screens": [
+        "TripChat",
+        "channel views"
+      ],
+      "backend": [
+        "Stream Chat",
+        "trip_chat_messages",
+        "Supabase Realtime"
+      ],
+      "state": [
+        "useStreamTripChat",
+        "unifiedMessagingService"
+      ],
+      "external": [
+        "Stream (GetStream)"
+      ],
+      "missingStates": [],
+      "risks": [],
+      "fixes": [
+        "DONE: backfillMissedMessages on reconnect/visibility + reconnect tests; offline queue via Stream SDK + idempotency keys"
+      ]
+    },
+    {
+      "name": "AI Concierge",
+      "color": "purple",
+      "completeness": 90,
+      "plain": "AI helper that plans trips and can take actions, by text or voice.",
+      "screens": [
+        "AIConciergeChat",
+        "voice UI"
+      ],
+      "backend": [
+        "conciergeGateway",
+        "ai_queries",
+        "Gemini/Vertex"
+      ],
+      "state": [
+        "useConciergeStreaming",
+        "useConciergeVoice",
+        "useWebSpeechVoice"
+      ],
+      "external": [
+        "Gemini",
+        "Vertex AI Live"
+      ],
+      "missingStates": [
+        "full-duplex Gemini Live voice not yet client-wired (dictation path only)"
+      ],
+      "risks": [
+        "prompt injection (mitigated: tool writes gated by pending-actions buffer)"
+      ],
+      "fixes": [
+        "DONE: pending-actions buffer covers every write tool (coverage test) + AIConciergeChat decomposed (~507 LOC) + dictation lifecycle cleanup; TODO: wire full-duplex voice over LiveKit"
+      ]
+    },
+    {
+      "name": "Payments \u0026 Subscriptions",
+      "color": "orange",
+      "completeness": 90,
+      "plain": "Subscriptions and splitting costs.",
+      "screens": [
+        "billing/",
+        "paywall"
+      ],
+      "backend": [
+        "paymentService",
+        "user_entitlements",
+        "billing_webhook_ops_dashboard"
+      ],
+      "state": [
+        "usePayments",
+        "useConsumerSubscription"
+      ],
+      "external": [
+        "Stripe (web)",
+        "RevenueCat (iOS)"
+      ],
+      "missingStates": [],
+      "risks": [
+        "platform SDK boundary (Stripe web / RevenueCat iOS) must not mix"
+      ],
+      "fixes": [
+        "DONE: server-side entitlement (user_entitlements source of truth) + ops-layer webhook failure surfacing (failures table + dashboard view + replay script); TODO: richer split state machine (pending/confirmed/settled per participant)"
+      ]
+    },
+    {
+      "name": "Calendar \u0026 Events",
+      "color": "green",
+      "completeness": 90,
+      "plain": "Shared calendar that syncs with Google.",
+      "screens": [
+        "calendar/"
+      ],
+      "backend": [
+        "calendarSyncService",
+        "calendar_event_mappings",
+        "trip_events"
+      ],
+      "state": [
+        "calendar hooks"
+      ],
+      "external": [
+        "Google Calendar"
+      ],
+      "missingStates": [
+        "mount Google sync UI (reauth_required state ready, not yet wired)"
+      ],
+      "risks": [],
+      "fixes": [
+        "DONE: idempotent dedupe by immutable external-id correlation (calendar_event_mappings, tested) + sync-token-expiry reauth UX state"
+      ]
+    },
+    {
+      "name": "Smart Import",
+      "color": "orange",
+      "completeness": 90,
+      "plain": "Pulls reservations out of emails and PDFs automatically.",
+      "screens": [
+        "smart-import/"
+      ],
+      "backend": [
+        "gmail-import-worker",
+        "gmail_import_artifacts",
+        "durable checkpoints"
+      ],
+      "state": [
+        "useArtifactIngest"
+      ],
+      "external": [
+        "Gmail",
+        "Gemini"
+      ],
+      "missingStates": [
+        "progress-phase indicator on PDF/URL path (Gmail path done)"
+      ],
+      "risks": [],
+      "fixes": [
+        "DONE: checkpoint state machine + durable checkpoints + per-artifact apply_status (partial-state/rollback) + fingerprint dedupe + ImportPhaseIndicator progress UX (Gmail)"
+      ]
+    },
+    {
+      "name": "Media Gallery",
+      "color": "green",
+      "completeness": 90,
+      "plain": "Upload and view trip photos/videos.",
+      "screens": [
+        "media/"
+      ],
+      "backend": [
+        "mediaService",
+        "image-upload edge fn",
+        "Supabase Storage"
+      ],
+      "state": [
+        "media hooks",
+        "useStorageQuota"
+      ],
+      "external": [
+        "Supabase Storage",
+        "Gemini tagging"
+      ],
+      "missingStates": [],
+      "risks": [
+        "Gemini auto-tagging is best-effort (failures are non-blocking)"
+      ],
+      "fixes": [
+        "DONE: orphan-variant cleanup function + quota-exceeded upload guard (blocks before silent failure, tested)"
+      ]
+    },
+    {
+      "name": "Notifications",
+      "color": "green",
+      "completeness": 92,
+      "plain": "Push, email, SMS, and in-app alerts.",
+      "screens": [
+        "notifications/"
+      ],
+      "backend": [
+        "notificationService",
+        "notifications table",
+        "notification_deliveries"
+      ],
+      "state": [
+        "useNotificationRealtime",
+        "notificationRealtimeStore"
+      ],
+      "external": [
+        "APNS",
+        "Resend",
+        "Twilio"
+      ],
+      "missingStates": [],
+      "risks": [],
+      "fixes": [
+        "DONE: race-safe dedupe (stream_message_id unique index) + badge reconcile on reconnect; per-user channel scoping is correct for the global feed (documented in useNotificationRealtime)"
+      ]
+    }
+  ],
+  "flows": [
+    {
+      "name": "Sign up / Log in",
+      "steps": [
+        {
+          "layer": "Entry",
+          "detail": "Auth page → Supabase Auth (email / Google OAuth)"
+        },
+        {
+          "layer": "State",
+          "detail": "useAuth hydrates session + role"
+        },
+        {
+          "layer": "Guard",
+          "detail": "Routes wait for hydrated session before fetching"
+        }
+      ],
+      "failurePoints": [
+        "Fetch fires before hydration → Trip Not Found flash"
+      ],
+      "risks": [
+        "Token refresh failure",
+        "demo/auth crossover"
+      ]
+    },
+    {
+      "name": "Open a trip",
+      "steps": [
+        {
+          "layer": "Entry",
+          "detail": "Route /trip/:id"
+        },
+        {
+          "layer": "Hook",
+          "detail": "useTrips / useTripMembers"
+        },
+        {
+          "layer": "Data",
+          "detail": "supabase client → trips + trip_members (RLS)"
+        },
+        {
+          "layer": "Render",
+          "detail": "TripDetail / MobileTripDetail"
+        }
+      ],
+      "failurePoints": [
+        "Existence ≠ access: must check membership, not just row exists"
+      ],
+      "risks": [
+        "RLS gap leaks data",
+        "loading vs not-found conflation"
+      ]
+    },
+    {
+      "name": "Send a chat message",
+      "steps": [
+        {
+          "layer": "Entry",
+          "detail": "TripChat composer"
+        },
+        {
+          "layer": "Transport",
+          "detail": "useStreamTripChat → Stream channel.sendMessage"
+        },
+        {
+          "layer": "Realtime",
+          "detail": "Supabase Realtime for system messages, filtered by trip_id"
+        }
+      ],
+      "failurePoints": [
+        "WebSocket reconnect without backfill loses messages"
+      ],
+      "risks": [
+        "Read-receipt write amplification",
+        "reaction refetch storm"
+      ]
+    },
+    {
+      "name": "AI Concierge action",
+      "steps": [
+        {
+          "layer": "Entry",
+          "detail": "AIConciergeChat / voice"
+        },
+        {
+          "layer": "Gateway",
+          "detail": "conciergeGateway selects tools via queryClassifier"
+        },
+        {
+          "layer": "Buffer",
+          "detail": "Writes go to trip_pending_actions (confirm card)"
+        },
+        {
+          "layer": "Commit",
+          "detail": "Confirm handler applies through normal mutation path"
+        }
+      ],
+      "failurePoints": [
+        "Missing confirm-handler case → confirm appears to work but writes nothing"
+      ],
+      "risks": [
+        "Tool hallucination",
+        "prompt injection",
+        "5-file tool sync missed"
+      ]
+    },
+    {
+      "name": "Subscribe / pay",
+      "steps": [
+        {
+          "layer": "Entry",
+          "detail": "Paywall / billing"
+        },
+        {
+          "layer": "SDK",
+          "detail": "Stripe (web) OR RevenueCat (iOS) — never both"
+        },
+        {
+          "layer": "Webhook",
+          "detail": "Edge function updates user_subscriptions"
+        },
+        {
+          "layer": "Gate",
+          "detail": "Entitlement checked server-side"
+        }
+      ],
+      "failurePoints": [
+        "Webhook delivery failure leaves state stale"
+      ],
+      "risks": [
+        "Client-side billing bypass",
+        "cache drift"
+      ]
+    },
+    {
+      "name": "Smart Import a reservation",
+      "steps": [
+        {
+          "layer": "Entry",
+          "detail": "Connect Gmail / upload PDF"
+        },
+        {
+          "layer": "Worker",
+          "detail": "gmail-import-worker / artifact-ingest"
+        },
+        {
+          "layer": "Parse",
+          "detail": "Gemini extracts structured items → artifacts"
+        },
+        {
+          "layer": "Apply",
+          "detail": "Items reviewed into trip"
+        }
+      ],
+      "failurePoints": [
+        "Retry drops parsed items if partial state not persisted"
+      ],
+      "risks": [
+        "Duplicate records from parser ambiguity",
+        "OAuth refresh failure"
+      ]
+    }
+  ],
+  "backend": {
+    "summary": "~96 Deno edge functions handle AI, webhooks, imports, notifications, and auth-gated mutations; 378 SQL migrations define schema; 756 RLS policies are the real authorization boundary.",
+    "items": [
+      {
+        "name": "_shared/requireAuth.ts",
+        "purpose": "Auth guard imported by every function",
+        "auth": "Validates user JWT",
+        "risk": "Bypass if a function forgets to call it",
+        "confidence": "High"
+      },
+      {
+        "name": "_shared/validateSecrets.ts (requireSecrets)",
+        "purpose": "Fail-fast on missing secrets at startup",
+        "auth": "n/a",
+        "risk": "Fail-open documented for some guards (DEBUG_PATTERNS: CronGuard, capability token)",
+        "confidence": "High"
+      },
+      {
+        "name": "calendar-sync",
+        "purpose": "Bi-directional Google Calendar sync",
+        "auth": "User + Google OAuth",
+        "risk": "Non-idempotent replay → duplicate events",
+        "confidence": "High"
+      },
+      {
+        "name": "gmail-import-worker / artifact-ingest",
+        "purpose": "Smart Import parsing pipeline",
+        "auth": "User + Gmail OAuth",
+        "risk": "Partial import with no rollback",
+        "confidence": "High"
+      },
+      {
+        "name": "image-upload",
+        "purpose": "Media upload + processing",
+        "auth": "User",
+        "risk": "Validation/quota handling",
+        "confidence": "Medium"
+      },
+      {
+        "name": "Stripe / RevenueCat webhooks",
+        "purpose": "Subscription state source of truth",
+        "auth": "Signature verification",
+        "risk": "Delivery failure → stale entitlement",
+        "confidence": "High"
+      }
+    ]
+  },
+  "integrations": [
+    {
+      "name": "Supabase",
+      "type": "core",
+      "color": "blue",
+      "configuredAt": "src/integrations/supabase/client.ts",
+      "usedAt": "All hooks/services + edge functions",
+      "envVars": [
+        "VITE_SUPABASE_URL",
+        "VITE_SUPABASE_ANON_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY (edge)"
+      ],
+      "failureModes": "Total outage = app down (core infra)",
+      "hardening": "RLS on every table; never expose service-role key client-side"
+    },
+    {
+      "name": "Gemini / Vertex AI",
+      "type": "ai",
+      "color": "purple",
+      "configuredAt": "lovable-concierge + src/lib/geminiLive/",
+      "usedAt": "Concierge, Smart Import, media tagging",
+      "envVars": [
+        "GEMINI_API_KEY",
+        "VERTEX_* (voice)"
+      ],
+      "failureModes": "AI features unavailable",
+      "hardening": "Feature-flag kill switch; treat tool calls as untrusted (pending-actions buffer)"
+    },
+    {
+      "name": "Stream Chat (GetStream)",
+      "type": "messaging",
+      "color": "purple",
+      "configuredAt": "src/features/chat/, src/hooks/stream/",
+      "usedAt": "Trip chat, channels",
+      "envVars": [
+        "VITE_STREAM_API_KEY",
+        "STREAM_API_SECRET (edge token mint)"
+      ],
+      "failureModes": "Chat unavailable",
+      "hardening": "Mint tokens server-side only; never ship secret to client"
+    },
+    {
+      "name": "Stripe",
+      "type": "payments",
+      "color": "purple",
+      "configuredAt": "paymentService + webhooks",
+      "usedAt": "Web checkout, org seat billing",
+      "envVars": [
+        "STRIPE_SECRET_KEY",
+        "STRIPE_WEBHOOK_SECRET",
+        "VITE_STRIPE_PUBLISHABLE_KEY"
+      ],
+      "failureModes": "Web checkout down (RevenueCat iOS still works)",
+      "hardening": "Verify webhook signatures; validate amounts server-side"
+    },
+    {
+      "name": "RevenueCat",
+      "type": "payments",
+      "color": "purple",
+      "configuredAt": "src/integrations/revenuecat/revenuecatClient.ts",
+      "usedAt": "iOS subscriptions",
+      "envVars": [
+        "REVENUECAT_API_KEY",
+        "REVENUECAT_WEBHOOK_*"
+      ],
+      "failureModes": "iOS billing down (Stripe web still works)",
+      "hardening": "Never mix with Stripe per platform; server-side entitlement sync"
+    },
+    {
+      "name": "Google Maps / Places",
+      "type": "maps",
+      "color": "purple",
+      "configuredAt": "src/services/googleMapsService.ts",
+      "usedAt": "Maps, place search",
+      "envVars": [
+        "VITE_GOOGLE_MAPS_API_KEY"
+      ],
+      "failureModes": "Map/search non-functional → empty state",
+      "hardening": "Restrict key by referrer; single map instance; cache places"
+    },
+    {
+      "name": "Google Calendar",
+      "type": "calendar",
+      "color": "purple",
+      "configuredAt": "calendar-sync edge fn",
+      "usedAt": "Calendar sync",
+      "envVars": [
+        "GOOGLE_OAUTH_CLIENT_ID",
+        "GOOGLE_OAUTH_CLIENT_SECRET"
+      ],
+      "failureModes": "Sync pauses → local-only events",
+      "hardening": "Idempotent sync; handle token expiry"
+    },
+    {
+      "name": "Gmail API",
+      "type": "import",
+      "color": "purple",
+      "configuredAt": "gmail-import-worker",
+      "usedAt": "Smart Import",
+      "envVars": [
+        "GMAIL_OAUTH_*"
+      ],
+      "failureModes": "Email import unavailable → manual entry",
+      "hardening": "Persist partial state; refresh tokens safely"
+    },
+    {
+      "name": "Resend / Twilio / APNS",
+      "type": "notifications",
+      "color": "purple",
+      "configuredAt": "notificationService + edge fns + src/native/push.ts",
+      "usedAt": "Email / SMS / iOS push",
+      "envVars": [
+        "RESEND_API_KEY",
+        "TWILIO_*",
+        "APNS_*"
+      ],
+      "failureModes": "Channel-specific delivery failure (fallbacks exist)",
+      "hardening": "Dual-path dedup; respect quiet hours"
+    },
+    {
+      "name": "Sentry / PostHog",
+      "type": "observability",
+      "color": "purple",
+      "configuredAt": "src/telemetry/",
+      "usedAt": "Errors / analytics",
+      "envVars": [
+        "VITE_SENTRY_DSN",
+        "VITE_POSTHOG_KEY"
+      ],
+      "failureModes": "Silent monitoring/analytics loss",
+      "hardening": "Scrub PII; sample rates"
+    },
+    {
+      "name": "Capacitor 8",
+      "type": "native",
+      "color": "purple",
+      "configuredAt": "capacitor.config + src/native/ + src/platform/",
+      "usedAt": "iOS shell + PWA bridge",
+      "envVars": [
+        "(build-time)"
+      ],
+      "failureModes": "Native plugin failure on device",
+      "hardening": "Lazy-load native plugins on web; parity tests"
+    },
+    {
+      "name": "Vercel / Render",
+      "type": "hosting",
+      "color": "blue",
+      "configuredAt": "vercel.json / render.yaml",
+      "usedAt": "Frontend / OG unfurl proxy",
+      "envVars": [
+        "(platform-managed)"
+      ],
+      "failureModes": "Deploy/serve outage",
+      "hardening": "Rollback strategy; health checks"
+    }
+  ],
+  "deadCode": [
+    {
+      "path": "patch_tripchat.py, patch_tripchat2.py, patch_tripchat_import.py, patch_tripchat_receipts.py, patch_tripchat_receipts2.py",
+      "evidence": "Python scripts at repo root in a 'No Python' repo — verified removed from the tree.",
+      "confidence": "High",
+      "deletionRisk": "—",
+      "action": "done — removed"
+    },
+    {
+      "path": "resolver3.js, output.md, validation-report.json, plan_refactoring.md",
+      "evidence": "Scratch/output artifacts at root — verified removed from the tree. claude-progress.txt is now intentionally retained as agent breadcrumb memory.",
+      "confidence": "High",
+      "deletionRisk": "—",
+      "action": "done — removed"
+    },
+    {
+      "path": "src/services/enhancedTripContextService*",
+      "evidence": "Deprecated in favor of TripContextAggregator — verified removed from src/ (only a doc reference remains).",
+      "confidence": "High",
+      "deletionRisk": "—",
+      "action": "done — removed"
+    },
+    {
+      "path": "0 unused dependencies (knip clean, down from 8)",
+      "evidence": "Live knip scan (2026-06-22) reports no Unused dependencies / devDependencies section; the prior 8 deps + 1 devDep have been pruned.",
+      "confidence": "High",
+      "deletionRisk": "—",
+      "action": "done — dependency surface is clean; keep knip in CI to prevent regrowth"
+    },
+    {
+      "path": "386 unused exports / 433 unused exported types",
+      "evidence": "Live knip scan (2026-06-22). Many are intentional public surfaces or framework-resolved.",
+      "confidence": "Medium",
+      "deletionRisk": "Medium",
+      "action": "triage in batches; investigate manually"
+    },
+    {
+      "path": "210 'unused files' (knip)",
+      "evidence": "Live knip scan (2026-06-22), down from 285. Includes Vercel api/*.ts, Remotion compositions, scripts/* that knip can't resolve as entry points.",
+      "confidence": "Low (as a blanket claim)",
+      "deletionRisk": "High if deleted blindly",
+      "action": "Future/Unclear — verify each before acting"
+    }
+  ],
+  "quality": [
+    {
+      "module": "AI Concierge",
+      "score": 58,
+      "status": "Fragile",
+      "why": "Tool-calling can mutate shared state; voice lifecycle edge cases remain. The ~2,500-LOC god component has been decomposed (AIConciergeChat.tsx now ~510 LOC), reducing edit risk.",
+      "evidence": "AIConciergeChat.tsx (~510 LOC); SYSTEM_MAP #4; DEBUG_PATTERNS (voice tool silent fail).",
+      "fix": "Decompose component; enforce pending-actions buffer; single-source tool registry."
+    },
+    {
+      "module": "Messaging",
+      "score": 64,
+      "status": "Fragile",
+      "why": "Reconnect can lose messages; large components; write amplification.",
+      "evidence": "TripChat.tsx 1,262 LOC; TEST_GAPS chat reconnect; SYSTEM_MAP #3.",
+      "fix": "Backfill on reconnect + tests; decompose TripChat."
+    },
+    {
+      "module": "Auth \u0026 Session",
+      "score": 72,
+      "status": "Good",
+      "why": "Heavily guarded but oversized and timing-sensitive.",
+      "evidence": "useAuth.tsx 1,307 LOC; Trip-Not-Found flash pattern.",
+      "fix": "Split hook; add hydration-before-fetch tests."
+    },
+    {
+      "module": "Payments",
+      "score": 70,
+      "status": "Good",
+      "why": "Dual-SDK split is correct but webhook-state and bypass surfaces need vigilance.",
+      "evidence": "SYSTEM_MAP #6; chravel-payments skill.",
+      "fix": "Server-side entitlement checks; split state machine with optimistic locking."
+    },
+    {
+      "module": "Data layer / Services",
+      "score": 74,
+      "status": "Good",
+      "why": "Service gateway is cleaner in high-risk export/import paths after policy helper extraction, but demo/mock data and boundary `any` usage remain.",
+      "evidence": "export-user-data manifest.ts; export-trip authorization.ts; file-ai-parser idempotency.ts; gmail-import-worker importJobState.ts.",
+      "fix": "Continue helper extraction, hard mock/live boundary, type service edges."
+    },
+    {
+      "module": "Permissions \u0026 Roles",
+      "score": 83,
+      "status": "Good",
+      "why": "RLS-backed and recently hardened; trip PDF export membership policy is now tested, but seed functions and live role-matrix tests still need hardening.",
+      "evidence": "export-trip authorization tests; SYSTEM_MAP #12; LESSONS role propagation.",
+      "fix": "Add seed-function guards and live role-matrix integration tests."
+    },
+    {
+      "module": "Calendar / Media / Maps / Notifications",
+      "score": 76,
+      "status": "Good",
+      "why": "Stable, documented patterns; isolated failure modes with fallbacks.",
+      "evidence": "SYSTEM_MAP #5,#8,#9,#10.",
+      "fix": "Idempotency + cleanup tests; single map instance."
+    },
+    {
+      "module": "Build / Bundle",
+      "score": 70,
+      "status": "Improving",
+      "why": "Recharts dashboards and org-chart screenshot export are now behind lazy/user-intent boundaries; exceljs, pdf, native, and Stream chunks still need tighter intent boundaries and CI budgets.",
+      "evidence": "CampaignAnalytics chart panels, SeoTrendChart, TeamOrgChart dynamic html2canvas import; build bundle table.",
+      "fix": "Finish lazy-loading exceljs/pdf/native/Stream paths and add bundle-size CI gate."
+    }
+  ],
+  "missing": [
+    {
+      "area": "Chat reconnect/backfill tests",
+      "impact": "High user trust",
+      "priority": "Urgent",
+      "note": "TEST_GAPS.md — message loss is silent and unacceptable."
+    },
+    {
+      "area": "Boundary typing (remove ~450 `any`)",
+      "impact": "Maintainability + runtime safety",
+      "priority": "Important",
+      "note": "tech_debt_report #2; count has crept from ~390 to ~450 since last refresh."
+    },
+    {
+      "area": "Smart Import state machine",
+      "impact": "Data integrity",
+      "priority": "Important",
+      "note": "Partial: file parser sequential idempotency and Gmail completed_partial status landed; still needs DB concurrency/replay tests and calendar-sync idempotency."
+    },
+    {
+      "area": "Bundle/code-split CI gate",
+      "impact": "Mobile performance / conversion",
+      "priority": "Important",
+      "note": "Partial: Recharts chart panels and html2canvas export are lazy; exceljs/pdf/native/Stream and CI budget remain."
+    },
+    {
+      "area": "Mock/demo data boundary",
+      "impact": "Demo-mode contamination (zero-tolerance)",
+      "priority": "Urgent",
+      "note": "demoModeService + tripSpecificMockDataService sit beside live code."
+    },
+    {
+      "area": "Read-receipt amplification fix + tests",
+      "impact": "Scale / cost",
+      "priority": "Important",
+      "note": "DEBUG_PATTERNS N×M upserts."
+    },
+    {
+      "area": "Lint-warning burndown",
+      "impact": "DX / CI noise",
+      "priority": "Cosmetic",
+      "note": "~1,200 warnings (tech_debt_report #9)."
+    }
+  ],
+  "roadmap": [
+    {
+      "phase": "Phase 1 — Safe Cleanup",
+      "items": [
+        {
+          "desc": "[DONE] Stray root artifacts removed (patch_tripchat*.py, resolver3.js, output.md, claude-progress.txt)",
+          "files": "repo root",
+          "risk": "Very low",
+          "complexity": "S",
+          "benefit": "Clarity; removes 'No Python' contradiction",
+          "validation": "build gate green"
+        },
+        {
+          "desc": "[DONE] Unused dependencies pruned — live knip now reports 0 (down from 8 + 1 devDep)",
+          "files": "package.json",
+          "risk": "Low",
+          "complexity": "S",
+          "benefit": "Smaller install/audit surface; keep knip in CI to prevent regrowth",
+          "validation": "build + smoke"
+        },
+        {
+          "desc": "[DONE] enhancedTripContextService removed (TripContextAggregator is the path)",
+          "files": "src/services/",
+          "risk": "Low",
+          "complexity": "S",
+          "benefit": "Removes deprecated path",
+          "validation": "eslint + build"
+        }
+      ]
+    },
+    {
+      "phase": "Phase 2 — Consolidation",
+      "items": [
+        {
+          "desc": "[DONE] src/store/ and src/stores/ merged into a single src/store/",
+          "files": "src/store*, imports",
+          "risk": "Medium",
+          "complexity": "M",
+          "benefit": "One obvious home for client state",
+          "validation": "typecheck + tests"
+        },
+        {
+          "desc": "Move mock/demo data out of services into src/mockData/ behind a flag",
+          "files": "demoModeService.ts, tripSpecificMockDataService.ts",
+          "risk": "Medium",
+          "complexity": "M",
+          "benefit": "Eliminates contamination risk",
+          "validation": "no-leak invariant test"
+        },
+        {
+          "desc": "Triage knip unused exports/types in batches",
+          "files": "various",
+          "risk": "Medium",
+          "complexity": "L",
+          "benefit": "Real dead-code reduction",
+          "validation": "per-batch build + tests"
+        }
+      ]
+    },
+    {
+      "phase": "Phase 3 — Architecture Hardening",
+      "items": [
+        {
+          "desc": "Add chat reconnect backfill + tests",
+          "files": "useStreamTripChat.ts, chat services",
+          "risk": "Medium",
+          "complexity": "M",
+          "benefit": "Stops silent message loss",
+          "validation": "integration test simulating reconnect"
+        },
+        {
+          "desc": "Decompose remaining god files (Index.tsx, useTripTasks, useAuth, TripChat) — AIConciergeChat already done",
+          "files": "Index.tsx, useTripTasks.ts, useAuth.tsx, TripChat.tsx",
+          "risk": "High",
+          "complexity": "XL",
+          "benefit": "Maintainability + safer AI edits",
+          "validation": "behavior-preserving tests before/after"
+        },
+        {
+          "desc": "Type boundaries; remove `any` at service edges",
+          "files": "src/services/*",
+          "risk": "Medium",
+          "complexity": "L",
+          "benefit": "Runtime safety",
+          "validation": "typecheck + tests"
+        }
+      ]
+    },
+    {
+      "phase": "Phase 4 — Product / Scale Readiness",
+      "items": [
+        {
+          "desc": "[PARTIAL] Lazy-load heavy chunks (Recharts chart panels + html2canvas export done; exceljs/pdf/native/Stream remain)",
+          "files": "import sites + routes",
+          "risk": "Medium",
+          "complexity": "M",
+          "benefit": "Faster route shells on chart/export surfaces; remaining chunks still need mobile budget work",
+          "validation": "build + bundle diff + route smoke"
+        },
+        {
+          "desc": "Add bundle-size CI gate",
+          "files": "CI config",
+          "risk": "Low",
+          "complexity": "S",
+          "benefit": "Prevents perf regressions",
+          "validation": "CI fails on oversize"
+        },
+        {
+          "desc": "[PARTIAL] Smart Import idempotency + Gmail partial terminal status landed; full replay/concurrency suite remains",
+          "files": "smart-import + edge fns",
+          "risk": "Medium",
+          "complexity": "L",
+          "benefit": "Prevents sequential file-parser double-charge and makes mixed Gmail failures explicit",
+          "validation": "unit tests + future live replay/idempotency tests"
+        }
+      ]
+    }
+  ],
+  "glossary": [
+    {
+      "term": "Hook (React)",
+      "plain": "A reusable piece of screen logic (e.g. 'are we logged in?').",
+      "why": "Most Chravel behavior lives in hooks; a buggy shared hook breaks many screens at once."
+    },
+    {
+      "term": "Component",
+      "plain": "A visual building block of the UI.",
+      "why": "354 of them; oversized ones (god components) are slow to change and risky."
+    },
+    {
+      "term": "State",
+      "plain": "Data the app is currently holding (who's logged in, the open trip).",
+      "why": "Server state (TanStack Query) vs client state (Zustand) must not drift."
+    },
+    {
+      "term": "Edge function",
+      "plain": "Small backend program that runs on demand (AI, webhooks, imports).",
+      "why": "97 of them are where trust-sensitive work happens; each must check auth + secrets."
+    },
+    {
+      "term": "RLS (Row-Level Security)",
+      "plain": "Database rules deciding which rows a user may see/change.",
+      "why": "Chravel's real security boundary — 756 policies; the client cannot be trusted."
+    },
+    {
+      "term": "Realtime subscription",
+      "plain": "A live feed pushing new messages/notifications instantly.",
+      "why": "Must be filtered by trip and must replay missed data on reconnect, or messages are lost."
+    },
+    {
+      "term": "Webhook",
+      "plain": "A 'ping' from an outside service (e.g. Stripe) telling us something happened.",
+      "why": "Payment/subscription truth arrives by webhook; a missed one leaves billing state stale."
+    },
+    {
+      "term": "Migration",
+      "plain": "A versioned change to the database shape.",
+      "why": "419 of them; destructive ones need a two-phase plan to avoid data loss."
+    },
+    {
+      "term": "Bucket",
+      "plain": "Cloud folder for uploaded files (photos/videos).",
+      "why": "Media storage; needs validation, signed URLs, and cleanup."
+    },
+    {
+      "term": "Environment variable",
+      "plain": "A named setting/secret provided at runtime (API keys).",
+      "why": "Misconfigured/missing ones can fail open — a documented security risk here."
+    },
+    {
+      "term": "Dependency",
+      "plain": "An outside code package the app relies on.",
+      "why": "Unused ones bloat the bundle and the security-audit surface; knip flagged 8 earlier but now reports 0 unused deps."
+    },
+    {
+      "term": "Circular dependency",
+      "plain": "Two files that need each other to load.",
+      "why": "Causes subtle load-order bugs; worth scanning for in a follow-up."
+    },
+    {
+      "term": "Dead code",
+      "plain": "Code nothing uses anymore.",
+      "why": "Confuses humans and AI editors; safe to remove only after verification."
+    },
+    {
+      "term": "Refactor",
+      "plain": "Reorganizing code without changing what it does.",
+      "why": "How god files get tamed — must be proven behavior-preserving with tests."
+    }
+  ],
+  "costEstimate": {
+    "lens": "What it would realistically cost to rebuild Chravel from scratch today — the same feature surface and quality bar, on the same managed platforms (Supabase, Stream, Stripe/RevenueCat, Google, Gemini/Vertex), by a competent team using current AI coding tools. Calibrated against how Chravel was actually built (a small team shipped it in roughly a year), not a worst-case hand-coded estimate. For internal reference, not a sales quote.",
+    "methodology": "Bottom-up, then reality-checked. (1) Each major system is sized in engineering-hours for a competent team rebuilding a known spec — no product discovery, no pivots — using today’s AI coding tools. (2) Three effort bands: Conservative (lean, senior, heavy reuse, MVP-parity), Moderate (solid quality, tests on critical paths), High (enterprise rigor, broad tests, edge cases). (3) The whole table is calibrated to the actual build history — Chravel was shipped by a small team in roughly a year — so a known-spec rebuild lands in the same order of magnitude rather than the inflated multi-year figures naive estimators produce. (4) Hours convert to a schedule at ~6 productive hours/day, 5 days/week (30 hrs/week, ~1,500 hrs/year/dev). (5) Calendar time divides that effort across each vendor’s team size (freelancer = 1 dev solo, agency = 2 devs, high-end firm = 3 devs) with sub-linear efficiency (2 devs ≈ 1.8×, 3 devs ≈ 2.5×). (6) Cost = effort-hours × the vendor’s blended rate.",
+    "disclaimer": "Realistic modern rebuild of a known spec on the same managed platforms, using current AI tooling — integration work, not platform engineering. Calibrated to the product’s actual ~1-year build. Excludes ongoing SaaS/infra, app-store fees, and post-launch maintenance.",
+    "totals": {
+      "conservative": 1235,
+      "moderate": 1895,
+      "high": 2855
+    },
+    "model": {
+      "workdayHours": 8,
+      "productiveHoursPerDay": 6,
+      "daysPerWeek": 5,
+      "hoursPerWeekPerDev": 30,
+      "workingWeeksPerYear": 50,
+      "hoursPerYearPerDev": 1500,
+      "weeksPerMonth": 4.33,
+      "teamEfficiency": [
+        {
+          "devs": 1,
+          "factor": 1
+        },
+        {
+          "devs": 2,
+          "factor": 1.8
+        },
+        {
+          "devs": 3,
+          "factor": 2.5
+        }
+      ],
+      "patternNote": "Effort is engineering-hours. Calendar time assumes ~6 productive (heads-down) hours inside an 8-hour workday — the remainder goes to standups, code review, planning, and context-switching — 5 days/week (30 hrs/week, ~1,500 productive hrs/year/dev). Adding developers is sub-linear: 2 devs ≈ 1.8× and 3 devs ≈ 2.5× one developer's throughput after coordination overhead, so calendar time falls less than headcount rises."
+    },
+    "features": [
+      {
+        "area": "Foundation \u0026 design system",
+        "note": "Scaffold, routing, Tailwind + shadcn/Radix, app shell, CI/CD",
+        "conservative": 45,
+        "moderate": 70,
+        "high": 105
+      },
+      {
+        "area": "Auth \u0026 session",
+        "note": "Supabase Auth, Google OAuth, role/tier resolution, hydration guards",
+        "conservative": 40,
+        "moderate": 60,
+        "high": 90
+      },
+      {
+        "area": "Data layer \u0026 Supabase integration",
+        "note": "Client gateway, ~140 service modules, query-key cache contract, generated types",
+        "conservative": 60,
+        "moderate": 90,
+        "high": 135
+      },
+      {
+        "area": "Database schema \u0026 RLS",
+        "note": "Final schema, ~750 row-level-security policies as patterns, migrations",
+        "conservative": 80,
+        "moderate": 120,
+        "high": 180
+      },
+      {
+        "area": "Trips \u0026 membership",
+        "note": "CRUD, invites, 3 trip tiers (consumer/pro/event), archival",
+        "conservative": 60,
+        "moderate": 90,
+        "high": 135
+      },
+      {
+        "area": "Permissions \u0026 roles",
+        "note": "Per-trip-type permission matrix, RLS-backed",
+        "conservative": 35,
+        "moderate": 50,
+        "high": 75
+      },
+      {
+        "area": "Unified messaging / chat",
+        "note": "Stream Chat, channels, broadcasts, threads, reactions, read receipts, reconnect/backfill",
+        "conservative": 90,
+        "moderate": 140,
+        "high": 210
+      },
+      {
+        "area": "AI Concierge — text",
+        "note": "Gemini, ~38 tools, query classification, pending-actions write buffer",
+        "conservative": 80,
+        "moderate": 125,
+        "high": 190
+      },
+      {
+        "area": "AI Concierge — voice",
+        "note": "Vertex AI Live, audio session lifecycle",
+        "conservative": 45,
+        "moderate": 70,
+        "high": 105
+      },
+      {
+        "area": "Calendar \u0026 Google sync",
+        "note": "Bi-directional, idempotent, recurring events, RSVP",
+        "conservative": 55,
+        "moderate": 85,
+        "high": 130
+      },
+      {
+        "area": "Payments \u0026 subscriptions",
+        "note": "Stripe (web) + RevenueCat (iOS), webhooks, entitlements, expense splitting",
+        "conservative": 70,
+        "moderate": 110,
+        "high": 165
+      },
+      {
+        "area": "Smart Import",
+        "note": "Gmail OAuth, PDF/image parsing, Gemini extraction, checkpoint state machine",
+        "conservative": 65,
+        "moderate": 100,
+        "high": 150
+      },
+      {
+        "area": "Media gallery \u0026 storage",
+        "note": "Upload, compression, AI tagging, lightbox, quota",
+        "conservative": 40,
+        "moderate": 65,
+        "high": 100
+      },
+      {
+        "area": "Maps \u0026 places",
+        "note": "Google Maps, places search, autocomplete, caching",
+        "conservative": 35,
+        "moderate": 50,
+        "high": 75
+      },
+      {
+        "area": "Notifications \u0026 realtime",
+        "note": "Push/email/SMS (APNS/Resend/Twilio), dedup, badge counts",
+        "conservative": 50,
+        "moderate": 80,
+        "high": 120
+      },
+      {
+        "area": "Organizations \u0026 B2B",
+        "note": "Seat-based billing, team management, org admin dashboard",
+        "conservative": 45,
+        "moderate": 70,
+        "high": 105
+      },
+      {
+        "area": "Mobile / PWA / native",
+        "note": "Capacitor 8 iOS wrapper, offline, service worker, web/native parity",
+        "conservative": 70,
+        "moderate": 105,
+        "high": 160
+      },
+      {
+        "area": "Admin, security \u0026 audit",
+        "note": "Append-only + hash-chained audit logs, super-admin, secret validation",
+        "conservative": 45,
+        "moderate": 70,
+        "high": 105
+      },
+      {
+        "area": "Observability \u0026 feature flags",
+        "note": "Sentry, PostHog, runtime kill switches",
+        "conservative": 20,
+        "moderate": 30,
+        "high": 45
+      },
+      {
+        "area": "Testing",
+        "note": "Unit + integration across critical paths (~350 specs)",
+        "conservative": 90,
+        "moderate": 140,
+        "high": 210
+      },
+      {
+        "area": "Marketing site, blog \u0026 SEO",
+        "note": "Landing, blog content system, SEO",
+        "conservative": 35,
+        "moderate": 50,
+        "high": 75
+      },
+      {
+        "area": "Integration glue, QA \u0026 PM overhead",
+        "note": "Cross-feature wiring, bug-fixing, coordination",
+        "conservative": 80,
+        "moderate": 125,
+        "high": 190
+      }
+    ],
+    "vendors": [
+      {
+        "tier": "Freelancer off the street",
+        "team": 1,
+        "teamLabel": "solo, 1 dev",
+        "typicalBand": "conservative",
+        "rateLow": 40,
+        "rateHigh": 80,
+        "ratePoint": 60,
+        "blurb": "One developer working alone. Cheaper and less vetted; more management overhead, wider quality variance, and the longest calendar time."
+      },
+      {
+        "tier": "Established agency",
+        "team": 2,
+        "teamLabel": "2 dedicated devs",
+        "typicalBand": "moderate",
+        "rateLow": 100,
+        "rateHigh": 175,
+        "ratePoint": 135,
+        "headline": true,
+        "blurb": "Two dedicated devs (vetted senior + mid) with a PM — the most representative real-world option."
+      },
+      {
+        "tier": "High-end agency / specialist firm",
+        "team": 3,
+        "teamLabel": "3 simultaneous devs",
+        "typicalBand": "high",
+        "rateLow": 200,
+        "rateHigh": 350,
+        "ratePoint": 260,
+        "blurb": "Three simultaneous senior devs at a top-tier firm with strong process, guarantees, and the fastest delivery."
+      }
+    ],
+    "assumptions": [
+      "Assumes a competent team using today’s standard AI coding tools — the realistic 2026 default, not a hand-coded build.",
+      "Calibrated to reality: Chravel was actually built by a small team in roughly a year, so a known-spec rebuild is anchored to that order of magnitude.",
+      "Effort is engineering-hours; the schedule assumes ~6 productive (heads-down) hours inside an 8-hour workday, 5 days/week — 30 hrs/week, ~1,500 productive hrs/year per developer.",
+      "Team size by vendor: a freelancer works solo (1 dev), an established agency runs 2 dedicated devs, and a high-end firm runs 3 simultaneous devs.",
+      "Adding developers is sub-linear: 2 devs ≈ 1.8× and 3 devs ≈ 2.5× a solo developer’s pace after coordination overhead, so calendar time drops less than headcount rises.",
+      "US-market blended contractor rates (2026); offshore teams would be materially cheaper.",
+      "Rebuilding a known spec — no product discovery, design iteration, or pivots (those consumed much of the original calendar time and don’t recur).",
+      "Same managed platforms reused (Supabase, Stream, Stripe/RevenueCat, Google, Gemini) — you integrate them, you don’t rebuild auth servers, realtime, chat, or payment rails."
+    ],
+    "whyNotMore": [
+      "Calibrated to the actual build: this product was shipped by a small team in about a year, so the rebuild is anchored to reality, not a theoretical worst case.",
+      "Modern AI coding tools do a large share of the boilerplate, wiring, and test scaffolding — the 2026 baseline, not optional.",
+      "Recreating a known spec skips discovery, dead-ends, and pivots — much of the original calendar time never recurs.",
+      "Off-the-shelf platforms do the heavy lifting: no custom auth server, realtime engine, chat backend, or payment processor to build.",
+      "UI is assembled from shadcn/Radix + Tailwind primitives rather than hand-built components.",
+      "File count is not effort: many of the 1,180 source files are small, repetitive, AI-generatable hooks and components."
+    ],
+    "note": "A hand-coded build with no AI assistance would run roughly 1.7–2× these hours — a useful upper bound, but not today’s reality. Every input is adjustable in curated.json → costEstimate (per-system hours, rates, productive hours/day, team size, efficiency factors); all tables recompute. Rates are US-market blended (2026); offshore would be materially lower."
+  }
+}</script>
     <script>
       (function () {
         'use strict';
