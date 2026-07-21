@@ -109,12 +109,10 @@ serve(async req => {
     const chatHistory = chatHistoryRaw
       .slice(-6)
       .map((item: any) => ({
-        role:
-          item?.role === 'assistant'
-            ? ('assistant' as const)
-            : item?.role === 'system'
-              ? ('system' as const)
-              : ('user' as const),
+        // Only 'assistant' is honored; every other value (including a
+        // caller-supplied 'system') collapses to 'user' so this public,
+        // unauthenticated endpoint cannot be steered by an injected system turn.
+        role: item?.role === 'assistant' ? ('assistant' as const) : ('user' as const),
         content:
           typeof item?.content === 'string'
             ? item.content.slice(0, 500)
