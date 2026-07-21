@@ -22,7 +22,7 @@ describe('openInstalledAuthBrowser', () => {
     });
   });
 
-  it('prefers Capacitor Browser over ChravelNative.openOAuthUrl', async () => {
+  it('prefers ChravelNative.openOAuthUrl over Capacitor Browser', async () => {
     const open = vi.fn().mockResolvedValue(undefined);
     (
       window as unknown as { Capacitor: { Plugins: { Browser: { open: typeof open } } } }
@@ -32,10 +32,11 @@ describe('openInstalledAuthBrowser', () => {
       openOAuthUrl: nativeOpen,
     };
 
-    await openInstalledAuthBrowser('https://oauth.example/start');
+    const result = await openInstalledAuthBrowser('https://oauth.example/start');
 
-    expect(open).toHaveBeenCalled();
-    expect(nativeOpen).not.toHaveBeenCalled();
+    expect(nativeOpen).toHaveBeenCalledWith('https://oauth.example/start');
+    expect(open).not.toHaveBeenCalled();
+    expect(result).toEqual({ strategy: 'native-bridge' });
   });
 
   it('uses ChravelNative.openOAuthUrl when Capacitor Browser is missing', async () => {

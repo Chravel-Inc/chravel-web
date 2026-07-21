@@ -36,10 +36,7 @@ describe('LineupImportModal', () => {
 
     render(<LineupImportModal isOpen={true} onClose={vi.fn()} onImportNames={onImportNames} />);
 
-    await user.type(
-      screen.getByPlaceholderText('Paste lineup page URL'),
-      'https://example.com/artists',
-    );
+    await user.type(screen.getByPlaceholderText('Lineup URL'), 'https://example.com/artists');
     // Button is labeled "Import" with icon, so we search by name /Import/i
     await user.click(screen.getByRole('button', { name: /Import/i }));
 

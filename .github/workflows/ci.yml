@@ -18,7 +18,7 @@ permissions:
 
 env:
   CI: true
-  NODE_VERSION: '20.19.0'
+  NODE_VERSION: '22'
   # Heavy Concierge / MobileTripTabs specs allocate well past Node's default ~2GB
   # heap on jsdom+forks workers (local cloud agents OOM even at 8–12GB when the
   # full suite mounts). Give CI shards headroom so Search/isActive + waveform

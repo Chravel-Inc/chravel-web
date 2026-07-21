@@ -109,22 +109,6 @@ const ANALYTICS_VARS: EnvVarSpec[] = [
     canStubForTestFlight: true,
     stubValue: '',
   },
-  {
-    name: 'VITE_GA_MEASUREMENT_ID',
-    required: false,
-    description: 'Google Analytics measurement ID',
-    provider: 'Google Analytics',
-    canStubForTestFlight: true,
-    stubValue: '',
-  },
-  {
-    name: 'VITE_MIXPANEL_TOKEN',
-    required: false,
-    description: 'Mixpanel analytics token',
-    provider: 'Mixpanel',
-    canStubForTestFlight: true,
-    stubValue: '',
-  },
 ];
 
 const MOBILE_VARS: EnvVarSpec[] = [
@@ -266,7 +250,7 @@ describe('validate-env', () => {
     });
 
     it('should have the correct number of ANALYTICS_VARS', () => {
-      expect(ANALYTICS_VARS).toHaveLength(4);
+      expect(ANALYTICS_VARS).toHaveLength(2);
     });
 
     it('should have the correct number of MOBILE_VARS', () => {

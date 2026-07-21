@@ -54,7 +54,9 @@ function playwrightStep(label, targets, extraArgs = []) {
       ],
     ];
   }
-  return [[label, ['npx', ['playwright', 'test', ...existing, ...extraArgs, '--project=chromium']]]];
+  return [
+    [label, ['npx', ['playwright', 'test', ...existing, ...extraArgs, '--project=chromium']]],
+  ];
 }
 
 const steps = [

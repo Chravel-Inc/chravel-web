@@ -720,3 +720,13 @@ Known security anti-patterns discovered during audits. Reference this before int
 **Required Tests:** Anon EXECUTE false; authenticated non-member hybrid_search raises; legacy create_payment_with_splits not callable.
 **Fixed in:** `supabase/migrations/20260717180000_security_privacy_hardening_pass.sql` (July 2026)
 
+
+## npm install hangs or 403s in remote sessions: lockfile pins Lovable's private mirror
+
+**Symptom:** `npm install` in a remote Claude/CI-like container hangs silently for 30+ minutes (process sleeping, no children, no cache writes), or fails with `403` on `https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/...` URLs; killing mid-install then corrupts node_modules (`ENOTEMPTY` renames) and the npm cache (dangling `Invalid response body ... ENOENT` index entries).
+**Risk:** MEDIUM — blocks the mandatory pre-commit gate (typecheck/tests) in any environment whose egress policy doesn't allowlist `*.pkg.dev`; GitHub-hosted CI runners are unaffected.
+**Root Cause:** `package-lock.json` was generated inside Lovable's sandbox, so ~96 packages' `resolved` fields point at Lovable's private Artifact Registry mirror instead of registry.npmjs.org. The session proxy 403s that host; npm's default no-timeout fetch then hangs instead of erroring.
+**How to Confirm:** `grep -c "pkg.dev" package-lock.json` (non-zero = pinned); npm debug log shows `http fetch GET 403 https://europe-west1-npm.pkg.dev/...`.
+**Smallest Safe Fix (in-session):** don't edit the lockfile (guarded); run `npm install --no-package-lock --no-save --no-audit --fetch-timeout=60000 --fetch-retries=5 --cache <fresh-dir>` — the fresh cache dir sidesteps packuments/tarballs poisoned by earlier mirror fetches, which otherwise cause `notarget`/`Invalid response body` whack-a-mole.
+**Durable Fix:** regenerate `package-lock.json` against registry.npmjs.org from a normal dev machine (`rm package-lock.json && npm install`) so `resolved` URLs are public, and commit it via the normal review flow.
+**Evidence:** 2026-07-20 session — first install hung 31 min with zero progress; log `2026-07-20T22_41_21` shows 16 consecutive 403s on pkg.dev URLs; fresh-cache no-lockfile install succeeded first try.

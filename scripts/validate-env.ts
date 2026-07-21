@@ -150,24 +150,6 @@ const ANALYTICS_VARS: EnvVarSpec[] = [
     format: /^phc_/,
     formatHint: 'phc_...',
   },
-  {
-    name: 'VITE_GA_MEASUREMENT_ID',
-    required: false,
-    description: 'Google Analytics measurement ID',
-    provider: 'Google Analytics',
-    canStubForTestFlight: true,
-    stubValue: '',
-    format: /^G-[A-Z0-9]+$/,
-    formatHint: 'G-XXXXXXXXXX',
-  },
-  {
-    name: 'VITE_MIXPANEL_TOKEN',
-    required: false,
-    description: 'Mixpanel analytics token',
-    provider: 'Mixpanel',
-    canStubForTestFlight: true,
-    stubValue: '',
-  },
 ];
 
 const MOBILE_VARS: EnvVarSpec[] = [

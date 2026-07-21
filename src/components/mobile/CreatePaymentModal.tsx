@@ -517,11 +517,7 @@ export const CreatePaymentModal = ({
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting || !isValid}
-                className="flex-1"
-              >
+              <Button type="submit" disabled={isSubmitting || !isValid} className="flex-1">
                 {isSubmitting ? 'Creating...' : 'Create Payment'}
               </Button>
             </div>

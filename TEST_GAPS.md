@@ -182,3 +182,12 @@
 - **Suggested tests:** Authenticated payments smoke with SERVICE_ROLE fixture trip.
 - **Priority:** medium
 - **Provenance:** July 2026 custom split implementation
+
+## scripts/__tests__ suite is orphaned — never runs locally or in CI
+- **Area:** `scripts/__tests__/validate-env.test.ts` (42 specs), `vitest.config.ts` include patterns
+- **Why this gap matters:** vitest include covers only `src/**`, `supabase/functions/**`, `optimizer/**`, `unfurl/**` — nothing under `scripts/` — so the validate-env suite silently never executes anywhere (verified: `npx vitest run scripts/__tests__/validate-env.test.ts` → "No test files found"; CI shards use the same config).
+- **Missing coverage:** all env-var classification/stub logic for release gating.
+- **Failure mode if untested:** validate-env spec drift (like the GA/Mixpanel removal) would never be caught by a red test; the suite only *looks* like coverage.
+- **Suggested tests:** add `scripts/__tests__/**/*.test.ts` to the vitest include (suite passes 42/42 as of 2026-07-20 when forced via a one-off config).
+- **Priority:** low
+- **Provenance:** 2026-07-20 tech-stack/env-template cleanup

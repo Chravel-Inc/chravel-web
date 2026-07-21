@@ -13,6 +13,7 @@ import {
   createErrorResponse,
   createOptionsResponse,
 } from '../_shared/securityHeaders.ts';
+import { isOriginAllowed } from '../_shared/cors.ts';
 import {
   normalizeSubscriptionTierForCheckout,
   shouldBlockConsumerStripeCheckout,
@@ -227,8 +228,13 @@ serve(async req => {
       logStep('No existing customer, will create during checkout');
     }
 
-    // Create checkout session
-    const origin = req.headers.get('origin') || 'https://chravel.app';
+    // Create checkout session.
+    // Build redirect URLs only from an allowlisted origin. A caller-supplied
+    // Origin header would otherwise flow straight into the Stripe success/cancel
+    // redirect (open redirect / phishing vector). Unknown origins fall back to
+    // the canonical production URL.
+    const requestOrigin = req.headers.get('origin');
+    const origin = isOriginAllowed(requestOrigin) ? requestOrigin : 'https://chravel.app';
 
     const sessionParams: any = {
       customer: customerId,

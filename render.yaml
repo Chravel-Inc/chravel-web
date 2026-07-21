@@ -46,7 +46,9 @@ services:
         destination: /index.html
 
   # Provider-agnostic unfurl service for OG previews.
-  # This should be bound to `p.chravel.app` as a custom domain in Render.
+  # PRODUCTION host for `p.chravel.app` (DNS CNAME → chravel-unfurl-s58a.onrender.com,
+  # verified 2026-07-20). The Cloudflare Worker in unfurl/wrangler.toml is an
+  # undeployed portable alternate, not the live host.
   - type: web
     name: chravel-unfurl
     runtime: docker

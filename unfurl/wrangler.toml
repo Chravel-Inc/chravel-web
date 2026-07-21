@@ -8,6 +8,8 @@ compatibility_date = "2025-12-01"
 SUPABASE_PROJECT_REF = "jmjiyekmxwsxkfnqwyaa"
 APP_BASE_URL = "https://chravel.app"
 
-# After deploying, bind a custom domain like:
-# p.chravel.app  -> this Worker
+# NOT deployed to production. `p.chravel.app` is served by the Render service
+# defined in render.yaml (DNS CNAME → chravel-unfurl-s58a.onrender.com, verified
+# 2026-07-20). This Worker is kept as a portable alternate; if you ever deploy it,
+# bind p.chravel.app -> this Worker and update render.yaml + docs/ACTIVE/TECH_STACK.md.
 
