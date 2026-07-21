@@ -1,14 +1,14 @@
 /**
  * Open an OAuth URL from an installed-app context (Capacitor native shell or PWA).
  *
- * Prefers the native Capacitor Browser plugin when the native shell (chravel-mobile)
- * has registered it — that launches SFSafariViewController on iOS or Chrome Custom
- * Tabs on Android, which Google and Apple accept.
+ * Prefers the chravel-mobile shell's `window.ChravelNative.openOAuthUrl` bridge —
+ * ASWebAuthenticationSession auto-dismisses on the callback URL and hands it back
+ * to the **main** WebView so `detectSessionInUrl` shares the same storage as the
+ * app (PKCE completes with the code_verifier the initiator wrote).
  *
- * Second, the chravel-mobile (Expo) shell can inject `window.ChravelNative.openOAuthUrl`
- * to run `WebBrowser.openAuthSessionAsync` / ASWebAuthenticationSession, then load the
- * callback URL in the **main** WebView so `detectSessionInUrl` shares the same
- * storage as the app. Without this or Capacitor Browser, the fallback is
+ * Second choice is the Capacitor Browser plugin (SFSafariViewController on iOS /
+ * Chrome Custom Tabs on Android) — accepted by Google and Apple, but it does NOT
+ * auto-dismiss on the callback. Without either bridge, the fallback is
  * `location.assign`, which replaces the WebView with the provider chain and often
  * strands the session (callback runs in a context the shell does not hand back).
  *

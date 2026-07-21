@@ -13,14 +13,14 @@ The CI workflow is defined in `.github/workflows/ci.yml`.
 **Key Features:**
 - Runs on every push to `main` and `develop` branches
 - Runs on all pull requests
-- Uses Node.js 20.x (required for modern dependencies)
+- Uses Node.js 22.x (normalized across `engines`, `.nvmrc`, all workflows, and Render)
 - Caches npm dependencies for faster builds
 - Runs linting, type checking, and build verification
 
 ### Workflow Steps
 
 1. **Checkout Code** - Pulls the latest code from the repository
-2. **Setup Node.js 20.x** - Installs Node.js with npm caching
+2. **Setup Node.js 22.x** - Installs Node.js with npm caching
 3. **Install Dependencies** - Runs `npm ci` for clean, reproducible installs
 4. **Lint** - Runs `npm run lint` to catch code quality issues
 5. **Type Check** - Runs `npm run typecheck` to verify TypeScript types
@@ -81,39 +81,39 @@ npm run build         # See build errors
 
 ## Node.js Version Requirements
 
-### Why Node.js 20?
+### Why Node.js 22?
 
-Several modern dependencies require Node.js 20 or higher:
-- `path-scurry@2.0.0` - Requires Node.js 20 or >=22
-- Modern npm features and performance improvements
+Node 22 is the version pinned everywhere since July 2026 (`package.json` engines `>=22`,
+`.nvmrc`, all GitHub Actions workflows, Render):
+- Active LTS with modern npm features and performance improvements
 - Better ESM support
 - Improved security and stability
 
 ### Local Development
 
-Ensure you're using Node.js 20 or higher locally:
+Ensure you're using Node.js 22 or higher locally:
 
 ```bash
 # Check your Node.js version
 node --version
 
-# If using nvm, install Node.js 20
-nvm install 20
-nvm use 20
+# If using nvm, install Node.js 22 (matches .nvmrc)
+nvm install 22
+nvm use 22
 
 # Make it default
-nvm alias default 20
+nvm alias default 22
 ```
 
 ### CI/CD
 
-The GitHub Actions workflow automatically uses Node.js 20.x via:
+The GitHub Actions workflows automatically use Node.js 22.x via:
 
 ```yaml
-- name: Use Node.js 20.x
-  uses: actions/setup-node@v3
+- name: Setup Node.js
+  uses: actions/setup-node@v5
   with:
-    node-version: '20'
+    node-version: '22'
 ```
 
 ## Package Lock File
@@ -215,9 +215,9 @@ git push
 
 **Error:** "The engine 'node' is incompatible with this module"
 
-**Solution:** Update workflow to Node.js 20:
+**Solution:** Update workflow to Node.js 22:
 ```yaml
-node-version: '20'
+node-version: '22'
 ```
 
 ### Lock File Errors

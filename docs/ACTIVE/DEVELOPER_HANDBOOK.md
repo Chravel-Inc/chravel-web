@@ -200,12 +200,12 @@ This repository (`MeechYourGoals/Chravel`) contains:
 ### Prerequisites
 
 ```bash
-# Node.js 18+ (use nvm)
-nvm install 18
-nvm use 18
+# Node.js 22+ (use nvm; matches .nvmrc and package.json engines)
+nvm install 22
+nvm use 22
 
 # Verify installation
-node --version  # Should be v18.x or higher
+node --version  # Should be v22.x or higher
 
 # Install dependencies
 npm install
