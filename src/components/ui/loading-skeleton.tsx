@@ -37,37 +37,6 @@ export const TripCardSkeleton = ({ count = 3 }: TripCardSkeletonProps) => {
   );
 };
 
-export const StatsSkeletonGrid = () => {
-  return (
-    <div className="grid grid-cols-2 gap-4 mb-8">
-      {Array.from({ length: 4 }).map((_, index) => (
-        <div
-          key={index}
-          className="bg-card rounded-enterprise p-4 text-center border border-border"
-        >
-          <Skeleton className="h-8 w-8 mx-auto mb-2 rounded-full" />
-          <Skeleton className="h-8 w-12 mx-auto mb-1" />
-          <Skeleton className="h-4 w-20 mx-auto" />
-        </div>
-      ))}
-    </div>
-  );
-};
-
-export const ProfileHeaderSkeleton = () => {
-  return (
-    <div className="text-center mb-8">
-      <Skeleton className="w-24 h-24 mx-auto mb-4 rounded-full" />
-      <Skeleton className="h-8 w-32 mx-auto mb-1" />
-      <Skeleton className="h-4 w-24 mx-auto mb-4" />
-      <div className="flex gap-2 justify-center">
-        <Skeleton className="h-6 w-20 rounded-full" />
-        <Skeleton className="h-6 w-24 rounded-full" />
-      </div>
-    </div>
-  );
-};
-
 export const TripDetailHeaderSkeleton = () => {
   return (
     <div className="mb-8" aria-hidden="true">

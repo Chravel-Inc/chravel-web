@@ -47,47 +47,6 @@ export const BUDGET_UNIT_OPTIONS = [
   { value: 'trip', label: 'Per trip' },
 ] as const;
 
-export interface TripCategory {
-  id: string;
-  label: string;
-  color: string;
-}
-
-export const CONSUMER_TRIP_CATEGORIES: TripCategory[] = [
-  { id: 'work', label: 'Work', color: 'blue' },
-  { id: 'leisure', label: 'Leisure', color: 'green' },
-  { id: 'family', label: 'Family', color: 'purple' },
-  { id: 'music', label: 'Music', color: 'pink' },
-  { id: 'sports', label: 'Sports', color: 'orange' },
-  { id: 'vacation', label: 'Vacation', color: 'teal' },
-  { id: 'foodie', label: 'Foodie', color: 'yellow' },
-  { id: 'adventure', label: 'Adventure', color: 'red' },
-  { id: 'wellness', label: 'Wellness', color: 'emerald' },
-  { id: 'cultural', label: 'Cultural', color: 'indigo' },
-  { id: 'romantic', label: 'Romantic', color: 'rose' },
-  { id: 'bachelor-bachelorette', label: 'Bachelor/Bachelorette', color: 'fuchsia' },
-  { id: 'reunion', label: 'Reunion', color: 'cyan' },
-  { id: 'shopping', label: 'Shopping', color: 'violet' },
-  { id: 'nightlife', label: 'Nightlife', color: 'amber' },
-];
-
-/**
- * Pro trip categories for UI display.
- *
- * IMPORTANT: IDs here must match ProCategoryEnum values in proCategories.ts.
- * The previous version used kebab-case IDs (business-travel, school-trip, etc.)
- * which did NOT match ProCategoryEnum and caused silent lookup failures.
- */
-export const PRO_TRIP_CATEGORIES: TripCategory[] = [
-  { id: 'work', label: 'Business Travel', color: 'slate' },
-  { id: 'school', label: 'School Trip', color: 'sky' },
-  { id: 'productions', label: 'Content / Productions', color: 'lime' },
-  { id: 'touring', label: 'Tour', color: 'coral' },
-  { id: 'sports', label: 'Sports (Pro/Collegiate)', color: 'orange' },
-  { id: 'celebrations', label: 'Celebrations', color: 'fuchsia' },
-  { id: 'other', label: 'Other', color: 'gray' },
-];
-
 export interface AIRecommendation {
   id: string;
   type: 'restaurant' | 'activity' | 'accommodation' | 'transportation';
@@ -217,26 +176,4 @@ export const CONSUMER_PRICING = {
     savings: _annualSavings(_frequent.priceMonthly, _frequentAnnual),
     savingsPercent: _annualSavingsPct(_frequent.priceMonthly, _frequentAnnual),
   },
-} as const;
-
-// Legacy exports for backward compatibility (map to Explorer)
-export const TRIPS_PLUS_PRICE = CONSUMER_PRICING.explorer.monthly;
-export const TRIPS_PLUS_ANNUAL_PRICE = CONSUMER_PRICING.explorer.annual;
-
-// Storage quotas (in MB)
-export const FREE_STORAGE_QUOTA_MB = 500;
-export const PLUS_STORAGE_QUOTA_MB = 50000; // 50GB
-
-// Feature availability
-export const FEATURE_ACCESS = {
-  AI_CONCIERGE: 'free', // 3 queries per trip
-  AI_QUERIES_EXPLORER: 25, // 25 queries per trip
-  AI_QUERIES_UNLIMITED: 'frequent-chraveler',
-  UNLIMITED_STORAGE: 'explorer', // Both paid tiers
-  CALENDAR_SYNC: 'frequent-chraveler',
-  PDF_EXPORT: 'frequent-chraveler',
-  TRIP_CATEGORIES: 'explorer', // Both paid tiers can tag
-  PRO_TRIP_ACCESS: 'frequent-chraveler', // 1 Pro trip/month
-  PRIORITY_SUPPORT: 'explorer',
-  EARLY_ACCESS: 'frequent-chraveler',
 } as const;
