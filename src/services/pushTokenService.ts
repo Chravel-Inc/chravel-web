@@ -115,25 +115,6 @@ export async function removeDeviceToken(userId: string, token: string): Promise<
  * Remove all device tokens for a user
  * Called on full logout from all devices
  */
-export async function removeAllUserTokens(userId: string): Promise<boolean> {
-  try {
-    const { error } = await supabase.from('push_device_tokens').delete().eq('user_id', userId);
-
-    if (error) {
-      if (import.meta.env.DEV) {
-        console.error('[PushTokenService] Failed to remove all tokens:', error);
-      }
-      return false;
-    }
-
-    return true;
-  } catch (err) {
-    if (import.meta.env.DEV) {
-      console.error('[PushTokenService] Unexpected error removing all tokens:', err);
-    }
-    return false;
-  }
-}
 
 /**
  * Update last_seen_at timestamp for a token
@@ -154,51 +135,7 @@ export async function updateLastSeen(userId: string, token: string): Promise<voi
 /**
  * Returns true when the user has at least one active native push device token.
  */
-export async function hasActiveDeviceToken(userId: string): Promise<boolean> {
-  try {
-    const { count, error } = await supabase
-      .from('push_device_tokens')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .is('disabled_at', null);
-
-    if (error) {
-      return false;
-    }
-    return (count ?? 0) > 0;
-  } catch {
-    return false;
-  }
-}
 
 /**
  * Get all tokens for a user (for debugging)
  */
-export async function getUserTokens(userId: string): Promise<DeviceToken[]> {
-  try {
-    const { data, error } = await supabase
-      .from('push_device_tokens')
-      .select('*')
-      .eq('user_id', userId);
-
-    if (error || !data) {
-      return [];
-    }
-
-    return data.map(row => ({
-      id: row.id,
-      userId: row.user_id,
-      token: row.token,
-      platform: row.platform as 'ios' | 'android' | 'web',
-      deviceId: row.device_id,
-      lastSeenAt: row.last_seen_at,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    }));
-  } catch (err) {
-    if (import.meta.env.DEV) {
-      console.error('[PushTokenService] Failed to get user tokens:', err);
-    }
-    return [];
-  }
-}

@@ -1,4 +1,4 @@
-import { getOfflineDb, type OfflineCachedEntity, type TripOverviewSnapshot } from './db';
+import { getOfflineDb, type OfflineCachedEntity } from './db';
 
 const DEFAULT_CACHE_EXPIRY_DAYS = 30;
 const DEFAULT_CACHE_EXPIRY_MS = DEFAULT_CACHE_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
@@ -72,32 +72,4 @@ export async function getCachedEntity(params: {
     return null;
   }
   return cached;
-}
-
-export async function clearExpiredCache(
-  maxAgeMs: number = DEFAULT_CACHE_EXPIRY_MS,
-): Promise<number> {
-  const db = await getOfflineDb();
-  const all = await db.getAll('cache');
-  const now = Date.now();
-  let cleared = 0;
-  for (const cached of all) {
-    if (now - cached.cachedAt >= maxAgeMs) {
-      await db.delete('cache', cached.id);
-      cleared++;
-    }
-  }
-  return cleared;
-}
-
-export async function upsertTripOverviewSnapshot(snapshot: TripOverviewSnapshot): Promise<void> {
-  const db = await getOfflineDb();
-  await db.put('tripOverview', snapshot);
-}
-
-export async function getTripOverviewSnapshot(
-  tripId: string,
-): Promise<TripOverviewSnapshot | null> {
-  const db = await getOfflineDb();
-  return (await db.get('tripOverview', tripId)) ?? null;
 }

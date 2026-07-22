@@ -6,19 +6,7 @@
  */
 
 import { telemetry } from './service';
-import type {
-  AuthEvents,
-  TripEvents,
-  MessageEvents,
-  PlaceEvents,
-  PollEvents,
-  TaskEvents,
-  ExportEvents,
-  RecommendationEvents,
-  ShareExtensionEvents,
-  ConciergeEvents,
-  SubscriptionEvents,
-} from './types';
+import type { AuthEvents, TripEvents, MessageEvents, TaskEvents } from './types';
 
 // ============================================================================
 // Auth Events
@@ -183,58 +171,7 @@ export const moderationEvents = {
 };
 
 // ============================================================================
-// Place Events
-// ============================================================================
 
-export const placeEvents = {
-  pinned: (params: PlaceEvents['place_pinned']) => {
-    telemetry.track('place_pinned', params);
-  },
-
-  unpinned: (tripId: string, placeId?: string) => {
-    telemetry.track('place_unpinned', { trip_id: tripId, place_id: placeId });
-  },
-
-  searched: (tripId: string, query: string, resultsCount: number) => {
-    telemetry.track('place_searched', {
-      trip_id: tripId,
-      query,
-      results_count: resultsCount,
-    });
-  },
-};
-
-// ============================================================================
-// Poll Events
-// ============================================================================
-
-export const pollEvents = {
-  created: (params: PollEvents['poll_created']) => {
-    telemetry.track('poll_created', params);
-  },
-
-  voted: (tripId: string, pollId: string, optionsSelected: number) => {
-    telemetry.track('poll_voted', {
-      trip_id: tripId,
-      poll_id: pollId,
-      options_selected: optionsSelected,
-    });
-  },
-
-  voteChanged: (tripId: string, pollId: string) => {
-    telemetry.track('poll_vote_changed', { trip_id: tripId, poll_id: pollId });
-  },
-
-  closed: (tripId: string, pollId: string, totalVotes: number) => {
-    telemetry.track('poll_closed', {
-      trip_id: tripId,
-      poll_id: pollId,
-      total_votes: totalVotes,
-    });
-  },
-};
-
-// ============================================================================
 // Task Events
 // ============================================================================
 
@@ -261,27 +198,7 @@ export const taskEvents = {
 };
 
 // ============================================================================
-// Export Events
-// ============================================================================
 
-export const exportEvents = {
-  recapStarted: (tripId: string, sectionsSelected: string[]) => {
-    telemetry.track('export_recap_started', {
-      trip_id: tripId,
-      sections_selected: sectionsSelected,
-    });
-  },
-
-  recapCompleted: (params: ExportEvents['export_recap_completed']) => {
-    telemetry.track('export_recap_completed', params);
-  },
-
-  recapFailed: (tripId: string, error: string) => {
-    telemetry.track('export_recap_failed', { trip_id: tripId, error });
-  },
-};
-
-// ============================================================================
 // Page View Helper
 // ============================================================================
 
@@ -298,6 +215,7 @@ export const pageView = (
 };
 
 // ============================================================================
+
 // Onboarding Events
 // ============================================================================
 
@@ -324,43 +242,7 @@ export const onboardingEvents = {
 // ============================================================================
 
 // ============================================================================
-// Recommendation Events
-// ============================================================================
 
-export const recommendationEvents = {
-  pageViewed: (params: RecommendationEvents['recommendation_page_viewed']) => {
-    telemetry.track('recommendation_page_viewed', params);
-  },
-
-  itemViewed: (params: RecommendationEvents['recommendation_item_viewed']) => {
-    telemetry.track('recommendation_item_viewed', params);
-  },
-
-  itemClicked: (params: RecommendationEvents['recommendation_item_clicked']) => {
-    telemetry.track('recommendation_item_clicked', params);
-  },
-
-  itemSaved: (params: RecommendationEvents['recommendation_item_saved']) => {
-    telemetry.track('recommendation_item_saved', params);
-  },
-
-  itemHidden: (params: RecommendationEvents['recommendation_item_hidden']) => {
-    telemetry.track('recommendation_item_hidden', params);
-  },
-
-  filterApplied: (
-    filterType: RecommendationEvents['recommendation_filter_applied']['filter_type'],
-    value: string,
-  ) => {
-    telemetry.track('recommendation_filter_applied', { filter_type: filterType, value });
-  },
-
-  search: (query: string, resultsCount: number) => {
-    telemetry.track('recommendation_search', { query, results_count: resultsCount });
-  },
-};
-
-// ============================================================================
 // Demo Mode Events
 // ============================================================================
 
@@ -409,122 +291,3 @@ export const demoEvents = {
 };
 
 // ============================================================================
-// Share Extension Events
-// ============================================================================
-
-export const shareExtensionEvents = {
-  opened: (params: ShareExtensionEvents['share_extension_opened']) => {
-    telemetry.track('share_extension_opened', params);
-  },
-
-  contentReceived: (params: ShareExtensionEvents['share_content_received']) => {
-    telemetry.track('share_content_received', params);
-  },
-
-  tripSelected: (tripId: string) => {
-    telemetry.track('share_trip_selected', { trip_id: tripId });
-  },
-
-  destinationSuggested: (params: ShareExtensionEvents['share_destination_suggested']) => {
-    telemetry.track('share_destination_suggested', params);
-  },
-
-  destinationOverridden: (params: ShareExtensionEvents['share_destination_overridden']) => {
-    telemetry.track('share_destination_overridden', params);
-  },
-
-  saveStarted: (params: ShareExtensionEvents['share_save_started']) => {
-    telemetry.track('share_save_started', params);
-  },
-
-  saveSucceeded: (params: ShareExtensionEvents['share_save_succeeded']) => {
-    telemetry.track('share_save_succeeded', params);
-  },
-
-  saveFailed: (params: ShareExtensionEvents['share_save_failed']) => {
-    telemetry.track('share_save_failed', params);
-  },
-
-  openInApp: (tripId: string, destination: string) => {
-    telemetry.track('share_open_in_app', { trip_id: tripId, destination });
-  },
-
-  duplicateDetected: (contentType: string, fingerprint: string) => {
-    telemetry.track('share_duplicate_detected', { content_type: contentType, fingerprint });
-  },
-
-  unsupportedType: (typeIdentifier: string) => {
-    telemetry.track('share_unsupported_type', { type_identifier: typeIdentifier });
-  },
-};
-
-// ============================================================================
-// AI Concierge Events
-// ============================================================================
-
-export const conciergeEvents = {
-  querySent: (params: ConciergeEvents['concierge_query_sent']) => {
-    telemetry.track('concierge_query_sent', params);
-  },
-
-  responseReceived: (params: ConciergeEvents['concierge_response_received']) => {
-    telemetry.track('concierge_response_received', params);
-  },
-
-  error: (params: ConciergeEvents['concierge_error']) => {
-    telemetry.track('concierge_error', params);
-  },
-
-  toolExecuted: (tripId: string, toolName: string, success: boolean, latencyMs: number) => {
-    telemetry.track('concierge_tool_executed', {
-      trip_id: tripId,
-      tool_name: toolName,
-      success,
-      latency_ms: latencyMs,
-    });
-  },
-};
-
-// ============================================================================
-// Subscription Events
-// ============================================================================
-
-export const subscriptionEvents = {
-  upgradePromptShown: (surface: string, tripId?: string) => {
-    telemetry.track('upgrade_prompt_shown', { surface, trip_id: tripId });
-  },
-
-  upgradeStarted: (params: SubscriptionEvents['upgrade_started']) => {
-    telemetry.track('upgrade_started', params);
-  },
-
-  upgradeCompleted: (plan: string) => {
-    telemetry.track('upgrade_completed', { plan });
-  },
-
-  upgradeFailed: (plan: string, error: string) => {
-    telemetry.track('upgrade_failed', { plan, error });
-  },
-};
-
-// ============================================================================
-// Notification Events
-// ============================================================================
-
-export const notificationEvents = {
-  clicked: (type: string, tripId?: string) => {
-    telemetry.track('notification_clicked', { type, trip_id: tripId });
-  },
-
-  pushPermissionPrompted: () => {
-    telemetry.track('push_permission_prompted', {});
-  },
-
-  pushPermissionGranted: () => {
-    telemetry.track('push_permission_granted', {});
-  },
-
-  pushPermissionDenied: () => {
-    telemetry.track('push_permission_denied', {});
-  },
-};

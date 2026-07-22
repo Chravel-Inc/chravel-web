@@ -27,11 +27,3 @@ export const getRecommendationsByType = (type?: string): Recommendation[] => {
   if (!type || type === 'all') return recommendationsData;
   return recommendationsData.filter(rec => rec.type === type);
 };
-
-export const getSponsoredRecommendations = (): Recommendation[] => {
-  return recommendationsData.filter(rec => rec.isSponsored);
-};
-
-export const getRecommendationById = (id: number): Recommendation | null => {
-  return recommendationsData.find(rec => rec.id === id) || null;
-};

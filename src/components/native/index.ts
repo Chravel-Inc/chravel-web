@@ -10,12 +10,7 @@ export { NativeTabBar, NativeTabBarSpacer } from './NativeTabBar';
 export type { TabId } from './NativeTabBar';
 
 // Trip Type Switcher (like Instagram's account switcher)
-export {
-  NativeTripTypeSwitcher,
-  TripTypeIndicator,
-  getTripTypeLabel,
-  getTripTypeShortLabel,
-} from './NativeTripTypeSwitcher';
+export { NativeTripTypeSwitcher } from './NativeTripTypeSwitcher';
 
 // Segmented Controls
-export { NativeSegmentedControl, NativePillSegment } from './NativeSegmentedControl';
+export { NativeSegmentedControl } from './NativeSegmentedControl';

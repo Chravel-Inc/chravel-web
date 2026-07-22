@@ -69,24 +69,3 @@ export const useBasecamp = () => {
   }
   return context;
 };
-
-// Helper hook for getting basecamp coordinates
-export const useBasecampCoordinates = () => {
-  const { basecamp } = useBasecamp();
-  return basecamp?.coordinates || null;
-};
-
-// Helper hook for getting basecamp search center
-export const useBasecampSearchCenter = () => {
-  const { basecamp } = useBasecamp();
-
-  if (basecamp?.coordinates) {
-    return {
-      lat: basecamp.coordinates.lat,
-      lng: basecamp.coordinates.lng,
-      address: basecamp.address,
-    };
-  }
-
-  return null;
-};
