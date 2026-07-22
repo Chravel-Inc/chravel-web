@@ -79,6 +79,21 @@ type PendingActionToolName =
   | 'createNotification'
   | 'settleExpense';
 
+/**
+ * Tools that write a row to `trip_pending_actions` but resolve through their own
+ * dedicated server-side preview/confirm flow rather than this generic confirm
+ * switch. The executor's `bulkDeleteCalendarEvents` case verifies a preview token
+ * and marks the row confirmed itself (see functionExecutor.ts).
+ *
+ * These rows must be excluded from the fetch below: otherwise the auto-confirm
+ * effect picks up the self-owned preview row, routes it to the confirm switch,
+ * falls through to `assertNeverToolName`, and surfaces a spurious
+ * "Unknown tool: bulkDeleteCalendarEvents" error toast while the real delete is
+ * still being reviewed by the user. Keep this set in sync with
+ * `BESPOKE_CONFIRM_FLOW` in conciergePendingActionCoverage.test.ts.
+ */
+const BESPOKE_CONFIRM_FLOW_TOOLS = new Set<string>(['bulkDeleteCalendarEvents']);
+
 function assertNeverToolName(toolName: never): never {
   throw new Error(`Unknown tool: ${toolName}`);
 }
@@ -111,7 +126,13 @@ export function usePendingActions(tripId: string, options: UsePendingActionsOpti
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return (data || []) as PendingAction[];
+      // Exclude rows that resolve through their own dedicated server-side
+      // preview/confirm flow (e.g. bulkDeleteCalendarEvents preview tokens).
+      // Surfacing them here would auto-confirm a self-owned preview row and throw
+      // "Unknown tool" in the confirm switch — see BESPOKE_CONFIRM_FLOW_TOOLS.
+      return ((data || []) as PendingAction[]).filter(
+        action => !BESPOKE_CONFIRM_FLOW_TOOLS.has(action.tool_name),
+      );
     },
     enabled: !!tripId && !!user?.id && !isDemoMode,
     staleTime: 10_000,
