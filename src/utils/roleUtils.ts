@@ -1,5 +1,3 @@
-import { ProTripCategory, getCategoryConfig } from '../types/proCategories';
-
 /**
  * Pro trip role limit: Maximum 10 roles per Pro trip
  * Increased from 5 to accommodate larger organizations (e.g., college football programs)
@@ -7,66 +5,12 @@ import { ProTripCategory, getCategoryConfig } from '../types/proCategories';
  */
 export const MAX_ROLES_PER_TRIP = 10;
 
-export interface RoleOption {
-  value: string;
-  label: string;
-  isCustom: boolean;
-}
-
-/**
- * Get available role options for a category, combining predefined and existing custom roles
- */
-export const getRoleOptions = (
-  category: ProTripCategory,
-  existingRoles: string[],
-): RoleOption[] => {
-  const categoryConfig = getCategoryConfig(category);
-  const options: RoleOption[] = [];
-
-  // Add predefined roles for the category
-  categoryConfig.roles.forEach(role => {
-    options.push({
-      value: role,
-      label: role,
-      isCustom: false,
-    });
-  });
-
-  // Add existing custom roles (roles not in predefined list)
-  const customRoles = existingRoles.filter(role => !categoryConfig.roles.includes(role));
-
-  customRoles.forEach(role => {
-    options.push({
-      value: role,
-      label: role,
-      isCustom: true,
-    });
-  });
-
-  return options;
-};
-
 /**
  * Get unique roles from a list of participants
  */
 export const extractUniqueRoles = (participants: Array<{ role: string }>): string[] => {
   const roles = participants.map(p => p.role).filter(Boolean);
   return [...new Set(roles)].sort();
-};
-
-/**
- * Validate role count against MVP limit
- */
-export const validateRoleCount = (
-  currentRoleCount: number,
-): { isValid: boolean; error?: string } => {
-  if (currentRoleCount >= MAX_ROLES_PER_TRIP) {
-    return {
-      isValid: false,
-      error: `Maximum ${MAX_ROLES_PER_TRIP} roles allowed per trip for MVP`,
-    };
-  }
-  return { isValid: true };
 };
 
 /**
@@ -101,20 +45,3 @@ export const normalizeRole = (role: string): string => {
  * visual priority over a plain team role.
  */
 export const ROLE_BADGE_CLASS = 'bg-white/10 text-ink-2 border border-white/15';
-
-/**
- * Get role suggestions based on partial input
- */
-export const getRoleSuggestions = (
-  input: string,
-  existingRoles: string[],
-  category: ProTripCategory,
-  limit: number = 5,
-): string[] => {
-  const categoryConfig = getCategoryConfig(category);
-  const allRoles = [...categoryConfig.roles, ...existingRoles];
-
-  const filtered = allRoles.filter(role => role.toLowerCase().includes(input.toLowerCase()));
-
-  return [...new Set(filtered)].slice(0, limit);
-};

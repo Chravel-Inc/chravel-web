@@ -34,25 +34,6 @@ export function getCurrency(code: string): Currency | undefined {
   return CURRENCIES.find(c => c.code === code);
 }
 
-/**
- * Format amount with currency
- */
-export function formatCurrency(amount: number, currencyCode: string): string {
-  const currency = getCurrency(currencyCode);
-  if (!currency) {
-    return `${amount.toFixed(2)} ${currencyCode}`;
-  }
-
-  const formatted = amount.toFixed(currency.decimalPlaces);
-
-  // For some currencies, symbol goes after
-  if (['SEK', 'NOK', 'DKK', 'CZK', 'HUF', 'PLN', 'RON'].includes(currency.code)) {
-    return `${formatted} ${currency.symbol}`;
-  }
-
-  return `${currency.symbol}${formatted}`;
-}
-
 /** Quick-access subset for CurrencySelector (first 6 fiat) */
 export const POPULAR_CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD'];
 
