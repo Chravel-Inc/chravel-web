@@ -300,7 +300,7 @@ Unlisted dependencies (1)
 playwright  scripts/capture-appstore-screenshots.ts:12:26
 Unlisted binaries (1)
 python3  package.json
-Unused exports (376)
+Unused exports (374)
 RUBRIC_DIMENSIONS                                           optimizer/config/defaults.ts:19:14
 restoreBackup                                     function  optimizer/storage/backups.ts:58:17
 getLearningStats                                  function  optimizer/storage/learning.ts:43:17
@@ -620,8 +620,6 @@ getFeatureTierEmoji                                         src/utils/featureTie
 getTierLegend                                               src/utils/featureTiers.ts:152:14
 preloadImage                                                src/utils/imageOptimization.ts:50:14
 getResponsiveSizes                                          src/utils/imageOptimization.ts:59:14
-hasSuperAdminRole                                           src/utils/isSuperAdmin.ts:21:14
-isSuperAdmin                                                src/utils/isSuperAdmin.ts:30:14
 extractCoordinatesFromUrl                                   src/utils/mapThumbnail.ts:28:14
 currentUserAvatar                                           src/utils/mockAvatars.ts:159:14
 getAvatarUrl                                                src/utils/mockAvatars.ts:168:14
