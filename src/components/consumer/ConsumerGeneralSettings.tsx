@@ -5,6 +5,7 @@ import { toast } from '@/hooks/use-toast';
 import { useTheme } from '@/hooks/useTheme';
 import { Switch } from '@/components/ui/switch';
 import { SmartImportSettings } from '@/features/smart-import/components/SmartImportSettings';
+import { GoogleCalendarSettings } from '@/features/calendar/components/GoogleCalendarSettings';
 import { BlockedUsersList } from './BlockedUsersList';
 import { DeleteAccountDialog } from './DeleteAccountDialog';
 
@@ -141,6 +142,7 @@ export const ConsumerGeneralSettings = () => {
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
         <h4 className="text-base font-semibold text-white mb-3">Integrations</h4>
         <SmartImportSettings />
+        <GoogleCalendarSettings />
       </div>
 
       {/* Data & Storage */}

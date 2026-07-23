@@ -106,6 +106,13 @@ const GmailCallbackPage = lazy(() =>
     import('./pages/GmailCallbackPage').then(module => ({ default: module.GmailCallbackPage })),
   ),
 );
+const GoogleCalendarCallbackPage = lazy(() =>
+  retryImport(() =>
+    import('./pages/GoogleCalendarCallbackPage').then(module => ({
+      default: module.GoogleCalendarCallbackPage,
+    })),
+  ),
+);
 const DemoEntry = lazy(() => retryImport(() => import('./pages/DemoEntry')));
 const TripPreview = lazy(() => retryImport(() => import('./pages/TripPreview')));
 // Shares its import() loader with main.tsx's boot warm-up via routeChunks.ts.
@@ -352,6 +359,14 @@ const App = () => {
                           element={
                             <LazyRoute>
                               <GmailCallbackPage />
+                            </LazyRoute>
+                          }
+                        />
+                        <Route
+                          path="/api/google-calendar/oauth/callback"
+                          element={
+                            <LazyRoute>
+                              <GoogleCalendarCallbackPage />
                             </LazyRoute>
                           }
                         />
