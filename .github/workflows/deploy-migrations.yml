@@ -1,0 +1,134 @@
+name: Deploy Supabase Migrations
+
+# Applies pending database migrations to the production Supabase project when
+# migration files land on `main`. This is the automated counterpart to
+# deploy-functions.yml (which deploys edge functions) — together they mean a
+# merge to main is fully deployed with no manual `supabase db push` / Lovable
+# / dashboard step.
+#
+# ── PREREQUISITES (one-time) ────────────────────────────────────────────────
+# 1. Repo secrets (Settings → Secrets and variables → Actions):
+#      SUPABASE_ACCESS_TOKEN  — personal access token (Supabase dashboard →
+#                               Account → Access Tokens). Already used by
+#                               deploy-functions.yml.
+#      SUPABASE_PROJECT_ID    — the project ref `jmjiyekmxwsxkfnqwyaa`.
+#                               Already used by deploy-functions.yml.
+#      SUPABASE_DB_PASSWORD   — the database password (Supabase dashboard →
+#                               Project Settings → Database → Connection string /
+#                               "Reset database password"). NEW — `db push`
+#                               needs it to connect; the functions workflow did
+#                               not.
+# 2. The remote migration history must be reconciled with the files in
+#    supabase/migrations/ before this can succeed. As of 2026-07-23 there were
+#    496 local files but only 289 recorded in supabase_migrations.schema_
+#    migrations, so `db push` would refuse (history mismatch). Reconcile once
+#    with `supabase migration list` + `supabase migration repair`, then this
+#    workflow keeps them in sync going forward.
+# ────────────────────────────────────────────────────────────────────────────
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+  # Manual trigger — set dry_run=true to preview what WOULD apply without
+  # touching the database (recommended for the first run after reconciliation).
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Preview pending migrations without applying them'
+        required: false
+        default: false
+        type: boolean
+
+# Never let two migration deploys run at once — migrations are ordered and
+# irreversible. Queue them; do not cancel an in-flight apply.
+concurrency:
+  group: deploy-migrations-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Optional: create a "production" Environment in repo settings and add a
+    # required reviewer if you ever want a one-click approval gate. Referencing
+    # it here is harmless if the environment has no protection rules.
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint migration files
+        run: npx tsx scripts/lint-migrations.ts
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+        run: supabase link --project-ref "$PROJECT_ID"
+
+      - name: Show pending migrations
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          echo "### Migration status (local vs remote)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          supabase migration list 2>&1 | tee -a "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Dry run (preview only)
+        if: github.event_name == 'workflow_dispatch' && inputs.dry_run
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase db push --dry-run
+
+      # SAFETY GATE: the apply step only runs once you set the repo variable
+      # MIGRATIONS_AUTOAPPLY = true (Settings → Secrets and variables → Actions
+      # → Variables). Leave it unset/false until the migration history has been
+      # baselined — otherwise `db push` would treat all ~459 already-applied
+      # (Lovable-tracked) migrations as pending and try to replay them. Until
+      # then this workflow still runs `supabase migration list` above so you can
+      # watch the drift shrink. Flip the variable to true after reconciliation.
+      - name: Apply pending migrations
+        if: "vars.MIGRATIONS_AUTOAPPLY == 'true' && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        # No --include-all: if the local history diverges from remote, the CLI
+        # refuses rather than replaying old/out-of-order migrations. That is the
+        # safe failure mode — fix the history, don't force-replay.
+        run: supabase db push
+
+      - name: Apply skipped (safety gate)
+        if: "vars.MIGRATIONS_AUTOAPPLY != 'true' && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)"
+        run: |
+          echo "::notice::Migration apply is GATED OFF. Set repo variable MIGRATIONS_AUTOAPPLY=true after the migration history is baselined to enable auto-apply." | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          {
+            echo "## Database Migration Deploy"
+            echo "- **Project**: Chravel Production (\`${{ secrets.SUPABASE_PROJECT_ID }}\`)"
+            echo "- **Trigger**: ${{ github.event_name }}"
+            echo "- **Dry run**: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}"
+            echo "- **Commit**: \`${{ github.sha }}\`"
+            echo "- **Time**: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          } >> "$GITHUB_STEP_SUMMARY"
