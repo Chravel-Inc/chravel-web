@@ -64,6 +64,10 @@ vi.mock('@/features/smart-import/components/SmartImportSettings', () => ({
   SmartImportSettings: () => <div>Smart Import Settings</div>,
 }));
 
+vi.mock('@/features/calendar/components/GoogleCalendarSettings', () => ({
+  GoogleCalendarSettings: () => <div>Google Calendar Settings</div>,
+}));
+
 vi.mock('../BlockedUsersList', () => ({
   BlockedUsersList: () => <div>Blocked Users</div>,
 }));
