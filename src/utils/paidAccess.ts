@@ -11,6 +11,12 @@ export type PaidAccessStatus = 'active' | 'trial' | 'expired' | 'inactive' | 'ca
 interface PaidAccessInput {
   tier?: PaidAccessTier | null;
   status?: PaidAccessStatus | null;
+  /**
+   * Server-verified super-admin flag. MUST originate from the server-authoritative
+   * `public.is_super_admin()` RPC — i.e. `useSuperAdmin()` or
+   * `useConsumerSubscription().isSuperAdmin`. Never pass a value derived from a
+   * client-supplied `roles[]`; that would grant paid access from forgeable input.
+   */
   isSuperAdmin?: boolean;
 }
 

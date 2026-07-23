@@ -1,12 +1,12 @@
 import { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { ConsumerSubscription } from '../types/consumer';
 import { useAuth } from './useAuth';
+import { useSuperAdmin } from './useSuperAdmin';
 import { supabase } from '@/integrations/supabase/client';
 import { ENTITLEMENTS_UPDATED_EVENT } from '@/integrations/revenuecat/revenuecatClient';
 import { openExternalUrl } from '@/platform/navigation';
 import { detectNativeBillingPlatform, isNativeWebView } from '@/utils/platformDetection';
 import { toast } from 'sonner';
-import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
 import type { ConsumerSubscription as ConsumerSubscriptionShape } from '../types/consumer';
 
 interface ConsumerSubscriptionContextType {
@@ -48,6 +48,11 @@ type SubscriptionRefreshReason =
 
 export const ConsumerSubscriptionProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
+  // Super-admin status is server-authoritative: useSuperAdmin defers to the
+  // public.is_super_admin() RPC (backed by public.super_admins), with the env
+  // allowlist only as a no-flicker client hint. It is never derived from a
+  // client-supplied roles[], which an attacker could forge to bypass limits.
+  const { isSuperAdmin } = useSuperAdmin();
   // useAuth sets a session-derived user first and the enriched user moments
   // later — two object identities for the same login. Key effects/callbacks on
   // the stable id so the initial check-subscription edge call fires once.
@@ -213,9 +218,6 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
       setIsLoading(false);
     }
   };
-
-  // Check if user is super admin - bypass all limits
-  const isSuperAdmin = user?.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase());
 
   const currentTier = isSuperAdmin ? 'frequent-chraveler' : subscription?.tier || 'free';
   // Mirror the canonical hasEffectiveAccess policy on the mapped consumer-subscription

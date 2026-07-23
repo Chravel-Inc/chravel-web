@@ -21,4 +21,17 @@ describe('hasPaidAccess', () => {
   it('always returns true for super admin', () => {
     expect(hasPaidAccess({ tier: 'free', status: 'inactive', isSuperAdmin: true })).toBe(true);
   });
+
+  it('never grants paid access from a client-supplied roles array', () => {
+    // roles[] is not an input to the gate. A free/inactive user stays gated
+    // regardless of any forged role claim — only tier/status and the
+    // server-verified isSuperAdmin boolean can grant access.
+    const forged = {
+      tier: 'free',
+      status: 'inactive',
+      roles: ['super_admin', 'enterprise_admin'],
+      appRole: 'super_admin',
+    } as Parameters<typeof hasPaidAccess>[0];
+    expect(hasPaidAccess(forged)).toBe(false);
+  });
 });
