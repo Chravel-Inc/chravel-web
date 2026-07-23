@@ -171,6 +171,9 @@ Deno.serve(async req => {
       .select('role')
       .eq('trip_id', body.tripId)
       .eq('user_id', caller.id)
+      // Active membership only — a former organizer/admin (status = 'left') must not
+      // retain notification-sender authority. Matches is_active_trip_member (status IS NULL OR 'active').
+      .or('status.is.null,status.eq.active')
       .maybeSingle();
 
     if (memberError) {

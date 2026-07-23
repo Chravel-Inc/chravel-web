@@ -108,6 +108,9 @@ serve(async req => {
         .select('role')
         .eq('trip_id', body.tripId)
         .eq('user_id', user.id)
+        // Active membership only — a former moderator/admin (status = 'left') must not
+        // retain moderation authority. Matches is_active_trip_member (status IS NULL OR 'active').
+        .or('status.is.null,status.eq.active')
         .maybeSingle(),
       adminClient.rpc('has_admin_permission', {
         _user_id: user.id,

@@ -22,6 +22,10 @@ export async function verifyConciergeTripAccess(
     .select('user_id')
     .eq('trip_id', tripId)
     .eq('user_id', userId)
+    // Active membership only — a departed member (status = 'left') must not run
+    // Concierge tools against a trip they left. Matches is_active_trip_member
+    // (status IS NULL OR 'active'); keeps text + voice tool bridges aligned.
+    .or('status.is.null,status.eq.active')
     .maybeSingle();
 
   if (membershipError || !membership) {

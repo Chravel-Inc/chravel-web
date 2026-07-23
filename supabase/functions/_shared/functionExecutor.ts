@@ -2894,6 +2894,9 @@ async function _executeImpl(
         .select('role')
         .eq('trip_id', tripId)
         .eq('user_id', userId)
+        // Active membership only — defense-in-depth; upstream concierge access is already
+        // gated, but keep this role read consistent (status IS NULL OR 'active').
+        .or('status.is.null,status.eq.active')
         .single();
 
       // Check if user is the trip creator

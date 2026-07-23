@@ -158,7 +158,7 @@ serve(async (req): Promise<Response> => {
     const { data: tripRow, error: tripError } = await supabaseClient
       .from('trips')
       .select(
-        'id, name, destination, start_date, end_date, cover_image_url, trip_type, description, created_by',
+        'id, name, destination, start_date, end_date, cover_image_url, trip_type, description, created_by, is_archived, is_hidden',
       )
       .eq('id', tripId)
       .maybeSingle();
@@ -175,19 +175,8 @@ serve(async (req): Promise<Response> => {
       .select('*', { count: 'exact', head: true })
       .eq('trip_id', tripId);
 
-    const trip: TripPreview = {
-      id: tripRow.id,
-      name: tripRow.name,
-      destination: tripRow.destination,
-      start_date: tripRow.start_date,
-      end_date: tripRow.end_date,
-      cover_image_url: resolveOgCoverImageUrl(tripRow),
-      trip_type: tripRow.trip_type,
-      member_count: memberCount ?? 0,
-      description: tripRow.description,
-    };
-
-    // Verify trip membership (only active members/admins/creator may see or create invite codes)
+    // Verify trip membership (only active members/admins/creator may see or create
+    // invite codes, and only they may see the private free-text description).
     let isTripMember = false;
     if (authedUserId) {
       if (tripRow.created_by === authedUserId) {
@@ -201,6 +190,30 @@ serve(async (req): Promise<Response> => {
             memberRow.status === 'active');
       }
     }
+
+    // Archived/hidden trips are not publicly previewable. A share link to a deleted
+    // or archived trip must not leak its metadata to non-members.
+    if ((tripRow.is_archived || tripRow.is_hidden) && !isTripMember) {
+      return new Response(JSON.stringify({ success: false, error: 'Trip not found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const trip: TripPreview = {
+      id: tripRow.id,
+      name: tripRow.name,
+      destination: tripRow.destination,
+      start_date: tripRow.start_date,
+      end_date: tripRow.end_date,
+      cover_image_url: resolveOgCoverImageUrl(tripRow),
+      trip_type: tripRow.trip_type,
+      member_count: memberCount ?? 0,
+      // Free-text description can hold private trip details — expose it only to
+      // members. Unauthenticated UUID previews get name/destination/cover only;
+      // the invite-code flow (get-invite-preview) handles invitee previews.
+      description: isTripMember ? tripRow.description : null,
+    };
 
     if (isTripMember) {
       const nowIso = new Date().toISOString();
