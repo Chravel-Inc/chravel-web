@@ -20,6 +20,13 @@
 -- anon/authenticated. This migration makes each fail closed. All changes
 -- preserve the exact function signatures (no generated-type drift) and the
 -- legitimate call paths (verified against the live schema on 2026-07-23).
+--
+-- NOTE on grants: every function here carries a blanket PUBLIC EXECUTE grant
+-- (`=X` in proacl) IN ADDITION to explicit anon/authenticated grants. Revoking
+-- anon/authenticated alone is a no-op because PUBLIC still grants EXECUTE to all
+-- roles, so each REVOKE below also revokes PUBLIC. Explicit service_role (and
+-- owner) grants are unaffected. Verified with has_function_privilege() in a
+-- rolled-back transaction (anon/authenticated -> false, service_role -> true).
 
 -- ---------------------------------------------------------------------------
 -- 1. update_trip_basecamp_with_version  (HIGH)
@@ -111,10 +118,12 @@ BEGIN
 END;
 $function$;
 
--- Defense in depth: anon can never satisfy the auth.uid() guard above.
+-- Defense in depth: anon can never satisfy the auth.uid() guard above. Revoke
+-- anon + PUBLIC (see grants note above); the explicit `authenticated` grant the
+-- frontend uses is retained.
 REVOKE EXECUTE ON FUNCTION public.update_trip_basecamp_with_version(
   text, integer, text, text, double precision, double precision, uuid
-) FROM anon;
+) FROM anon, PUBLIC;
 
 -- ---------------------------------------------------------------------------
 -- 2. log_basecamp_change  (MEDIUM)
@@ -170,7 +179,7 @@ $function$;
 REVOKE EXECUTE ON FUNCTION public.log_basecamp_change(
   text, uuid, text, text, text, text, double precision, double precision,
   text, text, double precision, double precision
-) FROM anon;
+) FROM anon, PUBLIC;
 
 -- ---------------------------------------------------------------------------
 -- 3. mark_broadcast_viewed  (LOW)
@@ -199,7 +208,7 @@ BEGIN
 END;
 $function$;
 
-REVOKE EXECUTE ON FUNCTION public.mark_broadcast_viewed(uuid, uuid) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.mark_broadcast_viewed(uuid, uuid) FROM anon, PUBLIC;
 
 -- ---------------------------------------------------------------------------
 -- 4. get_visible_profile_fields  (MEDIUM — PII disclosure)
@@ -209,10 +218,14 @@ REVOKE EXECUTE ON FUNCTION public.mark_broadcast_viewed(uuid, uuid) FROM anon;
 -- pass requesting_user_id = the profile owner's id and unmask that user's private
 -- email/phone regardless of their show_email / show_phone settings.
 --
--- Fix (fail closed): decide visibility against the real authenticated actor.
--- v_requester = COALESCE(auth.uid(), requesting_user_id): an authenticated caller
--- can never spoof (auth.uid() wins); service_role (auth.uid() IS NULL) retains
--- the trusted parameter. anon EXECUTE is revoked so the fallback can't be abused.
+-- Fix (fail closed): decide visibility strictly against the authenticated actor
+-- (v_requester := auth.uid()); the requesting_user_id parameter is retained for
+-- signature stability but is NEVER trusted. A COALESCE fallback to the parameter
+-- would NOT be safe here: this function has a PUBLIC EXECUTE grant, so an
+-- unauthenticated caller (auth.uid() IS NULL) would fall back to the spoofable
+-- parameter and unmask PII. The function has zero references (no policy, view,
+-- function, or app code — verified 2026-07-23), so client EXECUTE is fully
+-- revoked (PUBLIC/anon/authenticated) in addition to the hardened body.
 -- Reverse: restore the prior body (predicate on requesting_user_id) and re-grant.
 CREATE OR REPLACE FUNCTION public.get_visible_profile_fields(profile_user_id uuid, requesting_user_id uuid)
  RETURNS TABLE(user_id uuid, display_name text, avatar_url text, bio text, email text, phone text, first_name text, last_name text, show_email boolean, show_phone boolean)
@@ -221,7 +234,7 @@ CREATE OR REPLACE FUNCTION public.get_visible_profile_fields(profile_user_id uui
  SET search_path TO 'public'
 AS $function$
 DECLARE
-  v_requester uuid := COALESCE(auth.uid(), requesting_user_id);
+  v_requester uuid := auth.uid();
 BEGIN
   RETURN QUERY
   SELECT
@@ -240,7 +253,7 @@ BEGIN
 END;
 $function$;
 
-REVOKE EXECUTE ON FUNCTION public.get_visible_profile_fields(uuid, uuid) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.get_visible_profile_fields(uuid, uuid) FROM PUBLIC, anon, authenticated;
 
 -- ---------------------------------------------------------------------------
 -- 5. increment_sms_counter / check_sms_rate_limit  (MEDIUM)
@@ -252,11 +265,12 @@ REVOKE EXECUTE ON FUNCTION public.get_visible_profile_fields(uuid, uuid) FROM an
 -- supabase/functions/). Granting them to anon/authenticated let any caller
 -- inflate or reset another user's SMS rate-limit state (griefing / DoS).
 --
--- Fix (fail closed): remove the client-facing grants. service_role and the
--- owner keep EXECUTE, so the intended dispatch path is unaffected.
--- Reverse: GRANT EXECUTE ... TO authenticated (and anon if ever needed).
-REVOKE EXECUTE ON FUNCTION public.increment_sms_counter(uuid) FROM anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.check_sms_rate_limit(uuid, integer) FROM anon, authenticated;
+-- Fix (fail closed): remove ALL client-facing EXECUTE (PUBLIC + anon +
+-- authenticated). service_role and the owner keep EXECUTE, so the intended
+-- dispatch path is unaffected.
+-- Reverse: GRANT EXECUTE ... TO authenticated (and anon/PUBLIC if ever needed).
+REVOKE EXECUTE ON FUNCTION public.increment_sms_counter(uuid) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.check_sms_rate_limit(uuid, integer) FROM PUBLIC, anon, authenticated;
 
 -- ---------------------------------------------------------------------------
 -- 6. log_org_admin_action  (LOW — audit-log integrity)
@@ -267,7 +281,8 @@ REVOKE EXECUTE ON FUNCTION public.check_sms_rate_limit(uuid, integer) FROM anon,
 -- It is an internal helper invoked only by the SECURITY DEFINER org RPCs
 -- (assign_org_seat, transfer_org_seat, ...), which run as the owner and are
 -- unaffected by revoking the client grant.
--- Fix (fail closed): remove client-facing EXECUTE.
+-- Fix (fail closed): remove ALL client-facing EXECUTE (PUBLIC + anon +
+-- authenticated). service_role/owner retained.
 -- Reverse: GRANT EXECUTE ... TO authenticated.
 REVOKE EXECUTE ON FUNCTION public.log_org_admin_action(text, uuid, uuid, jsonb, jsonb)
-  FROM anon, authenticated;
+  FROM PUBLIC, anon, authenticated;
