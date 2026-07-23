@@ -138,6 +138,9 @@ serve(async req => {
       .select('user_id, role')
       .eq('trip_id', tripId)
       .eq('user_id', user.id)
+      // Active membership only — a departed member (status = 'left') must not export the
+      // full trip PDF. Matches is_active_trip_member (status IS NULL OR 'active').
+      .or('status.is.null,status.eq.active')
       .maybeSingle();
 
     if (membershipError || !canExportTripPdf({ userId: user.id, membership: membershipCheck })) {

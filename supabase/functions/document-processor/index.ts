@@ -119,6 +119,9 @@ serve(async req => {
       .select('user_id')
       .eq('trip_id', tripId)
       .eq('user_id', userId)
+      // Active membership only — a departed member (status = 'left') must not retain
+      // access. Matches is_active_trip_member (status IS NULL OR 'active').
+      .or('status.is.null,status.eq.active')
       .maybeSingle();
 
     if (membershipError || !membershipCheck) {
@@ -137,6 +140,9 @@ serve(async req => {
       .select('user_id')
       .eq('trip_id', tripId)
       .eq('user_id', userId)
+      // Active membership only — a departed member (status = 'left') must not retain
+      // access. Matches is_active_trip_member (status IS NULL OR 'active').
+      .or('status.is.null,status.eq.active')
       .maybeSingle();
 
     if (rlsError || !rlsMembership) {

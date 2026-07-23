@@ -61,6 +61,9 @@ serve(async req => {
       .select('*')
       .eq('trip_id', tripId)
       .eq('user_id', user.id)
+      // Active membership only — a departed member (status = 'left') must not retain
+      // access. Matches is_active_trip_member (status IS NULL OR 'active').
+      .or('status.is.null,status.eq.active')
       .single();
 
     if (!membership) {

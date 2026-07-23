@@ -132,15 +132,19 @@ serve(async req => {
       );
     }
 
-    // ── Verify Supabase membership ────────────────────────────────────────
-    // The user must be an active trip member. RLS on trip_members enforces this
-    // at the DB level — if the row doesn't exist or they don't have access, the
-    // query returns no rows.
+    // ── Verify ACTIVE Supabase membership ─────────────────────────────────
+    // Must be an ACTIVE trip member. This client is user-scoped, but the
+    // `trip_members` SELECT policy "Users can view their trip memberships"
+    // (USING auth.uid() = user_id) returns the caller's own row regardless of
+    // status — so a departed member (status = 'left') would otherwise still pass
+    // and get re-added to the Stream channels. Filter explicitly to active/legacy-null
+    // status, matching is_active_trip_member (status IS NULL OR 'active').
     const { data: membership, error: membershipError } = await supabase
       .from('trip_members')
       .select('id, role')
       .eq('trip_id', tripId)
       .eq('user_id', user.id)
+      .or('status.is.null,status.eq.active')
       .maybeSingle();
 
     if (membershipError) {
