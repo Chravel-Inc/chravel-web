@@ -26,8 +26,13 @@ export const useSuperAdmin = () => {
       if (!user?.id) return false;
       const { data, error } = await supabase.rpc('is_super_admin');
       if (error) {
-        // Non-fatal: fall back to env allowlist only.
-        return false;
+        // Rethrow so React Query keeps the last successful value instead of
+        // overwriting it. A transient failure during a background refetch must
+        // not momentarily drop a real (server-only) super admin to non-admin;
+        // React Query retains the prior `data` on a refetch error. On the very
+        // first fetch there is no prior value, so `data` stays undefined and
+        // callers fall back to the env allowlist (fails closed).
+        throw new Error(`is_super_admin RPC failed: ${error.message}`);
       }
       return Boolean(data);
     },

@@ -25,14 +25,26 @@ import type {
  */
 export async function getEntitlements(_userId: string): Promise<UserEntitlements> {
   try {
-    // Get user email for super admin check
+    // Super admins get all entitlements. Defer to the server-authoritative
+    // public.is_super_admin() RPC (backed by public.super_admins), mirroring
+    // useSuperAdmin: the env allowlist is only a client-side no-flicker hint and
+    // the RPC fails closed on error. Super-admin is never derived from a
+    // client-supplied roles[], which an attacker could forge for paid access.
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    const email = user?.email?.toLowerCase();
+    const email = user?.email?.toLowerCase().trim();
+    const envMatch = Boolean(email && SUPER_ADMIN_EMAILS.includes(email));
 
-    // Super admins get all entitlements
-    if (email && SUPER_ADMIN_EMAILS.includes(email)) {
+    let serverMatch = false;
+    if (user?.id) {
+      const { data: isAdmin, error: adminError } = await supabase.rpc('is_super_admin');
+      if (!adminError) {
+        serverMatch = Boolean(isAdmin);
+      }
+    }
+
+    if (envMatch || serverMatch) {
       return createSuperAdminEntitlements();
     }
 
