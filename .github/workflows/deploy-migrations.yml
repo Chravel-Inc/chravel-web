@@ -50,6 +50,12 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Master switch. On a push to main this job runs ONLY when the repo variable
+    # MIGRATIONS_AUTOAPPLY is 'true' — so until you have baselined the migration
+    # history and opted in, migration pushes do nothing (no failing runs, no
+    # accidental replay). Manual `workflow_dispatch` runs always work, so you can
+    # preview with dry_run before flipping the switch.
+    if: github.event_name == 'workflow_dispatch' || vars.MIGRATIONS_AUTOAPPLY == 'true'
     # Optional: create a "production" Environment in repo settings and add a
     # required reviewer if you ever want a one-click approval gate. Referencing
     # it here is harmless if the environment has no protection rules.
@@ -99,15 +105,10 @@ jobs:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: supabase db push --dry-run
 
-      # SAFETY GATE: the apply step only runs once you set the repo variable
-      # MIGRATIONS_AUTOAPPLY = true (Settings → Secrets and variables → Actions
-      # → Variables). Leave it unset/false until the migration history has been
-      # baselined — otherwise `db push` would treat all ~459 already-applied
-      # (Lovable-tracked) migrations as pending and try to replay them. Until
-      # then this workflow still runs `supabase migration list` above so you can
-      # watch the drift shrink. Flip the variable to true after reconciliation.
+      # Applies on a gated push (job-level `if` already required
+      # MIGRATIONS_AUTOAPPLY == 'true') or on a manual run that is not a dry run.
       - name: Apply pending migrations
-        if: "vars.MIGRATIONS_AUTOAPPLY == 'true' && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)"
+        if: "!(github.event_name == 'workflow_dispatch' && inputs.dry_run)"
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
@@ -115,11 +116,6 @@ jobs:
         # refuses rather than replaying old/out-of-order migrations. That is the
         # safe failure mode — fix the history, don't force-replay.
         run: supabase db push
-
-      - name: Apply skipped (safety gate)
-        if: "vars.MIGRATIONS_AUTOAPPLY != 'true' && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)"
-        run: |
-          echo "::notice::Migration apply is GATED OFF. Set repo variable MIGRATIONS_AUTOAPPLY=true after the migration history is baselined to enable auto-apply." | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Deployment summary
         if: always()
