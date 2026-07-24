@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { Plus, Check } from 'lucide-react';
 import { usePullToRefresh } from '../../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
+import { tripKeys } from '@/lib/queryKeys';
 import { TaskSkeleton } from './SkeletonLoader';
 import { hapticService } from '../../services/hapticService';
 import { TaskCreateModal } from '../todo/TaskCreateModal';
@@ -29,7 +30,7 @@ export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
 
   const { isRefreshing, pullDistance } = usePullToRefresh({
     onRefresh: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
+      await queryClient.invalidateQueries({ queryKey: tripKeys.tasks(tripId, isDemoMode) });
     },
   });
 

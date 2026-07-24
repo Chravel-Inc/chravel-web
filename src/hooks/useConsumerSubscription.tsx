@@ -3,6 +3,7 @@ import { ConsumerSubscription } from '../types/consumer';
 import { useAuth } from './useAuth';
 import { useSuperAdmin } from './useSuperAdmin';
 import { supabase } from '@/integrations/supabase/client';
+import { createCheckoutSession } from '@/billing/checkout';
 import { ENTITLEMENTS_UPDATED_EVENT } from '@/integrations/revenuecat/revenuecatClient';
 import { openExternalUrl } from '@/platform/navigation';
 import { detectNativeBillingPlatform, isNativeWebView } from '@/utils/platformDetection';
@@ -198,15 +199,11 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
         'frequent-chraveler': 'consumer-frequent-chraveler',
       };
 
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: {
-          tier: tierMap[tier],
-          billing_cycle: billingCycle,
-          platform: billingPlatform,
-        },
+      const data = await createCheckoutSession({
+        tier: tierMap[tier],
+        billing_cycle: billingCycle,
+        platform: billingPlatform,
       });
-
-      if (error) throw error;
 
       if (data.url) {
         openExternalUrl(data.url);

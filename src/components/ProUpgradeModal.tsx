@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, Crown, Shield, Zap, TrendingUp, Building, Star } from 'lucide-react';
 import { SUBSCRIPTION_TIERS } from '../types/pro';
 import { useIsMobile } from '../hooks/use-mobile';
-import { supabase } from '@/integrations/supabase/client';
+import { createCheckoutSession } from '@/billing/checkout';
 import { SUBSCRIPTION_TIER_MAP } from '@/constants/stripe';
 import {
   detectNativeBillingPlatform,
@@ -55,14 +55,10 @@ export const ProUpgradeModal = ({ isOpen, onClose }: ProUpgradeModalProps) => {
         return;
       }
 
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: {
-          tier: tierKey,
-          platform: detectNativeBillingPlatform(navigator.userAgent || '', isNativeWebView()),
-        },
+      const data = await createCheckoutSession({
+        tier: tierKey,
+        platform: detectNativeBillingPlatform(navigator.userAgent || '', isNativeWebView()),
       });
-
-      if (error) throw error;
 
       if (data.url) {
         window.open(data.url, '_blank');

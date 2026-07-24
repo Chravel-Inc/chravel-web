@@ -76,7 +76,19 @@ function loadDocumentedVars(filePath: string): Set<string> {
   const content = fs.readFileSync(filePath, 'utf-8');
   for (const line of content.split('\n')) {
     const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
+    if (!trimmed) continue;
+
+    // Server secrets in these files are documented as commented declarations
+    // ("# STREAM_API_SECRET= — desc" or "# VERTEX_PROJECT_ID — desc") because
+    // they are set in the Supabase dashboard, not a local .env. Recognize a
+    // comment whose first token is an ALL-CAPS identifier as documenting that
+    // var; prose comments ("# Get from: ...") start lowercase and don't match.
+    if (trimmed.startsWith('#')) {
+      const decl = trimmed.replace(/^#+\s*/, '').match(/^([A-Z][A-Z0-9_]{2,})(?:\s*=|\s|$)/);
+      if (decl) vars.add(decl[1]);
+      continue;
+    }
+
     const eqIdx = trimmed.indexOf('=');
     if (eqIdx === -1) continue;
     const key = trimmed.slice(0, eqIdx).trim();

@@ -519,15 +519,15 @@ export function usePendingActions(tripId: string, options: UsePendingActionsOpti
         case 'updateTask':
         case 'deleteTask':
         case 'bulkMarkTasksDone':
-          queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId], exact: false });
+          queryClient.invalidateQueries({ queryKey: tripKeys.tasks(tripId), exact: false });
           break;
         case 'createPoll':
         case 'closePoll':
           queryClient.invalidateQueries({ queryKey: tripKeys.polls(tripId), exact: false });
           break;
         case 'saveLink':
-          queryClient.invalidateQueries({ queryKey: ['tripLinks', tripId], exact: false });
-          queryClient.invalidateQueries({ queryKey: ['tripPlaces', tripId], exact: false });
+          queryClient.invalidateQueries({ queryKey: tripKeys.tripLinks(tripId), exact: false });
+          queryClient.invalidateQueries({ queryKey: tripKeys.places(tripId), exact: false });
           break;
         case 'addToCalendar':
         case 'duplicateCalendarEvent':
@@ -542,7 +542,11 @@ export function usePendingActions(tripId: string, options: UsePendingActionsOpti
           queryClient.invalidateQueries({ queryKey: tripKeys.all, exact: false });
           break;
         case 'createBroadcast':
-          queryClient.invalidateQueries({ queryKey: ['broadcasts', tripId], exact: false });
+          // Canonical broadcasts key is ['tripBroadcasts', tripId] (tripKeys.broadcasts,
+          // also used by conciergeInvalidation). The old inline ['broadcasts', tripId]
+          // matched no query and no other caller — align it so a future broadcasts
+          // React Query would be invalidated by both the concierge and pending-action paths.
+          queryClient.invalidateQueries({ queryKey: tripKeys.broadcasts(tripId), exact: false });
           queryClient.invalidateQueries({ queryKey: ['notifications'], exact: false });
           break;
         case 'createNotification':
