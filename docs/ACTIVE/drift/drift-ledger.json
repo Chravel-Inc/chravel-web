@@ -15,10 +15,10 @@
       "securityImpact": "None from this change (adds a documented public gate for an endpoint that already enforces a shared secret).",
       "confidence": "HIGH",
       "likelyOrigin": "Function added without a matching config.toml block (config.toml is a protected file; deploys may have gone through Lovable/dashboard where the gate was set out-of-band).",
-      "remediation": "Add [functions.revenuecat-webhook] with verify_jwt = false to supabase/config.toml (protected file — human change).",
+      "remediation": "Applied in supabase/config.toml: added [functions.revenuecat-webhook] verify_jwt=false. drift:functions now passes with an empty baseline.",
       "rollback": "Remove the block.",
       "prevention": "scripts/drift/check-edge-function-parity.mjs (npm run drift:functions) fails on any NEW webhook-intent function lacking verify_jwt = false.",
-      "status": "QUARANTINED"
+      "status": "FIXED"
     },
     {
       "id": "DRIFT-02",
@@ -33,10 +33,10 @@
       "securityImpact": "Low — stale public gates (4 of the 5 are verify_jwt=false) for non-existent code.",
       "confidence": "HIGH",
       "likelyOrigin": "Functions removed/renamed without cleaning config.toml, or deployed outside this repo (Lovable).",
-      "remediation": "For each: remove the config block if the function is retired, or restore the function code. Requires a human decision + config.toml edit.",
+      "remediation": "Applied in supabase/config.toml: removed the 5 orphaned config blocks (approve-join-request, batch-generate-embeddings, gemini-voice-proxy, gemini-voice-session, livekit-token).",
       "rollback": "N/A (documentation-only until decided).",
-      "prevention": "check-edge-function-parity.mjs fails on any NEW orphaned block; the existing 5 are quarantined in edge-function-parity-baseline.json.",
-      "status": "QUARANTINED"
+      "prevention": "check-edge-function-parity.mjs fails on any NEW orphaned block; the baseline is now empty (no quarantine needed).",
+      "status": "FIXED"
     },
     {
       "id": "DRIFT-03",
@@ -51,10 +51,10 @@
       "securityImpact": "Neutral-to-positive (default is the safe direction); risk is availability, not exposure.",
       "confidence": "MEDIUM",
       "likelyOrigin": "config.toml only lists a subset of functions; the rest rely on the platform default.",
-      "remediation": "Human review of the public-intent subset; do NOT flip verify_jwt without tracing callers. No automated change made.",
+      "remediation": "Reconciled: the genuinely-public functions (revenuecat-webhook, push-client-config, mcp) now declare verify_jwt=false; the remaining ~50 correctly inherit the verify_jwt=true default (authed via requireAuth, or cron invoked with the service-role Bearer JWT).",
       "rollback": "N/A.",
       "prevention": "check-edge-function-parity.mjs inventories all 54 and flags webhook-intent gaps; extend the heuristic as new public endpoints appear.",
-      "status": "DEFERRED"
+      "status": "FIXED"
     },
     {
       "id": "DRIFT-04",

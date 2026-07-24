@@ -1,11 +1,5 @@
 {
-  "_comment": "Pre-existing, TRACKED edge-function parity drift. These are NOT resolved — they are quarantined so the gate stays green for unrelated PRs while the required supabase/config.toml changes (a protected file) go through a human. Each entry has a follow-up in docs/ACTIVE/drift/DRIFT_AUDIT.md. Do NOT add new entries to silence a failure without reconciling the underlying drift.",
-  "knownOrphanedConfigBlocks": [
-    "approve-join-request",
-    "batch-generate-embeddings",
-    "gemini-voice-proxy",
-    "gemini-voice-session",
-    "livekit-token"
-  ],
-  "knownPublicWithoutConfig": ["revenuecat-webhook"]
+  "_comment": "Reconciled: the previously-quarantined edge-function parity drift is now fixed in supabase/config.toml (revenuecat-webhook / push-client-config / mcp declared verify_jwt=false; the 5 orphaned blocks removed). Both lists are empty — the gate now enforces full parity with no exceptions. Add an entry ONLY to grandfather an already-shipped item you cannot fix, with a justification in docs/ACTIVE/drift/DRIFT_AUDIT.md.",
+  "knownOrphanedConfigBlocks": [],
+  "knownPublicWithoutConfig": []
 }

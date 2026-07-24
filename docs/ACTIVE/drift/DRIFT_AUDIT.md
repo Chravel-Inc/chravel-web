@@ -28,8 +28,8 @@ production data or protected files.
 | P2 | 6 |
 | P3 | 4 |
 | Fixed / gated in this branch | 9 |
-| Quarantined (needs a human config.toml change) | 2 (DRIFT-01, DRIFT-02) |
-| Deferred (needs human review, not a code fix) | 1 (DRIFT-03) |
+| Quarantined (needs a human config.toml change) | 0 (DRIFT-01/02 now applied to config.toml) |
+| Deferred (needs human review, not a code fix) | 0 (DRIFT-03 reconciled) |
 
 **Update (this branch now also reconciles the src-level drift):** DRIFT-07
 through DRIFT-11 — originally deferred — are now fixed and verified. Only the two
@@ -124,9 +124,9 @@ reports them **skipped (not verified)** so it never falsely claims parity.
 
 | ID | Sev | Title | Status |
 |---|---|---|---|
-| DRIFT-01 | P1 | `revenuecat-webhook` missing `verify_jwt = false` | Quarantined → external action |
-| DRIFT-02 | P2 | 5 orphaned `config.toml` blocks (no code) | Quarantined → external action |
-| DRIFT-03 | P2 | 54 functions inherit `verify_jwt=true` implicitly | Deferred (review subset) |
+| DRIFT-01 | P1 | `revenuecat-webhook` missing `verify_jwt = false` | **Fixed** (config.toml) |
+| DRIFT-02 | P2 | 5 orphaned `config.toml` blocks (no code) | **Fixed** (removed) |
+| DRIFT-03 | P2 | 54 functions inherit `verify_jwt=true` implicitly | **Fixed** (3 public → false; rest correct) |
 | DRIFT-04 | P2 | 23 duplicate migration timestamps | **Gated** (new ones blocked) |
 | DRIFT-05 | P2 | Fragmented checks / missing CI coverage | **Fixed** |
 | DRIFT-06 | P3 | `types.ts` no banner / regen not wired | **Fixed** (`db:types`) |
@@ -138,11 +138,13 @@ reports them **skipped (not verified)** so it never falsely claims parity.
 
 ---
 
-## External action checklist (cannot be done in code here)
+## External action checklist — ✅ APPLIED
 
-`supabase/config.toml` is a protected file (the sensitive-file hook blocks
-edits), and `verify_jwt` must not be flipped without tracing callers. These need
-a human:
+`supabase/config.toml` is a protected file (the sensitive-file hook blocks the
+agent's edits), and `verify_jwt` must not be flipped without tracing callers.
+The changes below were reviewed with the human and applied directly to
+`config.toml` (`push-client-config` and `mcp` were also identified as public and
+declared `verify_jwt = false`):
 
 | System | Change | Why | Risk | Verify |
 |---|---|---|---|---|
@@ -192,7 +194,7 @@ affected tests + `drift:check`), each as its own commit:
 
 | Risk | Prob. | Impact | Mitigation |
 |---|---|---|---|
-| RevenueCat webhook stays JWT-gated until config.toml fixed | Med | Entitlement drift for iOS | DRIFT-01 quarantined + surfaced every run; external action listed |
+| ~~RevenueCat webhook stays JWT-gated~~ (RESOLVED) | — | — | Fixed: `[functions.revenuecat-webhook] verify_jwt=false` now in config.toml; deploy + send a RevenueCat test event to confirm end-to-end |
 | External parity (Stream/env) unverified in this environment | High | Unknown provider drift | drift:check reports as skipped (not passing); enable via CI secrets |
 | Billing consolidation touches payment components with thin test coverage | Low | Checkout regression | DRIFT-09 was a behavior-preserving mechanical extraction (helper replicates invoke+throw exactly); verified by typecheck, lint, UpgradeModal/SettingsMenu tests |
 | Live schema vs migrations not compared here (no DB creds) | High | Remote-only objects undetected | `supabase db diff --linked` in a secured CI job (future); `check-schema-drift` covers code↔types today |
