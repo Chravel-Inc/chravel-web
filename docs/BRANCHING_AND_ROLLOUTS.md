@@ -221,28 +221,49 @@ redeploy, effective within 60 seconds:
 UPDATE public.feature_flags SET enabled = false WHERE key = 'trip_timeline_v2';
 ```
 
-### ⚠️ Important gap to know about
+### Two hooks — pick the right one
 
-The **generic** `useFeatureFlag` hook's `rollout_percentage` is currently hashed on the *flag
-key*, **not the user** (see the comment in `src/lib/featureFlags.ts`: *"deterministic per flag
-key, not per user"*). That means for the generic hook, a percentage below 100 is effectively
-**all-or-nothing across your entire user base** — it does **not** split users. Only
-`streamCanary.ts` does genuine per-user bucketing.
+- **`useFeatureFlag('key', false)`** — a **kill switch**. Its `rollout_percentage` is hashed on
+  the *flag key, not the user*, so anything below 100 is all-or-nothing across your whole user
+  base. Use it for on/off gating of a feature for **everyone**.
+- **`useGradualFeature('key', user)`** — a **true per-user rollout** (see
+  `src/lib/featureFlags.ts`). It grants the feature to a **cohort allowlist** first (email
+  domains in `cohort_domains`, specific ids in `cohort_user_ids`), then to a deterministic slice
+  of everyone else via `hash(key:userId) % 100 < rollout_percentage` — so a user's membership is
+  stable across page loads and a sub-100% actually splits the audience. Fails closed (off while
+  loading / if the flag is unreachable). There's a matching `isFeatureEnabledForUser(key, user)`
+  for edge functions.
 
-So today:
-- **Kill switches (on/off for everyone):** fully supported by `useFeatureFlag` right now.
-- **Internal-testers-only + true % rollout:** works, but only via the `streamCanary.ts` pattern,
-  which is currently hardcoded to the one Stream flag.
+```tsx
+import { useGradualFeature } from '@/lib/featureFlags';
+import { useAuth } from '@/hooks/useAuth';
 
-Making per-user/cohort rollout available for **any** feature is a small, well-scoped piece of
-work (generalize `streamCanary.ts` into a reusable hook). It's described in Part 6.
+function TripTimeline() {
+  const { user } = useAuth();
+  const showV2 = useGradualFeature('trip_timeline_v2', user);
+  return showV2 ? <TimelineV2 /> : <TimelineV1 />;
+}
+```
 
-### How to flip flags today (no admin UI yet)
+Seed the cohort when you seed the flag, e.g. to dogfood internally at 0% public rollout:
 
-There is **no admin screen** for flags yet — you change them with SQL against the
-`feature_flags` table using the **service role** (Supabase Dashboard → SQL Editor, or the
-Supabase MCP `execute_sql`/`apply_migration` tools). A tiny internal admin toggle UI is a nice
-future add (Part 6).
+```sql
+INSERT INTO public.feature_flags (key, enabled, rollout_percentage, cohort_domains, description)
+VALUES ('trip_timeline_v2', true, 0,
+        ARRAY['chravel.app','chravelapp.com','meechyourgoals.com'],
+        'New trip timeline UI — gated rollout')
+ON CONFLICT (key) DO NOTHING;
+```
+
+### How to flip flags — the admin screen
+
+Super admins can manage flags at **`/admin/feature-flags`** (gated by `InternalAdminRoute`):
+toggle `enabled` and set `rollout_percentage` per flag, with changes taking effect in ~60s. The
+screen writes through the `feature-flags-admin` edge function, which **verifies super-admin
+status server-side** and mutates with the service role (the table's RLS blocks direct client
+writes). You can still change flags directly with SQL (Supabase Dashboard → SQL Editor, or the
+Supabase MCP) when you need to — e.g. to edit `cohort_domains` / `cohort_user_ids`, which the
+screen doesn't edit.
 
 ---
 
@@ -272,20 +293,13 @@ preview.)*
 
 Each of these is optional and independent. None is required for the workflow above to work.
 
-### A. Generalize per-user rollout into a reusable hook *(small, high value)*
-Turn the `streamCanary.ts` logic into a shared `useGradualFeature(key, user)` hook (+ a matching
-edge helper) so *any* feature gets: internal-cohort gating → deterministic per-user % → 100%,
-with the existing auto-rollback guard (`stream-canary-guard`). Optionally add `cohort` columns
-to `feature_flags` and a tiny internal admin toggle UI.
-
-> **Paste-ready prompt:** *"Generalize `src/services/stream/streamCanary.ts` into a reusable
-> `useGradualFeature(flagKey, user)` hook in `src/lib/featureFlags.ts` (and a server-side
-> equivalent in `supabase/functions/_shared/featureFlags.ts`) that supports an internal-tester
-> cohort allowlist plus deterministic per-user percentage bucketing (`hash(flagKey:userId) %
-> 100 < rollout_percentage`). Add optional `cohort` targeting columns to the `feature_flags`
-> table via an idempotent migration, keep the 60s cache, keep fail-closed behavior on the
-> server, and add unit tests covering cohort match, percentage boundaries, and the
-> disabled/rollback path. Do not change existing `useFeatureFlag` callers."*
+### A. Generalize per-user rollout into a reusable hook ✅ *(shipped)*
+Done — `useGradualFeature(key, user)` / `isFeatureEnabledForUser(key, user)` and the
+`/admin/feature-flags` screen now exist (see Part 4). The `feature_flags` table gained
+`cohort_domains` / `cohort_user_ids`, and the resolver has unit-test coverage
+(`src/lib/__tests__/featureFlags.test.ts`). Remaining nice-to-haves: wire the
+`stream-canary-guard` auto-rollback controller to arbitrary flags, and let the admin screen edit
+cohort arrays (today they're set via SQL).
 
 ### B. Adopt PostHog feature flags / experiments *(for real A/B testing)*
 PostHog is already connected (analytics only today). Its native feature flags give

@@ -158,11 +158,13 @@ Full guide: **`docs/BRANCHING_AND_ROLLOUTS.md`**. The essentials:
   **flagged OFF**, then flip it on for a growing cohort. Wrap gated features in
   `useFeatureFlag(key, false)` (`src/lib/featureFlags.ts`) and seed the flag OFF in the
   migration (`ON CONFLICT DO NOTHING`). Kill switch = flip `enabled=false` (≤60s, no redeploy).
-- **True per-user / cohort / % rollout** currently lives only in
-  `src/services/stream/streamCanary.ts` (per-user hash + internal-cohort allowlist +
-  auto-rollback). The generic `useFeatureFlag` percentage is per-*key*, not per-user — so a
-  sub-100 % there is all-or-nothing. Generalize the canary pattern before promising per-user
-  ramps for a new feature.
+- **True per-user / cohort / % rollout**: use `useGradualFeature(key, user)` (client) or
+  `isFeatureEnabledForUser(key, user)` (edge) from the feature-flags modules — cohort allowlist
+  (`cohort_domains` / `cohort_user_ids`) first, then deterministic per-user
+  `hash(key:userId) % 100 < rollout_percentage` (fail-closed). The plain `useFeatureFlag`
+  percentage is per-*key* (all-or-nothing) — it's a **kill switch**, not a ramp. Super admins
+  flip flags at `/admin/feature-flags` (server-verified). The `streamCanary.ts` +
+  `stream-canary-guard` pair is still the reference for auto-rollback on health regressions.
 - **Lovable owns `main`.** Its two-way GitHub sync commits to `main` automatically and applies
   its own migrations directly to the single prod DB. So: pull `main` before/after Lovable
   sessions; don't edit the same files in a long branch while prompting Lovable; **never

@@ -112,3 +112,141 @@ function simpleHash(str: string): number {
   }
   return Math.abs(hash);
 }
+
+// ---------------------------------------------------------------------------
+// Gradual rollout (per-user cohort + percentage)
+//
+// Generalizes the per-user rollout pattern from
+// `src/services/stream/streamCanary.ts` so ANY feature can ramp from an
+// internal-tester cohort -> a deterministic slice of users -> everyone.
+//
+// Unlike `useFeatureFlag` (whose percentage is hashed per flag KEY, i.e.
+// all-or-nothing across the whole user base), this buckets per USER
+// (`hash(key:userId) % 100`) so a sub-100% rollout genuinely splits the
+// audience and a given user's membership is stable across page loads.
+//
+// Fail-closed by design: an unreachable or disabled flag means the gated
+// feature stays OFF (a new feature should never flash on during an incident).
+// Existing `useFeatureFlag` callers are intentionally untouched.
+// ---------------------------------------------------------------------------
+
+/** Minimal user shape needed to resolve a gradual rollout. */
+export interface GradualFeatureUser {
+  id?: string | null;
+  email?: string | null;
+}
+
+interface GradualFeatureFlagRow {
+  key: string;
+  enabled: boolean;
+  rollout_percentage: number;
+  cohort_domains: string[] | null;
+  cohort_user_ids: string[] | null;
+}
+
+async function fetchGradualFlagRow(key: string): Promise<GradualFeatureFlagRow | null> {
+  const { data, error } = await supabase
+    .from('feature_flags')
+    .select('key, enabled, rollout_percentage, cohort_domains, cohort_user_ids')
+    .eq('key', key)
+    .maybeSingle();
+
+  if (!error && data) return data as GradualFeatureFlagRow;
+
+  // Defensive fallback: in an environment where the cohort-columns migration has
+  // not been applied yet, the select above errors on the unknown columns. Retry
+  // with the base columns so percentage rollout still works (cohorts = empty).
+  const fallback = await supabase
+    .from('feature_flags')
+    .select('key, enabled, rollout_percentage')
+    .eq('key', key)
+    .maybeSingle();
+
+  if (fallback.error || !fallback.data) return null;
+  return {
+    ...(fallback.data as Pick<GradualFeatureFlagRow, 'key' | 'enabled' | 'rollout_percentage'>),
+    cohort_domains: null,
+    cohort_user_ids: null,
+  };
+}
+
+/**
+ * Pure rollout decision — exported for direct unit testing (no network/query).
+ * Order: disabled/absent -> off; cohort allowlist -> on; then deterministic
+ * per-user percentage bucket.
+ */
+export function resolveGradualFeatureEnabled(
+  row: GradualFeatureFlagRow | null,
+  user: GradualFeatureUser | null | undefined,
+  flagKey: string,
+): boolean {
+  if (!row || !row.enabled) return false;
+
+  // Cohort allowlist — always in, regardless of rollout_percentage.
+  const userId = user?.id ?? undefined;
+  if (userId && Array.isArray(row.cohort_user_ids) && row.cohort_user_ids.includes(userId)) {
+    return true;
+  }
+  const domain = user?.email?.split('@')[1]?.toLowerCase().trim();
+  if (
+    domain &&
+    Array.isArray(row.cohort_domains) &&
+    row.cohort_domains.some(d => d?.toLowerCase().trim() === domain)
+  ) {
+    return true;
+  }
+
+  const rollout = Math.max(0, Math.min(100, Number(row.rollout_percentage ?? 0)));
+  if (rollout >= 100) return true;
+  if (rollout <= 0) return false;
+
+  // Anonymous users can't be bucketed deterministically, so they're excluded
+  // from a partial rollout (they only see the feature once it reaches 100%).
+  if (!userId) return false;
+  const bucket = simpleHash(`${flagKey}:${userId}`) % 100;
+  return bucket < rollout;
+}
+
+/**
+ * Gradual-rollout flag with cohort + per-user percentage targeting, plus whether
+ * the backing query has settled. Reads `feature_flags` with a 60s cache; the flag
+ * row is cached per key (per-user resolution happens after fetch).
+ */
+export function useGradualFeatureStatus(
+  flagKey: string,
+  user: GradualFeatureUser | null | undefined,
+): { enabled: boolean; isPending: boolean } {
+  const { data, isPending } = useQuery({
+    queryKey: ['gradual-feature-flag', flagKey],
+    queryFn: async (): Promise<GradualFeatureFlagRow | null> => fetchGradualFlagRow(flagKey),
+    staleTime: 60_000, // matches useFeatureFlag — kill switch takes effect within 60s
+    gcTime: 5 * 60_000,
+    retry: 1,
+    refetchOnWindowFocus: true,
+  });
+
+  return { enabled: resolveGradualFeatureEnabled(data ?? null, user, flagKey), isPending };
+}
+
+/**
+ * Whether a gradual-rollout feature is enabled for this user. Returns `false`
+ * while loading (fail-closed) so a gated feature never flashes on before the
+ * flag resolves.
+ */
+export function useGradualFeature(
+  flagKey: string,
+  user: GradualFeatureUser | null | undefined,
+): boolean {
+  return useGradualFeatureStatus(flagKey, user).enabled;
+}
+
+/**
+ * Non-React helper for services that need a one-shot gradual-rollout check.
+ */
+export async function isGradualFeatureEnabled(
+  flagKey: string,
+  user: GradualFeatureUser | null | undefined,
+): Promise<boolean> {
+  const row = await fetchGradualFlagRow(flagKey);
+  return resolveGradualFeatureEnabled(row, user, flagKey);
+}
