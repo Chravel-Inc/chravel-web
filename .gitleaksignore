@@ -35,13 +35,15 @@ supabase/functions/send-push/README.md:curl-auth-header:106
 
 # generic-api-key false positives
 # deno.lock: SHA-256 content hashes that happen to match the pattern
-# validate-env.test.ts: partial placeholder string `eyJhbGciOiJIUzI1...` in test fixture
+# validate-env.test.ts: fake test fixtures — `eyJhbGciOiJIUzI1...` placeholder (494/495)
+#   and a fake Google Maps key placeholder (382); neither is a real key
 # IOS_FEATURE_IMPLEMENTATION_GUIDE.md: example value in archived doc
 # AppDelegate.swift: PostHog project API key (public-facing client key, not a server secret)
 deno.lock:generic-api-key:26
 deno.lock:generic-api-key:118
 docs/_archive/root/IOS_FEATURE_IMPLEMENTATION_GUIDE.md:generic-api-key:148
 ios/App/App/AppDelegate.swift:generic-api-key:39
+scripts/__tests__/validate-env.test.ts:generic-api-key:382
 scripts/__tests__/validate-env.test.ts:generic-api-key:494
 scripts/__tests__/validate-env.test.ts:generic-api-key:495
 
