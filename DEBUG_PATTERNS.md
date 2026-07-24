@@ -30,6 +30,19 @@ Known security anti-patterns discovered during audits. Reference this before int
 
 ---
 
+## 2b. Service-Role Personalized Endpoint Trusts Request `user_id`
+
+**Symptom:** An authenticated caller can read or generate another user's personalized data by supplying a different `user_id` in query params or JSON.
+**Risk:** HIGH — cross-user data exposure and cross-tenant writes despite valid auth.
+**Root Cause:** Edge function validates the JWT, then uses `SUPABASE_SERVICE_ROLE_KEY` for DB access while trusting caller-provided `user_id` instead of binding scope to `auth.uid()`.
+**How to Confirm:** Inspect service-role functions for `auth.getUser(jwt)` followed by `url.searchParams.get('user_id')` or body `user_id`, then `.eq('user_id', requestedUserId)` / inserts using that value.
+**Smallest Safe Fix:** Derive the subject user from the authenticated JWT only. If a `user_id` param is still accepted for backward compatibility, require it to equal `auth.uid()` and reject mismatches with 403.
+**Required Tests:** Unit test helper or handler path proving omitted `user_id` binds to `auth.uid()` and mismatched `user_id` is rejected.
+**Regression Surfaces:** Personalized digest/export/profile-summary endpoints and any service-role function scoped to a single user.
+**Fixed in:** `supabase/functions/daily-digest/index.ts` + `authorizeDigestScope.ts` (July 2026 audit)
+
+---
+
 ## 3. React Spread Props Silently Override Earlier Handlers
 
 **Symptom:** Event handlers appear wired but silently never fire. Clicks or touches do nothing despite correct-looking code.

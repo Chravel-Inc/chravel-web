@@ -1,3 +1,9 @@
+2026-07-24 — Daily audit: daily-digest cross-user IDOR
+- Audited repo-wide high-risk surfaces (auth/backend writes, invites/payments/media, AI/import/state) and fixed the top safe issue: `daily-digest` authenticated callers could read or generate another user's digest by passing a victim `user_id` while the function used service-role DB access.
+- Fix: new `authorizeDigestScope` helper binds digest scope to `auth.uid()` and rejects mismatched `user_id` with 403 for both GET and POST; older callers may omit `user_id` or pass their own id.
+- Verification: focused `authorizeDigestScope` vitest 4/4 ✅; `npm run lint && npm run typecheck && npm run build` ✅; merge preflight clean.
+- Branch: cursor/repository-critical-bugs-3a2b
+
 2026-07-17 — Payment messages need-to-know + edge deploys
 - trip_payment_messages SELECT aligned with payment_splits (COALESCE trip_type, active member, creator/debtor/admin/can_view); INSERT requires is_active_trip_member. Applied to ChravelApp.
 - Deployed edge: bootstrap-super-admins v4, venue-enricher v1147, send-push v791, place-grounding v1055 (bundled+requireAuth).
