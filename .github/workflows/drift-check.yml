@@ -1,0 +1,51 @@
+name: Drift Check
+
+# Unified drift-control gate. Consolidates the repository's fragmented
+# drift/parity checks (schema↔types, migration integrity, edge-function↔config
+# auth parity, env coverage, permission matrix, DAL boundary, IAP/billing
+# parity) behind `npm run drift:check`. Read-only: it detects disagreement
+# between sources of truth, it does not mutate the repo.
+#
+# External parity checks (Stream dashboard, live env presence) SKIP here because
+# their secrets are intentionally not exposed to this workflow — the script
+# reports them as "skipped (not verified)" rather than falsely passing. To
+# actually verify them in CI, map the relevant GitHub secrets into `env:` on the
+# "Run unified drift check" step (e.g. SUPABASE_STREAM_API_SECRET,
+# STREAM_DASHBOARD_WEBHOOK_SECRET) and the checks will run automatically.
+
+on:
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+  schedule:
+    # Weekly, mirrors the permission-policy-drift cadence (Mon 09:00 UTC).
+    - cron: '0 9 * * 1'
+
+concurrency:
+  group: drift-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  drift-check:
+    name: Unified Drift Check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --fund=false
+
+      - name: Run unified drift check
+        run: npm run drift:check
