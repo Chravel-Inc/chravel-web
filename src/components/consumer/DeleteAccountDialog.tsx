@@ -1,10 +1,8 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { logAuthEvent } from '@/utils/authTelemetry';
-import { userHasEmailPasswordIdentity } from '@/utils/authProviders';
 import { deleteAccountImmediately } from '@/lib/accountDeletion';
 import {
   AlertDialog,
@@ -24,25 +22,22 @@ interface DeleteAccountDialogProps {
 
 /**
  * Shared account-deletion confirmation dialog.
- * Lifted from ConsumerGeneralSettings so it can be triggered directly
- * from Profile Settings without forcing a route change + scroll.
+ * Confirmation is unified across every auth provider: the user types the word
+ * `delete` and clicks the destructive action. Server-side deletion is authorized
+ * by the active session JWT + `confirmation` payload — no client-side password
+ * re-auth is required (email/password users would have had to type their password
+ * previously; that extra hurdle has been removed for parity with OAuth users).
  */
 export const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({ open, onOpenChange }) => {
-  const { user, session } = useAuth();
   const navigate = useNavigate();
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmText, setConfirmText] = useState('');
-  const [reAuthPassword, setReAuthPassword] = useState('');
-  const [reAuthError, setReAuthError] = useState('');
-  const requiresPasswordReauth = useMemo(() => userHasEmailPasswordIdentity(session), [session]);
 
   const handleOpenChange = useCallback(
     (next: boolean) => {
       onOpenChange(next);
       if (!next) {
         setConfirmText('');
-        setReAuthPassword('');
-        setReAuthError('');
       }
     },
     [onOpenChange],
@@ -50,7 +45,6 @@ export const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({ open, 
 
   const handleDeleteAccount = useCallback(async () => {
     if (confirmText.trim().toLowerCase() !== 'delete') return;
-    if (requiresPasswordReauth && !reAuthPassword) return;
 
     const finalConfirmed = window.confirm(
       'FINAL CONFIRMATION\n\n' +
@@ -64,20 +58,7 @@ export const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({ open, 
     if (!finalConfirmed) return;
 
     setIsDeleting(true);
-    setReAuthError('');
     try {
-      if (requiresPasswordReauth && user?.email) {
-        const { error: authErr } = await supabase.auth.signInWithPassword({
-          email: user.email,
-          password: reAuthPassword,
-        });
-        if (authErr) {
-          setReAuthError('Incorrect password. Please try again.');
-          setIsDeleting(false);
-          return;
-        }
-      }
-
       const result = await deleteAccountImmediately();
       if (result.success === false) {
         toast({
@@ -91,7 +72,6 @@ export const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({ open, 
       logAuthEvent('account_deletion_requested');
       onOpenChange(false);
       setConfirmText('');
-      setReAuthPassword('');
 
       toast({
         title: 'Account deleted',
@@ -109,7 +89,7 @@ export const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({ open, 
     } finally {
       setIsDeleting(false);
     }
-  }, [confirmText, navigate, onOpenChange, reAuthPassword, requiresPasswordReauth, user?.email]);
+  }, [confirmText, navigate, onOpenChange]);
 
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
@@ -131,8 +111,8 @@ export const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({ open, 
               You will be signed out as soon as deletion completes.
             </p>
             <p className="pt-2">
-              To confirm, type <strong>delete</strong> below. Your account will be removed
-              immediately — there is no waiting period.
+              To confirm, type <strong>delete</strong> below. No password required — your active
+              session authorizes the deletion. Your account will be removed immediately.
             </p>
             <input
               type="text"
@@ -142,28 +122,6 @@ export const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({ open, 
               className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/50"
               disabled={isDeleting}
             />
-            {requiresPasswordReauth ? (
-              <>
-                <p className="pt-2">Enter your password to verify your identity:</p>
-                <input
-                  type="password"
-                  value={reAuthPassword}
-                  onChange={e => {
-                    setReAuthPassword(e.target.value);
-                    setReAuthError('');
-                  }}
-                  placeholder="Enter your password"
-                  className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/50"
-                  disabled={isDeleting}
-                />
-                {reAuthError && <p className="text-red-400 text-sm">{reAuthError}</p>}
-              </>
-            ) : (
-              <p className="pt-2 text-sm text-gray-400">
-                You signed in with Google or Apple, so no password is required. Confirming below
-                will delete your account using your active session.
-              </p>
-            )}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -175,11 +133,7 @@ export const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({ open, 
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleDeleteAccount}
-            disabled={
-              confirmText.trim().toLowerCase() !== 'delete' ||
-              (requiresPasswordReauth && !reAuthPassword) ||
-              isDeleting
-            }
+            disabled={confirmText.trim().toLowerCase() !== 'delete' || isDeleting}
             className="bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
           >
             {isDeleting ? 'Deleting...' : 'Delete Account Permanently'}
