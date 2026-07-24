@@ -13,11 +13,12 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'node:url';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
-interface EnvVarSpec {
+export interface EnvVarSpec {
   name: string;
   required: boolean;
   description: string;
@@ -34,7 +35,7 @@ interface EnvVarSpec {
 // Definitions
 // ---------------------------------------------------------------------------
 
-const FRONTEND_VARS: EnvVarSpec[] = [
+export const FRONTEND_VARS: EnvVarSpec[] = [
   {
     name: 'VITE_SUPABASE_URL',
     required: true,
@@ -94,7 +95,7 @@ const FRONTEND_VARS: EnvVarSpec[] = [
   },
 ];
 
-const FEATURE_FLAG_VARS: EnvVarSpec[] = [
+export const FEATURE_FLAG_VARS: EnvVarSpec[] = [
   {
     name: 'VITE_ENABLE_DEMO_MODE',
     required: false,
@@ -129,7 +130,7 @@ const FEATURE_FLAG_VARS: EnvVarSpec[] = [
   },
 ];
 
-const ANALYTICS_VARS: EnvVarSpec[] = [
+export const ANALYTICS_VARS: EnvVarSpec[] = [
   {
     name: 'VITE_SENTRY_DSN',
     required: false,
@@ -152,7 +153,7 @@ const ANALYTICS_VARS: EnvVarSpec[] = [
   },
 ];
 
-const MOBILE_VARS: EnvVarSpec[] = [
+export const MOBILE_VARS: EnvVarSpec[] = [
   {
     name: 'IOS_BUNDLE_ID',
     required: false,
@@ -169,7 +170,7 @@ const MOBILE_VARS: EnvVarSpec[] = [
   },
 ];
 
-const REVENUECAT_VARS: EnvVarSpec[] = [
+export const REVENUECAT_VARS: EnvVarSpec[] = [
   {
     name: 'VITE_REVENUECAT_ENABLED',
     required: false,
@@ -196,7 +197,7 @@ const REVENUECAT_VARS: EnvVarSpec[] = [
   },
 ];
 
-const PAYMENT_VARS: EnvVarSpec[] = [
+export const PAYMENT_VARS: EnvVarSpec[] = [
   {
     name: 'VITE_ENABLE_STRIPE_PAYMENTS',
     required: false,
@@ -215,7 +216,7 @@ const PAYMENT_VARS: EnvVarSpec[] = [
   },
 ];
 
-const ADDITIONAL_VARS: EnvVarSpec[] = [
+export const ADDITIONAL_VARS: EnvVarSpec[] = [
   {
     name: 'VITE_UNFURL_BASE_URL',
     required: false,
@@ -238,7 +239,7 @@ const ADDITIONAL_VARS: EnvVarSpec[] = [
 // Validation logic
 // ---------------------------------------------------------------------------
 
-function loadEnvFile(): Record<string, string> {
+export function loadEnvFile(): Record<string, string> {
   const envPath = path.resolve(process.cwd(), '.env');
   const envLocalPath = path.resolve(process.cwd(), '.env.local');
 
@@ -270,7 +271,7 @@ function loadEnvFile(): Record<string, string> {
   return vars;
 }
 
-function validate(): void {
+export function validate(): void {
   const args = process.argv.slice(2);
   const isIos = args.includes('--ios');
   const isCi = args.includes('--ci');
@@ -372,4 +373,11 @@ function validate(): void {
   console.log('\n✅ All required environment variables are present.\n');
 }
 
-validate();
+// Only run the CLI when executed directly (npx tsx scripts/validate-env.ts),
+// not when imported (e.g. by scripts/__tests__/validate-env.test.ts).
+const isDirectRun = process.argv[1]
+  ? path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+  : false;
+if (isDirectRun) {
+  validate();
+}
