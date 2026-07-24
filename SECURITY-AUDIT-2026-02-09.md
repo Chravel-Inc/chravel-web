@@ -37,8 +37,8 @@ This audit identified **67 security findings** across the Chravel codebase:
 1. **Profiles Privacy** -- Profiles SELECT policy uses `USING(true)` for authenticated users (requires careful column-level restrictions without breaking user lookups)
 2. **SECURITY DEFINER Functions** -- 8 functions accept unchecked `p_user_id` parameters (requires understanding which are called from service_role vs. client)
 3. **Client-Side Privilege Escalation** -- `switchRole()` allows any user to grant themselves admin permissions (requires server-side role endpoint)
-4. **Demo Mode Auth Bypass** -- Any user can activate demo mode via localStorage (requires product decision on demo gating)
-5. **Calendar Token Encryption** -- OAuth tokens stored in plaintext (requires application-layer encryption)
+4. ~~**Demo Mode Auth Bypass**~~ -- Verified 2026-07-21 as **not a live exposure**: the flag only controls a client-side mock shell; RLS (`auth.uid()=null` in demo) is the real gate. See C1.
+5. ~~**Calendar Token Encryption**~~ -- Verified 2026-07-21 as **not applicable**: `calendar_connections` does not exist in prod and no code path stores calendar tokens. See C12.
 
 ### What Was Fixed (This Session) -- 47 Total
 
@@ -219,17 +219,16 @@ END IF;
 
 ## SECTION C: HIGH -- Requires Human Developer <a name="section-c-high-human-required"></a>
 
-### C1. Demo Mode Bypasses All Auth Requirements
-- **File:** `src/utils/authGate.ts:10-11`
-- **Impact:** When `demoView === 'app-preview'`, authentication is never required. Any user can activate this by setting `localStorage.setItem('TRIPS_DEMO_VIEW', 'app-preview')` in the browser console.
-- **Why not auto-fixed:** Demo mode is actively used for investor demos and onboarding. Removing it would break the demo flow. Needs a server-side gating mechanism.
-- **Recommended fix:** Gate demo mode behind a server-verified token or authenticated admin action instead of localStorage
+### C1. Demo Mode Bypasses All Auth Requirements — **NOT A LIVE EXPOSURE (verified 2026-07-21)**
+- **File:** `src/utils/authGate.ts:10-19`
+- **Original impact:** When `demoView === 'app-preview'`, `shouldRequireAuth` returns false. Any user can set `localStorage.setItem('TRIPS_DEMO_VIEW', 'app-preview')` in the console.
+- **Verified reality:** `shouldRequireAuth` is a **client-side presentation gate only** — it decides whether the UI prompts for sign-in, it is not the security boundary. Demo mode creates **no Supabase session/JWT** (`useAuth` leaves `session` null), so every request runs on the anon key with `auth.uid() = null` and RLS returns/mutates nothing. Demo content is local fixtures (numeric trip IDs 1–12) that can never collide with real UUID rows — invariant enforced by `src/services/__tests__/demoModeNoLeak.test.ts`. Setting the flag reveals only the already-public marketing demo; no real data is exposed or mutable.
+- **Hardening applied:** `shouldRequireAuth` is now locked by a regression test (`src/utils/__tests__/authGate.test.ts`).
+- **Optional (defense-in-depth, not required):** server-verified token to enter app-preview. Deferred because it adds friction to the no-signup investor demo for no data-security gain (RLS is the real gate).
 
-### C2. Demo User Has Admin Role and Write Permissions
-- **File:** `src/hooks/useAuth.tsx:113-141`
-- **Impact:** Demo user created with `isPro: true`, `proRole: 'admin'`, `permissions: ['read', 'write']`. Combined with C1, any visitor gets admin-level UI access.
-- **Why not auto-fixed:** Reducing demo user permissions could break the demo experience that the product team relies on
-- **Recommended fix:** Set demo user to viewer/member role; create separate demo data that doesn't require admin access to display
+### ~~C2. Demo User Has Admin Role and Write Permissions~~ **FIXED**
+- **File:** `src/hooks/auth/authHelpers.ts:72-97` (`createDemoUser`)
+- **Fix applied:** The demo user is a read-only guest — `isPro: false`, `proRole: 'guests'`, `permissions: ['read']` (no `write`/`admin`). Locked by `src/hooks/auth/__tests__/authHelpers.test.ts:8-12`. The prior `isPro:true`/`proRole:'admin'` shape described here no longer exists in the code.
 
 ### C3. Super Admin Determined by Client-Side Email Check
 - **Files:** `src/hooks/useAuth.tsx:330-341`, `src/constants/admins.ts`, `supabase/functions/create-trip/index.ts:72-78`
@@ -277,11 +276,11 @@ END IF;
 - **File:** `supabase/migrations/20260210000000_security_audit_rls_fixes.sql`
 - **Fix applied:** Dropped permissive `"System can manage embeddings"` policy. Writes now restricted to service_role only (the generate-embeddings edge function). SELECT policy for trip members remains.
 
-### C12. calendar_connections Stores OAuth Tokens in Plaintext
-- **File:** `supabase/migrations/20250723000001_production_ready_tables.sql:66-78`
-- **Impact:** Google, Outlook, Apple calendar OAuth tokens stored as plaintext TEXT columns. Database leak exposes all users' calendar access.
-- **Why not auto-fixed:** Requires application-layer encryption (encrypt before INSERT, decrypt after SELECT). Cannot be done purely in SQL.
-- **Recommended fix:** Implement `pgcrypto` encryption or application-level encryption for `access_token` and `refresh_token` columns
+### C12. calendar_connections Stores OAuth Tokens in Plaintext — **NOT APPLICABLE (verified 2026-07-21)**
+- **File:** `supabase/migrations/20250723000001_production_ready_tables.sql:66-78` (migration never applied)
+- **Original impact:** Google/Outlook/Apple calendar OAuth tokens stored as plaintext TEXT columns.
+- **Verified reality:** The `calendar_connections` table **does not exist in the production database** (the defining migrations were never applied), and **no code path reads or writes it** — there is no Google Calendar OAuth flow in the repo (`calendar-sync` only CRUDs internal `trip_events`). Prod holds **zero OAuth tokens** of any kind: `gmail_accounts` and `apple_auth_tokens` are both empty, and the code that writes them already encrypts via `_shared/gmailTokenCrypto.ts` (AES-256-GCM, `enc:v1:` envelope). There are no plaintext tokens at rest anywhere.
+- **Forward guard (if calendar OAuth is ever built):** persist tokens only through `_shared/gmailTokenCrypto.ts` (`encryptToken` on write, `decryptToken` on read, re-encrypt on refresh — the plaintext-passthrough read tolerates legacy rows), keyed by a dedicated `CALENDAR_TOKEN_ENCRYPTION_KEY` (base64 of 32 random bytes), mirroring the Apple precedent. Do not ship the plaintext-column schema.
 
 ### ~~C13. Hardcoded Supabase Anon Key in Page Component (Direct Fetch)~~ **FIXED (Round 2)**
 - **File:** `src/pages/ProTripDetailDesktop.tsx`
@@ -506,7 +505,7 @@ The codebase demonstrates strong security fundamentals in several areas:
 | # | Finding | Effort | Impact |
 |---|---------|--------|--------|
 | C3 | Move admin check server-side | DB migration + refactor | Removes hardcoded admin email |
-| C12 | Encrypt calendar tokens | App-layer encryption | Protects OAuth tokens |
+| ~~C12~~ | ~~Encrypt calendar tokens~~ | N/A — verified 2026-07-21 | Table absent from prod; no calendar-token code path exists |
 | D1 | Server-side rate limiting | New middleware | Prevents API abuse |
 | D5 | Reconcile profiles privacy flags | Migration | Fixes false UI confidence |
 | D6 | Restrict trip_invites SELECT | Migration | Prevents invite enumeration |
