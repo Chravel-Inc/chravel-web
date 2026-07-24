@@ -57,7 +57,7 @@ export const PaymentAttachmentAddControl: React.FC<PaymentAttachmentAddControlPr
   const refreshCaches = () => {
     queryClient.invalidateQueries({ queryKey: tripKeys.paymentAttachments(tripId) });
     queryClient.invalidateQueries({ queryKey: tripKeys.media(tripId) });
-    queryClient.invalidateQueries({ queryKey: ['tripLinks', tripId] });
+    queryClient.invalidateQueries({ queryKey: tripKeys.tripLinks(tripId) });
   };
 
   const handleFiles = async (files: FileList | null) => {

@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { TripTask } from '../../types/tasks';
+import { tripKeys } from '@/lib/queryKeys';
 import { Plus } from 'lucide-react';
 import { TaskList } from './TaskList';
 import { TaskFilters } from './TaskFilters';
@@ -47,7 +48,7 @@ export const TripTasksTab = React.memo(({ tripId }: TripTasksTabProps) => {
   const queryClient = useQueryClient();
 
   const handleRetry = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
+    queryClient.invalidateQueries({ queryKey: tripKeys.tasks(tripId, isDemoMode) });
   }, [queryClient, tripId, isDemoMode]);
 
   // Mock task items for demo

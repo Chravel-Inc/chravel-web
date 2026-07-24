@@ -194,7 +194,7 @@ export const usePaymentAttachmentDraft = () => {
       if (succeeded > 0) {
         queryClient.invalidateQueries({ queryKey: tripKeys.paymentAttachments(params.tripId) });
         queryClient.invalidateQueries({ queryKey: tripKeys.media(params.tripId) });
-        queryClient.invalidateQueries({ queryKey: ['tripLinks', params.tripId] });
+        queryClient.invalidateQueries({ queryKey: tripKeys.tripLinks(params.tripId) });
       }
       reset();
 
