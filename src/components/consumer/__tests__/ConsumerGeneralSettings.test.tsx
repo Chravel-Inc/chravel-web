@@ -120,13 +120,13 @@ describe('ConsumerGeneralSettings account deletion', () => {
     mockSignOut.mockResolvedValue({ error: null });
   });
 
-  it('does not ask OAuth users for a password before deleting immediately', async () => {
+  it('deletes an OAuth account with only the DELETE confirmation, no password prompt', async () => {
     const user = userEvent.setup();
     render(<ConsumerGeneralSettings />);
 
     await user.click(screen.getByRole('button', { name: /delete account/i }));
     expect(screen.queryByPlaceholderText(/enter your password/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/no password is required/i)).toBeInTheDocument();
+    expect(screen.getByText(/no password required/i)).toBeInTheDocument();
 
     await user.type(screen.getByPlaceholderText(/type delete to confirm/i), 'DELETE');
     await user.click(screen.getByRole('button', { name: /delete account permanently/i }));
@@ -137,26 +137,22 @@ describe('ConsumerGeneralSettings account deletion', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true });
   });
 
-  it('requires password re-auth for email/password users', async () => {
+  it('deletes an email/password account with only the DELETE confirmation — no password re-auth', async () => {
     mockSession = makeSession('email');
     const user = userEvent.setup();
     render(<ConsumerGeneralSettings />);
 
     await user.click(screen.getByRole('button', { name: /delete account/i }));
-    expect(screen.getByPlaceholderText(/enter your password/i)).toBeInTheDocument();
+    // Password field is gone for every provider now.
+    expect(screen.queryByPlaceholderText(/enter your password/i)).not.toBeInTheDocument();
 
     await user.type(screen.getByPlaceholderText(/type delete to confirm/i), 'DELETE');
-    const submitButton = screen.getByRole('button', { name: /delete account permanently/i });
-    expect(submitButton).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: /delete account permanently/i }));
 
-    await user.type(screen.getByPlaceholderText(/enter your password/i), 'secret-password');
-    await user.click(submitButton);
-
-    expect(mockSignInWithPassword).toHaveBeenCalledWith({
-      email: 'traveler@example.com',
-      password: 'secret-password',
-    });
+    expect(mockSignInWithPassword).not.toHaveBeenCalled();
     expect(mockDeleteAccountImmediately).toHaveBeenCalledTimes(1);
+    expect(mockSignOut).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true });
   });
 
   it('clears the DELETE confirmation when the dialog is dismissed', async () => {
