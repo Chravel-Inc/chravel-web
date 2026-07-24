@@ -39,7 +39,8 @@ DECLARE
     'toggle_task_status', 'update_agenda_item_with_version',
     'update_trip_basecamp_with_version', 'log_basecamp_change',
     'set_trip_notifications_muted', 'mark_broadcast_viewed',
-    'finalize_calendar_import_batch', 'undo_calendar_import_batch'
+    'finalize_calendar_import_batch', 'undo_calendar_import_batch',
+    'settle_payment_split', 'unsettle_payment_split', 'settle_payment_splits_for_debtor'
   ];
 BEGIN
   FOR r IN
