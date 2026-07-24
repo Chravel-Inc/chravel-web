@@ -193,6 +193,12 @@ npm run validate     # Run all checks: lint + typecheck + format
 npm run test         # Run Vitest tests
 ```
 
+### Branching & Releases
+- Short-lived `feature/*`·`fix/*`·`docs/*`·`refactor/*`·`chore/*` branches from a **fresh `main`** → PR → merge. **No `develop` branch.** Merging `main` **auto-deploys to production**.
+- **Deploy ≠ release:** merge risky features **flagged OFF** (`useFeatureFlag(key, false)`), then roll out to a subset of users by flipping the flag — not by branching.
+- **Lovable's two-way sync owns `main`** (auto-commits + applies its own migrations to the one prod DB). Keep branches short; **never `supabase db push`**.
+- Full guide: **`../docs/BRANCHING_AND_ROLLOUTS.md`** · `../CLAUDE.md` § Branching & Release Workflow.
+
 ---
 
 ## 🎯 COMMON PATTERNS (Quick Reference)

@@ -13,6 +13,17 @@ This file provides quick reference for Lovable. **Always consult ../CLAUDE.md** 
 - Google Maps implementation patterns
 - Error prevention strategies
 - Full working code examples
+- **Branching, sync & feature rollouts** → `../docs/BRANCHING_AND_ROLLOUTS.md`
+
+---
+
+## 🌿 BRANCHING & SYNC AWARENESS (Lovable-specific)
+
+- Your changes commit to **`main`**, which **auto-deploys to production** — every edit is live. There is no staging environment.
+- Write **idempotent** migrations (`CREATE ... IF NOT EXISTS`, `CREATE OR REPLACE`, `DROP ... IF EXISTS`, `ON CONFLICT`) — the single prod DB is shared, so a migration is global and immediate.
+- Coding agents (Claude Code / Cursor / Codex) also work on this repo via short-lived branches and gate risky features behind `useFeatureFlag(...)`. Don't rip out flag checks or unfinished flagged code you don't recognize — it may be intentionally hidden until release.
+- Migration filenames matter: Lovable = `YYYYMMDDHHMMSS-<uuid>.sql`; agents = `YYYYMMDDHHMMSS_slug.sql`. Automation depends on this split — see `../docs/MIGRATION_SYNC.md`.
+- Full guide: **`../docs/BRANCHING_AND_ROLLOUTS.md`** · ../CLAUDE.md § Branching & Release Workflow.
 
 ---
 
