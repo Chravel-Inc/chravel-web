@@ -4,7 +4,7 @@ import { paymentService } from '../paymentService';
 import { supabase } from '../../integrations/supabase/client';
 
 vi.mock('../../integrations/supabase/client', () => ({
-  supabase: { from: vi.fn() },
+  supabase: { from: vi.fn(), rpc: vi.fn() },
 }));
 
 /**
@@ -29,64 +29,61 @@ describe('paymentService.updatePaymentMessage', () => {
     // mockReset drains the mockReturnValueOnce queue so a test that returns early
     // (e.g. the conflict case) doesn't leak an unconsumed chain into the next test.
     (supabase.from as any).mockReset();
+    (supabase.rpc as any).mockReset();
   });
 
-  it('uses optimistic locking and redistributes UNSETTLED splits with penny rounding', async () => {
-    const readChain = makeChain({ data: { version: 3, split_count: 3 }, error: null });
-    const updateChain = makeChain({ data: [{ id: 'pay-1' }], error: null });
-    const splitsReadChain = makeChain({
-      data: [{ id: 'split-1' }, { id: 'split-2' }, { id: 'split-3' }],
+  it('uses optimistic locking through the atomic payment edit RPC', async () => {
+    const readChain = makeChain({ data: { version: 3 }, error: null });
+
+    (supabase.from as any).mockReturnValueOnce(readChain);
+    (supabase.rpc as any).mockResolvedValue({
+      data: { success: true },
       error: null,
     });
-    const splitUpdate1 = makeChain({ data: null, error: null });
-    const splitUpdate2 = makeChain({ data: null, error: null });
-    const splitUpdate3 = makeChain({ data: null, error: null });
-
-    (supabase.from as any)
-      .mockReturnValueOnce(readChain)
-      .mockReturnValueOnce(updateChain)
-      .mockReturnValueOnce(splitsReadChain)
-      .mockReturnValueOnce(splitUpdate1)
-      .mockReturnValueOnce(splitUpdate2)
-      .mockReturnValueOnce(splitUpdate3);
 
     const ok = await paymentService.updatePaymentMessage('pay-1', { amount: 10 });
 
     expect(ok).toBe(true);
-    expect(updateChain.update).toHaveBeenCalledWith(
-      expect.objectContaining({ amount: 10, version: 4 }),
-    );
-    expect(updateChain.eq).toHaveBeenCalledWith('version', 3);
-    expect(splitUpdate1.update).toHaveBeenCalledWith({ amount_owed: 3.34 });
-    expect(splitUpdate2.update).toHaveBeenCalledWith({ amount_owed: 3.33 });
-    expect(splitUpdate3.update).toHaveBeenCalledWith({ amount_owed: 3.33 });
+    expect(supabase.rpc).toHaveBeenCalledWith('update_payment_message_atomic', {
+      p_payment_id: 'pay-1',
+      p_expected_version: 3,
+      p_amount: 10,
+      p_description: null,
+    });
   });
 
   it('returns false on a version conflict and does not touch splits', async () => {
-    const readChain = makeChain({ data: { version: 3, split_count: 4 }, error: null });
-    const updateChain = makeChain({ data: [], error: null });
+    const readChain = makeChain({ data: { version: 3 }, error: null });
 
-    (supabase.from as any).mockReturnValueOnce(readChain).mockReturnValueOnce(updateChain);
+    (supabase.from as any).mockReturnValueOnce(readChain);
+    (supabase.rpc as any).mockResolvedValue({
+      data: { success: false, reason: 'VERSION_CONFLICT' },
+      error: null,
+    });
 
     const ok = await paymentService.updatePaymentMessage('pay-1', { amount: 100 });
 
     expect(ok).toBe(false);
-    expect(supabase.from).toHaveBeenCalledTimes(2);
+    expect(supabase.from).toHaveBeenCalledTimes(1);
   });
 
-  it('does not recalculate splits when only the description changes', async () => {
-    const readChain = makeChain({ data: { version: 1, split_count: 4 }, error: null });
-    const updateChain = makeChain({ data: [{ id: 'pay-1' }], error: null });
-    const splitChain = makeChain({ data: null, error: null });
+  it('passes description-only edits through the atomic RPC without an amount change', async () => {
+    const readChain = makeChain({ data: { version: 1 }, error: null });
 
-    (supabase.from as any)
-      .mockReturnValueOnce(readChain)
-      .mockReturnValueOnce(updateChain)
-      .mockReturnValueOnce(splitChain);
+    (supabase.from as any).mockReturnValueOnce(readChain);
+    (supabase.rpc as any).mockResolvedValue({
+      data: { success: true },
+      error: null,
+    });
 
     const ok = await paymentService.updatePaymentMessage('pay-1', { description: 'Updated label' });
 
     expect(ok).toBe(true);
-    expect(supabase.from).toHaveBeenCalledTimes(2); // read + update only, no split write
+    expect(supabase.rpc).toHaveBeenCalledWith('update_payment_message_atomic', {
+      p_payment_id: 'pay-1',
+      p_expected_version: 1,
+      p_amount: null,
+      p_description: 'Updated label',
+    });
   });
 });

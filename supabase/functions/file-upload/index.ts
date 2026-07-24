@@ -11,6 +11,16 @@ import {
 } from '../_shared/validation.ts';
 import { verifyTripMembership } from '../_shared/verifyTripMembership.ts';
 
+async function cleanupUploadedTripFile(
+  supabase: ReturnType<typeof createClient>,
+  uploadPath: string,
+): Promise<void> {
+  const { error } = await supabase.storage.from('trip-files').remove([uploadPath]);
+  if (error) {
+    console.error('[file-upload] Failed to clean up orphaned upload:', error);
+  }
+}
+
 serve(async req => {
   const corsHeaders = getCorsHeaders(req);
   const { createOptionsResponse } = await import('../_shared/securityHeaders.ts');
@@ -140,6 +150,19 @@ serve(async req => {
       });
     }
 
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+      .from('trip-files')
+      .createSignedUrl(uploadData.path, 60 * 60 * 24 * 365);
+
+    if (signedUrlError || !signedUrlData?.signedUrl) {
+      console.error('Signed URL error:', signedUrlError);
+      await cleanupUploadedTripFile(supabase, uploadData.path);
+      return new Response(JSON.stringify({ error: 'Failed to create file access URL' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Save file metadata to database
     const { data: fileRecord, error: dbError } = await supabase
       .from('trip_files')
@@ -147,6 +170,7 @@ serve(async req => {
         trip_id: tripId,
         file_name: file.name,
         file_path: uploadData.path,
+        file_url: signedUrlData.signedUrl,
         file_type: file.type,
         file_size: file.size,
         uploaded_by: userId,
@@ -160,6 +184,7 @@ serve(async req => {
 
     if (dbError) {
       console.error('Database error:', dbError);
+      await cleanupUploadedTripFile(supabase, uploadData.path);
       return new Response(JSON.stringify({ error: 'Failed to save file metadata' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -170,7 +195,7 @@ serve(async req => {
       JSON.stringify({
         success: true,
         file: fileRecord,
-        downloadUrl: `${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/trip-files/${uploadData.path}`,
+        downloadUrl: signedUrlData.signedUrl,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
