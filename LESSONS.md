@@ -204,6 +204,9 @@ Drift between client-displayed and server-enforced quotas is a UX bug factory.
 ### Payment splits are state machines — pending/confirmed/settled per participant with optimistic locking
 Each settlement is a row transition; never compute split state on the fly.
 
+### New payment RPCs must preserve the existing split-first lock order
+When a payment mutation touches both `payment_splits` and `trip_payment_messages`, lock split rows first and the parent row second if the settlement RPC family already does that. Reversing the order (`parent FOR UPDATE` then `splits FOR UPDATE`) can deadlock `edit payment` against `settle/unsettle split` on the same payment. *Evidence: July 2026 `update_payment_message_atomic` follow-up review caught and fixed this before merge.*
+
 ### App Store billing compliance needs both client-side and server-side enforcement
 Client toggles aren't enough — server must reject non-compliant purchases.
 

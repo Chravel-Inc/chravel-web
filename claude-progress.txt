@@ -1,3 +1,10 @@
+2026-07-24 — Daily audit follow-up: org invites, payment edits, file uploads, push auth
+- Fixed 4 additional high-severity audit findings on `cursor/repository-critical-bugs-3a2b`: transactional org invite acceptance (`accept_organization_invite_secure`), atomic payment edits (`update_payment_message_atomic`), `file-upload` orphan cleanup + signed private URL contract, and `push-notifications` self-token authorization for `send_push`.
+- Edge/functions: `accept-organization-invite` now calls the new auth-bound RPC; `file-upload` creates a signed URL before DB insert, stores `file_url`, and removes uploaded bytes on signed-URL/DB failure; `push-notifications` now loads the caller's active `push_tokens` and rejects foreign tokens.
+- Client/tests: `paymentService.updatePaymentMessage` now calls the atomic RPC; added focused Vitest coverage for payment edits, repo-wide hardening invariants, and owned push-token authorization.
+- Verification: focused vitest 10/10 ✅; `npx tsx scripts/lint-migrations.ts` ✅ (0 errors, legacy warnings only); `npm run lint && npm run typecheck && npm run build` ✅; merge preflight clean.
+- Branch: cursor/repository-critical-bugs-3a2b
+
 2026-07-24 — Daily audit: daily-digest cross-user IDOR
 - Audited repo-wide high-risk surfaces (auth/backend writes, invites/payments/media, AI/import/state) and fixed the top safe issue: `daily-digest` authenticated callers could read or generate another user's digest by passing a victim `user_id` while the function used service-role DB access.
 - Fix: new `authorizeDigestScope` helper binds digest scope to `auth.uid()` and rejects mismatched `user_id` with 403 for both GET and POST; older callers may omit `user_id` or pass their own id.
