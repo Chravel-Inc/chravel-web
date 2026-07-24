@@ -51,7 +51,7 @@ const CHECKS = [
     id: 'env-coverage',
     title: 'Edge Deno.env vars documented',
     sot: '.env.example / .env.production.example',
-    cmd: ['npx', 'tsx', 'scripts/check-env-coverage.ts'],
+    cmd: ['npx', 'tsx', 'scripts/check-env-coverage.ts', '--strict'],
   },
   {
     id: 'permission-matrix',

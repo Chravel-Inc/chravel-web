@@ -57,7 +57,7 @@
     "drift:migrations": "node scripts/drift/check-migration-drift.mjs",
     "drift:query-keys": "node scripts/drift/check-query-key-ownership.mjs",
     "drift:schema": "npx tsx scripts/check-schema-drift.ts",
-    "drift:env-coverage": "npx tsx scripts/check-env-coverage.ts",
+    "drift:env-coverage": "npx tsx scripts/check-env-coverage.ts --strict",
     "db:types": "supabase gen types typescript --linked > src/integrations/supabase/types.ts",
     "qa:android15-edge": "node scripts/qa/check-android-15-edge-to-edge.cjs --require-native",
     "iap:validate": "node scripts/validate-iap-product-ids.mjs",
