@@ -5382,7 +5382,15 @@ export type Database = {
         Args: { _channel_id: string; _user_id: string }
         Returns: boolean
       }
+      can_create_trip_task: {
+        Args: { _trip_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_edit_trip_cover: {
+        Args: { _trip_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_manage_trip_calendar: {
         Args: { _trip_id: string; _user_id: string }
         Returns: boolean
       }
@@ -5549,26 +5557,16 @@ export type Database = {
         Returns: Json
       }
       get_account_deletion_status: { Args: never; Returns: Json }
-      get_admin_accessible_channels: {
-        Args: { _trip_id: string; _user_id: string }
-        Returns: {
-          channel_name: string
-          channel_slug: string
-          created_at: string
-          created_by: string
-          description: string
-          id: string
-          is_archived: boolean
-          is_private: boolean
-          member_count: number
-          required_role_id: string
-          trip_id: string
-          updated_at: string
-        }[]
-      }
       get_broadcast_read_count: {
         Args: { p_broadcast_id: string }
         Returns: number
+      }
+      get_channel_member_counts: {
+        Args: { p_trip_id: string }
+        Returns: {
+          channel_id: string
+          member_count: number
+        }[]
       }
       get_events_in_user_tz: {
         Args: { p_trip_id: string; p_user_id: string }
@@ -5749,6 +5747,14 @@ export type Database = {
         Args: { p_broadcast_id: string; p_user_id: string }
         Returns: undefined
       }
+      mark_web_push_subscription_failed: {
+        Args: { error_message?: string; subscription_id: string }
+        Returns: undefined
+      }
+      mark_web_push_subscription_success: {
+        Args: { subscription_id: string }
+        Returns: undefined
+      }
       match_trip_embeddings: {
         Args: {
           match_count?: number
@@ -5822,6 +5828,18 @@ export type Database = {
         Args: { p_muted: boolean; p_trip_id: string }
         Returns: Json
       }
+      settle_payment_split: {
+        Args: { p_method: string; p_split_id: string; p_user_id: string }
+        Returns: Json
+      }
+      settle_payment_splits_for_debtor: {
+        Args: {
+          p_debtor_user_id: string
+          p_method: string
+          p_payment_message_ids: string[]
+        }
+        Returns: Json
+      }
       should_send_notification: {
         Args: {
           p_channel?: string
@@ -5889,6 +5907,7 @@ export type Database = {
         Args: { p_batch_id: string; p_force_delete_edited?: boolean }
         Returns: Json
       }
+      unsettle_payment_split: { Args: { p_split_id: string }; Returns: Json }
       update_agenda_item_with_version: {
         Args: {
           p_current_version: number
@@ -5920,6 +5939,46 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "event_agenda_items"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      update_event_with_version: {
+        Args: {
+          p_current_version: number
+          p_description?: string
+          p_end_time?: string
+          p_event_category?: string
+          p_event_id: string
+          p_include_in_itinerary?: boolean
+          p_is_all_day?: boolean
+          p_location?: string
+          p_source_data?: Json
+          p_start_time?: string
+          p_title?: string
+        }
+        Returns: {
+          created_at: string
+          created_by: string
+          description: string | null
+          end_time: string | null
+          event_category: string | null
+          id: string
+          import_batch_id: string | null
+          include_in_itinerary: boolean | null
+          is_all_day: boolean | null
+          location: string | null
+          source_data: Json | null
+          source_type: string | null
+          start_time: string
+          title: string
+          trip_id: string
+          updated_at: string
+          version: number | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "trip_events"
           isOneToOne: false
           isSetofReturn: true
         }
