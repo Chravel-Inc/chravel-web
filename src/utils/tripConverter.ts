@@ -113,6 +113,7 @@ export function convertSupabaseTripToProTrip(supabaseTrip: SupabaseTrip): ProTri
     coverPhoto: resolveTripCoverImageUrl(supabaseTrip),
     coverDisplayMode: supabaseTrip.cover_display_mode ?? undefined,
     card_color: (supabaseTrip as Record<string, unknown>).card_color as string | undefined,
+    created_by: supabaseTrip.created_by,
   };
 }
 

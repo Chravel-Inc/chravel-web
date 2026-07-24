@@ -23,6 +23,7 @@ import { ShareTripModal } from './share/ShareTripModal';
 import { LazyTripExportModal } from './trip/LazyTripExportModal';
 import { ProTripData } from '../types/pro';
 import { useProTrips } from '../hooks/useProTrips';
+import { useDeleteTrip } from '../hooks/useDeleteTrip';
 import { useToast } from '../hooks/use-toast';
 import { useAuth } from '../hooks/useAuth';
 import {
@@ -79,11 +80,11 @@ export const ProTripCard = ({
   const [showShareModal, setShowShareModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
-  const { archiveTrip, hideTrip, deleteTripForMe } = useProTrips();
+  const { archiveTrip, hideTrip } = useProTrips();
+  const { deleteTrip, isDeleting } = useDeleteTrip();
 
   // Get color for this trip - uses saved color if available, otherwise deterministic fallback
   const tripColor = getProTripColor(trip.id, (trip as any).card_color);
@@ -130,10 +131,13 @@ export const ProTripCard = ({
 
   const handleArchiveTrip = async () => {
     try {
-      await archiveTrip(trip.id);
+      const result = await archiveTrip(trip.id);
       toast({
-        title: 'Professional trip archived',
-        description: `"${trip.title}" has been archived.`,
+        title: result.action === 'archived' ? 'Professional trip archived' : 'Trip removed',
+        description:
+          result.action === 'archived'
+            ? `"${trip.title}" has been archived.`
+            : `"${trip.title}" has been removed from your account. Other members can still access it.`,
       });
       setShowArchiveDialog(false);
       onArchiveSuccess?.();
@@ -173,12 +177,14 @@ export const ProTripCard = ({
       return;
     }
 
-    setIsDeleting(true);
     try {
-      await deleteTripForMe({ tripId: trip.id.toString(), userId: user.id });
+      const result = await deleteTrip(trip.id.toString(), trip.created_by);
       toast({
-        title: 'Trip removed',
-        description: `"${trip.title}" has been removed.`,
+        title: result.action === 'archived' ? 'Trip archived' : 'Trip removed',
+        description:
+          result.action === 'archived'
+            ? `"${trip.title}" has been archived.`
+            : `"${trip.title}" has been removed from your account.`,
       });
       setShowDeleteDialog(false);
       onDeleteSuccess?.();
@@ -188,8 +194,6 @@ export const ProTripCard = ({
         description: 'There was an error removing the trip.',
         variant: 'destructive',
       });
-    } finally {
-      setIsDeleting(false);
     }
   };
 

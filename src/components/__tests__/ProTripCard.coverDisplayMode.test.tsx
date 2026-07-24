@@ -30,8 +30,11 @@ vi.mock('@/hooks/useProTrips', () => ({
   useProTrips: () => ({
     archiveTrip: vi.fn(),
     hideTrip: vi.fn(),
-    deleteTripForMe: vi.fn(),
   }),
+}));
+
+vi.mock('@/hooks/useDeleteTrip', () => ({
+  useDeleteTrip: () => ({ deleteTrip: vi.fn(), isDeleting: false }),
 }));
 
 vi.mock('@/store/demoTripMembersStore', () => ({

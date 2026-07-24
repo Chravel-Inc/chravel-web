@@ -5708,6 +5708,7 @@ export type Database = {
       }
       is_user_sms_entitled: { Args: { p_user_id: string }; Returns: boolean }
       leave_trip: { Args: { _trip_id: string }; Returns: Json }
+      archive_trip: { Args: { _trip_id: string }; Returns: Json }
       leave_trip_role: {
         Args: { _role_id: string; _trip_id: string }
         Returns: Json
