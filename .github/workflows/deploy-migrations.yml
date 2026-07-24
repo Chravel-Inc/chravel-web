@@ -1,0 +1,131 @@
+name: Deploy Supabase Migrations
+
+# Applies AGENT-authored migrations (Claude / Codex / Cursor) to the production
+# database when they land on `main`, and records them in
+# supabase_migrations.schema_migrations so they are never applied twice.
+#
+# WHY THIS DESIGN (not `supabase db push`):
+#   The repo and the Lovable-built DB diverged early — Lovable records migrations
+#   under its own version keys, so `db push` would try to replay the entire
+#   history. Instead this workflow applies only the migration files ADDED in the
+#   push, and only the AGENT ones. Migrations flow into the repo from two places:
+#     * Lovable (`YYYYMMDDHHMMSS-<uuid>.sql`, dash + UUID) — Lovable ALREADY
+#       applied these to the DB before committing them, so we SKIP them here.
+#     * Agents (`YYYYMMDDHHMMSS_<slug>.sql`, underscore + descriptive name) —
+#       written to the repo but NOT applied. THESE are what this workflow applies.
+#   A schema_migrations check is the safety net: anything already recorded
+#   (e.g. applied earlier via the Supabase MCP) is skipped regardless of origin.
+#
+# ── PREREQUISITES (one-time) ────────────────────────────────────────────────
+# 1. Repo VARIABLE (Settings → Secrets and variables → Actions → Variables):
+#      MIGRATIONS_AUTOAPPLY = true   ← master switch; until set, this job is inert.
+# 2. Repo SECRET:
+#      SUPABASE_DB_URL   ← full connection string from Supabase dashboard →
+#                          Connect → "Session pooler" (includes the password),
+#                          e.g. postgresql://postgres.jmjiyekmxwsxkfnqwyaa:[PWD]@
+#                          aws-0-us-west-1.pooler.supabase.com:5432/postgres
+# ────────────────────────────────────────────────────────────────────────────
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'List what WOULD apply without applying'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: deploy-migrations-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Master switch: on push this job runs only when MIGRATIONS_AUTOAPPLY=true.
+    # Manual dispatch always runs (so you can dry-run before flipping the switch).
+    if: github.event_name == 'workflow_dispatch' || vars.MIGRATIONS_AUTOAPPLY == 'true'
+    environment: production
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint migration files
+        run: npx tsx scripts/lint-migrations.ts
+
+      - name: Determine changed migration files
+        id: changed
+        run: |
+          set -euo pipefail
+          BEFORE="${{ github.event.before }}"
+          AFTER="${{ github.sha }}"
+          # First push / forced / dispatch: fall back to the tip commit's diff.
+          if [ "${{ github.event_name }}" != "push" ] || [ -z "$BEFORE" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            RANGE="HEAD~1 HEAD"
+          else
+            RANGE="$BEFORE $AFTER"
+          fi
+          echo "Diffing range: $RANGE"
+          git diff --name-only --diff-filter=AM $RANGE -- 'supabase/migrations/**/*.sql' > /tmp/changed.txt || true
+          echo "Changed migration files:"; cat /tmp/changed.txt || true
+
+      - name: Apply agent migrations
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+        run: |
+          set -euo pipefail
+          if [ ! -s /tmp/changed.txt ]; then
+            echo "No changed migration files." | tee -a "$GITHUB_STEP_SUMMARY"; exit 0
+          fi
+          echo "## Migration deploy" >> "$GITHUB_STEP_SUMMARY"
+          applied=0; skipped=0
+          # Process in filename (timestamp) order.
+          while IFS= read -r file; do
+            [ -f "$file" ] || continue
+            base="$(basename "$file" .sql)"
+            # Origin: dash+UUID after the timestamp => Lovable (already applied).
+            if echo "$base" | grep -Eq '^[0-9]{14}-[0-9a-fA-F]{8}-'; then
+              echo "- ⏭️  skip (Lovable, already applied): \`$base\`" >> "$GITHUB_STEP_SUMMARY"
+              skipped=$((skipped+1)); continue
+            fi
+            version="$(echo "$base" | grep -oE '^[0-9]+' || true)"
+            name="$(echo "$base" | sed -E 's/^[0-9]+[_-]//')"
+            # Skip if already recorded (version OR name), regardless of origin.
+            already="$(psql "$SUPABASE_DB_URL" -tAc \
+              "SELECT 1 FROM supabase_migrations.schema_migrations
+                WHERE version = '$version' OR name = '$name' OR name = '$base' LIMIT 1;")"
+            if [ "$already" = "1" ]; then
+              echo "- ⏭️  skip (already applied): \`$base\`" >> "$GITHUB_STEP_SUMMARY"
+              skipped=$((skipped+1)); continue
+            fi
+            if [ "$DRY_RUN" = "true" ]; then
+              echo "- 🔎 would apply: \`$base\`" >> "$GITHUB_STEP_SUMMARY"; continue
+            fi
+            echo "Applying $base ..."
+            # Apply the file and record it in one transaction so a failure records nothing.
+            psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 --single-transaction \
+              -f "$file" \
+              -c "INSERT INTO supabase_migrations.schema_migrations (version, name)
+                    VALUES ('$version', '$base')
+                    ON CONFLICT (version) DO NOTHING;"
+            echo "- ✅ applied: \`$base\`" >> "$GITHUB_STEP_SUMMARY"
+            applied=$((applied+1))
+          done < /tmp/changed.txt
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Applied: $applied · Skipped: $skipped**" >> "$GITHUB_STEP_SUMMARY"
