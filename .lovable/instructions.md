@@ -201,7 +201,7 @@ npm run preview      # Preview production build
 ## 🔗 Related Documentation
 
 - **../CLAUDE.md** — Complete engineering manifesto (READ THIS!)
-- **../AI_GUIDELINES.md** — Quick reference for all AIs
+- **../AGENTS.md** — Cross-tool agent rules & non-negotiables
 - **../.cursorrules** — Cursor AI instructions (same standards)
 
 ---

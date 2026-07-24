@@ -9,7 +9,7 @@ alwaysApply: false
 // ✅ GOOD: Hooks first, handlers next, return last
 export function TripCard({ trip }: { trip: Trip }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const router = useRouter();
+  const navigate = useNavigate(); // from 'react-router-dom'
   
   const handleExpand = useCallback(() => {
     setIsExpanded(prev => !prev);
@@ -341,9 +341,9 @@ npm run typecheck
 ```json
 {
   "scripts": {
-    "lint": "next lint --fix",
+    "lint": "eslint . --fix",
     "typecheck": "tsc --noEmit",
-    "build": "npm run lint && npm run typecheck && next build",
+    "build": "npm run lint && npm run typecheck && vite build",
     "prepare": "husky install"
   }
 }
@@ -410,7 +410,7 @@ const Component = () => {
 ### ESLint Config (`.eslintrc.json`)
 ```json
 {
-  "extends": ["next/core-web-vitals", "next/typescript"],
+  "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended", "plugin:react-hooks/recommended"],
   "rules": {
     "no-unused-vars": "error",
     "no-unexpected-multiline": "error",
@@ -441,7 +441,7 @@ vercel dev
 
 ### Vercel Environment
 - Assumes **fresh install** (no cached `node_modules`)
-- Uses **Node 18+** and **Next.js 14**
+- Uses **Node 18+** and **Vite 5 (SWC)**
 - Runs `npm install && npm run build`
 - Fails fast on syntax/type errors
 
@@ -495,7 +495,7 @@ Every AI assistant must guarantee:
 
 ### Key Files
 - `/src/integrations/supabase/client.ts` — Supabase singleton
-- `/src/types/database.types.ts` — Generated DB types
+- `/src/integrations/supabase/types.ts` — Generated DB types
 - `/src/components/MapView.tsx` — Reusable map component
 - `/src/lib/google-maps.ts` — Maps utility functions
 
