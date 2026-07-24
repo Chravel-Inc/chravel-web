@@ -14,6 +14,7 @@ export default defineConfig({
     include: [
       'src/**/*.test.{ts,tsx}',
       'supabase/functions/**/__tests__/*.test.{ts,tsx}',
+      'scripts/**/__tests__/*.test.ts',
       'optimizer/__tests__/*.test.ts',
       'unfurl/**/__tests__/*.test.ts',
     ],

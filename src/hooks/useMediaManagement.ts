@@ -87,7 +87,7 @@ export const useMediaManagement = (tripId: string) => {
   const fetchNextMediaPage = mediaInfiniteQuery.fetchNextPage;
 
   const { data: linkItems = [], isLoading: linksLoading } = useQuery({
-    queryKey: ['tripLinks', tripId, isDemoMode],
+    queryKey: tripKeys.tripLinks(tripId, isDemoMode),
     queryFn: async (): Promise<LinkItem[]> => {
       const tripTier = detectTripTier(tripId);
       const listKey = `${tripId}:list`;
@@ -181,7 +181,7 @@ export const useMediaManagement = (tripId: string) => {
     const invalidateMedia = () =>
       queryClient.invalidateQueries({ queryKey: tripKeys.media(tripId) });
     const invalidateLinks = () =>
-      queryClient.invalidateQueries({ queryKey: ['tripLinks', tripId] });
+      queryClient.invalidateQueries({ queryKey: tripKeys.tripLinks(tripId) });
 
     channel.on(
       'postgres_changes',
@@ -252,7 +252,7 @@ export const useMediaManagement = (tripId: string) => {
     isFetchingNextMedia: mediaInfiniteQuery.isFetchingNextPage,
     refetch: () => {
       queryClient.invalidateQueries({ queryKey: tripKeys.media(tripId) });
-      queryClient.invalidateQueries({ queryKey: ['tripLinks', tripId] });
+      queryClient.invalidateQueries({ queryKey: tripKeys.tripLinks(tripId) });
     },
   };
 };

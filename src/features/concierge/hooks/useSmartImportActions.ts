@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { QueryClient } from '@tanstack/react-query';
 import type { ChatMessage } from '@/features/concierge/types';
 import type { SmartImportPreviewEvent } from '@/services/conciergeGateway';
+import { tripKeys } from '@/lib/queryKeys';
 
 interface Params {
   tripId: string;
@@ -113,7 +114,7 @@ export function useSmartImportActions({ tripId, userId, setMessages, queryClient
             },
           },
         }));
-        queryClient.invalidateQueries({ queryKey: ['calendarEvents', tripId] });
+        queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
         if (result.deleted > 0) {
           const extra =
             result.alreadyMissing > 0 ? ` ${result.alreadyMissing} were already gone.` : '';

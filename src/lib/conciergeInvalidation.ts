@@ -80,7 +80,7 @@ export function getConciergeInvalidationKeys(
     case 'duplicateCalendarEvent':
     case 'moveCalendarEvent':
     case 'cloneActivity':
-      return [['calendarEvents', tripId]];
+      return [tripKeys.calendar(tripId)];
 
     // Tasks
     case 'createTask':
@@ -88,7 +88,7 @@ export function getConciergeInvalidationKeys(
     case 'deleteTask':
     case 'splitTaskAssignments':
     case 'bulkMarkTasksDone':
-      return [['tripTasks', tripId]];
+      return [tripKeys.tasks(tripId)];
 
     // Polls
     case 'createPoll':
@@ -100,19 +100,16 @@ export function getConciergeInvalidationKeys(
     case 'saveLink':
     case 'emitReservationDraft':
     case 'makeReservation':
-      return [
-        ['tripPlaces', tripId],
-        ['tripLinks', tripId],
-      ];
+      return [tripKeys.places(tripId), tripKeys.tripLinks(tripId)];
 
     // Payments / Expenses
     case 'settleExpense':
     case 'addExpense':
-      return [['tripPayments', tripId]];
+      return [tripKeys.payments(tripId)];
 
     // Broadcasts
     case 'createBroadcast':
-      return [['tripBroadcasts', tripId]];
+      return [tripKeys.broadcasts(tripId)];
 
     // Notifications — no dedicated query key; realtime handles updates.
     case 'createNotification':
@@ -120,15 +117,15 @@ export function getConciergeInvalidationKeys(
 
     // Trip-level basecamp — invalidate tripBasecamp query + trip detail + personal basecamp prefix
     case 'setBasecamp':
-      return [['tripBasecamp', tripId], ['trip', tripId], ['personalBasecamp']];
+      return [['tripBasecamp', tripId], tripKeys.detail(tripId), ['personalBasecamp']];
 
     case 'addToAgenda':
-      return [['eventAgenda', tripId]];
+      return [tripKeys.agenda(tripId)];
 
     case 'setTripHeaderImage':
     case 'generateTripImage':
     case 'updateTripDetails':
-      return [['trips'], ['trip', tripId]];
+      return [tripKeys.all, tripKeys.detail(tripId)];
 
     default:
       return [];

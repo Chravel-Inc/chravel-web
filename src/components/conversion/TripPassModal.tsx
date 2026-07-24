@@ -5,6 +5,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Check, Globe, Crown, Clock, Ticket } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { createCheckoutSession } from '@/billing/checkout';
 import {
   detectNativeBillingPlatform,
   isIOSNativeShell,
@@ -98,15 +99,11 @@ export const TripPassModal: React.FC<TripPassModalProps> = ({ open, onOpenChange
         typeof navigator === 'undefined'
           ? 'web'
           : detectNativeBillingPlatform(navigator.userAgent || '', isNativeWebView());
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: {
-          tier: passId,
-          purchase_type: 'pass',
-          platform: billingPlatform,
-        },
+      const data = await createCheckoutSession({
+        tier: passId,
+        purchase_type: 'pass',
+        platform: billingPlatform,
       });
-
-      if (error) throw error;
       if (data?.url) {
         window.open(data.url, '_blank');
       }

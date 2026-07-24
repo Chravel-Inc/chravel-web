@@ -1,153 +1,26 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import * as fs from 'fs';
-import * as path from 'path';
+import { describe, it, expect } from 'vitest';
+import {
+  type EnvVarSpec,
+  FRONTEND_VARS,
+  FEATURE_FLAG_VARS,
+  ANALYTICS_VARS,
+  MOBILE_VARS,
+  REVENUECAT_VARS,
+  PAYMENT_VARS,
+  ADDITIONAL_VARS,
+} from '../validate-env';
 
 // ---------------------------------------------------------------------------
-// We re-implement the validate-env logic as pure functions for testability.
-// The actual script is a CLI entrypoint — these tests cover all its logic paths.
+// These tests import the REAL spec arrays from scripts/validate-env.ts so they
+// guard the actual CLI, not a copy. (Previously this file re-implemented the
+// specs inline and had already drifted — it asserted 5 frontend vars while the
+// script had 6, and marked VITE_SUPABASE_ANON_KEY required while the script had
+// made it optional behind a combined publishable-or-anon check.) The parsing
+// and classification helpers below mirror the script's algorithm to unit-test
+// its logic paths; the spec-count/shape assertions are the drift guard.
 // ---------------------------------------------------------------------------
 
-interface EnvVarSpec {
-  name: string;
-  required: boolean;
-  description: string;
-  provider: string;
-  canStubForTestFlight: boolean;
-  stubValue?: string;
-}
-
-const FRONTEND_VARS: EnvVarSpec[] = [
-  {
-    name: 'VITE_SUPABASE_URL',
-    required: true,
-    description: 'Supabase project URL',
-    provider: 'Supabase',
-    canStubForTestFlight: false,
-  },
-  {
-    name: 'VITE_SUPABASE_ANON_KEY',
-    required: true,
-    description: 'Supabase anonymous (public) key',
-    provider: 'Supabase',
-    canStubForTestFlight: false,
-  },
-  {
-    name: 'VITE_GOOGLE_MAPS_API_KEY',
-    required: true,
-    description: 'Google Maps / Places API key',
-    provider: 'Google Cloud Console',
-    canStubForTestFlight: true,
-    stubValue: 'STUB_MAPS_KEY',
-  },
-  {
-    name: 'VITE_STRIPE_PUBLISHABLE_KEY',
-    required: false,
-    description: 'Stripe publishable key for payments UI',
-    provider: 'Stripe Dashboard',
-    canStubForTestFlight: true,
-    stubValue: 'pk_test_stub',
-  },
-  {
-    name: 'VITE_VAPID_PUBLIC_KEY',
-    required: false,
-    description: 'VAPID public key for Web Push notifications',
-    provider: 'Self-generated (npx tsx scripts/generate-vapid-keys.ts)',
-    canStubForTestFlight: true,
-    stubValue: '',
-  },
-];
-
-const FEATURE_FLAG_VARS: EnvVarSpec[] = [
-  {
-    name: 'VITE_ENABLE_DEMO_MODE',
-    required: false,
-    description: 'Enable demo/mock mode',
-    provider: 'Internal flag',
-    canStubForTestFlight: true,
-    stubValue: 'false',
-  },
-  {
-    name: 'VITE_ENABLE_AI_CONCIERGE',
-    required: false,
-    description: 'Enable AI Concierge feature',
-    provider: 'Internal flag',
-    canStubForTestFlight: true,
-    stubValue: 'false',
-  },
-  {
-    name: 'VITE_ENABLE_STRIPE_PAYMENTS',
-    required: false,
-    description: 'Enable Stripe payment processing',
-    provider: 'Internal flag',
-    canStubForTestFlight: true,
-    stubValue: 'false',
-  },
-  {
-    name: 'VITE_ENABLE_PUSH_NOTIFICATIONS',
-    required: false,
-    description: 'Enable push notifications',
-    provider: 'Internal flag',
-    canStubForTestFlight: true,
-    stubValue: 'false',
-  },
-];
-
-const ANALYTICS_VARS: EnvVarSpec[] = [
-  {
-    name: 'VITE_SENTRY_DSN',
-    required: false,
-    description: 'Sentry error tracking DSN',
-    provider: 'Sentry',
-    canStubForTestFlight: true,
-    stubValue: '',
-  },
-  {
-    name: 'VITE_POSTHOG_API_KEY',
-    required: false,
-    description: 'PostHog analytics API key',
-    provider: 'PostHog',
-    canStubForTestFlight: true,
-    stubValue: '',
-  },
-];
-
-const MOBILE_VARS: EnvVarSpec[] = [
-  {
-    name: 'IOS_BUNDLE_ID',
-    required: false,
-    description: 'iOS app bundle ID (defaults to com.chravel.app)',
-    provider: 'Apple Developer Portal',
-    canStubForTestFlight: false,
-  },
-  {
-    name: 'IOS_APP_NAME',
-    required: false,
-    description: 'iOS app display name (defaults to Chravel)',
-    provider: 'Apple Developer Portal',
-    canStubForTestFlight: false,
-  },
-];
-
-const REVENUECAT_VARS: EnvVarSpec[] = [
-  {
-    name: 'VITE_REVENUECAT_ENABLED',
-    required: false,
-    description: 'Enable RevenueCat IAP',
-    provider: 'RevenueCat',
-    canStubForTestFlight: true,
-    stubValue: 'false',
-  },
-  {
-    name: 'VITE_REVENUECAT_IOS_API_KEY',
-    required: false,
-    description: 'RevenueCat iOS API key',
-    provider: 'RevenueCat Dashboard',
-    canStubForTestFlight: true,
-    stubValue: '',
-  },
-];
-
-// Pure function that loads env from string content + process.env
+// Mirror of the script's .env parsing (loadEnvFile), made pure for testing.
 function loadEnvFromContent(
   envContent: string | null,
   envLocalContent: string | null,
@@ -172,7 +45,6 @@ function loadEnvFromContent(
     }
   }
 
-  // Also include process.env
   for (const [key, value] of Object.entries(processEnv)) {
     if (value) vars[key] = value;
   }
@@ -180,7 +52,7 @@ function loadEnvFromContent(
   return vars;
 }
 
-// Pure function that classifies env vars into present, missing, optional
+// Mirror of the script's required/optional/present classification.
 function classifyEnvVars(
   env: Record<string, string>,
   allVars: EnvVarSpec[],
@@ -203,9 +75,15 @@ function classifyEnvVars(
   return { present, missing, optional };
 }
 
-// Get all vars for a given mode
+// Mirror of the script's per-mode var selection (validate()).
 function getVarsForMode(isIos: boolean): EnvVarSpec[] {
-  let allVars = [...FRONTEND_VARS, ...FEATURE_FLAG_VARS, ...ANALYTICS_VARS];
+  let allVars = [
+    ...FRONTEND_VARS,
+    ...FEATURE_FLAG_VARS,
+    ...ANALYTICS_VARS,
+    ...PAYMENT_VARS,
+    ...ADDITIONAL_VARS,
+  ];
   if (isIos) {
     allVars = [...allVars, ...MOBILE_VARS, ...REVENUECAT_VARS];
   }
@@ -213,9 +91,9 @@ function getVarsForMode(isIos: boolean): EnvVarSpec[] {
 }
 
 describe('validate-env', () => {
-  describe('EnvVarSpec definitions', () => {
+  describe('EnvVarSpec definitions (real script arrays)', () => {
     it('should have the correct number of FRONTEND_VARS', () => {
-      expect(FRONTEND_VARS).toHaveLength(5);
+      expect(FRONTEND_VARS).toHaveLength(6);
     });
 
     it('should have required VITE_SUPABASE_URL', () => {
@@ -225,10 +103,16 @@ describe('validate-env', () => {
       expect(spec?.canStubForTestFlight).toBe(false);
     });
 
-    it('should have required VITE_SUPABASE_ANON_KEY', () => {
+    it('should have optional VITE_SUPABASE_ANON_KEY (behind combined publishable-or-anon check)', () => {
       const spec = FRONTEND_VARS.find(v => v.name === 'VITE_SUPABASE_ANON_KEY');
       expect(spec).toBeDefined();
-      expect(spec?.required).toBe(true);
+      expect(spec?.required).toBe(false);
+    });
+
+    it('should have VITE_SUPABASE_PUBLISHABLE_KEY', () => {
+      const spec = FRONTEND_VARS.find(v => v.name === 'VITE_SUPABASE_PUBLISHABLE_KEY');
+      expect(spec).toBeDefined();
+      expect(spec?.required).toBe(false);
     });
 
     it('should have required VITE_GOOGLE_MAPS_API_KEY with stub', () => {
@@ -258,7 +142,14 @@ describe('validate-env', () => {
     });
 
     it('should have the correct number of REVENUECAT_VARS', () => {
-      expect(REVENUECAT_VARS).toHaveLength(2);
+      expect(REVENUECAT_VARS).toHaveLength(3);
+    });
+
+    it('should have PAYMENT_VARS and ADDITIONAL_VARS', () => {
+      expect(PAYMENT_VARS.length).toBeGreaterThan(0);
+      expect(ADDITIONAL_VARS.length).toBeGreaterThan(0);
+      expect(PAYMENT_VARS.find(v => v.name === 'VITE_VENMO_CLIENT_ID')).toBeDefined();
+      expect(ADDITIONAL_VARS.find(v => v.name === 'VITE_APP_VERSION')).toBeDefined();
     });
 
     it('should mark all FEATURE_FLAG_VARS as optional', () => {
@@ -376,12 +267,10 @@ describe('validate-env', () => {
     it('should classify present required vars correctly', () => {
       const env = {
         VITE_SUPABASE_URL: 'https://example.supabase.co',
-        VITE_SUPABASE_ANON_KEY: 'key123',
         VITE_GOOGLE_MAPS_API_KEY: 'maps-key',
       };
       const { present, missing, optional } = classifyEnvVars(env, FRONTEND_VARS);
       expect(present).toContain('VITE_SUPABASE_URL');
-      expect(present).toContain('VITE_SUPABASE_ANON_KEY');
       expect(present).toContain('VITE_GOOGLE_MAPS_API_KEY');
       expect(missing).toHaveLength(0);
       expect(optional.length).toBeGreaterThan(0);
@@ -391,9 +280,10 @@ describe('validate-env', () => {
       const env: Record<string, string> = {};
       const { missing } = classifyEnvVars(env, FRONTEND_VARS);
       const missingNames = missing.map(m => m.name);
+      // Only VITE_SUPABASE_URL and VITE_GOOGLE_MAPS_API_KEY are required:true.
       expect(missingNames).toContain('VITE_SUPABASE_URL');
-      expect(missingNames).toContain('VITE_SUPABASE_ANON_KEY');
       expect(missingNames).toContain('VITE_GOOGLE_MAPS_API_KEY');
+      expect(missingNames).not.toContain('VITE_SUPABASE_ANON_KEY');
     });
 
     it('should classify optional vars as optional when missing', () => {
@@ -459,7 +349,6 @@ describe('validate-env', () => {
     it('should pass when all required vars are present', () => {
       const env = {
         VITE_SUPABASE_URL: 'https://example.supabase.co',
-        VITE_SUPABASE_ANON_KEY: 'anon-key-123',
         VITE_GOOGLE_MAPS_API_KEY: 'AIzaSy...',
       };
       const allVars = getVarsForMode(false);
@@ -471,27 +360,25 @@ describe('validate-env', () => {
       const env: Record<string, string> = {};
       const allVars = getVarsForMode(false);
       const { missing } = classifyEnvVars(env, allVars);
-      expect(missing.length).toBe(3); // 3 required frontend vars
+      // 2 required frontend vars (URL + MAPS); the publishable-or-anon check is
+      // enforced separately by the script, not via required:true on a spec.
+      expect(missing.length).toBe(2);
     });
 
     it('should pass for iOS mode with all required vars', () => {
       const env = {
         VITE_SUPABASE_URL: 'https://example.supabase.co',
-        VITE_SUPABASE_ANON_KEY: 'anon-key-123',
         VITE_GOOGLE_MAPS_API_KEY: 'AIzaSy...',
       };
       const allVars = getVarsForMode(true);
       const { missing, optional } = classifyEnvVars(env, allVars);
-      // Required vars are same for iOS and web (all iOS-specific are optional)
       expect(missing).toHaveLength(0);
-      // More optional vars in iOS mode
       expect(optional.length).toBeGreaterThan(0);
     });
 
     it('should load from .env file and validate', () => {
       const envContent = [
         'VITE_SUPABASE_URL=https://my-project.supabase.co',
-        'VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1...',
         'VITE_GOOGLE_MAPS_API_KEY=AIzaSyTest123',
         '# Optional ones below',
         'VITE_ENABLE_DEMO_MODE=true',
@@ -499,10 +386,9 @@ describe('validate-env', () => {
 
       const env = loadEnvFromContent(envContent, null, {});
       const allVars = getVarsForMode(false);
-      const { present, missing, optional } = classifyEnvVars(env, allVars);
+      const { present, missing } = classifyEnvVars(env, allVars);
 
       expect(present).toContain('VITE_SUPABASE_URL');
-      expect(present).toContain('VITE_SUPABASE_ANON_KEY');
       expect(present).toContain('VITE_GOOGLE_MAPS_API_KEY');
       expect(present).toContain('VITE_ENABLE_DEMO_MODE');
       expect(missing).toHaveLength(0);
@@ -515,7 +401,6 @@ describe('validate-env', () => {
       const { present, missing } = classifyEnvVars(env, allVars);
 
       expect(present).toContain('VITE_SUPABASE_URL');
-      expect(missing.map(m => m.name)).toContain('VITE_SUPABASE_ANON_KEY');
       expect(missing.map(m => m.name)).toContain('VITE_GOOGLE_MAPS_API_KEY');
     });
   });

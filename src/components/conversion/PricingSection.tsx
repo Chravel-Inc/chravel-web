@@ -23,6 +23,7 @@ import {
   PartyPopper,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { createCheckoutSession } from '@/billing/checkout';
 import {
   detectNativeBillingPlatform,
   isIOSNativeShell,
@@ -346,10 +347,11 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
         typeof navigator === 'undefined'
           ? 'web'
           : detectNativeBillingPlatform(navigator.userAgent || '', isNativeWebView());
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { tier: passId, purchase_type: 'pass', platform: billingPlatform },
+      const data = await createCheckoutSession({
+        tier: passId,
+        purchase_type: 'pass',
+        platform: billingPlatform,
       });
-      if (error) throw error;
       if (data?.url) window.open(data.url, '_blank');
     } catch (err) {
       console.error('Trip Pass checkout error:', err);

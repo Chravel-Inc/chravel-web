@@ -6,17 +6,18 @@ the delete later.
 
 ## End-to-end flow
 
-1. **UI (Consumer Settings):** `src/components/consumer/ConsumerGeneralSettings.tsx`
+1. **UI (Consumer Settings):** `src/components/consumer/DeleteAccountDialog.tsx`
    - User opens the Delete Account dialog.
-   - Types `delete` (case-insensitive) in the confirmation input.
-   - Email/password accounts must re-enter their password; OAuth-only accounts
-     (Google / Apple) are verified by their active session.
+   - Types `delete` (case-insensitive) in the confirmation input. No password
+     is required — the active Supabase session JWT authorizes the deletion for
+     every auth provider (email/password, Google, Apple).
    - Clicks **Delete Account Permanently**.
    - A `window.confirm()` modal appears with a final, explicit warning:
      *"This will IMMEDIATELY and PERMANENTLY delete your Chravel account…
      There is NO 30-day grace period. There is NO way to recover this account
      or its data after you click OK."*
    - Only after the user clicks **OK** does the client call the edge function.
+
 2. **Client wrapper:** `src/lib/accountDeletion.ts → deleteAccountImmediately()`
    - Calls `POST /functions/v1/delete-account` with the user's JWT and a
      `{ confirmation: 'DELETE' }` body.

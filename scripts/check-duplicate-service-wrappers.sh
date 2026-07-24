@@ -8,4 +8,15 @@ if [[ -n "$DUPES" ]]; then
   exit 1
 fi
 
+# Billing edge functions (create-checkout / customer-portal) were invoked inline
+# from 6+ components with copy-pasted boilerplate. They now have one home in
+# src/billing/checkout.ts — forbid new inline callers outside it (tests excluded).
+BILLING=$(rg -n "functions\.invoke\('(create-checkout|customer-portal)'" src -g '!**/*.test.*' | rg -v "src/billing/" || true)
+if [[ -n "$BILLING" ]]; then
+  echo "Direct billing edge-function call detected. Use src/billing/checkout.ts"
+  echo "(createCheckoutSession / openCustomerPortal) instead:"
+  echo "$BILLING"
+  exit 1
+fi
+
 echo "No duplicate endpoint wrappers detected."
