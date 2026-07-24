@@ -451,6 +451,15 @@ Lets you flip back to the previous endpoint without touching UI state logic.
 ### Explicit `reconnecting` state prevents misleading voice UX
 "Connected" + "Disconnected" is a false dichotomy; the third state is real.
 
+### A PR's CI runs against the *merge* commit, so base-branch drift shows up as red on your PR
+Checks like Unified Drift and gitleaks evaluate your branch merged into `main`, so a defect that already exists on `main` (a duplicate migration timestamp, a fake-secret fixture missing an allowlist entry) fails *your* PR even though your diff never touched it. Confirm ownership with `git diff origin/main -- <path>` before hunting in your own changes; if the failing item isn't in your diff, fix it as a standalone `ci:` commit — it unblocks every other open PR too. *Evidence: PR #855 inherited two reds from `main`, neither in the branch diff.*
+
+### A duplicate migration timestamp on already-applied migrations is grandfathered via `--update-baseline`, never renamed
+When the migration-integrity drift check flags a NEW duplicate `YYYYMMDDHHMMSS` shared by two migrations already shipped to prod, you cannot rename either file — renaming an applied migration rewrites history and risks re-application. Run the sanctioned baseline update (`npx tsx scripts/drift/… --update-baseline`) to grandfather exactly that timestamp, then commit the regenerated `scripts/drift/migration-drift-baseline.json`. *Evidence: PR #855 — `20260723190000` shared by `_dismiss_join_request_active_admin` + `_pin_trip_cover_editors_update_policy`; baseline duplicate count 23 → 24.*
+
+### `.gitleaksignore` allowlisting is per-`path:rule:line` fingerprint — a partly-ignored file is not wholly exempt
+A fake test fixture added on a NEW line fails the secret scan even when the same file already has other lines allowlisted. Add the specific `path:<rule-id>:<line>` fingerprint (rule id from the gitleaks finding, e.g. `generic-api-key`), and keep any sample value quoted in the surrounding comment truncated/masked so the comment itself doesn't become a finding. *Evidence: PR #855 — `scripts/__tests__/validate-env.test.ts:382` (placeholder Maps key) failed while lines 494/495 in the same file were already ignored.*
+
 ---
 
 ## Auditing & Dead-Code Removal
