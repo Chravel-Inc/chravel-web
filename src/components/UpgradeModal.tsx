@@ -13,7 +13,7 @@ import {
   Phone,
 } from 'lucide-react';
 import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
-import { supabase } from '@/integrations/supabase/client';
+import { createCheckoutSession } from '@/billing/checkout';
 import {
   detectNativeBillingPlatform,
   isIOSNativeShell,
@@ -87,14 +87,10 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
     } else if (selectedPlan === 'travel-pro') {
       // Handle Travel Pro upgrade - use Pro Starter by default
       try {
-        const { data, error } = await supabase.functions.invoke('create-checkout', {
-          body: {
-            tier: 'pro-starter',
-            platform: detectNativeBillingPlatform(navigator.userAgent || '', isNativeWebView()),
-          },
+        const data = await createCheckoutSession({
+          tier: 'pro-starter',
+          platform: detectNativeBillingPlatform(navigator.userAgent || '', isNativeWebView()),
         });
-
-        if (error) throw error;
 
         if (data.url) {
           window.open(data.url, '_blank');

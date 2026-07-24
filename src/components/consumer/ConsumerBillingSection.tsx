@@ -6,6 +6,7 @@ import { CONSUMER_PRICE_DISPLAY, TRIP_PASS_DISPLAY } from '@/billing/pricingDisp
 import { BILLING_PRODUCTS } from '@/billing/config';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
+import { createCheckoutSession, openCustomerPortal } from '@/billing/checkout';
 import { toast } from 'sonner';
 import { detectNativeBillingPlatform, isNativeWebView } from '@/utils/platformDetection';
 import {
@@ -58,8 +59,7 @@ export const ConsumerBillingSection = () => {
       return;
     }
     try {
-      const { data, error } = await supabase.functions.invoke('customer-portal');
-      if (error) throw error;
+      const data = await openCustomerPortal();
 
       // Handle case where user has no Stripe subscription history
       if (data?.error === 'no_subscription') {
@@ -97,8 +97,7 @@ export const ConsumerBillingSection = () => {
     if (!confirmed) return;
 
     try {
-      const { data, error } = await supabase.functions.invoke('customer-portal');
-      if (error) throw error;
+      const data = await openCustomerPortal();
 
       // Handle case where user has no Stripe subscription history
       if (data?.error === 'no_subscription') {
@@ -140,11 +139,7 @@ export const ConsumerBillingSection = () => {
       return;
     }
     try {
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { tier: planKey },
-      });
-
-      if (error) throw error;
+      const data = await createCheckoutSession({ tier: planKey });
 
       if (data?.url) {
         window.open(data.url, '_blank');
@@ -200,10 +195,11 @@ export const ConsumerBillingSection = () => {
         toast.error('Please sign in to purchase a Trip Pass');
         return;
       }
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { tier: passId, purchase_type: 'pass', platform: 'web' },
+      const data = await createCheckoutSession({
+        tier: passId,
+        purchase_type: 'pass',
+        platform: 'web',
       });
-      if (error) throw error;
       if (data?.url) {
         window.open(data.url, '_blank');
       } else {
