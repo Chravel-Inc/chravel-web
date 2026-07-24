@@ -5344,6 +5344,10 @@ export type Database = {
         }
       }
       approve_join_request: { Args: { _request_id: string }; Returns: Json }
+      accept_organization_invite_secure: {
+        Args: { p_token: string }
+        Returns: Json
+      }
       assign_org_seat: {
         Args: { _member_id: string; _org_id: string; _seat_key: string }
         Returns: {
@@ -5908,6 +5912,15 @@ export type Database = {
         Returns: Json
       }
       unsettle_payment_split: { Args: { p_split_id: string }; Returns: Json }
+      update_payment_message_atomic: {
+        Args: {
+          p_amount?: number | null
+          p_description?: string | null
+          p_expected_version: number
+          p_payment_id: string
+        }
+        Returns: Json
+      }
       update_agenda_item_with_version: {
         Args: {
           p_current_version: number

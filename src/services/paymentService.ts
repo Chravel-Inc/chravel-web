@@ -6,7 +6,7 @@ import { isDemoTrip } from '@/utils/demoUtils';
 import { toAppPayment } from '@/lib/adapters/paymentAdapter';
 import { FEATURE_LIMITS } from '@/billing/entitlements';
 import { resolveEffectiveTier } from './entitlementService';
-import { distributeEqualSplitCents, validateCustomAmountMap } from '@/lib/splitAmountUtils';
+import { validateCustomAmountMap } from '@/lib/splitAmountUtils';
 
 /**
  * Payment service — trip P2P create/settle paths.
@@ -511,65 +511,33 @@ export const paymentService = {
     updates: { amount?: number; description?: string },
   ): Promise<boolean> {
     try {
-      // Read the current row first: its version drives optimistic locking and its
-      // split_count drives the proportional split recalculation.
+      // Read the current row first so the atomic RPC can preserve the existing
+      // optimistic-lock contract (latest writer wins only when the caller is
+      // editing the current version).
       const { data: current, error: readError } = await supabase
         .from('trip_payment_messages')
-        .select('version, split_count')
+        .select('version')
         .eq('id', paymentId)
         .single();
 
       if (readError || !current) throw readError ?? new Error('Payment not found');
 
       const expectedVersion = current.version ?? 1;
-
-      const updateData: Record<string, unknown> = {};
-      if (updates.amount !== undefined) updateData.amount = updates.amount;
-      if (updates.description !== undefined) updateData.description = updates.description;
-      updateData.updated_at = new Date().toISOString();
-      updateData.version = expectedVersion + 1;
-
-      // Optimistic lock: the update only matches if no concurrent edit bumped the
-      // version since our read. A 0-row result means another writer won the race.
-      const { data: updated, error } = await supabase
-        .from('trip_payment_messages')
-        .update(updateData)
-        .eq('id', paymentId)
-        .eq('version', expectedVersion)
-        .select('id');
+      const { data, error } = await (supabase.rpc as any)('update_payment_message_atomic', {
+        p_payment_id: paymentId,
+        p_expected_version: expectedVersion,
+        p_amount: updates.amount ?? null,
+        p_description: updates.description ?? null,
+      });
 
       if (error) throw error;
-      if (!updated || updated.length === 0) {
-        if (import.meta.env.DEV)
+
+      const payload = (data ?? {}) as { success?: boolean; reason?: string };
+      if (!payload.success) {
+        if (import.meta.env.DEV && payload.reason === 'VERSION_CONFLICT') {
           console.warn('updatePaymentMessage: version conflict — edit rejected');
-        return false;
-      }
-
-      // If the total changed, redistribute across UNSETTLED splits only. Settled
-      // participants already paid their agreed share; their amount_owed must not be
-      // overwritten (doing so corrupts the settled ledger).
-      if (updates.amount !== undefined) {
-        const { data: unsettledSplits, error: splitsReadError } = await supabase
-          .from('payment_splits')
-          .select('id')
-          .eq('payment_message_id', paymentId)
-          .eq('is_settled', false)
-          .order('created_at', { ascending: true });
-
-        if (splitsReadError) throw splitsReadError;
-
-        const splitCount = unsettledSplits?.length ?? 0;
-        if (splitCount > 0) {
-          const shares = distributeEqualSplitCents(updates.amount, splitCount);
-          await Promise.all(
-            (unsettledSplits ?? []).map((split, index) =>
-              supabase
-                .from('payment_splits')
-                .update({ amount_owed: shares[index] })
-                .eq('id', split.id),
-            ),
-          );
         }
+        return false;
       }
 
       return true;
