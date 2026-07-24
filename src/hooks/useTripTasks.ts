@@ -11,6 +11,7 @@ import { cacheEntity, getCachedEntities } from '@/offline/cache';
 import { taskEvents } from '@/telemetry/events';
 import { useMutationPermissions } from '@/hooks/useMutationPermissions';
 import { systemMessageService } from '@/services/systemMessageService';
+import { tripKeys } from '@/lib/queryKeys';
 
 const resolveActorName = (
   user: { displayName?: string | null; email?: string | null } | null | undefined,
@@ -234,7 +235,7 @@ export const useTripTasks = (
 
         await statusWrite;
 
-        queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
+        queryClient.invalidateQueries({ queryKey: tripKeys.tasks(tripId, isDemoMode) });
         return true;
       } catch (error) {
         if (import.meta.env.DEV) console.error('Failed to assign task:', error);
@@ -371,7 +372,7 @@ export const useTripTasks = (
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'trip_tasks', filter: `trip_id=eq.${tripId}` },
-          () => queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] }),
+          () => queryClient.invalidateQueries({ queryKey: tripKeys.tasks(tripId, isDemoMode) }),
         )
         .subscribe();
       return () => {
@@ -380,7 +381,7 @@ export const useTripTasks = (
     }
 
     const unsub1 = hubInstance.subscribe('trip_tasks', '*', (payload: Record<string, unknown>) => {
-      queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
+      queryClient.invalidateQueries({ queryKey: tripKeys.tasks(tripId, isDemoMode) });
       if (payload.eventType === 'INSERT') {
         const newRecord = payload.new as Record<string, unknown> | undefined;
         toast({
@@ -391,7 +392,7 @@ export const useTripTasks = (
       }
     });
     const unsub2 = hubInstance.subscribe('task_status', '*', () => {
-      queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
+      queryClient.invalidateQueries({ queryKey: tripKeys.tasks(tripId, isDemoMode) });
     });
     return () => {
       unsub1();
@@ -400,7 +401,7 @@ export const useTripTasks = (
   }, [tripId, isDemoMode, queryClient, toast]);
 
   const tasksQuery = useQuery({
-    queryKey: ['tripTasks', tripId, isDemoMode],
+    queryKey: tripKeys.tasks(tripId, isDemoMode),
     staleTime: 30 * 1000, // 30 seconds - tasks change moderately
     gcTime: 5 * 60 * 1000, // Keep in cache 5 min for instant tab switching
     queryFn: async (): Promise<TripTask[]> => {
@@ -550,8 +551,10 @@ export const useTripTasks = (
       // Skip optimistic update for demo/offline paths — they have their own handling
       if (isDemoMode || !user || !navigator.onLine) return undefined;
 
-      await queryClient.cancelQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
-      const previousTasks = queryClient.getQueryData<TripTask[]>(['tripTasks', tripId, isDemoMode]);
+      await queryClient.cancelQueries({ queryKey: tripKeys.tasks(tripId, isDemoMode) });
+      const previousTasks = queryClient.getQueryData<TripTask[]>(
+        tripKeys.tasks(tripId, isDemoMode),
+      );
 
       const optimisticId = `optimistic-task-${Date.now()}`;
       const now = new Date().toISOString();
@@ -569,7 +572,7 @@ export const useTripTasks = (
         task_status: [{ task_id: optimisticId, user_id: user.id, completed: false }],
       };
 
-      queryClient.setQueryData<TripTask[]>(['tripTasks', tripId, isDemoMode], old => [
+      queryClient.setQueryData<TripTask[]>(tripKeys.tasks(tripId, isDemoMode), old => [
         optimisticTask,
         ...(old || []),
       ]);
@@ -732,7 +735,7 @@ export const useTripTasks = (
     onError: (error: Error, _variables, context) => {
       // Rollback optimistic update on failure (unless offline-queued)
       if (context?.previousTasks && !error.message?.includes('OFFLINE:')) {
-        queryClient.setQueryData(['tripTasks', tripId, isDemoMode], context.previousTasks);
+        queryClient.setQueryData(tripKeys.tasks(tripId, isDemoMode), context.previousTasks);
       }
 
       // Provide specific error messages
@@ -771,7 +774,7 @@ export const useTripTasks = (
     },
     onSettled: () => {
       // Always reconcile with server truth after mutation completes
-      queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
+      queryClient.invalidateQueries({ queryKey: tripKeys.tasks(tripId, isDemoMode) });
     },
   });
 
@@ -779,10 +782,12 @@ export const useTripTasks = (
     onMutate: async ({ taskId, title, description, due_at, is_poll }: UpdateTaskRequest) => {
       if (isDemoMode || !user) return undefined;
 
-      await queryClient.cancelQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
-      const previousTasks = queryClient.getQueryData<TripTask[]>(['tripTasks', tripId, isDemoMode]);
+      await queryClient.cancelQueries({ queryKey: tripKeys.tasks(tripId, isDemoMode) });
+      const previousTasks = queryClient.getQueryData<TripTask[]>(
+        tripKeys.tasks(tripId, isDemoMode),
+      );
 
-      queryClient.setQueryData<TripTask[]>(['tripTasks', tripId, isDemoMode], old => {
+      queryClient.setQueryData<TripTask[]>(tripKeys.tasks(tripId, isDemoMode), old => {
         if (!old) return old;
         return old.map(task =>
           task.id === taskId
@@ -830,7 +835,7 @@ export const useTripTasks = (
       }
 
       // Read current version from cache for optimistic locking
-      const cachedTasks = queryClient.getQueryData<TripTask[]>(['tripTasks', tripId, isDemoMode]);
+      const cachedTasks = queryClient.getQueryData<TripTask[]>(tripKeys.tasks(tripId, isDemoMode));
       const cachedTask = cachedTasks?.find(t => t.id === taskId);
       const currentVersion = (cachedTask as TripTask & { version?: number })?.version ?? undefined;
 
@@ -928,7 +933,7 @@ export const useTripTasks = (
     },
     onError: (error: Error, _variables, context) => {
       if (context?.previousTasks) {
-        queryClient.setQueryData(['tripTasks', tripId, isDemoMode], context.previousTasks);
+        queryClient.setQueryData(tripKeys.tasks(tripId, isDemoMode), context.previousTasks);
       }
 
       const errMsg = error.message || '';
@@ -945,7 +950,7 @@ export const useTripTasks = (
           variant: 'destructive',
         });
         // Refetch to get latest version
-        queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
+        queryClient.invalidateQueries({ queryKey: tripKeys.tasks(tripId, isDemoMode) });
       } else {
         toast({
           title: 'Error Updating Task',
@@ -956,7 +961,7 @@ export const useTripTasks = (
     },
     onSettled: () => {
       // Reconcile with server truth (same pattern as toggleTaskMutation)
-      queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
+      queryClient.invalidateQueries({ queryKey: tripKeys.tasks(tripId, isDemoMode) });
     },
   });
 
@@ -1063,11 +1068,13 @@ export const useTripTasks = (
     },
     onMutate: async ({ taskId, completed }) => {
       // Optimistic update - use correct query key with isDemoMode
-      await queryClient.cancelQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
+      await queryClient.cancelQueries({ queryKey: tripKeys.tasks(tripId, isDemoMode) });
 
-      const previousTasks = queryClient.getQueryData<TripTask[]>(['tripTasks', tripId, isDemoMode]);
+      const previousTasks = queryClient.getQueryData<TripTask[]>(
+        tripKeys.tasks(tripId, isDemoMode),
+      );
 
-      queryClient.setQueryData<TripTask[]>(['tripTasks', tripId, isDemoMode], old => {
+      queryClient.setQueryData<TripTask[]>(tripKeys.tasks(tripId, isDemoMode), old => {
         if (!old) return old;
 
         return old.map(task => {
@@ -1117,7 +1124,7 @@ export const useTripTasks = (
       }
       // Inline activity update — only on completion (uncompleting is noise)
       if (!isDemoMode && variables.completed) {
-        const cached = queryClient.getQueryData<TripTask[]>(['tripTasks', tripId, isDemoMode]);
+        const cached = queryClient.getQueryData<TripTask[]>(tripKeys.tasks(tripId, isDemoMode));
         const task = cached?.find(t => t.id === variables.taskId);
         if (task?.title) {
           void systemMessageService.taskCompleted(
@@ -1135,7 +1142,7 @@ export const useTripTasks = (
 
       // Rollback on error (unless it's an offline queue operation)
       if (context?.previousTasks && !errMessage.includes('OFFLINE:')) {
-        queryClient.setQueryData(['tripTasks', tripId, isDemoMode], context.previousTasks);
+        queryClient.setQueryData(tripKeys.tasks(tripId, isDemoMode), context.previousTasks);
       }
 
       // Provide specific error messages
@@ -1167,7 +1174,7 @@ export const useTripTasks = (
       });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
+      queryClient.invalidateQueries({ queryKey: tripKeys.tasks(tripId, isDemoMode) });
     },
   });
 
@@ -1199,7 +1206,7 @@ export const useTripTasks = (
     },
     onSuccess: (_data: unknown, taskId: string) => {
       taskEvents.deleted(tripId, taskId);
-      queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
+      queryClient.invalidateQueries({ queryKey: tripKeys.tasks(tripId, isDemoMode) });
       toast({
         title: 'Task deleted',
         description: 'The task has been removed.',
@@ -1219,7 +1226,7 @@ export const useTripTasks = (
   const loadAllTasks = useCallback(() => {
     if (!showAllTasks && !tasksQuery.isLoading) {
       setShowAllTasks(true);
-      queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
+      queryClient.invalidateQueries({ queryKey: tripKeys.tasks(tripId, isDemoMode) });
     }
   }, [showAllTasks, tasksQuery.isLoading, queryClient, tripId, isDemoMode]);
 
