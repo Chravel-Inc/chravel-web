@@ -27,9 +27,15 @@ production data or protected files.
 | P1 (confirmed, user-facing) | 1 |
 | P2 | 6 |
 | P3 | 4 |
-| Fixed / gated in this branch | 4 |
-| Quarantined (needs a human config.toml change) | 2 |
-| Deferred with paste-ready follow-ups | 5 |
+| Fixed / gated in this branch | 9 |
+| Quarantined (needs a human config.toml change) | 2 (DRIFT-01, DRIFT-02) |
+| Deferred (needs human review, not a code fix) | 1 (DRIFT-03) |
+
+**Update (this branch now also reconciles the src-level drift):** DRIFT-07
+through DRIFT-11 — originally deferred — are now fixed and verified. Only the two
+`config.toml` items (DRIFT-01/02) remain, because that file is hard-blocked by
+the `protect-sensitive-files.sh` hook; and DRIFT-03 (public-endpoint review) is a
+human judgment call, not a code change.
 
 **Highest-risk confirmed drift:** `revenuecat-webhook` has no `config.toml`
 block, so a CLI deploy gates it with `verify_jwt = true` even though RevenueCat
@@ -51,10 +57,10 @@ be verified here are reported as **skipped**, never as passing.
 | DB schema → TS types | `src/integrations/supabase/types.ts` (generated) | `check-schema-drift.ts` → `drift:schema` | Strong (column-level) |
 | Applied migration order | `supabase/migrations/` (forward-only) | `check-migration-drift.mjs` → `drift:migrations` | **New** — blocks new collisions |
 | Edge-function auth | `supabase/config.toml` | `check-edge-function-parity.mjs` → `drift:functions` | **New** — orphans + webhook gaps |
-| Edge env vars | `.env.example` / `.env.production.example` | `check-env-coverage.ts` → `drift:env-coverage` | Good (non-strict in CI) |
-| Roles / permissions | `config/permission-matrix.json` | `check-permission-matrix-drift.mjs` → `permissions:drift` | Strong (`.ts`; `.sql` gap — DRIFT-11) |
-| Query keys | `src/lib/queryKeys.ts` (`tripKeys`) | `store-query-ownership-guard.cjs` (notifications only) | Weak (DRIFT-08) |
-| DAL boundary | `src/services/dal/` | `check-duplicate-service-wrappers.sh` → `lint:dal` | Narrow (2 endpoints — DRIFT-09) |
+| Edge env vars | `.env.example` / `.env.production.example` | `check-env-coverage.ts` → `drift:env-coverage` | Strong (`--strict`; all documented — DRIFT-07 fixed) |
+| Roles / permissions | `config/permission-matrix.json` | `check-permission-matrix-drift.mjs` → `permissions:drift` | Strong (all 3 artifacts — DRIFT-11 fixed) |
+| Query keys | `src/lib/queryKeys.ts` (`tripKeys`) | `check-query-key-ownership.mjs` → `drift:query-keys` | Strong (consolidated + guard — DRIFT-08 fixed) |
+| DAL boundary | `src/services/dal/`, `src/billing/checkout.ts` | `check-duplicate-service-wrappers.sh` → `lint:dal` | Improved (billing consolidated + guard — DRIFT-09 fixed) |
 | Env presence | `scripts/validate-env.ts` manifest | `validate-env.ts --ci` | Good (external) |
 | Billing / entitlements | `src/billing/config.ts` + store manifests | `validate-iap-parity.mjs` → `iap:parity` | Strong |
 | Stream config | Stream dashboard + Supabase secrets | `check-stream-config-parity.cjs` → `ops:check-stream-parity` | External (skipped w/o creds) |
@@ -66,7 +72,7 @@ be verified here are reported as **skipped**, never as passing.
 
 ## The unified gate: `npm run drift:check`
 
-Read-only orchestrator (`scripts/drift-check.mjs`). Runs 7 local checks always,
+Read-only orchestrator (`scripts/drift-check.mjs`). Runs 8 local checks always,
 and 2 external checks only when their credentials are present — otherwise it
 reports them **skipped (not verified)** so it never falsely claims parity.
 
@@ -74,9 +80,10 @@ reports them **skipped (not verified)** so it never falsely claims parity.
 ✅ Supabase schema ↔ generated types
 ✅ Migration integrity (duplicate timestamps / naming)
 ✅ Edge function ↔ config.toml auth parity
-✅ Edge Deno.env vars documented
+✅ Edge Deno.env vars documented (--strict)
 ✅ Permission matrix (frontend ↔ edge ↔ SQL)
 ✅ Duplicate service-wrapper (DAL boundary)
+✅ Query-key ownership (tripKeys factory)
 ✅ IAP/billing parity (code ↔ ASC ↔ Play)
 ⏭️  Stream config parity            (skipped — Stream secrets not present)
 ⏭️  Required environment variables  (skipped — VITE_* env not present)
@@ -96,6 +103,7 @@ reports them **skipped (not verified)** so it never falsely claims parity.
 | `drift:check` | Unified orchestrator (all checks) |
 | `drift:functions` | Edge-function ↔ config.toml parity |
 | `drift:migrations` | Migration integrity (duplicate timestamps) |
+| `drift:query-keys` | Query keys must come from the `tripKeys` factory |
 | `drift:schema` | Alias for `check-schema-drift.ts` (was CI-only) |
 | `drift:env-coverage` | Alias for `check-env-coverage.ts` (was CI-only) |
 | `db:types` | Canonical Supabase types regen (`--linked`) |
@@ -122,11 +130,11 @@ reports them **skipped (not verified)** so it never falsely claims parity.
 | DRIFT-04 | P2 | 23 duplicate migration timestamps | **Gated** (new ones blocked) |
 | DRIFT-05 | P2 | Fragmented checks / missing CI coverage | **Fixed** |
 | DRIFT-06 | P3 | `types.ts` no banner / regen not wired | **Fixed** (`db:types`) |
-| DRIFT-07 | P2 | 2 undocumented VERTEX env vars (strict) | Deferred |
-| DRIFT-08 | P2 | Query keys bypass the `tripKeys` factory | Deferred |
-| DRIFT-09 | P2 | Components bypass the DAL boundary | Deferred |
-| DRIFT-10 | P3 | `validate-env.test.ts` never runs in vitest | Deferred |
-| DRIFT-11 | P3 | Permission-matrix `.sql` output not drift-checked | Deferred |
+| DRIFT-07 | P2 | 36 undocumented edge env vars; parser ignored `# KEY` docs | **Fixed** (parser + docs + `--strict`) |
+| DRIFT-08 | P2 | Query keys bypass the `tripKeys` factory | **Fixed** (consolidated + `drift:query-keys` guard) |
+| DRIFT-09 | P2 | `create-checkout`/`customer-portal` invoked inline ×8 | **Fixed** (`src/billing/checkout.ts` + `lint:dal`) |
+| DRIFT-10 | P3 | `validate-env.test.ts` never runs in vitest | **Fixed** (imports real specs + vitest glob) |
+| DRIFT-11 | P3 | Permission-matrix `.sql` output not drift-checked | **Fixed** (checker covers all 3 artifacts) |
 
 ---
 
@@ -148,44 +156,35 @@ so the gate confirms the reconciliation.
 
 ---
 
-## Deferred backlog — paste-ready follow-up prompts
+## Reconciled in this branch (DRIFT-07 – DRIFT-11)
 
-**DRIFT-07 — env-coverage `--strict`:**
-> Document `VERTEX_PROJECT_ID` and `VERTEX_SERVICE_ACCOUNT_KEY` as parseable
-> `KEY=` entries in `.env.production.example` (they're used in
-> `supabase/functions/_shared/fcmV1.ts`), then change `drift:env-coverage` and
-> the drift-check orchestrator to run `check-env-coverage.ts --strict`. Confirm
-> `npm run drift:check` stays green.
+All five originally-deferred findings were fixed and verified (typecheck + the
+affected tests + `drift:check`), each as its own commit:
 
-**DRIFT-08 — query-key factory enforcement:**
-> Extend `src/lib/queryKeys.ts` (`tripKeys`) to cover the slices currently hand-
-> written inline (tasks, links, places, broadcasts, pendingActions, feature
-> flags, concierge usage, proTrips, events). Migrate the hooks in
-> `src/hooks/` and `src/features/` off inline array keys, then generalize
-> `scripts/qa/store-query-ownership-guard.cjs` into a lint that fails on inline
-> trip-scoped keys. Keep invalidation behavior identical; verify with the
-> existing tripKeys test.
+- **DRIFT-07** — aligned `check-env-coverage.ts` to the repo's `# KEY` comment-doc
+  convention (false undocumented 61 → 36), documented the 36 truly-missing edge
+  env vars, and enabled `--strict`.
+- **DRIFT-08** — migrated every inline trip-scoped query key onto `tripKeys`
+  (proven byte-identical no-ops; fixed one real optimistic-update key mismatch in
+  `TripLinksDisplay`), and added the `drift:query-keys` ownership guard.
+- **DRIFT-09** — consolidated `create-checkout` (×6) and `customer-portal` (×2)
+  into `src/billing/checkout.ts` (behavior-preserving), and extended `lint:dal`
+  to block new inline callers.
+- **DRIFT-10** — made `validate-env.test.ts` import the real spec arrays (it had
+  drifted) and run under vitest; guarded `validate-env.ts`'s CLI with an
+  entry-point check, CLI output proven byte-identical.
+- **DRIFT-11** — `check-permission-matrix-drift.mjs` now regenerates and diffs all
+  three generated artifacts (2 `.ts` + the RLS `.sql`).
 
-**DRIFT-09 — DAL boundary lint:**
-> Add an ESLint `no-restricted-syntax` rule (or extend
-> `check-duplicate-service-wrappers.sh`) that flags `supabase.from(` /
-> `supabase.functions.invoke(` inside `src/components/**`, with an allowlist for
-> vetted exceptions. Migrate `CreateTripModal`, `ConsumerBillingSection`,
-> `OutstandingPayments`, `TravelCompanySection` onto hooks/services first so the
-> rule lands green.
+## Remaining backlog (not addressed here)
 
-**DRIFT-10 — run the env-validator test:**
-> Add a vitest project/glob for `scripts/__tests__/**` (or a dedicated
-> `test:scripts` script) so `validate-env.test.ts` actually executes, and wire
-> it into CI. Confirm no OOM/perf impact on the sharded suite.
-
-**DRIFT-11 — permission-matrix SQL drift:**
-> Extend `scripts/check-permission-matrix-drift.mjs` to also regenerate and diff
-> `supabase/sql/permission_matrix_allows.generated.sql`, failing on drift, so all
-> three generated artifacts are covered.
-
-**Backlog (no finding yet, noted for completeness):** route registry (routes are
-inline in `src/App.tsx`), design-token lint (no raw-color rule).
+- **DRIFT-03** — human review of the 54 no-config functions' public/webhook
+  subset (`health`, `fetch-og-metadata`, `web-push-send`, `push-notifications`,
+  `get-trip-detail`): trace callers, add explicit `verify_jwt` blocks where public
+  access is required. Not a mechanical fix.
+- **Route registry** — routes are inline in `src/App.tsx`; no canonical registry.
+- **Design-token lint** — no raw-color/spacing enforcement against
+  `tailwind.config.ts` + `src/index.css`.
 
 ---
 
@@ -195,7 +194,7 @@ inline in `src/App.tsx`), design-token lint (no raw-color rule).
 |---|---|---|---|
 | RevenueCat webhook stays JWT-gated until config.toml fixed | Med | Entitlement drift for iOS | DRIFT-01 quarantined + surfaced every run; external action listed |
 | External parity (Stream/env) unverified in this environment | High | Unknown provider drift | drift:check reports as skipped (not passing); enable via CI secrets |
-| Deferred src-level drift (query keys, DAL) persists | Med | Stale UI / inconsistent error handling | Paste-ready follow-ups above; both are detection-first, low-blast-radius |
+| Billing consolidation touches payment components with thin test coverage | Low | Checkout regression | DRIFT-09 was a behavior-preserving mechanical extraction (helper replicates invoke+throw exactly); verified by typecheck, lint, UpgradeModal/SettingsMenu tests |
 | Live schema vs migrations not compared here (no DB creds) | High | Remote-only objects undetected | `supabase db diff --linked` in a secured CI job (future); `check-schema-drift` covers code↔types today |
 
 ---

@@ -87,7 +87,7 @@
       "securityImpact": "Parity checks (auth-sensitive) not consistently enforced pre-merge.",
       "confidence": "HIGH",
       "likelyOrigin": "Checks added incrementally by different agents without consolidation.",
-      "remediation": "Added scripts/drift-check.mjs (npm run drift:check) orchestrating 7 local checks + 2 external (skipped when creds absent); added .github/workflows/drift-check.yml; added drift:* npm aliases.",
+      "remediation": "Added scripts/drift-check.mjs (npm run drift:check) orchestrating 8 local checks + 2 external (skipped when creds absent); added .github/workflows/drift-check.yml; added drift:* npm aliases.",
       "rollback": "Remove the script/workflow/aliases.",
       "prevention": "The unified gate itself.",
       "status": "FIXED"
@@ -128,8 +128,8 @@
       "likelyOrigin": "Vars documented descriptively rather than as KEY= entries.",
       "remediation": "Document the two vars as parseable keys in .env.production.example, then promote drift:env-coverage to --strict. Deferred to avoid mis-signaling the env contract without owner confirmation.",
       "rollback": "N/A.",
-      "prevention": "drift:check runs env-coverage (non-strict, matching CI); follow-up promotes to --strict.",
-      "status": "DEFERRED"
+      "prevention": "drift:env-coverage --strict (in drift:check) fails on any new undocumented edge env var; parser now recognizes the repo's # KEY comment-doc convention.",
+      "status": "FIXED"
     },
     {
       "id": "DRIFT-08",
@@ -146,8 +146,8 @@
       "likelyOrigin": "Factory introduced after many hooks already used inline keys; no enforcement.",
       "remediation": "Extend tripKeys to cover the missing slices and migrate hooks; add a query-key ownership lint. Deferred — touches ~dozen src/** hooks and needs per-hook care (higher regression risk than this control-only PR).",
       "rollback": "N/A.",
-      "prevention": "Follow-up: generalize scripts/qa/store-query-ownership-guard.cjs into a factory-enforcement lint.",
-      "status": "DEFERRED"
+      "prevention": "scripts/drift/check-query-key-ownership.mjs (drift:query-keys) fails on any inline factory-owned query key outside queryKeys.ts.",
+      "status": "FIXED"
     },
     {
       "id": "DRIFT-09",
@@ -164,8 +164,8 @@
       "likelyOrigin": "DAL introduced narrowly; broad enforcement never added.",
       "remediation": "Broaden the DAL guard (or an ESLint no-restricted-syntax rule) to flag direct Supabase calls in src/components. Deferred — needs a triage of legitimate exceptions to avoid breaking the build.",
       "rollback": "N/A.",
-      "prevention": "Follow-up lint rule; drift:check would include it once green.",
-      "status": "DEFERRED"
+      "prevention": "lint:dal now forbids inline create-checkout/customer-portal calls outside src/billing/checkout.ts.",
+      "status": "FIXED"
     },
     {
       "id": "DRIFT-10",
@@ -180,10 +180,10 @@
       "securityImpact": "Low.",
       "confidence": "HIGH",
       "likelyOrigin": "Test added under scripts/ which is outside the vitest include set.",
-      "remediation": "Add a scripts test project/glob to vitest, or run it via a dedicated script. Deferred (vitest config change; verify no perf/OOM impact on the sharded suite).",
-      "rollback": "N/A.",
-      "prevention": "Follow-up.",
-      "status": "DEFERRED"
+      "remediation": "Added scripts/**/__tests__/*.test.ts to the vitest include; rewired the test to import the REAL spec arrays from validate-env.ts (which now exports them + guards its CLI with an entry-point check). CLI output verified byte-identical.",
+      "rollback": "Revert the vitest include line + validate-env exports.",
+      "prevention": "The test now runs in CI and guards the real specs, so spec drift is caught.",
+      "status": "FIXED"
     },
     {
       "id": "DRIFT-11",
@@ -201,10 +201,10 @@
       "securityImpact": "Medium (RLS authorization derived from the matrix).",
       "confidence": "HIGH",
       "likelyOrigin": "SQL output added to the generator after the drift checker was written.",
-      "remediation": "Extend check-permission-matrix-drift.mjs to also fail if the .sql regenerates differently. Deferred (small, but modifies an auth-sensitive checker; warrants focused review).",
-      "rollback": "N/A.",
-      "prevention": "Follow-up.",
-      "status": "DEFERRED"
+      "remediation": "check-permission-matrix-drift.mjs now regenerates and diffs all three generated artifacts (2 .ts + the RLS .sql). Verified: a hand-edit to the generated .sql is now caught (exit 1).",
+      "rollback": "Revert the checker to the two-.ts comparison.",
+      "prevention": "permissions:drift (also in drift:check) fails if any of the 3 generated artifacts drifts from config/permission-matrix.json.",
+      "status": "FIXED"
     }
   ]
 }
