@@ -2,7 +2,7 @@
 
 > **For:** Google Jules, GitHub Copilot, and any other AI coding assistant
 > **Primary Documentation:** See ../CLAUDE.md for complete engineering standards
-> **Quick Reference:** See ../AI_GUIDELINES.md for condensed rules
+> **Quick Reference:** See ../AGENTS.md for condensed cross-tool rules
 
 ---
 
@@ -19,7 +19,7 @@ This project supports multiple AI coding assistants. Each has its own instructio
 | **Lovable** | `../.lovable/instructions.md` | ✅ Configured |
 | **Google Jules** | This file (`.ai/README.md`) | ✅ Configured |
 | **GitHub Copilot** | Context from workspace | ℹ️ Uses project context |
-| **Others** | This file + `../AI_GUIDELINES.md` | ✅ Fallback |
+| **Others** | This file + `../AGENTS.md` | ✅ Fallback |
 
 ---
 
@@ -193,6 +193,12 @@ npm run validate     # Run all checks: lint + typecheck + format
 npm run test         # Run Vitest tests
 ```
 
+### Branching & Releases
+- Short-lived `feature/*`·`fix/*`·`docs/*`·`refactor/*`·`chore/*` branches from a **fresh `main`** → PR → merge. **No `develop` branch.** Merging `main` **auto-deploys to production**.
+- **Deploy ≠ release:** merge risky features **flagged OFF** (`useFeatureFlag(key, false)`), then roll out to a subset of users by flipping the flag — not by branching.
+- **Lovable's two-way sync owns `main`** (auto-commits + applies its own migrations to the one prod DB). Keep branches short; **never `supabase db push`**.
+- Full guide: **`../docs/BRANCHING_AND_ROLLOUTS.md`** · `../CLAUDE.md` § Branching & Release Workflow.
+
 ---
 
 ## 🎯 COMMON PATTERNS (Quick Reference)
@@ -243,7 +249,7 @@ const handleClick = useCallback((id: string) => {
 ## 🔗 DOCUMENTATION HIERARCHY
 
 1. **../CLAUDE.md** ← Start here (most comprehensive)
-2. **../AI_GUIDELINES.md** ← Quick reference
+2. **../AGENTS.md** ← Cross-tool agent rules
 3. **../.cursorrules** ← Cursor-specific
 4. **../.lovable/instructions.md** ← Lovable-specific
 5. **.ai/README.md** ← This file (universal fallback)

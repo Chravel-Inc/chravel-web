@@ -67,6 +67,9 @@ const AdminDashboard = lazy(() =>
   ),
 );
 const SeoDashboard = lazy(() => retryImport(() => import('./pages/admin/SeoDashboard')));
+const FeatureFlagsDashboard = lazy(() =>
+  retryImport(() => import('./pages/admin/FeatureFlagsDashboard')),
+);
 const OrganizationDashboard = lazy(() =>
   retryImport(() =>
     import('./pages/OrganizationDashboard').then(module => ({
@@ -794,6 +797,16 @@ const App = () => {
                             <LazyRoute>
                               <InternalAdminRoute>
                                 <SeoDashboard />
+                              </InternalAdminRoute>
+                            </LazyRoute>
+                          }
+                        />
+                        <Route
+                          path="/admin/feature-flags"
+                          element={
+                            <LazyRoute>
+                              <InternalAdminRoute>
+                                <FeatureFlagsDashboard />
                               </InternalAdminRoute>
                             </LazyRoute>
                           }

@@ -76,9 +76,11 @@ chore: update dependencies to latest versions
 
 ### TypeScript
 
-- `"strict": true` is enforced
+- App code runs with `"strict": false` (`tsconfig.app.json`); only the build/node
+  config (`tsconfig.node.json`) uses `"strict": true`. Don't assume strict-null
+  checking in app code — guard nullables explicitly.
 - All function parameters and return types must be explicitly typed
-- No `any` types unless interfacing with untyped third-party libs (comment why)
+- No `any` types unless interfacing with untyped third-party libs (comment why); prefer `unknown` for dynamic data
 
 ### React Patterns
 

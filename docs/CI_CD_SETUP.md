@@ -161,53 +161,52 @@ git push
 
 ### Branch Strategy
 
-**Main Branch (`main`):**
-- Production-ready code only
-- Protected branch (requires PR approval)
-- CI must pass before merge
-- Deploys to production automatically (if configured)
+> **Reality check (2026-07):** this project is **trunk-based** — there is **no
+> `develop` branch and no staging environment**. An earlier draft of this doc
+> described both; they were never created (the Release Engineering Constitution
+> still marks staging "TO CREATE"). Canonical guide:
+> [`BRANCHING_AND_ROLLOUTS.md`](BRANCHING_AND_ROLLOUTS.md).
 
-**Development Branch (`develop`):**
-- Active development
-- Feature branches merge here first
-- CI must pass before merge
-- Deploys to staging environment
+**Main Branch (`main`):**
+- The single long-lived branch and source of truth.
+- **Merging to `main` auto-deploys to production** (no approval gate) and is
+  read/written by Lovable's two-way GitHub sync.
+- CI must pass before merge.
 
 **Feature Branches:**
-- Created from `develop`
-- Naming: `feat/feature-name`, `fix/bug-name`
-- CI runs on all pushes
-- Merge to `develop` via PR
+- Branched from a *fresh* `main`: `feature/*`, `fix/*`, `docs/*`, `refactor/*`, `chore/*`.
+- Keep them short-lived (hours–days) — Lovable commits to `main` continuously, so
+  long branches drift. CI runs on every push.
+- Merge back to `main` via PR. Gate unfinished features behind a feature flag
+  (**deploy ≠ release**) instead of holding a long branch.
 
 ### Pull Request Process
 
-1. **Create Feature Branch**
+1. **Create a feature branch from a fresh `main`**
    ```bash
-   git checkout develop
-   git pull
-   git checkout -b feat/your-feature
+   git checkout main
+   git pull origin main
+   git checkout -b feature/your-feature
    ```
 
-2. **Make Changes & Test Locally**
+2. **Make changes & test locally**
    ```bash
    npm run lint
    npm run typecheck
    npm run build
    ```
 
-3. **Commit & Push**
+3. **Commit & push**
    ```bash
    git add .
    git commit -m "feat: add your feature"
-   git push origin feat/your-feature
+   git push -u origin feature/your-feature
    ```
 
-4. **Open Pull Request**
-   - GitHub will automatically run CI
-   - Wait for green checkmark ✅
-   - Request review from team
-   - Address feedback
-   - Merge when approved and CI passes
+4. **Open a pull request to `main`**
+   - GitHub automatically runs CI; wait for the green checkmark ✅
+   - Request review from team; address feedback
+   - Merge when approved and CI passes — remember this **deploys to production**
 
 ## Troubleshooting CI Failures
 

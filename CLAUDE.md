@@ -142,6 +142,36 @@ Rules layered on top:
 
 3. **Security review is an *additive* gate, never authoritative.** For changes to auth, RLS, the CORS allowlist (`_shared/cors.ts`), edge functions, secret validation, or `superAdmins`, run the built-in `/security-review` and/or the `chravel-supabase-rls` skill before finishing. They supplement — they do not override — CLAUDE.md, AGENTS.md, and DEFERRAL_DISCIPLINE.md.
 
+## Branching & Release Workflow
+
+Full guide: **`docs/BRANCHING_AND_ROLLOUTS.md`**. The essentials:
+
+- **Trunk-based, short-lived branches.** Work on `feature/*` · `fix/*` · `docs/*` ·
+  `refactor/*` · `chore/*` branched from a *fresh* `main` → PR → merge to `main`. There is
+  **no `develop` branch** (docs describing one are aspirational; staging is "TO CREATE").
+  Merging to `main` **auto-deploys to production with no approval gate** — treat every merge
+  as going live.
+- **Keep branches short (hours–days).** For big work, ship several small merges behind one
+  flag rather than one long-lived branch. Long branches drift badly (see Lovable, below).
+- **Deploy ≠ release.** Merging puts code in production; a **feature flag** decides *who sees
+  it*. To roll out to a subset of users you do **not** use a branch — you merge the code
+  **flagged OFF**, then flip it on for a growing cohort. Wrap gated features in
+  `useFeatureFlag(key, false)` (`src/lib/featureFlags.ts`) and seed the flag OFF in the
+  migration (`ON CONFLICT DO NOTHING`). Kill switch = flip `enabled=false` (≤60s, no redeploy).
+- **True per-user / cohort / % rollout**: use `useGradualFeature(key, user)` (client) or
+  `isFeatureEnabledForUser(key, user)` (edge) from the feature-flags modules — cohort allowlist
+  (`cohort_domains` / `cohort_user_ids`) first, then deterministic per-user
+  `hash(key:userId) % 100 < rollout_percentage` (fail-closed). The plain `useFeatureFlag`
+  percentage is per-*key* (all-or-nothing) — it's a **kill switch**, not a ramp. Super admins
+  flip flags at `/admin/feature-flags` (server-verified). The `streamCanary.ts` +
+  `stream-canary-guard` pair is still the reference for auto-rollback on health regressions.
+- **Lovable owns `main`.** Its two-way GitHub sync commits to `main` automatically and applies
+  its own migrations directly to the single prod DB. So: pull `main` before/after Lovable
+  sessions; don't edit the same files in a long branch while prompting Lovable; **never
+  `supabase db push`**; write idempotent migrations (they may be live in prod before a flag
+  turns the feature on). Agent migrations = `YYYYMMDDHHMMSS_slug.sql` (underscore, CI applies);
+  Lovable = `YYYYMMDDHHMMSS-<uuid>.sql` (dash, already applied). See `docs/MIGRATION_SYNC.md`.
+
 ## Output Format (code responses)
 
 ```

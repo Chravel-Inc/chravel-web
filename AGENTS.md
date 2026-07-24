@@ -16,6 +16,7 @@
 1. **Anti-Goldfish Protocol.** Before coding: read `claude-progress.txt` + recent git log. Implement ONE feature → E2E test → commit → update breadcrumbs. Never multi-task features.
 1. **Learn from trajectories.** Before non-trivial tasks, read `DEBUG_PATTERNS.md` + `LESSONS.md`. After completing, update memory files with evidence-backed learnings. See CLAUDE.md § AGENT LEARNING PROTOCOL.
 1. **Deferral discipline.** No "out of scope" hand-waves. Adjacent issues are either fixed in-branch or captured as a paste-ready Follow-Up Issue Plan. Every coding response ends with the 7-section footer (Fixed now · Discovered · Intentionally deferred · Why · Follow-up prompt · Validation · Remaining launch blockers). Full rules: `DEFERRAL_DISCIPLINE.md`.
+1. **Branching & release discipline.** Short-lived `feature/*`·`fix/*`·`docs/*`·`refactor/*`·`chore/*` branches from a *fresh* `main` → PR → merge. There is **no `develop` branch**; merging `main` **auto-deploys to production**. **Deploy ≠ release** — gate user-facing features behind `useFeatureFlag(key, false)` and roll out to a cohort by flipping the flag, never by branching. **Lovable's two-way sync owns `main`** (auto-commits + applies its own migrations to the single prod DB): pull `main` before/after Lovable sessions, keep branches short, **never `supabase db push`**. Full guide: `docs/BRANCHING_AND_ROLLOUTS.md` + CLAUDE.md § Branching & Release Workflow.
 
 -----
 

@@ -13,6 +13,16 @@ This file provides quick reference. **Always consult CLAUDE.md** for:
 - Google Maps implementation patterns
 - Error prevention strategies
 - Full code examples
+- **Branching, Lovable sync & feature rollouts** → `docs/BRANCHING_AND_ROLLOUTS.md`
+
+---
+
+## 🌿 BRANCHING & RELEASES (quick reference)
+
+- Work on short-lived `feature/*`·`fix/*`·`docs/*`·`refactor/*`·`chore/*` branches from a **fresh `main`** → PR → merge. **No `develop` branch.** Merging `main` **auto-deploys to production**.
+- **Deploy ≠ release.** Merge risky features **flagged OFF** (`useFeatureFlag(key, false)` from `src/lib/featureFlags.ts`; seed the flag OFF in the migration). Roll out to a subset of users by flipping the flag, **not** by branching.
+- **Lovable's two-way sync owns `main`** — it auto-commits and applies its own migrations to the single prod DB. Pull `main` before/after Lovable sessions, keep branches short, **never `supabase db push`**. Agent migrations use `_underscore.sql`; Lovable uses `-uuid.sql`.
+- Full guide: **`docs/BRANCHING_AND_ROLLOUTS.md`** · CLAUDE.md § Branching & Release Workflow.
 
 ---
 
