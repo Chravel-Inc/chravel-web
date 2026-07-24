@@ -55,6 +55,7 @@
     "drift:check": "node scripts/drift-check.mjs",
     "drift:functions": "node scripts/drift/check-edge-function-parity.mjs",
     "drift:migrations": "node scripts/drift/check-migration-drift.mjs",
+    "drift:query-keys": "node scripts/drift/check-query-key-ownership.mjs",
     "drift:schema": "npx tsx scripts/check-schema-drift.ts",
     "drift:env-coverage": "npx tsx scripts/check-env-coverage.ts",
     "db:types": "supabase gen types typescript --linked > src/integrations/supabase/types.ts",

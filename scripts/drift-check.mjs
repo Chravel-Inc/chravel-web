@@ -71,6 +71,12 @@ const CHECKS = [
     cmd: ['bash', 'scripts/check-duplicate-service-wrappers.sh'],
   },
   {
+    id: 'query-keys',
+    title: 'Query-key ownership (tripKeys factory)',
+    sot: 'src/lib/queryKeys.ts (tripKeys)',
+    cmd: ['node', 'scripts/drift/check-query-key-ownership.mjs'],
+  },
+  {
     id: 'iap-parity',
     title: 'IAP/billing parity (code ↔ ASC ↔ Play)',
     sot: 'src/billing/config.ts + store product manifests',

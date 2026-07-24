@@ -117,15 +117,15 @@ export function getConciergeInvalidationKeys(
 
     // Trip-level basecamp — invalidate tripBasecamp query + trip detail + personal basecamp prefix
     case 'setBasecamp':
-      return [['tripBasecamp', tripId], ['trip', tripId], ['personalBasecamp']];
+      return [['tripBasecamp', tripId], tripKeys.detail(tripId), ['personalBasecamp']];
 
     case 'addToAgenda':
-      return [['eventAgenda', tripId]];
+      return [tripKeys.agenda(tripId)];
 
     case 'setTripHeaderImage':
     case 'generateTripImage':
     case 'updateTripDetails':
-      return [['trips'], ['trip', tripId]];
+      return [tripKeys.all, tripKeys.detail(tripId)];
 
     default:
       return [];
