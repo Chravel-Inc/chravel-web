@@ -6,9 +6,6 @@ verify_jwt = true
 [functions.join-trip]
 verify_jwt = true
 
-[functions.approve-join-request]
-verify_jwt = true
-
 [functions.google-maps-proxy]
 verify_jwt = true
 
@@ -103,9 +100,6 @@ verify_jwt = true
 [functions.gmail-import-worker]
 verify_jwt = true
 
-[functions.gemini-voice-session]
-verify_jwt = false
-
 [functions.event-reminders]
 verify_jwt = false
 
@@ -115,15 +109,6 @@ verify_jwt = false
 [functions.image-proxy]
 verify_jwt = false
 
-[functions.gemini-voice-proxy]
-verify_jwt = false
-
-[functions.livekit-token]
-verify_jwt = false
-
-
-[functions.batch-generate-embeddings]
-verify_jwt = false
 
 [functions.seed-carlton-social]
 verify_jwt = true
@@ -149,3 +134,13 @@ verify_jwt = false
 
 [functions.seo-dashboard]
 verify_jwt = true
+
+
+[functions.revenuecat-webhook]
+verify_jwt = false
+
+[functions.push-client-config]
+verify_jwt = false
+
+[functions.mcp]
+verify_jwt = false
