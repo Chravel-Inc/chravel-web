@@ -32,13 +32,8 @@ export const tripKeys = {
       : ([...tripKeys.members(tripId), revision] as const),
 
   // Tab-specific data
-  chat: (tripId: string) => ['tripChat', tripId] as const,
-  chatMessages: (tripId: string, limit?: number) =>
-    limit
-      ? (['tripChatMessages', tripId, limit] as const)
-      : (['tripChatMessages', tripId] as const),
-  chatThreads: (tripId: string) => ['tripChatThreads', tripId] as const,
-  chatUnreadCount: (tripId: string, userId: string) => ['tripChatUnread', tripId, userId] as const,
+  // NOTE: Chat is Stream/GetStream-backed (see useStreamTripChat) and has no
+  // TanStack cache — there are intentionally no chat* keys in this factory.
   calendar: (tripId: string) => ['calendarEvents', tripId] as const,
   tasks: (tripId: string, isDemoMode?: boolean) =>
     isDemoMode !== undefined

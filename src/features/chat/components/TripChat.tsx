@@ -2,7 +2,6 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { toast } from 'sonner';
 import { useParams, useLocation } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
 import type { Channel } from 'stream-chat';
 import { demoModeService } from '@/services/demoModeService';
 import { useDemoMode } from '@/hooks/useDemoMode';
@@ -54,7 +53,6 @@ import { extractQuotedReferenceFromStreamMessage } from '@/services/stream/strea
 
 import { messageEvents } from '@/telemetry/events';
 import { shouldUseLegacyChatSync } from '@/services/stream/streamTransportGuards';
-import { tripKeys } from '@/lib/queryKeys';
 import { buildStreamMessageViewModels } from '../adapters/streamMessageViewModel';
 import { executeModerationAction, ModerationAction } from '@/services/moderationService';
 import {
@@ -187,7 +185,6 @@ export const TripChat = React.memo(
 
     const demoMode = useDemoMode();
     const { user } = useAuth();
-    const queryClient = useQueryClient();
     const { blockedUserIds, blockUser: blockUserAction, isBlocking } = useBlockedUsers();
     const { reportContent: reportContentAction, isReporting } = useReportContent();
 
@@ -228,23 +225,10 @@ export const TripChat = React.memo(
     const { isRefreshing, pullDistance } = usePullToRefresh({
       scrollContainerRef: messageScrollRef,
       onRefresh: async () => {
-        if (resolvedTripId) {
-          if (reload) {
-            await reload();
-          }
-          // Invalidate chat query cache to force fresh fetch
-          await Promise.all([
-            queryClient.invalidateQueries({ queryKey: tripKeys.chat(resolvedTripId) }),
-            queryClient.invalidateQueries({ queryKey: tripKeys.chatMessages(resolvedTripId) }),
-            queryClient.invalidateQueries({ queryKey: tripKeys.chatThreads(resolvedTripId) }),
-            ...(user?.id
-              ? [
-                  queryClient.invalidateQueries({
-                    queryKey: tripKeys.chatUnreadCount(resolvedTripId, user.id),
-                  }),
-                ]
-              : []),
-          ]);
+        // Chat is Stream-backed; reload() re-queries the Stream channel directly.
+        // There is no TanStack chat cache to invalidate after the Stream migration.
+        if (resolvedTripId && reload) {
+          await reload();
         }
       },
     });
