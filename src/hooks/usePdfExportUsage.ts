@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../integrations/supabase/client';
+import { tripKeys } from '@/lib/queryKeys';
 import { useAuth } from './useAuth';
 
 const FREE_TIER_LIMIT = 1;
@@ -55,7 +56,7 @@ export const usePdfExportUsage = (tripId: string) => {
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ['pdf-export-usage', tripId, user?.id],
+    queryKey: tripKeys.pdfExportUsage(tripId, user?.id),
     queryFn: async (): Promise<PdfExportUsage> => {
       if (!user?.id || !tripId) return getUsageFallback();
 
@@ -114,7 +115,7 @@ export const usePdfExportUsage = (tripId: string) => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pdf-export-usage', tripId, user?.id] });
+      queryClient.invalidateQueries({ queryKey: tripKeys.pdfExportUsage(tripId, user?.id) });
     },
   });
 

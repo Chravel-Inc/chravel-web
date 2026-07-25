@@ -43,6 +43,12 @@ const OWNED_PREFIXES = [
   'event-agenda',
   'eventLineup',
   'eventRsvps',
+  'eventTasks',
+  'tripPrivacyConfig',
+  'globalSystemMessagePrefs',
+  'tripSystemMessagePrefs',
+  'effectiveSystemMessagePrefs',
+  'pdf-export-usage',
 ];
 const INLINE_KEY_RE = new RegExp(`\\[\\s*['"](${OWNED_PREFIXES.join('|')})['"]\\s*,`);
 

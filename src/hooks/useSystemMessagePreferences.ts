@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { tripKeys } from '@/lib/queryKeys';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 import {
@@ -26,7 +27,7 @@ export function useGlobalSystemMessagePreferences() {
   const { toast } = useToast();
 
   const { data: preferences, isLoading } = useQuery({
-    queryKey: ['globalSystemMessagePrefs', user?.id],
+    queryKey: tripKeys.globalSystemMessagePrefs(user?.id),
     queryFn: async (): Promise<SystemMessagePreferences> => {
       if (!user?.id) return DEFAULT_PREFS;
 
@@ -70,7 +71,7 @@ export function useGlobalSystemMessagePreferences() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['globalSystemMessagePrefs', user?.id] });
+      queryClient.invalidateQueries({ queryKey: tripKeys.globalSystemMessagePrefs(user?.id) });
       toast({
         title: 'Preferences saved',
         description: 'Your chat activity settings have been updated.',
@@ -98,7 +99,7 @@ export function useTripSystemMessagePreferences(tripId: string) {
   const { toast } = useToast();
 
   const { data, isLoading } = useQuery({
-    queryKey: ['tripSystemMessagePrefs', tripId, user?.id],
+    queryKey: tripKeys.tripSystemMessagePrefs(tripId, user?.id),
     queryFn: async (): Promise<{ hasOverride: boolean; preferences: SystemMessagePreferences }> => {
       if (!user?.id || !tripId) return { hasOverride: false, preferences: DEFAULT_PREFS };
 
@@ -146,9 +147,11 @@ export function useTripSystemMessagePreferences(tripId: string) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tripSystemMessagePrefs', tripId, user?.id] });
       queryClient.invalidateQueries({
-        queryKey: ['effectiveSystemMessagePrefs', tripId, user?.id],
+        queryKey: tripKeys.tripSystemMessagePrefs(tripId, user?.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: tripKeys.effectiveSystemMessagePrefs(tripId, user?.id),
       });
       toast({ title: 'Trip preferences saved' });
     },
@@ -175,9 +178,11 @@ export function useTripSystemMessagePreferences(tripId: string) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tripSystemMessagePrefs', tripId, user?.id] });
       queryClient.invalidateQueries({
-        queryKey: ['effectiveSystemMessagePrefs', tripId, user?.id],
+        queryKey: tripKeys.tripSystemMessagePrefs(tripId, user?.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: tripKeys.effectiveSystemMessagePrefs(tripId, user?.id),
       });
       toast({ title: 'Reset to defaults' });
     },
@@ -208,7 +213,7 @@ export function useEffectiveSystemMessagePreferences(tripId: string) {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ['effectiveSystemMessagePrefs', tripId, user?.id],
+    queryKey: tripKeys.effectiveSystemMessagePrefs(tripId, user?.id),
     queryFn: async (): Promise<SystemMessagePreferences> => {
       if (!user?.id || !tripId) return DEFAULT_PREFS;
 

@@ -5,6 +5,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { tripKeys } from '@/lib/queryKeys';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useToast } from '@/hooks/use-toast';
@@ -38,7 +39,7 @@ export function useEventTasks(eventId: string) {
   const { toast } = useToast();
 
   const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ['eventTasks', eventId, isDemoMode],
+    queryKey: tripKeys.eventTasks(eventId, isDemoMode),
     queryFn: async (): Promise<EventTask[]> => {
       if (isDemoMode || !eventId) return [];
 
@@ -75,8 +76,9 @@ export function useEventTasks(eventId: string) {
     },
     onMutate: async (params: CreateEventTaskParams) => {
       if (isDemoMode) return;
-      await queryClient.cancelQueries({ queryKey: ['eventTasks', eventId, isDemoMode] });
-      const prev = queryClient.getQueryData<EventTask[]>(['eventTasks', eventId, isDemoMode]) ?? [];
+      await queryClient.cancelQueries({ queryKey: tripKeys.eventTasks(eventId, isDemoMode) });
+      const prev =
+        queryClient.getQueryData<EventTask[]>(tripKeys.eventTasks(eventId, isDemoMode)) ?? [];
       const optimisticTask: EventTask = {
         id: `opt-${Date.now()}`,
         event_id: eventId,
@@ -88,17 +90,17 @@ export function useEventTasks(eventId: string) {
       };
       // Insert maintaining sort order
       const next = [...prev, optimisticTask].sort((a, b) => a.sort_order - b.sort_order);
-      queryClient.setQueryData<EventTask[]>(['eventTasks', eventId, isDemoMode], next);
+      queryClient.setQueryData<EventTask[]>(tripKeys.eventTasks(eventId, isDemoMode), next);
       return { prev };
     },
     onError: (err: Error, _variables, context) => {
       if (context?.prev) {
-        queryClient.setQueryData(['eventTasks', eventId, isDemoMode], context.prev);
+        queryClient.setQueryData(tripKeys.eventTasks(eventId, isDemoMode), context.prev);
       }
       toast({ title: 'Failed to add task', description: err.message, variant: 'destructive' });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['eventTasks', eventId, isDemoMode] });
+      queryClient.invalidateQueries({ queryKey: tripKeys.eventTasks(eventId, isDemoMode) });
     },
   });
 
@@ -119,8 +121,9 @@ export function useEventTasks(eventId: string) {
     },
     onMutate: async ({ taskId, params }) => {
       if (isDemoMode) return;
-      await queryClient.cancelQueries({ queryKey: ['eventTasks', eventId, isDemoMode] });
-      const prev = queryClient.getQueryData<EventTask[]>(['eventTasks', eventId, isDemoMode]) ?? [];
+      await queryClient.cancelQueries({ queryKey: tripKeys.eventTasks(eventId, isDemoMode) });
+      const prev =
+        queryClient.getQueryData<EventTask[]>(tripKeys.eventTasks(eventId, isDemoMode)) ?? [];
       const next = prev.map(task =>
         task.id === taskId
           ? {
@@ -135,17 +138,17 @@ export function useEventTasks(eventId: string) {
       if (params.sort_order !== undefined) {
         next.sort((a, b) => a.sort_order - b.sort_order);
       }
-      queryClient.setQueryData<EventTask[]>(['eventTasks', eventId, isDemoMode], next);
+      queryClient.setQueryData<EventTask[]>(tripKeys.eventTasks(eventId, isDemoMode), next);
       return { prev };
     },
     onError: (err: Error, _variables, context) => {
       if (context?.prev) {
-        queryClient.setQueryData(['eventTasks', eventId, isDemoMode], context.prev);
+        queryClient.setQueryData(tripKeys.eventTasks(eventId, isDemoMode), context.prev);
       }
       toast({ title: 'Failed to update task', description: err.message, variant: 'destructive' });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['eventTasks', eventId, isDemoMode] });
+      queryClient.invalidateQueries({ queryKey: tripKeys.eventTasks(eventId, isDemoMode) });
     },
   });
 
@@ -161,20 +164,21 @@ export function useEventTasks(eventId: string) {
     },
     onMutate: async (taskId: string) => {
       if (isDemoMode) return;
-      await queryClient.cancelQueries({ queryKey: ['eventTasks', eventId, isDemoMode] });
-      const prev = queryClient.getQueryData<EventTask[]>(['eventTasks', eventId, isDemoMode]) ?? [];
+      await queryClient.cancelQueries({ queryKey: tripKeys.eventTasks(eventId, isDemoMode) });
+      const prev =
+        queryClient.getQueryData<EventTask[]>(tripKeys.eventTasks(eventId, isDemoMode)) ?? [];
       const next = prev.filter(task => task.id !== taskId);
-      queryClient.setQueryData<EventTask[]>(['eventTasks', eventId, isDemoMode], next);
+      queryClient.setQueryData<EventTask[]>(tripKeys.eventTasks(eventId, isDemoMode), next);
       return { prev };
     },
     onError: (err: Error, _variables, context) => {
       if (context?.prev) {
-        queryClient.setQueryData(['eventTasks', eventId, isDemoMode], context.prev);
+        queryClient.setQueryData(tripKeys.eventTasks(eventId, isDemoMode), context.prev);
       }
       toast({ title: 'Failed to remove task', description: err.message, variant: 'destructive' });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['eventTasks', eventId, isDemoMode] });
+      queryClient.invalidateQueries({ queryKey: tripKeys.eventTasks(eventId, isDemoMode) });
     },
   });
 

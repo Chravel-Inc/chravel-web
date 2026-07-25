@@ -82,6 +82,20 @@ export const tripKeys = {
   agenda: (eventId: string) => ['event-agenda', eventId] as const,
   lineup: (tripId: string) => ['eventLineup', tripId] as const,
   rsvps: (tripId: string) => ['eventRsvps', tripId] as const,
+
+  // Event tasks (event-scoped; discriminated by demo mode, like trip tasks)
+  eventTasks: (eventId: string, isDemoMode: boolean) =>
+    ['eventTasks', eventId, isDemoMode] as const,
+
+  // Settings / preferences (trip- and user-scoped)
+  privacyConfig: (tripId: string) => ['tripPrivacyConfig', tripId] as const,
+  globalSystemMessagePrefs: (userId?: string) => ['globalSystemMessagePrefs', userId] as const,
+  tripSystemMessagePrefs: (tripId: string, userId?: string) =>
+    ['tripSystemMessagePrefs', tripId, userId] as const,
+  effectiveSystemMessagePrefs: (tripId: string, userId?: string) =>
+    ['effectiveSystemMessagePrefs', tripId, userId] as const,
+  pdfExportUsage: (tripId: string, userId?: string) =>
+    ['pdf-export-usage', tripId, userId] as const,
 };
 
 /**

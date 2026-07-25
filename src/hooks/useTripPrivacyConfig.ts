@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { tripKeys } from '@/lib/queryKeys';
 import { PrivacyMode } from '@/types/privacy';
 
 export interface TripPrivacyConfig {
@@ -17,7 +18,7 @@ export interface TripPrivacyConfig {
  */
 export const useTripPrivacyConfig = (tripId: string | undefined) => {
   return useQuery({
-    queryKey: ['tripPrivacyConfig', tripId],
+    queryKey: tripKeys.privacyConfig(tripId),
     queryFn: async (): Promise<TripPrivacyConfig | null> => {
       if (!tripId) return null;
 
