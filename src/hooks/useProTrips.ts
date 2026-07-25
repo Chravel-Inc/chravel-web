@@ -6,8 +6,7 @@ import { ProTripData } from '@/types/pro';
 import { normalizeLegacyCategory } from '@/types/proCategories';
 import { supabase } from '@/integrations/supabase/client';
 import { proTripMockData } from '@/data/proTripMockData';
-
-const PRO_TRIPS_QUERY_KEY = 'proTrips';
+import { tripKeys } from '@/lib/queryKeys';
 
 /**
  * Convert a Supabase trip row (RLS-scoped by auth.uid()) to ProTripData format.
@@ -72,7 +71,7 @@ export const useProTrips = () => {
     isLoading,
     error: queryError,
   } = useQuery<ProTripData[]>({
-    queryKey: [PRO_TRIPS_QUERY_KEY, user?.id, isDemoMode],
+    queryKey: tripKeys.proTrips(user?.id, isDemoMode),
     queryFn: async (): Promise<ProTripData[]> => {
       if (isDemoMode) {
         return Object.values(proTripMockData);
@@ -100,19 +99,19 @@ export const useProTrips = () => {
   const archiveTripMutation = useMutation({
     mutationFn: (id: string) => archiveService.archiveTrip(id, 'pro'),
     onMutate: async tripId => {
-      await queryClient.cancelQueries({ queryKey: [PRO_TRIPS_QUERY_KEY] });
-      const previousTrips = queryClient.getQueryData([PRO_TRIPS_QUERY_KEY, user?.id, isDemoMode]);
+      await queryClient.cancelQueries({ queryKey: tripKeys.proTripsAll() });
+      const previousTrips = queryClient.getQueryData(tripKeys.proTrips(user?.id, isDemoMode));
       queryClient.setQueryData(
-        [PRO_TRIPS_QUERY_KEY, user?.id, isDemoMode],
+        tripKeys.proTrips(user?.id, isDemoMode),
         (old: ProTripData[] | undefined) => (old ? old.filter(trip => trip.id !== tripId) : []),
       );
       return { previousTrips };
     },
     onError: (err, tripId, context) => {
-      queryClient.setQueryData([PRO_TRIPS_QUERY_KEY, user?.id, isDemoMode], context?.previousTrips);
+      queryClient.setQueryData(tripKeys.proTrips(user?.id, isDemoMode), context?.previousTrips);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: [PRO_TRIPS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: tripKeys.proTripsAll() });
       queryClient.invalidateQueries({ queryKey: ['trips'] });
     },
   });
@@ -120,19 +119,19 @@ export const useProTrips = () => {
   const hideTripMutation = useMutation({
     mutationFn: (id: string) => archiveService.hideTrip(id),
     onMutate: async tripId => {
-      await queryClient.cancelQueries({ queryKey: [PRO_TRIPS_QUERY_KEY] });
-      const previousTrips = queryClient.getQueryData([PRO_TRIPS_QUERY_KEY, user?.id, isDemoMode]);
+      await queryClient.cancelQueries({ queryKey: tripKeys.proTripsAll() });
+      const previousTrips = queryClient.getQueryData(tripKeys.proTrips(user?.id, isDemoMode));
       queryClient.setQueryData(
-        [PRO_TRIPS_QUERY_KEY, user?.id, isDemoMode],
+        tripKeys.proTrips(user?.id, isDemoMode),
         (old: ProTripData[] | undefined) => (old ? old.filter(trip => trip.id !== tripId) : []),
       );
       return { previousTrips };
     },
     onError: (err, tripId, context) => {
-      queryClient.setQueryData([PRO_TRIPS_QUERY_KEY, user?.id, isDemoMode], context?.previousTrips);
+      queryClient.setQueryData(tripKeys.proTrips(user?.id, isDemoMode), context?.previousTrips);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: [PRO_TRIPS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: tripKeys.proTripsAll() });
       queryClient.invalidateQueries({ queryKey: ['trips'] });
     },
   });
@@ -141,19 +140,19 @@ export const useProTrips = () => {
     mutationFn: ({ tripId, userId }: { tripId: string; userId: string }) =>
       archiveService.deleteTripForMe(tripId, userId),
     onMutate: async ({ tripId }) => {
-      await queryClient.cancelQueries({ queryKey: [PRO_TRIPS_QUERY_KEY] });
-      const previousTrips = queryClient.getQueryData([PRO_TRIPS_QUERY_KEY, user?.id, isDemoMode]);
+      await queryClient.cancelQueries({ queryKey: tripKeys.proTripsAll() });
+      const previousTrips = queryClient.getQueryData(tripKeys.proTrips(user?.id, isDemoMode));
       queryClient.setQueryData(
-        [PRO_TRIPS_QUERY_KEY, user?.id, isDemoMode],
+        tripKeys.proTrips(user?.id, isDemoMode),
         (old: ProTripData[] | undefined) => (old ? old.filter(trip => trip.id !== tripId) : []),
       );
       return { previousTrips };
     },
     onError: (err, variables, context) => {
-      queryClient.setQueryData([PRO_TRIPS_QUERY_KEY, user?.id, isDemoMode], context?.previousTrips);
+      queryClient.setQueryData(tripKeys.proTrips(user?.id, isDemoMode), context?.previousTrips);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: [PRO_TRIPS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: tripKeys.proTripsAll() });
       queryClient.invalidateQueries({ queryKey: ['trips'] });
     },
   });

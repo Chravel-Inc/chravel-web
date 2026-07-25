@@ -49,6 +49,8 @@ const OWNED_PREFIXES = [
   'tripSystemMessagePrefs',
   'effectiveSystemMessagePrefs',
   'pdf-export-usage',
+  'proTrips',
+  'pending-request-trip-cards',
 ];
 const INLINE_KEY_RE = new RegExp(`\\[\\s*['"](${OWNED_PREFIXES.join('|')})['"]\\s*,`);
 

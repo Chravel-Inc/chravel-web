@@ -96,6 +96,16 @@ export const tripKeys = {
     ['effectiveSystemMessagePrefs', tripId, userId] as const,
   pdfExportUsage: (tripId: string, userId?: string) =>
     ['pdf-export-usage', tripId, userId] as const,
+
+  // Dashboard lists (user- and demo-scoped). NOTE: the consumer trips list
+  // (['trips', userId, isDemoMode]) is deliberately still owned by useTrips + tripKeys.all
+  // and is NOT guard-enforced here — its 'trips' prefix collides with the query-persister
+  // allowlist string (see product audit follow-up).
+  proTrips: (userId?: string, isDemoMode?: boolean) => ['proTrips', userId, isDemoMode] as const,
+  proTripsAll: () => ['proTrips'] as const,
+  pendingRequestCards: (userId?: string, isDemoMode?: boolean) =>
+    ['pending-request-trip-cards', userId, isDemoMode] as const,
+  pendingRequestCardsAll: () => ['pending-request-trip-cards'] as const,
 };
 
 /**

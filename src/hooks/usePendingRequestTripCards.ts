@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { getDemoDashboardJoinRequests } from '@/mockData/dashboardJoinRequestsMock';
 import { invalidatePendingRequestState } from '@/hooks/pendingRequestsCache';
+import { tripKeys } from '@/lib/queryKeys';
 
 export interface PendingRequestTripCard {
   requestId: string;
@@ -96,7 +97,7 @@ export function usePendingRequestTripCards(isDemoMode = false) {
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: ['pending-request-trip-cards', user?.id, isDemoMode],
+    queryKey: tripKeys.pendingRequestCards(user?.id, isDemoMode),
     enabled: isDemoMode || !!user?.id,
     queryFn: async (): Promise<PendingRequestTripCard[]> => {
       if (isDemoMode) {

@@ -19,9 +19,9 @@ export const invalidateTripCoverQueries = async (
       },
     }),
     queryClient.invalidateQueries({ queryKey: tripKeys.all }),
-    queryClient.invalidateQueries({ queryKey: ['proTrips'] }),
+    queryClient.invalidateQueries({ queryKey: tripKeys.proTripsAll() }),
     queryClient.invalidateQueries({ queryKey: ['events'] }),
-    queryClient.invalidateQueries({ queryKey: ['pending-request-trip-cards'] }),
+    queryClient.invalidateQueries({ queryKey: tripKeys.pendingRequestCardsAll() }),
     queryClient.invalidateQueries({ queryKey: tripKeys.members(tripId) }),
   ]);
 };
@@ -68,7 +68,7 @@ export const updateTripCoverCache = (
       );
     });
   };
-  patchMappedList(['proTrips']);
+  patchMappedList(tripKeys.proTripsAll());
   patchMappedList(['events']);
-  patchMappedList(['pending-request-trip-cards']);
+  patchMappedList(tripKeys.pendingRequestCardsAll());
 };
