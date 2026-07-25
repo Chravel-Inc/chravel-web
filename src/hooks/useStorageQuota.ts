@@ -50,7 +50,14 @@ export const useStorageQuota = (tripId?: string) => {
         query.eq('trip_id', tripId);
       }
 
-      const { data: mediaData } = await query;
+      const { data: mediaData, error } = await query;
+
+      if (error) {
+        // Don't fail open to 0 used on a failed usage read — keep the prior quota
+        // value. Server-side enforceUploadLimits remains the authoritative gate.
+        console.error('Error loading storage usage:', error);
+        return;
+      }
 
       if (mediaData) {
         totalBytes = mediaData.reduce((sum, item) => sum + (item.file_size || 0), 0);

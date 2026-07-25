@@ -84,6 +84,12 @@ export const fetchTripMediaItemsPaginated = async (
 
   const [mediaResponse, filesResponse] = await Promise.all([mediaQuery, filesQuery]);
 
+  // Surface load failures (RLS denial, network) as an error instead of silently
+  // returning an empty page, which the gallery would render as "No Media Yet".
+  // The offline wrapper (fetchTripMediaItems) still catches and falls back to cache.
+  if (mediaResponse.error) throw mediaResponse.error;
+  if (filesResponse.error) throw filesResponse.error;
+
   const mediaData = mediaResponse.data || [];
   const filesData = filesResponse.data || [];
 

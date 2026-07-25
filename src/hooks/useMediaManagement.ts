@@ -83,6 +83,7 @@ export const useMediaManagement = (tripId: string) => {
     [mediaInfiniteQuery.data],
   );
   const mediaLoading = mediaInfiniteQuery.isLoading;
+  const mediaError = mediaInfiniteQuery.isError;
   const hasMoreMedia = mediaInfiniteQuery.hasNextPage;
   const fetchNextMediaPage = mediaInfiniteQuery.fetchNextPage;
 
@@ -186,7 +187,7 @@ export const useMediaManagement = (tripId: string) => {
     channel.on(
       'postgres_changes',
       {
-        event: 'INSERT',
+        event: '*',
         schema: 'public',
         table: 'trip_media_index',
         filter: `trip_id=eq.${tripId}`,
@@ -195,13 +196,13 @@ export const useMediaManagement = (tripId: string) => {
     );
     channel.on(
       'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'trip_files', filter: `trip_id=eq.${tripId}` },
+      { event: '*', schema: 'public', table: 'trip_files', filter: `trip_id=eq.${tripId}` },
       invalidateMedia,
     );
     channel.on(
       'postgres_changes',
       {
-        event: 'INSERT',
+        event: '*',
         schema: 'public',
         table: 'trip_link_index',
         filter: `trip_id=eq.${tripId}`,
@@ -210,7 +211,7 @@ export const useMediaManagement = (tripId: string) => {
     );
     channel.on(
       'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'trip_links', filter: `trip_id=eq.${tripId}` },
+      { event: '*', schema: 'public', table: 'trip_links', filter: `trip_id=eq.${tripId}` },
       invalidateLinks,
     );
 
@@ -244,6 +245,8 @@ export const useMediaManagement = (tripId: string) => {
     mediaItems,
     linkItems,
     loading,
+    isError: mediaError,
+    error: mediaInfiniteQuery.error,
     totalItems: mediaItems.length + linkItems.length,
     filterByType,
     getAllItemsSorted,

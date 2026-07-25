@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { mediaService } from '@/services/mediaService';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 import type { MediaSearchResult } from '@/services/mediaSearchService';
 import { filterMediaByAITags } from '@/services/mediaAITagging';
 
@@ -29,8 +30,15 @@ export const UnifiedMediaHub = React.memo(
     const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
     const { isDemoMode } = useDemoMode();
 
-    const { mediaItems, loading, refetch, hasMoreMedia, fetchNextMediaPage, isFetchingNextMedia } =
-      useMediaManagement(tripId);
+    const {
+      mediaItems,
+      loading,
+      isError: mediaError,
+      refetch,
+      hasMoreMedia,
+      fetchNextMediaPage,
+      isFetchingNextMedia,
+    } = useMediaManagement(tripId);
 
     // Filter out deleted items for demo mode
     const filteredMediaItems = mediaItems.filter(item => !deletedIds.has(item.id));
@@ -198,6 +206,23 @@ export const UnifiedMediaHub = React.memo(
             <Skeleton className="h-40 rounded-xl bg-muted/30" />
             <Skeleton className="h-40 rounded-xl bg-muted/30" />
           </div>
+        </div>
+      );
+    }
+
+    if (mediaError) {
+      return (
+        <div className="text-center py-12">
+          <div className="mx-auto w-14 h-14 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+            <Camera className="h-7 w-7 text-destructive" />
+          </div>
+          <h3 className="text-lg font-semibold text-foreground mb-1">Couldn't load media</h3>
+          <p className="text-muted-foreground text-sm max-w-xs mx-auto mb-4">
+            Something went wrong loading this gallery. Check your connection and try again.
+          </p>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            Retry
+          </Button>
         </div>
       );
     }
