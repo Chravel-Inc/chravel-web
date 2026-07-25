@@ -43,6 +43,8 @@ export const TripTasksTab = React.memo(({ tripId }: TripTasksTabProps) => {
     setSortBy,
     hasActiveFilters,
     clearFilters,
+    toggleTaskMutation,
+    deleteTaskMutation,
   } = useTripTasks(tripId);
   const { isDemoMode } = useDemoMode();
   const queryClient = useQueryClient();
@@ -130,7 +132,14 @@ export const TripTasksTab = React.memo(({ tripId }: TripTasksTabProps) => {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <TaskList tasks={[]} tripId={tripId} title="To Do" isLoading />
+        <TaskList
+          tasks={[]}
+          tripId={tripId}
+          title="To Do"
+          isLoading
+          toggleTaskMutation={toggleTaskMutation}
+          deleteTaskMutation={deleteTaskMutation}
+        />
       </div>
     );
   }
@@ -138,7 +147,15 @@ export const TripTasksTab = React.memo(({ tripId }: TripTasksTabProps) => {
   if (error && displayTasks.length === 0) {
     return (
       <div className="space-y-6">
-        <TaskList tasks={[]} tripId={tripId} title="To Do" error={error} onRetry={handleRetry} />
+        <TaskList
+          tasks={[]}
+          tripId={tripId}
+          title="To Do"
+          error={error}
+          onRetry={handleRetry}
+          toggleTaskMutation={toggleTaskMutation}
+          deleteTaskMutation={deleteTaskMutation}
+        />
       </div>
     );
   }
@@ -205,6 +222,8 @@ export const TripTasksTab = React.memo(({ tripId }: TripTasksTabProps) => {
             title="To Do"
             emptyMessage="All caught up! No pending tasks."
             onEditTask={task => setEditingTask(task)}
+            toggleTaskMutation={toggleTaskMutation}
+            deleteTaskMutation={deleteTaskMutation}
           />
 
           {/* Completed Tasks */}
@@ -216,6 +235,8 @@ export const TripTasksTab = React.memo(({ tripId }: TripTasksTabProps) => {
               showCompleted={showCompleted}
               onToggleCompleted={() => setShowCompleted(!showCompleted)}
               onEditTask={task => setEditingTask(task)}
+              toggleTaskMutation={toggleTaskMutation}
+              deleteTaskMutation={deleteTaskMutation}
             />
           )}
 

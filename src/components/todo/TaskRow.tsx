@@ -4,7 +4,6 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { CompletionDrawer } from './CompletionDrawer';
 import { TaskDetailModal } from './TaskDetailModal';
-import { useTripTasks } from '../../hooks/useTripTasks';
 import { formatDistanceToNow, isAfter } from 'date-fns';
 import { TripTask } from '../../types/tasks';
 import { hapticService } from '../../services/hapticService';
@@ -21,18 +20,28 @@ import {
   AlertDialogTitle,
 } from '../ui/alert-dialog';
 
+import type { UseMutationResult } from '@tanstack/react-query';
+import type { ToggleTaskRequest } from '../../types/tasks';
+
 interface TaskRowProps {
   task: TripTask;
   tripId: string;
   onEdit?: (task: TripTask) => void;
+  toggleTaskMutation: UseMutationResult<unknown, Error, ToggleTaskRequest, unknown>;
+  deleteTaskMutation: UseMutationResult<unknown, Error, string, unknown>;
 }
 
-export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
+export const TaskRow = ({
+  task,
+  tripId,
+  onEdit,
+  toggleTaskMutation,
+  deleteTaskMutation,
+}: TaskRowProps) => {
   const [showCompletionDrawer, setShowCompletionDrawer] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
-  const { toggleTaskMutation, deleteTaskMutation } = useTripTasks(tripId);
 
   const isCompleted = task.is_poll
     ? (task.task_status?.filter(s => s.completed).length || 0) >= (task.task_status?.length || 1)

@@ -101,21 +101,9 @@ export const usePrefetchTrip = () => {
           });
           break;
 
+        // Chat is Stream-backed (useStreamTripChat). Chunk preload above is enough;
+        // Supabase trip_chat_messages prefetch was dead weight on every trip load.
         case 'chat':
-          queryClient.prefetchQuery({
-            queryKey: tripKeys.chat(tripId),
-            queryFn: async () => {
-              const { data } = await supabase
-                .from('trip_chat_messages')
-                .select('*')
-                .eq('trip_id', tripId)
-                .eq('is_deleted', false)
-                .order('created_at', { ascending: false })
-                .limit(15);
-              return (data || []).reverse();
-            },
-            staleTime: QUERY_CACHE_CONFIG.chat.staleTime,
-          });
           break;
 
         case 'tasks':
@@ -257,7 +245,7 @@ export const usePrefetchTrip = () => {
       if (isDemoMode) return;
 
       // Phase 2: immediate data prefetch for likely first interactions.
-      prefetchTab(tripId, 'chat');
+      // Chat: chunk-only (Stream handles data hydration on connect).
       setTimeout(() => prefetchTab(tripId, 'calendar'), 125);
 
       // Keep tasks eager only on normal networks.
