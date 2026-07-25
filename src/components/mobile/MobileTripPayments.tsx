@@ -443,8 +443,9 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
 
         setDemoPayments([...convertedSessionPayments, ...convertedMockPayments]);
       } else {
-        // ⚡ Optimistic update: show payment immediately
-        if (newPayment && user?.id) {
+        // CreatePaymentModal already optimistically updates the cache before calling back.
+        // Only add here when a legacy caller passes a server-confirmed payment id.
+        if (newPayment && user?.id && !newPayment.id.startsWith('optimistic-payment-')) {
           const paymentMessage = buildPaymentMessage(newPayment.id, tripId, user.id, {
             amount: newPayment.amount,
             currency: newPayment.currency,
