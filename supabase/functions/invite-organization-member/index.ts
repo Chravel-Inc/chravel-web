@@ -107,7 +107,11 @@ serve(async req => {
       .eq('id', organizationId)
       .single();
 
-    const inviteLink = `https://20feaa04-0946-4c68-a68d-0eb88cc1b9c4.lovableproject.com/accept-invite/${token}`;
+    // Build the accept-invite URL from the calling app's origin (falling back to the
+    // configured SITE_URL, then the production default) — never a hardcoded preview domain.
+    const appOrigin =
+      req.headers.get('origin') || Deno.env.get('SITE_URL') || 'https://chravel.app';
+    const inviteLink = `${appOrigin}/accept-invite/${token}`;
 
     console.log('Invite created successfully:', {
       inviteId: invite.id,

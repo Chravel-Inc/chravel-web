@@ -102,8 +102,10 @@ export const getArchivedTripCount = async (
     .eq('created_by', userId);
 
   if (tripType) {
-    const dbTripType = tripType === 'consumer' ? 'standard' : tripType;
-    query = query.eq('trip_type', dbTripType);
+    // trip_type is stored canonically as 'consumer' | 'pro' | 'event' (see create-trip
+    // and tripConverter). A prior 'consumer' -> 'standard' remap queried a non-existent
+    // value, so archived consumer trips were always counted as zero.
+    query = query.eq('trip_type', tripType);
   }
 
   const { count, error } = await query;
