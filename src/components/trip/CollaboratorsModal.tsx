@@ -45,6 +45,27 @@ interface CollaboratorsModalProps {
 
 type TabType = 'members' | 'requests';
 
+/**
+ * Whether the current viewer may remove `collaboratorId` from the roster.
+ * Self-removal is intentionally never offered here — it must go through the header's
+ * "Leave Trip" action (leave_trip soft-delete); remove_trip_member_safe (which
+ * onRemoveMember calls) rejects self-removal and would error. The creator can never be
+ * removed. Exported for unit testing.
+ */
+export function canRemoveRosterMember(params: {
+  collaboratorId: string;
+  currentUserId?: string;
+  tripCreatorId?: string | null;
+  isAdmin: boolean;
+  hasRemoveHandler: boolean;
+}): boolean {
+  const { collaboratorId, currentUserId, tripCreatorId, isAdmin, hasRemoveHandler } = params;
+  if (!hasRemoveHandler) return false;
+  if (collaboratorId === tripCreatorId) return false; // never the creator
+  if (collaboratorId === currentUserId) return false; // never yourself (use Leave Trip)
+  return isAdmin; // only admins/creator remove other members
+}
+
 export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
   open,
   onOpenChange,
@@ -147,18 +168,14 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
     }
   };
 
-  // Can remove if: (is admin OR is current user leaving) AND not the creator
-  const canRemove = (collaboratorId: string) => {
-    if (!onRemoveMember) return false;
-    const idStr = collaboratorId.toString();
-    // Can't remove trip creator
-    if (idStr === tripCreatorId) return false;
-    // Admin can remove anyone (except creator)
-    if (isAdmin) return true;
-    // Users can remove themselves
-    if (idStr === currentUserId) return true;
-    return false;
-  };
+  const canRemove = (collaboratorId: string) =>
+    canRemoveRosterMember({
+      collaboratorId: collaboratorId.toString(),
+      currentUserId,
+      tripCreatorId,
+      isAdmin,
+      hasRemoveHandler: !!onRemoveMember,
+    });
 
   // Determine who can manage requests:
   // - Consumer trips: ANY trip member can approve/reject
@@ -234,7 +251,7 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
             }}
             disabled={removingId === idStr}
             className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
-            title={isCurrentUser ? 'Leave trip' : 'Remove from trip'}
+            title="Remove from trip"
           >
             <UserMinus size={16} />
           </button>

@@ -8,7 +8,7 @@ export async function invalidatePendingRequestState(
   queryClient: QueryClient,
   options?: { tripId?: string | null },
 ): Promise<void> {
-  await queryClient.invalidateQueries({ queryKey: ['pending-request-trip-cards'] });
+  await queryClient.invalidateQueries({ queryKey: tripKeys.pendingRequestCardsAll() });
   await queryClient.invalidateQueries({ queryKey: tripKeys.all });
 
   if (!options?.tripId) return;

@@ -6,6 +6,7 @@
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { tripKeys } from '@/lib/queryKeys';
 
 const TRIPS_QUERY_KEY = 'trips';
 
@@ -50,11 +51,11 @@ export function useUserTripsRealtime(userId: string | undefined, isDemoMode: boo
 
     const invalidateTrips = () => {
       queryClient.invalidateQueries({ queryKey: [TRIPS_QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: ['proTrips'] });
+      queryClient.invalidateQueries({ queryKey: tripKeys.proTripsAll() });
       queryClient.invalidateQueries({ queryKey: ['events'] });
       // Pending outbound requests (`get_my_pending_trip_request_cards`) must refresh when
       // membership or join-request rows change — otherwise approval/cancel can lag behind trips.
-      queryClient.invalidateQueries({ queryKey: ['pending-request-trip-cards'] });
+      queryClient.invalidateQueries({ queryKey: tripKeys.pendingRequestCardsAll() });
     };
 
     const handleForegroundRefresh = () => {

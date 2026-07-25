@@ -3,7 +3,7 @@
     "app": "Chravel",
     "tagline": "The AI-native operating system for group travel, touring, and events.",
     "repo": "chravel-inc/chravel-web",
-    "branch": "claude/awesome-cori-jcmz3m",
+    "branch": "claude/feature-audit-fixes-gvjks5",
     "stack": [
       "React 18 + Vite 5 (SWC) + TypeScript (strict OFF)",
       "TanStack Query 5 (server state) + Zustand 5 (client state)",
@@ -25,14 +25,15 @@
       "Static analysis: file counts, LOC ranking, import graph, live knip scan (2026-06-22 refresh)",
       "AHS remediation commits through 2026-05-30 (export/import hardening, lazy chart/export boundaries, edge secret defaults)",
       "App Store readiness pass through 2026-06-04 (UGC block UI, iOS billing steering, signup terms, dead-scaffold + dead AASA endpoint removal)"
-    ]
+    ],
+    "lastRefreshed": "2026-07-25 — post-drift feature audit + comprehensive product audit"
   },
   "scores": [
     {
       "key": "overall",
       "label": "Overall Codebase Health",
       "score": 75,
-      "rationale": "Mature, feature-complete product with strong repo memory, remediation tracking, and several recent hardening slices landed. Enterprise security/identity layer is now solid: immutable + hash-chained admin audit log, append-only security_audit_log, a DB-backed audited super_admins table, and a buyer-facing evidence packet (SECURITY_MODEL.md, ENTERPRISE_SECURITY_READINESS/AUDIT docs). Export privacy paths emit table-level manifests and hard-fail required omissions; trip PDF export membership policy is tested; file AI parsing short-circuits cached replays; Gmail imports distinguish completed/completed_partial/failed; chart and org-chart export dependencies are behind lazy/user-intent boundaries. Still pulled down by concentrated god files (Index, demoModeService, useTripTasks, useAuth, TripChat, useStreamTripChat), hundreds of production `any` usages, a large mock/demo data surface, and dead-code findings that require careful triage."
+      "rationale": "Mature, feature-complete product with strong repo memory, remediation tracking, and several recent hardening slices landed. Enterprise security/identity layer is now solid: immutable + hash-chained admin audit log, append-only security_audit_log, a DB-backed audited super_admins table, and a buyer-facing evidence packet (SECURITY_MODEL.md, ENTERPRISE_SECURITY_READINESS/AUDIT docs). Export privacy paths emit table-level manifests and hard-fail required omissions; trip PDF export membership policy is tested; file AI parsing short-circuits cached replays; Gmail imports distinguish completed/completed_partial/failed; chart and org-chart export dependencies are behind lazy/user-intent boundaries. Still pulled down by concentrated god files (Index, demoModeService, useTripTasks, useAuth, TripChat, useStreamTripChat), hundreds of production `any` usages, a large mock/demo data surface, and dead-code findings that require careful triage. 2026-07-25 post-drift feature audit: fixed orphaned Chat prefetch, Concierge/Agenda invalidation, Media error/realtime/quota; consolidated Settings/Tasks/proTrips/pending-request query keys onto the tripKeys factory; verified Auth + Payments clean; plus a comprehensive product audit of membership/permissions/identity."
     },
     {
       "key": "clarity",
@@ -110,6 +111,8 @@
       "src/lib/queryKeys.ts — cache-invalidation contract for all server state"
     ],
     "topRisks": [
+      "Growth is single-threaded on the invite link: it is the ONLY way into a real trip, always request-to-join, with NO phone/email backup and no server-side recovery if a link breaks — top pre-scale product risk (CHRAVEL_PRODUCT_AUDIT_2026-07-25.md).",
+      "Org member invites silently broken: the invite email is never sent (UI falsely toasts \"sent\"); the accept URL used a stale hardcoded preview domain (domain fixed 2026-07-25; email delivery is a follow-up).",
       "Auth hydration race → 'Trip Not Found' flash (the #1 documented regression)",
       "Chat message loss on WebSocket reconnect (no replay/backfill in some paths)",
       "Client-side permission checks diverging from RLS (privilege-escalation surface)",
@@ -121,14 +124,17 @@
       "Delete confirmed-dead exports/types after manual verification (knip: 386 exports, 433 types)",
       "Reduce ~450 `any` usages at Supabase boundaries by adopting generated Database types",
       "Lazy-load heavy chunks (exceljs, pdf/jsPDF via exportPdfClient.ts, recharts/charts, native) per tech_debt_report",
-      "Split static content god files (src/lib/blog.ts ~1.5k, mock datasets) out of the logic bundle"
+      "Split static content god files (src/lib/blog.ts ~1.5k, mock datasets) out of the logic bundle",
+      "Orphaned [\"events\"] query invalidations (4 sites) fire against a key no query reads — dead no-ops after event trips folded into trips/proTrips lists.",
+      "admin_scope=\"coordinator\" is ignored everywhere (any trip_admins row = full pro_admin incl. member removal) — resolve before enabling the pro_coordinator_role flag."
     ],
     "topMissing": [
       "Tests for chat reconnect/backfill, read receipts, and integration idempotency (TEST_GAPS.md)",
       "Strong typing at boundaries — ~450 `any` usages remain",
       "State machine for Smart Import (partial-import rollback / UX surfacing)",
       "Bundle/code-split discipline enforced in CI",
-      "A single canonical mock/demo-data boundary separate from live service code"
+      "A single canonical mock/demo-data boundary separate from live service code",
+      "Backup join path: no way to add an existing user by email/phone to a real trip when a link breaks (only orgs have email invites, and org email delivery is broken)."
     ]
   },
   "systemMap": [

@@ -22,7 +22,7 @@ function invalidateTripJoinCaches(
   mode: 'approve' | 'reject',
 ): void {
   queryClient.invalidateQueries({ queryKey: tripKeys.all });
-  queryClient.invalidateQueries({ queryKey: ['proTrips'] });
+  queryClient.invalidateQueries({ queryKey: tripKeys.proTripsAll() });
   queryClient.invalidateQueries({ queryKey: ['events'] });
   // Match useJoinRequests: members list only refreshes on approve
   if (mode === 'approve' && tripId) {

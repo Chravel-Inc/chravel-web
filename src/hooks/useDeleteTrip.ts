@@ -15,6 +15,7 @@ import { executeDeleteTrip, DeletionContext, DeletionResult } from '@/services/t
 import { useAuth } from './useAuth';
 import { useDemoMode } from './useDemoMode';
 import { Trip } from '@/services/tripService';
+import { tripKeys } from '@/lib/queryKeys';
 
 const TRIPS_QUERY_KEY = 'trips';
 
@@ -53,7 +54,7 @@ export function useDeleteTrip() {
       // Always re-sync with server
       queryClient.invalidateQueries({ queryKey: [TRIPS_QUERY_KEY] });
       // Also invalidate stale Pro/Event query keys so those views stay consistent
-      queryClient.invalidateQueries({ queryKey: ['proTrips'] });
+      queryClient.invalidateQueries({ queryKey: tripKeys.proTripsAll() });
       queryClient.invalidateQueries({ queryKey: ['events'] });
     },
   });

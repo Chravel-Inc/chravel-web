@@ -32,13 +32,8 @@ export const tripKeys = {
       : ([...tripKeys.members(tripId), revision] as const),
 
   // Tab-specific data
-  chat: (tripId: string) => ['tripChat', tripId] as const,
-  chatMessages: (tripId: string, limit?: number) =>
-    limit
-      ? (['tripChatMessages', tripId, limit] as const)
-      : (['tripChatMessages', tripId] as const),
-  chatThreads: (tripId: string) => ['tripChatThreads', tripId] as const,
-  chatUnreadCount: (tripId: string, userId: string) => ['tripChatUnread', tripId, userId] as const,
+  // NOTE: Chat is Stream/GetStream-backed (see useStreamTripChat) and has no
+  // TanStack cache — there are intentionally no chat* keys in this factory.
   calendar: (tripId: string) => ['calendarEvents', tripId] as const,
   tasks: (tripId: string, isDemoMode?: boolean) =>
     isDemoMode !== undefined
@@ -81,9 +76,36 @@ export const tripKeys = {
   tripRoles: (tripId: string) => ['tripRoles', tripId] as const,
 
   // Event-specific
-  agenda: (tripId: string) => ['eventAgenda', tripId] as const,
+  // Agenda is event-scoped and keyed by eventId (in the event context tripId === eventId).
+  // Key string MUST match the live cache in useEventAgenda ('event-agenda'), or concierge
+  // addToAgenda invalidation silently misses (was 'eventAgenda' — an orphaned key).
+  agenda: (eventId: string) => ['event-agenda', eventId] as const,
   lineup: (tripId: string) => ['eventLineup', tripId] as const,
   rsvps: (tripId: string) => ['eventRsvps', tripId] as const,
+
+  // Event tasks (event-scoped; discriminated by demo mode, like trip tasks)
+  eventTasks: (eventId: string, isDemoMode: boolean) =>
+    ['eventTasks', eventId, isDemoMode] as const,
+
+  // Settings / preferences (trip- and user-scoped)
+  privacyConfig: (tripId: string) => ['tripPrivacyConfig', tripId] as const,
+  globalSystemMessagePrefs: (userId?: string) => ['globalSystemMessagePrefs', userId] as const,
+  tripSystemMessagePrefs: (tripId: string, userId?: string) =>
+    ['tripSystemMessagePrefs', tripId, userId] as const,
+  effectiveSystemMessagePrefs: (tripId: string, userId?: string) =>
+    ['effectiveSystemMessagePrefs', tripId, userId] as const,
+  pdfExportUsage: (tripId: string, userId?: string) =>
+    ['pdf-export-usage', tripId, userId] as const,
+
+  // Dashboard lists (user- and demo-scoped). NOTE: the consumer trips list
+  // (['trips', userId, isDemoMode]) is deliberately still owned by useTrips + tripKeys.all
+  // and is NOT guard-enforced here — its 'trips' prefix collides with the query-persister
+  // allowlist string (see product audit follow-up).
+  proTrips: (userId?: string, isDemoMode?: boolean) => ['proTrips', userId, isDemoMode] as const,
+  proTripsAll: () => ['proTrips'] as const,
+  pendingRequestCards: (userId?: string, isDemoMode?: boolean) =>
+    ['pending-request-trip-cards', userId, isDemoMode] as const,
+  pendingRequestCardsAll: () => ['pending-request-trip-cards'] as const,
 };
 
 /**

@@ -99,8 +99,12 @@ export function getConciergeInvalidationKeys(
     case 'savePlace':
     case 'saveLink':
     case 'emitReservationDraft':
-    case 'makeReservation':
       return [tripKeys.places(tripId), tripKeys.tripLinks(tripId)];
+
+    // makeReservation also writes a dated calendar event server-side, so the
+    // calendar cache must be invalidated alongside places/links.
+    case 'makeReservation':
+      return [tripKeys.places(tripId), tripKeys.tripLinks(tripId), tripKeys.calendar(tripId)];
 
     // Payments / Expenses
     case 'settleExpense':
