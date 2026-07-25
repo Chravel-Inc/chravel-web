@@ -5,6 +5,9 @@ import { TripTask } from '../../types/tasks';
 import { Skeleton } from '../ui/skeleton';
 import { Button } from '../ui/button';
 
+import type { UseMutationResult } from '@tanstack/react-query';
+import type { ToggleTaskRequest } from '../../types/tasks';
+
 interface TaskListProps {
   tasks: TripTask[];
   tripId: string;
@@ -16,6 +19,8 @@ interface TaskListProps {
   isLoading?: boolean;
   error?: Error | null;
   onRetry?: () => void;
+  toggleTaskMutation: UseMutationResult<unknown, Error, ToggleTaskRequest, unknown>;
+  deleteTaskMutation: UseMutationResult<unknown, Error, string, unknown>;
 }
 
 /** Loading skeleton for a single task row */
@@ -42,6 +47,8 @@ export const TaskList = ({
   isLoading,
   error,
   onRetry,
+  toggleTaskMutation,
+  deleteTaskMutation,
 }: TaskListProps) => {
   const isCompletedSection = title.toLowerCase().includes('completed');
 
@@ -130,7 +137,14 @@ export const TaskList = ({
         (!isCompletedSection || showCompleted) && (
           <div className="space-y-2" role="list" aria-label={`${title} tasks`}>
             {tasks.map(task => (
-              <TaskRow key={task.id} task={task} tripId={tripId} onEdit={onEditTask} />
+              <TaskRow
+                key={task.id}
+                task={task}
+                tripId={tripId}
+                onEdit={onEditTask}
+                toggleTaskMutation={toggleTaskMutation}
+                deleteTaskMutation={deleteTaskMutation}
+              />
             ))}
           </div>
         )

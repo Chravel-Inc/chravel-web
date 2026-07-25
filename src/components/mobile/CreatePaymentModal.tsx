@@ -22,6 +22,13 @@ import {
 } from '@/lib/paymentActivityMessages';
 import { useAuth } from '@/hooks/useAuth';
 import { PaymentSplitAllocator } from '@/components/payments/PaymentSplitAllocator';
+import { useQueryClient } from '@tanstack/react-query';
+import { tripKeys } from '@/lib/queryKeys';
+import {
+  buildPaymentMessage,
+  optimisticallyAddPayment,
+  replaceOptimisticPaymentId,
+} from '@/lib/paymentCacheUtils';
 
 interface CreatePaymentModalProps {
   isOpen: boolean;
@@ -69,6 +76,7 @@ export const CreatePaymentModal = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const attachmentsEnabled = useFeatureFlag('payment_attachments', true);
   const attachmentDraft = usePaymentAttachmentDraft();
 
@@ -133,6 +141,8 @@ export const CreatePaymentModal = ({
     e.preventDefault();
     setIsSubmitting(true);
 
+    let rollbackPayments: unknown;
+
     try {
       const paymentData = getPaymentData();
       if (!paymentData) {
@@ -159,6 +169,35 @@ export const CreatePaymentModal = ({
         return;
       }
 
+      const makeOptimisticPaymentId = (): string => {
+        try {
+          return `optimistic-payment-${crypto.randomUUID()}`;
+        } catch {
+          return `optimistic-payment-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        }
+      };
+
+      const optimisticId = makeOptimisticPaymentId();
+      rollbackPayments = queryClient.getQueryData(tripKeys.payments(tripId));
+      const optimisticPayment = buildPaymentMessage(optimisticId, tripId, userId, paymentData);
+      optimisticallyAddPayment(queryClient, tripId, optimisticPayment);
+
+      // Close immediately so the user sees the payment in the list while the RPC runs.
+      resetForm();
+      onClose();
+      onPaymentCreated?.({
+        id: optimisticId,
+        amount: paymentData.amount,
+        currency: paymentData.currency,
+        description: paymentData.description,
+        splitCount: paymentData.splitCount,
+        splitParticipants: paymentData.splitParticipants,
+        paymentMethods: paymentData.paymentMethods,
+        createdBy: userId,
+        createdAt: new Date().toISOString(),
+        isSettled: false,
+      });
+
       const result = await paymentService.createPaymentMessage(tripId, userId, {
         amount: paymentData.amount,
         currency: paymentData.currency,
@@ -171,18 +210,7 @@ export const CreatePaymentModal = ({
       });
 
       if (result.success && result.paymentId && userId) {
-        const newPayment = {
-          id: result.paymentId,
-          amount: paymentData.amount,
-          currency: paymentData.currency,
-          description: paymentData.description,
-          splitCount: paymentData.splitCount,
-          splitParticipants: paymentData.splitParticipants,
-          paymentMethods: paymentData.paymentMethods,
-          createdBy: userId,
-          createdAt: new Date().toISOString(),
-          isSettled: false,
-        };
+        replaceOptimisticPaymentId(queryClient, tripId, optimisticId, result.paymentId);
 
         // Parity with desktop usePayments: announce the expense in chat so
         // members see it without opening the Payments tab.
@@ -210,14 +238,12 @@ export const CreatePaymentModal = ({
           });
         }
 
-        resetForm();
-        onPaymentCreated?.(newPayment);
-        onClose();
         toast({
           title: 'Payment created',
           description: `${paymentData.description} - ${formatCurrency(paymentData.amount, paymentData.currency)}`,
         });
       } else if (result.error) {
+        queryClient.setQueryData(tripKeys.payments(tripId), rollbackPayments);
         const { title, description } = PaymentErrorHandler.getServiceErrorDisplay(result.error);
         toast({
           title,
@@ -226,6 +252,9 @@ export const CreatePaymentModal = ({
         });
       }
     } catch (error) {
+      if (rollbackPayments !== undefined) {
+        queryClient.setQueryData(tripKeys.payments(tripId), rollbackPayments);
+      }
       if (import.meta.env.DEV) {
         console.error('Failed to create payment:', error);
       }

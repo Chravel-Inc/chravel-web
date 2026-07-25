@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 
 const TRIPS_QUERY_KEY = 'trips';
+const FOREGROUND_INVALIDATE_DEBOUNCE_MS = 30_000;
 
 type MemberChangePayload = {
   new?: { user_id?: string | null } | null;
@@ -57,10 +58,14 @@ export function useUserTripsRealtime(userId: string | undefined, isDemoMode: boo
       queryClient.invalidateQueries({ queryKey: ['pending-request-trip-cards'] });
     };
 
+    let lastForegroundInvalidateAt = 0;
+
     const handleForegroundRefresh = () => {
-      if (shouldRefreshTripsOnForeground(document.visibilityState)) {
-        invalidateTrips();
-      }
+      if (!shouldRefreshTripsOnForeground(document.visibilityState)) return;
+      const now = Date.now();
+      if (now - lastForegroundInvalidateAt < FOREGROUND_INVALIDATE_DEBOUNCE_MS) return;
+      lastForegroundInvalidateAt = now;
+      invalidateTrips();
     };
 
     let hasCompletedInitialSubscribe = false;
