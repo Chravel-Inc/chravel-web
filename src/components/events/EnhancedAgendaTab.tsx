@@ -21,6 +21,7 @@ import {
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../mobile/PullToRefreshIndicator';
 import { useQueryClient } from '@tanstack/react-query';
+import { tripKeys } from '@/lib/queryKeys';
 import { AgendaImportModal } from './AgendaImportModal';
 import { useBackgroundAgendaImport } from '@/features/calendar/hooks/useBackgroundAgendaImport';
 import { ParsedAgendaSession } from '@/utils/agendaImportParsers';
@@ -96,7 +97,7 @@ export const EnhancedAgendaTab = ({
   } = useEventAgendaFiles({ eventId });
 
   const handleRefresh = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ['event-agenda', eventId] });
+    await queryClient.invalidateQueries({ queryKey: tripKeys.agenda(eventId) });
   }, [queryClient, eventId]);
 
   const { isRefreshing, pullDistance } = usePullToRefresh({

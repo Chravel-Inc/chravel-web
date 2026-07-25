@@ -76,7 +76,10 @@ export const tripKeys = {
   tripRoles: (tripId: string) => ['tripRoles', tripId] as const,
 
   // Event-specific
-  agenda: (tripId: string) => ['eventAgenda', tripId] as const,
+  // Agenda is event-scoped and keyed by eventId (in the event context tripId === eventId).
+  // Key string MUST match the live cache in useEventAgenda ('event-agenda'), or concierge
+  // addToAgenda invalidation silently misses (was 'eventAgenda' — an orphaned key).
+  agenda: (eventId: string) => ['event-agenda', eventId] as const,
   lineup: (tripId: string) => ['eventLineup', tripId] as const,
   rsvps: (tripId: string) => ['eventRsvps', tripId] as const,
 };

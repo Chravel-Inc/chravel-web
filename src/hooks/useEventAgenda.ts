@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { tripKeys } from '@/lib/queryKeys';
 import { useToast } from '@/hooks/use-toast';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { eventsMockData } from '@/data/eventsMockData';
@@ -39,7 +40,7 @@ export function useEventAgenda({
   const { toast } = useToast();
   const { isDemoMode } = useDemoMode();
 
-  const queryKey = ['event-agenda', eventId];
+  const queryKey = tripKeys.agenda(eventId);
 
   // Realtime: invalidate when agenda changes (collaborative editing)
   useEffect(() => {
@@ -56,7 +57,7 @@ export function useEventAgenda({
           filter: `event_id=eq.${eventId}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['event-agenda', eventId] });
+          queryClient.invalidateQueries({ queryKey: tripKeys.agenda(eventId) });
         },
       )
       .subscribe();

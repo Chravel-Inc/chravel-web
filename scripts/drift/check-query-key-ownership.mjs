@@ -40,7 +40,7 @@ const OWNED_PREFIXES = [
   'tripRoles',
   'trip-members',
   'trip-member-meta',
-  'eventAgenda',
+  'event-agenda',
   'eventLineup',
   'eventRsvps',
 ];
