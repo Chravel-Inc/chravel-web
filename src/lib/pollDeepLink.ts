@@ -41,22 +41,6 @@ export function consumePollDeepLink(tripId: string): Omit<PollDeepLink, 'tripId'
   }
 }
 
-export function peekPollDeepLink(tripId: string): Omit<PollDeepLink, 'tripId'> | null {
-  if (typeof window === 'undefined' || !tripId) return null;
-  try {
-    const raw = sessionStorage.getItem(storageKey(tripId));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as { pollId?: string; createPoll?: boolean };
-    if (!parsed || typeof parsed !== 'object') return null;
-    return {
-      pollId: typeof parsed.pollId === 'string' ? parsed.pollId : undefined,
-      createPoll: parsed.createPoll === true,
-    };
-  } catch {
-    return null;
-  }
-}
-
 export function parsePollDeepLinkFromSearch(search: string): Omit<PollDeepLink, 'tripId'> | null {
   const params = new URLSearchParams(search.startsWith('?') ? search : `?${search}`);
   const pollId = params.get('pollId') || undefined;

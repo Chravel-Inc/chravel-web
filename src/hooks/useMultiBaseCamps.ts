@@ -178,24 +178,6 @@ export const useDeleteTripBaseCamp = (tripId: string) => {
   });
 };
 
-export const useReorderTripBaseCamps = (tripId: string) => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (orderedIds: string[]) => {
-      await Promise.all(
-        orderedIds.map((id, index) =>
-          supabase
-            .from('trip_base_camps')
-            .update({ order_index: index })
-            .eq('trip_id', tripId)
-            .eq('id', id),
-        ),
-      );
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: keys.trip(tripId) }),
-  });
-};
-
 export const useCreatePersonalBaseCamp = (tripId: string) => {
   const qc = useQueryClient();
   const { user } = useAuth();

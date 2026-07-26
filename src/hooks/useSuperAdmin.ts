@@ -48,9 +48,3 @@ export const useSuperAdmin = () => {
 
   return { isSuperAdmin: envMatch || Boolean(serverMatch) };
 };
-
-// Standalone check function for non-hook contexts (env-only; sync).
-export const checkIsSuperAdmin = (email?: string | null): boolean => {
-  if (!email) return false;
-  return SUPER_ADMIN_EMAILS.includes(email.toLowerCase().trim());
-};

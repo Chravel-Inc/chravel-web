@@ -158,24 +158,4 @@ describe('Google Places New API Service', () => {
       expect(cached).toEqual(cachedResults);
     });
   });
-
-  describe('Resolve Query', () => {
-    it('should use cached results when available', async () => {
-      const query = 'Starbucks NYC';
-      const origin: SearchOrigin = { lat: 40.758, lng: -73.9855 };
-      generateSessionToken();
-
-      const cachedResult = {
-        place_id: '123',
-        name: 'Starbucks',
-        formatted_address: '123 Main St, NYC',
-      };
-
-      const cacheKey = apiQuotaMonitor.generateCacheKey(`resolve:${query}`, origin);
-      apiQuotaMonitor.cacheResult(cacheKey, cachedResult);
-
-      const cached = apiQuotaMonitor.getCachedResult(cacheKey);
-      expect(cached).toEqual(cachedResult);
-    });
-  });
 });

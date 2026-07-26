@@ -58,17 +58,3 @@ export function usePerformanceMonitor(componentName: string, enabled = import.me
 
   return metricsMap.get(componentName);
 }
-
-/**
- * Get all performance metrics
- */
-export function getPerformanceMetrics(): PerformanceMetrics[] {
-  return Array.from(metricsMap.values()).sort((a, b) => b.averageRenderTime - a.averageRenderTime);
-}
-
-/**
- * Reset all performance metrics
- */
-export function resetPerformanceMetrics() {
-  metricsMap.clear();
-}
