@@ -1,6 +1,8 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { isSuperAdminEmail } from '../_shared/superAdmins.ts';
+import { checkRateLimit } from '../_shared/security.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -9,6 +11,41 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const FLAG_KEY = 'stream_changes_canary';
 const APP_SETTINGS_KEY = 'stream_canary_health';
 const WINDOW_MS = 10 * 60 * 1000;
+
+// Server-side mirror of isTrustedStreamCanaryUser() in src/services/stream/streamCanary.ts.
+// That check gates whether the *client* joins the canary cohort, but it is client-side only —
+// it never constrained who could POST here. Reporting an incident increments a failure counter
+// that, on threshold, disables the stream_changes_canary feature flag for every user, so an
+// ungated endpoint let any authenticated caller kill production chat by looping requests.
+const INTERNAL_EMAIL_DOMAINS = ['chravel.app', 'chravelapp.com', 'meechyourgoals.com'];
+
+// Cohort members are internal staff, so this only has to blunt a compromised-session loop.
+const CANARY_REPORT_MAX_PER_WINDOW = 30;
+const CANARY_REPORT_WINDOW_SECONDS = 600;
+
+function isInternalEmail(email: string | null | undefined): boolean {
+  if (!email) return false;
+  const domain = email.split('@')[1]?.toLowerCase().trim();
+  return Boolean(domain && INTERNAL_EMAIL_DOMAINS.includes(domain));
+}
+
+async function isTrustedReporter(
+  adminClient: ReturnType<typeof createClient>,
+  userId: string,
+  email: string | null | undefined,
+): Promise<boolean> {
+  if (isInternalEmail(email) || isSuperAdminEmail(email)) return true;
+
+  const { data, error } = await adminClient
+    .from('super_admins')
+    .select('user_id')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  // Fail closed: an unresolvable trust check must not grant kill-switch authority.
+  if (error) return false;
+  return Boolean(data);
+}
 
 type Metric =
   | 'read_channel_denied'
@@ -109,6 +146,24 @@ serve(async req => {
     } = await userClient.auth.getUser(authHeader.replace('Bearer ', ''));
 
     if (userErr || !user) return response({ error: 'Unauthorized' }, 401, cors);
+
+    if (!(await isTrustedReporter(adminClient, user.id, user.email))) {
+      // Deliberately indistinguishable from any other rejection — do not confirm the endpoint
+      // exists or that the caller merely lacks a role.
+      return response({ error: 'Forbidden' }, 403, cors);
+    }
+
+    const rateLimit = await checkRateLimit(
+      adminClient,
+      `stream-canary-guard:${user.id}`,
+      CANARY_REPORT_MAX_PER_WINDOW,
+      CANARY_REPORT_WINDOW_SECONDS,
+      user.id,
+      'stream-canary-guard',
+    );
+    if (!rateLimit.allowed) {
+      return response({ error: 'Rate limit exceeded' }, 429, cors);
+    }
 
     const body = await req.json().catch(() => ({}));
     const metric = body?.metric;

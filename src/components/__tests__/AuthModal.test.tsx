@@ -6,6 +6,7 @@ import React from 'react';
 import { AuthModal } from '../AuthModal';
 import { AuthProvider } from '@/hooks/useAuth';
 import * as platformDetection from '@/utils/platformDetection';
+import { GENERIC_SIGN_UP_RESULT } from '@/lib/authErrors';
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
@@ -281,7 +282,7 @@ describe('AuthModal', () => {
       expect(screen.queryByText(/redirecting/i)).not.toBeInTheDocument();
     });
 
-    it('switches to sign in when signup reports an existing email', async () => {
+    it('does not reveal that an email is already registered', async () => {
       const { supabase } = await import('@/integrations/supabase/client');
       vi.mocked(supabase.auth.signUp).mockResolvedValue({
         data: { user: null, session: null },
@@ -310,9 +311,16 @@ describe('AuthModal', () => {
       });
       fireEvent.click(screen.getByRole('button', { name: /create account/i }));
 
+      // Previously the form auto-switched to sign-in here, which was a binary
+      // "this email exists" oracle independent of the message wording. The neutral result must be
+      // indistinguishable from a successful sign-up.
       await waitFor(() => {
-        expect(screen.getByRole('heading', { name: /chravelapp/i })).toBeInTheDocument();
+        expect(screen.getByText(GENERIC_SIGN_UP_RESULT, { exact: false })).toBeInTheDocument();
       });
+
+      // Still in signup mode — no mode switch leaked the account's existence.
+      expect(screen.getByRole('heading', { name: /create account/i })).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: /chravelapp/i })).not.toBeInTheDocument();
     });
   });
 });

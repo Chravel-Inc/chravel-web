@@ -9,6 +9,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { sanitizeErrorForClient, logError } from '../_shared/errorHandling.ts';
 import { embedText } from '../_shared/multimodalEmbeddings.ts';
+import { applyRateLimit } from '../_shared/rateLimitGuard.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -70,6 +71,17 @@ serve(async req => {
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // embedText() below is a paid Gemini embedding call on every search. Metered per user against
+    // the service-role client so the bucket is shared across replicas.
+    const rl = await applyRateLimit({
+      identifier: `artifact-search:${user.id}`,
+      maxRequests: 30,
+      windowSeconds: 60,
+      corsHeaders,
+      supabaseClient: supabase,
+    });
+    if (!rl.allowed) return rl.response!;
 
     // Trip membership check
     const { data: membership, error: membershipError } = await supabase

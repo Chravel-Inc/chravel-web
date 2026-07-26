@@ -9,7 +9,11 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 import { getClientIp } from '../_shared/security.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
-const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+// Service role, not anon: this is an unauthenticated endpoint, so its rate-limit RPC call runs as
+// the `anon` role unless we say otherwise. EXECUTE on increment_rate_limit is revoked from anon
+// (see 20260725*_revoke_anon_execute_nonpredicate_rpcs.sql) — with the anon key the limiter would
+// fail closed and 429 every demo request.
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const ENABLE_DEMO_CONCIERGE = Deno.env.get('ENABLE_DEMO_CONCIERGE') === 'true';
 const DEMO_MAX_REQUESTS_PER_MINUTE = Number(Deno.env.get('DEMO_CONCIERGE_RPM') ?? '3');
 const DEMO_MAX_REQUESTS_PER_HOUR = Number(Deno.env.get('DEMO_CONCIERGE_RPH') ?? '12');
@@ -75,7 +79,7 @@ serve(async req => {
     }
 
     const clientIp = getClientIp(req);
-    const rateClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const rateClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const [minuteLimit, hourLimit] = await Promise.all([
       rateClient.rpc('increment_rate_limit', {

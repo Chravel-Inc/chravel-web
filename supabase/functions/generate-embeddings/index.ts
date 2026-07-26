@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { sanitizeErrorForClient, logError } from '../_shared/errorHandling.ts';
 import { invokeEmbeddingModel } from '../_shared/gemini.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { applyRateLimit } from '../_shared/rateLimitGuard.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -111,6 +112,17 @@ serve(async req => {
     );
 
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+
+    // A single call fans out into one paid Gemini embedding per source row, so this is the most
+    // expensive endpoint per request. Deliberately tighter than the per-query search limits.
+    const rl = await applyRateLimit({
+      identifier: `generate-embeddings:${user.id}`,
+      maxRequests: 10,
+      windowSeconds: 300,
+      corsHeaders,
+      supabaseClient: supabase,
+    });
+    if (!rl.allowed) return rl.response!;
 
     const { data: membership, error: membershipError } = await supabase
       .from('trip_members')

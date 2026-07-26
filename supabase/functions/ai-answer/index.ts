@@ -9,6 +9,7 @@ import { AIAnswerSchema, validateInput } from '../_shared/validation.ts';
 import { sanitizeErrorForClient, logError } from '../_shared/errorHandling.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { invokeChatModel, extractTextFromChatResponse } from '../_shared/gemini.ts';
+import { applyRateLimit } from '../_shared/rateLimitGuard.ts';
 
 serve(async req => {
   const corsHeaders = getCorsHeaders(req);
@@ -43,6 +44,16 @@ serve(async req => {
     if (authError || !user) {
       return createErrorResponse('Unauthorized', 401);
     }
+
+    // Each answer is a paid Gemini generation and was previously unmetered per user.
+    const rl = await applyRateLimit({
+      identifier: `ai-answer:${user.id}`,
+      maxRequests: 30,
+      windowSeconds: 60,
+      corsHeaders,
+      supabaseClient: supabase,
+    });
+    if (!rl.allowed) return rl.response!;
 
     // Validate and sanitize input
     const requestBody = await req.json();

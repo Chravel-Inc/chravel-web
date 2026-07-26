@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Mail, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { authEvents } from '@/telemetry/events';
+import { signInBackoffMs } from '@/lib/authErrors';
 import { supabase } from '@/integrations/supabase/client';
 
 interface AuthModalProps {
@@ -46,6 +47,11 @@ export const AuthModal = ({
   const [isPortalReady, setIsPortalReady] = useState(false);
   // Track when we're waiting for auth state to update after successful sign-in
   const [awaitingAuth, setAwaitingAuth] = useState(false);
+  // Failed sign-in attempts in this session. Drives a progressive cooldown — a UX speed bump
+  // against casual password guessing, not a security control: password auth goes straight from
+  // the browser to GoTrue, so the enforceable throttle is GoTrue's own rate limit config.
+  const [failedSignInAttempts, setFailedSignInAttempts] = useState(0);
+  const [cooldownSecondsLeft, setCooldownSecondsLeft] = useState(0);
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const oauthLoadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -192,6 +198,19 @@ export const AuthModal = ({
     }
   }, [awaitingAuth, onClose]);
 
+  // Start (or extend) the cooldown whenever a sign-in attempt fails.
+  useEffect(() => {
+    const backoffMs = signInBackoffMs(failedSignInAttempts);
+    if (backoffMs === 0) return;
+    setCooldownSecondsLeft(Math.ceil(backoffMs / 1000));
+  }, [failedSignInAttempts]);
+
+  useEffect(() => {
+    if (cooldownSecondsLeft <= 0) return;
+    const timer = setTimeout(() => setCooldownSecondsLeft(seconds => seconds - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldownSecondsLeft]);
+
   if (!isOpen || !isPortalReady) return null;
 
   const authHeading =
@@ -199,6 +218,7 @@ export const AuthModal = ({
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (cooldownSecondsLeft > 0) return;
     setError('');
     setSuccess('');
     try {
@@ -216,17 +236,13 @@ export const AuthModal = ({
           authEvents.signupFailed('email', result.error);
         } else {
           authEvents.loginFailed('email', result.error);
+          setFailedSignInAttempts(attempts => attempts + 1);
         }
+        // Render the message exactly as returned. Previously this branch auto-switched to
+        // sign-in mode when the message contained "already", which was a binary,
+        // machine-readable "this email is registered" oracle regardless of the wording, and
+        // rewrote the sign-in message to mention Google/Apple, hinting at provider state.
         setError(result.error);
-        if (mode === 'signup' && result.error.toLowerCase().includes('already')) {
-          setMode('signin');
-        }
-        if (mode === 'signin' && result.error.toLowerCase().includes('invalid email or password')) {
-          setError(
-            'Invalid email or password. If you signed up with Google or Apple, use that option instead.',
-          );
-          return;
-        }
         return;
       }
 
@@ -264,6 +280,8 @@ export const AuthModal = ({
         setError(result.error);
         return;
       }
+      // resetPassword resolves with `success` whether or not the address is registered, so the
+      // neutral confirmation screen is shown either way.
       setResetEmailSent(true);
     } catch (error) {
       console.error('Reset password error:', error);
@@ -432,16 +450,18 @@ export const AuthModal = ({
 
       <button
         type="submit"
-        disabled={isLoading || awaitingAuth}
+        disabled={isLoading || awaitingAuth || cooldownSecondsLeft > 0}
         className="w-full bg-gold-metallic font-semibold tracking-wide py-3 rounded-xl hover:scale-[1.02] active:scale-95 transition-transform disabled:opacity-50 min-h-[44px]"
       >
         {awaitingAuth
           ? 'Signing you in...'
           : isLoading
             ? 'Loading...'
-            : mode === 'signup'
-              ? 'Create Account'
-              : 'Sign In'}
+            : cooldownSecondsLeft > 0
+              ? `Try again in ${cooldownSecondsLeft}s`
+              : mode === 'signup'
+                ? 'Create Account'
+                : 'Sign In'}
       </button>
 
       {mode === 'signup' && (
