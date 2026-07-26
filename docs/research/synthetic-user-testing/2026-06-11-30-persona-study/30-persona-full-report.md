@@ -1,13 +1,42 @@
 # ChravelApp 30-Persona Synthetic User Testing — Full Reports
 
-> **Date:** 2026-06-11 · **Method:** Code-grounded synthetic simulation + live browser session
+> **Date:** 2026-06-11 · **Evidence refresh:** 2026-07-26 (rebased onto `main`)  
 > **Warning:** Synthetic research only. Not customer validation. See README.md.
 
 ---
 
-> **Disclaimer:** This document is **synthetic user research** — code-grounded simulations and browser observations conducted 2026-06-11. No real users were interviewed. Findings are labeled `[OBSERVED]`, `[SIMULATED RISK]`, or `[HYPOTHESIS]` per `docs/research/synthetic-user-testing/evidence/product-ground-truth.md`. Synthetic quotes are labeled `[SYNTHETIC QUOTE]`. Do not cite this as customer validation or revenue proof.
+## ⚠️ Re-verification addendum (2026-07-26)
 
-**Evidence base:** Live browser session at `http://localhost:8080` (2026-06-11); `src/billing/config.ts`, `src/billing/entitlements.ts`, `src/pages/JoinTrip.tsx`, `src/components/onboarding/OnboardingCarousel.tsx`, `src/utils/tripConverter.ts`, `src/types/permissionMatrix.generated.ts`, `src/pages/ForTeams.tsx`, `docs/research/synthetic-user-testing/evidence/posthog-funnel.md`, prior 10-persona study.
+Persona narratives below were written against the **June 11** codebase. Several `[OBSERVED]` citations are **stale**. Before acting on any persona finding, check:
+
+1. **`REBASE-REFRESH-2026-07-26.md`** — closed vs open claims  
+2. **`../evidence/product-ground-truth.md`** — July delta table  
+3. **`persona-matrix.csv`** — refreshed conversion scores  
+
+### Do not cite these June claims as current bugs
+
+| Stale June claim | July reality |
+|------------------|--------------|
+| `APPLE_IAP_ENABLED = false` / Subscribe on web | **IAP enabled** (`billing/config.ts:260`) |
+| Trip Pass only on marketing page | Also in `PlusUpsellModal` / Concierge / `ConsumerBillingSection` |
+| Join approval framing is a copy bug | **Always approval by design** |
+| Pro finance/medical/compliance tabs on real trips | **Hidden** via `filterPlaceholderTabs` |
+| Payment split cap unenforced | **Enforced** in `paymentService` |
+| Settlement double-credit race | **Fixed** (atomic RPCs) |
+| Broadcast fanout schema drift | **Fixed** (migration) |
+| Smart Import fully paywalled | **1 free taste / trip** |
+
+### Still valid across personas (re-confirmed)
+
+- `consumer_guest` zero access → invite funnel leak  
+- Invite is sole growth path; no add-by-email  
+- Onboarding still 10 screens  
+- Pro ops CRUD (day sheet / settlement) still missing in converter  
+- Product PostHog funnel still dark  
+- Some paywalls still route to `/settings` not Trip Pass  
+- Marketing `ForTeams` still mailto  
+
+Scores used for synthesis/investor readout: **`persona-matrix.csv` (July 26)**, not the inline June scores in sections I below.
 
 ---
 

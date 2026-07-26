@@ -1,3 +1,5 @@
+> **Refreshed 2026-07-26:** Re-prioritize guest itinerary + Trip Pass wall completeness over iOS dead-end (IAP now on). See `REBASE-REFRESH-2026-07-26.md`.
+
 # Real Beta Interview Questions — 30-Persona Study Validation
 
 **Date:** 2026-06-11  
@@ -20,7 +22,7 @@
 
 ## Priority 1 — Monetization (WTP, Trip Pass vs sub)
 
-*Synthetic basis: 22/30 WTP > $0; paid conversion avg 2.7/10; Trip Pass unreachable `[OBSERVED]`*
+*Synthetic basis: 22/30 WTP > $0; paid conversion avg **3.5/10** (was 2.7); Trip Pass reachable at concierge but not every wall `[OBSERVED — refreshed 2026-07-26]`*
 
 ### Q1. Trip framing
 > "Think about the last group trip you organized. If a tool saved you 2+ hours of coordination, what would you realistically pay — per trip or per month?"
@@ -37,11 +39,11 @@
 - **Validates:** P0-1 Trip Pass at walls
 
 ### Q3. iOS payment
-> "You're on your phone in the app. You tap Upgrade and it says 'Subscribe on web.' What do you do?"
+> "You're on your phone in the app. You hit an upgrade wall (AI limit or Trip Pass). Walk me through what you see and whether you'd complete purchase in-app."
 
 - **Probe:** Open Safari? Email support? Delete app?
 - **Listen for:** Drop-off vs web completion
-- **Validates:** P1-1 iOS dead-end `[OBSERVED]`
+- **Validates:** IAP/Trip Pass path honesty post-`APPLE_IAP_ENABLED: true` `[OBSERVED — refreshed 2026-07-26]`
 
 ### Q4. Worst upgrade CTA
 > "Which upsell would make you leave: monthly subscription, email sales, attendee cap warning, or onboarding slideshow?"
@@ -60,7 +62,7 @@
 
 ## Priority 2 — Invite funnel
 
-*Synthetic basis: invite avg 5.1/10; guest wall `[OBSERVED]` consumer_guest*
+*Synthetic basis: invite avg **4.9/10**; guest wall `[OBSERVED]` consumer_guest; always-approval by design*
 
 ### Q6. Invitee first value
 > "You get a link from a friend about a Vegas trip. Before creating an account, what do you need to see to decide whether to join?"
@@ -293,7 +295,7 @@
 |---------|-------------|-----------|
 | Trip Pass > subscription preference | ≥6/8 Regular choose per-trip | ≥5/8 prefer monthly |
 | Guest itinerary needed | ≥5/8 won't sign up without preview | ≥5/8 fine with account first |
-| iOS payment dead-end | ≥4/5 iOS users abandon | ≥3/5 complete on web |
+| iOS in-app purchase | ≥4/5 abandon or confused | ≥3/5 complete Trip Pass/Explorer via IAP |
 | Pro stubs unacceptable | ≥3/3 Pro users cite empty tabs | Users don't open ops tabs |
 | 10-screen onboarding too long | ≥5/8 want ≤3 screens | ≥5/8 complete without skip |
 

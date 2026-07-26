@@ -1,18 +1,27 @@
 # ChravelApp 30-Persona Synthetic User Testing Study
 
-**Date:** 2026-06-11  
+**Original date:** 2026-06-11  
+**Evidence refresh:** 2026-07-26 (rebased onto latest `main`)  
 **Package:** `docs/research/synthetic-user-testing/2026-06-11-30-persona-study/`  
 **Prior work:** Builds on the 10-persona study (`../REPORT.md`, `../personas/`, `../evidence/product-ground-truth.md`) — does **not** overwrite it.
+
+**Start here after July refresh:** [`REBASE-REFRESH-2026-07-26.md`](./REBASE-REFRESH-2026-07-26.md)
 
 ---
 
 ## What this study is
 
-A structured **synthetic** research package simulating 30 diverse personas completing beta screener + interview surveys and walking realistic ChravelApp workflows (desktop web + mobile/PWA viewports). Findings are grounded in:
+A structured **synthetic** research package simulating 30 diverse personas completing beta screener + interview surveys and walking realistic ChravelApp workflows (desktop web + mobile/PWA viewports).
 
-- Live browser sessions at `http://localhost:8080` (2026-06-11)
-- Source code and audit corpus (`product-ground-truth.md`, `DEBUG_PATTERNS.md`, prior persona reports)
-- PostHog state (zero events ingested — all funnel rates are hypothesis)
+**July 26 refresh:** Re-verified P0/P1 claims against current code + July product audits. Scores in `persona-matrix.csv`, priorities in `top-priority-fixes.md`, and synthesis averages were updated. Persona narrative voices in `30-persona-full-report.md` remain the June synthetic interviews with a re-verification addendum at the top — do not treat June-only `[OBSERVED]` citations as current without checking the delta doc.
+
+Findings are grounded in:
+
+- Live browser sessions + codebase inspection
+- `../evidence/product-ground-truth.md` (includes 2026-07-26 delta header)
+- `docs/audits/CHRAVEL_PRODUCT_AUDIT_2026-07-25.md`
+- `docs/audits/POST_DRIFT_FEATURE_AUDIT_2026-07-25.md`
+- PostHog project `464040` (autocapture only — product funnel still hypothesis)
 
 ## Critical warning
 
@@ -28,36 +37,39 @@ This package stress-tests coverage, UX failure modes, and monetization traps. It
 
 Synthetic persona quotes are labeled `[SYNTHETIC QUOTE]`. No real customer quotes are invented.
 
-## How it was run
+## How the July refresh was run
 
-1. Read prior 10-persona reports and `evidence/product-ground-truth.md`
-2. Inspected repo: billing, invites, onboarding, Pro stubs, permission matrix
-3. Started Vite dev server; desktop browser walkthrough (1280×800)
-4. Attempted mobile viewport testing (390×844) — limited in cloud environment; mobile findings combine responsive code review + prior study + partial live test
-5. Wrote 30 persona reports with evidence labels and conversion scores
-6. Generated aggregate synthesis, CSV exports, and structured JSON survey responses
+1. Rebased study branch onto latest `main`
+2. Re-verified each June P0/P1 claim against current source + July audits
+3. Updated ground-truth delta, synthesis, priority fixes, CSVs, web-mobile comparison
+4. Documented closed vs open items in `REBASE-REFRESH-2026-07-26.md`
 
 ## Deliverables
 
 | File | Description |
 |------|-------------|
-| `30-persona-full-report.md` | All 30 detailed persona reports (sections A–K each) |
-| `synthesis.md` | Executive synthesis: heatmaps, priority matrix, investor readout |
-| `persona-matrix.csv` | One row per persona — segment, scores, SKU, churn risk |
-| `feature-findings.csv` | Feature-level findings across all personas |
-| `pricing-insights.csv` | WTP, preferred model, CTA triggers per persona |
-| `top-priority-fixes.md` | P0–P3 engineering/product fixes with code refs |
-| `real-beta-interview-questions.md` | 20+ questions for real user validation |
-| `raw-synthetic-survey-responses.json` | Structured screener + interview responses |
-| `web-mobile-comparison.md` | Desktop vs mobile/PWA synthesis |
+| `REBASE-REFRESH-2026-07-26.md` | **What changed since June** — closed bugs, open P0s, score deltas |
+| `30-persona-full-report.md` | All 30 detailed persona reports (sections A–K) + re-verification addendum |
+| `synthesis.md` | Executive synthesis (refreshed averages) |
+| `persona-matrix.csv` | One row per persona — scores refreshed 2026-07-26 |
+| `feature-findings.csv` | Feature-level findings across personas |
+| `pricing-insights.csv` | WTP / CTA (CTAs refreshed for Trip Pass + IAP) |
+| `top-priority-fixes.md` | P0–P3 with ✅ closed June items |
+| `real-beta-interview-questions.md` | Real-user validation questions |
+| `raw-synthetic-survey-responses.json` | Structured survey responses |
+| `web-mobile-comparison.md` | Desktop vs mobile/PWA (IAP status updated) |
+
+## Headline after refresh (not validation)
+
+| Metric | June | July 26 |
+|--------|------|---------|
+| Paid conversion (avg) | 2.7 | **3.5** |
+| Invite (avg) | 5.1 | **4.9** |
+| NPS (avg) | ~−10 | **−5.8** |
+
+**Fixed:** IAP, Trip Pass at concierge, Pro placeholder tabs, settlement race, split enforcement, broadcast schema, Smart Import taste.  
+**Still blocking:** Guest itinerary, invite-only growth, remaining settings-routed walls, marketing Pro mailto, product PostHog events, Pro ops CRUD.
 
 ## Recommended next step
 
-Run a **second pass** that converts P0/P1 items in `top-priority-fixes.md` into implementation tickets. Synthetic research only matters if it ships fixes.
-
-## Evidence sources (canonical)
-
-- `../evidence/product-ground-truth.md` — feature inventory, tiers, known issues
-- `../evidence/posthog-funnel.md` — telemetry disabled state
-- `../REPORT.md` — 10-persona synthesis (methodology benchmark)
-- `src/billing/config.ts`, `src/pages/JoinTrip.tsx`, `src/utils/tripConverter.ts`, `src/components/onboarding/OnboardingCarousel.tsx`
+Convert open P0 items in `top-priority-fixes.md` into implementation tickets. Synthetic research only matters if it ships fixes.

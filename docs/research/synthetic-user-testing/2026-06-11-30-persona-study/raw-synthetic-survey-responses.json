@@ -1,7 +1,7 @@
 {
   "study_date": "2026-06-11",
   "persona_count": 30,
-  "disclaimer": "SYNTHETIC \u2014 not real user data",
+  "disclaimer": "SYNTHETIC \u2014 not real user data. Conversion scores refreshed 2026-07-26 after rebase onto main.",
   "responses": [
     {
       "persona_id": 1,
@@ -28,8 +28,8 @@
           "would_invite": 5,
           "mobile_usability": 4,
           "web_usability": 4,
-          "pricing_fit": 5,
-          "nps_sentiment": -10
+          "pricing_fit": 7,
+          "nps_sentiment": 0
         },
         "willingness_to_pay": "$15-30/mo",
         "beta_followup": "Yes"
@@ -38,8 +38,8 @@
         "activation": 6,
         "invite": 5,
         "day7": 5,
-        "paid": 5,
-        "nps": -10
+        "paid": 7,
+        "nps": 0
       }
     },
     {
@@ -64,21 +64,21 @@
           "clarity": 6,
           "time_saved": 5,
           "ai_trust": 3,
-          "would_invite": 4,
+          "would_invite": 3,
           "mobile_usability": 4,
           "web_usability": 4,
-          "pricing_fit": 2,
-          "nps_sentiment": -5
+          "pricing_fit": 4,
+          "nps_sentiment": 0
         },
         "willingness_to_pay": "Trip Pass $30-40",
         "beta_followup": "Maybe"
       },
       "conversion_scores": {
         "activation": 6,
-        "invite": 4,
+        "invite": 3,
         "day7": 5,
-        "paid": 2,
-        "nps": -5
+        "paid": 4,
+        "nps": 0
       }
     },
     {
@@ -106,8 +106,8 @@
           "would_invite": 4,
           "mobile_usability": 3,
           "web_usability": 4,
-          "pricing_fit": 3,
-          "nps_sentiment": 0
+          "pricing_fit": 5,
+          "nps_sentiment": 5
         },
         "willingness_to_pay": "Trip Pass",
         "beta_followup": "Maybe"
@@ -116,8 +116,8 @@
         "activation": 6,
         "invite": 4,
         "day7": 5,
-        "paid": 3,
-        "nps": 0
+        "paid": 5,
+        "nps": 5
       }
     },
     {
@@ -145,8 +145,8 @@
           "would_invite": 5,
           "mobile_usability": 4,
           "web_usability": 4,
-          "pricing_fit": 4,
-          "nps_sentiment": -5
+          "pricing_fit": 6,
+          "nps_sentiment": 5
         },
         "willingness_to_pay": "Trip Pass $39.99",
         "beta_followup": "Maybe"
@@ -155,8 +155,8 @@
         "activation": 7,
         "invite": 5,
         "day7": 4,
-        "paid": 4,
-        "nps": -5
+        "paid": 6,
+        "nps": 5
       }
     },
     {
@@ -184,8 +184,8 @@
           "would_invite": 5,
           "mobile_usability": 3,
           "web_usability": 4,
-          "pricing_fit": 3,
-          "nps_sentiment": 5
+          "pricing_fit": 4,
+          "nps_sentiment": 10
         },
         "willingness_to_pay": "$5-15/mo",
         "beta_followup": "Maybe"
@@ -194,8 +194,8 @@
         "activation": 6,
         "invite": 5,
         "day7": 4,
-        "paid": 3,
-        "nps": 5
+        "paid": 4,
+        "nps": 10
       }
     },
     {
@@ -220,21 +220,21 @@
           "clarity": 6,
           "time_saved": 5,
           "ai_trust": 4,
-          "would_invite": 4,
+          "would_invite": 3,
           "mobile_usability": 3,
           "web_usability": 4,
-          "pricing_fit": 5,
-          "nps_sentiment": -5
+          "pricing_fit": 6,
+          "nps_sentiment": 0
         },
         "willingness_to_pay": "Trip Pass $74.99",
         "beta_followup": "Maybe"
       },
       "conversion_scores": {
         "activation": 6,
-        "invite": 4,
+        "invite": 3,
         "day7": 5,
-        "paid": 5,
-        "nps": -5
+        "paid": 6,
+        "nps": 0
       }
     },
     {
@@ -259,7 +259,7 @@
           "clarity": 5,
           "time_saved": 4,
           "ai_trust": 3,
-          "would_invite": 3,
+          "would_invite": 2,
           "mobile_usability": 3,
           "web_usability": 5,
           "pricing_fit": 1,
@@ -270,7 +270,7 @@
       },
       "conversion_scores": {
         "activation": 5,
-        "invite": 3,
+        "invite": 2,
         "day7": 4,
         "paid": 1,
         "nps": -15
@@ -340,8 +340,8 @@
           "would_invite": 5,
           "mobile_usability": 4,
           "web_usability": 4,
-          "pricing_fit": 3,
-          "nps_sentiment": 0
+          "pricing_fit": 5,
+          "nps_sentiment": 5
         },
         "willingness_to_pay": "Per-trip",
         "beta_followup": "Maybe"
@@ -350,8 +350,8 @@
         "activation": 6,
         "invite": 5,
         "day7": 5,
-        "paid": 3,
-        "nps": 0
+        "paid": 5,
+        "nps": 5
       }
     },
     {
@@ -376,21 +376,21 @@
           "clarity": 7,
           "time_saved": 6,
           "ai_trust": 4,
-          "would_invite": 4,
+          "would_invite": 3,
           "mobile_usability": 3,
           "web_usability": 4,
-          "pricing_fit": 3,
-          "nps_sentiment": -5
+          "pricing_fit": 5,
+          "nps_sentiment": 0
         },
         "willingness_to_pay": "Trip Pass",
         "beta_followup": "Yes"
       },
       "conversion_scores": {
         "activation": 7,
-        "invite": 4,
+        "invite": 3,
         "day7": 5,
-        "paid": 3,
-        "nps": -5
+        "paid": 5,
+        "nps": 0
       }
     },
     {
@@ -418,18 +418,18 @@
           "would_invite": 7,
           "mobile_usability": 3,
           "web_usability": 5,
-          "pricing_fit": 2,
-          "nps_sentiment": -35
+          "pricing_fit": 3,
+          "nps_sentiment": -25
         },
         "willingness_to_pay": "Team $99+/mo",
         "beta_followup": "Yes"
       },
       "conversion_scores": {
-        "activation": 6,
+        "activation": 7,
         "invite": 7,
-        "day7": 3,
-        "paid": 2,
-        "nps": -35
+        "day7": 4,
+        "paid": 3,
+        "nps": -25
       }
     },
     {
@@ -457,18 +457,18 @@
           "would_invite": 7,
           "mobile_usability": 3,
           "web_usability": 5,
-          "pricing_fit": 2,
-          "nps_sentiment": -30
+          "pricing_fit": 3,
+          "nps_sentiment": -20
         },
         "willingness_to_pay": "Enterprise",
         "beta_followup": "Yes"
       },
       "conversion_scores": {
-        "activation": 6,
+        "activation": 7,
         "invite": 7,
-        "day7": 3,
-        "paid": 2,
-        "nps": -30
+        "day7": 4,
+        "paid": 3,
+        "nps": -20
       }
     },
     {
@@ -496,18 +496,18 @@
           "would_invite": 6,
           "mobile_usability": 3,
           "web_usability": 4,
-          "pricing_fit": 3,
-          "nps_sentiment": -20
+          "pricing_fit": 4,
+          "nps_sentiment": -12
         },
         "willingness_to_pay": "Team plan",
         "beta_followup": "Yes"
       },
       "conversion_scores": {
-        "activation": 6,
+        "activation": 7,
         "invite": 6,
-        "day7": 4,
-        "paid": 3,
-        "nps": -20
+        "day7": 5,
+        "paid": 4,
+        "nps": -12
       }
     },
     {
@@ -535,8 +535,8 @@
           "would_invite": 5,
           "mobile_usability": 3,
           "web_usability": 5,
-          "pricing_fit": 2,
-          "nps_sentiment": -25
+          "pricing_fit": 3,
+          "nps_sentiment": -20
         },
         "willingness_to_pay": "Enterprise",
         "beta_followup": "Maybe"
@@ -545,8 +545,8 @@
         "activation": 5,
         "invite": 5,
         "day7": 3,
-        "paid": 2,
-        "nps": -25
+        "paid": 3,
+        "nps": -20
       }
     },
     {
@@ -574,18 +574,18 @@
           "would_invite": 6,
           "mobile_usability": 4,
           "web_usability": 4,
-          "pricing_fit": 3,
-          "nps_sentiment": -15
+          "pricing_fit": 4,
+          "nps_sentiment": -7
         },
         "willingness_to_pay": "$49-99/mo",
         "beta_followup": "Yes"
       },
       "conversion_scores": {
-        "activation": 6,
+        "activation": 7,
         "invite": 6,
-        "day7": 4,
-        "paid": 3,
-        "nps": -15
+        "day7": 5,
+        "paid": 4,
+        "nps": -7
       }
     },
     {
@@ -613,18 +613,18 @@
           "would_invite": 6,
           "mobile_usability": 3,
           "web_usability": 4,
-          "pricing_fit": 2,
-          "nps_sentiment": -40
+          "pricing_fit": 3,
+          "nps_sentiment": -30
         },
         "willingness_to_pay": "$99+/mo",
         "beta_followup": "Yes"
       },
       "conversion_scores": {
-        "activation": 5,
+        "activation": 6,
         "invite": 6,
-        "day7": 3,
-        "paid": 2,
-        "nps": -40
+        "day7": 4,
+        "paid": 3,
+        "nps": -30
       }
     },
     {
@@ -652,8 +652,8 @@
           "would_invite": 6,
           "mobile_usability": 3,
           "web_usability": 5,
-          "pricing_fit": 3,
-          "nps_sentiment": -20
+          "pricing_fit": 4,
+          "nps_sentiment": -15
         },
         "willingness_to_pay": "Client-billable",
         "beta_followup": "Yes"
@@ -662,8 +662,8 @@
         "activation": 5,
         "invite": 6,
         "day7": 3,
-        "paid": 3,
-        "nps": -20
+        "paid": 4,
+        "nps": -15
       }
     },
     {
@@ -691,8 +691,8 @@
           "would_invite": 6,
           "mobile_usability": 3,
           "web_usability": 5,
-          "pricing_fit": 2,
-          "nps_sentiment": -25
+          "pricing_fit": 3,
+          "nps_sentiment": -20
         },
         "willingness_to_pay": "One-off pass $99-199",
         "beta_followup": "Yes"
@@ -701,8 +701,8 @@
         "activation": 5,
         "invite": 6,
         "day7": 3,
-        "paid": 2,
-        "nps": -25
+        "paid": 3,
+        "nps": -20
       }
     },
     {
@@ -805,10 +805,10 @@
           "clarity": 6,
           "time_saved": 5,
           "ai_trust": 4,
-          "would_invite": 5,
+          "would_invite": 4,
           "mobile_usability": 3,
           "web_usability": 4,
-          "pricing_fit": 4,
+          "pricing_fit": 5,
           "nps_sentiment": 5
         },
         "willingness_to_pay": "Client-billable",
@@ -816,9 +816,9 @@
       },
       "conversion_scores": {
         "activation": 6,
-        "invite": 5,
+        "invite": 4,
         "day7": 5,
-        "paid": 4,
+        "paid": 5,
         "nps": 5
       }
     },
@@ -848,7 +848,7 @@
           "mobile_usability": 3,
           "web_usability": 5,
           "pricing_fit": 2,
-          "nps_sentiment": -30
+          "nps_sentiment": -25
         },
         "willingness_to_pay": "Enterprise",
         "beta_followup": "Yes"
@@ -858,7 +858,7 @@
         "invite": 5,
         "day7": 2,
         "paid": 2,
-        "nps": -30
+        "nps": -25
       }
     },
     {
@@ -886,8 +886,8 @@
           "would_invite": 6,
           "mobile_usability": 4,
           "web_usability": 4,
-          "pricing_fit": 3,
-          "nps_sentiment": 5
+          "pricing_fit": 4,
+          "nps_sentiment": 10
         },
         "willingness_to_pay": "Trip Pass",
         "beta_followup": "Maybe"
@@ -896,8 +896,8 @@
         "activation": 7,
         "invite": 6,
         "day7": 4,
-        "paid": 3,
-        "nps": 5
+        "paid": 4,
+        "nps": 10
       }
     },
     {
@@ -965,7 +965,7 @@
           "mobile_usability": 4,
           "web_usability": 4,
           "pricing_fit": 1,
-          "nps_sentiment": -10
+          "nps_sentiment": -5
         },
         "willingness_to_pay": "Chapter expense",
         "beta_followup": "Maybe"
@@ -975,7 +975,7 @@
         "invite": 8,
         "day7": 3,
         "paid": 1,
-        "nps": -10
+        "nps": -5
       }
     },
     {
@@ -1000,7 +1000,7 @@
           "clarity": 5,
           "time_saved": 4,
           "ai_trust": 3,
-          "would_invite": 3,
+          "would_invite": 2,
           "mobile_usability": 3,
           "web_usability": 4,
           "pricing_fit": 1,
@@ -1011,7 +1011,7 @@
       },
       "conversion_scores": {
         "activation": 5,
-        "invite": 3,
+        "invite": 2,
         "day7": 4,
         "paid": 1,
         "nps": 0
@@ -1039,7 +1039,7 @@
           "clarity": 5,
           "time_saved": 4,
           "ai_trust": 4,
-          "would_invite": 4,
+          "would_invite": 3,
           "mobile_usability": 3,
           "web_usability": 5,
           "pricing_fit": 2,
@@ -1050,7 +1050,7 @@
       },
       "conversion_scores": {
         "activation": 5,
-        "invite": 4,
+        "invite": 3,
         "day7": 4,
         "paid": 2,
         "nps": -5
@@ -1159,7 +1159,7 @@
           "would_invite": 5,
           "mobile_usability": 3,
           "web_usability": 4,
-          "pricing_fit": 4,
+          "pricing_fit": 5,
           "nps_sentiment": 5
         },
         "willingness_to_pay": "$15-30/mo",
@@ -1169,9 +1169,10 @@
         "activation": 6,
         "invite": 5,
         "day7": 5,
-        "paid": 4,
+        "paid": 5,
         "nps": 5
       }
     }
-  ]
+  ],
+  "refresh_date": "2026-07-26"
 }

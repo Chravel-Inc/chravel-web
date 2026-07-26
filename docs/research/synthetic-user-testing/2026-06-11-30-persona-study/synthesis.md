@@ -1,9 +1,10 @@
 # ChravelApp 30-Persona Synthetic Study — Aggregate Synthesis
 
-**Date:** 2026-06-11  
+**Original study:** 2026-06-11 · **Evidence refresh:** 2026-07-26 (rebased onto `main`)  
 **Package:** `docs/research/synthetic-user-testing/2026-06-11-30-persona-study/`  
-**Method:** 30 synthetic personas × desktop web + mobile/PWA viewports, grounded in live browser sessions (`localhost:8080`), codebase audit, and prior 10-persona study (`../REPORT.md`).  
-**Data sources:** `persona-matrix.csv`, `feature-findings.csv`, `pricing-insights.csv`, `raw-synthetic-survey-responses.json`, `../evidence/product-ground-truth.md`
+**Delta doc:** `REBASE-REFRESH-2026-07-26.md`  
+**Method:** 30 synthetic personas × desktop web + mobile/PWA viewports, grounded in browser sessions, codebase audit, prior 10-persona study, and July 2025–26 product audits.  
+**Data sources:** `persona-matrix.csv` (scores refreshed 2026-07-26), `feature-findings.csv`, `pricing-insights.csv`, `raw-synthetic-survey-responses.json`, `../evidence/product-ground-truth.md` (delta header), `docs/audits/CHRAVEL_PRODUCT_AUDIT_2026-07-25.md`
 
 ---
 
@@ -22,62 +23,71 @@
 
 ## Executive Summary
 
+> **July 26 refresh:** Paid conversion improved (+0.8 avg) after Trip Pass in-app + Apple IAP. Invite slightly worse because always-approval is now explicit product policy. Pro less dishonest (tabs hidden) but ops CRUD still missing. See `REBASE-REFRESH-2026-07-26.md`.
+
+### Scoreboard (synthetic averages)
+
+| Metric | June 11 | July 26 | Note |
+|--------|---------|----------|------|
+| Activation | 6.1 | **6.0** | Organizer loop still real |
+| Invite | 5.1 | **4.9** | Always-approval + guest wall |
+| Paid conversion | 2.7 | **3.5** | Trip Pass + IAP unlocked |
+| NPS avg | ~−10 | **−5.8** | Pro NPS still negative |
+
 ### 10 signals (what the product is telling us)
 
-1. **Single-player organizer loop is real.** Calendar, polls, places, and text concierge activate in first session across Regular segments (activation avg **6.1/10**). `[OBSERVED]` + `[SIMULATED RISK]`
-2. **Group coordination primitives are load-bearing.** Polls and calendar score highest in feature heatmap across 24/30 personas. `[SIMULATED RISK]`
-3. **Willingness to pay is widespread but uncapturable.** 22/30 personas state non-zero WTP; paid-conversion scores avg **2.7/10**. Gap = machinery, not demand. `[SIMULATED RISK]` + `[OBSERVED]`
-4. **Trip Pass is the dominant consumer SKU.** 14/30 personas prefer per-trip; Explorer 45-day $39.99 / FC 90-day $74.99 maps to bachelorette, sports parents, festival groups. `[SIMULATED RISK]` — see `pricing-insights.csv`
-5. **Invite preview improved; invitee value path did not.** Join page now shows rich trip card and conditional approval framing `[OBSERVED — JoinTrip.tsx]`; `consumer_guest` still has zero resource access `[OBSERVED — permissionMatrix.generated.ts]`.
-6. **Pro demo sells checks real trips cannot cash.** `tripConverter.ts:117-130` hardcodes roster, schedule, settlement, per-diem, compliance to `[]` for all real Pro trips. Pro NPS avg **−24.3** vs Regular **−2.1**. `[OBSERVED]`
-7. **Broadcast reliability is a scale cliff.** Schema drift between `trip_broadcasts` (migration) and `broadcasts` (app) caused fanout failures; fix landed in `20260610090000_fix_broadcast_notification_fanout_table.sql` but unvalidated at 1k+ attendees. `[OBSERVED]`
-8. **Analytics is dark.** PostHog project `ingested_event: false` — zero Chravel product events ever. Complete funnel map exists in `src/telemetry/types.ts` but `VITE_POSTHOG_API_KEY` unset. `[OBSERVED — posthog-funnel.md]`
-9. **Mobile is the primary device for 17/30 personas** but monetization and ops workflows bias desktop (Pro mailto checkout, day-sheet gaps). `[SIMULATED RISK]` — see `persona-matrix.csv` platform column
-10. **Landing narrative is clear; in-trip and Events pricing is not.** Marketing `PricingSection.tsx` explains tiers; Events module and in-app limit walls route to `/settings` subscription framing, not Trip Pass. `[OBSERVED]`
+1. **Single-player organizer loop is still real.** Calendar, polls, places, text concierge activate in first session. `[OBSERVED]` + `[SIMULATED RISK]`
+2. **Monetization machinery partially repaired.** Trip Pass reachable from concierge/`PlusUpsellModal`/`ConsumerBillingSection`; `APPLE_IAP_ENABLED: true`. `[OBSERVED — billing/config.ts:260]`
+3. **Paid conversion still trails stated WTP.** Avg paid **3.5/10** despite 22/30 stating non-zero WTP — remaining gaps are settings-routed walls + invite→organizer loop. `[SIMULATED RISK]`
+4. **Trip Pass remains the dominant consumer SKU** for 14/30 personas — now purchasable in more places, not only marketing. `[OBSERVED]`
+5. **Invite is always approval-only by design** — not a framing bug. Guest still has zero resource access. Invite is the **sole** growth path for real trips. `[OBSERVED — JoinTrip.tsx:115-121, July product audit §2]`
+6. **Pro is less bait-and-switch, still unfinished.** Placeholder tabs hidden on real trips; live roster works; schedule/settlement/medical/compliance still empty in converter. `[OBSERVED — ProTabsConfig.tsx:50-67, tripConverter.ts]`
+7. **Broadcast schema drift closed;** scale validation at 1k+ still open. `[OBSERVED — migration 20260610090000]`
+8. **PostHog autocapture exists; product funnel still dark.** Project `464040` — no custom `trip_joined` / `upgrade_*` events. `[OBSERVED]`
+9. **Settlement race and split-cap theater closed.** Atomic settlement RPCs; `checkPaymentSplitLimit` enforced (Trip Pass CTA at split wall still missing). `[OBSERVED]`
+10. **Landing narrative clear; Events pricing and guest value still unclear.** `/trip/:id/preview` ≠ guest itinerary. `[OBSERVED]`
 
 ### 10 risks (investor-grade candid)
 
-1. **Revenue layer is structurally broken.** Trip Pass modal mounted only on marketing `PricingSection.tsx` `[OBSERVED]`; limit walls use `featurePaywall.ts` → `/settings?section=billing` with subscription copy, no Trip Pass CTA `[OBSERVED]`.
-2. **iOS consumer monetization dead-end.** `APPLE_IAP_ENABLED = false` → "Subscribe on web" with no outbound purchase link `[OBSERVED — product-ground-truth.md §7]`. 17/30 personas list iOS as primary platform.
-3. **Pro is a demo wrapper for B2B.** All 10 Pro/Ops personas score paid conversion ≤4 and NPS ≤−15. Selling Growth/Enterprise with stub tabs is reputational debt.
-4. **Invite funnel still kills group growth.** Mandatory auth before value + zero guest permissions → invite scores avg **5.1/10** (down from organizer activation 6.1). `[OBSERVED]` + `[SIMULATED RISK]`
-5. **Unenforced limits erode trust when eventually enforced.** Payment splits cap (3/trip) has no enforcement call sites `[OBSERVED — 10-persona REPORT §5 C1]`; attendee cap labels scare without blocking `[OBSERVED]`.
-6. **Notification fanout at scale.** Synchronous INSERT fanout blocks at ~4k members; no per-trip mute `[OBSERVED — NOTIFICATION_AUDIT.md]`. Personas 22, 25, 14 flag this.
-7. **PostHog blindness.** Cannot measure invite→join→activate→pay funnel; every priority debate is opinion until telemetry ships.
-8. **10-screen onboarding before first trip.** `OnboardingCarousel.tsx` — 10 screens (Welcome → Chat → Calendar → Concierge → Media → Payments → Places → Polls → Tasks → CTA). College/frat personas rate onboarding as churn driver. `[OBSERVED]`
-9. **AI trust gap.** AI trust ratings avg **3.4/5** in synthetic interviews; voice concierge sells live audio but product path is dictation-only `[OBSERVED — voiceProductPath.ts]`.
-10. **Security/compliance blockers for Enterprise.** Unsigned media URLs, wildcard CORS on 26 edge functions, demo super-admin in `FOUNDER_EMAILS` `[OBSERVED — product-ground-truth.md §10]`.
+1. **Growth is single-threaded on the invite link** with no email/phone add fallback; org invite email silently broken. `[OBSERVED — July product audit]`
+2. **Guest zero-access still kills viral loops.** Always-approval compounds the account wall. `[OBSERVED]`
+3. **Incomplete Trip Pass surfacing** — Smart Import / some `featurePaywall` gates still → `/settings`. `[OBSERVED]`
+4. **Marketing Pro path still mailto** while in-app checkout works — discovery/conversion split-brain. `[OBSERVED — ForTeams.tsx]`
+5. **Pro ops CRUD still absent** — day sheet / settlement / per-diem not shippable for live ops. `[OBSERVED]`
+6. **Product analytics insufficient** for monetization experiments. `[OBSERVED]`
+7. **Onboarding still 10 screens** before first trip. `[OBSERVED — OnboardingCarousel.tsx]`
+8. **Voice entitlement oversells** dictation-only path (realtime flag default OFF). `[OBSERVED — voiceProductPath.ts]`
+9. **Upload quota still fails open** on lookup errors. `[OBSERVED — uploadService.ts]`
+10. **Security/compliance blockers for Enterprise** remain (unsigned media patterns, CORS history, etc.). `[OBSERVED — prior audits]`
 
 ### 10 wins (what to protect and amplify)
 
-1. **Trip creation UX** — title, dates, timezone, cover photo flow works; Pro category picker is differentiated. `[OBSERVED]`
-2. **Polls as group decision engine** — bachelorette, frat, sports, corporate personas all cite polls as killer feature. `[SIMULATED RISK]`
-3. **Shared calendar** — strongest retention hook for sports parents, reunions, touring (when day-level view exists). `[SIMULATED RISK]`
-4. **Places + Basecamp** — multi-city touring persona 16 validates basecamp-per-city mental model. `[SIMULATED RISK]`
-5. **Join page preview card** — improved since 10-persona study: trip name, dates, cover, member count before auth `[OBSERVED — JoinTrip.tsx]`.
-6. **Concierge usage chip** — visible quota in `AIConciergeChat.tsx` (fixed since 10-persona `_usage` discard). `[OBSERVED]`
-7. **Smart Import architecture** — state machine ingest→commit impresses corporate/events personas when reachable. `[OBSERVED]`
-8. **Venmo deeplink settle-up** — correct scope (tracking, not processor); golf/bachelor personas accept it. `[SIMULATED RISK]`
-9. **Role/channel model skeleton** — sports role defaults resonate in demo; foundation is real, data layer is not. `[OBSERVED]`
-10. **Premium dark/gold landing** — luxury advisor (29) and wedding planner (21) rate clarity 6–7/10 on marketing. `[SIMULATED RISK]`
+1. **Trip creation UX** still strong. `[OBSERVED]`
+2. **Polls** as group decision engine. `[SIMULATED RISK]`
+3. **Shared calendar** retention hook. `[SIMULATED RISK]`
+4. **Places + Basecamp** (incl. personal basecamp). `[OBSERVED — July feature inventory]`
+5. **Trip Pass at concierge wall** — correct SKU at correct moment. `[OBSERVED]`
+6. **iOS IAP path live** for App Review / native purchase. `[OBSERVED]`
+7. **Smart Import 1-free taste** — free users can sample the differentiator. `[OBSERVED]`
+8. **Pro placeholder honesty** — hide unfinished tabs on real trips. `[OBSERVED]`
+9. **Atomic settlement** — money-trust P0 closed. `[OBSERVED]`
+10. **In-app Pro Stripe checkout** via `ProUpgradeModal`. `[OBSERVED]`
 
-### 5 bets (where to concentrate next 90 days)
+### 5 bets (next 90 days)
 
-1. **Close the monetization chain for Regular consumers** — Trip Pass at every limit wall, Stripe checkout in-flow, iOS web-checkout deep link or IAP decision. Target: 14 Trip Pass–fit personas.
-2. **Guest read-only itinerary** — unauthenticated or light-auth preview of calendar + polls before signup. Target: invite score 5.1 → 7.0.
-3. **Hide or ship Pro ops tabs** — no placeholder roster/settlement/compliance UI on real trips until CRUD exists. Target: Pro NPS −24 → −10.
-4. **Enable PostHog + ship 5 funnel events** — `trip_join_started`, `trip_joined`, `upgrade_prompt_shown`, `upgrade_started`, `upgrade_completed`. Target: replace hypothesis with data within 2 weeks of deploy.
-5. **Events pricing surfacing** — dedicated Events tier copy on event creation and `/event/:id` settings, decouple from consumer subscription confusion. Target: personas 6, 18, 21, 22.
+1. **Guest read-only itinerary** on active invite tokens — target invite 4.9 → 7.0.
+2. **Complete Trip Pass at every limit wall** (import, splits, trip cap) — target paid 3.5 → 5.0 among Trip-Pass-fit personas.
+3. **Growth fallback** (add-by-email + fix org invites) — remove single-threaded invite risk.
+4. **PostHog product events** — replace hypothesis with funnel data in 2 weeks.
+5. **Pro ops MVP or claim purge** — day sheet + rooming OR remove logistics claims from `/teams`.
 
 ### 5 not to build (yet)
 
-1. **In-app payment processing** — personas accept Venmo/manual settle; processor adds compliance without unlocking WTP. `[HYPOTHESIS]`
-2. **Full OTA booking aggregation** — coordination layer positioning is correct; booking drags licensing. `[OBSERVED — AGENTS.md]`
-3. **Multi-tenant white-label / agency workspaces** — personas 20, 29 want it but Enterprise surface isn't shippable until Pro ops is real. `[SIMULATED RISK]`
-4. **Recurring trip templates** — run club (24) wants it but segment WTP is $0; duplicate-trip is cheaper. `[SIMULATED RISK]`
-5. **Live Gemini voice concierge** — entitlement oversells current dictation-only path; fix labeling before rebuilding WebSocket proxy. `[OBSERVED]`
-
----
+1. **In-app payment processing** — Venmo settle is enough. `[HYPOTHESIS]`
+2. **Full OTA booking aggregation** — coordination positioning correct. `[OBSERVED — AGENTS.md]`
+3. **Agency white-label** before Pro ops CRUD ships. `[SIMULATED RISK]`
+4. **Recurring trip templates** — duplicate-trip cheaper; run-club WTP ≈ $0. `[SIMULATED RISK]`
+5. **Live Gemini voice rebuild** before labeling honesty on dictation path. `[OBSERVED]`
 
 ## Persona Segment Matrix
 
@@ -85,18 +95,18 @@ Reference: `persona-matrix.csv` (30 rows). Aggregated below by segment family.
 
 | Segment family | Personas (IDs) | n | Avg activation | Avg invite | Avg day-7 | Avg paid | Avg NPS | Top SKU | Primary churn risk |
 |----------------|----------------|---|----------------|------------|-----------|----------|---------|---------|-------------------|
-| **Regular — friend/social** | 1, 4, 5, 8, 9, 10, 28 | 7 | 6.7 | 4.9 | 4.0 | 2.6 | −2.1 | Trip Pass / Free | Trip Pass unreachable |
-| **Regular — sports/youth parent** | 2, 3, 24 | 3 | 5.7 | 4.3 | 4.7 | 2.0 | −8.3 | Trip Pass / Free | Guest wall + Smart Import paywall |
-| **Regular — family/community** | 7, 26, 27, 30 | 4 | 5.5 | 3.8 | 4.3 | 2.0 | −3.8 | Free / Explorer | Invite friction + tech literacy |
-| **Events — weddings/celebrations** | 6, 21 | 2 | 6.0 | 4.5 | 5.0 | 4.5 | 0.0 | 90-day Pass / Event pass | False attendee cap copy |
-| **Events — large scale** | 18, 22, 25 | 3 | 5.3 | 6.3 | 2.7 | 1.7 | −21.7 | Event pass / Season | Broadcast scale + notifications |
-| **Pro — sports/teams** | 11, 12, 13, 14 | 4 | 5.5 | 6.3 | 3.3 | 2.3 | −27.5 | Pro Growth / Enterprise | Hollow ops tabs |
-| **Pro — touring/creative** | 15, 16, 17 | 3 | 5.3 | 6.0 | 3.3 | 2.7 | −25.0 | Pro Starter / Growth | Settlement stub + offline |
+| **Regular — friend/social** | 1, 4, 5, 8, 9, 10, 28 | 7 | 6.4 | 4.9 | 4.1 | 4.1 | 3.6 | Trip Pass / Free | Always-approval + guest wall |
+| **Regular — sports/youth parent** | 2, 3, 24 | 3 | 5.7 | 4.0 | 4.7 | 3.3 | −5.0 | Trip Pass / Free | Guest wall + settings-routed import wall |
+| **Regular — family/community** | 7, 26, 27, 30 | 4 | 5.2 | 3.0 | 4.2 | 2.2 | −3.8 | Free / Explorer | Invite friction + tech literacy |
+| **Events — weddings/celebrations** | 6, 21 | 2 | 6.0 | 3.5 | 5.0 | 5.5 | 2.5 | 90-day Pass / Event pass | Always-approval guest path |
+| **Events — large scale** | 18, 22, 25 | 3 | 5.3 | 6.3 | 2.7 | 2.0 | −16.7 | Event pass / Season | Broadcast scale + notifications |
+| **Pro — sports/teams** | 11, 12, 13, 14 | 4 | 6.5 | 6.2 | 4.0 | 3.2 | −19.2 | Pro Growth / Enterprise | Ops CRUD still missing |
+| **Pro — touring/creative** | 15, 16, 17 | 3 | 6.0 | 6.0 | 4.0 | 3.7 | −17.3 | Pro Starter / Growth | Day sheet / settlement CRUD |
 | **Pro — enterprise/security** | 19, 20 | 2 | 6.0 | 5.0 | 4.5 | 3.0 | −7.5 | Enterprise / White-label | Security + no multi-tenant |
 | **Pro — luxury advisor** | 29 | 1 | 6.0 | 5.0 | 6.0 | 5.0 | 10.0 | White-label export | Export branding |
-| **Regular — festival/niche** | 23 | 1 | 7.0 | 6.0 | 4.0 | 3.0 | 5.0 | Trip Pass | Import paywall |
+| **Regular — festival/niche** | 23 | 1 | 7.0 | 6.0 | 4.0 | 4.0 | 10.0 | Trip Pass | Import wall → settings |
 
-**Cross-segment insight:** Regular organizers activate; Pro buyers churn on hollow ops; Events buyers sit in the middle if pricing is legible. Invite is the universal weak column (avg **5.1/10**).
+**Cross-segment insight (July 26):** Regular paid conversion improved where Trip Pass is reachable; Pro NPS less catastrophic after placeholder tabs hidden but still negative. Invite is the universal weak column (avg **4.9/10**).
 
 ---
 
@@ -120,14 +130,14 @@ Rows = features. Columns = segment families (from matrix above).
 | Payments / splits | Low | Low | Low | Low | Negative | Negative | Negative |
 | Media | Low | Moderate | Neutral | Low | Moderate | Moderate | Low |
 | Broadcasts | Neutral | Moderate | Moderate | Strong | Moderate | Strong | Strong |
-| Pro ops (roster, settlement) | Neutral | Neutral | Neutral | Neutral | Negative | Negative | Negative |
+| Pro ops (roster, settlement) | Neutral | Neutral | Neutral | Neutral | Low | Low | Low |
 | Notifications | Low | Low | Low | Low | Negative | Low | Negative |
-| Subscription / upgrade | Negative | Negative | Negative | Low | Negative | Negative | Negative |
+| Subscription / upgrade | Low | Low | Low | Moderate | Low | Low | Low |
 | Mobile navigation | Moderate | Moderate | Low | Moderate | Moderate | Low | Moderate |
 | Web navigation | Strong | Neutral | Strong | Strong | Strong | Moderate | Strong |
 | PDF / export | Low | Neutral | Neutral | Moderate | Low | Low | Strong |
 
-**Reading the heatmap:** Green zones (calendar, polls, places) justify consumer GTM. Red zone (upgrade flow, Pro ops, payments at scale) blocks revenue. Subscription column is **Negative** in 6/7 columns — the monetization chain failure is segment-agnostic.
+**Reading the heatmap (July 26):** Green zones (calendar, polls, places) still justify consumer GTM. Upgrade flow improved from “Negative everywhere” to mixed — Trip Pass at concierge helps Regular; Smart Import/settings walls and marketing Pro mailto keep friction. Pro ops moved from pure Negative toward Low/Negative after placeholder tabs were hidden.
 
 ---
 
@@ -138,13 +148,13 @@ Rows = features. Columns = segment families (from matrix above).
 | **Primary users** | Pro ops (11–14, 17–19), desktop-first family (7, 27), corporate (18) | 17/30 personas primary iOS/Android `[persona-matrix.csv]` |
 | **Navigation** | Top nav + full trip tabs — rated Strong for Pro and events planning `[SIMULATED RISK]` | Bottom `NativeTabBar` — invite/share buried in More menu (persona 10) `[SIMULATED RISK]` |
 | **Activation** | Faster trip creation, multi-tab ops | Onboarding carousel full-bleed; 10 screens before CTA `[OBSERVED]` |
-| **Monetization** | Stripe checkout works on web | iOS: "Subscribe on web" dead-end `[OBSERVED]`; no IAP |
+| **Monetization** | Stripe + Trip Pass in PlusUpsell / Billing `[OBSERVED]` | iOS: `APPLE_IAP_ENABLED: true` — RevenueCat path live `[OBSERVED — billing/config.ts:260]` |
 | **Invite sharing** | Copy link, email | Native share sheet works; preview readable on small viewport `[OBSERVED — partial live test]` |
 | **Pro workflows** | Day-sheet, roster, broadcasts usable width | Touring personas (15, 16) need mobile day sheet — missing `[SIMULATED RISK]` |
 | **Concierge** | Text chat usable | Voice/dictation mic UX critical; live voice disabled `[OBSERVED]` |
 | **Offline / PWA** | Less relevant | Field trip, touring, sports — offline failures flagged `[SIMULATED RISK]` |
 
-**Synthesis:** Mobile is acquisition and invite channel; desktop is ops and monetization. Current architecture inverts this — paywalls and Pro checkout are hardest on the device most users hold. See `web-mobile-comparison.md` for full breakdown.
+**Synthesis (July 26):** Mobile remains the acquisition/invite channel; iOS purchase dead-end is closed. Remaining inversion: Pro ops and some paywalls still desktop-biased; invite approval + guest wall still hurt mobile-first invitees. See `web-mobile-comparison.md`.
 
 ---
 
@@ -185,25 +195,26 @@ Rows = features. Columns = segment families (from matrix above).
 | Segment | Preferred model | WTP range (stated) | Best CTA (synthetic) | Worst CTA | Upgrade trigger |
 |---------|-----------------|--------------------|-----------------------|-----------|-----------------|
 | Friend/social | Per-trip | $0–$40 | Trip Pass at limit | $19.99/mo sub | Photo wall, splits |
-| Sports parent | Per-trip | $30–$40 | Trip Pass at split wall | iOS Subscribe on web | 4th payment split |
+| Sports parent | Per-trip | $30–$40 | Trip Pass at split wall | Always-approval + guest wall | 4th payment split |
 | Events/wedding | Per-trip / pass | $75–$200 | 90-day Wedding Pass | 100-attendee scare label | Storage, broadcasts |
 | Pro sports | Team/enterprise | $49–$99+/mo | Self-serve checkout | mailto demo | Day sheet, compliance |
 | Pro touring | Team | $49–$99+/mo | Growth self-serve | Demo bait | Settlement, day sheet |
 | Enterprise | Custom | Custom | Sales + SLA | Self-serve only | Broadcast reliability |
 | Price-sensitive | Free | $0 | None | Any upgrade popup | — |
 
-### Monetization chain status `[OBSERVED]`
+### Monetization chain status `[OBSERVED]` — refreshed 2026-07-26
 
 | Link | Status | Evidence |
 |------|--------|----------|
-| Limit enforcement (splits) | **Broken** | No call sites in payments components |
+| Limit enforcement (splits) | **Fixed** | `paymentService.checkPaymentSplitLimit` (+ tests) |
 | Limit visibility (concierge) | **Fixed** | `AIConciergeChat.tsx` usage chip |
-| Paywall destination | **Weak** | `featurePaywall.ts` → `/settings`, subscription copy |
-| Trip Pass in-app | **Missing** | Only `PricingSection.tsx` + `TripPassModal.tsx` on marketing |
-| Pro self-serve | **Missing** | `mailto:` in `PricingSection.tsx:140-173` |
-| iOS purchase | **Dead-end** | `APPLE_IAP_ENABLED = false` |
-| Attendee cap | **Label only** | No enforcement; scares Events buyers |
-| Post-purchase telemetry | **Dark** | PostHog zero events |
+| Paywall destination | **Partial** | Concierge → PlusUpsell/Trip Pass; Smart Import/`featurePaywall` still → `/settings` |
+| Trip Pass in-app | **Partial** | `PlusUpsellModal`, Concierge, `ConsumerBillingSection` — not every wall |
+| Pro self-serve | **Partial** | In-app `ProUpgradeModal` Stripe OK; marketing `ForTeams` still `mailto:` |
+| iOS purchase | **Fixed** | `APPLE_IAP_ENABLED: true` |
+| Settlement race | **Fixed** | Atomic RPCs `20260610100000` |
+| Member capacity (Pro/Event) | **Fixed** | `is_trip_at_member_capacity` RPC |
+| Post-purchase telemetry | **Still dark** | Autocapture only; 0 custom product events |
 
 ### Pricing table (canonical tiers)
 
@@ -305,36 +316,35 @@ Prioritized for validation of synthetic findings. Full annotated list in `real-b
 
 ## Founder / Investor Readout
 
-### The one paragraph
+### The one paragraph (refreshed 2026-07-26)
 
-Chravel's **organizer-side product works** — calendar, polls, places, and AI concierge create genuine first-session value across diverse segments. The **group growth and revenue layers do not**: invitees hit an account wall with no guest value, the SKU personas want (Trip Pass $39.99) is unreachable at limit moments, iOS users cannot pay, Pro tiers display demo data on real trips, and the company has **zero production analytics** to measure any fix. Willingness to pay is synthetically widespread (22/30 personas) but paid-conversion scores average **2.7/10** — a machinery failure, not a positioning failure. **Do not scale marketing or Pro sales until P0 monetization and invite fixes ship and PostHog confirms funnel movement.**
+Chravel's **organizer-side product still works**, and several June blockers closed: Trip Pass is reachable from concierge/upsell, Apple IAP is on, Pro placeholder tabs are hidden on real trips, settlement is atomic, and payment split caps are enforced. The **group growth layer remains the critical gap**: invite is always approval-only, `consumer_guest` has zero access, and the invite link is the sole join path with a broken org-email fallback (July product audit). Paid-conversion synthetic average rose **2.7 → 3.5/10** — better machinery, still not conversion. Product analytics remain dark (autocapture only). **Scale consumer acquisition only after guest itinerary + remaining Trip Pass walls + PostHog product events; do not scale Pro marketing until `/teams` mailto is replaced and ops CRUD exists or claims are removed.**
 
 ### Scorecard (synthetic — not market proof)
 
-| Metric | Value | Benchmark |
-|--------|-------|-----------|
-| Avg activation | 6.1 / 10 | Acceptable for beta |
-| Avg invite | 5.1 / 10 | Below threshold for viral loops |
-| Avg day-7 retention | 4.2 / 10 | `[HYPOTHESIS]` |
-| Avg paid conversion | 2.7 / 10 | Critical gap |
-| Avg NPS (all) | −8.7 | Dragged by Pro (−24.3) |
-| Personas with WTP > $0 | 22 / 30 | Demand signal `[SIMULATED RISK]` |
-| Personas matching Trip Pass SKU | 14 / 30 | Supply mismatch `[OBSERVED]` |
+| Metric | June 11 | July 26 | Benchmark |
+|--------|---------|----------|-----------|
+| Avg activation | 6.1 | **6.0** | Acceptable for beta |
+| Avg invite | 5.1 | **4.9** | Below viral threshold |
+| Avg paid conversion | 2.7 | **3.5** | Improving; still critical |
+| Avg NPS (all) | ~−10 | **−5.8** | Pro still drags |
+| Personas with WTP > $0 | 22 / 30 | 22 / 30 | Demand signal `[SIMULATED RISK]` |
+| Trip Pass SKU fit | 14 / 30 | 14 / 30 | Now partially reachable `[OBSERVED]` |
 
 ### Recommended sequencing (next 30 days)
 
-1. **Week 1:** PostHog on + Trip Pass at concierge/import/media walls + guest read-only spec
-2. **Week 2:** Join approval copy fix + hide Pro stubs + iOS checkout path decision
-3. **Week 3:** Real beta interviews (n=8–12) using `real-beta-interview-questions.md`
-4. **Week 4:** Enforce or remove split cap; Events pricing copy; Pro mailto → Stripe trial
+1. **Week 1:** Guest read-only itinerary + PostHog product events (`trip_joined`, `upgrade_*`)
+2. **Week 2:** Trip Pass at Smart Import / split-cap walls; fix org-invite email + add-by-email fallback
+3. **Week 3:** Real beta interviews (n=8–12) — prioritize invite + WTP questions in `real-beta-interview-questions.md`
+4. **Week 4:** ForTeams mailto → Stripe/Calendly; Pro ops MVP or claim purge on `/teams`
 
 ### What would change the investor conversation
 
 - **Observed** invite→join rate >40% (currently unmeasured)
 - **Observed** Trip Pass conversion >5% of limit-wall impressions
-- **Observed** Pro pilot with 1 sports team using real roster data (not demo)
+- **Observed** Pro pilot with 1 sports team using real day sheet (not just roster)
 - **Observed** broadcast success at 500+ recipients without transaction timeout
 
 ---
 
-*Generated 2026-06-11. Synthetic study — validate all `[HYPOTHESIS]` and `[SIMULATED RISK]` items with real users before strategic decisions.*
+*Original study 2026-06-11 · Evidence refresh 2026-07-26. Synthetic — validate `[HYPOTHESIS]` / `[SIMULATED RISK]` with real users before fundraising claims.*

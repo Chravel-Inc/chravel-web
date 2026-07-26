@@ -1,3 +1,5 @@
+> **Refreshed 2026-07-26:** iOS IAP enabled; Trip Pass reachable from mobile concierge upsell. See `REBASE-REFRESH-2026-07-26.md`.
+
 # Web vs Mobile / PWA — 30-Persona Synthetic Study
 
 **Date:** 2026-06-11  
@@ -12,7 +14,7 @@
 |---|-----------------|------------------------|
 | **Verdict** | Best for activation, Pro ops, Events planning | Best for invite receipt, on-the-go chat, polls — worst for paywalls |
 | **Strength** | Multi-tab trip workspace, landing pricing clarity | Native share, bottom nav thumb reach, push opt-in |
-| **Critical gap** | Not where most users plan (13/30 desktop-first) | Monetization dead-end, onboarding length, ops views missing |
+| **Critical gap** | Not where most users plan (13/30 desktop-first) | Invite/guest wall, onboarding length, ops views missing (IAP fixed July 26) |
 | **Study scores** | Web usability avg **4.6/5** | Mobile usability avg **4.2/5** |
 
 ---
@@ -54,7 +56,7 @@ From `persona-matrix.csv`:
 | Send invite | Copy link prominent | Share sheet native | **Mobile wins** |
 | Add calendar event | Full form | Smaller viewport; place autocomplete usable | Moderate friction |
 | Split expense | Multi-column summary | Single column; Venmo deeplink works | Neutral |
-| Upgrade | Stripe checkout in browser | "Subscribe on web" dead-end | **Desktop wins** |
+| Upgrade | Stripe + Trip Pass in-app | IAP enabled (`APPLE_IAP_ENABLED: true`) | **Parity improved July 26** |
 | Pro day sheet | Wide schedule possible | No dedicated mobile day sheet | **Desktop wins** |
 | Onboarding | Two-column carousel + phone frame | Full-bleed 10 screens | **Mobile loses** |
 
@@ -78,26 +80,26 @@ From `persona-matrix.csv`:
 ### Desktop
 
 - Landing `PricingSection.tsx` shows Trip Pass, tiers, FAQ `[OBSERVED]`
-- `/settings?section=billing` — Stripe subscription management
-- Trip Pass checkout via `TripPassModal.tsx` — **only reached from marketing**, not in-trip walls `[OBSERVED]`
-- Pro CTAs → `mailto:` `[OBSERVED]`
+- `/settings?section=billing` — Stripe subscription + Trip Pass accordion (`ConsumerBillingSection`) `[OBSERVED]`
+- Trip Pass also via `PlusUpsellModal` / Concierge limit wall — **not marketing-only** `[OBSERVED — refreshed 2026-07-26]`
+- Remaining gap: Smart Import / some `featurePaywall` gates still → settings `[OBSERVED]`
+- Marketing Pro CTAs → `mailto:`; in-app `ProUpgradeModal` → Stripe `[OBSERVED]`
 
 ### Mobile / iOS
 
-- `APPLE_IAP_ENABLED = false` → consumer subscription shows "Subscribe on web" `[OBSERVED]`
-- No deep link to web checkout documented in flow
-- RevenueCat constants exist but IAP disabled `[OBSERVED — revenuecat.ts]`
-- **17/30 personas** hit this dead-end on primary device
+- `APPLE_IAP_ENABLED: true` → RevenueCat IAP path for iOS native review builds `[OBSERVED — billing/config.ts:260 — refreshed 2026-07-26]`
+- **17/30 personas** are iOS-primary — purchase path unblocked July 26; invite/guest wall remains the mobile growth risk
 
 | Monetization step | Desktop success | Mobile success |
 |-------------------|-----------------|----------------|
 | See pricing | High (landing) | Medium (landing in browser) |
-| Hit limit wall | Medium (settings redirect) | Medium |
-| Complete Trip Pass | High (if on marketing) | **Low** |
-| Complete subscription | High (Stripe) | **Blocked** |
-| Pro purchase | Low (mailto) | **Very low** |
+| Hit concierge limit | High (Trip Pass in PlusUpsell) | High (same modal) |
+| Hit Smart Import wall | Medium (settings redirect) | Medium |
+| Complete Trip Pass | High (billing / upsell) | **Medium–High** (IAP) |
+| Complete subscription | High (Stripe) | **Medium–High** (IAP) |
+| Pro purchase | Medium (in-app) / Low (marketing mailto) | Medium (in-app) |
 
-**Synthetic WTP lost at device boundary:** Personas 4, 9, 28 explicitly cite iOS upgrade failure in `pricing-insights.csv`.
+**Synthetic growth risk on mobile (July 26):** Not purchase — **always-approval invite + zero guest value** (`pricing-insights.csv` / invite scores).
 
 ---
 
@@ -106,7 +108,7 @@ From `persona-matrix.csv`:
 ### Improvements since 10-persona study `[OBSERVED]`
 
 - Rich trip preview card on join page (name, dates, cover, member count)
-- `getJoinActionPresentation()` conditional approval framing
+- `getJoinActionPresentation()` now **always** request-to-join (approval is product policy) `[OBSERVED — JoinTrip.tsx:115-121]`
 - 7 typed error states (`inviteErrors.ts`)
 
 ### Remaining mobile-specific issues
