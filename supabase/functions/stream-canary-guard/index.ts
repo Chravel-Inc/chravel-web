@@ -36,15 +36,37 @@ async function isTrustedReporter(
 ): Promise<boolean> {
   if (isInternalEmail(email) || isSuperAdminEmail(email)) return true;
 
-  const { data, error } = await adminClient
-    .from('super_admins')
-    .select('user_id')
-    .eq('user_id', userId)
-    .maybeSingle();
+  try {
+    const { data: superAdmin, error: superAdminError } = await adminClient
+      .from('super_admins')
+      .select('user_id')
+      .eq('user_id', userId)
+      // Revocation is a soft delete — without this filter a revoked super admin keeps
+      // kill-switch authority. Matches feature-flags-admin/index.ts:55.
+      .is('revoked_at', null)
+      .maybeSingle();
 
-  // Fail closed: an unresolvable trust check must not grant kill-switch authority.
-  if (error) return false;
-  return Boolean(data);
+    if (superAdminError) return false;
+    if (superAdmin) return true;
+
+    // The client cohort rule (isTrustedStreamCanaryUser) also admits users by proRole and
+    // permissions. Those are client-supplied and forgeable, so they cannot be trusted as sent —
+    // but excluding their DB-verifiable equivalent entirely would silently drop the incident
+    // reports of real cohort members, and the auto-rollback this endpoint exists to perform
+    // would never fire for them. Verify admin standing against the database instead.
+    const { data: tripAdmin, error: tripAdminError } = await adminClient
+      .from('trip_admins')
+      .select('user_id')
+      .eq('user_id', userId)
+      .limit(1)
+      .maybeSingle();
+
+    if (tripAdminError) return false;
+    return Boolean(tripAdmin);
+  } catch {
+    // Fail closed: an unresolvable trust check must not grant kill-switch authority.
+    return false;
+  }
 }
 
 type Metric =
