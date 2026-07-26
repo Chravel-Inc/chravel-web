@@ -367,6 +367,10 @@ Compose color + gradient + image in `background` shorthand instead of nesting wr
 
 ## Edge Functions, CI & Process
 
+### Label synthetic research CSV/JSON with self-contained data_source metadata
+Standalone exports from synthetic persona studies must carry `data_source`, `study_id`, and `refresh_date` (plus an explicit SYNTHETIC disclaimer) so detached rows cannot be mistaken for real customer/respondent data. Prefer a dated package under `docs/research/synthetic-user-testing/` and never overwrite the prior 10-persona corpus. *Evidence: 2026-07-26 30-persona study package + automation memory from PR #766.*
+
+
 ### Edge functions must validate required secrets at startup via `requireSecrets()`
 Boot-time validation prevents silent failures on missing env.
 

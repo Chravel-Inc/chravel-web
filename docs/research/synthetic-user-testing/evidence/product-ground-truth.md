@@ -6,6 +6,45 @@ not an imagined one. Where this brief and other UI copy disagree, the file paths
 
 ---
 
+## ⚠️ Re-verification delta — 2026-07-26
+
+**Supersedes conflicting June claims below.** Verified against `main` after rebase of the 30-persona
+study + July product audits (`docs/audits/CHRAVEL_PRODUCT_AUDIT_2026-07-25.md`,
+`docs/audits/POST_DRIFT_FEATURE_AUDIT_2026-07-25.md`).
+
+| June claim | July 2026 reality | Citation |
+|---|---|---|
+| Onboarding = 9 screens | **10 screens** (Welcome→Chat→Calendar→Concierge→Media→Payments→Places→Polls→Tasks→CTA) | `OnboardingCarousel.tsx:54-121` |
+| Join approval framing bug (`?? true`) | **Always approval by design** — UI ignores flag; edge hardcodes `requiresApproval = true` | `JoinTrip.tsx:115-121`, `join-trip/index.ts:330-334` |
+| Trip Pass only on marketing PricingSection | **Also** in `PlusUpsellModal` (concierge/trip upsell) + `ConsumerBillingSection` | `PlusUpsellModal.tsx:266-282`, `AIConciergeChat.tsx` |
+| `featurePaywall` → Trip Pass | **Still settings** for Smart Import / some caps — incomplete | `featurePaywall.ts` |
+| `APPLE_IAP_ENABLED = false` | **`true`** — iOS native RevenueCat path required for review | `billing/config.ts:260` |
+| PostHog zero events ever | Autocapture trickle exists (project `464040`); **0 custom product funnel events** | PostHog MCP + `telemetry/service.ts` |
+| Pro placeholder tabs on real trips | **Hidden** via `filterPlaceholderTabs` / `PLACEHOLDER_PRO_TAB_IDS` | `ProTabsConfig.tsx:50-67` |
+| Pro roster empty | **Live roster** overlaid from `useTripMembers` | `ProTripDetailDesktop.tsx` |
+| `tripConverter` ops arrays `[]` | **Still hardcoded empty** for schedule/settlement/medical/compliance | `tripConverter.ts:92-104` |
+| Payment split cap unenforced | **Enforced** in `paymentService.checkPaymentSplitLimit` (no Trip Pass CTA at wall) | `paymentService.ts` |
+| Settlement double-credit race | **Fixed** — atomic RPCs | migration `20260610100000_atomic_settlement_rpcs.sql` |
+| Broadcast fanout schema drift | **Fixed** | migration `20260610090000_fix_broadcast_notification_fanout_table.sql` |
+| Invite `max_uses` dead | **Wired** — persisted + checked at join; member capacity RPC for Pro/Event | `useInviteLink.ts`, `join-trip` |
+| Smart Import fully paywalled | **1 free taste / trip** then paywall | `useSmartImportTaste.ts` |
+| Voice = broken / dictation-only | Still **dictation-only** product path; realtime behind `concierge_realtime_voice` flag (default OFF) | `voiceProductPath.ts`, `docs/voice-product-path.md` |
+| Pro CTAs all mailto | Marketing `ForTeams` still mailto; **in-app `ProUpgradeModal` has Stripe** | `ForTeams.tsx`, `ProUpgradeModal.tsx`, `billing/checkout.ts` |
+| `consumer_guest` no access | **Still true** — all false | `permissionMatrix.generated.ts` |
+
+**New surfaces since June study:** gradual feature flags (`useGradualFeatureFlag`), Gmail Smart Import
+(flagged off), Google Calendar sync (flagged), Travel Wallet, channel rail / broadcasts hardening,
+account deletion flow (`docs/account-deletion.md`), `/trip/:id/preview` (membership preview — **not**
+guest itinerary), org invite email path (broken per July audit).
+
+Full persona re-run package: `docs/research/synthetic-user-testing/2026-06-11-30-persona-study/`
+(see `REBASE-REFRESH-2026-07-26.md`).
+
+> **Note:** Sections §1–§11 below retain June wording for historical persona context.
+> Where they conflict with the July delta table above, **the delta table wins**.
+
+---
+
 ## 1. What Chravel is
 
 AI-powered group travel/event/logistics coordination. React 18 SPA (Vite) on Vercel, Supabase backend

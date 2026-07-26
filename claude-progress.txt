@@ -1,3 +1,9 @@
+2026-07-26 — 30-persona synthetic user testing package (evidence refresh)
+- Added docs/research/synthetic-user-testing/2026-06-11-30-persona-study/ with 30 A–K persona reports, synthesis, CSVs/JSON, priority fixes, interview Qs, web-mobile comparison.
+- Refreshed product-ground-truth.md July delta; LIVE-UI-SESSION-2026-07-26.md (landing/pricing/teams/mobile).
+- CSV/JSON carry synthetic data_source metadata. Prior 10-persona study untouched.
+- Branch: cursor/chravelapp-30-persona-study-f2ef
+
 2026-07-17 — Payment messages need-to-know + edge deploys
 - trip_payment_messages SELECT aligned with payment_splits (COALESCE trip_type, active member, creator/debtor/admin/can_view); INSERT requires is_active_trip_member. Applied to ChravelApp.
 - Deployed edge: bootstrap-super-admins v4, venue-enricher v1147, send-push v791, place-grounding v1055 (bundled+requireAuth).
