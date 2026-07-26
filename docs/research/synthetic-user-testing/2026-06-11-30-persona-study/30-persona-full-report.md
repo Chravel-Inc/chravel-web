@@ -496,7 +496,7 @@ Keisha is **energized by Smart Import, deflated by paywall timing**. She'd champ
 | Poll creation | 30 seconds | [OBSERVED] |
 | Media upload | **Loves** shared album | [OBSERVED] |
 | Party bus address | Calendar + Places | [OBSERVED] |
-| iOS upgrade | Web-only subscribe | [OBSERVED — APPLE_IAP_ENABLED=false] |
+| iOS upgrade | Native IAP path enabled | [OBSERVED — APPLE_IAP_ENABLED=true; billing/config.ts:260] |
 | Trip Pass in-app | Hard to find at paywall | [SIMULATED RISK] |
 | Chat | Fine; group text still primary | [SIMULATED RISK] |
 
@@ -1100,7 +1100,7 @@ Tyler is **enthusiastic on free** — polls, chat, and media fit spring break pe
 | Step | Finding | Label |
 |------|---------|-------|
 | Payments mobile | Summary readable | [OBSERVED] |
-| iOS subscribe | Web redirect | [OBSERVED — APPLE_IAP_ENABLED=false] |
+| iOS subscribe | Native IAP / RevenueCat path | [OBSERVED — APPLE_IAP_ENABLED=true; billing/config.ts:260] |
 | Trip Pass discovery | Weak | [SIMULATED RISK] |
 | Couples invite | 4/8 join realistic | [SIMULATED RISK] |
 
@@ -2553,7 +2553,7 @@ Activation 4 · Invite 5 · Day-7 2 · Paid 2 · NPS −30. **WTP:** Enterprise 
 | 3 | Trip dates span festival weekend; timezone defaults browser | `CreateTripModal.tsx:55` |
 | 4 | Invite 15 via link — preview before auth **win** | `JoinTrip.tsx` |
 | 5 | Smart Import links/PDFs for lodging | `ground-truth §6` |
-| 6 | Concierge "food near campground" — 10 free queries/user/trip | `ground-truth §7` |
+| 6 | Concierge "food near campground" — 3 free AI queries/user/trip | `ground-truth §7` |
 | 7 | **Places + multi-basecamp** for hotel vs camp nights | `baseCamps.ts` |
 | 8 | Polls — **core social feature** | `ground-truth §6` |
 | 9 | Tasks "who brings canopy" — light use | — |
@@ -3014,7 +3014,7 @@ Activation 5 · Invite 4 · Day-7 4 · Paid 2 · NPS −5. **WTP:** School team 
 | 3 | Consumer trip — correct | — |
 | 4 | Invite 14 — bros resist account but comply | `[SIMULATED RISK]` |
 | 5 | Calendar for dinner reservations | works |
-| 6 | Concierge maybe once for steakhouse | 10 free queries |
+| 6 | Concierge maybe once for steakhouse | 3 free AI queries/trip |
 | 7 | Places for meetup | works |
 | 8 | **Polls — hero feature** | — |
 | 9 | Tasks ignored | — |

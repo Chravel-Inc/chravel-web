@@ -235,28 +235,28 @@ Rows = features. Columns = segment families (from matrix above).
 
 ## Product Priority Matrix (P0–P3)
 
+Canonical ticket list: `top-priority-fixes.md` + `REBASE-REFRESH-2026-07-26.md`.  
+**✅ Closed since June (do not re-ticket):** Apple IAP enabled · Trip Pass at concierge/`PlusUpsellModal` · Pro placeholder tabs hidden · split-cap enforced · settlement race fixed · broadcast schema fixed · Smart Import free taste · in-app `ProUpgradeModal` Stripe · join always-approval (intentional product, not a copy bug).
+
 | Priority | Item | Effort | Owner | Segments | Evidence |
 |----------|------|--------|-------|----------|----------|
-| **P0** | Surface Trip Pass at all limit walls (concierge, import, media, splits) | M | Growth + Billing | Regular (22) | `[OBSERVED]` featurePaywall.ts vs TripPassModal |
-| **P0** | Guest read-only itinerary (calendar + polls preview pre-auth) | L | Core + Auth | All Regular | `[OBSERVED]` consumer_guest |
-| **P0** | Enable PostHog in production (`VITE_POSTHOG_API_KEY`) | S | Platform | All | `[OBSERVED]` posthog-funnel.md |
-| **P0** | Hide Pro stub tabs until data exists (or ship roster CRUD) | M | Pro | Pro (10) | `[OBSERVED]` tripConverter.ts |
-| **P1** | iOS monetization path (web checkout deep link or IAP) | L | Mobile + Billing | iOS-primary (17) | `[OBSERVED]` |
-| **P1** | Fix join approval default framing when `require_approval=false` | S | Core | Invite (30) | `[OBSERVED]` JoinTrip.tsx:857-859 |
-| **P1** | Events pricing module on event create/detail | M | Events + Growth | Events (5) | `[SIMULATED RISK]` |
-| **P1** | Enforce or remove payment split cap | S | Payments | Sports, bachelor | `[OBSERVED]` |
-| **P1** | Self-serve Pro checkout (replace mailto) | L | Billing | Pro (10) | `[OBSERVED]` PricingSection.tsx |
-| **P2** | Per-trip notification mute | M | Notifications | Frat, conference | `[OBSERVED]` |
-| **P2** | Broadcast fanout validate at 500+ members | M | Backend | Events, Pro | `[OBSERVED]` migration 20260610090000 |
-| **P2** | Onboarding reduce 10 → 4 screens | M | Growth | College, frat | `[OBSERVED]` |
-| **P2** | Day sheet / mobile ops view | L | Pro | Touring (3) | `[SIMULATED RISK]` |
-| **P2** | Honest voice concierge labeling | S | AI | FC tier | `[OBSERVED]` voiceProductPath |
+| **P0** | Guest read-only itinerary (calendar + polls on invite preview) | L | Core + Auth | Regular / Events guests | `[OBSERVED]` `consumer_guest` all-false |
+| **P0** | Growth fallback — add member by email + repair org invite email | M | Core + Growth | All; Pro/Events heavy | `[OBSERVED — July product audit]` |
+| **P0** | Emit PostHog **product** funnel events (autocapture alone insufficient) | S | Platform | All | `[OBSERVED]` telemetry dark for custom events |
+| **P0** | Finish Trip Pass at remaining walls (Smart Import / `featurePaywall` → settings; split-cap toast) | M | Growth + Billing | Regular Trip-Pass-fit | `[OBSERVED]` featurePaywall.ts, CalendarImportModal |
+| **P1** | Replace marketing `/teams` + PricingSection Pro `mailto:` with checkout / demo booking | M | Billing + Growth | Pro discovery | `[OBSERVED — LIVE-UI-SESSION + ForTeams.tsx]` |
+| **P1** | Pro ops CRUD or honest roadmap (day sheet / settlement still empty in converter) | L | Pro | Pro (10) | `[OBSERVED]` tripConverter.ts |
+| **P1** | Events pricing clarity on create/detail | M | Events + Growth | Events (5) | `[SIMULATED RISK]` |
+| **P2** | Per-trip notification mute | M | Notifications | Frat, conference, sports | `[OBSERVED]` |
+| **P2** | Broadcast fanout load-test at 500+ members | M | Backend | Events, Pro | `[OBSERVED]` schema fixed; scale open |
+| **P2** | Onboarding reduce 10 → 4 screens | M | Growth | College, frat, parents | `[OBSERVED]` |
+| **P2** | Honest voice concierge labeling (dictation-only) | S | AI | FC tier | `[OBSERVED]` voiceProductPath |
 | **P3** | Duplicate trip template | M | Core | Run club | `[SIMULATED RISK]` |
 | **P3** | Reimbursement mode for corporate | L | Payments | Corporate (1) | `[SIMULATED RISK]` |
 | **P3** | White-label PDF export | L | Pro | Advisor (1) | `[SIMULATED RISK]` |
 | **P3** | i18n / timezone copy pass | L | Core | International (1) | `[SIMULATED RISK]` |
 
-Effort key: **S** = days, **M** = 1–2 weeks, **L** = 3+ weeks.
+Effort key: **S** = days, **M** = 1–2 weeks, **L** = multi-week.
 
 ---
 
@@ -266,8 +266,8 @@ Effort key: **S** = days, **M** = 1–2 weeks, **L** = 3+ weeks.
 |---|-------|---------|---------|-------|
 | 1 | "I'd pay $40 for this trip if the button appeared when my photo wall filled up — I couldn't find it anywhere in the app." | Mia Torres (4) | Bachelorette | `[SYNTHETIC QUOTE]` |
 | 2 | "My parents aren't making an account to see kickoff time. Email the schedule or I'm back to TeamSnap." | Dana Whitfield (2) | Sports mom | `[SYNTHETIC QUOTE]` |
-| 3 | "The demo roster looks like our NFL travel desk. My real trip has empty tabs. That's not a bug, that's false advertising." | Dana Okafor (11) | Pro sports | `[SYNTHETIC QUOTE]` |
-| 4 | "Subscribe on web — I'm literally holding my phone. You lost me." | Camille Dubois (9) | Couples | `[SYNTHETIC QUOTE]` |
+| 3 | "You hid the empty finance tabs — good. Settlement and day sheet still aren't real ops, so I'm not putting a game week in here." | Dana Okafor (11) | Pro sports | `[SYNTHETIC QUOTE]` |
+| 4 | "Subscribe on web — I'm literally holding my phone. You lost me." *(June voice; July IAP enabled — treat as historical friction, not current bug)* | Camille Dubois (9) | Couples | `[SYNTHETIC QUOTE — superseded for IAP]` |
 | 5 | "100 attendees max? We have 85 RSVPs and I'm afraid to invite cousins." | Priya & James Chen (6) | Wedding | `[SYNTHETIC QUOTE]` |
 | 6 | "Polls settled brunch in one vote. That's the whole product for me." | Tyler Brooks (8) | College | `[SYNTHETIC QUOTE]` |
 | 7 | "mailto:support for a $99 team plan? Our AP department doesn't do mailto." | Alex Rivera (18) | Corporate | `[SYNTHETIC QUOTE]` |

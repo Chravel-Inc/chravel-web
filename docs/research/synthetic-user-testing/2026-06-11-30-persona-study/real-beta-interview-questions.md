@@ -32,7 +32,7 @@
 - **Validates:** `[HYPOTHESIS]` Trip Pass is dominant SKU
 
 ### Q2. Limit moment
-> "Imagine you've used the free AI assistant 10 times on one trip and it stops. What would you do next?"
+> "Imagine you've used the free AI assistant 3 times on one trip and it stops. What would you do next?"
 
 - **Show mock:** Trip Pass $39.99 vs Explorer $9.99/mo vs abandon
 - **Listen for:** Checkout completion intent, settings-page friction
