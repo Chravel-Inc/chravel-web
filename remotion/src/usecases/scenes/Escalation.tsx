@@ -76,6 +76,10 @@ export const Escalation: React.FC<{
   durationInFrames: number;
 }> = ({ scenario, format, durationInFrames }) => {
   const pains = scenario.pains.slice(0, 3);
+  // A scenario authored with no pains would make `slice` NaN and hand Remotion a
+  // NaN durationInFrames, which fails at render rather than at typecheck — the type
+  // only says string[], it cannot say non-empty.
+  if (pains.length === 0) return null;
   const slice = Math.floor(durationInFrames / pains.length);
 
   return (

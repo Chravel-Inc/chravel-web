@@ -12,7 +12,7 @@
  * one) and otherwise lets Remotion download its own. Override with CHROME_SHELL.
  */
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const OUT = 'out/usecases';
@@ -61,20 +61,26 @@ else console.log('No local headless shell found — Remotion will fetch its own.
 
 const filter = process.argv[2];
 
-// Kept in sync with src/usecases/scenarios.ts + register.tsx.
-const SLUGS = [
-  'travel-concierge-client-portal',
-  'wedding-guest-coordination-app',
-  'group-travel-planning-app',
-  'family-organization-app',
-  'sports-team-travel-coordination',
-  'music-tour-coordination',
-  'conference-event-management-app',
-  'local-clubs-meetups',
-  'church-group-trip-coordination',
-  'business-travel-coordination',
-  'fraternities-sororities',
-];
+/**
+ * Read the slugs straight out of scenarios.ts rather than keeping a second copy here.
+ *
+ * A duplicated list drifts silently: add a twelfth scenario and this script would keep
+ * rendering eleven, with no error to notice. This is a plain Node script so it cannot
+ * import the TypeScript module — parsing the one field it needs is the cheap way to
+ * keep a single source of truth. Composition ids are built the same way register.tsx
+ * builds them, from index order.
+ */
+const readSlugs = () => {
+  const src = readFileSync('src/usecases/scenarios.ts', 'utf8');
+  const slugs = [...src.matchAll(/^\s{4}slug: '([^']+)',$/gm)].map(m => m[1]);
+  if (slugs.length === 0) {
+    throw new Error('Parsed no slugs from src/usecases/scenarios.ts — has its shape changed?');
+  }
+  return slugs;
+};
+
+const SLUGS = readSlugs();
+console.log(`Found ${SLUGS.length} scenarios in scenarios.ts`);
 
 const ids = [];
 SLUGS.forEach((slug, i) => {
