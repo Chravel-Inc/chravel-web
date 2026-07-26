@@ -380,6 +380,17 @@ CREATE TABLE IF NOT EXISTS public.email_bounces (
   UNIQUE(email, bounce_type)
 );
 
+-- RLS added 2026-07-25. This table maps email addresses to bounce/complaint history — a plain
+-- list of user contact addresses. Without RLS it was readable by any holder of the publishable
+-- key. Fail-closed by design: RLS on with no policies, so only the service role can reach it,
+-- matching notification_deliveries and webhook_events. Enforced by scripts/check-rls-coverage.ts.
+ALTER TABLE public.email_bounces ENABLE ROW LEVEL SECURITY;
+
+COMMENT ON TABLE public.email_bounces IS
+  'Email bounce/complaint suppression list. Contains recipient addresses. Intentionally '
+  'fail-closed: RLS enabled with no policies, so only service_role may access. Do NOT add a '
+  'user-facing SELECT policy.';
+
 CREATE INDEX IF NOT EXISTS email_bounces_email_idx ON public.email_bounces (email);
 CREATE INDEX IF NOT EXISTS email_bounces_suppressed_idx ON public.email_bounces (suppressed) WHERE suppressed = true;
 

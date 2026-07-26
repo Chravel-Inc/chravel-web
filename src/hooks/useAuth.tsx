@@ -42,6 +42,13 @@ import {
 } from './auth/authHelpers';
 import { captureAppleRefreshToken, captureAppleAuthorizationCode } from './auth/captureAppleToken';
 import { isFatalAuthRefreshError } from './auth/sessionRefreshPolicy';
+import {
+  GENERIC_SIGN_IN_ERROR,
+  GENERIC_SIGN_UP_RESULT,
+  GENERIC_PASSWORD_RESET_RESULT,
+  GENERIC_AUTH_ERROR,
+  toSafeSignUpError,
+} from '@/lib/authErrors';
 
 const TRIPS_QUERY_KEY = 'trips';
 
@@ -835,20 +842,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           logAuthEvent('login_failure', { method: 'email', errorReason: error.message });
           setIsLoading(false);
 
-          // Provide more specific error messages
-          if (error.message.includes('Invalid login credentials')) {
-            return {
-              error: 'Invalid email or password. Please check your credentials and try again.',
-            };
-          }
-          if (error.message.includes('Email not confirmed')) {
-            return {
-              error:
-                'Please confirm your email address before signing in. Check your inbox for the confirmation link.',
-            };
-          }
-
-          return { error: error.message };
+          // One message for every failure. Distinguishing "Invalid login credentials" from
+          // "Email not confirmed" told an attacker the address was registered, and returning
+          // raw error.message leaked GoTrue internals (including its own rate-limit text).
+          return { error: GENERIC_SIGN_IN_ERROR };
         }
 
         // Success path: clear loading state (auth state listener will update user)
@@ -1129,18 +1126,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           logAuthEvent('signup_failure', { method: 'email', errorReason: error.message });
           setIsLoading(false);
 
-          // Provide more specific error messages
+          // "already registered" previously disclosed account existence, and AuthModal turned it
+          // into a machine-readable oracle by auto-switching to sign-in. Password complexity is
+          // independent of whether the account exists, so it stays specific; everything else
+          // collapses to a neutral result indistinguishable from a successful sign-up.
           if (error.message.includes('already registered')) {
-            return {
-              error:
-                'Unable to create account with this email. If you already have an account, try signing in or resetting your password.',
-            };
-          }
-          if (error.message.includes('password')) {
-            return { error: 'Password must be at least 6 characters long.' };
+            return { success: GENERIC_SIGN_UP_RESULT };
           }
 
-          return { error: error.message };
+          return { error: toSafeSignUpError(error.message) };
         }
 
         logAuthEvent('signup_success', { method: 'email' });
@@ -1216,28 +1210,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     window.location.href = '/';
   }, [clearNotificationRealtimeStore]);
 
-  const resetPassword = useCallback(async (email: string): Promise<{ error?: string }> => {
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
+  const resetPassword = useCallback(
+    async (email: string): Promise<{ error?: string; success?: string }> => {
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
 
-      if (error) {
-        if (import.meta.env.DEV) {
-          console.error('[Auth] Reset password error:', error);
+        if (error) {
+          if (import.meta.env.DEV) {
+            console.error('[Auth] Reset password error:', error);
+          }
+          // Supabase already returns success for unknown addresses, but raw error.message could
+          // still surface per-email rate-limit text ("you can only request this after 60 seconds"),
+          // which is itself an existence signal. Swallow it and report the neutral result.
+          return { success: GENERIC_PASSWORD_RESET_RESULT };
         }
-        return { error: error.message };
-      }
 
-      logAuthEvent('password_reset_requested', { method: 'email' });
-      return {};
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('[Auth] Unexpected reset password error:', error);
+        logAuthEvent('password_reset_requested', { method: 'email' });
+        return { success: GENERIC_PASSWORD_RESET_RESULT };
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.error('[Auth] Unexpected reset password error:', error);
+        }
+        return { error: 'An unexpected error occurred. Please try again.' };
       }
-      return { error: 'An unexpected error occurred. Please try again.' };
-    }
-  }, []);
+    },
+    [],
+  );
 
   const updateProfile = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase error type is loosely typed

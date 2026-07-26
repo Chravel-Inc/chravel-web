@@ -37,6 +37,20 @@ CREATE TABLE IF NOT EXISTS daily_digests (
   UNIQUE(user_id, trip_id, tour_id, digest_date)
 );
 
+-- RLS added 2026-07-25. daily_digests holds summarised message content per user and shipped with
+-- no RLS — world-readable had this migration ever been applied (it was not; the table does not
+-- exist in production). Owner-scoped. Enforced by scripts/check-rls-coverage.ts.
+ALTER TABLE public.daily_digests ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users read their own daily digests" ON public.daily_digests;
+CREATE POLICY "Users read their own daily digests"
+  ON public.daily_digests
+  FOR SELECT
+  USING (auth.uid() = user_id);
+
+-- Writes are server-side only (digest generation runs with the service role), so no INSERT or
+-- UPDATE policy is granted to end users.
+
 -- Create message_templates table
 CREATE TABLE IF NOT EXISTS message_templates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -86,6 +100,21 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
-CREATE TRIGGER update_scheduled_messages_updated_at 
-  BEFORE UPDATE ON scheduled_messages 
+CREATE TRIGGER update_scheduled_messages_updated_at
+  BEFORE UPDATE ON scheduled_messages
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- RLS added 2026-07-25. message_templates is non-user, non-sensitive reference data (the seeded
+-- rows above), but it still must not be writable by clients — without RLS any holder of the
+-- publishable key could rewrite the template copy every user sees.
+-- Enforced by scripts/check-rls-coverage.ts.
+ALTER TABLE public.message_templates ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Authenticated users read active message templates" ON public.message_templates;
+CREATE POLICY "Authenticated users read active message templates"
+  ON public.message_templates
+  FOR SELECT
+  TO authenticated
+  USING (is_active);
+
+-- No INSERT/UPDATE/DELETE policy: templates are curated server-side via the service role.

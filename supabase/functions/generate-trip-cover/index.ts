@@ -53,6 +53,9 @@ async function isSuperAdmin(
     .from('super_admins')
     .select('user_id')
     .eq('user_id', userId)
+    // Revocation is a soft delete (revoked_at timestamp), so an unfiltered lookup keeps
+    // treating revoked super admins as active. Matches feature-flags-admin/index.ts:55.
+    .is('revoked_at', null)
     .maybeSingle();
   return !!data;
 }

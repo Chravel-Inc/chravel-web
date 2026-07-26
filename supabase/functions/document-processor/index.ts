@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { applyRateLimit } from '../_shared/rateLimitGuard.ts';
 import {
   DocumentProcessorSchema,
   validateInput,
@@ -110,6 +111,16 @@ serve(async req => {
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       });
     }
+
+    // Document processing runs paid multimodal Gemini calls over an entire document.
+    const rl = await applyRateLimit({
+      identifier: `document-processor:${userId}`,
+      maxRequests: 20,
+      windowSeconds: 300,
+      corsHeaders: getCorsHeaders(req),
+      supabaseClient: supabase,
+    });
+    if (!rl.allowed) return rl.response!;
 
     // 🔒 SECURITY: Two-layer membership check (defense-in-depth).
     //

@@ -1,8 +1,12 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { createOptionsResponse, createErrorResponse } from '../_shared/securityHeaders.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { requireAuth } from '../_shared/requireAuth.ts';
+import { applyRateLimit } from '../_shared/rateLimitGuard.ts';
 
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const GOOGLE_MAPS_API_KEY = Deno.env.get('GOOGLE_MAPS_API_KEY');
 const IMAGE_PROXY_MAX_BYTES = Number(Deno.env.get('IMAGE_PROXY_MAX_BYTES') || 7_000_000);
 const IMAGE_PROXY_CACHE_CONTROL =
@@ -77,6 +81,17 @@ serve(async req => {
   // Require authentication to prevent open-relay / Google Maps quota abuse.
   const auth = await requireAuth(req, getCorsHeaders(req));
   if (auth.error) return auth.response;
+
+  // Auth alone bounded *who* could spend Google Static Maps / Places Photo quota, not how much.
+  // Each proxied image is a billable request, so meter it per user.
+  const rl = await applyRateLimit({
+    identifier: `image-proxy:${auth.user.id}`,
+    maxRequests: 120,
+    windowSeconds: 60,
+    corsHeaders: getCorsHeaders(req),
+    supabaseClient: createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY),
+  });
+  if (!rl.allowed) return rl.response!;
 
   const url = new URL(req.url);
   const placePhotoName = url.searchParams.get('placePhotoName');

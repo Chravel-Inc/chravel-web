@@ -11,7 +11,12 @@ CREATE TABLE IF NOT EXISTS public.broadcast_views (
 );
 
 -- Enable RLS
-ALTER TABLE public.broadcasts ENABLE ROW LEVEL SECURITY;
+-- NOTE (2026-07-25): this line previously read `ALTER TABLE public.broadcasts`, so RLS was never
+-- enabled on broadcast_views and the three policies below were inert — the table would have been
+-- world-readable/writable had this migration ever been applied. It was not (the table does not
+-- exist in production), but the file is fixed so a replay cannot ship the hole.
+-- scripts/check-rls-coverage.ts now fails CI on this class of mistake.
+ALTER TABLE public.broadcast_views ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for broadcast_views
 CREATE POLICY "Users can view their own broadcast views"

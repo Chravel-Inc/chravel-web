@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { invokeChatModel, extractTextFromChatResponse } from '../_shared/gemini.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { buildUntrustedContextBlock } from '../_shared/security/aiSecurityBoundary.ts';
+import { applyRateLimit } from '../_shared/rateLimitGuard.ts';
 
 function parseJsonSafely(raw: string): any {
   const cleaned = raw
@@ -63,6 +64,17 @@ serve(async req => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    // Every Gemini embedding + generation call on this path costs money and was previously
+    // unmetered for any authenticated user.
+    const rl = await applyRateLimit({
+      identifier: `ai-search:${user.id}`,
+      maxRequests: 30,
+      windowSeconds: 60,
+      corsHeaders,
+      supabaseClient: supabase,
+    });
+    if (!rl.allowed) return rl.response!;
 
     const { query, tripId, limit = 16 } = await req.json();
 

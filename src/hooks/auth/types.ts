@@ -83,7 +83,11 @@ export interface AuthContextType {
     returnToOverride?: string,
   ) => Promise<{ error?: string; success?: string }>;
   signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<{ error?: string }>;
+  /**
+   * Always resolves with `success` — a reset request must not reveal whether the address is
+   * registered, so failures are reported identically to successes.
+   */
+  resetPassword: (email: string) => Promise<{ error?: string; success?: string }>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase error type is loosely typed
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ error?: any }>;
   /** @deprecated Use useNotificationPreferences hook for notification preference reads/writes. */

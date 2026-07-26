@@ -1,6 +1,15 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { isSuperAdminEmail } from '../_shared/superAdmins.ts';
+import { checkRateLimit } from '../_shared/security.ts';
+import {
+  isMetric,
+  maybeRotateWindow,
+  parseWindow,
+  recordIncident,
+  thresholdExceeded,
+} from './healthWindow.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -8,84 +17,69 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 const FLAG_KEY = 'stream_changes_canary';
 const APP_SETTINGS_KEY = 'stream_canary_health';
-const WINDOW_MS = 10 * 60 * 1000;
 
-type Metric =
-  | 'read_channel_denied'
-  | 'send_message_failure'
-  | 'reconnect_backfill_mismatch'
-  | 'mention_notification_failure';
+// Server-side mirror of isTrustedStreamCanaryUser() in src/services/stream/streamCanary.ts.
+// That check gates whether the *client* joins the canary cohort, but it is client-side only —
+// it never constrained who could POST here. Reporting an incident increments a failure counter
+// that, on threshold, disables the stream_changes_canary feature flag for every user, so an
+// ungated endpoint let any authenticated caller kill production chat by looping requests.
+const INTERNAL_EMAIL_DOMAINS = ['chravel.app', 'chravelapp.com', 'meechyourgoals.com'];
 
-type MetricStats = {
-  failures: number;
-  total: number;
-};
+// Cohort members are internal staff, so this only has to blunt a compromised-session loop.
+const CANARY_REPORT_MAX_PER_WINDOW = 30;
+const CANARY_REPORT_WINDOW_SECONDS = 600;
 
-type HealthWindow = {
-  windowStartMs: number;
-  metrics: Record<Metric, MetricStats>;
-};
+function isInternalEmail(email: string | null | undefined): boolean {
+  if (!email) return false;
+  const domain = email.split('@')[1]?.toLowerCase().trim();
+  return Boolean(domain && INTERNAL_EMAIL_DOMAINS.includes(domain));
+}
 
-const defaultWindow = (): HealthWindow => ({
-  windowStartMs: Date.now(),
-  metrics: {
-    read_channel_denied: { failures: 0, total: 0 },
-    send_message_failure: { failures: 0, total: 0 },
-    reconnect_backfill_mismatch: { failures: 0, total: 0 },
-    mention_notification_failure: { failures: 0, total: 0 },
-  },
-});
+async function isTrustedReporter(
+  adminClient: ReturnType<typeof createClient>,
+  userId: string,
+  email: string | null | undefined,
+): Promise<boolean> {
+  if (isInternalEmail(email) || isSuperAdminEmail(email)) return true;
 
-const THRESHOLDS: Record<Metric, { maxRate: number; minSamples: number }> = {
-  read_channel_denied: { maxRate: 0.03, minSamples: 20 },
-  send_message_failure: { maxRate: 0.02, minSamples: 20 },
-  reconnect_backfill_mismatch: { maxRate: 0.01, minSamples: 10 },
-  mention_notification_failure: { maxRate: 0.01, minSamples: 10 },
-};
+  try {
+    const { data: superAdmin, error: superAdminError } = await adminClient
+      .from('super_admins')
+      .select('user_id')
+      .eq('user_id', userId)
+      // Revocation is a soft delete — without this filter a revoked super admin keeps
+      // kill-switch authority. Matches feature-flags-admin/index.ts:55.
+      .is('revoked_at', null)
+      .maybeSingle();
+
+    if (superAdminError) return false;
+    if (superAdmin) return true;
+
+    // The client cohort rule (isTrustedStreamCanaryUser) also admits users by proRole and
+    // permissions. Those are client-supplied and forgeable, so they cannot be trusted as sent —
+    // but excluding their DB-verifiable equivalent entirely would silently drop the incident
+    // reports of real cohort members, and the auto-rollback this endpoint exists to perform
+    // would never fire for them. Verify admin standing against the database instead.
+    const { data: tripAdmin, error: tripAdminError } = await adminClient
+      .from('trip_admins')
+      .select('user_id')
+      .eq('user_id', userId)
+      .limit(1)
+      .maybeSingle();
+
+    if (tripAdminError) return false;
+    return Boolean(tripAdmin);
+  } catch {
+    // Fail closed: an unresolvable trust check must not grant kill-switch authority.
+    return false;
+  }
+}
 
 function response(payload: Record<string, unknown>, status: number, cors: Record<string, string>) {
   return new Response(JSON.stringify(payload), {
     status,
     headers: { ...cors, 'Content-Type': 'application/json' },
   });
-}
-
-function isMetric(value: unknown): value is Metric {
-  return (
-    value === 'read_channel_denied' ||
-    value === 'send_message_failure' ||
-    value === 'reconnect_backfill_mismatch' ||
-    value === 'mention_notification_failure'
-  );
-}
-
-function parseWindow(raw: string | null): HealthWindow {
-  if (!raw) return defaultWindow();
-  try {
-    const parsed = JSON.parse(raw) as HealthWindow;
-    if (!parsed?.metrics) return defaultWindow();
-    return parsed;
-  } catch {
-    return defaultWindow();
-  }
-}
-
-function maybeRotateWindow(window: HealthWindow): HealthWindow {
-  if (Date.now() - window.windowStartMs <= WINDOW_MS) return window;
-  return defaultWindow();
-}
-
-function thresholdExceeded(window: HealthWindow): { metric: Metric; rate: number } | null {
-  for (const metric of Object.keys(window.metrics) as Metric[]) {
-    const stats = window.metrics[metric];
-    const threshold = THRESHOLDS[metric];
-    if (stats.total < threshold.minSamples) continue;
-    const rate = stats.failures / stats.total;
-    if (rate > threshold.maxRate) {
-      return { metric, rate };
-    }
-  }
-  return null;
 }
 
 serve(async req => {
@@ -110,6 +104,24 @@ serve(async req => {
 
     if (userErr || !user) return response({ error: 'Unauthorized' }, 401, cors);
 
+    if (!(await isTrustedReporter(adminClient, user.id, user.email))) {
+      // Deliberately indistinguishable from any other rejection — do not confirm the endpoint
+      // exists or that the caller merely lacks a role.
+      return response({ error: 'Forbidden' }, 403, cors);
+    }
+
+    const rateLimit = await checkRateLimit(
+      adminClient,
+      `stream-canary-guard:${user.id}`,
+      CANARY_REPORT_MAX_PER_WINDOW,
+      CANARY_REPORT_WINDOW_SECONDS,
+      user.id,
+      'stream-canary-guard',
+    );
+    if (!rateLimit.allowed) {
+      return response({ error: 'Rate limit exceeded' }, 429, cors);
+    }
+
     const body = await req.json().catch(() => ({}));
     const metric = body?.metric;
     if (!isMetric(metric)) return response({ error: 'Invalid metric' }, 400, cors);
@@ -121,9 +133,7 @@ serve(async req => {
       .maybeSingle();
 
     const healthWindow = maybeRotateWindow(parseWindow(setting?.value ?? null));
-    const currentStats = healthWindow.metrics[metric];
-    currentStats.total += 1;
-    currentStats.failures += 1;
+    const counted = recordIncident(healthWindow.metrics[metric], user.id);
 
     await adminClient.from('app_settings').upsert(
       {
@@ -152,7 +162,9 @@ serve(async req => {
       );
     }
 
-    return response({ success: true, autoDisabled: false }, 200, cors);
+    // `counted: false` means the reporter hit their per-window cap — the incident was recorded
+    // but did not move the threshold. Surfaced so the caller can tell throttling from a no-op.
+    return response({ success: true, autoDisabled: false, counted }, 200, cors);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[stream-canary-guard]', message);
