@@ -7,15 +7,11 @@
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 import { TransitionSeries, linearTiming } from '@remotion/transitions';
 import { fade } from '@remotion/transitions/fade';
-import { loadFont } from '@remotion/google-fonts/Inter';
 import { COLORS, GRADIENTS, SHADOWS, SPRING, FPS } from '../theme';
 import { PhoneFrame } from '../components/PhoneFrame';
 import { SceneCaption } from '../components/SceneCaption';
 
-const { fontFamily } = loadFont('normal', {
-  weights: ['400', '500', '600', '700', '800'],
-  subsets: ['latin'],
-});
+import { fontFamily } from '../fonts';
 
 const SCENE = 75;
 const TRANSITION = 12;

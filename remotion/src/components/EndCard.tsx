@@ -7,13 +7,9 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
-import { loadFont } from '@remotion/google-fonts/Inter';
 import { COLORS, SPRING } from '../theme';
 
-const { fontFamily } = loadFont('normal', {
-  weights: ['600', '700', '800'],
-  subsets: ['latin'],
-});
+import { fontFamily } from '../fonts';
 
 /**
  * EndCard — 90 frames (3 seconds at 30fps).

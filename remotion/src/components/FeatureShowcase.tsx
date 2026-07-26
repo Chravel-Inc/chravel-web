@@ -1,12 +1,8 @@
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
-import { loadFont } from '@remotion/google-fonts/Inter';
 import { COLORS } from '../theme';
 import { FeatureCard } from './FeatureCard';
 
-const { fontFamily } = loadFont('normal', {
-  weights: ['600', '700'],
-  subsets: ['latin'],
-});
+import { fontFamily } from '../fonts';
 
 type FeatureShowcaseProps = {
   sectionTitle: string;

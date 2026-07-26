@@ -8,9 +8,8 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
-import { loadFont } from '@remotion/google-fonts/Inter';
 
-const { fontFamily } = loadFont('normal', { weights: ['400', '600', '800'] });
+import { fontFamily } from '../fonts';
 
 /**
  * 60-second product walkthrough composed from REAL screenshots of the running

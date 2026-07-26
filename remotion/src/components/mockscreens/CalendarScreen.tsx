@@ -1,12 +1,8 @@
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
-import { loadFont } from '@remotion/google-fonts/Inter';
 import { COLORS, SPRING } from '../../theme';
 import { TabBar } from '../TabBar';
 
-const { fontFamily } = loadFont('normal', {
-  weights: ['400', '500', '600', '700'],
-  subsets: ['latin'],
-});
+import { fontFamily } from '../../fonts';
 
 const EVENTS = [
   { time: '9:00 AM', title: 'Flight to Bali', color: COLORS.chatBlue, icon: '✈️', delay: 10 },

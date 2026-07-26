@@ -6,13 +6,9 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
-import { loadFont } from '@remotion/google-fonts/Inter';
 import { COLORS } from '../theme';
 
-const { fontFamily } = loadFont('normal', {
-  weights: ['400', '700', '800'],
-  subsets: ['latin'],
-});
+import { fontFamily } from '../fonts';
 
 type Stat = {
   value: string;

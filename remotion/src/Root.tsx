@@ -17,6 +17,7 @@ import {
   HOMEPAGE_PRODUCT_DEMO_60_DURATION,
 } from './compositions/HomepageProductDemo60';
 import { MobileAppDemo, MOBILE_DEMO_DURATION } from './compositions/MobileAppDemo';
+import { UseCaseCompositions } from './usecases/register';
 
 const FPS = 30;
 const WIDTH = 1920;
@@ -25,6 +26,9 @@ const HEIGHT = 1080;
 export const RemotionRoot = () => {
   return (
     <>
+      {/* Per-use-case brand films: 11 vertical + 11 square + 2 anthem cuts. */}
+      <UseCaseCompositions />
+
       {/* 60-second homepage demo from fresh real-UI captures (desktop + iPhone PWA).
           Capture frames first: node remotion/scripts/capture-demo-frames.mjs */}
       <Composition

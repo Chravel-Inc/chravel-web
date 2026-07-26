@@ -1,11 +1,7 @@
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
-import { loadFont } from '@remotion/google-fonts/Inter';
 import { COLORS, SPRING } from '../theme';
 
-const { fontFamily } = loadFont('normal', {
-  weights: ['400', '500', '600'],
-  subsets: ['latin'],
-});
+import { fontFamily } from '../fonts';
 
 type ChatBubbleProps = {
   text: string;

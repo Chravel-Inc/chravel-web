@@ -6,7 +6,6 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
-import { loadFont } from '@remotion/google-fonts/Inter';
 import { COLORS, SPRING, TIMING, FPS } from '../theme';
 import { PhoneFrame } from '../components/PhoneFrame';
 import { TravelBackground } from '../components/TravelBackground';
@@ -15,10 +14,7 @@ import { PollsScreen } from '../components/mockscreens/PollsScreen';
 import { TasksScreen } from '../components/mockscreens/TasksScreen';
 import { NotificationPop } from '../components/NotificationPop';
 
-const { fontFamily } = loadFont('normal', {
-  weights: ['400', '600', '700', '800'],
-  subsets: ['latin'],
-});
+import { fontFamily } from '../fonts';
 
 export const POLLS_TASKS_DURATION = 12 * FPS; // 360 frames
 

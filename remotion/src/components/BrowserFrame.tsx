@@ -1,11 +1,7 @@
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 import { COLORS, SPRING } from '../theme';
-import { loadFont } from '@remotion/google-fonts/Inter';
 
-const { fontFamily } = loadFont('normal', {
-  weights: ['400', '600'],
-  subsets: ['latin'],
-});
+import { fontFamily } from '../fonts';
 
 type BrowserFrameProps = {
   children: React.ReactNode;

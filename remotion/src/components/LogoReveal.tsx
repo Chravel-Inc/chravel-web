@@ -1,11 +1,7 @@
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
-import { loadFont } from '@remotion/google-fonts/Inter';
 import { COLORS } from '../theme';
 
-const { fontFamily } = loadFont('normal', {
-  weights: ['700', '800'],
-  subsets: ['latin'],
-});
+import { fontFamily } from '../fonts';
 
 export const LogoReveal: React.FC = () => {
   const frame = useCurrentFrame();

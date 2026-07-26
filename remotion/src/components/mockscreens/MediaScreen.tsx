@@ -1,12 +1,8 @@
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
-import { loadFont } from '@remotion/google-fonts/Inter';
 import { COLORS, SPRING } from '../../theme';
 import { TabBar } from '../TabBar';
 
-const { fontFamily } = loadFont('normal', {
-  weights: ['500', '600', '700'],
-  subsets: ['latin'],
-});
+import { fontFamily } from '../../fonts';
 
 /** Deterministic color palette for photo grid placeholders */
 const PHOTO_COLORS = [

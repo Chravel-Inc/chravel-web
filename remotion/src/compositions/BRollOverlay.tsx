@@ -8,16 +8,12 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
-import { loadFont } from '@remotion/google-fonts/Inter';
 import { COLORS, SPRING, TIMING, SHADOWS, FPS } from '../theme';
 import { PhoneFrame } from '../components/PhoneFrame';
 import { EndCard } from '../components/EndCard';
 import { ChatScreen } from '../components/mockscreens/ChatScreen';
 
-const { fontFamily } = loadFont('normal', {
-  weights: ['400', '600', '700', '800'],
-  subsets: ['latin'],
-});
+import { fontFamily } from '../fonts';
 
 export const BROLL_OVERLAY_DURATION = 12 * FPS; // 360 frames
 

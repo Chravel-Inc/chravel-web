@@ -8,7 +8,6 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
-import { loadFont } from '@remotion/google-fonts/Inter';
 import { LogoReveal } from '../components/LogoReveal';
 import { TextReveal } from '../components/TextReveal';
 import { BrowserFrame } from '../components/BrowserFrame';
@@ -18,10 +17,7 @@ import { EndCard } from '../components/EndCard';
 import { PhoneFrame } from '../components/PhoneFrame';
 import { COLORS, SPRING } from '../theme';
 
-const { fontFamily } = loadFont('normal', {
-  weights: ['400', '600', '700', '800'],
-  subsets: ['latin'],
-});
+import { fontFamily } from '../fonts';
 
 export const PRODUCT_LAUNCH_V2_DURATION = 900; // 30s at 30fps
 

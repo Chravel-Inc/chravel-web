@@ -6,17 +6,13 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
-import { loadFont } from '@remotion/google-fonts/Inter';
 import { COLORS, SPRING, TIMING, SHADOWS, FPS } from '../theme';
 import { PhoneFrame } from '../components/PhoneFrame';
 import { TravelBackground } from '../components/TravelBackground';
 import { EndCard } from '../components/EndCard';
 import { PaymentsScreen } from '../components/mockscreens/PaymentsScreen';
 
-const { fontFamily } = loadFont('normal', {
-  weights: ['400', '600', '700', '800'],
-  subsets: ['latin'],
-});
+import { fontFamily } from '../fonts';
 
 export const PAYMENT_SPLIT_DURATION = 10 * FPS; // 300 frames
 

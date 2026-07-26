@@ -11,15 +11,11 @@ import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } fr
 import { TransitionSeries, linearTiming } from '@remotion/transitions';
 import { fade } from '@remotion/transitions/fade';
 import { slide } from '@remotion/transitions/slide';
-import { loadFont } from '@remotion/google-fonts/Inter';
 import { COLORS, GRADIENTS, SHADOWS, SPRING, FPS } from '../theme';
 import { SceneCaption } from '../components/SceneCaption';
 import { EndCard } from '../components/EndCard';
 
-const { fontFamily } = loadFont('normal', {
-  weights: ['400', '500', '600', '700', '800'],
-  subsets: ['latin'],
-});
+import { fontFamily } from '../fonts';
 
 const SCENE = 75; // 2.5s per scene
 const TRANSITION = 14;

@@ -1,11 +1,7 @@
 import { useCurrentFrame, useVideoConfig, interpolate, spring, Img, staticFile } from 'remotion';
-import { loadFont } from '@remotion/google-fonts/Inter';
 import { COLORS, SPRING } from '../theme';
 
-const { fontFamily } = loadFont('normal', {
-  weights: ['600', '700'],
-  subsets: ['latin'],
-});
+import { fontFamily } from '../fonts';
 
 type CarouselItem = {
   src: string;

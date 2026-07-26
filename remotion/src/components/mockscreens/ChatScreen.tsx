@@ -1,13 +1,9 @@
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
-import { loadFont } from '@remotion/google-fonts/Inter';
 import { COLORS, SPRING } from '../../theme';
 import { ChatBubble } from '../ChatBubble';
 import { TabBar } from '../TabBar';
 
-const { fontFamily } = loadFont('normal', {
-  weights: ['600', '700'],
-  subsets: ['latin'],
-});
+import { fontFamily } from '../../fonts';
 
 const MESSAGES = [
   { text: 'Just booked the Airbnb! 🏠', sender: 'Sarah', isOwn: false, delay: 8 },

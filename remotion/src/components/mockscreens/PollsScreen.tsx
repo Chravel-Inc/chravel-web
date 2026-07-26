@@ -1,12 +1,8 @@
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
-import { loadFont } from '@remotion/google-fonts/Inter';
 import { COLORS, SPRING } from '../../theme';
 import { TabBar } from '../TabBar';
 
-const { fontFamily } = loadFont('normal', {
-  weights: ['400', '500', '600', '700'],
-  subsets: ['latin'],
-});
+import { fontFamily } from '../../fonts';
 
 const POLL_OPTIONS = [
   { label: 'Beach day 🏖️', votes: 3, pct: 75, delay: 18 },

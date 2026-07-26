@@ -6,7 +6,6 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
-import { loadFont } from '@remotion/google-fonts/Inter';
 import { COLORS, SPRING, TIMING, SHADOWS, FPS } from '../theme';
 import { PhoneFrame } from '../components/PhoneFrame';
 import { TravelBackground } from '../components/TravelBackground';
@@ -21,10 +20,7 @@ import { PlacesScreen } from '../components/mockscreens/PlacesScreen';
 import { PollsScreen } from '../components/mockscreens/PollsScreen';
 import { TasksScreen } from '../components/mockscreens/TasksScreen';
 
-const { fontFamily } = loadFont('normal', {
-  weights: ['400', '600', '700', '800'],
-  subsets: ['latin'],
-});
+import { fontFamily } from '../fonts';
 
 export const TAB_NAV_DURATION = 15 * FPS; // 450 frames
 
