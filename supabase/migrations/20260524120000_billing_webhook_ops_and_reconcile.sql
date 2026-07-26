@@ -17,7 +17,23 @@ CREATE TABLE IF NOT EXISTS public.billing_webhook_processing_failures (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_billing_webhook_failure_provider_event
   ON public.billing_webhook_processing_failures(provider, event_id);
 
-CREATE OR REPLACE VIEW public.billing_webhook_ops_dashboard AS
+-- RLS added 2026-07-25. Billing failure telemetry contains provider event ids and raw error
+-- messages; without RLS it was readable by any holder of the publishable key. Fail-closed by
+-- design: RLS enabled with no policies, so only service_role may access.
+-- Enforced by scripts/check-rls-coverage.ts.
+ALTER TABLE public.billing_webhook_processing_failures ENABLE ROW LEVEL SECURITY;
+
+COMMENT ON TABLE public.billing_webhook_processing_failures IS
+  'Billing webhook processing telemetry. Intentionally fail-closed: RLS enabled with no '
+  'policies, so only service_role may access.';
+
+-- security_invoker so the views evaluate under the querying role's RLS rather than the
+-- definer's. Without it, billing_entitlement_reconciliation_candidates below would expose
+-- user_entitlements joined to profiles.stripe_customer_id / stripe_subscription_id to any
+-- caller able to select from the view, bypassing RLS on both base tables. Matches the pattern
+-- established in 20251230220000_fix_security_invoker_views.sql.
+CREATE OR REPLACE VIEW public.billing_webhook_ops_dashboard
+WITH (security_invoker = true) AS
 SELECT
   provider,
   COUNT(*) FILTER (WHERE resolved_at IS NULL) AS open_failures,
@@ -26,7 +42,8 @@ SELECT
 FROM public.billing_webhook_processing_failures
 GROUP BY provider;
 
-CREATE OR REPLACE VIEW public.billing_entitlement_reconciliation_candidates AS
+CREATE OR REPLACE VIEW public.billing_entitlement_reconciliation_candidates
+WITH (security_invoker = true) AS
 SELECT
   ue.user_id,
   ue.purchase_type,

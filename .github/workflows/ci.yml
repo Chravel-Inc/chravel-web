@@ -78,6 +78,12 @@ jobs:
       - name: Lint migration files
         run: npx tsx scripts/lint-migrations.ts
 
+      # A public table created without RLS is readable and writable by anyone holding the
+      # publishable key, and any policies written for it are silently inert. This shipped once
+      # (broadcast_views, 20250115000000) and nothing in the toolchain could catch it.
+      - name: Check RLS coverage
+        run: npx tsx scripts/check-rls-coverage.ts
+
   # The Vitest suite (~290 files × jsdom + coverage) outgrew a single 30-min job.
   # Split it across parallel shards so each finishes well under the timeout; a
   # downstream gate job re-exposes the original "Unit Tests (Vitest)" status name
