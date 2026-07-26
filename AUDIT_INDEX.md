@@ -2,7 +2,7 @@
 
 > Quick-reference for 10 audit documents (5,500+ lines total).
 > Read specific sections by line number instead of entire files.
-> Last updated: 2026-05-20
+> Last updated: 2026-07-26
 
 ---
 
@@ -10,6 +10,8 @@
 
 | Date | File | Scope | Score/Status | Lines |
 |------|------|-------|-------------|-------|
+| 2026-07-26 | docs/audits/SEMANTIC_MERGE_DEBT_AUDIT_2026-07-26.md | Post-merge semantic conflict debt re-audit | 64/100 | ~700 |
+| 2026-05-31 | docs/semantic-merge-debt-audit-2026-05-31.md | Prior merge-debt audit (superseded) | 78/100 | ~1400 |
 | 2026-01-10 | APP_STORE_READINESS_AUDIT.md | iOS launch readiness (Capacitor + RevenueCat) | 82/100 | 471 |
 | 2026-03-05 | SECURITY_AUDIT_REPORT.md | Red team — 5 attacker profiles, 34 vulnerabilities | 58/100 | 527 |
 | 2026-03-07 | SECURITY_SCALE_AUDIT_2026_03_07.md | Scale + rate limiting across 10 threat vectors | MODERATE RISK | 260 |

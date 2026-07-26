@@ -31,6 +31,15 @@ A successful create that bypasses the canonical mutation hook leaves caches inco
 ### Cache invalidation footprint is the contract — extract once, reference everywhere
 If two mutation paths invalidate the same keys, lift the key set to a shared helper; drift is otherwise inevitable.
 
+### Never share a TanStack query key across incompatible cache value shapes
+Desktop and mobile must use the same hook (or the same typed shape) for a given `tripKeys.*` entry. Dual shapes force defensive `Array.isArray` adapters that silently no-op. Evidence: `usePayments` stores `PaymentMessage[]` while `MobileTripPayments` stores `{payments, balanceSummary}` on `tripKeys.payments` (merge-debt audit 2026-07-26).
+
+### Query-key factory renames must migrate every live `useQuery` in the same commit
+Camel→kebab (or auth-scoped) factory changes that leave call sites on the old string create no-op invalidations. Agenda was fixed (`eventAgenda`→`event-agenda`); lineup still orphaned (`eventLineup` vs `event-lineup`). Add a parity test whenever a factory key changes.
+
+### UI permission chrome must use the same oracle as mutation guards
+Shipping `get_trip_mutation_permissions` without retiring `useRolePermissions.canPerformAction` from calendar chrome produces buttons that lie. Cut over UI and mutations together; delete the client allowlist fallback from that surface.
+
 ### Avoid default `[]` prop literals when callbacks/effects depend on that prop
 A new array identity each render triggers infinite effect loops; default via `useMemo` or hoist the constant.
 
