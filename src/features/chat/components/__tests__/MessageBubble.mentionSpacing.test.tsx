@@ -100,7 +100,8 @@ describe('MessageBubble mention spacing', () => {
     renderText('Hey @Darren Gee WYA DG');
 
     const mention = screen.getByText('@Darren Gee');
-    expect(mention.className).toContain('text-chat-other-foreground');
+    expect(mention.className).toContain('bg-white/20');
+    expect(mention.className).toContain('text-white');
     expect(mention.className).not.toContain('text-black');
   });
 });

@@ -7,29 +7,23 @@
 export const MENTION_REGEX = /((?<!\w)@[\w'-]+(?:\s[A-Z][\w'-]*)?)/g;
 
 /**
- * Bubble-aware mention styling.
+ * Mention styling: bold white with a subtle white chip — one rule, every bubble.
  *
- * Mentions must stay legible on every bubble color in BOTH themes, so the class
- * is derived from the bubble's own foreground token rather than a fixed color:
+ * All three bubbles are dark and now theme-independent (the light-mode override
+ * of --chat-bubble-other was removed, so the gray bubble no longer flips to
+ * cream). White therefore clears AA everywhere with no theme branching:
  *
- * - own (`--chat-bubble-own`, #007AFF blue) and broadcast (dark red) bubbles are
- *   dark in both themes, so white text is correct for both.
- * - other bubbles flip with the theme (#383838 in dark, cream in light), so they
- *   use `--chat-bubble-other-foreground`, which flips with them.
+ *   white on #383838 other ....... 11.73:1
+ *   white on #B91C1C broadcast .... 6.47:1
+ *   white on #007AFF own .......... 4.02:1  (identical to the bubble's own body
+ *                                            text, which is already white on blue)
  *
- * A low-opacity chip derived from the same foreground keeps the mention distinct
- * from surrounding text without relying on color alone.
+ * Color alone cannot carry the distinction, since surrounding body text is also
+ * white. Weight plus a low-opacity chip does it without introducing a hue that
+ * fails on one of the bubbles — red text, for instance, is 1.07:1 on the own
+ * bubble, worse than the black-on-gray bug this replaced.
  */
-export const getMentionClassName = (opts: {
+export const getMentionClassName = (_opts: {
   isOwnMessage: boolean;
   isBroadcast?: boolean;
-}): string => {
-  const base = 'font-semibold rounded px-0.5';
-
-  // Both own and broadcast bubbles are dark in light and dark themes.
-  if (opts.isOwnMessage || opts.isBroadcast) {
-    return `${base} text-chat-own-foreground bg-white/20`;
-  }
-
-  return `${base} text-chat-other-foreground bg-chat-other-foreground/15`;
-};
+}): string => 'font-semibold text-white bg-white/20 rounded px-1 py-0.5';

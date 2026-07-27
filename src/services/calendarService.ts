@@ -1001,6 +1001,14 @@ export const calendarService = {
       .catch(() => {});
   },
 
+  /**
+   * @param coMemberProfiles Optional map from fetchCoMemberProfiles(). The embedded
+   *   `creator` join reads through profiles RLS, whose only SELECT policy is
+   *   (auth.uid() = user_id), so it resolves the viewer and returns NULL for every
+   *   other event creator. Callers that batch-resolve names pass the map here.
+   *   NOTE: because of this second parameter, never pass this method bare to
+   *   Array.prototype.map -- map would supply the element index as the map.
+   */
   convertToCalendarEvent(
     tripEvent: TripEvent & {
       creator?: { display_name?: string; avatar_url?: string };
@@ -1010,6 +1018,7 @@ export const calendarService = {
       is_busy?: boolean;
       availability_status?: string;
     },
+    coMemberProfiles?: Map<string, { resolved_display_name: string; avatar_url: string | null }>,
   ): CalendarEvent {
     // Read is_all_day from the field or from source_data as fallback for old rows
     const sourceDataObj = tripEvent.source_data as Record<string, unknown> | null;
@@ -1038,8 +1047,17 @@ export const calendarService = {
       location: tripEvent.location,
       description: tripEvent.description,
       createdBy: tripEvent.created_by,
-      creatorName: tripEvent.creator?.display_name || UNKNOWN_MEMBER_LABEL,
-      creatorAvatar: tripEvent.creator?.avatar_url,
+      creatorName:
+        tripEvent.creator?.display_name ||
+        (tripEvent.created_by
+          ? coMemberProfiles?.get(tripEvent.created_by)?.resolved_display_name
+          : undefined) ||
+        UNKNOWN_MEMBER_LABEL,
+      creatorAvatar:
+        tripEvent.creator?.avatar_url ??
+        (tripEvent.created_by
+          ? (coMemberProfiles?.get(tripEvent.created_by)?.avatar_url ?? undefined)
+          : undefined),
       include_in_itinerary: tripEvent.include_in_itinerary ?? true,
       is_all_day: isAllDay,
       end_date: tripEvent.end_time

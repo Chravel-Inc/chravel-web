@@ -45,6 +45,7 @@ const createChainableMock = (resolvedValue: SupabaseResponse) => {
 vi.mock('../../integrations/supabase/client', () => ({
   supabase: {
     from: vi.fn(),
+    rpc: vi.fn(),
     auth: {
       getUser: vi.fn(),
     },
@@ -71,6 +72,10 @@ describe('paymentBalanceService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Co-member names resolve through get_co_member_profiles. Tests that care about
+    // the resolved name override this; the rest only need it not to reject.
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: [], error: null });
 
     // Default mock: authenticated user with trip membership
     vi.mocked(supabase.auth.getUser).mockResolvedValue({

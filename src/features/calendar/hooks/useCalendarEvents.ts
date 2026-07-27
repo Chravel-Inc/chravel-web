@@ -7,6 +7,7 @@ import { useCalendarRealtime } from './useCalendarRealtime';
 import { createCalendarQueryFn } from './calendarQueryFn';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
 import { toast } from 'sonner';
+import { fetchCoMemberProfiles } from '@/services/coMemberProfiles';
 
 /**
  * ⚡ PERFORMANCE: TanStack Query-based calendar events hook
@@ -224,8 +225,23 @@ export const useCalendarEvents = (tripId?: string) => {
     }
   };
 
+  // Event creators other than the viewer cannot be resolved through the embedded
+  // `creator` join: profiles' only SELECT policy is (auth.uid() = user_id). Batch
+  // them through the co-member RPC instead, keyed by the creator ids in view.
+  const creatorIds = Array.from(
+    new Set((events as Array<{ created_by?: string }>).map(e => e.created_by).filter(Boolean)),
+  ) as string[];
+
+  const { data: creatorProfiles } = useQuery({
+    queryKey: [...tripKeys.calendar(tripId || ''), 'creator-profiles', creatorIds],
+    queryFn: () => fetchCoMemberProfiles(creatorIds),
+    enabled: creatorIds.length > 0,
+    staleTime: QUERY_CACHE_CONFIG.members.staleTime,
+    gcTime: QUERY_CACHE_CONFIG.members.gcTime,
+  });
+
   const getCalendarEvents = (): CalendarEvent[] => {
-    return events.map(event => calendarService.convertToCalendarEvent(event));
+    return events.map(event => calendarService.convertToCalendarEvent(event, creatorProfiles));
   };
 
   const refreshEvents = async () => {
