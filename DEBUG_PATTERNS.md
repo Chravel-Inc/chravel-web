@@ -730,3 +730,23 @@ Known security anti-patterns discovered during audits. Reference this before int
 **Smallest Safe Fix (in-session):** don't edit the lockfile (guarded); run `npm install --no-package-lock --no-save --no-audit --fetch-timeout=60000 --fetch-retries=5 --cache <fresh-dir>` — the fresh cache dir sidesteps packuments/tarballs poisoned by earlier mirror fetches, which otherwise cause `notarget`/`Invalid response body` whack-a-mole.
 **Durable Fix:** regenerate `package-lock.json` against registry.npmjs.org from a normal dev machine (`rm package-lock.json && npm install`) so `resolved` URLs are public, and commit it via the normal review flow.
 **Evidence:** 2026-07-20 session — first install hung 31 min with zero progress; log `2026-07-20T22_41_21` shows 16 consecutive 403s on pkg.dev URLs; fresh-cache no-lockfile install succeeded first try.
+
+## Stream thread replies filtered with no ThreadView consumer
+- **Status:** open (audit finding 2026-07-27)
+- **Subsystem:** GetStream trip chat (`useStreamTripChat`, `streamMessageViewModel`, TripChat)
+- **Bug class:** abandoned UI + live transport still writing/filtering `parent_id`
+- **Symptom:** “Reply in thread” / `parent_id` messages never appear in main chat; no `ThreadView.tsx` exists; comments still claim getReplies rendering.
+- **Root cause:** Thread replies are excluded from main `messages` state and from `buildStreamMessageViewModels`, but the ThreadView consumer was removed (see `TripChat.renderPath.test.tsx`). Inline grouping only sees `replyTo` on already-loaded top-level messages.
+- **Smallest safe fix:** Either stop setting `parent_id` (quoted_reference only) **or** restore a Stream `getReplies` thread surface — do not leave both half-built.
+- **Required tests:** Contract test: if parent_id send enabled, assert visible thread UI path; if disabled, assert payload never includes parent_id.
+- **Evidence:** `docs/audits/GETSTREAM_ARCHITECTURE_AUDIT_2026-07-27.md`
+
+## Client Stream membership sync swallows AddMembers failures
+- **Status:** open (audit finding 2026-07-27)
+- **Subsystem:** `streamMembershipSync` + `streamMembershipCoordinator`
+- **Bug class:** fire-and-forget mutation fighting Stream grants
+- **Symptom:** User is active in Supabase but `channel.watch` fails ReadChannel until edge self-heal; coordinator retries appear to “succeed.”
+- **Root cause:** Browser client calls `channel.addMembers` / `removeMembers` despite server docs that users lack `AddOwnChannelMembership`; errors are caught and ignored so coordinator backoff never sees failure.
+- **Smallest safe fix:** Route all membership writes through `stream-join-channel` / `stream-ensure-membership`; make sync throw on failure (or delete client mutation path).
+- **Required tests:** Mock Stream rejecting AddMembers → coordinator reports failure / edge invoked.
+- **Evidence:** `docs/audits/GETSTREAM_ARCHITECTURE_AUDIT_2026-07-27.md`

@@ -1,3 +1,10 @@
+2026-07-27 — Recurring GetStream architecture & quality audit
+- Code-evidence audit of Stream trip/Pro/broadcast + Concierge boundary. Overall **66/100** (prior internal report 92/100 superseded — referenced deleted ThreadView + false Concierge Stream history).
+- Critical gaps: thread contract (parent_id filtered, no ThreadView), client membership sync swallows AddMembers failures, Pro hook lacks reconnect backfill, dead `stream-chat-*` DB flags, moderation target unbound, webhook pro trip_id null.
+- Concierge correctly off Stream (SSE + ai_queries); do not entangle.
+- Deliverable: `docs/audits/GETSTREAM_ARCHITECTURE_AUDIT_2026-07-27.md`; `docs/GETSTREAM_AUDIT_REPORT.md` marked superseded; LESSONS + DEBUG_PATTERNS updated.
+- Branch: cursor/chravel-getstream-audit-4f75
+
 2026-07-17 — Payment messages need-to-know + edge deploys
 - trip_payment_messages SELECT aligned with payment_splits (COALESCE trip_type, active member, creator/debtor/admin/can_view); INSERT requires is_active_trip_member. Applied to ChravelApp.
 - Deployed edge: bootstrap-super-admins v4, venue-enricher v1147, send-push v791, place-grounding v1055 (bundled+requireAuth).
