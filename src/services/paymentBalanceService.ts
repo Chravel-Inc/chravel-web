@@ -1,6 +1,7 @@
 import { supabase } from '../integrations/supabase/client';
 import { PaymentMethod } from '../types/payments';
 import { normalizeToBaseCurrency, convertCurrency } from './currencyService';
+import { UNKNOWN_MEMBER_LABEL } from '@/lib/resolveDisplayName';
 
 export interface PersonalBalance {
   userId: string;
@@ -286,7 +287,7 @@ export const paymentBalanceService = {
 
         balances.push({
           userId: personUserId,
-          userName: profile?.resolved_display_name || profile?.display_name || 'Former Member',
+          userName: profile?.resolved_display_name || profile?.display_name || UNKNOWN_MEMBER_LABEL,
           avatar: profile?.avatar_url,
           amountOwed: entry.netAmount,
           amountOwedCurrency: baseCurrency,

@@ -12,6 +12,7 @@ import { taskEvents } from '@/telemetry/events';
 import { useMutationPermissions } from '@/hooks/useMutationPermissions';
 import { systemMessageService } from '@/services/systemMessageService';
 import { tripKeys } from '@/lib/queryKeys';
+import { UNKNOWN_MEMBER_LABEL } from '@/lib/resolveDisplayName';
 
 const resolveActorName = (
   user: { displayName?: string | null; email?: string | null } | null | undefined,
@@ -497,7 +498,7 @@ export const useTripTasks = (
             updated_at: task.updated_at,
             creator: {
               id: task.creator_id,
-              name: creator?.display_name || 'Former Member',
+              name: creator?.display_name || UNKNOWN_MEMBER_LABEL,
               avatar: creator?.avatar_url,
             },
             task_status: taskStatusRows,
@@ -708,7 +709,7 @@ export const useTripTasks = (
         updated_at: newTask.updated_at,
         creator: {
           id: authUser.id,
-          name: userProfile?.display_name || 'Former Member',
+          name: userProfile?.display_name || UNKNOWN_MEMBER_LABEL,
           avatar: userProfile?.avatar_url,
         },
         task_status: taskStatusRows,

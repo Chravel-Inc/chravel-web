@@ -7,10 +7,39 @@
 export const UNRESOLVED_NAME_SENTINEL = '__chravel_unresolved_name__';
 
 /**
- * User-facing label shown when a profile could not be resolved
- * (e.g. account deleted, profile row missing).
+ * Neutral user-facing label for the rare case where no name is recoverable from
+ * any source — not even a stored snapshot.
+ *
+ * This intentionally replaces the old "Former Member" label. A person's name must
+ * never be swapped for a membership status: leaving a trip or deleting an account
+ * does not change who wrote a message or who was on the roster. Name snapshots
+ * (`trip_members.display_name_snapshot`, `trip_chat_messages.sender_display_name`)
+ * keep the real name available in both cases, so this is a last resort only.
  */
-export const FORMER_MEMBER_LABEL = 'Former Member';
+export const UNKNOWN_MEMBER_LABEL = 'Chravel User';
+
+/**
+ * @deprecated Use {@link UNKNOWN_MEMBER_LABEL}. Kept as an alias so any straggling
+ * import keeps compiling, but it no longer renders "Former Member" to users.
+ */
+export const FORMER_MEMBER_LABEL = UNKNOWN_MEMBER_LABEL;
+
+/**
+ * Resolves the display name for a trip member, preferring the durable snapshot
+ * captured on `trip_members` over a live profile read.
+ *
+ * The snapshot is what makes names survive both `profiles` RLS (which only lets a
+ * user read their own row) and account deletion.
+ */
+export function resolveMemberDisplayName(input: {
+  snapshotName?: string | null;
+  profile?: ProfileForDisplay | null;
+}): string {
+  const snapshot = input.snapshotName?.trim();
+  if (snapshot) return snapshot;
+
+  return getEffectiveDisplayName(input.profile, UNKNOWN_MEMBER_LABEL);
+}
 
 /** Profile shape for name resolution (from profiles_public or raw profile) */
 export interface ProfileForDisplay {

@@ -6,7 +6,7 @@ import { reportStreamMembershipSyncFailure } from '@/services/stream/streamMembe
 import { demoModeService } from './demoModeService';
 import { tripsData } from '@/data/tripsData';
 import { adaptTripsDataToTripSchema } from '@/utils/schemaAdapters';
-import { FORMER_MEMBER_LABEL } from '@/lib/resolveDisplayName';
+import { UNKNOWN_MEMBER_LABEL, resolveMemberDisplayName } from '@/lib/resolveDisplayName';
 import { formatLocalDate } from '@/utils/dateHelpers';
 import { resolveEffectiveTier } from './entitlementService';
 
@@ -609,7 +609,7 @@ export const tripService = {
     try {
       const { data: initialData, error } = await supabase
         .from('trip_members')
-        .select('id, user_id, role, created_at')
+        .select('id, user_id, role, created_at, display_name_snapshot, avatar_url_snapshot')
         .eq('trip_id', tripId)
         .limit(500);
 
@@ -621,7 +621,7 @@ export const tripService = {
         if (statusColumnError) {
           const fallback = await supabase
             .from('trip_members')
-            .select('id, user_id, role, created_at')
+            .select('id, user_id, role, created_at, display_name_snapshot, avatar_url_snapshot')
             .eq('trip_id', tripId)
             .limit(500);
           if (fallback.error) throw fallback.error;
@@ -693,7 +693,7 @@ export const tripService = {
     // RLS enforces access server-side before the limit is applied.
     const membersResult = await supabase
       .from('trip_members')
-      .select('id, user_id, role, created_at')
+      .select('id, user_id, role, created_at, display_name_snapshot, avatar_url_snapshot')
       .eq('trip_id', tripId)
       .limit(500);
 
@@ -774,8 +774,10 @@ export const tripService = {
       const profile = profilesMap.get(m.user_id);
       return {
         id: m.user_id,
-        name: profile?.resolved_display_name || profile?.display_name || FORMER_MEMBER_LABEL,
-        avatar: profile?.avatar_url,
+        // The roster leads with the snapshot: `profiles` RLS only lets a user read
+        // their OWN row, so a live profile read resolves for at most one member.
+        name: resolveMemberDisplayName({ snapshotName: m.display_name_snapshot, profile }),
+        avatar: profile?.avatar_url ?? m.avatar_url_snapshot ?? undefined,
         isCreator: m.user_id === creatorId,
         role: m.role || 'member',
       };
@@ -888,7 +890,7 @@ export const tripService = {
     const creatorId = meta.creatorId;
     const members = (payload?.members ?? []).map(member => ({
       id: member.user_id,
-      name: member.display_name || FORMER_MEMBER_LABEL,
+      name: member.display_name || UNKNOWN_MEMBER_LABEL,
       avatar: member.avatar_url ?? undefined,
       isCreator: member.user_id === creatorId,
       role: member.role || 'member',

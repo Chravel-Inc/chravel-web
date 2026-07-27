@@ -12,6 +12,7 @@ import { retryWithBackoff } from '@/utils/retry';
 // SECURITY: Super admin access is now enforced entirely server-side via is_super_admin() RLS.
 // Client-side SUPER_ADMIN_EMAILS import removed to eliminate misleading bypass paths.
 import { normalizeCalendarCategory } from '@/constants/calendarCategories';
+import { UNKNOWN_MEMBER_LABEL } from '@/lib/resolveDisplayName';
 
 // Re-export for backward compatibility — consumers should migrate to '@/types/calendar'
 export type { TripEvent, CreateEventData } from '@/types/calendar';
@@ -1037,7 +1038,7 @@ export const calendarService = {
       location: tripEvent.location,
       description: tripEvent.description,
       createdBy: tripEvent.created_by,
-      creatorName: tripEvent.creator?.display_name || 'Former Member',
+      creatorName: tripEvent.creator?.display_name || UNKNOWN_MEMBER_LABEL,
       creatorAvatar: tripEvent.creator?.avatar_url,
       include_in_itinerary: tripEvent.include_in_itinerary ?? true,
       is_all_day: isAllDay,

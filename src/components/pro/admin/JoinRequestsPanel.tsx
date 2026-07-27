@@ -16,6 +16,7 @@ import {
 import { UserCheck, UserX, Clock, AlertCircle, Inbox } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { getJoinRequestDisplayLabel } from '@/hooks/useDashboardJoinRequests';
+import { UNKNOWN_MEMBER_LABEL } from '@/lib/resolveDisplayName';
 
 interface JoinRequestsPanelProps {
   tripId: string;
@@ -130,7 +131,7 @@ export const JoinRequestsPanel: React.FC<JoinRequestsPanelProps> = ({ tripId }) 
 
               <div className="flex flex-col">
                 <span className="font-medium text-foreground text-sm">
-                  {request.profile?.display_name || 'Former Member'}
+                  {request.profile?.display_name || UNKNOWN_MEMBER_LABEL}
                 </span>
                 <span className="text-xs text-muted-foreground">
                   {request.requested_at

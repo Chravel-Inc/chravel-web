@@ -2,28 +2,31 @@ import { describe, expect, it } from 'vitest';
 import { getMentionClassName, MENTION_REGEX } from '../messageMentions';
 
 describe('MessageBubble mention styling', () => {
-  it('uses black-on-white pill for own messages', () => {
+  it('uses light mention text on the dark blue own-message bubble', () => {
     const className = getMentionClassName({ isOwnMessage: true, isBroadcast: false });
 
-    expect(className).toContain('text-black');
+    expect(className).toContain('text-chat-own-foreground');
     expect(className).toContain('font-semibold');
-    // bg-white/90 was removed in favor of minimal styling
+    expect(className).not.toContain('text-black');
   });
 
-  it('uses black-on-white pill for broadcast messages', () => {
+  it('uses light mention text on the dark red broadcast bubble', () => {
     const className = getMentionClassName({ isOwnMessage: false, isBroadcast: true });
 
-    expect(className).toContain('text-black');
+    expect(className).toContain('text-chat-own-foreground');
     expect(className).toContain('font-semibold');
-    // bg-white/90 was removed in favor of minimal styling
+    expect(className).not.toContain('text-black');
   });
 
-  it('uses black-on-white pill for other users messages', () => {
+  it('uses the theme-flipping foreground token on other users bubbles', () => {
     const className = getMentionClassName({ isOwnMessage: false, isBroadcast: false });
 
-    expect(className).toContain('text-black');
+    // Must follow the bubble, which is #383838 in dark and cream in light.
+    // A hardcoded color is invisible in one theme or the other.
+    expect(className).toContain('text-chat-other-foreground');
     expect(className).toContain('font-semibold');
-    // bg-white/90 was removed in favor of minimal styling
+    expect(className).not.toContain('text-black');
+    expect(className).not.toContain('text-white');
   });
 
   it('matches two-word mention names', () => {
