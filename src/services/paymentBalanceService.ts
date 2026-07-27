@@ -1,6 +1,8 @@
 import { supabase } from '../integrations/supabase/client';
 import { PaymentMethod } from '../types/payments';
 import { normalizeToBaseCurrency, convertCurrency } from './currencyService';
+import { UNKNOWN_MEMBER_LABEL } from '@/lib/resolveDisplayName';
+import { fetchCoMemberProfiles } from './coMemberProfiles';
 
 export interface PersonalBalance {
   userId: string;
@@ -98,19 +100,17 @@ export const paymentBalanceService = {
       paymentSplits?.forEach(s => allUserIds.add(s.debtor_user_id));
       const userIdArray = Array.from(allUserIds);
 
-      // Step 4: ⚡ PARALLEL — profiles + payment methods at the same time
-      const [profilesResult, methodsResult] = await Promise.all([
-        supabase
-          .from('profiles_public')
-          .select('user_id, display_name, resolved_display_name, avatar_url')
-          .in('user_id', userIdArray),
+      // Step 4: ⚡ PARALLEL — profiles + payment methods at the same time.
+      // Names come from get_co_member_profiles rather than profiles_public: the
+      // latter is security_invoker over a profiles table whose only SELECT policy
+      // is (auth.uid() = user_id), so it resolves the viewer and nobody else.
+      const [coMemberProfiles, methodsResult] = await Promise.all([
+        fetchCoMemberProfiles(userIdArray),
         supabase.from('user_payment_methods').select('*').in('user_id', userIdArray),
       ]);
 
-      if (profilesResult.error) throw profilesResult.error;
       if (methodsResult.error) throw methodsResult.error;
 
-      const profiles = profilesResult.data;
       const paymentMethods = methodsResult.data;
 
       // Helper to get primary payment method
@@ -270,7 +270,7 @@ export const paymentBalanceService = {
       ledger.forEach((entry, personUserId) => {
         if (personUserId === userId) return;
 
-        const profile = profiles?.find(p => p.user_id === personUserId);
+        const profile = coMemberProfiles.get(personUserId);
         const userMethods = paymentMethods?.filter(m => m.user_id === personUserId) || [];
         const normalizedUserMethods = userMethods.map(m => ({
           id: m.id,
@@ -286,8 +286,8 @@ export const paymentBalanceService = {
 
         balances.push({
           userId: personUserId,
-          userName: profile?.resolved_display_name || profile?.display_name || 'Former Member',
-          avatar: profile?.avatar_url,
+          userName: profile?.resolved_display_name || UNKNOWN_MEMBER_LABEL,
+          avatar: profile?.avatar_url ?? undefined,
           amountOwed: entry.netAmount,
           amountOwedCurrency: baseCurrency,
           preferredPaymentMethod: primaryMethod ?? null,

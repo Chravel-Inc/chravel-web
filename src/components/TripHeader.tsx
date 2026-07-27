@@ -36,6 +36,7 @@ import { useCoverPhotoUpload } from '@/features/trips/hooks/useCoverPhotoUpload'
 import { getDemoTripCoverFallback } from '@/data/demoTripCoverFallbacks';
 import { isBlobOrDataUrl } from '@/utils/mediaUtils';
 import { resolveTripCoverImageUrl } from '@/lib/tripCoverResolver';
+import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
 
 // Stable empty array to prevent Zustand selector reference changes causing infinite re-renders
 const EMPTY_MEMBERS_ARRAY: Array<{
@@ -401,12 +402,15 @@ export const TripHeader = ({
   // In demo mode, prefer the bundled cover asset up front so the hero renders
   // immediately without racing a remote fetch (matches TripCard/ProTripCard/EventCard).
   const demoFallbackCover = isDemoMode ? getDemoTripCoverFallback(trip.id) : undefined;
-  const displayCover =
+  const storedCover =
     coverFallbackSrc ??
     resolveTripCoverImageUrl(
       { coverPhoto },
       { fallbackUrl: isDemoMode ? demoFallbackCover : null },
     );
+  // Legacy covers sit in the PRIVATE trip-media bucket behind a public-form url and
+  // 404. Sign them here; anything not a trip-media url passes straight through.
+  const displayCover = useResolvedTripMediaUrl({ url: storedCover }) ?? storedCover;
   const hasCover = Boolean(displayCover);
 
   const handleCropCancel = () => {

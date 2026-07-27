@@ -2,28 +2,47 @@ import { describe, expect, it } from 'vitest';
 import { getMentionClassName, MENTION_REGEX } from '../messageMentions';
 
 describe('MessageBubble mention styling', () => {
-  it('uses black-on-white pill for own messages', () => {
-    const className = getMentionClassName({ isOwnMessage: true, isBroadcast: false });
+  const ALL_BUBBLES = [
+    { isOwnMessage: true, isBroadcast: false },
+    { isOwnMessage: false, isBroadcast: false },
+    { isOwnMessage: false, isBroadcast: true },
+  ];
 
-    expect(className).toContain('text-black');
-    expect(className).toContain('font-semibold');
-    // bg-white/90 was removed in favor of minimal styling
+  it('uses bold white text on every bubble', () => {
+    // All three bubbles are dark and theme-independent, so white clears AA
+    // everywhere: 11.73:1 on #383838, 6.47:1 on #B91C1C, 4.02:1 on #007AFF.
+    for (const opts of ALL_BUBBLES) {
+      const className = getMentionClassName(opts);
+      expect(className).toContain('text-white');
+      expect(className).toContain('font-semibold');
+    }
   });
 
-  it('uses black-on-white pill for broadcast messages', () => {
-    const className = getMentionClassName({ isOwnMessage: false, isBroadcast: true });
-
-    expect(className).toContain('text-black');
-    expect(className).toContain('font-semibold');
-    // bg-white/90 was removed in favor of minimal styling
+  it('carries a chip so mentions are distinguishable from white body text', () => {
+    // Color alone cannot separate the mention from surrounding text, which is
+    // also white — weight plus a chip does.
+    for (const opts of ALL_BUBBLES) {
+      expect(getMentionClassName(opts)).toContain('bg-white/20');
+    }
   });
 
-  it('uses black-on-white pill for other users messages', () => {
-    const className = getMentionClassName({ isOwnMessage: false, isBroadcast: false });
+  it('never uses a hue that fails on one of the bubbles', () => {
+    // Red text is 1.07:1 on the own bubble and gold is 1.50:1 — both worse than
+    // the black-on-gray bug this styling replaced.
+    for (const opts of ALL_BUBBLES) {
+      const className = getMentionClassName(opts);
+      expect(className).not.toContain('text-red');
+      expect(className).not.toContain('text-gold');
+      expect(className).not.toContain('text-black');
+    }
+  });
 
-    expect(className).toContain('text-black');
-    expect(className).toContain('font-semibold');
-    // bg-white/90 was removed in favor of minimal styling
+  it('needs no theme-dependent branching', () => {
+    // Every bubble renders identically in light and dark, so one class is correct
+    // for all of them. If this ever diverges, the light-mode bubble override has
+    // been reintroduced in index.css.
+    const classNames = ALL_BUBBLES.map(getMentionClassName);
+    expect(new Set(classNames).size).toBe(1);
   });
 
   it('matches two-word mention names', () => {

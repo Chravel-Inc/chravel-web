@@ -4040,7 +4040,9 @@ export type Database = {
       }
       trip_members: {
         Row: {
+          avatar_url_snapshot: string | null
           created_at: string
+          display_name_snapshot: string | null
           id: string
           left_at: string | null
           notifications_muted: boolean
@@ -4051,7 +4053,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          avatar_url_snapshot?: string | null
           created_at?: string
+          display_name_snapshot?: string | null
           id?: string
           left_at?: string | null
           notifications_muted?: boolean
@@ -4062,7 +4066,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          avatar_url_snapshot?: string | null
           created_at?: string
+          display_name_snapshot?: string | null
           id?: string
           left_at?: string | null
           notifications_muted?: boolean
@@ -5693,6 +5699,14 @@ export type Database = {
       is_trip_admin: {
         Args: { _trip_id: string; _user_id: string }
         Returns: boolean
+      }
+      get_co_member_profiles: {
+        Args: { p_user_ids: string[] }
+        Returns: {
+          avatar_url: string
+          resolved_display_name: string
+          user_id: string
+        }[]
       }
       is_trip_co_member: {
         Args: { target_user_id: string; viewer_id: string }

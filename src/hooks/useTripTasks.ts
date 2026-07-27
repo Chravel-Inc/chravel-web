@@ -12,6 +12,8 @@ import { taskEvents } from '@/telemetry/events';
 import { useMutationPermissions } from '@/hooks/useMutationPermissions';
 import { systemMessageService } from '@/services/systemMessageService';
 import { tripKeys } from '@/lib/queryKeys';
+import { UNKNOWN_MEMBER_LABEL } from '@/lib/resolveDisplayName';
+import { fetchCoMemberProfiles, displayNameFor } from '@/services/coMemberProfiles';
 
 const resolveActorName = (
   user: { displayName?: string | null; email?: string | null } | null | undefined,
@@ -476,6 +478,14 @@ export const useTripTasks = (
           return [];
         }
 
+        // The embedded `creator:creator_id` join goes through profiles RLS, whose only
+        // SELECT policy is (auth.uid() = user_id) -- so it resolves the viewer and
+        // returns NULL for every other task creator. Resolve those names through the
+        // co-member RPC instead.
+        const coMemberProfiles = await fetchCoMemberProfiles(
+          tasks.map(task => task.creator_id).filter(Boolean) as string[],
+        );
+
         // Transform database tasks to match TripTask interface
         const transformed = tasks.map(task => {
           const creator = task.creator as { display_name?: string; avatar_url?: string } | null;
@@ -497,8 +507,8 @@ export const useTripTasks = (
             updated_at: task.updated_at,
             creator: {
               id: task.creator_id,
-              name: creator?.display_name || 'Former Member',
-              avatar: creator?.avatar_url,
+              name: displayNameFor(task.creator_id, coMemberProfiles, creator?.display_name),
+              avatar: creator?.avatar_url ?? coMemberProfiles.get(task.creator_id)?.avatar_url,
             },
             task_status: taskStatusRows,
           };
@@ -708,7 +718,7 @@ export const useTripTasks = (
         updated_at: newTask.updated_at,
         creator: {
           id: authUser.id,
-          name: userProfile?.display_name || 'Former Member',
+          name: userProfile?.display_name || UNKNOWN_MEMBER_LABEL,
           avatar: userProfile?.avatar_url,
         },
         task_status: taskStatusRows,

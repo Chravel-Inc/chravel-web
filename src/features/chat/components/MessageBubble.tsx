@@ -506,33 +506,47 @@ export const MessageBubble = memo(
             </span>
           );
         } else {
+          if (!part) return null;
+
+          // Markdown paragraph parsing strips a fragment's outer whitespace, which
+          // would delete the space separating a mention from the next word
+          // ("@Darren Gee WYA" -> "@Darren GeeWYA"). Hold that whitespace outside
+          // ReactMarkdown so the wrapper's `whitespace-pre-wrap` can render it.
+          const leading = part.match(/^\s+/)?.[0] ?? '';
+          const trailing = part.length > leading.length ? (part.match(/\s+$/)?.[0] ?? '') : '';
+          const core = part.slice(leading.length, part.length - trailing.length);
+
           // It's regular text (potentially markdown)
           return (
             <span
               key={index}
               className="inline prose prose-invert max-w-none prose-p:inline prose-p:m-0 prose-pre:bg-gray-800 prose-pre:p-2 prose-pre:rounded"
             >
-              <ReactMarkdown
-                components={{
-                  p: props => <span {...props} />,
-                  a: props => (
-                    <a
-                      {...props}
-                      className="text-blue-400 hover:underline"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    />
-                  ),
-                  code: props => (
-                    <code
-                      {...props}
-                      className="bg-gray-800 px-1 py-0.5 rounded text-xs font-mono"
-                    />
-                  ),
-                }}
-              >
-                {part}
-              </ReactMarkdown>
+              {leading}
+              {core && (
+                <ReactMarkdown
+                  components={{
+                    p: props => <span {...props} />,
+                    a: props => (
+                      <a
+                        {...props}
+                        className="text-blue-400 hover:underline"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      />
+                    ),
+                    code: props => (
+                      <code
+                        {...props}
+                        className="bg-gray-800 px-1 py-0.5 rounded text-xs font-mono"
+                      />
+                    ),
+                  }}
+                >
+                  {core}
+                </ReactMarkdown>
+              )}
+              {trailing}
             </span>
           );
         }

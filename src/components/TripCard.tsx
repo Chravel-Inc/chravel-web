@@ -40,6 +40,7 @@ import { calculateDaysCount } from '../utils/tripStatsUtils';
 import { usePrefetchTrip } from '../hooks/usePrefetchTrip';
 import { getDemoTripCoverFallback } from '@/data/demoTripCoverFallbacks';
 import { resolveTripCoverImageUrl } from '@/lib/tripCoverResolver';
+import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -442,10 +443,14 @@ export const TripCard = ({
   const daysUntil = isConsumer ? gamificationService.getDaysUntilTrip(trip.id.toString()) : 0;
   const momentum = isConsumer ? gamificationService.getTripMomentum(trip.id.toString()) : 'cold';
   const demoCoverFallback = isDemoMode ? getDemoTripCoverFallback(trip.id) : undefined;
-  const resolvedCoverPhoto = resolveTripCoverImageUrl(
+  const storedCoverPhoto = resolveTripCoverImageUrl(
     { coverPhoto: trip.coverPhoto },
     { fallbackUrl: demoCoverFallback },
   );
+  // Legacy covers live in the PRIVATE trip-media bucket but were stored as a public
+  // url, so they 404. This signs them on the fly; non-trip-media urls pass through
+  // untouched, so covers already on the public trip-covers bucket are unaffected.
+  const resolvedCoverPhoto = useResolvedTripMediaUrl({ url: storedCoverPhoto }) ?? storedCoverPhoto;
   const coverFit = trip.coverDisplayMode === 'contain' ? 'contain' : 'cover';
 
   return (

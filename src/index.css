@@ -516,9 +516,16 @@
     --glass-slate-card: 44 60% 99%;
     --glass-slate-border: 38 26% 81%;
 
-    /* Chat contrast tokens — light mode */
-    --chat-bubble-other: 40 40% 92%;
-    --chat-bubble-other-foreground: 30 16% 11%;
+    /* Chat contrast tokens — light mode.
+       The BUBBLES are deliberately not overridden here. Chat is "isolated from
+       landing page theme" (see the dark block), and --chat-bubble-own was always
+       theme-independent iMessage blue; overriding only --chat-bubble-other made
+       the two bubbles inconsistent and forced every element drawn on a bubble
+       (mentions especially) to carry theme-dependent color logic. Both bubbles
+       now render identically in light and dark.
+
+       --chat-meta stays theme-aware: it is the sender/timestamp line rendered
+       OUTSIDE the bubble, on the ivory page background. */
     --chat-meta: 30 12% 14% / 0.8;
 
     /* Surface / ink scale — light mode.

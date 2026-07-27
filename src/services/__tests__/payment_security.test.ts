@@ -29,6 +29,7 @@ const createChainableMock = (resolvedValue: { data: any; error: any }) => {
 vi.mock('../../integrations/supabase/client', () => ({
   supabase: {
     from: vi.fn(),
+    rpc: vi.fn(),
     auth: {
       getUser: vi.fn(),
     },
@@ -45,6 +46,10 @@ describe('Payment Security Tests', () => {
   const mockUserId = 'user-1';
 
   beforeEach(() => {
+    // Co-member names now resolve via the get_co_member_profiles RPC rather than a
+    // profiles_public select. Default to "no co-members resolved"; these tests assert
+    // on wallet/authorization behavior, not on display names.
+    (supabase.rpc as any).mockResolvedValue({ data: [], error: null });
     vi.clearAllMocks();
 
     // Default auth mock

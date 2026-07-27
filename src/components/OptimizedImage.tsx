@@ -131,8 +131,12 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
         />
       )}
 
-      {/* Actual image */}
-      {isInView && (
+      {/* Actual image.
+          Unmounted once it errors: a broken <img> that stays in the DOM is painted
+          by the browser as its raw alt text ("<Trip name> cover"), which is what a
+          failed cover looked like on the home page. Dropping the element lets the
+          card's own gradient show through instead. */}
+      {isInView && !hasError && (
         <img
           src={currentSrc}
           alt={alt}

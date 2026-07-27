@@ -67,7 +67,9 @@ export const useCalendarManagement = (tripId: string) => {
   useCalendarRealtime(tripId, !!tripId && !isDemoMode);
 
   // Convert TripEvents to CalendarEvents for UI
-  const events: CalendarEvent[] = tripEvents.map(calendarService.convertToCalendarEvent);
+  const events: CalendarEvent[] = tripEvents.map(evt =>
+    calendarService.convertToCalendarEvent(evt),
+  );
 
   const getEventsForDate = useCallback(
     (date: Date): CalendarEvent[] => {

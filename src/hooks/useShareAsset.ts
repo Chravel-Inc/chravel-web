@@ -10,6 +10,7 @@ import { sendTripMessageWithCanonicalTransport } from '@/services/stream/canonic
 import { autoParseContent, ParsedContent } from '@/services/chatContentParser';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { UNKNOWN_MEMBER_LABEL } from '@/lib/resolveDisplayName';
 
 type ShareKind = 'image' | 'video' | 'file' | 'link';
 
@@ -111,7 +112,7 @@ export function useShareAsset(tripId: string) {
         const messageResult = await sendMessageWithCanonicalTransport({
           trip_id: tripId,
           user_id: userId,
-          author_name: user?.email?.split('@')[0] || 'Former Member',
+          author_name: user?.email?.split('@')[0] || UNKNOWN_MEMBER_LABEL,
           content: '', // Empty content for pure media upload
           privacy_mode: 'standard',
           media_type: kind,
@@ -174,7 +175,7 @@ export function useShareAsset(tripId: string) {
         const messageResult = await sendMessageWithCanonicalTransport({
           trip_id: tripId,
           user_id: userId,
-          author_name: user?.email?.split('@')[0] || 'Former Member',
+          author_name: user?.email?.split('@')[0] || UNKNOWN_MEMBER_LABEL,
           // Voice notes keep caption empty so the bubble is player-first.
           content: isVoiceNote ? '' : file.name,
           privacy_mode: 'standard',
@@ -284,7 +285,7 @@ export function useShareAsset(tripId: string) {
       await sendMessageWithCanonicalTransport({
         trip_id: tripId,
         user_id: userId,
-        author_name: user?.email?.split('@')[0] || 'Former Member',
+        author_name: user?.email?.split('@')[0] || UNKNOWN_MEMBER_LABEL,
         content: url,
         privacy_mode: 'standard',
         link_preview: {
@@ -344,7 +345,7 @@ export function useShareAsset(tripId: string) {
       await sendMessageWithCanonicalTransport({
         trip_id: tripId,
         user_id: userId,
-        author_name: user?.email?.split('@')[0] || 'Former Member',
+        author_name: user?.email?.split('@')[0] || UNKNOWN_MEMBER_LABEL,
         content: '',
         privacy_mode: 'standard',
         media_type: 'image',
@@ -408,7 +409,7 @@ export function useShareAsset(tripId: string) {
       await sendMessageWithCanonicalTransport({
         trip_id: tripId,
         user_id: userId,
-        author_name: user?.email?.split('@')[0] || 'Former Member',
+        author_name: user?.email?.split('@')[0] || UNKNOWN_MEMBER_LABEL,
         content: meta.transcript ? 'Voice note' : '',
         privacy_mode: 'standard',
         media_type: 'audio',
