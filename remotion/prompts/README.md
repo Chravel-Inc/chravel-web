@@ -61,12 +61,30 @@ blocks and the still-first workflow are what separate usable footage from slop.
 ```bash
 cd remotion
 npm install
-npm run render:usecases              # all 24 → out/usecases/
+npm run render:usecases              # all 24 masters → out/usecases/
 npm run render:usecases:vertical     # 11 x 9:16
 npm run render:usecases:square       # 11 x 1:1
 npm run render:usecases:anthem       # 2 anthem cuts
+npm run render:usecases:social       # delivery encodes → out/usecases-social/
 npm run studio                       # visual review
 ```
+
+### Masters vs delivery copies
+
+`out/usecases/` holds **CRF 18 masters** — visually lossless, and the right source to
+re-encode from later. They are large: the 75s anthem lands at ~51 MiB, over the upload
+ceiling on Instagram, TikTok, X and most chat tools.
+
+`npm run render:usecases:social` transcodes those masters into `out/usecases-social/` at
+CRF 24 with a 3 Mbps cap — roughly a 70% size cut, every file comfortably under 30 MiB,
+with no visible difference on this mostly-graphic content. It reads the finished MP4s
+rather than re-rendering, so it takes seconds.
+
+**Upload the social copies. Keep the masters.** The encode also pins limited-range
+`yuv420p` / bt709 and moves the moov atom to the front: without the explicit range,
+ffmpeg inherits the master's full range and tags the output `yuvj420p`, which players and
+platform re-encoders disagree about — and the visible failure is lifted blacks, on a
+design built almost entirely from deep black and gold.
 
 Remotion needs old-headless Chrome, which current Chrome removed. The render script finds
 a `chrome-headless-shell` automatically (Playwright ships one) and otherwise lets Remotion

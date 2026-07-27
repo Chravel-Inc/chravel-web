@@ -20,6 +20,7 @@
     "render:usecases:vertical": "node scripts/render-usecases.mjs vertical",
     "render:usecases:square": "node scripts/render-usecases.mjs square",
     "render:usecases:anthem": "node scripts/render-usecases.mjs Anthem",
+    "render:usecases:social": "node scripts/encode-social.mjs",
     "capture:frames": "node scripts/capture-demo-frames.mjs",
     "render:homepage-demo": "node scripts/render-remotion.mjs ../public/videos/chravel-homepage-demo-60.mp4 HomepageProductDemo60",
     "still:homepage-demo-poster": "remotion still src/index.ts HomepageProductDemo60 ../public/videos/chravel-homepage-demo-60-poster.jpg --frame=0 --image-format=jpeg --jpeg-quality=82",
