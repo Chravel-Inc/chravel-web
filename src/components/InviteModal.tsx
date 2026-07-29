@@ -5,6 +5,7 @@ import { InviteModalHeader } from './invite/InviteModalHeader';
 import { InviteLinkSection } from './invite/InviteLinkSection';
 import { InviteSettingsSection } from './invite/InviteSettingsSection';
 import { InviteInstructions } from './invite/InviteInstructions';
+import { InviteEmailSection } from './invite/InviteEmailSection';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from './ui/drawer';
 import { Dialog, DialogContent, DialogTitle } from './ui/dialog';
 
@@ -59,6 +60,7 @@ export const InviteModal = ({ isOpen, onClose, tripName, tripId, proTripId }: In
     expiresAt,
     regenerateInviteToken,
     retryGenerate,
+    resendInvite,
     handleCopyLink,
     handleShare,
   } = useInviteLink({
@@ -155,6 +157,11 @@ export const InviteModal = ({ isOpen, onClose, tripName, tripId, proTripId }: In
 
       {usageLimitSection}
 
+      <InviteEmailSection
+        disabled={loading || !!error || isDemoMode}
+        onSend={email => resendInvite(email)}
+      />
+
       <InviteInstructions />
     </>
   );
@@ -208,6 +215,11 @@ export const InviteModal = ({ isOpen, onClose, tripName, tripId, proTripId }: In
               onExpireIn7DaysChange={setExpireIn7Days}
             />
             {usageLimitSection}
+            <div className="border-t border-border/60" />
+            <InviteEmailSection
+              disabled={loading || !!error || isDemoMode}
+              onSend={email => resendInvite(email)}
+            />
             <InviteInstructions />
           </div>
         </div>

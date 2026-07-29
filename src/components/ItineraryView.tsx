@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, lazy, Suspense } from 'react';
 import { format } from 'date-fns';
 import { Clock, MapPin, Download, Share2, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
@@ -8,6 +8,10 @@ import { Badge } from './ui/badge';
 import { cn } from '../lib/utils';
 import { CalendarEvent } from '../types/calendar';
 import { usePdfExportUsage } from '../hooks/usePdfExportUsage';
+
+const PlusUpsellModal = lazy(() =>
+  import('./PlusUpsellModal').then(m => ({ default: m.PlusUpsellModal })),
+);
 
 interface ItineraryViewProps {
   events: CalendarEvent[];
@@ -23,6 +27,7 @@ export const ItineraryView = ({
 }: ItineraryViewProps) => {
   const [showAllEvents, setShowAllEvents] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [showUpsellModal, setShowUpsellModal] = useState(false);
   const { canExport, isPaidUser, recordExport } = usePdfExportUsage(tripId);
 
   // Group events by day and filter for itinerary
@@ -87,7 +92,14 @@ export const ItineraryView = ({
     if (!isPaidUser && !canExport) {
       toast.error(
         "You've used your 1 free PDF export for this trip. Upgrade for unlimited exports.",
+        {
+          action: {
+            label: 'View Plans',
+            onClick: () => setShowUpsellModal(true),
+          },
+        },
       );
+      setShowUpsellModal(true);
       return;
     }
 
@@ -285,6 +297,12 @@ export const ItineraryView = ({
           </Card>
         ))}
       </div>
+
+      {showUpsellModal && (
+        <Suspense fallback={null}>
+          <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
+        </Suspense>
+      )}
     </div>
   );
 };

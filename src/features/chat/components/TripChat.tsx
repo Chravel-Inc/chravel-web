@@ -8,6 +8,7 @@ import { useDemoMode } from '@/hooks/useDemoMode';
 import { useChatComposer } from '../hooks/useChatComposer';
 import { useBroadcastHistory, usePinnedHistory } from '../hooks/useBroadcastHistory';
 import { recordBroadcastMirror } from '@/services/broadcastMirrorService';
+import { useBroadcastAck } from '../hooks/useBroadcastAck';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { useOfflineStatus } from '@/hooks/useOfflineStatus';
 import { ChatInput } from './ChatInput';
@@ -602,6 +603,7 @@ export const TripChat = React.memo(
       paymentData?: any,
       _linkPreview?: any,
       mentionedUserIds?: string[],
+      targetRoleIds?: string[],
     ) => {
       const repliedParentMessageId = replyingTo?.id ?? null;
 
@@ -661,6 +663,7 @@ export const TripChat = React.memo(
               }
             : undefined,
           mentionedUserIds,
+          isBroadcast && targetRoleIds && targetRoleIds.length > 0 ? targetRoleIds : undefined,
         );
 
         // Broadcasts: mirror a `broadcasts` table row. The table's
@@ -938,6 +941,12 @@ export const TripChat = React.memo(
       resolvedTripId,
       messageFilter === 'broadcasts' && !demoMode.isDemoMode && !shouldSkipLiveChat,
     );
+
+    const { ackByStreamMessageId } = useBroadcastAck({
+      tripId: resolvedTripId,
+      userId: user?.id,
+      enabled: messageFilter === 'broadcasts' && !demoMode.isDemoMode && !shouldSkipLiveChat,
+    });
     const broadcastHistoryModels = useMemo(() => {
       if (broadcastHistory.length === 0) return [];
       return buildStreamMessageViewModels({
@@ -1178,6 +1187,7 @@ export const TripChat = React.memo(
             tripId={resolvedTripId}
             tripMembers={tripMembers}
             readStatuses={message.readStatuses || readStatusesByMessage[message.id] || []}
+            broadcastReadCount={ackByStreamMessageId[message.id]?.readCount}
             showSenderInfo={showSenderInfo}
             isLastInGroup={isLastInGroup}
             reactionUserNamesById={reactionUserNamesById}
@@ -1213,6 +1223,7 @@ export const TripChat = React.memo(
         systemMessagePrefs,
         tripMembers,
         readStatusesByMessage,
+        ackByStreamMessageId,
         reactionUserNamesById,
         isUserAdmin,
         canDeleteOwnMessage,
@@ -1257,6 +1268,16 @@ export const TripChat = React.memo(
               safeAreaBottom={false}
               onTypingChange={handleTypingChange}
               canSendBroadcast={canSendBroadcast}
+              broadcastRoles={
+                isPro
+                  ? availableChannels
+                      .filter(ch => !!ch.requiredRoleId)
+                      .map(ch => ({
+                        id: ch.requiredRoleId,
+                        name: ch.requiredRoleName || ch.channelName,
+                      }))
+                  : []
+              }
             />
           </div>
         </div>

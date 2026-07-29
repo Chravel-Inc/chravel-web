@@ -51,6 +51,8 @@ export interface MessageBubbleProps {
   senderAvatar?: string;
   timestamp: string;
   isBroadcast?: boolean;
+  /** DB-backed broadcast read receipt count (Broadcasts tab). */
+  broadcastReadCount?: number;
   isPayment?: boolean;
   isOwnMessage?: boolean;
   isEdited?: boolean;
@@ -187,6 +189,7 @@ export const MessageBubble = memo(
     senderAvatar,
     timestamp,
     isBroadcast,
+    broadcastReadCount,
     isPayment,
     isOwnMessage = false,
     isEdited = false,
@@ -873,6 +876,12 @@ export const MessageBubble = memo(
                   <RotateCcw className="h-3 w-3 ml-1" />
                   <span className="underline">Retry</span>
                 </button>
+              )}
+
+              {isBroadcast && typeof broadcastReadCount === 'number' && broadcastReadCount > 0 && (
+                <p className="mt-1 text-[11px] text-white/80" aria-label="Broadcast read count">
+                  Seen by {broadcastReadCount}
+                </p>
               )}
             </div>
 
