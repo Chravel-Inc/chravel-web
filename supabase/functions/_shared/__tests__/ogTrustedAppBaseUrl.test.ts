@@ -31,7 +31,20 @@ describe('resolveTrustedAppBaseUrl / resolveTrustedCanonicalUrl', () => {
     const { resolveTrustedAppBaseUrl } = await load();
     expect(resolveTrustedAppBaseUrl('https://chravel.app')).toBe('https://chravel.app');
     expect(resolveTrustedAppBaseUrl('https://www.chravel.app/')).toBe('https://www.chravel.app');
+    expect(resolveTrustedAppBaseUrl('https://app.chravel.app')).toBe('https://app.chravel.app');
+    expect(resolveTrustedAppBaseUrl('https://p.chravel.app')).toBe('https://p.chravel.app');
     expect(resolveTrustedAppBaseUrl('https://app.chravel.com')).toBe('https://app.chravel.com');
+  });
+
+  it('accepts branded unfurl worker canonical URLs', async () => {
+    const { resolveTrustedCanonicalUrl } = await load();
+    const fallback = 'https://jmjiyekmxwsxkfnqwyaa.supabase.co/functions/v1/generate-trip-preview';
+    expect(
+      resolveTrustedCanonicalUrl(
+        'https://p.chravel.app/t/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+        fallback,
+      ),
+    ).toBe('https://p.chravel.app/t/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee');
   });
 
   it('rejects attacker-controlled appBaseUrl (open redirect)', async () => {

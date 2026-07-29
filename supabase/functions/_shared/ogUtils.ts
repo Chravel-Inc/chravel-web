@@ -34,6 +34,9 @@ export function escapeHtml(value: string): string {
 const TRUSTED_APP_BASE_HOSTS = new Set([
   'chravel.app',
   'www.chravel.app',
+  'app.chravel.app',
+  // Branded OG unfurl worker host (see generate-trip-preview / unfurl worker).
+  'p.chravel.app',
   'chravelapp.com',
   'www.chravelapp.com',
   'app.chravelapp.com',
