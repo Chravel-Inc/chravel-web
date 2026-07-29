@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import {
   X,
   Calendar,
@@ -29,15 +28,19 @@ import { getFeaturePaywallConfig } from './subscription/featurePaywall';
 import { parseLocalDate } from '@/utils/dateHelpers';
 import { prepareImageForUpload, ImagePrepError } from '@/utils/imagePrep';
 
+const PlusUpsellModal = lazy(() =>
+  import('./PlusUpsellModal').then(m => ({ default: m.PlusUpsellModal })),
+);
+
 interface CreateTripModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
 export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
+  const [showUpsellModal, setShowUpsellModal] = useState(false);
   const [tripType, setTripType] = useState<'consumer' | 'pro' | 'event'>('consumer');
   const [proTripCategory, setProTripCategory] = useState<ProCategoryEnum>('touring');
   const [privacyMode, setPrivacyMode] = useState<PrivacyMode>(() =>
@@ -298,39 +301,30 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
           duration: 6000,
           action: {
             label: 'View Plans',
-            onClick: () =>
-              navigate(
-                `${paywall.destination.pathname}${paywall.destination.search}`,
-                paywall.destination.state ? { state: paywall.destination.state } : undefined,
-              ),
+            onClick: () => setShowUpsellModal(true),
           },
         });
+        setShowUpsellModal(true);
       } else if (error instanceof Error && error.message === 'UPGRADE_REQUIRED_PRO_TRIP') {
         const paywall = getFeaturePaywallConfig('trip_cap_pro');
         toast.error(`${paywall.featureBenefitCopy} Recommended plan: ${paywall.recommendedPlan}.`, {
           duration: 6000,
           action: {
             label: 'View Plans',
-            onClick: () =>
-              navigate(
-                `${paywall.destination.pathname}${paywall.destination.search}`,
-                paywall.destination.state ? { state: paywall.destination.state } : undefined,
-              ),
+            onClick: () => setShowUpsellModal(true),
           },
         });
+        setShowUpsellModal(true);
       } else if (error instanceof Error && error.message === 'UPGRADE_REQUIRED_EVENT') {
         const paywall = getFeaturePaywallConfig('trip_cap_event');
         toast.error(`${paywall.featureBenefitCopy} Recommended plan: ${paywall.recommendedPlan}.`, {
           duration: 6000,
           action: {
             label: 'View Plans',
-            onClick: () =>
-              navigate(
-                `${paywall.destination.pathname}${paywall.destination.search}`,
-                paywall.destination.state ? { state: paywall.destination.state } : undefined,
-              ),
+            onClick: () => setShowUpsellModal(true),
           },
         });
+        setShowUpsellModal(true);
       } else {
         toast.error(errorMessage);
       }
@@ -825,6 +819,12 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
           </div>
         </form>
       </div>
+
+      {showUpsellModal && (
+        <Suspense fallback={null}>
+          <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
+        </Suspense>
+      )}
     </div>
   );
 };

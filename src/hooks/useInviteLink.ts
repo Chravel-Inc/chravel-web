@@ -347,14 +347,14 @@ export const useInviteLink = ({
             `Otherwise, you can join through your browser!\n\nSee you there!`,
         );
         window.open(`mailto:${recipientEmail}?subject=${subject}&body=${body}`);
-        toast.success(`Invite sent to ${recipientEmail}`);
+        toast.success(`Opened email draft for ${recipientEmail}`);
         return true;
       } else if (recipientPhone) {
         const message = encodeURIComponent(
           `You're invited to join my trip "${tripName}"! ${inviteLink} (Opens in ChravelApp if installed)`,
         );
         window.open(`sms:${recipientPhone}?body=${message}`);
-        toast.success(`Invite sent to ${recipientPhone}`);
+        toast.success(`Opened text draft for ${recipientPhone}`);
         return true;
       } else {
         toast.error('Please provide an email or phone number');

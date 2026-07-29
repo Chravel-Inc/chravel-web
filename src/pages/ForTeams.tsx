@@ -328,7 +328,7 @@ export const ForTeams = () => {
                     className="text-gold-primary mt-1 shrink-0"
                     aria-hidden="true"
                   />
-                  <span>Advanced integrations</span>
+                  <span>Custom integrations (on request)</span>
                 </li>
               </ul>
             </div>

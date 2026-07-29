@@ -467,7 +467,7 @@ export const SUBSCRIPTION_TIERS = {
       'Up to 100 team members',
       'Multi-language support',
       'Priority support',
-      'Advanced integrations',
+      'Custom integrations (on request)',
       'Custom workflows',
       'Unlimited Events for your team',
       'Your first Pro Trip + Event included free',
