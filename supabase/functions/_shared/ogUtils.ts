@@ -27,6 +27,137 @@ export function escapeHtml(value: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// Trusted app / canonical base URLs (open-redirect prevention)
+// ---------------------------------------------------------------------------
+
+/** Production / first-party hosts allowed for OG meta-refresh and CTA redirects. */
+const TRUSTED_APP_BASE_HOSTS = new Set([
+  'chravel.app',
+  'www.chravel.app',
+  'chravelapp.com',
+  'www.chravelapp.com',
+  'app.chravelapp.com',
+  'app.chravel.com',
+  'localhost',
+  '127.0.0.1',
+]);
+
+function normalizeOrigin(url: URL): string {
+  // Drop trailing slash so `${base}/trip/...` never becomes `//trip/...`.
+  return url.origin.replace(/\/$/, '');
+}
+
+/**
+ * Resolve a trusted app base URL for OG human redirects / CTAs.
+ *
+ * Client-supplied `appBaseUrl` is accepted only when its origin is on the
+ * first-party allowlist (or ADDITIONAL_ALLOWED_ORIGINS exact matches).
+ * Anything else falls back to SITE_URL / https://chravel.app so attackers
+ * cannot turn unauthenticated preview endpoints into open redirects.
+ */
+export function resolveTrustedAppBaseUrl(candidate: string | null | undefined): string {
+  const fallback = (Deno.env.get('SITE_URL') || 'https://chravel.app').replace(/\/$/, '');
+
+  if (!candidate || !candidate.trim()) {
+    return fallback;
+  }
+
+  try {
+    const parsed = new URL(candidate.trim());
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return fallback;
+    }
+
+    const hostname = parsed.hostname.toLowerCase();
+    if (TRUSTED_APP_BASE_HOSTS.has(hostname)) {
+      return normalizeOrigin(parsed);
+    }
+
+    // Exact-match additional origins only (same policy as CORS — no wildcard subdomains).
+    const extra = (Deno.env.get('ADDITIONAL_ALLOWED_ORIGINS') || '')
+      .split(',')
+      .map(origin => origin.trim())
+      .filter(Boolean)
+      .filter(origin => !origin.startsWith('.'));
+
+    const candidateOrigin = normalizeOrigin(parsed);
+    if (extra.some(origin => {
+      try {
+        return normalizeOrigin(new URL(origin)) === candidateOrigin;
+      } catch {
+        return false;
+      }
+    })) {
+      return candidateOrigin;
+    }
+
+    return fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * Resolve a trusted canonical URL for og:url. Untrusted candidates fall back
+ * to `fallbackUrl` (typically the request URL) so scrapers still get a stable tag.
+ */
+export function resolveTrustedCanonicalUrl(
+  candidate: string | null | undefined,
+  fallbackUrl: string,
+): string {
+  if (!candidate || !candidate.trim()) {
+    return fallbackUrl;
+  }
+
+  try {
+    const parsed = new URL(candidate.trim());
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return fallbackUrl;
+    }
+
+    const hostname = parsed.hostname.toLowerCase();
+    if (TRUSTED_APP_BASE_HOSTS.has(hostname)) {
+      return parsed.toString();
+    }
+
+    // Also allow our Supabase project host (proxied function URLs used as og:url).
+    if (hostname === 'jmjiyekmxwsxkfnqwyaa.supabase.co') {
+      return parsed.toString();
+    }
+
+    const extra = (Deno.env.get('ADDITIONAL_ALLOWED_ORIGINS') || '')
+      .split(',')
+      .map(origin => origin.trim())
+      .filter(Boolean)
+      .filter(origin => !origin.startsWith('.'));
+
+    const candidateOrigin = normalizeOrigin(parsed);
+    if (extra.some(origin => {
+      try {
+        return normalizeOrigin(new URL(origin)) === candidateOrigin;
+      } catch {
+        return false;
+      }
+    })) {
+      return parsed.toString();
+    }
+
+    return fallbackUrl;
+  } catch {
+    return fallbackUrl;
+  }
+}
+
+/** Public-safe OG description — never the private trips.description free-text field. */
+export function buildPublicOgDescription(params: {
+  location: string;
+  dateRange: string;
+  participantCount: number;
+}): string {
+  return `📍 ${params.location} • 📅 ${params.dateRange} • ${params.participantCount} Chravelers`;
+}
+
+// ---------------------------------------------------------------------------
 // Image helpers
 // ---------------------------------------------------------------------------
 
