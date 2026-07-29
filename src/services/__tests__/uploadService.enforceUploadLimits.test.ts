@@ -109,7 +109,7 @@ describe('uploadService media count enforcement (per uploader, not trip-wide)', 
     expect(result.publicUrl).toBe('https://cdn/x.jpg');
   });
 
-  it('fails OPEN when the count query errors — the upload proceeds', async () => {
+  it('fails CLOSED when the count query errors — the upload is blocked', async () => {
     (resolveEffectiveTier as any).mockResolvedValue('free');
 
     (supabase.from as any)
@@ -120,8 +120,10 @@ describe('uploadService media count enforcement (per uploader, not trip-wide)', 
     (supabase.storage.from as any).mockReturnValue(bucket);
 
     const file = new File(['abc'], 'photo.jpg', { type: 'image/jpeg' });
-    await expect(uploadToStorage(file as any, TRIP_ID, 'images')).resolves.toBeTruthy();
-    expect(bucket.upload).toHaveBeenCalledTimes(1);
+    await expect(uploadToStorage(file as any, TRIP_ID, 'images')).rejects.toThrow(
+      /Unable to verify your upload limit/i,
+    );
+    expect(bucket.upload).not.toHaveBeenCalled();
   });
 
   it('never runs quota/count queries for unlimited tiers', async () => {

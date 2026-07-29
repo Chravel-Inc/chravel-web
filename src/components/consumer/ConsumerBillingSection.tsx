@@ -700,7 +700,7 @@ const tripPasses = [
       'Everything in Explorer Trip Pass',
       'Unlimited AI Concierge queries',
       'Unlimited storage & payment splits',
-      'Voice Concierge, PDF export & calendar sync',
+      'Voice dictation, PDF export & calendar sync',
       'Create a ChravelApp Pro trip (50-seat limit)',
       'Role-based channels on Pro trips',
       'Early feature access',

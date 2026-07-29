@@ -363,7 +363,11 @@ export const PollComponent = ({
           ))}
         </div>
       ) : formattedPolls.length === 0 && !showCreatePoll ? (
-        <PollsEmptyState containerClassName={POLL_CARD_SHELL_CLASS} />
+        <PollsEmptyState
+          containerClassName={POLL_CARD_SHELL_CLASS}
+          canCreate={effectivePermissions.canCreate}
+          onCreate={() => setShowCreatePoll(true)}
+        />
       ) : visiblePolls.length === 0 ? (
         <div className={`${POLL_CARD_SHELL_CLASS} text-center`}>
           <p className="text-sm text-muted-foreground">
