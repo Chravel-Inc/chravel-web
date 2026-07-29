@@ -249,7 +249,7 @@ describe('tripConverter', () => {
 
       // Event specific fields check
       expect(eventTrip.category).toBe('Conference');
-      expect(eventTrip.capacity).toBe(100);
+      expect(eventTrip.capacity).toBe(0);
       expect(eventTrip.registrationStatus).toBe('open');
       expect(eventTrip.groupChatEnabled).toBe(true);
       expect(eventTrip.userRole).toBe('organizer');

@@ -211,17 +211,31 @@ export const PaymentsTab = React.memo(({ tripId }: PaymentsTabProps) => {
             </CardContent>
           </Card>
         ) : (
-          <PaymentInput
-            onSubmit={handlePaymentSubmit}
-            tripMembers={tripMembers}
-            isVisible={true}
-            tripId={tripId}
-            isPaginatedRoster={isPaginatedRoster}
-            memberSearchQuery={memberSearchQuery}
-            onMemberSearchChange={setMemberSearchQuery}
-            memberTotalCount={memberTotalCount}
-            isSearchingMembers={isSearchingMembers}
-          />
+          <>
+            {!paymentsLoading && tripPayments.length === 0 && (
+              <Card className="bg-muted/30 border-border/60">
+                <CardContent className="p-4 space-y-1.5">
+                  <p className="text-sm font-medium text-foreground">First split tip</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Log an expense, pick who owes what, then settle outside Chravel (Venmo, Cash
+                    App, Apple Cash, etc.). Chravel tracks the balance — it doesn&apos;t process
+                    payments.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+            <PaymentInput
+              onSubmit={handlePaymentSubmit}
+              tripMembers={tripMembers}
+              isVisible={true}
+              tripId={tripId}
+              isPaginatedRoster={isPaginatedRoster}
+              memberSearchQuery={memberSearchQuery}
+              onMemberSearchChange={setMemberSearchQuery}
+              memberTotalCount={memberTotalCount}
+              isSearchingMembers={isSearchingMembers}
+            />
+          </>
         )}
       </section>
 

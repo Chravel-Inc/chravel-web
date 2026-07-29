@@ -150,6 +150,11 @@ export const InviteModal = ({ isOpen, onClose, tripName, tripId, proTripId }: In
         tripName={tripName}
       />
 
+      <p className="text-xs text-muted-foreground leading-relaxed">
+        Invitees see the trip name, dates, and a peek at what&apos;s planned before they request to
+        join. Membership always requires approval.
+      </p>
+
       <InviteSettingsSection
         expireIn7Days={expireIn7Days}
         onExpireIn7DaysChange={setExpireIn7Days}
@@ -209,6 +214,10 @@ export const InviteModal = ({ isOpen, onClose, tripName, tripId, proTripId }: In
               onShare={handleShare}
               tripName={tripName}
             />
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Invitees see the trip name, dates, and a peek at what&apos;s planned before they
+              request to join. Membership always requires approval.
+            </p>
             <div className="border-t border-border/60" />
             <InviteSettingsSection
               expireIn7Days={expireIn7Days}

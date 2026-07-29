@@ -64,6 +64,8 @@ interface InvitePreviewResponse {
   };
   /** Next upcoming events — read-only preview so invitees see value before signup. */
   itinerary_preview?: InvitePreviewItineraryItem[];
+  /** Open polls peek — question + option count only (no vote tallies). */
+  polls_preview?: Array<{ question: string; option_count: number }>;
   error?: string;
   error_code?: InvitePreviewErrorCode;
 }
@@ -221,8 +223,8 @@ serve(async (req): Promise<Response> => {
       });
     }
 
-    // Trip row + member count + sanitized itinerary in parallel
-    const [tripResult, memberCountResult, itineraryResult] = await Promise.all([
+    // Trip row + member count + sanitized itinerary + open polls in parallel
+    const [tripResult, memberCountResult, itineraryResult, pollsResult] = await Promise.all([
       supabaseClient
         .from('trips')
         .select(
@@ -240,6 +242,13 @@ serve(async (req): Promise<Response> => {
         .eq('trip_id', invite.trip_id)
         .order('start_time', { ascending: true })
         .limit(8),
+      supabaseClient
+        .from('trip_polls')
+        .select('question, options, status')
+        .eq('trip_id', invite.trip_id)
+        .eq('status', 'open')
+        .order('created_at', { ascending: false })
+        .limit(5),
     ]);
 
     const { data: trip, error: tripError } = tripResult;
@@ -257,6 +266,12 @@ serve(async (req): Promise<Response> => {
         end_time: row.end_time,
         location: row.location,
         is_all_day: row.is_all_day,
+      }),
+    );
+    const pollsPreview = (pollsResult.data ?? []).map(
+      (row: { question: string; options: unknown }) => ({
+        question: row.question,
+        option_count: Array.isArray(row.options) ? row.options.length : 0,
       }),
     );
 
@@ -309,6 +324,7 @@ serve(async (req): Promise<Response> => {
         member_count: memberCount || 0,
       },
       itinerary_preview: itineraryPreview,
+      polls_preview: pollsPreview,
     };
 
     return new Response(JSON.stringify(response), {

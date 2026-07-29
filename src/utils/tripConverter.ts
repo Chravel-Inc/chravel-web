@@ -134,7 +134,9 @@ export function convertSupabaseTripToEvent(supabaseTrip: SupabaseTrip): EventDat
     category: 'Conference',
     description: mockTrip.description || '',
     tags: normalizeEventTags((supabaseTrip as Record<string, unknown>).tags),
-    capacity: 100,
+    // 0 = unset. Do not invent a fake 100/200 attendee cap — those entitlements
+    // are not enforced at join time yet.
+    capacity: 0,
     registrationStatus: 'open',
     attendanceExpected: 0,
     groupChatEnabled: true,
