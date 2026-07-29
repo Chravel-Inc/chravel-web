@@ -34,6 +34,15 @@ const INVITE_PREVIEW_RATE_LIMIT_WINDOW_SECONDS = 60;
 const MAX_INVITE_CODE_LENGTH = 128;
 const MAX_REQUEST_CONTENT_LENGTH_BYTES = 4 * 1024;
 
+/** Sanitized itinerary row for pre-auth invitees (no descriptions / private notes). */
+interface InvitePreviewItineraryItem {
+  title: string;
+  start_time: string;
+  end_time: string | null;
+  location: string | null;
+  is_all_day: boolean | null;
+}
+
 interface InvitePreviewResponse {
   success: boolean;
   invite?: {
@@ -53,6 +62,8 @@ interface InvitePreviewResponse {
     trip_type: string | null;
     member_count: number;
   };
+  /** Next upcoming events — read-only preview so invitees see value before signup. */
+  itinerary_preview?: InvitePreviewItineraryItem[];
   error?: string;
   error_code?: InvitePreviewErrorCode;
 }
@@ -210,8 +221,8 @@ serve(async (req): Promise<Response> => {
       });
     }
 
-    // Trip row + member count in parallel (saves one DB round-trip vs sequential)
-    const [tripResult, memberCountResult] = await Promise.all([
+    // Trip row + member count + sanitized itinerary in parallel
+    const [tripResult, memberCountResult, itineraryResult] = await Promise.all([
       supabaseClient
         .from('trips')
         .select(
@@ -223,10 +234,31 @@ serve(async (req): Promise<Response> => {
         .from('trip_members')
         .select('*', { count: 'exact', head: true })
         .eq('trip_id', invite.trip_id),
+      supabaseClient
+        .from('trip_events')
+        .select('title, start_time, end_time, location, is_all_day')
+        .eq('trip_id', invite.trip_id)
+        .order('start_time', { ascending: true })
+        .limit(8),
     ]);
 
     const { data: trip, error: tripError } = tripResult;
     const memberCount = memberCountResult.count;
+    const itineraryPreview: InvitePreviewItineraryItem[] = (itineraryResult.data ?? []).map(
+      (row: {
+        title: string;
+        start_time: string;
+        end_time: string | null;
+        location: string | null;
+        is_all_day: boolean | null;
+      }) => ({
+        title: row.title,
+        start_time: row.start_time,
+        end_time: row.end_time,
+        location: row.location,
+        is_all_day: row.is_all_day,
+      }),
+    );
 
     if (tripError || !trip) {
       logStep('Trip not found', { error: tripError?.message });
@@ -276,6 +308,7 @@ serve(async (req): Promise<Response> => {
         trip_type: trip.trip_type,
         member_count: memberCount || 0,
       },
+      itinerary_preview: itineraryPreview,
     };
 
     return new Response(JSON.stringify(response), {

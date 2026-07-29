@@ -9,7 +9,10 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { getInitials } from '@/utils/avatarUtils';
 import { PAYMENT_METHOD_OPTIONS } from '@/types/paymentMethods';
 import { useToast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
 import { PaymentErrorHandler } from '@/services/paymentErrors';
+import { SPLIT_LIMIT_ERROR_CODE } from '@/services/paymentService';
+import { PlusUpsellModal } from '@/components/PlusUpsellModal';
 import { formatCurrency } from '@/services/currencyService';
 import { CURRENCIES } from '@/constants/currencies';
 import { useFeatureFlag } from '@/lib/featureFlags';
@@ -67,6 +70,7 @@ export const CreatePaymentModal = ({
   isSearchingMembers = false,
 }: CreatePaymentModalProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showUpsellModal, setShowUpsellModal] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const attachmentsEnabled = useFeatureFlag('payment_attachments', true);
@@ -126,8 +130,6 @@ export const CreatePaymentModal = ({
 
   // Attachments are only available for real (non-demo) trips with the kill switch on.
   const showAttachments = attachmentsEnabled && !demoActive;
-
-  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -219,10 +221,16 @@ export const CreatePaymentModal = ({
         });
       } else if (result.error) {
         const { title, description } = PaymentErrorHandler.getServiceErrorDisplay(result.error);
+        const isSplitLimit = result.error.code === SPLIT_LIMIT_ERROR_CODE;
         toast({
           title,
           description,
           variant: 'destructive',
+          action: isSplitLimit ? (
+            <ToastAction altText="View Plans" onClick={() => setShowUpsellModal(true)}>
+              View Plans
+            </ToastAction>
+          ) : undefined,
         });
       }
     } catch (error) {
@@ -239,174 +247,182 @@ export const CreatePaymentModal = ({
     }
   };
 
+  if (!isOpen && !showUpsellModal) return null;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+    <>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Modal */}
-      <div className="relative w-full max-w-md bg-glass-slate-card border border-glass-slate-border rounded-t-3xl sm:rounded-3xl shadow-enterprise-2xl flex flex-col max-h-[calc(100vh-80px)] animate-slide-up">
-        {/* Fixed Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/10 flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
-              <DollarSign className="w-5 h-5 text-primary" />
-            </div>
-            <h2 className="text-xl font-semibold text-white">Add Payment</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
-          >
-            <X className="w-5 h-5 text-white" />
-          </button>
-        </div>
-
-        {/* Scrollable Form */}
-        <div className="flex-1 overflow-y-auto p-6 pb-24 native-scroll">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
-              <input
-                type="text"
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                placeholder="e.g., Dinner at restaurant"
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Amount</label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">$</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={amount || ''}
-                  onChange={e => setAmount(Number(e.target.value))}
-                  placeholder="0.00"
-                  className="w-full pl-8 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500/50"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Currency</label>
-              <select
-                value={currency}
-                onChange={e => setCurrency(e.target.value)}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500/50"
-                aria-label="Select currency"
-              >
-                {CURRENCIES.map(c => (
-                  <option key={c.code} value={c.code}>
-                    {c.code} ({c.symbol}) - {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
-                  <Users size={16} />
-                  Split between {selectedParticipants.length} people
-                </label>
-                <button
-                  type="button"
-                  onClick={selectAllParticipants}
-                  className="text-xs text-green-400 hover:text-green-300 font-medium px-2 py-1 rounded bg-white/5 hover:bg-white/10 transition-colors"
-                  aria-label={
-                    allParticipantsSelected
-                      ? hasActiveMemberSearch
-                        ? 'Deselect all shown members'
-                        : 'Deselect all trip members'
-                      : hasActiveMemberSearch
-                        ? 'Select all shown members'
-                        : 'Select all trip members'
-                  }
-                >
-                  {allParticipantsSelected
-                    ? 'Deselect All'
-                    : hasActiveMemberSearch
-                      ? 'Select All Shown'
-                      : 'Select All Trip Members'}
-                </button>
-              </div>
-              {showMemberSearch && (
-                <div className="relative mb-2">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    value={effectiveMemberSearchQuery}
-                    onChange={event => handleMemberSearchChange(event.target.value)}
-                    placeholder="Search members…"
-                    className="pl-9 pr-9 bg-white/5 border-white/10 text-white"
-                    aria-label="Search trip members"
-                  />
-                  {isSearchingMembers && (
-                    <Loader2
-                      className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-gray-400"
-                      aria-hidden
-                    />
-                  )}
+          {/* Modal */}
+          <div className="relative w-full max-w-md bg-glass-slate-card border border-glass-slate-border rounded-t-3xl sm:rounded-3xl shadow-enterprise-2xl flex flex-col max-h-[calc(100vh-80px)] animate-slide-up">
+            {/* Fixed Header */}
+            <div className="flex items-center justify-between p-6 border-b border-white/10 flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
+                  <DollarSign className="w-5 h-5 text-primary" />
                 </div>
-              )}
-              {selectedParticipants.length > 0 && (
-                <p className="text-xs text-gray-400 mb-2">
-                  {selectedParticipants.length} of {resolvedMemberTotalCount} selected
-                </p>
-              )}
-              {showMemberSearch && hasActiveMemberSearch && (
-                <p className="text-xs text-gray-400 mb-2">
-                  Showing {filteredTripMembers.length} of {resolvedMemberTotalCount}
-                </p>
-              )}
-              <div className="mb-3">
-                <PaymentSplitAllocator
-                  splitType={splitType}
-                  onSplitTypeChange={setSplitType}
-                  participants={tripMembers.filter(m => selectedParticipants.includes(m.id))}
-                  currency={currency}
-                  totalAmount={amount}
-                  equalPerPerson={perPersonAmount}
-                  customAmounts={customAmounts}
-                  percentages={percentages}
-                  resolvedAmounts={resolvedAmounts}
-                  onCustomAmountChange={setCustomAmountForParticipant}
-                  onPercentageChange={setPercentageForParticipant}
-                  onRedistributeEvenly={redistributeEvenly}
-                  validationError={
-                    validationError &&
-                    (validationError.includes('amount') ||
-                      validationError.includes('Percent') ||
-                      validationError.includes('Custom'))
-                      ? validationError
-                      : undefined
-                  }
-                  compact
-                />
+                <h2 className="text-xl font-semibold text-white">Add Payment</h2>
               </div>
-              <div className="max-h-32 overflow-y-auto flex flex-wrap gap-2 p-3 bg-white/5 border border-white/10 rounded-xl native-scroll">
-                {filteredTripMembers.length === 0 ? (
-                  <p className="text-sm text-gray-400 text-center py-2 w-full">
-                    No trip members found
-                  </p>
-                ) : filteredTripMembers.length === 0 ? (
-                  <p className="text-sm text-gray-400 text-center py-2 w-full">
-                    No members match your search
-                  </p>
-                ) : (
-                  filteredTripMembers.map(member => {
-                    const isSelected = selectedParticipants.includes(member.id);
-                    return (
-                      <button
-                        key={member.id}
-                        type="button"
-                        onClick={() => toggleParticipant(member.id)}
-                        className={`
+              <button
+                onClick={onClose}
+                className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
+            </div>
+
+            {/* Scrollable Form */}
+            <div className="flex-1 overflow-y-auto p-6 pb-24 native-scroll">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Description
+                  </label>
+                  <input
+                    type="text"
+                    value={description}
+                    onChange={e => setDescription(e.target.value)}
+                    placeholder="e.g., Dinner at restaurant"
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Amount</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                      $
+                    </span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={amount || ''}
+                      onChange={e => setAmount(Number(e.target.value))}
+                      placeholder="0.00"
+                      className="w-full pl-8 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Currency</label>
+                  <select
+                    value={currency}
+                    onChange={e => setCurrency(e.target.value)}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                    aria-label="Select currency"
+                  >
+                    {CURRENCIES.map(c => (
+                      <option key={c.code} value={c.code}>
+                        {c.code} ({c.symbol}) - {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
+                      <Users size={16} />
+                      Split between {selectedParticipants.length} people
+                    </label>
+                    <button
+                      type="button"
+                      onClick={selectAllParticipants}
+                      className="text-xs text-green-400 hover:text-green-300 font-medium px-2 py-1 rounded bg-white/5 hover:bg-white/10 transition-colors"
+                      aria-label={
+                        allParticipantsSelected
+                          ? hasActiveMemberSearch
+                            ? 'Deselect all shown members'
+                            : 'Deselect all trip members'
+                          : hasActiveMemberSearch
+                            ? 'Select all shown members'
+                            : 'Select all trip members'
+                      }
+                    >
+                      {allParticipantsSelected
+                        ? 'Deselect All'
+                        : hasActiveMemberSearch
+                          ? 'Select All Shown'
+                          : 'Select All Trip Members'}
+                    </button>
+                  </div>
+                  {showMemberSearch && (
+                    <div className="relative mb-2">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        value={effectiveMemberSearchQuery}
+                        onChange={event => handleMemberSearchChange(event.target.value)}
+                        placeholder="Search members…"
+                        className="pl-9 pr-9 bg-white/5 border-white/10 text-white"
+                        aria-label="Search trip members"
+                      />
+                      {isSearchingMembers && (
+                        <Loader2
+                          className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-gray-400"
+                          aria-hidden
+                        />
+                      )}
+                    </div>
+                  )}
+                  {selectedParticipants.length > 0 && (
+                    <p className="text-xs text-gray-400 mb-2">
+                      {selectedParticipants.length} of {resolvedMemberTotalCount} selected
+                    </p>
+                  )}
+                  {showMemberSearch && hasActiveMemberSearch && (
+                    <p className="text-xs text-gray-400 mb-2">
+                      Showing {filteredTripMembers.length} of {resolvedMemberTotalCount}
+                    </p>
+                  )}
+                  <div className="mb-3">
+                    <PaymentSplitAllocator
+                      splitType={splitType}
+                      onSplitTypeChange={setSplitType}
+                      participants={tripMembers.filter(m => selectedParticipants.includes(m.id))}
+                      currency={currency}
+                      totalAmount={amount}
+                      equalPerPerson={perPersonAmount}
+                      customAmounts={customAmounts}
+                      percentages={percentages}
+                      resolvedAmounts={resolvedAmounts}
+                      onCustomAmountChange={setCustomAmountForParticipant}
+                      onPercentageChange={setPercentageForParticipant}
+                      onRedistributeEvenly={redistributeEvenly}
+                      validationError={
+                        validationError &&
+                        (validationError.includes('amount') ||
+                          validationError.includes('Percent') ||
+                          validationError.includes('Custom'))
+                          ? validationError
+                          : undefined
+                      }
+                      compact
+                    />
+                  </div>
+                  <div className="max-h-32 overflow-y-auto flex flex-wrap gap-2 p-3 bg-white/5 border border-white/10 rounded-xl native-scroll">
+                    {filteredTripMembers.length === 0 ? (
+                      <p className="text-sm text-gray-400 text-center py-2 w-full">
+                        No trip members found
+                      </p>
+                    ) : filteredTripMembers.length === 0 ? (
+                      <p className="text-sm text-gray-400 text-center py-2 w-full">
+                        No members match your search
+                      </p>
+                    ) : (
+                      filteredTripMembers.map(member => {
+                        const isSelected = selectedParticipants.includes(member.id);
+                        return (
+                          <button
+                            key={member.id}
+                            type="button"
+                            onClick={() => toggleParticipant(member.id)}
+                            className={`
                         inline-flex items-center gap-2 rounded-lg px-2 py-1.5 cursor-pointer transition-all w-auto shrink-0
                         ${
                           isSelected
@@ -414,10 +430,10 @@ export const CreatePaymentModal = ({
                             : 'bg-white/5 hover:bg-white/10 border-2 border-transparent'
                         }
                       `}
-                      >
-                        {/* Checkmark indicator */}
-                        <div
-                          className={`
+                          >
+                            {/* Checkmark indicator */}
+                            <div
+                              className={`
                         w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all
                         ${
                           isSelected
@@ -425,45 +441,47 @@ export const CreatePaymentModal = ({
                             : 'bg-gray-700 border border-gray-600'
                         }
                       `}
-                        >
-                          {isSelected && <Check size={12} strokeWidth={3} />}
-                        </div>
-                        <Avatar className="w-6 h-6 shrink-0">
-                          <AvatarImage src={member.avatar} alt={member.name} />
-                          <AvatarFallback className="bg-primary/20 text-primary font-semibold text-xs">
-                            {getInitials(member.name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span
-                          className={`text-sm whitespace-nowrap ${isSelected ? 'text-white font-medium' : 'text-gray-300'}`}
-                        >
-                          {member.name}
-                        </span>
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-              {splitType === 'equal' && perPersonAmount > 0 && selectedParticipants.length > 0 && (
-                <p className="text-xs text-gray-400 mt-2">
-                  ${perPersonAmount.toFixed(2)} per person
-                </p>
-              )}
-            </div>
+                            >
+                              {isSelected && <Check size={12} strokeWidth={3} />}
+                            </div>
+                            <Avatar className="w-6 h-6 shrink-0">
+                              <AvatarImage src={member.avatar} alt={member.name} />
+                              <AvatarFallback className="bg-primary/20 text-primary font-semibold text-xs">
+                                {getInitials(member.name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span
+                              className={`text-sm whitespace-nowrap ${isSelected ? 'text-white font-medium' : 'text-gray-300'}`}
+                            >
+                              {member.name}
+                            </span>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                  {splitType === 'equal' &&
+                    perPersonAmount > 0 &&
+                    selectedParticipants.length > 0 && (
+                      <p className="text-xs text-gray-400 mt-2">
+                        ${perPersonAmount.toFixed(2)} per person
+                      </p>
+                    )}
+                </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Preferred Payment Methods
-              </label>
-              <div className="space-y-2">
-                {PAYMENT_METHOD_OPTIONS.map(method => {
-                  const isSelected = selectedPaymentMethods.includes(method.id);
-                  return (
-                    <button
-                      key={method.id}
-                      type="button"
-                      onClick={() => togglePaymentMethod(method.id)}
-                      className={`
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Preferred Payment Methods
+                  </label>
+                  <div className="space-y-2">
+                    {PAYMENT_METHOD_OPTIONS.map(method => {
+                      const isSelected = selectedPaymentMethods.includes(method.id);
+                      return (
+                        <button
+                          key={method.id}
+                          type="button"
+                          onClick={() => togglePaymentMethod(method.id)}
+                          className={`
                       flex items-center gap-3 w-full p-3 rounded-xl cursor-pointer transition-all
                       ${
                         isSelected
@@ -471,10 +489,10 @@ export const CreatePaymentModal = ({
                           : 'bg-white/5 hover:bg-white/10 border-2 border-transparent'
                       }
                     `}
-                    >
-                      {/* Checkmark indicator */}
-                      <div
-                        className={`
+                        >
+                          {/* Checkmark indicator */}
+                          <div
+                            className={`
                       w-5 h-5 rounded-md flex items-center justify-center shrink-0 transition-all
                       ${
                         isSelected
@@ -482,48 +500,51 @@ export const CreatePaymentModal = ({
                           : 'bg-gray-700 border border-gray-600'
                       }
                     `}
-                      >
-                        {isSelected && <Check size={12} strokeWidth={3} />}
-                      </div>
-                      <span
-                        className={`${isSelected ? 'text-white font-medium' : 'text-gray-300'}`}
-                      >
-                        {method.label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+                          >
+                            {isSelected && <Check size={12} strokeWidth={3} />}
+                          </div>
+                          <span
+                            className={`${isSelected ? 'text-white font-medium' : 'text-gray-300'}`}
+                          >
+                            {method.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
-            {/* Optional attachments */}
-            {showAttachments && (
-              <PaymentAttachmentPicker
-                pending={attachmentDraft.pending}
-                onAddFiles={attachmentDraft.addFiles}
-                onAddUrl={attachmentDraft.addUrl}
-                onRemove={attachmentDraft.remove}
-                disabled={isSubmitting}
-              />
-            )}
+                {/* Optional attachments */}
+                {showAttachments && (
+                  <PaymentAttachmentPicker
+                    pending={attachmentDraft.pending}
+                    onAddFiles={attachmentDraft.addFiles}
+                    onAddUrl={attachmentDraft.addUrl}
+                    onRemove={attachmentDraft.remove}
+                    disabled={isSubmitting}
+                  />
+                )}
 
-            {/* Actions */}
-            <div className="flex gap-3 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                className="flex-1 bg-white/5 border-white/10 text-white hover:bg-white/10"
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting || !isValid} className="flex-1">
-                {isSubmitting ? 'Creating...' : 'Create Payment'}
-              </Button>
+                {/* Actions */}
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={onClose}
+                    className="flex-1 bg-white/5 border-white/10 text-white hover:bg-white/10"
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={isSubmitting || !isValid} className="flex-1">
+                    {isSubmitting ? 'Creating...' : 'Create Payment'}
+                  </Button>
+                </div>
+              </form>
             </div>
-          </form>
+          </div>
         </div>
-      </div>
-    </div>
+      )}
+      <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
+    </>
   );
 };

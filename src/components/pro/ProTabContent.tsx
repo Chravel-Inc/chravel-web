@@ -5,7 +5,7 @@ import { CalendarSkeleton, PlacesSkeleton, ChatSkeleton } from '../loading';
 
 import { ProTripData, TeamTripContext, RoomAssignment } from '../../types/pro';
 import { ProTripCategory } from '../../types/proCategories';
-import { isReadOnlyTab, hasTabAccess } from './ProTabsConfig';
+import { isReadOnlyTab, hasTabAccess, PLACEHOLDER_PRO_TAB_IDS } from './ProTabsConfig';
 import { useAuth } from '../../hooks/useAuth';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { useSuperAdmin } from '../../hooks/useSuperAdmin';
@@ -121,6 +121,30 @@ export const ProTabContent = ({
     : isReadOnlyTab(activeTab, userRole, userPermissions, isDemoMode);
 
   const renderTabContent = () => {
+    // Deep-links / stale tab state must never show hollow ops UI on real trips.
+    if (!isDemoMode && (PLACEHOLDER_PRO_TAB_IDS as readonly string[]).includes(activeTab)) {
+      return (
+        <div className="space-y-6">
+          <div className="bg-white/5 backdrop-blur-sm border border-gray-700 rounded-xl p-6 text-center py-12">
+            <h3 className="text-lg font-medium text-gray-300 mb-2">Coming soon</h3>
+            <p className="text-gray-500 text-sm max-w-md mx-auto">
+              This Pro ops surface is not available on live trips yet. Use Team, Calendar, Chat, and
+              Broadcasts for day-to-day coordination.
+            </p>
+            {onTabChange && (
+              <button
+                type="button"
+                onClick={() => onTabChange('team')}
+                className="mt-4 text-sm text-gold-primary hover:underline"
+              >
+                Go to Team
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     switch (activeTab) {
       case 'chat':
         return (

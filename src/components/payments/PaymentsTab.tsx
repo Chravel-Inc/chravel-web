@@ -14,9 +14,12 @@ import { PaymentErrorHandler } from '../../services/paymentErrors';
 import { formatCurrency } from '@/services/currencyService';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { AuthModal } from '../AuthModal';
+import { PlusUpsellModal } from '../PlusUpsellModal';
 import { LogIn, CheckCircle } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { ToastAction } from '../ui/toast';
+import { SPLIT_LIMIT_ERROR_CODE } from '../../services/paymentService';
 
 interface PaymentsTabProps {
   tripId: string;
@@ -26,6 +29,7 @@ export const PaymentsTab = React.memo(({ tripId }: PaymentsTabProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { isLoading: demoLoading } = useDemoMode();
+  const [showUpsellModal, setShowUpsellModal] = useState(false);
   // ⚡ TanStack Query: payment data (cached, prefetchable)
   const {
     tripPayments,
@@ -130,10 +134,16 @@ export const PaymentsTab = React.memo(({ tripId }: PaymentsTabProps) => {
 
     if (result.error) {
       const { title, description } = PaymentErrorHandler.getServiceErrorDisplay(result.error);
+      const isSplitLimit = result.error.code === SPLIT_LIMIT_ERROR_CODE;
       toast({
         title,
         description,
         variant: 'destructive',
+        action: isSplitLimit ? (
+          <ToastAction altText="View Plans" onClick={() => setShowUpsellModal(true)}>
+            View Plans
+          </ToastAction>
+        ) : undefined,
       });
     }
     return { success: false };
@@ -281,6 +291,7 @@ export const PaymentsTab = React.memo(({ tripId }: PaymentsTabProps) => {
 
       {/* Auth Modal */}
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
     </div>
   );
 });
