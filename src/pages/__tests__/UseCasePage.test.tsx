@@ -36,6 +36,12 @@ describe('UseCasePage', () => {
       screen.getByRole('heading', { level: 1, name: /run the whole wedding weekend/i }),
     ).toBeInTheDocument();
   });
+
+  it('offers a skimmer reel before the long article body', () => {
+    renderAt('/use-cases/wedding-guest-coordination-app');
+    expect(screen.getByText(/Prefer watching/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Watch the reel/i })).toBeInTheDocument();
+  });
 });
 
 describe('UseCasesHub', () => {
