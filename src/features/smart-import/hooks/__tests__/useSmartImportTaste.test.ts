@@ -21,9 +21,7 @@ vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     from: () => ({
       select: () => ({
-        eq: () => ({
-          eq: () => Promise.resolve({ data: queryResult.data, error: queryResult.error }),
-        }),
+        eq: () => Promise.resolve({ data: queryResult.data, error: queryResult.error }),
       }),
     }),
   },
@@ -37,21 +35,30 @@ function createWrapper() {
 }
 
 describe('computeSmartImportTaste', () => {
-  it('allows the first import when no usage is recorded', () => {
+  it('allows imports when no usage is recorded', () => {
     const taste = computeSmartImportTaste([]);
     expect(taste.usedCount).toBe(0);
+    expect(taste.remaining).toBe(FREE_SMART_IMPORT_TASTE_LIMIT);
     expect(taste.canUseFreeImport).toBe(true);
   });
 
-  it('blocks after the single free import is consumed', () => {
-    const taste = computeSmartImportTaste([{ usage_count: 1 }]);
-    expect(taste.usedCount).toBe(1);
-    expect(taste.canUseFreeImport).toBe(false);
+  it('allows until the account-wide free limit is consumed', () => {
+    const taste = computeSmartImportTaste([{ usage_count: 4 }]);
+    expect(taste.usedCount).toBe(4);
+    expect(taste.remaining).toBe(1);
+    expect(taste.canUseFreeImport).toBe(true);
   });
 
-  it('sums usage across months (rows are per user/trip/month)', () => {
-    const taste = computeSmartImportTaste([{ usage_count: 1 }, { usage_count: 2 }]);
-    expect(taste.usedCount).toBe(3);
+  it('blocks after 5 account-wide free imports', () => {
+    const taste = computeSmartImportTaste([{ usage_count: 5 }]);
+    expect(taste.usedCount).toBe(5);
+    expect(taste.canUseFreeImport).toBe(false);
+    expect(taste.remaining).toBe(0);
+  });
+
+  it('sums usage across trips/months (account-wide)', () => {
+    const taste = computeSmartImportTaste([{ usage_count: 2 }, { usage_count: 3 }]);
+    expect(taste.usedCount).toBe(5);
     expect(taste.canUseFreeImport).toBe(false);
   });
 
@@ -61,8 +68,8 @@ describe('computeSmartImportTaste', () => {
     expect(taste.canUseFreeImport).toBe(true);
   });
 
-  it('keeps the free taste limit at exactly 1', () => {
-    expect(FREE_SMART_IMPORT_TASTE_LIMIT).toBe(1);
+  it('keeps the free taste limit at exactly 5', () => {
+    expect(FREE_SMART_IMPORT_TASTE_LIMIT).toBe(5);
   });
 });
 
@@ -72,7 +79,7 @@ describe('useSmartImportTaste', () => {
     queryResult.error = null;
   });
 
-  it('reports the taste as available for a trip with no imports', async () => {
+  it('reports the taste as available with no imports', async () => {
     const { result } = renderHook(() => useSmartImportTaste('trip-1'), {
       wrapper: createWrapper(),
     });
@@ -82,14 +89,14 @@ describe('useSmartImportTaste', () => {
     expect(result.current.canUseFreeImport).toBe(true);
   });
 
-  it('blocks the taste once usage rows exist for the trip', async () => {
-    queryResult.data = [{ usage_count: 1 }];
+  it('blocks once account-wide usage reaches the limit', async () => {
+    queryResult.data = [{ usage_count: 5 }];
 
     const { result } = renderHook(() => useSmartImportTaste('trip-1'), {
       wrapper: createWrapper(),
     });
 
-    await waitFor(() => expect(result.current.usedCount).toBe(1));
+    await waitFor(() => expect(result.current.usedCount).toBe(5));
     expect(result.current.canUseFreeImport).toBe(false);
   });
 

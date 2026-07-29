@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { tripKeys } from '@/lib/queryKeys';
 import {
@@ -41,6 +40,7 @@ import { toast } from 'sonner';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { useDeferredPaidAccess } from '@/hooks/useDeferredPaidAccess';
 import { useSmartImportTaste } from '@/features/smart-import/hooks/useSmartImportTaste';
+import { PlusUpsellModal } from '@/components/PlusUpsellModal';
 import { useRolePermissions } from '@/hooks/useRolePermissions';
 import { useTripMembersQuery } from '@/hooks/useTripMembersQuery';
 import type { TripEvent } from '@/services/calendarService';
@@ -101,7 +101,6 @@ export const MobileGroupCalendar = ({
   onToggleView,
   viewMode: externalViewMode,
 }: MobileGroupCalendarProps) => {
-  const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -118,8 +117,9 @@ export const MobileGroupCalendar = ({
     isSuperAdmin,
     active: true,
   });
-  // Free-tier "taste": 1 Smart Import per trip before the paywall fires.
+  // Free-tier taste: 5 Smart Imports per account before the paywall fires.
   const { canUseFreeImport, invalidateTaste } = useSmartImportTaste(tripId);
+  const [showUpsellModal, setShowUpsellModal] = useState(false);
   const { canPerformAction, isLoading: permissionsLoading } = useRolePermissions(tripId);
   const { tripMembers } = useTripMembersQuery(tripId);
 
@@ -158,20 +158,14 @@ export const MobileGroupCalendar = ({
   const handleImport = async () => {
     await hapticService.medium();
 
-    // Free users get 1 Smart Import per trip before the paywall fires.
+    // Free users get 5 account-wide Smart Imports before the paywall fires.
     if (!canUseSmartImport && !canUseFreeImport) {
-      const { getFeaturePaywallConfig } = await import('@/components/subscription/featurePaywall');
-      const paywall = getFeaturePaywallConfig('smart_import_calendar');
       toast.error(
-        `You've used your free Smart Import for this trip. ${paywall.recommendedPlan} includes unlimited Smart Import.`,
+        "You've used your 5 free Smart Imports. Unlock unlimited imports with Trip Pass or Explorer.",
         {
           action: {
             label: 'View Plans',
-            onClick: () =>
-              navigate(
-                `${paywall.destination.pathname}${paywall.destination.search}`,
-                paywall.destination.state ? { state: paywall.destination.state } : undefined,
-              ),
+            onClick: () => setShowUpsellModal(true),
           },
         },
       );
@@ -742,6 +736,7 @@ export const MobileGroupCalendar = ({
         onClearPendingResult={clearBackgroundResult}
         onStartBackgroundImport={handleStartBackgroundImport}
       />
+      <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
 
       {/* Event Detail Drawer - portaled to body so z-index escapes tab stacking context */}
       {selectedEvent &&

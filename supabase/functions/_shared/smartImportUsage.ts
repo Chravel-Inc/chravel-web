@@ -18,8 +18,9 @@ export interface SmartImportUsageBlocked {
 
 export type SmartImportUsageResult = SmartImportUsageAllowed | SmartImportUsageBlocked;
 
+// Free: 5 Smart Imports per account (lifetime). Override via SMART_IMPORT_FREE_LIMIT.
 const SMART_IMPORT_LIMITS_BY_PLAN: Record<string, number | null> = {
-  free: Number(Deno.env.get('SMART_IMPORT_FREE_LIMIT') || 1),
+  free: Number(Deno.env.get('SMART_IMPORT_FREE_LIMIT') || 5),
   explorer: null,
   frequent_chraveler: null,
 };

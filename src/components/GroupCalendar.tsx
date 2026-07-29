@@ -1,5 +1,4 @@
 import React, { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Calendar } from './ui/calendar';
 import { format } from 'date-fns';
 import { ItineraryView } from './ItineraryView';
@@ -24,13 +23,14 @@ import { CalendarErrorState } from '@/features/calendar/components/CalendarError
 import { ExportDialog } from '@/features/calendar/components/ExportDialog';
 import { CalendarLoadingState } from '@/features/calendar/components/CalendarLoadingState';
 import { CalendarEmptyState } from '@/features/calendar/components/CalendarEmptyState';
+import { useSmartImportTaste } from '@/features/smart-import/hooks/useSmartImportTaste';
+import { PlusUpsellModal } from '@/components/PlusUpsellModal';
 
 interface GroupCalendarProps {
   tripId: string;
 }
 
 export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const {
     selectedDate,
@@ -67,6 +67,8 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
     isSuperAdmin,
     active: true,
   });
+  // Free-tier taste: 5 Smart Imports per account before paywall.
+  const { canUseFreeImport, invalidateTaste } = useSmartImportTaste(tripId);
 
   // Background URL import
   const {
@@ -82,6 +84,7 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
   const [showImportModal, setShowImportModal] = useState(false);
   // Export dialog state
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showUpsellModal, setShowUpsellModal] = useState(false);
 
   // Callback for background import: opens the modal with results when the toast action is clicked
   const handleBackgroundImportComplete = useCallback(() => {
@@ -106,22 +109,14 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
       return;
     }
 
-    if (!canUseSmartImport) {
-      const { getFeaturePaywallConfig } = await import('@/components/subscription/featurePaywall');
-      const paywall = getFeaturePaywallConfig('smart_import_calendar');
+    // Free users get 5 account-wide Smart Imports before the paywall.
+    if (!canUseSmartImport && !canUseFreeImport) {
       toast({
-        title: 'Upgrade required',
-        description: `${paywall.featureBenefitCopy} Recommended plan: ${paywall.recommendedPlan}.`,
+        title: 'Free Smart Imports used',
+        description:
+          "You've used your 5 free Smart Imports. Unlock unlimited imports with Trip Pass or Explorer.",
         action: (
-          <ToastAction
-            altText="View Plans"
-            onClick={() =>
-              navigate(
-                `${paywall.destination.pathname}${paywall.destination.search}`,
-                paywall.destination.state ? { state: paywall.destination.state } : undefined,
-              )
-            }
-          >
+          <ToastAction altText="View Plans" onClick={() => setShowUpsellModal(true)}>
             View Plans
           </ToastAction>
         ),
@@ -129,14 +124,15 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
       return;
     }
     setShowImportModal(true);
-  }, [permissionsLoading, canPerformAction, canUseSmartImport, toast, navigate]);
+  }, [permissionsLoading, canPerformAction, canUseSmartImport, canUseFreeImport, toast]);
 
   const handleImportComplete = useCallback(async () => {
     // Wait for queries to settle before attempting a refetch
     await queryClient.cancelQueries({ queryKey: tripKeys.calendar(tripId) });
     await queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
+    invalidateTaste();
     await refreshEvents();
-  }, [queryClient, refreshEvents, tripId]);
+  }, [queryClient, refreshEvents, tripId, invalidateTaste]);
 
   const handleEdit = (event: CalendarEvent) => {
     // Check permissions (will return true in Demo Mode)
@@ -216,7 +212,10 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
         ) : isLoading ? (
           <CalendarLoadingState variant="grid" />
         ) : events.length === 0 ? (
-          <CalendarEmptyState onAddEvent={() => setShowAddEvent(true)} />
+          <CalendarEmptyState
+            onAddEvent={() => setShowAddEvent(true)}
+            onImport={() => void handleImport()}
+          />
         ) : (
           <CalendarGrid
             events={events}
@@ -267,6 +266,7 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
           tripEvents={tripEvents}
           onExport={handleExportEvents}
         />
+        <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
       </div>
     );
   }
@@ -308,6 +308,7 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
           tripEvents={tripEvents}
           onExport={handleExportEvents}
         />
+        <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
       </div>
     );
   }
@@ -411,6 +412,7 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
         tripEvents={tripEvents}
         onExport={handleExportEvents}
       />
+      <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
     </div>
   );
 });
