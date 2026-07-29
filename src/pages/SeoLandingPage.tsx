@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
 import { JsonLd, SeoHead } from '@/components/seo/SeoHead';
+import { UseCaseReelSection } from '@/components/landing/UseCaseReelSection';
+import { getUseCaseVideo } from '@/lib/useCaseVideos';
 import { SeoConfig, SITE_URL } from '@/lib/seo';
 
 interface Props {
@@ -7,9 +9,25 @@ interface Props {
   h1: string;
   intro: string;
   faq: Array<{ q: string; a: string }>;
+  /**
+   * Optional use-case reel slug (from `useCaseVideos`). When set, a
+   * Prefer watching? player appears under the intro — skimmer path for
+   * SEO landings that double as use-case pages (e.g. Group Trips).
+   */
+  reelSlug?: string;
+  /** Display name for the reel copy, e.g. "Group Trips" */
+  reelTitle?: string;
 }
 
-export default function SeoLandingPage({ config, h1, intro, faq }: Props) {
+export default function SeoLandingPage({
+  config,
+  h1,
+  intro,
+  faq,
+  reelSlug,
+  reelTitle = 'this use case',
+}: Props) {
+  const reel = getUseCaseVideo(reelSlug);
   const jsonLd = [
     {
       '@context': 'https://schema.org',
@@ -52,6 +70,7 @@ export default function SeoLandingPage({ config, h1, intro, faq }: Props) {
       <section className="max-w-4xl mx-auto px-4 py-12 space-y-8">
         <h1 className="text-4xl font-bold leading-tight">{h1}</h1>
         <p className="text-lg text-muted-foreground">{intro}</p>
+        {reel && <UseCaseReelSection video={reel} title={reelTitle} />}
         <div className="grid gap-4 md:grid-cols-2">
           <article className="rounded-xl border p-5">
             <h2 className="text-xl font-semibold mb-2">For friends and families</h2>
