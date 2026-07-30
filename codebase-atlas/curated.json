@@ -338,13 +338,13 @@
       "color": "green",
       "risk": "Medium",
       "quality": 75,
-      "purpose": "Push, email, SMS, in-app alerts, read receipts, badge counts.",
+      "purpose": "Push, email, in-app alerts, read receipts, badge counts.",
       "keyFiles": [
         "src/services/notificationService.ts",
         "src/hooks/useNotificationRealtime.ts",
         "src/native/push.ts"
       ],
-      "deps": ["Supabase Realtime", "APNS", "Resend", "Twilio"],
+      "deps": ["Supabase Realtime", "APNS", "Resend"],
       "upstream": "All emitters",
       "downstream": "Native shell",
       "actions": [
@@ -791,11 +791,11 @@
       "name": "Notifications",
       "color": "green",
       "completeness": 92,
-      "plain": "Push, email, SMS, and in-app alerts.",
+      "plain": "Push, email, and in-app alerts.",
       "screens": ["notifications/"],
       "backend": ["notificationService", "notifications table", "notification_deliveries"],
       "state": ["useNotificationRealtime", "notificationRealtimeStore"],
-      "external": ["APNS", "Resend", "Twilio"],
+      "external": ["APNS", "Resend"],
       "missingStates": [],
       "risks": [],
       "fixes": [
@@ -1070,12 +1070,12 @@
       "hardening": "Persist partial state; refresh tokens safely"
     },
     {
-      "name": "Resend / Twilio / APNS",
+      "name": "Resend / APNS",
       "type": "notifications",
       "color": "purple",
       "configuredAt": "notificationService + edge fns + src/native/push.ts",
-      "usedAt": "Email / SMS / iOS push",
-      "envVars": ["RESEND_API_KEY", "TWILIO_*", "APNS_*"],
+      "usedAt": "Email / iOS push",
+      "envVars": ["RESEND_API_KEY", "APNS_*"],
       "failureModes": "Channel-specific delivery failure (fallbacks exist)",
       "hardening": "Dual-path dedup; respect quiet hours"
     },
@@ -1588,7 +1588,7 @@
       },
       {
         "area": "Notifications & realtime",
-        "note": "Push/email/SMS (APNS/Resend/Twilio), dedup, badge counts",
+        "note": "Push/email/in-app (APNS/Resend), dedup, badge counts",
         "conservative": 50,
         "moderate": 80,
         "high": 120

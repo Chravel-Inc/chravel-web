@@ -1,5 +1,9 @@
 # SMS Test Troubleshooting
 
+> **ARCHIVED / REMOVED (2026-07-30).** "Send test SMS" and Twilio notification delivery
+> no longer exist. Use push notification settings instead. See
+> `MVP_INFRA_CLEANUP_AUDIT.md`.
+
 When "Send test SMS" fails, the toast now shows the **exact error message** from the API. Use this guide to fix each error.
 
 ## Error Messages & Fixes
