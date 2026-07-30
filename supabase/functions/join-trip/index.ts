@@ -307,15 +307,26 @@ serve(async req => {
       );
     }
 
-    // Check if trip is at member capacity before accepting join requests
+    // Check if trip is at member capacity before accepting join requests.
+    // Fail closed: an RPC error must not bypass plan member caps (historically
+    // this path logged a warning and continued when is_trip_at_member_capacity
+    // was missing from production).
     const { data: atCapacity, error: capacityError } = await supabaseClient.rpc(
       'is_trip_at_member_capacity',
       { p_trip_id: invite.trip_id },
     );
 
     if (capacityError) {
-      logStep('WARNING: member capacity check failed', { error: capacityError.message });
-    } else if (atCapacity === true) {
+      logStep('ERROR: member capacity check failed', { error: capacityError.message });
+      return errorResponse(
+        'Unable to verify trip capacity right now. Please try again in a moment.',
+        503,
+        corsHeaders,
+        'UNKNOWN_ERROR',
+      );
+    }
+
+    if (atCapacity === true) {
       logStep('ERROR: Trip at member capacity', { tripId: invite.trip_id });
       return errorResponse(
         'This trip has reached its member limit. Ask the organizer to upgrade their plan or remove members.',

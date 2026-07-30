@@ -51,6 +51,11 @@ describe('P0 security hardening regression checks', () => {
     const migration = read(
       'supabase/migrations/20260626143000_harden_super_admin_identity_and_trip_detail.sql',
     );
+    // 20260727140000 re-granted authenticated EXECUTE on capacity helpers;
+    // 20260730160500 re-asserts the service_role-only lockdown.
+    const capacityRelock = read(
+      'supabase/migrations/20260730160500_revoke_authenticated_trip_capacity_helpers.sql',
+    );
 
     expect(migration).toContain('DROP POLICY IF EXISTS "Notifications realtime: owner only"');
     expect(migration).toContain("realtime.topic() = 'notifications:' || auth.uid()::text");
@@ -61,6 +66,10 @@ describe('P0 security hardening regression checks', () => {
     expect(migration).toContain('SECURITY INVOKER');
     expect(migration).toContain(
       'REVOKE EXECUTE ON FUNCTION public.get_trip_member_limit(text) FROM anon, authenticated',
+    );
+    expect(capacityRelock).toContain("'get_trip_member_limit', 'is_trip_at_member_capacity'");
+    expect(capacityRelock).toContain(
+      'REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC, anon, authenticated',
     );
   });
 
