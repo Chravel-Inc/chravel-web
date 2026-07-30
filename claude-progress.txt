@@ -1,3 +1,10 @@
+2026-07-30 — Pre-viral P0 prod deploys
+- Restored add-trip-member-by-contact v5 (replaced accidental placeholder v4) with Stream addUserToTripStreamChannels; verify_jwt=false.
+- Deployed stream-reconcile-membership v109 with active-member filter (.or status null/active).
+- lovable-concierge kill switch + HTTP 429 body: IN REPO + client UI/gateway ready; MCP deploy blocked by ~527KB payload size. Merge to main triggers deploy-functions.yml (or operator CLI deploy). Client useFeatureFlag('ai_concierge') already gates UI.
+- Payment/basecamp migrations previously applied on ChravelApp.
+- Branch: cursor/pre-viral-p0-hardening-9c54
+
 2026-07-30 — Pre-viral P0 hardening
 - Personal basecamp: no address in chat system messages/history logging; history RLS owner-only for personal.
 - Payments: creditor-credits hybrid — mark_payment_splits_pending RPC; creator-only settle/unsettle; co-member wallet SELECT via is_trip_co_member. Applied on ChravelApp.
