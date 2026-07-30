@@ -27,7 +27,7 @@
 | `@sentry/react` | Crash logs, diagnostics, device metadata | Yes | Error monitoring |
 | `stream-chat` | Messages, channel metadata, user IDs | Yes | UGC chat transport |
 | `livekit-client` | Audio/session metadata | Yes | Voice sessions only during active use |
-| `@revenuecat/purchases-js` | Purchase/entitlement status | Yes | Subscription entitlement orchestration |
+| RevenueCat native SDK (chravel-mobile shell) | Purchase/entitlement status | Yes | iOS/Android IAP orchestration |
 | `@googlemaps/js-api-loader` | Location queries | Yes | Maps and places |
 | Stripe web checkout (web path) | Purchase data | Yes | Web billing path only |
 

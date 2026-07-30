@@ -8,7 +8,7 @@
 ## Goal
 Confirm Apple IAP subscription products exist with IDs/prices that match RevenueCat + the code, and that the
 account is in a state that could support submission. Apple IAP is currently **disabled in the app**
-(`APPLE_IAP_ENABLED = false`); this audit validates readiness, it does not enable anything.
+(`APPLE_IAP_ENABLED = true` in `billing/config.ts`); this audit validates ASC + RevenueCat dashboard parity.
 
 ## Canonical values to diff against
 **Apple product IDs** (must equal RevenueCat product identifiers):

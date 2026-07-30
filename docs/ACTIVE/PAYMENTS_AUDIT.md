@@ -12,9 +12,9 @@
 Chravel runs a **two-provider** billing model:
 
 - **Stripe** — web / PWA checkout, customer portal, invoices, recurring subscriptions + one-time Trip Passes.
-- **RevenueCat + Apple IAP / Google Play** — native mobile. **Scaffold only today**
-  (`BILLING_FLAGS.APPLE_IAP_ENABLED = false`, `GOOGLE_BILLING_ENABLED = false`); the native app lives in a
-  separate `chravel-mobile` repo. iOS consumer purchases currently fall back to "subscribe on web".
+- **RevenueCat + Apple IAP** — native iOS via `chravel-mobile` shell (`BILLING_FLAGS.APPLE_IAP_ENABLED = true`).
+  Google Play Billing remains off (`GOOGLE_BILLING_ENABLED = false`). Web never uses RevenueCat
+  (`getBillingProvider({ platform: 'web' })` → Stripe).
 
 Cross-platform entitlement state is normalized into one Supabase table, **`public.user_entitlements`**, which
 the app reads through `check-subscription`. Stripe and RevenueCat webhooks are meant to keep it current.
@@ -28,12 +28,12 @@ documented below.
 |---|-----|---------|--------|
 | 1 | **CRITICAL** | Stripe **webhook** subscription handlers are a silent no-op in production — they resolve the user via a `private_profiles` table that does not exist in the live DB. | **Fixed** (repointed to `profiles`) |
 | 2 | HIGH | Two divergent limit maps: Explorer storage = 2000 MB (`FEATURE_LIMITS`) vs 50 GB (`FREEMIUM_LIMITS`, the enforced value). | **Fixed** (aligned to 50 GB) |
-| 3 | HIGH | Two contradictory RevenueCat configs (web-billing `rcb_` vs native `appl_`/`goog_`); unclear which is live. | Documented (deferred) |
-| 4 | MEDIUM | `entitlement_audit_log`, `billing_webhook_processing_failures` + 2 views referenced by deployed code but **not deployed**. | Documented (migration deferred) |
+| 3 | HIGH | Two contradictory RevenueCat configs (web-billing `rcb_` vs native `appl_`/`goog_`); unclear which is live. | **Fixed** (web=Stripe; deleted web RC path; `getBillingProvider`) |
+| 4 | MEDIUM | `entitlement_audit_log`, `billing_webhook_processing_failures` + 2 views referenced by deployed code but **not deployed**. | **Fixed** (applied live 2026-07-30; migration `20260730153000_*`) |
 | 5 | MEDIUM | Pricing duplicated across 4+ files + hardcoded UI strings; could drift undetected. | **Mitigated** (parity test added) |
 | 6 | MEDIUM | `webhook_events` idempotency table is **shared** between Stream chat (`stream:message.new`) and billing events. | Documented (deferred) |
-| 7 | LOW | No billing **kill-switch** feature flag (all 4 flags are Stream-chat). | Documented (deferred) |
-| 8 | LOW | Apple IAP / Google Billing scaffold-only; `process-account-deletions` skips missing `private_profiles`; `join-trip` comment updated. | **Fixed** (graceful skip + comment) |
+| 7 | LOW | No billing **kill-switch** feature flag (all 4 flags are Stream-chat). | **Fixed** (`billing-checkout-enabled` seeded; `create-checkout` gated) |
+| 8 | LOW | `process-account-deletions` skips missing `private_profiles`; `join-trip` comment updated. Google Billing off. | **Fixed** (graceful skip + comment) |
 
 ---
 
@@ -46,6 +46,7 @@ documented below.
 | Enforced storage / media caps | `FREEMIUM_LIMITS` / `PRO_LIMITS` | `src/utils/featureTiers.ts` |
 | Web price (charge) | Stripe Price object | Stripe dashboard |
 | Apple IAP price (charge) | App Store Connect subscription product | ASC dashboard |
+| Checkout provider per platform | **`getBillingProvider`** | `src/billing/provider.ts` |
 | Cross-platform entitlement state | **`public.user_entitlements`** | Supabase |
 | User-facing subscription status | `user_entitlements` (primary) → `profiles` (legacy fallback) | `check-subscription`, `useSubscription` |
 
@@ -106,9 +107,11 @@ The `priceAnnual` numbers (490/990) are display-only; there is **no distinct ann
 | `public.user_entitlements` (has `purchase_type`) | all billing | ✅ present |
 | `public.webhook_events` (unique `event_id`) | idempotency | ✅ present |
 | `public.profiles` (`stripe_customer_id`, `stripe_subscription_id`, `subscription_*`, `free_pro_trip_limit`) | billing + app | ✅ present |
-| `public.private_profiles` | stripe-webhook, check-subscription, fetch-invoices, join-trip, process-account-deletions | ❌ **NULL** |
-| `public.entitlement_audit_log` | stripe + revenuecat webhooks | ❌ NULL |
-| `public.billing_webhook_processing_failures` + `billing_webhook_ops_dashboard` + `billing_entitlement_reconciliation_candidates` | stripe-webhook ops | ❌ NULL |
+| `public.private_profiles` | stripe-webhook, check-subscription, fetch-invoices, join-trip, process-account-deletions | ❌ **NULL** (intentional — code repointed to `profiles`) |
+| `public.entitlement_audit_log` | stripe-webhook | ✅ present (applied 2026-07-30) |
+| `public.billing_webhook_processing_failures` + `billing_webhook_ops_dashboard` | stripe-webhook ops | ✅ present (applied 2026-07-30) |
+| `public.billing_entitlement_reconciliation_candidates` | ops reconcile view | ✅ present (joins `profiles`) |
+| `idx_profiles_stripe_customer_id_unique` | webhook customer lookup hardening | ✅ present (partial unique, 2026-05-31) |
 
 **Data:** `user_entitlements` has exactly **1 row**: `source='admin'`, `plan='frequent-chraveler'`, `status='active'`,
 no `stripe_customer_id` / `revenuecat_customer_id` — i.e. a manually granted comp, never a real purchase.
@@ -164,18 +167,22 @@ gating/display (`useUnifiedEntitlements`, `useEntitlements`, `useBilling`) reads
 displayed cap (2 GB) contradicted the enforced cap (50 GB). **Fixed** by setting `FEATURE_LIMITS.media_upload.explorer = 50000`
 (the enforced value) and cross-linking the maps in comments. Locked by `pricingParity.test.ts`.
 
-### #3 — HIGH: two contradictory RevenueCat configs (DEFERRED)
+### #3 — HIGH: two contradictory RevenueCat configs (FIXED)
 
-- `src/config/revenuecat.ts` — wired into `initRevenueCat()`; expects a **Web Billing** key
-  (`VITE_REVENUECAT_API_KEY`, must start `rcb_`). This is a *web* RevenueCat integration via `@revenuecat/purchases-js`.
-- `src/constants/revenuecat.ts` + `src/integrations/revenuecat/revenuecatClient.ts` — expect **native** keys
-  (`VITE_REVENUECAT_IOS_API_KEY` / `_ANDROID_API_KEY`); `isRevenueCatConfigured('web')` returns `false`.
+**Decision (2026-07-30):** Web billing is **Stripe only**. RevenueCat is **native-only** (iOS/Android via
+`chravel-mobile` shell injection).
 
-These are parallel, mutually exclusive integrations with different key formats and different views of whether web
-uses RevenueCat at all. Until the team confirms whether web billing goes through Stripe (current default) or
-RevenueCat Web Billing, this is ambiguous and a footgun. **Recommendation:** pick one; if Stripe owns web (per
-`getBillingProvider` → web ⇒ Stripe), delete/neutralize the `config/revenuecat.ts` web-billing path or gate it
-behind an explicit flag. Deferred — needs a product decision (see fix plan).
+**Evidence:**
+- Deleted legacy `src/config/revenuecat.ts` (RevenueCat Web Billing / `rcb_*` / `@revenuecat/purchases-js`) —
+  see `docs/ACTIVE/PRICING_UNIFICATION_HANDOFF.md`.
+- `@revenuecat/purchases-js` is **not** in `package.json`.
+- `.env.example` documents only `VITE_REVENUECAT_IOS_API_KEY` / `_ANDROID_API_KEY` (no `VITE_REVENUECAT_API_KEY`).
+- `src/constants/revenuecat.ts`: `isRevenueCatConfigured('web')` returns `false`; `getRevenueCatApiKey('web')` → `null`.
+- `src/integrations/revenuecat/revenuecatClient.ts`: web platform returns `NOT_SUPPORTED`.
+- Canonical routing: `src/billing/provider.ts` → `getBillingProvider({ platform: 'web' })` ⇒ `'stripe'`.
+- Regression tests: `src/billing/__tests__/billingProvider.test.ts`.
+- Dashboard audit (2026-07-30): code parity ✓ (`npm run iap:parity`); RevenueCat dashboard leg blocked on login —
+  see `docs/ACTIVE/revenuecat-audit-results-2026-07-30.md`.
 
 ### #4 — MEDIUM: referenced-but-undeployed billing tables (DEFERRED)
 
@@ -205,12 +212,12 @@ composite unique). Deferred.
 Per CLAUDE.md feature-flag rules, paid surfaces should have a runtime kill switch. None exists. **Recommendation:**
 seed `billing-checkout-enabled` (and/or per-provider) flags and gate `create-checkout` + paywall entry. Deferred.
 
-### #8 — LOW: other `private_profiles` references / scaffold (PARTIAL / INTENDED)
+### #8 — LOW: other `private_profiles` references (PARTIAL / INTENDED)
 
 `process-account-deletions` deletes from `private_profiles` (non-fatal cleanup error). `join-trip` only mentions it
-in a comment (uses `auth` email — not broken). Apple IAP / Google Billing are intentionally scaffold-only. The two
-non-billing `private_profiles` references share the same root cause as #1 and should be repointed when the PII model
-is resolved (see #1/#4 follow-ups).
+in a comment (uses `auth` email — not broken). Apple IAP is **enabled** in code (`APPLE_IAP_ENABLED = true`); Google
+Billing remains disabled. The two non-billing `private_profiles` references share the same root cause as #1 and
+should be repointed when the PII model is resolved (see #1/#4 follow-ups).
 
 ---
 
@@ -224,12 +231,12 @@ is resolved (see #1/#4 follow-ups).
 | `customer-portal` | Stripe billing portal session | Looks up customer by email |
 | `fetch-invoices` | List Stripe invoices | Repointed to `profiles` |
 | `revenuecat-webhook` | Process RC events → `user_entitlements` | Auth via `REVENUECAT_WEBHOOK_SECRET`; idempotent; stale-expiration guard |
-| `sync-revenuecat-entitlement` | Client-initiated RC → Supabase sync | Web RC path |
+| `sync-revenuecat-entitlement` | Client-initiated RC → Supabase sync | Native RC path only |
 | `organization-billing-portal` | B2B org billing portal | `organization_billing` table |
 | `payment-reminders` | Overdue **trip expense** reminders | Not subscription billing |
 
 **Env / secrets:** Frontend `VITE_STRIPE_PUBLISHABLE_KEY`, `VITE_ENABLE_STRIPE_PAYMENTS`,
-`VITE_REVENUECAT_API_KEY` (web), `VITE_REVENUECAT_IOS_API_KEY` / `_ANDROID_API_KEY`,
+`VITE_REVENUECAT_IOS_API_KEY` / `_ANDROID_API_KEY` (native only — no web `rcb_*` key),
 `VITE_REVENUECAT_*_ENTITLEMENT_ID`. Edge secrets (Supabase Dashboard, **not** in `.env`): `STRIPE_SECRET_KEY`,
 `STRIPE_WEBHOOK_SECRET`, `REVENUECAT_WEBHOOK_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`. Test vs live is governed by key
 prefix (`sk_test_`/`sk_live_`, `pk_test_`/`pk_live_`, `whsec_…`). **Confirm production uses live keys and the

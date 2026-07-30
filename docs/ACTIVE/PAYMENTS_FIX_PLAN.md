@@ -117,13 +117,13 @@ Then gate `create-checkout` (edge: `isFeatureEnabled`) and paywall entry (`useFe
 
 ## D. RevenueCat changes (browser agent — verify first)
 
-1. Resolve finding #3: confirm whether web uses RevenueCat Web Billing (`rcb_`) or Stripe. If Stripe owns web,
-   neutralize `src/config/revenuecat.ts`'s web-billing init.
+1. ~~Resolve finding #3~~ ✅ **Done (2026-07-30):** Web = Stripe; deleted `src/config/revenuecat.ts`; canonical
+   routing in `src/billing/provider.ts` + `billingProvider.test.ts`.
 2. Confirm entitlement IDs match code: `chravel_explorer`, `chravel_frequent_chraveler`,
    `chravel_pro_starter/growth/enterprise`.
 3. Confirm offerings/packages map to the App Store Connect product IDs in §3.
 4. Confirm `REVENUECAT_WEBHOOK_SECRET` and that the RC webhook points at the production `revenuecat-webhook`.
-   Use `revenuecat-audit-browser-agent.md`.
+   Use `revenuecat-audit-browser-agent.md`. Latest run: `docs/ACTIVE/revenuecat-audit-results-2026-07-30.md` (code ✓, dashboard blocked on login).
 
 ## E. App Store Connect changes (browser agent — verify first)
 
@@ -131,8 +131,8 @@ Then gate `create-checkout` (edge: `isFeatureEnabled`) and paywall entry (`useFe
    `com.chravel.frequentchraveler.monthly/.annual` and a consumer subscription group.
 2. Confirm prices match §3 ($9.99/$99, $19.99/$199) and intro/trial offers match app copy.
 3. Apple product IDs must **exactly** equal RevenueCat product identifiers.
-4. Apple IAP stays disabled (`APPLE_IAP_ENABLED=false`) until the chravel-mobile native flow + receipt-validation
-   edge function ship. Use `app-store-connect-audit-browser-agent.md`.
+4. Apple IAP is **enabled** in code (`APPLE_IAP_ENABLED=true`); verify native purchase + restore on a TestFlight
+   build via `chravel-mobile`. Google Play Billing remains off until `GOOGLE_BILLING_ENABLED=true`.
 
 ---
 
@@ -147,7 +147,7 @@ Then gate `create-checkout` (edge: `isFeatureEnabled`) and paywall entry (`useFe
   user (previously a no-op) and writes `user_entitlements` + `profiles`; cancel → access retained to period end;
   fail a payment (test card) → `past_due` retained; refund a Trip Pass → expired.
 - Verify `check-subscription` returns correct tier on web for the test user.
-- iOS: paywall shows "subscribe on web" (IAP disabled); restore purchases path doesn't crash.
+- iOS native shell: paywall uses RevenueCat IAP (`purchaseConsumerSubscription`); restore purchases path doesn't crash.
 
 **Manual QA matrix:** logged-out pricing page · free→paid upgrade · checkout success/cancel return · customer
 portal · expired/canceled state · paid-feature access vs free limits · mobile + desktop + installed-PWA viewports ·
@@ -173,13 +173,8 @@ RLS blocks client entitlement mutation.
 
 > Each is intentionally deferred (scope: no DB migrations; product decision required) — not dropped.
 
-1. **Apply billing-ops migrations.** "Create timestamped migrations for `entitlement_audit_log` and apply the
-   existing `20260524120000_billing_webhook_ops_and_reconcile.sql`, editing its reconciliation view to join
-   `profiles` instead of `private_profiles`; regenerate `src/integrations/supabase/types.ts`; verify
-   `to_regclass` for each new object."
-2. **Resolve the RevenueCat dual-config (#3).** "Decide whether web billing uses Stripe or RevenueCat Web Billing;
-   if Stripe, neutralize the web-billing init in `src/config/revenuecat.ts` and delete the unused path; otherwise
-   reconcile the two configs into one. Add a test asserting a single active web provider."
+1. **Apply billing-ops migrations.** ✅ Applied live 2026-07-30 (`entitlement_audit_log`, `billing_webhook_processing_failures`, `billing_webhook_ops_dashboard`). Repo migration: `20260730153000_entitlement_audit_log_and_billing_ops.sql`. Remaining: regenerate `src/integrations/supabase/types.ts` if types drift.
+2. ~~**Resolve the RevenueCat dual-config (#3).**~~ ✅ Fixed — web=Stripe, native=RevenueCat; see `src/billing/provider.ts`.
 3. **PII-separation decision (#1 root cause / B2).** "Either remove the abandoned `secure_profiles`/`private_profiles`
    migration and repoint the remaining references, or apply the split as a two-phase destructive migration and
    revert the `profiles` repoint. Pick one; make code and schema agree."

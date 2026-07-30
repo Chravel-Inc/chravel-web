@@ -13,7 +13,8 @@ import {
   createErrorResponse,
   createOptionsResponse,
 } from '../_shared/securityHeaders.ts';
-import { isOriginAllowed } from '../_shared/cors.ts';
+import { isFeatureEnabled, createFeatureDisabledResponse } from '../_shared/featureFlags.ts';
+import { isOriginAllowed, getCorsHeaders } from '../_shared/cors.ts';
 import {
   normalizeSubscriptionTierForCheckout,
   shouldBlockConsumerStripeCheckout,
@@ -63,6 +64,11 @@ serve(async req => {
 
   try {
     logStep('Function started');
+
+    if (!(await isFeatureEnabled('billing-checkout-enabled', true))) {
+      logStep('Billing checkout kill-switch active');
+      return createFeatureDisabledResponse('Billing checkout', getCorsHeaders(req));
+    }
 
     const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
     if (!stripeKey) throw new Error('STRIPE_SECRET_KEY is not set');
