@@ -1,5 +1,10 @@
 # Semantic Merge Debt Audit
 
+> **Superseded (2026-07-26):** Re-audit with current status lives at
+> [`docs/audits/SEMANTIC_MERGE_DEBT_AUDIT_2026-07-26.md`](./audits/SEMANTIC_MERGE_DEBT_AUDIT_2026-07-26.md)
+> (severity 78 → 64; several May Criticals fixed; new Criticals documented).
+> Keep this file as historical evidence of the May baseline.
+
 Audit date: 2026-05-31
 Branch: `cursor/semantic-merge-debt-audit-efb1`
 Scope: static, code-level post-merge conflict debt audit across frontend, edge functions, hooks, services, stores, types, and critical product flows.

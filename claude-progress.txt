@@ -1,3 +1,9 @@
+2026-07-26 — Semantic merge debt re-audit
+- Re-audited post-merge conflict debt vs May 2026 report; score 78→64 (improved, still material).
+- Top risks: payments dual cache shapes on tripKeys.payments; calendar UI vs mutation dual-gate; tripKeys.lineup orphan; Pro/Event list-find; broadcast field dualism; push fanout bypass.
+- Report: docs/audits/SEMANTIC_MERGE_DEBT_AUDIT_2026-07-26.md · indexes updated.
+- Branch: cursor/semantic-merge-debt-audit-69a3 (docs-only).
+
 2026-07-17 — Payment messages need-to-know + edge deploys
 - trip_payment_messages SELECT aligned with payment_splits (COALESCE trip_type, active member, creator/debtor/admin/can_view); INSERT requires is_active_trip_member. Applied to ChravelApp.
 - Deployed edge: bootstrap-super-admins v4, venue-enricher v1147, send-push v791, place-grounding v1055 (bundled+requireAuth).

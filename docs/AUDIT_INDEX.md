@@ -1,7 +1,7 @@
 # Audit Index
 
 > Canonical index of all security, architecture, platform, and feature audits.
-> Updated: 2026-03-16
+> Updated: 2026-07-26
 
 ---
 
@@ -14,17 +14,26 @@
 
 ---
 
+## Priority: Semantic Merge Debt
+
+| Date | Document | Status | Score | Headline |
+|------|----------|--------|-------|----------|
+| 2026-07-26 | [`docs/audits/SEMANTIC_MERGE_DEBT_AUDIT_2026-07-26.md`](./audits/SEMANTIC_MERGE_DEBT_AUDIT_2026-07-26.md) | **current** | 64/100 | Improved since May; Criticals remain: payments cache shape collision, calendar permission dual-gate, lineup key orphan, Pro/Event list-find |
+| 2026-05-31 | [`docs/semantic-merge-debt-audit-2026-05-31.md`](./semantic-merge-debt-audit-2026-05-31.md) | historical | 78/100 | Superseded by 2026-07-26 re-audit (several Criticals fixed) |
+
+---
+
 ## Coverage Matrix
 
 | Subsystem | Security | Architecture | Performance | Readiness | Schema/Data | Last Audited |
 |-----------|:--------:|:------------:|:-----------:|:---------:|:-----------:|:------------:|
 | Auth / RLS | x | x | - | - | x | 2026-03-15 |
-| Chat / Messaging | x | x | x | - | x | 2026-03-16 |
-| AI Concierge | x | x | - | - | - | 2026-03-11 |
-| Payments / Billing | x | - | - | - | - | 2026-03-07 |
-| Calendar | - | x | - | - | - | 2026-03 |
-| Notifications | x | x | - | - | - | 2026-03-15 |
-| Media / Storage | x | - | - | - | - | 2026-03-15 |
+| Chat / Messaging | x | x | x | - | x | 2026-07-26 |
+| AI Concierge | x | x | - | - | - | 2026-07-25 |
+| Payments / Billing | x | x | - | - | - | 2026-07-26 |
+| Calendar | - | x | - | - | - | 2026-07-26 |
+| Notifications | x | x | - | - | - | 2026-07-26 |
+| Media / Storage | x | - | - | - | - | 2026-07-25 |
 | Maps / Places | - | x | - | - | - | - |
 | Smart Import | x | x | - | - | - | 2026-03 |
 | iOS / App Store | - | - | - | x | - | 2026-01-10 |
@@ -32,8 +41,9 @@
 | Data Evolution | - | - | - | - | x | 2026-03-15 |
 | Reliability / DR | - | - | - | x | - | 2026-03-16 |
 | Design System | - | - | - | - | - | 2026-02-27 |
-| Permissions | x | x | - | - | - | 2026-03-15 |
-| Full Platform | x | x | x | x | x | 2026-03-15 |
+| Permissions | x | x | - | - | - | 2026-07-26 |
+| Full Platform | x | x | x | x | x | 2026-07-25 |
+| Merge Debt | - | x | x | - | x | 2026-07-26 |
 
 ---
 
@@ -50,6 +60,14 @@
 ---
 
 ## Chronological Audit Log
+
+### 2026-07 (July)
+
+| Date | Document | Status | Scope | Key Findings |
+|------|----------|--------|-------|-------------|
+| 07-26 | `docs/audits/SEMANTIC_MERGE_DEBT_AUDIT_2026-07-26.md` | current | Post-merge semantic conflict debt (re-audit) | Severity 64/100; payments dual cache shapes, calendar dual-gate, lineup orphan, Pro/Event list-find, broadcast contract dualism |
+| 07-25 | `docs/audits/POST_DRIFT_FEATURE_AUDIT_2026-07-25.md` | current | 13-feature post-drift scorecard | Chat/agenda/media functional bugs fixed; setup-hygiene cluster remains |
+| 07-25 | `docs/audits/CHRAVEL_PRODUCT_AUDIT_2026-07-25.md` | current | Product feature inventory | Membership/permissions/identity gaps |
 
 ### 2026-03 (March)
 

@@ -730,3 +730,25 @@ Known security anti-patterns discovered during audits. Reference this before int
 **Smallest Safe Fix (in-session):** don't edit the lockfile (guarded); run `npm install --no-package-lock --no-save --no-audit --fetch-timeout=60000 --fetch-retries=5 --cache <fresh-dir>` — the fresh cache dir sidesteps packuments/tarballs poisoned by earlier mirror fetches, which otherwise cause `notarget`/`Invalid response body` whack-a-mole.
 **Durable Fix:** regenerate `package-lock.json` against registry.npmjs.org from a normal dev machine (`rm package-lock.json && npm install`) so `resolved` URLs are public, and commit it via the normal review flow.
 **Evidence:** 2026-07-20 session — first install hung 31 min with zero progress; log `2026-07-20T22_41_21` shows 16 consecutive 403s on pkg.dev URLs; fresh-cache no-lockfile install succeeded first try.
+
+## Semantic merge debt: shared query key, dual cache shapes
+
+- **Status:** confirmed (open)
+- **Subsystem:** Payments (desktop `usePayments` vs mobile `MobileTripPayments`)
+- **Bug class:** accept-both merge debt / cache contract collision
+- **Symptom:** After create/settle or desktop↔mobile navigation, payment list or balance summary goes missing/stale without a hard error.
+- **Root cause:** Both surfaces use `tripKeys.payments(tripId)` but write incompatible values (`PaymentMessage[]` vs `{ payments, balanceSummary }`). `paymentCacheUtils` branches on shape and silently no-ops on mismatch.
+- **Smallest safe fix:** Canonicalize payments key to `PaymentMessage[]`; balances exclusively on `tripKeys.paymentBalances(tripId, userId)`; route mobile through `usePayments`.
+- **Required tests:** Cache-utils shape tests + desktop/mobile create/settle invalidation.
+- **Evidence:** `docs/audits/SEMANTIC_MERGE_DEBT_AUDIT_2026-07-26.md` Finding #1
+
+## Semantic merge debt: query-key factory orphan (agenda twin)
+
+- **Status:** confirmed (open for lineup; fixed for agenda)
+- **Subsystem:** Events lineup / TanStack Query
+- **Bug class:** factory rename without call-site migration
+- **Symptom:** Mutations that invalidate via `tripKeys.lineup` leave the Lineup tab stale.
+- **Root cause:** Factory returns `['eventLineup', tripId]`; live hook uses `['event-lineup', eventId]` — same class as fixed `eventAgenda` vs `event-agenda`.
+- **Smallest safe fix:** Align factory and callers in one commit; add parity test.
+- **Required tests:** Mirror agenda key-parity test for lineup.
+- **Evidence:** `docs/audits/SEMANTIC_MERGE_DEBT_AUDIT_2026-07-26.md` Finding #3
