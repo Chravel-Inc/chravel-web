@@ -762,13 +762,14 @@ class BasecampService {
             p_basecamp_type: 'personal',
             p_action: isUpdate ? 'updated' : 'created',
             p_previous_name: currentBasecamp?.name || null,
-            p_previous_address: currentBasecamp?.address || null,
-            p_previous_latitude: currentBasecamp?.latitude || null,
-            p_previous_longitude: currentBasecamp?.longitude || null,
+            // Do not persist personal street/geo into shared history.
+            p_previous_address: null,
+            p_previous_latitude: null,
+            p_previous_longitude: null,
             p_new_name: payload.name || null,
-            p_new_address: payload.address,
-            p_new_latitude: finalLatitude || null,
-            p_new_longitude: finalLongitude || null,
+            p_new_address: null,
+            p_new_latitude: null,
+            p_new_longitude: null,
           });
         } catch (historyError) {
           // Don't fail the operation if history logging fails
@@ -776,9 +777,9 @@ class BasecampService {
         }
       }
 
-      // Create system message for consumer trips
+      // System message for consumer trips — never include personal street address.
       const userName = user?.email?.split('@')[0] || 'Someone';
-      systemMessageService.personalBaseCampUpdated(payload.trip_id, userName, payload.address);
+      void systemMessageService.personalBaseCampUpdated(payload.trip_id, userName);
 
       return data as PersonalBasecamp;
     } catch (error) {

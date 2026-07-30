@@ -14,9 +14,12 @@ import { PaymentErrorHandler } from '../../services/paymentErrors';
 import { formatCurrency } from '@/services/currencyService';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { AuthModal } from '../AuthModal';
+import { PlusUpsellModal } from '../PlusUpsellModal';
 import { LogIn, CheckCircle } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { ToastAction } from '../ui/toast';
+import { SPLIT_LIMIT_ERROR_CODE } from '../../services/paymentService';
 
 interface PaymentsTabProps {
   tripId: string;
@@ -26,6 +29,7 @@ export const PaymentsTab = React.memo(({ tripId }: PaymentsTabProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { isLoading: demoLoading } = useDemoMode();
+  const [showUpsellModal, setShowUpsellModal] = useState(false);
   // ⚡ TanStack Query: payment data (cached, prefetchable)
   const {
     tripPayments,
@@ -130,10 +134,16 @@ export const PaymentsTab = React.memo(({ tripId }: PaymentsTabProps) => {
 
     if (result.error) {
       const { title, description } = PaymentErrorHandler.getServiceErrorDisplay(result.error);
+      const isSplitLimit = result.error.code === SPLIT_LIMIT_ERROR_CODE;
       toast({
         title,
         description,
         variant: 'destructive',
+        action: isSplitLimit ? (
+          <ToastAction altText="View Plans" onClick={() => setShowUpsellModal(true)}>
+            View Plans
+          </ToastAction>
+        ) : undefined,
       });
     }
     return { success: false };
@@ -201,17 +211,31 @@ export const PaymentsTab = React.memo(({ tripId }: PaymentsTabProps) => {
             </CardContent>
           </Card>
         ) : (
-          <PaymentInput
-            onSubmit={handlePaymentSubmit}
-            tripMembers={tripMembers}
-            isVisible={true}
-            tripId={tripId}
-            isPaginatedRoster={isPaginatedRoster}
-            memberSearchQuery={memberSearchQuery}
-            onMemberSearchChange={setMemberSearchQuery}
-            memberTotalCount={memberTotalCount}
-            isSearchingMembers={isSearchingMembers}
-          />
+          <>
+            {!paymentsLoading && tripPayments.length === 0 && (
+              <Card className="bg-muted/30 border-border/60">
+                <CardContent className="p-4 space-y-1.5">
+                  <p className="text-sm font-medium text-foreground">First split tip</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Log an expense, pick who owes what, then settle outside Chravel (Venmo, Cash
+                    App, Apple Cash, etc.). Chravel tracks the balance — it doesn&apos;t process
+                    payments.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+            <PaymentInput
+              onSubmit={handlePaymentSubmit}
+              tripMembers={tripMembers}
+              isVisible={true}
+              tripId={tripId}
+              isPaginatedRoster={isPaginatedRoster}
+              memberSearchQuery={memberSearchQuery}
+              onMemberSearchChange={setMemberSearchQuery}
+              memberTotalCount={memberTotalCount}
+              isSearchingMembers={isSearchingMembers}
+            />
+          </>
         )}
       </section>
 
@@ -228,6 +252,13 @@ export const PaymentsTab = React.memo(({ tripId }: PaymentsTabProps) => {
         ) : (
           <>
             <BalanceSummary summary={balanceSummary} />
+
+            {balanceSummary.totalOwedToYou > 0 && (
+              <p className="text-xs text-muted-foreground px-1">
+                Someone still owes you. Tap Remind on their card to send an in-app nudge — Chravel
+                tracks balances but doesn&apos;t move money.
+              </p>
+            )}
 
             {/* Per-Person Balance Cards */}
             {balanceSummary.balances.length > 0 ? (
@@ -281,6 +312,7 @@ export const PaymentsTab = React.memo(({ tripId }: PaymentsTabProps) => {
 
       {/* Auth Modal */}
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
     </div>
   );
 });

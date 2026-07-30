@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import '@/styles/marketingFonts';
 import { useForceDarkTheme } from '@/hooks/useForceDarkTheme';
 import { Button } from '@/components/ui/button';
@@ -19,10 +19,25 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import channelsPro from '@/assets/app-screenshots/channels-pro.png';
+import { openProDemoScheduler, startProCheckout } from '@/billing/startProCheckout';
 
 export const ForTeams = () => {
   // Marketing surface — dark-only, matching the homepage.
   useForceDarkTheme();
+  const [checkoutBusy, setCheckoutBusy] = useState(false);
+
+  const handleProCheckout = useCallback(
+    async (tier: 'pro-starter' | 'pro-growth') => {
+      if (checkoutBusy) return;
+      setCheckoutBusy(true);
+      try {
+        await startProCheckout(tier);
+      } finally {
+        setCheckoutBusy(false);
+      }
+    },
+    [checkoutBusy],
+  );
   const benefits = [
     {
       icon: <Shield size={32} className="text-primary" />,
@@ -101,22 +116,14 @@ export const ForTeams = () => {
           </p>
 
           <div className="flex flex-wrap gap-4 justify-center pt-4">
-            <Button
-              size="lg"
-              onClick={() =>
-                (window.location.href =
-                  'mailto:support@chravelapp.com?subject=Chravel%20Pro%20Inquiry')
-              }
-              className="text-lg px-8"
-            >
+            <Button size="lg" onClick={() => openProDemoScheduler()} className="text-lg px-8">
               Schedule a Demo
               <ArrowRight size={18} className="ml-2" aria-hidden="true" />
             </Button>
             <Button
               size="lg"
-              onClick={() =>
-                (window.location.href = 'mailto:support@chravelapp.com?subject=14-Day%20Trial')
-              }
+              onClick={() => void handleProCheckout('pro-starter')}
+              disabled={checkoutBusy}
               className="text-lg px-8"
             >
               Start 14-Day Trial
@@ -222,10 +229,8 @@ export const ForTeams = () => {
               </div>
               <Button
                 className="w-full mb-6"
-                onClick={() =>
-                  (window.location.href =
-                    'mailto:support@chravelapp.com?subject=Starter%20Pro%2014-Day%20Trial')
-                }
+                onClick={() => void handleProCheckout('pro-starter')}
+                disabled={checkoutBusy}
               >
                 Start 14-Day Trial
               </Button>
@@ -283,10 +288,8 @@ export const ForTeams = () => {
               </div>
               <Button
                 className="w-full mb-6"
-                onClick={() =>
-                  (window.location.href =
-                    'mailto:support@chravelapp.com?subject=Growth%20Pro%2014-Day%20Trial')
-                }
+                onClick={() => void handleProCheckout('pro-growth')}
+                disabled={checkoutBusy}
               >
                 Start 14-Day Trial
               </Button>
@@ -325,7 +328,7 @@ export const ForTeams = () => {
                     className="text-gold-primary mt-1 shrink-0"
                     aria-hidden="true"
                   />
-                  <span>Advanced integrations</span>
+                  <span>Custom integrations (on request)</span>
                 </li>
               </ul>
             </div>
@@ -339,10 +342,7 @@ export const ForTeams = () => {
               </div>
               <Button
                 className="w-full mb-6"
-                onClick={() =>
-                  (window.location.href =
-                    'mailto:support@chravelapp.com?subject=Enterprise%20Inquiry')
-                }
+                onClick={() => void startProCheckout('pro-enterprise')}
               >
                 Contact Sales
               </Button>

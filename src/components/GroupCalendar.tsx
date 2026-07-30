@@ -1,5 +1,4 @@
 import React, { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Calendar } from './ui/calendar';
 import { format } from 'date-fns';
 import { ItineraryView } from './ItineraryView';
@@ -14,7 +13,7 @@ import { CalendarImportModal } from '@/features/calendar/components/CalendarImpo
 import { useCalendarExport } from '@/features/calendar/hooks/useCalendarExport';
 import { useToast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
-import { useRolePermissions } from '@/hooks/useRolePermissions';
+import { useMutationPermissions } from '@/hooks/useMutationPermissions';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useBackgroundImport } from '@/features/calendar/hooks/useBackgroundImport';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
@@ -24,13 +23,14 @@ import { CalendarErrorState } from '@/features/calendar/components/CalendarError
 import { ExportDialog } from '@/features/calendar/components/ExportDialog';
 import { CalendarLoadingState } from '@/features/calendar/components/CalendarLoadingState';
 import { CalendarEmptyState } from '@/features/calendar/components/CalendarEmptyState';
+import { useSmartImportTaste } from '@/features/smart-import/hooks/useSmartImportTaste';
+import { PlusUpsellModal } from '@/components/PlusUpsellModal';
 
 interface GroupCalendarProps {
   tripId: string;
 }
 
 export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const {
     selectedDate,
@@ -57,7 +57,12 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
     refreshEvents,
   } = useCalendarManagement(tripId);
   const { toast } = useToast();
-  const { canPerformAction, isLoading: permissionsLoading } = useRolePermissions(tripId);
+  const {
+    canCreateEvent,
+    canEditEvent,
+    canDeleteEvent,
+    isLoading: permissionsLoading,
+  } = useMutationPermissions(tripId);
   const { tier, subscription, isSuperAdmin } = useConsumerSubscription();
   // Demo mode available for future conditional rendering
   const { isDemoMode: _isDemoMode } = useDemoMode();
@@ -67,6 +72,8 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
     isSuperAdmin,
     active: true,
   });
+  // Free-tier taste: 5 Smart Imports per account before paywall.
+  const { canUseFreeImport, invalidateTaste } = useSmartImportTaste(tripId);
 
   // Background URL import
   const {
@@ -82,6 +89,7 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
   const [showImportModal, setShowImportModal] = useState(false);
   // Export dialog state
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showUpsellModal, setShowUpsellModal] = useState(false);
 
   // Callback for background import: opens the modal with results when the toast action is clicked
   const handleBackgroundImportComplete = useCallback(() => {
@@ -97,7 +105,7 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
 
   const handleImport = useCallback(async () => {
     // Allow action optimistically while permissions are still loading
-    if (!permissionsLoading && !canPerformAction('calendar', 'can_edit_events')) {
+    if (!permissionsLoading && !canCreateEvent) {
       toast({
         title: 'Permission denied',
         description: 'You do not have permission to import events',
@@ -106,22 +114,14 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
       return;
     }
 
-    if (!canUseSmartImport) {
-      const { getFeaturePaywallConfig } = await import('@/components/subscription/featurePaywall');
-      const paywall = getFeaturePaywallConfig('smart_import_calendar');
+    // Free users get 5 account-wide Smart Imports before the paywall.
+    if (!canUseSmartImport && !canUseFreeImport) {
       toast({
-        title: 'Upgrade required',
-        description: `${paywall.featureBenefitCopy} Recommended plan: ${paywall.recommendedPlan}.`,
+        title: 'Free Smart Imports used',
+        description:
+          "You've used your 5 free Smart Imports. Unlock unlimited imports with Trip Pass or Explorer.",
         action: (
-          <ToastAction
-            altText="View Plans"
-            onClick={() =>
-              navigate(
-                `${paywall.destination.pathname}${paywall.destination.search}`,
-                paywall.destination.state ? { state: paywall.destination.state } : undefined,
-              )
-            }
-          >
+          <ToastAction altText="View Plans" onClick={() => setShowUpsellModal(true)}>
             View Plans
           </ToastAction>
         ),
@@ -129,18 +129,19 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
       return;
     }
     setShowImportModal(true);
-  }, [permissionsLoading, canPerformAction, canUseSmartImport, toast, navigate]);
+  }, [permissionsLoading, canCreateEvent, canUseSmartImport, canUseFreeImport, toast]);
 
   const handleImportComplete = useCallback(async () => {
     // Wait for queries to settle before attempting a refetch
     await queryClient.cancelQueries({ queryKey: tripKeys.calendar(tripId) });
     await queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
+    invalidateTaste();
     await refreshEvents();
-  }, [queryClient, refreshEvents, tripId]);
+  }, [queryClient, refreshEvents, tripId, invalidateTaste]);
 
   const handleEdit = (event: CalendarEvent) => {
     // Check permissions (will return true in Demo Mode)
-    if (!canPerformAction('calendar', 'can_edit_events')) {
+    if (!canEditEvent) {
       toast({
         title: 'Permission denied',
         description: 'You do not have permission to edit events',
@@ -202,9 +203,9 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
         <CalendarHeader
           viewMode={viewMode}
           onToggleView={toggleViewMode}
-          onAddEvent={() => setShowAddEvent(!showAddEvent)}
+          onAddEvent={canCreateEvent ? () => setShowAddEvent(!showAddEvent) : undefined}
           onExport={handleExport}
-          onImport={handleImport}
+          onImport={canCreateEvent ? handleImport : undefined}
         />
 
         {isError ? (
@@ -216,16 +217,23 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
         ) : isLoading ? (
           <CalendarLoadingState variant="grid" />
         ) : events.length === 0 ? (
-          <CalendarEmptyState onAddEvent={() => setShowAddEvent(true)} />
+          <CalendarEmptyState
+            onAddEvent={canCreateEvent ? () => setShowAddEvent(true) : undefined}
+            onImport={() => void handleImport()}
+          />
         ) : (
           <CalendarGrid
             events={events}
             selectedDate={selectedDate || new Date()}
             onSelectDate={setSelectedDate}
-            onAddEvent={date => {
-              setSelectedDate(date);
-              setShowAddEvent(true);
-            }}
+            onAddEvent={
+              canCreateEvent
+                ? date => {
+                    setSelectedDate(date);
+                    setShowAddEvent(true);
+                  }
+                : undefined
+            }
             currentMonth={currentMonth}
             onMonthChange={setCurrentMonth}
           />
@@ -267,6 +275,7 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
           tripEvents={tripEvents}
           onExport={handleExportEvents}
         />
+        <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
       </div>
     );
   }
@@ -277,9 +286,9 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
         <CalendarHeader
           viewMode={viewMode}
           onToggleView={toggleViewMode}
-          onAddEvent={() => setShowAddEvent(!showAddEvent)}
+          onAddEvent={canCreateEvent ? () => setShowAddEvent(!showAddEvent) : undefined}
           onExport={handleExport}
-          onImport={handleImport}
+          onImport={canCreateEvent ? handleImport : undefined}
         />
         {isError ? (
           <CalendarErrorState
@@ -308,6 +317,7 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
           tripEvents={tripEvents}
           onExport={handleExportEvents}
         />
+        <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
       </div>
     );
   }
@@ -317,9 +327,9 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
       <CalendarHeader
         viewMode={viewMode}
         onToggleView={toggleViewMode}
-        onAddEvent={() => setShowAddEvent(!showAddEvent)}
+        onAddEvent={canCreateEvent ? () => setShowAddEvent(!showAddEvent) : undefined}
         onExport={handleExport}
-        onImport={handleImport}
+        onImport={canCreateEvent ? handleImport : undefined}
       />
 
       {isError ? (
@@ -362,8 +372,8 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
               {selectedDateEvents.length > 0 ? (
                 <EventList
                   events={selectedDateEvents}
-                  onEdit={handleEdit}
-                  onDelete={deleteEvent}
+                  onEdit={canEditEvent ? handleEdit : undefined}
+                  onDelete={canDeleteEvent ? deleteEvent : undefined}
                   emptyMessage=""
                   isDeleting={isSaving}
                 />
@@ -411,6 +421,7 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
         tripEvents={tripEvents}
         onExport={handleExportEvents}
       />
+      <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
     </div>
   );
 });

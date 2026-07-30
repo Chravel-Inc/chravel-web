@@ -240,18 +240,12 @@ class SystemMessageService {
     );
   }
 
-  async personalBaseCampUpdated(
-    tripId: string,
-    actorName: string,
-    newAddress?: string,
-  ): Promise<boolean> {
-    const body = newAddress
-      ? `${actorName} set their personal base camp to ${newAddress}`
-      : `${actorName} updated their personal base camp`;
+  async personalBaseCampUpdated(tripId: string, actorName: string): Promise<boolean> {
+    // Never put personal addresses in trip chat — co-members can read history.
+    const body = `${actorName} updated their personal base camp`;
 
     return this.createSystemMessage(tripId, 'personal_base_camp_updated', body, {
       actorName,
-      newAddress,
     });
   }
 

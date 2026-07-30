@@ -4,6 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { extractInviteCodeFromLink, isDemoInviteCode } from '@/lib/inviteLinkUtils';
 import { buildInviteLink } from '@/lib/unfurlConfig';
+import { syncTripMemberToStreamAndEmitMemberJoined } from '@/lib/streamTripMemberInlineActivity';
+import { parseFunctionsInvokeError } from '@/lib/parseFunctionsError';
 
 interface UseInviteLinkProps {
   isOpen: boolean;
@@ -22,9 +24,12 @@ interface InviteLinkResult {
   isDemoMode: boolean;
   error: string | null;
   expiresAt: string | null;
+  memberLimit: number | null;
+  memberCount: number | null;
   regenerateInviteToken: () => Promise<void>;
   retryGenerate: () => Promise<void>;
   resendInvite: (recipientEmail?: string, recipientPhone?: string) => Promise<boolean>;
+  addExistingMember: (contact: { email?: string; phone?: string }) => Promise<boolean>;
   handleCopyLink: () => Promise<void>;
   handleShare: () => Promise<void>;
   handleEmailInvite: () => void;
@@ -109,15 +114,33 @@ export const useInviteLink = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
+  const [memberLimit, setMemberLimit] = useState<number | null>(null);
+  const [memberCount, setMemberCount] = useState<number | null>(null);
   const { isDemoMode } = useDemoMode();
+
+  const refreshCapacity = useCallback(async (tripIdValue: string) => {
+    if (!isRealTripId(tripIdValue)) {
+      setMemberLimit(null);
+      setMemberCount(null);
+      return;
+    }
+    const [{ data: limit }, { data: tripRow }] = await Promise.all([
+      supabase.rpc('get_trip_member_limit', { p_trip_id: tripIdValue }),
+      supabase.from('trips').select('member_count').eq('id', tripIdValue).maybeSingle(),
+    ]);
+    setMemberLimit(typeof limit === 'number' ? limit : null);
+    setMemberCount(typeof tripRow?.member_count === 'number' ? tripRow.member_count : null);
+  }, []);
 
   // Generate invite link when modal opens
   useEffect(() => {
     if (isOpen) {
       generateTripLink();
+      const actualTripId = proTripId || tripId;
+      if (actualTripId) void refreshCapacity(actualTripId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- generateTripLink closure deps already covered by dep array
-  }, [isOpen, expireIn7Days, maxUses, tripId, proTripId, isDemoMode]);
+  }, [isOpen, expireIn7Days, maxUses, tripId, proTripId, isDemoMode, refreshCapacity]);
 
   const createInviteInDatabase = async (
     tripIdValue: string,
@@ -327,6 +350,17 @@ export const useInviteLink = ({
     await generateTripLink();
   };
 
+  const openMailtoInvite = (recipientEmail: string): void => {
+    const subject = encodeURIComponent(`Join my trip: ${tripName}`);
+    const body = encodeURIComponent(
+      `Hi there!\n\nYou're invited to join my trip "${tripName}"!\n\n` +
+        `Click here to join: ${inviteLink}\n\n` +
+        `If you have ChravelApp installed, this link will open it directly. ` +
+        `Otherwise, you can join through your browser!\n\nSee you there!`,
+    );
+    window.open(`mailto:${recipientEmail}?subject=${subject}&body=${body}`);
+  };
+
   const resendInvite = async (
     recipientEmail?: string,
     recipientPhone?: string,
@@ -339,22 +373,51 @@ export const useInviteLink = ({
     setLoading(true);
     try {
       if (recipientEmail) {
-        const subject = encodeURIComponent(`Join my trip: ${tripName}`);
-        const body = encodeURIComponent(
-          `Hi there!\n\nYou're invited to join my trip "${tripName}"!\n\n` +
-            `Click here to join: ${inviteLink}\n\n` +
-            `If you have ChravelApp installed, this link will open it directly. ` +
-            `Otherwise, you can join through your browser!\n\nSee you there!`,
+        // Prefer existing Resend path (send-email-with-retry). No new vendor signup.
+        const html = `
+          <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:560px;margin:0 auto;">
+            <h2 style="color:#111;">You're invited to ${tripName} on Chravel</h2>
+            <p style="color:#333;line-height:1.5;">
+              Join the trip <strong>${tripName}</strong> using the link below.
+            </p>
+            <p style="margin:28px 0;">
+              <a href="${inviteLink}"
+                 style="background:#111;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;display:inline-block;">
+                Open invite
+              </a>
+            </p>
+            <p style="color:#666;font-size:13px;">Or paste this link:<br/>${inviteLink}</p>
+          </div>
+        `;
+        const { data, error: sendError } = await supabase.functions.invoke(
+          'send-email-with-retry',
+          {
+            body: {
+              to: recipientEmail,
+              subject: `You're invited to ${tripName} on Chravel`,
+              content: html,
+              tripId: proTripId || tripId,
+            },
+          },
         );
-        window.open(`mailto:${recipientEmail}?subject=${subject}&body=${body}`);
-        toast.success(`Invite sent to ${recipientEmail}`);
+
+        if (!sendError && data?.success) {
+          toast.success(`Invite email sent to ${recipientEmail}`);
+          return true;
+        }
+
+        if (import.meta.env.DEV) {
+          console.warn('[InviteLink] Resend path unavailable, falling back to mailto', sendError);
+        }
+        openMailtoInvite(recipientEmail);
+        toast.success(`Opened email draft for ${recipientEmail}`);
         return true;
       } else if (recipientPhone) {
         const message = encodeURIComponent(
           `You're invited to join my trip "${tripName}"! ${inviteLink} (Opens in ChravelApp if installed)`,
         );
         window.open(`sms:${recipientPhone}?body=${message}`);
-        toast.success(`Invite sent to ${recipientPhone}`);
+        toast.success(`Opened text draft for ${recipientPhone}`);
         return true;
       } else {
         toast.error('Please provide an email or phone number');
@@ -362,7 +425,72 @@ export const useInviteLink = ({
       }
     } catch (error) {
       if (import.meta.env.DEV) console.error('[InviteLink] Error resending invite:', error);
+      if (recipientEmail) {
+        openMailtoInvite(recipientEmail);
+        toast.success(`Opened email draft for ${recipientEmail}`);
+        return true;
+      }
       toast.error('Failed to resend invite. Please try again.');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addExistingMember = async (contact: {
+    email?: string;
+    phone?: string;
+  }): Promise<boolean> => {
+    const actualTripId = proTripId || tripId;
+    if (!actualTripId || !isRealTripId(actualTripId)) {
+      toast.error('Open a real trip to add members by email or phone.');
+      return false;
+    }
+    if (isDemoMode && !isRealTripId(actualTripId)) {
+      toast.error('Demo mode cannot add live members.');
+      return false;
+    }
+
+    setLoading(true);
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke(
+        'add-trip-member-by-contact',
+        {
+          body: {
+            tripId: actualTripId,
+            email: contact.email,
+            phone: contact.phone,
+          },
+        },
+      );
+
+      if (invokeError || !data?.success) {
+        const parsed = await parseFunctionsInvokeError(invokeError, data);
+        toast.error(parsed.message);
+        if (parsed.errorCode === 'TRIP_FULL') {
+          void refreshCapacity(actualTripId);
+        }
+        return false;
+      }
+
+      const userId = data.userId as string;
+      const displayName = (data.displayName as string) || 'Chravel User';
+
+      void syncTripMemberToStreamAndEmitMemberJoined({
+        tripId: actualTripId,
+        joiningUserId: userId,
+        memberDisplayName: displayName,
+        syncFailureContext: 'add-trip-member-by-contact',
+      }).catch(() => {
+        /* Stream sync is best-effort; membership already persisted */
+      });
+
+      toast.success(`Added ${displayName} to the trip`);
+      void refreshCapacity(actualTripId);
+      return true;
+    } catch (error) {
+      if (import.meta.env.DEV) console.error('[InviteLink] addExistingMember failed:', error);
+      toast.error('Could not add that person. Please try again.');
       return false;
     } finally {
       setLoading(false);
@@ -427,9 +555,12 @@ export const useInviteLink = ({
     isDemoMode,
     error,
     expiresAt,
+    memberLimit,
+    memberCount,
     regenerateInviteToken,
     retryGenerate,
     resendInvite,
+    addExistingMember,
     handleCopyLink,
     handleShare,
     handleEmailInvite,

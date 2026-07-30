@@ -75,18 +75,18 @@ confirmed SMS-only (no non-SMS dependents), making ordered removal safe.
 - **Tests updated:** `notificationDispatchPolicy.test.ts`, `notificationContentBuilder.test.ts`,
   `useNotificationPreferences.test.tsx`, `useAuth.test.tsx`, `EventNotificationsSection.test.tsx`.
 
-### Database — `supabase/migrations/20260604120000_remove_sms_notifications.sql` (reversible)
-- `queue_notification_deliveries()` recreated to fan out **push + email only**.
-- Queued `channel='sms'` deliveries marked `skipped` (audit history preserved).
-- Dropped: `trigger_enforce_sms_entitlement` + `enforce_sms_entitlement_on_preferences()`,
-  `is_user_sms_entitled()`, `check_sms_rate_limit()`, `increment_sms_counter()`,
-  table `sms_opt_in`, `valid_sms_phone_number` CHECK + `validate_phone_number()`.
-- `should_send_notification()` recreated column-safe (push/email behaviour unchanged).
-- Dropped columns `notification_preferences.{sms_enabled, sms_phone_number, sms_sent_today,
-  last_sms_reset_date}`. Paired `src/integrations/supabase/types.ts` synced.
-- **Intentional:** `notification_deliveries.channel` and `notification_logs.type` CHECK
-  constraints left widened (still allow `'sms'`) to avoid failing on historical rows.
-  Rollback steps are documented inline in the migration.
+### Database — SMS teardown (applied on ChravelApp 2026-07-30)
+- Repo originally had `20260604120000_remove_sms_notifications.sql`, but it was **never
+  applied** to production (sms_* columns / RPCs remained).
+- **Landed:** `20260730180203_remove_sms_twilio_leftovers.sql` (idempotent) — applied via
+  Supabase MCP as `remove_sms_twilio_leftovers`. Cancels leftover queued/processing
+  `channel='sms'` rows (`cancelled`; prod enum has no `skipped`), drops SMS triggers/
+  RPCs/`sms_opt_in`/sms_* preference columns, recreates `should_send_notification`
+  so `sms` always returns false.
+- Paired `src/integrations/supabase/types.ts` synced (sms columns + SMS RPCs removed).
+- **Intentional:** `notification_deliveries.channel` / `notification_logs.type` CHECK
+  constraints left widened (still allow `'sms'`) for historical rows. Fan-out is
+  already push-only.
 
 ---
 
@@ -95,7 +95,7 @@ confirmed SMS-only (no non-SMS dependents), making ordered removal safe.
 | Service | Action | Required? | Owner | Status |
 |---|---|---|---|---|
 | Supabase secrets | Delete `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `LIVEKIT_URL` (no function references them) | Yes | | ☐ |
-| Supabase secrets | Delete `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`, `TWILIO_MESSAGING_SERVICE_SID` | Yes | | ☐ |
+| Supabase secrets | Delete `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`, `TWILIO_MESSAGING_SERVICE_SID` (no function references them; schema leftovers cleared 2026-07-30) | Yes | | ☐ |
 | Supabase `config.toml` | Remove stale `[functions.livekit-token]`, `[functions.create-openai-realtime-session]`, `[functions.gemini-voice-session]`, `[functions.gemini-voice-proxy]` stanzas — **file is protected from automated edits; remove manually.** Inert otherwise (functions deleted). | Yes (cosmetic) | | ☐ |
 | Supabase functions | Delete deployed `livekit-token` + `create-openai-realtime-session` functions from the project | Yes | | ☐ |
 | Vercel | Remove `VITE_LIVEKIT_WS_URL` / `VITE_VOICE_LIVE_ENABLED` / `VITE_AI_VOICE_PROVIDER` env vars | Yes | | ☐ |
@@ -136,7 +136,7 @@ confirmed SMS-only (no non-SMS dependents), making ordered removal safe.
 
 ## Regression risks & mitigations
 
-1. Stuck queued `'sms'` deliveries → migration marks them `skipped`; trigger stops new ones.
+1. Stuck queued `'sms'` deliveries → leftovers migration marks them `cancelled`; `should_send_notification('sms')` always false.
 2. Hidden dependent on a dropped DB object → all SMS objects verified SMS-only; shared
    functions (`queue_notification_deliveries`, `should_send_notification`) are
    `CREATE OR REPLACE`d, not dropped.

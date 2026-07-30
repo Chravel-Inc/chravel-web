@@ -18,7 +18,7 @@ import { executeToolSecurely } from '../_shared/security/toolRouter.ts';
 import { sanitizeForPrompt } from '../_shared/promptBuilder.ts';
 import { incrementConciergeTripUsage } from '../_shared/conciergeUsage.ts';
 import { checkRateLimit } from '../_shared/security.ts';
-import { isFeatureEnabled } from '../_shared/featureFlags.ts';
+import { isFeatureEnabled, createFeatureDisabledResponse } from '../_shared/featureFlags.ts';
 import {
   checkMonthlyTokenBudget,
   resolveUsagePlanForUser,
@@ -728,6 +728,12 @@ serve(async req => {
     }
 
     user = authenticatedUser;
+
+    // Runtime kill switch (seeded in feature_flags). Default true so a missing
+    // row does not take AI offline; operator sets enabled=false to disable.
+    if (!(await isFeatureEnabled('ai_concierge', true))) {
+      return createFeatureDisabledResponse('AI Concierge', corsHeaders);
+    }
 
     // Per-user AI rate limit: 30 requests per minute (distributed, DB-backed).
     // Matches the previous in-process limit (30/min) — DB-backing adds cross-instance
@@ -2069,16 +2075,18 @@ serve(async req => {
       if (messageText.includes('429')) {
         return new Response(
           JSON.stringify({
-            response:
-              '⚠️ **Rate limit reached**\n\nThe AI service is temporarily unavailable due to high usage. Please try again in a moment.',
-            usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
-            sources: [],
+            error: 'High demand right now — please wait about a minute and try again.',
+            retryAfter: 60,
             success: false,
-            error: 'rate_limit',
+            error_code: 'rate_limit',
           }),
           {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+              'Retry-After': '60',
+            },
+            status: 429,
           },
         );
       }

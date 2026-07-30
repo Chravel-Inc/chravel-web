@@ -17,6 +17,8 @@ export interface BuildTripStreamPayloadInput {
   messageType?: 'text' | 'broadcast' | 'payment' | 'system' | string;
   replyToId?: string;
   mentionedUserIds?: string[];
+  /** Optional Pro role IDs — server fanout narrows recipients when present. */
+  targetRoleIds?: string[];
   attachments?: unknown[];
   linkPreview?: StreamLinkPreviewInput;
   quotedReference?: StreamQuotedReferenceInput;
@@ -152,6 +154,10 @@ export function buildTripStreamMessagePayload(
 
   if (input.messageType && input.messageType !== 'text') {
     payload.message_type = input.messageType;
+  }
+
+  if (input.targetRoleIds && input.targetRoleIds.length > 0) {
+    payload.target_role_ids = input.targetRoleIds;
   }
 
   if (input.replyToId && !input.replyToId.startsWith('legacy-')) {

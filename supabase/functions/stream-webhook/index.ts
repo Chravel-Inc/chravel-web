@@ -15,6 +15,11 @@ import {
   buildMentionNotificationRows,
   resolveEligibleMentionRecipients,
 } from './mentionNotifications.ts';
+import {
+  buildBroadcastInsertRow,
+  isStreamBroadcastMessage,
+  resolveBroadcastTargetRoleIds,
+} from './broadcastFanout.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -38,6 +43,9 @@ type StreamWebhookEvent = {
     text?: string;
     user?: { id?: string; name?: string };
     cid?: string;
+    message_type?: string;
+    target_role_ids?: string[];
+    custom?: { message_type?: string; target_role_ids?: string[] };
     mentioned_users?: Array<string | { id?: string; user_id?: string; user?: { id?: string } }>;
   };
 };
@@ -216,6 +224,38 @@ serve(async req => {
     normalizeMentionedUserIds(event.message?.mentioned_users),
     senderId,
   );
+
+  // Stream chat broadcasts never wrote public.broadcasts, so the DB fanout
+  // trigger never fired. Dual-write here (idempotent on stream_message_id).
+  if (
+    isStreamBroadcastMessage(event.message) &&
+    tripId &&
+    senderId &&
+    isUuid(senderId) &&
+    event.message?.id
+  ) {
+    const streamMessageId = event.message.id;
+    const { data: existing } = await supabase
+      .from('broadcasts')
+      .select('id')
+      .contains('metadata', { stream_message_id: streamMessageId })
+      .maybeSingle();
+
+    if (!existing) {
+      const targetRoleIds = resolveBroadcastTargetRoleIds(event.message);
+      const row = buildBroadcastInsertRow({
+        tripId,
+        senderId,
+        messageText: event.message.text || '',
+        streamMessageId,
+        targetRoleIds,
+      });
+      const { error: broadcastError } = await supabase.from('broadcasts').insert(row);
+      if (broadcastError) {
+        console.error('[stream-webhook] broadcast dual-write failed:', broadcastError.message);
+      }
+    }
+  }
 
   if (channelType === 'chravel-trip' || channelType === 'chravel-broadcast') {
     recipients = mentionedUserIds;

@@ -149,6 +149,12 @@ export function formatInAppAlertCopy(input: AlertCopyInput): AlertCopy {
         description: `A new payment request was added to ${scoped}.`,
       };
 
+    case 'payment_reminder':
+      return {
+        title: `Payment reminder in ${trip}`,
+        description: `Someone reminded you about an unpaid balance in ${scoped}.`,
+      };
+
     case 'basecamp':
     case 'basecamp_updates':
     case 'trip_update':
@@ -171,9 +177,11 @@ export function formatInAppAlertCopy(input: AlertCopyInput): AlertCopy {
       };
 
     case 'member_joined':
+    case 'member_added':
       return {
         title: `New member in ${trip}`,
-        description: `Someone joined ${scoped}.`,
+        description:
+          type === 'member_added' ? `You were added to ${scoped}.` : `Someone joined ${scoped}.`,
       };
 
     case 'invite':

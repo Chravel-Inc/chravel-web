@@ -66,7 +66,7 @@ supabase db push
 
 This creates:
 - `web_push_subscriptions` - Stores browser push subscriptions
-- `notification_queue` - Queue for scheduled notifications
+- ~~`notification_queue`~~ — legacy; delivery uses `notification_deliveries` (push + email)
 
 ### 4. Deploy Edge Function
 

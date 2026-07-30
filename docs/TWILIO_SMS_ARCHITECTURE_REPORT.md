@@ -1,5 +1,11 @@
 # Twilio SMS Architecture — Deep Dive Report
 
+> **ARCHIVED / REMOVED (2026-07-30).** Twilio SMS notification delivery was fully
+> removed from the product. Delivery channels are **push | email | in-app** only.
+> See `MVP_INFRA_CLEANUP_AUDIT.md` and migration
+> `20260730180203_remove_sms_twilio_leftovers.sql`. This document is retained as a
+> historical investigation record only — do not re-enable Twilio from it.
+
 **Generated:** 2026-02-16  
 **Scope:** Full Twilio integration, notification preferences, SMS delivery pipeline
 
@@ -7,7 +13,8 @@
 
 ## Executive Summary
 
-The Chravel Twilio SMS system is **architecturally sound** with a well-designed delivery pipeline, but has several **disconnections and bugs** that prevent end-to-end testing. With the fixes in this report, the system can be made fully functional for production.
+~~The Chravel Twilio SMS system is architecturally sound…~~ **Superseded:** SMS/Twilio
+notification wiring has been removed. Push + email + in-app replace SMS.
 
 | Component | Status | Notes |
 |-----------|--------|-------|

@@ -41,6 +41,14 @@ import {
   storePendingInviteCode,
 } from '@/lib/pendingInviteStorage';
 
+interface InvitePreviewItineraryItem {
+  title: string;
+  start_time: string;
+  end_time: string | null;
+  location: string | null;
+  is_all_day: boolean | null;
+}
+
 interface InvitePreviewData {
   invite: {
     trip_id: string;
@@ -58,7 +66,36 @@ interface InvitePreviewData {
     cover_image_url: string | null;
     trip_type: string | null;
     member_count: number;
+    member_limit?: number | null;
+    at_capacity?: boolean;
   };
+  /** Read-only schedule peek for invitees before account/join. Public invite token only. */
+  itinerary_preview?: InvitePreviewItineraryItem[];
+  /** Open polls peek — question + option count only. */
+  polls_preview?: Array<{ question: string; option_count: number }>;
+}
+
+function formatInviteEventWhen(item: InvitePreviewItineraryItem): string {
+  try {
+    const start = new Date(item.start_time);
+    if (Number.isNaN(start.getTime())) return '';
+    if (item.is_all_day) {
+      return start.toLocaleDateString(undefined, {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+      });
+    }
+    return start.toLocaleString(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  } catch {
+    return '';
+  }
 }
 
 function resolveAuthUserDisplayName(user: User): string {
@@ -879,8 +916,13 @@ const JoinTrip = () => {
               <div className="flex items-center gap-3 text-sm">
                 <Users size={16} className="gold-gradient-icon" />
                 <span className="text-white">
-                  {inviteData.trip.member_count}{' '}
-                  {inviteData.trip.member_count === 1 ? 'Chraveler' : 'Chravelers already planning'}
+                  {typeof inviteData.trip.member_limit === 'number'
+                    ? `${inviteData.trip.member_count} of ${inviteData.trip.member_limit} seats filled`
+                    : `${inviteData.trip.member_count} ${
+                        inviteData.trip.member_count === 1
+                          ? 'Chraveler'
+                          : 'Chravelers already planning'
+                      }`}
                 </span>
               </div>
             )}
@@ -913,11 +955,60 @@ const JoinTrip = () => {
             );
           })()}
 
+          {/* Read-only itinerary + polls peek — value before signup */}
+          {((inviteData?.itinerary_preview && inviteData.itinerary_preview.length > 0) ||
+            (inviteData?.polls_preview && inviteData.polls_preview.length > 0)) && (
+            <div className="mb-6 rounded-xl border border-white/10 bg-white/5 p-4 space-y-4">
+              {inviteData?.itinerary_preview && inviteData.itinerary_preview.length > 0 && (
+                <div>
+                  <div className="mb-3 flex items-center gap-2">
+                    <CalendarGlyph size={16} className="gold-gradient-icon" />
+                    <p className="text-sm font-medium text-white">What's planned</p>
+                  </div>
+                  <ul className="space-y-2.5">
+                    {inviteData.itinerary_preview.slice(0, 5).map((item, index) => (
+                      <li key={`${item.start_time}-${index}`} className="text-left">
+                        <p className="text-sm font-medium text-white/90">{item.title}</p>
+                        <p className="text-xs text-white/50">
+                          {formatInviteEventWhen(item)}
+                          {item.location ? ` · ${item.location}` : ''}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                  {inviteData.itinerary_preview.length > 5 && (
+                    <p className="mt-2 text-xs text-white/40">
+                      +{inviteData.itinerary_preview.length - 5} more after you join
+                    </p>
+                  )}
+                </div>
+              )}
+              {inviteData?.polls_preview && inviteData.polls_preview.length > 0 && (
+                <div>
+                  <p className="mb-2 text-sm font-medium text-white">Open polls</p>
+                  <ul className="space-y-2">
+                    {inviteData.polls_preview.slice(0, 3).map((poll, index) => (
+                      <li key={`${poll.question}-${index}`} className="text-left">
+                        <p className="text-sm font-medium text-white/90">{poll.question}</p>
+                        <p className="text-xs text-white/50">
+                          {poll.option_count} option{poll.option_count === 1 ? '' : 's'} · vote
+                          after you join
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Actions */}
           {!user ? (
             <div className="space-y-4">
               <p className="text-white/70 text-center text-sm">
-                {joinPresentation.signedOutPrompt}
+                {inviteData?.itinerary_preview && inviteData.itinerary_preview.length > 0
+                  ? 'Create a free account to request to join and stay in sync with the group.'
+                  : joinPresentation.signedOutPrompt}
               </p>
               <div className="space-y-3">
                 <button

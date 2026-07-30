@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { tripKeys } from '@/lib/queryKeys';
 import {
@@ -41,7 +40,8 @@ import { toast } from 'sonner';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { useDeferredPaidAccess } from '@/hooks/useDeferredPaidAccess';
 import { useSmartImportTaste } from '@/features/smart-import/hooks/useSmartImportTaste';
-import { useRolePermissions } from '@/hooks/useRolePermissions';
+import { PlusUpsellModal } from '@/components/PlusUpsellModal';
+import { useMutationPermissions } from '@/hooks/useMutationPermissions';
 import { useTripMembersQuery } from '@/hooks/useTripMembersQuery';
 import type { TripEvent } from '@/services/calendarService';
 import { useCalendarExport } from '@/features/calendar/hooks/useCalendarExport';
@@ -101,7 +101,6 @@ export const MobileGroupCalendar = ({
   onToggleView,
   viewMode: externalViewMode,
 }: MobileGroupCalendarProps) => {
-  const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -118,9 +117,15 @@ export const MobileGroupCalendar = ({
     isSuperAdmin,
     active: true,
   });
-  // Free-tier "taste": 1 Smart Import per trip before the paywall fires.
+  // Free-tier taste: 5 Smart Imports per account before the paywall fires.
   const { canUseFreeImport, invalidateTaste } = useSmartImportTaste(tripId);
-  const { canPerformAction, isLoading: permissionsLoading } = useRolePermissions(tripId);
+  const [showUpsellModal, setShowUpsellModal] = useState(false);
+  const {
+    canCreateEvent,
+    canEditEvent,
+    canDeleteEvent,
+    isLoading: permissionsLoading,
+  } = useMutationPermissions(tripId);
   const { tripMembers } = useTripMembersQuery(tripId);
 
   // Background URL import
@@ -158,20 +163,14 @@ export const MobileGroupCalendar = ({
   const handleImport = async () => {
     await hapticService.medium();
 
-    // Free users get 1 Smart Import per trip before the paywall fires.
+    // Free users get 5 account-wide Smart Imports before the paywall fires.
     if (!canUseSmartImport && !canUseFreeImport) {
-      const { getFeaturePaywallConfig } = await import('@/components/subscription/featurePaywall');
-      const paywall = getFeaturePaywallConfig('smart_import_calendar');
       toast.error(
-        `You've used your free Smart Import for this trip. ${paywall.recommendedPlan} includes unlimited Smart Import.`,
+        "You've used your 5 free Smart Imports. Unlock unlimited imports with Trip Pass or Explorer.",
         {
           action: {
             label: 'View Plans',
-            onClick: () =>
-              navigate(
-                `${paywall.destination.pathname}${paywall.destination.search}`,
-                paywall.destination.state ? { state: paywall.destination.state } : undefined,
-              ),
+            onClick: () => setShowUpsellModal(true),
           },
         },
       );
@@ -248,7 +247,7 @@ export const MobileGroupCalendar = ({
 
   const handleAddEvent = async () => {
     await hapticService.medium();
-    if (!permissionsLoading && !canPerformAction('calendar', 'can_create_events')) {
+    if (!permissionsLoading && !canCreateEvent) {
       toast.error('You do not have permission to add events');
       return;
     }
@@ -321,7 +320,7 @@ export const MobileGroupCalendar = ({
   const handleDeleteEvent = useCallback(
     async (eventId: string) => {
       if (!eventId) return;
-      if (!permissionsLoading && !canPerformAction('calendar', 'can_delete_events')) {
+      if (!permissionsLoading && !canDeleteEvent) {
         toast.error('You do not have permission to delete events');
         return;
       }
@@ -344,14 +343,14 @@ export const MobileGroupCalendar = ({
         setIsDeleting(false);
       }
     },
-    [deleteEvent, refreshEvents, canPerformAction, permissionsLoading],
+    [deleteEvent, refreshEvents, canDeleteEvent, permissionsLoading],
   );
 
   // Handle event edit
   const handleEditEvent = useCallback(
     async (event: CalendarEvent & { originalEvent?: TripEvent }) => {
       await hapticService.medium();
-      if (!permissionsLoading && !canPerformAction('calendar', 'can_edit_events')) {
+      if (!permissionsLoading && !canEditEvent) {
         toast.error('You do not have permission to edit events');
         return;
       }
@@ -374,7 +373,7 @@ export const MobileGroupCalendar = ({
       setEditingEvent(eventToEdit);
       setIsModalOpen(true);
     },
-    [tripId, canPerformAction, permissionsLoading],
+    [tripId, canEditEvent, permissionsLoading],
   );
 
   // Close event detail drawer
@@ -588,14 +587,16 @@ export const MobileGroupCalendar = ({
                 Month
               </button>
             </div>
-            <button
-              type="button"
-              onClick={handleImport}
-              className="mobile-trip-control-pill flex items-center justify-center rounded-xl bg-white/5 text-gray-300 transition-colors hover:bg-white/10 active:scale-95"
-            >
-              <Upload size={14} />
-              Import
-            </button>
+            {canCreateEvent && (
+              <button
+                type="button"
+                onClick={handleImport}
+                className="mobile-trip-control-pill flex items-center justify-center rounded-xl bg-white/5 text-gray-300 transition-colors hover:bg-white/10 active:scale-95"
+              >
+                <Upload size={14} />
+                Import
+              </button>
+            )}
             <button
               type="button"
               onClick={handleExportClick}
@@ -623,27 +624,31 @@ export const MobileGroupCalendar = ({
                       {format(selectedDate, 'EEEE, MMMM d')}
                     </h3>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleAddEvent}
-                    className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform active:scale-95"
-                    aria-label="Add event for selected day"
-                  >
-                    <Plus size={20} />
-                  </button>
+                  {canCreateEvent && (
+                    <button
+                      type="button"
+                      onClick={handleAddEvent}
+                      className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform active:scale-95"
+                      aria-label="Add event for selected day"
+                    >
+                      <Plus size={20} />
+                    </button>
+                  )}
                 </div>
 
                 <div className="space-y-3">
                   {eventsForSelectedDate.length === 0 ? (
                     <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.03] px-4 py-8 text-center">
                       <p className="text-sm text-gray-400">No events for this day.</p>
-                      <button
-                        type="button"
-                        onClick={handleAddEvent}
-                        className="mt-3 text-sm font-medium text-gold-light underline-offset-2 hover:underline"
-                      >
-                        Add your first event
-                      </button>
+                      {canCreateEvent && (
+                        <button
+                          type="button"
+                          onClick={handleAddEvent}
+                          className="mt-3 text-sm font-medium text-gold-light underline-offset-2 hover:underline"
+                        >
+                          Add your first event
+                        </button>
+                      )}
                     </div>
                   ) : (
                     eventsForSelectedDate.map(renderDayEventCard)
@@ -742,6 +747,7 @@ export const MobileGroupCalendar = ({
         onClearPendingResult={clearBackgroundResult}
         onStartBackgroundImport={handleStartBackgroundImport}
       />
+      <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
 
       {/* Event Detail Drawer - portaled to body so z-index escapes tab stacking context */}
       {selectedEvent &&
@@ -821,10 +827,9 @@ export const MobileGroupCalendar = ({
               </div>
 
               {/* Actions - only show when user has permission */}
-              {(canPerformAction('calendar', 'can_edit_events') ||
-                canPerformAction('calendar', 'can_delete_events')) && (
+              {(canEditEvent || canDeleteEvent) && (
                 <div className="px-6 pb-8 flex gap-3">
-                  {canPerformAction('calendar', 'can_edit_events') && (
+                  {canEditEvent && (
                     <button
                       onClick={() =>
                         handleEditEvent(
@@ -837,7 +842,7 @@ export const MobileGroupCalendar = ({
                       <span>Edit</span>
                     </button>
                   )}
-                  {canPerformAction('calendar', 'can_delete_events') && (
+                  {canDeleteEvent && (
                     <button
                       onClick={() => handleDeleteEvent(selectedEvent.id)}
                       disabled={isDeleting}

@@ -5,7 +5,7 @@ import { CalendarSkeleton, PlacesSkeleton, ChatSkeleton } from '../loading';
 
 import { ProTripData, TeamTripContext, RoomAssignment } from '../../types/pro';
 import { ProTripCategory } from '../../types/proCategories';
-import { isReadOnlyTab, hasTabAccess } from './ProTabsConfig';
+import { isReadOnlyTab, hasTabAccess, PLACEHOLDER_PRO_TAB_IDS } from './ProTabsConfig';
 import { useAuth } from '../../hooks/useAuth';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { useSuperAdmin } from '../../hooks/useSuperAdmin';
@@ -37,6 +37,7 @@ const TeamTab = lazy(() => import('./TeamTab').then(m => ({ default: m.TeamTab }
 const TripTasksTab = lazy(() =>
   import('../todo/TripTasksTab').then(m => ({ default: m.TripTasksTab })),
 );
+const ProDaySheet = lazy(() => import('./ProDaySheet').then(m => ({ default: m.ProDaySheet })));
 
 interface ProTabContentProps {
   onTabChange?: (tab: string) => void;
@@ -121,6 +122,30 @@ export const ProTabContent = ({
     : isReadOnlyTab(activeTab, userRole, userPermissions, isDemoMode);
 
   const renderTabContent = () => {
+    // Deep-links / stale tab state must never show hollow ops UI on real trips.
+    if (!isDemoMode && (PLACEHOLDER_PRO_TAB_IDS as readonly string[]).includes(activeTab)) {
+      return (
+        <div className="space-y-6">
+          <div className="bg-white/5 backdrop-blur-sm border border-gray-700 rounded-xl p-6 text-center py-12">
+            <h3 className="text-lg font-medium text-gray-300 mb-2">Coming soon</h3>
+            <p className="text-gray-500 text-sm max-w-md mx-auto">
+              This Pro ops surface is not available on live trips yet. Use Team, Calendar, Chat, and
+              Broadcasts for day-to-day coordination.
+            </p>
+            {onTabChange && (
+              <button
+                type="button"
+                onClick={() => onTabChange('team')}
+                className="mt-4 text-sm text-gold-primary hover:underline"
+              >
+                Go to Team
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     switch (activeTab) {
       case 'chat':
         return (
@@ -143,6 +168,11 @@ export const ProTabContent = ({
       case 'calendar':
         return (
           <FeatureErrorBoundary featureName="Calendar & Events">
+            {!isDemoMode && (
+              <Suspense fallback={null}>
+                <ProDaySheet tripId={tripId} />
+              </Suspense>
+            )}
             <GroupCalendar tripId={tripId} />
           </FeatureErrorBoundary>
         );
@@ -205,7 +235,10 @@ export const ProTabContent = ({
               <div className="text-center py-12">
                 <DollarSign size={48} className="text-red-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-400 mb-2">Per-diem & Settlement</h3>
-                <p className="text-gray-500 text-sm">Per-diem automation and settlement tracking</p>
+                <p className="text-gray-500 text-sm max-w-md mx-auto">
+                  Demo preview only. On live trips, track shared costs in the Payments tab — this
+                  settlement automation surface is not wired yet.
+                </p>
               </div>
             </div>
           </div>
@@ -223,8 +256,9 @@ export const ProTabContent = ({
               <div className="text-center py-12">
                 <Shield size={48} className="text-red-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-400 mb-2">Health Monitoring</h3>
-                <p className="text-gray-500 text-sm">
-                  Injury status tracking and compliance monitoring
+                <p className="text-gray-500 text-sm max-w-md mx-auto">
+                  Demo preview only. Medical/injury tracking is not available on live trips yet —
+                  keep notes in Tasks or Chat for now.
                 </p>
               </div>
             </div>

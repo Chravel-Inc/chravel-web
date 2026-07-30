@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 
 // ⚡ PERFORMANCE: Lazy-load all conditionally-rendered modals + the unauthenticated
 // marketing landing. These were eagerly imported, parsing ~200-350KB of JS on every
@@ -221,6 +221,24 @@ const AuthIndex = () => {
     await skipOnboarding();
     navigateToPendingOrDashboard();
   }, [skipOnboarding, navigateToPendingOrDashboard]);
+
+  // Invite arrivals: skip the 10-screen tour and go straight to /join/:code.
+  const inviteOnboardingSkipRef = useRef(false);
+  useEffect(() => {
+    if (!showOnboarding || !user || inviteOnboardingSkipRef.current) return;
+
+    const pendingInviteCode = getPendingInviteCode();
+    const pendingDest =
+      getPendingDestination() || (pendingInviteCode ? `/join/${pendingInviteCode}` : null);
+
+    if (!pendingDest?.startsWith('/join/')) return;
+
+    inviteOnboardingSkipRef.current = true;
+    if (!getPendingDestination()) {
+      setPendingDestination(pendingDest);
+    }
+    void handleOnboardingSkip();
+  }, [showOnboarding, user, getPendingDestination, setPendingDestination, handleOnboardingSkip]);
 
   const handleOnboardingExploreDemoTrip = useCallback(async () => {
     await completeOnboarding();

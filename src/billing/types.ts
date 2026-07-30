@@ -50,7 +50,7 @@ export type EntitlementId =
   | 'approval_workflows' // Request approval flows
   | 'quickbooks_integration' // Accounting integration
   | 'compliance_audit' // Audit logs
-  | 'voice_concierge'; // Gemini Voice in AI Concierge
+  | 'voice_concierge'; // Voice dictation (+ TTS); live Gemini realtime is a separate gated path
 
 /**
  * User subscription tiers

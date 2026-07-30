@@ -1051,6 +1051,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
       replyToId?: string,
       quotedReference?: StreamQuotedReferenceInput,
       mentionedUserIds?: string[],
+      targetRoleIds?: string[],
     ): Promise<MessageResponse | undefined> => {
       const channel = channelRef.current;
       if (!channel || !tripId) return undefined;
@@ -1064,6 +1065,7 @@ export const useStreamTripChat = (tripId: string | undefined, options?: { enable
         replyToId,
         quotedReference,
         mentionedUserIds,
+        targetRoleIds,
         idempotencyKey: `${tripId}:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`,
       });
 

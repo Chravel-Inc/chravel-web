@@ -37,6 +37,8 @@ import { MentionPicker, TripMember, filterMentionMembers } from './MentionPicker
 import { VoiceButton } from './VoiceButton';
 import { useWebSpeechVoice } from '@/hooks/useWebSpeechVoice';
 
+export type BroadcastRoleOption = { id: string; name: string };
+
 interface ChatInputProps {
   inputMessage: string;
   onInputChange: (message: string) => void;
@@ -46,6 +48,7 @@ interface ChatInputProps {
     paymentData?: any,
     linkPreview?: any,
     mentionedUserIds?: string[],
+    targetRoleIds?: string[],
   ) => void;
   onKeyPress: (e: React.KeyboardEvent) => void;
   onFileUpload?: (files: FileList, type: 'image' | 'video' | 'document') => void;
@@ -79,6 +82,8 @@ interface ChatInputProps {
    */
   channelId?: string;
   channelName?: string;
+  /** Pro trip roles available for optional broadcast targeting. Empty = all members. */
+  broadcastRoles?: BroadcastRoleOption[];
 }
 
 export const ChatInput = ({
@@ -99,8 +104,10 @@ export const ChatInput = ({
   canSendBroadcast = true,
   channelId,
   channelName,
+  broadcastRoles = [],
 }: ChatInputProps) => {
   const [isBroadcastMode, setIsBroadcastMode] = useState(false);
+  const [selectedBroadcastRoleIds, setSelectedBroadcastRoleIds] = useState<string[]>([]);
   const [isPaymentMode, setIsPaymentMode] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -296,16 +303,23 @@ export const ChatInput = ({
         // Extract mentioned user IDs
         const mentionedUserIds = mentionedUsers.map(u => u.id);
 
+        const targetRoleIds =
+          isBroadcastMode && canSendBroadcast && selectedBroadcastRoleIds.length > 0
+            ? selectedBroadcastRoleIds
+            : undefined;
+
         await onSendMessage(
           isBroadcastMode && canSendBroadcast,
           false,
           undefined,
           undefined,
           mentionedUserIds,
+          targetRoleIds,
         );
 
         // Clear mentioned users after send
         setMentionedUsers([]);
+        setSelectedBroadcastRoleIds([]);
       } finally {
         sendLockRef.current = false;
       }
@@ -620,19 +634,54 @@ export const ChatInput = ({
         </div>
       )}
 
-      {/* Broadcast Mode Indicator */}
+      {/* Broadcast Mode Indicator + optional Pro role targeting */}
       {isBroadcastMode && !isPaymentMode && (
-        <div className="flex items-center justify-between px-4 py-2 bg-[#B91C1C]/10 border-t border-[#B91C1C]/30">
-          <span className="text-xs text-[#B91C1C] flex items-center gap-2">
-            <Megaphone size={14} />
-            Broadcasting to all members
-          </span>
-          <button
-            onClick={() => setIsBroadcastMode(false)}
-            className="text-xs text-[#B91C1C] hover:text-[#B91C1C]/80 underline"
-          >
-            Cancel
-          </button>
+        <div className="px-4 py-2 bg-[#B91C1C]/10 border-t border-[#B91C1C]/30 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs text-[#B91C1C] flex items-center gap-2">
+              <Megaphone size={14} />
+              {selectedBroadcastRoleIds.length > 0
+                ? `Broadcasting to ${selectedBroadcastRoleIds.length} role${selectedBroadcastRoleIds.length === 1 ? '' : 's'}`
+                : 'Broadcasting to all members'}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setIsBroadcastMode(false);
+                setSelectedBroadcastRoleIds([]);
+              }}
+              className="text-xs text-[#B91C1C] hover:text-[#B91C1C]/80 underline min-h-[44px] px-1"
+            >
+              Cancel
+            </button>
+          </div>
+          {broadcastRoles.length > 0 && (
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Target roles">
+              {broadcastRoles.map(role => {
+                const selected = selectedBroadcastRoleIds.includes(role.id);
+                return (
+                  <button
+                    key={role.id}
+                    type="button"
+                    onClick={() =>
+                      setSelectedBroadcastRoleIds(prev =>
+                        selected ? prev.filter(id => id !== role.id) : [...prev, role.id],
+                      )
+                    }
+                    className={cn(
+                      'min-h-[36px] px-2.5 rounded-md text-xs border transition-colors',
+                      selected
+                        ? 'bg-[#B91C1C] text-white border-[#B91C1C]'
+                        : 'bg-transparent text-[#B91C1C] border-[#B91C1C]/40 hover:bg-[#B91C1C]/10',
+                    )}
+                    aria-pressed={selected}
+                  >
+                    {role.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

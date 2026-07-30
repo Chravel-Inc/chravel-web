@@ -26,7 +26,12 @@ const faqItems = [
   {
     question: 'How do AI queries work on each plan?',
     answer:
-      'Free: 3 AI queries per user per trip. Explorer: 25. Frequent Chraveler: unlimited. Voice input to the AI concierge counts as one query. Each new trip resets your limit.',
+      'Free: 3 AI queries per user per trip. Explorer: 25. Frequent Chraveler: unlimited. Voice dictation to the AI concierge counts as one query. Each new trip resets your limit.',
+  },
+  {
+    question: 'Can I add someone to a trip without an invite link?',
+    answer:
+      'Yes — if they already have a Chravel account, open Invite and add them by the email or phone number saved in their Settings. Invite links are still the way to bring in people who need to sign up first.',
   },
   {
     question: 'Can I change plans anytime?',

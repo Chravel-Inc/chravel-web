@@ -120,8 +120,65 @@ serve(async req => {
       inviteLink,
     });
 
+    // Deliver the invite email (best-effort). Token/link still returned if email fails
+    // so admins can share manually — but we no longer silently skip delivery.
+    let emailSent = false;
+    let emailError: string | null = null;
+    const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    const resendFrom = Deno.env.get('RESEND_FROM_EMAIL') || 'support@chravelapp.com';
+    const orgName = org?.display_name || 'an organization';
+
+    if (resendApiKey) {
+      try {
+        const html = `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto;">
+            <h2 style="color: #111;">You're invited to ${orgName} on Chravel</h2>
+            <p style="color: #333; line-height: 1.5;">
+              You've been invited to join <strong>${orgName}</strong> as a <strong>${role}</strong>.
+              Click below to accept the invitation (expires in 7 days).
+            </p>
+            <p style="margin: 28px 0;">
+              <a href="${inviteLink}"
+                 style="background:#111;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;display:inline-block;">
+                Accept invitation
+              </a>
+            </p>
+            <p style="color:#666;font-size:13px;">Or paste this link into your browser:<br/>${inviteLink}</p>
+          </div>
+        `;
+        const response = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: resendFrom,
+            to: [sanitizedEmail],
+            subject: `You're invited to ${orgName} on Chravel`,
+            html,
+          }),
+        });
+        if (!response.ok) {
+          const body = await response.text();
+          emailError = `Resend ${response.status}: ${body.substring(0, 200)}`;
+          console.error('[invite-organization-member] email failed:', emailError);
+        } else {
+          emailSent = true;
+        }
+      } catch (sendErr) {
+        emailError = sendErr instanceof Error ? sendErr.message : 'email send failed';
+        console.error('[invite-organization-member] email exception:', emailError);
+      }
+    } else {
+      emailError = 'RESEND_API_KEY not configured';
+      console.warn('[invite-organization-member] skipping email — no RESEND_API_KEY');
+    }
+
     return createSecureResponse({
       success: true,
+      emailSent,
+      emailError,
       invite: {
         id: invite.id,
         token,

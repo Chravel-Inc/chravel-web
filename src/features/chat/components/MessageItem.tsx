@@ -64,6 +64,8 @@ interface MessageItemProps {
   }) => Promise<void> | void;
   tripId?: string;
   onOpenPollsTab?: () => void;
+  broadcastReadCount?: number;
+  broadcastId?: string;
 }
 
 export const MessageItem = memo(
@@ -99,6 +101,8 @@ export const MessageItem = memo(
     onModerationAction,
     tripId,
     onOpenPollsTab,
+    broadcastReadCount,
+    broadcastId,
   }: MessageItemProps) => {
     const { user } = useAuth();
     const messageWithGrounding = message as unknown as ChatMessageWithGrounding;
@@ -181,6 +185,8 @@ export const MessageItem = memo(
           senderAvatar={message.sender.avatar}
           timestamp={message.createdAt}
           isBroadcast={message.isBroadcast}
+          broadcastReadCount={broadcastReadCount}
+          broadcastId={broadcastId}
           isPayment={message.isPayment || message.tags?.includes('payment')}
           isOwnMessage={isOwnMessage}
           isEdited={(message as any).isEdited || false}

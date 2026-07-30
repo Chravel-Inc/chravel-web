@@ -109,8 +109,8 @@
 | `docs/GEMINI_LIVE_ARCHITECTURE_REPORT.md` | Gemini Live voice architecture |
 | `docs/AI_CONCIERGE_TOOLS_AND_GUARDRAILS.md` | AI tool calling safety boundaries |
 | `docs/AI_CONCIERGE_RAG_FORENSIC_AUDIT.md` | RAG system forensic analysis |
-| `docs/SMS_NOTIFICATION_DELIVERY_ARCHITECTURE.md` | SMS/notification delivery |
-| `docs/TWILIO_SMS_ARCHITECTURE_REPORT.md` | Twilio SMS integration |
+| `docs/SMS_NOTIFICATION_DELIVERY_ARCHITECTURE.md` | _(archived)_ historical SMS delivery; removed 2026-07-30 |
+| `docs/TWILIO_SMS_ARCHITECTURE_REPORT.md` | _(archived)_ Twilio SMS; removed 2026-07-30 |
 | `docs/ACTIVE/AUDIT_STRUCTURED_OBJECTS.md` | Structured objects audit |
 
 ### Operational

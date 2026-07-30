@@ -109,6 +109,8 @@ describe('uploadService media count enforcement (per uploader, not trip-wide)', 
     expect(result.publicUrl).toBe('https://cdn/x.jpg');
   });
 
+  // Align with #871 / main: lookup failures fail OPEN (upload proceeds) and are
+  // reported via errorTracking — never silently, never hard-blocking on a DB blip.
   it('fails OPEN when the count query errors — the upload proceeds', async () => {
     (resolveEffectiveTier as any).mockResolvedValue('free');
 
