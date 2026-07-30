@@ -26,6 +26,7 @@ type InvitePreviewErrorCode =
   | 'INVITE_MAX_USES'
   | 'TRIP_NOT_FOUND'
   | 'TRIP_ARCHIVED'
+  | 'TRIP_FULL'
   | 'NETWORK_ERROR'
   | 'UNKNOWN_ERROR';
 
