@@ -97,7 +97,7 @@ describe('functionExecutor idempotency', () => {
     );
   });
 
-  it('should throw on duplicate pending action (unique constraint violation)', async () => {
+  it('returns a graceful duplicate result on unique-constraint replay (no second write)', async () => {
     const mockSingle = vi.fn().mockResolvedValue({ data: null, error: { code: '23505' } });
     const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
     const mockInsert = vi.fn().mockReturnValue({ select: mockSelect });
@@ -108,17 +108,56 @@ describe('functionExecutor idempotency', () => {
       rpc: vi.fn().mockResolvedValue({ data: true, error: null }),
     };
 
-    await expect(
-      executeFunctionCall(
-        mockSupabase,
-        'createTask',
-        { title: 'Passports', notes: 'Get them', idempotency_key: 'idemp-1' },
-        'trip-1',
-        'user-1',
-      ),
-    ).rejects.toEqual({ code: '23505' });
+    // A retry with the same idempotency key must NOT throw (the model would
+    // see a raw error) and must NOT insert a second task — it reports the
+    // duplicate so the UI renders an "already exists" card.
+    const result = await executeFunctionCall(
+      mockSupabase,
+      'createTask',
+      { title: 'Passports', notes: 'Get them', idempotency_key: 'idemp-1' },
+      'trip-1',
+      'user-1',
+    );
 
+    expect(result).toMatchObject({
+      success: true,
+      duplicate: true,
+      actionType: 'create_task',
+    });
     expect(mockFrom).toHaveBeenCalledWith('trip_pending_actions');
+    // Only the pending-buffer insert ran — no trip_tasks write.
+    expect(mockFrom).not.toHaveBeenCalledWith('trip_tasks');
+  });
+
+  it('addToCalendar dedupes on idempotency_key replay instead of double-inserting', async () => {
+    const mockSingle = vi.fn().mockResolvedValue({ data: null, error: { code: '23505' } });
+    const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
+    const mockInsert = vi.fn().mockReturnValue({ select: mockSelect });
+    const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
+    const mockSupabase = {
+      from: mockFrom,
+      rpc: vi.fn().mockResolvedValue({ data: true, error: null }),
+    };
+
+    const result = await executeFunctionCall(
+      mockSupabase,
+      'addToCalendar',
+      {
+        title: 'Dinner at Nobu',
+        datetime: '2026-08-01T19:00:00Z',
+        idempotency_key: 'idemp-2',
+      },
+      'trip-1',
+      'user-1',
+    );
+
+    expect(result).toMatchObject({
+      success: true,
+      duplicate: true,
+      actionType: 'add_to_calendar',
+    });
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({ tool_call_id: 'idemp-2' }));
+    expect(mockFrom).not.toHaveBeenCalledWith('trip_events');
   });
 
   it('should reject addToCalendar when datetime is invalid', async () => {

@@ -53,6 +53,9 @@ export const MUTATING_TOOL_NAMES = new Set<string>([
   'emitSmartImportPreview',
   'emitReservationDraft',
   'emitBulkDeletePreview',
+  // Writes calendar rows via its nested addToCalendar call — classifying it
+  // as a read skipped idempotency reservation, so retries duplicated events.
+  'makeReservation',
 ]);
 
 export interface ToolDeclaration {
@@ -1513,6 +1516,7 @@ const QUERY_CLASS_TOOLS: Record<QueryClass, string[] | 'all'> = {
     'searchTripChats',
     'searchTripArtifacts',
     'getTripLinks',
+    'saveLink',
     'getRecentActivity',
   ],
   weather_time: ['searchWeb', 'getWeatherForecast', 'getTravelAdvisories', 'generatePackingList'],
@@ -1530,6 +1534,7 @@ const QUERY_CLASS_TOOLS: Record<QueryClass, string[] | 'all'> = {
     'addToCalendar',
     'updateCalendarEvent',
     'deleteCalendarEvent',
+    'bulkDeleteCalendarEvents',
     'emitBulkDeletePreview',
     'detectCalendarConflicts',
     'optimizeItinerary',
@@ -1561,6 +1566,7 @@ const QUERY_CLASS_TOOLS: Record<QueryClass, string[] | 'all'> = {
     'shareItinerary',
     'searchTripChats',
     'getTripLinks',
+    'saveLink',
     'getRecentActivity',
     'getTripInfo',
     'updateTripDetails',

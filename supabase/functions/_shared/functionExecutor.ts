@@ -97,9 +97,15 @@ async function _executeImpl(
 
   switch (functionName) {
     case 'addToCalendar': {
-      const { title, datetime, endDatetime, location, notes } = args;
+      const { title, datetime, endDatetime, location, notes, idempotency_key, tool_call_id } = args;
       const normalizedTitle = String(title || '').trim();
       if (!normalizedTitle) return { error: 'Event title is required' };
+
+      // Dedupe key: voice passes tool_call_id, text passes idempotency_key
+      // (a REQUIRED schema field that was previously ignored — model retries
+      // created duplicate events). Maps to the UNIQUE index on
+      // (trip_id, tool_call_id) in trip_pending_actions.
+      const dedupeId = tool_call_id || idempotency_key || null;
 
       const parsedStart = new Date(datetime);
       if (Number.isNaN(parsedStart.getTime())) {
@@ -123,6 +129,7 @@ async function _executeImpl(
           trip_id: tripId,
           user_id: userId || '00000000-0000-0000-0000-000000000000',
           tool_name: 'addToCalendar',
+          ...(dedupeId ? { tool_call_id: dedupeId } : {}),
           payload: {
             title: normalizedTitle,
             start_time: startTime,
@@ -136,6 +143,17 @@ async function _executeImpl(
         .select('id')
         .single();
 
+      // Unique violation on tool_call_id = this exact call already ran
+      // (model/network retry). Report a graceful duplicate — do NOT insert
+      // a second event.
+      if (pendingError?.code === '23505') {
+        return {
+          success: true,
+          duplicate: true,
+          actionType: 'add_to_calendar',
+          message: `"${normalizedTitle}" was already added to the calendar by this request.`,
+        };
+      }
       if (pendingError) throw pendingError;
 
       // ⚡ Fast-path: when the caller is the authenticated trip member, write to the real
@@ -146,7 +164,7 @@ async function _executeImpl(
         const { error: realInsertError } = await supabase.from('trip_events').insert({
           trip_id: tripId,
           created_by: userId,
-          title,
+          title: normalizedTitle,
           start_time: startTime,
           end_time: endTime,
           location: location || null,
@@ -212,11 +230,21 @@ async function _executeImpl(
         .select('id')
         .single();
 
+      // Retry with the same tool_call_id → graceful duplicate, not a throw.
+      if (pendingError?.code === '23505') {
+        return {
+          success: true,
+          duplicate: true,
+          actionType: 'create_task',
+          message: `The task "${taskTitle}" was already created by this request.`,
+        };
+      }
       if (pendingError) throw pendingError;
 
       // ⚡ Fast-path: write to trip_tasks immediately + mirror task_status/task_assignments
       // so the new task appears in the Tasks tab without the client auto-confirm round-trip.
       let promoted = false;
+      let assigneeNote = '';
       if (userId) {
         const { data: taskRow, error: realInsertError } = await supabase
           .from('trip_tasks')
@@ -232,14 +260,53 @@ async function _executeImpl(
           .single();
 
         if (!realInsertError && taskRow?.id) {
-          // Mirror manual task creation: assign creator and seed incomplete status
+          // Resolve the `assignee` hint (display name) to an actual trip
+          // member — previously the arg was echoed in the message but the
+          // task was ALWAYS assigned to the caller. Best-effort match;
+          // falls back to the caller when no member matches.
+          let assigneeUserId = userId;
+          let assigneeResolved = false;
+          const assigneeHint = String(assignee || '')
+            .trim()
+            .toLowerCase();
+          if (assigneeHint) {
+            const { data: members } = await supabase
+              .from('trip_members')
+              .select('user_id')
+              .eq('trip_id', tripId);
+            const memberIds = (members || []).map((m: { user_id: string }) => m.user_id);
+            if (memberIds.length > 0) {
+              const { data: memberProfiles } = await supabase
+                .from('profiles_public')
+                .select('user_id, resolved_display_name')
+                .in('user_id', memberIds);
+              const match = (memberProfiles || []).find(
+                (p: { user_id: string; resolved_display_name?: string | null }) => {
+                  const name = String(p.resolved_display_name || '').toLowerCase();
+                  return name.length > 0 && (name === assigneeHint || name.includes(assigneeHint));
+                },
+              );
+              if (match) {
+                assigneeUserId = match.user_id;
+                assigneeResolved = true;
+              }
+            }
+          }
+
+          // Mirror manual task creation: assign resolved member (or creator)
+          // and seed incomplete status
           await supabase
             .from('task_assignments')
-            .insert([{ task_id: taskRow.id, user_id: userId }]);
+            .insert([{ task_id: taskRow.id, user_id: assigneeUserId }]);
           await supabase
             .from('task_status')
-            .insert([{ task_id: taskRow.id, user_id: userId, completed: false }]);
+            .insert([{ task_id: taskRow.id, user_id: assigneeUserId, completed: false }]);
           promoted = true;
+          assigneeNote = assigneeResolved
+            ? ` and assigned it to ${assignee}`
+            : assigneeHint
+              ? ` (couldn't match "${assignee}" to a trip member — assigned to you)`
+              : '';
           await supabase
             .from('trip_pending_actions')
             .update({
@@ -264,19 +331,27 @@ async function _executeImpl(
         pendingActionId: pending.id,
         actionType: 'create_task',
         message: promoted
-          ? `Created task: "${taskTitle}"${assignee ? ` for ${assignee}` : ''}.`
+          ? `Created task: "${taskTitle}"${assigneeNote}.`
           : `I'd like to create a task: "${taskTitle}"${assignee ? ` for ${assignee}` : ''}. Please confirm in the trip chat.`,
       };
     }
 
     case 'createPoll': {
-      const { question, options } = args;
-      const pollOptions = options.map((opt: string, i: number) => ({
+      const { question, options, idempotency_key, tool_call_id } = args;
+      // Schema promises 2-6 options — enforce it here (executor is the
+      // authority; schema validation alone doesn't bound array length).
+      if (!Array.isArray(options) || options.length < 2) {
+        return { error: 'A poll needs at least 2 options.' };
+      }
+      const pollOptions = options.slice(0, 6).map((opt: string, i: number) => ({
         id: `opt_${i}`,
         text: opt,
         votes: 0,
         voters: [],
       }));
+
+      // Same retry-dedupe contract as addToCalendar/createTask.
+      const dedupeId = tool_call_id || idempotency_key || null;
 
       // B4: Pending buffer (preserves UI contract + audit trail)
       const { data: pending, error: pendingError } = await supabase
@@ -285,6 +360,7 @@ async function _executeImpl(
           trip_id: tripId,
           user_id: userId || '00000000-0000-0000-0000-000000000000',
           tool_name: 'createPoll',
+          ...(dedupeId ? { tool_call_id: dedupeId } : {}),
           payload: {
             question,
             options: pollOptions,
@@ -295,6 +371,14 @@ async function _executeImpl(
         .select('id')
         .single();
 
+      if (pendingError?.code === '23505') {
+        return {
+          success: true,
+          duplicate: true,
+          actionType: 'create_poll',
+          message: `The poll "${question}" was already created by this request.`,
+        };
+      }
       if (pendingError) throw pendingError;
 
       // ⚡ Fast-path: write to trip_polls immediately so the poll appears in the Polls tab.
@@ -334,8 +418,8 @@ async function _executeImpl(
         pendingActionId: pending.id,
         actionType: 'create_poll',
         message: promoted
-          ? `Created poll: "${question}" with ${options.length} options.`
-          : `I'd like to create a poll: "${question}" with ${options.length} options. Please confirm in the trip chat.`,
+          ? `Created poll: "${question}" with ${pollOptions.length} options.`
+          : `I'd like to create a poll: "${question}" with ${pollOptions.length} options. Please confirm in the trip chat.`,
       };
     }
 
@@ -1038,6 +1122,9 @@ async function _executeImpl(
       const { name, url, description, category } = args;
       const placeName = String(name || '').trim();
       if (!placeName) return { error: 'Place name is required' };
+      // added_by is a uuid column — an empty-string fallback would throw a
+      // cast error mid-insert. Require auth up front like createBroadcast.
+      if (!userId) return { error: 'Authentication required to save places' };
 
       // Build a Google Maps search URL if no explicit URL provided
       const placeUrl = url
@@ -1101,6 +1188,8 @@ async function _executeImpl(
       const { url, title, description, category, idempotency_key, tool_call_id } = args;
       const rawUrl = String(url || '').trim();
       if (!rawUrl) return { error: 'url is required' };
+      // added_by is a uuid column — empty-string fallback would throw mid-insert.
+      if (!userId) return { error: 'Authentication required to save links' };
 
       let parsedHost = '';
       try {
@@ -3506,6 +3595,9 @@ async function _executeImpl(
           .select('id')
           .single();
 
+        // Retry replay of this batch — this task already exists; skip it
+        // instead of failing the whole batch.
+        if (pendingError?.code === '23505') continue;
         if (pendingError) throw pendingError;
 
         let promoted = false;

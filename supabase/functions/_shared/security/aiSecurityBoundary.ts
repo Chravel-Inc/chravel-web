@@ -45,6 +45,8 @@ export const MUTATING_TOOL_ALLOWLIST = new Set([
   'emitSmartImportPreview',
   'emitReservationDraft',
   'emitBulkDeletePreview',
+  // Mutates via nested addToCalendar — must be classified as a write.
+  'makeReservation',
 ]);
 
 export const DESTRUCTIVE_MUTATION_ALLOWLIST = new Set([
