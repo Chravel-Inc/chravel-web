@@ -24,6 +24,8 @@ export function isLikelyHtmlCrawler(userAgent: string | null): boolean {
     'redditbot',
     'whatsapp',
     'snapchat',
+    'applebot',
+    'imessage',
   ];
   return markers.some(marker => ua.includes(marker));
 }

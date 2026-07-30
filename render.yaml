@@ -41,6 +41,12 @@ services:
         name: Referrer-Policy
         value: strict-origin-when-cross-origin
     routes:
+      - type: redirect
+        source: /t/*
+        destination: https://p.chravel.app/t/*
+      - type: redirect
+        source: /j/*
+        destination: https://p.chravel.app/j/*
       - type: rewrite
         source: /*
         destination: /index.html

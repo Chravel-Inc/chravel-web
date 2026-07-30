@@ -151,18 +151,6 @@
   ],
   "rewrites": [
     {
-      "source": "/join/:code",
-      "destination": "/api/invite-preview?code=:code"
-    },
-    {
-      "source": "/j/:code",
-      "destination": "/api/invite-preview?code=:code"
-    },
-    {
-      "source": "/t/:tripId",
-      "destination": "/api/trip-preview?tripId=:tripId"
-    },
-    {
       "source": "/((?!api/|\\.well-known/).*)",
       "destination": "/index.html"
     }
