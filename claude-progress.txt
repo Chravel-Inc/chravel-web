@@ -1,6 +1,7 @@
 2026-07-30 — Remove Twilio/SMS notification leftovers
 - Applied `remove_sms_twilio_leftovers` on ChravelApp (prod still had sms_* prefs/RPCs; app code already push/email/in-app only).
 - Migration `20260730180203_remove_sms_twilio_leftovers.sql` + types.ts sync; cancel leftover queued SMS deliveries.
+- Follow-up: `20260730181722_restore_should_send_after_sms_teardown.sql` restored DEFAULT in_app + mentions/chat aliases (first leftovers apply had clobbered the Jul 8/9 preference gate).
 - Docs/atlas/SYSTEM_MAP: mark Twilio SMS archived; keep native `sms:` share deeplinks and Auth OTP Twilio notes separate.
 - Operator still needed: delete TWILIO_* Supabase secrets + pause Twilio Messaging Service.
 - Branch: cursor/synthetic-study-p0-fixes-9c54 (PR #867)
