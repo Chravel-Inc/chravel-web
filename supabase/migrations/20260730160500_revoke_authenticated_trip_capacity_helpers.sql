@@ -29,7 +29,7 @@ DECLARE
   r record;
 BEGIN
   FOR r IN
-    SELECT p.oid::regprocedure AS sig
+    SELECT p.oid::regprocedure AS sig, p.proname
     FROM pg_proc p
     JOIN pg_namespace n ON n.oid = p.pronamespace
     WHERE n.nspname = 'public'
@@ -37,13 +37,21 @@ BEGIN
   LOOP
     EXECUTE format('REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC, anon, authenticated', r.sig);
     EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', r.sig);
+
+    -- Comment only when the function exists (avoids hard-fail on DBs that never
+    -- received 20260727140000). Catalog loop already guarantees presence here.
+    IF r.proname = 'get_trip_member_limit' THEN
+      EXECUTE format(
+        'COMMENT ON FUNCTION %s IS %L',
+        r.sig,
+        'Returns trip member cap from creator plan. SECURITY DEFINER; EXECUTE service_role only (re-asserted 2026-07-30 — discloses creator entitlement metadata).'
+      );
+    ELSIF r.proname = 'is_trip_at_member_capacity' THEN
+      EXECUTE format(
+        'COMMENT ON FUNCTION %s IS %L',
+        r.sig,
+        'True when active member count >= get_trip_member_limit. SECURITY DEFINER; EXECUTE service_role only (re-asserted 2026-07-30).'
+      );
+    END IF;
   END LOOP;
 END $$;
-
-COMMENT ON FUNCTION public.get_trip_member_limit(text) IS
-  'Returns trip member cap from creator plan. SECURITY DEFINER; EXECUTE service_role only '
-  '(re-asserted 2026-07-30 — discloses creator entitlement metadata).';
-
-COMMENT ON FUNCTION public.is_trip_at_member_capacity(text) IS
-  'True when active member count >= get_trip_member_limit. SECURITY DEFINER; EXECUTE '
-  'service_role only (re-asserted 2026-07-30).';
