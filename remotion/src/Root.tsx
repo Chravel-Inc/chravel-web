@@ -17,10 +17,14 @@ import {
   HOMEPAGE_PRODUCT_DEMO_60_DURATION,
 } from './compositions/HomepageProductDemo60';
 import { MobileAppDemo, MOBILE_DEMO_DURATION } from './compositions/MobileAppDemo';
+import { UseCaseReel, USE_CASE_REEL_DURATION } from './compositions/useCases/UseCaseReel';
+import { USE_CASE_SCRIPTS } from './compositions/useCases/scripts';
 
 const FPS = 30;
 const WIDTH = 1920;
 const HEIGHT = 1080;
+const REEL_WIDTH = 1080;
+const REEL_HEIGHT = 1920;
 
 export const RemotionRoot = () => {
   return (
@@ -85,6 +89,22 @@ export const RemotionRoot = () => {
         width={WIDTH}
         height={HEIGHT}
       />
+
+      {/* Instagram / social cinematic reels — one per use case (9:16) */}
+      <Folder name="UseCaseReels">
+        {USE_CASE_SCRIPTS.map(script => (
+          <Composition
+            key={script.id}
+            id={`UseCaseReel-${script.id}`}
+            component={UseCaseReel}
+            durationInFrames={USE_CASE_REEL_DURATION}
+            fps={FPS}
+            width={REEL_WIDTH}
+            height={REEL_HEIGHT}
+            defaultProps={{ scriptId: script.id }}
+          />
+        ))}
+      </Folder>
 
       {/* B-Roll Clips */}
       <Folder name="BRoll">

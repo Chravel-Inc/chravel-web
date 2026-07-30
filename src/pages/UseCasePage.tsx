@@ -14,7 +14,9 @@ import {
 import { useForceDarkTheme } from '@/hooks/useForceDarkTheme';
 import { breadcrumbJsonLd, faqJsonLd, siteIdentityJsonLd } from '@/lib/seo';
 import { getUseCaseImage } from '@/lib/useCaseImages';
+import { getUseCaseVideo } from '@/lib/useCaseVideos';
 import { renderInlineMarkdown } from '@/lib/inlineMarkdown';
+import { UseCaseReelSection } from '@/components/landing/UseCaseReelSection';
 import {
   USE_CASES,
   USE_CASES_PATH,
@@ -72,6 +74,7 @@ export default function UseCasePage() {
 
   const related = USE_CASES.filter(item => item.slug !== uc.slug);
   const image = getUseCaseImage(uc.slug);
+  const video = getUseCaseVideo(uc.slug);
   const [lede, ...bodyRest] = uc.body;
 
   return (
@@ -103,6 +106,9 @@ export default function UseCasePage() {
             { label: uc.cardTitle },
           ]}
         />
+
+        {/* Skimmer path — watch the reel instead of (or before) reading the article */}
+        {video && <UseCaseReelSection video={video} title={uc.cardTitle} />}
 
         {/* Article body — lede paragraph runs larger, reporting style */}
         <div className="space-y-5">

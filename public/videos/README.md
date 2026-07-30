@@ -36,6 +36,33 @@ poster and frame 0 are pixel-identical — no visual jump when playback starts.
 
 To preview interactively: `cd remotion && npm run studio`.
 
+## Use-case reels (web cuts)
+
+`use-cases/<slug>.mp4` + `use-cases/<slug>-poster.jpg` are consumed by
+`UseCaseReelSection` on each `/use-cases/:slug` page (poster-first, click-to-play;
+src loads only after Watch). Web cuts are 720p vertical muted H.264 (~1.5–2MB)
+so the article stays light until someone hits play.
+
+Registry: `src/lib/useCaseVideos.ts`. Remotion masters:
+`remotion/src/compositions/useCases/`.
+
+### Regenerate web cuts from Remotion masters
+
+```bash
+# Masters from a prior Remotion render (artifacts or remotion/out/usecase-reels/)
+SRC=/opt/cursor/artifacts/use-case-reels
+OUT=public/videos/use-cases
+# For each slug, scale to 720-wide + extract poster at t=2s
+ffmpeg -y -i "$SRC/chravel-<id>-reel.mp4" -vf scale=720:-2 -an \
+  -c:v libx264 -preset medium -crf 28 -movflags +faststart -pix_fmt yuv420p \
+  "$OUT/<slug>.mp4"
+ffmpeg -y -ss 2 -i "$SRC/chravel-<id>-reel.mp4" -frames:v 1 -q:v 3 \
+  "$OUT/<slug>-poster.jpg"
+```
+
+Id → slug map lives in `remotion/src/compositions/useCases/scripts.ts`
+(`id` field) and `src/lib/useCaseVideos.ts`.
+
 ## Legacy compositions
 
 - `HomepageHeroDemo` / `HomepageHeroDemo60` — earlier Ken Burns slideshow cuts.

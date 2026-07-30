@@ -1,0 +1,6 @@
+node_modules/
+out/
+.remotion/
+# Heavy local media (download/generate for renders)
+public/usecases/broll/
+public/usecases/plates/

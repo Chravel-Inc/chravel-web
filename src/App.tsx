@@ -613,6 +613,8 @@ const App = () => {
                                     config={config}
                                     h1={SEO_LANDING_CONTENT['/group-travel-planning-app'].h1}
                                     intro={SEO_LANDING_CONTENT['/group-travel-planning-app'].intro}
+                                    reelSlug="group-travel-planning-app"
+                                    reelTitle="Group Trips"
                                     faq={[
                                       {
                                         q: 'How is ChravelApp different from Wanderlog or TripIt?',
