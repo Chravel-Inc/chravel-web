@@ -173,10 +173,7 @@ RLS blocks client entitlement mutation.
 
 > Each is intentionally deferred (scope: no DB migrations; product decision required) — not dropped.
 
-1. **Apply billing-ops migrations.** "Create timestamped migrations for `entitlement_audit_log` and apply the
-   existing `20260524120000_billing_webhook_ops_and_reconcile.sql`, editing its reconciliation view to join
-   `profiles` instead of `private_profiles`; regenerate `src/integrations/supabase/types.ts`; verify
-   `to_regclass` for each new object."
+1. **Apply billing-ops migrations.** ✅ Applied live 2026-07-30 (`entitlement_audit_log`, `billing_webhook_processing_failures`, `billing_webhook_ops_dashboard`). Repo migration: `20260730153000_entitlement_audit_log_and_billing_ops.sql`. Remaining: regenerate `src/integrations/supabase/types.ts` if types drift.
 2. **Resolve the RevenueCat dual-config (#3).** "Decide whether web billing uses Stripe or RevenueCat Web Billing;
    if Stripe, neutralize the web-billing init in `src/config/revenuecat.ts` and delete the unused path; otherwise
    reconcile the two configs into one. Add a test asserting a single active web provider."

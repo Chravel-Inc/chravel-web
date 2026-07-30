@@ -29,10 +29,10 @@ documented below.
 | 1 | **CRITICAL** | Stripe **webhook** subscription handlers are a silent no-op in production — they resolve the user via a `private_profiles` table that does not exist in the live DB. | **Fixed** (repointed to `profiles`) |
 | 2 | HIGH | Two divergent limit maps: Explorer storage = 2000 MB (`FEATURE_LIMITS`) vs 50 GB (`FREEMIUM_LIMITS`, the enforced value). | **Fixed** (aligned to 50 GB) |
 | 3 | HIGH | Two contradictory RevenueCat configs (web-billing `rcb_` vs native `appl_`/`goog_`); unclear which is live. | Documented (deferred) |
-| 4 | MEDIUM | `entitlement_audit_log`, `billing_webhook_processing_failures` + 2 views referenced by deployed code but **not deployed**. | Documented (migration deferred) |
+| 4 | MEDIUM | `entitlement_audit_log`, `billing_webhook_processing_failures` + 2 views referenced by deployed code but **not deployed**. | **Fixed** (applied live 2026-07-30; migration `20260730153000_*`) |
 | 5 | MEDIUM | Pricing duplicated across 4+ files + hardcoded UI strings; could drift undetected. | **Mitigated** (parity test added) |
 | 6 | MEDIUM | `webhook_events` idempotency table is **shared** between Stream chat (`stream:message.new`) and billing events. | Documented (deferred) |
-| 7 | LOW | No billing **kill-switch** feature flag (all 4 flags are Stream-chat). | Documented (deferred) |
+| 7 | LOW | No billing **kill-switch** feature flag (all 4 flags are Stream-chat). | **Fixed** (`billing-checkout-enabled` seeded; `create-checkout` gated) |
 | 8 | LOW | Apple IAP / Google Billing scaffold-only; `process-account-deletions` skips missing `private_profiles`; `join-trip` comment updated. | **Fixed** (graceful skip + comment) |
 
 ---
@@ -106,9 +106,11 @@ The `priceAnnual` numbers (490/990) are display-only; there is **no distinct ann
 | `public.user_entitlements` (has `purchase_type`) | all billing | ✅ present |
 | `public.webhook_events` (unique `event_id`) | idempotency | ✅ present |
 | `public.profiles` (`stripe_customer_id`, `stripe_subscription_id`, `subscription_*`, `free_pro_trip_limit`) | billing + app | ✅ present |
-| `public.private_profiles` | stripe-webhook, check-subscription, fetch-invoices, join-trip, process-account-deletions | ❌ **NULL** |
-| `public.entitlement_audit_log` | stripe + revenuecat webhooks | ❌ NULL |
-| `public.billing_webhook_processing_failures` + `billing_webhook_ops_dashboard` + `billing_entitlement_reconciliation_candidates` | stripe-webhook ops | ❌ NULL |
+| `public.private_profiles` | stripe-webhook, check-subscription, fetch-invoices, join-trip, process-account-deletions | ❌ **NULL** (intentional — code repointed to `profiles`) |
+| `public.entitlement_audit_log` | stripe-webhook | ✅ present (applied 2026-07-30) |
+| `public.billing_webhook_processing_failures` + `billing_webhook_ops_dashboard` | stripe-webhook ops | ✅ present (applied 2026-07-30) |
+| `public.billing_entitlement_reconciliation_candidates` | ops reconcile view | ✅ present (joins `profiles`) |
+| `idx_profiles_stripe_customer_id_unique` | webhook customer lookup hardening | ✅ present (partial unique, 2026-05-31) |
 
 **Data:** `user_entitlements` has exactly **1 row**: `source='admin'`, `plan='frequent-chraveler'`, `status='active'`,
 no `stripe_customer_id` / `revenuecat_customer_id` — i.e. a manually granted comp, never a real purchase.
