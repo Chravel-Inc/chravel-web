@@ -1,5 +1,8 @@
 # SMS Test Fix — Root Cause Analysis & Resolution
 
+> **ARCHIVED / REMOVED (2026-07-30).** SMS/Twilio notification delivery was removed.
+> Historical fix notes only — see `MVP_INFRA_CLEANUP_AUDIT.md`.
+
 **Date:** 2026-02-16  
 **User:** a founder super-admin account  
 **Symptom:** "Send test SMS" fails with "Failed to send. Check your settings and try again."

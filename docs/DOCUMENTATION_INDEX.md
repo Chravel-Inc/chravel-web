@@ -31,7 +31,7 @@ Comprehensive guide to all Chravel documentation. For audit-specific documents, 
 - **[SINGLE_MAP_ARCHITECTURE.md](SINGLE_MAP_ARCHITECTURE.md)** — Map component single-instance architecture
 - **[CALENDAR_ARCHITECTURE_REVIEW.md](CALENDAR_ARCHITECTURE_REVIEW.md)** — Calendar sync architecture
 - **[GEMINI_LIVE_ARCHITECTURE_REPORT.md](GEMINI_LIVE_ARCHITECTURE_REPORT.md)** — Gemini Live voice architecture
-- **[SMS_NOTIFICATION_DELIVERY_ARCHITECTURE.md](SMS_NOTIFICATION_DELIVERY_ARCHITECTURE.md)** — SMS/notification delivery
+- **[SMS_NOTIFICATION_DELIVERY_ARCHITECTURE.md](SMS_NOTIFICATION_DELIVERY_ARCHITECTURE.md)** — _(archived)_ historical SMS delivery; removed 2026-07-30
 
 ### Architecture Decision Records (ADRs)
 - **[002-supabase-over-firebase.md](ADRs/002-supabase-over-firebase.md)** — Why Supabase
@@ -73,7 +73,7 @@ See also: [AUDIT_INDEX.md](AUDIT_INDEX.md) for all security audits.
 - **[GOOGLE_MAPS_PLACES_INTEGRATION.md](ACTIVE/GOOGLE_MAPS_PLACES_INTEGRATION.md)** — Maps/Places integration
 - **[CONCIERGE_READ_ALOUD_TTS.md](ACTIVE/CONCIERGE_READ_ALOUD_TTS.md)** — Concierge per-reply read-aloud TTS (Lovable AI Gateway)
 - **[GOOGLE_CLOUD_TTS_MIGRATION.md](ACTIVE/GOOGLE_CLOUD_TTS_MIGRATION.md)** — Archived TTS provider history (stub → read-aloud doc)
-- **[TWILIO_SMS_ARCHITECTURE_REPORT.md](TWILIO_SMS_ARCHITECTURE_REPORT.md)** — Twilio SMS integration
+- **[TWILIO_SMS_ARCHITECTURE_REPORT.md](TWILIO_SMS_ARCHITECTURE_REPORT.md)** — _(archived)_ Twilio SMS; removed 2026-07-30 — use push/email/in-app
 
 ---
 

@@ -1789,7 +1789,6 @@ export type Database = {
           email_enabled: boolean | null
           id: string
           join_requests: boolean | null
-          last_sms_reset_date: string | null
           mentions_only: boolean | null
           payments: boolean | null
           polls: boolean | null
@@ -1797,9 +1796,6 @@ export type Database = {
           quiet_end: string | null
           quiet_hours_enabled: boolean | null
           quiet_start: string | null
-          sms_enabled: boolean | null
-          sms_phone_number: string | null
-          sms_sent_today: number | null
           tasks: boolean | null
           timezone: string | null
           trip_invites: boolean | null
@@ -1815,7 +1811,6 @@ export type Database = {
           email_enabled?: boolean | null
           id?: string
           join_requests?: boolean | null
-          last_sms_reset_date?: string | null
           mentions_only?: boolean | null
           payments?: boolean | null
           polls?: boolean | null
@@ -1823,9 +1818,6 @@ export type Database = {
           quiet_end?: string | null
           quiet_hours_enabled?: boolean | null
           quiet_start?: string | null
-          sms_enabled?: boolean | null
-          sms_phone_number?: string | null
-          sms_sent_today?: number | null
           tasks?: boolean | null
           timezone?: string | null
           trip_invites?: boolean | null
@@ -1841,7 +1833,6 @@ export type Database = {
           email_enabled?: boolean | null
           id?: string
           join_requests?: boolean | null
-          last_sms_reset_date?: string | null
           mentions_only?: boolean | null
           payments?: boolean | null
           polls?: boolean | null
@@ -1849,9 +1840,6 @@ export type Database = {
           quiet_end?: string | null
           quiet_hours_enabled?: boolean | null
           quiet_start?: string | null
-          sms_enabled?: boolean | null
-          sms_phone_number?: string | null
-          sms_sent_today?: number | null
           tasks?: boolean | null
           timezone?: string | null
           trip_invites?: boolean | null
@@ -5425,14 +5413,6 @@ export type Database = {
         Args: { code_param: string }
         Returns: boolean
       }
-      check_sms_rate_limit: {
-        Args: { p_daily_limit?: number; p_user_id: string }
-        Returns: {
-          allowed: boolean
-          remaining: number
-          reset_at: string
-        }[]
-      }
       claim_notification_deliveries: {
         Args: {
           p_channels?: string[]
@@ -5705,7 +5685,6 @@ export type Database = {
           remaining: number
         }[]
       }
-      increment_sms_counter: { Args: { p_user_id: string }; Returns: undefined }
       is_active_trip_member: {
         Args: { _trip_id: string; _user_id: string }
         Returns: boolean
@@ -5755,7 +5734,6 @@ export type Database = {
         Args: { _trip_id: string; _user_id: string }
         Returns: boolean
       }
-      is_user_sms_entitled: { Args: { p_user_id: string }; Returns: boolean }
       leave_trip: { Args: { _trip_id: string }; Returns: Json }
       leave_trip_role: {
         Args: { _role_id: string; _trip_id: string }

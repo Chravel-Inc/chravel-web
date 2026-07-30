@@ -949,7 +949,7 @@
       "color": "green",
       "risk": "Medium",
       "quality": 75,
-      "purpose": "Push, email, SMS, in-app alerts, read receipts, badge counts.",
+      "purpose": "Push, email, in-app alerts, read receipts, badge counts.",
       "keyFiles": [
         "src/services/notificationService.ts",
         "src/hooks/useNotificationRealtime.ts",
@@ -958,8 +958,7 @@
       "deps": [
         "Supabase Realtime",
         "APNS",
-        "Resend",
-        "Twilio"
+        "Resend"
       ],
       "upstream": "All emitters",
       "downstream": "Native shell",
@@ -1638,7 +1637,7 @@
       "name": "Notifications",
       "color": "green",
       "completeness": 92,
-      "plain": "Push, email, SMS, and in-app alerts.",
+      "plain": "Push, email, and in-app alerts.",
       "screens": [
         "notifications/"
       ],
@@ -1653,8 +1652,7 @@
       ],
       "external": [
         "APNS",
-        "Resend",
-        "Twilio"
+        "Resend"
       ],
       "missingStates": [],
       "risks": [],
@@ -1979,14 +1977,14 @@
       "hardening": "Persist partial state; refresh tokens safely"
     },
     {
-      "name": "Resend / Twilio / APNS",
+      "name": "Resend / APNS",
       "type": "notifications",
       "color": "purple",
       "configuredAt": "notificationService + edge fns + src/native/push.ts",
-      "usedAt": "Email / SMS / iOS push",
+      "usedAt": "Email / iOS push",
       "envVars": [
         "RESEND_API_KEY",
-        "TWILIO_*",
+        
         "APNS_*"
       ],
       "failureModes": "Channel-specific delivery failure (fallbacks exist)",
@@ -2508,7 +2506,7 @@
       },
       {
         "area": "Notifications \u0026 realtime",
-        "note": "Push/email/SMS (APNS/Resend/Twilio), dedup, badge counts",
+        "note": "Push/email/in-app (APNS/Resend), dedup, badge counts",
         "conservative": 50,
         "moderate": 80,
         "high": 120

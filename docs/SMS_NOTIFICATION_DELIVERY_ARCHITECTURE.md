@@ -1,10 +1,14 @@
 # SMS Notification Delivery Architecture
 
-Last updated: 2026-02-14
+> **ARCHIVED / REMOVED (2026-07-30).** SMS channel fan-out and Twilio delivery are gone.
+> Canonical delivery is push + email + in-app. See `MVP_INFRA_CLEANUP_AUDIT.md` and
+> `docs/PUSH_NOTIFICATIONS_AND_BADGES.md`. Kept as a historical schema note only.
+
+Last updated: 2026-02-14 (archived 2026-07-30)
 
 ## Overview
 
-Chravel notification delivery is now modeled as:
+~~Chravel notification delivery is now modeled as:~~ **Historical model (pre-removal):**
 
 1. **Event creation** inserts a row into `notifications` (any source: SQL trigger, edge function, direct insert).
 2. **DB trigger** (`trigger_queue_notification_deliveries`) creates per-channel rows in `notification_deliveries` (`push`, `email`, `sms`) as `queued`.
