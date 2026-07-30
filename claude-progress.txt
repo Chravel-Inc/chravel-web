@@ -1,3 +1,8 @@
+2026-07-30 — Cleanup disposable QA auth users from add-by-contact deploy QA
+- Deleted 3 `@chravel-qa.test` users (member/target/phone), their profiles, sessions, identities, trip_members, and the archived `qa-add-member-*` trip.
+- Verified zero leftover auth/profile/membership/trip rows; password login for deleted emails returns invalid credentials.
+- Branch: cursor/synthetic-study-p0-fixes-9c54 (PR #867)
+
 2026-07-30 — Deploy + QA: add-trip-member-by-contact + get-invite-preview
 - Deployed add-trip-member-by-contact v3 (verify_jwt true) and get-invite-preview v894 (verify_jwt false; TRIP_FULL + capacity fields).
 - Applied missing prod migrations: restore_co_member_name_visibility (snapshots) + apply_missing_member_limits_and_roster_rpc (capacity RPCs). Required for happy-path insert + seat preview.
