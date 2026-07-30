@@ -1,0 +1,35 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/main.tsx",
+    "src/App.tsx",
+    "api/**/*.ts",
+    "scripts/**/*.{ts,mjs,cjs,js}",
+    "remotion/src/index.ts",
+    "remotion/src/Root.tsx",
+    "agent/src/index.ts",
+    "optimizer/cli/index.ts",
+    "public/sw.js",
+    "public/firebase-messaging-sw.js",
+    "src/lib/mcp/index.ts"
+  ],
+  "project": [
+    "src/**/*.{ts,tsx}",
+    "api/**/*.ts",
+    "scripts/**/*.{ts,mjs,cjs,js}",
+    "remotion/**/*.{ts,tsx}",
+    "agent/**/*.{ts,tsx}",
+    "optimizer/**/*.{ts,tsx}",
+    "supabase/functions/**/*.ts"
+  ],
+  "ignore": [".agents/**", ".claude/skills/**", "codebase-atlas/**", "appstore/**"],
+  "ignoreDependencies": [
+    "playwright",
+    "husky",
+    "lint-staged",
+    "fake-indexeddb",
+    "happy-dom",
+    "jsdom"
+  ],
+  "ignoreBinaries": ["cap", "python3"]
+}
