@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { sendFcmV1, toFcmData } from '../_shared/fcmV1.ts';
 import { resolveEmailProviderSecrets } from '../_shared/emailDelivery.ts';
+import { authorizeOwnedPushTokens } from './authorizeOwnedPushTokens.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -87,9 +88,35 @@ async function sendPushNotification(
   { userId, tokens, title, body, data, icon, badge }: any,
   corsHeaders: Record<string, string>,
 ) {
-  const tokenList: string[] = Array.isArray(tokens) ? tokens : [tokens];
+  const requestedTokens: string[] = Array.isArray(tokens)
+    ? tokens.filter((token): token is string => typeof token === 'string')
+    : typeof tokens === 'string'
+      ? [tokens]
+      : [];
 
-  const result = await sendFcmV1(tokenList, {
+  const { data: ownedTokenRows, error: ownedTokensError } = await supabase
+    .from('push_tokens')
+    .select('token')
+    .eq('user_id', userId)
+    .eq('active', true);
+
+  if (ownedTokensError) {
+    throw ownedTokensError;
+  }
+
+  const tokenAuthorization = authorizeOwnedPushTokens({
+    requestedTokens,
+    ownedTokens: (ownedTokenRows ?? []).map(row => row.token),
+  });
+
+  if (!tokenAuthorization.ok) {
+    return new Response(JSON.stringify({ error: tokenAuthorization.error }), {
+      status: tokenAuthorization.status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const result = await sendFcmV1(tokenAuthorization.targetTokens, {
     notification: { title, body },
     data: data ? toFcmData(data) : undefined,
     webpush: {

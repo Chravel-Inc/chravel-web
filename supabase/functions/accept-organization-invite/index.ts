@@ -16,8 +16,7 @@ serve(async req => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
     // Get user from auth header
     const authHeader = req.headers.get('Authorization');
@@ -25,10 +24,14 @@ serve(async req => {
       return createErrorResponse('No authorization header', 401);
     }
 
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
     const {
       data: { user },
       error: userError,
-    } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+    } = await supabase.auth.getUser();
 
     if (userError || !user) {
       return createErrorResponse('Unauthorized', 401);
@@ -46,114 +49,25 @@ serve(async req => {
 
     console.log('Accepting invite with token:', redactSensitiveToken(token));
 
-    // Find the invite
-    const { data: invite, error: inviteError } = await supabase
-      .from('organization_invites')
-      .select('*')
-      .eq('token', token)
-      .eq('status', 'pending')
-      .single();
+    const { data: acceptanceResult, error: acceptError } = await supabase.rpc(
+      'accept_organization_invite_secure',
+      {
+        p_token: token,
+      },
+    );
 
-    if (inviteError || !invite) {
-      throw new Error('Invalid or expired invitation');
+    if (acceptError) {
+      console.error('Error accepting organization invite:', acceptError);
+      throw new Error(acceptError.message || 'Failed to accept invitation');
     }
-
-    // Check if invite has expired
-    if (new Date(invite.expires_at) < new Date()) {
-      await supabase.from('organization_invites').update({ status: 'expired' }).eq('id', invite.id);
-
-      throw new Error('Invitation has expired');
-    }
-
-    // Check if user email matches invite
-    if (user.email !== invite.email) {
-      throw new Error('This invitation was sent to a different email address');
-    }
-
-    // Check if user is already a member
-    const { data: existingMember } = await supabase
-      .from('organization_members')
-      .select('id')
-      .eq('organization_id', invite.organization_id)
-      .eq('user_id', user.id)
-      .single();
-
-    if (existingMember) {
-      // Mark invite as accepted even though user was already a member
-      await supabase
-        .from('organization_invites')
-        .update({ status: 'accepted' })
-        .eq('id', invite.id);
-
-      throw new Error('You are already a member of this organization');
-    }
-
-    // Check seat availability
-    const { data: org, error: orgError } = await supabase
-      .from('organizations')
-      .select('seat_limit, seats_used')
-      .eq('id', invite.organization_id)
-      .single();
-
-    if (orgError || !org) {
-      throw new Error('Organization not found');
-    }
-
-    if (org.seats_used >= org.seat_limit) {
-      throw new Error('Organization has reached its seat limit');
-    }
-
-    // Generate seat ID
-    const seatId = `seat-${String(org.seats_used + 1).padStart(3, '0')}`;
-
-    // Create organization membership
-    const { error: memberError } = await supabase.from('organization_members').insert({
-      organization_id: invite.organization_id,
-      user_id: user.id,
-      role: invite.role,
-      invited_by: invite.invited_by,
-      seat_id: seatId,
-      status: 'active',
-    });
-
-    if (memberError) {
-      console.error('Error creating membership:', memberError);
-      throw new Error('Failed to create membership');
-    }
-
-    // Update organization seats_used
-    const { error: updateError } = await supabase
-      .from('organizations')
-      .update({ seats_used: org.seats_used + 1 })
-      .eq('id', invite.organization_id);
-
-    if (updateError) {
-      console.error('Error updating seats:', updateError);
-    }
-
-    // Grant pro role to user
-    const { error: roleError } = await supabase
-      .from('user_roles')
-      .insert({
-        user_id: user.id,
-        role: 'pro',
-      })
-      .select();
-
-    if (roleError && roleError.code !== '23505') {
-      // Ignore duplicate key error
-      console.error('Error granting pro role:', roleError);
-    }
-
-    // Mark invite as accepted
-    await supabase.from('organization_invites').update({ status: 'accepted' }).eq('id', invite.id);
 
     console.log('Invite accepted successfully');
 
     return createSecureResponse({
       success: true,
-      organizationId: invite.organization_id,
-      seatId,
+      organizationId: acceptanceResult?.organization_id,
+      seatId: acceptanceResult?.seat_id,
+      alreadyMember: Boolean(acceptanceResult?.already_member),
     });
   } catch (error) {
     console.error('Error in accept-organization-invite:', error);
