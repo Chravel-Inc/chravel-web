@@ -12,6 +12,7 @@ import type { HotelResult } from '@/features/chat/components/HotelResultCards';
 import { supabase } from '@/integrations/supabase/client';
 import { useConciergeLanguagePreference } from '@/features/concierge/hooks/useConciergeLanguagePreference';
 import { getConciergeInvalidationKeys, isConciergeWriteAction } from '@/lib/conciergeInvalidation';
+import { sendTripMessageWithCanonicalTransport } from '@/services/stream/canonicalTripMessageTransport';
 import { sanitizeConciergeContent } from '@/lib/sanitizeConciergeContent';
 import { conciergeCacheService } from '@/services/conciergeCacheService';
 import type {
@@ -513,6 +514,24 @@ export function useConciergeStreaming(params: Params) {
                   ];
                 });
                 return;
+              }
+
+              // Broadcasts: the executor wrote the `broadcasts` table row
+              // (notifications fan out via its DB trigger), but chat renders
+              // from Stream only — without this send the broadcast never
+              // appears in the trip chat. Fire-and-forget; the table row is
+              // already the durable record.
+              if (name === 'createBroadcast' && result.success && result.promoted) {
+                const broadcastText = (result.broadcast as { message?: string } | null)?.message;
+                if (broadcastText && tripId) {
+                  void sendTripMessageWithCanonicalTransport(tripId, {
+                    content: broadcastText,
+                    message_type: 'broadcast',
+                    privacy_mode: 'standard',
+                  }).catch(() => {
+                    // Chat render miss only — notifications + record already exist.
+                  });
+                }
               }
 
               // Handle concierge write actions (createPoll, createTask, savePlace, etc.)
