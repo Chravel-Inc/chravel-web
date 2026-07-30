@@ -3544,6 +3544,7 @@ async function _executeImpl(
 
       return {
         success: true,
+        actionType: 'split_task_assignments',
         pending: promotedCount < results.length,
         promoted: promotedCount === results.length && results.length > 0,
         tasks: results,
