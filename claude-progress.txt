@@ -1,3 +1,13 @@
+2026-07-30 — Synthetic-study wave 4: add-by-contact + invite resilience
+- Add existing Chravel users to a trip by email OR phone (edge add-trip-member-by-contact + InviteModal UI). Account must already exist.
+- Trip invite email prefers send-email-with-retry/Resend; mailto fallback (no new vendor / not via Lovable).
+- Join preview surfaces plan seat caps (TRIP_FULL); InviteModal shows seats filled.
+- Broadcast "Seen by N" opens per-person roster (get_broadcast_viewers).
+- Pro day-sheet MVP from live trip_events; Payments Remind for unpaid balances; Pro finance/medical honesty copy; FAQ add-by-contact.
+- Migration applied on ChravelApp. Redeploy: add-trip-member-by-contact, get-invite-preview.
+- Tests: phoneDigits, mapCalendarToProSchedule, AddExistingMemberSection, addTripMemberByContact ✅; typecheck ✅; lint 0 errors; merge preflight clean.
+- Branch: cursor/synthetic-study-p0-fixes-9c54 (PR #867)
+
 2026-07-17 — Payment messages need-to-know + edge deploys
 - trip_payment_messages SELECT aligned with payment_splits (COALESCE trip_type, active member, creator/debtor/admin/can_view); INSERT requires is_active_trip_member. Applied to ChravelApp.
 - Deployed edge: bootstrap-super-admins v4, venue-enricher v1147, send-push v791, place-grounding v1055 (bundled+requireAuth).

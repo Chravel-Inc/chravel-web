@@ -3,12 +3,14 @@ import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { ChevronDown, ChevronUp, Clock } from 'lucide-react';
+import { toast } from 'sonner';
 import { PersonalBalance } from '../../services/paymentBalanceService';
 import { SettlePaymentDialog } from './SettlePaymentDialog';
 import { ConfirmPaymentDialog } from './ConfirmPaymentDialog';
 import { formatCurrency } from '../../services/currencyService';
 import { getPaymentMethodDisplayName } from '../../utils/paymentDeeplinks';
 import { PaymentMethodPayButtons } from './PaymentMethodPayButtons';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PersonBalanceCardProps {
   balance: PersonalBalance;
@@ -19,6 +21,7 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
   const [showDetails, setShowDetails] = useState(false);
   const [showSettleDialog, setShowSettleDialog] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [reminding, setReminding] = useState(false);
 
   const isPendingConfirmation = balance.confirmationStatus === 'pending';
   const currency = balance.amountOwedCurrency || 'USD';
@@ -26,7 +29,32 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
   const formatAmount = (amt: number) => formatCurrency(Math.abs(amt), currency);
 
   const youOweThem = balance.amountOwed < 0;
+  const theyOweYou = balance.amountOwed > 0;
   const amount = Math.abs(balance.amountOwed);
+
+  const handleRemind = async () => {
+    setReminding(true);
+    try {
+      const { data, error } = await supabase.rpc('remind_trip_balance', {
+        p_trip_id: tripId,
+        p_debtor_user_id: balance.userId,
+      });
+      if (error) {
+        toast.error('Could not send reminder');
+        return;
+      }
+      const result = (data ?? {}) as { success?: boolean; error?: string };
+      if (result.success === false && result.error === 'NO_BALANCE') {
+        toast.error('No unsettled balance to remind about');
+        return;
+      }
+      toast.success(`Reminder sent to ${balance.userName}`);
+    } catch {
+      toast.error('Could not send reminder');
+    } finally {
+      setReminding(false);
+    }
+  };
 
   const getPaymentMethodDisplay = () => {
     if (!balance.preferredPaymentMethod) return 'No payment method set';
@@ -92,15 +120,29 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
                 </Button>
               </div>
             ) : (
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-xs px-3 py-2 min-h-[44px] flex-shrink-0"
-                onClick={() => setShowSettleDialog(true)}
-                aria-label={`Mark payment from ${balance.userName} as paid`}
-              >
-                Mark as Paid
-              </Button>
+              <div className="flex flex-wrap justify-end gap-2 flex-shrink min-w-[9rem]">
+                {theyOweYou && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="text-xs px-3 py-2 min-h-[44px]"
+                    disabled={reminding}
+                    onClick={() => void handleRemind()}
+                    aria-label={`Remind ${balance.userName} about unpaid balance`}
+                  >
+                    {reminding ? 'Sending…' : 'Remind'}
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-xs px-3 py-2 min-h-[44px] flex-shrink-0"
+                  onClick={() => setShowSettleDialog(true)}
+                  aria-label={`Mark payment from ${balance.userName} as paid`}
+                >
+                  Mark as Paid
+                </Button>
+              </div>
             )}
 
             {/* Right: Amount */}

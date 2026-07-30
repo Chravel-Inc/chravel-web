@@ -33,6 +33,7 @@ import { BubbleTail } from './BubbleTail';
 import { PlaceMiniCard, isPlaceLinkUrl } from './PlaceMiniCard';
 import { VideoThumb, GifAutoplayImage } from './VideoThumb';
 import { useFeatureFlag } from '@/lib/featureFlags';
+import { BroadcastViewersSheet } from './BroadcastViewersSheet';
 
 // .webm omitted — ambiguous audio/video; require explicit type/mime for webm.
 const AUDIO_EXT_RE = /\.(mp3|wav|m4a|ogg|oga|opus|aac|caf)(\?|$)/i;
@@ -53,6 +54,8 @@ export interface MessageBubbleProps {
   isBroadcast?: boolean;
   /** DB-backed broadcast read receipt count (Broadcasts tab). */
   broadcastReadCount?: number;
+  /** DB broadcast id for per-person ack roster. */
+  broadcastId?: string;
   isPayment?: boolean;
   isOwnMessage?: boolean;
   isEdited?: boolean;
@@ -190,6 +193,7 @@ export const MessageBubble = memo(
     timestamp,
     isBroadcast,
     broadcastReadCount,
+    broadcastId,
     isPayment,
     isOwnMessage = false,
     isEdited = false,
@@ -236,6 +240,7 @@ export const MessageBubble = memo(
     onModerationAction,
   }: MessageBubbleProps) => {
     const [showReactions, setShowReactions] = useState(false);
+    const [showBroadcastViewers, setShowBroadcastViewers] = useState(false);
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const [lightboxIndex, setLightboxIndex] = useState(0);
     const [linkImgError, setLinkImgError] = useState(false);
@@ -879,9 +884,26 @@ export const MessageBubble = memo(
               )}
 
               {isBroadcast && typeof broadcastReadCount === 'number' && broadcastReadCount > 0 && (
-                <p className="mt-1 text-[11px] text-white/80" aria-label="Broadcast read count">
-                  Seen by {broadcastReadCount}
-                </p>
+                <>
+                  <button
+                    type="button"
+                    className="mt-1 text-[11px] text-white/80 underline-offset-2 hover:underline min-h-[44px] sm:min-h-0 text-left"
+                    aria-label={`Seen by ${broadcastReadCount}. Open roster.`}
+                    onClick={() => {
+                      if (broadcastId) setShowBroadcastViewers(true);
+                    }}
+                  >
+                    Seen by {broadcastReadCount}
+                  </button>
+                  {broadcastId && (
+                    <BroadcastViewersSheet
+                      open={showBroadcastViewers}
+                      onOpenChange={setShowBroadcastViewers}
+                      broadcastId={broadcastId}
+                      readCount={broadcastReadCount}
+                    />
+                  )}
+                </>
               )}
             </div>
 

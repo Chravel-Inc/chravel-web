@@ -730,3 +730,14 @@ Known security anti-patterns discovered during audits. Reference this before int
 **Smallest Safe Fix (in-session):** don't edit the lockfile (guarded); run `npm install --no-package-lock --no-save --no-audit --fetch-timeout=60000 --fetch-retries=5 --cache <fresh-dir>` — the fresh cache dir sidesteps packuments/tarballs poisoned by earlier mirror fetches, which otherwise cause `notarget`/`Invalid response body` whack-a-mole.
 **Durable Fix:** regenerate `package-lock.json` against registry.npmjs.org from a normal dev machine (`rm package-lock.json && npm install`) so `resolved` URLs are public, and commit it via the normal review flow.
 **Evidence:** 2026-07-20 session — first install hung 31 min with zero progress; log `2026-07-20T22_41_21` shows 16 consecutive 403s on pkg.dev URLs; fresh-cache no-lockfile install succeeded first try.
+
+## Invite-link-only join breaks when links fail at scale
+
+- **Subsystem:** trip membership / invite conversion
+- **Bug class:** single growth path / missing alternate join
+- **Symptom:** If invite links expire, max-out, or break in unfurl/proxy, organizers cannot add known users who already have accounts.
+- **Likely root cause:** Membership creation only via join-request on invite code; no contact lookup path.
+- **Smallest safe fix:** Edge `add-trip-member-by-contact` + service-role `lookup_user_id_by_contact` (email/phone); UI in Invite modal; capacity + invite-mint authz; Stream sync after insert.
+- **Related files:** `supabase/functions/add-trip-member-by-contact/index.ts`, `src/components/invite/AddExistingMemberSection.tsx`, `src/hooks/useInviteLink.ts`
+- **Fixed in:** July 2026 synthetic-study wave 4
+

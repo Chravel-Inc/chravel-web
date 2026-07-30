@@ -134,8 +134,8 @@ export function convertSupabaseTripToEvent(supabaseTrip: SupabaseTrip): EventDat
     category: 'Conference',
     description: mockTrip.description || '',
     tags: normalizeEventTags((supabaseTrip as Record<string, unknown>).tags),
-    // 0 = unset. Do not invent a fake 100/200 attendee cap — those entitlements
-    // are not enforced at join time yet.
+    // 0 = unset in this converter. Live join/approve paths enforce plan caps via
+    // is_trip_at_member_capacity (not a hardcoded event.capacity number).
     capacity: 0,
     registrationStatus: 'open',
     attendanceExpected: 0,
