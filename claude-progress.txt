@@ -1,3 +1,10 @@
+2026-07-30 — Deploy + QA: add-trip-member-by-contact + get-invite-preview
+- Deployed add-trip-member-by-contact v3 (verify_jwt true) and get-invite-preview v894 (verify_jwt false; TRIP_FULL + capacity fields).
+- Applied missing prod migrations: restore_co_member_name_visibility (snapshots) + apply_missing_member_limits_and_roster_rpc (capacity RPCs). Required for happy-path insert + seat preview.
+- Auth QA on real trip: USER_NOT_FOUND email/phone 404; add-by-email 200; ALREADY_MEMBER 409; add-by-phone 200. Join preview shows "3 of 50 seats" for event invite.
+- Demo Invite UI: Email/Phone tabs present; inputs disabled in demo; Phone tab switch fixed when section disabled.
+- Branch: cursor/synthetic-study-p0-fixes-9c54 (PR #867)
+
 2026-07-30 — Synthetic-study wave 4: add-by-contact + invite resilience
 - Add existing Chravel users to a trip by email OR phone (edge add-trip-member-by-contact + InviteModal UI). Account must already exist.
 - Trip invite email prefers send-email-with-retry/Resend; mailto fallback (no new vendor / not via Lovable).

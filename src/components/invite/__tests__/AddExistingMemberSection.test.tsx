@@ -36,4 +36,14 @@ describe('AddExistingMemberSection', () => {
       expect(onAdd).toHaveBeenCalledWith({ phone: '+1 555 123 4567' });
     });
   });
+
+  it('allows Email/Phone tab switching when the section is disabled (demo preview)', () => {
+    const onAdd = vi.fn();
+    render(<AddExistingMemberSection onAdd={onAdd} disabled />);
+
+    fireEvent.click(screen.getByRole('tab', { name: /phone/i }));
+    expect(screen.getByLabelText(/member phone number/i)).toBeDisabled();
+    expect(screen.getByRole('tab', { name: /phone/i })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('button', { name: /^add$/i })).toBeDisabled();
+  });
 });
