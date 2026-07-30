@@ -8,6 +8,7 @@ import {
   BookmarkCheck,
   Check,
 } from 'lucide-react';
+import { useAuthedImage } from '@/hooks/useAuthedImage';
 
 export interface PlaceResult {
   placeId?: string | null;
@@ -43,6 +44,36 @@ const toExternalHttpsUrl = (value?: string | null): string | null => {
   }
 
   return null;
+};
+
+/**
+ * Thumbnail with auth-aware loading: Places photos are served through the
+ * auth-gated image-proxy edge function, which a bare <img src> cannot reach
+ * (no Authorization header → 401). useAuthedImage fetches with the session
+ * token and hands back an object URL; failures fall back to the icon.
+ */
+const PlaceThumb: React.FC<{ photoSrc: string | null; name: string }> = ({ photoSrc, name }) => {
+  const resolvedSrc = useAuthedImage(photoSrc);
+  return (
+    <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+      {resolvedSrc ? (
+        <img
+          src={resolvedSrc}
+          alt={name}
+          className="w-full h-full object-cover"
+          loading="lazy"
+          onError={e => {
+            (e.target as HTMLImageElement).style.display = 'none';
+            // Show parent's placeholder icon when image fails
+            const parent = (e.target as HTMLImageElement).parentElement;
+            if (parent) parent.classList.add('items-center', 'justify-center');
+          }}
+        />
+      ) : (
+        <UtensilsCrossed size={24} className="text-muted-foreground/40" />
+      )}
+    </div>
+  );
 };
 
 const PRICE_MAP: Record<string, string> = {
@@ -84,24 +115,7 @@ export const PlaceResultCards: React.FC<PlaceResultCardsProps> = ({
             className="flex gap-3 rounded-xl border border-border bg-card/80 p-2.5 backdrop-blur-sm overflow-hidden"
           >
             {/* Thumbnail — always reserve the slot; show icon placeholder when no photo */}
-            <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
-              {photoSrc ? (
-                <img
-                  src={photoSrc}
-                  alt={place.name}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                  onError={e => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                    // Show parent's placeholder icon when image fails
-                    const parent = (e.target as HTMLImageElement).parentElement;
-                    if (parent) parent.classList.add('items-center', 'justify-center');
-                  }}
-                />
-              ) : (
-                <UtensilsCrossed size={24} className="text-muted-foreground/40" />
-              )}
-            </div>
+            <PlaceThumb photoSrc={photoSrc} name={place.name} />
 
             {/* Details */}
             <div className="flex-1 min-w-0 flex flex-col justify-between">

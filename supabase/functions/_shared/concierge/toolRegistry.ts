@@ -53,6 +53,9 @@ export const MUTATING_TOOL_NAMES = new Set<string>([
   'emitSmartImportPreview',
   'emitReservationDraft',
   'emitBulkDeletePreview',
+  // Writes calendar rows via its nested addToCalendar call — classifying it
+  // as a read skipped idempotency reservation, so retries duplicated events.
+  'makeReservation',
 ]);
 
 export interface ToolDeclaration {
@@ -1513,6 +1516,7 @@ const QUERY_CLASS_TOOLS: Record<QueryClass, string[] | 'all'> = {
     'searchTripChats',
     'searchTripArtifacts',
     'getTripLinks',
+    'saveLink',
     'getRecentActivity',
   ],
   weather_time: ['searchWeb', 'getWeatherForecast', 'getTravelAdvisories', 'generatePackingList'],
@@ -1530,6 +1534,7 @@ const QUERY_CLASS_TOOLS: Record<QueryClass, string[] | 'all'> = {
     'addToCalendar',
     'updateCalendarEvent',
     'deleteCalendarEvent',
+    'bulkDeleteCalendarEvents',
     'emitBulkDeletePreview',
     'detectCalendarConflicts',
     'optimizeItinerary',
@@ -1561,6 +1566,7 @@ const QUERY_CLASS_TOOLS: Record<QueryClass, string[] | 'all'> = {
     'shareItinerary',
     'searchTripChats',
     'getTripLinks',
+    'saveLink',
     'getRecentActivity',
     'getTripInfo',
     'updateTripDetails',
@@ -1717,15 +1723,38 @@ const VOICE_DESCRIPTION_OVERRIDES: Record<string, string> = {
 };
 
 /**
- * Get all tool declarations with voice-friendly (shorter) descriptions.
+ * Confirmation-gated mutations (destructive / high-blast-radius — see
+ * aiSecurityBoundary's DESTRUCTIVE_MUTATION_ALLOWLIST +
+ * CONFIRMATION_REQUIRED_MUTATION_ALLOWLIST). The confirm grant only exists in
+ * the text concierge UI (ConciergeConfirmCard → userConfirmed); voice has no
+ * confirm surface, so exposing these to the voice model dead-ends every call
+ * in a fail-closed refusal it cannot resolve. Keep them out of the voice tool
+ * list until a voice confirm flow exists.
+ */
+const CONFIRMATION_GATED_TOOL_NAMES = new Set<string>([
+  'deleteCalendarEvent',
+  'bulkDeleteCalendarEvents',
+  'deleteTask',
+  'updateTripDetails',
+  'addExpense',
+  'duplicateCalendarEvent',
+  'cloneActivity',
+  'bulkMarkTasksDone',
+]);
+
+/**
+ * Get tool declarations with voice-friendly (shorter) descriptions.
  * Exposed via voiceToolDeclarations.ts for the voice tool declarations.
+ * Excludes confirmation-gated mutations (no voice confirm surface).
  */
 export function getToolsForVoice(): ToolDeclaration[] {
-  return ALL_TOOL_DECLARATIONS.map(tool => {
-    const voiceDesc = VOICE_DESCRIPTION_OVERRIDES[tool.name];
-    if (voiceDesc) {
-      return { ...tool, description: voiceDesc };
-    }
-    return tool;
-  });
+  return ALL_TOOL_DECLARATIONS.filter(tool => !CONFIRMATION_GATED_TOOL_NAMES.has(tool.name)).map(
+    tool => {
+      const voiceDesc = VOICE_DESCRIPTION_OVERRIDES[tool.name];
+      if (voiceDesc) {
+        return { ...tool, description: voiceDesc };
+      }
+      return tool;
+    },
+  );
 }

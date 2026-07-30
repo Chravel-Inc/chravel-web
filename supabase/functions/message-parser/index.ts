@@ -62,6 +62,12 @@ serve(async req => {
     const audioExtensions = /\.(mp3|wav|flac|aac|ogg)(\?.*)?$/i;
     const docExtensions = /\.(pdf|doc|docx|txt|rtf|xls|xlsx|ppt|pptx)(\?.*)?$/i;
 
+    // The client passes an optimistic `msg_<timestamp>` id, NOT a real Stream
+    // message id — storing it would poison message_id with values that never
+    // join to a real message. Store NULL unless the id looks like a real one.
+    const storedMessageId =
+      typeof messageId === 'string' && !messageId.startsWith('msg_') ? messageId : null;
+
     // Process URLs
     for (const url of urls) {
       const domain = new URL(url).hostname;
@@ -74,16 +80,38 @@ serve(async req => {
       else if (docExtensions.test(url)) mediaType = 'document';
 
       if (mediaType) {
+        // Dedupe: same media URL already indexed for this trip → skip.
+        const { data: existingMedia } = await supabase
+          .from('trip_media_index')
+          .select('id')
+          .eq('trip_id', tripId)
+          .eq('media_url', url)
+          .limit(1)
+          .maybeSingle();
+        if (existingMedia) continue;
+
         // Insert into media index
         await supabase.from('trip_media_index').insert({
           trip_id: tripId,
-          message_id: messageId,
+          message_id: storedMessageId,
           media_type: mediaType,
           media_url: url,
           filename: url.split('/').pop()?.split('?')[0] || 'Unknown',
           metadata: { source: 'chat' },
         });
       } else {
+        // Dedupe: a link index wants one row per unique URL per trip. Typed
+        // URLs and modal-shared links both funnel here or into insertLinkIndex,
+        // so without this check the same URL stacks duplicate rows.
+        const { data: existingLink } = await supabase
+          .from('trip_link_index')
+          .select('id')
+          .eq('trip_id', tripId)
+          .eq('url', url)
+          .limit(1)
+          .maybeSingle();
+        if (existingLink) continue;
+
         // Do not server-fetch arbitrary user-provided URLs here. Link previews
         // are stored without Open Graph metadata to avoid SSRF through service-role
         // edge execution; a future worker may enrich only allowlisted URLs.
@@ -92,7 +120,7 @@ serve(async req => {
         // Insert into link index
         await supabase.from('trip_link_index').insert({
           trip_id: tripId,
-          message_id: messageId,
+          message_id: storedMessageId,
           url: url,
           domain: domain,
           og_title: ogData.title,

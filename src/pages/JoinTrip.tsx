@@ -784,7 +784,7 @@ const JoinTrip = () => {
           {(error.code === 'INVITE_EXPIRED' ||
             error.code === 'INVITE_INACTIVE' ||
             error.code === 'INVITE_MAX_USES') && (
-            <p className="mt-4 text-xs text-white/40">
+            <p className="mt-4 text-xs text-white/60">
               Tip: Ask the trip organizer to send you a new invite link.
             </p>
           )}
@@ -817,7 +817,7 @@ const JoinTrip = () => {
           <h1 className="text-2xl font-bold text-white mb-4">{successContent.title}</h1>
           <p className="text-white/60 mb-6">{successContent.message}</p>
           <div className="h-6 w-6 mx-auto animate-spin gold-gradient-spinner" />
-          <p className="text-sm text-white/40 mt-2">Redirecting...</p>
+          <p className="text-sm text-white/60 mt-2">Redirecting...</p>
         </div>
       </div>
     );
@@ -892,7 +892,7 @@ const JoinTrip = () => {
             )}
 
             {inviteData?.invite.expires_at && (
-              <div className="flex items-center gap-3 text-xs text-white/50">
+              <div className="flex items-center gap-3 text-xs text-white/70">
                 <Clock size={14} />
                 <span>
                   Invite expires: {new Date(inviteData.invite.expires_at).toLocaleDateString()}
@@ -933,7 +933,7 @@ const JoinTrip = () => {
                   Already have an account? Log In
                 </button>
               </div>
-              <p className="text-white/40 text-center text-xs">
+              <p className="text-white/60 text-center text-xs">
                 You can use Google, Apple, or email.
               </p>
             </div>

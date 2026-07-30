@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { errorTracking } from '@/utils/errorTracking';
 import imageCompression from 'browser-image-compression';
 import { getUploadContentType } from '@/utils/mime';
 import { FREEMIUM_LIMITS, type FreemiumTier } from '@/utils/featureTiers';
@@ -68,9 +69,14 @@ async function enforceUploadLimits(
       .eq('metadata->>uploaded_by', userId);
 
     if (storageQueryError) {
-      // Fail open: never block an upload because the usage lookup failed.
-      if (import.meta.env.DEV)
-        console.error('[uploadService] Storage usage lookup failed:', storageQueryError);
+      // Fail open: never block an upload because the usage lookup failed —
+      // but report it. A silent fail-open turns a DB blip into unmetered
+      // uploads with zero operator visibility.
+      errorTracking.captureException(new Error('Upload quota lookup failed (fail-open)'), {
+        action: 'enforceUploadLimits.storage',
+        tripId,
+        metadata: { code: storageQueryError.code, message: storageQueryError.message },
+      });
     } else {
       const usedBytes = (mediaData ?? []).reduce(
         (sum: number, item: { file_size: number | null }) => sum + (item.file_size ?? 0),
@@ -106,9 +112,13 @@ async function enforceUploadLimits(
         .eq('media_type', mediaType)
         .eq('metadata->>uploaded_by', userId);
       if (countError) {
-        // Fail open on count errors — never block an upload on a failed lookup.
-        if (import.meta.env.DEV)
-          console.error('[uploadService] Media count lookup failed:', countError);
+        // Fail open on count errors — never block an upload on a failed
+        // lookup, but report the enforcement gap.
+        errorTracking.captureException(new Error('Upload media-count lookup failed (fail-open)'), {
+          action: 'enforceUploadLimits.mediaCount',
+          tripId,
+          metadata: { code: countError.code, message: countError.message },
+        });
         return;
       }
       count = mediaCount ?? 0;
@@ -120,8 +130,12 @@ async function enforceUploadLimits(
         .eq('trip_id', tripId)
         .eq('uploaded_by', userId);
       if (fileCountError) {
-        if (import.meta.env.DEV)
-          console.error('[uploadService] File count lookup failed:', fileCountError);
+        // Fail open, but report the enforcement gap.
+        errorTracking.captureException(new Error('Upload file-count lookup failed (fail-open)'), {
+          action: 'enforceUploadLimits.fileCount',
+          tripId,
+          metadata: { code: fileCountError.code, message: fileCountError.message },
+        });
         return;
       }
       count = fileCount ?? 0;
@@ -228,11 +242,16 @@ export async function insertMediaIndex(params: {
   // unified media index. The exported `MediaType` stays image|video for existing callers.
   mediaType: MediaType | 'document';
   url: string;
+  /** Explicit row id (uuid) — lets callers pre-generate the id so the Stream
+   *  attachment ref_id and the index row stay linked when sending first. */
+  id?: string;
   uploadPath?: string;
   filename?: string;
   fileSize?: number;
   mimeType?: string;
   messageId?: string;
+  /** Pro sub-channel scope — channel-shared media is isolated by RLS. */
+  channelId?: string;
   uploadedBy?: string;
   checksum?: string;
   width?: number;
@@ -247,6 +266,7 @@ export async function insertMediaIndex(params: {
   const { data, error } = await (supabase as any)
     .from('trip_media_index')
     .insert({
+      ...(params.id ? { id: params.id } : {}),
       trip_id: params.tripId,
       media_type: params.mediaType,
       media_url: params.url,
@@ -254,6 +274,7 @@ export async function insertMediaIndex(params: {
       file_size: params.fileSize ?? null,
       mime_type: normalizedMimeType ?? null,
       message_id: params.messageId ?? null,
+      channel_id: params.channelId ?? null,
       metadata: {
         ...normalizeMediaMetadata({
           ownerUserId: params.uploadedBy ?? 'unknown',
@@ -280,6 +301,8 @@ export async function insertFileIndex(params: {
   name: string;
   fileType: string;
   uploadedBy: string;
+  /** Pro sub-channel scope — channel-shared files are isolated by RLS. */
+  channelId?: string;
 }) {
   const { data, error } = await supabase
     .from('trip_files')
@@ -288,6 +311,7 @@ export async function insertFileIndex(params: {
       name: params.name,
       file_type: params.fileType,
       uploaded_by: params.uploadedBy,
+      channel_id: params.channelId ?? null,
     })
     .select()
     .single();

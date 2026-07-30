@@ -26,6 +26,15 @@ export interface ChatMessage {
     title?: string;
     detail?: string | null;
   }>;
+  /** Confirmation-gated tool calls the server fail-closed on (destructive /
+   *  high-blast-radius mutations awaiting an explicit user confirm). */
+  confirmationRequests?: Array<{
+    id: string;
+    toolName: string;
+    requestedArgs: Record<string, unknown>;
+    destructive: boolean;
+    message: string;
+  }>;
   usage?: {
     prompt_tokens: number;
     completion_tokens: number;

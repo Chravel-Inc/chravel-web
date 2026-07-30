@@ -10,12 +10,25 @@ import {
   validateToolArgsStrict,
 } from './aiSecurityBoundary.ts';
 
+export interface ExecuteToolOptions {
+  /**
+   * True ONLY when an authenticated human explicitly confirmed this exact call
+   * (execute-concierge-tool with body.userConfirmed). Never derive this from
+   * model output or tool args — a `confirmation_gate` arriving in args is
+   * stripped below precisely so the model cannot self-confirm destructive
+   * mutations (its function-call results instruct it to "retry with
+   * confirmation_gate=true", which it must not be able to do on its own).
+   */
+  confirmationGranted?: boolean;
+}
+
 export async function executeToolSecurely(
   supabase: any,
   capabilityToken: string,
   toolName: string,
   args: Record<string, any>,
   locationContext?: any,
+  opts?: ExecuteToolOptions,
 ) {
   const trace = {
     promptVersion: 'concierge-security-v2',
@@ -35,7 +48,13 @@ export async function executeToolSecurely(
 
   // 3. Enforce argument constraints (trip_id immutability, IDs belong to trip, etc.)
   // Force the trip_id and user_id to match the capability token, ignoring whatever the model provided.
-  const enforcedArgs = enforceToolSchema(toolName, { ...args });
+  // Strip any caller-supplied confirmation_gate: the flag may only be granted
+  // via opts.confirmationGranted (explicit human confirmation), never via args.
+  const { confirmation_gate: _callerGate, ...argsWithoutGate } = args ?? {};
+  const enforcedArgs = enforceToolSchema(toolName, { ...argsWithoutGate });
+  if (opts?.confirmationGranted === true) {
+    enforcedArgs.confirmation_gate = true;
+  }
   const strictValidation = validateToolArgsStrict(toolName, enforcedArgs);
   if (!strictValidation.ok) {
     return {
@@ -58,16 +77,24 @@ export async function executeToolSecurely(
   // require an explicit human confirmation gate before any write.
   if (requiresConfirmationGate(toolName) && enforcedArgs.confirmation_gate !== true) {
     const destructive = DESTRUCTIVE_MUTATION_ALLOWLIST.has(toolName);
+    // Echo the schema-sanitized args (minus the gate flag) so the client can
+    // render a confirm card and retry the identical call with
+    // confirmation_gate=true via execute-concierge-tool. Args are already
+    // schema-filtered and trip_id is forced to the capability token's trip.
+    const { confirmation_gate: _gate, ...requestedArgs } = enforcedArgs;
     return {
       success: false,
       error: destructive
         ? `Tool "${toolName}" requires explicit confirmation before destructive mutation`
         : `Tool "${toolName}" requires explicit user confirmation before applying changes`,
       pending_confirmation: true,
+      tool_name: toolName,
+      requested_args: redactSensitiveFields(requestedArgs),
+      destructive,
       confidence: 'low',
       fail_closed: true,
       rollback_path:
-        'No mutation performed; request user confirmation and retry with confirmation_gate=true.',
+        'No mutation performed. A confirmation card is shown to the user in the app; tell them to confirm or cancel it there. Do NOT retry this tool call yourself — confirmation cannot be granted from model output.',
       trace,
     };
   }

@@ -890,6 +890,8 @@ export const ChannelChatView = ({
             isPro={true}
             safeAreaBottom={false}
             tripId={channel.tripId}
+            channelId={channel.id}
+            channelName={channel.channelName}
           />
         ) : (
           <div

@@ -135,6 +135,50 @@ export interface MessageBubbleProps {
   }) => Promise<void> | void;
 }
 
+/**
+ * Mosaic tile with signed-URL resolution. trip-media is a private bucket, so
+ * the stored public URL 400s on read; the single-image path already resolves
+ * a signed URL via useResolvedTripMediaUrl — multi-image mosaics were still
+ * using the raw stored URL and rendered broken tiles. Falls back to the raw
+ * URL while resolving (and permanently for non-bucket URLs, e.g. GIFs).
+ */
+const MosaicImageTile: React.FC<{
+  url: string;
+  index: number;
+  overflow: number;
+  showOverflow: boolean;
+  spanClass: string;
+  mosaicEnabled: boolean;
+  onClick: (url: string) => void;
+}> = ({ url, index, overflow, showOverflow, spanClass, mosaicEnabled, onClick }) => {
+  const resolvedUrl = useResolvedTripMediaUrl({ url });
+  const src = resolvedUrl ?? url;
+  const isGif = /\.gif(\?|$)/i.test(url);
+  return (
+    <button
+      type="button"
+      onClick={() => onClick(url)}
+      className={`relative group overflow-hidden bg-muted focus:outline-none focus:ring-2 focus:ring-primary ${spanClass}`}
+      aria-label={`View image ${index + 1}${showOverflow ? ` and ${overflow} more` : ''}`}
+    >
+      <img
+        src={src}
+        alt={`Attachment ${index + 1}`}
+        className={cn(
+          'w-full h-full object-cover hover:opacity-95 transition-opacity',
+          mosaicEnabled ? 'aspect-square' : 'max-h-[280px]',
+        )}
+        loading={isGif ? 'eager' : 'lazy'}
+      />
+      {showOverflow && (
+        <div className="absolute inset-0 bg-black/55 flex items-center justify-center text-white text-xl font-semibold">
+          +{overflow}
+        </div>
+      )}
+    </button>
+  );
+};
+
 export const MessageBubble = memo(
   ({
     id,
@@ -356,30 +400,17 @@ export const MessageBubble = memo(
                 const showOverflow = mosaicEnabled && overflow > 0 && isLastVisible;
                 const spanClass =
                   mosaicEnabled && visibleImages.length === 3 && index === 0 ? 'row-span-2' : '';
-                const isGif = /\.gif(\?|$)/i.test(attachment.url || '');
                 return (
-                  <button
+                  <MosaicImageTile
                     key={index}
-                    type="button"
-                    onClick={() => handleImageClick(attachment.url!)}
-                    className={`relative group overflow-hidden bg-muted focus:outline-none focus:ring-2 focus:ring-primary ${spanClass}`}
-                    aria-label={`View image ${index + 1}${showOverflow ? ` and ${overflow} more` : ''}`}
-                  >
-                    <img
-                      src={attachment.url}
-                      alt={`Attachment ${index + 1}`}
-                      className={cn(
-                        'w-full h-full object-cover hover:opacity-95 transition-opacity',
-                        mosaicEnabled ? 'aspect-square' : 'max-h-[280px]',
-                      )}
-                      loading={isGif ? 'eager' : 'lazy'}
-                    />
-                    {showOverflow && (
-                      <div className="absolute inset-0 bg-black/55 flex items-center justify-center text-white text-xl font-semibold">
-                        +{overflow}
-                      </div>
-                    )}
-                  </button>
+                    url={attachment.url!}
+                    index={index}
+                    overflow={overflow}
+                    showOverflow={showOverflow}
+                    spanClass={spanClass}
+                    mosaicEnabled={mosaicEnabled}
+                    onClick={handleImageClick}
+                  />
                 );
               })}
             </div>

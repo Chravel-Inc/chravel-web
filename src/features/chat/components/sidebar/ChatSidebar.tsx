@@ -62,13 +62,13 @@ export const ChatSidebar = ({
       className="flex w-56 shrink-0 flex-col overflow-y-auto border-r border-white/10 bg-black/20"
     >
       <div className="flex items-center justify-between px-4 pb-1 pt-3">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-white/40">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-white/60">
           Chat
         </span>
         <button
           onClick={onSearchClick}
           aria-label="Search messages"
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-white/50 transition-colors hover:bg-white/5 hover:text-white"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-white/70 transition-colors hover:bg-white/5 hover:text-white"
         >
           <Search size={15} />
         </button>
@@ -100,14 +100,14 @@ export const ChatSidebar = ({
       </div>
 
       <div className="px-4 pb-1 pt-3">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-white/40">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-white/60">
           Channels
         </span>
       </div>
 
       {sortedChannels.length === 0 ? (
         <div className="px-4 py-3">
-          <p className="text-xs leading-relaxed text-white/40">
+          <p className="text-xs leading-relaxed text-white/60">
             Channels are created from roles in the Team tab.
           </p>
           {canManageChannels && onNavigateToTeam && (

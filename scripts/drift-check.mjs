@@ -83,6 +83,12 @@ const CHECKS = [
     cmd: ['node', 'scripts/validate-iap-parity.mjs'],
   },
   {
+    id: 'concierge-tools',
+    title: 'Concierge tool 5-file sync (registry ↔ executor ↔ pending hook)',
+    sot: 'supabase/functions/_shared/concierge/toolRegistry.ts',
+    cmd: ['npx', 'tsx', 'scripts/audit-concierge-tools.ts'],
+  },
+  {
     id: 'stream-parity',
     title: 'Stream config parity (frontend ↔ edge ↔ dashboard)',
     sot: 'Stream dashboard + Supabase secrets',

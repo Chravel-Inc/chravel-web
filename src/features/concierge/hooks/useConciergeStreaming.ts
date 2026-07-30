@@ -12,6 +12,7 @@ import type { HotelResult } from '@/features/chat/components/HotelResultCards';
 import { supabase } from '@/integrations/supabase/client';
 import { useConciergeLanguagePreference } from '@/features/concierge/hooks/useConciergeLanguagePreference';
 import { getConciergeInvalidationKeys, isConciergeWriteAction } from '@/lib/conciergeInvalidation';
+import { sendTripMessageWithCanonicalTransport } from '@/services/stream/canonicalTripMessageTransport';
 import { sanitizeConciergeContent } from '@/lib/sanitizeConciergeContent';
 import { conciergeCacheService } from '@/services/conciergeCacheService';
 import type {
@@ -471,6 +472,66 @@ export function useConciergeStreaming(params: Params) {
                     },
                   ];
                 });
+              }
+
+              // Confirmation-gated mutation: the server fail-closed and echoed
+              // the sanitized args. Render a confirm/cancel card — confirming
+              // re-invokes the tool with confirmation_gate=true (the model
+              // cannot set that flag; only this user action can).
+              if (isConciergeWriteAction(name) && result.pending_confirmation === true) {
+                const confirmationRequest = {
+                  id: crypto.randomUUID(),
+                  toolName: name,
+                  requestedArgs:
+                    result.requested_args &&
+                    typeof result.requested_args === 'object' &&
+                    !Array.isArray(result.requested_args)
+                      ? (result.requested_args as Record<string, unknown>)
+                      : {},
+                  destructive: result.destructive === true,
+                  message: (result.error as string) || '',
+                };
+                setMessages(prev => {
+                  const idx = prev.findIndex(m => m.id === streamingMessageId);
+                  if (idx !== -1) {
+                    const updated = [...prev];
+                    const existing = updated[idx].confirmationRequests || [];
+                    updated[idx] = {
+                      ...updated[idx],
+                      confirmationRequests: [...existing, confirmationRequest],
+                    };
+                    return updated;
+                  }
+                  return [
+                    ...prev,
+                    {
+                      id: streamingMessageId,
+                      type: 'assistant' as const,
+                      content: '',
+                      timestamp: new Date().toISOString(),
+                      confirmationRequests: [confirmationRequest],
+                    },
+                  ];
+                });
+                return;
+              }
+
+              // Broadcasts: the executor wrote the `broadcasts` table row
+              // (notifications fan out via its DB trigger), but chat renders
+              // from Stream only — without this send the broadcast never
+              // appears in the trip chat. Fire-and-forget; the table row is
+              // already the durable record.
+              if (name === 'createBroadcast' && result.success && result.promoted) {
+                const broadcastText = (result.broadcast as { message?: string } | null)?.message;
+                if (broadcastText && tripId) {
+                  void sendTripMessageWithCanonicalTransport(tripId, {
+                    content: broadcastText,
+                    message_type: 'broadcast',
+                    privacy_mode: 'standard',
+                  }).catch(() => {
+                    // Chat render miss only — notifications + record already exist.
+                  });
+                }
               }
 
               // Handle concierge write actions (createPoll, createTask, savePlace, etc.)

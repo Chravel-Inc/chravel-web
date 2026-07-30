@@ -72,6 +72,13 @@ interface ChatInputProps {
    * Defaults to true for backwards compatibility.
    */
   canSendBroadcast?: boolean;
+  /**
+   * Pro sub-channel scope. When set, shared attachments/links post to THIS
+   * channel (chravel-channel) instead of the main trip chat, and their media
+   * index rows carry the channel_id for RLS isolation.
+   */
+  channelId?: string;
+  channelName?: string;
 }
 
 export const ChatInput = ({
@@ -90,6 +97,8 @@ export const ChatInput = ({
   safeAreaBottom = true,
   disableFileUpload = false,
   canSendBroadcast = true,
+  channelId,
+  channelName,
 }: ChatInputProps) => {
   const [isBroadcastMode, setIsBroadcastMode] = useState(false);
   const [isPaymentMode, setIsPaymentMode] = useState(false);
@@ -116,7 +125,7 @@ export const ChatInput = ({
     uploadProgress,
     parsedContent,
     clearParsedContent,
-  } = useShareAsset(tripId);
+  } = useShareAsset(tripId, channelId ? { channelId, channelName } : undefined);
 
   // Dictation — mirrors Concierge waveform behavior. Finalized transcript is
   // appended to the current input; user then hits Send. No voice-note upload.

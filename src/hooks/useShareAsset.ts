@@ -6,7 +6,10 @@ import {
   insertFileIndex,
 } from '@/services/uploadService';
 import { insertLinkIndex, fetchOpenGraphData } from '@/services/linkService';
-import { sendTripMessageWithCanonicalTransport } from '@/services/stream/canonicalTripMessageTransport';
+import {
+  sendChannelMessageWithCanonicalTransport,
+  sendTripMessageWithCanonicalTransport,
+} from '@/services/stream/canonicalTripMessageTransport';
 import { autoParseContent, ParsedContent } from '@/services/chatContentParser';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -28,16 +31,65 @@ export interface VoiceNoteShareMeta {
   transcript?: string;
 }
 
-export function useShareAsset(tripId: string) {
+export interface ShareAssetChannelScope {
+  /** Pro sub-channel id — attachments post to the sub-channel, not the trip chat */
+  channelId: string;
+  channelName?: string;
+}
+
+export function useShareAsset(tripId: string, channelScope?: ShareAssetChannelScope) {
   const [isUploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Record<string, UploadProgress>>({});
   const [error, setError] = useState<string | null>(null);
   const [parsedContent, setParsedContent] = useState<ParsedContent | null>(null);
   const { user } = useAuth();
   const userId = user?.id || '';
+  const channelId = channelScope?.channelId;
 
-  async function sendMessageWithCanonicalTransport(payload: Record<string, unknown>) {
+  /**
+   * Route the message to the right Stream channel. From a Pro sub-channel
+   * composer, attachments MUST land in that sub-channel — falling through to
+   * the trip channel would leak channel-scoped content to the whole trip.
+   */
+  async function sendMessageWithCanonicalTransport(
+    payload: Record<string, unknown>,
+  ): Promise<{ id: string } | unknown> {
+    if (channelScope) {
+      return sendChannelMessageWithCanonicalTransport(
+        channelScope.channelId,
+        channelScope.channelName,
+        tripId,
+        payload,
+      );
+    }
     return sendTripMessageWithCanonicalTransport(tripId, payload);
+  }
+
+  /** Extract the Stream message id from a transport result (legacy path may not return one). */
+  function messageIdOf(result: unknown): string | undefined {
+    const id = (result as { id?: unknown } | null | undefined)?.id;
+    return typeof id === 'string' && id ? id : undefined;
+  }
+
+  /**
+   * Media-index writes run AFTER the chat send, so a failed index must not
+   * be reported as a failed share (the message is already in chat). Retry
+   * once for transient errors, then surface a soft warning.
+   */
+  async function indexNonFatal<T>(label: string, insert: () => Promise<T>): Promise<T | null> {
+    try {
+      return await insert();
+    } catch {
+      try {
+        return await insert();
+      } catch (err) {
+        if (import.meta.env.DEV) {
+          console.warn(`[useShareAsset] ${label} index insert failed after retry:`, err);
+        }
+        toast.warning('Shared to chat, but it may not appear in the Media tab.');
+        return null;
+      }
+    }
   }
 
   async function shareFile(
@@ -95,20 +147,11 @@ export function useShareAsset(tripId: string) {
       }));
       if (onProgress) onProgress(100);
 
-      // 2) Create index record and chat message
+      // 2) Send the chat message FIRST, then index. The previous order
+      // (index → send) left orphaned Media-tab rows when the send failed,
+      // and never recorded the real Stream message id on the index row.
       if (kind === 'image' || kind === 'video') {
-        const row = await insertMediaIndex({
-          tripId,
-          mediaType: kind,
-          url: publicUrl,
-          uploadPath: key,
-          filename: file.name,
-          fileSize: file.size,
-          mimeType: file.type,
-          uploadedBy: userId,
-        });
-
-        // Create chat message with attachment
+        const refId = crypto.randomUUID();
         const messageResult = await sendMessageWithCanonicalTransport({
           trip_id: tripId,
           user_id: userId,
@@ -120,11 +163,27 @@ export function useShareAsset(tripId: string) {
           attachments: [
             {
               type: kind,
-              ref_id: row.id,
+              ref_id: refId,
               url: publicUrl,
             },
           ],
         });
+
+        const row = await indexNonFatal('media', () =>
+          insertMediaIndex({
+            tripId,
+            id: refId,
+            mediaType: kind,
+            url: publicUrl,
+            uploadPath: key,
+            filename: file.name,
+            fileSize: file.size,
+            mimeType: file.type,
+            uploadedBy: userId,
+            messageId: messageIdOf(messageResult),
+            channelId,
+          }),
+        );
 
         // 🆕 Auto-parse content for receipts and itineraries
         if (kind === 'image') {
@@ -165,13 +224,7 @@ export function useShareAsset(tripId: string) {
           file.type.startsWith('audio/') ||
           /\.(webm|mp3|m4a|ogg|wav|opus)$/i.test(file.name);
 
-        const row = await insertFileIndex({
-          tripId,
-          name: file.name,
-          fileType: file.type || 'application/octet-stream',
-          uploadedBy: userId,
-        });
-
+        const refId = crypto.randomUUID();
         const messageResult = await sendMessageWithCanonicalTransport({
           trip_id: tripId,
           user_id: userId,
@@ -184,7 +237,7 @@ export function useShareAsset(tripId: string) {
           attachments: [
             {
               type: isVoiceNote ? 'audio' : 'file',
-              ref_id: row.id,
+              ref_id: refId,
               url: publicUrl,
               mime_type: file.type || 'application/octet-stream',
               ...(voiceMeta
@@ -197,6 +250,16 @@ export function useShareAsset(tripId: string) {
             },
           ],
         });
+
+        const row = await indexNonFatal('file', () =>
+          insertFileIndex({
+            tripId,
+            name: file.name,
+            fileType: file.type || 'application/octet-stream',
+            uploadedBy: userId,
+            channelId,
+          }),
+        );
 
         // 🆕 Auto-parse documents for itineraries (PDFs, etc.)
         if (
@@ -270,19 +333,10 @@ export function useShareAsset(tripId: string) {
       // Fetch Open Graph data
       const ogData = await fetchOpenGraphData(url);
 
-      // Insert link index
-      const row = await insertLinkIndex({
-        tripId,
-        url,
-        ogTitle: ogData.title,
-        ogImage: ogData.image,
-        ogDescription: ogData.description,
-        domain: ogData.domain,
-        submittedBy: userId,
-      });
-
-      // Create chat message
-      await sendMessageWithCanonicalTransport({
+      // Send the chat message first so the index row can carry the real
+      // Stream message id (Media → source-message navigation).
+      const refId = crypto.randomUUID();
+      const messageResult = await sendMessageWithCanonicalTransport({
         trip_id: tripId,
         user_id: userId,
         author_name: user?.email?.split('@')[0] || UNKNOWN_MEMBER_LABEL,
@@ -298,11 +352,26 @@ export function useShareAsset(tripId: string) {
         attachments: [
           {
             type: 'link',
-            ref_id: row.id,
+            ref_id: refId,
             url,
           },
         ],
       });
+
+      // Insert link index (dedupes on trip_id+url internally)
+      const row = await indexNonFatal('link', () =>
+        insertLinkIndex({
+          tripId,
+          url,
+          ogTitle: ogData.title,
+          ogImage: ogData.image,
+          ogDescription: ogData.description,
+          domain: ogData.domain,
+          submittedBy: userId,
+          messageId: messageIdOf(messageResult),
+          channelId,
+        }),
+      );
 
       toast.success('Link shared successfully');
       return { type: 'link', ref: row };
@@ -326,23 +395,15 @@ export function useShareAsset(tripId: string) {
     const uploaded: Array<{ id: string; url: string; filename: string }> = [];
 
     try {
+      const staged: Array<{ id: string; url: string; key: string; file: File }> = [];
       for (const file of files) {
         const { publicUrl, key } = await uploadToStorage(file, tripId, 'images');
-        const row = await insertMediaIndex({
-          tripId,
-          mediaType: 'image',
-          url: publicUrl,
-          uploadPath: key,
-          filename: file.name,
-          fileSize: file.size,
-          mimeType: file.type,
-          uploadedBy: userId,
-        });
-        uploaded.push({ id: row.id, url: publicUrl, filename: file.name });
+        staged.push({ id: crypto.randomUUID(), url: publicUrl, key, file });
       }
 
-      const first = uploaded[0];
-      await sendMessageWithCanonicalTransport({
+      // Send first, then index each image with the real message id.
+      const first = staged[0];
+      const messageResult = await sendMessageWithCanonicalTransport({
         trip_id: tripId,
         user_id: userId,
         author_name: user?.email?.split('@')[0] || UNKNOWN_MEMBER_LABEL,
@@ -350,12 +411,32 @@ export function useShareAsset(tripId: string) {
         privacy_mode: 'standard',
         media_type: 'image',
         media_url: first.url,
-        attachments: uploaded.map(item => ({
+        attachments: staged.map(item => ({
           type: 'image',
           ref_id: item.id,
           url: item.url,
         })),
       });
+
+      const messageId = messageIdOf(messageResult);
+      for (const item of staged) {
+        await indexNonFatal('media', () =>
+          insertMediaIndex({
+            tripId,
+            id: item.id,
+            mediaType: 'image',
+            url: item.url,
+            uploadPath: item.key,
+            filename: item.file.name,
+            fileSize: item.file.size,
+            mimeType: item.file.type,
+            uploadedBy: userId,
+            messageId,
+            channelId,
+          }),
+        );
+        uploaded.push({ id: item.id, url: item.url, filename: item.file.name });
+      }
 
       toast.success(
         uploaded.length === 1
@@ -399,13 +480,7 @@ export function useShareAsset(tripId: string) {
         },
       }));
 
-      const row = await insertFileIndex({
-        tripId,
-        name: file.name,
-        fileType: file.type || 'audio/webm',
-        uploadedBy: userId,
-      });
-
+      const refId = crypto.randomUUID();
       await sendMessageWithCanonicalTransport({
         trip_id: tripId,
         user_id: userId,
@@ -417,7 +492,7 @@ export function useShareAsset(tripId: string) {
         attachments: [
           {
             type: 'audio',
-            ref_id: row.id,
+            ref_id: refId,
             url: publicUrl,
             mime_type: file.type || 'audio/webm',
             duration_ms: meta.durationMs,
@@ -427,6 +502,16 @@ export function useShareAsset(tripId: string) {
           },
         ],
       });
+
+      const row = await indexNonFatal('voice-note', () =>
+        insertFileIndex({
+          tripId,
+          name: file.name,
+          fileType: file.type || 'audio/webm',
+          uploadedBy: userId,
+          channelId,
+        }),
+      );
 
       toast.success('Voice note sent');
       return { type: 'audio' as const, ref: row };

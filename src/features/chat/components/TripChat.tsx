@@ -7,6 +7,7 @@ import { demoModeService } from '@/services/demoModeService';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useChatComposer } from '../hooks/useChatComposer';
 import { useBroadcastHistory, usePinnedHistory } from '../hooks/useBroadcastHistory';
+import { recordBroadcastMirror } from '@/services/broadcastMirrorService';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { useOfflineStatus } from '@/hooks/useOfflineStatus';
 import { ChatInput } from './ChatInput';
@@ -661,6 +662,23 @@ export const TripChat = React.memo(
             : undefined,
           mentionedUserIds,
         );
+
+        // Broadcasts: mirror a `broadcasts` table row. The table's
+        // notify_on_broadcast() trigger is the single notification path
+        // (all members, fanout_event_key dedup) and search/export read from
+        // it — a Stream-only broadcast would notify nobody and be invisible
+        // to both. Non-fatal: the chat message is already delivered.
+        if (isBroadcast && user?.id) {
+          recordBroadcastMirror({
+            tripId: resolvedTripId,
+            message: message.text,
+            createdBy: user.id,
+          }).catch(mirrorError => {
+            if (import.meta.env.DEV) {
+              console.warn('[TripChat] Broadcast table mirror failed:', mirrorError);
+            }
+          });
+        }
 
         // Auto-parse message for entities (dates, times, locations)
         if (message.text && message.text.trim().length > 10) {

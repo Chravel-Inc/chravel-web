@@ -20,6 +20,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { tripKeys } from '@/lib/queryKeys';
 import { toast } from 'sonner';
+import { sendTripMessageWithCanonicalTransport } from '@/services/stream/canonicalTripMessageTransport';
 
 // trip_pending_actions is not in the generated Supabase types yet; cast the client
 // to bypass type inference for this hook only. Runtime behavior is unchanged.
@@ -352,6 +353,14 @@ export function usePendingActions(tripId: string, options: UsePendingActionsOpti
             is_sent: true,
           });
           if (error) throw error;
+          // Chat renders broadcasts from Stream only — mirror the message so
+          // it appears in the trip chat. Non-fatal: the table row above is
+          // the durable record and already fanned out notifications.
+          void sendTripMessageWithCanonicalTransport(action.trip_id, {
+            content: payload.message as string,
+            message_type: 'broadcast',
+            privacy_mode: 'standard',
+          }).catch(() => undefined);
           break;
         }
 

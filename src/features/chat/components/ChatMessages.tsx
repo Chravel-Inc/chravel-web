@@ -10,6 +10,7 @@ import { HotelResultCards, HotelResult } from './HotelResultCards';
 import { ConciergeActionCardGroup } from './ConciergeActionCardGroup';
 import type { ConciergeActionResult } from './ConciergeActionCard';
 import { PendingActionCard } from './PendingActionCard';
+import { ConciergeConfirmCard } from './ConciergeConfirmCard';
 import { ReservationDraftCard } from './ReservationDraftCard';
 import { SmartImportPreviewCard } from './SmartImportPreviewCard';
 import {
@@ -60,6 +61,13 @@ interface RichChatMessage extends ChatMessage {
     message: string;
     title?: string;
     detail?: string | null;
+  }>;
+  confirmationRequests?: Array<{
+    id: string;
+    toolName: string;
+    requestedArgs: Record<string, unknown>;
+    destructive: boolean;
+    message: string;
   }>;
 }
 
@@ -192,7 +200,7 @@ export const ChatMessages = ({
       <div className="text-center py-8">
         <MessageCircle size={48} className="text-gray-600 mx-auto mb-4" />
         <h4 className="text-lg font-medium text-gray-400 mb-2">Start the conversation</h4>
-        <p className="text-gray-500 text-sm">Send a message to get the chat started!</p>
+        <p className="text-gray-400 text-sm">Send a message to get the chat started!</p>
       </div>
     );
   }
@@ -311,6 +319,19 @@ export const ChatMessages = ({
                       isConfirming={isConfirmingPendingAction}
                       isRejecting={isRejectingPendingAction}
                     />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Confirmation-gated mutations awaiting explicit user confirm */}
+            {rich.confirmationRequests && rich.confirmationRequests.length > 0 && tripId && (
+              <div
+                className={`flex min-w-0 max-w-full overflow-x-hidden ${message.type === 'user' ? 'justify-end' : 'justify-start'} ${message.type !== 'user' ? 'pl-10' : ''}`}
+              >
+                <div className="min-w-0 max-w-full sm:max-w-sm lg:max-w-md w-full space-y-2">
+                  {rich.confirmationRequests.map(request => (
+                    <ConciergeConfirmCard key={request.id} request={request} tripId={tripId} />
                   ))}
                 </div>
               </div>

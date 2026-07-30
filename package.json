@@ -53,6 +53,7 @@
     "lint:dal": "bash scripts/check-duplicate-service-wrappers.sh",
     "health:metrics": "node scripts/codebase-health-metrics.cjs",
     "drift:check": "node scripts/drift-check.mjs",
+    "drift:concierge": "npx tsx scripts/audit-concierge-tools.ts",
     "drift:functions": "node scripts/drift/check-edge-function-parity.mjs",
     "drift:migrations": "node scripts/drift/check-migration-drift.mjs",
     "drift:query-keys": "node scripts/drift/check-query-key-ownership.mjs",
