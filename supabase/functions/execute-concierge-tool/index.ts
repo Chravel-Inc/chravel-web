@@ -51,7 +51,13 @@ serve(async (req: Request) => {
     }
 
     // Parse body early — assertion flow needs tripId from body for claim matching.
-    let body: { toolName?: unknown; args?: unknown; tripId?: unknown };
+    let body: {
+      toolName?: unknown;
+      args?: unknown;
+      tripId?: unknown;
+      idempotencyKey?: unknown;
+      userConfirmed?: unknown;
+    };
     try {
       body = await req.json();
     } catch {
@@ -238,12 +244,20 @@ serve(async (req: Request) => {
       }
     }
 
+    // Human confirmation for gated (destructive / high-blast-radius) mutations.
+    // Only an explicit body flag from the authenticated user grants the gate —
+    // model-supplied args cannot (executeToolSecurely strips confirmation_gate
+    // from args). The user is authorized for these writes anyway (RLS +
+    // per-tool trip permission checks still apply downstream).
+    const userConfirmed = body.userConfirmed === true;
+
     const result = await executeToolSecurely(
       supabase,
       capabilityToken,
       toolName,
       argsObj,
       locationContext,
+      { confirmationGranted: userConfirmed },
     );
 
     if (shouldApplyIdempotency) {

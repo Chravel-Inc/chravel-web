@@ -111,12 +111,11 @@ export function redactSensitiveFields<T extends Record<string, unknown>>(obj: T)
   return walk(cloned);
 }
 
-// Router-level meta args that are not declared in per-tool JSON schemas but must
-// survive `enforceToolSchema` sanitization so the confirmation gate (and future
-// meta flags) can reach `executeToolSecurely`. Without this, `confirmation_gate`
-// would always be stripped and confirmation-gated tools could never execute.
-const ROUTER_META_ARG_KEYS = new Set(['confirmation_gate']);
-
+// NOTE: `confirmation_gate` is deliberately NOT preservable through schema
+// sanitization. It is injected by `executeToolSecurely` itself (and only when
+// its caller passes confirmationGranted, i.e. an explicit human confirmation
+// via execute-concierge-tool). If it survived from args, the model could
+// self-confirm destructive mutations by echoing the flag on retry.
 export function enforceToolSchema(
   toolName: string,
   args: Record<string, unknown>,
@@ -127,7 +126,7 @@ export function enforceToolSchema(
   const allowed = new Set(Object.keys(schema.properties));
   const sanitized: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(args ?? {})) {
-    if (allowed.has(key) || ROUTER_META_ARG_KEYS.has(key)) sanitized[key] = value;
+    if (allowed.has(key)) sanitized[key] = value;
   }
 
   return sanitized;

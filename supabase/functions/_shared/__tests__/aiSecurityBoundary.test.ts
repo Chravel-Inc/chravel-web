@@ -4,6 +4,7 @@ import {
   detectPromptInjectionRisk,
   enforceToolSchema,
   redactSensitiveFields,
+  requiresConfirmationGate,
   toolMutationMode,
   validateToolArgsStrict,
 } from '../security/aiSecurityBoundary.ts';
@@ -50,5 +51,39 @@ describe('aiSecurityBoundary', () => {
   it('classifies tools into read vs mutate mode', () => {
     expect(toolMutationMode('createTask')).toBe('mutate');
     expect(toolMutationMode('getTask')).toBe('read');
+  });
+
+  it('strips confirmation_gate from args for every confirmation-gated tool', () => {
+    // Security invariant: the model must never be able to self-confirm a
+    // gated mutation by echoing confirmation_gate=true in its tool args.
+    // The flag may only be injected by executeToolSecurely via
+    // opts.confirmationGranted (explicit human confirmation).
+    const gatedTools = [
+      'deleteCalendarEvent',
+      'bulkDeleteCalendarEvents',
+      'deleteTask',
+      'updateTripDetails',
+      'addExpense',
+      'duplicateCalendarEvent',
+      'cloneActivity',
+      'bulkMarkTasksDone',
+    ];
+    for (const tool of gatedTools) {
+      expect(requiresConfirmationGate(tool), `${tool} should be gated`).toBe(true);
+      const sanitized = enforceToolSchema(tool, {
+        confirmation_gate: true,
+        event_id: 'evt-1',
+      });
+      expect(
+        (sanitized as Record<string, unknown>).confirmation_gate,
+        `${tool} must not accept confirmation_gate from args`,
+      ).toBeUndefined();
+    }
+  });
+
+  it('does not gate ordinary create tools', () => {
+    expect(requiresConfirmationGate('createTask')).toBe(false);
+    expect(requiresConfirmationGate('addToCalendar')).toBe(false);
+    expect(requiresConfirmationGate('createPoll')).toBe(false);
   });
 });

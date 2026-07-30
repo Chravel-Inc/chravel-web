@@ -10,6 +10,7 @@ import { HotelResultCards, HotelResult } from './HotelResultCards';
 import { ConciergeActionCardGroup } from './ConciergeActionCardGroup';
 import type { ConciergeActionResult } from './ConciergeActionCard';
 import { PendingActionCard } from './PendingActionCard';
+import { ConciergeConfirmCard } from './ConciergeConfirmCard';
 import { ReservationDraftCard } from './ReservationDraftCard';
 import { SmartImportPreviewCard } from './SmartImportPreviewCard';
 import {
@@ -60,6 +61,13 @@ interface RichChatMessage extends ChatMessage {
     message: string;
     title?: string;
     detail?: string | null;
+  }>;
+  confirmationRequests?: Array<{
+    id: string;
+    toolName: string;
+    requestedArgs: Record<string, unknown>;
+    destructive: boolean;
+    message: string;
   }>;
 }
 
@@ -311,6 +319,19 @@ export const ChatMessages = ({
                       isConfirming={isConfirmingPendingAction}
                       isRejecting={isRejectingPendingAction}
                     />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Confirmation-gated mutations awaiting explicit user confirm */}
+            {rich.confirmationRequests && rich.confirmationRequests.length > 0 && tripId && (
+              <div
+                className={`flex min-w-0 max-w-full overflow-x-hidden ${message.type === 'user' ? 'justify-end' : 'justify-start'} ${message.type !== 'user' ? 'pl-10' : ''}`}
+              >
+                <div className="min-w-0 max-w-full sm:max-w-sm lg:max-w-md w-full space-y-2">
+                  {rich.confirmationRequests.map(request => (
+                    <ConciergeConfirmCard key={request.id} request={request} tripId={tripId} />
                   ))}
                 </div>
               </div>

@@ -473,6 +473,48 @@ export function useConciergeStreaming(params: Params) {
                 });
               }
 
+              // Confirmation-gated mutation: the server fail-closed and echoed
+              // the sanitized args. Render a confirm/cancel card — confirming
+              // re-invokes the tool with confirmation_gate=true (the model
+              // cannot set that flag; only this user action can).
+              if (isConciergeWriteAction(name) && result.pending_confirmation === true) {
+                const confirmationRequest = {
+                  id: crypto.randomUUID(),
+                  toolName: name,
+                  requestedArgs:
+                    result.requested_args &&
+                    typeof result.requested_args === 'object' &&
+                    !Array.isArray(result.requested_args)
+                      ? (result.requested_args as Record<string, unknown>)
+                      : {},
+                  destructive: result.destructive === true,
+                  message: (result.error as string) || '',
+                };
+                setMessages(prev => {
+                  const idx = prev.findIndex(m => m.id === streamingMessageId);
+                  if (idx !== -1) {
+                    const updated = [...prev];
+                    const existing = updated[idx].confirmationRequests || [];
+                    updated[idx] = {
+                      ...updated[idx],
+                      confirmationRequests: [...existing, confirmationRequest],
+                    };
+                    return updated;
+                  }
+                  return [
+                    ...prev,
+                    {
+                      id: streamingMessageId,
+                      type: 'assistant' as const,
+                      content: '',
+                      timestamp: new Date().toISOString(),
+                      confirmationRequests: [confirmationRequest],
+                    },
+                  ];
+                });
+                return;
+              }
+
               // Handle concierge write actions (createPoll, createTask, savePlace, etc.)
               if (isConciergeWriteAction(name) && result.actionType) {
                 if (result.pending && result.pendingActionId) {
