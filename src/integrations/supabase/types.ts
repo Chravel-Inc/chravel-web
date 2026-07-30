@@ -3877,6 +3877,7 @@ export type Database = {
       }
       trip_link_index: {
         Row: {
+          channel_id: string | null
           created_at: string | null
           domain: string | null
           favicon_url: string | null
@@ -3885,10 +3886,12 @@ export type Database = {
           og_description: string | null
           og_image_url: string | null
           og_title: string | null
+          submitted_by: string | null
           trip_id: string
           url: string
         }
         Insert: {
+          channel_id?: string | null
           created_at?: string | null
           domain?: string | null
           favicon_url?: string | null
@@ -3897,10 +3900,12 @@ export type Database = {
           og_description?: string | null
           og_image_url?: string | null
           og_title?: string | null
+          submitted_by?: string | null
           trip_id: string
           url: string
         }
         Update: {
+          channel_id?: string | null
           created_at?: string | null
           domain?: string | null
           favicon_url?: string | null
@@ -3909,6 +3914,7 @@ export type Database = {
           og_description?: string | null
           og_image_url?: string | null
           og_title?: string | null
+          submitted_by?: string | null
           trip_id?: string
           url?: string
         }

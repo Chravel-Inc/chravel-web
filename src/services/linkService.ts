@@ -13,7 +13,21 @@ export async function insertLinkIndex(params: {
   domain?: string | null;
   messageId?: string | null;
   submittedBy?: string | null;
+  /** Pro sub-channel scope — channel-shared links are isolated by RLS. */
+  channelId?: string | null;
 }) {
+  // Dedupe: a link index wants one row per unique URL per trip/channel scope.
+  // Re-sharing an already-indexed URL returns the existing row instead of
+  // stacking duplicates (the message itself still posts to chat).
+  const { data: existing } = await supabase
+    .from('trip_link_index')
+    .select()
+    .eq('trip_id', params.tripId)
+    .eq('url', params.url)
+    .limit(1)
+    .maybeSingle();
+  if (existing) return existing;
+
   const { data, error } = await supabase
     .from('trip_link_index')
     .insert({
@@ -24,6 +38,8 @@ export async function insertLinkIndex(params: {
       og_description: params.ogDescription ?? null,
       domain: params.domain ?? new URL(params.url).hostname,
       message_id: params.messageId ?? null,
+      channel_id: params.channelId ?? null,
+      submitted_by: params.submittedBy ?? null,
     })
     .select()
     .single();

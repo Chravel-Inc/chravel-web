@@ -228,11 +228,16 @@ export async function insertMediaIndex(params: {
   // unified media index. The exported `MediaType` stays image|video for existing callers.
   mediaType: MediaType | 'document';
   url: string;
+  /** Explicit row id (uuid) — lets callers pre-generate the id so the Stream
+   *  attachment ref_id and the index row stay linked when sending first. */
+  id?: string;
   uploadPath?: string;
   filename?: string;
   fileSize?: number;
   mimeType?: string;
   messageId?: string;
+  /** Pro sub-channel scope — channel-shared media is isolated by RLS. */
+  channelId?: string;
   uploadedBy?: string;
   checksum?: string;
   width?: number;
@@ -247,6 +252,7 @@ export async function insertMediaIndex(params: {
   const { data, error } = await (supabase as any)
     .from('trip_media_index')
     .insert({
+      ...(params.id ? { id: params.id } : {}),
       trip_id: params.tripId,
       media_type: params.mediaType,
       media_url: params.url,
@@ -254,6 +260,7 @@ export async function insertMediaIndex(params: {
       file_size: params.fileSize ?? null,
       mime_type: normalizedMimeType ?? null,
       message_id: params.messageId ?? null,
+      channel_id: params.channelId ?? null,
       metadata: {
         ...normalizeMediaMetadata({
           ownerUserId: params.uploadedBy ?? 'unknown',
@@ -280,6 +287,8 @@ export async function insertFileIndex(params: {
   name: string;
   fileType: string;
   uploadedBy: string;
+  /** Pro sub-channel scope — channel-shared files are isolated by RLS. */
+  channelId?: string;
 }) {
   const { data, error } = await supabase
     .from('trip_files')
@@ -288,6 +297,7 @@ export async function insertFileIndex(params: {
       name: params.name,
       file_type: params.fileType,
       uploaded_by: params.uploadedBy,
+      channel_id: params.channelId ?? null,
     })
     .select()
     .single();
