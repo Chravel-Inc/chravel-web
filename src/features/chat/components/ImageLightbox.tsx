@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronLeft, ChevronRight, Download, ZoomIn, ZoomOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
 
 interface ImageLightboxProps {
   isOpen: boolean;
@@ -18,6 +19,10 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
 }) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [scale, setScale] = useState(1);
+  // Private-bucket media needs a signed URL — the raw stored URL 400s.
+  const resolvedCurrentUrl = useResolvedTripMediaUrl({
+    url: images[currentIndex]?.url ?? null,
+  });
 
   // Reset index when opening
   useEffect(() => {
@@ -70,8 +75,9 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
     const currentImage = images[currentIndex];
     if (!currentImage) return;
 
+    const downloadUrl = resolvedCurrentUrl ?? currentImage.url;
     try {
-      const response = await fetch(currentImage.url);
+      const response = await fetch(downloadUrl);
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -83,7 +89,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
       URL.revokeObjectURL(url);
     } catch (_error) {
       // Fallback: open in new tab
-      window.open(currentImage.url, '_blank');
+      window.open(downloadUrl, '_blank');
     }
   };
 
@@ -182,7 +188,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
             className="relative max-w-[90vw] max-h-[85vh] flex items-center justify-center"
           >
             <img
-              src={currentImage.url}
+              src={resolvedCurrentUrl ?? currentImage.url}
               alt={currentImage.caption || `Image ${currentIndex + 1}`}
               className={cn(
                 'max-w-full max-h-[85vh] object-contain rounded-lg transition-transform duration-200',
