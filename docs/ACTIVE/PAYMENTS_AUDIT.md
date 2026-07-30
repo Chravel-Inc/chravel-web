@@ -12,9 +12,9 @@
 Chravel runs a **two-provider** billing model:
 
 - **Stripe** — web / PWA checkout, customer portal, invoices, recurring subscriptions + one-time Trip Passes.
-- **RevenueCat + Apple IAP / Google Play** — native mobile. **Scaffold only today**
-  (`BILLING_FLAGS.APPLE_IAP_ENABLED = false`, `GOOGLE_BILLING_ENABLED = false`); the native app lives in a
-  separate `chravel-mobile` repo. iOS consumer purchases currently fall back to "subscribe on web".
+- **RevenueCat + Apple IAP** — native iOS via `chravel-mobile` shell (`BILLING_FLAGS.APPLE_IAP_ENABLED = true`).
+  Google Play Billing remains off (`GOOGLE_BILLING_ENABLED = false`). Web never uses RevenueCat
+  (`getBillingProvider({ platform: 'web' })` → Stripe).
 
 Cross-platform entitlement state is normalized into one Supabase table, **`public.user_entitlements`**, which
 the app reads through `check-subscription`. Stripe and RevenueCat webhooks are meant to keep it current.
@@ -33,7 +33,7 @@ documented below.
 | 5 | MEDIUM | Pricing duplicated across 4+ files + hardcoded UI strings; could drift undetected. | **Mitigated** (parity test added) |
 | 6 | MEDIUM | `webhook_events` idempotency table is **shared** between Stream chat (`stream:message.new`) and billing events. | Documented (deferred) |
 | 7 | LOW | No billing **kill-switch** feature flag (all 4 flags are Stream-chat). | **Fixed** (`billing-checkout-enabled` seeded; `create-checkout` gated) |
-| 8 | LOW | Apple IAP / Google Billing scaffold-only; `process-account-deletions` skips missing `private_profiles`; `join-trip` comment updated. | **Fixed** (graceful skip + comment) |
+| 8 | LOW | `process-account-deletions` skips missing `private_profiles`; `join-trip` comment updated. Google Billing off. | **Fixed** (graceful skip + comment) |
 
 ---
 
@@ -181,6 +181,8 @@ displayed cap (2 GB) contradicted the enforced cap (50 GB). **Fixed** by setting
 - `src/integrations/revenuecat/revenuecatClient.ts`: web platform returns `NOT_SUPPORTED`.
 - Canonical routing: `src/billing/provider.ts` → `getBillingProvider({ platform: 'web' })` ⇒ `'stripe'`.
 - Regression tests: `src/billing/__tests__/billingProvider.test.ts`.
+- Dashboard audit (2026-07-30): code parity ✓ (`npm run iap:parity`); RevenueCat dashboard leg blocked on login —
+  see `docs/ACTIVE/revenuecat-audit-results-2026-07-30.md`.
 
 ### #4 — MEDIUM: referenced-but-undeployed billing tables (DEFERRED)
 
@@ -210,12 +212,12 @@ composite unique). Deferred.
 Per CLAUDE.md feature-flag rules, paid surfaces should have a runtime kill switch. None exists. **Recommendation:**
 seed `billing-checkout-enabled` (and/or per-provider) flags and gate `create-checkout` + paywall entry. Deferred.
 
-### #8 — LOW: other `private_profiles` references / scaffold (PARTIAL / INTENDED)
+### #8 — LOW: other `private_profiles` references (PARTIAL / INTENDED)
 
 `process-account-deletions` deletes from `private_profiles` (non-fatal cleanup error). `join-trip` only mentions it
-in a comment (uses `auth` email — not broken). Apple IAP / Google Billing are intentionally scaffold-only. The two
-non-billing `private_profiles` references share the same root cause as #1 and should be repointed when the PII model
-is resolved (see #1/#4 follow-ups).
+in a comment (uses `auth` email — not broken). Apple IAP is **enabled** in code (`APPLE_IAP_ENABLED = true`); Google
+Billing remains disabled. The two non-billing `private_profiles` references share the same root cause as #1 and
+should be repointed when the PII model is resolved (see #1/#4 follow-ups).
 
 ---
 

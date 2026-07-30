@@ -123,7 +123,7 @@ Then gate `create-checkout` (edge: `isFeatureEnabled`) and paywall entry (`useFe
    `chravel_pro_starter/growth/enterprise`.
 3. Confirm offerings/packages map to the App Store Connect product IDs in §3.
 4. Confirm `REVENUECAT_WEBHOOK_SECRET` and that the RC webhook points at the production `revenuecat-webhook`.
-   Use `revenuecat-audit-browser-agent.md`.
+   Use `revenuecat-audit-browser-agent.md`. Latest run: `docs/ACTIVE/revenuecat-audit-results-2026-07-30.md` (code ✓, dashboard blocked on login).
 
 ## E. App Store Connect changes (browser agent — verify first)
 
@@ -131,8 +131,8 @@ Then gate `create-checkout` (edge: `isFeatureEnabled`) and paywall entry (`useFe
    `com.chravel.frequentchraveler.monthly/.annual` and a consumer subscription group.
 2. Confirm prices match §3 ($9.99/$99, $19.99/$199) and intro/trial offers match app copy.
 3. Apple product IDs must **exactly** equal RevenueCat product identifiers.
-4. Apple IAP stays disabled (`APPLE_IAP_ENABLED=false`) until the chravel-mobile native flow + receipt-validation
-   edge function ship. Use `app-store-connect-audit-browser-agent.md`.
+4. Apple IAP is **enabled** in code (`APPLE_IAP_ENABLED=true`); verify native purchase + restore on a TestFlight
+   build via `chravel-mobile`. Google Play Billing remains off until `GOOGLE_BILLING_ENABLED=true`.
 
 ---
 
@@ -147,7 +147,7 @@ Then gate `create-checkout` (edge: `isFeatureEnabled`) and paywall entry (`useFe
   user (previously a no-op) and writes `user_entitlements` + `profiles`; cancel → access retained to period end;
   fail a payment (test card) → `past_due` retained; refund a Trip Pass → expired.
 - Verify `check-subscription` returns correct tier on web for the test user.
-- iOS: paywall shows "subscribe on web" (IAP disabled); restore purchases path doesn't crash.
+- iOS native shell: paywall uses RevenueCat IAP (`purchaseConsumerSubscription`); restore purchases path doesn't crash.
 
 **Manual QA matrix:** logged-out pricing page · free→paid upgrade · checkout success/cancel return · customer
 portal · expired/canceled state · paid-feature access vs free limits · mobile + desktop + installed-PWA viewports ·
