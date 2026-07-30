@@ -237,10 +237,15 @@ function parsePendingActionCases(src: string): {
   refreshCases: Set<string>;
 } {
   const indices: number[] = [];
-  const re = /switch\s*\(\s*action\.tool_name\s*\)/g;
+  // Matches both historical shapes:
+  //   switch (action.tool_name) { ... }
+  //   const toolName = action.tool_name as PendingActionToolName; switch (toolName) { ... }
+  const re = /switch\s*\(\s*(?:action\.tool_name|toolName)\s*\)/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(src)) !== null) indices.push(m.index);
-  if (indices.length === 0) throw new Error('switch(action.tool_name) not found');
+  if (indices.length === 0) {
+    throw new Error('switch(action.tool_name) / switch(toolName) not found in usePendingActions');
+  }
 
   const grab = (start: number, end: number): Set<string> => {
     const slice = src.slice(start, end);
