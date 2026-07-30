@@ -117,8 +117,8 @@ Then gate `create-checkout` (edge: `isFeatureEnabled`) and paywall entry (`useFe
 
 ## D. RevenueCat changes (browser agent — verify first)
 
-1. Resolve finding #3: confirm whether web uses RevenueCat Web Billing (`rcb_`) or Stripe. If Stripe owns web,
-   neutralize `src/config/revenuecat.ts`'s web-billing init.
+1. ~~Resolve finding #3~~ ✅ **Done (2026-07-30):** Web = Stripe; deleted `src/config/revenuecat.ts`; canonical
+   routing in `src/billing/provider.ts` + `billingProvider.test.ts`.
 2. Confirm entitlement IDs match code: `chravel_explorer`, `chravel_frequent_chraveler`,
    `chravel_pro_starter/growth/enterprise`.
 3. Confirm offerings/packages map to the App Store Connect product IDs in §3.
@@ -174,9 +174,7 @@ RLS blocks client entitlement mutation.
 > Each is intentionally deferred (scope: no DB migrations; product decision required) — not dropped.
 
 1. **Apply billing-ops migrations.** ✅ Applied live 2026-07-30 (`entitlement_audit_log`, `billing_webhook_processing_failures`, `billing_webhook_ops_dashboard`). Repo migration: `20260730153000_entitlement_audit_log_and_billing_ops.sql`. Remaining: regenerate `src/integrations/supabase/types.ts` if types drift.
-2. **Resolve the RevenueCat dual-config (#3).** "Decide whether web billing uses Stripe or RevenueCat Web Billing;
-   if Stripe, neutralize the web-billing init in `src/config/revenuecat.ts` and delete the unused path; otherwise
-   reconcile the two configs into one. Add a test asserting a single active web provider."
+2. ~~**Resolve the RevenueCat dual-config (#3).**~~ ✅ Fixed — web=Stripe, native=RevenueCat; see `src/billing/provider.ts`.
 3. **PII-separation decision (#1 root cause / B2).** "Either remove the abandoned `secure_profiles`/`private_profiles`
    migration and repoint the remaining references, or apply the split as a two-phase destructive migration and
    revert the `profiles` repoint. Pick one; make code and schema agree."

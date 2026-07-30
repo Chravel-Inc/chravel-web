@@ -28,7 +28,7 @@ documented below.
 |---|-----|---------|--------|
 | 1 | **CRITICAL** | Stripe **webhook** subscription handlers are a silent no-op in production — they resolve the user via a `private_profiles` table that does not exist in the live DB. | **Fixed** (repointed to `profiles`) |
 | 2 | HIGH | Two divergent limit maps: Explorer storage = 2000 MB (`FEATURE_LIMITS`) vs 50 GB (`FREEMIUM_LIMITS`, the enforced value). | **Fixed** (aligned to 50 GB) |
-| 3 | HIGH | Two contradictory RevenueCat configs (web-billing `rcb_` vs native `appl_`/`goog_`); unclear which is live. | Documented (deferred) |
+| 3 | HIGH | Two contradictory RevenueCat configs (web-billing `rcb_` vs native `appl_`/`goog_`); unclear which is live. | **Fixed** (web=Stripe; deleted web RC path; `getBillingProvider`) |
 | 4 | MEDIUM | `entitlement_audit_log`, `billing_webhook_processing_failures` + 2 views referenced by deployed code but **not deployed**. | **Fixed** (applied live 2026-07-30; migration `20260730153000_*`) |
 | 5 | MEDIUM | Pricing duplicated across 4+ files + hardcoded UI strings; could drift undetected. | **Mitigated** (parity test added) |
 | 6 | MEDIUM | `webhook_events` idempotency table is **shared** between Stream chat (`stream:message.new`) and billing events. | Documented (deferred) |
@@ -46,6 +46,7 @@ documented below.
 | Enforced storage / media caps | `FREEMIUM_LIMITS` / `PRO_LIMITS` | `src/utils/featureTiers.ts` |
 | Web price (charge) | Stripe Price object | Stripe dashboard |
 | Apple IAP price (charge) | App Store Connect subscription product | ASC dashboard |
+| Checkout provider per platform | **`getBillingProvider`** | `src/billing/provider.ts` |
 | Cross-platform entitlement state | **`public.user_entitlements`** | Supabase |
 | User-facing subscription status | `user_entitlements` (primary) → `profiles` (legacy fallback) | `check-subscription`, `useSubscription` |
 
@@ -166,18 +167,20 @@ gating/display (`useUnifiedEntitlements`, `useEntitlements`, `useBilling`) reads
 displayed cap (2 GB) contradicted the enforced cap (50 GB). **Fixed** by setting `FEATURE_LIMITS.media_upload.explorer = 50000`
 (the enforced value) and cross-linking the maps in comments. Locked by `pricingParity.test.ts`.
 
-### #3 — HIGH: two contradictory RevenueCat configs (DEFERRED)
+### #3 — HIGH: two contradictory RevenueCat configs (FIXED)
 
-- `src/config/revenuecat.ts` — wired into `initRevenueCat()`; expects a **Web Billing** key
-  (`VITE_REVENUECAT_API_KEY`, must start `rcb_`). This is a *web* RevenueCat integration via `@revenuecat/purchases-js`.
-- `src/constants/revenuecat.ts` + `src/integrations/revenuecat/revenuecatClient.ts` — expect **native** keys
-  (`VITE_REVENUECAT_IOS_API_KEY` / `_ANDROID_API_KEY`); `isRevenueCatConfigured('web')` returns `false`.
+**Decision (2026-07-30):** Web billing is **Stripe only**. RevenueCat is **native-only** (iOS/Android via
+`chravel-mobile` shell injection).
 
-These are parallel, mutually exclusive integrations with different key formats and different views of whether web
-uses RevenueCat at all. Until the team confirms whether web billing goes through Stripe (current default) or
-RevenueCat Web Billing, this is ambiguous and a footgun. **Recommendation:** pick one; if Stripe owns web (per
-`getBillingProvider` → web ⇒ Stripe), delete/neutralize the `config/revenuecat.ts` web-billing path or gate it
-behind an explicit flag. Deferred — needs a product decision (see fix plan).
+**Evidence:**
+- Deleted legacy `src/config/revenuecat.ts` (RevenueCat Web Billing / `rcb_*` / `@revenuecat/purchases-js`) —
+  see `docs/ACTIVE/PRICING_UNIFICATION_HANDOFF.md`.
+- `@revenuecat/purchases-js` is **not** in `package.json`.
+- `.env.example` documents only `VITE_REVENUECAT_IOS_API_KEY` / `_ANDROID_API_KEY` (no `VITE_REVENUECAT_API_KEY`).
+- `src/constants/revenuecat.ts`: `isRevenueCatConfigured('web')` returns `false`; `getRevenueCatApiKey('web')` → `null`.
+- `src/integrations/revenuecat/revenuecatClient.ts`: web platform returns `NOT_SUPPORTED`.
+- Canonical routing: `src/billing/provider.ts` → `getBillingProvider({ platform: 'web' })` ⇒ `'stripe'`.
+- Regression tests: `src/billing/__tests__/billingProvider.test.ts`.
 
 ### #4 — MEDIUM: referenced-but-undeployed billing tables (DEFERRED)
 
@@ -226,12 +229,12 @@ is resolved (see #1/#4 follow-ups).
 | `customer-portal` | Stripe billing portal session | Looks up customer by email |
 | `fetch-invoices` | List Stripe invoices | Repointed to `profiles` |
 | `revenuecat-webhook` | Process RC events → `user_entitlements` | Auth via `REVENUECAT_WEBHOOK_SECRET`; idempotent; stale-expiration guard |
-| `sync-revenuecat-entitlement` | Client-initiated RC → Supabase sync | Web RC path |
+| `sync-revenuecat-entitlement` | Client-initiated RC → Supabase sync | Native RC path only |
 | `organization-billing-portal` | B2B org billing portal | `organization_billing` table |
 | `payment-reminders` | Overdue **trip expense** reminders | Not subscription billing |
 
 **Env / secrets:** Frontend `VITE_STRIPE_PUBLISHABLE_KEY`, `VITE_ENABLE_STRIPE_PAYMENTS`,
-`VITE_REVENUECAT_API_KEY` (web), `VITE_REVENUECAT_IOS_API_KEY` / `_ANDROID_API_KEY`,
+`VITE_REVENUECAT_IOS_API_KEY` / `_ANDROID_API_KEY` (native only — no web `rcb_*` key),
 `VITE_REVENUECAT_*_ENTITLEMENT_ID`. Edge secrets (Supabase Dashboard, **not** in `.env`): `STRIPE_SECRET_KEY`,
 `STRIPE_WEBHOOK_SECRET`, `REVENUECAT_WEBHOOK_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`. Test vs live is governed by key
 prefix (`sk_test_`/`sk_live_`, `pk_test_`/`pk_live_`, `whsec_…`). **Confirm production uses live keys and the
