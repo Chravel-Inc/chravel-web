@@ -1,0 +1,11 @@
+**Engineering Digest — 2026-04-20 17:59:27 to 2026-04-21 17:59:27**
+
+**What changed**
+- Trip Covers & Permissions: Unified cover-photo authorization to require active membership for consumer/pro trips and admin/creator status for events, backed by strict RLS and bucket policies. Reduces risk of unauthorized media mutation and aligns event auth with product intent.
+- Chat Architecture: Extracted Stream message projection into a pure adapter and strictly enforced Stream-only transport callbacks for edits and deletes. Prevents legacy DB mutation paths from running during active Stream sessions.
+- Chat UI: Added backward pagination to Stream Pro channels and shared reaction utilities. Improves scroll experience and standardizes message rendering.
+- Invites: Fixed deep link routing so invites correctly open the SPA join flow on p.chravel.app and iOS. Restores critical membership acquisition path.
+
+**Watchlist**
+- Monitor trip cover photo uploads and event cover edits to ensure the new RLS policies and bucket configurations do not block legitimate creators or admins.
+- Monitor Stream chat edit/delete functionality in production to verify no legacy DB mutation paths are inadvertently triggered.
