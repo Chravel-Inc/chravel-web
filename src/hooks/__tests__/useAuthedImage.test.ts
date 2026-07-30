@@ -6,6 +6,7 @@ import { useAuthedImage, requiresAuthedFetch } from '../useAuthedImage';
 import { supabase } from '@/integrations/supabase/client';
 
 vi.mock('@/integrations/supabase/client', () => ({
+  SUPABASE_PROJECT_URL: 'https://proj.supabase.co',
   supabase: {
     auth: {
       getSession: vi.fn(),
@@ -22,6 +23,13 @@ describe('requiresAuthedFetch', () => {
     expect(requiresAuthedFetch(PROXY_URL)).toBe(true);
     expect(requiresAuthedFetch('https://example.com/photo.jpg')).toBe(false);
     expect(requiresAuthedFetch(null)).toBe(false);
+  });
+
+  it('never authorizes a foreign origin, even with an image-proxy path (token exfil guard)', () => {
+    expect(requiresAuthedFetch('https://evil.example/functions/v1/image-proxy?x=1')).toBe(false);
+    expect(
+      requiresAuthedFetch('https://proj.supabase.co.evil.example/functions/v1/image-proxy'),
+    ).toBe(false);
   });
 });
 

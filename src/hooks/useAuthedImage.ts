@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, SUPABASE_PROJECT_URL } from '@/integrations/supabase/client';
 
 /**
  * The image-proxy edge function requires an Authorization header (it meters
@@ -35,7 +35,18 @@ function cacheObjectUrl(sourceUrl: string, objectUrl: string): void {
 }
 
 export function requiresAuthedFetch(url: string | null | undefined): boolean {
-  return !!url && url.includes(AUTH_REQUIRED_PATH);
+  if (!url || !url.includes(AUTH_REQUIRED_PATH)) return false;
+  // Origin pin: the bearer token must never leave the first-party Supabase
+  // host. A substring match alone would send the session token to
+  // https://evil.example/functions/v1/image-proxy if such a URL ever reached
+  // this hook. Non-matching origins fall through to a plain <img> load.
+  try {
+    const parsed = new URL(url, window.location.origin);
+    const supabaseOrigin = new URL(SUPABASE_PROJECT_URL).origin;
+    return parsed.origin === supabaseOrigin && parsed.pathname.endsWith(AUTH_REQUIRED_PATH);
+  } catch {
+    return false;
+  }
 }
 
 /**
