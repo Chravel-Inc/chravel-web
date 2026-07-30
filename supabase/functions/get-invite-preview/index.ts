@@ -61,6 +61,9 @@ interface InvitePreviewResponse {
     cover_image_url: string | null;
     trip_type: string | null;
     member_count: number;
+    /** Plan-based seat cap from get_trip_member_limit; null = unlimited. */
+    member_limit?: number | null;
+    at_capacity?: boolean;
   };
   /** Next upcoming events — read-only preview so invitees see value before signup. */
   itinerary_preview?: InvitePreviewItineraryItem[];
@@ -302,7 +305,39 @@ serve(async (req): Promise<Response> => {
       });
     }
 
-    logStep('Success', { tripName: trip.name, memberCount });
+    // Plan seat caps are enforced at join/approve; surface them on the preview
+    // so invitees see TRIP_FULL before they request. No auth/hydration changes.
+    const [{ data: memberLimit }, { data: atCapacity }] = await Promise.all([
+      supabaseClient.rpc('get_trip_member_limit', { p_trip_id: trip.id }),
+      supabaseClient.rpc('is_trip_at_member_capacity', { p_trip_id: trip.id }),
+    ]);
+
+    if (atCapacity === true) {
+      logStep('Trip at capacity on preview', { tripId: trip.id, memberCount, memberLimit });
+      const fullResponse: InvitePreviewResponse = {
+        success: false,
+        error:
+          'This trip has reached its member limit. Ask the organizer to upgrade their plan or free a seat.',
+        error_code: 'TRIP_FULL',
+        trip: {
+          name: trip.name,
+          destination: trip.destination,
+          start_date: trip.start_date,
+          end_date: trip.end_date,
+          cover_image_url: resolveOgCoverImageUrl(trip),
+          trip_type: trip.trip_type,
+          member_count: memberCount || 0,
+          member_limit: typeof memberLimit === 'number' ? memberLimit : null,
+          at_capacity: true,
+        },
+      };
+      return new Response(JSON.stringify(fullResponse), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    logStep('Success', { tripName: trip.name, memberCount, memberLimit });
 
     const response: InvitePreviewResponse = {
       success: true,
@@ -322,6 +357,8 @@ serve(async (req): Promise<Response> => {
         cover_image_url: resolveOgCoverImageUrl(trip),
         trip_type: trip.trip_type,
         member_count: memberCount || 0,
+        member_limit: typeof memberLimit === 'number' ? memberLimit : null,
+        at_capacity: false,
       },
       itinerary_preview: itineraryPreview,
       polls_preview: pollsPreview,

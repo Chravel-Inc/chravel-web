@@ -172,7 +172,8 @@ export const INVITE_ERROR_SPECS: Record<
   },
   TRIP_FULL: {
     title: 'Trip is full',
-    message: 'This trip has reached its member limit. Contact the host to request a spot.',
+    message:
+      'This trip has reached its member limit. Ask the host to upgrade their plan or free a seat.',
     primaryCTA: 'contact_host',
     secondaryCTA: 'go_to_dashboard',
     icon: 'users',

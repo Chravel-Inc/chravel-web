@@ -12,7 +12,8 @@ interface InviteEmailSectionProps {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
- * Organizer "invite by email" field wired to the existing mailto invite helper.
+ * Email an invite link. Prefers Resend when configured; falls back to mailto.
+ * For people who already have Chravel, use AddExistingMemberSection instead.
  */
 export function InviteEmailSection({ disabled, onSend }: InviteEmailSectionProps) {
   const [email, setEmail] = useState('');
@@ -26,7 +27,8 @@ export function InviteEmailSection({ disabled, onSend }: InviteEmailSectionProps
     }
     setSending(true);
     try {
-      await onSend(trimmed);
+      const ok = await onSend(trimmed);
+      if (ok) setEmail('');
     } finally {
       setSending(false);
     }
@@ -36,7 +38,7 @@ export function InviteEmailSection({ disabled, onSend }: InviteEmailSectionProps
     <div className="space-y-2" role="group" aria-label="Invite by email">
       <div className="flex items-center gap-2 text-sm text-gray-300">
         <Mail size={16} className="text-primary" aria-hidden="true" />
-        <span>Invite by email</span>
+        <span>Email invite link</span>
       </div>
       <div className="flex gap-2">
         <Input
@@ -62,11 +64,12 @@ export function InviteEmailSection({ disabled, onSend }: InviteEmailSectionProps
           disabled={disabled || sending || !email.trim()}
           className="min-h-[44px] shrink-0"
         >
-          Send
+          {sending ? 'Sending…' : 'Send'}
         </Button>
       </div>
       <p className="text-xs text-gray-500">
-        Opens your email app with the invite link ready to send.
+        Sends the invite link by email when delivery is configured; otherwise opens a draft in your
+        mail app. Best for people who still need to create an account.
       </p>
     </div>
   );

@@ -621,3 +621,7 @@ When auditing SECURITY DEFINER functions that take a `p_user_id`/`target_user_id
 
 ### Public Supabase buckets: dropping SELECT policies blocks listing but NOT public display
 For a `public=true` bucket, objects serve via `/storage/v1/object/public/...` which does not consult RLS, so `getPublicUrl` display keeps working after you drop the broad `FOR SELECT USING (bucket_id=...)` policy — that policy only gates the authenticated API (`.list()`/`.download()`/signed URLs). Removing it closes anonymous enumeration (`public_bucket_allows_listing` advisor) with zero display impact, PROVIDED the app never calls `.list()`/`.download()` on that bucket (grep `src/` to confirm; service-role edge callers bypass RLS anyway). Evidence: 2026-07-21 hardening of avatars/trip-covers/event-agendas/advertiser-assets.
+
+### Prefer add-by-email/phone for existing accounts over invite-link-only growth
+Invite links remain the signup path, but they are a single point of failure at scale. For people who already have Chravel, resolve `auth.users`/`profiles.phone` via a service-role lookup edge function and insert `trip_members` directly (same invite mint authz + capacity check). Keep phone matching digit-normalized with last-10 fallback. *Evidence: July 2026 synthetic-study wave 4 — add-trip-member-by-contact.*
+

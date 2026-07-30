@@ -1188,6 +1188,7 @@ export const TripChat = React.memo(
             tripMembers={tripMembers}
             readStatuses={message.readStatuses || readStatusesByMessage[message.id] || []}
             broadcastReadCount={ackByStreamMessageId[message.id]?.readCount}
+            broadcastId={ackByStreamMessageId[message.id]?.broadcastId}
             showSenderInfo={showSenderInfo}
             isLastInGroup={isLastInGroup}
             reactionUserNamesById={reactionUserNamesById}

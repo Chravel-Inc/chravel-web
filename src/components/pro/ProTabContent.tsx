@@ -37,6 +37,7 @@ const TeamTab = lazy(() => import('./TeamTab').then(m => ({ default: m.TeamTab }
 const TripTasksTab = lazy(() =>
   import('../todo/TripTasksTab').then(m => ({ default: m.TripTasksTab })),
 );
+const ProDaySheet = lazy(() => import('./ProDaySheet').then(m => ({ default: m.ProDaySheet })));
 
 interface ProTabContentProps {
   onTabChange?: (tab: string) => void;
@@ -167,6 +168,11 @@ export const ProTabContent = ({
       case 'calendar':
         return (
           <FeatureErrorBoundary featureName="Calendar & Events">
+            {!isDemoMode && (
+              <Suspense fallback={null}>
+                <ProDaySheet tripId={tripId} />
+              </Suspense>
+            )}
             <GroupCalendar tripId={tripId} />
           </FeatureErrorBoundary>
         );
@@ -229,7 +235,10 @@ export const ProTabContent = ({
               <div className="text-center py-12">
                 <DollarSign size={48} className="text-red-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-400 mb-2">Per-diem & Settlement</h3>
-                <p className="text-gray-500 text-sm">Per-diem automation and settlement tracking</p>
+                <p className="text-gray-500 text-sm max-w-md mx-auto">
+                  Demo preview only. On live trips, track shared costs in the Payments tab — this
+                  settlement automation surface is not wired yet.
+                </p>
               </div>
             </div>
           </div>
@@ -247,8 +256,9 @@ export const ProTabContent = ({
               <div className="text-center py-12">
                 <Shield size={48} className="text-red-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-400 mb-2">Health Monitoring</h3>
-                <p className="text-gray-500 text-sm">
-                  Injury status tracking and compliance monitoring
+                <p className="text-gray-500 text-sm max-w-md mx-auto">
+                  Demo preview only. Medical/injury tracking is not available on live trips yet —
+                  keep notes in Tasks or Chat for now.
                 </p>
               </div>
             </div>

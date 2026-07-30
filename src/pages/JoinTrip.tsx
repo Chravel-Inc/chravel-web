@@ -66,6 +66,8 @@ interface InvitePreviewData {
     cover_image_url: string | null;
     trip_type: string | null;
     member_count: number;
+    member_limit?: number | null;
+    at_capacity?: boolean;
   };
   /** Read-only schedule peek for invitees before account/join. Public invite token only. */
   itinerary_preview?: InvitePreviewItineraryItem[];
@@ -914,8 +916,13 @@ const JoinTrip = () => {
               <div className="flex items-center gap-3 text-sm">
                 <Users size={16} className="gold-gradient-icon" />
                 <span className="text-white">
-                  {inviteData.trip.member_count}{' '}
-                  {inviteData.trip.member_count === 1 ? 'Chraveler' : 'Chravelers already planning'}
+                  {typeof inviteData.trip.member_limit === 'number'
+                    ? `${inviteData.trip.member_count} of ${inviteData.trip.member_limit} seats filled`
+                    : `${inviteData.trip.member_count} ${
+                        inviteData.trip.member_count === 1
+                          ? 'Chraveler'
+                          : 'Chravelers already planning'
+                      }`}
                 </span>
               </div>
             )}

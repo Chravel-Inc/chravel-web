@@ -253,6 +253,13 @@ export const PaymentsTab = React.memo(({ tripId }: PaymentsTabProps) => {
           <>
             <BalanceSummary summary={balanceSummary} />
 
+            {balanceSummary.totalOwedToYou > 0 && (
+              <p className="text-xs text-muted-foreground px-1">
+                Someone still owes you. Tap Remind on their card to send an in-app nudge — Chravel
+                tracks balances but doesn&apos;t move money.
+              </p>
+            )}
+
             {/* Per-Person Balance Cards */}
             {balanceSummary.balances.length > 0 ? (
               <div className="space-y-2">

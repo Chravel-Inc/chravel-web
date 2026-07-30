@@ -5579,6 +5579,31 @@ export type Database = {
         Args: { p_broadcast_id: string }
         Returns: number
       }
+      get_broadcast_viewers: {
+        Args: { p_broadcast_id: string }
+        Returns: {
+          user_id: string
+          display_name: string
+          avatar_url: string | null
+          viewed_at: string
+        }[]
+      }
+      get_trip_member_limit: {
+        Args: { p_trip_id: string }
+        Returns: number | null
+      }
+      is_trip_at_member_capacity: {
+        Args: { p_trip_id: string }
+        Returns: boolean
+      }
+      lookup_user_id_by_contact: {
+        Args: { p_email?: string; p_phone_digits?: string }
+        Returns: string | null
+      }
+      remind_trip_balance: {
+        Args: { p_trip_id: string; p_debtor_user_id: string }
+        Returns: Json
+      }
       get_channel_member_counts: {
         Args: { p_trip_id: string }
         Returns: {
