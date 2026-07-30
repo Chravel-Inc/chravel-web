@@ -266,6 +266,7 @@ async function _executeImpl(
           // falls back to the caller when no member matches.
           let assigneeUserId = userId;
           let assigneeResolved = false;
+          let assigneeAmbiguous = false;
           const assigneeHint = String(assignee || '')
             .trim()
             .toLowerCase();
@@ -280,15 +281,26 @@ async function _executeImpl(
                 .from('profiles_public')
                 .select('user_id, resolved_display_name')
                 .in('user_id', memberIds);
-              const match = (memberProfiles || []).find(
-                (p: { user_id: string; resolved_display_name?: string | null }) => {
-                  const name = String(p.resolved_display_name || '').toLowerCase();
-                  return name.length > 0 && (name === assigneeHint || name.includes(assigneeHint));
-                },
+              const profiles = (memberProfiles || []) as Array<{
+                user_id: string;
+                resolved_display_name?: string | null;
+              }>;
+              // Exact match wins; a substring hit counts only when UNIQUE —
+              // a short hint ("sam") matching several members must not let
+              // DB return order pick the assignee.
+              const nameOf = (p: { resolved_display_name?: string | null }) =>
+                String(p.resolved_display_name || '').toLowerCase();
+              const exact = profiles.filter(p => nameOf(p) === assigneeHint);
+              const partial = profiles.filter(
+                p => nameOf(p).length > 0 && nameOf(p).includes(assigneeHint),
               );
+              const match =
+                exact.length === 1 ? exact[0] : partial.length === 1 ? partial[0] : null;
               if (match) {
                 assigneeUserId = match.user_id;
                 assigneeResolved = true;
+              } else if (partial.length > 1) {
+                assigneeAmbiguous = true;
               }
             }
           }
@@ -304,9 +316,11 @@ async function _executeImpl(
           promoted = true;
           assigneeNote = assigneeResolved
             ? ` and assigned it to ${assignee}`
-            : assigneeHint
-              ? ` (couldn't match "${assignee}" to a trip member — assigned to you)`
-              : '';
+            : assigneeAmbiguous
+              ? ` ("${assignee}" matches several trip members — assigned to you; reassign in the Tasks tab)`
+              : assigneeHint
+                ? ` (couldn't match "${assignee}" to a trip member — assigned to you)`
+                : '';
           await supabase
             .from('trip_pending_actions')
             .update({

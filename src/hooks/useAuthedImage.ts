@@ -43,7 +43,9 @@ export function requiresAuthedFetch(url: string | null | undefined): boolean {
   try {
     const parsed = new URL(url, window.location.origin);
     const supabaseOrigin = new URL(SUPABASE_PROJECT_URL).origin;
-    return parsed.origin === supabaseOrigin && parsed.pathname.endsWith(AUTH_REQUIRED_PATH);
+    // Exact origin + exact pathname: Supabase serves the function at exactly
+    // this path, so equality is both correct and un-spoofable.
+    return parsed.origin === supabaseOrigin && parsed.pathname === AUTH_REQUIRED_PATH;
   } catch {
     return false;
   }

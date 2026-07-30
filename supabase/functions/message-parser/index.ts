@@ -66,9 +66,7 @@ serve(async req => {
     // message id — storing it would poison message_id with values that never
     // join to a real message. Store NULL unless the id looks like a real one.
     const storedMessageId =
-      typeof messageId === 'string' && messageId && !messageId.startsWith('msg_')
-        ? messageId
-        : null;
+      typeof messageId === 'string' && !messageId.startsWith('msg_') ? messageId : null;
 
     // Process URLs
     for (const url of urls) {
