@@ -192,7 +192,8 @@ export const NativeTripTypeSwitcher = ({
       >
         <div
           className={cn(
-            'w-full max-w-sm bg-gray-100 dark:bg-[#1c1c1e] rounded-2xl overflow-hidden shadow-2xl',
+            // Use semantic surface tokens — theme is driven by html.light + CSS vars, not Tailwind `dark:`
+            'w-full max-w-sm bg-card text-card-foreground rounded-2xl overflow-hidden shadow-2xl border border-border',
             !isDragging && 'transition-transform duration-200 ease-out',
             !isDragging && translateY === 0 && 'animate-in zoom-in-95 fade-in duration-200',
           )}
@@ -203,12 +204,12 @@ export const NativeTripTypeSwitcher = ({
         >
           {/* Grabber indicator */}
           <div className="flex justify-center pt-3 pb-1">
-            <div className="w-10 h-1 rounded-full bg-black/20 dark:bg-white/30" />
+            <div className="w-10 h-1 rounded-full bg-muted-foreground/25" />
           </div>
 
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-3 border-b border-black/10 dark:border-white/10">
-            <h2 className="text-lg font-semibold text-black dark:text-white">Select View</h2>
+          <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+            <h2 className="text-lg font-semibold text-foreground">Select View</h2>
             <button
               onClick={e => {
                 e.stopPropagation();
@@ -224,10 +225,10 @@ export const NativeTripTypeSwitcher = ({
                 e.preventDefault();
                 onClose();
               }}
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-black/10 dark:bg-white/10 active:bg-black/20 dark:active:bg-white/20 transition-colors"
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-muted active:bg-muted/80 transition-colors"
               aria-label="Close"
             >
-              <X size={18} className="text-black/70 dark:text-white/70" />
+              <X size={18} className="text-muted-foreground" />
             </button>
           </div>
 
@@ -249,7 +250,7 @@ export const NativeTripTypeSwitcher = ({
                     isRecsDisabled && 'opacity-50 cursor-not-allowed',
                     isSelected
                       ? 'accent-ring-active'
-                      : 'bg-black/5 dark:bg-white/5 active:bg-black/10 dark:active:bg-white/10',
+                      : 'bg-muted/50 active:bg-muted',
                   )}
                 >
                   {/* Icon */}
@@ -258,7 +259,7 @@ export const NativeTripTypeSwitcher = ({
                       'w-12 h-12 rounded-full flex items-center justify-center shrink-0',
                       isSelected
                         ? 'bg-gold-primary/15 gold-gradient-icon border border-gold-primary/40'
-                        : 'bg-black/10 dark:bg-white/10 text-black/70 dark:text-white/70',
+                        : 'bg-muted text-muted-foreground',
                     )}
                   >
                     {type.icon}
@@ -270,25 +271,23 @@ export const NativeTripTypeSwitcher = ({
                       <span
                         className={cn(
                           'text-[17px] font-medium',
-                          isSelected
-                            ? 'text-black dark:text-white'
-                            : 'text-black/90 dark:text-white/90',
+                          isSelected ? 'text-foreground' : 'text-foreground/90',
                         )}
                       >
                         {type.label}
                       </span>
                       {isRecsDisabled && (
-                        <span className="text-[11px] text-black/50 dark:text-white/50 bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded-full">
+                        <span className="text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                           New
                         </span>
                       )}
                       {!isRecsDisabled && count > 0 && (
-                        <span className="text-[13px] text-black/40 dark:text-white/40 bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded-full">
+                        <span className="text-[13px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                           {count}
                         </span>
                       )}
                     </div>
-                    <span className="text-[14px] text-black/50 dark:text-white/50">
+                    <span className="text-[14px] text-muted-foreground">
                       {type.sublabel}
                     </span>
                   </div>
