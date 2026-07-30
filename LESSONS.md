@@ -79,6 +79,10 @@ Message loss between disconnect and reconnect is the most common chat bug — ba
 - Presentation features that need `attachments[]` (mosaic, voice notes) must map the full Stream attachment list in `streamMessageViewModel` — collapsing to first `mediaUrl` silently kills multi-media UX.
 - Message grouping must resolve sender via `sender.id` (Stream view models), not only legacy `sender_id`/`user_id`.
 - Sticky overlays over virtualized lists must compare derived values by primitive (timestamp/id) before setState — `setState(new Date(sameTs))` infinite-loops because Date identity changes every render.
+- Never score Stream health from docs that name deleted files (`ThreadView`) — verify with `Glob`/`rg` first. *Evidence: 2026-07-27 GetStream audit; prior report claimed 92/100 with absent ThreadView.*
+- Do not set Stream `parent_id` unless a consumer (`getReplies` / thread UI) exists; filtering thread replies out of main state without a ThreadView silently drops messages.
+- Client-side `channel.addMembers` is not a membership sync path when user grants lack `AddOwnChannelMembership` — call edge ensure/join and treat swallow-success as a bug.
+- Seeded `stream-chat-*` feature_flags are inert unless referenced; Stream cutover today is `VITE_STREAM_CHAT_DISABLED`, which violates the table-flag kill-switch policy until wired.
 
 ### Keep shared chat mutations (pin/unpin, edit, delete) inside the shared hook, not UI surfaces
 Trips/Pro Trips/Events should all call the same `togglePin` from `useStreamTripChat` — UI components should never run their own client-level Stream mutations.
