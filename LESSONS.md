@@ -625,3 +625,9 @@ For a `public=true` bucket, objects serve via `/storage/v1/object/public/...` wh
 ### Prefer add-by-email/phone for existing accounts over invite-link-only growth
 Invite links remain the signup path, but they are a single point of failure at scale. For people who already have Chravel, resolve `auth.users`/`profiles.phone` via a service-role lookup edge function and insert `trip_members` directly (same invite mint authz + capacity check). Keep phone matching digit-normalized with last-10 fallback. *Evidence: July 2026 synthetic-study wave 4 — add-trip-member-by-contact.*
 
+### MCP `deploy_edge_function` truncates large shared bundles — slim or verify markers
+Large payloads (~45KB+ with full `ogUtils` demo dataset) can silently deploy an older/stub `index.ts`. For `get-invite-preview`, ship slim `_shared` (only `resolveOgCoverImageUrl` + rate-limit helpers) and immediately `get_edge_function` to assert markers (`TRIP_FULL`, `get_trip_member_limit`, `itinerary_preview`) before calling the deploy done. *Evidence: 2026-07-30 deploy QA — v888–893 lost capacity until slim v894.*
+
+### Capacity RPCs + identity snapshots must exist before add-by-contact happy path
+`add-trip-member-by-contact` inserts `display_name_snapshot` / `avatar_url_snapshot` and calls `is_trip_at_member_capacity`. If those columns/RPCs are missing in prod (migrations present in repo but absent from `schema_migrations`), email/phone add 500s and join preview never returns `member_limit`. Apply `restore_co_member_name_visibility` then `apply_missing_member_limits_and_roster_rpc` before live QA. *Evidence: ChravelApp 2026-07-30 deploy gate.*
+

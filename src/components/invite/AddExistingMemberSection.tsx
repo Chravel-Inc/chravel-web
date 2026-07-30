@@ -56,7 +56,9 @@ export function AddExistingMemberSection({ disabled, onAdd }: AddExistingMemberS
           aria-selected={mode === 'email'}
           variant={mode === 'email' ? 'default' : 'outline'}
           className="min-h-[44px] flex-1"
-          disabled={disabled || adding}
+          // Keep mode tabs clickable when the section is read-only (e.g. demo)
+          // so users can still preview Email vs Phone UI.
+          disabled={adding}
           onClick={() => {
             setMode('email');
             setValue('');
@@ -70,7 +72,7 @@ export function AddExistingMemberSection({ disabled, onAdd }: AddExistingMemberS
           aria-selected={mode === 'phone'}
           variant={mode === 'phone' ? 'default' : 'outline'}
           className="min-h-[44px] flex-1"
-          disabled={disabled || adding}
+          disabled={adding}
           onClick={() => {
             setMode('phone');
             setValue('');
