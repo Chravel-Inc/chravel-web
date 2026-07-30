@@ -465,7 +465,7 @@ export const AuthModal = ({
       </button>
 
       {mode === 'signup' && (
-        <p className="text-center text-xs text-white/50 pt-1">
+        <p className="text-center text-xs text-white/70 pt-1">
           By creating an account, you agree to our{' '}
           <a
             href="/terms"
