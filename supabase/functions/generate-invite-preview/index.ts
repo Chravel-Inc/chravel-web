@@ -8,6 +8,9 @@ import {
   safeHexColor,
   getOgSecurityHeaders,
   resolveOgCoverImageUrl,
+  resolveTrustedAppBaseUrl,
+  resolveTrustedCanonicalUrl,
+  buildPublicOgDescription,
 } from '../_shared/ogUtils.ts';
 import type { DemoTrip } from '../_shared/ogUtils.ts';
 import { checkRateLimit, getClientIp } from '../_shared/security.ts';
@@ -254,9 +257,12 @@ serve(async (req: Request): Promise<Response> => {
   try {
     const url = new URL(req.url);
     const inviteCode = url.searchParams.get('code');
-    const canonicalUrl = url.searchParams.get('canonicalUrl') || null;
-    const appBaseUrl =
-      url.searchParams.get('appBaseUrl') || Deno.env.get('SITE_URL') || 'https://chravel.app';
+    const canonicalUrlParam = url.searchParams.get('canonicalUrl');
+    // Allowlisted app base only — never trust arbitrary client appBaseUrl (open redirect).
+    const baseUrl = resolveTrustedAppBaseUrl(url.searchParams.get('appBaseUrl'));
+    const canonicalUrl = canonicalUrlParam
+      ? resolveTrustedCanonicalUrl(canonicalUrlParam, new URL(req.url).toString())
+      : null;
 
     logStep('Request received', {
       code: inviteCode?.substring(0, 12) + '...',
@@ -269,9 +275,6 @@ serve(async (req: Request): Promise<Response> => {
         headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
       });
     }
-
-    // Determine base URL for links
-    const baseUrl = appBaseUrl;
 
     // Check if it's a demo invite code (starts with "demo-")
     if (inviteCode.startsWith('demo-')) {
@@ -392,17 +395,27 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Fetch trip details including trip_type and updated_at for proper badge display and cache busting
+    // Fetch trip details including trip_type and updated_at for proper badge display and cache busting.
+    // Omit free-text `description` from the public OG HTML even for invite codes — invitees see
+    // full details after joining; crawlers/unfurlers should not scrape private notes.
     const { data: trip, error: tripError } = await supabase
       .from('trips')
       .select(
-        'name, description, destination, start_date, end_date, cover_image_url, trip_type, updated_at',
+        'name, destination, start_date, end_date, cover_image_url, trip_type, updated_at, is_archived, is_hidden',
       )
       .eq('id', invite.trip_id)
       .maybeSingle();
 
     if (tripError || !trip) {
       logStep('Trip not found', { tripId: invite.trip_id });
+      return new Response('Trip not found', {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+      });
+    }
+
+    if (trip.is_archived || trip.is_hidden) {
+      logStep('Trip archived/hidden', { tripId: invite.trip_id });
       return new Response('Trip not found', {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
@@ -427,14 +440,20 @@ serve(async (req: Request): Promise<Response> => {
         })
       : '';
     const dateRange = startDate && endDate ? `${startDate} - ${endDate}` : 'Dates TBD';
+    const location = trip.destination || 'Location TBD';
+    const count = participantCount || 1;
 
     const tripData = {
       title: trip.name || 'Untitled Trip',
-      location: trip.destination || 'Location TBD',
+      location,
       dateRange,
-      description: trip.description || 'An amazing adventure awaits!',
+      description: buildPublicOgDescription({
+        location,
+        dateRange,
+        participantCount: count,
+      }),
       coverPhoto: resolveOgCoverImageUrl(trip),
-      participantCount: participantCount || 1,
+      participantCount: count,
       tripType: trip.trip_type as 'consumer' | 'pro' | 'event' | undefined,
     };
 

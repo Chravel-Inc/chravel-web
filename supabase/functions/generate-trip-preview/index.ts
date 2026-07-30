@@ -8,6 +8,9 @@ import {
   safeHexColor,
   getOgSecurityHeaders,
   resolveOgCoverImageUrl,
+  resolveTrustedAppBaseUrl,
+  resolveTrustedCanonicalUrl,
+  buildPublicOgDescription,
 } from '../_shared/ogUtils.ts';
 import type { DemoTrip } from '../_shared/ogUtils.ts';
 import { checkRateLimit, getClientIp } from '../_shared/security.ts';
@@ -215,17 +218,12 @@ serve(async (req: Request): Promise<Response> => {
      * Canonical URL should match the URL being scraped (important for unfurl caching).
      * If you're proxying through a branded domain (e.g., a Worker at `p.chravel.app`),
      * pass `canonicalUrl` so OG tags match the branded URL (not the supabase.co URL).
+     * Only first-party / allowlisted hosts are accepted — never attacker-controlled origins.
      */
-    const canonicalUrl =
-      canonicalUrlParam && canonicalUrlParam.startsWith('http')
-        ? canonicalUrlParam
-        : new URL(req.url).toString();
+    const canonicalUrl = resolveTrustedCanonicalUrl(canonicalUrlParam, new URL(req.url).toString());
 
-    // Determine app base URL for human redirect / CTAs.
-    const appBaseUrl =
-      appBaseUrlParam && appBaseUrlParam.startsWith('http')
-        ? appBaseUrlParam
-        : Deno.env.get('SITE_URL') || 'https://chravel.app';
+    // App base URL for human redirect / CTAs — allowlisted only (blocks open redirects).
+    const appBaseUrl = resolveTrustedAppBaseUrl(appBaseUrlParam);
 
     // Check if it's a demo trip (numeric ID 1-12)
     if (DEMO_TRIPS[tripId]) {
@@ -263,10 +261,12 @@ serve(async (req: Request): Promise<Response> => {
       });
     }
 
+    // Do NOT select free-text `description` — it can hold private logistics/PII and must
+    // stay member-only (see get-trip-preview). Public OG previews use a location/dates summary.
     const { data: trip, error } = await supabase
       .from('trips')
       .select(
-        'name, description, destination, start_date, end_date, cover_image_url, trip_type, updated_at',
+        'name, destination, start_date, end_date, cover_image_url, trip_type, updated_at, is_archived, is_hidden',
       )
       .eq('id', tripId)
       .maybeSingle();
@@ -281,6 +281,15 @@ serve(async (req: Request): Promise<Response> => {
 
     if (!trip) {
       console.log('[generate-trip-preview] Trip not found:', tripId);
+      return new Response('Trip not found', {
+        status: 404,
+        headers: { ...corsHeaders, ...getOgSecurityHeaders(), 'Content-Type': 'text/plain' },
+      });
+    }
+
+    // Archived/hidden trips must not unfurl publicly (parity with get-trip-preview).
+    if (trip.is_archived || trip.is_hidden) {
+      console.log('[generate-trip-preview] Trip archived/hidden:', tripId);
       return new Response('Trip not found', {
         status: 404,
         headers: { ...corsHeaders, ...getOgSecurityHeaders(), 'Content-Type': 'text/plain' },
@@ -305,14 +314,21 @@ serve(async (req: Request): Promise<Response> => {
         })
       : '';
     const dateRange = startDate && endDate ? `${startDate} - ${endDate}` : 'Dates TBD';
+    const location = trip.destination || 'Location TBD';
+    const count = participantCount || 1;
 
     const tripData = {
       title: trip.name || 'Untitled Trip',
-      location: trip.destination || 'Location TBD',
+      location,
       dateRange,
-      description: trip.description || 'An amazing adventure awaits!',
+      // Public-safe summary only — never trips.description on this unauthenticated endpoint.
+      description: buildPublicOgDescription({
+        location,
+        dateRange,
+        participantCount: count,
+      }),
       coverPhoto: resolveOgCoverImageUrl(trip),
-      participantCount: participantCount || 1,
+      participantCount: count,
       tripType: trip.trip_type as 'consumer' | 'pro' | 'event' | undefined,
     };
 
