@@ -1,3 +1,11 @@
+2026-07-30 — Pre-viral P0 hardening
+- Personal basecamp: no address in chat system messages/history logging; history RLS owner-only for personal.
+- Payments: creditor-credits hybrid — mark_payment_splits_pending RPC; creator-only settle/unsettle; co-member wallet SELECT via is_trip_co_member. Applied on ChravelApp.
+- Stream: server-side addUserToTripStreamChannels in add-trip-member-by-contact; reconcile filters active members.
+- Concierge: ai_concierge kill switch (edge + UI); Gemini/app 429 returns HTTP 429 with clear copy.
+- Invite: parseFunctionsInvokeError maps USER_NOT_FOUND/ALREADY_MEMBER/TRIP_FULL toasts; event calendar write UI gated on useMutationPermissions; Apple Cash honesty toast.
+- Branch: cursor/pre-viral-p0-hardening-9c54
+
 2026-07-30 — Remove Twilio/SMS notification leftovers
 - Applied `remove_sms_twilio_leftovers` on ChravelApp (prod still had sms_* prefs/RPCs; app code already push/email/in-app only).
 - Migration `20260730180203_remove_sms_twilio_leftovers.sql` + types.ts sync; cancel leftover queued SMS deliveries.

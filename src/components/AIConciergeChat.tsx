@@ -397,6 +397,9 @@ export const AIConciergeChat = ({
     handleSendMessageRef.current = handleSendMessage;
   }, [handleSendMessage]);
 
+  // Runtime kill switch — matches edge isFeatureEnabled('ai_concierge').
+  const aiConciergeEnabled = useFeatureFlag('ai_concierge', true);
+
   // ── Hands-free conversation mode ─────────────────────────────────────
   const conversationModeFlag = useFeatureFlag('concierge_conversation_mode', false);
   const { enabled: conversationModeUserPref } = useConversationModePreference();
@@ -472,6 +475,22 @@ export const AIConciergeChat = ({
       handleSendMessage();
     }
   };
+
+  if (!aiConciergeEnabled) {
+    return (
+      <div
+        className="flex flex-1 min-h-0 items-center justify-center px-6 text-center"
+        data-testid="ai-concierge-disabled"
+      >
+        <div className="space-y-2 max-w-sm">
+          <h3 className="text-base font-semibold text-white">Concierge temporarily unavailable</h3>
+          <p className="text-sm text-white/70">
+            AI Concierge is turned off right now. Please try again later.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col overflow-hidden flex-1 min-h-0 min-w-0 h-full">

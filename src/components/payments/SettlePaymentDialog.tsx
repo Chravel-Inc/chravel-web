@@ -131,7 +131,9 @@ export const SettlePaymentDialog = ({
           )}
 
           <p className="text-sm text-muted-foreground mt-4">
-            This will mark all associated payments as settled. This action cannot be undone.
+            {youOweThem
+              ? 'This marks the payments as paid and asks them to confirm they received the money. It does not settle the balance until they confirm.'
+              : 'This confirms you received payment and settles the balance. This action cannot be undone.'}
           </p>
 
           {error && (
@@ -156,7 +158,13 @@ export const SettlePaymentDialog = ({
           </Button>
           <Button onClick={handleSettle} disabled={settling}>
             {settling && <div className="w-4 h-4 mr-2 animate-spin gold-gradient-spinner" />}
-            {settling ? 'Settling...' : 'Confirm Settlement'}
+            {settling
+              ? youOweThem
+                ? 'Marking...'
+                : 'Settling...'
+              : youOweThem
+                ? 'Mark as Paid'
+                : 'Confirm Settlement'}
           </Button>
         </DialogFooter>
       </DialogContent>

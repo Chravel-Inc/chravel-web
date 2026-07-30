@@ -248,25 +248,20 @@ describe('settleSplitsForDebtor — batch settle used by the settlement dialogs'
 });
 
 describe('markSplitsPending — non-crediting debtor transition stays guarded', () => {
-  it('scopes the pending mark to the caller-as-debtor unsettled rows and never touches is_settled', async () => {
-    const chain = makeChain({ data: null, error: null });
-    (supabase.from as any).mockReturnValue(chain);
+  it('calls mark_payment_splits_pending RPC and never touches is_settled via raw update', async () => {
+    (supabase.rpc as any).mockResolvedValue({
+      data: { success: true, updated_count: 2 },
+      error: null,
+    });
 
     const result = await markSplitsPending(PAYMENT_IDS, 'venmo');
 
     expect(result.success).toBe(true);
-    expect(supabase.from).toHaveBeenCalledWith('payment_splits');
-    expect(chain.update).toHaveBeenCalledWith({
-      confirmation_status: 'pending',
-      settlement_method: 'venmo',
+    expect(supabase.rpc).toHaveBeenCalledWith('mark_payment_splits_pending', {
+      p_payment_message_ids: PAYMENT_IDS,
+      p_method: 'venmo',
     });
-    expect(chain.in).toHaveBeenCalledWith('payment_message_id', PAYMENT_IDS);
-    expect(chain.eq).toHaveBeenCalledWith('debtor_user_id', USER_ID);
-    expect(chain.eq).toHaveBeenCalledWith('is_settled', false);
-    // Crediting must never happen here — that is the RPC's job.
-    const updatePayload = (chain.update as any).mock.calls[0][0];
-    expect(updatePayload).not.toHaveProperty('is_settled');
-    expect(supabase.rpc).not.toHaveBeenCalled();
+    expect(supabase.from).not.toHaveBeenCalled();
   });
 
   it('fails when unauthenticated without issuing a write', async () => {
@@ -279,17 +274,19 @@ describe('markSplitsPending — non-crediting debtor transition stays guarded', 
 
     expect(result.success).toBe(false);
     expect(result.error?.code).toBe('NOT_AUTHENTICATED');
-    expect(supabase.from).not.toHaveBeenCalled();
+    expect(supabase.rpc).not.toHaveBeenCalled();
   });
 
   it('returns the Supabase error explicitly instead of swallowing it', async () => {
-    const chain = makeChain({ data: null, error: { message: 'rls denied' } });
-    (supabase.from as any).mockReturnValue(chain);
+    (supabase.rpc as any).mockResolvedValue({
+      data: null,
+      error: { message: 'rpc denied' },
+    });
 
     const result = await markSplitsPending(PAYMENT_IDS, 'venmo');
 
     expect(result.success).toBe(false);
     expect(result.error?.code).toBe('MARK_PENDING_FAILED');
-    expect(result.error?.message).toMatch(/rls denied/);
+    expect(result.error?.message).toMatch(/rpc denied/);
   });
 });

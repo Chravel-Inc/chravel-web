@@ -5869,6 +5869,13 @@ export type Database = {
         }
         Returns: Json
       }
+      mark_payment_splits_pending: {
+        Args: {
+          p_method: string
+          p_payment_message_ids: string[]
+        }
+        Returns: Json
+      }
       should_send_notification: {
         Args: {
           p_channel?: string

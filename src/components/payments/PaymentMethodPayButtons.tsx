@@ -116,6 +116,7 @@ export function PaymentMethodPayButtons({
           );
         }
 
+        const isAppleCash = source.method.toLowerCase() === 'applecash';
         return (
           <Button
             key={`${source.method}-${source.identifier}`}
@@ -123,11 +124,24 @@ export function PaymentMethodPayButtons({
             size="sm"
             variant={isPreferred ? 'default' : 'outline'}
             className="text-xs px-3 py-2 min-h-[44px]"
-            onClick={() => void openPaymentApp(target)}
-            aria-label={`Pay ${payee} via ${label}`}
+            onClick={() => {
+              if (isAppleCash) {
+                toast({
+                  title: 'Opens Messages for Apple Cash',
+                  description:
+                    'Chravel does not process Apple Cash. You’ll send money in Messages, then mark paid here.',
+                });
+              }
+              void openPaymentApp(target);
+            }}
+            aria-label={
+              isAppleCash
+                ? `Open Messages to pay ${payee} with Apple Cash`
+                : `Pay ${payee} via ${label}`
+            }
           >
             <ExternalLink className="w-3 h-3 mr-1" />
-            {label}
+            {isAppleCash ? 'Apple Cash (Messages)' : label}
             {source.identifier ? (
               <span className="ml-1 opacity-70 font-normal truncate max-w-[7rem]">
                 {target.displayHandle}

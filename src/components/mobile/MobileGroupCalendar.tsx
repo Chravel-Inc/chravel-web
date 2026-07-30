@@ -41,7 +41,7 @@ import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { useDeferredPaidAccess } from '@/hooks/useDeferredPaidAccess';
 import { useSmartImportTaste } from '@/features/smart-import/hooks/useSmartImportTaste';
 import { PlusUpsellModal } from '@/components/PlusUpsellModal';
-import { useRolePermissions } from '@/hooks/useRolePermissions';
+import { useMutationPermissions } from '@/hooks/useMutationPermissions';
 import { useTripMembersQuery } from '@/hooks/useTripMembersQuery';
 import type { TripEvent } from '@/services/calendarService';
 import { useCalendarExport } from '@/features/calendar/hooks/useCalendarExport';
@@ -120,7 +120,12 @@ export const MobileGroupCalendar = ({
   // Free-tier taste: 5 Smart Imports per account before the paywall fires.
   const { canUseFreeImport, invalidateTaste } = useSmartImportTaste(tripId);
   const [showUpsellModal, setShowUpsellModal] = useState(false);
-  const { canPerformAction, isLoading: permissionsLoading } = useRolePermissions(tripId);
+  const {
+    canCreateEvent,
+    canEditEvent,
+    canDeleteEvent,
+    isLoading: permissionsLoading,
+  } = useMutationPermissions(tripId);
   const { tripMembers } = useTripMembersQuery(tripId);
 
   // Background URL import
@@ -242,7 +247,7 @@ export const MobileGroupCalendar = ({
 
   const handleAddEvent = async () => {
     await hapticService.medium();
-    if (!permissionsLoading && !canPerformAction('calendar', 'can_create_events')) {
+    if (!permissionsLoading && !canCreateEvent) {
       toast.error('You do not have permission to add events');
       return;
     }
@@ -315,7 +320,7 @@ export const MobileGroupCalendar = ({
   const handleDeleteEvent = useCallback(
     async (eventId: string) => {
       if (!eventId) return;
-      if (!permissionsLoading && !canPerformAction('calendar', 'can_delete_events')) {
+      if (!permissionsLoading && !canDeleteEvent) {
         toast.error('You do not have permission to delete events');
         return;
       }
@@ -338,14 +343,14 @@ export const MobileGroupCalendar = ({
         setIsDeleting(false);
       }
     },
-    [deleteEvent, refreshEvents, canPerformAction, permissionsLoading],
+    [deleteEvent, refreshEvents, canDeleteEvent, permissionsLoading],
   );
 
   // Handle event edit
   const handleEditEvent = useCallback(
     async (event: CalendarEvent & { originalEvent?: TripEvent }) => {
       await hapticService.medium();
-      if (!permissionsLoading && !canPerformAction('calendar', 'can_edit_events')) {
+      if (!permissionsLoading && !canEditEvent) {
         toast.error('You do not have permission to edit events');
         return;
       }
@@ -368,7 +373,7 @@ export const MobileGroupCalendar = ({
       setEditingEvent(eventToEdit);
       setIsModalOpen(true);
     },
-    [tripId, canPerformAction, permissionsLoading],
+    [tripId, canEditEvent, permissionsLoading],
   );
 
   // Close event detail drawer
@@ -582,14 +587,16 @@ export const MobileGroupCalendar = ({
                 Month
               </button>
             </div>
-            <button
-              type="button"
-              onClick={handleImport}
-              className="mobile-trip-control-pill flex items-center justify-center rounded-xl bg-white/5 text-gray-300 transition-colors hover:bg-white/10 active:scale-95"
-            >
-              <Upload size={14} />
-              Import
-            </button>
+            {canCreateEvent && (
+              <button
+                type="button"
+                onClick={handleImport}
+                className="mobile-trip-control-pill flex items-center justify-center rounded-xl bg-white/5 text-gray-300 transition-colors hover:bg-white/10 active:scale-95"
+              >
+                <Upload size={14} />
+                Import
+              </button>
+            )}
             <button
               type="button"
               onClick={handleExportClick}
@@ -617,27 +624,31 @@ export const MobileGroupCalendar = ({
                       {format(selectedDate, 'EEEE, MMMM d')}
                     </h3>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleAddEvent}
-                    className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform active:scale-95"
-                    aria-label="Add event for selected day"
-                  >
-                    <Plus size={20} />
-                  </button>
+                  {canCreateEvent && (
+                    <button
+                      type="button"
+                      onClick={handleAddEvent}
+                      className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform active:scale-95"
+                      aria-label="Add event for selected day"
+                    >
+                      <Plus size={20} />
+                    </button>
+                  )}
                 </div>
 
                 <div className="space-y-3">
                   {eventsForSelectedDate.length === 0 ? (
                     <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.03] px-4 py-8 text-center">
                       <p className="text-sm text-gray-400">No events for this day.</p>
-                      <button
-                        type="button"
-                        onClick={handleAddEvent}
-                        className="mt-3 text-sm font-medium text-gold-light underline-offset-2 hover:underline"
-                      >
-                        Add your first event
-                      </button>
+                      {canCreateEvent && (
+                        <button
+                          type="button"
+                          onClick={handleAddEvent}
+                          className="mt-3 text-sm font-medium text-gold-light underline-offset-2 hover:underline"
+                        >
+                          Add your first event
+                        </button>
+                      )}
                     </div>
                   ) : (
                     eventsForSelectedDate.map(renderDayEventCard)
@@ -816,10 +827,9 @@ export const MobileGroupCalendar = ({
               </div>
 
               {/* Actions - only show when user has permission */}
-              {(canPerformAction('calendar', 'can_edit_events') ||
-                canPerformAction('calendar', 'can_delete_events')) && (
+              {(canEditEvent || canDeleteEvent) && (
                 <div className="px-6 pb-8 flex gap-3">
-                  {canPerformAction('calendar', 'can_edit_events') && (
+                  {canEditEvent && (
                     <button
                       onClick={() =>
                         handleEditEvent(
@@ -832,7 +842,7 @@ export const MobileGroupCalendar = ({
                       <span>Edit</span>
                     </button>
                   )}
-                  {canPerformAction('calendar', 'can_delete_events') && (
+                  {canDeleteEvent && (
                     <button
                       onClick={() => handleDeleteEvent(selectedEvent.id)}
                       disabled={isDeleting}

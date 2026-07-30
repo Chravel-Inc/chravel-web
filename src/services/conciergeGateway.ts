@@ -275,8 +275,32 @@ export function invokeConciergeStream(
       });
 
       if (!response.ok) {
-        await response.text().catch(() => '');
-        callbacks.onError('AI service temporarily unavailable. Please try again.');
+        let bodyText = '';
+        try {
+          bodyText = await response.text();
+        } catch {
+          bodyText = '';
+        }
+        let parsed: { error?: string; feature_disabled?: boolean; retryAfter?: number } | null =
+          null;
+        try {
+          parsed = bodyText ? JSON.parse(bodyText) : null;
+        } catch {
+          parsed = null;
+        }
+        if (parsed?.feature_disabled) {
+          callbacks.onError(
+            parsed.error || 'AI Concierge is temporarily unavailable. Please try again later.',
+          );
+        } else if (response.status === 429) {
+          const retry = parsed?.retryAfter ?? 60;
+          callbacks.onError(
+            parsed?.error ||
+              `High demand right now — please wait about ${retry} seconds and try again.`,
+          );
+        } else {
+          callbacks.onError('AI service temporarily unavailable. Please try again.');
+        }
         callbacks.onDone();
         return;
       }

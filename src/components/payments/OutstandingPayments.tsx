@@ -286,8 +286,17 @@ export const OutstandingPayments = ({
       return;
     }
 
-    // Authenticated mode: toggle in database
-    // Creator OR debtor can mark paid/unpaid (enforced server-side in settle RPCs).
+    // Authenticated mode: only the payment creator may credit/uncredit via RPC.
+    const payment = enrichedPayments.find(p => p.id === paymentId);
+    if (!user?.id || !payment || user.id !== payment.createdBy) {
+      toast({
+        title: 'Only the payment creator can mark splits settled',
+        description: 'If you paid, use Mark as Paid on your balance card instead.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       let success: boolean;
       let allSettled = false;
@@ -571,6 +580,7 @@ export const OutstandingPayments = ({
                       <div className="flex items-center gap-2 min-w-0">
                         <Checkbox
                           checked={split.is_settled}
+                          disabled={user?.id !== payment.createdBy}
                           onCheckedChange={() =>
                             handleToggleSplit(split.id, payment.id, split.is_settled)
                           }

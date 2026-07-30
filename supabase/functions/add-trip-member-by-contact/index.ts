@@ -13,8 +13,11 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { StreamChat } from 'npm:stream-chat';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { requireAuth } from '../_shared/requireAuth.ts';
+import { requireSecrets } from '../_shared/validateSecrets.ts';
+import { addUserToTripStreamChannels } from '../_shared/streamTripChannelMembership.ts';
 
 interface AddMemberBody {
   tripId?: string;
@@ -296,6 +299,24 @@ Deno.serve(async req => {
       fanout_event_key: `member_added:${tripId}:${targetUserId}:${caller.id}`,
     },
   });
+
+  // Server-side Stream membership — client SDK cannot AddMembers for a third party.
+  // Best-effort: Postgres membership already committed; do not fail the HTTP 200.
+  try {
+    const secrets = requireSecrets(['STREAM_API_KEY', 'STREAM_API_SECRET']);
+    const stream = StreamChat.getInstance(secrets['STREAM_API_KEY'], secrets['STREAM_API_SECRET']);
+    await addUserToTripStreamChannels(stream, {
+      tripId,
+      userId: targetUserId,
+      name: displayName,
+      image: profile?.avatar_url ?? null,
+    });
+  } catch (streamErr) {
+    console.warn(
+      '[add-trip-member-by-contact] Stream sync failed (membership still saved):',
+      streamErr instanceof Error ? streamErr.message : String(streamErr),
+    );
+  }
 
   return new Response(
     JSON.stringify({

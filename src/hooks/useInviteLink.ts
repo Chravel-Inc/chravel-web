@@ -5,6 +5,7 @@ import { useDemoMode } from '@/hooks/useDemoMode';
 import { extractInviteCodeFromLink, isDemoInviteCode } from '@/lib/inviteLinkUtils';
 import { buildInviteLink } from '@/lib/unfurlConfig';
 import { syncTripMemberToStreamAndEmitMemberJoined } from '@/lib/streamTripMemberInlineActivity';
+import { parseFunctionsInvokeError } from '@/lib/parseFunctionsError';
 
 interface UseInviteLinkProps {
   isOpen: boolean;
@@ -464,11 +465,11 @@ export const useInviteLink = ({
       );
 
       if (invokeError || !data?.success) {
-        const message =
-          (typeof data?.error === 'string' && data.error) ||
-          invokeError?.message ||
-          'Could not add that person.';
-        toast.error(message);
+        const parsed = await parseFunctionsInvokeError(invokeError, data);
+        toast.error(parsed.message);
+        if (parsed.errorCode === 'TRIP_FULL') {
+          void refreshCapacity(actualTripId);
+        }
         return false;
       }
 

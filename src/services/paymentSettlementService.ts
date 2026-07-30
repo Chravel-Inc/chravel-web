@@ -38,7 +38,7 @@ interface SettleSplitsRpcPayload {
 
 const SETTLEMENT_ERROR_MESSAGES: Record<string, string> = {
   NOT_AUTHENTICATED: 'You must be signed in to settle payments.',
-  NOT_AUTHORIZED: 'Only the payer or the payment creator can settle this payment.',
+  NOT_AUTHORIZED: 'Only the payment creator can mark this as settled.',
   INVALID_ARGUMENTS: 'No payments were selected to settle.',
 };
 
@@ -103,11 +103,8 @@ export async function settleSplitsForDebtor(
 
 /**
  * Debtor-side "I paid this" transition: confirmation_status none -> pending.
- *
- * Deliberately NOT an RPC: this transition never credits money (it never
- * touches `is_settled`), it is value-idempotent (re-marking pending is a
- * no-op), and RLS already restricts the write to the caller's own splits.
- * The crediting confirmation that follows goes through the atomic RPC above.
+ * Goes through mark_payment_splits_pending (SECURITY DEFINER) so RLS cannot
+ * block the handshake. Never credits is_settled — creditor confirm does that.
  */
 export async function markSplitsPending(
   paymentMessageIds: string[],
@@ -125,15 +122,10 @@ export async function markSplitsPending(
     };
   }
 
-  const { error } = await supabase
-    .from('payment_splits')
-    .update({
-      confirmation_status: 'pending',
-      settlement_method: method,
-    })
-    .in('payment_message_id', paymentMessageIds)
-    .eq('debtor_user_id', authData.user.id)
-    .eq('is_settled', false);
+  const { data, error } = await (supabase.rpc as any)('mark_payment_splits_pending', {
+    p_payment_message_ids: paymentMessageIds,
+    p_method: method,
+  });
 
   if (error) {
     if (import.meta.env.DEV) {
@@ -142,6 +134,18 @@ export async function markSplitsPending(
     return {
       success: false,
       error: { code: 'MARK_PENDING_FAILED', message: error.message },
+    };
+  }
+
+  const payload = (data ?? {}) as { success?: boolean; error?: string };
+  if (payload.success === false) {
+    const code = payload.error || 'MARK_PENDING_FAILED';
+    return {
+      success: false,
+      error: {
+        code,
+        message: SETTLEMENT_ERROR_MESSAGES[code] || 'Failed to mark payment as paid.',
+      },
     };
   }
 

@@ -255,7 +255,8 @@ serve(async req => {
       const { data: members, error: membersError } = await adminClient
         .from('trip_members')
         .select('user_id')
-        .eq('trip_id', tripId);
+        .eq('trip_id', tripId)
+        .or('status.is.null,status.eq.active');
 
       if (membersError) {
         throw new Error(`Failed to load trip members for ${tripId}`);
