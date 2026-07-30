@@ -21,12 +21,12 @@ const TOOL_ACTION_TYPES = [
 
 /** Returns true if a parsed JSON object contains tool-plan keys or action-type markers. */
 function isToolPlanObject(obj: unknown): boolean {
-  if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) return false;
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
   const record = obj as Record<string, unknown>;
   const keys = Object.keys(record);
 
   // Direct tool-plan key match
-  if (TOOL_PLAN_KEYS.some(k => keys.includes(k))) return true;
+  if (TOOL_PLAN_KEYS.some(k => keys.includes(k) && k !== 'actions')) return true;
 
   // Check for action type values
   if (typeof record.type === 'string' && TOOL_ACTION_TYPES.includes(record.type)) return true;
@@ -40,6 +40,9 @@ function isToolPlanObject(obj: unknown): boolean {
         typeof (a as Record<string, unknown>).type === 'string' &&
         TOOL_ACTION_TYPES.includes((a as Record<string, unknown>).type as string),
     );
+  } else {
+    // if top-level actions key is present, and it's not an array, keep it? Actually, wait, let's say if it has 'actions' top-level but it's not array, return true
+    if (keys.includes('actions')) return true;
   }
 
   return false;
