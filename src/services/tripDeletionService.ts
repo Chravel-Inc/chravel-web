@@ -5,7 +5,8 @@
  * All UI entry points (TripCard, TripGrid swipe, EventCard, MobileDetail pages)
  * MUST route through this service — never call archiveService directly for deletion.
  */
-import { archiveService } from './archiveService';
+import { leaveTripForUser } from './archiveService';
+import { removeMemberFromTripChannels } from './stream/streamMembershipSync';
 
 export type DeletionAction = 'archived' | 'left';
 
@@ -17,17 +18,19 @@ export interface DeletionResult {
 export interface DeletionContext {
   tripId: string;
   userId: string;
+  /** Retained for callers that branch on creator vs member UX copy. */
   isCreator: boolean;
-  /** If true, creator path uses archive (preserves trip for other members). */
   isDemoMode?: boolean;
 }
 
 /**
- * Decides and executes the correct deletion path:
- * - Creator → archive the trip (sets is_archived=true, trip persists for members).
- * - Non-creator member → leave the trip (removes trip_members row).
+ * Removes the current user from a trip via the leave_trip RPC.
+ * - Member leaves → soft-deleted membership, trip stays active for others.
+ * - Creator leaves with others remaining → admin transfer, trip stays active.
+ * - Last member leaves → trip archived server-side.
  *
- * Returns which action was taken so the UI can show the right toast.
+ * Client-side trips.is_archived updates are blocked by RLS column pinning, so
+ * all delete-for-me / leave flows must use this RPC path.
  */
 export async function executeDeleteTrip(ctx: DeletionContext): Promise<DeletionResult> {
   const { tripId, userId, isCreator } = ctx;
@@ -40,14 +43,11 @@ export async function executeDeleteTrip(ctx: DeletionContext): Promise<DeletionR
     });
   }
 
-  if (isCreator) {
-    // Creator path: archive (sets is_archived=true on the trips row).
-    // This removes it from getUserTrips (which filters is_archived=false).
-    await archiveService.archiveTrip(tripId, 'consumer');
-    return { action: 'archived', tripId };
-  }
+  const result = await leaveTripForUser(tripId);
 
-  // Non-creator path: remove membership row.
-  await archiveService.deleteTripForMe(tripId, userId);
-  return { action: 'left', tripId };
+  removeMemberFromTripChannels(tripId, userId).catch(() => {
+    // Non-fatal — membership is already committed in Supabase.
+  });
+
+  return { action: result.action, tripId };
 }

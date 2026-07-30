@@ -442,6 +442,8 @@ export interface ProTripData {
   placesCount?: number;
   // Supabase-derived count of trip members (including creator)
   peopleCount?: number;
+  /** Trip creator user id — required for delete-for-me creator vs member routing. */
+  created_by?: string;
 }
 
 export const SUBSCRIPTION_TIERS = {

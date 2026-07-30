@@ -153,10 +153,13 @@ export const MobileEventCard = ({
 
   const handleArchiveEvent = async () => {
     try {
-      await archiveService.archiveTrip(event.id.toString(), 'event');
+      const result = await archiveService.archiveTrip(event.id.toString(), 'event');
       toast({
-        title: 'Event archived',
-        description: `"${event.title}" has been archived. View it in the Archived tab.`,
+        title: result.action === 'archived' ? 'Event archived' : 'Event removed',
+        description:
+          result.action === 'archived'
+            ? `"${event.title}" has been archived. View it in the Archived tab.`
+            : `"${event.title}" has been removed from your account. Other members can still access it.`,
       });
       setShowArchiveDialog(false);
       onArchiveSuccess?.();

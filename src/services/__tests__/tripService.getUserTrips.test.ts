@@ -65,7 +65,7 @@ describe('tripService.getUserTrips', () => {
     vi.clearAllMocks();
   });
 
-  it('returns member trips without status filter (status column does not exist)', async () => {
+  it('returns active member trips with status filter on primary lookup', async () => {
     const tripRecord = {
       id: 'trip-member-1',
       name: 'MLB All Star Weekend',
@@ -84,6 +84,8 @@ describe('tripService.getUserTrips', () => {
     };
 
     let tripsQueryCount = 0;
+    let memberLookupCount = 0;
+    let memberLookupChain: ChainableResponse<unknown> | null = null;
 
     // intentional: mock implementation doesn't match full Supabase generics
     (vi.mocked(supabase.from) as any).mockImplementation(((table: string) => {
@@ -96,10 +98,20 @@ describe('tripService.getUserTrips', () => {
       }
 
       if (table === 'trip_members') {
-        return createChainableMock({
-          data: [{ trip_id: 'trip-member-1' }],
+        memberLookupCount += 1;
+        const chain = createChainableMock({
+          data:
+            memberLookupCount === 1
+              ? [{ trip_id: 'trip-member-1' }]
+              : memberLookupCount === 2
+                ? []
+                : [{ trip_id: 'trip-member-1', user_id: 'member-user' }],
           error: null,
         });
+        if (memberLookupCount === 1) {
+          memberLookupChain = chain;
+        }
+        return chain;
       }
 
       if (table === 'trip_events') {
@@ -114,6 +126,7 @@ describe('tripService.getUserTrips', () => {
     expect(trips).toHaveLength(1);
     expect(trips[0].id).toBe('trip-member-1');
     expect(trips[0].membership_status).toBe('member');
+    expect(memberLookupChain?.or).toHaveBeenCalledWith('status.is.null,status.eq.active');
   });
 
   it('does not append pending requests and returns member trip after membership appears', async () => {
@@ -136,6 +149,7 @@ describe('tripService.getUserTrips', () => {
 
     let isApproved = false;
     let tripsQueryCount = 0;
+    let memberLookupCount = 0;
 
     // intentional: mock implementation doesn't match full Supabase generics
     (vi.mocked(supabase.from) as any).mockImplementation(((table: string) => {
@@ -162,8 +176,14 @@ describe('tripService.getUserTrips', () => {
           return createChainableMock({ data: [], error: null });
         }
 
+        memberLookupCount += 1;
         return createChainableMock({
-          data: [{ trip_id: 'trip-approval-1', user_id: 'member-user' }],
+          data:
+            memberLookupCount === 1
+              ? [{ trip_id: 'trip-approval-1' }]
+              : memberLookupCount === 2
+                ? []
+                : [{ trip_id: 'trip-approval-1', user_id: 'member-user' }],
           error: null,
         });
       }
