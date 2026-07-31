@@ -250,6 +250,9 @@ Push/email can rewrite via `notificationContentBuilder`, but the Alerts panel re
 ### A proxy must forward the upstream's Cache-Control, not apply a blanket policy
 When a proxy edge function sets its own `Cache-Control` unconditionally, it can override an upstream's deliberate `no-store` on error/negative responses (expired/revoked/not-found), letting the CDN cache a stale negative result. Read `upstream.headers.get('cache-control')` and only fall back to a default when absent. *Evidence: July 2026 invite flow audit, `api/invite-preview.ts`.*
 
+### JWT-authenticated edge functions with service-role clients must bind user-scoped reads to `auth.uid()`
+Authenticating the caller is not enough when the function then queries with a service-role client: any request-body or query-string `user_id` that is not compared to `auth.uid()` becomes an IDOR that can read or generate another user's data. Default omitted `user_id` params to the authenticated user, allow explicit self-requests, and return 403 on mismatches. *Evidence: July 2026 `daily-digest` audit — GET/POST trusted `user_id` while reading `daily_digests` and `messages` with the service role.*
+
 ### OG/share proxy endpoints must fail over to HTML redirect pages when upstream returns JSON
 Crawlers expect HTML; a JSON 500 prevents Universal Link interception.
 
