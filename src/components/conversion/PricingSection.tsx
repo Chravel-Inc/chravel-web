@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { createCheckoutSession } from '@/billing/checkout';
+import { startProCheckout } from '@/billing/startProCheckout';
 import {
   detectNativeBillingPlatform,
   isIOSNativeShell,
@@ -143,9 +144,9 @@ const proTiers: PricingTier[] = [
     cta: 'Start 14-Day Trial',
     category: 'pro',
     enterprise: true,
-    ctaAction: () =>
-      (window.location.href =
-        'mailto:support@chravelapp.com?subject=Starter%20Pro%2014-Day%20Trial'),
+    ctaAction: () => {
+      void startProCheckout('pro-starter');
+    },
   },
   {
     id: 'growth-pro',
@@ -160,9 +161,9 @@ const proTiers: PricingTier[] = [
     category: 'pro',
     enterprise: true,
     badge: 'Most Popular',
-    ctaAction: () =>
-      (window.location.href =
-        'mailto:support@chravelapp.com?subject=Growth%20Pro%2014-Day%20Trial'),
+    ctaAction: () => {
+      void startProCheckout('pro-growth');
+    },
   },
   {
     id: 'enterprise',
@@ -175,8 +176,9 @@ const proTiers: PricingTier[] = [
     cta: 'Contact Sales',
     category: 'pro',
     enterprise: true,
-    ctaAction: () =>
-      (window.location.href = 'mailto:billing@chravelapp.com?subject=Enterprise%20Inquiry'),
+    ctaAction: () => {
+      void startProCheckout('pro-enterprise');
+    },
   },
 ];
 

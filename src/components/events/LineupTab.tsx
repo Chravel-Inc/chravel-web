@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, lazy, Suspense } from 'react';
 import {
   Search,
   Users,
@@ -51,6 +51,10 @@ import { toast } from 'sonner';
 import { EVENT_PARITY_COL_START, EVENT_PARITY_ROW_CLASS } from '@/lib/tabParity';
 import { ActionPill } from '../ui/ActionPill';
 import { EVENT_TAB_PANEL_CLASS } from './EventTabPrimitives';
+
+const PlusUpsellModal = lazy(() =>
+  import('../PlusUpsellModal').then(m => ({ default: m.PlusUpsellModal })),
+);
 
 interface LineupPermissions {
   canView: boolean;
@@ -124,6 +128,7 @@ export const LineupTab = ({
   const [newMember, setNewMember] = useState({ name: '', title: '', company: '', bio: '' });
   const [editMember, setEditMember] = useState({ name: '', title: '', company: '', bio: '' });
   const [showSmartImport, setShowSmartImport] = useState(false);
+  const [showUpsellModal, setShowUpsellModal] = useState(false);
   const [deletingMemberId, setDeletingMemberId] = useState<string | null>(null);
 
   const filteredMembers = members.filter(
@@ -264,8 +269,13 @@ export const LineupTab = ({
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <span tabIndex={0} className={EVENT_PARITY_COL_START.media}>
-                      <ActionPill variant="aiOutline" disabled className="w-full opacity-50">
+                    <span className={EVENT_PARITY_COL_START.media}>
+                      <ActionPill
+                        variant="aiOutline"
+                        onClick={() => setShowUpsellModal(true)}
+                        className="w-full"
+                        aria-label="Upgrade to import lineup"
+                      >
                         <Lock size={16} className="flex-shrink-0" />
                         <span className="whitespace-nowrap">Import</span>
                       </ActionPill>
@@ -881,6 +891,12 @@ export const LineupTab = ({
           )}
         </DialogContent>
       </Dialog>
+
+      {showUpsellModal && (
+        <Suspense fallback={null}>
+          <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
+        </Suspense>
+      )}
     </div>
   );
 };

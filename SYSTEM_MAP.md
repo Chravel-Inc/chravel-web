@@ -94,7 +94,7 @@ Every downstream system depends on Auth resolving first. Trip context gates most
 - **Purpose:** Push notifications, email, in-app alerts, read receipts, badge counts
 - **Entry points:** `src/services/notificationService.ts`, `src/hooks/useNotificationRealtime.ts`, `src/native/push.ts`
 - **Source of truth:** `notifications` table; Zustand store (`notificationRealtimeStore`) for client cache
-- **External deps:** Supabase Realtime, APNS (iOS push), Resend (email), Twilio (SMS)
+- **External deps:** Supabase Realtime, APNS (iOS push), Resend (email)
 - **Failure modes:** Dual-path duplicate generation (DB triggers + edge functions); badge count drift on reconnect; multi-device read desync; quiet hours bypass
 - **Status:** Stable — dual-path dedup fixed for broadcasts, pattern applies to new features
 
@@ -130,7 +130,6 @@ Every downstream system depends on Auth resolving first. Trip context gates most
 | Sentry | Error tracking | Silent (monitoring loss) | Console errors only |
 | PostHog | Analytics | Silent (analytics loss) | None needed |
 | Resend | Email notifications | Email delivery fails | Push/in-app fallback |
-| Twilio | SMS notifications | SMS delivery fails | Email/push fallback |
 
 ---
 

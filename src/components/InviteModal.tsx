@@ -5,6 +5,8 @@ import { InviteModalHeader } from './invite/InviteModalHeader';
 import { InviteLinkSection } from './invite/InviteLinkSection';
 import { InviteSettingsSection } from './invite/InviteSettingsSection';
 import { InviteInstructions } from './invite/InviteInstructions';
+import { InviteEmailSection } from './invite/InviteEmailSection';
+import { AddExistingMemberSection } from './invite/AddExistingMemberSection';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from './ui/drawer';
 import { Dialog, DialogContent, DialogTitle } from './ui/dialog';
 
@@ -59,6 +61,10 @@ export const InviteModal = ({ isOpen, onClose, tripName, tripId, proTripId }: In
     expiresAt,
     regenerateInviteToken,
     retryGenerate,
+    resendInvite,
+    addExistingMember,
+    memberLimit,
+    memberCount,
     handleCopyLink,
     handleShare,
   } = useInviteLink({
@@ -69,6 +75,13 @@ export const InviteModal = ({ isOpen, onClose, tripName, tripId, proTripId }: In
     tripId,
     proTripId,
   });
+
+  const capacityBlurb =
+    memberLimit !== null && memberCount !== null
+      ? `${memberCount} of ${memberLimit} seats filled${
+          memberCount >= memberLimit ? ' — trip is at capacity.' : '.'
+        }`
+      : null;
 
   const commitCustomUsageLimit = useCallback(() => {
     setCommittedCustomUsageLimit(customUsageLimit.trim());
@@ -148,12 +161,34 @@ export const InviteModal = ({ isOpen, onClose, tripName, tripId, proTripId }: In
         tripName={tripName}
       />
 
+      <p className="text-xs text-muted-foreground leading-relaxed">
+        Invitees see the trip name, dates, and a peek at what&apos;s planned before they request to
+        join. Membership always requires approval — unless you add someone who already has a Chravel
+        account below.
+      </p>
+
+      {capacityBlurb && (
+        <p className="text-xs text-muted-foreground" aria-live="polite">
+          {capacityBlurb}
+        </p>
+      )}
+
       <InviteSettingsSection
         expireIn7Days={expireIn7Days}
         onExpireIn7DaysChange={setExpireIn7Days}
       />
 
       {usageLimitSection}
+
+      <AddExistingMemberSection
+        disabled={loading || !!error || isDemoMode}
+        onAdd={addExistingMember}
+      />
+
+      <InviteEmailSection
+        disabled={loading || !!error || isDemoMode}
+        onSend={email => resendInvite(email)}
+      />
 
       <InviteInstructions />
     </>
@@ -202,12 +237,32 @@ export const InviteModal = ({ isOpen, onClose, tripName, tripId, proTripId }: In
               onShare={handleShare}
               tripName={tripName}
             />
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Invitees see the trip name, dates, and a peek at what&apos;s planned before they
+              request to join. Membership always requires approval — unless you add someone who
+              already has a Chravel account below.
+            </p>
+            {capacityBlurb && (
+              <p className="text-xs text-muted-foreground" aria-live="polite">
+                {capacityBlurb}
+              </p>
+            )}
             <div className="border-t border-border/60" />
             <InviteSettingsSection
               expireIn7Days={expireIn7Days}
               onExpireIn7DaysChange={setExpireIn7Days}
             />
             {usageLimitSection}
+            <div className="border-t border-border/60" />
+            <AddExistingMemberSection
+              disabled={loading || !!error || isDemoMode}
+              onAdd={addExistingMember}
+            />
+            <div className="border-t border-border/60" />
+            <InviteEmailSection
+              disabled={loading || !!error || isDemoMode}
+              onSend={email => resendInvite(email)}
+            />
             <InviteInstructions />
           </div>
         </div>

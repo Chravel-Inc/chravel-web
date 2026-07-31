@@ -109,6 +109,7 @@ describe('uploadService media count enforcement (per uploader, not trip-wide)', 
     expect(result.publicUrl).toBe('https://cdn/x.jpg');
   });
 
+  // Align with #871 / main: lookup failures fail OPEN (upload proceeds).
   it('fails OPEN when the count query errors — the upload proceeds', async () => {
     (resolveEffectiveTier as any).mockResolvedValue('free');
 

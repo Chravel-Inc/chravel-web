@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { ToastAction } from './ui/toast';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -33,6 +32,10 @@ import { demoModeService } from '../services/demoModeService';
 import { tripsData } from '../data/tripsData';
 import { getFeaturePaywallConfig } from './subscription/featurePaywall';
 
+const PlusUpsellModal = lazy(() =>
+  import('./PlusUpsellModal').then(m => ({ default: m.PlusUpsellModal })),
+);
+
 type TabType = 'archived' | 'hidden';
 
 // Helper to convert tripsData format to archived/hidden display format
@@ -65,11 +68,11 @@ export const ArchivedTripsSection = ({ onTripStateChange }: ArchivedTripsSection
     tripType: 'consumer',
   });
 
-  const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isDemoMode } = useDemoMode();
   const { tier, upgradeToTier, isLoading: isUpgrading } = useConsumerSubscription();
+  const [showUpsellModal, setShowUpsellModal] = useState(false);
   const [archivedTrips, setArchivedTrips] = useState<{
     consumer: any[];
     pro: any[];
@@ -174,19 +177,12 @@ export const ArchivedTripsSection = ({ onTripStateChange }: ArchivedTripsSection
         title: 'Upgrade to Restore',
         description: `${paywall.featureBenefitCopy} Recommended plan: ${paywall.recommendedPlan}.`,
         action: (
-          <ToastAction
-            altText="View Plans"
-            onClick={() =>
-              navigate(
-                `${paywall.destination.pathname}${paywall.destination.search}`,
-                paywall.destination.state ? { state: paywall.destination.state } : undefined,
-              )
-            }
-          >
+          <ToastAction altText="View Plans" onClick={() => setShowUpsellModal(true)}>
             View Plans
           </ToastAction>
         ),
       });
+      setShowUpsellModal(true);
       return;
     }
 
@@ -216,19 +212,12 @@ export const ArchivedTripsSection = ({ onTripStateChange }: ArchivedTripsSection
           variant: 'destructive',
           duration: 6000,
           action: (
-            <ToastAction
-              altText="View Plans"
-              onClick={() =>
-                navigate(
-                  `${paywall.destination.pathname}${paywall.destination.search}`,
-                  paywall.destination.state ? { state: paywall.destination.state } : undefined,
-                )
-              }
-            >
+            <ToastAction altText="View Plans" onClick={() => setShowUpsellModal(true)}>
               View Plans
             </ToastAction>
           ),
         });
+        setShowUpsellModal(true);
       } else {
         toast({
           title: 'Error',
@@ -520,6 +509,12 @@ export const ArchivedTripsSection = ({ onTripStateChange }: ArchivedTripsSection
         tripTitle={confirmDialog.tripTitle}
         isArchiving={false}
       />
+
+      {showUpsellModal && (
+        <Suspense fallback={null}>
+          <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
+        </Suspense>
+      )}
     </div>
   );
 };

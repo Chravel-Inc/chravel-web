@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -49,7 +49,9 @@ import { normalizeCalendarCategory } from '@/constants/calendarCategories';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { useDeferredPaidAccess } from '@/hooks/useDeferredPaidAccess';
 import { useFeatureFlag } from '@/lib/featureFlags';
-import { useNavigate } from 'react-router-dom';
+const PlusUpsellModal = lazy(() =>
+  import('@/components/PlusUpsellModal').then(m => ({ default: m.PlusUpsellModal })),
+);
 import {
   summarizeHomeAwayClassifications,
   type HomeAwayNeutral,
@@ -138,7 +140,7 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
   const [gmailCandidates, setGmailCandidates] = useState<SmartImportCandidate[]>([]);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
+  const [showUpsellModal, setShowUpsellModal] = useState(false);
   const { tier, subscription, isSuperAdmin } = useConsumerSubscription();
   const gmailFlagEnabled = useFeatureFlag('gmail_smart_import', false);
   const hasPaidAccess = useDeferredPaidAccess({
@@ -724,17 +726,7 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
                         size="sm"
                         className="min-h-[44px]"
                         type="button"
-                        onClick={async () => {
-                          const { getFeaturePaywallConfig } =
-                            await import('@/components/subscription/featurePaywall');
-                          const paywall = getFeaturePaywallConfig('smart_import_calendar');
-                          navigate(
-                            `${paywall.destination.pathname}${paywall.destination.search}`,
-                            paywall.destination.state
-                              ? { state: paywall.destination.state }
-                              : undefined,
-                          );
-                        }}
+                        onClick={() => setShowUpsellModal(true)}
                       >
                         View plans
                       </Button>
@@ -1110,6 +1102,12 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
           )}
         </div>
       </DialogContent>
+
+      {showUpsellModal && (
+        <Suspense fallback={null}>
+          <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
+        </Suspense>
+      )}
     </Dialog>
   );
 };

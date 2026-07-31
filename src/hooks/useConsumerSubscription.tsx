@@ -4,9 +4,16 @@ import { useAuth } from './useAuth';
 import { useSuperAdmin } from './useSuperAdmin';
 import { supabase } from '@/integrations/supabase/client';
 import { createCheckoutSession } from '@/billing/checkout';
-import { ENTITLEMENTS_UPDATED_EVENT } from '@/integrations/revenuecat/revenuecatClient';
+import {
+  ENTITLEMENTS_UPDATED_EVENT,
+  purchaseConsumerSubscription,
+} from '@/integrations/revenuecat/revenuecatClient';
 import { openExternalUrl } from '@/platform/navigation';
-import { detectNativeBillingPlatform, isNativeWebView } from '@/utils/platformDetection';
+import {
+  detectNativeBillingPlatform,
+  isIOSNativeShell,
+  isNativeWebView,
+} from '@/utils/platformDetection';
 import { toast } from 'sonner';
 import type { ConsumerSubscription as ConsumerSubscriptionShape } from '../types/consumer';
 
@@ -190,6 +197,23 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
 
     setIsLoading(true);
     try {
+      // iOS native shell — Apple IAP via RevenueCat (Guideline 3.1.1).
+      // Fixes Concierge/PlusUpsell and every other upgradeToTier call site.
+      if (isIOSNativeShell()) {
+        const result = await purchaseConsumerSubscription(tier, billingCycle);
+        if (result.success) {
+          toast.success('Subscription activated!');
+          await checkSubscriptionWithStaleGuard('post_checkout_return', true);
+        } else if (result.errorCode === 'CANCELLED') {
+          // User dismissed — silent
+        } else if (!result.supported) {
+          toast.error('In-app purchases are not available on this device.');
+        } else {
+          toast.error(result.error || 'Failed to start purchase.');
+        }
+        return;
+      }
+
       const billingPlatform =
         typeof navigator === 'undefined'
           ? 'web'

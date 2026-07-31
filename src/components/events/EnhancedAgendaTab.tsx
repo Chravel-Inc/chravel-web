@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, lazy, Suspense } from 'react';
 import {
   Calendar,
   Upload,
@@ -51,6 +51,10 @@ import {
   AlertDialogTitle,
 } from '../ui/alert-dialog';
 import { toast } from 'sonner';
+
+const PlusUpsellModal = lazy(() =>
+  import('../PlusUpsellModal').then(m => ({ default: m.PlusUpsellModal })),
+);
 
 interface EnhancedAgendaTabProps {
   eventId: string;
@@ -107,6 +111,7 @@ export const EnhancedAgendaTab = ({
   });
 
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showUpsellModal, setShowUpsellModal] = useState(false);
   const { pendingResult, startImport, clearResult } = useBackgroundAgendaImport();
 
   const [isAddingSession, setIsAddingSession] = useState(false);
@@ -309,11 +314,13 @@ export const EnhancedAgendaTab = ({
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <span tabIndex={0}>
+                    <span>
                       <Button
-                        disabled
+                        type="button"
                         variant="outline"
-                        className="flex-1 sm:flex-none border-primary/30 text-primary/70"
+                        onClick={() => setShowUpsellModal(true)}
+                        className="flex-1 sm:flex-none border-primary/30 text-primary"
+                        aria-label="Upgrade to use Smart Import"
                       >
                         <Lock size={16} className="mr-2" />
                         Smart Import
@@ -971,6 +978,12 @@ export const EnhancedAgendaTab = ({
         }}
         onLineupUpdate={onLineupUpdate ? names => onLineupUpdate(names) : undefined}
       />
+
+      {showUpsellModal && (
+        <Suspense fallback={null}>
+          <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
+        </Suspense>
+      )}
     </div>
   );
 };
