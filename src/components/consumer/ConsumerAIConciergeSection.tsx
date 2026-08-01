@@ -9,7 +9,6 @@ import { toast } from 'sonner';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { ConciergeVoicePicker } from '@/features/concierge/components/ConciergeVoicePicker';
 import { ConciergeLanguagePicker } from '@/features/concierge/components/ConciergeLanguagePicker';
-import { ConciergeConversationModeToggle } from '@/features/concierge/components/ConciergeConversationModeToggle';
 
 export const ConsumerAIConciergeSection = () => {
   const { isPlus } = useConsumerSubscription();
@@ -176,9 +175,6 @@ export const ConsumerAIConciergeSection = () => {
         onPreferencesChange={handlePreferencesChange}
         initialPreferences={preferences || undefined}
       />
-
-      {/* Conversation Mode (hands-free voice) */}
-      <ConciergeConversationModeToggle />
 
       {/* Reply Language */}
       <ConciergeLanguagePicker />
