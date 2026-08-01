@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { X, DollarSign, Users, Check, Search, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +26,12 @@ import {
 } from '@/lib/paymentActivityMessages';
 import { useAuth } from '@/hooks/useAuth';
 import { PaymentSplitAllocator } from '@/components/payments/PaymentSplitAllocator';
+import { tripKeys } from '@/lib/queryKeys';
+import {
+  buildPaymentMessage,
+  optimisticallyAddPayment,
+  replaceOptimisticPaymentId,
+} from '@/lib/paymentCacheUtils';
 
 interface CreatePaymentModalProps {
   isOpen: boolean;
@@ -73,6 +80,7 @@ export const CreatePaymentModal = ({
   const [showUpsellModal, setShowUpsellModal] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const attachmentsEnabled = useFeatureFlag('payment_attachments', true);
   const attachmentDraft = usePaymentAttachmentDraft();
 
@@ -161,76 +169,98 @@ export const CreatePaymentModal = ({
         return;
       }
 
-      const result = await paymentService.createPaymentMessage(tripId, userId, {
-        amount: paymentData.amount,
-        currency: paymentData.currency,
-        description: paymentData.description,
-        splitCount: paymentData.splitCount,
-        splitParticipants: paymentData.splitParticipants,
-        paymentMethods: paymentData.paymentMethods,
-        splitType: paymentData.splitType,
-        customAmounts: paymentData.customAmounts,
-      });
+      // ⚡ Optimistic update before server round-trip (parity with desktop usePayments)
+      await queryClient.cancelQueries({ queryKey: tripKeys.payments(tripId) });
+      const previousPayments = queryClient.getQueryData(tripKeys.payments(tripId));
+      const optimisticId = `optimistic-payment-${Date.now()}`;
+      const optimisticPayment = buildPaymentMessage(optimisticId, tripId, userId, paymentData);
+      optimisticallyAddPayment(queryClient, tripId, optimisticPayment);
 
-      if (result.success && result.paymentId && userId) {
-        const newPayment = {
-          id: result.paymentId,
+      try {
+        const result = await paymentService.createPaymentMessage(tripId, userId, {
           amount: paymentData.amount,
           currency: paymentData.currency,
           description: paymentData.description,
           splitCount: paymentData.splitCount,
           splitParticipants: paymentData.splitParticipants,
           paymentMethods: paymentData.paymentMethods,
-          createdBy: userId,
-          createdAt: new Date().toISOString(),
-          isSettled: false,
-        };
+          splitType: paymentData.splitType,
+          customAmounts: paymentData.customAmounts,
+        });
 
-        // Parity with desktop usePayments: announce the expense in chat so
-        // members see it without opening the Payments tab.
-        notifyPaymentRecordedInChat(
-          tripId,
-          resolvePaymentActorName(user),
-          result.paymentId,
-          paymentData.amount,
-          paymentData.currency,
-          paymentData.description,
-        );
+        if (result.success && result.paymentId && userId) {
+          replaceOptimisticPaymentId(queryClient, tripId, optimisticId, result.paymentId);
 
-        // Attach staged proof/context AFTER the payment exists. The draft hook handles per-item
-        // failures, cache invalidation, and clearing itself; failures never block the payment.
-        if (showAttachments && attachmentDraft.count > 0) {
-          await attachmentDraft.commit({
+          const newPayment = {
+            id: result.paymentId,
+            amount: paymentData.amount,
+            currency: paymentData.currency,
+            description: paymentData.description,
+            splitCount: paymentData.splitCount,
+            splitParticipants: paymentData.splitParticipants,
+            paymentMethods: paymentData.paymentMethods,
+            createdBy: userId,
+            createdAt: new Date().toISOString(),
+            isSettled: false,
+          };
+
+          // Parity with desktop usePayments: announce the expense in chat so
+          // members see it without opening the Payments tab.
+          notifyPaymentRecordedInChat(
             tripId,
-            paymentId: result.paymentId,
-            uploadedBy: userId,
-            context: {
-              description: paymentData.description,
-              amount: paymentData.amount,
-              currency: paymentData.currency,
-            },
+            resolvePaymentActorName(user),
+            result.paymentId,
+            paymentData.amount,
+            paymentData.currency,
+            paymentData.description,
+          );
+
+          // Attach staged proof/context AFTER the payment exists. The draft hook handles per-item
+          // failures, cache invalidation, and clearing itself; failures never block the payment.
+          if (showAttachments && attachmentDraft.count > 0) {
+            await attachmentDraft.commit({
+              tripId,
+              paymentId: result.paymentId,
+              uploadedBy: userId,
+              context: {
+                description: paymentData.description,
+                amount: paymentData.amount,
+                currency: paymentData.currency,
+              },
+            });
+          }
+
+          resetForm();
+          onPaymentCreated?.(newPayment);
+          onClose();
+          toast({
+            title: 'Payment created',
+            description: `${paymentData.description} - ${formatCurrency(paymentData.amount, paymentData.currency)}`,
+          });
+        } else if (result.error) {
+          queryClient.setQueryData(tripKeys.payments(tripId), previousPayments);
+          const { title, description } = PaymentErrorHandler.getServiceErrorDisplay(result.error);
+          const isSplitLimit = result.error.code === SPLIT_LIMIT_ERROR_CODE;
+          toast({
+            title,
+            description,
+            variant: 'destructive',
+            action: isSplitLimit ? (
+              <ToastAction altText="View Plans" onClick={() => setShowUpsellModal(true)}>
+                View Plans
+              </ToastAction>
+            ) : undefined,
           });
         }
-
-        resetForm();
-        onPaymentCreated?.(newPayment);
-        onClose();
+      } catch (paymentError) {
+        queryClient.setQueryData(tripKeys.payments(tripId), previousPayments);
+        if (import.meta.env.DEV) {
+          console.error('Failed to create payment:', paymentError);
+        }
         toast({
-          title: 'Payment created',
-          description: `${paymentData.description} - ${formatCurrency(paymentData.amount, paymentData.currency)}`,
-        });
-      } else if (result.error) {
-        const { title, description } = PaymentErrorHandler.getServiceErrorDisplay(result.error);
-        const isSplitLimit = result.error.code === SPLIT_LIMIT_ERROR_CODE;
-        toast({
-          title,
-          description,
+          title: 'Error',
+          description: 'Failed to create payment. Please try again.',
           variant: 'destructive',
-          action: isSplitLimit ? (
-            <ToastAction altText="View Plans" onClick={() => setShowUpsellModal(true)}>
-              View Plans
-            </ToastAction>
-          ) : undefined,
         });
       }
     } catch (error) {

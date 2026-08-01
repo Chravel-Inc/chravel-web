@@ -732,6 +732,20 @@ export const useTripPolls = (tripId: string) => {
 
   // Delete poll mutation - only creator can delete
   const deletePollMutation = useMutation({
+    onMutate: async (pollId: string) => {
+      if (isDemoMode) return undefined;
+
+      await queryClient.cancelQueries({ queryKey: tripKeys.polls(tripId, isDemoMode) });
+      const previousPolls = queryClient.getQueryData<TripPoll[]>(
+        tripKeys.polls(tripId, isDemoMode),
+      );
+
+      queryClient.setQueryData<TripPoll[]>(tripKeys.polls(tripId, isDemoMode), old =>
+        (old || []).filter(poll => poll.id !== pollId),
+      );
+
+      return { previousPolls };
+    },
     mutationFn: async (pollId: string) => {
       // Permission guard: event/pro trips restrict poll deletion
       if (!permissions.canDeletePoll && !isDemoMode) {
@@ -759,18 +773,23 @@ export const useTripPolls = (tripId: string) => {
       return pollId;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: tripKeys.polls(tripId, isDemoMode) });
       toast({
         title: 'Poll deleted',
         description: 'The poll has been removed.',
       });
     },
-    onError: () => {
+    onError: (error: Error, _pollId, context) => {
+      if (context?.previousPolls) {
+        queryClient.setQueryData(tripKeys.polls(tripId, isDemoMode), context.previousPolls);
+      }
       toast({
         title: 'Error',
-        description: 'Failed to delete poll. Only the creator can delete.',
+        description: error.message || 'Failed to delete poll. Only the creator can delete.',
         variant: 'destructive',
       });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: tripKeys.polls(tripId, isDemoMode) });
     },
   });
 
