@@ -13,6 +13,11 @@ import { useDemoMode } from './useDemoMode';
 import { useAuth } from './useAuth';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
 import { preloadTabChunk, preloadTabChunks } from '@/lib/tabChunkPreloader';
+import { basecampService } from '@/services/basecampService';
+import { tripBasecampKeys } from '@/hooks/useTripBasecamp';
+
+/** Must match `TASKS_PER_PAGE` in useTripTasks — mismatched limits poison the prefetch cache. */
+const TASKS_PREFETCH_LIMIT = 100;
 
 const scheduleIdlePrefetch = (task: () => void, timeoutMs = 2000): void => {
   if (typeof window === 'undefined') {
@@ -110,7 +115,7 @@ export const usePrefetchTrip = () => {
                 .select('*, task_status(*), creator:creator_id(id, display_name, avatar_url)')
                 .eq('trip_id', tripId)
                 .order('created_at', { ascending: false })
-                .limit(50);
+                .limit(TASKS_PREFETCH_LIMIT);
               return data || [];
             },
             staleTime: QUERY_CACHE_CONFIG.tasks.staleTime,
@@ -166,11 +171,22 @@ export const usePrefetchTrip = () => {
           break;
 
         case 'places':
-          // ⚡ NEW: Prefetch trip links for instant Places > Links sub-tab
+          // Prefetch trip links for instant Places > Links sub-tab
           queryClient.prefetchQuery({
             queryKey: tripKeys.places(tripId, isDemoMode),
             queryFn: () => fetchTripPlaces(tripId, isDemoMode),
             staleTime: QUERY_CACHE_CONFIG.places.staleTime,
+          });
+          // Warm basecamp cache used by Places > Basecamps panel
+          queryClient.prefetchQuery({
+            queryKey: tripBasecampKeys.trip(tripId),
+            queryFn: async () => {
+              const dbBasecamp = await basecampService.getTripBasecamp(tripId);
+              if (!dbBasecamp) return null;
+              const version = await basecampService.getBasecampVersion(tripId);
+              return { ...dbBasecamp, _version: version };
+            },
+            staleTime: 30_000,
           });
           break;
 
