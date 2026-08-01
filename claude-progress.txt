@@ -1,3 +1,9 @@
+2026-08-01 — Hide disabled Concierge Conversation Mode setting
+- Removed the Conversation Mode settings card and its now-unused settings-only component; Concierge settings now proceed directly from trip preferences to Reply Language and Concierge Voice.
+- Added a focused rendering regression test proving the disabled mode and switch stay absent while the supported voice settings remain visible.
+- Verification: focused Vitest ✅; typecheck ✅; lint:check (0 errors) ✅; build ✅; Playwright screenshot blocked by browser CDN 403; merge preflight blocked because this checkout has no origin/main ref.
+- Branch: work
+
 2026-07-30 — Remove Twilio/SMS notification leftovers
 - Applied `remove_sms_twilio_leftovers` on ChravelApp (prod still had sms_* prefs/RPCs; app code already push/email/in-app only).
 - Migration `20260730180203_remove_sms_twilio_leftovers.sql` + types.ts sync; cancel leftover queued SMS deliveries.
