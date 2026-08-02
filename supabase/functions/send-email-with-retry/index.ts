@@ -64,8 +64,55 @@ serve(async req => {
       );
     }
 
+    // The caller must be sending on behalf of a trip they belong to. Without this, any signed-in
+    // user could call this function directly with arbitrary recipients + arbitrary HTML and turn it
+    // into an open relay/phishing channel from the Chravel domain. tripId is now required and the
+    // caller must be an active member, the creator, or an admin of it.
+    if (!payload.tripId || typeof payload.tripId !== 'string') {
+      return createErrorResponse('tripId is required', 400);
+    }
+
+    const [{ data: member }, { data: trip }, { data: tripAdmin }] = await Promise.all([
+      supabase
+        .from('trip_members')
+        .select('user_id')
+        .eq('trip_id', payload.tripId)
+        .eq('user_id', user.id)
+        .or('status.is.null,status.eq.active')
+        .maybeSingle(),
+      supabase.from('trips').select('created_by').eq('id', payload.tripId).maybeSingle(),
+      supabase
+        .from('trip_admins')
+        .select('user_id')
+        .eq('trip_id', payload.tripId)
+        .eq('user_id', user.id)
+        .maybeSingle(),
+    ]);
+
+    const belongsToTrip = !!member || trip?.created_by === user.id || !!tripAdmin;
+    if (!belongsToTrip) {
+      return createErrorResponse('You are not a member of this trip', 403);
+    }
+
+    // Per-user rate limit (DB-backed, fail-closed) — a legitimate inviter sends a handful of
+    // emails, never hundreds. Blunts abuse even from a valid trip context.
+    const { applyRateLimit } = await import('../_shared/rateLimitGuard.ts');
+    const rl = await applyRateLimit({
+      identifier: `send-email:${user.id}`,
+      maxRequests: 20,
+      windowSeconds: 3600,
+      corsHeaders: getCorsHeaders(req),
+      supabaseClient: supabase,
+    });
+    if (!rl.allowed) return rl.response!;
+
     // Normalize recipients to array
     const recipients = Array.isArray(payload.to) ? payload.to : [payload.to];
+
+    // Cap fan-out per call so a single request can't blast a large recipient list.
+    if (recipients.length > 10) {
+      return createErrorResponse('Too many recipients in a single request (max 10)', 400);
+    }
 
     // Validate email addresses
     for (const email of recipients) {

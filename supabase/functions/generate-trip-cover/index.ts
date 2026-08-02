@@ -164,14 +164,18 @@ Deno.serve(async req => {
   // Load trip context for prompt
   const { data: trip, error: tripErr } = await admin
     .from('trips')
-    .select('id, title, destination, trip_type, category')
+    .select('id, name, destination, trip_type, categories')
     .eq('id', tripId)
     .maybeSingle();
   if (tripErr || !trip) return json({ error: 'Trip not found' }, 404, corsHeaders);
 
-  const title = (trip.title as string) || 'a trip';
+  // The `trips` table exposes `name` and `categories` (jsonb array) — there is no `title`
+  // or `category` column, so the previous select 404'd every request and AI cover generation
+  // never worked. Read the real columns.
+  const title = (trip.name as string) || 'a trip';
   const destination = (trip.destination as string) || '';
-  const category = (trip.category as string) || '';
+  const rawCategories = trip.categories;
+  const category = Array.isArray(rawCategories) ? String(rawCategories[0] ?? '') : '';
   const contextBits = [destination && `in ${destination}`, category && `— ${category}`]
     .filter(Boolean)
     .join(' ');
