@@ -1,7 +1,7 @@
 {
   "study_date": "2026-06-11",
   "persona_count": 30,
-  "disclaimer": "SYNTHETIC \u2014 not real user data. Conversion scores refreshed 2026-07-26 after rebase onto main.",
+  "disclaimer": "SYNTHETIC \u2014 not real user data. Conversion scores refreshed 2026-08-02 after PR #867 evidence refresh. data_source=synthetic_persona_study",
   "responses": [
     {
       "persona_id": 1,
@@ -10,7 +10,12 @@
       "screener": {
         "trips_last_12_months": "4+",
         "typical_group_size": "5-8",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "iOS",
         "would_do_45min_call": "Yes",
         "role": "Primary planner",
@@ -38,9 +43,10 @@
         "activation": 6,
         "invite": 5,
         "day7": 5,
-        "paid": 7,
-        "nps": 0
-      }
+        "paid_conversion": 7,
+        "nps": 5
+      },
+      "data_source": "synthetic_persona_study"
     },
     {
       "persona_id": 2,
@@ -49,7 +55,12 @@
       "screener": {
         "trips_last_12_months": "4+",
         "typical_group_size": "9-15",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "iOS",
         "would_do_45min_call": "Maybe",
         "role": "Primary planner",
@@ -77,9 +88,10 @@
         "activation": 6,
         "invite": 3,
         "day7": 5,
-        "paid": 4,
-        "nps": 0
-      }
+        "paid_conversion": 5,
+        "nps": 5
+      },
+      "data_source": "synthetic_persona_study"
     },
     {
       "persona_id": 3,
@@ -88,7 +100,12 @@
       "screener": {
         "trips_last_12_months": "4+",
         "typical_group_size": "9-15",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "mixed",
         "would_do_45min_call": "Maybe",
         "role": "Primary planner",
@@ -116,9 +133,10 @@
         "activation": 6,
         "invite": 4,
         "day7": 5,
-        "paid": 5,
-        "nps": 5
-      }
+        "paid_conversion": 5,
+        "nps": 10
+      },
+      "data_source": "synthetic_persona_study"
     },
     {
       "persona_id": 4,
@@ -127,7 +145,12 @@
       "screener": {
         "trips_last_12_months": "2-3",
         "typical_group_size": "9-15",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "iOS",
         "would_do_45min_call": "Maybe",
         "role": "Primary planner",
@@ -155,9 +178,10 @@
         "activation": 7,
         "invite": 5,
         "day7": 4,
-        "paid": 6,
-        "nps": 5
-      }
+        "paid_conversion": 6,
+        "nps": 10
+      },
+      "data_source": "synthetic_persona_study"
     },
     {
       "persona_id": 5,
@@ -166,7 +190,12 @@
       "screener": {
         "trips_last_12_months": "2-3",
         "typical_group_size": "5-8",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "Android",
         "would_do_45min_call": "Maybe",
         "role": "Primary planner",
@@ -194,9 +223,10 @@
         "activation": 6,
         "invite": 5,
         "day7": 4,
-        "paid": 4,
+        "paid_conversion": 4,
         "nps": 10
-      }
+      },
+      "data_source": "synthetic_persona_study"
     },
     {
       "persona_id": 6,
@@ -205,7 +235,12 @@
       "screener": {
         "trips_last_12_months": "2-3",
         "typical_group_size": "16+",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "mixed",
         "would_do_45min_call": "Maybe",
         "role": "Primary planner",
@@ -231,11 +266,12 @@
       },
       "conversion_scores": {
         "activation": 6,
-        "invite": 3,
+        "invite": 4,
         "day7": 5,
-        "paid": 6,
-        "nps": 0
-      }
+        "paid_conversion": 6,
+        "nps": 5
+      },
+      "data_source": "synthetic_persona_study"
     },
     {
       "persona_id": 7,
@@ -244,7 +280,12 @@
       "screener": {
         "trips_last_12_months": "2-3",
         "typical_group_size": "16+",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "Desktop-first",
         "would_do_45min_call": "Maybe",
         "role": "Primary planner",
@@ -272,9 +313,10 @@
         "activation": 5,
         "invite": 2,
         "day7": 4,
-        "paid": 1,
+        "paid_conversion": 1,
         "nps": -15
-      }
+      },
+      "data_source": "synthetic_persona_study"
     },
     {
       "persona_id": 8,
@@ -283,7 +325,12 @@
       "screener": {
         "trips_last_12_months": "2-3",
         "typical_group_size": "9-15",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "iOS",
         "would_do_45min_call": "Yes",
         "role": "Primary planner",
@@ -311,9 +358,10 @@
         "activation": 7,
         "invite": 6,
         "day7": 3,
-        "paid": 1,
+        "paid_conversion": 1,
         "nps": 10
-      }
+      },
+      "data_source": "synthetic_persona_study"
     },
     {
       "persona_id": 9,
@@ -322,7 +370,12 @@
       "screener": {
         "trips_last_12_months": "2-3",
         "typical_group_size": "5-8",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "iOS",
         "would_do_45min_call": "Maybe",
         "role": "Primary planner",
@@ -350,9 +403,10 @@
         "activation": 6,
         "invite": 5,
         "day7": 5,
-        "paid": 5,
-        "nps": 5
-      }
+        "paid_conversion": 5,
+        "nps": 10
+      },
+      "data_source": "synthetic_persona_study"
     },
     {
       "persona_id": 10,
@@ -361,7 +415,12 @@
       "screener": {
         "trips_last_12_months": "2-3",
         "typical_group_size": "5-8",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "mixed",
         "would_do_45min_call": "Yes",
         "role": "Primary planner",
@@ -389,9 +448,10 @@
         "activation": 7,
         "invite": 3,
         "day7": 5,
-        "paid": 5,
-        "nps": 0
-      }
+        "paid_conversion": 5,
+        "nps": 5
+      },
+      "data_source": "synthetic_persona_study"
     },
     {
       "persona_id": 11,
@@ -400,7 +460,12 @@
       "screener": {
         "trips_last_12_months": "4+",
         "typical_group_size": "16+",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "Desktop-first",
         "would_do_45min_call": "Yes",
         "role": "Primary planner",
@@ -426,11 +491,12 @@
       },
       "conversion_scores": {
         "activation": 7,
-        "invite": 7,
+        "invite": 8,
         "day7": 4,
-        "paid": 3,
-        "nps": -25
-      }
+        "paid_conversion": 4,
+        "nps": -15
+      },
+      "data_source": "synthetic_persona_study"
     },
     {
       "persona_id": 12,
@@ -439,7 +505,12 @@
       "screener": {
         "trips_last_12_months": "4+",
         "typical_group_size": "16+",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "Desktop-first",
         "would_do_45min_call": "Yes",
         "role": "Primary planner",
@@ -465,11 +536,12 @@
       },
       "conversion_scores": {
         "activation": 7,
-        "invite": 7,
+        "invite": 8,
         "day7": 4,
-        "paid": 3,
-        "nps": -20
-      }
+        "paid_conversion": 4,
+        "nps": -10
+      },
+      "data_source": "synthetic_persona_study"
     },
     {
       "persona_id": 13,
@@ -478,7 +550,12 @@
       "screener": {
         "trips_last_12_months": "2-3",
         "typical_group_size": "16+",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "mixed",
         "would_do_45min_call": "Yes",
         "role": "Primary planner",
@@ -504,11 +581,12 @@
       },
       "conversion_scores": {
         "activation": 7,
-        "invite": 6,
+        "invite": 7,
         "day7": 5,
-        "paid": 4,
-        "nps": -12
-      }
+        "paid_conversion": 4,
+        "nps": -5
+      },
+      "data_source": "synthetic_persona_study"
     },
     {
       "persona_id": 14,
@@ -517,7 +595,12 @@
       "screener": {
         "trips_last_12_months": "2-3",
         "typical_group_size": "16+",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "Desktop-first",
         "would_do_45min_call": "Maybe",
         "role": "Primary planner",
@@ -543,11 +626,12 @@
       },
       "conversion_scores": {
         "activation": 5,
-        "invite": 5,
+        "invite": 6,
         "day7": 3,
-        "paid": 3,
-        "nps": -20
-      }
+        "paid_conversion": 3,
+        "nps": -15
+      },
+      "data_source": "synthetic_persona_study"
     },
     {
       "persona_id": 15,
@@ -556,7 +640,12 @@
       "screener": {
         "trips_last_12_months": "2-3",
         "typical_group_size": "9-15",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "iOS",
         "would_do_45min_call": "Yes",
         "role": "Primary planner",
@@ -582,11 +671,12 @@
       },
       "conversion_scores": {
         "activation": 7,
-        "invite": 6,
+        "invite": 7,
         "day7": 5,
-        "paid": 4,
-        "nps": -7
-      }
+        "paid_conversion": 5,
+        "nps": 3
+      },
+      "data_source": "synthetic_persona_study"
     },
     {
       "persona_id": 16,
@@ -595,7 +685,12 @@
       "screener": {
         "trips_last_12_months": "4+",
         "typical_group_size": "16+",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "mixed",
         "would_do_45min_call": "Yes",
         "role": "Primary planner",
@@ -621,11 +716,12 @@
       },
       "conversion_scores": {
         "activation": 6,
-        "invite": 6,
+        "invite": 7,
         "day7": 4,
-        "paid": 3,
-        "nps": -30
-      }
+        "paid_conversion": 4,
+        "nps": -20
+      },
+      "data_source": "synthetic_persona_study"
     },
     {
       "persona_id": 17,
@@ -634,7 +730,12 @@
       "screener": {
         "trips_last_12_months": "2-3",
         "typical_group_size": "16+",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "Desktop-first",
         "would_do_45min_call": "Yes",
         "role": "Primary planner",
@@ -660,11 +761,12 @@
       },
       "conversion_scores": {
         "activation": 5,
-        "invite": 6,
+        "invite": 7,
         "day7": 3,
-        "paid": 4,
-        "nps": -15
-      }
+        "paid_conversion": 4,
+        "nps": -10
+      },
+      "data_source": "synthetic_persona_study"
     },
     {
       "persona_id": 18,
@@ -673,7 +775,12 @@
       "screener": {
         "trips_last_12_months": "2-3",
         "typical_group_size": "16+",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "Desktop-first",
         "would_do_45min_call": "Yes",
         "role": "Primary planner",
@@ -701,9 +808,10 @@
         "activation": 5,
         "invite": 6,
         "day7": 3,
-        "paid": 3,
-        "nps": -20
-      }
+        "paid_conversion": 4,
+        "nps": -15
+      },
+      "data_source": "synthetic_persona_study"
     },
     {
       "persona_id": 19,
@@ -712,7 +820,12 @@
       "screener": {
         "trips_last_12_months": "2-3",
         "typical_group_size": "5-8",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "Desktop-first",
         "would_do_45min_call": "Yes",
         "role": "Primary planner",
@@ -740,9 +853,10 @@
         "activation": 6,
         "invite": 5,
         "day7": 4,
-        "paid": 2,
-        "nps": -15
-      }
+        "paid_conversion": 3,
+        "nps": -10
+      },
+      "data_source": "synthetic_persona_study"
     },
     {
       "persona_id": 20,
@@ -751,7 +865,12 @@
       "screener": {
         "trips_last_12_months": "4+",
         "typical_group_size": "5-8",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "Desktop-first",
         "would_do_45min_call": "Yes",
         "role": "Primary planner",
@@ -777,11 +896,12 @@
       },
       "conversion_scores": {
         "activation": 6,
-        "invite": 5,
+        "invite": 6,
         "day7": 5,
-        "paid": 4,
-        "nps": 0
-      }
+        "paid_conversion": 4,
+        "nps": 5
+      },
+      "data_source": "synthetic_persona_study"
     },
     {
       "persona_id": 21,
@@ -790,7 +910,12 @@
       "screener": {
         "trips_last_12_months": "2-3",
         "typical_group_size": "16+",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "mixed",
         "would_do_45min_call": "Maybe",
         "role": "Primary planner",
@@ -816,11 +941,12 @@
       },
       "conversion_scores": {
         "activation": 6,
-        "invite": 4,
+        "invite": 5,
         "day7": 5,
-        "paid": 5,
-        "nps": 5
-      }
+        "paid_conversion": 5,
+        "nps": 10
+      },
+      "data_source": "synthetic_persona_study"
     },
     {
       "persona_id": 22,
@@ -829,7 +955,12 @@
       "screener": {
         "trips_last_12_months": "2-3",
         "typical_group_size": "16+",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "Desktop-first",
         "would_do_45min_call": "Yes",
         "role": "Primary planner",
@@ -855,11 +986,12 @@
       },
       "conversion_scores": {
         "activation": 4,
-        "invite": 5,
+        "invite": 6,
         "day7": 2,
-        "paid": 2,
-        "nps": -25
-      }
+        "paid_conversion": 2,
+        "nps": -20
+      },
+      "data_source": "synthetic_persona_study"
     },
     {
       "persona_id": 23,
@@ -868,7 +1000,12 @@
       "screener": {
         "trips_last_12_months": "2-3",
         "typical_group_size": "9-15",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "iOS",
         "would_do_45min_call": "Maybe",
         "role": "Primary planner",
@@ -896,9 +1033,10 @@
         "activation": 7,
         "invite": 6,
         "day7": 4,
-        "paid": 4,
-        "nps": 10
-      }
+        "paid_conversion": 5,
+        "nps": 15
+      },
+      "data_source": "synthetic_persona_study"
     },
     {
       "persona_id": 24,
@@ -907,7 +1045,12 @@
       "screener": {
         "trips_last_12_months": "2-3",
         "typical_group_size": "16+",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "Android",
         "would_do_45min_call": "Maybe",
         "role": "Primary planner",
@@ -935,9 +1078,10 @@
         "activation": 5,
         "invite": 5,
         "day7": 4,
-        "paid": 1,
+        "paid_conversion": 1,
         "nps": -20
-      }
+      },
+      "data_source": "synthetic_persona_study"
     },
     {
       "persona_id": 25,
@@ -946,7 +1090,12 @@
       "screener": {
         "trips_last_12_months": "2-3",
         "typical_group_size": "16+",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "iOS",
         "would_do_45min_call": "Maybe",
         "role": "Primary planner",
@@ -974,9 +1123,10 @@
         "activation": 7,
         "invite": 8,
         "day7": 3,
-        "paid": 1,
+        "paid_conversion": 1,
         "nps": -5
-      }
+      },
+      "data_source": "synthetic_persona_study"
     },
     {
       "persona_id": 26,
@@ -985,7 +1135,12 @@
       "screener": {
         "trips_last_12_months": "2-3",
         "typical_group_size": "16+",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "mixed",
         "would_do_45min_call": "Maybe",
         "role": "Primary planner",
@@ -1013,9 +1168,10 @@
         "activation": 5,
         "invite": 2,
         "day7": 4,
-        "paid": 1,
+        "paid_conversion": 1,
         "nps": 0
-      }
+      },
+      "data_source": "synthetic_persona_study"
     },
     {
       "persona_id": 27,
@@ -1024,7 +1180,12 @@
       "screener": {
         "trips_last_12_months": "2-3",
         "typical_group_size": "16+",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "Desktop-first",
         "would_do_45min_call": "Maybe",
         "role": "Primary planner",
@@ -1052,9 +1213,10 @@
         "activation": 5,
         "invite": 3,
         "day7": 4,
-        "paid": 2,
+        "paid_conversion": 2,
         "nps": -5
-      }
+      },
+      "data_source": "synthetic_persona_study"
     },
     {
       "persona_id": 28,
@@ -1063,7 +1225,12 @@
       "screener": {
         "trips_last_12_months": "2-3",
         "typical_group_size": "9-15",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "Android",
         "would_do_45min_call": "Maybe",
         "role": "Primary planner",
@@ -1091,9 +1258,10 @@
         "activation": 6,
         "invite": 5,
         "day7": 3,
-        "paid": 1,
+        "paid_conversion": 1,
         "nps": -5
-      }
+      },
+      "data_source": "synthetic_persona_study"
     },
     {
       "persona_id": 29,
@@ -1102,7 +1270,12 @@
       "screener": {
         "trips_last_12_months": "4+",
         "typical_group_size": "5-8",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "Desktop-first",
         "would_do_45min_call": "Yes",
         "role": "Primary planner",
@@ -1130,9 +1303,10 @@
         "activation": 6,
         "invite": 5,
         "day7": 6,
-        "paid": 5,
-        "nps": 10
-      }
+        "paid_conversion": 5,
+        "nps": 15
+      },
+      "data_source": "synthetic_persona_study"
     },
     {
       "persona_id": 30,
@@ -1141,7 +1315,12 @@
       "screener": {
         "trips_last_12_months": "2-3",
         "typical_group_size": "9-15",
-        "main_tools": ["iMessage", "Google Docs", "Venmo", "WhatsApp"],
+        "main_tools": [
+          "iMessage",
+          "Google Docs",
+          "Venmo",
+          "WhatsApp"
+        ],
         "primary_device": "mixed",
         "would_do_45min_call": "Yes",
         "role": "Primary planner",
@@ -1169,10 +1348,13 @@
         "activation": 6,
         "invite": 5,
         "day7": 5,
-        "paid": 5,
+        "paid_conversion": 5,
         "nps": 5
-      }
+      },
+      "data_source": "synthetic_persona_study"
     }
   ],
-  "refresh_date": "2026-07-26"
+  "refresh_date": "2026-07-26",
+  "evidence_refresh": "2026-08-02",
+  "data_source": "synthetic_persona_study"
 }

@@ -6,42 +6,46 @@ not an imagined one. Where this brief and other UI copy disagree, the file paths
 
 ---
 
-## ⚠️ Re-verification delta — 2026-07-26
+## ⚠️ Re-verification delta — 2026-08-02
 
-**Supersedes conflicting June claims below.** Verified against `main` after rebase of the 30-persona
-study + July product audits (`docs/audits/CHRAVEL_PRODUCT_AUDIT_2026-07-25.md`,
-`docs/audits/POST_DRIFT_FEATURE_AUDIT_2026-07-25.md`).
+**Supersedes conflicting June/July claims below.** Verified against `main` after PR #867
+(add-by-contact, day-sheet MVP, Seen-by roster, Remind) + live browser sample on Vite `8080`.
 
-| June claim | July 2026 reality | Citation |
+| Prior claim | August 2026 reality | Citation |
 |---|---|---|
-| Onboarding = 9 screens | **10 screens** (Welcome→Chat→Calendar→Concierge→Media→Payments→Places→Polls→Tasks→CTA) | `OnboardingCarousel.tsx:54-121` |
-| Join approval framing bug (`?? true`) | **Always approval by design** — UI ignores flag; edge hardcodes `requiresApproval = true` | `JoinTrip.tsx:115-121`, `join-trip/index.ts:330-334` |
-| Trip Pass only on marketing PricingSection | **Also** in `PlusUpsellModal` (concierge/trip upsell) + `ConsumerBillingSection` | `PlusUpsellModal.tsx:266-282`, `AIConciergeChat.tsx` |
-| `featurePaywall` → Trip Pass | **Still settings** for Smart Import / some caps — incomplete | `featurePaywall.ts` |
-| `APPLE_IAP_ENABLED = false` | **`true`** — iOS native RevenueCat path required for review | `billing/config.ts:260` |
-| PostHog zero events ever | Autocapture trickle exists (project `464040`); **0 custom product funnel events** | PostHog MCP + `telemetry/service.ts` |
-| Pro placeholder tabs on real trips | **Hidden** via `filterPlaceholderTabs` / `PLACEHOLDER_PRO_TAB_IDS` | `ProTabsConfig.tsx:50-67` |
-| Pro roster empty | **Live roster** overlaid from `useTripMembers` | `ProTripDetailDesktop.tsx` |
-| `tripConverter` ops arrays `[]` | **Still hardcoded empty** for schedule/settlement/medical/compliance | `tripConverter.ts:92-104` |
-| Payment split cap unenforced | **Enforced** in `paymentService.checkPaymentSplitLimit` (no Trip Pass CTA at wall) | `paymentService.ts` |
-| Settlement double-credit race | **Fixed** — atomic RPCs | migration `20260610100000_atomic_settlement_rpcs.sql` |
-| Broadcast fanout schema drift | **Fixed** | migration `20260610090000_fix_broadcast_notification_fanout_table.sql` |
-| Invite `max_uses` dead | **Wired** — persisted + checked at join; member capacity RPC for Pro/Event | `useInviteLink.ts`, `join-trip` |
-| Smart Import fully paywalled | **1 free taste / trip** then paywall | `useSmartImportTaste.ts` |
-| Voice = broken / dictation-only | Still **dictation-only** product path; realtime behind `concierge_realtime_voice` flag (default OFF) | `voiceProductPath.ts`, `docs/voice-product-path.md` |
-| Pro CTAs all mailto | Marketing `ForTeams` still mailto; **in-app `ProUpgradeModal` has Stripe** | `ForTeams.tsx`, `ProUpgradeModal.tsx`, `billing/checkout.ts` |
+| Onboarding = 9 screens | **10 screens** (Welcome→Chat→Calendar→Concierge→Media→Payments→Places→Polls→Tasks→CTA) | `OnboardingCarousel.tsx` `screens.length === 10` |
+| Join approval framing bug | **Always approval by design** | `JoinTrip.tsx` `getJoinActionPresentation` |
+| Trip Pass only on marketing | Also in `PlusUpsellModal` / Concierge / `ConsumerBillingSection` | unchanged |
+| `featurePaywall` → Settings dead-end | Still routes to `/settings?gate=…` **but** Settings opens `PlusUpsellModal` | `featurePaywall.ts`, `SettingsPage.tsx` |
+| `APPLE_IAP_ENABLED = false` | **`true`** | `billing/config.ts:260` |
+| PostHog funnel dark | Typed events exist; emit/call-site coverage incomplete; prod funnel **not proven** this refresh | `telemetry/events.ts` |
+| Pro placeholder tabs on real trips | **Hidden** | `ProTabsConfig.tsx` |
+| Pro roster empty | **Live roster** | `ProTripDetailDesktop.tsx` |
+| No Pro day sheet | **Day-sheet MVP** from live `trip_events` (today filter) | `ProDaySheet.tsx`, `mapCalendarToProSchedule.ts` |
+| `tripConverter` ops arrays `[]` | **Still empty** for settlement/medical/compliance/roomAssignments; schedule overlay separate | `tripConverter.ts:92-104` |
+| Payment split cap unenforced | **Enforced** (still no Trip Pass CTA at wall) | `paymentService.ts` |
+| Invite link is sole growth path | **Add existing user by email/phone** shipped; cold invitees still need link | `add-trip-member-by-contact`, `AddExistingMemberSection.tsx` |
+| Smart Import 1 free / trip | **5 free account-wide** then paywall | `useSmartImportTaste.ts` `FREE_SMART_IMPORT_TASTE_LIMIT = 5` |
+| Free AI = 10 queries | **3** / user / trip on free | `entitlements.ts` free: 3 |
+| Pro CTAs all mailto | Hero trial → `startProCheckout` (Stripe); demo → Calendly-or-mailto; **footer still hardcodes mailto** | `ForTeams.tsx`, `startProCheckout.ts` |
+| No broadcast per-person ack | **Seen by N** roster | `get_broadcast_viewers`, `BroadcastViewersSheet.tsx` |
+| No unpaid-balance nudge | **Remind** on `PersonBalanceCard` | `PersonBalanceCard.tsx` |
 | `consumer_guest` no access | **Still true** — all false | `permissionMatrix.generated.ts` |
 
-**New surfaces since June study:** gradual feature flags (`useGradualFeatureFlag`), Gmail Smart Import
-(flagged off), Google Calendar sync (flagged), Travel Wallet, channel rail / broadcasts hardening,
-account deletion flow (`docs/account-deletion.md`), `/trip/:id/preview` (membership preview — **not**
-guest itinerary), org invite email path (broken per July audit).
+**Live UI (2026-08-02):** Landing hero still “The Group Chat Travel App”; pricing tabs Plus/Pro/Trip Passes
+with $39.99 / $74.99 passes; `/teams` trial attempts Edge checkout; demo trip interior blocked in cloud
+env (Stream/Supabase CORS). See `REBASE-REFRESH-2026-08-02.md`.
 
-Full persona re-run package: `docs/research/synthetic-user-testing/2026-06-11-30-persona-study/`
-(see `REBASE-REFRESH-2026-07-26.md`).
+Full persona package: `docs/research/synthetic-user-testing/2026-06-11-30-persona-study/`.
 
 > **Note:** Sections §1–§11 below retain June wording for historical persona context.
-> Where they conflict with the July delta table above, **the delta table wins**.
+> Where they conflict with the August delta table above, **the delta table wins**.
+
+---
+
+## ⚠️ Prior re-verification delta — 2026-07-26 (archived)
+
+See git history / `REBASE-REFRESH-2026-07-26.md` for the July table. August header above supersedes it.
 
 ---
 

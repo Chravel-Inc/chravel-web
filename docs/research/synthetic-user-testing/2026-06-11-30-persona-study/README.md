@@ -1,11 +1,13 @@
 # ChravelApp 30-Persona Synthetic User Testing Study
 
 **Original date:** 2026-06-11  
-**Evidence refresh:** 2026-07-26 (rebased onto latest `main`)  
+**Evidence refresh:** 2026-08-02 (weekly cron; rebased claims onto latest `main` after PR #867)  
+**Prior refresh:** 2026-07-26  
 **Package:** `docs/research/synthetic-user-testing/2026-06-11-30-persona-study/`  
 **Prior work:** Builds on the 10-persona study (`../REPORT.md`, `../personas/`, `../evidence/product-ground-truth.md`) — does **not** overwrite it.
 
-**Start here after July refresh:** [`REBASE-REFRESH-2026-07-26.md`](./REBASE-REFRESH-2026-07-26.md)
+**Start here after August refresh:** [`REBASE-REFRESH-2026-08-02.md`](./REBASE-REFRESH-2026-08-02.md)  
+**July archive:** [`REBASE-REFRESH-2026-07-26.md`](./REBASE-REFRESH-2026-07-26.md)
 
 ---
 
@@ -13,15 +15,14 @@
 
 A structured **synthetic** research package simulating 30 diverse personas completing beta screener + interview surveys and walking realistic ChravelApp workflows (desktop web + mobile/PWA viewports).
 
-**July 26 refresh:** Re-verified P0/P1 claims against current code + July product audits. Scores in `persona-matrix.csv`, priorities in `top-priority-fixes.md`, and synthesis averages were updated. Persona narrative voices in `30-persona-full-report.md` remain the June synthetic interviews with a re-verification addendum at the top — do not treat June-only `[OBSERVED]` citations as current without checking the delta doc.
+**August 2 refresh:** Re-verified open P0/P1 claims against current source + live browser (landing, pricing, `/teams`, demo cards). Scores in `persona-matrix.csv`, priorities in `top-priority-fixes.md`, and synthesis averages were updated. Persona narrative voices in `30-persona-full-report.md` remain the June synthetic interviews with a re-verification addendum at the top — do not treat June-only `[OBSERVED]` citations as current without checking the delta docs.
 
 Findings are grounded in:
 
-- Live browser sessions + codebase inspection
-- `../evidence/product-ground-truth.md` (includes 2026-07-26 delta header)
-- `docs/audits/CHRAVEL_PRODUCT_AUDIT_2026-07-25.md`
-- `docs/audits/POST_DRIFT_FEATURE_AUDIT_2026-07-25.md`
-- PostHog project `464040` (autocapture only — product funnel still hypothesis)
+- Live browser sessions (2026-06-11 original + 2026-08-02 refresh) + codebase inspection
+- `../evidence/product-ground-truth.md` (includes 2026-08-02 delta header)
+- July product audits + PR #867 landings (add-by-contact, day-sheet MVP, Seen-by roster, Remind)
+- PostHog project typed events in code (prod funnel still not proven)
 
 ## Critical warning
 
@@ -35,40 +36,44 @@ This package stress-tests coverage, UX failure modes, and monetization traps. It
 | `[SIMULATED RISK]` | Plausible persona reaction inferred from observed UI/code — not verified with a real person |
 | `[HYPOTHESIS]` | Product/pricing/behavior claim requiring real user validation |
 
-Synthetic persona quotes are labeled `[SYNTHETIC QUOTE]`. No real customer quotes are invented.
+Synthetic persona quotes are labeled `[SYNTHETIC QUOTE]`. No real customer quotes are invented. No real emails/phones — placeholders only.
 
-## How the July refresh was run
+Standalone CSV/JSON exports include `data_source` / disclaimer fields so rows cannot be mistaken for real respondent data when detached from this README.
 
-1. Rebased study branch onto latest `main`
-2. Re-verified each June P0/P1 claim against current source + July audits
-3. Updated ground-truth delta, synthesis, priority fixes, CSVs, web-mobile comparison
-4. Documented closed vs open items in `REBASE-REFRESH-2026-07-26.md`
+## How the August refresh was run
+
+1. Checked out study branch on current `main`
+2. Re-verified each July-open P0/P1 claim against current source
+3. Live UI sample: Vite `localhost:8080` desktop 1280×800 + mobile 390×844 (landing, pricing Trip Passes, `/teams`)
+4. Updated ground-truth delta, synthesis, priority fixes, CSVs, web-mobile comparison
+5. Documented closed vs open items in `REBASE-REFRESH-2026-08-02.md`
 
 ## Deliverables
 
 | File | Description |
 |------|-------------|
-| `REBASE-REFRESH-2026-07-26.md` | **What changed since June** — closed bugs, open P0s, score deltas |
-| `30-persona-full-report.md` | All 30 detailed persona reports (sections A–K) + re-verification addendum |
+| `REBASE-REFRESH-2026-08-02.md` | **What changed since July** — closed bugs, open P0s, score deltas |
+| `REBASE-REFRESH-2026-07-26.md` | July archive |
+| `30-persona-full-report.md` | All 30 detailed persona reports (sections A–K) + re-verification addenda |
 | `synthesis.md` | Executive synthesis (refreshed averages) |
-| `persona-matrix.csv` | One row per persona — scores refreshed 2026-07-26 |
+| `persona-matrix.csv` | One row per persona — scores refreshed 2026-08-02 |
 | `feature-findings.csv` | Feature-level findings across personas |
-| `pricing-insights.csv` | WTP / CTA (CTAs refreshed for Trip Pass + IAP) |
-| `top-priority-fixes.md` | P0–P3 with ✅ closed June items |
+| `pricing-insights.csv` | WTP / CTA |
+| `top-priority-fixes.md` | P0–P3 with ✅ closed items |
 | `real-beta-interview-questions.md` | Real-user validation questions |
 | `raw-synthetic-survey-responses.json` | Structured survey responses |
-| `web-mobile-comparison.md` | Desktop vs mobile/PWA (IAP status updated) |
+| `web-mobile-comparison.md` | Desktop vs mobile/PWA |
 
-## Headline after refresh (not validation)
+## Headline after August refresh (not validation)
 
-| Metric | June | July 26 |
-|--------|------|---------|
-| Paid conversion (avg) | 2.7 | **3.5** |
-| Invite (avg) | 5.1 | **4.9** |
-| NPS (avg) | ~−10 | **−5.8** |
+| Metric | June | July 26 | August 2 |
+|--------|------|---------|----------|
+| Paid conversion (avg) | 2.7 | 3.5 | **3.7** |
+| Invite (avg) | 5.1 | 4.9 | **5.3** |
+| NPS (avg) | ~−10 | −5.8 | **−1.6** |
 
-**Fixed:** IAP, Trip Pass at concierge, Pro placeholder tabs, settlement race, split enforcement, broadcast schema, Smart Import taste.  
-**Still blocking:** Guest itinerary, invite-only growth, remaining settings-routed walls, marketing Pro mailto, product PostHog events, Pro ops CRUD.
+**Fixed since July:** add-by-contact (existing users), Pro day-sheet MVP, Seen-by roster, Payments Remind, Settings→PlusUpsell on paywall gates, ForTeams trial→Stripe helper, Smart Import taste = 5 account-wide.  
+**Still blocking:** Guest itinerary, cold-invite viral loop, remaining Trip Pass hops, PostHog product funnel proof, ForTeams footer mailto + Calendly env, Pro settlement/medical CRUD.
 
 ## Recommended next step
 
