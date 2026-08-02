@@ -1,4 +1,4 @@
-import type { DashboardJoinRequest } from '@/hooks/useDashboardJoinRequests';
+import type { DashboardJoinRequest } from '@/lib/dashboardJoinRequests';
 import { mockMyPendingRequests } from '@/mockData/pendingRequestsMock';
 import { mockPendingRequests } from '@/mockData/joinRequests';
 import { tripsData } from '@/data/tripsData';
