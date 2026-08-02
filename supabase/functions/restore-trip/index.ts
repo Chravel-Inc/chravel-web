@@ -3,7 +3,7 @@ import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { sanitizeErrorForClient, logError } from '../_shared/errorHandling.ts';
-import { isSuperAdminEmail } from '../_shared/superAdmins.ts';
+import { isSuperAdminUserId } from '../_shared/superAdmins.ts';
 import {
   canRestoreArchivedTrip,
   pickPrimaryEntitlementRow,
@@ -79,7 +79,7 @@ serve(async req => {
       });
     }
 
-    const isSuperAdmin = isSuperAdminEmail(user.email);
+    const isSuperAdmin = await isSuperAdminUserId(supabase, user.id);
 
     if (!isSuperAdmin && trip.trip_type === 'consumer') {
       const [

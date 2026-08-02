@@ -2,7 +2,7 @@ import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { logError } from '../_shared/errorHandling.ts';
-import { isSuperAdminEmail } from '../_shared/superAdmins.ts';
+import { isSuperAdminUserId } from '../_shared/superAdmins.ts';
 
 type TripDetailErrorCode = 'AUTH_REQUIRED' | 'TRIP_NOT_FOUND' | 'ACCESS_DENIED' | 'BAD_REQUEST';
 
@@ -93,7 +93,7 @@ serve(async (req): Promise<Response> => {
       );
     }
 
-    const isSuperAdmin = isSuperAdminEmail(authData.user.email);
+    const isSuperAdmin = await isSuperAdminUserId(supabaseAdmin, authData.user.id);
     const tripRow = trip as TripRow;
     // Access is based on active membership only; creators who left or were removed
     // must not regain access through created_by or a route-param lookup.
@@ -108,6 +108,16 @@ serve(async (req): Promise<Response> => {
     const hasAccess = !!membership;
 
     if (isSuperAdmin || hasAccess) {
+      if (isSuperAdmin && !hasAccess) {
+        // Privileged read of a trip the admin is not a member of — record it so cross-tenant
+        // admin access is attributable. Best-effort: never blocks the read.
+        await supabaseAdmin.from('admin_audit_logs').insert({
+          admin_id: authData.user.id,
+          action: 'trip.admin_read',
+          trip_id: tripId,
+          new_state: { read_at: new Date().toISOString() },
+        });
+      }
       return buildResponse({ success: true, trip: tripRow }, 200, corsHeaders);
     }
 

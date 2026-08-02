@@ -38,7 +38,7 @@ import { classifyQuery, isTripRelatedClass } from '../_shared/concierge/queryCla
 import { getToolsForQueryClass } from '../_shared/concierge/toolRegistry.ts';
 import { assemblePrompt } from '../_shared/concierge/promptAssembler.ts';
 import { QUERY_CLASS_SLICES } from '../_shared/contextBuilder.ts';
-import { isSuperAdminEmail } from '../_shared/superAdmins.ts';
+import { isSuperAdminUserId } from '../_shared/superAdmins.ts';
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 // DEPRECATED: Lovable gateway fallback is legacy. Gemini is the only production provider.
@@ -786,7 +786,8 @@ serve(async req => {
     // maps them to frequent_chraveler), but resolveUsagePlanForUser doesn't know about
     // them. Mirror that here so the client badge matches server grounding, admins can
     // dogfood, and (below) they aren't capped at the free trip-query limit.
-    const isSuperAdminCaller = !serverDemoMode && isSuperAdminEmail(user?.email ?? null);
+    const isSuperAdminCaller =
+      !serverDemoMode && (await isSuperAdminUserId(supabase, user?.id ?? null));
     const isPaidUser = planResolution.usagePlan !== 'free' || isSuperAdminCaller;
     // Preference grounding is premium-only AND kill-switchable at runtime.
     const preferenceGroundingEnabled = isPaidUser && premiumPreferencesEnabled;
@@ -1113,7 +1114,7 @@ serve(async req => {
     // safety layer (content rules, booking safety, language policy). Only allow
     // super-admin callers to override the system prompt. Non-admin overrides
     // are silently dropped so the caller still gets a normal response.
-    const callerIsSuperAdmin = isSuperAdminEmail(user?.email ?? null);
+    const callerIsSuperAdmin = await isSuperAdminUserId(supabase, user?.id ?? null);
     const safeCustomSystemPrompt = callerIsSuperAdmin ? config.systemPrompt : undefined;
     if (config.systemPrompt && !callerIsSuperAdmin) {
       console.warn('[lovable-concierge] Ignored config.systemPrompt from non-super-admin caller');
