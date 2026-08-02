@@ -1,10 +1,10 @@
-> **Refreshed 2026-07-26:** iOS IAP enabled; Trip Pass reachable from mobile concierge upsell. See `REBASE-REFRESH-2026-07-26.md`.
+> **Refreshed 2026-08-02:** Live desktop 1280×800 + mobile 390×844 sample on Vite `8080` (landing, pricing, `/teams`). iOS IAP + Trip Pass at concierge remain closed; add-by-contact and Pro day-sheet MVP shipped. See `REBASE-REFRESH-2026-08-02.md`.
 
 # Web vs Mobile / PWA — 30-Persona Synthetic Study
 
-**Date:** 2026-06-11  
-**Scope:** Desktop web (1280×800 live test) vs mobile/PWA/iOS Capacitor (390×844 partial test + responsive code review)  
-**Caveat:** Cloud environment limited full mobile browser automation `[OBSERVED — README.md]`. Mobile findings blend code review, prior 10-persona study, and partial live session.
+**Date:** 2026-06-11 · **Evidence refresh:** 2026-08-02  
+**Scope:** Desktop web (1280×800 live test) vs mobile/PWA/iOS Capacitor (390×844 live landing + responsive code review)  
+**Caveat:** Cloud environment blocked demo trip interior (Stream/Supabase CORS) `[OBSERVED — 2026-08-02]`. Mobile trip-tab findings blend code review, prior 10-persona study, and partial live session.
 
 ---
 
@@ -56,9 +56,10 @@ From `persona-matrix.csv`:
 | Send invite | Copy link prominent | Share sheet native | **Mobile wins** |
 | Add calendar event | Full form | Smaller viewport; place autocomplete usable | Moderate friction |
 | Split expense | Multi-column summary | Single column; Venmo deeplink works | Neutral |
-| Upgrade | Stripe + Trip Pass in-app | IAP enabled (`APPLE_IAP_ENABLED: true`) | **Parity improved July 26** |
-| Pro day sheet | Wide schedule possible | No dedicated mobile day sheet | **Desktop wins** |
+| Upgrade | Stripe + Trip Pass in-app; `/teams` trial via `startProCheckout` | IAP enabled (`APPLE_IAP_ENABLED: true`) | **Parity improved** |
+| Pro day sheet | `ProDaySheet` today view from calendar | Same component; narrow viewport | **Desktop still better for ops** |
 | Onboarding | Two-column carousel + phone frame | Full-bleed 10 screens | **Mobile loses** |
+| Add member | Email/phone tabs in InviteModal | Same; 44px tabs | **Parity** `[OBSERVED — code]` |
 
 ---
 
@@ -79,27 +80,27 @@ From `persona-matrix.csv`:
 
 ### Desktop
 
-- Landing `PricingSection.tsx` shows Trip Pass, tiers, FAQ `[OBSERVED]`
-- `/settings?section=billing` — Stripe subscription + Trip Pass accordion (`ConsumerBillingSection`) `[OBSERVED]`
-- Trip Pass also via `PlusUpsellModal` / Concierge limit wall — **not marketing-only** `[OBSERVED — refreshed 2026-07-26]`
-- Remaining gap: Smart Import / some `featurePaywall` gates still → settings `[OBSERVED]`
-- Marketing Pro CTAs → `mailto:`; in-app `ProUpgradeModal` → Stripe `[OBSERVED]`
+- Landing `PricingSection.tsx` shows Trip Pass ($39.99 / $74.99), tiers, FAQ `[OBSERVED — browser 2026-08-02]`
+- `/settings?section=billing` — Stripe + Trip Pass accordion; `?gate=` opens `PlusUpsellModal` `[OBSERVED]`
+- Trip Pass also via Concierge / PlusUpsell — **not marketing-only** `[OBSERVED]`
+- Remaining gap: Smart Import / some gates still hop through settings; split wall has no Trip Pass CTA `[OBSERVED]`
+- `/teams` trial → `startProCheckout` (Stripe); footer Schedule Demo still mailto; Calendly env often unset `[OBSERVED — live /teams]`
 
 ### Mobile / iOS
 
-- `APPLE_IAP_ENABLED: true` → RevenueCat IAP path for iOS native review builds `[OBSERVED — billing/config.ts:260 — refreshed 2026-07-26]`
-- **17/30 personas** are iOS-primary — purchase path unblocked July 26; invite/guest wall remains the mobile growth risk
+- `APPLE_IAP_ENABLED: true` → RevenueCat IAP path for iOS native review builds `[OBSERVED — billing/config.ts:260]`
+- iOS-primary personas — purchase path unblocked; **guest wall** remains the mobile growth risk
 
 | Monetization step | Desktop success | Mobile success |
 |-------------------|-----------------|----------------|
 | See pricing | High (landing) | Medium (landing in browser) |
 | Hit concierge limit | High (Trip Pass in PlusUpsell) | High (same modal) |
-| Hit Smart Import wall | Medium (settings redirect) | Medium |
+| Hit Smart Import wall | Medium (settings → upsell) | Medium |
 | Complete Trip Pass | High (billing / upsell) | **Medium–High** (IAP) |
 | Complete subscription | High (Stripe) | **Medium–High** (IAP) |
-| Pro purchase | Medium (in-app) / Low (marketing mailto) | Medium (in-app) |
+| Pro purchase | High (trial checkout) / Medium (demo mailto fallback) | Medium (in-app) |
 
-**Synthetic growth risk on mobile (July 26):** Not purchase — **always-approval invite + zero guest value** (`pricing-insights.csv` / invite scores).
+**Synthetic growth risk on mobile (August 2):** Not purchase — **always-approval invite + zero guest value** for cold invitees. Add-by-contact helps only when friends already have Chravel.
 
 ---
 
@@ -108,17 +109,20 @@ From `persona-matrix.csv`:
 ### Improvements since 10-persona study `[OBSERVED]`
 
 - Rich trip preview card on join page (name, dates, cover, member count)
-- `getJoinActionPresentation()` now **always** request-to-join (approval is product policy) `[OBSERVED — JoinTrip.tsx:115-121]`
+- `getJoinActionPresentation()` now **always** request-to-join (approval is product policy)
 - 7 typed error states (`inviteErrors.ts`)
+- **Aug 2:** Add existing Chravel user by email/phone in InviteModal (`AddExistingMemberSection`)
+- **Aug 2:** Invite preview surfaces seat capacity / `TRIP_FULL`
 
 ### Remaining mobile-specific issues
 
 | Issue | Desktop impact | Mobile impact | Evidence |
 |-------|----------------|---------------|----------|
 | Auth before itinerary | Moderate | **High** — phone users less patient | `[OBSERVED]` guest permissions |
-| Approval default framing | Same | Same — confusing on small screen | `[OBSERVED]` JoinTrip.tsx:857 |
+| Always-approval wait | Same | Same — confusing on small screen | `[OBSERVED]` product policy |
 | Preview readable | Good | Good (partial live test) | `[OBSERVED]` |
 | Post-join empty chat | Same | **High** — primary comms channel empty | `[SIMULATED RISK]` |
+| Add-by-contact requires existing account | Helps organizers | Cold SMS/iMessage invitees still blocked | `[OBSERVED]` |
 
 ---
 
@@ -135,8 +139,8 @@ From `persona-matrix.csv`:
 | Smart Import | File upload easy | Camera/screenshot ingest valuable | 🟡 |
 | Media hub | Grid + lightbox | Grid; iOS share-sheet ingestion | ✅ |
 | Payments | Full | Venmo deeplink native | ✅ |
-| Pro ops tabs | Visible (stubbed) | Hidden in overflow / cramped | ❌ |
-| Broadcasts | Full compose | Compose OK; receipt depends on push | 🟡 |
+| Pro ops tabs | Day-sheet MVP + roster; finance/medical hidden | Same; cramped | 🟡 |
+| Broadcasts | Compose + Seen-by roster | Compose OK; Seen-by sheet; push for receipt | 🟡 |
 | PDF export | Modal | Modal; smaller preview | 🟡 |
 | Notifications prefs | Settings | Push opt-in + in-app | 🟡 |
 | Offline | N/A | Limited PWA; touring pain | ❌ |

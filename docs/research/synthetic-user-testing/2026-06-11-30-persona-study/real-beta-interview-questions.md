@@ -1,8 +1,8 @@
-> **Refreshed 2026-07-26:** Re-prioritize guest itinerary + Trip Pass wall completeness over iOS dead-end (IAP now on). See `REBASE-REFRESH-2026-07-26.md`.
+> **Refreshed 2026-08-02:** Re-prioritize guest itinerary + in-place Trip Pass walls + PostHog proof. IAP and add-by-contact (existing users) are shipped — do not waste interview time rediscovering those. See `REBASE-REFRESH-2026-08-02.md`.
 
 # Real Beta Interview Questions — 30-Persona Study Validation
 
-**Date:** 2026-06-11  
+**Date:** 2026-06-11 · **Evidence refresh:** 2026-08-02  
 **Purpose:** Convert synthetic findings into real-user validation. Prioritized for WTP, invite, AI trust, Smart Import, media, payments, mobile, Pro permissions, and Trip Pass vs subscription.  
 **Recruitment target:** 8–12 participants covering Regular (5), Events (2), Pro (3)  
 **Session length:** 45 minutes (matches screener `would_do_45min_call`)
@@ -22,7 +22,7 @@
 
 ## Priority 1 — Monetization (WTP, Trip Pass vs sub)
 
-*Synthetic basis: 22/30 WTP > $0; paid conversion avg **3.5/10** (was 2.7); Trip Pass reachable at concierge but not every wall `[OBSERVED — refreshed 2026-07-26]`*
+*Synthetic basis: 22/30 WTP > $0; paid conversion avg **3.7/10** (was 2.7); Trip Pass reachable at concierge/Settings upsell but not every wall `[OBSERVED — refreshed 2026-08-02]`*
 
 ### Q1. Trip framing
 > "Think about the last group trip you organized. If a tool saved you 2+ hours of coordination, what would you realistically pay — per trip or per month?"
@@ -32,11 +32,11 @@
 - **Validates:** `[HYPOTHESIS]` Trip Pass is dominant SKU
 
 ### Q2. Limit moment
-> "Imagine you've used the free AI assistant 10 times on one trip and it stops. What would you do next?"
+> "Imagine you've used the free AI assistant 3 times on one trip and it stops. What would you do next?"
 
 - **Show mock:** Trip Pass $39.99 vs Explorer $9.99/mo vs abandon
 - **Listen for:** Checkout completion intent, settings-page friction
-- **Validates:** P0-1 Trip Pass at walls
+- **Validates:** P0 Trip Pass at walls · free quota = 3 `[OBSERVED — entitlements.ts]`
 
 ### Q3. iOS payment
 > "You're on your phone in the app. You hit an upgrade wall (AI limit or Trip Pass). Walk me through what you see and whether you'd complete purchase in-app."

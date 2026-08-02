@@ -1,42 +1,56 @@
 # ChravelApp 30-Persona Synthetic User Testing — Full Reports
 
-> **Date:** 2026-06-11 · **Evidence refresh:** 2026-07-26 (rebased onto `main`)  
+> **Date:** 2026-06-11 · **Evidence refresh:** 2026-08-02 (weekly cron; post–PR #867)  
 > **Warning:** Synthetic research only. Not customer validation. See README.md.
 
 ---
 
-## ⚠️ Re-verification addendum (2026-07-26)
+## ⚠️ Re-verification addendum (2026-08-02)
 
 Persona narratives below were written against the **June 11** codebase. Several `[OBSERVED]` citations are **stale**. Before acting on any persona finding, check:
 
-1. **`REBASE-REFRESH-2026-07-26.md`** — closed vs open claims  
-2. **`../evidence/product-ground-truth.md`** — July delta table  
-3. **`persona-matrix.csv`** — refreshed conversion scores  
+1. **`REBASE-REFRESH-2026-08-02.md`** — closed vs open claims (current)  
+2. **`REBASE-REFRESH-2026-07-26.md`** — July archive  
+3. **`../evidence/product-ground-truth.md`** — August delta table  
+4. **`persona-matrix.csv`** — conversion scores (August 2)
 
-### Do not cite these June claims as current bugs
+### Do not cite these claims as current bugs
 
-| Stale June claim | July reality |
-|------------------|--------------|
+| Stale claim | Current reality (Aug 2) |
+|-------------|-------------------------|
 | `APPLE_IAP_ENABLED = false` / Subscribe on web | **IAP enabled** (`billing/config.ts:260`) |
 | Trip Pass only on marketing page | Also in `PlusUpsellModal` / Concierge / `ConsumerBillingSection` |
 | Join approval framing is a copy bug | **Always approval by design** |
 | Pro finance/medical/compliance tabs on real trips | **Hidden** via `filterPlaceholderTabs` |
 | Payment split cap unenforced | **Enforced** in `paymentService` |
 | Settlement double-credit race | **Fixed** (atomic RPCs) |
-| Broadcast fanout schema drift | **Fixed** (migration) |
-| Smart Import fully paywalled | **1 free taste / trip** |
+| Broadcast fanout schema drift | **Fixed** |
+| Smart Import fully paywalled / 1 free per trip | **5 free account-wide** (`useSmartImportTaste.ts`) |
+| Free AI = 10 queries | **3** / user / trip (`entitlements.ts`) |
+| No add-by-email | **Add existing user by email/phone** (`add-trip-member-by-contact`) |
+| No Pro day sheet | **Day-sheet MVP** from live calendar (`ProDaySheet.tsx`) |
+| No broadcast per-person ack | **Seen by N** roster |
+| featurePaywall Settings = dead end | Settings opens `PlusUpsellModal` on `?gate=` |
+| ForTeams trial = mailto only | Hero trial → `startProCheckout` (Stripe); footer demo still mailto |
 
-### Still valid across personas (re-confirmed)
+### Still valid across personas (re-confirmed Aug 2)
 
-- `consumer_guest` zero access → invite funnel leak  
-- Invite is sole growth path; no add-by-email  
+- `consumer_guest` zero access → cold-invite funnel leak  
+- Always-approval + account wall for new invitees  
 - Onboarding still 10 screens  
-- Pro ops CRUD (day sheet / settlement) still missing in converter  
-- Product PostHog funnel still dark  
-- Some paywalls still route to `/settings` not Trip Pass  
-- Marketing `ForTeams` still mailto  
+- Pro settlement/medical/compliance still empty in `tripConverter`  
+- Product PostHog funnel emit/proof incomplete  
+- Some paywalls still hop through `/settings` (upsell opens)  
+- ForTeams footer “Schedule a Demo” hardcodes mailto; Calendly env often unset  
+- Split-cap error still lacks Trip Pass CTA  
 
-Scores used for synthesis/investor readout: **`persona-matrix.csv` (July 26)**, not the inline June scores in sections I below.
+Scores used for synthesis/investor readout: **`persona-matrix.csv` (August 2)**, not the inline June scores in sections I below.
+
+### Live UI sample notes (2026-08-02) `[OBSERVED]`
+
+- Landing: “ChravelApp” + “The Group Chat Travel App”; pricing tabs Plus / Pro / Trip Passes ($39.99 / $74.99).  
+- `/teams`: Start 14-Day Trial invokes checkout edge; Schedule a Demo may open mailto when Calendly unset.  
+- Mobile 390×844: hero CTA above the fold. Demo trip interior not entered in this environment (Stream/Supabase CORS).
 
 ---
 

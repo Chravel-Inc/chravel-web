@@ -1,27 +1,33 @@
-# Top Priority Fixes — 30-Persona Study (Refreshed 2026-07-26)
+# Top Priority Fixes — 30-Persona Study (Refreshed 2026-08-02)
 
-**Source:** Re-verification after rebase onto `main` · `REBASE-REFRESH-2026-07-26.md` · July product audits  
+**Source:** Evidence refresh after PR #867 + related landings · `REBASE-REFRESH-2026-08-02.md`  
 **Evidence labels:** `[OBSERVED]` · `[SIMULATED RISK]` · `[HYPOTHESIS]`
 
-Items marked ✅ were P0/P1 in the June 11 package and are **closed** — do not re-ticket.
+Items marked ✅ are **closed** — do not re-ticket.
 
 ---
 
-## ✅ Closed since June 11 study
+## ✅ Closed since June 11 (includes July + August landings)
 
 | Was | Fix landed | Citation |
 |-----|------------|----------|
 | iOS “Subscribe on web” dead-end | `APPLE_IAP_ENABLED: true` | `src/billing/config.ts:260` |
-| Trip Pass unreachable in-app | `PlusUpsellModal` + Concierge + `ConsumerBillingSection` | `PlusUpsellModal.tsx:266-282` |
+| Trip Pass unreachable in-app | `PlusUpsellModal` + Concierge + `ConsumerBillingSection` | `PlusUpsellModal.tsx` |
 | Pro placeholder tabs on real trips | `filterPlaceholderTabs` / `PLACEHOLDER_PRO_TAB_IDS` | `ProTabsConfig.tsx:50-67` |
 | Pro roster always empty | Live overlay from `useTripMembers` | `ProTripDetailDesktop.tsx` |
 | Payment split cap theater | `checkPaymentSplitLimit` enforced | `paymentService.ts` |
 | Settlement double-credit race | Atomic RPCs | `20260610100000_atomic_settlement_rpcs.sql` |
-| Broadcast fanout schema drift | Fix migration | `20260610090000_fix_broadcast_notification_fanout_table.sql` |
+| Broadcast fanout schema drift | Fix migration | `20260610090000_…` |
 | Invite `max_uses` dead | Persisted + join check + capacity RPC | `useInviteLink.ts`, `join-trip` |
-| Smart Import 100% paywalled | 1 free taste / trip | `useSmartImportTaste.ts` |
-| Join “wrong default” framing | **Product is always-approval** (intentional) | `JoinTrip.tsx:115-121`, `join-trip/index.ts:330-334` |
-| In-app Pro checkout missing | `ProUpgradeModal` + `billing/checkout.ts` | Stripe path exists |
+| Smart Import 100% paywalled | Free taste (now **5 account-wide**) | `useSmartImportTaste.ts` |
+| Join “wrong default” framing | **Product is always-approval** (intentional) | `JoinTrip.tsx`, `join-trip` |
+| In-app Pro checkout missing | `ProUpgradeModal` + `billing/checkout.ts` | Stripe path |
+| No add-by-email growth fallback | `add-trip-member-by-contact` + `AddExistingMemberSection` | **Aug 2 — existing accounts only** |
+| No broadcast per-person ack | `get_broadcast_viewers` + Seen-by sheet | `BroadcastViewersSheet.tsx` |
+| No Pro day sheet | `ProDaySheet` from live `trip_events` | `mapCalendarToProSchedule.ts` |
+| featurePaywall Settings dead-end | Settings opens `PlusUpsellModal` on `?gate=` | `SettingsPage.tsx` |
+| ForTeams trial = mailto only | Hero trial → `startProCheckout` | `ForTeams.tsx`, `startProCheckout.ts` |
+| Payments chase only via Venmo | Remind button on unpaid balances | `PersonBalanceCard.tsx` |
 
 ---
 
@@ -31,77 +37,71 @@ Items marked ✅ were P0/P1 in the June 11 package and are **closed** — do not
 
 | Field | Detail |
 |-------|--------|
-| **Problem** | `consumer_guest` has NO access. Invitee must create account + wait for approval before seeing calendar/polls. Invite avg **4.9/10** after refresh. |
+| **Problem** | `consumer_guest` has NO access. Invitee must create account + wait for approval before seeing calendar/polls. Invite avg **5.3/10** after add-by-contact — cold invitees still leak. |
 | **Personas** | 2, 7, 10, 21, 26, 27 (sports mom, reunion, friends, wedding planner, church, school) |
-| **Code refs** | `src/types/permissionMatrix.generated.ts` · `src/pages/JoinTrip.tsx` · `/trip/:id/preview` is **not** guest itinerary (`TripPreview.tsx`) |
+| **Code refs** | `src/types/permissionMatrix.generated.ts` · `src/pages/JoinTrip.tsx` · `/trip/:id/preview` is **not** guest itinerary |
 | **Fix** | Token-scoped read of calendar + open polls on join preview (or `consumer_guest` read grants for those resources only). Chat/write stay gated. |
-| **Evidence** | `[OBSERVED]` permission matrix · July product audit §2 (invite is sole growth path) |
+| **Evidence** | `[OBSERVED]` permission matrix |
 | **Acceptance** | Active invite link shows next 7 days of schedule + open polls without signup |
+| **Effort / Owner** | L · Core + Auth |
+| **Impact** | Revenue High · Retention High |
 
 ---
 
-### P0-2: Growth fallback — add member by email / repair org invites
+### P0-2: Emit + verify PostHog product funnel events
 
 | Field | Detail |
 |-------|--------|
-| **Problem** | Invite link is the **only** join path for real trips. No admin add-by-email. Org invite UI says “Invitation sent” but email never sends (stale domain). |
-| **Personas** | All; especially Pro/Events (11–22) |
-| **Code refs** | July audit `CHRAVEL_PRODUCT_AUDIT_2026-07-25.md:14-25,91-96` · `useInviteLink.resendInvite` mailto-only |
-| **Fix** | (a) Organizer “Add member by email” for existing accounts; (b) fix org-invite email send + accept domain |
-| **Evidence** | `[OBSERVED — July product audit]` |
-| **Acceptance** | Broken/expired invite is recoverable without support; org invite delivers email |
-
----
-
-### P0-3: Enable PostHog **product** funnel events
-
-| Field | Detail |
-|-------|--------|
-| **Problem** | Autocapture trickle exists (project `464040`); **zero** custom product events (`trip_joined`, `upgrade_*`). Funnel still dark. |
+| **Problem** | Typed events exist (`trip_joined`, `upgrade_prompt_shown`, …) but production funnel is not proven; few upgrade surfaces call `upgradePromptShown`. |
 | **Personas** | All (decision quality) |
-| **Code refs** | `src/telemetry/types.ts` · `src/telemetry/service.ts` · `docs/ops/posthog-key-rotation-vercel.md` |
-| **Fix** | Confirm Vercel key; emit 5 events: `trip_join_started`, `trip_joined`, `upgrade_prompt_shown`, `upgrade_started`, `upgrade_completed` |
-| **Evidence** | `[OBSERVED — PostHog MCP 2026-07-26]` |
-| **Acceptance** | Custom events visible in PostHog within 48h of deploy |
+| **Code refs** | `src/telemetry/events.ts` · `src/telemetry/service.ts` · `docs/ops/posthog-key-rotation-vercel.md` |
+| **Fix** | Wire emit at join + paywall surfaces; confirm Vercel key; verify 5 events in PostHog within 48h |
+| **Evidence** | `[OBSERVED — code]` · `[HYPOTHESIS — prod ingestion]` |
+| **Acceptance** | Custom events visible in PostHog project after staging exercise |
+| **Effort / Owner** | S · Platform / Growth |
 
 ---
 
-### P0-4: Finish Trip Pass at **all** limit walls
+### P0-3: Trip Pass at remaining limit walls (no Settings hop)
 
 | Field | Detail |
 |-------|--------|
-| **Problem** | Concierge/trip upsell fixed; Smart Import calendar + generic `featurePaywall` gates still → `/settings?section=billing`. Split-cap error has no Trip Pass CTA. |
+| **Problem** | Concierge/PlusUpsell fixed; `featurePaywall` still navigates to `/settings` (upsell opens — extra hop). Split-cap error has no Trip Pass CTA. |
 | **Personas** | 2–4, 9–10, 23 (Trip Pass fit) |
-| **Code refs** | `src/components/subscription/featurePaywall.ts` · `CalendarImportModal.tsx:728-735` · `paymentService` limit errors |
-| **Fix** | Route Smart Import / trip-cap / split-cap walls through `PlusUpsellModal` / `TripPassModal` |
+| **Code refs** | `src/components/subscription/featurePaywall.ts` · `paymentService` limit errors · `CalendarImportModal` |
+| **Fix** | Open `TripPassModal` / `PlusUpsellModal` in-place at Smart Import #6+, split #4, trip cap |
 | **Evidence** | `[OBSERVED]` |
-| **Acceptance** | Free user hitting import #2 or split #4 sees Trip Pass checkout without Settings detour |
+| **Acceptance** | Free user hitting import overage or split #4 sees Trip Pass checkout without Settings |
+| **Effort / Owner** | M · Growth + Billing |
+| **Impact** | Revenue High |
 
 ---
 
 ## P1 — Ship within 2 weeks of P0
 
-### P1-1: Replace ForTeams / marketing Pro mailto with self-serve + demo booking
+### P1-1: Unify ForTeams demo CTAs + set Calendly
 
 | Field | Detail |
 |-------|--------|
-| **Problem** | In-app `ProUpgradeModal` can Stripe-checkout; `/teams` and marketing Pro cards still `mailto:` |
+| **Problem** | Hero uses `openProDemoScheduler()`; footer still hardcodes mailto. Without `VITE_CALENDLY_DEMO_URL`, demo falls back to mailto (confirmed live). |
 | **Personas** | 11–17, 19–20 |
-| **Code refs** | `ForTeams.tsx` · `PricingSection.tsx` Pro cards · `ProUpgradeModal.tsx` · `billing/checkout.ts` |
-| **Fix** | Wire marketing CTAs to same checkout / Calendly; keep Enterprise as sales |
-| **Evidence** | `[OBSERVED]` |
+| **Code refs** | `ForTeams.tsx:119-130` vs `:402-410` · `billing/startProCheckout.ts` |
+| **Fix** | Footer → `openProDemoScheduler`; set Calendly env in Vercel |
+| **Evidence** | `[OBSERVED — live /teams 2026-08-02]` |
+| **Effort / Owner** | S · Growth |
 
 ---
 
-### P1-2: Pro ops CRUD or honest “coming soon” roadmap (not empty converter)
+### P1-2: Pro ops beyond day-sheet (settlement / rooming honesty)
 
 | Field | Detail |
 |-------|--------|
-| **Problem** | Placeholder tabs hidden (good); `tripConverter` still hardcodes schedule/settlement/medical/compliance `[]`. No day sheet. |
+| **Problem** | Day-sheet MVP ships today’s calendar. `tripConverter` still hardcodes settlement/medical/compliance/roomAssignments `[]`. |
 | **Personas** | 11–17 |
-| **Code refs** | `tripConverter.ts:92-104` · `types/pro.ts` |
-| **Fix** | Ship typed schedule + rooming MVP **or** publish “not yet” on `/teams` claims |
+| **Code refs** | `tripConverter.ts:92-104` · `ProDaySheet.tsx` |
+| **Fix** | Extend day sheet (multi-day) + rooming MVP **or** publish “not yet” on `/teams` claims for settlement/medical |
 | **Evidence** | `[OBSERVED]` |
+| **Effort / Owner** | L · Pro |
 
 ---
 
@@ -109,10 +109,11 @@ Items marked ✅ were P0/P1 in the June 11 package and are **closed** — do not
 
 | Field | Detail |
 |-------|--------|
-| **Problem** | Still 10 screens (`OnboardingCarousel.tsx:54-121`). Invitees already have a destination. |
+| **Problem** | Still 10 screens (`OnboardingCarousel.tsx`). Invitees already have a destination. |
 | **Personas** | 2, 7, 8, 25, 26 |
 | **Fix** | Skip or 2-screen path when `invite` context present |
 | **Evidence** | `[OBSERVED]` + `[SIMULATED RISK]` |
+| **Effort / Owner** | M · Growth |
 
 ---
 
@@ -120,10 +121,11 @@ Items marked ✅ were P0/P1 in the June 11 package and are **closed** — do not
 
 | Field | Detail |
 |-------|--------|
-| **Problem** | Product path dictation-only; realtime behind `concierge_realtime_voice` default OFF. Frequent Chraveler marketing still implies live voice. |
-| **Code refs** | `voiceProductPath.ts` · `docs/voice-product-path.md` · `AIConciergeChat.tsx` |
+| **Problem** | Product path dictation-only; realtime behind `concierge_realtime_voice` default OFF. |
+| **Code refs** | `voiceProductPath.ts` · `docs/voice-product-path.md` |
 | **Fix** | Pricing/copy = “voice dictation”; live voice only when flag on |
 | **Evidence** | `[OBSERVED]` |
+| **Effort / Owner** | S · AI / Growth |
 
 ---
 
@@ -131,9 +133,22 @@ Items marked ✅ were P0/P1 in the June 11 package and are **closed** — do not
 
 | Field | Detail |
 |-------|--------|
-| **Problem** | UI quota fixed; upload still fails open on usage lookup errors (`uploadService.ts:70-73`) |
+| **Problem** | Upload still fails open on usage lookup errors (`uploadService.ts:72-75`) |
 | **Fix** | Fail closed with retry; never allow unlimited on error |
-| **Evidence** | `[OBSERVED — post-drift audit]` |
+| **Evidence** | `[OBSERVED]` |
+| **Effort / Owner** | S · Backend |
+
+---
+
+### P1-6: Prove org-invite email delivery
+
+| Field | Detail |
+|-------|--------|
+| **Problem** | `InviteMemberModal` toasts “Invitation sent” via `invite-organization-member` — July audit flagged silent non-delivery; not re-proven fixed. |
+| **Personas** | 18–20, 22 |
+| **Fix** | End-to-end send test + fix domain/template if still broken |
+| **Evidence** | `[HYPOTHESIS — needs live email proof]` (July `[OBSERVED]` unpaid debt) |
+| **Effort / Owner** | M · Backend |
 
 ---
 
@@ -146,27 +161,30 @@ Items marked ✅ were P0/P1 in the June 11 package and are **closed** — do not
 | P2-3 | Duplicate-trip / season template for run club | 24 |
 | P2-4 | Event-specific pricing copy on event create | 6, 18, 21, 22 |
 | P2-5 | Timezone + i18n honesty for international | 30 |
+| P2-6 | Multi-day Pro day sheet (not today-only) | 15, 16 |
+| P2-7 | Align free AI quota copy with **3**/trip | All free |
 
 ---
 
 ## P3 — Later / do not build yet
 
-- In-app payment processor (Venmo settle is enough) `[HYPOTHESIS]`
+- In-app payment processor (Venmo settle + Remind is enough) `[HYPOTHESIS]`
 - Full OTA booking aggregation `[OBSERVED — AGENTS.md]`
-- Agency multi-tenant white-label before Pro ops CRUD `[SIMULATED RISK]`
+- Agency multi-tenant white-label before Pro settlement/rooming `[SIMULATED RISK]`
 - Live Gemini voice rebuild before labeling honesty `[OBSERVED]`
+- Add-by-contact for users who do **not** yet have accounts (that’s guest/invite — don’t invent a second signup path)
 
 ---
 
 ## Dependency order
 
 ```
-P0-3 PostHog product events ─────────────► measures all other fixes
-P0-1 Guest itinerary ──► invite scores
-P0-2 Growth fallback ──► scale risk from July audit
-P0-4 Trip Pass remaining walls ──► paid conversion
-P1-1 Marketing Pro checkout parity
-P1-2 Pro ops MVP or claim removal
+P0-2 PostHog product events ─────────────► measures all other fixes
+P0-1 Guest itinerary ──► invite scores for cold users
+P0-3 Trip Pass remaining walls ──► paid conversion
+P1-1 ForTeams CTA consistency + Calendly env
+P1-2 Pro ops beyond day-sheet OR claim purge
+P1-3 Invitee onboarding short path
 ```
 
 ---
