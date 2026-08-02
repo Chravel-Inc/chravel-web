@@ -1,9 +1,10 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { authorizeDailyDigestUser } from './authorization.ts';
 
 interface RequestBody {
-  user_id: string;
+  user_id?: string;
   trip_id?: string;
   tour_id?: string;
 }
@@ -37,17 +38,22 @@ serve(async req => {
     if (req.method === 'GET') {
       // Get existing daily digest
       const url = new URL(req.url);
-      const userId = url.searchParams.get('user_id');
+      const requestedUserId = url.searchParams.get('user_id');
       const tripId = url.searchParams.get('trip_id');
       const tourId = url.searchParams.get('tour_id');
       const date = url.searchParams.get('date') || new Date().toISOString().split('T')[0];
 
-      if (!userId) {
-        return new Response(JSON.stringify({ error: 'Missing user_id' }), {
-          status: 400,
+      const authz = authorizeDailyDigestUser({
+        authenticatedUserId: user.id,
+        requestedUserId,
+      });
+      if (!authz.ok) {
+        return new Response(JSON.stringify({ error: authz.error }), {
+          status: authz.status,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
+      const userId = authz.userId;
 
       let query = supabase
         .from('daily_digests')
@@ -79,13 +85,18 @@ serve(async req => {
 
     if (req.method === 'POST') {
       // Generate new daily digest
-      const { user_id, trip_id, tour_id }: RequestBody = await req.json();
-      if (!user_id) {
-        return new Response(JSON.stringify({ error: 'Missing user_id' }), {
-          status: 400,
+      const { user_id: requestedUserId, trip_id, tour_id }: RequestBody = await req.json();
+      const authz = authorizeDailyDigestUser({
+        authenticatedUserId: user.id,
+        requestedUserId,
+      });
+      if (!authz.ok) {
+        return new Response(JSON.stringify({ error: authz.error }), {
+          status: authz.status,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
+      const userId = authz.userId;
 
       const today = new Date().toISOString().split('T')[0];
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -94,7 +105,7 @@ serve(async req => {
       let existingQuery = supabase
         .from('daily_digests')
         .select('id')
-        .eq('user_id', user_id)
+        .eq('user_id', userId)
         .eq('digest_date', today);
 
       if (trip_id) existingQuery = existingQuery.eq('trip_id', trip_id);
@@ -113,7 +124,7 @@ serve(async req => {
       let messagesQuery = supabase
         .from('messages')
         .select('content, priority, created_at')
-        .eq('user_id', user_id)
+        .eq('user_id', userId)
         .gt('created_at', since)
         .order('created_at', { ascending: false });
 
@@ -149,7 +160,7 @@ serve(async req => {
       const { data: digest, error: insertError } = await supabase
         .from('daily_digests')
         .insert({
-          user_id,
+          user_id: userId,
           trip_id,
           tour_id,
           digest_date: today,
