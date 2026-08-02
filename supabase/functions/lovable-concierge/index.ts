@@ -633,7 +633,7 @@ serve(async req => {
       return createErrorResponse('Invalid trip ID', 400);
     }
     const {
-      tripContext,
+      tripContext: rawTripContext,
       attachments = [],
       chatHistory = [],
       config = {},
@@ -641,6 +641,21 @@ serve(async req => {
       stream: requestedStream = false,
       conversation_session_id: conversationSessionId,
     } = validatedData;
+
+    // Preference grounding is premium-only and must resolve authoritatively from the DB (see the
+    // schema note above). A client can otherwise smuggle preferences through
+    // `tripContext.userPreferences` (tripContext is z.any()), letting a free user forge premium
+    // behavior. Strip it so preferences never come from client-supplied request context.
+    const tripContext =
+      rawTripContext && typeof rawTripContext === 'object' && !Array.isArray(rawTripContext)
+        ? (() => {
+            const { userPreferences: _strippedUserPreferences, ...rest } = rawTripContext as Record<
+              string,
+              unknown
+            >;
+            return rest;
+          })()
+        : rawTripContext;
 
     /**
      * Records a conversation-mode session for this user/trip and returns true

@@ -65,6 +65,11 @@ export const DESTRUCTIVE_MUTATION_ALLOWLIST = new Set([
 export const CONFIRMATION_REQUIRED_MUTATION_ALLOWLIST = new Set([
   'updateTripDetails',
   'addExpense',
+  // Irreversible financial state change — the inverse of addExpense, which was already gated.
+  'settleExpense',
+  // Fans out a pinned message + notification to every trip member; high blast radius and a
+  // prime target for prompt injection via trip content fed back through search tools.
+  'createBroadcast',
   'duplicateCalendarEvent',
   'cloneActivity',
   'bulkMarkTasksDone',
