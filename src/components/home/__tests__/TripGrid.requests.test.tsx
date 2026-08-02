@@ -44,13 +44,6 @@ vi.mock('../SwipeableTripCardWrapper', () => ({
 }));
 vi.mock('../../../hooks/use-mobile', () => ({ useIsMobile: () => false }));
 
-// Guardrail: Requests tab rendering must not depend on useDashboardJoinRequests.
-vi.mock('@/hooks/useDashboardJoinRequests', () => ({
-  useDashboardJoinRequests: () => {
-    throw new Error('useDashboardJoinRequests must not be used by outbound requests rendering');
-  },
-}));
-
 vi.mock('../../../hooks/useDeleteTrip', () => ({ useDeleteTrip: () => ({ deleteTrip: vi.fn() }) }));
 vi.mock('../../../hooks/useLocationFilteredRecommendations', () => ({
   useLocationFilteredRecommendations: () => ({

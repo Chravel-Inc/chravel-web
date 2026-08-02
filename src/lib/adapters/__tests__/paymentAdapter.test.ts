@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizePaymentMessages, toAppPayment, toDbPaymentInsert } from '../paymentAdapter';
+import { normalizePaymentMessages, toAppPayment } from '../paymentAdapter';
 import type { Database } from '../../../integrations/supabase/types';
 
 type PaymentRow = Database['public']['Tables']['trip_payment_messages']['Row'];
@@ -73,43 +73,6 @@ describe('paymentAdapter', () => {
       const row: PaymentRow = { ...baseRow, message_id: null };
       const result = toAppPayment(row);
       expect(result.messageId).toBeNull();
-    });
-  });
-
-  describe('toDbPaymentInsert', () => {
-    it('maps camelCase app data to snake_case DB fields', () => {
-      const result = toDbPaymentInsert('trip-1', 'user-a', {
-        amount: 100,
-        description: 'Uber ride',
-        splitCount: 2,
-        splitParticipants: ['user-a', 'user-b'],
-        paymentMethods: ['venmo'],
-      });
-
-      expect(result.trip_id).toBe('trip-1');
-      expect(result.created_by).toBe('user-a');
-      expect(result.amount).toBe(100);
-      expect(result.description).toBe('Uber ride');
-      expect(result.split_count).toBe(2);
-    });
-
-    it('defaults currency to USD', () => {
-      const result = toDbPaymentInsert('trip-1', 'user-a', {
-        amount: 50,
-        description: 'Coffee',
-        splitCount: 1,
-      });
-      expect(result.currency).toBe('USD');
-    });
-
-    it('defaults optional arrays to empty', () => {
-      const result = toDbPaymentInsert('trip-1', 'user-a', {
-        amount: 50,
-        description: 'Coffee',
-        splitCount: 1,
-      });
-      expect(result.split_participants).toEqual([]);
-      expect(result.payment_methods).toEqual([]);
     });
   });
 

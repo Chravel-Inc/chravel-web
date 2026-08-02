@@ -37,35 +37,6 @@ export function toAppPayment(row: PaymentRow): PaymentMessage {
   };
 }
 
-/**
- * Converts app-level payment data to a DB-compatible insert/update payload.
- */
-export function toDbPaymentInsert(
-  tripId: string,
-  createdBy: string,
-  data: {
-    amount: number;
-    currency?: string;
-    description: string;
-    splitCount: number;
-    splitParticipants?: string[];
-    paymentMethods?: string[];
-  },
-): Database['public']['Tables']['trip_payment_messages']['Insert'] {
-  return {
-    trip_id: tripId,
-    created_by: createdBy,
-    amount: data.amount,
-    currency: data.currency ?? 'USD',
-    description: data.description,
-    split_count: data.splitCount,
-    split_participants: (data.splitParticipants ??
-      []) as unknown as Database['public']['Tables']['trip_payment_messages']['Insert']['split_participants'],
-    payment_methods: (data.paymentMethods ??
-      []) as unknown as Database['public']['Tables']['trip_payment_messages']['Insert']['payment_methods'],
-  };
-}
-
 function isPaymentMessage(value: unknown): value is PaymentMessage {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return false;

@@ -17,7 +17,7 @@ vi.mock('@/hooks/useJoinRequests', () => ({
   }),
 }));
 
-vi.mock('@/hooks/useDashboardJoinRequests', () => ({
+vi.mock('@/lib/dashboardJoinRequests', () => ({
   getJoinRequestDisplayLabel: () => 'Requested',
 }));
 

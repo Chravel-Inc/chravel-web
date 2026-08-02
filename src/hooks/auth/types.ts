@@ -55,7 +55,7 @@ export interface AuthUser {
   proRole?: ProRole;
   organizationId?: string;
   permissions: string[];
-  /** @deprecated Use useNotificationPreferences hook for notification preference reads/writes. */
+  /** @deprecated Notification prefs are managed via userPreferencesService / settings UI. */
   notificationSettings: {
     messages: boolean | null;
     broadcasts: boolean | null;
@@ -90,7 +90,7 @@ export interface AuthContextType {
   resetPassword: (email: string) => Promise<{ error?: string; success?: string }>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase error type is loosely typed
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ error?: any }>;
-  /** @deprecated Use useNotificationPreferences hook for notification preference reads/writes. */
+  /** @deprecated Notification prefs are managed via userPreferencesService / settings UI. */
   updateNotificationSettings: (updates: Partial<AuthUser['notificationSettings']>) => Promise<void>;
   switchRole: (role: string) => void;
   authState: AuthStateValue;

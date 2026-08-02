@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { UserCheck, UserX, Clock, AlertCircle, Inbox } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { getJoinRequestDisplayLabel } from '@/hooks/useDashboardJoinRequests';
+import { getJoinRequestDisplayLabel } from '@/lib/dashboardJoinRequests';
 import { UNKNOWN_MEMBER_LABEL } from '@/lib/resolveDisplayName';
 
 interface JoinRequestsPanelProps {
