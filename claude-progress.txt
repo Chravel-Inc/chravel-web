@@ -1,3 +1,10 @@
+2026-08-03 — Recurring GetStream architecture & quality audit
+- Code-evidence audit of Stream trip/Pro/broadcast/membership/webhook/Concierge boundary.
+- Overall health **68/100** (not the superseded Apr stub's 92). Top risks: broken thread contract (parent_id send + filter-out, no ThreadView), client addMembers swallow, Pro hook parity, webhook chravel-channel trip_id null, unused stream-chat-* flags.
+- Wrote `docs/audits/GETSTREAM_ARCHITECTURE_AUDIT_2026-08-03.md`; redirected `docs/GETSTREAM_AUDIT_REPORT.md`; corrected TEST_GAPS ghost hooks + added thread-contract gap.
+- Concierge correctly remains SSE + ai_queries (do not move onto Stream).
+- Branch: cursor/chravel-getstream-audit-7579
+
 2026-08-01 — Hide disabled Concierge Conversation Mode setting
 - Removed the Conversation Mode settings card and its now-unused settings-only component; Concierge settings now proceed directly from trip preferences to Reply Language and Concierge Voice.
 - Added a focused rendering regression test proving the disabled mode and switch stay absent while the supported voice settings remain visible.

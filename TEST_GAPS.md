@@ -129,14 +129,23 @@
 - **Suggested tests:** Integration test mocking `RoomServiceClient` to verify call args. E2E staging test that creates a real room and asserts agent joins.
 - **Priority:** critical
 - **Provenance:** April 2026 LiveKit voice stack forensic audit
-## Stream hook initialization race — pro channels, broadcasts, concierge history
-- **Area:** `src/hooks/stream/useStreamProChannel.ts`, `src/hooks/stream/useStreamBroadcasts.ts`, `src/hooks/stream/useStreamConciergeHistory.ts`
-- **Why this gap matters:** `useStreamTripChat` had a race condition (fixed April 2026 via `onStreamClientConnected` subscriber + `streamClientReady` state). The three hooks above have the identical structural pattern — they check `getStreamClient()?.userID` once at mount and bail out if falsy, meaning they stay broken if Stream connects after the component mounts. The bug is dormant only if these hooks consistently mount after Stream is fully connected.
-- **Missing coverage:** No test that exercises these hooks mounting before `connectStreamClient()` resolves. No test that the hooks recover when Stream connects asynchronously.
-- **Failure mode if untested:** Pro channels, broadcast list, and concierge history silently show empty/loading state until the user hard-refreshes, especially on mobile where token fetch is slower.
-- **Suggested tests:** Unit test each hook with a mocked Stream client that connects 200ms after mount — assert data loads without requiring a re-mount.
+## Stream hook initialization race — pro channels (broadcasts/concierge Stream hooks removed)
+- **Area:** `src/hooks/stream/useStreamProChannel.ts` (note: `useStreamBroadcasts.ts` and `useStreamConciergeHistory.ts` do **not** exist — Concierge is SSE/`ai_queries`; do not reintroduce)
+- **Why this gap matters:** `useStreamTripChat` had a race condition (fixed April 2026 via `onStreamClientConnected` subscriber + `streamClientReady` state). `useStreamProChannel` now subscribes to `onStreamClientConnected` / connection status, but still lacks trip-hook reconnect/visibility backfill and surfaces watch failures as empty state.
+- **Missing coverage:** Pro channel missed-message backfill after reconnect; Pro watch/send error UI; mount-before-connect recovery under slow token fetch.
+- **Failure mode if untested:** Pro channels silently show empty/loading state after WS drops or late Stream connect, especially on mobile.
+- **Suggested tests:** Unit test `useStreamProChannel` with a mocked Stream client that connects 200ms after mount — assert data loads without re-mount; add reconnect/visibility backfill assertions mirroring `useStreamTripChat.reconnect.test.tsx`.
 - **Priority:** medium-high
-- **Provenance:** April 2026 GetStream messaging rebase (`claude/fix-getstream-messaging-xmHa9`)
+- **Provenance:** April 2026 GetStream messaging rebase; corrected 2026-08-03 GetStream architecture audit (`docs/audits/GETSTREAM_ARCHITECTURE_AUDIT_2026-08-03.md`)
+
+## Stream thread contract (parent_id send vs filtered main timeline)
+- **Area:** `src/hooks/stream/useStreamTripChat.ts`, `src/features/chat/adapters/streamMessageViewModel.ts`, `src/services/stream/streamMessagePayload.ts`
+- **Why this gap matters:** Trip replies still set Stream `parent_id`, but trip realtime state and the view-model filter `parent_id` messages out. Comments still claim `ThreadView`/`getReplies`; no `ThreadView.tsx` exists. Replies can be written and never shown.
+- **Missing coverage:** Contract test that either (a) send path never sets `parent_id` (quote-only) or (b) replies are fetchable/visible via `getReplies` UI.
+- **Failure mode if untested:** Users tap Reply, message lands in Stream as a thread child, trip chat never renders it.
+- **Suggested tests:** Payload + hook integration tests locking the chosen XOR; search thread-jump tests updated to match.
+- **Priority:** critical
+- **Provenance:** 2026-08-03 GetStream architecture audit
 
 ## Authenticated e2e messaging tests require SUPABASE_SERVICE_ROLE_KEY
 - **Area:** `e2e/specs/chat/messaging.spec.ts` (CHAT-001, CHAT-002, CHAT-003)
