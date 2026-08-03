@@ -119,14 +119,17 @@ serve(async req => {
       );
     }
 
-    // Generate unique file path
+    // Generate unique file path.
+    // Storage lives in the existing private `trip-media` bucket — the `trip-files` bucket this
+    // function used to target does not exist, so every upload failed. trip-media already has the
+    // right RLS (path segment 1 = trip_id gated by is_active_trip_member, segment 2 = uploader),
+    // so the path must carry both ids.
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-    const filePath = `${tripId}/${fileName}`;
+    const filePath = `${tripId}/${userId}/files/${fileName}`;
 
-    // Upload to storage
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('trip-files')
+      .from('trip-media')
       .upload(filePath, file, {
         contentType: file.type,
         upsert: false,
@@ -140,27 +143,51 @@ serve(async req => {
       });
     }
 
-    // Save file metadata to database
+    // Canonical (unsigned) object URL — matches what uploadService/mediaService persist, so the
+    // shared resolver can re-sign it on read. The bucket is private; this string is an identifier,
+    // not a directly fetchable link.
+    const { data: publicUrlData } = supabase.storage
+      .from('trip-media')
+      .getPublicUrl(uploadData.path);
+
+    // Save file metadata to database. Column names must match the live trip_files schema
+    // (name / file_url / file_type / uploaded_by) — the previous insert used file_name, file_path,
+    // file_size and metadata, none of which exist on the table.
     const { data: fileRecord, error: dbError } = await supabase
       .from('trip_files')
       .insert({
         trip_id: tripId,
-        file_name: file.name,
-        file_path: uploadData.path,
+        name: file.name,
+        file_url: publicUrlData.publicUrl,
         file_type: file.type,
-        file_size: file.size,
         uploaded_by: userId,
-        metadata: {
-          original_name: file.name,
-          upload_timestamp: new Date().toISOString(),
-        },
       })
       .select()
       .single();
 
     if (dbError) {
       console.error('Database error:', dbError);
+      // Do not leave an orphaned object behind when the metadata row fails.
+      await supabase.storage
+        .from('trip-media')
+        .remove([uploadData.path])
+        .catch(() => undefined);
       return new Response(JSON.stringify({ error: 'Failed to save file metadata' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // The bucket is private, so hand back a short-lived SIGNED url. The previous response returned
+    // a /object/public/ link for a private bucket, which 400s — breaking the AI file-import path
+    // that fetches this URL.
+    const { data: signed, error: signedError } = await supabase.storage
+      .from('trip-media')
+      .createSignedUrl(uploadData.path, 60 * 60);
+
+    if (signedError || !signed?.signedUrl) {
+      console.error('Signed URL error:', signedError);
+      return new Response(JSON.stringify({ error: 'Failed to create download URL' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -170,7 +197,7 @@ serve(async req => {
       JSON.stringify({
         success: true,
         file: fileRecord,
-        downloadUrl: `${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/trip-files/${uploadData.path}`,
+        downloadUrl: signed.signedUrl,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
