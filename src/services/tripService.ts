@@ -1,8 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { getCachedAuthUser } from '@/lib/authCache';
 import { errorTracking } from '@/utils/errorTracking';
-import { syncTripMemberToStreamChannelsOnly } from '@/lib/streamTripMemberInlineActivity';
-import { reportStreamMembershipSyncFailure } from '@/services/stream/streamMembershipCoordinator';
 import { demoModeService } from './demoModeService';
 import { tripsData } from '@/data/tripsData';
 import { adaptTripsDataToTripSchema } from '@/utils/schemaAdapters';
@@ -905,34 +903,11 @@ export const tripService = {
     };
   },
 
-  async addTripMember(tripId: string, userId: string, role: string = 'member'): Promise<boolean> {
-    try {
-      const { error } = await supabase.from('trip_members').insert({
-        trip_id: tripId,
-        user_id: userId,
-        role: role,
-      });
-
-      if (!error) {
-        void syncTripMemberToStreamChannelsOnly({
-          tripId,
-          userId,
-          syncFailureContext: 'tripService.addTripMember',
-        }).catch(streamError => {
-          reportStreamMembershipSyncFailure(
-            'tripService.addTripMember',
-            { tripId, userId },
-            streamError,
-          );
-        });
-      }
-
-      return !error;
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error adding trip member:', error);
-      }
-      return false;
-    }
-  },
+  // NOTE: addTripMember was removed. It performed a raw client-side insert into trip_members,
+  // which RLS denies (the table has no INSERT policy — membership is granted only through
+  // SECURITY DEFINER RPCs and server-side invite/join flows), so it always returned false and its
+  // Stream sync never fired. It had no production callers. It is deliberately not replaced with a
+  // "working" client insert: doing so would require loosening the trip_members INSERT policy, which
+  // is exactly the self-add/privilege-escalation hole the current policy set prevents. Add members
+  // via the invite/join edge functions or a SECURITY DEFINER RPC instead.
 };
