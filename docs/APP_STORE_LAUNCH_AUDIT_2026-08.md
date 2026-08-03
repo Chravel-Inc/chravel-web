@@ -16,6 +16,37 @@ realtime behavior, so the live-DB pass is the authoritative layer for data-secur
 
 ---
 
+## Remediation status (updated 2026-08-02)
+
+**All 14 launch blockers below have been fixed on `claude/app-store-security-audit-e7u7og`,**
+along with the P2 set and most of P3. Each fix shipped as its own reviewed commit with the build
+gate (`lint && typecheck && build`), the migration linter, and related tests green.
+
+Fixed: B1–B14; invite itinerary/poll gating; add-by-contact rate limit; poll active-member gate;
+calendar version guard + RPC/RLS authz parity + all-day date + fetch-cap warning; media MIME
+allowlist, size cap and file-upload repair; SSRF hardening (image-proxy, enhanced-ai-parser);
+link-scheme XSS; concierge confirm-gating + preference-bypass; quiet hours (plus a **live
+`should_send_notification` crash on `mentions`** found during verification); base-camp mirror
+trigger; dead `addTripMember` removal; cover-photo orphan cleanup; task due-date/title guards;
+and the DB hardening sweep (definer view, anon revokes, invite-code oracle).
+
+**Not code — still needs a human:** enable *Leaked Password Protection* in the Supabase Auth
+dashboard.
+
+**Deliberately deferred, with reasons:**
+- **`task_status` direct-write assignment gate.** A member can mark *themselves* complete on a task
+  they were not assigned. Within-trip, no data exposure, and closing it means restructuring the
+  policy set on the write path that two P1s were just fixed in — the regression risk outweighs the
+  benefit this close to launch.
+- **`options_locked_at` poll freeze.** Recorded but never enforced. Enforcing it would *change
+  product behavior* (no adding options after the first vote); the alternative is dropping the
+  column. That is a product call, not a bug fix.
+- **Server-side `user_blocks` enforcement.** Blocking is currently a client-side message filter.
+  Real enforcement means muting/banning at the Stream layer and deciding whether blocks are
+  symmetric — a product decision with real UX consequences.
+- **Non-consensual add-by-contact.** A matched user is added to a trip immediately with no accept
+  step. Rate-limited now, but changing it to an invite/accept flow is a product decision.
+
 ## Executive summary
 
 **Overall verdict: the security foundation is genuinely strong; the launch risk is concentrated in a
