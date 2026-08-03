@@ -65,6 +65,30 @@ serve(async req => {
       });
     }
 
+    // Write actions additionally require calendar-management capability (consumer = any active
+    // member; pro/event = creator/admin/coordinator). This function uses the service-role client,
+    // which bypasses RLS, so the trip-type-aware gate must be enforced here — otherwise any active
+    // attendee could create/edit/delete any event on a Pro/Event trip.
+    const WRITE_ACTIONS = new Set(['create_event', 'update_event', 'delete_event']);
+    if (WRITE_ACTIONS.has(action)) {
+      const { data: canManage } = await supabase.rpc('can_manage_trip_calendar', {
+        _user_id: user.id,
+        _trip_id: tripId,
+      });
+      if (canManage !== true) {
+        console.warn(
+          '[calendar-sync] Access denied: user',
+          user.id,
+          'cannot manage calendar for trip',
+          tripId,
+        );
+        return new Response(JSON.stringify({ error: 'Forbidden' }), {
+          status: 403,
+          headers: { ...headers, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
     switch (action) {
       case 'create_event':
         return await createEvent(supabase, tripId, user.id, eventData, headers);

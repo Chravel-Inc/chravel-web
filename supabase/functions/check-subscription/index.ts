@@ -19,7 +19,7 @@ import {
   resolveEffectiveEntitlement,
   type EntitlementRow,
 } from '../_shared/entitlementSelection.ts';
-import { isSuperAdminEmail } from '../_shared/superAdmins.ts';
+import { isSuperAdminUserId } from '../_shared/superAdmins.ts';
 import {
   normalizeFromEntitlement,
   normalizeStripeStatus,
@@ -217,8 +217,10 @@ serve(async req => {
     const user = userData.user;
     logStep('User authenticated', { userId: user.id });
 
-    // Super admin bypass - return max tier without Stripe check
-    if (isSuperAdminEmail(user.email)) {
+    // Super admin bypass - return max tier without Stripe check.
+    // Resolve against the revocable super_admins table (not the env email list) so a revocation
+    // immediately cuts the entitlement bypass.
+    if (await isSuperAdminUserId(supabaseClient, user.id)) {
       logStep('Super admin detected - bypassing Stripe check', { userId: user.id });
       return createSecureResponse({
         subscribed: true,

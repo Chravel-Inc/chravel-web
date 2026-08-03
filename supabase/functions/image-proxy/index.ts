@@ -4,6 +4,7 @@ import { createOptionsResponse, createErrorResponse } from '../_shared/securityH
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { requireAuth } from '../_shared/requireAuth.ts';
 import { applyRateLimit } from '../_shared/rateLimitGuard.ts';
+import { validateExternalUrlBeforeFetch } from '../_shared/validation.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -12,20 +13,6 @@ const IMAGE_PROXY_MAX_BYTES = Number(Deno.env.get('IMAGE_PROXY_MAX_BYTES') || 7_
 const IMAGE_PROXY_CACHE_CONTROL =
   Deno.env.get('IMAGE_PROXY_CACHE_CONTROL') ||
   'public, max-age=86400, stale-while-revalidate=604800';
-
-function isPrivateHost(host: string): boolean {
-  const lowered = host.toLowerCase();
-  if (lowered === 'localhost' || lowered === '127.0.0.1' || lowered === '[::1]') return true;
-  if (lowered.startsWith('10.') || lowered.startsWith('192.168.')) return true;
-  // 172.16.0.0 – 172.31.255.255
-  if (lowered.startsWith('172.')) {
-    const second = parseInt(lowered.split('.')[1], 10);
-    if (second >= 16 && second <= 31) return true;
-  }
-  if (lowered.startsWith('0.') || lowered.startsWith('169.254.')) return true;
-  if (lowered.endsWith('.internal') || lowered.endsWith('.local')) return true;
-  return false;
-}
 
 async function fetchToImageResponse(
   req: Request,
@@ -179,7 +166,10 @@ serve(async req => {
     if (parsed.protocol !== 'https:') {
       return createErrorResponse('Only https:// urls allowed', 400, req);
     }
-    if (isPrivateHost(parsed.hostname)) {
+    // DNS-rebinding-safe SSRF guard: resolves the hostname and rejects if any resolved IP is
+    // private/loopback/link-local. The old isPrivateHost() was a string-prefix check that missed
+    // IPv6-mapped loopback, 127.0.0.0/8 beyond .1, CGNAT, and DNS names resolving to internal IPs.
+    if (!(await validateExternalUrlBeforeFetch(parsed.toString()))) {
       return createErrorResponse('Host not allowed', 403, req);
     }
 

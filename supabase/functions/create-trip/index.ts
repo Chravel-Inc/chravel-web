@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { CreateTripSchema, validateInput } from '../_shared/validation.ts';
 import { sanitizeErrorForClient, logError } from '../_shared/errorHandling.ts';
-import { isSuperAdminEmail } from '../_shared/superAdmins.ts';
+import { isSuperAdminUserId } from '../_shared/superAdmins.ts';
 import {
   evaluateTripCreationPermission,
   pickPrimaryEntitlementRow,
@@ -78,7 +78,7 @@ serve(async req => {
       .eq('user_id', user.id)
       .single();
 
-    const isSuperAdmin = isSuperAdminEmail(user.email);
+    const isSuperAdmin = await isSuperAdminUserId(supabase, user.id);
 
     // Fetch entitlement rows, then select primary row using shared policy.
     const { data: entitlementRows } = await supabase

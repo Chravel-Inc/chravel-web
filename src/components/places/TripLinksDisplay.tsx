@@ -17,6 +17,7 @@ import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { AddToCalendarButton } from '../AddToCalendarButton';
+import { sanitizeExternalHref, isSafeExternalUrl } from '@/lib/safeUrl';
 import {
   DndContext,
   closestCenter,
@@ -152,7 +153,7 @@ const SortableLinkItem = ({
         <Globe className="w-3 h-3 md:w-3.5 md:h-3.5 text-sky-400 flex-shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
           <a
-            href={link.url}
+            href={sanitizeExternalHref(link.url)}
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs text-sky-400 hover:text-sky-300 underline truncate max-w-[200px] md:max-w-xs"
@@ -248,6 +249,13 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
   const handleCreateLink = async () => {
     if (!formUrl.trim() || !formTitle.trim()) {
       toast.error('URL and title are required');
+      return;
+    }
+
+    // Reject non-http(s) schemes (e.g. javascript:) so a saved link can't become a stored-XSS
+    // vector when another member clicks it.
+    if (!isSafeExternalUrl(formUrl)) {
+      toast.error('Enter a valid http(s) URL');
       return;
     }
 

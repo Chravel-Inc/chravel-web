@@ -255,7 +255,12 @@ serve(async req => {
       const { data: members, error: membersError } = await adminClient
         .from('trip_members')
         .select('user_id')
-        .eq('trip_id', tripId);
+        // Active membership only. A member who left (status='left') must NOT be treated as
+        // an "expected" channel member — otherwise they are never pruned from Stream (and
+        // would even be re-added), retaining read/write access to a private trip's chat after
+        // leaving. Matches is_active_trip_member (status IS NULL OR 'active').
+        .eq('trip_id', tripId)
+        .or('status.is.null,status.eq.active');
 
       if (membersError) {
         throw new Error(`Failed to load trip members for ${tripId}`);

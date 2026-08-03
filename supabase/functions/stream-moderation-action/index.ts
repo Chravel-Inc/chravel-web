@@ -135,19 +135,67 @@ serve(async req => {
 
     const stream = StreamChat.getInstance(secrets['STREAM_API_KEY'], secrets['STREAM_API_SECRET']);
 
+    // Every action must be scoped to body.tripId. Being an admin/owner of ONE trip must not
+    // grant the ability to moderate targets or messages that belong to other trips. Without
+    // this, the caller could global-ban any user app-wide or delete messages in trips they
+    // do not moderate.
     if (body.action === 'hide_message') {
+      // The message must live in a channel that belongs to this trip. Every Stream channel is
+      // created with a `trip_id` custom field (see stream-reconcile-membership / stream-join-channel).
+      let messageTripId: string | null = null;
+      try {
+        const { message } = await stream.getMessage(body.messageId);
+        const cid = (message as { cid?: string })?.cid; // "<type>:<id>"
+        if (cid && cid.includes(':')) {
+          const sep = cid.indexOf(':');
+          const chType = cid.slice(0, sep);
+          const chId = cid.slice(sep + 1);
+          const state = await stream.channel(chType, chId).query({});
+          messageTripId = (state.channel as { trip_id?: string })?.trip_id ?? null;
+        }
+      } catch (_err) {
+        messageTripId = null;
+      }
+
+      if (messageTripId !== body.tripId) {
+        return jsonResponse(
+          { success: false, reason: 'Message does not belong to this trip' },
+          403,
+          corsHeaders,
+        );
+      }
+
       await stream.deleteMessage(body.messageId);
-    } else if (body.action === 'shadow_ban_user') {
-      await stream.shadowBan(body.targetUserId, {
-        reason: `Trip moderation action by ${user.id}`,
-      });
-    } else if (body.action === 'mute_user') {
-      await stream.muteUser(body.targetUserId, user.id, { timeout: 60 * 24 });
     } else {
-      await stream.banUser(body.targetUserId, {
-        reason: `Trip moderation action by ${user.id}`,
-        timeout: 60 * 24 * 7,
-      });
+      // ban / shadow_ban / mute: the target must be an ACTIVE member of this trip.
+      const { data: targetMembership } = await adminClient
+        .from('trip_members')
+        .select('user_id')
+        .eq('trip_id', body.tripId)
+        .eq('user_id', body.targetUserId)
+        .or('status.is.null,status.eq.active')
+        .maybeSingle();
+
+      if (!targetMembership) {
+        return jsonResponse(
+          { success: false, reason: 'Target user is not an active member of this trip' },
+          403,
+          corsHeaders,
+        );
+      }
+
+      if (body.action === 'mute_user') {
+        // Per-caller mute (affects only the moderator's own view) — inherently scoped.
+        await stream.muteUser(body.targetUserId, user.id, { timeout: 60 * 24 });
+      } else {
+        // Channel-scoped ban / shadow-ban on THIS trip's channel — never a global app ban.
+        const tripChannel = stream.channel('chravel-trip', `trip-${body.tripId}`);
+        await tripChannel.banUser(body.targetUserId, {
+          reason: `Trip moderation action by ${user.id}`,
+          timeout: 60 * 24 * 7,
+          shadow: body.action === 'shadow_ban_user',
+        });
+      }
     }
 
     await adminClient.from('admin_audit_logs').insert({

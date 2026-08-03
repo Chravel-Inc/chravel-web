@@ -154,7 +154,9 @@ async function deleteUserData(
     { table: 'user_locations', column: 'user_id' },
     { table: 'user_payment_methods', column: 'user_id' },
     { table: 'user_loyalty_programs', column: 'user_id' },
-    { table: 'push_subscriptions', column: 'user_id' },
+    // push_subscriptions does not exist; the real push-token tables are these two.
+    { table: 'push_device_tokens', column: 'user_id' },
+    { table: 'web_push_subscriptions', column: 'user_id' },
     { table: 'trip_join_requests', column: 'user_id' },
     { table: 'event_rsvps', column: 'user_id' },
     { table: 'event_qa_upvotes', column: 'user_id' },
@@ -169,6 +171,16 @@ async function deleteUserData(
     { table: 'trip_role_assignments', column: 'user_id' },
     { table: 'advertisers', column: 'user_id' },
     { table: 'organization_members', column: 'user_id' },
+    // Additional PII / preference tables that were previously left behind on deletion.
+    { table: 'notification_preferences', column: 'user_id' },
+    { table: 'user_preferences', column: 'user_id' },
+    { table: 'saved_recommendations', column: 'user_id' },
+    { table: 'user_accommodations', column: 'user_id' },
+    { table: 'trip_personal_basecamps', column: 'user_id' },
+    { table: 'user_entitlements', column: 'user_id' },
+    { table: 'task_assignments', column: 'user_id' },
+    { table: 'user_blocks', column: 'blocker_id' },
+    { table: 'user_blocks', column: 'blocked_id' },
   ];
   for (const { table, column } of tablesToDelete) {
     try {
@@ -195,6 +207,12 @@ async function anonymizeProfile(supabase: SupabaseClient, userId: string): Promi
     display_name: '[Deleted User]',
     first_name: null,
     last_name: null,
+    // real_name / job_title are PII and are preferred by compute_display_name over display_name
+    // when name_preference != 'display'. They must be cleared (and the preference reset) or a
+    // deleted user's real name keeps surfacing to co-members.
+    real_name: null,
+    job_title: null,
+    name_preference: 'display',
     email: null,
     phone: null,
     bio: null,

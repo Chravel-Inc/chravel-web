@@ -11,6 +11,8 @@
  *   - SUPER_ADMIN_ENABLE_DEMO_EMAIL=true
  *   - or include in SUPER_ADMIN_EMAILS
  */
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
 export const FOUNDER_SUPER_ADMIN_EMAILS: readonly string[] = [];
 
 const normalizeEmail = (email: string): string => email.trim().toLowerCase();
@@ -41,3 +43,31 @@ export const isSuperAdminEmail = (
   if (!email) return false;
   return getSuperAdminEmails(env).has(normalizeEmail(email));
 };
+
+/**
+ * Server-authoritative super-admin check against the revocable, audited public.super_admins table,
+ * keyed by durable user_id. Prefer this over isSuperAdminEmail in edge functions: a DB revocation
+ * (revoked_at) then takes effect immediately, and email stops being an authorization vector — which
+ * is exactly what migration 20260626143000 established for the RLS tier. Pass a service-role client.
+ * Fails closed on any error.
+ */
+export async function isSuperAdminUserId(
+  client: SupabaseClient,
+  userId: string | null | undefined,
+): Promise<boolean> {
+  if (!userId) return false;
+  try {
+    const { data, error } = await client
+      .from('super_admins')
+      .select('user_id')
+      .eq('user_id', userId)
+      // Revocation is a soft delete (revoked_at timestamp) — an unfiltered lookup would keep
+      // treating revoked admins as active.
+      .is('revoked_at', null)
+      .maybeSingle();
+    if (error) return false;
+    return !!data;
+  } catch {
+    return false;
+  }
+}

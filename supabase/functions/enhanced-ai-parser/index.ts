@@ -7,6 +7,7 @@ import {
   DEFAULT_GEMINI_FLASH_MODEL,
 } from '../_shared/gemini.ts';
 import { checkAndIncrementSmartImportUsage } from '../_shared/smartImportUsage.ts';
+import { validateExternalUrlBeforeFetch } from '../_shared/validation.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
@@ -138,7 +139,24 @@ async function fetchFileAsBase64(
   fileUrl: string,
 ): Promise<{ base64: string; mimeType: string } | null> {
   try {
-    const response = await fetch(fileUrl);
+    // DNS-rebinding-safe SSRF guard at the actual fetch. Supabase Storage URLs are server-owned and
+    // trusted; every other URL must resolve to a public IP. The sync validateImageUrl checks only
+    // static patterns, which a DNS rebind between validation and fetch can bypass — and it also
+    // misses ranges (IPv4-mapped IPv6, CGNAT, 127.0.0.0/8 beyond .1) that the shared validator covers.
+    let isSupabaseStorage = false;
+    try {
+      const u = new URL(fileUrl);
+      const supabaseHost = new URL(SUPABASE_URL).hostname;
+      isSupabaseStorage = u.hostname === supabaseHost && u.pathname.startsWith('/storage/');
+    } catch {
+      isSupabaseStorage = false;
+    }
+    if (!isSupabaseStorage && !(await validateExternalUrlBeforeFetch(fileUrl))) {
+      console.error('Blocked non-public fetch target in fetchFileAsBase64');
+      return null;
+    }
+
+    const response = await fetch(fileUrl, { redirect: 'error' });
     if (!response.ok) return null;
 
     const contentType = response.headers.get('content-type') || 'application/octet-stream';

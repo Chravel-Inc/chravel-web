@@ -925,13 +925,18 @@ export const useTripTasks = (
 
         if (assignmentError) throw assignmentError;
 
+        // Only add status rows for newly-added assignees; never overwrite existing rows. Using
+        // ignoreDuplicates (INSERT ... ON CONFLICT DO NOTHING) avoids two bugs: resetting an
+        // assignee's completed=true back to false on any edit, and attempting a cross-user UPDATE
+        // that the self-scoped task_status policy rejects. New co-member rows are permitted by the
+        // "Task managers can initialize assignee status" policy.
         const { error: statusError } = await supabase.from('task_status').upsert(
           uniqueAssignees.map(assigneeId => ({
             task_id: taskId,
             user_id: assigneeId,
             completed: false,
           })),
-          { onConflict: 'task_id,user_id' },
+          { onConflict: 'task_id,user_id', ignoreDuplicates: true },
         );
         if (statusError) throw statusError;
       }

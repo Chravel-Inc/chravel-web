@@ -426,6 +426,15 @@ class BasecampService {
         };
       }
 
+      // The hardened RPC returns HTTP 200 with { success: false, error } on an authorization or
+      // auth failure (it does not raise a PostgREST error). Without this branch a denial was
+      // coerced to success and the UI showed "Basecamp saved!" while the DB row was unchanged,
+      // then silently reverted on the next refetch.
+      if (data && typeof data === 'object' && (data as any).success === false) {
+        const rpcError = (data as any).error || (data as any).message || 'NOT_AUTHORIZED';
+        return { success: false, error: String(rpcError) };
+      }
+
       return { success: true };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
