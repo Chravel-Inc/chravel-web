@@ -17,6 +17,9 @@ import { UNKNOWN_MEMBER_LABEL } from '@/lib/resolveDisplayName';
 // Re-export for backward compatibility — consumers should migrate to '@/types/calendar'
 export type { TripEvent, CreateEventData } from '@/types/calendar';
 
+/** Max events fetched per trip in one query. Hitting this cap is logged, never silent. */
+const TRIP_EVENTS_FETCH_LIMIT = 1000;
+
 export const calendarService = {
   /**
    * Ensure user is a trip member before performing operations that require membership.
@@ -343,9 +346,14 @@ export const calendarService = {
           .select('*')
           .eq('trip_id', tripId)
           .order('start_time', { ascending: true })
-          .limit(1000);
+          .limit(TRIP_EVENTS_FETCH_LIMIT);
 
         if (error) throw error;
+        if (data && data.length === TRIP_EVENTS_FETCH_LIMIT) {
+          console.warn(
+            `[calendarService] trip ${tripId} hit the ${TRIP_EVENTS_FETCH_LIMIT}-event fetch cap; later events are not loaded.`,
+          );
+        }
         return (data || []) as unknown as TripEvent[];
       }
 
@@ -357,9 +365,18 @@ export const calendarService = {
         .select('*')
         .eq('trip_id', tripId)
         .order('start_time', { ascending: true })
-        .limit(1000);
+        .limit(TRIP_EVENTS_FETCH_LIMIT);
 
       if (fetchError) throw fetchError;
+
+      // Never truncate silently: a large event trip (full season + concerts + agenda imports) can
+      // exceed the cap, and the dropped rows are the LATEST events (ordered ascending). Conflict
+      // checks, undo, and the UI would all operate on an incomplete set with no signal.
+      if (events && events.length === TRIP_EVENTS_FETCH_LIMIT) {
+        console.warn(
+          `[calendarService] trip ${tripId} hit the ${TRIP_EVENTS_FETCH_LIMIT}-event fetch cap; later events are not loaded.`,
+        );
+      }
 
       if (!events || events.length === 0) {
         return [];
