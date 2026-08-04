@@ -178,4 +178,4 @@ Rejected
 
 ## Product type warning for trip passes
 
-The screenshot shows trip passes as **Non-Consumable**. If these passes are fixed-duration 45-day/90-day access products, verify whether they should instead be **Non-Renewing Subscriptions**. Product type cannot be edited after creation, so a wrong type requires replacement product IDs. If they are permanent one-time unlocks for a trip, Non-Consumable may be acceptable.
+The screenshot shows trip passes as **Non-Consumable**. If these passes are fixed-duration 30-day/90-day access products, verify whether they should instead be **Non-Renewing Subscriptions**. Product type cannot be edited after creation, so a wrong type requires replacement product IDs. If they are permanent one-time unlocks for a trip, Non-Consumable may be acceptable.

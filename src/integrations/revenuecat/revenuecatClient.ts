@@ -566,7 +566,7 @@ export async function purchaseTripPass(
 ): Promise<RevenueCatPurchaseResult> {
   const productId =
     passTier === 'explorer'
-      ? REVENUECAT_PRODUCTS.explorerPass45
+      ? REVENUECAT_PRODUCTS.explorerPass30
       : REVENUECAT_PRODUCTS.frequentChravelerPass90;
   return purchaseByProductId(productId, isDemoMode);
 }

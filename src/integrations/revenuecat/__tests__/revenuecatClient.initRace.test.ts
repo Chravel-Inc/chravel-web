@@ -39,7 +39,7 @@ describe('revenuecatClient initialization race hardening', () => {
         frequentChraveler: 'frequent_chraveler',
       },
       REVENUECAT_PRODUCTS: {
-        explorerPass45: 'explorer.pass45',
+        explorerPass30: 'explorer.pass30',
         frequentChravelerPass90: 'frequent.pass90',
         explorerMonthly: 'explorer.monthly',
         explorerAnnual: 'explorer.annual',
