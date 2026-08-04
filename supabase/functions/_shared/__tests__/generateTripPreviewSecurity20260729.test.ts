@@ -32,7 +32,7 @@ describe('generate-trip-preview security (2026-07-29)', () => {
   it('does not select or emit private trips.description for UUID previews', () => {
     expect(tripPreview).toContain('buildPublicOgDescription');
     expect(tripPreview).not.toMatch(/select\(\s*'name, description,/);
-    expect(tripPreview).not.toContain("description: trip.description");
+    expect(tripPreview).not.toContain('description: trip.description');
   });
 
   it('404s archived/hidden trips for public unfurl', () => {
@@ -43,9 +43,7 @@ describe('generate-trip-preview security (2026-07-29)', () => {
   it('resolves appBaseUrl and canonicalUrl via trusted helpers', () => {
     expect(tripPreview).toContain('resolveTrustedAppBaseUrl');
     expect(tripPreview).toContain('resolveTrustedCanonicalUrl');
-    expect(tripPreview).not.toMatch(
-      /appBaseUrlParam && appBaseUrlParam\.startsWith\('http'\)/,
-    );
+    expect(tripPreview).not.toMatch(/appBaseUrlParam && appBaseUrlParam\.startsWith\('http'\)/);
   });
 });
 
@@ -59,7 +57,7 @@ describe('generate-invite-preview security (2026-07-29)', () => {
 
   it('does not scrape private trips.description into OG HTML', () => {
     expect(invitePreview).toContain('buildPublicOgDescription');
-    expect(invitePreview).not.toContain("description: trip.description");
+    expect(invitePreview).not.toContain('description: trip.description');
   });
 });
 

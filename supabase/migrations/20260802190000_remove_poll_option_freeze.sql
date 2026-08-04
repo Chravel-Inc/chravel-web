@@ -21,7 +21,21 @@
 DROP TRIGGER IF EXISTS trg_lock_poll_options ON public.trip_polls;
 DROP FUNCTION IF EXISTS public.lock_poll_options_on_vote();
 
-COMMENT ON COLUMN public.trip_polls.options_locked_at IS
-  'DEPRECATED (2026-08-02). Poll options intentionally do NOT freeze after the first vote; nothing '
-  'writes or reads this column. Scheduled for removal in a follow-up migration. Do not add new '
-  'consumers.';
+-- The column may not exist: 20260315100000 was never applied to production (verified — the column,
+-- the trigger and the function are all absent), so this migration must not assume the freeze
+-- machinery was ever installed. COMMENT ON has no IF EXISTS form, so guard it explicitly.
+DO $deprecate$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'trip_polls'
+      AND column_name = 'options_locked_at'
+  ) THEN
+    COMMENT ON COLUMN public.trip_polls.options_locked_at IS
+      'DEPRECATED (2026-08-02). Poll options intentionally do NOT freeze after the first vote; '
+      'nothing writes or reads this column. Scheduled for removal in a follow-up migration. Do not '
+      'add new consumers.';
+  END IF;
+END;
+$deprecate$;

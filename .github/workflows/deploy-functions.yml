@@ -44,8 +44,52 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+          # Functions the platform cannot accept. `mcp` bundles @lovable.dev/mcp-js and weighs
+          # ~25 MB, which the deploy endpoint rejects with
+          #   unexpected update function status 413: {"message":"request entity too large"}
+          # Because `supabase functions deploy` (no args) deploys everything in ONE command, that
+          # single 413 aborted the whole run at `mcp` — and functions sort alphabetically, so every
+          # function from `mcp` onward (all stream-*, stripe-webhook, revenuecat-webhook,
+          # send-email-with-retry, push-notifications, web-push-send, …) silently never deployed.
+          # Every run since 2026-07-30 failed this way. Deploy per function so one bad bundle
+          # cannot mask the other ~130, and skip the known-oversized one explicitly.
+          EXCLUDED_FUNCTIONS: 'mcp'
         run: |
-          supabase functions deploy --project-ref $PROJECT_ID
+          set -uo pipefail
+          failed=()
+          deployed=0
+          skipped=()
+
+          for dir in supabase/functions/*/; do
+            fn="$(basename "$dir")"
+            # `_shared` (and any other underscore-prefixed dir) is library code, not a function.
+            case "$fn" in _*) continue ;; esac
+            [ -f "$dir/index.ts" ] || continue
+
+            if printf '%s\n' $EXCLUDED_FUNCTIONS | grep -qx "$fn"; then
+              skipped+=("$fn")
+              continue
+            fi
+
+            if supabase functions deploy "$fn" --project-ref "$PROJECT_ID"; then
+              deployed=$((deployed+1))
+            else
+              echo "::error title=Function deploy failed::$fn"
+              failed+=("$fn")
+            fi
+          done
+
+          {
+            echo "## Edge function deploy"
+            echo "- ✅ deployed: $deployed"
+            [ ${#skipped[@]} -gt 0 ] && echo "- ⏭️ skipped (EXCLUDED_FUNCTIONS): ${skipped[*]}"
+            [ ${#failed[@]} -gt 0 ] && echo "- ❌ failed: ${failed[*]}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ ${#failed[@]} -gt 0 ]; then
+            echo "Deploy failed for: ${failed[*]}"
+            exit 1
+          fi
 
       - name: Post-deploy health check
         env:
