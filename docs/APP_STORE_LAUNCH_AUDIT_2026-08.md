@@ -33,29 +33,83 @@ and the DB hardening sweep (definer view, anon revokes, invite-code oracle).
 **Not code — still needs a human:** enable *Leaked Password Protection* in the Supabase Auth
 dashboard.
 
-### How this ships
+### How this shipped (post-merge, verified 2026-08-04)
 
-**Nothing needs to be pasted into Lovable.** Merging this branch to `main` deploys all three layers
-automatically:
+The branch merged as PR #880. **Neither deploy workflow actually worked.** Both failure modes were
+confirmed against the live project, and both are now resolved:
 
-| Layer | Workflow | Trigger |
+| Layer | Expected | What actually happened |
 |---|---|---|
-| Migrations | `deploy-migrations.yml` | push to `main` touching `supabase/migrations/**` |
-| Edge functions | `deploy-functions.yml` | push to `main` touching `supabase/functions/**` (deploys all) |
-| Frontend | Vercel | merge to `main` |
+| Migrations | `deploy-migrations.yml` on push to `main` | **Job `skipped` on all 11 historical runs.** `MIGRATIONS_AUTOAPPLY` is unset, and the job is gated `if: … vars.MIGRATIONS_AUTOAPPLY == 'true'`. Zero migrations have *ever* been applied by this pipeline. |
+| Edge functions | `deploy-functions.yml` on push to `main` | **Job `failure` on all 6 most recent runs, back to 2026-07-30.** See below. |
+| Frontend | Vercel on merge to `main` | Worked. |
 
-Two things to check:
+**Why edge-function deploys were failing.** `supabase functions deploy` with no arguments deploys
+every function in a *single* command. It reached `mcp` — which bundles `@lovable.dev/mcp-js` at
+~25 MB — and the platform rejected it:
 
-1. **`MIGRATIONS_AUTOAPPLY` must be `true`** (repo → Settings → Secrets and variables → Actions →
-   Variables). The migration workflow is inert until it is set.
-2. **Verify after merge.** There is demonstrated drift in this pipeline: migrations
-   `20260725143000` and `20260729234527` are in the repo but were **never applied to production**
-   (confirmed — neither appears in `supabase_migrations.schema_migrations`). That is exactly why
-   `check_invite_code_exists` was still anon-executable. The hardening sweep re-asserts those
-   revokes idempotently, but confirm the new migrations land.
+```
+Deploying Function: mcp (script size: 25 MB)
+unexpected update function status 413: {"message":"request entity too large"}
+##[error]Process completed with exit code 1
+```
 
-The new `sync-user-block` function needs no `config.toml` entry — it requires auth, which is the
-default (`verify_jwt = true`) for unlisted functions.
+Functions deploy in alphabetical order, so that one 413 aborted the run at `mcp` and **every
+function from `mcp` onward never deployed** — all `stream-*` (the entire chat-security surface),
+`stripe-webhook`, `revenuecat-webhook`, `send-email-with-retry`, `push-notifications`,
+`web-push-send`, `restore-trip`, `sync-user-block`. 42 functions in total.
+
+`deploy-functions.yml` now deploys per function, reports each failure, and excludes `mcp`
+explicitly via `EXCLUDED_FUNCTIONS`, so one oversized bundle can no longer mask the other ~130.
+
+**What saved the edge-function layer:** Lovable's GitHub sync deploys functions independently and
+ran at 15:04, two minutes after CI died. All 25 changed functions plus the new `sync-user-block`
+(v1) were verified live with the new code. This is luck, not design — the repo's own pipeline was
+red, and if the Lovable sync is ever disconnected, edge deploys stop silently.
+
+**Migrations were applied manually** via the Supabase MCP (the path `deploy-migrations.yml`
+explicitly anticipates: *"anything already recorded … e.g. applied earlier via the Supabase MCP …
+is skipped regardless of origin"*). All 12 are recorded in `supabase_migrations.schema_migrations`
+and their effects verified by direct query. **`mcp` remains stale at v25 (2026-07-30)** — it needs
+its bundle slimmed below the platform limit, or a manual deploy, before its code changes take
+effect.
+
+**Still required (dashboard-only, cannot be done from the repo):** enable **Leaked Password
+Protection** in Supabase → Authentication → Policies. Setting `MIGRATIONS_AUTOAPPLY=true` (repo →
+Settings → Secrets and variables → Actions → Variables) is what makes the migration pipeline live
+for future branches; it is not needed for this one.
+
+#### Two migration bugs caught only because they were applied for real
+
+Both would have failed identically in CI had the pipeline ever run — neither was reachable by
+`lint-migrations.ts`, typecheck, or vitest:
+
+1. **`20260802120200` — `cannot extract elements from a scalar`.** The backfill guarded jsonb type
+   in `WHERE`, but `LATERAL` is evaluated *before* `WHERE`, so `jsonb_array_elements` raised on the
+   first scalar row. Root cause: **13 of 24 `trip_polls` rows store `options` double-encoded** (a
+   jsonb *string* containing JSON text) — all of them `carlton-*` demo seeds, and none carry an
+   option `id`. Fixed by guarding the type *inside* the lateral, and the three vote RPCs now fall
+   back to `'[]'` on a non-array so a demo poll returns "Option not found" instead of a raw
+   Postgres error.
+2. **`20260802190000` — `column "options_locked_at" does not exist`.** `COMMENT ON` has no
+   `IF EXISTS` form, and the freeze machinery it deprecates was never in production at all
+   (`20260315100000` is another migration that never applied — column, trigger and function all
+   absent). Guarded with a `DO` block.
+
+#### One fix that silently did nothing
+
+`20260802130000` re-asserted `REVOKE EXECUTE ON FUNCTION check_invite_code_exists FROM anon` — and
+`anon` could *still* execute it afterwards. Postgres grants EXECUTE to **PUBLIC** by default, and
+`anon` inherits that; revoking from a role holding no direct grant is a no-op. This is why
+`20260725143000` and `20260729234527` also appeared to "not work" beyond simply never being
+applied. `20260804160000` revokes from `PUBLIC` and re-asserts the explicit `authenticated` /
+`service_role` grants. Verified: `has_function_privilege('anon', …) = false`,
+`('authenticated', …) = true`.
+
+The new `sync-user-block` function needs no `config.toml` entry — it enforces auth in-body via
+`requireAuth`, which fails closed. (Note: 87 of 134 live functions carry `verify_jwt = false`; this
+is the pre-existing platform-level default across this project, and in-body `requireAuth` is the
+actual gate.)
 
 **Deliberately deferred, with reasons:**
 - **`task_status` direct-write assignment gate.** A member can mark *themselves* complete on a task

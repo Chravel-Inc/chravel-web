@@ -84,13 +84,15 @@ export function resolveTrustedAppBaseUrl(candidate: string | null | undefined): 
       .filter(origin => !origin.startsWith('.'));
 
     const candidateOrigin = normalizeOrigin(parsed);
-    if (extra.some(origin => {
-      try {
-        return normalizeOrigin(new URL(origin)) === candidateOrigin;
-      } catch {
-        return false;
-      }
-    })) {
+    if (
+      extra.some(origin => {
+        try {
+          return normalizeOrigin(new URL(origin)) === candidateOrigin;
+        } catch {
+          return false;
+        }
+      })
+    ) {
       return candidateOrigin;
     }
 
@@ -135,13 +137,15 @@ export function resolveTrustedCanonicalUrl(
       .filter(origin => !origin.startsWith('.'));
 
     const candidateOrigin = normalizeOrigin(parsed);
-    if (extra.some(origin => {
-      try {
-        return normalizeOrigin(new URL(origin)) === candidateOrigin;
-      } catch {
-        return false;
-      }
-    })) {
+    if (
+      extra.some(origin => {
+        try {
+          return normalizeOrigin(new URL(origin)) === candidateOrigin;
+        } catch {
+          return false;
+        }
+      })
+    ) {
       return parsed.toString();
     }
 

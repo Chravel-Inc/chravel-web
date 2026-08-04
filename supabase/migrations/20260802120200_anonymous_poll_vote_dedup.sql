@@ -30,12 +30,21 @@ ALTER TABLE public.poll_vote_ledger ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.poll_vote_ledger FROM anon, authenticated;
 
 -- 2) Backfill existing NON-anonymous votes so already-cast votes remain deduplicated ------------
+-- `options` is NOT uniformly an array in production: the carlton-* demo seeds store it
+-- double-encoded (a jsonb *string* containing the JSON text), so 13 of 24 rows are scalars. A
+-- type guard in WHERE is not enough — LATERAL is evaluated before WHERE, so jsonb_array_elements
+-- raises "cannot extract elements from a scalar" before the filter is ever applied. Guard the
+-- type INSIDE the lateral expression instead.
 INSERT INTO public.poll_vote_ledger (poll_id, option_id, user_id)
 SELECT p.id, opt->>'id', (voter #>> '{}')::uuid
 FROM public.trip_polls p
-CROSS JOIN LATERAL jsonb_array_elements(COALESCE(p.options::jsonb, '[]'::jsonb)) AS opt
-CROSS JOIN LATERAL jsonb_array_elements(COALESCE(opt->'voters', '[]'::jsonb)) AS voter
-WHERE jsonb_typeof(COALESCE(opt->'voters', '[]'::jsonb)) = 'array'
+CROSS JOIN LATERAL jsonb_array_elements(
+  CASE WHEN jsonb_typeof(p.options::jsonb) = 'array' THEN p.options::jsonb ELSE '[]'::jsonb END
+) AS opt
+CROSS JOIN LATERAL jsonb_array_elements(
+  CASE WHEN jsonb_typeof(opt->'voters') = 'array' THEN opt->'voters' ELSE '[]'::jsonb END
+) AS voter
+WHERE jsonb_typeof(opt) = 'object'
   AND opt ? 'id'
   AND (voter #>> '{}') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
 ON CONFLICT DO NOTHING;
@@ -107,7 +116,14 @@ BEGIN
     RETURN;
   END IF;
 
-  v_options := COALESCE(v_poll.options::jsonb, '[]'::jsonb);
+  -- Same scalar hazard as the backfill: demo-seeded polls store `options` double-encoded, and
+  -- jsonb_array_length() on a scalar raises. Fall back to an empty array so those rows produce a
+  -- clean "Option not found in poll" instead of a raw Postgres error surfacing to the client.
+  v_options := CASE
+    WHEN jsonb_typeof(COALESCE(v_poll.options::jsonb, '[]'::jsonb)) = 'array'
+      THEN v_poll.options::jsonb
+    ELSE '[]'::jsonb
+  END;
 
   FOR v_idx IN 0..GREATEST(jsonb_array_length(v_options) - 1, 0) LOOP
     v_option := v_options -> v_idx;
@@ -216,7 +232,14 @@ BEGIN
     RAISE EXCEPTION 'This poll only allows one option per voter';
   END IF;
 
-  v_options := COALESCE(v_poll.options::jsonb, '[]'::jsonb);
+  -- Same scalar hazard as the backfill: demo-seeded polls store `options` double-encoded, and
+  -- jsonb_array_length() on a scalar raises. Fall back to an empty array so those rows produce a
+  -- clean "Option not found in poll" instead of a raw Postgres error surfacing to the client.
+  v_options := CASE
+    WHEN jsonb_typeof(COALESCE(v_poll.options::jsonb, '[]'::jsonb)) = 'array'
+      THEN v_poll.options::jsonb
+    ELSE '[]'::jsonb
+  END;
 
   FOREACH v_option_id IN ARRAY p_option_ids LOOP
     v_matched := false;
@@ -312,7 +335,14 @@ BEGIN
     RAISE EXCEPTION 'Vote changes are not allowed for this poll';
   END IF;
 
-  v_options := COALESCE(v_poll.options::jsonb, '[]'::jsonb);
+  -- Same scalar hazard as the backfill: demo-seeded polls store `options` double-encoded, and
+  -- jsonb_array_length() on a scalar raises. Fall back to an empty array so those rows produce a
+  -- clean "Option not found in poll" instead of a raw Postgres error surfacing to the client.
+  v_options := CASE
+    WHEN jsonb_typeof(COALESCE(v_poll.options::jsonb, '[]'::jsonb)) = 'array'
+      THEN v_poll.options::jsonb
+    ELSE '[]'::jsonb
+  END;
 
   -- Remove each option the user voted on (per the ledger), decrementing counts and stripping
   -- the voter from the array when present (non-anonymous polls).
