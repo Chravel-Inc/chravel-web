@@ -13,6 +13,7 @@ import { useToast } from '../../hooks/use-toast';
 
 import { CollaboratorSelector } from './CollaboratorSelector';
 import { format } from 'date-fns';
+import { isBeforeToday } from '@/lib/dueDateBounds';
 
 interface TaskCreateFormProps {
   tripId: string;
@@ -184,11 +185,7 @@ export const TaskCreateForm = ({
                 // Compare against the START of today, not "now": calendar cells are local midnight,
                 // so `date < new Date()` disabled today's cell for the rest of the day and users
                 // could not set a task due today.
-                disabled={date => {
-                  const startOfToday = new Date();
-                  startOfToday.setHours(0, 0, 0, 0);
-                  return date < startOfToday;
-                }}
+                disabled={date => isBeforeToday(date)}
                 className="text-foreground"
               />
             </PopoverContent>
