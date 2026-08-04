@@ -67,6 +67,27 @@ export async function getBlockedUserProfiles(): Promise<BlockedUserProfile[]> {
   });
 }
 
+/**
+ * Push the caller's block state to Stream so it is enforced server-side.
+ *
+ * Without this, blocking is only a client-side message filter: the blocked user's messages still
+ * arrive over realtime and are merely hidden in whichever client loaded the list, so a second
+ * device or a fresh session shows everything. The edge function re-derives the desired state from
+ * user_blocks (it does not trust this call), and applies a per-blocker mute.
+ *
+ * Best-effort: the database row is the source of truth, so a Stream hiccup must not fail the block.
+ * The next block/unblock re-syncs.
+ */
+async function syncBlockToStream(blockedId: string): Promise<void> {
+  try {
+    await supabase.functions.invoke('sync-user-block', {
+      body: { blockedUserId: blockedId },
+    });
+  } catch (error) {
+    console.warn('[userSafetyService] Failed to sync block state to chat', error);
+  }
+}
+
 export async function blockUser(blockedId: string): Promise<boolean> {
   const {
     data: { user },
@@ -81,12 +102,14 @@ export async function blockUser(blockedId: string): Promise<boolean> {
 
   if (error) {
     if (error.code === '23505') {
-      // Already blocked (unique constraint)
+      // Already blocked (unique constraint) — still re-sync in case a prior sync failed.
+      await syncBlockToStream(blockedId);
       return true;
     }
     throw new Error(`Failed to block user: ${error.message}`);
   }
 
+  await syncBlockToStream(blockedId);
   return true;
 }
 
@@ -107,6 +130,8 @@ export async function unblockUser(blockedId: string): Promise<boolean> {
     throw new Error(`Failed to unblock user: ${error.message}`);
   }
 
+  // Row is gone, so the edge function will resolve "not blocked" and unmute.
+  await syncBlockToStream(blockedId);
   return true;
 }
 

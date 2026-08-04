@@ -15,6 +15,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { requireAuth } from '../_shared/requireAuth.ts';
+import { applyRateLimit } from '../_shared/rateLimitGuard.ts';
 
 interface AddMemberBody {
   tripId?: string;
@@ -95,6 +96,20 @@ Deno.serve(async req => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
+
+  // This endpoint distinguishes "no Chravel account" (404 USER_NOT_FOUND) from a successful add /
+  // ALREADY_MEMBER, which makes it an email+phone -> account-existence oracle. Those distinct
+  // responses are required for the feature's UX (the caller must know why an add failed), so the
+  // enumeration risk is mitigated by capping probe volume instead: a real inviter adds a handful of
+  // people, while enumeration needs bulk queries. DB-backed and fail-closed.
+  const rateLimit = await applyRateLimit({
+    identifier: `add-member-by-contact:${caller.id}`,
+    maxRequests: 20,
+    windowSeconds: 3600,
+    corsHeaders,
+    supabaseClient: supabase,
+  });
+  if (!rateLimit.allowed) return rateLimit.response!;
 
   const { data: trip, error: tripError } = await supabase
     .from('trips')

@@ -10,6 +10,7 @@ import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
 import { createCalendarQueryFn } from './calendarQueryFn';
 import { useCalendarRealtime } from './useCalendarRealtime';
 import { systemMessageService } from '@/services/systemMessageService';
+import { eventDayKey, localDayKey } from '../utils/calendarDayKeys';
 
 export type ViewMode = 'calendar' | 'itinerary' | 'grid';
 
@@ -75,19 +76,17 @@ export const useCalendarManagement = (tripId: string) => {
     (date: Date): CalendarEvent[] => {
       // Get regular events for this date, including multi-day events that span this date
       const regularEvents = events.filter(event => {
-        const eventStart = new Date(event.date);
-        eventStart.setHours(0, 0, 0, 0);
-        const checkDate = new Date(date);
-        checkDate.setHours(0, 0, 0, 0);
+        const isAllDay = !!event.is_all_day;
+        const startKey = eventDayKey(new Date(event.date), isAllDay);
+        const checkKey = localDayKey(date);
 
         // Exact date match (single-day or start of multi-day)
-        if (eventStart.getTime() === checkDate.getTime()) return true;
+        if (startKey === checkKey) return true;
 
-        // Multi-day: check if date falls within range
+        // Multi-day: check if date falls within range (end day inclusive)
         if (event.end_date || event.end_time) {
-          const eventEnd = new Date(event.end_date || event.end_time!);
-          eventEnd.setHours(23, 59, 59, 999);
-          return checkDate >= eventStart && checkDate <= eventEnd;
+          const endKey = eventDayKey(new Date(event.end_date || event.end_time!), isAllDay);
+          return checkKey >= startKey && checkKey <= endKey;
         }
 
         return false;
@@ -320,8 +319,16 @@ export const useCalendarManagement = (tripId: string) => {
 
   // Update mutation with optimistic update
   const updateMutation = useMutation({
-    mutationFn: async ({ eventId, updates }: { eventId: string; updates: Partial<TripEvent> }) => {
-      return calendarService.updateEvent(eventId, updates);
+    mutationFn: async ({
+      eventId,
+      updates,
+      currentVersion,
+    }: {
+      eventId: string;
+      updates: Partial<TripEvent>;
+      currentVersion?: number;
+    }) => {
+      return calendarService.updateEvent(eventId, updates, currentVersion);
     },
     onMutate: async ({ eventId, updates }) => {
       await queryClient.cancelQueries({ queryKey: tripKeys.calendar(tripId) });
@@ -372,8 +379,14 @@ export const useCalendarManagement = (tripId: string) => {
         startDate.setHours(parseInt(hours, 10), parseInt(minutes, 10));
       }
 
+      // Pass the row's version so calendarService uses the versioned RPC and performs an
+      // optimistic-concurrency check. Without it the service takes the direct-UPDATE fallback
+      // (last-write-wins), so two members editing the same event silently clobber each other.
+      const currentVersion = tripEvents.find(evt => evt.id === eventId)?.version ?? undefined;
+
       const updated = await updateMutation.mutateAsync({
         eventId,
+        currentVersion,
         updates: {
           title: eventData.title,
           description: eventData.description,

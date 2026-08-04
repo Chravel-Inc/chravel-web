@@ -16,6 +16,67 @@ realtime behavior, so the live-DB pass is the authoritative layer for data-secur
 
 ---
 
+## Remediation status (updated 2026-08-02)
+
+**All 14 launch blockers below have been fixed on `claude/app-store-security-audit-e7u7og`,**
+along with the P2 set and most of P3. Each fix shipped as its own reviewed commit with the build
+gate (`lint && typecheck && build`), the migration linter, and related tests green.
+
+Fixed: B1–B14; invite itinerary/poll gating; add-by-contact rate limit; poll active-member gate;
+calendar version guard + RPC/RLS authz parity + all-day date + fetch-cap warning; media MIME
+allowlist, size cap and file-upload repair; SSRF hardening (image-proxy, enhanced-ai-parser);
+link-scheme XSS; concierge confirm-gating + preference-bypass; quiet hours (plus a **live
+`should_send_notification` crash on `mentions`** found during verification); base-camp mirror
+trigger; dead `addTripMember` removal; cover-photo orphan cleanup; task due-date/title guards;
+and the DB hardening sweep (definer view, anon revokes, invite-code oracle).
+
+**Not code — still needs a human:** enable *Leaked Password Protection* in the Supabase Auth
+dashboard.
+
+### How this ships
+
+**Nothing needs to be pasted into Lovable.** Merging this branch to `main` deploys all three layers
+automatically:
+
+| Layer | Workflow | Trigger |
+|---|---|---|
+| Migrations | `deploy-migrations.yml` | push to `main` touching `supabase/migrations/**` |
+| Edge functions | `deploy-functions.yml` | push to `main` touching `supabase/functions/**` (deploys all) |
+| Frontend | Vercel | merge to `main` |
+
+Two things to check:
+
+1. **`MIGRATIONS_AUTOAPPLY` must be `true`** (repo → Settings → Secrets and variables → Actions →
+   Variables). The migration workflow is inert until it is set.
+2. **Verify after merge.** There is demonstrated drift in this pipeline: migrations
+   `20260725143000` and `20260729234527` are in the repo but were **never applied to production**
+   (confirmed — neither appears in `supabase_migrations.schema_migrations`). That is exactly why
+   `check_invite_code_exists` was still anon-executable. The hardening sweep re-asserts those
+   revokes idempotently, but confirm the new migrations land.
+
+The new `sync-user-block` function needs no `config.toml` entry — it requires auth, which is the
+default (`verify_jwt = true`) for unlisted functions.
+
+**Deliberately deferred, with reasons:**
+- **`task_status` direct-write assignment gate.** A member can mark *themselves* complete on a task
+  they were not assigned. Within-trip, no data exposure, and closing it means restructuring the
+  policy set on the write path that two P1s were just fixed in — the regression risk outweighs the
+  benefit this close to launch.
+### Product decisions — now resolved
+
+- **Poll options do NOT freeze after the first vote** (decided 2026-08-02). Adding an option to a
+  live poll is intended. The dead `options_locked_at` stamping trigger was removed rather than
+  enforced; the column is deprecated and drops in a follow-up.
+- **Blocking IS enforced server-side**, as a per-blocker Stream *mute* rather than a ban. A mute
+  holds across every device the blocker uses, is asymmetric (both people remain legitimate members
+  of their shared trips — a ban would evict someone from a trip they belong to, which is a
+  moderator action), and reverses on unblock. Note: `user_blocks` was empty in production, meaning
+  Block User had never once succeeded before the FK fix.
+- **Add-by-contact intentionally requires no acceptance.** The two invite paths are complementary
+  by design: add-by-contact is for people who already have each other's email/phone, while the
+  invite link/card covers group and business trips where members don't share contact details. Kept
+  as-is; the enumeration risk is mitigated by the rate limit rather than by changing the flow.
+
 ## Executive summary
 
 **Overall verdict: the security foundation is genuinely strong; the launch risk is concentrated in a

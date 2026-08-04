@@ -227,8 +227,9 @@ serve(async (req): Promise<Response> => {
       });
     }
 
-    // Trip row + member count + sanitized itinerary + open polls in parallel
-    const [tripResult, memberCountResult, itineraryResult, pollsResult] = await Promise.all([
+    // Trip row + member count in parallel. Itinerary and open polls are trip-internal content and
+    // are fetched separately, for authenticated viewers only (see below).
+    const [tripResult, memberCountResult] = await Promise.all([
       supabaseClient
         .from('trips')
         .select(
@@ -240,44 +241,10 @@ serve(async (req): Promise<Response> => {
         .from('trip_members')
         .select('*', { count: 'exact', head: true })
         .eq('trip_id', invite.trip_id),
-      supabaseClient
-        .from('trip_events')
-        .select('title, start_time, end_time, location, is_all_day')
-        .eq('trip_id', invite.trip_id)
-        .order('start_time', { ascending: true })
-        .limit(8),
-      supabaseClient
-        .from('trip_polls')
-        .select('question, options, status')
-        .eq('trip_id', invite.trip_id)
-        .eq('status', 'open')
-        .order('created_at', { ascending: false })
-        .limit(5),
     ]);
 
     const { data: trip, error: tripError } = tripResult;
     const memberCount = memberCountResult.count;
-    const itineraryPreview: InvitePreviewItineraryItem[] = (itineraryResult.data ?? []).map(
-      (row: {
-        title: string;
-        start_time: string;
-        end_time: string | null;
-        location: string | null;
-        is_all_day: boolean | null;
-      }) => ({
-        title: row.title,
-        start_time: row.start_time,
-        end_time: row.end_time,
-        location: row.location,
-        is_all_day: row.is_all_day,
-      }),
-    );
-    const pollsPreview = (pollsResult.data ?? []).map(
-      (row: { question: string; options: unknown }) => ({
-        question: row.question,
-        option_count: Array.isArray(row.options) ? row.options.length : 0,
-      }),
-    );
 
     if (tripError || !trip) {
       logStep('Trip not found', { error: tripError?.message });
@@ -338,7 +305,64 @@ serve(async (req): Promise<Response> => {
       });
     }
 
-    logStep('Success', { tripName: trip.name, memberCount, memberLimit });
+    // Itinerary and open-poll content is trip-internal. Possessing (or guessing) an invite code is
+    // not authorization to read the group's schedule or poll questions, so these are returned only
+    // to authenticated callers. The public fields above (name/destination/dates/cover) remain
+    // unauthenticated so shared invite links still preview correctly.
+    let itineraryPreview: InvitePreviewItineraryItem[] = [];
+    let pollsPreview: Array<{ question: string; option_count: number }> = [];
+
+    const previewAuthHeader = req.headers.get('Authorization');
+    const previewToken = previewAuthHeader?.startsWith('Bearer ')
+      ? previewAuthHeader.slice('Bearer '.length).trim()
+      : '';
+    let isAuthenticatedViewer = false;
+    if (previewToken) {
+      const { data: viewer } = await supabaseClient.auth.getUser(previewToken);
+      isAuthenticatedViewer = !!viewer?.user;
+    }
+
+    if (isAuthenticatedViewer) {
+      const [itineraryResult, pollsResult] = await Promise.all([
+        supabaseClient
+          .from('trip_events')
+          .select('title, start_time, end_time, location, is_all_day')
+          .eq('trip_id', invite.trip_id)
+          .order('start_time', { ascending: true })
+          .limit(8),
+        supabaseClient
+          .from('trip_polls')
+          .select('question, options, status')
+          .eq('trip_id', invite.trip_id)
+          .eq('status', 'open')
+          .order('created_at', { ascending: false })
+          .limit(5),
+      ]);
+
+      itineraryPreview = (itineraryResult.data ?? []).map(
+        (row: {
+          title: string;
+          start_time: string;
+          end_time: string | null;
+          location: string | null;
+          is_all_day: boolean | null;
+        }) => ({
+          title: row.title,
+          start_time: row.start_time,
+          end_time: row.end_time,
+          location: row.location,
+          is_all_day: row.is_all_day,
+        }),
+      );
+      pollsPreview = (pollsResult.data ?? []).map(
+        (row: { question: string; options: unknown }) => ({
+          question: row.question,
+          option_count: Array.isArray(row.options) ? row.options.length : 0,
+        }),
+      );
+    }
+
+    logStep('Success', { tripName: trip.name, memberCount, memberLimit, isAuthenticatedViewer });
 
     const response: InvitePreviewResponse = {
       success: true,

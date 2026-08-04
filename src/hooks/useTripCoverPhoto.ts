@@ -11,6 +11,31 @@ import { demoModeService } from '@/services/demoModeService';
 import { toast } from 'sonner';
 import type { Trip } from '@/services/tripService';
 
+/**
+ * Best-effort delete of a cover object from storage.
+ *
+ * Both cover buckets are public, so an object that is merely "replaced" stays fetchable forever by
+ * anyone holding the old URL — replacing a cover must actually revoke the previous image, not just
+ * repoint the row. Only our own storage URLs are touched (remote URLs such as Unsplash are ignored),
+ * storage RLS still governs whether the delete is permitted, and failures never block the caller.
+ */
+const removeCoverStorageObject = async (url: string | null | undefined): Promise<void> => {
+  if (!url) return;
+  const buckets = ['trip-covers', 'trip-media'] as const; // trip-media = legacy cover path
+  for (const bucket of buckets) {
+    const marker = `/storage/v1/object/public/${bucket}/`;
+    if (!url.includes(marker)) continue;
+    const storagePath = url.split(marker)[1]?.split('?')[0];
+    if (!storagePath) return;
+    try {
+      await supabase.storage.from(bucket).remove([storagePath]);
+    } catch (error) {
+      console.warn('[useTripCoverPhoto] Failed to remove previous cover object', error);
+    }
+    return;
+  }
+};
+
 export type CoverDisplayMode = 'cover' | 'contain';
 
 export const useTripCoverPhoto = (
@@ -106,6 +131,8 @@ export const useTripCoverPhoto = (
     }
 
     setIsUpdating(true);
+    // Capture the outgoing cover so its storage object can be revoked after a successful repoint.
+    const previousCoverUrl = coverPhoto;
     try {
       const normalizedPhotoUrl = normalizeTripCoverUrl(photoUrl) ?? photoUrl;
       // Use .select() to verify the update actually happened
@@ -148,6 +175,13 @@ export const useTripCoverPhoto = (
       // mutators) hits the exact same six query surfaces.
       updateTripCoverCache(queryClient, tripId, bustedPhotoUrl);
       await invalidateTripCoverQueries(queryClient, tripId);
+
+      // The row now points at the new object, so the previous one is unreachable through the app
+      // but would remain publicly fetchable by URL. Revoke it (best-effort, never blocks success).
+      const previousCanonical = normalizeTripCoverUrl(previousCoverUrl ?? '') ?? previousCoverUrl;
+      if (previousCanonical && previousCanonical !== normalizedPhotoUrl) {
+        void removeCoverStorageObject(previousCanonical);
+      }
 
       toast.success('Trip cover photo saved.');
       return true;
@@ -195,25 +229,8 @@ export const useTripCoverPhoto = (
         return false;
       }
 
-      // Delete file from storage if needed
-      if (coverPhoto) {
-        if (coverPhoto.includes('/storage/v1/object/public/trip-covers/')) {
-          const storagePath = coverPhoto
-            .split('/storage/v1/object/public/trip-covers/')[1]
-            ?.split('?')[0];
-          if (storagePath) {
-            await supabase.storage.from('trip-covers').remove([storagePath]);
-          }
-        } else if (coverPhoto.includes('/storage/v1/object/public/trip-media/')) {
-          // Legacy path: old uploads went to trip-media/trip-covers/
-          const storagePath = coverPhoto
-            .split('/storage/v1/object/public/trip-media/')[1]
-            ?.split('?')[0];
-          if (storagePath) {
-            await supabase.storage.from('trip-media').remove([storagePath]);
-          }
-        }
-      }
+      // Delete file from storage if needed (handles both the current and legacy cover buckets)
+      await removeCoverStorageObject(coverPhoto);
 
       pendingPersistedCoverRef.current = null;
 
