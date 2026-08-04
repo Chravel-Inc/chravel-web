@@ -251,6 +251,45 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_webhook_processing_failures: {
+        Row: {
+          error_message: string
+          event_id: string
+          event_type: string
+          failure_stage: string
+          first_seen_at: string
+          id: string
+          last_seen_at: string
+          provider: string
+          resolved_at: string | null
+          retry_count: number
+        }
+        Insert: {
+          error_message: string
+          event_id: string
+          event_type: string
+          failure_stage: string
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          provider: string
+          resolved_at?: string | null
+          retry_count?: number
+        }
+        Update: {
+          error_message?: string
+          event_id?: string
+          event_type?: string
+          failure_stage?: string
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          provider?: string
+          resolved_at?: string | null
+          retry_count?: number
+        }
+        Relationships: []
+      }
       broadcast_reactions: {
         Row: {
           broadcast_id: string
@@ -852,6 +891,51 @@ export type Database = {
         }
         Relationships: []
       }
+      entitlement_audit_log: {
+        Row: {
+          created_at: string
+          event_id: string | null
+          event_type: string | null
+          id: string
+          new_plan: string | null
+          new_status: string | null
+          old_plan: string | null
+          old_status: string | null
+          purchase_type: string | null
+          reason: string | null
+          source: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id?: string | null
+          event_type?: string | null
+          id?: string
+          new_plan?: string | null
+          new_status?: string | null
+          old_plan?: string | null
+          old_status?: string | null
+          purchase_type?: string | null
+          reason?: string | null
+          source: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string | null
+          event_type?: string | null
+          id?: string
+          new_plan?: string | null
+          new_status?: string | null
+          old_plan?: string | null
+          old_status?: string | null
+          purchase_type?: string | null
+          reason?: string | null
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       event_agenda_items: {
         Row: {
           created_at: string | null
@@ -1180,8 +1264,6 @@ export type Database = {
       }
       feature_flags: {
         Row: {
-          cohort_domains: string[] | null
-          cohort_user_ids: string[] | null
           created_at: string | null
           description: string | null
           enabled: boolean
@@ -1191,8 +1273,6 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
-          cohort_domains?: string[] | null
-          cohort_user_ids?: string[] | null
           created_at?: string | null
           description?: string | null
           enabled?: boolean
@@ -1202,8 +1282,6 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
-          cohort_domains?: string[] | null
-          cohort_user_ids?: string[] | null
           created_at?: string | null
           description?: string | null
           enabled?: boolean
@@ -3865,7 +3943,6 @@ export type Database = {
       }
       trip_link_index: {
         Row: {
-          channel_id: string | null
           created_at: string | null
           domain: string | null
           favicon_url: string | null
@@ -3874,12 +3951,10 @@ export type Database = {
           og_description: string | null
           og_image_url: string | null
           og_title: string | null
-          submitted_by: string | null
           trip_id: string
           url: string
         }
         Insert: {
-          channel_id?: string | null
           created_at?: string | null
           domain?: string | null
           favicon_url?: string | null
@@ -3888,12 +3963,10 @@ export type Database = {
           og_description?: string | null
           og_image_url?: string | null
           og_title?: string | null
-          submitted_by?: string | null
           trip_id: string
           url: string
         }
         Update: {
-          channel_id?: string | null
           created_at?: string | null
           domain?: string | null
           favicon_url?: string | null
@@ -3902,7 +3975,6 @@ export type Database = {
           og_description?: string | null
           og_image_url?: string | null
           og_title?: string | null
-          submitted_by?: string | null
           trip_id?: string
           url?: string
         }
@@ -5129,6 +5201,15 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_webhook_ops_dashboard: {
+        Row: {
+          latest_failure_at: string | null
+          open_failures: number | null
+          provider: string | null
+          resolved_failures: number | null
+        }
+        Relationships: []
+      }
       campaigns_public: {
         Row: {
           description: string | null
@@ -5400,6 +5481,10 @@ export type Database = {
         Args: { _trip_id: string; _user_id: string }
         Returns: boolean
       }
+      can_post_to_trip_chat: {
+        Args: { _trip_id: string; _user_id: string }
+        Returns: boolean
+      }
       cancel_account_deletion: { Args: never; Returns: Json }
       check_and_increment_smart_import_usage: {
         Args: { p_limit: number; p_trip_id: string; p_user_id: string }
@@ -5445,6 +5530,16 @@ export type Database = {
         }
       }
       cleanup_rate_limits: { Args: never; Returns: undefined }
+      compute_display_name: {
+        Args: {
+          p_display_name: string
+          p_first_name: string
+          p_last_name: string
+          p_name_preference: string
+          p_real_name: string
+        }
+        Returns: string
+      }
       create_event_with_conflict_check: {
         Args: {
           p_created_by: string
@@ -5562,33 +5657,25 @@ export type Database = {
       get_broadcast_viewers: {
         Args: { p_broadcast_id: string }
         Returns: {
-          user_id: string
+          avatar_url: string
           display_name: string
-          avatar_url: string | null
+          user_id: string
           viewed_at: string
         }[]
-      }
-      get_trip_member_limit: {
-        Args: { p_trip_id: string }
-        Returns: number | null
-      }
-      is_trip_at_member_capacity: {
-        Args: { p_trip_id: string }
-        Returns: boolean
-      }
-      lookup_user_id_by_contact: {
-        Args: { p_email?: string; p_phone_digits?: string }
-        Returns: string | null
-      }
-      remind_trip_balance: {
-        Args: { p_trip_id: string; p_debtor_user_id: string }
-        Returns: Json
       }
       get_channel_member_counts: {
         Args: { p_trip_id: string }
         Returns: {
           channel_id: string
           member_count: number
+        }[]
+      }
+      get_co_member_profiles: {
+        Args: { p_user_ids: string[] }
+        Returns: {
+          avatar_url: string
+          resolved_display_name: string
+          user_id: string
         }[]
       }
       get_events_in_user_tz: {
@@ -5608,6 +5695,7 @@ export type Database = {
         }[]
       }
       get_trip_admin_permissions: { Args: { p_trip_id: string }; Returns: Json }
+      get_trip_member_limit: { Args: { p_trip_id: string }; Returns: number }
       get_user_primary_role: {
         Args: { _trip_id: string; _user_id: string }
         Returns: string
@@ -5710,13 +5798,9 @@ export type Database = {
         Args: { _trip_id: string; _user_id: string }
         Returns: boolean
       }
-      get_co_member_profiles: {
-        Args: { p_user_ids: string[] }
-        Returns: {
-          avatar_url: string
-          resolved_display_name: string
-          user_id: string
-        }[]
+      is_trip_at_member_capacity: {
+        Args: { p_trip_id: string }
+        Returns: boolean
       }
       is_trip_co_member: {
         Args: { target_user_id: string; viewer_id: string }
@@ -5745,6 +5829,15 @@ export type Database = {
           version: string
         }[]
       }
+      list_trip_members: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_trip_id: string
+        }
+        Returns: Json
+      }
       log_basecamp_change: {
         Args: {
           p_action: string
@@ -5772,9 +5865,17 @@ export type Database = {
         }
         Returns: undefined
       }
+      lookup_user_id_by_contact: {
+        Args: { p_email?: string; p_phone_digits?: string }
+        Returns: string
+      }
       mark_broadcast_viewed: {
         Args: { p_broadcast_id: string; p_user_id: string }
         Returns: undefined
+      }
+      mark_payment_splits_pending: {
+        Args: { p_method: string; p_payment_message_ids: string[] }
+        Returns: Json
       }
       mark_web_push_subscription_failed: {
         Args: { error_message?: string; subscription_id: string }
@@ -5828,6 +5929,10 @@ export type Database = {
         }
       }
       reject_join_request: { Args: { _request_id: string }; Returns: Json }
+      remind_trip_balance: {
+        Args: { p_debtor_user_id: string; p_trip_id: string }
+        Returns: Json
+      }
       remove_user_from_role: {
         Args: { _role_id: string; _trip_id: string; _user_id: string }
         Returns: Json
