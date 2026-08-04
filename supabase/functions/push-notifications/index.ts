@@ -209,18 +209,25 @@ async function sendEmailNotification(
   });
 }
 
+// Both handlers targeted a `push_tokens` table that does not exist — the real table is
+// `push_device_tokens`, which is what src/services/pushTokenService.ts (the path the app actually
+// registers through) writes to. These handlers were unreachable in practice: the only invocation of
+// this function from the app is `action: 'send_email'`. Repointed at the real table rather than
+// deleted, so a future caller gets working behavior instead of a confusing 42P01.
 async function savePushToken(
   { userId, token, platform }: any,
   corsHeaders: Record<string, string>,
 ) {
   const { data, error } = await supabase
-    .from('push_tokens')
+    .from('push_device_tokens')
     .upsert(
       {
         user_id: userId,
         token,
         platform: platform || 'web',
+        last_seen_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        disabled_at: null,
       },
       {
         onConflict: 'user_id,token',
@@ -238,7 +245,7 @@ async function savePushToken(
 
 async function removePushToken({ userId, token }: any, corsHeaders: Record<string, string>) {
   const { error } = await supabase
-    .from('push_tokens')
+    .from('push_device_tokens')
     .delete()
     .eq('user_id', userId)
     .eq('token', token);

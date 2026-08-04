@@ -1264,6 +1264,8 @@ export type Database = {
       }
       feature_flags: {
         Row: {
+          cohort_domains: string[] | null
+          cohort_user_ids: string[] | null
           created_at: string | null
           description: string | null
           enabled: boolean
@@ -1273,6 +1275,8 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          cohort_domains?: string[] | null
+          cohort_user_ids?: string[] | null
           created_at?: string | null
           description?: string | null
           enabled?: boolean
@@ -1282,6 +1286,8 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          cohort_domains?: string[] | null
+          cohort_user_ids?: string[] | null
           created_at?: string | null
           description?: string | null
           enabled?: boolean

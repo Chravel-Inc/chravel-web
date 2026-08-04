@@ -98,7 +98,79 @@ Reported by the scan, confirmed harmless. Recorded so nobody re-investigates the
 
 ---
 
-## Remaining inventory — needs a per-feature decision
+## Inventory resolution (2026-08-04)
+
+Every item below was classified **shipped** (live code path — fix it), **unfinished** (built but
+correctly flag-gated off — make it work for when the flag flips), or **abandoned** (unreachable —
+remove it). Reachability was determined from `functions.invoke()` call sites in `src/**`, the
+`cron.job` table, and cross-function references — not from guesswork.
+
+### Shipped and live → fixed
+
+| Item | Decision |
+|---|---|
+| `google_places_cache`, `google_maps_api_usage` + 6 RPCs | **Applied, after a rewrite.** See below — the original would not have worked. |
+| `feature_flags.cohort_domains` / `cohort_user_ids` | **Applied.** Found via `check-schema-drift`, not the RPC scan. `20260724120000` never reached production, so `useGradualFeature()` / `isFeatureEnabledForUser()` — the cohort + percentage rollout mechanism `docs/BRANCHING_AND_ROLLOUTS.md` documents as *the* way to ramp a feature — queried columns that did not exist. Gradual rollout was impossible; only all-or-nothing kill switches worked. |
+| `trip_files` export (`export-user-data`) | **Code fixed.** It read `file.storage_path` against a `trip-files` bucket. `trip_files` has no `storage_path` column (it has `file_url`) and there is no `trip-files` bucket, so the guard was permanently false and the loop never executed — **every data export silently omitted the user's uploaded files.** Now derives the object path from `file_url` and signs against `trip-media`. |
+| `push_tokens` (`push-notifications`) | **Code fixed** — repointed to the real `push_device_tokens`. Unreachable in practice (the app registers via `pushTokenService.ts` and only ever invokes this function with `action: 'send_email'`), so this removes a landmine rather than restoring behavior. |
+
+**The Places cache migration was unfinished, not merely unapplied.** Four defects, all fixed:
+
+1. **Authorization** — the functions were `SECURITY INVOKER` while both tables had RLS policies for
+   `service_role` only. The browser calls as `authenticated`, so every read returned NULL and every
+   write was rejected: a permanent 0% hit rate. Now `SECURITY DEFINER` + `SET search_path`, with the
+   tables deny-all to clients.
+2. **Client-supplied `user_id`** — `record_api_usage` / `get_hourly_usage` / `get_daily_usage` took
+   the caller's `p_user_id`. Combined with `SECURITY DEFINER` that would let any user write usage as,
+   and read usage of, anyone else. Identity now always comes from `auth.uid()`.
+3. **`p_days || 7`** is string concatenation, not a null-guard — `p_days = 7` became `'77'` days.
+4. **`UNIQUE (user_id, …)` with NULL `user_id` never conflicts**, so the `ON CONFLICT DO UPDATE`
+   never matched and every request inserted a new row instead of incrementing. Now
+   `UNIQUE NULLS NOT DISTINCT`.
+
+A fifth issue surfaced *while applying*: `REVOKE EXECUTE … FROM PUBLIC` left `anon` still able to
+execute, because Supabase's `ALTER DEFAULT PRIVILEGES` grants new functions to `anon` **explicitly**
+in addition to the implicit PUBLIC grant. Both had to be revoked. This is the exact mirror image of
+the `check_invite_code_exists` bug, where the grant was on PUBLIC and `REVOKE … FROM anon` was the
+no-op — worth remembering as a pair.
+
+### Unfinished but correctly gated off → no user impact today
+
+| Item | Decision |
+|---|---|
+| `google_calendar_accounts` | **Applied.** `calendar-auth` is app-invoked and would fail on connect, but `google_calendar_sync` is off (the flag row did not even exist, and `useFeatureFlag` defaults to `false`), so the UI is hidden. Applying creates the table + token-free `_safe` view and seeds the flag **off** — nothing turns on, the landmine is gone. |
+| Gmail import — `gmail_import_artifacts`, `gmail_import_message_logs`, `gmail_token_audit_logs` | **Deferred deliberately.** `gmail_smart_import` is `enabled=false, rollout=0` in production, so there is no live breakage. Restoring it means applying three large, interdependent migrations (`20260315000000_gmail_hardening`, `20260401000000_smart_import`, `20260524090000_gmail_import_durable_checkpoints`) against a production DB where `gmail_accounts` already partially exists. That is a reviewed migration exercise, not a blind apply, and it must not ride along in a launch PR. **Must be done before `gmail_smart_import` is ever flipped on.** |
+
+### Abandoned → deleted
+
+Ten edge functions with **zero references** anywhere in `src/`, `supabase/functions/`, `scripts/` or
+`e2e/`, no cron entry, and a core table that does not exist — so they provably could not have worked:
+
+`daily-digest` · `message-scheduler` · `update-location` · `delete-stale-locations` ·
+`populate-search-index` · `cleanup-staging-tables` · `seed-mock-messages` · `file-ai-parser` ·
+`process-receipt-ocr` · `verify-identity`
+
+**Two things this does NOT do.** Deleting the source does **not** undeploy them — all of them remain
+live in production, still holding their secrets and still accepting traffic. Undeploying is a
+separate manual step (`supabase functions delete <name>`, or the dashboard). And four more
+abandoned functions were left in place — `event-reminders`, `ai-features`, `ai-answer`, `ai-search`
+— because they are pinned in `supabase/config.toml`, which agents are forbidden to edit; deleting
+their source would leave that file referencing functions that no longer exist.
+
+### Verified non-defects
+
+Recorded so nobody re-investigates: `private_profiles` (deliberate legacy handling — the code
+comments *"not deployed in live DB"* and skips gracefully), `trip_activity_log` (falls back to a
+union of recent tasks/events/links), `search_trip_artifacts` (throws into a `catch` that returns a
+tool-level failure; the conversation continues), `find_similar_artifacts`, and the previously
+recorded `can_trip_actor_for_user` / `profiles_public` / `avatars`.
+
+`export-trip`, `image-upload` and `artifact-search` are **kept** — they still have live references,
+so their missing dependencies are unfinished work, not dead code.
+
+---
+
+## Original inventory (superseded by the resolution above)
 
 Confirmed absent from production and reachable from code, but each belongs to a feature whose
 intended status only you can confirm (shipped / abandoned / never finished). Not fixed, because
