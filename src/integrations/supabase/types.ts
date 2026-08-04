@@ -6280,6 +6280,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      record_email_bounce: {
+        Args: { p_bounce_type: string; p_email: string }
+        Returns: undefined
+      }
       reject_join_request: { Args: { _request_id: string }; Returns: Json }
       remind_trip_balance: {
         Args: { p_debtor_user_id: string; p_trip_id: string }

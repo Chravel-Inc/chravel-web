@@ -332,19 +332,17 @@ async function handleBounce(
   bounceType: 'hard' | 'soft' | 'complaint',
   reason: string,
 ) {
-  await supabase.from('email_bounces').upsert(
-    {
-      email,
-      bounce_type: bounceType,
-      bounce_count: 1,
-      last_bounce_at: new Date().toISOString(),
-      suppressed: bounceType === 'hard' || bounceType === 'complaint',
-    },
-    {
-      onConflict: 'email,bounce_type',
-      ignoreDuplicates: false,
-    },
-  );
+  // record_email_bounce increments the per-(email,type) counter atomically —
+  // a raw upsert here kept resetting bounce_count to 1, which made the
+  // soft-bounce suppression threshold unreachable.
+  const { error } = await supabase.rpc('record_email_bounce', {
+    p_email: email,
+    p_bounce_type: bounceType,
+  });
+  if (error) {
+    console.error(`Failed to record bounce for ${email} (${bounceType}): ${error.message}`);
+    return;
+  }
 
   console.log(`Bounce recorded: ${email} (${bounceType})`);
 }

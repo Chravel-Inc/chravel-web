@@ -38,11 +38,21 @@ export const SavedRecommendations = () => {
   const handleAdd = async (savedId: string, tripId: string) => {
     const saved = items.find(i => i.id === savedId);
     if (!saved) return;
-    const res = await addToTrip(saved, tripId);
-    if (res.status === 'ok') {
-      toast({ title: 'Added to trip', description: `${saved.title} added successfully.` });
-    } else {
-      toast({ title: 'Sign in required', description: 'Please sign in to add items to trips.' });
+    try {
+      const res = await addToTrip(saved, tripId);
+      if (res.status === 'ok') {
+        toast({ title: 'Added to trip', description: `${saved.title} added successfully.` });
+      } else {
+        toast({ title: 'Sign in required', description: 'Please sign in to add items to trips.' });
+      }
+    } catch {
+      // addToTrip throws on insert failure (e.g. RLS denial); without this the
+      // rejection escaped the onClick with no feedback at all.
+      toast({
+        title: "Couldn't add to trip",
+        description: 'Something went wrong. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
