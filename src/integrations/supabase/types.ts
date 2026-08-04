@@ -782,6 +782,88 @@ export type Database = {
         }
         Relationships: []
       }
+      concierge_tool_idempotency: {
+        Row: {
+          created_at: string
+          id: string
+          idempotency_key: string
+          result_payload: Json | null
+          result_ref: string | null
+          status: string
+          tool_name: string
+          trip_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          idempotency_key: string
+          result_payload?: Json | null
+          result_ref?: string | null
+          status?: string
+          tool_name: string
+          trip_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          idempotency_key?: string
+          result_payload?: Json | null
+          result_ref?: string | null
+          status?: string
+          tool_name?: string
+          trip_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "concierge_tool_idempotency_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      concierge_trip_usage: {
+        Row: {
+          created_at: string
+          id: string
+          trip_id: string
+          updated_at: string
+          used_count: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          trip_id: string
+          updated_at?: string
+          used_count?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          trip_id?: string
+          updated_at?: string
+          used_count?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "concierge_trip_usage_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       concierge_usage: {
         Row: {
           context_id: string
@@ -888,6 +970,36 @@ export type Database = {
           ordered_ids?: Json
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      email_bounces: {
+        Row: {
+          bounce_count: number | null
+          bounce_type: string
+          created_at: string | null
+          email: string
+          id: string
+          last_bounce_at: string | null
+          suppressed: boolean | null
+        }
+        Insert: {
+          bounce_count?: number | null
+          bounce_type: string
+          created_at?: string | null
+          email: string
+          id?: string
+          last_bounce_at?: string | null
+          suppressed?: boolean | null
+        }
+        Update: {
+          bounce_count?: number | null
+          bounce_type?: string
+          created_at?: string | null
+          email?: string
+          id?: string
+          last_bounce_at?: string | null
+          suppressed?: boolean | null
         }
         Relationships: []
       }
@@ -1264,6 +1376,8 @@ export type Database = {
       }
       feature_flags: {
         Row: {
+          cohort_domains: string[] | null
+          cohort_user_ids: string[] | null
           created_at: string | null
           description: string | null
           enabled: boolean
@@ -1273,6 +1387,8 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          cohort_domains?: string[] | null
+          cohort_user_ids?: string[] | null
           created_at?: string | null
           description?: string | null
           enabled?: boolean
@@ -1282,6 +1398,8 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          cohort_domains?: string[] | null
+          cohort_user_ids?: string[] | null
           created_at?: string | null
           description?: string | null
           enabled?: boolean
@@ -1462,6 +1580,123 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      google_calendar_accounts: {
+        Row: {
+          access_token: string | null
+          created_at: string | null
+          email: string
+          google_user_id: string
+          id: string
+          is_active: boolean
+          last_synced_at: string | null
+          refresh_token: string | null
+          scopes: string[] | null
+          token_expires_at: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          created_at?: string | null
+          email: string
+          google_user_id: string
+          id?: string
+          is_active?: boolean
+          last_synced_at?: string | null
+          refresh_token?: string | null
+          scopes?: string[] | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          created_at?: string | null
+          email?: string
+          google_user_id?: string
+          id?: string
+          is_active?: boolean
+          last_synced_at?: string | null
+          refresh_token?: string | null
+          scopes?: string[] | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      google_maps_api_usage: {
+        Row: {
+          api_endpoint: string
+          created_at: string
+          date_day: string
+          date_hour: string
+          estimated_cost_usd: number | null
+          id: string
+          request_count: number
+          user_id: string | null
+        }
+        Insert: {
+          api_endpoint: string
+          created_at?: string
+          date_day: string
+          date_hour: string
+          estimated_cost_usd?: number | null
+          id?: string
+          request_count?: number
+          user_id?: string | null
+        }
+        Update: {
+          api_endpoint?: string
+          created_at?: string
+          date_day?: string
+          date_hour?: string
+          estimated_cost_usd?: number | null
+          id?: string
+          request_count?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      google_places_cache: {
+        Row: {
+          api_endpoint: string
+          cache_key: string
+          created_at: string
+          expires_at: string
+          id: string
+          origin_lat: number | null
+          origin_lng: number | null
+          place_id: string | null
+          query_text: string
+          response_data: Json
+        }
+        Insert: {
+          api_endpoint: string
+          cache_key: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          origin_lat?: number | null
+          origin_lng?: number | null
+          place_id?: string | null
+          query_text: string
+          response_data: Json
+        }
+        Update: {
+          api_endpoint?: string
+          cache_key?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          origin_lat?: number | null
+          origin_lng?: number | null
+          place_id?: string | null
+          query_text?: string
+          response_data?: Json
+        }
+        Relationships: []
       }
       invite_links: {
         Row: {
@@ -5328,6 +5563,45 @@ export type Database = {
         }
         Relationships: []
       }
+      google_calendar_accounts_safe: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          google_user_id: string | null
+          id: string | null
+          is_active: boolean | null
+          last_synced_at: string | null
+          scopes: string[] | null
+          token_expires_at: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          google_user_id?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          last_synced_at?: string | null
+          scopes?: string[] | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          google_user_id?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          last_synced_at?: string | null
+          scopes?: string[] | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles_public: {
         Row: {
           avatar_url: string | null
@@ -5572,6 +5846,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      cleanup_expired_places_cache: { Args: never; Returns: number }
       cleanup_rate_limits: { Args: never; Returns: undefined }
       compute_display_name: {
         Args: {
@@ -5721,6 +5996,15 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_concierge_trip_usage: { Args: { p_trip_id: string }; Returns: number }
+      get_daily_usage: {
+        Args: { p_api_endpoint: string; p_days?: number; p_user_id?: string }
+        Returns: {
+          date_day: string
+          estimated_cost_usd: number
+          request_count: number
+        }[]
+      }
       get_events_in_user_tz: {
         Args: { p_trip_id: string; p_user_id: string }
         Returns: {
@@ -5737,6 +6021,15 @@ export type Database = {
           user_local_start: string
         }[]
       }
+      get_hourly_usage: {
+        Args: { p_api_endpoint: string; p_user_id?: string }
+        Returns: {
+          date_hour: string
+          estimated_cost_usd: number
+          request_count: number
+        }[]
+      }
+      get_places_cache: { Args: { p_cache_key: string }; Returns: Json }
       get_trip_admin_permissions: { Args: { p_trip_id: string }; Returns: Json }
       get_trip_member_limit: { Args: { p_trip_id: string }; Returns: number }
       get_user_primary_role: {
@@ -5803,6 +6096,14 @@ export type Database = {
       increment_campaign_stat: {
         Args: { p_campaign_id: string; p_stat_type: string }
         Returns: undefined
+      }
+      increment_concierge_trip_usage: {
+        Args: { p_limit?: number; p_trip_id: string }
+        Returns: {
+          incremented: boolean
+          remaining: number
+          used_count: number
+        }[]
       }
       increment_rate_limit: {
         Args: {
@@ -5971,6 +6272,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      record_api_usage: {
+        Args: {
+          p_api_endpoint: string
+          p_estimated_cost_usd?: number
+          p_user_id?: string
+        }
+        Returns: undefined
+      }
       reject_join_request: { Args: { _request_id: string }; Returns: Json }
       remind_trip_balance: {
         Args: { p_debtor_user_id: string; p_trip_id: string }
@@ -6001,6 +6310,18 @@ export type Database = {
         Args: { _scope: string; _target_user_id: string; _trip_id: string }
         Returns: Json
       }
+      set_places_cache: {
+        Args: {
+          p_api_endpoint: string
+          p_cache_key: string
+          p_origin_lat?: number
+          p_origin_lng?: number
+          p_place_id?: string
+          p_query_text: string
+          p_response_data: Json
+        }
+        Returns: string
+      }
       set_trip_notifications_muted: {
         Args: { p_muted: boolean; p_trip_id: string }
         Returns: Json
@@ -6025,6 +6346,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      should_suppress_email: { Args: { p_email: string }; Returns: boolean }
       suspend_org_seat: {
         Args: { _org_id: string; _seat_key: string }
         Returns: {
