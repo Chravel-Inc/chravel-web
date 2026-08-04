@@ -12,7 +12,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Plus, BookmarkMinus } from 'lucide-react';
 import { useSavedRecommendations } from '@/hooks/useSavedRecommendations';
-import { tripsData } from '@/data/tripsData';
+import { useTrips } from '@/hooks/useTrips';
 import { useToast } from '@/hooks/use-toast';
 
 export const SavedRecommendations = () => {
@@ -20,9 +20,19 @@ export const SavedRecommendations = () => {
   const { toast } = useToast();
   const [selectedTrip, setSelectedTrip] = useState<Record<string, string>>({});
 
+  // useTrips is demo-aware: demo trips in app-preview, the user's real trips
+  // otherwise. The previous hardcoded tripsData list leaked the 12 demo trips
+  // into this real-user surface (and addToTrip targeted demo trip ids).
+  const { trips: userTrips } = useTrips();
   const trips = useMemo(
-    () => tripsData.map(t => ({ id: String(t.id), label: `${t.title} • ${t.location}` })),
-    [],
+    () =>
+      userTrips
+        .filter(t => !t.is_archived)
+        .map(t => ({
+          id: String(t.id),
+          label: t.destination ? `${t.name} • ${t.destination}` : t.name,
+        })),
+    [userTrips],
   );
 
   const handleAdd = async (savedId: string, tripId: string) => {
