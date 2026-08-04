@@ -1,31 +1,49 @@
-## Goal
-Remove the password re-auth step from account deletion. Every user (email/password, Google, Apple) confirms by typing `delete` — nothing else.
+# Explorer Trip Pass: 45 days → 30 days
 
-## Change
-**File:** `src/components/consumer/ConsumerGeneralSettings.tsx`
+Change the Explorer Trip Pass access window from 45 days to 30 days everywhere — code, copy, settings, backend grant, store parity snapshots, and the ASC/Play refresh docs. Price stays $39.99. The Frequent Chraveler Pass stays 90 days / $74.99. Store product IDs (`com.chravel.trippass.explorer`, `com.chravel.trippass.frequent`) are immutable and do not change.
 
-1. Remove the password `<Input>` field and its "Enter your password to verify your identity" label from the Delete Account dialog.
-2. Remove the `password` state, the provider-detection branch that shows/hides the password field, and the `supabase.auth.signInWithPassword({...})` re-auth call in the delete handler.
-3. Simplify the submit-disabled logic to a single check: confirmation text (case-insensitive) equals `delete`.
-4. Update the helper copy so it reads the same for all users (e.g. "Type **delete** below to confirm. No password required."), removing the OAuth-specific "no password is required" branch.
-5. Keep everything else intact: the `window.confirm()` final irreversibility gate, the call to `deleteAccountImmediately()`, sign-out, and redirect to `/`.
+## One flag before we ship
 
-## Test updates
-**File:** `src/components/consumer/__tests__/ConsumerGeneralSettings.test.tsx`
+At 30 days, $39.99 buys the same month that a $9.99/mo Explorer subscription buys. You chose to keep $39.99, so the copy needs to earn that gap: the pass is framed as "one-time, no auto-renew, no card kept on file" rather than as a cheaper month. I'll keep that framing front and center and will not add any "better value" or "save vs monthly" language, which would be false at this price. Raising the value (e.g. bundling FC-level features into the Explorer Pass) or lowering the price later is a one-line change in `src/billing/config.ts`.
 
-- Keep the OAuth test (no password prompt, deletes on `delete` + click).
-- Rewrite the "requires password re-auth for email/password users" test to assert the opposite: email/password users also see no password field and delete with just the `delete` confirmation. `signInWithPassword` must never be called.
-- Keep the "clears DELETE confirmation on dismiss" test as-is.
+## Source of truth
 
-## Docs
-**File:** `docs/account-deletion.md`
+`TRIP_PASS_PRODUCTS` in `src/billing/config.ts` is the single numeric source. Everything downstream (`pricingDisplay.ts`, `consumer.ts`, PricingSection, TripPassModal, billing settings, DevBillingPreview) already derives duration from it, so most surfaces update automatically once the number changes.
 
-Update the UI flow section (step 1) to remove the "Email/password accounts must re-enter their password" line. Everything downstream (edge function, audit log, storage cleanup) is unchanged.
+## Changes
 
-## Out of scope
-- No edge function changes (`supabase/functions/delete-account/index.ts` already doesn't require a password).
-- No changes to Apple revocation, storage cleanup, or the audit-log pipeline.
-- No changes to the `window.confirm()` final gate — that stays as the irreversibility safeguard.
+### 1. Rename the key and set the duration
+- `src/billing/config.ts` — rename `pass-explorer-45` → `pass-explorer-30`, set `durationDays: 30`, rename to `Explorer Trip Pass (30 days)`.
+- `src/constants/stripe.ts` — same key rename, `durationDays: 30`, name update in the legacy `TRIP_PASS_PLANS` map. Stripe product/price IDs are unchanged (price is unchanged).
+- `src/constants/revenuecat.ts` — `REVENUECAT_PRICING.tripPasses.explorer.durationDays: 30`, rename the `explorerPass45` key to `explorerPass30` (its value, the Apple product ID, is unchanged), and update the 45-day comments.
 
-## Risk
-Low. Deletion already runs on JWT + typed confirmation server-side; the password check was purely a client-side extra step for one auth provider path.
+### 2. Update every key reference
+`src/billing/pricingDisplay.ts`, `src/types/consumer.ts`, `src/components/conversion/PricingSection.tsx`, `src/components/conversion/TripPassModal.tsx`, `src/components/consumer/ConsumerBillingSection.tsx`, plus the parity tests (`iap-parity.test.ts`, `pricingParity.test.ts`) and `scripts/validate-iap-parity.mjs`.
+
+### 3. Backend grant + legacy compatibility
+- `supabase/functions/create-checkout/index.ts` — add `pass-explorer-30` to the price-ID, duration (30), and tier maps. Keep `pass-explorer-45` as a legacy alias mapping to the same Stripe price and tier so any in-flight checkout or cached client still resolves; its duration entry stays 45 so a session already created is honored as sold.
+- `supabase/functions/stripe-webhook/index.ts` — the duration comes from session metadata; change the hardcoded fallback `|| '45'` to `'30'`.
+- No database migration needed: existing passes store an absolute `current_period_end`, so already-purchased 45-day windows are unaffected.
+
+### 4. Hardcoded copy
+- `PricingSection.tsx` FAQ: "the whole trip window (45 or 90 days)" → "(30 or 90 days)".
+- Any remaining literal "45 days" strings in trip-pass copy get derived from `TRIP_PASS_DISPLAY` instead of hardcoded.
+
+### 5. Store parity artifacts + docs
+- `appstore/IAP_PARITY_CHECKLIST.md` — row 7 duration → 30 days, reference name → `Explorer Trip Pass — 30 Days`, and the 45/90 mentions in the Play + RevenueCat rows.
+- `docs/agentic/app-store-connect-trippass-copy-refresh.md` and `docs/agentic/google-play-console-iap-parity-refresh.md` — regenerate the paste-ready Explorer Pass display name, description, and review copy for 30 days.
+- `docs/agentic/app-store-connect-iap-review-screenshots.md` — confirmed-values line.
+- `appstore/asc-products.json` / `playstore/play-products.json` unchanged (product IDs are the same).
+
+## Manual store work you'll do after this
+
+Neither store stores the duration for these products — it's a backend grant — so this is a **copy-only** update in ASC and Play Console:
+- ASC: change the Explorer Trip Pass Display Name / Reference Name and the localized description to say 30 days.
+- Play Console: change the managed in-app product name/description to say 30 days.
+- RevenueCat: nothing to change (no duration field for non-renewing/one-time products; the grant length is ours).
+
+The refreshed paste-ready strings will be in the two agentic docs above.
+
+## Verification
+
+`npm run iap:parity` (exit 0), `bunx vitest run src/billing`, `npm run typecheck`, and a grep confirming no `45`-day trip-pass literals remain outside historical audit docs.
