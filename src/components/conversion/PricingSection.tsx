@@ -323,7 +323,7 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
       if (iosNative) {
         const { purchaseTripPass } = await import('@/integrations/revenuecat/revenuecatClient');
         const tier: 'explorer' | 'frequent-chraveler' =
-          passId === 'pass-explorer-45' ? 'explorer' : 'frequent-chraveler';
+          passId === 'pass-explorer-30' ? 'explorer' : 'frequent-chraveler';
         const result = await purchaseTripPass(tier);
         if (result.success) {
           toast.success('Trip Pass activated!');
@@ -365,7 +365,7 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
 
   const tripPassTiers: PricingTier[] = [
     {
-      id: 'pass-explorer-45',
+      id: 'pass-explorer-30',
       name: 'Explorer Trip Pass',
       price: TRIP_PASS_DISPLAY.explorer.price,
       description: `One trip, done. ${TRIP_PASS_DISPLAY.explorer.durationDays} days of Explorer features — no subscription, no cancel reminders, no card kept on file.`,
@@ -380,10 +380,10 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
         'ICS calendar export',
         'Preference-aware AI recommendations',
       ],
-      cta: passLoading === 'pass-explorer-45' ? 'Starting checkout…' : 'Get Explorer Pass',
+      cta: passLoading === 'pass-explorer-30' ? 'Starting checkout…' : 'Get Explorer Pass',
       category: 'consumer',
       badge: 'One-time · No renewal',
-      ctaAction: () => handlePassPurchase('pass-explorer-45'),
+      ctaAction: () => handlePassPurchase('pass-explorer-30'),
     },
     {
       id: 'pass-frequent-90',

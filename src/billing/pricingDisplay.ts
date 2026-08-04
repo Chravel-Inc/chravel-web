@@ -27,7 +27,7 @@ const CONSUMER_PRODUCT_KEY: Record<ConsumerTier, string> = {
 };
 
 const PASS_KEY: Record<ConsumerTier, string> = {
-  explorer: 'pass-explorer-45',
+  explorer: 'pass-explorer-30',
   'frequent-chraveler': 'pass-frequent-90',
 };
 

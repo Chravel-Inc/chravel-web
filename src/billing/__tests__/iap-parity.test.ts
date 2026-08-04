@@ -66,10 +66,10 @@ describe('IAP parity — billing/config.ts ↔ constants/revenuecat.ts', () => {
       BILLING_PRODUCTS['consumer-frequent-chraveler'].priceAnnual,
     );
     expect(REVENUECAT_PRICING.tripPasses.explorer.price).toBe(
-      TRIP_PASS_PRODUCTS['pass-explorer-45'].price,
+      TRIP_PASS_PRODUCTS['pass-explorer-30'].price,
     );
     expect(REVENUECAT_PRICING.tripPasses.explorer.durationDays).toBe(
-      TRIP_PASS_PRODUCTS['pass-explorer-45'].durationDays,
+      TRIP_PASS_PRODUCTS['pass-explorer-30'].durationDays,
     );
     expect(REVENUECAT_PRICING.tripPasses.frequentChraveler.price).toBe(
       TRIP_PASS_PRODUCTS['pass-frequent-90'].price,

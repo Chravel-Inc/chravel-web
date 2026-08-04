@@ -157,8 +157,8 @@ export const CONSUMER_PRICING = {
   explorer: {
     monthly: _explorer.priceMonthly,
     annual: _explorerAnnual,
-    tripPass: TRIP_PASS_PRODUCTS['pass-explorer-45'].price,
-    tripPassDays: TRIP_PASS_PRODUCTS['pass-explorer-45'].durationDays,
+    tripPass: TRIP_PASS_PRODUCTS['pass-explorer-30'].price,
+    tripPassDays: TRIP_PASS_PRODUCTS['pass-explorer-30'].durationDays,
     trips: Infinity,
     aiQueries: 25, // 25 queries per trip
     savings: _annualSavings(_explorer.priceMonthly, _explorerAnnual),

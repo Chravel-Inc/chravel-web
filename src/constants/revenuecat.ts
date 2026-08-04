@@ -48,7 +48,7 @@ export const REVENUECAT_ENTITLEMENTS = {
  * Trip Pass products MUST be created as **non-renewing subscriptions** (iOS) /
  * **one-time products** (Android) in the store consoles, then attached in the
  * RevenueCat dashboard to the matching consumer entitlement
- * (`chravel_explorer` / `chravel_frequent_chraveler`) with a 45-day / 90-day
+ * (`chravel_explorer` / `chravel_frequent_chraveler`) with a 30-day / 90-day
  * grant window. Without those store + dashboard entries,
  * `purchaseTripPass()` will fail with "Trip Pass product … not found".
  */
@@ -62,7 +62,7 @@ export const REVENUECAT_PRODUCTS = {
   frequentChravelerAnnual: 'com.chravel.frequentchraveler.annual',
 
   // Trip Passes (one-time, primary consumer offering)
-  explorerPass45: 'com.chravel.trippass.explorer',
+  explorerPass30: 'com.chravel.trippass.explorer',
   frequentChravelerPass90: 'com.chravel.trippass.frequent',
 
   // Pro tiers — Starter/Growth monthly are exposed on iOS via RevenueCat.
@@ -100,7 +100,7 @@ export const REQUIRED_IOS_PRODUCT_IDS = [
   REVENUECAT_PRODUCTS.explorerAnnual,
   REVENUECAT_PRODUCTS.frequentChravelerMonthly,
   REVENUECAT_PRODUCTS.frequentChravelerAnnual,
-  REVENUECAT_PRODUCTS.explorerPass45,
+  REVENUECAT_PRODUCTS.explorerPass30,
   REVENUECAT_PRODUCTS.frequentChravelerPass90,
   REVENUECAT_PRODUCTS.proStarterMonthly,
   REVENUECAT_PRODUCTS.proGrowthMonthly,
@@ -135,7 +135,7 @@ export function assertIosProductIdsConfigured(): ProductIdAssertion {
  *
  * IMPORTANT: These values MUST match src/billing/config.ts
  * Subscriptions: Explorer $9.99/month, $99/year | FC $19.99/month, $199/year
- * Trip Passes (primary consumer offering): Explorer $39.99/45 days | FC $74.99/90 days
+ * Trip Passes (primary consumer offering): Explorer $39.99/30 days | FC $74.99/90 days
  */
 export const REVENUECAT_PRICING = {
   explorer: {
@@ -149,7 +149,7 @@ export const REVENUECAT_PRICING = {
     currency: 'USD',
   },
   tripPasses: {
-    explorer: { price: 39.99, durationDays: 45, currency: 'USD' },
+    explorer: { price: 39.99, durationDays: 30, currency: 'USD' },
     frequentChraveler: { price: 74.99, durationDays: 90, currency: 'USD' },
   },
 } as const;

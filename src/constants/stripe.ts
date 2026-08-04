@@ -106,13 +106,13 @@ export const PRO_PLANS = {
 // ============================================================
 
 export const TRIP_PASS_PLANS = {
-  'pass-explorer-45': {
-    name: 'Explorer Trip Pass (45 days)',
+  'pass-explorer-30': {
+    name: 'Explorer Trip Pass (30 days)',
     tier: 'explorer',
     product_id: 'prod_U73WaALe9yjrAR',
     price_id: 'price_1T8pP047wCAQ57Mm6sfNTg2w',
     amount: 3999, // $39.99
-    durationDays: 45,
+    durationDays: 30,
   },
   'pass-frequent-90': {
     name: 'Frequent Chraveler Trip Pass (90 days)',
@@ -165,7 +165,7 @@ export function getTierFromProductId(productId: string): string {
     return 'frequent-chraveler';
 
   // Trip Pass products
-  if (productId === TRIP_PASS_PLANS['pass-explorer-45'].product_id) return 'explorer';
+  if (productId === TRIP_PASS_PLANS['pass-explorer-30'].product_id) return 'explorer';
   if (productId === TRIP_PASS_PLANS['pass-frequent-90'].product_id) return 'frequent-chraveler';
 
   // Pro plans
