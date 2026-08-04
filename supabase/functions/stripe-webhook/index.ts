@@ -342,7 +342,7 @@ async function handleCheckoutCompleted(
   // Handle Trip Pass purchase
   if (purchaseType === 'pass') {
     const tier = session.metadata?.tier || 'explorer';
-    const durationDays = parseInt(session.metadata?.duration_days || '45', 10);
+    const durationDays = parseInt(session.metadata?.duration_days || '30', 10);
 
     logStep('Processing Trip Pass purchase', { userId, tier, durationDays });
 

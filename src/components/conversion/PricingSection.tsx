@@ -280,7 +280,7 @@ const _faqItems = [
   {
     question: 'Why buy a Trip Pass instead of subscribing monthly?',
     answer:
-      "Trip Passes are one-time purchases — no auto-renew, no cancel reminders, no card kept on file after checkout. Buy once, use it for the whole trip window (45 or 90 days), and you're done. Perfect for people who take a few trips a year and don't want a subscription running in the background. Your exports and trip data stay forever, even after the pass expires. If you travel every month, a monthly or annual subscription is the better deal.",
+      "Trip Passes are one-time purchases — no auto-renew, no cancel reminders, no card kept on file after checkout. Buy once, use it for the whole trip window (30 or 90 days), and you're done. Perfect for people who take a few trips a year and don't want a subscription running in the background. Your exports and trip data stay forever, even after the pass expires. If you travel every month, a monthly or annual subscription is the better deal.",
   },
 ];
 

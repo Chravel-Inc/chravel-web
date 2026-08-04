@@ -138,9 +138,9 @@ describe('pricing parity — constants/revenuecat.ts mirrors billing/config.ts',
   });
 
   it('RevenueCat trip-pass product IDs match billing/config Trip Pass appleProductId', () => {
-    expect(REVENUECAT_PRODUCTS.explorerPass45).toBe('com.chravel.trippass.explorer');
+    expect(REVENUECAT_PRODUCTS.explorerPass30).toBe('com.chravel.trippass.explorer');
     expect(REVENUECAT_PRODUCTS.frequentChravelerPass90).toBe('com.chravel.trippass.frequent');
-    expect(isTripPassProductId(REVENUECAT_PRODUCTS.explorerPass45)).toBe(true);
+    expect(isTripPassProductId(REVENUECAT_PRODUCTS.explorerPass30)).toBe(true);
   });
 
   it('RevenueCat trip-pass pricing matches Stripe trip-pass pricing', () => {

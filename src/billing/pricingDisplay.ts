@@ -81,7 +81,7 @@ interface TripPassDisplay {
   durationDays: number;
   /** "$39.99" */
   price: string;
-  /** "$39.99 for 45 days" */
+  /** "$39.99 for 30 days" */
   label: string;
 }
 

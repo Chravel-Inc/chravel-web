@@ -141,7 +141,7 @@ export const LIFESTYLE_OPTIONS = [
 /**
  * Consumer subscription pricing
  *
- * PRIMARY consumer offering: Trip Passes ($39.99/45d, $74.99/90d)
+ * PRIMARY consumer offering: Trip Passes ($39.99/30d, $74.99/90d)
  * Subscriptions exist for recurring travelers ($9.99/mo, $19.99/mo)
  */
 const _explorer = BILLING_PRODUCTS['consumer-explorer'];
