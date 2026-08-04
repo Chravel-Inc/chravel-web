@@ -29,7 +29,7 @@ Both must exit 0.
 | 4 | `com.chravel.frequentchraveler.annual` | Subscription | yearly | $199.00 | `chravel_frequent_chraveler` |
 | 5 | `com.chravel.pro.starter.monthly` | Subscription | monthly | $49.00 | `chravel_pro_starter` |
 | 6 | `com.chravel.pro.growth.monthly` | Subscription | monthly | $99.00 | `chravel_pro_growth` |
-| 7 | `com.chravel.trippass.explorer` | Managed in-app product | one-time | $39.99 | `chravel_explorer` (45-day backend grant) |
+| 7 | `com.chravel.trippass.explorer` | Managed in-app product | one-time | $39.99 | `chravel_explorer` (30-day backend grant) |
 | 8 | `com.chravel.trippass.frequent` | Managed in-app product | one-time | $74.99 | `chravel_frequent_chraveler` (90-day backend grant) |
 
 Google Play has **no non-renewing subscription** primitive. Trip Passes are **Managed
