@@ -64,10 +64,6 @@ serve(async req => {
         return await sendPushNotification(securePayload, corsHeaders);
       case 'send_email':
         return await sendEmailNotification(securePayload, corsHeaders);
-      case 'save_token':
-        return await savePushToken(securePayload, corsHeaders);
-      case 'remove_token':
-        return await removePushToken(securePayload, corsHeaders);
       default:
         throw new Error('Invalid action');
     }
@@ -209,43 +205,6 @@ async function sendEmailNotification(
   });
 }
 
-async function savePushToken(
-  { userId, token, platform }: any,
-  corsHeaders: Record<string, string>,
-) {
-  const { data, error } = await supabase
-    .from('push_tokens')
-    .upsert(
-      {
-        user_id: userId,
-        token,
-        platform: platform || 'web',
-        updated_at: new Date().toISOString(),
-      },
-      {
-        onConflict: 'user_id,token',
-      },
-    )
-    .select()
-    .single();
-
-  if (error) throw error;
-
-  return new Response(JSON.stringify({ success: true, data }), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
-}
-
-async function removePushToken({ userId, token }: any, corsHeaders: Record<string, string>) {
-  const { error } = await supabase
-    .from('push_tokens')
-    .delete()
-    .eq('user_id', userId)
-    .eq('token', token);
-
-  if (error) throw error;
-
-  return new Response(JSON.stringify({ success: true }), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
-}
+// save_token/remove_token were removed: they wrote to a push_tokens table that
+// does not exist in this database. Device push registration is owned by
+// push_device_tokens via send-push / push-client-config.

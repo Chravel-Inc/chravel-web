@@ -42,6 +42,18 @@ const CHECKS = [
     cmd: ['node', 'scripts/drift/check-migration-drift.mjs'],
   },
   {
+    id: 'migration-lint',
+    title: 'Migration idempotency lint (IF NOT EXISTS / OR REPLACE)',
+    sot: 'supabase/migrations/ (idempotent-DDL rules)',
+    cmd: ['npx', 'tsx', 'scripts/lint-migrations.ts'],
+  },
+  {
+    id: 'rls-coverage',
+    title: 'RLS enabled on every migration-created public table',
+    sot: 'supabase/migrations/ (ENABLE ROW LEVEL SECURITY)',
+    cmd: ['npx', 'tsx', 'scripts/check-rls-coverage.ts'],
+  },
+  {
     id: 'edge-functions',
     title: 'Edge function ↔ config.toml auth parity',
     sot: 'supabase/config.toml',

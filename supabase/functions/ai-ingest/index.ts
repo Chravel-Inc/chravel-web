@@ -56,7 +56,7 @@ serve(async req => {
     const { source, sourceId, tripId, content }: IngestRequest = await req.json();
 
     // Membership precheck: caller must be a member of the trip before any service-role read/write.
-    // Mirrors file-ai-parser. Prevents service-role from bypassing RLS for non-members.
+    // Prevents service-role from bypassing RLS for non-members.
     if (tripId) {
       const { data: membership, error: memErr } = await supabase
         .from('trip_members')

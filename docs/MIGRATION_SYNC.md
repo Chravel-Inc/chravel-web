@@ -41,7 +41,12 @@ in the repo, unapplied, until someone notices.
    `add_list_applied_migrations_rpc`, `security_privacy_hardening_pass_part1_rpcs`,
    `security_privacy_hardening_pass_part2_policies`,
    `security_privacy_payment_splits_null_trip_type`.
-   These are live in prod but missing from the repo's history.
+   **Resolved 2026-08-04:** all of the above — plus `billing_checkout_kill_switch_flag`,
+   `seed_ai_concierge_kill_switch`, the six `pre_viral_p0_*` migrations, and
+   `20260804180000_revoke_places_cache_rpcs_from_anon` — were backfilled into the
+   repo verbatim from `schema_migrations.statements` (22 files, each with a
+   BACKFILL header). The repo now reproduces the live migration history for
+   these; deploy-migrations.yml skips them (version/name already recorded).
 
 ## Why not `supabase db push`?
 
@@ -100,7 +105,14 @@ rather than a blind replay. See `docs/LOVABLE_SYNC_PROMPT.md` for the prompt.
 | Feature | Missing fns | Notes |
 |---|---|---|
 | Permission resolver (shelved) | `can_trip_actor_for_user`, `get_trip_mutation_permissions`, `permission_matrix_allows` | intentionally not deployed; app has fallbacks — decide before deploying |
-| Google Maps cache/quota | `get_places_cache`, `set_places_cache`, `get_daily_usage`, `get_hourly_usage`, `record_api_usage` | caching/quota optimization |
-| OCR limits | `check_ocr_rate_limit`, `increment_ocr_usage` | needs `ocr_rate_limits` table |
-| Artifact search | `find_similar_artifacts`, `search_trip_artifacts` | needs embeddings/vector verification |
-| Notifications/PII | `redact_pii_from_text`, `should_suppress_email` | notification filtering |
+| ~~Google Maps cache/quota~~ | ~~`get_places_cache`, `set_places_cache`, `get_daily_usage`, `get_hourly_usage`, `record_api_usage`~~ | **applied 2026-08-04** (live versions 20260804165431/20260804165702) |
+| OCR limits | `check_ocr_rate_limit`, `increment_ocr_usage` | needs `ocr_rate_limits` table; caller `process-receipt-ocr` has no active invoker — provision only if the receipts OCR flow ships |
+| Artifact search | `find_similar_artifacts`, `search_trip_artifacts` | needs embedding columns on `trip_artifacts` (live table has none); gmail_smart_import flag is OFF and the client falls back gracefully — apply `20260310200000_trip_artifacts_multimodal.sql` (adapted) when enabling Smart Import |
+| ~~Email suppression~~ | ~~`should_suppress_email`~~ | **applied 2026-08-04** as `20260804190200_email_bounce_suppression` (with `email_bounces`, hardened grants) |
+| Notifications/PII | `redact_pii_from_text` | caller `process-receipt-ocr` dormant — provision alongside OCR limits if that flow ships |
+
+Also applied 2026-08-04 (audit forward-fixes, recorded + committed):
+`20260804190000_create_concierge_tool_idempotency` (trip_id **text** — the shelved
+20260509120000 original used uuid and could never apply), 
+`20260804190100_create_user_data_exports_bucket`, and
+`20260804190300_remove_stale_feature_flags`.

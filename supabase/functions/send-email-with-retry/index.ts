@@ -136,9 +136,12 @@ serve(async req => {
       htmlContent = renderTemplate(payload.template, payload.templateData || {});
     }
 
-    // Add unsubscribe link (required for compliance)
-    const unsubscribeUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/unsubscribe-email?token=${generateUnsubscribeToken(recipients[0])}`;
-    htmlContent += `<br/><br/><small><a href="${unsubscribeUrl}">Unsubscribe</a></small>`;
+    // Notification-management link. The previous link pointed at a
+    // /functions/v1/unsubscribe-email endpoint that has never existed (dead
+    // 404 in every sent email) with a forgeable btoa token. Until a signed
+    // one-click unsubscribe endpoint exists, link to notification settings —
+    // the same convention as _shared/notificationContentBuilder.ts.
+    htmlContent += `<br/><br/><small><a href="https://www.chravel.app/settings">Manage notification settings</a></small>`;
 
     const maxRetries = payload.maxRetries ?? MAX_RETRIES;
     let lastError: Error | null = null;
@@ -329,19 +332,17 @@ async function handleBounce(
   bounceType: 'hard' | 'soft' | 'complaint',
   reason: string,
 ) {
-  await supabase.from('email_bounces').upsert(
-    {
-      email,
-      bounce_type: bounceType,
-      bounce_count: 1,
-      last_bounce_at: new Date().toISOString(),
-      suppressed: bounceType === 'hard' || bounceType === 'complaint',
-    },
-    {
-      onConflict: 'email,bounce_type',
-      ignoreDuplicates: false,
-    },
-  );
+  // record_email_bounce increments the per-(email,type) counter atomically —
+  // a raw upsert here kept resetting bounce_count to 1, which made the
+  // soft-bounce suppression threshold unreachable.
+  const { error } = await supabase.rpc('record_email_bounce', {
+    p_email: email,
+    p_bounce_type: bounceType,
+  });
+  if (error) {
+    console.error(`Failed to record bounce for ${email} (${bounceType}): ${error.message}`);
+    return;
+  }
 
   console.log(`Bounce recorded: ${email} (${bounceType})`);
 }
@@ -418,9 +419,4 @@ function renderTemplate(templateName: string, data: Record<string, any>): string
   };
 
   return templates[templateName] || `<p>${data.content}</p>`;
-}
-
-function generateUnsubscribeToken(email: string): string {
-  // In production, use proper token generation and storage
-  return btoa(email + ':' + Date.now());
 }
