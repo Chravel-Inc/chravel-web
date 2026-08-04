@@ -141,21 +141,37 @@ no-op — worth remembering as a pair.
 | `google_calendar_accounts` | **Applied.** `calendar-auth` is app-invoked and would fail on connect, but `google_calendar_sync` is off (the flag row did not even exist, and `useFeatureFlag` defaults to `false`), so the UI is hidden. Applying creates the table + token-free `_safe` view and seeds the flag **off** — nothing turns on, the landmine is gone. |
 | Gmail import — `gmail_import_artifacts`, `gmail_import_message_logs`, `gmail_token_audit_logs` | **Deferred deliberately.** `gmail_smart_import` is `enabled=false, rollout=0` in production, so there is no live breakage. Restoring it means applying three large, interdependent migrations (`20260315000000_gmail_hardening`, `20260401000000_smart_import`, `20260524090000_gmail_import_durable_checkpoints`) against a production DB where `gmail_accounts` already partially exists. That is a reviewed migration exercise, not a blind apply, and it must not ride along in a launch PR. **Must be done before `gmail_smart_import` is ever flipped on.** |
 
-### Abandoned → deleted
+### Abandoned → identified, deliberately NOT deleted
 
-Ten edge functions with **zero references** anywhere in `src/`, `supabase/functions/`, `scripts/` or
-`e2e/`, no cron entry, and a core table that does not exist — so they provably could not have worked:
+Fourteen edge functions have no `functions.invoke()` call site, no cron entry, and a core table that
+does not exist, so they cannot currently work:
 
 `daily-digest` · `message-scheduler` · `update-location` · `delete-stale-locations` ·
 `populate-search-index` · `cleanup-staging-tables` · `seed-mock-messages` · `file-ai-parser` ·
-`process-receipt-ocr` · `verify-identity`
+`process-receipt-ocr` · `verify-identity` · `event-reminders` · `ai-features` · `ai-answer` ·
+`ai-search`
 
-**Two things this does NOT do.** Deleting the source does **not** undeploy them — all of them remain
-live in production, still holding their secrets and still accepting traffic. Undeploying is a
-separate manual step (`supabase functions delete <name>`, or the dashboard). And four more
-abandoned functions were left in place — `event-reminders`, `ai-features`, `ai-answer`, `ai-search`
-— because they are pinned in `supabase/config.toml`, which agents are forbidden to edit; deleting
-their source would leave that file referencing functions that no longer exist.
+They were deleted and then **restored**, for three reasons that only became clear once the tests ran:
+
+1. **The reachability check that justified deleting them was wrong.** It filtered out each
+   function's own directory using a match on the *line content* rather than the *file path*, so any
+   reference that happened to contain the string `supabase/functions/<name>/` was silently
+   discarded — which is exactly the shape every reference to these functions takes. Re-run
+   correctly, four of them are referenced.
+2. **Those four are referenced by security regression tests.**
+   `p0SecurityHardening.test.ts` and `formerMemberAccessHardening20260723.test.ts` read
+   `message-scheduler`, `update-location`, `populate-search-index` and `process-receipt-ocr` to
+   assert they carry caller-authorization and active-status filtering. Deleting the sources deletes
+   the guards.
+3. **Deleting source does not undeploy anything.** All fourteen remain live in production, holding
+   their secrets and reachable over HTTP. Removing the source — and, for four of them, the tests
+   that police them — would reduce safety on live endpoints while changing nothing operationally.
+
+**The correct sequence is undeploy first, then delete source and tests together**, one function at a
+time, confirming no traffic in the edge logs before each removal. That is a deliberate cleanup pass,
+not a line item in a launch PR. Four of them (`event-reminders`, `ai-features`, `ai-answer`,
+`ai-search`) additionally need their `[functions.*]` entries removed from `supabase/config.toml`,
+which agents are forbidden to edit — so those require a human regardless.
 
 ### Verified non-defects
 
