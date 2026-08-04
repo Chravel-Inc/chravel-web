@@ -1,7 +1,11 @@
-// Ownership taken from @lovable.dev/mcp-js on 2026-08-04. The AUTO-GENERATED banner was removed
-// deliberately — that is the plugin's documented opt-out ("delete this banner line; the plugin then
-// leaves the file alone"). The upstream sources still live at src/lib/mcp/index.ts and
-// src/lib/mcp/tools/echo.ts; keep them in sync by hand, or restore the banner to hand control back.
+// Hand-owned as of 2026-08-04. THIS FILE IS NOW THE SINGLE SOURCE for the `mcp` edge function.
+//
+// It used to be generated from src/lib/mcp/{index,tools/echo}.ts by `mcpPlugin()` in vite.config.ts.
+// The plugin's banner claims that deleting it makes the plugin "leave the file alone" — it does not.
+// writeIfChanged() THROWS on a user-authored file ("refusing to overwrite user-authored file"),
+// which fails `npm run build` outright. So the plugin was removed from vite.config.ts and the
+// generator sources were deleted, rather than leaving two copies to drift silently. To hand control
+// back, restore mcpPlugin() and let it regenerate this file — but see the size problem below first.
 //
 // WHY THIS FILE IS HAND-OWNED — the `npm:` specifiers made this function undeployable.
 //

@@ -2,7 +2,16 @@ import { defineConfig, Plugin } from 'vite';
 import react from '@vitejs/plugin-react-swc';
 import path from 'path';
 import { componentTagger } from 'lovable-tagger';
-import { mcpPlugin } from '@lovable.dev/mcp-js/stacks/supabase/vite';
+// NOTE: `mcpPlugin` from '@lovable.dev/mcp-js/stacks/supabase/vite' was removed deliberately.
+// Its only jobs were regenerating supabase/functions/mcp/index.ts from src/lib/mcp/ at config time
+// and re-running that on change in dev — it does not serve the MCP endpoint locally. That generated
+// output imported the package via `npm:` specifiers, and Supabase vendors an npm specifier's entire
+// dependency tarball closure, including esbuild's prebuilt binaries: a ~25 MB artifact the deploy
+// endpoint rejected with HTTP 413, which silently blocked 42 other functions from deploying.
+// supabase/functions/mcp/index.ts is now hand-owned and imports through esm.sh; see the header
+// comment there. With the artifact hand-owned the plugin has nothing left to do, and leaving it
+// enabled actively breaks `npm run build` — it throws rather than skipping when it finds a
+// user-authored file ("refusing to overwrite user-authored file"), contradicting its own banner.
 
 // Generate build version timestamp
 const buildVersion = Date.now().toString(36);
@@ -74,12 +83,9 @@ export default defineConfig(({ mode }) => ({
     host: '0.0.0.0',
     port: 8080,
   },
-  plugins: [
-    react(),
-    buildVersionPlugin(),
-    mcpPlugin(),
-    mode === 'development' && componentTagger(),
-  ].filter(Boolean),
+  plugins: [react(), buildVersionPlugin(), mode === 'development' && componentTagger()].filter(
+    Boolean,
+  ),
 
   resolve: {
     alias: {
