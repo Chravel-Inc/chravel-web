@@ -14,7 +14,7 @@ RevenueCat columns are manual.
 | 4 | `com.chravel.frequentchraveler.annual` | Auto-Renewable Subscription | `chravel_frequent_chraveler` | 199.00 | 1 year | Frequent Chraveler Annual |
 | 5 | `com.chravel.pro.starter.monthly` | Auto-Renewable Subscription | `chravel_pro_starter` | 49.00 | 1 month | Starter Pro Monthly |
 | 6 | `com.chravel.pro.growth.monthly` | Auto-Renewable Subscription | `chravel_pro_growth` | 99.00 | 1 month | Growth Pro Monthly |
-| 7 | `com.chravel.trippass.explorer` | Non-Renewing Subscription | `chravel_explorer` (45-day grant) | 39.99 | 45 days | Explorer Trip Pass — 45 Days |
+| 7 | `com.chravel.trippass.explorer` | Non-Renewing Subscription | `chravel_explorer` (30-day grant) | 39.99 | 30 days | Explorer Trip Pass — 30 Days |
 | 8 | `com.chravel.trippass.frequent` | Non-Renewing Subscription | `chravel_frequent_chraveler` (90-day grant) | 74.99 | 90 days | Frequent Chraveler Trip Pass — 90 Days |
 
 Enterprise ($custom / contact-sales) is intentionally NOT in this list. It is hidden from iOS and handled on web only.
@@ -37,11 +37,11 @@ For each row above, tick all three:
   - [ ] Product identifier equals the Product ID exactly.
   - [ ] Attached to the Entitlement listed above.
   - [ ] Included in the current (default) Offering.
-  - [ ] For Trip Passes: non-consumable / non-renewing type with the 45-day / 90-day grant configured.
+  - [ ] For Trip Passes: non-consumable / non-renewing type with the 30-day / 90-day grant configured.
 - [ ] **Google Play Console** (see `docs/agentic/google-play-console-iap-parity-refresh.md`)
   - [ ] Product exists with the exact Product ID string above (case-sensitive, immutable — Google IDs mirror Apple IDs 1:1).
   - [ ] For IDs 1–6: Subscription with monthly or yearly base plan matching the Duration column, USD price matching, offer active.
-  - [ ] For IDs 7–8 (Trip Passes): Managed **In-app product** (Play has no "non-renewing subscription" — the 45/90-day grant is enforced by the backend via `TRIP_PASS_PRODUCTS[*].durationDays`).
+  - [ ] For IDs 7–8 (Trip Passes): Managed **In-app product** (Play has no "non-renewing subscription" — the 30/90-day grant is enforced by the backend via `TRIP_PASS_PRODUCTS[*].durationDays`).
   - [ ] Product name + description match the copy in the agentic doc.
   - [ ] RevenueCat Play (Android) app has this product ID attached to the same entitlement as its Apple twin, in the same default offering.
 

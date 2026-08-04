@@ -40,5 +40,5 @@ After all 7 uploads succeed, take a screenshot of the IAP list page showing all 
 ## Verification Notes
 
 - Pricing parity: `PricingSection.tsx` (marketing homepage) and `ConsumerBillingSection.tsx` (Settings → Billing) both read from `src/billing/pricingDisplay.ts`, which derives from `src/billing/config.ts`. No hardcoded prices in either component — the two views are guaranteed in sync.
-- Confirmed values: Explorer $9.99/mo ($99/yr), Frequent Chraveler $19.99/mo ($199/yr), Starter Pro $49/mo, Growth Pro $99/mo, Enterprise $199/mo, Explorer Trip Pass $39.99 / 45 days, Frequent Chraveler Trip Pass $74.99 / 90 days.
+- Confirmed values: Explorer $9.99/mo ($99/yr), Frequent Chraveler $19.99/mo ($199/yr), Starter Pro $49/mo, Growth Pro $99/mo, Enterprise $199/mo, Explorer Trip Pass $39.99 / 30 days, Frequent Chraveler Trip Pass $74.99 / 90 days.
 - CTA copy: Screenshots were captured with `?app_context=native` and an iOS WKWebView user agent so `isIOSNativeShell()` returns true, forcing Apple-branded CTAs required by App Store guideline 3.1.1.
