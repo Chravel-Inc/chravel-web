@@ -41,19 +41,24 @@ const PRICE_IDS: Record<string, string> = {
   'pro-enterprise': 'price_1T8pOg47wCAQ57MmcEPnjd3s',
 
   // Trip Passes (one-time)
-  'pass-explorer-45': 'price_1T8pP047wCAQ57Mm6sfNTg2w',
+  'pass-explorer-30': 'price_1T8pP047wCAQ57Mm6sfNTg2w',
+  // Legacy key kept so in-flight / cached clients still resolve to the same price.
+  'pass-explorer-30': 'price_1T8pP047wCAQ57Mm6sfNTg2w',
   'pass-frequent-90': 'price_1T8pP047wCAQ57Mm2DOch99F',
 };
 
 // Duration mapping for Trip Passes
 const PASS_DURATION_DAYS: Record<string, number> = {
-  'pass-explorer-45': 45,
+  'pass-explorer-30': 30,
+  // Legacy: sessions created under the old key are honored at 45 days as sold.
+  'pass-explorer-30': 45,
   'pass-frequent-90': 90,
 };
 
 // Tier mapping for Trip Passes
 const PASS_TIER: Record<string, string> = {
-  'pass-explorer-45': 'explorer',
+  'pass-explorer-30': 'explorer',
+  'pass-explorer-30': 'explorer',
   'pass-frequent-90': 'frequent-chraveler',
 };
 
@@ -169,7 +174,7 @@ serve(async req => {
           400,
         );
       }
-      // Trip Pass: tier is already the pass key like 'pass-explorer-45'
+      // Trip Pass: tier is already the pass key like 'pass-explorer-30'
       priceIdKey = tier;
     } else {
       // Subscription: normalize tier

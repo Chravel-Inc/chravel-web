@@ -29,7 +29,7 @@ Both must exit 0.
 | 4 | `com.chravel.frequentchraveler.annual` | Subscription | yearly | $199.00 | `chravel_frequent_chraveler` |
 | 5 | `com.chravel.pro.starter.monthly` | Subscription | monthly | $49.00 | `chravel_pro_starter` |
 | 6 | `com.chravel.pro.growth.monthly` | Subscription | monthly | $99.00 | `chravel_pro_growth` |
-| 7 | `com.chravel.trippass.explorer` | Managed in-app product | one-time | $39.99 | `chravel_explorer` (45-day backend grant) |
+| 7 | `com.chravel.trippass.explorer` | Managed in-app product | one-time | $39.99 | `chravel_explorer` (30-day backend grant) |
 | 8 | `com.chravel.trippass.frequent` | Managed in-app product | one-time | $74.99 | `chravel_frequent_chraveler` (90-day backend grant) |
 
 Google Play has **no non-renewing subscription** primitive. Trip Passes are **Managed
@@ -82,7 +82,7 @@ Enterprise ($custom) is **not** in Play Console — web-only contact-sales.
 
 **7. `com.chravel.trippass.explorer`**
 - Name: `Explorer Trip Pass`
-- Description: `One trip, done. 45 days of Explorer features — unlimited trips, extended AI Concierge, extended storage, calendar sync, PDF export. One-time purchase, no auto-renew, no card kept on file.`
+- Description: `One trip, done. 30 days of Explorer features — unlimited trips, extended AI Concierge, extended storage, calendar sync, PDF export. One-time purchase, no auto-renew, no card kept on file.`
 
 **8. `com.chravel.trippass.frequent`**
 - Name: `Frequent Chraveler Trip Pass`
@@ -143,5 +143,5 @@ For each Trip Pass:
 - Product IDs (Apple or Google) — immutable, mirrored 1:1.
 - Any subscription group, base plan ID, or offer ID.
 - Any price in a currency other than USD (localized prices are set via Play's auto-conversion or, if manually overridden, handled in a separate task).
-- `TRIP_PASS_PRODUCTS[*].durationDays` — the 45/90-day window is a backend grant and stays authoritative in code.
+- `TRIP_PASS_PRODUCTS[*].durationDays` — the 30/90-day window is a backend grant and stays authoritative in code.
 - ASC or RevenueCat records (already in parity per `IAP_PARITY_CHECKLIST.md`).

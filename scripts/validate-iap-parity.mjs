@@ -213,12 +213,12 @@ expect(
 );
 expect(
   'Explorer Trip Pass price',
-  tripPasses['pass-explorer-45']?.price,
+  tripPasses['pass-explorer-30']?.price,
   rcPricing.tripPasses?.explorer?.price,
 );
 expect(
   'Explorer Trip Pass duration',
-  tripPasses['pass-explorer-45']?.durationDays,
+  tripPasses['pass-explorer-30']?.durationDays,
   rcPricing.tripPasses?.explorer?.durationDays,
 );
 expect(

@@ -6,7 +6,7 @@ out of Apple's structural IAP re-review queue.
 
 ## Why this exists
 
-Trip Pass durations (45 days Explorer, 90 days Frequent Chraveler) are enforced entirely by our
+Trip Pass durations (30 days Explorer, 90 days Frequent Chraveler) are enforced entirely by our
 backend (`TRIP_PASS_PRODUCTS[*].durationDays` → RevenueCat grant → `user_entitlements.current_period_end`).
 ASC and RevenueCat only know the product ID and price — they don't validate duration. So we're
 sharpening the *positioning* on both stores without changing any product structure.
@@ -15,11 +15,11 @@ sharpening the *positioning* on both stores without changing any product structu
 
 ### Explorer Trip Pass
 - **Product ID (immutable, do NOT change):** `com.chravel.trippass.explorer`
-- **Reference Name / Display Name:** `Explorer Trip Pass — 45 Days`
+- **Reference Name / Display Name:** `Explorer Trip Pass — 30 Days`
 - **Description (App Store, 45–200 chars):**
-  > One-time purchase. 45 days of Explorer premium features — no subscription, no auto-renew, no card kept on file after checkout. Your exports stay forever.
+  > One-time purchase. 30 days of Explorer premium features — no subscription, no auto-renew, no card kept on file after checkout. Your exports stay forever.
 - **Google Play in-app product description:**
-  > One-time purchase. 45 days of Explorer features. No subscription, no auto-renew.
+  > One-time purchase. 30 days of Explorer features. No subscription, no auto-renew.
 
 ### Frequent Chraveler Trip Pass
 - **Product ID (immutable, do NOT change):** `com.chravel.trippass.frequent`
@@ -30,7 +30,7 @@ sharpening the *positioning* on both stores without changing any product structu
   > One-time purchase. 90 days of Frequent Chraveler features. Best value per day. No auto-renew.
 
 ### Review Notes (both Trip Passes)
-> One-time purchase (non-renewing subscription in StoreKit terms). CTA reads "Buy with Apple" because the app uses StoreKit / RevenueCat for all iOS purchases. Access duration (45 or 90 days) is granted by our backend on receipt validation via RevenueCat; ASC does not need to enforce the window. No external payment links. No auto-renew — users see a clear "one-time purchase" label on the paywall.
+> One-time purchase (non-renewing subscription in StoreKit terms). CTA reads "Buy with Apple" because the app uses StoreKit / RevenueCat for all iOS purchases. Access duration (30 or 90 days) is granted by our backend on receipt validation via RevenueCat; ASC does not need to enforce the window. No external payment links. No auto-renew — users see a clear "one-time purchase" label on the paywall.
 
 ## Agentic Browser Script — App Store Connect
 
@@ -40,7 +40,7 @@ For each Trip Pass in the table below, perform these steps in App Store Connect:
 Table:
 | Product ID                        | New Reference Name                          | New Description                                                                                                                                                                     |
 |-----------------------------------|---------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| com.chravel.trippass.explorer     | Explorer Trip Pass — 45 Days                | One-time purchase. 45 days of Explorer premium features — no subscription, no auto-renew, no card kept on file after checkout. Your exports stay forever.                            |
+| com.chravel.trippass.explorer     | Explorer Trip Pass — 30 Days                | One-time purchase. 30 days of Explorer premium features — no subscription, no auto-renew, no card kept on file after checkout. Your exports stay forever.                            |
 | com.chravel.trippass.frequent     | Frequent Chraveler Trip Pass — 90 Days      | One-time purchase. 90 days of the full Frequent Chraveler experience — double the window, best value per day. No auto-renew, no card kept on file. Exports stay forever.            |
 
 Steps per row:
@@ -54,7 +54,7 @@ Steps per row:
 8. Confirm status remains "Ready to Submit" or "Approved" (should not drop to "Missing Metadata").
 
 Review Notes (paste for both Trip Passes):
-"One-time purchase (non-renewing subscription in StoreKit terms). CTA reads 'Buy with Apple' because the app uses StoreKit / RevenueCat for all iOS purchases. Access duration (45 or 90 days) is granted by our backend on receipt validation via RevenueCat; ASC does not need to enforce the window. No external payment links. No auto-renew — users see a clear 'one-time purchase' label on the paywall."
+"One-time purchase (non-renewing subscription in StoreKit terms). CTA reads 'Buy with Apple' because the app uses StoreKit / RevenueCat for all iOS purchases. Access duration (30 or 90 days) is granted by our backend on receipt validation via RevenueCat; ASC does not need to enforce the window. No external payment links. No auto-renew — users see a clear 'one-time purchase' label on the paywall."
 
 After both rows are done, take a screenshot of the IAP list page showing both Trip Pass products still in "Ready to Submit" or "Approved" state and report the before/after diff for each row.
 
@@ -69,7 +69,7 @@ For each Trip Pass in the table below, perform these steps in Google Play Consol
 Table:
 | Product ID                        | New Title                                   | New Description                                                                                    |
 |-----------------------------------|---------------------------------------------|----------------------------------------------------------------------------------------------------|
-| com.chravel.trippass.explorer     | Explorer Trip Pass — 45 Days                | One-time purchase. 45 days of Explorer features. No subscription, no auto-renew.                    |
+| com.chravel.trippass.explorer     | Explorer Trip Pass — 30 Days                | One-time purchase. 30 days of Explorer features. No subscription, no auto-renew.                    |
 | com.chravel.trippass.frequent     | Frequent Chraveler Trip Pass — 90 Days      | One-time purchase. 90 days of Frequent Chraveler features. Best value per day. No auto-renew.       |
 
 Steps per row:
@@ -100,5 +100,5 @@ notes on ASC, plus 2 titles + 2 descriptions on Play. That's it.
 - ❌ Subscription groups on ASC
 - ❌ Review screenshots (still valid — same products at same prices)
 - ❌ Any of the 6 auto-renewable subscription products
-- ❌ `TRIP_PASS_PRODUCTS.durationDays` in code (still 45 and 90)
+- ❌ `TRIP_PASS_PRODUCTS.durationDays` in code (still 30 and 90)
 - ❌ RevenueCat product/entitlement mappings

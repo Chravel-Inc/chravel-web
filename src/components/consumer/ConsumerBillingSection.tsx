@@ -187,7 +187,7 @@ export const ConsumerBillingSection = () => {
         return;
       }
 
-      const passId = passTier === 'explorer' ? 'pass-explorer-45' : 'pass-frequent-90';
+      const passId = passTier === 'explorer' ? 'pass-explorer-30' : 'pass-frequent-90';
       const {
         data: { session },
       } = await supabase.auth.getSession();

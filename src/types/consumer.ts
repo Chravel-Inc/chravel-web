@@ -141,7 +141,7 @@ export const LIFESTYLE_OPTIONS = [
 /**
  * Consumer subscription pricing
  *
- * PRIMARY consumer offering: Trip Passes ($39.99/45d, $74.99/90d)
+ * PRIMARY consumer offering: Trip Passes ($39.99/30d, $74.99/90d)
  * Subscriptions exist for recurring travelers ($9.99/mo, $19.99/mo)
  */
 const _explorer = BILLING_PRODUCTS['consumer-explorer'];
@@ -157,8 +157,8 @@ export const CONSUMER_PRICING = {
   explorer: {
     monthly: _explorer.priceMonthly,
     annual: _explorerAnnual,
-    tripPass: TRIP_PASS_PRODUCTS['pass-explorer-45'].price,
-    tripPassDays: TRIP_PASS_PRODUCTS['pass-explorer-45'].durationDays,
+    tripPass: TRIP_PASS_PRODUCTS['pass-explorer-30'].price,
+    tripPassDays: TRIP_PASS_PRODUCTS['pass-explorer-30'].durationDays,
     trips: Infinity,
     aiQueries: 25, // 25 queries per trip
     savings: _annualSavings(_explorer.priceMonthly, _explorerAnnual),

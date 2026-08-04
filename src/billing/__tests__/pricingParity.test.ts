@@ -103,8 +103,8 @@ describe('pricing parity — constants/stripe.ts mirrors billing/config.ts', () 
   });
 
   it('Trip Passes match (product IDs, price IDs, price, duration)', () => {
-    const explorerPass = TRIP_PASS_PRODUCTS['pass-explorer-45'];
-    const explorerPassLegacy = TRIP_PASS_PLANS['pass-explorer-45'];
+    const explorerPass = TRIP_PASS_PRODUCTS['pass-explorer-30'];
+    const explorerPassLegacy = TRIP_PASS_PLANS['pass-explorer-30'];
     expect(explorerPassLegacy.product_id).toBe(explorerPass.stripeProductId);
     expect(explorerPassLegacy.price_id).toBe(explorerPass.stripePriceId);
     expect(explorerPassLegacy.amount).toBe(dollarsToCents(explorerPass.price));
@@ -138,17 +138,17 @@ describe('pricing parity — constants/revenuecat.ts mirrors billing/config.ts',
   });
 
   it('RevenueCat trip-pass product IDs match billing/config Trip Pass appleProductId', () => {
-    expect(REVENUECAT_PRODUCTS.explorerPass45).toBe('com.chravel.trippass.explorer');
+    expect(REVENUECAT_PRODUCTS.explorerPass30).toBe('com.chravel.trippass.explorer');
     expect(REVENUECAT_PRODUCTS.frequentChravelerPass90).toBe('com.chravel.trippass.frequent');
-    expect(isTripPassProductId(REVENUECAT_PRODUCTS.explorerPass45)).toBe(true);
+    expect(isTripPassProductId(REVENUECAT_PRODUCTS.explorerPass30)).toBe(true);
   });
 
   it('RevenueCat trip-pass pricing matches Stripe trip-pass pricing', () => {
     expect(REVENUECAT_PRICING.tripPasses.explorer.price).toBe(
-      TRIP_PASS_PRODUCTS['pass-explorer-45'].price,
+      TRIP_PASS_PRODUCTS['pass-explorer-30'].price,
     );
     expect(REVENUECAT_PRICING.tripPasses.explorer.durationDays).toBe(
-      TRIP_PASS_PRODUCTS['pass-explorer-45'].durationDays,
+      TRIP_PASS_PRODUCTS['pass-explorer-30'].durationDays,
     );
     expect(REVENUECAT_PRICING.tripPasses.frequentChraveler.price).toBe(
       TRIP_PASS_PRODUCTS['pass-frequent-90'].price,
@@ -213,7 +213,7 @@ describe('pricing parity — secondary numeric tables derive from billing/config
     expect(CONSUMER_PRICING['frequent-chraveler'].annual).toBe(
       BILLING_PRODUCTS['consumer-frequent-chraveler'].priceAnnual,
     );
-    expect(CONSUMER_PRICING.explorer.tripPass).toBe(TRIP_PASS_PRODUCTS['pass-explorer-45'].price);
+    expect(CONSUMER_PRICING.explorer.tripPass).toBe(TRIP_PASS_PRODUCTS['pass-explorer-30'].price);
     expect(CONSUMER_PRICING['frequent-chraveler'].tripPass).toBe(
       TRIP_PASS_PRODUCTS['pass-frequent-90'].price,
     );

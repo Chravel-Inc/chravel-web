@@ -22,7 +22,7 @@ interface TripPassModalProps {
 
 const passes = [
   {
-    id: 'pass-explorer-45',
+    id: 'pass-explorer-30',
     tier: 'explorer',
     name: 'Explorer Trip Pass',
     duration: `${TRIP_PASS_DISPLAY.explorer.durationDays} days`,
@@ -72,7 +72,7 @@ export const TripPassModal: React.FC<TripPassModalProps> = ({ open, onOpenChange
       // iOS native shell — Apple IAP via RevenueCat (Guideline 3.1.1)
       if (iosNative) {
         const tier: 'explorer' | 'frequent-chraveler' =
-          passId === 'pass-explorer-45' ? 'explorer' : 'frequent-chraveler';
+          passId === 'pass-explorer-30' ? 'explorer' : 'frequent-chraveler';
         const result = await purchaseTripPass(tier);
         handlePurchaseResult(result, {
           successMessage: 'Trip Pass activated!',

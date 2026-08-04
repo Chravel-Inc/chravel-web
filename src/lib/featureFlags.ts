@@ -151,7 +151,8 @@ async function fetchGradualFlagRow(key: string): Promise<GradualFeatureFlagRow |
     .eq('key', key)
     .maybeSingle();
 
-  if (!error && data) return data as GradualFeatureFlagRow;
+  // Cast through unknown: generated types may not yet include the cohort columns.
+  if (!error && data) return data as unknown as GradualFeatureFlagRow;
 
   // Defensive fallback: in an environment where the cohort-columns migration has
   // not been applied yet, the select above errors on the unknown columns. Retry

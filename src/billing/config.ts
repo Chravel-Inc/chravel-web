@@ -201,13 +201,13 @@ export interface TripPassConfig {
 }
 
 export const TRIP_PASS_PRODUCTS: Record<string, TripPassConfig> = {
-  'pass-explorer-45': {
-    name: 'Explorer Trip Pass (45 days)',
+  'pass-explorer-30': {
+    name: 'Explorer Trip Pass (30 days)',
     stripeProductId: 'prod_U73WaALe9yjrAR',
     stripePriceId: 'price_1T8pP047wCAQ57Mm6sfNTg2w',
     appleProductId: 'com.chravel.trippass.explorer',
     googleProductId: 'com.chravel.trippass.explorer',
-    durationDays: 45,
+    durationDays: 30,
     tier: 'explorer',
     price: 39.99,
     entitlements: BILLING_PRODUCTS['consumer-explorer'].entitlements,
