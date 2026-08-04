@@ -37,7 +37,8 @@ const FIXED_FUNCTIONS = [
   'supabase/functions/artifact-ingest/index.ts',
   'supabase/functions/enhanced-ai-parser/index.ts',
   'supabase/functions/document-processor/index.ts',
-  'supabase/functions/update-location/index.ts',
+  // update-location was removed in the 2026-08 production audit (dead function
+  // over the nonexistent realtime_locations table).
   'supabase/functions/generate-embeddings/index.ts',
   'supabase/functions/receipt-parser/index.ts',
   'supabase/functions/process-receipt-ocr/index.ts',

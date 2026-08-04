@@ -65,10 +65,11 @@ describe('P0 security hardening regression checks', () => {
   });
 
   it('guards public service-role edge functions against unauthenticated or cross-tenant access', () => {
+    // message-scheduler and populate-search-index were removed in the 2026-08
+    // production audit (dead functions over nonexistent tables), so they no
+    // longer appear here.
     const messageParser = read('supabase/functions/message-parser/index.ts');
     const broadcastsReact = read('supabase/functions/broadcasts-react/index.ts');
-    const messageScheduler = read('supabase/functions/message-scheduler/index.ts');
-    const populateSearchIndex = read('supabase/functions/populate-search-index/index.ts');
     const imageUpload = read('supabase/functions/image-upload/index.ts');
 
     expect(messageParser).toContain("req.headers.get('authorization')");
@@ -76,9 +77,6 @@ describe('P0 security hardening regression checks', () => {
     expect(messageParser).not.toContain('await fetch(url');
     expect(broadcastsReact).toContain(".from('broadcasts')");
     expect(broadcastsReact).toContain(".eq('status', 'active')");
-    expect(messageScheduler).toContain('verifyCronAuth(req, corsHeaders)');
-    expect(messageScheduler).toContain(".eq('trip_id', trip_id)");
-    expect(populateSearchIndex).toContain('verifyCronAuth(req, corsHeaders)');
     expect(imageUpload).toContain("const folder = 'ad-images'");
     expect(imageUpload).toContain(".from('advertiser_profiles')");
     expect(imageUpload).toContain('Advertiser access required');

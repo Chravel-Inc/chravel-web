@@ -136,9 +136,12 @@ serve(async req => {
       htmlContent = renderTemplate(payload.template, payload.templateData || {});
     }
 
-    // Add unsubscribe link (required for compliance)
-    const unsubscribeUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/unsubscribe-email?token=${generateUnsubscribeToken(recipients[0])}`;
-    htmlContent += `<br/><br/><small><a href="${unsubscribeUrl}">Unsubscribe</a></small>`;
+    // Notification-management link. The previous link pointed at a
+    // /functions/v1/unsubscribe-email endpoint that has never existed (dead
+    // 404 in every sent email) with a forgeable btoa token. Until a signed
+    // one-click unsubscribe endpoint exists, link to notification settings —
+    // the same convention as _shared/notificationContentBuilder.ts.
+    htmlContent += `<br/><br/><small><a href="https://www.chravel.app/settings">Manage notification settings</a></small>`;
 
     const maxRetries = payload.maxRetries ?? MAX_RETRIES;
     let lastError: Error | null = null;
@@ -418,9 +421,4 @@ function renderTemplate(templateName: string, data: Record<string, any>): string
   };
 
   return templates[templateName] || `<p>${data.content}</p>`;
-}
-
-function generateUnsubscribeToken(email: string): string {
-  // In production, use proper token generation and storage
-  return btoa(email + ':' + Date.now());
 }
