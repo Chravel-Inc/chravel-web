@@ -56,6 +56,8 @@
     "drift:concierge": "npx tsx scripts/audit-concierge-tools.ts",
     "drift:functions": "node scripts/drift/check-edge-function-parity.mjs",
     "drift:migrations": "node scripts/drift/check-migration-drift.mjs",
+    "drift:migration-lint": "npx tsx scripts/lint-migrations.ts",
+    "drift:rls-coverage": "npx tsx scripts/check-rls-coverage.ts",
     "drift:query-keys": "node scripts/drift/check-query-key-ownership.mjs",
     "drift:schema": "npx tsx scripts/check-schema-drift.ts",
     "drift:env-coverage": "npx tsx scripts/check-env-coverage.ts --strict",

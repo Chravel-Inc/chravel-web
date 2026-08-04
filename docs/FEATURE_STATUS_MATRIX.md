@@ -1,6 +1,12 @@
 # Chravel — Feature Status Matrix
 
 > Last updated: 2026-02-05 (automated audit)
+> ⚠️ **STALE SNAPSHOT (verified 2026-08-04):** several rows no longer match the
+> codebase — e.g. `capacitor.config.ts` and the `@capacitor/*` deps have moved to
+> the separate `chravel-mobile` repo, the `VITE_ENABLE_*` flags referenced below
+> were replaced by DB-backed `feature_flags` keys, and payments/concierge are no
+> longer "stubbed for TestFlight". Treat `SYSTEM_MAP.md` as the accurate map;
+> regenerate this matrix before relying on any row.
 > Test method key: **A** = Automated test, **M** = Manual verification, **C** = Code inspection
 
 ## Status Legend
