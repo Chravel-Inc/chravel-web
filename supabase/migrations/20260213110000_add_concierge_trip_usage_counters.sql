@@ -1,10 +1,25 @@
 -- =====================================================
 -- Concierge per-user, per-trip usage counters
--- Limits:
---   free: 5 queries/trip
---   explorer: 10 queries/trip
+-- Limits (authoritative values live in src/lib/conciergeTripQueryLimits.ts):
+--   free: 3 queries/trip
+--   explorer: 25 queries/trip
 --   frequent chraveler/pro: unlimited
 -- =====================================================
+--
+-- APPLIED MANUALLY 2026-08-04 (via Supabase MCP) after an audit found it had never reached
+-- production. It was a live launch blocker, not a latent one: lovable-concierge calls
+-- get_concierge_trip_usage() as a PRE-CHECK before the model runs and FAILS CLOSED on error
+-- (`if (tripUsageError) return buildUsageVerificationUnavailableResponse(...)`). With the RPC
+-- absent, every authenticated free (limit 3) or explorer (limit 25) user asking a trip-scoped
+-- question got "usage verification unavailable" instead of an answer. Only frequent_chraveler
+-- (limit null) and super admins — who set tripQueryLimit = null — skipped the check, which is
+-- why it never showed up in internal testing.
+--
+-- Two hardening changes versus the original file, both applied to production:
+--   1. Membership predicates are NULL-tolerant (see inline note) to match is_active_trip_member().
+--   2. The backfill skips concierge_usage rows whose trip no longer exists. concierge_trip_usage
+--      .trip_id carries a FK to trips(id), so an orphaned historical row would abort the whole
+--      migration.
 
 CREATE TABLE IF NOT EXISTS public.concierge_trip_usage (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -104,6 +119,7 @@ BEGIN
         WHERE cu.context_id IS NOT NULL
           AND btrim(cu.context_id) <> ''
           AND cu.context_type IN ('trip', 'event')
+          AND EXISTS (SELECT 1 FROM public.trips t WHERE t.id = cu.context_id)
         GROUP BY cu.user_id, cu.context_id
         ON CONFLICT (user_id, trip_id) DO UPDATE
         SET
@@ -123,6 +139,7 @@ BEGIN
         WHERE cu.context_id IS NOT NULL
           AND btrim(cu.context_id) <> ''
           AND cu.context_type IN ('trip', 'event')
+          AND EXISTS (SELECT 1 FROM public.trips t WHERE t.id = cu.context_id)
         GROUP BY cu.user_id, cu.context_id
         ON CONFLICT (user_id, trip_id) DO UPDATE
         SET
@@ -144,6 +161,7 @@ BEGIN
       FROM public.concierge_usage cu
       WHERE cu.trip_id IS NOT NULL
         AND btrim(cu.trip_id) <> ''
+        AND EXISTS (SELECT 1 FROM public.trips t WHERE t.id = cu.trip_id)
       GROUP BY cu.user_id, cu.trip_id
       ON CONFLICT (user_id, trip_id) DO UPDATE
       SET
@@ -177,7 +195,9 @@ BEGIN
     FROM public.trip_members tm
     WHERE tm.trip_id = p_trip_id
       AND tm.user_id = v_user_id
-      AND tm.status = 'active'
+      -- NULL-tolerant to match is_active_trip_member() and every other membership predicate in
+      -- this schema; a bare `= 'active'` would deny any member whose status was never stamped.
+      AND (tm.status IS NULL OR tm.status = 'active')
   ) AND NOT EXISTS (
     SELECT 1
     FROM public.trips t
@@ -230,7 +250,9 @@ BEGIN
     FROM public.trip_members tm
     WHERE tm.trip_id = p_trip_id
       AND tm.user_id = v_user_id
-      AND tm.status = 'active'
+      -- NULL-tolerant to match is_active_trip_member() and every other membership predicate in
+      -- this schema; a bare `= 'active'` would deny any member whose status was never stamped.
+      AND (tm.status IS NULL OR tm.status = 'active')
   ) AND NOT EXISTS (
     SELECT 1
     FROM public.trips t
