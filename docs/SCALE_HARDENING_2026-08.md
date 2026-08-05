@@ -117,18 +117,60 @@ vector, not just clutter.
 `file-ai-parser`, `message-scheduler`, `populate-search-index`, `seed-mock-messages`,
 `update-location`).
 
-### How
+### How — three options, best first
+
+**1. GitHub Action (recommended).** `.github/workflows/undeploy-orphan-functions.yml`. The repo
+already stores `SUPABASE_ACCESS_TOKEN` and `SUPABASE_PROJECT_ID` as Actions secrets, so this needs no
+local setup and leaves an audit trail in the run log.
+
+> Actions → **Undeploy Orphan Edge Functions** → Run workflow → pick a wave → Run.
+> It dry-runs by default. To actually delete: set `dry_run` to `false` **and** type `UNDEPLOY` in the
+> confirm box.
+
+Two vetoes make it hard to misfire. It refuses to delete any function whose source exists in
+`supabase/functions/` — checked against the fresh checkout at delete time, so restoring a file is a
+complete override even if the name is still listed in a wave. And it skips anything not currently
+deployed. Run one wave, watch the edge logs 15–30 minutes, then run the next.
+
+**2. Local CLI.** Same effect, if you'd rather watch it happen:
 
 ```bash
 SUPABASE_ACCESS_TOKEN=... ./scripts/check-edge-function-drift.sh jmjiyekmxwsxkfnqwyaa --print-undeploy
 ```
 
-It prints the `supabase functions delete` commands and never runs them — undeploying is irreversible
-from the CLI. Go one wave at a time and watch the edge logs in between. Anything still taking traffic
-is not dead: restore its source and bring it back under review instead of deleting it.
+Prints the `supabase functions delete` commands without running them, so you can paste the ones you
+want.
 
-The script exits non-zero on drift, so wire it into CI once the backlog is cleared and this can never
-silently accumulate again.
+**3. Browser agent on the Supabase dashboard — last resort.** Worth being straight about why: it is
+40 destructive clicks against production, driven by an agent that has to re-find the UI after every
+navigation, with no dry run, no repo-source veto, and no audit trail beyond the dashboard's own. The
+two options above do the identical thing with a confirmation gate and a log. Use this only if the
+Actions secrets are unavailable.
+
+If you do use it, drive it one wave at a time and paste this, substituting the wave list:
+
+> On this Supabase dashboard I'm going to remove some deployed Edge Functions. Work only inside
+> Project → Edge Functions for project `jmjiyekmxwsxkfnqwyaa`.
+>
+> Delete exactly these functions, one at a time, and nothing else:
+> `<paste one wave's names here>`
+>
+> For each name:
+> 1. Open Edge Functions and find that exact function. If it isn't in the list, skip it and tell me.
+> 2. Before deleting, open its Invocations/Logs and check the last 7 days. If it shows ANY
+>    invocations, STOP, do not delete it, and report the name and the count.
+> 3. Otherwise delete it and confirm it's gone from the list.
+>
+> Rules: match names exactly — never a prefix or partial match, and never anything not on my list
+> (`stream-token` and `send-push` in particular must not be touched). Do not change any function's
+> settings, secrets, or JWT verification. Do not touch Database, Auth, or Storage. If a name is
+> ambiguous or a page doesn't look like what you expected, stop and ask me.
+>
+> When you're finished, list what you deleted, what you skipped, and why.
+
+The script exits non-zero on drift and is already wired into the Drift Check workflow as
+reporting-only. Once these 40 are cleared, delete the `continue-on-error: true` line there so it
+actually gates and this can never silently accumulate again.
 
 ---
 
@@ -175,13 +217,26 @@ Verified live: the resolver returns `consumer_member` on consumer trips (113 mem
 `event_attendee`/`event_organizer` on events (29/14), `pro_admin`/`pro_editor` on pro (15/31), with
 basecamp-admin correctly restricted to admins and organizers.
 
-### Still deferred, deliberately: the Gmail import stack
+### Gmail import: out of scope for MVP (product decision, 2026-08-05)
 
-`gmail_import_artifacts`, `gmail_import_message_logs` and `gmail_token_audit_logs` remain missing.
-`gmail_smart_import` is `enabled=false, rollout=0` in production, so there is no live breakage.
-Restoring it means applying three large interdependent migrations against a database where
-`gmail_accounts` already partially exists — a reviewed exercise with its own test pass, not a line
-item in a hardening PR. **It must be done before that flag is ever flipped on.**
+`gmail_import_artifacts`, `gmail_import_message_logs` and `gmail_token_audit_logs` are missing, and
+they are staying missing. `gmail_smart_import` is `enabled=false, rollout=0` in production because
+Gmail import was judged overkill for MVP — not because it is mid-rollout. So this is settled scope,
+not a deferral, and nothing here is a launch blocker.
+
+What that means in practice:
+
+- **No live breakage.** The flag gates the UI (`SmartImportSettings`, `CalendarImportModal` both read
+  `useFeatureFlag('gmail_smart_import', false)`), and `useFeatureFlag` defaults to `false` when a
+  flag row is absent, so the surface is off in every direction.
+- **The code stays.** `gmail-auth` and `gmail-import-worker` keep their source and remain deployed.
+  Deleting them would trade a reviewable, flagged-off feature for an unreviewable orphan — exactly
+  the mistake the 40 orphans above represent.
+- **The one precondition.** If Gmail import is ever picked back up, the three migrations
+  (`20260315000000_gmail_hardening`, `20260401000000_smart_import`,
+  `20260524090000_gmail_import_durable_checkpoints`) must be applied and tested **before** the flag
+  is flipped. They are interdependent and land against a database where `gmail_accounts` already
+  partially exists, so that is a reviewed exercise with its own test pass — never a same-day flip.
 
 ---
 

@@ -1,0 +1,158 @@
+name: Undeploy Orphan Edge Functions
+
+# One-click removal of edge functions that are DEPLOYED but have NO SOURCE in this repo.
+#
+# WHY THIS EXISTS
+# `supabase functions deploy` only ever adds or updates — it never removes. A function whose source
+# is deleted stays live in production forever: routable over HTTP, still reading its secrets from the
+# environment, and no longer reviewable because there is nothing left to read. An audit on
+# 2026-08-05 found 40 such orphans. 25 of them run with verify_jwt=false, and several are
+# unhardened predecessors of functions that have since been locked down (getstream-token vs
+# stream-token, approve-join-request vs the RPC that pins role='member').
+#
+# SAFETY PROPERTIES
+#   * Dry run by default. You must set dry_run=false AND type the confirmation phrase.
+#   * A function is NEVER deleted if source for it exists in supabase/functions/. That check runs
+#     against the freshly checked-out repo immediately before each delete, so re-adding the source
+#     is a complete veto — even if the name is still listed in a wave below.
+#   * A function is NEVER deleted if it is not currently deployed (nothing to do).
+#   * Waves are ordered by risk so you can go one at a time and watch the edge logs in between.
+#
+# BEFORE RUNNING: confirm the wave is genuinely dead. `Project > Edge Functions > Logs` should show
+# no invocations. Anything still taking traffic is not dead — restore its source and review it
+# instead of deleting it.
+#
+# Runbook and per-function reasoning: docs/SCALE_HARDENING_2026-08.md
+
+on:
+  workflow_dispatch:
+    inputs:
+      wave:
+        description: 'Which wave to undeploy'
+        required: true
+        default: 'wave1-superseded'
+        type: choice
+        options:
+          - wave1-superseded
+          - wave2-ai-proxies
+          - wave3-remainder
+      dry_run:
+        description: 'List what WOULD be deleted without deleting'
+        required: false
+        default: true
+        type: boolean
+      confirm:
+        description: 'To actually delete, type: UNDEPLOY'
+        required: false
+        default: ''
+        type: string
+
+concurrency:
+  group: undeploy-orphans-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  undeploy:
+    name: Undeploy ${{ inputs.wave }}
+    runs-on: ubuntu-24.04
+    environment: production
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Undeploy wave
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_ID }}
+          WAVE: ${{ inputs.wave }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          set -uo pipefail
+
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ] || [ -z "${PROJECT_REF:-}" ]; then
+            echo "::error::SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_ID must both be set."
+            exit 1
+          fi
+
+          WAVE1="getstream-token approve-join-request send-trip-notification send-push-notification send-scheduled-broadcasts send-organization-invite organization-billing-portal photo-upload export-trip-summary google-calendar-sync 758f320b-b3aa-4a5f-bc50-a82d2c87431d"
+          WAVE2="elevenlabs-conversation-token elevenlabs-tts gemini-chat gemini-tts gemini-voice-proxy gemini-voice-session openai-chat xai-voice-session livekit-token concierge-tts voice-assistant voice-processing generate-audio-summary perplexity-chat ai-image-checker ai-image-checker-shared-cors search link-preview share-preview"
+          WAVE3="advertiser-management waitlist-signup cleanup-staging-tables daily-digest delete-stale-locations file-ai-parser message-scheduler populate-search-index seed-mock-messages update-location"
+
+          case "$WAVE" in
+            wave1-superseded) TARGETS="$WAVE1" ;;
+            wave2-ai-proxies) TARGETS="$WAVE2" ;;
+            wave3-remainder)  TARGETS="$WAVE3" ;;
+            *) echo "::error::unknown wave '$WAVE'"; exit 1 ;;
+          esac
+
+          # What is actually deployed right now.
+          deployed="$(npx --yes supabase functions list --project-ref "$PROJECT_REF" 2>/dev/null \
+                      | awk 'NR>1 {print $3}' | grep -E '^[a-zA-Z0-9_-]+$' | sort -u)"
+          if [ -z "$deployed" ]; then
+            echo "::error::could not list deployed functions."
+            exit 1
+          fi
+
+          APPLY=false
+          if [ "$DRY_RUN" != "true" ] && [ "$CONFIRM" = "UNDEPLOY" ]; then
+            APPLY=true
+          fi
+
+          {
+            echo "## Undeploy — $WAVE"
+            if [ "$APPLY" = "true" ]; then
+              echo "Mode: **DELETING**"
+            else
+              echo "Mode: dry run (set dry_run=false AND confirm=UNDEPLOY to apply)"
+            fi
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          deleted=0; skipped=0; failed=0
+
+          for fn in $TARGETS; do
+            # VETO 1: source exists in the repo -> this is not an orphan, never touch it.
+            if [ -f "supabase/functions/$fn/index.ts" ]; then
+              echo "- 🛑 **kept** \`$fn\` — source exists in repo, not an orphan" >> "$GITHUB_STEP_SUMMARY"
+              skipped=$((skipped+1)); continue
+            fi
+
+            # VETO 2: not currently deployed -> nothing to do.
+            if ! printf '%s\n' "$deployed" | grep -qx "$fn"; then
+              echo "- ⏭️ skip \`$fn\` — not deployed" >> "$GITHUB_STEP_SUMMARY"
+              skipped=$((skipped+1)); continue
+            fi
+
+            if [ "$APPLY" != "true" ]; then
+              echo "- 🔎 would delete \`$fn\`" >> "$GITHUB_STEP_SUMMARY"
+              continue
+            fi
+
+            if npx --yes supabase functions delete "$fn" --project-ref "$PROJECT_REF" --no-verify-jwt 2>/dev/null \
+               || npx --yes supabase functions delete "$fn" --project-ref "$PROJECT_REF"; then
+              echo "- ✅ deleted \`$fn\`" >> "$GITHUB_STEP_SUMMARY"
+              deleted=$((deleted+1))
+            else
+              echo "- ❌ FAILED \`$fn\`" >> "$GITHUB_STEP_SUMMARY"
+              failed=$((failed+1))
+            fi
+          done
+
+          {
+            echo
+            echo "**deleted: $deleted · skipped: $skipped · failed: $failed**"
+            echo
+            echo "Next: watch Edge Function logs for 15-30 minutes before running the next wave."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          [ "$failed" -eq 0 ]
