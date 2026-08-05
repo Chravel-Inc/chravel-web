@@ -134,14 +134,54 @@ silently accumulate again.
 
 ## Two live issues the edge logs surfaced
 
-Not part of this work, but visible while gathering evidence and worth a look:
+- **`check-subscription` 401 storm — FIXED.** `src/billing/entitlements.ts` invoked it with no auth
+  gate. The function requires an `Authorization` header and answers 401 without one, so every call
+  made while signed out, or before auth hydrated, was a guaranteed failure. The error was caught and
+  returned free entitlements — which made "signed out" and "signed in but unsubscribed"
+  indistinguishable at that layer, the exact auth-desync shape where a paid user can momentarily
+  render as free. Now resolves the unauthenticated case directly. (`useConsumerSubscription`, the
+  other caller, already guarded on `userId`.)
+- **`get-invite-preview` 404** — a single request for an invite code that resolved to nothing. That
+  is the correct response for an expired or mistyped code; left alone as expected behaviour.
 
-- **`check-subscription` is returning `401` repeatedly** — many `POST … 401` entries interleaved with
-  `200`s from the same clients. Either tokens are expiring mid-session or the client is calling it
-  before auth hydration completes. Worth confirming it is not users intermittently losing their
-  subscription state.
-- **`get-invite-preview` returned a `404`** on a real request — an invite link that resolved to
-  nothing.
+---
+
+## Also applied: the three remaining fail-open degradations
+
+From `PIPELINE_DRIFT_AUDIT_2026-08.md`. Email suppression had already been fixed on `main`, leaving
+three — all restored, all previously never-applied:
+
+| RPC | Was | Now |
+|---|---|---|
+| `get_concierge_trip_history` | Returned `[]` on error, so **the Concierge had no conversation memory** | Applied |
+| `update_task_with_version` | Task edits fell through to a direct UPDATE — **no optimistic concurrency**, last-write-wins | Applied, after fixing a `UUID`/`TEXT` mismatch that would have thrown on every non-UUID trip id, and realigning authorization from `role='admin'` to the `has_coordinator_capability` the live policy actually uses |
+| `get_trip_mutation_permissions` | **Server-side permission resolver never ran**; every UI affordance decided client-side | Applied as `20260805130000`, resolver half only |
+
+**`20260626140000` stays unapplied on purpose.** Its second half DROPs and REPLACEs the RLS policies
+on `trip_tasks`, `trip_polls`, `trip_events` and `trip_links`. That is the highest-blast-radius
+change available in this schema, it is not what was broken, and it needs a full permission test
+matrix first. The resolver — the part that was actually missing — was extracted into its own
+migration.
+
+Applying it surfaced that **`permission_matrix_allows` had never been valid SQL**: plpgsql closes a
+`CASE` statement with `END CASE;`, and both the migration and `scripts/generate-permission-matrix.mjs`
+emitted a bare `END`, so creating the function raised `42601`. The generator is fixed and the
+artifact regenerated — which also picked up the `pro_coordinator` role the old migration predates.
+CI had been drift-checking `supabase/sql/permission_matrix_allows.generated.sql` against
+`config/permission-matrix.json` the entire time without anyone noticing the artifact could not
+execute.
+
+Verified live: the resolver returns `consumer_member` on consumer trips (113 memberships),
+`event_attendee`/`event_organizer` on events (29/14), `pro_admin`/`pro_editor` on pro (15/31), with
+basecamp-admin correctly restricted to admins and organizers.
+
+### Still deferred, deliberately: the Gmail import stack
+
+`gmail_import_artifacts`, `gmail_import_message_logs` and `gmail_token_audit_logs` remain missing.
+`gmail_smart_import` is `enabled=false, rollout=0` in production, so there is no live breakage.
+Restoring it means applying three large interdependent migrations against a database where
+`gmail_accounts` already partially exists — a reviewed exercise with its own test pass, not a line
+item in a hardening PR. **It must be done before that flag is ever flipped on.**
 
 ---
 
