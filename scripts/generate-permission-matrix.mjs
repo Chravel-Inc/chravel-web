@@ -48,7 +48,12 @@ function generateRoleCase(role, resources) {
   }
 
   lines.push('        ELSE RETURN FALSE;');
-  lines.push('      END');
+  // plpgsql closes a CASE *statement* with `END CASE;` — a bare `END` is only valid for a CASE
+  // *expression*. Emitting `END` here produced a function that raised
+  //   42601: syntax error at or near ";"
+  // on every attempt to create it, so supabase/sql/permission_matrix_allows.generated.sql had never
+  // been executable even though CI drift-checks it against config/permission-matrix.json.
+  lines.push('      END CASE;');
   return lines.join('\n');
 }
 

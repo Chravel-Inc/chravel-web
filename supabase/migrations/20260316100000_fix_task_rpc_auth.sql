@@ -1,9 +1,38 @@
 -- Fix: update_task_with_version RPC auth bypass
 -- Problem: Original function trusted caller-supplied p_creator_id parameter
 -- instead of auth.uid(). Also missing trip membership check.
--- Fix: Drop old signature, recreate with auth.uid() + trip membership + admin override.
+-- Fix: Drop old signature, recreate with auth.uid() + trip membership + capability override.
+--
+-- REWRITTEN 2026-08-05. This migration had never been applied to production (verified: no
+-- update_task_with_version of any signature exists), and as written it would have been broken in
+-- two ways. src/hooks/useTripTasks.ts calls it for optimistic-concurrency protection on task edits
+-- and, on "function does not exist", falls through to a direct UPDATE — so task editing works today
+-- but concurrent edits are silently last-write-wins.
+--
+-- Three defects fixed versus the original:
+--
+--   1. TYPE MISMATCH. v_trip_id was declared UUID, but trip_tasks.trip_id is TEXT (verified against
+--      the live schema). Any non-UUID trip id — the carlton-* trips, every event trip — would have
+--      raised `invalid input syntax for type uuid` on the very first statement. This is the same
+--      bug that was fixed in update_event_with_version by 20260802140000.
+--
+--   2. AUTHORIZATION DIVERGED FROM RLS. The function allowed creator-or-`role='admin'`, but the
+--      live trip_tasks UPDATE policies are:
+--          "Task creators can update their tasks"    -> auth.uid() = creator_id
+--          "Coordinators can update trip tasks"      -> has_coordinator_capability(
+--                                                          auth.uid(), trip_id,
+--                                                          'can_manage_shared_tasks')
+--      A Pro/Event coordinator holding the shared-tasks capability could edit via a direct UPDATE
+--      but would have been rejected by this RPC with 42501 — behaviour depending on which code path
+--      the client happened to take. Now mirrors the policy exactly, so the RPC can never grant more
+--      than RLS already does, nor less.
+--
+--   3. NO ACTIVE-STATUS FILTER on the membership check, so a member who had left the trip still
+--      passed it.
+--
+-- Regression scope: authorization for one task-edit RPC, tightened to match the RLS already
+-- enforced on the same table. No trip fetch, auth hydration, or payment surface is touched.
 
--- Drop old function (signature change: removing p_creator_id parameter)
 DROP FUNCTION IF EXISTS public.update_task_with_version(UUID, INTEGER, UUID, TEXT, TEXT, TIMESTAMPTZ, BOOLEAN);
 
 CREATE OR REPLACE FUNCTION public.update_task_with_version(
@@ -22,9 +51,8 @@ AS $$
 DECLARE
   v_actual_version INTEGER;
   v_creator_id UUID;
-  v_trip_id UUID;
+  v_trip_id TEXT;   -- trip_tasks.trip_id is TEXT, not UUID.
 BEGIN
-  -- Get current version, creator, and trip with row lock
   SELECT version, creator_id, trip_id
   INTO v_actual_version, v_creator_id, v_trip_id
   FROM trip_tasks
@@ -35,25 +63,25 @@ BEGIN
     RAISE EXCEPTION 'Task not found' USING ERRCODE = 'P0002';
   END IF;
 
-  -- Authorization: caller must be a trip member
+  -- Caller must be an ACTIVE member of the task's trip.
   IF NOT EXISTS (
     SELECT 1 FROM trip_members
-    WHERE trip_id = v_trip_id AND user_id = auth.uid()
+    WHERE trip_id = v_trip_id
+      AND user_id = auth.uid()
+      AND (status IS NULL OR status = 'active')
   ) THEN
     RAISE EXCEPTION 'Access denied: not a trip member' USING ERRCODE = '42501';
   END IF;
 
-  -- Authorization: only the task creator or a trip admin can edit
-  IF v_creator_id != auth.uid() THEN
-    IF NOT EXISTS (
-      SELECT 1 FROM trip_members
-      WHERE trip_id = v_trip_id AND user_id = auth.uid() AND role = 'admin'
-    ) THEN
-      RAISE EXCEPTION 'Access denied: only the task creator or an admin can edit' USING ERRCODE = '42501';
-    END IF;
+  -- Mirror the trip_tasks UPDATE policies exactly: own task, or coordinator capability.
+  IF NOT (
+    v_creator_id = auth.uid()
+    OR public.has_coordinator_capability(auth.uid(), v_trip_id, 'can_manage_shared_tasks')
+  ) THEN
+    RAISE EXCEPTION 'Access denied: only the task creator or a task coordinator can edit'
+      USING ERRCODE = '42501';
   END IF;
 
-  -- Version check
   IF COALESCE(v_actual_version, 1) != COALESCE(p_current_version, 1) THEN
     RAISE EXCEPTION 'Task has been modified by another user (expected version %, found %)',
       p_current_version, v_actual_version
@@ -74,7 +102,14 @@ BEGIN
 END;
 $$;
 
--- Grant to authenticated users (function body enforces membership + creator/admin check)
+-- Function body enforces membership + creator/coordinator. anon must never reach it: revoke the
+-- implicit PUBLIC grant as well as the explicit anon one Supabase's default privileges add.
+REVOKE EXECUTE ON FUNCTION public.update_task_with_version(
+  UUID, INTEGER, TEXT, TEXT, TIMESTAMPTZ, BOOLEAN
+) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.update_task_with_version(
+  UUID, INTEGER, TEXT, TEXT, TIMESTAMPTZ, BOOLEAN
+) FROM anon;
 GRANT EXECUTE ON FUNCTION public.update_task_with_version(
   UUID, INTEGER, TEXT, TEXT, TIMESTAMPTZ, BOOLEAN
 ) TO authenticated;
