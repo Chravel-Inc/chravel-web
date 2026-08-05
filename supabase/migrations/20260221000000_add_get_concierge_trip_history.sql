@@ -59,8 +59,15 @@ AS $$
 $$;
 
 -- Grant EXECUTE to authenticated users only. Anon cannot call this function.
-GRANT EXECUTE ON FUNCTION public.get_concierge_trip_history(TEXT, INTEGER) TO authenticated;
+--
+-- Revoking from `anon` alone is NOT sufficient: Postgres grants EXECUTE on a new function to PUBLIC
+-- by default, and `anon` inherits that. Supabase ALSO ships ALTER DEFAULT PRIVILEGES granting it to
+-- anon explicitly, so both the implicit PUBLIC grant and the explicit anon grant must be revoked.
+-- (This is the same trap that left check_invite_code_exists anon-callable through three separate
+-- migrations that each only revoked from one of the two.)
+REVOKE EXECUTE ON FUNCTION public.get_concierge_trip_history(TEXT, INTEGER) FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.get_concierge_trip_history(TEXT, INTEGER) FROM anon;
+GRANT EXECUTE ON FUNCTION public.get_concierge_trip_history(TEXT, INTEGER) TO authenticated;
 
 -- Composite index so the RPC lookup stays fast as ai_queries grows.
 -- Covers the WHERE (trip_id, user_id) filter and ORDER BY created_at in one scan.

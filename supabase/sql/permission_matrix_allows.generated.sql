@@ -19,7 +19,7 @@ BEGIN
         WHEN 'basecamp' THEN RETURN p_action IN ('read', 'write', 'delete', 'admin');
         WHEN 'links' THEN RETURN p_action IN ('read', 'write', 'delete', 'admin');
         ELSE RETURN FALSE;
-      END
+      END CASE;
     WHEN 'super_admin' THEN
       CASE p_resource
         WHEN 'tasks' THEN RETURN p_action IN ('read', 'write', 'delete', 'admin');
@@ -28,7 +28,7 @@ BEGIN
         WHEN 'basecamp' THEN RETURN p_action IN ('read', 'write', 'delete', 'admin');
         WHEN 'links' THEN RETURN p_action IN ('read', 'write', 'delete', 'admin');
         ELSE RETURN FALSE;
-      END
+      END CASE;
     WHEN 'consumer_member' THEN
       CASE p_resource
         WHEN 'tasks' THEN RETURN p_action IN ('read', 'write', 'delete');
@@ -37,7 +37,7 @@ BEGIN
         WHEN 'basecamp' THEN RETURN p_action IN ('read', 'write', 'delete');
         WHEN 'links' THEN RETURN p_action IN ('read', 'write', 'delete');
         ELSE RETURN FALSE;
-      END
+      END CASE;
     WHEN 'consumer_guest' THEN
       CASE p_resource
         WHEN 'tasks' THEN RETURN FALSE;
@@ -46,7 +46,7 @@ BEGIN
         WHEN 'basecamp' THEN RETURN FALSE;
         WHEN 'links' THEN RETURN FALSE;
         ELSE RETURN FALSE;
-      END
+      END CASE;
     WHEN 'pro_admin' THEN
       CASE p_resource
         WHEN 'tasks' THEN RETURN p_action IN ('read', 'write', 'delete', 'admin');
@@ -55,7 +55,7 @@ BEGIN
         WHEN 'basecamp' THEN RETURN p_action IN ('read', 'write', 'delete', 'admin');
         WHEN 'links' THEN RETURN p_action IN ('read', 'write', 'delete', 'admin');
         ELSE RETURN FALSE;
-      END
+      END CASE;
     WHEN 'pro_editor' THEN
       CASE p_resource
         WHEN 'tasks' THEN RETURN p_action IN ('read', 'write', 'delete');
@@ -64,7 +64,7 @@ BEGIN
         WHEN 'basecamp' THEN RETURN p_action IN ('read');
         WHEN 'links' THEN RETURN p_action IN ('read', 'write');
         ELSE RETURN FALSE;
-      END
+      END CASE;
     WHEN 'pro_viewer' THEN
       CASE p_resource
         WHEN 'tasks' THEN RETURN p_action IN ('read');
@@ -73,7 +73,7 @@ BEGIN
         WHEN 'basecamp' THEN RETURN p_action IN ('read');
         WHEN 'links' THEN RETURN p_action IN ('read', 'write');
         ELSE RETURN FALSE;
-      END
+      END CASE;
     WHEN 'pro_coordinator' THEN
       CASE p_resource
         WHEN 'tasks' THEN RETURN p_action IN ('read', 'write', 'delete');
@@ -82,7 +82,7 @@ BEGIN
         WHEN 'basecamp' THEN RETURN p_action IN ('read');
         WHEN 'links' THEN RETURN p_action IN ('read', 'write', 'delete');
         ELSE RETURN FALSE;
-      END
+      END CASE;
     WHEN 'event_organizer' THEN
       CASE p_resource
         WHEN 'tasks' THEN RETURN p_action IN ('read', 'write', 'delete', 'admin');
@@ -91,7 +91,7 @@ BEGIN
         WHEN 'basecamp' THEN RETURN p_action IN ('read', 'write', 'delete', 'admin');
         WHEN 'links' THEN RETURN p_action IN ('read', 'write', 'delete', 'admin');
         ELSE RETURN FALSE;
-      END
+      END CASE;
     WHEN 'event_attendee' THEN
       CASE p_resource
         WHEN 'tasks' THEN RETURN p_action IN ('read');
@@ -100,7 +100,7 @@ BEGIN
         WHEN 'basecamp' THEN RETURN p_action IN ('read');
         WHEN 'links' THEN RETURN p_action IN ('read');
         ELSE RETURN FALSE;
-      END
+      END CASE;
     ELSE RETURN FALSE;
   END CASE;
 END;
