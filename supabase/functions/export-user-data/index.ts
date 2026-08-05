@@ -217,8 +217,41 @@ async function fetchTableData(
   return allRecords;
 }
 
+/** Storage bucket holding trip file uploads. There is no `trip-files` bucket. */
+const TRIP_FILES_BUCKET = 'trip-media';
+
 /**
- * Generate signed URLs for user's media files
+ * Recover a `trip-media` object path from a stored trip_files.file_url.
+ *
+ * file-upload writes `getPublicUrl(path)` on the private trip-media bucket, i.e.
+ *   https://<ref>.supabase.co/storage/v1/object/public/trip-media/<tripId>/<userId>/files/<name>
+ * Signed variants insert `/sign/` instead of `/public/`. Anything already stored as a bare path is
+ * returned as-is. Returns null when no trip-media segment is present.
+ */
+function extractTripMediaPath(fileUrl: string | undefined): string | null {
+  if (!fileUrl || typeof fileUrl !== 'string') return null;
+
+  const marker = `/${TRIP_FILES_BUCKET}/`;
+  const idx = fileUrl.indexOf(marker);
+  if (idx !== -1) {
+    const path = fileUrl.slice(idx + marker.length).split('?')[0];
+    return path ? decodeURIComponent(path) : null;
+  }
+
+  // Not a URL at all — treat as an already-bare object path.
+  if (!fileUrl.includes('://')) return fileUrl;
+
+  return null;
+}
+
+/**
+ * Generate signed URLs for user's media files.
+ *
+ * Previously read `file.storage_path` against a `trip-files` bucket. Neither exists: trip_files has
+ * no storage_path column (it stores `file_url`), and the bucket is `trip-media`. The guard was
+ * therefore always false, so this loop never ran a single iteration and **every data export
+ * silently omitted the user's uploaded files** — a GDPR-completeness gap that could not surface as
+ * an error because there was nothing to error on.
  */
 async function getMediaSignedUrls(
   supabaseClient: any,
@@ -227,11 +260,11 @@ async function getMediaSignedUrls(
   const mediaUrls: { path: string; signedUrl: string | null; expiresAt: string }[] = [];
 
   for (const file of tripFiles) {
-    const storagePath = file.storage_path as string | undefined;
+    const storagePath = extractTripMediaPath(file.file_url as string | undefined);
     if (storagePath) {
       try {
         const { data, error } = await supabaseClient.storage
-          .from('trip-files')
+          .from(TRIP_FILES_BUCKET)
           .createSignedUrl(storagePath, SIGNED_URL_EXPIRY);
 
         if (!error && data) {

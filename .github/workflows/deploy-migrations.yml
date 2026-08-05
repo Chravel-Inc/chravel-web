@@ -99,8 +99,13 @@ jobs:
           while IFS= read -r file; do
             [ -f "$file" ] || continue
             base="$(basename "$file" .sql)"
-            # Origin: dash+UUID after the timestamp => Lovable (already applied).
-            if echo "$base" | grep -Eq '^[0-9]{14}-[0-9a-fA-F]{8}-'; then
+            # Origin: UUID after the timestamp => Lovable (already applied).
+            # NOTE: the separator may be a dash OR an underscore. Lovable has emitted both
+            # (`20260804010147-76c89c3e-…` and `20250731005514_1321d110-…`); 203 underscore-form
+            # files are in the repo. Matching only the dash form classified every one of those as an
+            # agent migration, so touching an old Lovable file would replay it against production.
+            # The UUID shape after the timestamp is what identifies the origin, not the separator.
+            if echo "$base" | grep -Eq '^[0-9]{14}[-_][0-9a-fA-F]{8}-[0-9a-fA-F]{4}-'; then
               echo "- ⏭️  skip (Lovable, already applied): \`$base\`" >> "$GITHUB_STEP_SUMMARY"
               skipped=$((skipped+1)); continue
             fi
