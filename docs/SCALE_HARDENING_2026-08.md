@@ -135,10 +135,61 @@ This happens because `supabase functions deploy` only ever adds or updates — i
 Deleting source does not undeploy anything, which is why "clean up the dead functions" is the wrong
 instinct: it makes the endpoint *less* reviewable while leaving it just as reachable.
 
-**Evidence they are dead:** 24 hours of edge logs show traffic to exactly eight functions
-(`push-client-config`, `check-subscription`, `log-auth-event`, `get-invite-preview`, `stream-token`,
-`lovable-concierge`, `process-account-deletions`, `health`) — every one of which has source in the
-repo. Zero requests reached any of the 40.
+### How we know they are dead — and how we got the evidence standard wrong first
+
+**The weak argument (do not rely on this).** 24 hours of edge logs showed traffic to exactly eight
+functions, all with source in the repo, and zero requests to any of the 40. That reads like proof and
+is not: the app has not launched, so low traffic is the expected state for *everything*. Absence of
+traffic in a pre-launch window is close to worthless as evidence.
+
+A second method was also wrong. The first pass searched for `functions.invoke('name')` and concluded
+nothing called the orphans — but that pattern misses raw `fetch()` to `/functions/v1/<name>`, which
+is exactly how `stream-token`, `export-trip`, `delete-account`, `stream-join-channel` and
+`execute-concierge-tool` are called. A caller could have been missed the same way.
+
+**The strong argument, and the standard to use.** Three checks, all repeatable:
+
+1. **No caller anywhere.** Search the whole repo — every extension, not just TS — for the function
+   name, covering `functions.invoke`, raw `fetch('/functions/v1/…')`, config, and native. Every
+   reference to the 40 resolves to documentation, an archived design note, this audit, or a string
+   label (`joinRequestMutations.ts` uses `'approve-join-request'` as a `syncFailureContext` tag, not
+   an invocation). There are no native call sites — the iOS shell is a Capacitor wrapper with no
+   Swift/Kotlin of its own.
+2. **A live replacement exists and is the path actually taken.** Not "a similarly named function
+   exists" — the specific call the app makes.
+3. **The orphan's own dependencies are gone.** The most decisive check, because it proves the
+   function cannot work even if something did call it.
+
+Worked example — **`photo-upload`**, one that looked most alarming:
+
+| | |
+|---|---|
+| writes to bucket | `trip-photos` — **does not exist** |
+| inserts into table | `trip_photos` — **does not exist** |
+| identity | trusts a client-supplied `userId` from form data, with no trip-membership check |
+| CORS | `Access-Control-Allow-Origin: '*'` — a stale copy predating the exact-match allowlist |
+| what the app actually does | uploads straight to Supabase Storage — `storage.from('trip-media')`, 13 call sites, **104 live objects** |
+
+So photo upload is not lost by deleting it. `photo-upload` is a fossil of an older architecture whose
+bucket and table no longer exist; every invocation would 500 at the upload. It is simultaneously
+dead *and* the kind of thing worth removing on its own merits.
+
+The same resolution for the others most likely to look load-bearing:
+
+| Orphan | What actually serves that capability today |
+|---|---|
+| `approve-join-request` | the `approve_join_request` **RPC** — `src/lib/joinRequestMutations.ts:42` |
+| `getstream-token` | `fetch('/functions/v1/stream-token')` — `streamTokenService.ts:49` |
+| `export-trip-summary` | `export-user-data` (invoke) and `export-trip` (fetch) |
+| `photo-upload` | direct `storage.from('trip-media')` upload with RLS on the path segments |
+
+**The residual risk this cannot rule out** is external callers configured outside the repo — a
+provider webhook still pointed at an old endpoint, or an older cached web bundle still calling
+`getstream-token`. That is why the workflow archives the source before deleting, and why
+`waitlist-signup`, `approve-join-request`, `share-preview`, `getstream-token`,
+`send-organization-invite`, `google-calendar-sync` and `organization-billing-portal` deserve a check
+of their 7-day invocation logs — and of the Stripe / RevenueCat / Google redirect URLs — before
+their wave runs.
 
 **25 of the 40 have `verify_jwt = false`**, so they accept unauthenticated requests at the gateway.
 In-repo functions compensate with an in-body `requireAuth`; for these we cannot confirm that, because
