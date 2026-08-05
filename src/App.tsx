@@ -765,14 +765,16 @@ const App = () => {
                             </LazyRoute>
                           }
                         />
-                        <Route
-                          path="/dev/billing-preview"
-                          element={
-                            <LazyRoute>
-                              <DevBillingPreview />
-                            </LazyRoute>
-                          }
-                        />
+                        {import.meta.env.DEV && (
+                          <Route
+                            path="/dev/billing-preview"
+                            element={
+                              <LazyRoute>
+                                <DevBillingPreview />
+                              </LazyRoute>
+                            }
+                          />
+                        )}
                         <Route
                           path="/settings/subscription"
                           element={

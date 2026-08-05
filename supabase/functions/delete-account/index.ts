@@ -35,9 +35,9 @@ async function anonymizeMessages(
   userId: string,
 ): Promise<{ tripMessages: number; channelMessages: number }> {
   const { count: tripMsgCount } = await supabase
-    .from('trip_messages')
+    .from('trip_chat_messages')
     .select('*', { count: 'exact', head: true })
-    .eq('sender_id', userId);
+    .eq('user_id', userId);
   const { count: channelMsgCount } = await supabase
     .from('channel_messages')
     .select('*', { count: 'exact', head: true })

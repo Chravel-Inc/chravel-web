@@ -139,6 +139,7 @@ export const OrganizationDashboard = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [linkedTrips, setLinkedTrips] = useState<LinkedTrip[]>([]);
   const [loadingTrips, setLoadingTrips] = useState(false);
+  const [tripsError, setTripsError] = useState(false);
 
   // Confirmation dialog state for removing a member
   const [removeMemberConfirm, setRemoveMemberConfirm] = useState<{
@@ -189,8 +190,11 @@ export const OrganizationDashboard = () => {
       const trips = (data?.map(item => item.trips).filter(Boolean) ||
         []) as unknown as LinkedTrip[];
       setLinkedTrips(trips);
+      setTripsError(false);
     } catch (_fetchError) {
-      // Error fetching linked trips -- non-critical, UI shows empty state
+      // A failed fetch must not masquerade as "no trips" — flag it so the UI
+      // can distinguish error from empty.
+      setTripsError(true);
     } finally {
       setLoadingTrips(false);
     }
@@ -611,6 +615,22 @@ export const OrganizationDashboard = () => {
                   </Card>
                 ))}
               </div>
+            ) : tripsError ? (
+              <Card className="bg-white/5 border-white/10">
+                <CardContent className="p-12 text-center">
+                  <Briefcase size={64} className="text-gray-600 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold text-white mb-2">Couldn't load trips</h3>
+                  <p className="text-gray-400 mb-6">
+                    Something went wrong loading this organization's trips.
+                  </p>
+                  <Button
+                    onClick={() => orgId && fetchLinkedTrips(orgId)}
+                    aria-label="Retry loading trips"
+                  >
+                    Retry
+                  </Button>
+                </CardContent>
+              </Card>
             ) : linkedTrips.length === 0 ? (
               <Card className="bg-white/5 border-white/10">
                 <CardContent className="p-12 text-center">

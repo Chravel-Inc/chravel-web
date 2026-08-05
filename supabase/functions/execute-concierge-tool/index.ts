@@ -16,6 +16,7 @@ import { generateCapabilityToken } from '../_shared/security/capabilityTokens.ts
 import { executeToolSecurely } from '../_shared/security/toolRouter.ts';
 import { checkRateLimit } from '../_shared/security.ts';
 import { getBearerToken } from '../_shared/authHeaders.ts';
+import { isFeatureEnabled } from '../_shared/featureFlags.ts';
 import { verifyConciergeTripAccess } from '../_shared/concierge/tripAccess.ts';
 import { MUTATING_TOOL_NAMES } from '../_shared/concierge/toolRegistry.ts';
 import {
@@ -41,6 +42,16 @@ serve(async (req: Request) => {
   }
 
   try {
+    // Runtime kill switch shared with lovable-concierge (flag: ai_concierge).
+    // defaultValue=true: availability switch — a flag-store outage must not
+    // disable tool execution on its own.
+    if (!(await isFeatureEnabled('ai_concierge', true))) {
+      return new Response(JSON.stringify({ error: 'AI Concierge is temporarily disabled' }), {
+        status: 503,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // ── Auth ───────────────────────────────────────────────────────────────
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {

@@ -419,12 +419,20 @@ async function fetchPlaces(
 
     // 2. Fetch Personal Basecamp (if userId provided)
     if (userId) {
-      const { data: personalAccom } = await supabase
-        .from('trip_accommodations')
+      // Personal basecamps live in trip_personal_basecamps (the old
+      // trip_accommodations table never existed in this database). A user can
+      // have several; export the most recent one.
+      const { data: personalAccom, error: personalAccomError } = await supabase
+        .from('trip_personal_basecamps')
         .select('name, address, latitude, longitude')
         .eq('trip_id', tripId)
         .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
+      if (personalAccomError) {
+        console.error('[export-trip] personal basecamp fetch failed:', personalAccomError.message);
+      }
 
       if (personalAccom?.address) {
         const gmapsUrl =

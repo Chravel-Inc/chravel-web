@@ -16,7 +16,9 @@ export const SavedPlacesInline: React.FC = () => {
   };
 
   const handleDiscover = () => {
-    navigate('/search');
+    // No /search route exists; saving happens from trip surfaces, so send the
+    // user to their trips (matches the empty-state copy).
+    navigate('/');
   };
 
   const handleToggle = async (item: any) => {

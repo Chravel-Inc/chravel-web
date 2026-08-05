@@ -598,6 +598,13 @@ serve(async req => {
       throw new Error('No AI API key configured (GEMINI_API_KEY or LOVABLE_API_KEY)');
     }
 
+    // Runtime kill switch (seeded by 20260730191809_seed_ai_concierge_kill_switch).
+    // defaultValue=true: this is an availability switch, not a security gate —
+    // a flag-store outage must not take the concierge down with it.
+    if (!(await isFeatureEnabled('ai_concierge', true))) {
+      return createErrorResponse('AI Concierge is temporarily disabled', 503, req);
+    }
+
     // Validate input
     const requestBody = await req.json();
 

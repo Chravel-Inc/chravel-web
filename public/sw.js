@@ -1,5 +1,8 @@
 /* eslint-disable no-undef */
 
+// Placeholder path — scripts/build-sw.cjs rewrites this at build time to the
+// versioned copy it emits (e.g. /workbox-vX.Y.Z/workbox-sw.js). Do not "fix"
+// this path by hand; there is no /workbox-sw.js at the site root.
 importScripts('/workbox-sw.js');
 
 if (self.workbox) {

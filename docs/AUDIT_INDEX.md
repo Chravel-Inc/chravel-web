@@ -51,6 +51,13 @@
 
 ## Chronological Audit Log
 
+### 2026-08 (August)
+
+| Date | Document | Status | Scope | Key Findings |
+|------|----------|--------|-------|-------------|
+| 08-04 | `docs/PRODUCTION_RECONCILIATION_AUDIT_2026-08-04.md` | current | Repo↔prod reconciliation: schema/migration drift, code→DB contracts, realtime, storage, edge deployment drift, dead code, SW/CSP | 9 live defects fixed same-day (concierge idempotency, data-export bucket, realtime publication missing 20 subscribed tables, email suppression, dead unsubscribe link, Vercel SW build, CSP-blocked telemetry, unwired kill switch, wrong-table references); 22 live-only migrations backfilled; 8 dead edge functions removed; 32 orphaned live deployments cataloged for approval |
+| 08-02 | `docs/APP_STORE_LAUNCH_AUDIT_2026-08.md` | current | Security + functionality launch blockers | 14 blockers fixed (PR #880/#881); deploy pipelines were both broken — see doc |
+
 ### 2026-03 (March)
 
 | Date | Document | Status | Scope | Key Findings |
