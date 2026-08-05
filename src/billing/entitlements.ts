@@ -48,6 +48,15 @@ export async function getEntitlements(_userId: string): Promise<UserEntitlements
       return createSuperAdminEntitlements();
     }
 
+    // No authenticated session means check-subscription can only ever answer 401 — it requires an
+    // Authorization header and returns 401 without one. Calling it anyway produced a steady stream
+    // of 401s in the edge logs and, worse, made "signed out" and "signed in but unsubscribed"
+    // indistinguishable at this layer: both fell into the catch below and returned free
+    // entitlements. Resolve the unauthenticated case directly instead of via a doomed round trip.
+    if (!user?.id) {
+      return createFreeEntitlements();
+    }
+
     // Check subscription via Edge Function
     const { data, error } = await supabase.functions.invoke('check-subscription');
 
