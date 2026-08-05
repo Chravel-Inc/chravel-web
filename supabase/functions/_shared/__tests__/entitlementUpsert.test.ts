@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   applyEntitlementUpserts,
   USER_ENTITLEMENT_CONFLICT_TARGET,
@@ -9,6 +11,43 @@ import {
 describe('entitlement upsert conflict target', () => {
   it('uses composite conflict target for purchase-scoped upserts', () => {
     expect(USER_ENTITLEMENT_CONFLICT_TARGET).toBe('user_id,purchase_type');
+  });
+
+  /**
+   * REGRESSION (2026-08-05): every payment upsert failed in production with
+   *   42P10: there is no unique or exclusion constraint matching the ON CONFLICT specification
+   * because `user_entitlements` still had `PRIMARY KEY (user_id)` — the migration that widens it to
+   * (user_id, purchase_type) had never been applied. stripe-webhook, revenuecat-webhook,
+   * check-subscription and sync-revenuecat-entitlement all upsert on this target, so NO payment of
+   * any kind could grant an entitlement.
+   *
+   * The assertion above passed throughout, because it only checks the constant against itself. A
+   * conflict target is meaningless without a matching constraint, so assert the paired migration
+   * declares one. This cannot prove the migration was APPLIED — only the deploy pipeline can — but
+   * it does stop the two sides drifting apart in the repo.
+   */
+  it('has a migration declaring a matching unique/primary key on user_entitlements', () => {
+    const migrationsDir = join(process.cwd(), 'supabase/migrations');
+    const columns = USER_ENTITLEMENT_CONFLICT_TARGET.split(',').map(c => c.trim());
+
+    // Match PRIMARY KEY/UNIQUE on public.user_entitlements listing exactly these columns, in order.
+    const keyPattern = new RegExp(
+      String.raw`(PRIMARY\s+KEY|UNIQUE)\s*\(\s*${columns.join(String.raw`\s*,\s*`)}\s*\)`,
+      'i',
+    );
+
+    const declaring = readdirSync(migrationsDir)
+      .filter(f => f.endsWith('.sql'))
+      .filter(f => {
+        const sql = readFileSync(join(migrationsDir, f), 'utf8');
+        return /user_entitlements/i.test(sql) && keyPattern.test(sql);
+      });
+
+    expect(
+      declaring.length,
+      `No migration declares ${keyPattern} on user_entitlements. Every payment upsert uses ` +
+        `onConflict: '${USER_ENTITLEMENT_CONFLICT_TARGET}' and will fail with 42P10 without it.`,
+    ).toBeGreaterThan(0);
   });
 
   it('preserves both subscription and pass rows for the same user', () => {

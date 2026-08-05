@@ -7,6 +7,61 @@ Everything below was measured against production, not inferred.
 
 ---
 
+## P0 — Payments could not work at all. FIXED.
+
+**No payment of any kind — Stripe or RevenueCat — could ever have granted an entitlement.**
+
+All four payment paths upsert into `user_entitlements` with
+`onConflict: 'user_id,purchase_type'`:
+
+| function | call sites |
+|---|---|
+| `stripe-webhook` | 3 |
+| `revenuecat-webhook` | 1 |
+| `check-subscription` | 1 |
+| `sync-revenuecat-entitlement` | 1 |
+
+The live table had only `PRIMARY KEY (user_id)`. PostgREST's `onConflict` requires a unique or
+exclusion constraint matching those exact columns, so every one of those upserts raised:
+
+```
+42P10: there is no unique or exclusion constraint matching the ON CONFLICT specification
+```
+
+Confirmed by running the webhook's exact statement against production before the fix. The failure
+mode is silent from the outside and self-perpetuating: the webhook catches the error, releases its
+idempotency marker, and returns 500 so RevenueCat retries — which fails identically, forever. A user
+would be charged by Apple and never receive access.
+
+Root cause: `20260413090000_user_entitlements_composite_purchase_key` — which widens the key so a
+subscription and a Trip Pass can coexist for one user — had never been applied. Same pipeline drift
+as everything else in this audit, but on the revenue path.
+
+**Fixed and verified.** The primary key is now `(user_id, purchase_type)`. The full sequence was
+replayed against production with a real user — INITIAL_PURCHASE inserts, RENEWAL updates in place
+rather than duplicating, and a Trip Pass coexists with the subscription — then the test rows were
+removed.
+
+Two things checked and found already correct: `webhook_events` has `UNIQUE (event_id)`, so the
+idempotency guard genuinely works; and the client SDK path is sound — a missing API key surfaces an
+explicit `NOT_CONFIGURED` rather than failing silently, and there is both a pre-purchase product-ID
+assertion and a runtime audit of live offerings against the required IDs.
+
+**Still needs a human, in the RevenueCat dashboard** — none of this is verifiable from the repo:
+1. `REVENUECAT_WEBHOOK_SECRET` in Supabase must match the Authorization header configured on the
+   RevenueCat webhook. The function compares them timing-safely and rejects on mismatch.
+2. The webhook URL must point at `…/functions/v1/revenuecat-webhook`.
+3. Entitlement IDs in `src/constants/revenuecat.ts` are still commented `PLACEHOLDER: Update these
+   IDs after creating entitlements in RevenueCat dashboard`. They default to `chravel_explorer` /
+   `chravel_frequent_chraveler` and must match the dashboard exactly.
+4. `VITE_REVENUECAT_IOS_API_KEY` must be set in the iOS build environment.
+
+**Run one real sandbox purchase before launch.** After it completes, `user_entitlements` should hold
+a `source='revenuecat'` row and `webhook_events` an `rc_`-prefixed row. Both were empty at audit
+time, which is consistent with a path that has never once succeeded.
+
+---
+
 ## Applied
 
 ### 1. RLS policies re-evaluated `auth.uid()` once per row
