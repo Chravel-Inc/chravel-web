@@ -96,6 +96,7 @@ export const PRIVATE_NOINDEX_PREFIXES = [
   '/join',
   '/j/',
   '/accept-invite',
+  '/unsubscribe',
 ];
 
 export const canonicalUrl = (path: string): string => {

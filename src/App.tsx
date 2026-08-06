@@ -99,6 +99,7 @@ const ForTeams = lazy(() =>
 );
 const AdvertiserDashboard = lazy(() => retryImport(() => import('./pages/AdvertiserDashboard')));
 const Healthz = lazy(() => retryImport(() => import('./pages/Healthz')));
+const UnsubscribePage = lazy(() => retryImport(() => import('./pages/UnsubscribePage')));
 const PrivacyPolicy = lazy(() => retryImport(() => import('./pages/PrivacyPolicy')));
 const SupportPage = lazy(() => retryImport(() => import('./pages/SupportPage')));
 const TermsOfService = lazy(() => retryImport(() => import('./pages/TermsOfService')));
@@ -700,6 +701,14 @@ const App = () => {
                           element={
                             <LazyRoute>
                               <Healthz />
+                            </LazyRoute>
+                          }
+                        />
+                        <Route
+                          path="/unsubscribe"
+                          element={
+                            <LazyRoute>
+                              <UnsubscribePage />
                             </LazyRoute>
                           }
                         />

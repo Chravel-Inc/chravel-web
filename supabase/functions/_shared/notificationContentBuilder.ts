@@ -65,7 +65,10 @@ export type NotificationContent = PushContent | EmailContent;
 
 export const FROM_EMAIL = 'support@chravelapp.com';
 export const FROM_NAME = 'ChravelApp';
-const APP_URL = 'https://app.chravelapp.com';
+// Canonical product domain. app.chravelapp.com is only a CORS-allowlisted
+// legacy origin with no confirmed deployment; email CTAs must use the domain
+// Vercel actually serves.
+const APP_URL = 'https://chravel.app';
 const SETTINGS_URL = 'https://www.chravel.app';
 const SETTINGS_CTA_TEXT =
   'Want fewer notifications like this? Log in and update your notification settings.';

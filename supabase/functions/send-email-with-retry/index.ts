@@ -11,11 +11,14 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { createUnsubscribeToken } from '../_shared/unsubscribeToken.ts';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
 );
+
+const GENERIC_SETTINGS_LINK = `<a href="https://chravel.app/settings">Manage notification settings</a>`;
 
 interface EmailRequest {
   to: string | string[];
@@ -136,12 +139,19 @@ serve(async req => {
       htmlContent = renderTemplate(payload.template, payload.templateData || {});
     }
 
-    // Notification-management link. The previous link pointed at a
-    // /functions/v1/unsubscribe-email endpoint that has never existed (dead
-    // 404 in every sent email) with a forgeable btoa token. Until a signed
-    // one-click unsubscribe endpoint exists, link to notification settings —
-    // the same convention as _shared/notificationContentBuilder.ts.
-    htmlContent += `<br/><br/><small><a href="https://www.chravel.app/settings">Manage notification settings</a></small>`;
+    // Signed one-click unsubscribe (unsubscribe-email edge function). The
+    // recipient's user id is resolved from their email server-side; if that
+    // fails (external address, no profile) we fall back to the settings link
+    // so every email still carries a working management link.
+    //
+    // Only personalize when there is exactly one recipient. A batched send
+    // shares one HTML body across every address in `recipients` — embedding
+    // recipients[0]'s token there would ship a valid unsubscribe credential
+    // for recipient[0] to every OTHER recipient in the same call, letting any
+    // co-recipient silently disable someone else's email notifications.
+    const footerLink =
+      recipients.length === 1 ? await buildEmailFooterLink(recipients[0]) : GENERIC_SETTINGS_LINK;
+    htmlContent += `<br/><br/><small>${footerLink}</small>`;
 
     const maxRetries = payload.maxRetries ?? MAX_RETRIES;
     let lastError: Error | null = null;
@@ -325,6 +335,32 @@ async function shouldSuppressEmail(email: string): Promise<boolean> {
   });
 
   return data || false;
+}
+
+/**
+ * Builds the footer link for an outgoing email: a signed one-click
+ * unsubscribe when the recipient resolves to a Chravel user, otherwise the
+ * notification-settings page. Never throws — the footer must not block sends.
+ */
+async function buildEmailFooterLink(recipientEmail: string): Promise<string> {
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('user_id')
+      .eq('email', recipientEmail)
+      .maybeSingle();
+    if (!profile?.user_id) return GENERIC_SETTINGS_LINK;
+
+    const token = await createUnsubscribeToken(profile.user_id);
+    if (!token) return GENERIC_SETTINGS_LINK;
+
+    // The SPA page invokes unsubscribe-email with the anon key, so the link
+    // works regardless of the function's platform JWT gating.
+    const unsubscribeUrl = `https://chravel.app/unsubscribe?token=${token}`;
+    return `<a href="${unsubscribeUrl}">Unsubscribe</a> · ${GENERIC_SETTINGS_LINK}`;
+  } catch {
+    return GENERIC_SETTINGS_LINK;
+  }
 }
 
 async function handleBounce(
