@@ -141,8 +141,12 @@ export default defineConfig(({ mode }) => ({
     cssMinify: true,
     // Set chunk size warnings
     chunkSizeWarningLimit: 1000,
-    // Source maps for production debugging
-    sourcemap: mode !== 'production',
+    // Source maps: full maps in dev; in production, HIDDEN maps (no reference
+    // comment, so browsers never fetch them) but ONLY when a Sentry auth token
+    // is present at build time — scripts/upload-sourcemaps.cjs then uploads
+    // and deletes them so they are never deployed publicly. Without the token
+    // (the default), production builds emit no maps at all, same as before.
+    sourcemap: mode !== 'production' ? true : process.env.SENTRY_AUTH_TOKEN ? 'hidden' : false,
     // Asset inlining threshold
     assetsInlineLimit: 4096,
   },
