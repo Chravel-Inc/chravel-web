@@ -83,11 +83,20 @@ serve(async req => {
     const tripIds = [...new Set(reminders.map(reminder => reminder.trip_id))];
     const userIds = [...new Set(reminders.map(reminder => reminder.recipient_user_id))];
 
-    const [{ data: eventRows }, { data: tripRows }, { data: timezoneRows }] = await Promise.all([
-      supabase.from('trip_events').select('id, trip_id, title, start_time').in('id', eventIds),
-      supabase.from('trips').select('id, name').in('id', tripIds),
-      supabase.from('notification_preferences').select('user_id, timezone').in('user_id', userIds),
-    ]);
+    const [{ data: eventRows }, { data: tripRows }, { data: timezoneRows }, { data: memberRows }] =
+      await Promise.all([
+        supabase.from('trip_events').select('id, trip_id, title, start_time').in('id', eventIds),
+        supabase.from('trips').select('id, name').in('id', tripIds),
+        supabase
+          .from('notification_preferences')
+          .select('user_id, timezone')
+          .in('user_id', userIds),
+        supabase
+          .from('trip_members')
+          .select('trip_id, user_id, status')
+          .in('trip_id', tripIds)
+          .in('user_id', userIds),
+      ]);
 
     const eventsById = new Map<string, TripEventRow>(
       ((eventRows || []) as TripEventRow[]).map(event => [event.id, event]),
@@ -101,13 +110,25 @@ serve(async req => {
         row.timezone || 'America/Los_Angeles',
       ]),
     );
+    // Defense-in-depth against calendar_reminders rows that outlive
+    // membership (e.g. a sync trigger gap on a departure path we haven't
+    // covered yet) — never notify someone who isn't an active member of the
+    // reminder's trip right now, regardless of why the row still exists.
+    const activeMembership = new Set<string>(
+      ((memberRows || []) as { trip_id: string; user_id: string; status: string | null }[])
+        .filter(row => row.status === null || row.status === 'active')
+        .map(row => `${row.trip_id}:${row.user_id}`),
+    );
 
     const createdNotificationIds: string[] = [];
     let skipped = 0;
 
     for (const reminder of reminders) {
       const event = eventsById.get(reminder.event_id);
-      if (!event) {
+      const isActiveMember = activeMembership.has(
+        `${reminder.trip_id}:${reminder.recipient_user_id}`,
+      );
+      if (!event || !isActiveMember) {
         skipped++;
         await supabase
           .from('calendar_reminders')
