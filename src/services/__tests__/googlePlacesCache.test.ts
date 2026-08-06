@@ -88,26 +88,15 @@ describe('googlePlacesCache', () => {
   });
 
   describe('setCachedPlace', () => {
-    it('should store cache entry', async () => {
+    it('is a no-op and never calls set_places_cache (shared-cache poison lockdown)', async () => {
       const mockData = { place_id: '123', name: 'Test Place' };
-      vi.mocked(supabase.rpc).mockResolvedValue({ error: null });
 
       await setCachedPlace('test-key', 'text-search', 'coffee', mockData, '123', null);
 
-      expect(supabase.rpc).toHaveBeenCalledWith('set_places_cache', {
-        p_cache_key: 'test-key',
-        p_query_text: 'coffee',
-        p_api_endpoint: 'text-search',
-        p_response_data: mockData,
-        p_place_id: '123',
-        p_origin_lat: null,
-        p_origin_lng: null,
-      });
+      expect(supabase.rpc).not.toHaveBeenCalled();
     });
 
-    it('should not throw on error', async () => {
-      vi.mocked(supabase.rpc).mockResolvedValue({ error: { message: 'Error' } });
-
+    it('should not throw', async () => {
       await expect(
         setCachedPlace('test-key', 'text-search', 'coffee', {}, undefined, null),
       ).resolves.not.toThrow();
