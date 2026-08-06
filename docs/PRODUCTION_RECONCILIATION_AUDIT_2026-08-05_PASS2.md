@@ -158,6 +158,34 @@ executing deletions:
 Say the word (all-at-once or in batches) and I'll run the
 `supabase functions delete` commands from the archive README.
 
+## Addendum: former-member reminder leak (found in PR review, fixed pre-merge)
+
+Independent review on PR #888 (`cursor[bot]`) caught a second cross-boundary
+leak in the same reminder pipeline, high-severity: `leave_trip()`
+soft-deletes membership (`trip_members.status = 'left'`, row retained) but
+`sync_member_calendar_reminders()` only ran on `INSERT`/`DELETE` — a status
+transition to `'left'` never cleared the member's pending
+`calendar_reminders`, so `event-reminders` would go on notifying a departed
+member with event title, trip name, and start time.
+
+**Fix** (`20260805093000_fix_calendar_reminder_leave_trip_leak.sql`, commit
+`5531a6f`): the sync function now also handles `UPDATE OF status` — deletes
+unsent reminders when a member goes inactive, fans them back out
+symmetrically on rejoin. Applied live and verified via
+`pg_get_triggerdef`. Added a live active-membership check in
+`event-reminders/index.ts` as defense-in-depth (skips/marks-sent any due
+reminder whose recipient isn't currently an active member, independent of
+why the row survived). Regression test:
+`supabase/functions/event-reminders/__tests__/formerMemberReminderLeak.test.ts`
+(4/4 passing).
+
+The same review flagged the cron-auth 401 (`app.settings.service_role_key`
+unset) already documented below — confirmed it stays a genuine owner action;
+routing through `x-cron-secret` instead doesn't remove the dependency, since
+`pg_cron`'s `net.http_post` only reads Postgres GUCs (no Vault wiring in this
+project yet) and would need the identical one-time `ALTER DATABASE` step
+under a different name.
+
 ## Remaining risks (unchanged from pass 1, still pending owner action)
 
 Leaked Password Protection toggle, `MIGRATIONS_AUTOAPPLY=true` repo variable,
