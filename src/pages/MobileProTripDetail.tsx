@@ -24,7 +24,6 @@ import { useTrips } from '../hooks/useTrips';
 import { PRO_FEATURES } from '../hooks/useFeatureToggle';
 import { useTripMembers } from '../hooks/useTripMembers';
 import { convertSupabaseTripToProTrip } from '../utils/tripConverter';
-import { MockRolesService } from '../services/mockRolesService';
 
 import { ProTripData, ProParticipant } from '../types/pro';
 import { ExportSection } from '../types/tripExport';
@@ -136,22 +135,9 @@ export const MobileProTripDetail = () => {
     } as ProTripData & { createdBy?: string };
   }, [isDemoMode, proTripId, userTrips, tripMembers]);
 
-  // Initialize mock roles and channels ONLY in demo mode
-  React.useEffect(() => {
-    if (isDemoMode && proTripId && proTripId in proTripMockData) {
-      const mockTripData = proTripMockData[proTripId];
-      const existingRoles = MockRolesService.getRolesForTrip(proTripId);
-
-      if (!existingRoles) {
-        const roles = MockRolesService.seedRolesForTrip(
-          proTripId,
-          mockTripData.proTripCategory,
-          user?.id || 'demo-user',
-        );
-        MockRolesService.seedChannelsForRoles(proTripId, roles, user?.id || 'demo-user');
-      }
-    }
-  }, [isDemoMode, proTripId, user?.id]);
+  // (A demo-mode role/channel seeding effect used to live here. It was dead:
+  // seedRolesForTrip was a deprecated no-op returning [], so it seeded channels
+  // for zero roles. Demo roles are created manually via the Create Role button.)
 
   // Set trip description when tripData loads
   React.useEffect(() => {
@@ -201,7 +187,7 @@ export const MobileProTripDetail = () => {
           const mockCalendar = demoModeService.getMockCalendarEvents(tripIdStr);
           const mockAttachments = demoModeService.getMockAttachments(tripIdStr);
           const mockPayments = demoModeService.getMockPayments(tripIdStr);
-          const mockPolls = demoModeService.getMockPolls(tripIdStr);
+          const mockPolls = await demoModeService.getMockPolls(tripIdStr);
           const mockTasks = demoModeService.getMockTasks(tripIdStr);
           const mockPlaces = demoModeService.getMockPlaces(tripIdStr);
 

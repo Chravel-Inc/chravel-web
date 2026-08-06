@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from './use-toast';
 import { useDemoMode } from './useDemoMode';
 import { useAuth } from './useAuth';
-import { mockPolls } from '@/mockData/polls';
 import { pollStorageService } from '@/services/pollStorageService';
 import { getStorageItem, setStorageItem } from '@/platform/storage';
 import { offlineSyncService } from '@/services/offlineSyncService';
@@ -126,7 +125,9 @@ export const useTripPolls = (tripId: string) => {
         // Get mock poll votes from storage
         const mockVotes = await getMockPollVotes(tripId);
 
-        // Get mock polls (pre-defined demo data) and apply stored votes
+        // Get mock polls (pre-defined demo data) and apply stored votes.
+        // Lazy import: the 3,100-line fixture stays out of the main bundle.
+        const { mockPolls } = await import('@/mockData/polls');
         const formattedMockPolls = mockPolls
           .filter(p => p.trip_id === tripId)
           .map(poll => {

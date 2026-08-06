@@ -13,9 +13,11 @@ import {
 } from 'lucide-react';
 import { Recommendation } from '../data/recommendations';
 import { useIsMobile } from '../hooks/use-mobile';
-import { OptimizedImage } from './mobile/OptimizedImage';
+import { OptimizedImage } from './OptimizedImage';
+import { getOptimizedImageUrl } from '../utils/imageOptimization';
 import { RecommendationService } from '@/services/recommendationService';
 import { useAuth } from '@/hooks/useAuth';
+import { useDemoMode } from '@/hooks/useDemoMode';
 import { useInView } from 'react-intersection-observer';
 
 interface RecommendationCardProps {
@@ -40,6 +42,9 @@ export const RecommendationCard = ({
   const [impressionId, setImpressionId] = useState<string | null>(null);
   const _isMobile = useIsMobile();
   const { user } = useAuth();
+  // Demo sessions (investor app-preview) must not write real
+  // impression/click analytics — the feed is mock data there.
+  const { isDemoMode } = useDemoMode();
 
   // Impression tracking
   const { ref, inView } = useInView({
@@ -48,7 +53,7 @@ export const RecommendationCard = ({
   });
 
   useEffect(() => {
-    if (inView && !impressionId) {
+    if (inView && !impressionId && !isDemoMode) {
       const trackImpressionAsync = async () => {
         // Track only if we have a real UUID (to avoid DB constraint errors)
         if (!recommendation.uuid) return;
@@ -74,11 +79,12 @@ export const RecommendationCard = ({
 
       trackImpressionAsync();
     }
-  }, [inView, impressionId, recommendation, user?.id, tripId, surface, position]);
+  }, [inView, impressionId, isDemoMode, recommendation, user?.id, tripId, surface, position]);
 
   const trackClick = async (
     action: 'view' | 'save' | 'book' | 'external_link' | 'add_to_trip' | 'hide',
   ) => {
+    if (isDemoMode) return;
     if (impressionId) {
       await RecommendationService.trackClick({
         impressionId,
@@ -187,12 +193,12 @@ export const RecommendationCard = ({
         {recommendation.images.length > 0 && (
           <>
             <OptimizedImage
-              src={recommendation.images[currentImageIndex]}
+              src={getOptimizedImageUrl(recommendation.images[currentImageIndex], 600)}
               alt={recommendation.title}
               width={600}
               height={400}
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-              loading="lazy"
+              lazy
             />
             {recommendation.images.length > 1 && (
               <>

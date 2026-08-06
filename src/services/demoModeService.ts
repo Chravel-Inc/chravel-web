@@ -1,5 +1,4 @@
 import { secureStorageService } from './secureStorageService';
-import { mockPolls } from '@/mockData/polls';
 import TripSpecificMockDataService from './tripSpecificMockDataService';
 import { demoTripEventsByTripId } from '@/mockData/demoTripEvents';
 import { demoTripFilesByTripId, type DemoTripFile } from '@/mockData/demoTripFiles';
@@ -694,8 +693,10 @@ class DemoModeService {
     ];
   }
 
-  getMockPolls(tripId: string): MockPoll[] {
-    // Filter polls specific to this trip from mockPolls.ts
+  async getMockPolls(tripId: string): Promise<MockPoll[]> {
+    // Lazy-loaded: mockPolls is a 3,100-line fixture that must not ship in the
+    // main bundle. Every caller is already in an async export path.
+    const { mockPolls } = await import('@/mockData/polls');
     const tripPolls = mockPolls.filter(poll => poll.trip_id === tripId);
 
     // Transform to MockPoll format
