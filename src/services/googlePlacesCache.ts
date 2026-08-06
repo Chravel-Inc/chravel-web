@@ -86,39 +86,25 @@ export async function getCachedPlace<T extends ConvertedPlace | ConvertedPredict
 }
 
 /**
- * Store place data in Supabase cache (30-day TTL)
+ * Intentionally a no-op.
+ *
+ * set_places_cache is SECURITY DEFINER over a *shared* cache keyed by a deterministic hash of
+ * (endpoint, query, origin). Granting EXECUTE to authenticated let any signed-in user overwrite
+ * entries every other user reads for 30 days (cache poisoning → wrong/malicious place results).
+ * Writes are service_role-only as of 20260806160518; until an edge/proxy path re-seeds the
+ * table, server cache misses and the client falls through to Google + the 1-hour memory cache.
+ *
+ * Parameters are retained so call sites in googlePlacesNew.ts stay unchanged.
  */
 export async function setCachedPlace(
-  cacheKey: string,
-  endpoint: 'autocomplete' | 'text-search' | 'place-details' | 'nearby-search',
-  query: string,
-  data: ConvertedPlace | ConvertedPrediction[],
-  placeId?: string,
-  origin?: SearchOrigin | null,
+  _cacheKey: string,
+  _endpoint: 'autocomplete' | 'text-search' | 'place-details' | 'nearby-search',
+  _query: string,
+  _data: ConvertedPlace | ConvertedPrediction[],
+  _placeId?: string,
+  _origin?: SearchOrigin | null,
 ): Promise<void> {
-  try {
-    const { error } = await supabase.rpc('set_places_cache', {
-      p_cache_key: cacheKey,
-      p_query_text: query,
-      p_api_endpoint: endpoint,
-      p_response_data: data,
-      p_place_id: placeId || null,
-      p_origin_lat: origin?.lat || null,
-      p_origin_lng: origin?.lng || null,
-    });
-
-    if (error) {
-      if (import.meta.env.DEV) {
-        console.warn('[PlacesCache] Error storing cache:', error);
-      }
-      // Don't throw - caching is best-effort
-    }
-  } catch (error) {
-    if (import.meta.env.DEV) {
-      console.warn('[PlacesCache] Cache store failed:', error);
-    }
-    // Don't throw - caching is best-effort, shouldn't break API calls
-  }
+  return;
 }
 
 /**
