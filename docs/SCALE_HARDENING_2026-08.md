@@ -60,6 +60,52 @@ assertion and a runtime audit of live offerings against the required IDs.
 a `source='revenuecat'` row and `webhook_events` an `rc_`-prefixed row. Both were empty at audit
 time, which is consistent with a path that has never once succeeded.
 
+### Dashboard audit results (2026-08-05) — four more breaks, none visible from the repo
+
+A read-only pass over the RevenueCat dashboard found that the primary-key bug was not the only thing
+stopping payments. In fix order, because these interact:
+
+1. **The webhook Authorization header is empty.** `revenuecat-webhook` compares the incoming
+   `Authorization` header against `REVENUECAT_WEBHOOK_SECRET` and rejects on mismatch — an absent
+   header fails that check, so **every** delivery 401s. This is a second, independent break on the
+   same path as the primary key. The webhook URL itself is correct and there are no stale duplicate
+   endpoints.
+
+2. **Three products grant nothing.** `com.chravel.explorer.monthly`, `com.chravel.explorer.annual`
+   and `com.chravel.frequentchraveler.monthly` have no entitlement attached. A purchase would
+   succeed and unlock nothing.
+
+3. **Pro entitlement identifiers are wrong.** The dashboard has `pro_starter` / `pro_growth`; the
+   canonical names — asserted by `iap-parity.test.ts` and used as the key into `ENTITLEMENT_TO_TIER`
+   — are `chravel_pro_starter` / `chravel_pro_growth`. Tier resolution is a direct lookup by
+   entitlement id, so an unmatched key means Pro never resolves and the buyer stays on whatever
+   other entitlement they hold.
+
+4. **The current offering sells the wrong SKUs.** Six of its eight packages point at an older
+   `com.chravel.app.*` naming scheme rather than the eight IDs pinned in `appstore/asc-products.json`.
+   Two of those legacy Pro products are attached to *both* their Pro entitlement and
+   `chravel_frequent_chraveler`, so buying Pro Starter today also grants Frequent Chraveler — and,
+   combined with (3), the buyer resolves as `frequent-chraveler` rather than Pro.
+
+**Fix order matters.** Repointing the offering at the new product IDs *first* would make things
+worse: the three products in (2) have no entitlement, so purchases would start succeeding and
+granting nothing. Attach entitlements before touching the offering.
+
+**Not a defect:** `chravel_pro_enterprise` is absent from the dashboard. Enterprise is contact-sales
+with no IAP (`REQUIRED_IOS_PRODUCT_IDS` contains no Enterprise product), so there is nothing to
+attach it to.
+
+**Open product question — Trip Pass store type.** Both passes are configured as **Non-consumable**,
+which matches the assumption in `useRestorePurchases.ts` ("`allPurchasedProductIdentifiers` also
+surfaces one-time (non-consumable) trip passes even after they've expired"). But the passes are
+time-limited and repeatable by design — 30 days at $39.99, 90 days at $74.99. Apple treats a
+non-consumable as owned permanently, so **a user can buy each pass exactly once, ever**: RevenueCat
+expires the entitlement after the window, and the App Store then refuses a repurchase. For a
+repeatable pass the correct type is Consumable. The trade-off is real — Apple does not restore
+consumables, so the "expired pass history" affordance in `useRestorePurchases` would lose its data
+source — but being unable to sell a second pass is the more expensive problem. Worth deciding
+before launch.
+
 ---
 
 ## Applied
