@@ -28,6 +28,7 @@ export type AuthEventType =
   | 'password_change_failure'
   | 'account_deletion_requested'
   | 'account_deletion_cancelled'
+  | 'account_deletion_signout_failed'
   | 'google_oauth_initiated'
   | 'phone_otp_requested'
   | 'phone_otp_failure';

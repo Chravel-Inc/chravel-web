@@ -12,6 +12,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { AdvertiserService } from '@/services/advertiserService';
+import { errorTracking } from '@/services/errorTracking';
 import { dbItemToRecommendation, campaignToRecommendation } from '@/services/recommendationMappers';
 import type { Recommendation, RecommendationItemRow } from '@/data/recommendations/types';
 
@@ -152,13 +153,27 @@ export class RecommendationService {
       .maybeSingle();
 
     if (error) {
-      // Tracking failures should not break the user experience
+      // Tracking failures must not break the UX, but sponsored-impression data
+      // is billing-relevant — report instead of dropping silently.
+      errorTracking.captureMessage('recommendation impression insert failed', 'warning', {
+        context: 'recommendations.trackImpression',
+        additionalData: {
+          itemType: params.itemType,
+          surface: params.surface,
+          error: error.message,
+        },
+      });
       return null;
     }
 
     // Wire up to advertiser platform for sponsored items
     if (params.itemType === 'sponsored' && params.campaignId) {
-      AdvertiserService.trackEvent(params.campaignId, 'impression').catch(() => {});
+      AdvertiserService.trackEvent(params.campaignId, 'impression').catch(err => {
+        errorTracking.captureException(err, {
+          context: 'recommendations.advertiserImpressionEvent',
+          additionalData: { campaignId: params.campaignId },
+        });
+      });
     }
 
     return data?.id || null;
@@ -176,14 +191,24 @@ export class RecommendationService {
     });
 
     if (error) {
-      // Tracking failures should not break the user experience
+      // Tracking failures must not break the UX, but click data is
+      // billing-relevant — report instead of dropping silently.
+      errorTracking.captureMessage('recommendation click insert failed', 'warning', {
+        context: 'recommendations.trackClick',
+        additionalData: { action: params.action, error: error.message },
+      });
     }
 
     // Wire up to advertiser platform for sponsored items
     if (params.campaignId) {
       // If it's a save action, track as save, else click
       const eventType: 'click' | 'conversion' | 'impression' = 'click';
-      AdvertiserService.trackEvent(params.campaignId, eventType).catch(() => {});
+      AdvertiserService.trackEvent(params.campaignId, eventType).catch(err => {
+        errorTracking.captureException(err, {
+          context: 'recommendations.advertiserClickEvent',
+          additionalData: { campaignId: params.campaignId },
+        });
+      });
     }
   }
 

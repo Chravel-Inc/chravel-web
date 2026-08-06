@@ -78,7 +78,17 @@ export const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({ open, 
         description: result.message,
       });
 
-      await supabase.auth.signOut().catch(() => undefined);
+      await supabase.auth.signOut().catch(() => {
+        // The account is already deleted server-side; a failed sign-out only
+        // leaves a stale local session. Record it and clear what we can so the
+        // UI doesn't keep acting authenticated against a dead account.
+        logAuthEvent('account_deletion_signout_failed');
+        try {
+          localStorage.removeItem('chravel-auth-session');
+        } catch {
+          // storage unavailable — navigation below still resets the app shell
+        }
+      });
       navigate('/', { replace: true });
     } catch {
       toast({
