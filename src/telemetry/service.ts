@@ -77,8 +77,13 @@ class TelemetryService {
     }
 
     // Check demo mode (safeGetItem: a raw localStorage read here would throw in
-    // cookie-blocked browsers and permanently abort telemetry init)
-    this.demoMode = safeGetItem('local', 'TRIPS_DEMO_MODE') === 'true';
+    // cookie-blocked browsers and permanently abort telemetry init).
+    // TRIPS_DEMO_VIEW is the current key (demoModeStore); the legacy boolean
+    // TRIPS_DEMO_MODE is deleted by the store's one-time migration, so reading
+    // only the legacy key mislabeled every post-migration demo session as real.
+    this.demoMode =
+      safeGetItem('local', 'TRIPS_DEMO_VIEW') === 'app-preview' ||
+      safeGetItem('local', 'TRIPS_DEMO_MODE') === 'true';
 
     // Merge configuration
     this.config = { ...defaultConfig, ...configOverrides };

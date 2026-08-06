@@ -42,8 +42,12 @@ export function InternalAdminRoute({
     );
   }
 
-  // Investor app-preview demo gets in without a real authenticated super admin.
-  if (allowDemoPreview && isAppPreview) {
+  // Investor app-preview demo gets in without a real authenticated super admin —
+  // but only for ANONYMOUS sessions. A signed-in non-admin flipping the demo
+  // localStorage key must not reach these surfaces with a real session behind
+  // them (their JWT could satisfy RLS on live tables); they go through the
+  // normal super-admin gate below instead. Demo-shell rendering only.
+  if (allowDemoPreview && isAppPreview && !user) {
     return <>{children}</>;
   }
 

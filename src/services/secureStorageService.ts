@@ -96,14 +96,21 @@ export class SecureStorageService {
     }
   }
 
-  // Demo mode operations with secure storage
+  // Demo mode operations with secure storage.
+  // Storage key is TRIPS_DEMO_VIEW ('app-preview' | 'off'), the same key
+  // demoModeStore owns. This service previously wrote the legacy boolean
+  // TRIPS_DEMO_MODE, which demoModeStore's one-time migration deletes — so the
+  // two stores fought each other and the migration never converged.
   async isDemoModeEnabled(userId?: string): Promise<boolean> {
     if (userId) {
       const preferences = await this.getUserPreferences(userId);
       return preferences.demo_mode_enabled || false;
     } else {
-      const value = await getStorageItem<string>('TRIPS_DEMO_MODE');
-      return value === 'true';
+      const view = await getStorageItem<string>('TRIPS_DEMO_VIEW');
+      if (view !== null) return view === 'app-preview';
+      // Pre-migration fallback for sessions that never ran demoModeStore.
+      const legacy = await getStorageItem<string>('TRIPS_DEMO_MODE');
+      return legacy === 'true';
     }
   }
 
@@ -115,11 +122,9 @@ export class SecureStorageService {
         demo_mode_enabled: enabled,
       });
     } else {
-      if (enabled) {
-        await setStorageItem('TRIPS_DEMO_MODE', 'true');
-      } else {
-        await removeStorageItem('TRIPS_DEMO_MODE');
-      }
+      await setStorageItem('TRIPS_DEMO_VIEW', enabled ? 'app-preview' : 'off');
+      // Never resurrect the legacy key the store migration deletes.
+      await removeStorageItem('TRIPS_DEMO_MODE');
     }
   }
 
