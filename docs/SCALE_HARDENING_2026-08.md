@@ -95,34 +95,61 @@ granting nothing. Attach entitlements before touching the offering.
 with no IAP (`REQUIRED_IOS_PRODUCT_IDS` contains no Enterprise product), so there is nothing to
 attach it to.
 
-**Resolved (2026-08-07) — Trip Pass store type is Non-Renewing Subscription.** Both passes were
-configured as **Non-consumable**, which Apple treats as owned permanently. The passes are
-time-limited and repeatable by design — 30 days at $39.99, 90 days at $74.99 — so a non-consumable
-meant **each pass could be bought exactly once, ever**: RevenueCat expires the entitlement after the
-window and the App Store then refuses a repurchase. Selling time-limited access as a permanent
-purchase also invites a 3.1.1 review question and refund complaints.
+**Resolved (2026-08-07) — keep the Non-consumable products as they are; one pass per Apple ID.**
 
-The correct type is **Non-Renewing Subscription**, not Consumable: it is repurchasable, it is the
-type Apple documents for fixed-duration access, and RevenueCat records it under the customer so the
-"expired pass history" affordance in `useRestorePurchases.ts` keeps a data source (consumables would
-lose it). This also matches what `src/constants/revenuecat.ts:48-53` has documented all along —
-"Trip Pass products MUST be created as **non-renewing subscriptions**". App Store Connect is what
-drifted, not the code.
+Both passes are configured as **Non-consumable**, which Apple treats as owned permanently. They are
+time-limited by design — 30 days at $39.99, 90 days at $74.99 — so on iOS **each pass can be bought
+exactly once, ever**: RevenueCat expires the entitlement after the window, and the App Store then
+resolves any repeat purchase for free without granting anything.
 
-**Apple fixes an IAP's type at creation and never lets you change it**, and a product ID cannot be
-reused even after the product is deleted. So this requires **new product IDs** — `…​.explorer.v2` /
-`…​.frequent.v2`. Display names and prices carry over unchanged. `TRIP_PASS_PRODUCT_ID_RE`
-(`/trippass|\.pass\d+/i`, duplicated in `useRestorePurchases.ts:40`) still matches a `.v2` suffix,
-so no regex change is needed; `REVENUECAT_PRODUCTS` and `appstore/asc-products.json` do need the new
-IDs once the ASC products exist.
+Non-Renewing Subscription is the type Apple documents for fixed-duration access and would allow
+repurchase, but **Apple fixes an IAP's type at creation and never lets you change it**, and a
+product ID cannot be reused even after deletion — so switching means new SKUs (`…​.explorer.v2`),
+fresh App Store Connect entries, and a `REVENUECAT_PRODUCTS` / `asc-products.json` swap. Product
+decision: **not worth the launch complexity.** Keep the existing products, prices, and names, and
+make the one-pass-per-Apple-ID model work properly in code.
 
-Business rule: **repurchase is allowed.** An earlier draft gated users to one pass before forcing a
-subscription; that is dropped. A $39.99 pass used for one trip beats a $9.99 subscription cancelled
-after a month by 4×, and travel demand is bursty enough that cancel-after-one-trip is the default
-behavior rather than the edge case. A repurchase six months later is upside. Lifetime access as a
-one-time Non-consumable was considered and declined for launch: Chravel's marginal cost per user is
-not zero (concierge inference, Stream MAU, Supabase egress), so a lifetime buyer is an unbounded
-liability priced with no retention data. It can be added later; it cannot be un-sold.
+The resulting model, which is coherent on its own terms: buy one pass, use it for a trip, then move
+to a subscription for anything further. Note it is **iOS-only** — the web/Stripe path has no
+ownership model and repurchases fine, so passes remain repeatable there.
+
+Lifetime access as a one-time Non-consumable was considered and declined: Chravel's marginal cost
+per user is not zero (concierge inference, Stream MAU, Supabase egress), so a lifetime buyer is an
+unbounded liability priced with no retention data. It can be added later; it cannot be un-sold.
+
+`src/constants/revenuecat.ts` still carries a comment asserting the passes "MUST be created as
+non-renewing subscriptions". That is now the aspirational path, not the shipped one — the code was
+updated to match the products that actually exist.
+
+### 6. A purchase that granted nothing reported success. FIXED.
+
+`purchaseByProductId` returned `success: true` for any resolved StoreKit transaction. A resolved
+transaction is not a grant, and two situations that both exist today prove it:
+
+- **An already-owned Non-consumable.** Apple resolves the repeat purchase without charging and
+  without granting, because the pass window is computed from the original purchase date. The app
+  reported *"Trip Pass activated! Premium features are unlocking now"* over an unchanged account.
+  This is the exact failure mode the store-type decision above accepts, so it had to be handled.
+- **A product attached to no entitlement in RevenueCat.** Resolves identically. Three products were
+  in this state during the 2026-08-05 dashboard audit — the client-side twin of the
+  `isUnmappedGrantingPurchase` guard added to the webhook in (5).
+
+Nothing in the codebase mapped a product to the entitlement it sells (`ENTITLEMENT_TO_TIER` covers
+entitlement → tier only), so nothing *could* tell the difference. `PRODUCT_ID_TO_ENTITLEMENT` adds
+the missing half and `classifyPurchaseGrant` discriminates the three outcomes by where the expected
+entitlement appears: active → granted; present but inactive → `ALREADY_OWNED`; absent → `NOT_GRANTED`.
+It fails **open** for an unmapped product, because rejecting a real charged purchase is worse than
+not verifying one.
+
+Purchase surfaces then stop offering a pass the Apple ID already owns: `useOwnedTripPasses` reads
+`allPurchasedProductIdentifiers` (which retains non-consumables permanently — the same property that
+makes the pass unsellable twice is what makes ownership knowable) and both `TripPassModal` and
+`ConsumerBillingSection` render "Already used" plus a subscription nudge instead of a dead button.
+That hook also fails open: if RevenueCat is unreachable the button stays live, since an unnecessary
+attempt now ends in an accurate message while a wrongly hidden button silently costs a sale.
+
+`PricingSection.handlePassPurchase` had a hand-rolled copy of `handlePurchaseResult`'s branches and
+so would have silently missed both new error codes; it now calls the shared handler.
 
 ### 5. `NON_RENEWING_PURCHASE` was not a recognized event. FIXED.
 

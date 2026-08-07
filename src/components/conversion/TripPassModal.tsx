@@ -14,6 +14,8 @@ import {
 import { purchaseTripPass, handlePurchaseResult } from '@/integrations/revenuecat/revenuecatClient';
 import { toast } from 'sonner';
 import { CONSUMER_PRICE_DISPLAY, TRIP_PASS_DISPLAY } from '@/billing/pricingDisplay';
+import { REVENUECAT_PRODUCTS } from '@/constants/revenuecat';
+import { useOwnedTripPasses } from '@/hooks/useOwnedTripPasses';
 
 interface TripPassModalProps {
   open: boolean;
@@ -24,6 +26,7 @@ const passes = [
   {
     id: 'pass-explorer-30',
     tier: 'explorer',
+    productId: REVENUECAT_PRODUCTS.explorerPass30,
     name: 'Explorer Trip Pass',
     duration: `${TRIP_PASS_DISPLAY.explorer.durationDays} days`,
     price: TRIP_PASS_DISPLAY.explorer.price,
@@ -44,6 +47,7 @@ const passes = [
   {
     id: 'pass-frequent-90',
     tier: 'frequent-chraveler',
+    productId: REVENUECAT_PRODUCTS.frequentChravelerPass90,
     name: 'Frequent Chraveler Trip Pass',
     duration: `${TRIP_PASS_DISPLAY['frequent-chraveler'].durationDays} days`,
     price: TRIP_PASS_DISPLAY['frequent-chraveler'].price,
@@ -65,6 +69,9 @@ const passes = [
 export const TripPassModal: React.FC<TripPassModalProps> = ({ open, onOpenChange }) => {
   const [loading, setLoading] = useState<string | null>(null);
   const iosNative = isIOSNativeShell();
+  // Apple treats a Trip Pass (Non-consumable) as owned permanently, so a second purchase is
+  // resolved for free and grants nothing. Never offer a pass this Apple ID already bought.
+  const { isOwned } = useOwnedTripPasses({ enabled: open && iosNative });
 
   const handlePurchase = async (passId: string) => {
     setLoading(passId);
@@ -130,52 +137,59 @@ export const TripPassModal: React.FC<TripPassModalProps> = ({ open, onOpenChange
         </DialogHeader>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          {passes.map(pass => (
-            <Card key={pass.id} className="bg-card/80 border-border/50 flex flex-col">
-              <CardHeader className="text-center pb-3">
-                <div className="w-12 h-12 mx-auto rounded-full bg-primary/20 text-primary flex items-center justify-center mb-3">
-                  {pass.icon}
-                </div>
-                <CardTitle className="text-lg font-bold">{pass.name}</CardTitle>
-                <div className="flex items-center justify-center gap-2 mt-1">
-                  <Badge variant="secondary" className="text-xs">
-                    <Clock size={12} className="mr-1" />
-                    {pass.duration}
-                  </Badge>
-                </div>
-                <div className="text-3xl font-bold text-foreground mt-2">
-                  {pass.price}
-                  <span className="text-sm font-normal text-muted-foreground ml-1">one-time</span>
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">{pass.description}</p>
-              </CardHeader>
+          {passes.map(pass => {
+            const alreadyUsed = isOwned(pass.productId);
+            return (
+              <Card key={pass.id} className="bg-card/80 border-border/50 flex flex-col">
+                <CardHeader className="text-center pb-3">
+                  <div className="w-12 h-12 mx-auto rounded-full bg-primary/20 text-primary flex items-center justify-center mb-3">
+                    {pass.icon}
+                  </div>
+                  <CardTitle className="text-lg font-bold">{pass.name}</CardTitle>
+                  <div className="flex items-center justify-center gap-2 mt-1">
+                    <Badge variant="secondary" className="text-xs">
+                      <Clock size={12} className="mr-1" />
+                      {pass.duration}
+                    </Badge>
+                  </div>
+                  <div className="text-3xl font-bold text-foreground mt-2">
+                    {pass.price}
+                    <span className="text-sm font-normal text-muted-foreground ml-1">one-time</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">{pass.description}</p>
+                </CardHeader>
 
-              <CardContent className="flex-1 px-4 pb-3">
-                <ul className="space-y-2">
-                  {pass.features.map((feature, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <Check size={14} className="text-green-400 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm text-foreground">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
+                <CardContent className="flex-1 px-4 pb-3">
+                  <ul className="space-y-2">
+                    {pass.features.map((feature, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <Check size={14} className="text-green-400 mt-0.5 flex-shrink-0" />
+                        <span className="text-sm text-foreground">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
 
-              <CardFooter className="flex flex-col gap-2 px-4 pb-4">
-                <Button
-                  onClick={() => handlePurchase(pass.id)}
-                  disabled={loading !== null}
-                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                >
-                  {loading === pass.id ? (
-                    <div className="h-4 w-4 mr-2 animate-spin gold-gradient-spinner" />
-                  ) : null}
-                  {iosNative ? 'Buy with Apple' : 'Get Trip Pass'}
-                </Button>
-                <p className="text-xs text-muted-foreground text-center">{pass.nudge}</p>
-              </CardFooter>
-            </Card>
-          ))}
+                <CardFooter className="flex flex-col gap-2 px-4 pb-4">
+                  <Button
+                    onClick={() => handlePurchase(pass.id)}
+                    disabled={loading !== null || alreadyUsed}
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                  >
+                    {loading === pass.id ? (
+                      <div className="h-4 w-4 mr-2 animate-spin gold-gradient-spinner" />
+                    ) : null}
+                    {alreadyUsed ? 'Already used' : iosNative ? 'Buy with Apple' : 'Get Trip Pass'}
+                  </Button>
+                  <p className="text-xs text-muted-foreground text-center">
+                    {alreadyUsed
+                      ? 'You have used this pass on your Apple ID. Each pass can be bought once — a subscription keeps premium features going.'
+                      : pass.nudge}
+                  </p>
+                </CardFooter>
+              </Card>
+            );
+          })}
         </div>
 
         <p className="text-xs text-muted-foreground text-center mt-2">

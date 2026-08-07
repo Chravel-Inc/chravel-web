@@ -93,7 +93,24 @@ export interface RevenueCatResult<T = unknown> {
   supported: boolean;
   data?: T;
   error?: string;
-  errorCode?: 'NOT_CONFIGURED' | 'NOT_SUPPORTED' | 'CANCELLED' | 'NETWORK_ERROR' | 'UNKNOWN';
+  errorCode?:
+    | 'NOT_CONFIGURED'
+    | 'NOT_SUPPORTED'
+    | 'CANCELLED'
+    | 'NETWORK_ERROR'
+    /**
+     * The store resolved the purchase but the customer already owns this product and its access
+     * window has passed. Apple treats a non-consumable as owned forever: it resolves the repeat
+     * purchase without charging and without granting, so a Trip Pass cannot be bought twice.
+     */
+    | 'ALREADY_OWNED'
+    /**
+     * The store resolved the purchase but no entitlement was granted, and the customer does not
+     * own the product either — the product is not attached to an entitlement in the RevenueCat
+     * dashboard. A configuration fault, not a user error.
+     */
+    | 'NOT_GRANTED'
+    | 'UNKNOWN';
 }
 
 /**

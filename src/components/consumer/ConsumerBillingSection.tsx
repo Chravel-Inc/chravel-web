@@ -16,6 +16,8 @@ import {
 } from '@/integrations/revenuecat/revenuecatClient';
 import { RestorePurchasesButton } from '../billing/RestorePurchasesButton';
 import { handlePurchaseResult } from '@/integrations/revenuecat/revenuecatClient';
+import { tripPassProductIdForTier } from '@/constants/revenuecat';
+import { useOwnedTripPasses } from '@/hooks/useOwnedTripPasses';
 
 // App Store 3.1.1: inside the iOS app, consumers must not be steered to an external
 // web checkout or the Stripe-hosted billing portal for digital subscriptions. Manage/
@@ -38,6 +40,9 @@ export const ConsumerBillingSection = () => {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
   const [expandedTripPass, setExpandedTripPass] = useState<string | null>(null);
   const [purchasingPass, setPurchasingPass] = useState<string | null>(null);
+  // Trip Passes are Non-consumable on the App Store: owned permanently, so a second purchase is
+  // resolved for free and grants nothing. Don't offer one this Apple ID already bought.
+  const { isOwned: isTripPassOwned } = useOwnedTripPasses();
 
   useEffect(() => {
     void checkSubscription();
@@ -426,6 +431,7 @@ export const ConsumerBillingSection = () => {
           {tripPasses.map(pass => {
             const PassIcon = pass.icon;
             const isBusy = purchasingPass === pass.tier;
+            const alreadyUsed = isTripPassOwned(tripPassProductIdForTier(pass.tier));
             return (
               <Collapsible
                 key={pass.tier}
@@ -469,16 +475,22 @@ export const ConsumerBillingSection = () => {
                     </ul>
                     <button
                       onClick={() => handleTripPassPurchase(pass.tier)}
-                      disabled={isBusy || purchasingPass !== null}
+                      disabled={isBusy || purchasingPass !== null || alreadyUsed}
                       className="mt-4 bg-gradient-to-r from-gold-primary to-gold-mid hover:from-gold-mid hover:to-gold-primary text-black px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
                     >
-                      {isBusy
-                        ? 'Processing...'
-                        : isNativeIOS
-                          ? `Purchase with Apple — ${pass.name}`
-                          : `Buy ${pass.name} — ${pass.priceLabel}`}
+                      {alreadyUsed
+                        ? 'Already used'
+                        : isBusy
+                          ? 'Processing...'
+                          : isNativeIOS
+                            ? `Purchase with Apple — ${pass.name}`
+                            : `Buy ${pass.name} — ${pass.priceLabel}`}
                     </button>
-                    <p className="text-xs text-gray-500 mt-2">One-time charge. No auto-renewal.</p>
+                    <p className="text-xs text-gray-500 mt-2">
+                      {alreadyUsed
+                        ? 'You have used this pass on your Apple ID. Each pass can be bought once — a subscription keeps premium features going.'
+                        : 'One-time charge. No auto-renewal.'}
+                    </p>
                   </div>
                 </CollapsibleContent>
               </Collapsible>
