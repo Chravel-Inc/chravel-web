@@ -222,3 +222,18 @@ For any coding agent (Lovable, Codex, Claude Code, Cursor) or human working here
 8. **Disclose external console changes** (Supabase/Vercel/Stream/Stripe/
    RevenueCat) in the PR — code can't make them, but the drift checks assume
    they were made.
+
+## Baseline exceptions (justifications required by the baseline `_comment`)
+
+- `knownOrphanedConfigBlocks: ai-answer, ai-search, ai-features` (2026-08-05):
+  the three functions were removed as dead (they call RPCs that have never
+  existed in prod — `get_trip_context`, `get_trip_search_data` — and have no
+  callers). Their `[functions.*]` blocks remain in `supabase/config.toml`
+  because that file is protected and requires a human edit. **Owner action:**
+  delete the three blocks, then empty this baseline list.
+- `knownPublicWithoutConfig: unsubscribe-email` (2026-08-05): new one-click
+  unsubscribe endpoint; mail clients open it logged-out, so it needs
+  `[functions.unsubscribe-email] verify_jwt = false` in `config.toml`.
+  **Owner action:** add that block, then empty this baseline list. Until then
+  the deployed default keeps the endpoint gated and emails fall back to the
+  settings link.

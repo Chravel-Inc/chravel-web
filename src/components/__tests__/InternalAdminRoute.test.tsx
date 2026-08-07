@@ -99,4 +99,33 @@ describe('InternalAdminRoute', () => {
     expect(screen.getByText('auth page')).toBeInTheDocument();
     expect(screen.queryByText('secret admin page')).not.toBeInTheDocument();
   });
+
+  it('does NOT let a signed-in non-admin use demo preview to bypass the super-admin gate', () => {
+    // A real session behind the demo localStorage flag could satisfy RLS on
+    // live tables — demo preview is for anonymous demo-shell sessions only.
+    vi.mocked(useAuth).mockReturnValue({
+      user: { id: 'u3', email: 'member@example.com' },
+      isLoading: false,
+    } as never);
+    vi.mocked(useSuperAdmin).mockReturnValue({ isSuperAdmin: false });
+    vi.mocked(useDemoMode).mockReturnValue({ demoView: 'app-preview', isLoading: false } as never);
+
+    renderGuarded(true);
+
+    expect(screen.getByText('home page')).toBeInTheDocument();
+    expect(screen.queryByText('secret admin page')).not.toBeInTheDocument();
+  });
+
+  it('still admits a signed-in super admin when demo preview is active', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: { id: 'u1', email: 'admin@example.com' },
+      isLoading: false,
+    } as never);
+    vi.mocked(useSuperAdmin).mockReturnValue({ isSuperAdmin: true });
+    vi.mocked(useDemoMode).mockReturnValue({ demoView: 'app-preview', isLoading: false } as never);
+
+    renderGuarded(true);
+
+    expect(screen.getByText('secret admin page')).toBeInTheDocument();
+  });
 });

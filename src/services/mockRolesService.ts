@@ -14,30 +14,6 @@ export class MockRolesService {
   // - Roles are user-created, trip-scoped, and fully custom
   // Users create roles manually using "Create Role" button.
 
-  /**
-   * Gets existing roles for a trip from localStorage.
-   * No longer seeds predetermined roles - trips start with no roles.
-   * @deprecated Use getRolesForTrip instead. This method now returns existing roles only.
-   * @see getRolesForTrip
-   * @see createRole - Use this to manually add roles
-   * TODO: Remove in v2.0 after all consumers migrated to getRolesForTrip
-   */
-  static seedRolesForTrip(tripId: string, _category: string, _currentUserId: string): TripRole[] {
-    // Return existing roles if any, otherwise return empty array
-    // No automatic role seeding based on category
-    const existingRoles = this.getRolesForTrip(tripId);
-    if (existingRoles) {
-      return existingRoles;
-    }
-
-    // Initialize empty roles array for this trip
-    const allRoles = this.getAllRoles();
-    allRoles[tripId] = [];
-    localStorage.setItem(this.MOCK_ROLES_KEY, JSON.stringify(allRoles));
-
-    return [];
-  }
-
   static seedChannelsForRoles(
     tripId: string,
     roles: TripRole[],

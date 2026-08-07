@@ -210,7 +210,7 @@ const EventDetail = () => {
         const mockCalendar = demoModeService.getMockCalendarEvents(eventIdForExport);
         const mockAttachments = demoModeService.getMockAttachments(eventIdForExport);
         const mockPayments = demoModeService.getMockPayments(eventIdForExport);
-        const mockPolls = demoModeService.getMockPolls(eventIdForExport);
+        const mockPolls = await demoModeService.getMockPolls(eventIdForExport);
         const mockTasks = demoModeService.getMockTasks(eventIdForExport);
         const mockPlaces = demoModeService.getMockPlaces(eventIdForExport);
 

@@ -177,7 +177,7 @@ export const MobileTripDetail = () => {
           const mockAttachments = demoModeService.getMockAttachments(tripIdStr);
           // Demo mode - use mock data
           const mockPayments = demoModeService.getMockPayments(tripIdStr);
-          const mockPolls = demoModeService.getMockPolls(tripIdStr);
+          const mockPolls = await demoModeService.getMockPolls(tripIdStr);
           const mockTasks = demoModeService.getMockTasks(tripIdStr);
           const mockPlaces = demoModeService.getMockPlaces(tripIdStr);
 

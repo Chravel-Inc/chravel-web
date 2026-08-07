@@ -438,7 +438,9 @@ export const TripDetailDesktop = () => {
         const mockAttachments = demoModeService.getMockAttachments(tripId || '1');
         // ⚡ OPTIMIZATION: Use synchronous mock data methods (no await needed)
         const mockPayments = demoModeService.getMockPayments(tripId || '1');
-        const mockPolls = demoModeService.getMockPolls(tripId || '1');
+        // getMockPolls is async (mockData/polls.ts is lazy-loaded to keep the
+        // 3,149-line fixture out of the main bundle).
+        const mockPolls = await demoModeService.getMockPolls(tripId || '1');
         const mockMembers = demoModeService.getMockMembers(tripId || '1');
         const mockTasks = demoModeService.getMockTasks(tripId || '1');
         const mockPlaces = demoModeService.getMockPlaces(tripId || '1');

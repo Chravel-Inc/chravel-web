@@ -979,7 +979,9 @@ export const calendarService = {
   },
 
   /**
-   * Cache events in background for offline access. Best-effort, non-blocking.
+   * Cache events in background for offline access. Best-effort, non-blocking —
+   * but a failing cache silently degrades offline mode, so failures are at
+   * least visible in dev.
    */
   cacheEventsInBackground(events: TripEvent[]): void {
     Promise.all(
@@ -992,9 +994,17 @@ export const calendarService = {
             event as unknown as Record<string, unknown>,
             event.version || 1,
           )
-          .catch(() => {}),
+          .catch(err => {
+            if (import.meta.env.DEV) {
+              console.warn('[calendarService] offline cache write failed:', event.id, err);
+            }
+          }),
       ),
-    ).catch(() => {});
+    ).catch(err => {
+      if (import.meta.env.DEV) {
+        console.warn('[calendarService] offline cache batch failed:', err);
+      }
+    });
   },
 
   /**
@@ -1015,7 +1025,11 @@ export const calendarService = {
           this.cacheEventsInBackground(data as unknown as TripEvent[]);
         }
       })
-      .catch(() => {});
+      .catch(err => {
+        if (import.meta.env.DEV) {
+          console.warn('[calendarService] post-import cache fetch failed:', err);
+        }
+      });
   },
 
   /**

@@ -10,6 +10,7 @@ import { InlineReplyComponent } from '@/features/chat/components/InlineReplyComp
 import { useLinkPreviews } from '@/features/chat/hooks/useLinkPreviews';
 import { useLinkPreviewActivation } from '@/features/chat/hooks/useLinkPreviewActivation';
 import { useChatReadReceipts } from '@/features/chat/hooks/useChatReadReceipts';
+import { errorTracking } from '@/services/errorTracking';
 import { useAuth } from '@/hooks/useAuth';
 import { getMockAvatar } from '@/utils/mockAvatars';
 import { useRoleAssignments } from '@/hooks/useRoleAssignments';
@@ -135,10 +136,17 @@ export const ChannelChatView = ({
       previous !== effectiveActiveChannel &&
       typeof previous.markRead === 'function'
     ) {
-      previous.markRead().catch(() => {});
+      // A dropped flush leaves the outgoing channel permanently unread —
+      // exactly the badge bug this effect exists to fix — so report failures.
+      previous.markRead().catch(err => {
+        errorTracking.captureException(err, {
+          context: 'proChannels.markReadOnSwitch',
+          tripId: channel.tripId,
+        });
+      });
     }
     previousActiveChannelRef.current = effectiveActiveChannel;
-  }, [effectiveActiveChannel]);
+  }, [effectiveActiveChannel, channel.tripId]);
 
   // True unmount (leaving the channels view entirely) — flush whatever was
   // last connected.
@@ -146,7 +154,11 @@ export const ChannelChatView = ({
     return () => {
       const current = previousActiveChannelRef.current;
       if (current && typeof current.markRead === 'function') {
-        current.markRead().catch(() => {});
+        current.markRead().catch(err => {
+          errorTracking.captureException(err, {
+            context: 'proChannels.markReadOnUnmount',
+          });
+        });
       }
     };
   }, []);
@@ -825,6 +837,9 @@ export const ChannelChatView = ({
                 onDelete={useStreamTransport ? handleMessageDelete : undefined}
               />
             )}
+            // The legacy branch is demo-fixture-only (whole message set is
+            // already in memory), so there is genuinely nothing to paginate:
+            // hasMore=false keeps the affordance hidden and the no-op is safe.
             onLoadMore={useStreamTransport ? streamProChannel.loadMore : () => {}}
             hasMore={useStreamTransport ? streamProChannel.hasMore : false}
             isLoading={useStreamTransport ? streamProChannel.isLoadingMore : false}

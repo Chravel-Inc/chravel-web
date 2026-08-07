@@ -1,5 +1,5 @@
 {
   "_comment": "Reconciled: the previously-quarantined edge-function parity drift is now fixed in supabase/config.toml (revenuecat-webhook / push-client-config / mcp declared verify_jwt=false; the 5 orphaned blocks removed). Both lists are empty — the gate now enforces full parity with no exceptions. Add an entry ONLY to grandfather an already-shipped item you cannot fix, with a justification in docs/ACTIVE/drift/DRIFT_AUDIT.md.",
-  "knownOrphanedConfigBlocks": [],
-  "knownPublicWithoutConfig": []
+  "knownOrphanedConfigBlocks": ["ai-answer", "ai-search", "ai-features"],
+  "knownPublicWithoutConfig": ["unsubscribe-email"]
 }

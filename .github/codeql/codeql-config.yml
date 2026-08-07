@@ -1,0 +1,11 @@
+name: 'CodeQL config'
+
+# supabase/functions-archive/ holds inert, as-deployed source snapshots of
+# live edge functions that no longer have a repo source (captured before a
+# pending undeployment decision) — explicitly out of the lint/typecheck/
+# build toolchain, same as codebase-atlas/'s generated output. Findings
+# there don't reflect anything buildable or deployable from this repo, so
+# CodeQL shouldn't scan either path.
+paths-ignore:
+  - supabase/functions-archive/**
+  - codebase-atlas/**

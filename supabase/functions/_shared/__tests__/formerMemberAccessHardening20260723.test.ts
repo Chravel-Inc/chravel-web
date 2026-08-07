@@ -30,8 +30,9 @@ const STATUS_FILTER = ".or('status.is.null,status.eq.active')";
 const FIXED_FUNCTIONS = [
   'supabase/functions/stream-join-channel/index.ts',
   'supabase/functions/calendar-sync/index.ts',
-  'supabase/functions/ai-answer/index.ts',
-  'supabase/functions/ai-search/index.ts',
+  // ai-answer and ai-search were removed in the 2026-08 production audit
+  // (dead functions calling RPCs — get_trip_context / get_trip_search_data —
+  // that have never existed in prod, and had zero callers).
   'supabase/functions/ai-ingest/index.ts',
   'supabase/functions/artifact-search/index.ts',
   'supabase/functions/artifact-ingest/index.ts',

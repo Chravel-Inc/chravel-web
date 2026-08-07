@@ -112,7 +112,7 @@ describe('EnhancedAgendaTab Smart Import', () => {
     expect(importButton).not.toBeDisabled();
   });
 
-  it('shows disabled Import Agenda button when organizer lacks paid access', () => {
+  it('shows an upgrade-gated Import Agenda button when organizer lacks paid access', () => {
     mockUseConsumerSubscription.mockReturnValue({
       tier: 'free',
       subscription: { status: 'inactive' },
@@ -123,9 +123,12 @@ describe('EnhancedAgendaTab Smart Import', () => {
       wrapper: createWrapper(),
     });
 
-    const importButton = screen.getByRole('button', { name: /Smart Import/i });
+    // Free tier keeps the button clickable (not disabled) so it can open the
+    // upsell modal and the tooltip can explain why, rather than a silent
+    // disabled control.
+    const importButton = screen.getByRole('button', { name: /Upgrade to use Smart Import/i });
     expect(importButton).toBeInTheDocument();
-    expect(importButton).toBeDisabled();
+    expect(importButton).not.toBeDisabled();
   });
 
   it('does not show Import Agenda button when user is attendee', () => {

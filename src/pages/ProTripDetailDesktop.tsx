@@ -20,7 +20,6 @@ import { toast } from 'sonner';
 import { supabase, SUPABASE_PROJECT_URL } from '../integrations/supabase/client';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { useProTripAdmin } from '../hooks/useProTripAdmin';
-import { MockRolesService } from '../services/mockRolesService';
 import { useTripMembers } from '../hooks/useTripMembers';
 import { usePendingRequestTripCards } from '../hooks/usePendingRequestTripCards';
 import { demoModeService } from '../services/demoModeService';
@@ -121,22 +120,9 @@ export const ProTripDetailDesktop = () => {
     } as ProTripData;
   }, [isDemoMode, proTripId, userTrips, tripMembers]);
 
-  // Initialize mock roles and channels ONLY in demo mode
-  React.useEffect(() => {
-    if (isDemoMode && proTripId && proTripId in proTripMockData) {
-      const mockTripData = proTripMockData[proTripId];
-      const existingRoles = MockRolesService.getRolesForTrip(proTripId);
-
-      if (!existingRoles) {
-        const roles = MockRolesService.seedRolesForTrip(
-          proTripId,
-          mockTripData.proTripCategory,
-          user?.id || 'demo-user',
-        );
-        MockRolesService.seedChannelsForRoles(proTripId, roles, user?.id || 'demo-user');
-      }
-    }
-  }, [isDemoMode, proTripId, user?.id]);
+  // (A demo-mode role/channel seeding effect used to live here. It was dead:
+  // seedRolesForTrip was a deprecated no-op returning [], so it seeded channels
+  // for zero roles. Demo roles are created manually via the Create Role button.)
 
   // ⚡ Memoize derived data - MUST be before any conditional returns
   const tripContext = React.useMemo(() => {

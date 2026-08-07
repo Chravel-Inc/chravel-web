@@ -317,7 +317,7 @@ export const TripCard = ({
           if (import.meta.env.DEV) console.log('[TripCard Export] Using demo mode data');
 
           const mockPayments = demoModeService.getMockPayments(tripIdStr);
-          const mockPolls = demoModeService.getMockPolls(tripIdStr);
+          const mockPolls = await demoModeService.getMockPolls(tripIdStr);
           const mockTasks = demoModeService.getMockTasks(tripIdStr);
           const mockPlaces = demoModeService.getMockPlaces(tripIdStr);
 

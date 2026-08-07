@@ -1,0 +1,89 @@
+import { getCorsHeaders } from './cors.ts';
+
+// Enhanced security headers for all edge functions
+// Defaults to production domain instead of wildcard CORS
+export const securityHeaders = {
+  'Access-Control-Allow-Origin': 'https://chravel.app',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Content-Type': 'application/json',
+  // Prevent MIME type sniffing
+  'X-Content-Type-Options': 'nosniff',
+  // Prevent clickjacking
+  'X-Frame-Options': 'DENY',
+  // Enable XSS protection
+  'X-XSS-Protection': '1; mode=block',
+  // Control referrer information
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  // Content Security Policy
+  'Content-Security-Policy':
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:;",
+  // HTTP Strict Transport Security (HSTS)
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+  // Permissions Policy (formerly Feature Policy)
+  'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
+};
+
+/**
+ * Get security headers with validated CORS origin.
+ * Use this for responses that need proper origin validation.
+ */
+export function getSecurityHeaders(req?: Request): Record<string, string> {
+  return {
+    ...getCorsHeaders(req),
+    'Content-Type': 'application/json',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'X-XSS-Protection': '1; mode=block',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Content-Security-Policy':
+      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:;",
+    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+    'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
+  };
+}
+
+// Helper to create consistent response with security headers
+export function createSecureResponse(
+  body: unknown,
+  status: number = 200,
+  additionalHeaders: Record<string, string> = {},
+  req?: Request,
+): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      ...(req ? getSecurityHeaders(req) : securityHeaders),
+      ...additionalHeaders,
+    },
+  });
+}
+
+// Helper for error responses
+export function createErrorResponse(
+  error: string | Error,
+  status: number = 400,
+  req?: Request,
+): Response {
+  // Sanitize the error message to avoid leaking internal stack traces or system paths
+  const rawMessage = typeof error === 'string' ? error : error.message;
+  // Strip stack trace lines (lines starting with "at ") and trim to safe length
+  const message = rawMessage
+    .split('\n')[0] // Only the first line — avoids multi-line stack traces
+    .replace(/\s+at\s+.*/g, '') // Remove inline "at ..." stack frames
+    .trim()
+    .substring(0, 500); // Cap length
+  return createSecureResponse({ error: message }, status, {}, req);
+}
+
+// Helper for OPTIONS (CORS preflight) responses
+export function createOptionsResponse(req?: Request): Response {
+  const headers = req
+    ? getCorsHeaders(req)
+    : {
+        'Access-Control-Allow-Origin': 'https://chravel.app',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      };
+  return new Response(null, { headers });
+}

@@ -67,3 +67,11 @@ ios/App/App/RevenueCat/README.md:revenuecat-key:24
 # private-key false positive — test fixture PEM used to exercise Apple client-secret
 # signing; not a live key.
 supabase/functions/_shared/__tests__/appleClientSecret.test.ts:private-key:47
+
+# private-key false positive — archived copies of the same vertexAuth.ts PEM-stripping
+# helper (see the active-file entry above for the explanation). Different fingerprints
+# because the archive paths differ; not embedded key material in any of them.
+supabase/functions-archive/758f320b-b3aa-4a5f-bc50-a82d2c87431d/_shared/vertexAuth.ts:private-key:47
+supabase/functions-archive/concierge-tts/_shared/vertexAuth.ts:private-key:47
+supabase/functions-archive/gemini-voice-session/_shared/vertexAuth.ts:private-key:47
+supabase/functions-archive/gemini-voice-proxy/_shared/vertexAuth.ts:private-key:47

@@ -100,7 +100,10 @@ describe('ItineraryView export wiring', () => {
     fireEvent.click(screen.getByRole('button', { name: /export pdf/i }));
 
     await waitFor(() => {
-      expect(mocks.toastError).toHaveBeenCalledWith(expect.stringContaining('1 free PDF export'));
+      expect(mocks.toastError).toHaveBeenCalledWith(
+        expect.stringContaining('1 free PDF export'),
+        expect.objectContaining({ action: expect.objectContaining({ label: 'View Plans' }) }),
+      );
     });
     expect(mocks.generateClientPDF).not.toHaveBeenCalled();
     expect(mocks.usageState.recordExport).not.toHaveBeenCalled();
