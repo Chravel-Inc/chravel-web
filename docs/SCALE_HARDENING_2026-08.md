@@ -95,16 +95,57 @@ granting nothing. Attach entitlements before touching the offering.
 with no IAP (`REQUIRED_IOS_PRODUCT_IDS` contains no Enterprise product), so there is nothing to
 attach it to.
 
-**Open product question — Trip Pass store type.** Both passes are configured as **Non-consumable**,
-which matches the assumption in `useRestorePurchases.ts` ("`allPurchasedProductIdentifiers` also
-surfaces one-time (non-consumable) trip passes even after they've expired"). But the passes are
-time-limited and repeatable by design — 30 days at $39.99, 90 days at $74.99. Apple treats a
-non-consumable as owned permanently, so **a user can buy each pass exactly once, ever**: RevenueCat
-expires the entitlement after the window, and the App Store then refuses a repurchase. For a
-repeatable pass the correct type is Consumable. The trade-off is real — Apple does not restore
-consumables, so the "expired pass history" affordance in `useRestorePurchases` would lose its data
-source — but being unable to sell a second pass is the more expensive problem. Worth deciding
-before launch.
+**Resolved (2026-08-07) — Trip Pass store type is Non-Renewing Subscription.** Both passes were
+configured as **Non-consumable**, which Apple treats as owned permanently. The passes are
+time-limited and repeatable by design — 30 days at $39.99, 90 days at $74.99 — so a non-consumable
+meant **each pass could be bought exactly once, ever**: RevenueCat expires the entitlement after the
+window and the App Store then refuses a repurchase. Selling time-limited access as a permanent
+purchase also invites a 3.1.1 review question and refund complaints.
+
+The correct type is **Non-Renewing Subscription**, not Consumable: it is repurchasable, it is the
+type Apple documents for fixed-duration access, and RevenueCat records it under the customer so the
+"expired pass history" affordance in `useRestorePurchases.ts` keeps a data source (consumables would
+lose it). This also matches what `src/constants/revenuecat.ts:48-53` has documented all along —
+"Trip Pass products MUST be created as **non-renewing subscriptions**". App Store Connect is what
+drifted, not the code.
+
+**Apple fixes an IAP's type at creation and never lets you change it**, and a product ID cannot be
+reused even after the product is deleted. So this requires **new product IDs** — `…​.explorer.v2` /
+`…​.frequent.v2`. Display names and prices carry over unchanged. `TRIP_PASS_PRODUCT_ID_RE`
+(`/trippass|\.pass\d+/i`, duplicated in `useRestorePurchases.ts:40`) still matches a `.v2` suffix,
+so no regex change is needed; `REVENUECAT_PRODUCTS` and `appstore/asc-products.json` do need the new
+IDs once the ASC products exist.
+
+Business rule: **repurchase is allowed.** An earlier draft gated users to one pass before forcing a
+subscription; that is dropped. A $39.99 pass used for one trip beats a $9.99 subscription cancelled
+after a month by 4×, and travel demand is bursty enough that cancel-after-one-trip is the default
+behavior rather than the edge case. A repurchase six months later is upside. Lifetime access as a
+one-time Non-consumable was considered and declined for launch: Chravel's marginal cost per user is
+not zero (concierge inference, Stream MAU, Supabase egress), so a lifetime buyer is an unbounded
+liability priced with no retention data. It can be added later; it cannot be un-sold.
+
+### 5. `NON_RENEWING_PURCHASE` was not a recognized event. FIXED.
+
+Found while validating the type change, but **it was already broken with Non-consumables** — this is
+not a consequence of the switch. RevenueCat fires `NON_RENEWING_PURCHASE` for every non-subscription
+product (consumable, non-consumable, and non-renewing subscription alike); `INITIAL_PURCHASE` is
+auto-renewable-only. `SUBSCRIPTION_EVENTS` in `revenuecat-webhook/eventState.ts` omitted it, so
+`index.ts` short-circuited every Trip Pass delivery with `{skipped: true}` and the webhook never
+wrote a `purchase_type='pass'` row.
+
+That left `sync-revenuecat-entitlement`, called client-side after purchase, as the only path — and
+`revenuecatClient.ts:527` only `console.warn`s when that call fails while still returning
+`success: true`. A dropped sync (network loss, backgrounded app, missing
+`REVENUECAT_SECRET_API_KEY` → 503) billed the customer and granted nothing, with no backstop.
+
+Adding the event exposed a second hazard. `derivePlanFromEntitlements` returns `'free'` for empty
+`entitlement_ids`, which is correct for EXPIRATION but catastrophic for a purchase — and an
+unattached store product produces exactly that payload, which is the state three products in (2)
+were in. Persisting it would overwrite a live row with `plan='free'`, revoking access the customer
+just paid for; buying a second pass while the first was still active is the concrete way it bites.
+`isUnmappedGrantingPurchase` now blocks the write for granting events only (purchase / renewal /
+uncancellation / extension / product change) and logs the misconfiguration, while leaving genuine
+revocations untouched. Both fixes have regression tests verified to fail when reverted.
 
 ---
 
