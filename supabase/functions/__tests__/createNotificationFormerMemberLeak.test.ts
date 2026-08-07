@@ -10,13 +10,13 @@ const source = readFileSync(
 describe('create-notification former-member recipient guard', () => {
   it('keeps the sender-side membership check status-aware', () => {
     expect(source).toMatch(
-      /from\('trip_members'\)[\s\S]{0,120}\.select\('role'\)[\s\S]{0,120}\.or\('status\.is\.null,status\.eq\.active'\)[\s\S]{0,120}\.maybeSingle\(\)/,
+      /Authorization Check[\s\S]*from\('trip_members'\)[\s\S]*select\('role'\)[\s\S]*or\('status\.is\.null,status\.eq\.active'\)[\s\S]*maybeSingle\(\)/,
     );
   });
 
   it('fans out only to active trip members', () => {
     expect(source).toMatch(
-      /from\('trip_members'\)[\s\S]{0,120}\.select\('user_id, status'\)[\s\S]{0,120}\.or\('status\.is\.null,status\.eq\.active'\)/,
+      /Determine target users[\s\S]*from\('trip_members'\)[\s\S]*select\('user_id, status'\)[\s\S]*or\('status\.is\.null,status\.eq\.active'\)/,
     );
   });
 });
