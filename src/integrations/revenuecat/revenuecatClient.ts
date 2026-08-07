@@ -10,10 +10,13 @@ import {
   getRevenueCatApiKey,
   isRevenueCatConfigured,
   ENTITLEMENT_TO_TIER,
+  PRODUCT_ID_TO_ENTITLEMENT,
   REVENUECAT_ENTITLEMENTS,
   REVENUECAT_PRODUCTS,
   REQUIRED_IOS_PRODUCT_IDS,
   assertIosProductIdsConfigured,
+  isTripPassProductId,
+  tripPassProductIdForTier,
 } from '@/constants/revenuecat';
 
 import type {
@@ -468,6 +471,91 @@ export async function purchasePackage(
 }
 
 /**
+ * Has this Apple ID ever bought this product?
+ *
+ * `allPurchasedProductIdentifiers` retains non-consumables permanently, which is exactly the
+ * property that makes a Trip Pass unsellable a second time — so it is also the reliable way to
+ * know not to offer one. Purely a UX signal: a bypass just means Apple refuses the duplicate
+ * purchase itself, so this is not a security boundary and needs no server enforcement.
+ */
+export function hasPurchasedProduct(
+  customerInfo: RevenueCatCustomerInfo | null | undefined,
+  productId: string,
+): boolean {
+  if (!customerInfo) return false;
+  return (customerInfo.allPurchasedProductIdentifiers ?? []).includes(productId);
+}
+
+/** Every Trip Pass SKU this Apple ID has ever bought, active or long expired. */
+export function ownedTripPassProductIds(
+  customerInfo: RevenueCatCustomerInfo | null | undefined,
+): string[] {
+  if (!customerInfo) return [];
+  return (customerInfo.allPurchasedProductIdentifiers ?? []).filter(isTripPassProductId);
+}
+
+/**
+ * Deliberately one shape with optional fields rather than a discriminated union: `strict` is off
+ * in this project, so narrowing a `granted: true | false` discriminant does not work at call sites.
+ */
+export interface PurchaseGrantVerdict {
+  granted: boolean;
+  errorCode?: 'ALREADY_OWNED' | 'NOT_GRANTED';
+  message?: string;
+}
+
+/**
+ * Decide whether a resolved purchase actually unlocked what it sells.
+ *
+ * Three outcomes, discriminated by where the expected entitlement shows up:
+ *   - active                 -> granted
+ *   - present but not active -> the customer owns the product and its window has passed. Apple
+ *                               resolves a repeat non-consumable purchase for free rather than
+ *                               charging, so this is a Trip Pass that cannot be bought again.
+ *   - absent entirely        -> the product is attached to no entitlement in RevenueCat.
+ *
+ * Fails OPEN for a product missing from `PRODUCT_ID_TO_ENTITLEMENT`: an unverifiable purchase must
+ * never be reported as a failed one, or adding a SKU to the dashboard before the map would block
+ * real, charged purchases.
+ */
+export function classifyPurchaseGrant(
+  customerInfo: RevenueCatCustomerInfo,
+  productId: string,
+): PurchaseGrantVerdict {
+  const expected = PRODUCT_ID_TO_ENTITLEMENT[productId];
+  if (!expected) {
+    console.warn(
+      `[RevenueCat] No entitlement mapped for '${productId}' — cannot verify the grant, ` +
+        'treating the purchase as successful.',
+    );
+    return { granted: true };
+  }
+
+  if (customerInfo.entitlements?.active?.[expected]?.isActive) {
+    return { granted: true };
+  }
+
+  if (customerInfo.entitlements?.all?.[expected]) {
+    return {
+      granted: false,
+      errorCode: 'ALREADY_OWNED',
+      message: isTripPassProductId(productId)
+        ? 'You have already used this Trip Pass on this Apple ID. Each pass can be bought once — ' +
+          'choose a subscription to continue with premium features.'
+        : 'You already own this purchase, but it is no longer active.',
+    };
+  }
+
+  return {
+    granted: false,
+    errorCode: 'NOT_GRANTED',
+    message:
+      'That purchase did not unlock anything. You have not been charged again — please ' +
+      'contact support so we can fix it.',
+  };
+}
+
+/**
  * Generic: purchase any RevenueCat package by its underlying store
  * product identifier (App Store Connect / Play Console SKU). Looks the
  * product up across **all** offerings so non-default offerings (Pro,
@@ -522,8 +610,34 @@ export async function purchaseByProductId(
     }
 
     const { customerInfo } = await purchases.purchasePackage({ aPackage: pkg });
-    console.log('[RevenueCat] Purchase successful', { productId });
     const typedCustomerInfo = customerInfo as unknown as RevenueCatCustomerInfo;
+
+    // A resolved StoreKit transaction is NOT proof of a grant. Apple resolves a repeat purchase of
+    // an already-owned non-consumable without charging or granting, and a product with no
+    // entitlement attached in RevenueCat resolves the same way. Reporting success in either case
+    // told the buyer "Trip Pass activated!" over an unchanged account. Confirm the grant.
+    const grant = classifyPurchaseGrant(typedCustomerInfo, productId);
+    if (!grant.granted) {
+      console.error('[RevenueCat] Purchase resolved without granting access', {
+        productId,
+        reason: grant.errorCode,
+      });
+      // Still sync: the account state is authoritative and may have changed for other reasons.
+      // A failure here is non-fatal — we are already returning an error to the caller.
+      const recoverySync = await syncCustomerInfoToBackend(typedCustomerInfo, { productId });
+      if (!recoverySync.ok) {
+        console.warn('[RevenueCat] Sync after ungranted purchase failed:', recoverySync.error);
+      }
+      return {
+        success: false,
+        supported: true,
+        errorCode: grant.errorCode,
+        error: grant.message,
+        data: typedCustomerInfo,
+      };
+    }
+
+    console.log('[RevenueCat] Purchase successful', { productId });
     const syncRes = await syncCustomerInfoToBackend(typedCustomerInfo, { productId });
     if (!syncRes.ok) {
       console.warn('[RevenueCat] Post-purchase sync failed:', syncRes.error);
@@ -564,11 +678,7 @@ export async function purchaseTripPass(
   passTier: 'explorer' | 'frequent-chraveler',
   isDemoMode: boolean = false,
 ): Promise<RevenueCatPurchaseResult> {
-  const productId =
-    passTier === 'explorer'
-      ? REVENUECAT_PRODUCTS.explorerPass30
-      : REVENUECAT_PRODUCTS.frequentChravelerPass90;
-  return purchaseByProductId(productId, isDemoMode);
+  return purchaseByProductId(tripPassProductIdForTier(passTier), isDemoMode);
 }
 
 /**
@@ -960,6 +1070,17 @@ export function handlePurchaseResult(
     case 'NETWORK_ERROR':
       toast.error('Network error. Check your connection and try again.', {
         action: onRetry ? { label: 'Retry', onClick: onRetry } : undefined,
+      });
+      return;
+    // Retrying either of these repeats the exact same no-op, so offer no Retry action.
+    case 'ALREADY_OWNED':
+      toast.error('Already purchased', {
+        description: result.error || 'This purchase is no longer active on your Apple ID.',
+      });
+      return;
+    case 'NOT_GRANTED':
+      toast.error('Purchase did not unlock anything', {
+        description: result.error || 'Please contact support — you have not been charged again.',
       });
       return;
     case 'UNKNOWN':

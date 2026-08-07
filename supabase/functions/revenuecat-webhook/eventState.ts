@@ -29,8 +29,18 @@ export interface DerivedEntitlement {
 }
 
 // RevenueCat event types that affect subscription state.
+//
+// NON_RENEWING_PURCHASE is the event RevenueCat fires for every NON-subscription product —
+// consumables, non-consumables, and non-renewing subscriptions alike. Trip Passes are sold as
+// one of those, so INITIAL_PURCHASE never fires for them. Omitting it here made the handler skip
+// Trip Pass deliveries entirely (index.ts returns `{skipped: true}` for unlisted types), leaving
+// the client-side `sync-revenuecat-entitlement` call as the ONLY path that writes a
+// `purchase_type='pass'` row — and that call is best-effort (revenuecatClient.ts logs a warning
+// and still reports the purchase as successful when it fails). A dropped sync meant a paid user
+// with no entitlement and no backstop.
 export const SUBSCRIPTION_EVENTS = new Set([
   'INITIAL_PURCHASE',
+  'NON_RENEWING_PURCHASE',
   'RENEWAL',
   'PRODUCT_CHANGE',
   'CANCELLATION',
@@ -90,6 +100,7 @@ export function deriveEntitlementFromEvent(event: RevenueCatEvent): DerivedEntit
 
   switch (event.type) {
     case 'INITIAL_PURCHASE':
+    case 'NON_RENEWING_PURCHASE': // Trip Passes and any other one-time product
     case 'RENEWAL':
     case 'UNCANCELLATION':
     case 'SUBSCRIPTION_EXTENDED':
@@ -117,6 +128,36 @@ export function deriveEntitlementFromEvent(event: RevenueCatEvent): DerivedEntit
     : null;
 
   return { plan, status, currentPeriodEnd };
+}
+
+/** Events that represent a customer GAINING or KEEPING access, never losing it. */
+const GRANTING_EVENTS = new Set([
+  'INITIAL_PURCHASE',
+  'NON_RENEWING_PURCHASE',
+  'RENEWAL',
+  'UNCANCELLATION',
+  'SUBSCRIPTION_EXTENDED',
+  'PRODUCT_CHANGE',
+]);
+
+/**
+ * Detect a purchase event whose product is not attached to any entitlement in the RevenueCat
+ * dashboard.
+ *
+ * `derivePlanFromEntitlements` returns 'free' for an empty or unrecognized `entitlement_ids`,
+ * which is correct for EXPIRATION/REFUND but catastrophic for a purchase: persisting it would
+ * overwrite a live entitlement row with `plan='free'`, revoking access the customer just paid
+ * for. This is not hypothetical — an unattached store product produces exactly this payload, and
+ * a customer buying a second pass while their first is still active would lose it.
+ *
+ * A purchase that grants nothing is always a dashboard misconfiguration, never a downgrade, so
+ * the only safe response is to leave the stored row untouched and surface it loudly.
+ */
+export function isUnmappedGrantingPurchase(
+  event: Pick<RevenueCatEvent, 'type'>,
+  derivedPlan: string,
+): boolean {
+  return GRANTING_EVENTS.has(event.type) && derivedPlan === 'free';
 }
 
 /**

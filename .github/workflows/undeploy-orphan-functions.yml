@@ -69,6 +69,50 @@ jobs:
         with:
           version: latest
 
+      # Archive BEFORE deleting. `supabase functions delete` is irreversible and the source exists
+      # nowhere else — that is the whole definition of an orphan. Pulling it first turns an
+      # irreversible operation into a recoverable one, and makes the code reviewable after the fact
+      # (which is how photo-upload was shown to write to a `trip-photos` bucket and `trip_photos`
+      # table that do not exist). Runs even on a dry run, so you can read the code before deciding.
+      - name: Archive orphan source
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_ID }}
+          WAVE: ${{ inputs.wave }}
+        run: |
+          set -uo pipefail
+          mkdir -p /tmp/orphan-archive
+          WAVE1="getstream-token approve-join-request send-trip-notification send-push-notification send-scheduled-broadcasts send-organization-invite organization-billing-portal photo-upload export-trip-summary google-calendar-sync 758f320b-b3aa-4a5f-bc50-a82d2c87431d"
+          WAVE2="elevenlabs-conversation-token elevenlabs-tts gemini-chat gemini-tts gemini-voice-proxy gemini-voice-session openai-chat xai-voice-session livekit-token concierge-tts voice-assistant voice-processing generate-audio-summary perplexity-chat ai-image-checker ai-image-checker-shared-cors search link-preview share-preview"
+          WAVE3="advertiser-management waitlist-signup cleanup-staging-tables daily-digest delete-stale-locations file-ai-parser message-scheduler populate-search-index seed-mock-messages update-location"
+          case "$WAVE" in
+            wave1-superseded) TARGETS="$WAVE1" ;;
+            wave2-ai-proxies) TARGETS="$WAVE2" ;;
+            wave3-remainder)  TARGETS="$WAVE3" ;;
+          esac
+          for fn in $TARGETS; do
+            [ -f "supabase/functions/$fn/index.ts" ] && continue
+            if npx --yes supabase functions download "$fn" --project-ref "$PROJECT_REF" 2>/dev/null; then
+              if [ -d "supabase/functions/$fn" ]; then
+                mv "supabase/functions/$fn" "/tmp/orphan-archive/$fn"
+                echo "archived: $fn"
+              fi
+            else
+              echo "could not download (archiving skipped): $fn"
+            fi
+          done
+          # Anything downloaded must not linger in supabase/functions or it would trip the
+          # repo-source veto below and, worse, get redeployed by deploy-functions.yml.
+          echo "remaining downloads in repo tree: $(find supabase/functions -maxdepth 1 -newer /tmp/orphan-archive -type d 2>/dev/null | wc -l)"
+
+      - name: Upload archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: orphan-edge-function-source-${{ inputs.wave }}
+          path: /tmp/orphan-archive
+          retention-days: 90
+          if-no-files-found: warn
+
       - name: Undeploy wave
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

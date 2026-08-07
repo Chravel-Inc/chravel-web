@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   ENTITLEMENT_TO_PLAN,
+  SUBSCRIPTION_EVENTS,
   deriveEntitlementFromEvent,
   derivePlanFromEntitlements,
   isStaleExpiration,
+  isUnmappedGrantingPurchase,
   revenueCatIdempotencyKey,
   type RevenueCatEvent,
 } from '../eventState';
@@ -84,6 +86,81 @@ describe('deriveEntitlementFromEvent', () => {
     expect(
       deriveEntitlementFromEvent({ ...baseEvent, expiration_at_ms: undefined }).currentPeriodEnd,
     ).toBeNull();
+  });
+});
+
+describe('Trip Pass (non-subscription) purchases', () => {
+  const passEvent: RevenueCatEvent = {
+    ...baseEvent,
+    type: 'NON_RENEWING_PURCHASE',
+    product_id: 'com.chravel.trippass.explorer',
+    entitlement_ids: ['chravel_explorer'],
+    expiration_at_ms: Date.parse('2026-09-06T00:00:00.000Z'),
+  };
+
+  /**
+   * REGRESSION (2026-08-07): Trip Passes are sold as non-subscription store products, so
+   * RevenueCat fires NON_RENEWING_PURCHASE — never INITIAL_PURCHASE. The event was absent from
+   * SUBSCRIPTION_EVENTS, so index.ts short-circuited every Trip Pass delivery with
+   * `{skipped: true}` and no `purchase_type='pass'` row was ever written by the webhook. That
+   * left the best-effort client-side sync as the only path, which logs a warning and still
+   * reports the purchase successful when it fails — a dropped sync billed the customer for
+   * nothing.
+   */
+  it('treats NON_RENEWING_PURCHASE as a state-affecting event', () => {
+    expect(SUBSCRIPTION_EVENTS.has('NON_RENEWING_PURCHASE')).toBe(true);
+  });
+
+  it('grants the pass entitlement with its fixed expiry', () => {
+    const result = deriveEntitlementFromEvent(passEvent);
+    expect(result.status).toBe('active');
+    expect(result.plan).toBe('explorer');
+    expect(result.currentPeriodEnd).toBe('2026-09-06T00:00:00.000Z');
+  });
+
+  it('expires a lapsed pass like any other entitlement', () => {
+    const result = deriveEntitlementFromEvent({ ...passEvent, type: 'EXPIRATION' });
+    expect(result.status).toBe('expired');
+    expect(result.plan).toBe('free');
+  });
+});
+
+describe('isUnmappedGrantingPurchase (unattached-product guard)', () => {
+  /**
+   * An App Store product that is not attached to an entitlement in the RevenueCat dashboard
+   * delivers a purchase event with empty `entitlement_ids`. derivePlanFromEntitlements returns
+   * 'free' for that, which is correct for EXPIRATION but catastrophic for a purchase: writing it
+   * would overwrite a live row with plan='free', revoking access the customer just paid for.
+   * Buying a second pass while the first is still active is the concrete way this bites.
+   */
+  it('flags a purchase whose product grants no entitlement', () => {
+    expect(isUnmappedGrantingPurchase({ type: 'NON_RENEWING_PURCHASE' }, 'free')).toBe(true);
+    expect(isUnmappedGrantingPurchase({ type: 'INITIAL_PURCHASE' }, 'free')).toBe(true);
+    expect(isUnmappedGrantingPurchase({ type: 'RENEWAL' }, 'free')).toBe(true);
+  });
+
+  it('allows a purchase that resolves to a real plan', () => {
+    expect(isUnmappedGrantingPurchase({ type: 'NON_RENEWING_PURCHASE' }, 'explorer')).toBe(false);
+    expect(isUnmappedGrantingPurchase({ type: 'INITIAL_PURCHASE' }, 'pro-growth')).toBe(false);
+  });
+
+  it('never blocks revocation events, which legitimately resolve to free', () => {
+    expect(isUnmappedGrantingPurchase({ type: 'EXPIRATION' }, 'free')).toBe(false);
+    expect(isUnmappedGrantingPurchase({ type: 'REFUND' }, 'free')).toBe(false);
+    expect(isUnmappedGrantingPurchase({ type: 'CANCELLATION' }, 'free')).toBe(false);
+  });
+
+  it('derives free from an unattached pass purchase — the payload the guard exists for', () => {
+    const unattached = deriveEntitlementFromEvent({
+      ...baseEvent,
+      type: 'NON_RENEWING_PURCHASE',
+      product_id: 'com.chravel.trippass.explorer',
+      entitlement_ids: [],
+    });
+    expect(unattached.plan).toBe('free');
+    expect(isUnmappedGrantingPurchase({ type: 'NON_RENEWING_PURCHASE' }, unattached.plan)).toBe(
+      true,
+    );
   });
 });
 

@@ -45,12 +45,19 @@ export const REVENUECAT_ENTITLEMENTS = {
  * PLACEHOLDER: Update after creating products in App Store Connect
  * See: src/billing/config.ts for Apple product ID format (com.chravel.*.monthly/annual)
  *
- * Trip Pass products MUST be created as **non-renewing subscriptions** (iOS) /
- * **one-time products** (Android) in the store consoles, then attached in the
- * RevenueCat dashboard to the matching consumer entitlement
- * (`chravel_explorer` / `chravel_frequent_chraveler`) with a 30-day / 90-day
- * grant window. Without those store + dashboard entries,
- * `purchaseTripPass()` will fail with "Trip Pass product … not found".
+ * Trip Pass products are **Non-consumable** on iOS / **one-time products** on Android, attached in
+ * the RevenueCat dashboard to the matching consumer entitlement (`chravel_explorer` /
+ * `chravel_frequent_chraveler`) with a 30-day / 90-day grant window. Without those store +
+ * dashboard entries, `purchaseTripPass()` fails with "Trip Pass product … not found".
+ *
+ * CONSEQUENCE, and it is deliberate: Apple treats a Non-consumable as owned forever, so **each
+ * pass can be bought exactly once per Apple ID**. After the window closes the store resolves any
+ * repeat purchase for free and grants nothing. `classifyPurchaseGrant` detects that and returns
+ * ALREADY_OWNED rather than a false success, and `useOwnedTripPasses` stops the purchase surfaces
+ * from offering a pass that is already owned. Non-Renewing Subscription would allow repurchase,
+ * but Apple fixes an IAP's type at creation, so adopting it means new product IDs — declined for
+ * launch. Do NOT "fix" this by assuming a pass is repurchasable on iOS; it is not.
+ * Web/Stripe has no ownership model and repurchases normally.
  */
 export const REVENUECAT_PRODUCTS = {
   // Explorer tier - $9.99/month, $99/year (subscription)
@@ -71,6 +78,29 @@ export const REVENUECAT_PRODUCTS = {
   proGrowthMonthly: 'com.chravel.pro.growth.monthly',
 } as const;
 
+/**
+ * Which entitlement each store product is supposed to grant.
+ *
+ * `ENTITLEMENT_TO_TIER` covers entitlement → tier, but nothing covered product → entitlement, so
+ * no caller could answer "did the thing I just bought actually unlock what it sells?". Purchase
+ * flows assumed a resolved StoreKit transaction meant a granted entitlement; that assumption is
+ * false in two situations that both exist today — an already-owned non-consumable (Apple resolves
+ * the purchase without charging or granting) and a product with no entitlement attached in the
+ * RevenueCat dashboard. Both surfaced as a success toast over an unchanged account.
+ *
+ * Keep in sync with the RevenueCat dashboard attachments; `iap-parity.test.ts` pins the ids.
+ */
+export const PRODUCT_ID_TO_ENTITLEMENT: Record<string, string> = {
+  [REVENUECAT_PRODUCTS.explorerMonthly]: REVENUECAT_ENTITLEMENTS.explorer,
+  [REVENUECAT_PRODUCTS.explorerAnnual]: REVENUECAT_ENTITLEMENTS.explorer,
+  [REVENUECAT_PRODUCTS.explorerPass30]: REVENUECAT_ENTITLEMENTS.explorer,
+  [REVENUECAT_PRODUCTS.frequentChravelerMonthly]: REVENUECAT_ENTITLEMENTS.frequentChraveler,
+  [REVENUECAT_PRODUCTS.frequentChravelerAnnual]: REVENUECAT_ENTITLEMENTS.frequentChraveler,
+  [REVENUECAT_PRODUCTS.frequentChravelerPass90]: REVENUECAT_ENTITLEMENTS.frequentChraveler,
+  [REVENUECAT_PRODUCTS.proStarterMonthly]: REVENUECAT_ENTITLEMENTS.proStarter,
+  [REVENUECAT_PRODUCTS.proGrowthMonthly]: REVENUECAT_ENTITLEMENTS.proGrowth,
+};
+
 /** Regex for App Store Trip Pass SKUs (non-renewing IAP). */
 export const TRIP_PASS_PRODUCT_ID_RE = /trippass|\.pass\d+/i;
 
@@ -85,6 +115,13 @@ export function resolvePurchaseTypeForProductId(
   productId: string | null | undefined,
 ): RevenueCatPurchaseType {
   return isTripPassProductId(productId) ? 'pass' : 'subscription';
+}
+
+/** Single definition of the consumer tier → Trip Pass SKU mapping. */
+export function tripPassProductIdForTier(tier: 'explorer' | 'frequent-chraveler'): string {
+  return tier === 'explorer'
+    ? REVENUECAT_PRODUCTS.explorerPass30
+    : REVENUECAT_PRODUCTS.frequentChravelerPass90;
 }
 
 /**

@@ -321,19 +321,18 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
     setPassLoading(passId);
     try {
       if (iosNative) {
-        const { purchaseTripPass } = await import('@/integrations/revenuecat/revenuecatClient');
+        const { purchaseTripPass, handlePurchaseResult } =
+          await import('@/integrations/revenuecat/revenuecatClient');
         const tier: 'explorer' | 'frequent-chraveler' =
           passId === 'pass-explorer-30' ? 'explorer' : 'frequent-chraveler';
         const result = await purchaseTripPass(tier);
-        if (result.success) {
-          toast.success('Trip Pass activated!');
-        } else if (result.errorCode === 'CANCELLED') {
-          // silent
-        } else if (!result.supported) {
-          toast.error('In-app purchases are not available on this device.');
-        } else {
-          toast.error(result.error || 'Failed to purchase Trip Pass.');
-        }
+        // Was a bespoke copy of handlePurchaseResult's branches, so it silently missed every
+        // errorCode added since — including ALREADY_OWNED, the one a Trip Pass buyer actually hits.
+        handlePurchaseResult(result, {
+          successMessage: 'Trip Pass activated!',
+          onRetry: () => void handlePassPurchase(passId),
+          context: `trippass/${tier}`,
+        });
         return;
       }
 

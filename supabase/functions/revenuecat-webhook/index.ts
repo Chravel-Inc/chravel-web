@@ -10,6 +10,7 @@ import {
   SUBSCRIPTION_EVENTS,
   deriveEntitlementFromEvent,
   isStaleExpiration,
+  isUnmappedGrantingPurchase,
   revenueCatIdempotencyKey,
   type RevenueCatEvent,
 } from './eventState.ts';
@@ -133,6 +134,23 @@ serve(async req => {
 
   const { plan, status, currentPeriodEnd } = deriveEntitlementFromEvent(event);
   const purchaseType: RevenueCatPurchaseType = resolvePurchaseTypeForProductId(event.product_id);
+
+  // A purchase that maps to no entitlement means the store product is not attached to an
+  // entitlement in the RevenueCat dashboard. Persisting the derived 'free' plan would revoke
+  // access the customer just paid for (and would wipe a still-active pass when they buy a
+  // second one). Never write; surface it so the dashboard gets fixed.
+  if (isUnmappedGrantingPurchase(event, plan)) {
+    console.error(
+      `[rc-webhook] ${event.type} for product '${event.product_id}' granted no entitlement ` +
+        `(entitlement_ids=${JSON.stringify(event.entitlement_ids ?? [])}). The product is not ` +
+        `attached to an entitlement in RevenueCat — user ${userId} paid and received nothing. ` +
+        `Leaving the stored entitlement untouched.`,
+    );
+    return new Response(
+      JSON.stringify({ success: true, synced: false, reason: 'unmapped_product' }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
 
   // Read the current entitlement once: used for both the reorder guard and the
   // no-op content-diff check.
