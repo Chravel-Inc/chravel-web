@@ -201,12 +201,15 @@ Deno.serve(async req => {
     );
 
     // ========================================================================
-    // Determine Target Users (all trip members)
+    // Determine target users (active trip members only)
     // ========================================================================
+    // Former members keep a soft-deleted row (`status = 'left'`), so the fan-out
+    // must mirror is_active_trip_member semantics instead of targeting every row.
     const { data: members, error: membersError } = await supabase
       .from('trip_members')
-      .select('user_id')
-      .eq('trip_id', body.tripId);
+      .select('user_id, status')
+      .eq('trip_id', body.tripId)
+      .or('status.is.null,status.eq.active');
 
     if (membersError) {
       console.error('[create-notification] Error fetching trip members:', membersError);
