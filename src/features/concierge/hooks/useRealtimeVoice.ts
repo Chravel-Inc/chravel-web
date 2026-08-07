@@ -29,7 +29,6 @@ import {
   buildRealtimeSetupUrl,
   executeRealtimeTool,
   fetchRealtimeSessionConfig,
-  preflightRealtimeSetup,
   type RealtimeSessionConfigResponse,
 } from '../lib/realtimeVoiceClient';
 import { useRealtimeDictationCaptions } from './useRealtimeDictationCaptions';
@@ -149,6 +148,8 @@ export function useRealtimeVoice(): UseRealtimeVoiceResult {
   const intendActiveRef = useRef(false);
   const reconnectAttemptsRef = useRef(0);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sessionLimitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stopRef = useRef<() => void>(() => undefined);
 
   // The realtime model object is pure on the client (getWebSocketConfig / parse /
   // serialize); the ephemeral client secret carries auth. Create it once.
@@ -242,6 +243,13 @@ export function useRealtimeVoice(): UseRealtimeVoiceResult {
     if (reconnectTimerRef.current) {
       clearTimeout(reconnectTimerRef.current);
       reconnectTimerRef.current = null;
+    }
+  }, []);
+
+  const clearSessionLimitTimer = useCallback(() => {
+    if (sessionLimitTimerRef.current) {
+      clearTimeout(sessionLimitTimerRef.current);
+      sessionLimitTimerRef.current = null;
     }
   }, []);
 
@@ -339,17 +347,14 @@ export function useRealtimeVoice(): UseRealtimeVoiceResult {
         if (!url) {
           throw new Error('Could not start the voice session. Please try again.');
         }
-        // Dry-run the setup endpoint now: the SDK swallows error bodies, so this is the
-        // only place a misconfiguration (gateway key, model, credits) surfaces legibly.
-        await preflightRealtimeSetup(url, {
-          instructions: config.instructions,
-          voice: config.voice,
-          tools: config.tools,
-        });
         intendActiveRef.current = true;
         pendingConnectRef.current = true;
         setSetupUrl(url);
         setSessionConfig(config);
+        clearSessionLimitTimer();
+        sessionLimitTimerRef.current = setTimeout(() => {
+          stopRef.current();
+        }, config.maxSessionDurationSeconds * 1000);
       } catch (err) {
         intendActiveRef.current = false;
         if (err instanceof DOMException && err.name === 'NotAllowedError') {
@@ -362,12 +367,13 @@ export function useRealtimeVoice(): UseRealtimeVoiceResult {
         startingRef.current = false;
       }
     },
-    [cleanupStream, clearReconnectTimer],
+    [cleanupStream, clearReconnectTimer, clearSessionLimitTimer],
   );
 
   const stop = useCallback(() => {
     intendActiveRef.current = false;
     clearReconnectTimer();
+    clearSessionLimitTimer();
     reconnectAttemptsRef.current = 0;
     try {
       realtimeRef.current.stopAudioCapture();
@@ -391,12 +397,11 @@ export function useRealtimeVoice(): UseRealtimeVoiceResult {
     // can never be dismissed after a failed start.
     setErrorMessage(null);
     tripIdRef.current = null;
-  }, [cleanupStream, clearReconnectTimer, captionsStop, captionsReset]);
+  }, [cleanupStream, clearReconnectTimer, clearSessionLimitTimer, captionsStop, captionsReset]);
 
   // Tear down on unmount only. Do NOT depend on `stop` identity — caption helpers
   // can change `stop`'s reference across renders, and re-running this effect would
   // abort a freshly started session (waveform tap appears to do nothing).
-  const stopRef = useRef(stop);
   stopRef.current = stop;
   useEffect(() => {
     return () => {

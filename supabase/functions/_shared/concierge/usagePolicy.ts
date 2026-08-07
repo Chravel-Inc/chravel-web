@@ -35,17 +35,14 @@ const EXPLORER_PRODUCT_IDS = new Set([
  * limits while remaining conservative:
  * - free: roughly 20 medium-sized requests/month
  * - explorer: roughly 100 medium-sized requests/month
- * - frequent_chraveler: unlimited
+ * - frequent_chraveler: 1,000,000 tokens/month by default
  *
  * Environment overrides allow tuning without code changes.
  */
 const MONTHLY_TOKEN_BUDGETS: Record<UsagePlan, number | null> = {
   free: Number(Deno.env.get('CONCIERGE_FREE_MONTHLY_TOKEN_BUDGET') || 100_000),
   explorer: Number(Deno.env.get('CONCIERGE_EXPLORER_MONTHLY_TOKEN_BUDGET') || 600_000),
-  frequent_chraveler:
-    Number(Deno.env.get('CONCIERGE_FREQUENT_MONTHLY_TOKEN_BUDGET') || 0) > 0
-      ? Number(Deno.env.get('CONCIERGE_FREQUENT_MONTHLY_TOKEN_BUDGET'))
-      : null,
+  frequent_chraveler: Number(Deno.env.get('CONCIERGE_FREQUENT_MONTHLY_TOKEN_BUDGET') || 1_000_000),
 };
 
 export const getTripQueryLimitForUsagePlan = (plan: UsagePlan): number | null =>
@@ -158,7 +155,7 @@ export async function checkMonthlyTokenBudget(
 
   if (error) {
     console.error('[UsagePolicy] Failed to read monthly token usage:', error);
-    return { allowed: true, usedTokens: 0, tokenBudget };
+    return { allowed: false, usedTokens: 0, tokenBudget };
   }
 
   const usedTokens = (data || []).reduce((sum: number, row: Record<string, unknown>) => {

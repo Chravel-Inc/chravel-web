@@ -27,6 +27,8 @@
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { isFeatureEnabled } from '../_shared/featureFlags.ts';
+import { finalizeVoiceCost, reserveVoiceCost, voiceErrorResponse } from '../_shared/costControl.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -44,6 +46,9 @@ const FALLBACK_MODEL = 'openai/gpt-realtime-mini';
 // SDK's own connect() fetch), plus once per reconnect — keep generous headroom.
 const MINT_RATE_LIMIT_MAX = 60;
 const MINT_RATE_LIMIT_WINDOW_SECONDS = 3600;
+const MAX_SESSION_DURATION_SECONDS = 300;
+const DAILY_REALTIME_SECONDS = 900;
+const MONTHLY_REALTIME_SECONDS = 2_700;
 
 // Exact contract used by @ai-sdk/gateway's mintRealtimeClientSecret / getWebSocketConfig.
 const GATEWAY_HOST = 'https://ai-gateway.vercel.sh';
@@ -187,12 +192,22 @@ Deno.serve(async (req: Request) => {
     (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '').trim();
   if (!jwt) return json({ error: 'Authentication required' }, 401, corsHeaders);
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${jwt}` } },
+  });
+  const costClient = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
   const {
     data: { user },
     error: authError,
   } = await supabase.auth.getUser(jwt);
   if (authError || !user) return json({ error: 'Invalid authentication' }, 401, corsHeaders);
+
+  if (
+    !(await isFeatureEnabled('concierge_realtime_voice', false)) ||
+    !(await isFeatureEnabled('cost_voice_realtime', false))
+  ) {
+    return voiceErrorResponse('VOICE_FEATURE_DISABLED', corsHeaders);
+  }
 
   if (await isMintRateLimited(jwt, user.id)) {
     return json(
@@ -204,12 +219,25 @@ Deno.serve(async (req: Request) => {
 
   const requestBody: unknown = await req.json().catch(() => null);
 
+  const reservation = await reserveVoiceCost(costClient, {
+    userId: user.id,
+    feature: 'voice_realtime',
+    provider: 'vercel_openai',
+    units: MAX_SESSION_DURATION_SECONDS,
+    dailyLimit: DAILY_REALTIME_SECONDS,
+    monthlyLimit: MONTHLY_REALTIME_SECONDS,
+  });
+  if (!reservation.allowed) {
+    return voiceErrorResponse(reservation.code, corsHeaders, { resetAt: reservation.resetAt });
+  }
+
   const requested = reqUrl.searchParams.get('model') || DEFAULT_MODEL;
   const primary = ALLOWED_MODELS.has(requested) ? requested : DEFAULT_MODEL;
   const candidates = primary === FALLBACK_MODEL ? [primary] : [primary, FALLBACK_MODEL];
 
   const gatewayKey = Deno.env.get('AI_GATEWAY_API_KEY');
   if (!gatewayKey) {
+    await finalizeVoiceCost(costClient, reservation.reservation, { release: true });
     console.error('[mint-realtime-token] AI_GATEWAY_API_KEY missing from Supabase secrets');
     return json(
       { error: 'Realtime voice is not configured (AI_GATEWAY_API_KEY missing in Supabase).' },
@@ -222,6 +250,9 @@ Deno.serve(async (req: Request) => {
   for (const model of candidates) {
     const result = await mintClientSecret(model, gatewayKey);
     if (result.ok) {
+      await finalizeVoiceCost(costClient, reservation.reservation, {
+        actualUnits: MAX_SESSION_DURATION_SECONDS,
+      });
       return json(
         {
           token: result.token,
@@ -229,6 +260,7 @@ Deno.serve(async (req: Request) => {
           tools: toolsFromSessionConfig(requestBody),
           expiresAt: result.expiresAt,
           model,
+          maxSessionDurationSeconds: MAX_SESSION_DURATION_SECONDS,
         },
         200,
         corsHeaders,
@@ -237,5 +269,6 @@ Deno.serve(async (req: Request) => {
     lastErr = `${model} → ${result.status}: ${result.body}`;
     console.error(`[mint-realtime-token] gateway mint failed: ${lastErr}`);
   }
+  await finalizeVoiceCost(costClient, reservation.reservation, { release: true });
   return json({ error: `Gateway mint failed. ${lastErr}` }, 502, corsHeaders);
 });

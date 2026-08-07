@@ -20,12 +20,17 @@ import { incrementConciergeTripUsage } from '../_shared/conciergeUsage.ts';
 import { checkRateLimit } from '../_shared/security.ts';
 import { isFeatureEnabled } from '../_shared/featureFlags.ts';
 import {
-  checkMonthlyTokenBudget,
+  getMonthlyTokenBudgetForUsagePlan,
   resolveUsagePlanForUser,
   type UsagePlan,
 } from '../_shared/concierge/usagePolicy.ts';
 import {
-  buildTokenBudgetReachedResponse,
+  buildAiTextCostRejectionResponse,
+  estimateAiTextTokens,
+  reserveAiTextBudget,
+} from '../_shared/concierge/aiTextCostControl.ts';
+import type { CostReservationTracker } from '../_shared/costControl.ts';
+import {
   buildTripLimitReachedResponse,
   buildUsageVerificationUnavailableResponse,
 } from '../_shared/concierge/responses.ts';
@@ -57,6 +62,7 @@ if (GEMINI_API_KEY && MAPS_API_KEY && GEMINI_API_KEY === MAPS_API_KEY) {
 }
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 // In-memory cache for get_concierge_trip_history RPC results.
 // Keyed by `${tripId}:${userId}`, 30 s TTL (matches TripContextBuilder cache).
@@ -311,6 +317,7 @@ async function streamGeminiToSSE(
   tripId: string,
   userId: string | undefined,
   locationData: any,
+  providerFetch: typeof fetch,
 ): Promise<{
   fullText: string;
   groundingMetadata: any;
@@ -320,7 +327,7 @@ async function streamGeminiToSSE(
   const geminiStreamEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`;
 
   let currentContents = [...geminiContents];
-  let response = await fetch(geminiStreamEndpoint, {
+  let response = await providerFetch(geminiStreamEndpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(geminiRequestBody),
@@ -534,7 +541,7 @@ async function streamGeminiToSSE(
     };
 
     const followUpStartMs = performance.now();
-    const followUpResponse = await fetch(geminiStreamEndpoint, {
+    const followUpResponse = await providerFetch(geminiStreamEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(followUpBody),
@@ -580,6 +587,7 @@ serve(async req => {
   let tripId = 'unknown';
   let tripQueryLimit: number | null = null;
   let usagePlan: 'free' | 'explorer' | 'frequent_chraveler' = 'free';
+  let aiCostTracker: CostReservationTracker | null = null;
 
   try {
     // Early health check path - responds immediately without AI processing
@@ -728,6 +736,9 @@ serve(async req => {
           }
         : {}),
     });
+    const costClient = SUPABASE_SERVICE_ROLE_KEY
+      ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+      : null;
 
     // Demo traffic must use dedicated demo-concierge endpoint.
     if (requestedDemoMode) {
@@ -1037,13 +1048,6 @@ serve(async req => {
     if (isSuperAdminCaller) {
       usagePlan = 'frequent_chraveler';
       tripQueryLimit = null;
-    }
-
-    if (!serverDemoMode && user) {
-      const tokenBudgetResult = await checkMonthlyTokenBudget(supabase, user.id, usagePlan);
-      if (!tokenBudgetResult.allowed) {
-        return buildTokenBudgetReachedResponse(corsHeaders, usagePlan, tokenBudgetResult);
-      }
     }
 
     if (!serverDemoMode && user && tripQueryLimit !== null && hasTripId) {
@@ -1379,6 +1383,54 @@ serve(async req => {
         : undefined,
     };
 
+    if (!serverDemoMode && user) {
+      if (!costClient) {
+        return buildAiTextCostRejectionResponse(corsHeaders, {
+          code: 'AI_TEXT_COST_CONTROL_UNAVAILABLE',
+          usedTokens: 0,
+          tokenBudget: getMonthlyTokenBudgetForUsagePlan(usagePlan) ?? 0,
+        });
+      }
+      if (!(await isFeatureEnabled('cost_ai_text', false))) {
+        return buildAiTextCostRejectionResponse(corsHeaders, {
+          code: 'AI_TEXT_COST_CONTROL_UNAVAILABLE',
+          usedTokens: 0,
+          tokenBudget: getMonthlyTokenBudgetForUsagePlan(usagePlan) ?? 0,
+        });
+      }
+      const monthlyTokenBudget = getMonthlyTokenBudgetForUsagePlan(usagePlan);
+      if (!monthlyTokenBudget || monthlyTokenBudget <= 0) {
+        return buildAiTextCostRejectionResponse(corsHeaders, {
+          code: 'AI_TEXT_COST_CONTROL_UNAVAILABLE',
+          usedTokens: 0,
+          tokenBudget: 0,
+        });
+      }
+      const estimatedTokens = estimateAiTextTokens({
+        systemInstruction,
+        messages: messages.filter(chatMessage => chatMessage.role !== 'system'),
+        attachmentCount: attachments.length,
+        maxOutputTokens: config.maxTokens || 4096,
+      });
+      const reservation = await reserveAiTextBudget(costClient, {
+        userId: user.id,
+        usagePlan,
+        monthlyTokenBudget,
+        estimatedTokens,
+        provider: GEMINI_API_KEY && !FORCE_LOVABLE_PROVIDER ? 'gemini' : 'lovable',
+        model: selectedModel,
+      });
+      if (!reservation.allowed) {
+        return buildAiTextCostRejectionResponse(corsHeaders, reservation);
+      }
+      aiCostTracker = reservation.tracker;
+    }
+
+    const providerFetch: typeof fetch = (input, init) => {
+      aiCostTracker?.markProviderInvoked();
+      return fetch(input, init);
+    };
+
     // ========== STREAMING PATH (SSE) ==========
     // When stream=true and Gemini is the provider, use streamGenerateContent
     // and return Server-Sent Events instead of a single JSON blob.
@@ -1411,6 +1463,11 @@ serve(async req => {
               tripId,
               user?.id,
               locationData,
+              providerFetch,
+            );
+
+            await aiCostTracker?.finalizeSuccess(
+              streamUsage.total_tokens || streamUsage.prompt_tokens + streamUsage.completion_tokens,
             );
 
             // Extract grounding citations and maps widget tokens
@@ -1501,6 +1558,7 @@ serve(async req => {
                   user_id: user.id,
                   trip_id: resolvedTripId,
                   query_text: logMessage.substring(0, 500),
+                  prompt_tokens: streamUsage.prompt_tokens,
                   response_tokens: streamUsage.completion_tokens,
                   model_used: selectedModel,
                   complexity_score: complexity.score,
@@ -1520,7 +1578,7 @@ serve(async req => {
             console.warn(`[Gemini/Stream] Attempting Lovable gateway fallback: ${reason}`);
             try {
               if (LOVABLE_API_KEY) {
-                const fallbackResp = await fetch(
+                const fallbackResp = await providerFetch(
                   'https://ai.gateway.lovable.dev/v1/chat/completions',
                   {
                     method: 'POST',
@@ -1541,6 +1599,13 @@ serve(async req => {
                   const fallbackData = await fallbackResp.json();
                   const fallbackText = fallbackData?.choices?.[0]?.message?.content;
                   if (fallbackText) {
+                    const fallbackUsage = fallbackData?.usage || {};
+                    await aiCostTracker?.finalizeSuccess(
+                      Math.max(
+                        aiCostTracker.reservation.estimatedUnits,
+                        Number(fallbackUsage.total_tokens || 0),
+                      ),
+                    );
                     controller.enqueue(sseEvent({ type: 'chunk', text: fallbackText }));
                     controller.enqueue(
                       sseEvent({ type: 'metadata', model: 'lovable-gateway-fallback' }),
@@ -1556,6 +1621,7 @@ serve(async req => {
                 throw new Error('No LOVABLE_API_KEY for fallback');
               }
             } catch (fallbackErr) {
+              await aiCostTracker?.finalizeFailure();
               console.error('[Gemini/Stream] Lovable fallback also failed:', fallbackErr);
               controller.enqueue(
                 sseEvent({
@@ -1629,7 +1695,7 @@ serve(async req => {
       }
 
       const callLovable = (msgs: Array<Record<string, unknown>>) =>
-        fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        providerFetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1725,7 +1791,16 @@ serve(async req => {
           );
         }
         data = await followUpResponse.json();
-        lovableUsage = data?.usage || lovableUsage;
+        const followUpUsage = data?.usage || {};
+        lovableUsage = {
+          prompt_tokens:
+            Number(lovableUsage.prompt_tokens || 0) + Number(followUpUsage.prompt_tokens || 0),
+          completion_tokens:
+            Number(lovableUsage.completion_tokens || 0) +
+            Number(followUpUsage.completion_tokens || 0),
+          total_tokens:
+            Number(lovableUsage.total_tokens || 0) + Number(followUpUsage.total_tokens || 0),
+        };
         lovableMessage = data?.choices?.[0]?.message || lovableMessage;
       }
 
@@ -1739,6 +1814,16 @@ serve(async req => {
                 .map((part: any) => (typeof part?.text === 'string' ? part.text : ''))
                 .join('')
             : 'Sorry, I could not generate a response right now.';
+
+      const lovableTotalTokens = Number(
+        lovableUsage.total_tokens ||
+          Number(lovableUsage.prompt_tokens || 0) + Number(lovableUsage.completion_tokens || 0),
+      );
+      await aiCostTracker?.finalizeSuccess(
+        reason
+          ? Math.max(aiCostTracker.reservation.estimatedUnits, lovableTotalTokens)
+          : lovableTotalTokens,
+      );
 
       // Increment usage
       if (
@@ -1814,7 +1899,7 @@ serve(async req => {
 
       console.log(`[Gemini] Calling ${selectedModel} directly`);
 
-      const response = await fetch(geminiEndpoint, {
+      const response = await providerFetch(geminiEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(geminiRequestBody),
@@ -1829,6 +1914,11 @@ serve(async req => {
       }
 
       const data = await response.json();
+      const totalUsageMetadata = {
+        promptTokenCount: Number(data.usageMetadata?.promptTokenCount || 0),
+        candidatesTokenCount: Number(data.usageMetadata?.candidatesTokenCount || 0),
+        totalTokenCount: Number(data.usageMetadata?.totalTokenCount || 0),
+      };
 
       // ========== HANDLE FUNCTION CALLS ==========
       let aiResponse = '';
@@ -1916,7 +2006,7 @@ serve(async req => {
           },
         ];
 
-        const followUpResponse = await fetch(geminiEndpoint, {
+        const followUpResponse = await providerFetch(geminiEndpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1938,6 +2028,15 @@ serve(async req => {
 
         if (followUpResponse.ok) {
           const followUpData = await followUpResponse.json();
+          totalUsageMetadata.promptTokenCount += Number(
+            followUpData.usageMetadata?.promptTokenCount || 0,
+          );
+          totalUsageMetadata.candidatesTokenCount += Number(
+            followUpData.usageMetadata?.candidatesTokenCount || 0,
+          );
+          totalUsageMetadata.totalTokenCount += Number(
+            followUpData.usageMetadata?.totalTokenCount || 0,
+          );
           candidate = followUpData.candidates?.[0];
         } else {
           console.warn(`Follow-up stream failed (${followUpResponse.status})`);
@@ -1961,12 +2060,14 @@ serve(async req => {
       }
 
       // Extract usage from Gemini response
-      const usageMetadata = data.usageMetadata || {};
       const usage = {
-        prompt_tokens: usageMetadata.promptTokenCount || 0,
-        completion_tokens: usageMetadata.candidatesTokenCount || 0,
-        total_tokens: usageMetadata.totalTokenCount || 0,
+        prompt_tokens: totalUsageMetadata.promptTokenCount,
+        completion_tokens: totalUsageMetadata.candidatesTokenCount,
+        total_tokens: totalUsageMetadata.totalTokenCount,
       };
+      await aiCostTracker?.finalizeSuccess(
+        usage.total_tokens || usage.prompt_tokens + usage.completion_tokens,
+      );
 
       // Extract grounding citations
       const groundingChunks = groundingMetadata?.groundingChunks || [];
@@ -2037,6 +2138,7 @@ serve(async req => {
               user_id: user.id,
               trip_id: resolvedTripId,
               query_text: logMessage.substring(0, 500),
+              prompt_tokens: usage.prompt_tokens,
               response_tokens: usage.completion_tokens,
               model_used: selectedModel,
             };
@@ -2109,6 +2211,7 @@ serve(async req => {
       throw geminiError;
     }
   } catch (error) {
+    await aiCostTracker?.finalizeFailure();
     // 🆕 Log with redacted PII
     const redactedMessage = message ? redactPII(message).redactedText : '';
     logError('LOVABLE_CONCIERGE', error, {

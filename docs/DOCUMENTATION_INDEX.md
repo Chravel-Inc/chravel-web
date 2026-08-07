@@ -89,6 +89,7 @@ See also: [AUDIT_INDEX.md](AUDIT_INDEX.md) for all security audits.
 - **[INCIDENT_RESPONSE.md](ACTIVE/INCIDENT_RESPONSE.md)** — Incident response procedures
 - **[ROLLBACK_RUNBOOK.md](ACTIVE/ROLLBACK_RUNBOOK.md)** — Rollback procedures
 - **[DISASTER_RECOVERY.md](DISASTER_RECOVERY.md)** — Disaster recovery plan
+- **[LAUNCH_COST_CONTAINMENT_AUDIT_2026-08-07.md](LAUNCH_COST_CONTAINMENT_AUDIT_2026-08-07.md)** — Bootstrapped launch spend risks, caps, graceful degradation, and vendor-console runbooks
 - **[RELEASE_ENGINEERING_CONSTITUTION.md](ACTIVE/RELEASE_ENGINEERING_CONSTITUTION.md)** — Release engineering rules
 
 ---
