@@ -116,7 +116,11 @@ export function useSubscription() {
 
   const plan = subscription?.plan ?? 'free';
   const status = subscription?.status ?? 'inactive';
-  const isActive = hasEffectiveAccess(status, subscription?.currentPeriodEnd ?? null);
+  const isActive = hasEffectiveAccess(
+    status,
+    subscription?.currentPeriodEnd ?? null,
+    subscription?.purchaseType ?? undefined,
+  );
   const flags = getPlanFlags(plan, isActive);
 
   return {

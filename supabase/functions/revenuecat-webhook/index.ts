@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { requireSecrets } from '../_shared/validateSecrets.ts';
 import {
   USER_ENTITLEMENT_CONFLICT_TARGET,
+  resolveEntitlementPeriodEnd,
   resolvePurchaseTypeForProductId,
   type RevenueCatPurchaseType,
 } from '../_shared/entitlementUpsert.ts';
@@ -132,8 +133,26 @@ serve(async req => {
     await serviceClient.from('webhook_events').delete().eq('event_id', idempotencyKey);
   };
 
-  const { plan, status, currentPeriodEnd } = deriveEntitlementFromEvent(event);
+  const { plan, status, currentPeriodEnd: storeExpiry } = deriveEntitlementFromEvent(event);
   const purchaseType: RevenueCatPurchaseType = resolvePurchaseTypeForProductId(event.product_id);
+
+  // A Trip Pass sells a fixed window, but the expiry arrives only if the product's duration is
+  // configured in the RevenueCat dashboard. Unset there, the event carries no expiration and the
+  // pass would be stored with no end date — permanent premium access for a one-off payment, with
+  // no EXPIRATION event ever firing to stop it. Fall back to our own duration table.
+  const currentPeriodEnd = resolveEntitlementPeriodEnd({
+    productId: event.product_id,
+    storeExpiry,
+    purchasedAtMs: event.purchased_at_ms ?? event.event_timestamp_ms ?? null,
+  });
+
+  if (!storeExpiry && currentPeriodEnd) {
+    console.warn(
+      `[rc-webhook] '${event.product_id}' sent no expiration — RevenueCat has no duration ` +
+        `configured for it. Applied our ${currentPeriodEnd} fallback so the pass expires. ` +
+        `Set the product duration in the RevenueCat dashboard.`,
+    );
+  }
 
   // A purchase that maps to no entitlement means the store product is not attached to an
   // entitlement in the RevenueCat dashboard. Persisting the derived 'free' plan would revoke

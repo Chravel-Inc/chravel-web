@@ -68,10 +68,21 @@ export const normalizePlan = (rawPlan: string | null | undefined): EffectiveTrip
   return 'free';
 };
 
+/**
+ * Mirrors _shared/entitlementSelection.ts. A **pass** is a single fixed, non-renewing window, so
+ * once its end date passes it cannot legitimately still grant access — relying on `status` alone
+ * meant a pass stayed valid until an EXPIRATION event revoked it, and never ended if that event
+ * was dropped or never configured to fire. Subscriptions keep the lenient rule because their
+ * period end rolls forward and a past date usually just means a late RENEWAL webhook.
+ */
 export const hasEffectiveAccess = (
   status: EntitlementStatus,
   currentPeriodEnd: string | null,
+  purchaseType?: 'subscription' | 'pass' | null,
 ): boolean => {
+  if (purchaseType === 'pass' && currentPeriodEnd && new Date(currentPeriodEnd) <= new Date()) {
+    return false;
+  }
   if (status === 'active' || status === 'trialing' || status === 'past_due') return true;
   if (status === 'canceled' && currentPeriodEnd) {
     return new Date(currentPeriodEnd) > new Date();
@@ -103,6 +114,7 @@ export const pickPrimaryEntitlementRow = (
     hasEffectiveAccess(
       ((row.status as EntitlementStatus | null) ?? 'expired') as EntitlementStatus,
       row.current_period_end,
+      row.purchase_type,
     ),
   );
   if (effectiveSubscription) return effectiveSubscription;
@@ -129,7 +141,7 @@ export const resolveEffectiveTripPlan = ({ entitlement, legacyProfile }: PlanRes
     const normalizedPlan = normalizePlan(entitlement.plan);
     const status = (entitlement.status as EntitlementStatus | null) ?? 'expired';
     if (
-      hasEffectiveAccess(status, entitlement.current_period_end) &&
+      hasEffectiveAccess(status, entitlement.current_period_end, entitlement.purchase_type) &&
       PAID_TIERS.has(normalizedPlan)
     ) {
       return normalizedPlan;

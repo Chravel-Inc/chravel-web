@@ -41,7 +41,7 @@ export const normalizeFromEntitlement = (
 
   const status = row.status as SubscriptionStatus;
   const currentPeriodEnd = row.current_period_end;
-  const effectiveAccess = hasEffectiveAccess(row.status, currentPeriodEnd);
+  const effectiveAccess = hasEffectiveAccess(row.status, currentPeriodEnd, row.purchase_type);
 
   return {
     subscribed: effectiveAccess && row.plan !== 'free',
@@ -61,7 +61,7 @@ export const shouldReconcileFromStripe = (
   const primary = pickPrimaryEntitlement(rows ?? []);
   if (!primary) return { shouldReconcile: true, primary: null };
 
-  if (hasEffectiveAccess(primary.status, primary.current_period_end)) {
+  if (hasEffectiveAccess(primary.status, primary.current_period_end, primary.purchase_type)) {
     return { shouldReconcile: false, primary };
   }
 

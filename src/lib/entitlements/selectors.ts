@@ -27,7 +27,27 @@ const statusPriority = (status: string): number => {
   return 0;
 };
 
-export const hasEffectiveAccess = (status: string, periodEnd: string | null): boolean => {
+/**
+ * Does this row currently grant access?
+ *
+ * `purchaseType` matters because passes and subscriptions expire differently. A subscription's
+ * period end rolls forward on every renewal, so a stored date in the past usually means a RENEWAL
+ * webhook is merely late — locking out a paying subscriber over webhook latency would be worse
+ * than a few minutes of grace. A **pass** has one fixed, non-renewing window: once its end date
+ * passes there is no legitimate way for it to still be valid, and treating `status='active'` as
+ * sufficient meant a pass kept working until an EXPIRATION event arrived to revoke it. If that
+ * event was dropped, delayed, or never configured to fire at all, the pass simply never ended.
+ *
+ * So passes are evaluated against their own end date, and only when we actually have one. A null
+ * end date still grants access — the write paths guarantee passes get a computed expiry, and
+ * failing closed here would lock out someone who genuinely paid.
+ */
+export const hasEffectiveAccess = (
+  status: string,
+  periodEnd: string | null,
+  purchaseType?: PurchaseType,
+): boolean => {
+  if (purchaseType === 'pass' && periodEnd && new Date(periodEnd) <= new Date()) return false;
   if (status === 'active' || status === 'trialing' || status === 'past_due') return true;
   if (status === 'canceled' && periodEnd) return new Date(periodEnd) > new Date();
   return false;
@@ -45,7 +65,7 @@ export const pickPrimaryEntitlement = (
 
   const subscriptionRows = rows.filter(row => row.purchase_type === 'subscription');
   const effectiveSubscription = subscriptionRows.find(row =>
-    hasEffectiveAccess(row.status, row.current_period_end),
+    hasEffectiveAccess(row.status, row.current_period_end, row.purchase_type),
   );
   if (effectiveSubscription) return effectiveSubscription;
 
@@ -67,7 +87,11 @@ export const resolveEffectiveEntitlement = (
     status: primary.status,
     purchaseType: primary.purchase_type,
     currentPeriodEnd: primary.current_period_end,
-    hasAccess: hasEffectiveAccess(primary.status, primary.current_period_end),
+    hasAccess: hasEffectiveAccess(
+      primary.status,
+      primary.current_period_end,
+      primary.purchase_type,
+    ),
     source: primary.source,
   };
 };

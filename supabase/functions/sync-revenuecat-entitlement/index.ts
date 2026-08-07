@@ -4,6 +4,7 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 import {
   USER_ENTITLEMENT_CONFLICT_TARGET,
   isTripPassProductId,
+  resolveEntitlementPeriodEnd,
   resolvePurchaseTypeForProductId,
   type RevenueCatPurchaseType,
 } from '../_shared/entitlementUpsert.ts';
@@ -191,11 +192,30 @@ serve(async req => {
     const nowMs = Date.now();
     const activeEntitlements: Record<string, ActiveEntitlementInfo> = {};
     for (const [entitlementId, info] of Object.entries(rcEntitlements)) {
-      const expMs = info.expires_date ? new Date(info.expires_date).getTime() : Infinity;
+      // A Trip Pass sells a fixed window, but RevenueCat only reports an expiry when the
+      // product's duration is configured in its dashboard. Unset there, `expires_date` is null —
+      // which this loop treated as Infinity, making a one-off $39.99 pass grant premium access
+      // permanently. Fall back to our own duration table so the window is enforced by code.
+      // Subscriptions are untouched: a null expiry there legitimately means open-ended.
+      const effectiveExpiry = resolveEntitlementPeriodEnd({
+        productId: info.product_identifier,
+        storeExpiry: info.expires_date,
+        purchasedAtMs: info.purchase_date ? new Date(info.purchase_date).getTime() : null,
+      });
+
+      if (!info.expires_date && effectiveExpiry) {
+        console.warn(
+          `[sync-rc] '${info.product_identifier}' has no expiry from RevenueCat — no duration ` +
+            `configured for it. Applied our ${effectiveExpiry} fallback. Fix the product ` +
+            `duration in the RevenueCat dashboard.`,
+        );
+      }
+
+      const expMs = effectiveExpiry ? new Date(effectiveExpiry).getTime() : Infinity;
       const isActive = expMs > nowMs;
       activeEntitlements[entitlementId] = {
         isActive,
-        expirationDate: info.expires_date,
+        expirationDate: effectiveExpiry,
         periodType: info.period_type?.toLowerCase(),
         productIdentifier: info.product_identifier,
       };
