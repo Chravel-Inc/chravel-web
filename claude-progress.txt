@@ -1,3 +1,25 @@
+2026-08-07 — P0 paid text Concierge cost containment
+- Extended the canonical atomic cost ledger narrowly with `ai_text`, a fail-closed `cost_ai_text` flag, serialized estimated-token reservations, and a current-month legacy-usage backfill so deployment does not reset plan allowances.
+- Frequent Chraveler now defaults to a positive 1,000,000-token monthly budget; Free/Explorer remain 100,000/600,000 and existing per-trip query limits are unchanged.
+- `lovable-concierge` reserves before every routed Gemini/Lovable inference path (streaming, JSON, tool follow-ups, runtime fallback), finalizes accumulated actual usage, uses the estimate when providers omit usage, and releases only when no provider invocation began.
+- Added focused coverage for concurrency SQL, exhaustion, fail-closed storage/flag behavior, provider failure before/after invocation, missing usage metadata, response compatibility, backfill, and provider-call ordering.
+- Demo Concierge, typed response shape, query allowances, tool registry/execution, and capability/RLS paths were not changed.
+- Branch: work
+
+2026-08-07 — P0 AI voice cost containment + external console handoff
+- Added an atomic, authenticated `cost_usage_ledger` reservation/finalization migration with serialized daily/monthly enforcement and independent TTS/STT/realtime cost flags.
+- TTS/STT now fail closed before paid provider calls, use distributed per-user throttles and budgets, propagate cancellation, bound upstream waits, release failed reservations, and return stable voice degradation codes.
+- Realtime voice remains doubly disabled by default; paid token mints reserve five-minute blocks, the client obeys a server-authored five-minute deadline, and the duplicate paid preflight mint was removed. A hostile-client socket cannot yet be server-terminated, so realtime must remain off for launch.
+- Added focused coverage for atomic overshoot SQL, exhaustion, fail-closed ledger errors, feature-off/429 envelopes, cancellation, and upstream timeout.
+- Added `docs/ops/CHATGPT_COWORK_COST_CONTAINMENT_RUNBOOK.md`, a consolidated, approval-gated browser-console prompt for all audited providers.
+- Branch: work
+
+2026-08-07 — Bootstrapped launch cost-containment audit
+- Audited repo-wide metered surfaces across AI text/voice, Google Maps, Smart Import/OCR, media/storage/egress, Stream, Supabase, Vercel, notifications, analytics, previews, and cron/background work.
+- Added `docs/LAUNCH_COST_CONTAINMENT_AUDIT_2026-08-07.md`: founder summary, current controls/gaps, P0–P2 containment plan, conservative warning/degrade/stop thresholds, graceful-degradation contract, provider console runbooks, verification drill, evidence map, and risk scoring.
+- Highest risks: TTS/STT have auth but no local rate/budget; paid Concierge is unlimited by default and token lookup fails open; media aggregate quotas are client-side/fail-open; browser Maps monitor is per-tab rather than authoritative; previously identified deployed orphan functions remain an external cleanup requirement.
+- Branch: work
+
 2026-08-01 — Hide disabled Concierge Conversation Mode setting
 - Removed the Conversation Mode settings card and its now-unused settings-only component; Concierge settings now proceed directly from trip preferences to Reply Language and Concierge Voice.
 - Added a focused rendering regression test proving the disabled mode and switch stay absent while the supported voice settings remain visible.

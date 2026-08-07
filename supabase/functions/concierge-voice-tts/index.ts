@@ -2,12 +2,25 @@
 // Body: { text, voice?, format? } → returns audio bytes (MP3 by default).
 // Keeps LOVABLE_API_KEY server-side.
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { requireAuth } from '../_shared/requireAuth.ts';
+import { isFeatureEnabled } from '../_shared/featureFlags.ts';
+import { checkRateLimit } from '../_shared/security.ts';
+import {
+  fetchWithTimeout,
+  finalizeVoiceCost,
+  reserveVoiceCost,
+  voiceErrorResponse,
+} from '../_shared/costControl.ts';
 
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 const TTS_MODEL = 'openai/gpt-4o-mini-tts';
 const MAX_TEXT_CHARS = 4000;
+const DAILY_CHARACTER_LIMIT = 30_000;
+const MONTHLY_CHARACTER_LIMIT = 300_000;
+const REQUESTS_PER_MINUTE = 5;
+const UPSTREAM_TIMEOUT_MS = 30_000;
 
 const VOICES = [
   'alloy',
@@ -40,16 +53,29 @@ serve(async (req: Request) => {
     return new Response('Method not allowed', { status: 405, headers: cors });
   }
 
-  if (!LOVABLE_API_KEY) {
-    console.error('[concierge-voice-tts] LOVABLE_API_KEY missing');
-    return new Response(JSON.stringify({ error: 'TTS not configured' }), {
-      status: 500,
-      headers: { ...cors, 'Content-Type': 'application/json' },
-    });
-  }
-
   const auth = await requireAuth(req, cors);
   if (auth.error) return auth.response;
+  if (!(await isFeatureEnabled('cost_voice_tts', false))) {
+    return voiceErrorResponse('VOICE_FEATURE_DISABLED', cors);
+  }
+
+  const authHeader = req.headers.get('authorization')!;
+  const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const costClient = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+  );
+  const rateLimit = await checkRateLimit(
+    supabase,
+    `voice-tts:${auth.user.id}`,
+    REQUESTS_PER_MINUTE,
+    60,
+    auth.user.id,
+    'concierge-voice-tts',
+  );
+  if (!rateLimit.allowed) return voiceErrorResponse('VOICE_RATE_LIMITED', cors, { status: 429 });
 
   let body: { text?: unknown; voice?: unknown; format?: unknown; stream?: unknown };
   try {
@@ -72,6 +98,31 @@ serve(async (req: Request) => {
     return new Response(
       JSON.stringify({ error: `Text exceeds ${MAX_TEXT_CHARS} character limit` }),
       { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  const reservation = await reserveVoiceCost(costClient, {
+    userId: auth.user.id,
+    feature: 'voice_tts',
+    provider: 'lovable_openai',
+    units: rawText.length,
+    dailyLimit: DAILY_CHARACTER_LIMIT,
+    monthlyLimit: MONTHLY_CHARACTER_LIMIT,
+    metadata: { model: TTS_MODEL },
+  });
+  if (!reservation.allowed) {
+    return voiceErrorResponse(reservation.code, cors, { resetAt: reservation.resetAt });
+  }
+
+  if (!LOVABLE_API_KEY) {
+    await finalizeVoiceCost(costClient, reservation.reservation, { release: true });
+    console.error('[concierge-voice-tts] LOVABLE_API_KEY missing');
+    return new Response(
+      JSON.stringify({ error: 'TTS not configured', code: 'VOICE_NOT_CONFIGURED' }),
+      {
+        status: 503,
+        headers: { ...cors, 'Content-Type': 'application/json' },
+      },
     );
   }
 
@@ -108,18 +159,26 @@ serve(async (req: Request) => {
 
   let res: Response;
   try {
-    res = await fetch('https://ai.gateway.lovable.dev/v1/audio/speech', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
+    res = await fetchWithTimeout(
+      'https://ai.gateway.lovable.dev/v1/audio/speech',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(gatewayPayload),
       },
-      body: JSON.stringify(gatewayPayload),
-      signal: req.signal,
-    });
+      UPSTREAM_TIMEOUT_MS,
+      req.signal,
+    );
   } catch (err) {
+    await finalizeVoiceCost(costClient, reservation.reservation, { release: true });
     if (req.signal.aborted) {
-      return new Response(null, { status: 499, headers: cors });
+      return voiceErrorResponse('VOICE_REQUEST_CANCELLED', cors, { status: 499 });
+    }
+    if (err instanceof DOMException && err.name === 'TimeoutError') {
+      return voiceErrorResponse('VOICE_UPSTREAM_TIMEOUT', cors, { status: 504 });
     }
     console.error('[concierge-voice-tts] Gateway fetch failed:', err);
     return new Response(JSON.stringify({ error: 'Voice service unreachable' }), {
@@ -129,6 +188,7 @@ serve(async (req: Request) => {
   }
 
   if (!res.ok) {
+    await finalizeVoiceCost(costClient, reservation.reservation, { release: true });
     const errText = await res.text().catch(() => '');
     console.warn(`[concierge-voice-tts] Gateway ${res.status}: ${errText.slice(0, 500)}`);
     let message = `Voice generation failed (${res.status})`;
@@ -155,6 +215,8 @@ serve(async (req: Request) => {
       headers: { ...cors, 'Content-Type': 'application/json' },
     });
   }
+
+  await finalizeVoiceCost(costClient, reservation.reservation, { actualUnits: rawText.length });
 
   if (wantsStream) {
     // Pass the SSE body through untouched so the client can decode PCM deltas

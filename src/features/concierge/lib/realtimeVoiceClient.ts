@@ -42,6 +42,7 @@ export interface RealtimeSessionConfigResponse {
   instructions: string;
   voice: string;
   tools: RealtimeToolDefinition[];
+  maxSessionDurationSeconds: number;
 }
 
 async function getAccessToken(): Promise<string> {

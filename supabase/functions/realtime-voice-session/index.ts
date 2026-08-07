@@ -131,6 +131,22 @@ serve(async (req: Request) => {
     }
     const userId = user.id;
 
+    if (
+      !(await isFeatureEnabled('concierge_realtime_voice', false)) ||
+      !(await isFeatureEnabled('cost_voice_realtime', false))
+    ) {
+      return new Response(
+        JSON.stringify({
+          error: 'Voice is paused right now. Continue by typing.',
+          code: 'VOICE_FEATURE_DISABLED',
+        }),
+        {
+          status: 503,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      );
+    }
+
     // Per-user throttle on session starts (mirrors execute-concierge-tool's limiter).
     // Bounds how often the normal client flow can spin up a realtime session.
     const rlResult = await checkRateLimit(
@@ -208,10 +224,18 @@ serve(async (req: Request) => {
       replyLanguage,
     });
 
-    return new Response(JSON.stringify({ instructions, voice, tools: toRealtimeTools() }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({
+        instructions,
+        voice,
+        tools: toRealtimeTools(),
+        maxSessionDurationSeconds: 300,
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      },
+    );
   } catch (error) {
     console.error('[realtime-voice-session] Unhandled error:', error);
     return new Response(

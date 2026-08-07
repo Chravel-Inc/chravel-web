@@ -191,3 +191,12 @@
 - **Suggested tests:** add `scripts/__tests__/**/*.test.ts` to the vitest include (suite passes 42/42 as of 2026-07-20 when forced via a one-off config).
 - **Priority:** low
 - **Provenance:** 2026-07-20 tech-stack/env-template cleanup
+## 2026-08-07 — Realtime voice server termination
+
+- **Gap:** The client honors the server-authored five-minute duration, but the browser owns the
+  WebSocket after token mint and a modified client can ignore the timer.
+- **Launch containment:** `concierge_realtime_voice` and `cost_voice_realtime` remain off by default;
+  atomic reservations and mint throttles provide defense in depth but are not a duration guarantee.
+- **Required closure:** Add a provider-supported server session expiry or a controlled realtime proxy
+  that terminates sockets, then integration-test termination at the deadline before enabling both
+  flags.

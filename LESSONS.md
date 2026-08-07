@@ -102,6 +102,12 @@ Replies without parent context are unmoored.
 
 ## AI Concierge
 
+### Request rate limits are not cost budgets
+A request counter cannot bound variable-cost work when one request may contain long audio, large context, many document pages, or several paid tool calls; reserve provider-specific units before invocation and reconcile actual usage afterward.
+
+### Availability fail-open is unsafe at a paid-provider boundary
+If the usage ledger cannot be read, reject or degrade discretionary paid inference rather than treating the caller as unlimited; preserve fail-open behavior only for core non-metered product paths.
+
 ### AI concierge writes go through the pending actions buffer, not directly to shared state
 Every AI-initiated mutation pauses for user confirmation via `trip_pending_actions`; bypass = silent state corruption.
 
@@ -636,4 +642,21 @@ Large payloads (~45KB+ with full `ogUtils` demo dataset) can silently deploy an 
 
 ### Capacity RPCs + identity snapshots must exist before add-by-contact happy path
 `add-trip-member-by-contact` inserts `display_name_snapshot` / `avatar_url_snapshot` and calls `is_trip_at_member_capacity`. If those columns/RPCs are missing in prod (migrations present in repo but absent from `schema_migrations`), email/phone add 500s and join preview never returns `member_limit`. Apply `restore_co_member_name_visibility` then `apply_missing_member_limits_and_roster_rpc` before live QA. *Evidence: ChravelApp 2026-07-30 deploy gate.*
+## 2026-08-07 — Provider failure accounting must distinguish “not called” from “unknown billing”
 
+- Release a cost reservation only when the provider invocation never began. Timeouts, HTTP errors,
+  partial streams, and runtime fallbacks may still be billable, so commit the conservative estimate
+  when actual usage is unavailable and make finalization idempotent across fallback branches.
+- When replacing a legacy usage counter, backfill the active billing window into the canonical ledger;
+  otherwise deployment silently grants every user a second monthly allowance.
+
+## 2026-08-07 — Reserve variable cost before the vendor call
+
+- A distributed request limiter cannot prevent concurrent variable-unit overshoot. Serialize a
+  per-user/feature reservation, count both `reserved` and `committed` rows, and release only when the
+  provider definitely did not accept the operation.
+- Client-secret preflights can themselves be billable. Do not mint a throwaway realtime token merely
+  to improve error copy; validate locally and let the real connection perform the single paid mint.
+- A browser disconnect timer is UX containment, not a hostile-client server duration cap. Keep the
+  server-side realtime kill switch off until the provider or a controlled proxy can terminate the
+  paid socket.
