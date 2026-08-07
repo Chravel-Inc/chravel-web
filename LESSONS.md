@@ -244,6 +244,9 @@ Push/email can rewrite via `notificationContentBuilder`, but the Alerts panel re
 ### Task-assignment notifications must target the assignee, not trip-member fanout
 `create_notification_for_trip_members(p_actor := assignee)` excludes the actor and notifies everyone else — the inverse of assignment semantics. Insert a single `notifications` row for `NEW.user_id`, gated by `should_send_notification(..., 'tasks')` + per-trip mute. Guard with a migration SQL regression test that forbids `create_notification_for_trip_members(` in the function body. *Evidence: July 2026 follow-up; original 20251105000000 used `ARRAY[NEW.user_id]`.*
 
+### Trip-wide notification fanout needs an active-recipient filter, not just sender auth
+In service-role notification fan-out code, re-verifying that the caller is an active organizer/admin is not sufficient — the recipient query itself must also mirror `is_active_trip_member` (`status IS NULL OR 'active'`) or soft-deleted `trip_members.status='left'` rows keep receiving in-app/push notifications after leaving. Add a focused regression test for the multi-recipient query shape because single-row membership guardrails do not catch this class. *Evidence: August 2026 daily production audit — `supabase/functions/create-notification/index.ts` authorized the sender correctly but targeted all `trip_members` rows until the active-status filter was added.*
+
 ### Native push tap routing must cover the same tabs as in-app Alerts clicks
 `NativePushRouter` historically only mapped calendar/poll/task/chat entity ids. Payment, broadcast, basecamp, and join taps landed on trip root with no `?tab=`. Mirror `categoryMap` type→tab aliases (and prefer `metadata.tab` when present) so OS push taps and Alerts clicks converge. *Evidence: July 2026 notifications deep-dive, `NativePushRouter.tsx`.*
 
