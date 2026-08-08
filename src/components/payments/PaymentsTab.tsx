@@ -14,7 +14,7 @@ import { PaymentErrorHandler } from '../../services/paymentErrors';
 import { formatCurrency } from '@/services/currencyService';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { AuthModal } from '../AuthModal';
-import { PlusUpsellModal } from '../PlusUpsellModal';
+import { UpgradeModal } from '../UpgradeModal';
 import { LogIn, CheckCircle } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -312,7 +312,7 @@ export const PaymentsTab = React.memo(({ tripId }: PaymentsTabProps) => {
 
       {/* Auth Modal */}
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
-      <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
+      <UpgradeModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
     </div>
   );
 });

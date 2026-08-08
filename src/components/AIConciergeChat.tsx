@@ -42,9 +42,7 @@ import type { ChatMessage } from '@/features/concierge/types';
 import type { UniversalSearchResult } from '@/services/universalSearchService';
 
 // Lazy: only loads when an upgrade moment actually fires (limit hit / chip tap).
-const PlusUpsellModal = lazy(() =>
-  import('./PlusUpsellModal').then(m => ({ default: m.PlusUpsellModal })),
-);
+const UpgradeModal = lazy(() => import('./UpgradeModal').then(m => ({ default: m.UpgradeModal })));
 
 const SEARCH_FOCUS_EVENT = 'chravel:trip-search-focus';
 
@@ -786,11 +784,11 @@ export const AIConciergeChat = ({
       </div>
 
       {/* Upgrade surface — portaled to body so z-index/fixed positioning escapes
-          transformed tab containers. PlusUpsellModal also hosts the Trip Pass option. */}
+          transformed tab containers. UpgradeModal also hosts the Trip Pass option. */}
       {showUpsellModal &&
         createPortal(
           <Suspense fallback={null}>
-            <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
+            <UpgradeModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
           </Suspense>,
           document.body,
         )}

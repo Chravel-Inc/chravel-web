@@ -52,9 +52,7 @@ import {
 } from '../ui/alert-dialog';
 import { toast } from 'sonner';
 
-const PlusUpsellModal = lazy(() =>
-  import('../PlusUpsellModal').then(m => ({ default: m.PlusUpsellModal })),
-);
+const UpgradeModal = lazy(() => import('../UpgradeModal').then(m => ({ default: m.UpgradeModal })));
 
 interface EnhancedAgendaTabProps {
   eventId: string;
@@ -981,7 +979,7 @@ export const EnhancedAgendaTab = ({
 
       {showUpsellModal && (
         <Suspense fallback={null}>
-          <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
+          <UpgradeModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
         </Suspense>
       )}
     </div>

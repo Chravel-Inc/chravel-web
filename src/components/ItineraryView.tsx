@@ -9,9 +9,7 @@ import { cn } from '../lib/utils';
 import { CalendarEvent } from '../types/calendar';
 import { usePdfExportUsage } from '../hooks/usePdfExportUsage';
 
-const PlusUpsellModal = lazy(() =>
-  import('./PlusUpsellModal').then(m => ({ default: m.PlusUpsellModal })),
-);
+const UpgradeModal = lazy(() => import('./UpgradeModal').then(m => ({ default: m.UpgradeModal })));
 
 interface ItineraryViewProps {
   events: CalendarEvent[];
@@ -300,7 +298,7 @@ export const ItineraryView = ({
 
       {showUpsellModal && (
         <Suspense fallback={null}>
-          <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
+          <UpgradeModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
         </Suspense>
       )}
     </div>

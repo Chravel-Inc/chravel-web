@@ -49,8 +49,8 @@ import { normalizeCalendarCategory } from '@/constants/calendarCategories';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { useDeferredPaidAccess } from '@/hooks/useDeferredPaidAccess';
 import { useFeatureFlag } from '@/lib/featureFlags';
-const PlusUpsellModal = lazy(() =>
-  import('@/components/PlusUpsellModal').then(m => ({ default: m.PlusUpsellModal })),
+const UpgradeModal = lazy(() =>
+  import('@/components/UpgradeModal').then(m => ({ default: m.UpgradeModal })),
 );
 import {
   summarizeHomeAwayClassifications,
@@ -1105,7 +1105,7 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
 
       {showUpsellModal && (
         <Suspense fallback={null}>
-          <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
+          <UpgradeModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
         </Suspense>
       )}
     </Dialog>

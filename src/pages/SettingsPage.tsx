@@ -2,8 +2,8 @@ import React, { useState, useCallback, useEffect, lazy, Suspense } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { SettingsMenu } from '../components/SettingsMenu';
 
-const PlusUpsellModal = lazy(() =>
-  import('../components/PlusUpsellModal').then(m => ({ default: m.PlusUpsellModal })),
+const UpgradeModal = lazy(() =>
+  import('../components/UpgradeModal').then(m => ({ default: m.UpgradeModal })),
 );
 
 const SettingsPage = () => {
@@ -47,7 +47,7 @@ const SettingsPage = () => {
       />
       {showUpsellModal && (
         <Suspense fallback={null}>
-          <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
+          <UpgradeModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
         </Suspense>
       )}
     </>

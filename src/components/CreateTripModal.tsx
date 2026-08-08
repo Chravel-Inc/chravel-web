@@ -28,9 +28,7 @@ import { getFeaturePaywallConfig } from './subscription/featurePaywall';
 import { parseLocalDate } from '@/utils/dateHelpers';
 import { prepareImageForUpload, ImagePrepError } from '@/utils/imagePrep';
 
-const PlusUpsellModal = lazy(() =>
-  import('./PlusUpsellModal').then(m => ({ default: m.PlusUpsellModal })),
-);
+const UpgradeModal = lazy(() => import('./UpgradeModal').then(m => ({ default: m.UpgradeModal })));
 
 interface CreateTripModalProps {
   isOpen: boolean;
@@ -822,7 +820,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
 
       {showUpsellModal && (
         <Suspense fallback={null}>
-          <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
+          <UpgradeModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
         </Suspense>
       )}
     </div>

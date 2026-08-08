@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 import { PaymentErrorHandler } from '@/services/paymentErrors';
 import { SPLIT_LIMIT_ERROR_CODE } from '@/services/paymentService';
-import { PlusUpsellModal } from '@/components/PlusUpsellModal';
+import { UpgradeModal } from '@/components/UpgradeModal';
 import { formatCurrency } from '@/services/currencyService';
 import { CURRENCIES } from '@/constants/currencies';
 import { useFeatureFlag } from '@/lib/featureFlags';
@@ -544,7 +544,7 @@ export const CreatePaymentModal = ({
           </div>
         </div>
       )}
-      <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
+      <UpgradeModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
     </>
   );
 };

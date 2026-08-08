@@ -40,7 +40,7 @@ import { toast } from 'sonner';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { useDeferredPaidAccess } from '@/hooks/useDeferredPaidAccess';
 import { useSmartImportTaste } from '@/features/smart-import/hooks/useSmartImportTaste';
-import { PlusUpsellModal } from '@/components/PlusUpsellModal';
+import { UpgradeModal } from '@/components/UpgradeModal';
 import { useRolePermissions } from '@/hooks/useRolePermissions';
 import { useTripMembersQuery } from '@/hooks/useTripMembersQuery';
 import type { TripEvent } from '@/services/calendarService';
@@ -736,7 +736,7 @@ export const MobileGroupCalendar = ({
         onClearPendingResult={clearBackgroundResult}
         onStartBackgroundImport={handleStartBackgroundImport}
       />
-      <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
+      <UpgradeModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
 
       {/* Event Detail Drawer - portaled to body so z-index escapes tab stacking context */}
       {selectedEvent &&
