@@ -164,18 +164,18 @@ export const QUERY_CACHE_CONFIG = {
     refetchOnWindowFocus: false,
   },
 
-  // Payments - sensitive, verify often
+  // Payments - realtime hub invalidates trip_payment_messages; avoid focus refetch on hidden tabs
   payments: {
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   },
 
-  // Payment balances - computed from payments, cache for tab switching
+  // Payment balances - derived from splits; reconcile via invalidation after mutations
   paymentBalances: {
     staleTime: 30 * 1000, // 30 seconds (matches payments)
     gcTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   },
 
   // Places - stable

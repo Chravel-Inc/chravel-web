@@ -34,7 +34,7 @@ import {
   BalanceSummary as BalanceSummaryType,
 } from '@/services/paymentBalanceService';
 import { supabase } from '@/integrations/supabase/client';
-import { optimisticallyAddPayment, buildPaymentMessage } from '@/lib/paymentCacheUtils';
+import { optimisticallyUpdatePayment, optimisticallyRemovePayment } from '@/lib/paymentCacheUtils';
 import { getTripById } from '@/data/tripsData';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useAuth } from '@/hooks/useAuth';
@@ -443,23 +443,13 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
 
         setDemoPayments([...convertedSessionPayments, ...convertedMockPayments]);
       } else {
-        // ⚡ Optimistic update: show payment immediately
-        if (newPayment && user?.id) {
-          const paymentMessage = buildPaymentMessage(newPayment.id, tripId, user.id, {
-            amount: newPayment.amount,
-            currency: newPayment.currency,
-            description: newPayment.description,
-            splitCount: newPayment.splitCount,
-            splitParticipants: newPayment.splitParticipants,
-            paymentMethods: newPayment.paymentMethods,
+        // Reconcile server truth in background (balance, etc.) — create path is optimistic in modal.
+        void queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) });
+        if (user?.id) {
+          void queryClient.invalidateQueries({
+            queryKey: tripKeys.paymentBalances(tripId, user.id),
           });
-          optimisticallyAddPayment(queryClient, tripId, paymentMessage);
         }
-        // Refetch to ensure server truth (balance, etc.)
-        await Promise.all([
-          queryClient.refetchQueries({ queryKey: tripKeys.payments(tripId) }),
-          queryClient.invalidateQueries({ queryKey: tripKeys.members(tripId) }),
-        ]);
       }
     },
     [tripId, demoActive, effectiveTripMembers, queryClient, user?.id],
@@ -472,20 +462,56 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
 
   const handleUpdatePayment = useCallback(
     async (paymentId: string, updates: { amount?: number; description?: string }) => {
-      const success = await paymentService.updatePaymentMessage(paymentId, updates);
-      if (success) refetchPayments();
-      return success;
+      const previousPayments = queryClient.getQueryData(tripKeys.payments(tripId));
+      optimisticallyUpdatePayment(queryClient, tripId, paymentId, updates);
+
+      try {
+        const success = await paymentService.updatePaymentMessage(paymentId, updates);
+        if (!success) {
+          queryClient.setQueryData(tripKeys.payments(tripId), previousPayments);
+          return false;
+        }
+
+        void queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) });
+        if (user?.id) {
+          void queryClient.invalidateQueries({
+            queryKey: tripKeys.paymentBalances(tripId, user.id),
+          });
+        }
+        return true;
+      } catch {
+        queryClient.setQueryData(tripKeys.payments(tripId), previousPayments);
+        return false;
+      }
     },
-    [refetchPayments],
+    [queryClient, tripId, user?.id],
   );
 
   const handleDeletePayment = useCallback(
     async (paymentId: string) => {
-      const success = await paymentService.deletePaymentMessage(paymentId);
-      if (success) refetchPayments();
-      return success;
+      const previousPayments = queryClient.getQueryData(tripKeys.payments(tripId));
+      optimisticallyRemovePayment(queryClient, tripId, paymentId);
+
+      try {
+        const success = await paymentService.deletePaymentMessage(paymentId);
+        if (!success) {
+          queryClient.setQueryData(tripKeys.payments(tripId), previousPayments);
+          return false;
+        }
+
+        void queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) });
+        if (user?.id) {
+          void queryClient.invalidateQueries({
+            queryKey: tripKeys.paymentBalances(tripId, user.id),
+          });
+        }
+        return true;
+      } catch {
+        queryClient.setQueryData(tripKeys.payments(tripId), previousPayments);
+        return false;
+      }
     },
-    [refetchPayments],
+    [queryClient, tripId, user?.id],
   );
 
   const handleRefresh = useCallback(async () => {
