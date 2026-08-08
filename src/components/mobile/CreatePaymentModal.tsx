@@ -24,6 +24,13 @@ import {
   resolvePaymentActorName,
 } from '@/lib/paymentActivityMessages';
 import { useAuth } from '@/hooks/useAuth';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  buildPaymentMessage,
+  optimisticallyAddPayment,
+  replaceOptimisticPaymentId,
+} from '@/lib/paymentCacheUtils';
+import { tripKeys } from '@/lib/queryKeys';
 import { PaymentSplitAllocator } from '@/components/payments/PaymentSplitAllocator';
 
 interface CreatePaymentModalProps {
@@ -73,6 +80,7 @@ export const CreatePaymentModal = ({
   const [showUpsellModal, setShowUpsellModal] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const attachmentsEnabled = useFeatureFlag('payment_attachments', true);
   const attachmentDraft = usePaymentAttachmentDraft();
 
@@ -134,6 +142,7 @@ export const CreatePaymentModal = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    let previousPayments: unknown;
 
     try {
       const paymentData = getPaymentData();
@@ -161,6 +170,18 @@ export const CreatePaymentModal = ({
         return;
       }
 
+      const optimisticId = `optimistic-payment-${Date.now()}`;
+      previousPayments = queryClient.getQueryData(tripKeys.payments(tripId));
+      const optimisticPayment = buildPaymentMessage(optimisticId, tripId, userId, {
+        amount: paymentData.amount,
+        currency: paymentData.currency,
+        description: paymentData.description,
+        splitCount: paymentData.splitCount,
+        splitParticipants: paymentData.splitParticipants,
+        paymentMethods: paymentData.paymentMethods,
+      });
+      optimisticallyAddPayment(queryClient, tripId, optimisticPayment);
+
       const result = await paymentService.createPaymentMessage(tripId, userId, {
         amount: paymentData.amount,
         currency: paymentData.currency,
@@ -173,6 +194,7 @@ export const CreatePaymentModal = ({
       });
 
       if (result.success && result.paymentId && userId) {
+        replaceOptimisticPaymentId(queryClient, tripId, optimisticId, result.paymentId);
         const newPayment = {
           id: result.paymentId,
           amount: paymentData.amount,
@@ -220,6 +242,7 @@ export const CreatePaymentModal = ({
           description: `${paymentData.description} - ${formatCurrency(paymentData.amount, paymentData.currency)}`,
         });
       } else if (result.error) {
+        queryClient.setQueryData(tripKeys.payments(tripId), previousPayments);
         const { title, description } = PaymentErrorHandler.getServiceErrorDisplay(result.error);
         const isSplitLimit = result.error.code === SPLIT_LIMIT_ERROR_CODE;
         toast({
@@ -234,6 +257,9 @@ export const CreatePaymentModal = ({
         });
       }
     } catch (error) {
+      if (previousPayments !== undefined) {
+        queryClient.setQueryData(tripKeys.payments(tripId), previousPayments);
+      }
       if (import.meta.env.DEV) {
         console.error('Failed to create payment:', error);
       }

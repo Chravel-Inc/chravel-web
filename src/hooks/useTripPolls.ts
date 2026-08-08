@@ -672,6 +672,26 @@ export const useTripPolls = (tripId: string) => {
 
   // Close poll mutation
   const closePollMutation = useMutation({
+    onMutate: async ({ pollId }: ClosePollRequest) => {
+      await queryClient.cancelQueries({ queryKey: tripKeys.polls(tripId, isDemoMode) });
+      const previous = queryClient.getQueryData<TripPoll[]>(tripKeys.polls(tripId, isDemoMode));
+      const closedAt = new Date().toISOString();
+
+      queryClient.setQueryData<TripPoll[]>(tripKeys.polls(tripId, isDemoMode), old =>
+        old?.map(p =>
+          p.id === pollId
+            ? {
+                ...p,
+                status: 'closed' as const,
+                closed_at: closedAt,
+                closed_by: user?.id,
+              }
+            : p,
+        ),
+      );
+
+      return { previous };
+    },
     mutationFn: async ({ pollId }: ClosePollRequest) => {
       // Permission guard: event/pro trips restrict poll closing
       if (!permissions.canClosePoll && !isDemoMode) {
@@ -722,7 +742,10 @@ export const useTripPolls = (tripId: string) => {
         );
       }
     },
-    onError: () => {
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(tripKeys.polls(tripId, isDemoMode), context.previous);
+      }
       toast({
         title: 'Error',
         description: 'Failed to close poll. Please try again.',
@@ -733,6 +756,16 @@ export const useTripPolls = (tripId: string) => {
 
   // Delete poll mutation - only creator can delete
   const deletePollMutation = useMutation({
+    onMutate: async (pollId: string) => {
+      await queryClient.cancelQueries({ queryKey: tripKeys.polls(tripId, isDemoMode) });
+      const previous = queryClient.getQueryData<TripPoll[]>(tripKeys.polls(tripId, isDemoMode));
+
+      queryClient.setQueryData<TripPoll[]>(tripKeys.polls(tripId, isDemoMode), old =>
+        old?.filter(p => p.id !== pollId),
+      );
+
+      return { previous };
+    },
     mutationFn: async (pollId: string) => {
       // Permission guard: event/pro trips restrict poll deletion
       if (!permissions.canDeletePoll && !isDemoMode) {
@@ -766,7 +799,10 @@ export const useTripPolls = (tripId: string) => {
         description: 'The poll has been removed.',
       });
     },
-    onError: () => {
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(tripKeys.polls(tripId, isDemoMode), context.previous);
+      }
       toast({
         title: 'Error',
         description: 'Failed to delete poll. Only the creator can delete.',
