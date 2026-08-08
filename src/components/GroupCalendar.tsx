@@ -24,7 +24,7 @@ import { ExportDialog } from '@/features/calendar/components/ExportDialog';
 import { CalendarLoadingState } from '@/features/calendar/components/CalendarLoadingState';
 import { CalendarEmptyState } from '@/features/calendar/components/CalendarEmptyState';
 import { useSmartImportTaste } from '@/features/smart-import/hooks/useSmartImportTaste';
-import { PlusUpsellModal } from '@/components/PlusUpsellModal';
+import { UpgradeModal } from '@/components/UpgradeModal';
 
 interface GroupCalendarProps {
   tripId: string;
@@ -266,7 +266,7 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
           tripEvents={tripEvents}
           onExport={handleExportEvents}
         />
-        <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
+        <UpgradeModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
       </div>
     );
   }
@@ -308,7 +308,7 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
           tripEvents={tripEvents}
           onExport={handleExportEvents}
         />
-        <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
+        <UpgradeModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
       </div>
     );
   }
@@ -412,7 +412,7 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
         tripEvents={tripEvents}
         onExport={handleExportEvents}
       />
-      <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
+      <UpgradeModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
     </div>
   );
 });

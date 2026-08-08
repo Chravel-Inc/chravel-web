@@ -11,6 +11,7 @@ import {
   Wallet,
   Globe,
   Phone,
+  Ticket,
 } from 'lucide-react';
 import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
 import { createCheckoutSession } from '@/billing/checkout';
@@ -25,6 +26,7 @@ import {
 } from '@/integrations/revenuecat/revenuecatClient';
 import { toast } from 'sonner';
 import { CONSUMER_PRICE_DISPLAY, TRIP_PASS_DISPLAY } from '@/billing/pricingDisplay';
+import { TripPassModal } from './conversion/TripPassModal';
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -36,6 +38,7 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
     'explorer' | 'frequent-chraveler' | 'travel-pro'
   >('explorer');
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
+  const [showTripPass, setShowTripPass] = useState(false);
   const { upgradeToTier, isLoading } = useConsumerSubscription();
 
   if (!isOpen) return null;
@@ -104,11 +107,17 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
   };
 
   return (
-    <div className="modal-backdrop z-50 flex items-center justify-center p-4">
-      <div className="bg-card/95 backdrop-blur-xl border border-white/10 rounded-3xl shadow-enterprise-lg p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-3xl font-bold text-white">Choose Your Plan</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
+    <div className="modal-backdrop z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="bg-card/95 backdrop-blur-xl border border-white/10 rounded-t-3xl sm:rounded-3xl shadow-enterprise-lg p-6 sm:p-8 max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto pb-[max(2rem,env(safe-area-inset-bottom))]">
+        <div
+          className="flex items-center justify-between mb-6"
+          style={{ paddingTop: 'max(0px, calc(env(safe-area-inset-top, 0px) + 8px))' }}
+        >
+          <h2 className="text-2xl sm:text-3xl font-bold text-white">Choose Your Plan</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white transition-colors p-2 -m-2 min-w-[44px] min-h-[44px] flex items-center justify-center flex-shrink-0"
+          >
             <X size={24} />
           </button>
         </div>
@@ -231,11 +240,21 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                     </div>
                   </>
                 )}
-                <p className="text-gray-400 text-xs mt-1">
-                  Or get a Trip Pass: {TRIP_PASS_DISPLAY[consumerPlan].label}
-                </p>
                 <p className="text-gray-300 mb-4">14-day free trial • Cancel anytime</p>
               </div>
+
+              {/* One-off Trip Pass alternative — no subscription required */}
+              <button
+                type="button"
+                onClick={() => setShowTripPass(true)}
+                data-testid="trip-pass-affordance"
+                className="mx-auto flex items-center justify-center gap-2 text-sm text-gold-light hover:text-primary underline underline-offset-4 transition-colors min-h-[44px]"
+              >
+                <Ticket size={16} />
+                <span>
+                  Or unlock just this trip — Trip Pass from {TRIP_PASS_DISPLAY[consumerPlan].label}
+                </span>
+              </button>
             </div>
 
             {/* Features */}
@@ -440,6 +459,9 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
           </button>
         </div>
       </div>
+
+      {/* Trip Pass checkout — reuses the existing modal; renders above this overlay */}
+      <TripPassModal open={showTripPass} onOpenChange={setShowTripPass} />
     </div>
   );
 };

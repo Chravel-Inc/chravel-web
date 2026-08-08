@@ -52,9 +52,7 @@ import { EVENT_PARITY_COL_START, EVENT_PARITY_ROW_CLASS } from '@/lib/tabParity'
 import { ActionPill } from '../ui/ActionPill';
 import { EVENT_TAB_PANEL_CLASS } from './EventTabPrimitives';
 
-const PlusUpsellModal = lazy(() =>
-  import('../PlusUpsellModal').then(m => ({ default: m.PlusUpsellModal })),
-);
+const UpgradeModal = lazy(() => import('../UpgradeModal').then(m => ({ default: m.UpgradeModal })));
 
 interface LineupPermissions {
   canView: boolean;
@@ -894,7 +892,7 @@ export const LineupTab = ({
 
       {showUpsellModal && (
         <Suspense fallback={null}>
-          <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
+          <UpgradeModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
         </Suspense>
       )}
     </div>

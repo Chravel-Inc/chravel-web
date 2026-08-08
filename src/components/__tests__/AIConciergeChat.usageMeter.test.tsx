@@ -215,7 +215,7 @@ describe('AIConciergeChat usage meter', () => {
     const { fireEvent } = await import('@testing-library/react');
     fireEvent.click(screen.getByTestId('concierge-limit-upgrade-cta'));
 
-    // PlusUpsellModal is lazy-loaded + portaled to body
+    // UpgradeModal is lazy-loaded + portaled to body
     expect(await screen.findByText(/Start Free Trial/i)).toBeInTheDocument();
     // Trip Pass affordance (B3) is reachable from the same surface
     expect(screen.getByTestId('trip-pass-affordance')).toBeInTheDocument();

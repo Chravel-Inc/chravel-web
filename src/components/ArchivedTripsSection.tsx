@@ -32,9 +32,7 @@ import { demoModeService } from '../services/demoModeService';
 import { tripsData } from '../data/tripsData';
 import { getFeaturePaywallConfig } from './subscription/featurePaywall';
 
-const PlusUpsellModal = lazy(() =>
-  import('./PlusUpsellModal').then(m => ({ default: m.PlusUpsellModal })),
-);
+const UpgradeModal = lazy(() => import('./UpgradeModal').then(m => ({ default: m.UpgradeModal })));
 
 type TabType = 'archived' | 'hidden';
 
@@ -512,7 +510,7 @@ export const ArchivedTripsSection = ({ onTripStateChange }: ArchivedTripsSection
 
       {showUpsellModal && (
         <Suspense fallback={null}>
-          <PlusUpsellModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
+          <UpgradeModal isOpen={showUpsellModal} onClose={() => setShowUpsellModal(false)} />
         </Suspense>
       )}
     </div>

@@ -9,9 +9,7 @@ const SettingsMenu = lazy(() => import('../SettingsMenu').then(m => ({ default: 
 const InviteModal = lazy(() => import('../InviteModal').then(m => ({ default: m.InviteModal })));
 const AuthModal = lazy(() => import('../AuthModal').then(m => ({ default: m.AuthModal })));
 const TripSettings = lazy(() => import('../TripSettings').then(m => ({ default: m.TripSettings })));
-const PlusUpsellModal = lazy(() =>
-  import('../PlusUpsellModal').then(m => ({ default: m.PlusUpsellModal })),
-);
+const UpgradeModal = lazy(() => import('../UpgradeModal').then(m => ({ default: m.UpgradeModal })));
 
 interface TripDetailModalsProps {
   showSettings: boolean;
@@ -68,7 +66,7 @@ export const TripDetailModals = ({
         />
       )}
       {showTripsPlusModal && (
-        <PlusUpsellModal isOpen={showTripsPlusModal} onClose={onCloseTripsPlusModal} />
+        <UpgradeModal isOpen={showTripsPlusModal} onClose={onCloseTripsPlusModal} />
       )}
     </Suspense>
   );
